@@ -37,9 +37,16 @@ export const createServingRuntimeTemplateBackend = async (
   namespace: string,
   platforms: ServingRuntimePlatform[],
   apiProtocol: ServingRuntimeAPIProtocol | undefined,
+  modelTypes: ServingRuntimeModelType[],
 ): Promise<TemplateKind> => {
   try {
-    const template = assembleServingRuntimeTemplate(body, namespace, platforms, apiProtocol);
+    const template = assembleServingRuntimeTemplate(
+      body,
+      namespace,
+      platforms,
+      apiProtocol,
+      modelTypes,
+    );
     const servingRuntime = template.objects[0];
     const servingRuntimeName = servingRuntime.metadata.name;
 
@@ -68,6 +75,7 @@ export const updateServingRuntimeTemplateBackend = (
   namespace: string,
   platforms: ServingRuntimePlatform[],
   apiProtocol: ServingRuntimeAPIProtocol | undefined,
+  modelTypes: ServingRuntimeModelType[],
 ): Promise<TemplateKind> => {
   try {
     const { name } = existingTemplate.metadata;
@@ -82,10 +90,7 @@ export const updateServingRuntimeTemplateBackend = (
       );
     }
 
-    const runtimeModelTypeValue = JSON.stringify([
-      ServingRuntimeModelType.PREDICTIVE,
-      ServingRuntimeModelType.GENERATIVE,
-    ]);
+    const runtimeModelTypeValue = modelTypes.length > 0 ? JSON.stringify(modelTypes) : null;
 
     return dryRunServingRuntimeForTemplateCreationBackend(servingRuntime, namespace).then(() =>
       axios
@@ -108,17 +113,28 @@ export const updateServingRuntimeTemplateBackend = (
                   'opendatahub.io/modelServingSupport': JSON.stringify(platforms),
                 },
               },
-          existingTemplate.metadata.annotations?.['opendatahub.io/modelServingType']
-            ? {
-                op: 'replace',
-                path: '/metadata/annotations/opendatahub.io~1modelServingType',
-                value: runtimeModelTypeValue,
-              }
-            : {
-                op: 'add',
-                path: '/metadata/annotations/opendatahub.io~1modelServingType',
-                value: runtimeModelTypeValue,
-              },
+          ...(existingTemplate.metadata.annotations?.['opendatahub.io/modelServingType']
+            ? [
+                runtimeModelTypeValue
+                  ? {
+                      op: 'replace',
+                      path: '/metadata/annotations/opendatahub.io~1modelServingType',
+                      value: runtimeModelTypeValue,
+                    }
+                  : {
+                      op: 'remove',
+                      path: '/metadata/annotations/opendatahub.io~1modelServingType',
+                    },
+              ]
+            : runtimeModelTypeValue
+            ? [
+                {
+                  op: 'add',
+                  path: '/metadata/annotations/opendatahub.io~1modelServingType',
+                  value: runtimeModelTypeValue,
+                },
+              ]
+            : []),
           existingTemplate.metadata.annotations?.['opendatahub.io/apiProtocol']
             ? {
                 op: 'replace',

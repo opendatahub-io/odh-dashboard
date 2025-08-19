@@ -31,6 +31,7 @@ import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import {
   getAPIProtocolFromTemplate,
   getEnabledPlatformsFromTemplate,
+  getModelTypesFromTemplate,
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeNameFromTemplate,
   isServingRuntimeKind,
@@ -104,6 +105,19 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
     [existingTemplate, copiedServingRuntimeAPIProtocol],
   );
 
+  const copiedServingRuntimeModelTypes = React.useMemo(
+    () => (state ? getModelTypesFromTemplate(state.template) : []),
+    [state],
+  );
+
+  const modelTypes: ServingRuntimeModelType[] = React.useMemo(
+    () =>
+      existingTemplate
+        ? getModelTypesFromTemplate(existingTemplate)
+        : copiedServingRuntimeModelTypes,
+    [existingTemplate, copiedServingRuntimeModelTypes],
+  );
+
   const [code, setCode] = React.useState(stringifiedTemplate);
   const [selectedPlatforms, setSelectedPlatforms] =
     React.useState<ServingRuntimePlatform[]>(enabledPlatforms);
@@ -112,17 +126,28 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
   const [selectedAPIProtocol, setSelectedAPIProtocol] = React.useState<
     ServingRuntimeAPIProtocol | undefined
   >(apiProtocol);
-  const [selectedModelTypes, setSelectedModelTypes] = React.useState<ServingRuntimeModelType[]>([]);
+  const [selectedModelTypes, setSelectedModelTypes] =
+    React.useState<ServingRuntimeModelType[]>(modelTypes);
   const [loading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>(undefined);
   const navigate = useNavigate();
+
+  const modelTypesEqual = (a: ServingRuntimeModelType[], b: ServingRuntimeModelType[]) => {
+    if (a.length !== b.length) {
+      return false;
+    }
+    const sortedA = [...a].toSorted();
+    const sortedB = [...b].toSorted();
+    return sortedA.every((val, index) => val === sortedB[index]);
+  };
 
   const isDisabled =
     (!state &&
       code === stringifiedTemplate &&
       enabledPlatforms.includes(ServingRuntimePlatform.SINGLE) === isSinglePlatformEnabled &&
       enabledPlatforms.includes(ServingRuntimePlatform.MULTI) === isMultiPlatformEnabled &&
-      apiProtocol === selectedAPIProtocol) ||
+      apiProtocol === selectedAPIProtocol &&
+      modelTypesEqual(modelTypes, selectedModelTypes)) ||
     code === '' ||
     selectedPlatforms.length === 0 ||
     !selectedAPIProtocol ||
@@ -240,12 +265,14 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
                         dashboardNamespace,
                         selectedPlatforms,
                         selectedAPIProtocol,
+                        selectedModelTypes,
                       )
                     : createServingRuntimeTemplateBackend(
                         code,
                         dashboardNamespace,
                         selectedPlatforms,
                         selectedAPIProtocol,
+                        selectedModelTypes,
                       );
                   onClickFunc
                     .then(() => {

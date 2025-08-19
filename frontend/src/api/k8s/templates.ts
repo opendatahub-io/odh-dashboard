@@ -24,6 +24,7 @@ export const assembleServingRuntimeTemplate = (
   namespace: string,
   platforms: ServingRuntimePlatform[],
   apiProtocol: ServingRuntimeAPIProtocol | undefined,
+  modelTypes: ServingRuntimeModelType[],
   templateName?: string,
 ): TemplateKind & { objects: ServingRuntimeKind[] } => {
   const servingRuntime: ServingRuntimeKind = YAML.parse(body);
@@ -45,10 +46,9 @@ export const assembleServingRuntimeTemplate = (
       },
       annotations: {
         'opendatahub.io/modelServingSupport': JSON.stringify(platforms),
-        'opendatahub.io/modelServingType': JSON.stringify([
-          ServingRuntimeModelType.PREDICTIVE,
-          ServingRuntimeModelType.GENERATIVE,
-        ]),
+        ...(modelTypes.length > 0 && {
+          'opendatahub.io/modelServingType': JSON.stringify(modelTypes),
+        }),
         ...(apiProtocol && { 'opendatahub.io/apiProtocol': apiProtocol }),
       },
     },
