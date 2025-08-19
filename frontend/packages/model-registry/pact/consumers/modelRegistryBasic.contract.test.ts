@@ -49,6 +49,11 @@ describe('Model Registry API - Mock BFF Contract Tests', () => {
     }
   });
 
+  afterAll((done) => {
+    // Close any open handles
+    setTimeout(done, 500);
+  });
+
   describe('Model Registry List Endpoint', () => {
     it('should successfully retrieve model registries list', async () => {
       expect(bffHealthy).toBe(true);

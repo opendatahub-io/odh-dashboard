@@ -5,7 +5,7 @@
   "version": "0.0.0",
   "scripts": {
     "update-subtree": "../../scripts/package-subtree.sh model-registry",
-    "test:contract": "jest --config=pact/jest.contract.config.js",
+    "test:contract": "jest --config=pact/jest.contract.config.js --detectOpenHandles",
     "test:contract:watch": "npm run test:contract -- --watch",
     "test:contract:with-bff": "pact/scripts/run-with-mock-bff.sh"
   },

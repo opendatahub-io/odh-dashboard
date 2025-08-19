@@ -6,41 +6,61 @@
 
 set -euo pipefail
 
-# Colors for output  
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+# Load shared shell helpers
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PACKAGE_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+HELPERS_FILE="$SCRIPT_DIR/helpers/shell-helpers.sh"
 
-# Logging functions
-log_info() {
-    echo -e "${BLUE}ℹ️  $1${NC}"
-}
+if [[ ! -f "$HELPERS_FILE" ]]; then
+    echo "❌ Could not find shared shell helpers at $HELPERS_FILE"
+    echo "💡 Make sure @odh-dashboard/pact-testing package is installed"
+    exit 1
+fi
 
-log_success() {
-    echo -e "${GREEN}✅ $1${NC}"
-}
-
-log_warning() {
-    echo -e "${YELLOW}⚠️  $1${NC}"
-}
-
-log_error() {
-    echo -e "${RED}❌ $1${NC}"
-}
+source "$HELPERS_FILE"
 
 # Configuration
-PACKAGE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-PACT_DIR="$PACKAGE_DIR/pact"
-BFF_DIR="$PACKAGE_DIR/upstream/bff"
+# Already have PACKAGE_ROOT
+PACT_DIR="$PACKAGE_ROOT/pact"
+BFF_DIR="$PACKAGE_ROOT/upstream/bff"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 TEST_RUN_DIR="$PACT_DIR/pact-test-results/$TIMESTAMP"
 BFF_PID_FILE="$TEST_RUN_DIR/bff.pid"
 BFF_PID=""
 
-# Create test results directory
-mkdir -p "$TEST_RUN_DIR"
+    # Create test results directory
+    mkdir -p "$TEST_RUN_DIR"
+    
+    # Ensure TEST_RUN_DIR is absolute
+    TEST_RUN_DIR="$(cd "$TEST_RUN_DIR" && pwd)"
+    
+    cd "$PACKAGE_ROOT" || exit 1
+    
+    # Set package name for Jest HTML reporter
+    export PACKAGE_NAME="model-registry"
+    
+    # Set Jest HTML reporter environment variables
+    export PACT_TEST_RESULTS_DIR="$TEST_RUN_DIR"
+    export JEST_HTML_REPORT="$TEST_RUN_DIR/contract-test-report.html"
+    export JEST_HTML_REPORTERS_PUBLIC_PATH="$TEST_RUN_DIR"
+    export JEST_HTML_REPORTERS_FILENAME="contract-test-report.html"
+    export JEST_HTML_REPORTERS_EXPAND=true
+    export JEST_HTML_REPORTERS_HIDE_ICON=false
+    export JEST_HTML_REPORTERS_INCLUDE_FAILURE_MSG=true
+    export JEST_HTML_REPORTERS_INCLUDE_SUITE_FAILURE=true
+    export JEST_HTML_REPORTERS_INCLUDE_CONSOLE_LOG=true
+    export JEST_HTML_REPORTERS_INCLUDE_OBSOLETE_SNAPSHOTS=false
+    export JEST_HTML_REPORTERS_INCLUDE_COVERAGE_REPORT=false
+    export JEST_HTML_REPORTERS_INLINE_SOURCE=true
+    export JEST_HTML_REPORTERS_DARK_THEME=false
+    export JEST_HTML_REPORTERS_OPEN_REPORT=false
+    export JEST_HTML_REPORTERS_ATTACH_PATH="$TEST_RUN_DIR"
+    export JEST_HTML_REPORTERS_ATTACH_FILENAME="contract-test-report.html"
+    export JEST_HTML_REPORTERS_ATTACH_ABSOLUTE_PATH=true
+    export JEST_HTML_REPORTERS_ATTACH_INLINE_ASSETS=true
+    export JEST_HTML_REPORTERS_ATTACH_INLINE_ASSETS_PATHS=true
+    export JEST_HTML_REPORTERS_ATTACH_INLINE_ASSETS_ABSOLUTE_PATHS=true
+    export JEST_HTML_REPORTERS_ATTACH_INLINE_ASSETS_PATHS_ABSOLUTE=true
 
 # Cleanup function
 cleanup() {
@@ -83,7 +103,7 @@ check_go() {
 # Build the BFF
 build_bff() {
     log_info "Building Mock BFF server..."
-    cd "$BFF_DIR"
+    cd "$BFF_DIR" || exit 1
     
     if ! go build -o bff-mock ./cmd; then
         log_error "Failed to build BFF server"
@@ -96,7 +116,7 @@ build_bff() {
 # Start BFF in mock mode
 start_mock_bff() {
     log_info "Starting Mock BFF server on port 8080..."
-    cd "$BFF_DIR"
+    cd "$BFF_DIR" || exit 1
     
     # Set up envtest path for Kubernetes testing
     if [[ -z "${KUBEBUILDER_ASSETS:-}" ]]; then
@@ -145,11 +165,10 @@ start_mock_bff() {
 # Run Pact tests
 run_pact_tests() {
     log_info "Running Pact consumer tests against Mock BFF..."
-    cd "$PACKAGE_DIR"
-    
+        cd "$PACKAGE_ROOT" || exit 1
+
     # Set environment for tests
     export PACT_MOCK_BFF_URL="http://localhost:8080"
-    export PACT_TEST_RESULTS_DIR="$TEST_RUN_DIR"
     
     # Create detailed test output files
     TEST_OUTPUT_FILE="$TEST_RUN_DIR/contract-test-output.log"
@@ -166,30 +185,44 @@ run_pact_tests() {
     fi
 }
 
-# Show results
-show_results() {
+# Override display_test_summary to fix path duplication issue
+display_test_summary() {
+    local TEST_RUN_DIR="$1"
+    
     log_info "Test Results Summary:"
     log_info "📂 Test Results Directory: $TEST_RUN_DIR"
-    
-    if [ -d "$PACT_DIR/pacts" ] && [ "$(ls -A "$PACT_DIR/pacts" 2>/dev/null)" ]; then
-        log_success "Contract files generated:"
-        ls -la "$PACT_DIR/pacts/"
-    else
-        log_warning "No contract files found"
+
+    # Create artifacts directory
+    mkdir -p "$TEST_RUN_DIR/artifacts"
+
+    # Copy test artifacts
+    cp -f "$TEST_RUN_DIR/contract-test-report.html" "$TEST_RUN_DIR/artifacts/" 2>/dev/null || true
+    cp -f "$TEST_RUN_DIR/junit.xml" "$TEST_RUN_DIR/artifacts/" 2>/dev/null || true
+    cp -f "$TEST_RUN_DIR/bff-mock.log" "$TEST_RUN_DIR/artifacts/" 2>/dev/null || true
+
+    # Show test artifacts
+    if [ -d "$TEST_RUN_DIR/artifacts" ] && [ "$(ls -A "$TEST_RUN_DIR/artifacts")" ]; then
+        log_info "📋 Generated test artifacts:"
+        ls -la "$TEST_RUN_DIR/artifacts"
     fi
-    
+
+    # Show available logs
     log_info "📋 Available logs:"
-    ls -la "$TEST_RUN_DIR"/
-    
-    # Show test summary from log file
-    if grep -q "Test Suites:" "$TEST_OUTPUT_FILE" 2>/dev/null; then
+    ls -la "$TEST_RUN_DIR"
+
+    # Parse test results if available
+    if grep -q "Test Suites:" "$TEST_RUN_DIR/contract-test-output.log" 2>/dev/null; then
         log_info "📊 Test Summary:"
-        grep "Test Suites:" "$TEST_OUTPUT_FILE" || true
-        grep "Tests:" "$TEST_OUTPUT_FILE" || true
+        grep "Test Suites:" "$TEST_RUN_DIR/contract-test-output.log" | tail -1
+        grep "Tests:" "$TEST_RUN_DIR/contract-test-output.log" | tail -1
     fi
+}
+
+# Override open_html_report to fix path duplication issue
+open_html_report() {
+    local TEST_RUN_DIR="$1"
+    local JEST_HTML_REPORT="$TEST_RUN_DIR/contract-test-report.html"
     
-    # Open Jest HTML report
-    JEST_HTML_REPORT="$TEST_RUN_DIR/contract-test-report.html"
     if [[ -f "$JEST_HTML_REPORT" ]]; then
         log_info "📊 Opening Jest HTML report..."
         if command -v open >/dev/null 2>&1; then
@@ -204,10 +237,13 @@ show_results() {
     else
         log_warning "Jest HTML report not found at $JEST_HTML_REPORT"
     fi
-    
-    log_success "🎉 Mock BFF integration test completed!"
-    log_info "💡 View detailed results: ls -la $TEST_RUN_DIR"
-    log_info "📊 HTML Report: $TEST_RUN_DIR/contract-test-report.html"
+}
+
+# Show results
+show_results() {
+    display_test_summary "$TEST_RUN_DIR"
+    open_html_report "$TEST_RUN_DIR"
+    complete_test_summary "Model Registry" "$TEST_RUN_DIR"
 }
 
 # Main execution

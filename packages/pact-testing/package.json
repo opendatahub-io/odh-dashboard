@@ -3,7 +3,15 @@
   "name": "@odh-dashboard/pact-testing",
   "description": "Shared utilities for Pact contract testing across ODH Dashboard packages.",
   "version": "0.0.0",
-  "scripts": {},
+  "scripts": {
+    "build": "tsc && mkdir -p dist/helpers && cp src/helpers/shell-helpers.sh dist/helpers/",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:contract": "jest --config jest.contract.config.js",
+    "test:contract:watch": "jest --config jest.contract.config.js --watch",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix"
+  },
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"

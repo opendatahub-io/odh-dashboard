@@ -40,6 +40,7 @@ export class ContractApiClient {
   ): Promise<ApiTestResult> {
     const url = `${this.config.baseUrl}${path}`;
     const headers = { ...this.config.defaultHeaders, ...options.headers };
+    const controller = new AbortController();
 
     try {
       logApiCall('GET', url, headers);
@@ -48,6 +49,7 @@ export class ContractApiClient {
         headers,
         params: options.params,
         timeout: this.config.timeout,
+        signal: controller.signal,
       });
 
       const apiResponse: ApiResponse = {
@@ -68,6 +70,8 @@ export class ContractApiClient {
         success: false,
         error: apiError,
       };
+    } finally {
+      controller.abort();
     }
   }
 
@@ -88,6 +92,7 @@ export class ContractApiClient {
       ...this.config.defaultHeaders, 
       ...options.headers 
     };
+    const controller = new AbortController();
 
     try {
       logApiCall('POST', url, headers);
@@ -95,6 +100,7 @@ export class ContractApiClient {
       const response: AxiosResponse = await axios.post(url, data, {
         headers,
         timeout: this.config.timeout,
+        signal: controller.signal,
       });
 
       const apiResponse: ApiResponse = {
@@ -115,6 +121,8 @@ export class ContractApiClient {
         success: false,
         error: apiError,
       };
+    } finally {
+      controller.abort();
     }
   }
 
@@ -135,6 +143,7 @@ export class ContractApiClient {
       ...this.config.defaultHeaders, 
       ...options.headers 
     };
+    const controller = new AbortController();
 
     try {
       logApiCall('PUT', url, headers);
@@ -142,6 +151,7 @@ export class ContractApiClient {
       const response: AxiosResponse = await axios.put(url, data, {
         headers,
         timeout: this.config.timeout,
+        signal: controller.signal,
       });
 
       const apiResponse: ApiResponse = {
@@ -162,6 +172,8 @@ export class ContractApiClient {
         success: false,
         error: apiError,
       };
+    } finally {
+      controller.abort();
     }
   }
 
@@ -177,6 +189,7 @@ export class ContractApiClient {
   ): Promise<ApiTestResult> {
     const url = `${this.config.baseUrl}${path}`;
     const headers = { ...this.config.defaultHeaders, ...options.headers };
+    const controller = new AbortController();
 
     try {
       logApiCall('DELETE', url, headers);
@@ -184,6 +197,7 @@ export class ContractApiClient {
       const response: AxiosResponse = await axios.delete(url, {
         headers,
         timeout: this.config.timeout,
+        signal: controller.signal,
       });
 
       const apiResponse: ApiResponse = {
@@ -204,6 +218,8 @@ export class ContractApiClient {
         success: false,
         error: apiError,
       };
+    } finally {
+      controller.abort();
     }
   }
 

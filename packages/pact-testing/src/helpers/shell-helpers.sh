@@ -171,14 +171,20 @@ display_test_summary() {
     local TEST_RUN_DIR="$1"
     
     log_info "Test Results Summary:"
-    log_info "📂 Test Results Directory: $(pwd)/$TEST_RUN_DIR"
+    log_info "📂 Test Results Directory: $TEST_RUN_DIR"
 
-    # Check for pact files (may not exist in Mock BFF mode)
-    if [ -d "pacts" ] && [ "$(ls -A pacts)" ]; then
-        log_info "📋 Generated pact files:"
-        ls -la pacts/
-    else
-        log_warning "No contract files found"
+    # Create artifacts directory
+    mkdir -p "$TEST_RUN_DIR/artifacts"
+
+    # Copy test artifacts
+    cp -f "$TEST_RUN_DIR/contract-test-report.html" "$TEST_RUN_DIR/artifacts/" 2>/dev/null || true
+    cp -f "$TEST_RUN_DIR/junit.xml" "$TEST_RUN_DIR/artifacts/" 2>/dev/null || true
+    cp -f "$TEST_RUN_DIR/bff-mock.log" "$TEST_RUN_DIR/artifacts/" 2>/dev/null || true
+
+    # Show test artifacts
+    if [ -d "$TEST_RUN_DIR/artifacts" ] && [ "$(ls -A $TEST_RUN_DIR/artifacts)" ]; then
+        log_info "📋 Generated test artifacts:"
+        ls -la "$TEST_RUN_DIR/artifacts"
     fi
 
     # Show available logs
@@ -196,18 +202,18 @@ display_test_summary() {
 # Open HTML report in browser
 open_html_report() {
     local TEST_RUN_DIR="$1"
-    local JEST_HTML_REPORT="$TEST_RUN_DIR/contract-test-report.html"
+    local JEST_HTML_REPORT="${JEST_HTML_REPORT:-$TEST_RUN_DIR/contract-test-report.html}"
     
     if [[ -f "$JEST_HTML_REPORT" ]]; then
         log_info "📊 Opening Jest HTML report..."
         if command -v open >/dev/null 2>&1; then
             log_info "🌐 Opening report in browser..."
-            open "file://$(pwd)/$JEST_HTML_REPORT"
+            open "file://$JEST_HTML_REPORT"
         elif command -v xdg-open >/dev/null 2>&1; then
             log_info "🌐 Opening report in browser..."
-            xdg-open "file://$(pwd)/$JEST_HTML_REPORT"
+            xdg-open "file://$JEST_HTML_REPORT"
         else
-            log_info "🌐 Open in browser: file://$(pwd)/$JEST_HTML_REPORT"
+            log_info "🌐 Open in browser: file://$JEST_HTML_REPORT"
         fi
     else
         log_warning "Jest HTML report not found at $JEST_HTML_REPORT"
