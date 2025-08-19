@@ -14,7 +14,8 @@ import {
 import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 
 type PVCFieldsProps = {
-  selectedPVC: PersistentVolumeClaimKind;
+  selectedPVC?: PersistentVolumeClaimKind;
+  selectedPVCName: string;
   setModelUri: (uri: string) => void;
   modelPath: string;
   setIsConnectionValid: (isValid: boolean) => void;
@@ -23,6 +24,7 @@ type PVCFieldsProps = {
 
 export const PVCFields: React.FC<PVCFieldsProps> = ({
   selectedPVC,
+  selectedPVCName,
   setModelUri,
   modelPath,
   setModelPath,
@@ -32,7 +34,7 @@ export const PVCFields: React.FC<PVCFieldsProps> = ({
   const generateModelUri = (pvcName: string, path: string): string => `pvc://${pvcName}/${path}`;
 
   const validateModelPath = (newPath: string): boolean => {
-    const uri = generateModelUri(selectedPVC.metadata.name, newPath);
+    const uri = generateModelUri(selectedPVCName, newPath);
     return pathRegex.test(uri);
   };
 
@@ -40,7 +42,7 @@ export const PVCFields: React.FC<PVCFieldsProps> = ({
     const trimmedPath = newPath.trim();
     setModelPath(trimmedPath);
     if (trimmedPath && validateModelPath(trimmedPath)) {
-      setModelUri(generateModelUri(selectedPVC.metadata.name, trimmedPath));
+      setModelUri(generateModelUri(selectedPVCName, trimmedPath));
       setIsConnectionValid(true);
     } else {
       setIsConnectionValid(false);
@@ -59,7 +61,7 @@ export const PVCFields: React.FC<PVCFieldsProps> = ({
       <StackItem>
         <FormGroup label="Model path" isRequired>
           <InputGroup>
-            <InputGroupText>pvc://{selectedPVC.metadata.name}/</InputGroupText>
+            <InputGroupText>pvc://{selectedPVCName}/</InputGroupText>
             <InputGroupItem isFill>
               <TextInput
                 id="folder-path"
