@@ -1,35 +1,35 @@
 /**
  * @odh-dashboard/pact-testing
- * 
+ *
  * Shared utilities for contract testing across ODH Dashboard packages.
  * Provides reusable components for API testing, BFF verification, schema validation,
  * and consistent logging for packages like model-registry, kserve, etc.
- * 
+ *
  * ## Quick Start
- * 
+ *
  * ```typescript
- * import { 
- *   ContractApiClient, 
- *   verifyBffHealth, 
+ * import {
+ *   ContractApiClient,
+ *   verifyBffHealth,
  *   ContractSchemaValidator,
- *   logTestSetup 
+ *   logTestSetup
  * } from '@odh-dashboard/pact-testing';
- * 
+ *
  * // 1. Set up test logging
  * logTestSetup('my-package', 'http://localhost:8080', './results');
- * 
+ *
  * // 2. Verify BFF is healthy
  * const health = await verifyBffHealth({ url: 'http://localhost:8080' });
- * 
+ *
  * // 3. Create API client for testing
  * const apiClient = new ContractApiClient({
  *   baseUrl: 'http://localhost:8080',
  *   defaultHeaders: { 'kubeflow-userid': 'user@example.com' }
  * });
- * 
+ *
  * // 4. Test API endpoints
  * const result = await apiClient.get('/api/v1/endpoint', 'Test Name');
- * 
+ *
  * // 5. Validate response schema
  * const validator = new ContractSchemaValidator();
  * await validator.loadSchema('MySchema', schemaObject);
@@ -47,7 +47,7 @@ export {
   logApiError,
   logTestSetup,
   logTestSuccess,
-  
+
   // Type definitions for API interactions
   type ApiCallHeaders,
   type ApiResponse,
