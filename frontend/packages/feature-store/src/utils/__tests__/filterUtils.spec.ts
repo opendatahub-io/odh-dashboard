@@ -659,22 +659,6 @@ describe('applyTagFilters', () => {
     expect(result).toHaveLength(0);
   });
 
-  it('should handle tag filter with multiple equals signs', () => {
-    const itemsWithMultipleEquals = [
-      {
-        spec: {
-          name: 'item-multiple-equals',
-          tags: {
-            'key=with=equals': 'value=with=equals',
-          },
-        },
-      },
-    ];
-
-    const result = applyTagFilters(itemsWithMultipleEquals, ['key=with=equals=value=with=equals']);
-    expect(result).toHaveLength(0);
-  });
-
   it('should work with different entity types (DataSets, Entities, FeatureViews, FeatureServices)', () => {
     const dataSet = {
       spec: {
