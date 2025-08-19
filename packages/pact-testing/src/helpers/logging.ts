@@ -112,10 +112,9 @@ export function logApiError(testName: string, error: ApiError): void {
     console.error(`📄 Error Body: ${JSON.stringify(sanitizedBody, null, 2)}`);
   }
   
-  if (error.message) {
+    if (error.message) {
     console.error(`💬 Error Message: ${error.message}`);
-  }
-}
+  }}
 
 /**
  * Log test setup information

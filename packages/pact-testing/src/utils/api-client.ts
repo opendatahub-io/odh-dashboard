@@ -36,7 +36,7 @@ export class ContractApiClient {
     options: {
       headers?: Record<string, string>;
       params?: Record<string, string>;
-    } = {}
+    } = {},
   ): Promise<ApiTestResult> {
     const url = `${this.config.baseUrl}${path}`;
     const headers = { ...this.config.defaultHeaders, ...options.headers };
