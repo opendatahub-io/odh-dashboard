@@ -7,7 +7,7 @@
     "build": "tsc && mkdir -p dist/helpers && cp src/helpers/shell-helpers.sh dist/helpers/",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:contract": "jest --config jest.contract.config.js",
+    "test:contract": "npm run test:contract:with-bff",
     "test:contract:watch": "jest --config jest.contract.config.js --watch",
     "test:contract:with-bff": "scripts/run-with-mock-bff.sh",
     "lint": "eslint src --ext .ts,.tsx",
@@ -15,7 +15,8 @@
   },
   "main": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./api": "./src/api.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",

@@ -1,5 +1,5 @@
 describe('Sample contract test', () => {
-  it('should pass', () => {
+  it.skip('should pass (skipped example test)', () => {
     expect(true).toBe(true);
   });
 });

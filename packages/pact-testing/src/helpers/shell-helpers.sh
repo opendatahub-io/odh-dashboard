@@ -3,6 +3,9 @@
 # Shared shell helper functions for Pact testing scripts
 # Source this file in your package's run-with-mock-bff.sh script
 
+# Enable strict mode
+set -euo pipefail
+
 # Color codes for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -29,11 +32,23 @@ log_error() {
 
 # Create timestamped results directory
 create_test_results_dir() {
-    local TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-    local PACT_TEST_RESULTS_BASE="pact/pact-test-results"
-    local TEST_RUN_DIR="$PACT_TEST_RESULTS_BASE/$TIMESTAMP"
+    local TIMESTAMP
+    local PACT_TEST_RESULTS_BASE
+    local TEST_RUN_DIR
+    
+    TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+    PACT_TEST_RESULTS_BASE="pact/pact-test-results"
+    TEST_RUN_DIR="$PACT_TEST_RESULTS_BASE/$TIMESTAMP"
     
     mkdir -p "$TEST_RUN_DIR"
+    
+    # Convert to absolute path
+    if command -v realpath >/dev/null 2>&1; then
+        TEST_RUN_DIR=$(realpath "$TEST_RUN_DIR")
+    else
+        TEST_RUN_DIR="$(cd "$TEST_RUN_DIR" && pwd)"
+    fi
+    
     export PACT_TEST_RESULTS_DIR="$TEST_RUN_DIR"
     echo "$TEST_RUN_DIR"
 }
@@ -45,7 +60,8 @@ check_go_available() {
         exit 1
     fi
 
-    local GO_VERSION=$(go version)
+    local GO_VERSION
+    GO_VERSION=$(go version)
     log_success "Go found: $GO_VERSION"
 }
 
@@ -55,9 +71,9 @@ build_bff_server() {
     local TEST_RUN_DIR="$2"
     
     log_info "Building Mock BFF server..."
-    cd "$BFF_DIR"
+    cd "$BFF_DIR" || exit 1
 
-    if ! make build > "../../../$TEST_RUN_DIR/bff-build.log" 2>&1; then
+    if ! make build > "$TEST_RUN_DIR/bff-build.log" 2>&1; then
         log_error "Failed to build BFF server. Check log: $TEST_RUN_DIR/bff-build.log"
         exit 1
     fi
@@ -69,9 +85,9 @@ build_bff_server() {
 kill_process_on_port() {
     local PORT="$1"
     
-    if lsof -ti:$PORT >/dev/null 2>&1; then
+    if lsof -ti:"$PORT" >/dev/null 2>&1; then
         log_warning "Port $PORT is in use, attempting to kill existing process..."
-        lsof -ti:$PORT | xargs kill -9 || true
+        lsof -ti:"$PORT" | xargs kill -9 || true
         sleep 2
     fi
 }
@@ -82,23 +98,27 @@ start_bff_server() {
     local BFF_PORT="$2"
     local BFF_MOCK_FLAGS="$3"
     local TEST_RUN_DIR="$4"
+    local BFF_PID
     
     log_info "Starting Mock BFF server on port $BFF_PORT..."
+    
+    # Create test run directory if it doesn't exist
+    mkdir -p "$TEST_RUN_DIR"
     
     # Kill any existing process on the port
     kill_process_on_port "$BFF_PORT"
 
     # Start BFF in background, redirecting output to log
-    ./$BFF_BINARY_NAME --port $BFF_PORT $BFF_MOCK_FLAGS > "../../../$TEST_RUN_DIR/bff-mock.log" 2>&1 &
-    local BFF_PID=$!
+    ./"$BFF_BINARY_NAME" --port "$BFF_PORT" $BFF_MOCK_FLAGS > "$TEST_RUN_DIR/bff-mock.log" 2>&1 &
+    BFF_PID=$!
 
     # Store PID for cleanup
-    echo $BFF_PID > "../../../$TEST_RUN_DIR/bff.pid"
+    echo "$BFF_PID" > "$TEST_RUN_DIR/bff.pid"
 
     log_info "Mock BFF started (PID: $BFF_PID)"
-    log_info "BFF logs: $(pwd)/../../../$TEST_RUN_DIR/bff-mock.log"
+    log_info "BFF logs: $TEST_RUN_DIR/bff-mock.log"
     
-    echo $BFF_PID
+    echo "$BFF_PID"
 }
 
 # Wait for BFF to be ready
@@ -106,10 +126,10 @@ wait_for_bff_ready() {
     local BFF_PORT="$1"
     local MAX_ATTEMPTS="${2:-30}"
     local TEST_RUN_DIR="$3"
+    local attempt=0
     
     log_info "Waiting for Mock BFF to be ready..."
 
-    local attempt=0
     while [ $attempt -lt $MAX_ATTEMPTS ]; do
         if curl -s -f "http://localhost:$BFF_PORT/healthcheck" > /dev/null 2>&1; then
             log_success "Mock BFF is ready!"
@@ -133,15 +153,15 @@ cleanup_bff() {
     
     if [ -n "$BFF_PID" ]; then
         log_info "Stopping Mock BFF server (PID: $BFF_PID)"
-        kill $BFF_PID 2>/dev/null || true
+        kill "$BFF_PID" 2>/dev/null || true
         
         # Wait a moment for graceful shutdown
         sleep 2
         
         # Force kill if still running
-        if kill -0 $BFF_PID 2>/dev/null; then
+        if kill -0 "$BFF_PID" 2>/dev/null; then
             log_warning "Force killing BFF server..."
-            kill -9 $BFF_PID 2>/dev/null || true
+            kill -9 "$BFF_PID" 2>/dev/null || true
         fi
     fi
 }
@@ -182,7 +202,7 @@ display_test_summary() {
     cp -f "$TEST_RUN_DIR/bff-mock.log" "$TEST_RUN_DIR/artifacts/" 2>/dev/null || true
 
     # Show test artifacts
-    if [ -d "$TEST_RUN_DIR/artifacts" ] && [ "$(ls -A $TEST_RUN_DIR/artifacts)" ]; then
+    if [ -d "$TEST_RUN_DIR/artifacts" ] && [ "$(ls -A "$TEST_RUN_DIR/artifacts")" ]; then
         log_info "📋 Generated test artifacts:"
         ls -la "$TEST_RUN_DIR/artifacts"
     fi

@@ -1,15 +1,38 @@
 #!/bin/bash
 
-# Source shared shell helpers
-source "$(dirname "$0")/../dist/helpers/shell-helpers.sh"
+# Enable strict mode
+set -euo pipefail
+
+# Resolve script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PACKAGE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Try dist helpers first, then fall back to src
+HELPERS_DIST="$PACKAGE_ROOT/dist/helpers/shell-helpers.sh"
+HELPERS_SRC="$PACKAGE_ROOT/src/helpers/shell-helpers.sh"
+
+if [[ -f "$HELPERS_DIST" ]]; then
+    # shellcheck disable=SC1090
+    source "$HELPERS_DIST"
+elif [[ -f "$HELPERS_SRC" ]]; then
+    # shellcheck disable=SC1090
+    source "$HELPERS_SRC"
+else
+    echo "❌ Could not find shell helpers in dist/ or src/"
+    echo "💡 Try building the package first"
+    exit 1
+fi
 
 # Set up variables
-PACKAGE_ROOT="$(cd "$(dirname "$0")/.." || exit 1; pwd)"
 PACT_DIR="$PACKAGE_ROOT/pact"
-TEST_RUN_DIR="$PACT_DIR/pact-test-results/$(date +%Y%m%d_%H%M%S)"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+TEST_RUN_DIR="$PACT_DIR/pact-test-results/$TIMESTAMP"
 
 # Create test results directory
 mkdir -p "$TEST_RUN_DIR"
+
+# Ensure TEST_RUN_DIR is absolute
+TEST_RUN_DIR="$(cd "$TEST_RUN_DIR" && pwd)"
 
 # Export environment variables for Jest HTML Reporter
 export JEST_HTML_REPORTERS_PUBLIC_PATH="$TEST_RUN_DIR"
@@ -36,8 +59,10 @@ fi
 display_test_summary "$TEST_RUN_DIR"
 
 # Open HTML report if not in CI
-if [ -z "$CI" ]; then
-  open_html_report "$TEST_RUN_DIR"
+if [[ "${CI:-}" != "true" ]]; then
+  if ! open_html_report "$TEST_RUN_DIR" 2>/dev/null; then
+    log_warning "Could not open HTML report in browser"
+  fi
 fi
 
 exit $TEST_EXIT_CODE

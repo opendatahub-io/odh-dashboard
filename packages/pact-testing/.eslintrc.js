@@ -7,7 +7,7 @@ module.exports = {
     '@typescript-eslint/no-explicit-any': 'off',
     '@typescript-eslint/consistent-type-assertions': 'off',
     '@typescript-eslint/no-unsafe-assignment': 'off',
-    '@typescript-eslint/comma-dangle': 'off',
+    'comma-dangle': 'off',
 
     // Console logs are expected in test utilities
     'no-console': 'off',

@@ -14,7 +14,7 @@ This package provides shared utilities and configurations for contract testing a
 ### For Module Developers
 
 1. **Extend Base Configurations**:
-   ```json
+   ```js
    // jest.contract.config.js
    const baseConfig = require('../../packages/pact-testing/jest.contract.config.base.js');
    module.exports = {

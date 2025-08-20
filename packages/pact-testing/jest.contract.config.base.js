@@ -1,4 +1,20 @@
-const baseConfig = require('./jest.config.base.ts').default;
+// Try to load compiled JS config first
+let baseConfig;
+try {
+  baseConfig = require('./jest.config.base.js');
+} catch (e) {
+  // If JS config not found, try TS config
+  try {
+    require('ts-node/register');
+    baseConfig = require('./jest.config.base.ts').default;
+  } catch (tsError) {
+    throw new Error(
+      'Could not load Jest base config. Ensure either jest.config.base.js exists ' +
+      'or ts-node is available to load jest.config.base.ts.\n' +
+      'Original error: ' + (tsError.message || e.message)
+    );
+  }
+}
 
 module.exports = {
   ...baseConfig,
