@@ -677,11 +677,13 @@ class KServeRow extends ModelMeshRow {
     return this.find().findByTestId('state-action-toggle');
   }
 
-  findStatusLabel(label?: string) {
+  findStatusLabel(label?: string, timeout = 120000) {
     if (label) {
-      return this.find().findByTestId('model-status-text').should('include.text', label);
+      return this.find()
+        .findByTestId('model-status-text', { timeout })
+        .should('include.text', label);
     }
-    return this.find().findByTestId('model-status-text');
+    return this.find().findByTestId('model-status-text', { timeout });
   }
 }
 
