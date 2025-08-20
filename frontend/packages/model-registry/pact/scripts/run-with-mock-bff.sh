@@ -9,7 +9,7 @@ set -euo pipefail
 # Load shared shell helpers from pact-testing package
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PACKAGE_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-HELPERS_FILE="$(cd "$PACKAGE_ROOT/../.." && pwd)/packages/pact-testing/src/helpers/shell-helpers.sh"
+HELPERS_FILE="$(cd "$PACKAGE_ROOT/../../.." && pwd)/packages/pact-testing/src/helpers/shell-helpers.sh"
 
 if [[ ! -f "$HELPERS_FILE" ]]; then
     echo "❌ Could not find shared shell helpers at $HELPERS_FILE"

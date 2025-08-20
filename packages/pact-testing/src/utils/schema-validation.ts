@@ -1,5 +1,5 @@
 import type { JSONSchemaType } from 'ajv';
-import AjvModule from 'ajv';
+import AjvModule from 'ajv/dist/2020';
 import addFormats from 'ajv-formats';
 
 export interface SchemaValidationConfig {

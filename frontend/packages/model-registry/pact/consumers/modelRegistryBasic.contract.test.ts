@@ -24,7 +24,7 @@ const TEST_RESULTS_DIR = process.env.PACT_TEST_RESULTS_DIR || './pact/pact-test-
 const DEFAULT_HEADERS = { 'kubeflow-userid': 'user@example.com' };
 
 // Create BFF configuration
-const bffConfig = createBffConfig('Model Registry', 8080);
+const bffConfig = createBffConfig({ url: BFF_URL });
 
 // Create API client
 const apiClient = new ContractApiClient({
