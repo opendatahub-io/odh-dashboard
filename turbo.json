@@ -29,7 +29,8 @@
         "$TURBO_ROOT$/packages/tsconfig/**"
       ],
       "outputs": [
-        "pact/pact-test-results/**"
+        "pact/pact-test-results/**",
+        "pact-test-results/**"
       ]
     }
   }
