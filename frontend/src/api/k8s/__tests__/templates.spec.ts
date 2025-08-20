@@ -12,7 +12,11 @@ import { TemplateModel } from '#~/api/models';
 import { K8sDSGResource, TemplateKind } from '#~/k8sTypes';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
-import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '#~/types';
+import {
+  ServingRuntimeAPIProtocol,
+  ServingRuntimePlatform,
+  ServingRuntimeModelType,
+} from '#~/types';
 import { genRandomChars } from '#~/utilities/string';
 import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 
@@ -66,10 +70,12 @@ describe('assembleServingRuntimeTemplate', () => {
       namespace,
       [ServingRuntimePlatform.MULTI],
       ServingRuntimeAPIProtocol.REST,
+      [ServingRuntimeModelType.PREDICTIVE, ServingRuntimeModelType.GENERATIVE],
       'template-1',
     );
     expect(result).toStrictEqual(servingRuntimeTemplatesMock);
   });
+
   it('should assemble serving runtime template without templateName', () => {
     genRandomCharsMock.mockReturnValue('123');
     const servingRuntimeMock = JSON.stringify(createServingRuntime('template-123'));
@@ -83,6 +89,7 @@ describe('assembleServingRuntimeTemplate', () => {
       namespace,
       [ServingRuntimePlatform.MULTI],
       ServingRuntimeAPIProtocol.REST,
+      [ServingRuntimeModelType.PREDICTIVE, ServingRuntimeModelType.GENERATIVE],
     );
     expect(result).toStrictEqual(servingRuntimeTemplatesMock);
   });
@@ -95,6 +102,7 @@ describe('assembleServingRuntimeTemplate', () => {
         namespace,
         [ServingRuntimePlatform.MULTI],
         ServingRuntimeAPIProtocol.REST,
+        [ServingRuntimeModelType.PREDICTIVE],
       );
     }).toThrow('Serving runtime name is required');
   });
