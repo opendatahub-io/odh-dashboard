@@ -83,16 +83,17 @@ describe('Verify a user can deploy KServe Raw Deployment Model', () => {
       cy.step(
         'Verify deployment mode dropdown exists and Select Standard Deployment mode (KServe Raw)',
       );
-      inferenceServiceModal.findDeploymentModeSelect().should('exist');
-      inferenceServiceModal.findDeploymentModeSelect().findSelectOption('Standard').click();
+      inferenceServiceModal.findDeploymentModeSelect().click();
+      inferenceServiceModal.findStandardDeploymentModeSelect().click();
+      inferenceServiceModal.findDeploymentModeSelect().click();
       inferenceServiceModal
-        .findDeploymentModeSelect()
-        .findSelectOption('Standard')
+        .findStandardDeploymentModeSelect()
+        .find('button')
         .should('have.attr', 'aria-selected', 'true');
 
       inferenceServiceModal
-        .findDeploymentModeSelect()
-        .findSelectOption('Advanced')
+        .findAdvancedDeploymentModeSelect()
+        .find('button')
         .should('have.attr', 'aria-selected', 'false');
       inferenceServiceModal.findLocationPathInput().type(modelFilePath);
       cy.step('Deploy the model');

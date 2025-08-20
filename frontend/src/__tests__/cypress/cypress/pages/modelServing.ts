@@ -229,6 +229,14 @@ class InferenceServiceModal extends ServingModal {
     return this.find().findByTestId('deployment-mode-select');
   }
 
+  findStandardDeploymentModeSelect() {
+    return cy.findByTestId('RawDeployment');
+  }
+
+  findAdvancedDeploymentModeSelect() {
+    return cy.findByTestId('Serverless');
+  }
+
   findDeployedModelRouteCheckbox() {
     return this.find().findByTestId('alt-form-checkbox-route');
   }
