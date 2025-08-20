@@ -1913,6 +1913,21 @@ describe('Serving Runtime List', () => {
       kserveModal.findMinReplicasPlusButton().click();
       kserveModal.findMinReplicasInput().should('have.value', '2');
 
+      // Test max replicas error message
+      kserveModal.findMaxReplicasInput().clear().type('1');
+      kserveModal.findMaxReplicasErrorMessage().should('exist');
+      kserveModal.findMaxReplicasInput().type('6');
+      kserveModal.findMaxReplicasErrorMessage().should('not.exist');
+
+      // Test min replicas error message
+      kserveModal.findMaxReplicasInput().clear().type('6');
+      kserveModal.findMinReplicasInput().clear().type('8');
+      kserveModal.findMinReplicasErrorMessage().should('exist');
+      kserveModal.findSubmitButton().should('be.disabled');
+      kserveModal.findMinReplicasInput().clear().type('4');
+      kserveModal.findMinReplicasErrorMessage().should('not.exist');
+      kserveModal.findSubmitButton().should('be.enabled');
+
       // Test max limit of 99
       kserveModal.findMaxReplicasInput().clear().type('100');
       kserveModal.findMaxReplicasInput().should('have.value', '99');
@@ -1978,8 +1993,8 @@ describe('Serving Runtime List', () => {
           },
           spec: {
             predictor: {
-              minReplicas: 2,
-              maxReplicas: 2,
+              minReplicas: 4,
+              maxReplicas: 4,
               model: {
                 modelFormat: { name: 'onnx', version: '1' },
                 runtime: 'test-name',
@@ -2399,7 +2414,7 @@ describe('Serving Runtime List', () => {
       kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       // Auto-selects the only pvc
-      kserveModal.findPVCConnectionOption().should('be.visible').click();
+      kserveModal.findPVCConnectionOption().scrollIntoView().should('be.visible').click();
       kserveModal.findLocationPathInput().should('have.value', 'test-path');
       kserveModal.findSubmitButton().should('be.enabled');
       kserveModal.findSubmitButton().click();

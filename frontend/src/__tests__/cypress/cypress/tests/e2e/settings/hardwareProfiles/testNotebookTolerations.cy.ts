@@ -20,8 +20,8 @@ import { checkNotebookTolerations } from '#~/__tests__/cypress/cypress/utils/oc_
 describe('Notebooks - tolerations tests', () => {
   let testData: NotebookTolerationsTestData;
 
-  retryableBefore(() => {
-    return cy
+  retryableBefore(() =>
+    cy
       .fixture('e2e/hardwareProfiles/testNotebookTolerations.yaml', 'utf8')
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as NotebookTolerationsTestData;
@@ -30,13 +30,15 @@ describe('Notebooks - tolerations tests', () => {
         cy.log(`Loaded Hardware Profile Name: ${testData.hardwareProfileName}`);
         // Cleanup Hardware Profile if it already exists
         createCleanHardwareProfile(testData.resourceYamlPath);
-      });
-  });
+      }),
+  );
 
   // Cleanup: Delete Hardware Profile and the associated Project
   after(() => {
     // Check if the Before Method was executed to perform the setup
-    if (!wasSetupPerformed()) return;
+    if (!wasSetupPerformed()) {
+      return;
+    }
 
     // Check if a notebook is running and delete if it is
     deleteNotebook('jupyter-nb');

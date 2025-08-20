@@ -13,10 +13,8 @@ export interface NotebookImageInfo {
   versions: string[];
 }
 
-export const getNotebookImageNames = (
-  namespace: string,
-): Cypress.Chainable<NotebookImageInfo[]> => {
-  return cy.exec(`oc get imagestream -n ${namespace} -o json`).then((result) => {
+export const getNotebookImageNames = (namespace: string): Cypress.Chainable<NotebookImageInfo[]> =>
+  cy.exec(`oc get imagestream -n ${namespace} -o json`).then((result) => {
     const imagestreams: ImageStream[] = JSON.parse(result.stdout).items;
     const imageInfos: NotebookImageInfo[] = [];
 
@@ -33,4 +31,3 @@ export const getNotebookImageNames = (
 
     return imageInfos;
   });
-};

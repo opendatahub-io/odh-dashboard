@@ -11,11 +11,13 @@ import ScrollableLinksPopover from '../../components/ScrollableLinksPopover';
 type FeatureServiceTableRowType = {
   featureService: FeatureService;
   fsProject?: string;
+  onTagClick: (tag: string) => void;
 };
 
 const FeatureServiceTableRow: React.FC<FeatureServiceTableRowType> = ({
   featureService,
   fsProject,
+  onTagClick,
 }) => (
   <Tr>
     <Td dataLabel="Feature service">
@@ -36,7 +38,11 @@ const FeatureServiceTableRow: React.FC<FeatureServiceTableRowType> = ({
     </Td>
     <Td dataLabel="Project">{fsProject ?? featureService.project}</Td>
     <Td dataLabel="Tags">
-      <FeatureStoreTags tags={featureService.spec.tags ?? {}} threshold={3} />
+      <FeatureStoreTags
+        tags={featureService.spec.tags ?? {}}
+        threshold={3}
+        onTagClick={onTagClick}
+      />
     </Td>
     <Td dataLabel="Feature views">
       <ScrollableLinksPopover

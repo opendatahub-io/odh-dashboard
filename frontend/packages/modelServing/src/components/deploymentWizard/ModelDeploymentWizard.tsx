@@ -4,29 +4,38 @@ import { Wizard, WizardStep } from '@patternfly/react-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { getDeploymentWizardExitRoute } from './utils';
 
+import {
+  useModelDeploymentWizard,
+  type UseModelDeploymentWizardProps,
+} from './useDeploymentWizard';
+import { ModelSourceStepContent } from './steps/ModelSourceStep';
+
 type ModelDeploymentWizardProps = {
   title: string;
   description?: string;
   primaryButtonText: string;
+  existingData?: UseModelDeploymentWizardProps;
 };
 
 const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   title,
   description,
   primaryButtonText,
+  existingData,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-
   const exitWizard = React.useCallback(() => {
     navigate(getDeploymentWizardExitRoute(location.pathname));
   }, [navigate, location.pathname]);
 
+  const modelDeploymentWizardData = useModelDeploymentWizard(existingData);
+
   return (
     <ApplicationsPage title={title} description={description} loaded empty={false}>
-      <Wizard title="Basic wizard" onClose={exitWizard} onSave={exitWizard}>
+      <Wizard onClose={exitWizard} onSave={exitWizard}>
         <WizardStep name="Source model" id="source-model-step">
-          Step 1 content
+          <ModelSourceStepContent wizardData={modelDeploymentWizardData} />
         </WizardStep>
         <WizardStep name="Model deployment" id="model-deployment-step">
           Step 2 content

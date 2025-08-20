@@ -354,7 +354,9 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
 
 // Handle skipped suites in afterEach hook
 afterEach(function afterEachHook(this: Mocha.Context) {
-  if (!this.currentTest) return;
+  if (!this.currentTest) {
+    return;
+  }
 
   const suiteTitle = this.currentTest.parent?.title;
   if (suiteTitle && Cypress.skippedSuites.has(suiteTitle)) {

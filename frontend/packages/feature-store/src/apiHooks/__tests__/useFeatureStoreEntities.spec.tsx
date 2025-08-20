@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
-import { testHook } from '@odh-dashboard/internal/__tests__/unit/testUtils/hooks';
-import { mockEntity, mockEntities } from '@odh-dashboard/internal/__mocks__/mockEntities';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
+import { mockEntity, mockEntities } from '../../__mocks__/mockEntities';
 import { useFeatureStoreAPI } from '../../FeatureStoreContext';
 import { EntityList } from '../../types/entities';
 import useFeatureStoreEntities from '../useFeatureStoreEnitites';

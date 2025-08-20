@@ -57,6 +57,10 @@ class FeatureServiceTableRow extends TableRow {
     this.find().find('[data-label="Tags"]').should('contain.text', tag);
     return this;
   }
+
+  findTags() {
+    return this.find().find('[data-label="Tags"]');
+  }
 }
 
 class FeatureServiceToolbar extends Contextual<HTMLElement> {

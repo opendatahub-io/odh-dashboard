@@ -11,11 +11,14 @@ export interface Relationship {
 }
 
 export const featureViewTableFilterKeyMapping: Record<string, string> = {
-  'Feature view': 'spec.name',
-  Project: 'project',
-  Tags: 'spec.tags',
-  Features: 'features',
-  Owner: 'spec.owner',
+  featureView: 'spec.name',
+  project: 'project',
+  tag: 'spec.tags',
+  features: 'features',
+  owner: 'spec.owner',
+  storeType: 'storeType',
+  created: 'meta.createdTimestamp',
+  updated: 'meta.lastUpdatedTimestamp',
 };
 
 const featureViewFilterUtils = createFeatureStoreFilterUtils<FeatureView, FeatureStoreRelationship>(
@@ -50,9 +53,9 @@ export const applyFeatureViewFilters = (
   relationships: Record<string, FeatureStoreRelationship[]>,
   filterData: Record<string, string | { label: string; value: string } | undefined>,
 ): FeatureView[] => {
-  const storeTypeFilter = filterData['Store type'];
+  const storeTypeFilter = filterData.storeType;
   const otherFilters = { ...filterData };
-  delete otherFilters['Store type'];
+  delete otherFilters.storeType;
 
   let filteredViews = featureViewFilterUtils.applyFilters(
     featureViews,
@@ -184,28 +187,25 @@ export const formatFeatureViewDataSources = (
     case 'onDemandFeatureView': {
       if ('sources' in featureView.spec) {
         Object.entries(featureView.spec.sources).forEach(([, source]) => {
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          if (source && typeof source === 'object') {
-            if ('requestDataSource' in source && source.requestDataSource) {
-              dataSources.push({
-                sourceType: 'On-Demand',
-                name: source.requestDataSource.name || '-',
-                fileUrl: '-',
-                createdDate: source.requestDataSource.meta.createdTimestamp || '-',
-                lastModifiedDate: source.requestDataSource.meta.lastUpdatedTimestamp || '-',
-              });
-            }
+          if (source.requestDataSource) {
+            dataSources.push({
+              sourceType: 'On-Demand',
+              name: source.requestDataSource.name || '-',
+              fileUrl: '-',
+              createdDate: source.requestDataSource.meta.createdTimestamp || '-',
+              lastModifiedDate: source.requestDataSource.meta.lastUpdatedTimestamp || '-',
+            });
+          }
 
-            if ('featureViewProjection' in source && source.featureViewProjection?.batchSource) {
-              dataSources.push({
-                sourceType: 'Projection',
-                name: source.featureViewProjection.batchSource.name || '-',
-                fileUrl: source.featureViewProjection.batchSource.fileOptions.uri || '-',
-                createdDate: source.featureViewProjection.batchSource.meta?.createdTimestamp || '-',
-                lastModifiedDate:
-                  source.featureViewProjection.batchSource.meta?.lastUpdatedTimestamp || '-',
-              });
-            }
+          if (source.featureViewProjection?.batchSource) {
+            dataSources.push({
+              sourceType: 'Projection',
+              name: source.featureViewProjection.batchSource.name || '-',
+              fileUrl: source.featureViewProjection.batchSource.fileOptions.uri || '-',
+              createdDate: source.featureViewProjection.batchSource.meta?.createdTimestamp || '-',
+              lastModifiedDate:
+                source.featureViewProjection.batchSource.meta?.lastUpdatedTimestamp || '-',
+            });
           }
         });
       }
@@ -276,13 +276,7 @@ export const formatOnDemandFeatureViewSources = (
     };
   }> = [];
 
-  Object.entries(sources).forEach(([sourceKey, source]) => {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (!source || typeof source !== 'object') {
-      return;
-    }
-
-    const { requestDataSource, featureViewProjection } = source;
+  Object.entries(sources).forEach(([sourceKey, { requestDataSource, featureViewProjection }]) => {
     if (requestDataSource) {
       formattedSources.push({
         sourceKey,

@@ -8,10 +8,9 @@ import { applyOpenShiftYaml } from './baseCommands';
 export const createS3LoaderPod = (
   replacements: PVCLoaderPodReplacements,
   yamlFilePath = 'resources/yaml/pvc-loader-pod.yaml',
-): Cypress.Chainable<CommandLineResult> => {
-  return cy.fixture(yamlFilePath).then((yamlContent) => {
+): Cypress.Chainable<CommandLineResult> =>
+  cy.fixture(yamlFilePath).then((yamlContent) => {
     const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, replacements);
     cy.log('Creating S3 copy pod with YAML:', modifiedYamlContent);
     return applyOpenShiftYaml(modifiedYamlContent);
   });
-};

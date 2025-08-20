@@ -21,9 +21,7 @@ jobs:
           lookup-only: true
           path: |
             ~/.cache/Cypress
-            ${{ github.workspace }}/node_modules
-            ${{ github.workspace }}/backend/node_modules
-            ${{ github.workspace }}/frontend/node_modules
+            **/node_modules
           key: ${{ steps.key.outputs.modules-cache-key }}
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         if: steps.modules-cache.outputs.cache-hit != 'true'
@@ -51,21 +49,17 @@ jobs:
         with:
           path: |
             ~/.cache/Cypress
-            ${{ github.workspace }}/node_modules
-            ${{ github.workspace }}/backend/node_modules
-            ${{ github.workspace }}/frontend/node_modules
+            **/node_modules
           key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
       - name: Cache turbo
         uses: actions/cache@v4
         with:
-          path: |
-            ${{ github.workspace }}/backend/.turbo
-            ${{ github.workspace }}/frontend/.turbo
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}
+          path: ${{ github.workspace }}/.turbo
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-type-check
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
       - name: Run type checks
-        run: npm run test:type-check
+        run: npm run type-check
 
   Lint:
     needs: Setup
@@ -81,12 +75,17 @@ jobs:
         with:
           path: |
             ~/.cache/Cypress
-            ${{ github.workspace }}/node_modules
-            ${{ github.workspace }}/backend/node_modules
-            ${{ github.workspace }}/frontend/node_modules
+            **/node_modules
           key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: Cache turbo
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.turbo
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-lint
+          restore-keys: |
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
       - name: Run linting and formatting checks
-        run: NODE_OPTIONS="--max-old-space-size=8192" npm run lint:frontend:backend
+        run: NODE_OPTIONS="--max-old-space-size=8192" npm run lint
 
   Unit-Tests:
     needs: [Setup, Lint, Type-Check]
@@ -102,48 +101,24 @@ jobs:
         with:
           path: |
             ~/.cache/Cypress
-            ${{ github.workspace }}/node_modules
-            ${{ github.workspace }}/backend/node_modules
-            ${{ github.workspace }}/frontend/node_modules
+            **/node_modules
           key: ${{ needs.Setup.outputs.modules-cache-key }}
-      - name: Run backend unit tests with coverage
+      - name: Cache turbo
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.turbo
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-unit-tests
+          restore-keys: |
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
+      - name: Unit tests with coverage
         run: |
-          npm run test:backend:unit-coverage
-          mkdir -p ./backend/coverage
-          if [ -d "./backend/jest-coverage" ]; then
-            cp -R ./backend/jest-coverage/* ./backend/coverage/
-          elif [ -d "./jest-coverage" ]; then
-            cp -R ./jest-coverage/* ./backend/coverage/
-          fi
-      - name: Cleanup backend interim artifacts
-        run: |
-          rm -rf ./backend/jest-coverage
-          rm -rf ./jest-coverage
-      - name: Run frontend unit tests with coverage
-        run: |
-          npm run test:frontend:unit-coverage
-          mkdir -p ./frontend/coverage
-          if [ -d "./frontend/jest-coverage" ]; then
-            cp -R ./frontend/jest-coverage/* ./frontend/coverage/
-          elif [ -d "./jest-coverage" ]; then
-            cp -R ./jest-coverage/* ./frontend/coverage/
-          fi
-      - name: Cleanup frontend interim artifacts
-        run: |
-          rm -rf ./frontend/jest-coverage
-          rm -rf ./jest-coverage
-      - name: Upload frontend unit test coverage
+          npm run test-unit-coverage
+      - name: Upload unit test coverage
         uses: actions/upload-artifact@v4
         with:
           name: unit-coverage
-          path: ./frontend/coverage
+          path: ./jest-coverage
           if-no-files-found: error
-      - name: Upload backend unit test coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-coverage
-          path: ./backend/coverage
-          if-no-files-found: warn
 
   Get-Test-Groups:
     runs-on: ubuntu-latest
@@ -202,9 +177,7 @@ jobs:
         with:
           path: |
             ~/.cache/Cypress
-            ${{ github.workspace }}/node_modules
-            ${{ github.workspace }}/backend/node_modules
-            ${{ github.workspace }}/frontend/node_modules
+            **/node_modules
           key: ${{ needs.Setup.outputs.modules-cache-key }}
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
@@ -234,9 +207,7 @@ jobs:
         with:
           path: |
             ~/.cache/Cypress
-            ${{ github.workspace }}/node_modules
-            ${{ github.workspace }}/backend/node_modules
-            ${{ github.workspace }}/frontend/node_modules
+            **/node_modules
           key: ${{ needs.Setup.outputs.modules-cache-key }}
       - name: Restore Cypress build cache
         uses: actions/cache/restore@v4

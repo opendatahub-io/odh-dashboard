@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { act } from 'react';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import useDraggableTable from '#~/utilities/useDraggableTable';
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
 
 const setItemOrder = jest.fn();
 

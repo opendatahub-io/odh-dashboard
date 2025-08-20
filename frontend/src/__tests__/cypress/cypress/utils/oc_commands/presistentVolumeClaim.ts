@@ -17,8 +17,8 @@ import { applyOpenShiftYaml } from './baseCommands';
 export const createPersistentVolumeClaim = (
   persistentVolumeClaimReplacements: PVCReplacements,
   yamlFilePath = 'resources/yaml/persistentVolumeClaim.yaml',
-): Cypress.Chainable<CommandLineResult> => {
-  return cy.fixture(yamlFilePath).then((yamlContent) => {
+): Cypress.Chainable<CommandLineResult> =>
+  cy.fixture(yamlFilePath).then((yamlContent) => {
     const modifiedYamlContent = replacePlaceholdersInYaml(
       yamlContent,
       persistentVolumeClaimReplacements,
@@ -26,4 +26,3 @@ export const createPersistentVolumeClaim = (
     cy.log(modifiedYamlContent);
     return applyOpenShiftYaml(modifiedYamlContent);
   });
-};

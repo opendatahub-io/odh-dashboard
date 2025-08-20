@@ -4,7 +4,6 @@ import type {
   AreaExtension,
   RouteExtension,
   OverviewSectionExtension,
-  ProjectDetailsRoute,
 } from '@odh-dashboard/plugin-core/extension-points';
 // Allow this import as it consists of types and enums only.
 // eslint-disable-next-line no-restricted-syntax
@@ -18,7 +17,6 @@ const extensions: (
   | HrefNavItemExtension
   | RouteExtension
   | OverviewSectionExtension
-  | ProjectDetailsRoute
 )[] = [
   {
     type: 'app.area',
@@ -74,9 +72,9 @@ const extensions: (
     },
   },
   {
-    type: 'app.project-details/route',
+    type: 'app.route',
     properties: {
-      path: 'deploy/*',
+      path: '/projects/:namespace/deploy/*',
       component: () => import('../src/ModelDeploymentWizardRoutes'),
     },
     flags: {

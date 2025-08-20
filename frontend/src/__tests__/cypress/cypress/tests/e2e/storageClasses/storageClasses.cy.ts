@@ -26,7 +26,9 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
 
   after(() => {
     //Check if the Before Method was executed to perform the setup
-    if (!wasSetupPerformed()) return;
+    if (!wasSetupPerformed()) {
+      return;
+    }
 
     // Delete provisioned SCs
     tearDownStorageClassFeature(createdStorageClasses);
