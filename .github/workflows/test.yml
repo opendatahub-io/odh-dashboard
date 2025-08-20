@@ -1,11 +1,24 @@
+# ODH Dashboard Test Workflow
+# This workflow runs all tests including:
+# - Type checking
+# - Linting
+# - Unit tests
+# - Contract tests (for Model Registry)
+# - Cypress tests
 name: Test
+
 on: [push, pull_request]
+
 env:
   NODE_VERSION: 20.x
   DO_NOT_TRACK: 1
+  CACHE_VERSION: v1  # Increment this when cache structure changes
+  TURBO_VERSION: 1.10.3  # Pin turbo version for cache stability
+
 jobs:
   Setup:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       modules-cache-key: ${{ steps.key.outputs.modules-cache-key }}
     steps:
@@ -14,7 +27,7 @@ jobs:
         id: key
         run: |
           set -euo pipefail
-          echo "modules-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}" >> "$GITHUB_OUTPUT"
+          echo "modules-cache-key=${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}" >> "$GITHUB_OUTPUT"
       - name: Node.js modules cache
         uses: actions/cache@v4
         id: modules-cache
@@ -31,14 +44,19 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       - name: Install dependencies
         if: steps.modules-cache.outputs.cache-hit != 'true'
-        run: npm install
+        run: |
+          set -euo pipefail
+          npm install
 
       - name: Check for uncommitted changes
-        run: git diff --exit-code
+        run: |
+          set -euo pipefail
+          git diff --exit-code
 
   Type-Check:
     needs: Setup
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
@@ -56,15 +74,19 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.turbo
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-type-check
+          key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-type-check
           restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
+            ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
       - name: Run type checks
-        run: npm run type-check
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          npm run type-check
 
   Lint:
     needs: Setup
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
@@ -82,15 +104,19 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.turbo
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-lint
+          key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-lint
           restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
+            ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
       - name: Run linting and formatting checks
-        run: NODE_OPTIONS="--max-old-space-size=8192" npm run lint
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          NODE_OPTIONS="--max-old-space-size=8192" npm run lint
 
   Unit-Tests:
     needs: [Setup, Lint, Type-Check]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
@@ -108,10 +134,11 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.turbo
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-unit-tests
+          key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-unit-tests
           restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
+            ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
       - name: Unit tests with coverage
+        timeout-minutes: 10
         run: |
           set -euo pipefail
           npm run test-unit-coverage
@@ -119,13 +146,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: unit-coverage
-          path: ./jest-coverage
+          path: ${{ github.workspace }}/jest-coverage
           if-no-files-found: error
 
   Contract-Tests:
     needs: [Setup, Lint, Type-Check]
     runs-on: ubuntu-latest
-    timeout-minutes: 15  # Timeout for the entire job
+    timeout-minutes: 15  # Overall job timeout
     steps:
       - uses: actions/checkout@v4
         with:
@@ -148,16 +175,16 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.turbo
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-contract-tests
+          key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-contract-tests
           restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
+            ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
 
+      # Only run contract tests if Model Registry has changes
       - name: Check for model-registry changes
         id: changes
-        working-directory: ./frontend
+        working-directory: ${{ github.workspace }}/frontend
         run: |
           set -euo pipefail
-          # Check for changes in model-registry package
           echo "Checking for changes in model-registry package..."
 
           # Check if there are tasks to run for model-registry
@@ -175,20 +202,21 @@ jobs:
         with:
           go-version: '1.21.6'
           cache: true
-          cache-dependency-path: frontend/packages/model-registry/upstream/bff/go.sum
+          cache-dependency-path: ${{ github.workspace }}/frontend/packages/model-registry/upstream/bff/go.sum
 
       - name: Cache kubebuilder assets
         if: steps.changes.outputs.changed == 'true'
         uses: actions/cache@v4
         with:
-          path: frontend/packages/model-registry/upstream/bff/bin
-          key: ${{ runner.os }}-kubebuilder-1.29.0
+          path: ${{ github.workspace }}/frontend/packages/model-registry/upstream/bff/bin
+          key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-kubebuilder-1.29.0
           restore-keys: |
-            ${{ runner.os }}-kubebuilder-
+            ${{ env.CACHE_VERSION }}-${{ runner.os }}-kubebuilder-
 
       - name: Setup Go test dependencies (kubebuilder assets)
         if: steps.changes.outputs.changed == 'true'
-        working-directory: ./frontend/packages/model-registry/upstream/bff
+        working-directory: ${{ github.workspace }}/frontend/packages/model-registry/upstream/bff
+        timeout-minutes: 5
         run: |
           set -euo pipefail
           echo "📦 Installing kubebuilder test assets..."
@@ -201,8 +229,8 @@ jobs:
 
       - name: Run Model Registry contract tests
         if: steps.changes.outputs.changed == 'true'
-        working-directory: ./frontend/packages/model-registry
-        timeout-minutes: 10  # Timeout for the test step
+        working-directory: ${{ github.workspace }}/frontend/packages/model-registry
+        timeout-minutes: 10  # Test step timeout
         run: |
           set -euo pipefail
           echo "🧪 Running Model Registry contract tests..."
@@ -214,14 +242,15 @@ jobs:
         with:
           name: contract-test-results
           path: |
-            frontend/packages/*/pact/pact-test-results/*/contract-test-report.html
-            frontend/packages/*/pact/pact-test-results/*/junit.xml
-            frontend/packages/*/pact/pact-test-results/*/contract-test-output.log
-            frontend/packages/*/pact/pact-test-results/*/bff-mock.log
+            ${{ github.workspace }}/frontend/packages/*/pact/pact-test-results/*/contract-test-report.html
+            ${{ github.workspace }}/frontend/packages/*/pact/pact-test-results/*/junit.xml
+            ${{ github.workspace }}/frontend/packages/*/pact/pact-test-results/*/contract-test-output.log
+            ${{ github.workspace }}/frontend/packages/*/pact/pact-test-results/*/bff-mock.log
           if-no-files-found: warn
 
   Get-Test-Groups:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       test-groups: ${{ steps.set-groups.outputs.test-groups }}
     steps:
@@ -233,13 +262,13 @@ jobs:
           set -x  # Enable debug mode to see each command
 
           echo "Checking directory structure..."
-          ls -la frontend/src/__tests__/cypress/cypress/tests/ || echo "Base test directory not found"
+          ls -la ${{ github.workspace }}/frontend/src/__tests__/cypress/cypress/tests/ || echo "Base test directory not found"
 
-          if [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked" ]; then
+          if [ -d "${{ github.workspace }}/frontend/src/__tests__/cypress/cypress/tests/mocked" ]; then
             echo "Found mocked tests directory"
 
             # Get directories and create JSON array - force compact output with -c
-            DIRS=$(cd frontend/src/__tests__/cypress/cypress/tests/mocked && \
+            DIRS=$(cd ${{ github.workspace }}/frontend/src/__tests__/cypress/cypress/tests/mocked && \
                   find . -name "*.cy.*" -printf "%h\n" | sed 's|^\./||' | sort -u | \
                   jq -R . | jq -c -s .)
 
@@ -256,6 +285,7 @@ jobs:
   Cypress-Setup:
     needs: [Setup]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       cypress-cache-key: ${{ steps.key.outputs.cypress-cache-key }}
     steps:
@@ -264,7 +294,7 @@ jobs:
         id: key
         run: |
           set -euo pipefail
-          echo "cypress-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-build-${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          echo "cypress-cache-key=${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-build-${{ github.sha }}" >> "$GITHUB_OUTPUT"
       - name: Cypress build cache
         uses: actions/cache@v4
         id: cypress-build-cache
@@ -288,14 +318,17 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       - name: Build frontend for cypress
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
-        run: npm run cypress:server:build:coverage
-        working-directory: ./frontend
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          cd ${{ github.workspace }}/frontend && npm run cypress:server:build:coverage
 
   Cypress-Mock-Tests:
     needs: [Setup, Lint, Type-Check, Cypress-Setup, Get-Test-Groups]
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # Longer timeout for Cypress
     strategy:
-      fail-fast: false
+      fail-fast: false  # Continue other groups if one fails
       matrix:
         test-group: ${{ fromJson(needs.Get-Test-Groups.outputs.test-groups) }}
     steps:
@@ -318,29 +351,31 @@ jobs:
             ${{ github.workspace }}/frontend/public-cypress
           key: ${{ needs.Cypress-Setup.outputs.cypress-cache-key }}
       - name: Run Cypress Mock tests
+        timeout-minutes: 20  # Per test group timeout
         run: |
           set -euo pipefail
+          cd ${{ github.workspace }}/frontend
           if [ "${{ matrix.test-group }}" == "default" ]; then
             npm run test:cypress-ci:coverage:nobuild
           else
             npm run test:cypress-ci:coverage:nobuild -- --spec "src/__tests__/cypress/cypress/tests/mocked/${{ matrix.test-group }}/*"
           fi
-        working-directory: ./frontend
       - name: Upload Cypress Mock results
+        if: always()  # Upload even if tests fail
         uses: actions/upload-artifact@v4
-        if: ${{ always() }}
         with:
           name: cypress-results-${{ matrix.test-group }}
-          path: ./frontend/src/__tests__/cypress/results/mocked
+          path: ${{ github.workspace }}/frontend/src/__tests__/cypress/results/mocked
       - name: Upload Cypress coverage
         uses: actions/upload-artifact@v4
         with:
           name: cypress-coverage-${{ matrix.test-group }}
-          path: ./frontend/src/__tests__/cypress/coverage
+          path: ${{ github.workspace }}/frontend/src/__tests__/cypress/coverage
 
   Combine-Results-and-Upload:
     needs: [Unit-Tests, Cypress-Mock-Tests]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
@@ -350,58 +385,61 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          path: all-artifacts
+          path: ${{ github.workspace }}/all-artifacts
       - name: Install dependencies
-        run: npm install nyc --no-save
+        run: |
+          set -euo pipefail
+          npm install nyc --no-save
       - name: Combine coverage reports
         run: |
           set -euo pipefail
-          mkdir -p ./coverage
-          cp all-artifacts/unit-coverage/coverage-final.json ./coverage/unit-coverage-final.json || true
-          [ -f all-artifacts/backend-coverage/coverage-final.json ] && cp all-artifacts/backend-coverage/coverage-final.json ./coverage/backend-coverage-final.json || true
-          find all-artifacts -name "cypress-coverage-*" -type d | while read dir; do
-          group_name=$(basename "$dir")
-          cp "$dir/coverage-final.json" "./coverage/${group_name}-coverage-final.json" || true
+          mkdir -p ${{ github.workspace }}/coverage
+          cp ${{ github.workspace }}/all-artifacts/unit-coverage/coverage-final.json ${{ github.workspace }}/coverage/unit-coverage-final.json || true
+          [ -f ${{ github.workspace }}/all-artifacts/backend-coverage/coverage-final.json ] && cp ${{ github.workspace }}/all-artifacts/backend-coverage/coverage-final.json ${{ github.workspace }}/coverage/backend-coverage-final.json || true
+          find ${{ github.workspace }}/all-artifacts -name "cypress-coverage-*" -type d | while read dir; do
+            group_name=$(basename "$dir")
+            cp "$dir/coverage-final.json" "${{ github.workspace }}/coverage/${group_name}-coverage-final.json" || true
           done
           echo "Combined coverage files:"
-          ls -R ./coverage
+          ls -R ${{ github.workspace }}/coverage
       - name: Merge coverage reports
         run: |
           set -euo pipefail
-          npx nyc merge ./coverage ./coverage/merged-coverage.json
+          npx nyc merge ${{ github.workspace }}/coverage ${{ github.workspace }}/coverage/merged-coverage.json
           echo "Cleaning up merged coverage file..."
-          jq 'del(.[] | select(.statementMap == {}))' ./coverage/merged-coverage.json > ./coverage/cleaned-coverage.json
-          mv ./coverage/cleaned-coverage.json ./coverage/merged-coverage.json
+          jq 'del(.[] | select(.statementMap == {}))' ${{ github.workspace }}/coverage/merged-coverage.json > ${{ github.workspace }}/coverage/cleaned-coverage.json
+          mv ${{ github.workspace }}/coverage/cleaned-coverage.json ${{ github.workspace }}/coverage/merged-coverage.json
       - name: Generate coverage report
         run: |
           set -euo pipefail
-          mkdir -p ./coverage/report
-          npx nyc report --reporter=html --reporter=text-summary --temp-directory ./coverage -t ./coverage --report-dir ./coverage/report
-          cp ./coverage/unit-coverage-final.json ./coverage/combined-coverage-final.json || true
+          mkdir -p ${{ github.workspace }}/coverage/report
+          npx nyc report --reporter=html --reporter=text-summary --temp-directory ${{ github.workspace }}/coverage -t ${{ github.workspace }}/coverage --report-dir ${{ github.workspace }}/coverage/report
+          cp ${{ github.workspace }}/coverage/unit-coverage-final.json ${{ github.workspace }}/coverage/combined-coverage-final.json || true
       - name: Upload combined results
         uses: actions/upload-artifact@v4
         with:
           name: combined-coverage-results
-          path: ./coverage/combined-coverage-final.json
+          path: ${{ github.workspace }}/coverage/combined-coverage-final.json
       - name: Cleanup interim coverage files
         run: |
           set -euo pipefail
-          rm -rf ./coverage/unit-coverage-final.json
-          rm -rf ./coverage/backend-coverage-final.json
-          find ./coverage -name "*-coverage-final.json" -type f -delete
+          rm -rf ${{ github.workspace }}/coverage/unit-coverage-final.json
+          rm -rf ${{ github.workspace }}/coverage/backend-coverage-final.json
+          find ${{ github.workspace }}/coverage -name "*-coverage-final.json" -type f -delete
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4.6.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
           name: frontend-and-backend
-          file: ./coverage/merged-coverage.json
+          file: ${{ github.workspace }}/coverage/merged-coverage.json
           disable_search: true
-          directory: ./coverage
+          directory: ${{ github.workspace }}/coverage
           verbose: true
 
   Tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs:
       - Lint
       - Type-Check
@@ -411,4 +449,6 @@ jobs:
       - Combine-Results-and-Upload
     steps:
       - name: Verify all jobs succeeded
-        run: echo "All required jobs have successfully completed for Node.js ${{ env.NODE_VERSION }}."
+        run: |
+          set -euo pipefail
+          echo "All required jobs have successfully completed for Node.js ${{ env.NODE_VERSION }}."
