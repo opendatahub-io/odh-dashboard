@@ -11,6 +11,7 @@ import Features from './screens/features/Features';
 import FeatureDetails from './screens/features/featureDetails/FeatureDetails';
 import FeatureServices from './screens/featureServices/FeatureServices';
 import FeatureServiceDetails from './screens/featureServices/featureServiceDetails/FeatureServiceDetails';
+import Overview from './screens/overview/Overview';
 
 export const featureStoreRootRoute = (): string => `/featureStore`;
 
@@ -53,6 +54,7 @@ const FeatureStoreRoutes: React.FC = () => (
         path="featureServices/:fsProjectName/:featureServiceName"
         element={<FeatureServiceDetails />}
       />
+      <Route path="overview" element={<Overview />} />
       <Route
         path="dataSources/:fsProjectName?/:dataSourceName"
         element={<>Data source details page</>}
