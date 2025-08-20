@@ -54,6 +54,10 @@ const useChatbotMessages = ({
         avatar: userAvatar,
       };
 
+      const conversationHistory = messages.map((msg) => `${msg.role}: ${msg.content}`).join('\n');
+
+      const comprehensiveSystemPrompt = `${systemInstruction}\n\nConversation History:\n${conversationHistory}\n\nPlease respond to the user's message while considering the above conversation context.`;
+
       setMessages((prevMessages) => [...prevMessages, userMessage]);
       setIsMessageSendButtonDisabled(true);
 
@@ -64,6 +68,7 @@ const useChatbotMessages = ({
 
         const query: Query = {
           content: message,
+          system_prompt: comprehensiveSystemPrompt,
           ...(isRawUploaded &&
             selectedSourceSettings && {
               vector_db_ids: [selectedSourceSettings.vectorStore],
@@ -80,7 +85,6 @@ const useChatbotMessages = ({
             },
             max_tokens: QUERY_CONFIG.MAX_TOKENS,
           },
-          system_prompt: systemInstruction,
         };
 
         const response = await querySource(query);
@@ -106,7 +110,7 @@ const useChatbotMessages = ({
         setIsMessageSendButtonDisabled(false);
       }
     },
-    [isRawUploaded, modelId, selectedSourceSettings, systemInstruction],
+    [isRawUploaded, messages, modelId, selectedSourceSettings, systemInstruction],
   );
 
   return {
