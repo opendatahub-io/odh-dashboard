@@ -26,7 +26,7 @@ import CollapsibleSection from '@odh-dashboard/internal/concepts/design/Collapsi
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';
-import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
@@ -40,8 +40,8 @@ enum FilterStates {
   failed = 'failed',
 }
 
-const SUCCESS_STATUSES = [InferenceServiceModelState.LOADED, InferenceServiceModelState.STANDBY];
-const FAILED_STATUSES = [InferenceServiceModelState.FAILED_TO_LOAD];
+const SUCCESS_STATUSES = [ModelDeploymentState.LOADED, ModelDeploymentState.STANDBY];
+const FAILED_STATUSES = [ModelDeploymentState.FAILED_TO_LOAD];
 
 const DeployedModelCard: React.FC<{ deployment: Deployment }> = ({ deployment }) => {
   const displayName = getDisplayNameFromK8sResource(deployment.model);
@@ -53,7 +53,7 @@ const DeployedModelCard: React.FC<{ deployment: Deployment }> = ({ deployment })
           <Flex gap={{ default: 'gapSm' }} direction={{ default: 'column' }}>
             <FlexItem>
               <ModelStatusIcon
-                state={deployment.status?.state ?? InferenceServiceModelState.UNKNOWN}
+                state={deployment.status?.state ?? ModelDeploymentState.UNKNOWN}
                 bodyContent={deployment.status?.message}
                 stoppedStates={deployment.status?.stoppedStates}
               />
@@ -61,7 +61,7 @@ const DeployedModelCard: React.FC<{ deployment: Deployment }> = ({ deployment })
             <FlexItem>
               <ResourceNameTooltip resource={deployment.model}>
                 {deployment.model.metadata.namespace &&
-                deployment.status?.state === InferenceServiceModelState.LOADED ? (
+                deployment.status?.state === ModelDeploymentState.LOADED ? (
                   <Link
                     to={`/projects/${deployment.model.metadata.namespace}/metrics/model/${deployment.model.metadata.name}`}
                   >

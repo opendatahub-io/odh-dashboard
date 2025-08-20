@@ -1,8 +1,7 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { Deployment } from '../../../../extension-points';
 import { mockExtensions } from '../../../__tests__/mockUtils';
 import { DeploymentRow } from '../DeploymentsTableRow';
@@ -43,19 +42,15 @@ describe('DeploymentsTableRow', () => {
 
   it('should render the basic row', async () => {
     render(
-      <MemoryRouter>
-        <table>
-          <tbody>
-            <DeploymentRow
-              deployment={mockDeployment({})}
-              platformColumns={[]}
-              onDelete={onDelete}
-              onEdit={onEdit}
-              rowIndex={0}
-            />
-          </tbody>
-        </table>
-      </MemoryRouter>,
+      <table>
+        <DeploymentRow
+          deployment={mockDeployment({})}
+          platformColumns={[]}
+          onDelete={onDelete}
+          onEdit={onEdit}
+          rowIndex={0}
+        />
+      </table>,
     );
 
     // Name Column
@@ -78,26 +73,22 @@ describe('DeploymentsTableRow', () => {
 
   it('should render with platform columns', () => {
     render(
-      <MemoryRouter>
-        <table>
-          <tbody>
-            <DeploymentRow
-              deployment={mockDeployment({})}
-              platformColumns={[
-                {
-                  label: 'Platform',
-                  field: 'platform',
-                  sortable: false,
-                  cellRenderer: () => 'test-data',
-                },
-              ]}
-              onDelete={onDelete}
-              onEdit={onEdit}
-              rowIndex={0}
-            />
-          </tbody>
-        </table>
-      </MemoryRouter>,
+      <table>
+        <DeploymentRow
+          deployment={mockDeployment({})}
+          platformColumns={[
+            {
+              label: 'Platform',
+              field: 'platform',
+              sortable: false,
+              cellRenderer: () => 'test-data',
+            },
+          ]}
+          onDelete={onDelete}
+          onEdit={onEdit}
+          rowIndex={0}
+        />
+      </table>,
     );
 
     expect(screen.getByText('test-data')).toBeInTheDocument();
@@ -105,21 +96,17 @@ describe('DeploymentsTableRow', () => {
 
   it('should render the row with a status', () => {
     render(
-      <MemoryRouter>
-        <table>
-          <tbody>
-            <DeploymentRow
-              deployment={mockDeployment({
-                status: { state: InferenceServiceModelState.LOADED },
-              })}
-              platformColumns={[]}
-              onDelete={onDelete}
-              onEdit={onEdit}
-              rowIndex={0}
-            />
-          </tbody>
-        </table>
-      </MemoryRouter>,
+      <table>
+        <DeploymentRow
+          deployment={mockDeployment({
+            status: { state: ModelDeploymentState.LOADED },
+          })}
+          platformColumns={[]}
+          onDelete={onDelete}
+          onEdit={onEdit}
+          rowIndex={0}
+        />
+      </table>,
     );
 
     expect(screen.getByText('Started')).toBeInTheDocument();
@@ -128,27 +115,23 @@ describe('DeploymentsTableRow', () => {
   describe('Inference endpoints', () => {
     it('should render the row with internal inference endpoint', async () => {
       render(
-        <MemoryRouter>
-          <table>
-            <tbody>
-              <DeploymentRow
-                deployment={mockDeployment({
-                  endpoints: [
-                    {
-                      type: 'internal',
-                      name: 'test-endpoint',
-                      url: 'https://internal-endpoint.com',
-                    },
-                  ],
-                })}
-                platformColumns={[]}
-                onDelete={onDelete}
-                onEdit={onEdit}
-                rowIndex={0}
-              />
-            </tbody>
-          </table>
-        </MemoryRouter>,
+        <table>
+          <DeploymentRow
+            deployment={mockDeployment({
+              endpoints: [
+                {
+                  type: 'internal',
+                  name: 'test-endpoint',
+                  url: 'https://internal-endpoint.com',
+                },
+              ],
+            })}
+            platformColumns={[]}
+            onDelete={onDelete}
+            onEdit={onEdit}
+            rowIndex={0}
+          />
+        </table>,
       );
 
       const button = screen.getByRole('button', { name: 'Internal endpoint' });
@@ -161,27 +144,23 @@ describe('DeploymentsTableRow', () => {
 
     it('should render the row with external inference endpoint', async () => {
       render(
-        <MemoryRouter>
-          <table>
-            <tbody>
-              <DeploymentRow
-                deployment={mockDeployment({
-                  endpoints: [
-                    {
-                      type: 'external',
-                      name: 'test-endpoint',
-                      url: 'https://external-endpoint.com',
-                    },
-                  ],
-                })}
-                platformColumns={[]}
-                onDelete={onDelete}
-                onEdit={onEdit}
-                rowIndex={0}
-              />
-            </tbody>
-          </table>
-        </MemoryRouter>,
+        <table>
+          <DeploymentRow
+            deployment={mockDeployment({
+              endpoints: [
+                {
+                  type: 'external',
+                  name: 'test-endpoint',
+                  url: 'https://external-endpoint.com',
+                },
+              ],
+            })}
+            platformColumns={[]}
+            onDelete={onDelete}
+            onEdit={onEdit}
+            rowIndex={0}
+          />
+        </table>,
       );
 
       const button = screen.getByRole('button', { name: 'Internal and external endpoint' });
@@ -194,32 +173,28 @@ describe('DeploymentsTableRow', () => {
 
     it('should render the row with multiple inference endpoints', async () => {
       render(
-        <MemoryRouter>
-          <table>
-            <tbody>
-              <DeploymentRow
-                deployment={mockDeployment({
-                  endpoints: [
-                    {
-                      type: 'internal',
-                      name: 'test-endpoint',
-                      url: 'https://internal-endpoint.com',
-                    },
-                    {
-                      type: 'external',
-                      name: 'test-endpoint',
-                      url: 'https://external-endpoint.com',
-                    },
-                  ],
-                })}
-                platformColumns={[]}
-                onDelete={onDelete}
-                onEdit={onEdit}
-                rowIndex={0}
-              />
-            </tbody>
-          </table>
-        </MemoryRouter>,
+        <table>
+          <DeploymentRow
+            deployment={mockDeployment({
+              endpoints: [
+                {
+                  type: 'internal',
+                  name: 'test-endpoint',
+                  url: 'https://internal-endpoint.com',
+                },
+                {
+                  type: 'external',
+                  name: 'test-endpoint',
+                  url: 'https://external-endpoint.com',
+                },
+              ],
+            })}
+            platformColumns={[]}
+            onDelete={onDelete}
+            onEdit={onEdit}
+            rowIndex={0}
+          />
+        </table>,
       );
 
       const button = screen.getByRole('button', { name: 'Internal and external endpoint' });
@@ -234,31 +209,27 @@ describe('DeploymentsTableRow', () => {
 
   it('should render the row with an api protocol', () => {
     render(
-      <MemoryRouter>
-        <table>
-          <tbody>
-            <DeploymentRow
-              deployment={mockDeployment({
-                server: {
-                  apiVersion: 'v1',
-                  kind: 'TestServerKind',
-                  metadata: {
-                    name: 'test-server',
-                    namespace: 'test-project',
-                    annotations: {
-                      'opendatahub.io/apiProtocol': 'REST',
-                    },
-                  },
+      <table>
+        <DeploymentRow
+          deployment={mockDeployment({
+            server: {
+              apiVersion: 'v1',
+              kind: 'TestServerKind',
+              metadata: {
+                name: 'test-server',
+                namespace: 'test-project',
+                annotations: {
+                  'opendatahub.io/apiProtocol': 'REST',
                 },
-              })}
-              platformColumns={[]}
-              onDelete={onDelete}
-              onEdit={onEdit}
-              rowIndex={0}
-            />
-          </tbody>
-        </table>
-      </MemoryRouter>,
+              },
+            },
+          })}
+          platformColumns={[]}
+          onDelete={onDelete}
+          onEdit={onEdit}
+          rowIndex={0}
+        />
+      </table>,
     );
 
     expect(screen.getByText('REST')).toBeInTheDocument();

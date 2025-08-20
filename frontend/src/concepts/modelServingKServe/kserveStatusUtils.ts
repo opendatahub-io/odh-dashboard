@@ -1,5 +1,5 @@
 import { InferenceServiceKind, PodKind } from '#~/k8sTypes';
-import { InferenceServiceModelState, ModelStatus } from '#~/pages/modelServing/screens/types';
+import { ModelDeploymentState, ModelStatus } from '#~/pages/modelServing/screens/types';
 import { asEnumMember } from '#~/utilities/utils';
 
 /**
@@ -14,14 +14,14 @@ import { asEnumMember } from '#~/utilities/utils';
 export const getInferenceServiceModelState = (
   is: InferenceServiceKind,
   podStatus?: ModelStatus | null,
-): InferenceServiceModelState => {
+): ModelDeploymentState => {
   if (podStatus?.failedToSchedule) {
-    return InferenceServiceModelState.FAILED_TO_LOAD;
+    return ModelDeploymentState.FAILED_TO_LOAD;
   }
   return (
-    asEnumMember(is.status?.modelStatus?.states?.targetModelState, InferenceServiceModelState) ||
-    asEnumMember(is.status?.modelStatus?.states?.activeModelState, InferenceServiceModelState) ||
-    InferenceServiceModelState.UNKNOWN
+    asEnumMember(is.status?.modelStatus?.states?.targetModelState, ModelDeploymentState) ||
+    asEnumMember(is.status?.modelStatus?.states?.activeModelState, ModelDeploymentState) ||
+    ModelDeploymentState.UNKNOWN
   );
 };
 
@@ -59,17 +59,17 @@ export const getInferenceServiceStatusMessage = (
   const stateMessage = (targetModelState || activeModelState) ?? 'Unknown';
 
   if (
-    activeModelState === InferenceServiceModelState.FAILED_TO_LOAD ||
-    targetModelState === InferenceServiceModelState.FAILED_TO_LOAD
+    activeModelState === ModelDeploymentState.FAILED_TO_LOAD ||
+    targetModelState === ModelDeploymentState.FAILED_TO_LOAD
   ) {
     const lastFailureMessage = is.status?.modelStatus?.lastFailureInfo?.message;
     return lastFailureMessage || stateMessage;
   }
 
   if (
-    activeModelState === InferenceServiceModelState.LOADED &&
-    (targetModelState === InferenceServiceModelState.LOADING ||
-      targetModelState === InferenceServiceModelState.PENDING)
+    activeModelState === ModelDeploymentState.LOADED &&
+    (targetModelState === ModelDeploymentState.LOADING ||
+      targetModelState === ModelDeploymentState.PENDING)
   ) {
     return 'Redeploying';
   }

@@ -5,7 +5,7 @@ import {
   NotificationResponseStatus,
   NotificationWatcherContext,
 } from '@odh-dashboard/internal/concepts/notificationWatcher/NotificationWatcherContext';
-import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { FAST_POLL_INTERVAL } from '@odh-dashboard/internal/utilities/const';
 import { DeploymentStatus } from '../../extension-points';
 
@@ -20,7 +20,7 @@ export const useModelDeploymentNotification = (
   const navigate = useNavigate();
   const notification = useNotification();
   const { registerNotification } = React.useContext(NotificationWatcherContext);
-  const lastSeenState = React.useRef<InferenceServiceModelState | null>(null);
+  const lastSeenState = React.useRef<ModelDeploymentState | null>(null);
 
   const watchDeployment = React.useCallback(() => {
     registerNotification({
@@ -39,14 +39,14 @@ export const useModelDeploymentNotification = (
             isRunning: isRunningState,
             isStopped: isStoppedState,
           } = currentStatus.stoppedStates || {};
-          const isFailedState = deploymentState === InferenceServiceModelState.FAILED_TO_LOAD;
+          const isFailedState = deploymentState === ModelDeploymentState.FAILED_TO_LOAD;
 
           // Track previous state
           const lastState = lastSeenState.current;
           lastSeenState.current = deploymentState;
 
           // Only consider it failed if it's not stopped, the state is FAILED_TO_LOAD, and the last state was PENDING
-          const isFailed = isFailedState && lastState === InferenceServiceModelState.PENDING;
+          const isFailed = isFailedState && lastState === ModelDeploymentState.PENDING;
 
           if (isFailed) {
             notification.error(
@@ -63,7 +63,7 @@ export const useModelDeploymentNotification = (
             return { status: NotificationResponseStatus.STOP };
           }
 
-          if (isRunningState && lastState === InferenceServiceModelState.LOADED) {
+          if (isRunningState && lastState === ModelDeploymentState.LOADED) {
             // Model is running, stop polling
             return { status: NotificationResponseStatus.STOP };
           }
@@ -71,7 +71,7 @@ export const useModelDeploymentNotification = (
           if (isStoppedState) {
             // Model appears stopped, but let's continue polling for a bit to see if it's just in transition
             // Only stop if we've seen the same stopped state multiple times
-            if (lastState === InferenceServiceModelState.UNKNOWN || lastState === null) {
+            if (lastState === ModelDeploymentState.UNKNOWN || lastState === null) {
               // First time seeing this state, continue polling
               return { status: NotificationResponseStatus.REPOLL };
             }
@@ -81,8 +81,8 @@ export const useModelDeploymentNotification = (
 
           if (
             isStartingState ||
-            lastState === InferenceServiceModelState.PENDING ||
-            lastState === InferenceServiceModelState.LOADING
+            lastState === ModelDeploymentState.PENDING ||
+            lastState === ModelDeploymentState.LOADING
           ) {
             // Model is still starting/loading, continue polling
             return { status: NotificationResponseStatus.REPOLL };
