@@ -162,7 +162,8 @@ describe('useChatbotMessages', () => {
           },
           max_tokens: 500,
         },
-        system_prompt: '',
+        system_prompt:
+          "\n\nConversation History:\nbot: Send a message to test your configuration\n\nPlease respond to the user's message while considering the above conversation context.",
       });
     });
   });
@@ -229,7 +230,8 @@ describe('useChatbotMessages', () => {
           },
           max_tokens: 500,
         },
-        system_prompt: '',
+        system_prompt:
+          "\n\nConversation History:\nbot: Send a message to test your configuration\n\nPlease respond to the user's message while considering the above conversation context.",
       });
     });
 
@@ -275,6 +277,137 @@ describe('useChatbotMessages', () => {
       });
 
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
+    });
+  });
+
+  describe('conversation context functionality', () => {
+    it('should include conversation history in system prompt', async () => {
+      mockQuerySource.mockResolvedValueOnce(mockSuccessResponse);
+
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          modelId: mockModelId,
+          selectedSourceSettings: mockSourceSettings,
+          systemInstruction: 'You are a helpful assistant.',
+          isRawUploaded: true,
+        }),
+      );
+
+      // Send first message
+      await act(async () => {
+        await result.current.handleMessageSend('Hello');
+      });
+
+      // Send second message
+      await act(async () => {
+        await result.current.handleMessageSend('How are you?');
+      });
+
+      // Check that querySource was called with conversation history in system prompt
+      expect(mockQuerySource).toHaveBeenCalledTimes(2);
+
+      const firstCall = mockQuerySource.mock.calls[0][0];
+      expect(firstCall.system_prompt).toContain('You are a helpful assistant.');
+      expect(firstCall.system_prompt).toContain('Conversation History:');
+      expect(firstCall.system_prompt).toContain('bot: Send a message to test your configuration');
+      expect(firstCall.system_prompt).toContain(
+        "Please respond to the user's message while considering the above conversation context.",
+      );
+
+      const secondCall = mockQuerySource.mock.calls[1][0];
+      expect(secondCall.system_prompt).toContain('bot: Send a message to test your configuration');
+      expect(secondCall.system_prompt).toContain('user: Hello');
+      expect(secondCall.system_prompt).toContain('bot: This is a bot response');
+    });
+
+    it('should handle empty system instruction correctly', async () => {
+      mockQuerySource.mockResolvedValueOnce(mockSuccessResponse);
+
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          modelId: mockModelId,
+          selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
+        }),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Test message');
+      });
+
+      const call = mockQuerySource.mock.calls[0][0];
+      expect(call.system_prompt).toContain('Conversation History:');
+      expect(call.system_prompt).toContain('bot: Send a message to test your configuration');
+      expect(call.system_prompt).toContain(
+        "Please respond to the user's message while considering the above conversation context.",
+      );
+    });
+
+    it('should maintain conversation context when modelId changes', async () => {
+      mockQuerySource.mockResolvedValue(mockSuccessResponse);
+
+      const { result, rerender } = renderHook(
+        ({ modelId }) =>
+          useChatbotMessages({
+            modelId,
+            selectedSourceSettings: mockSourceSettings,
+            systemInstruction: 'Be helpful.',
+            isRawUploaded: true,
+          }),
+        { initialProps: { modelId: 'model-1' } },
+      );
+
+      // Send message with first model
+      await act(async () => {
+        await result.current.handleMessageSend('Hello with model 1');
+      });
+
+      // Change model
+      rerender({ modelId: 'model-2' });
+
+      // Send message with second model
+      await act(async () => {
+        await result.current.handleMessageSend('Hello with model 2');
+      });
+
+      // Verify conversation context is preserved
+      const secondCall = mockQuerySource.mock.calls[1][0];
+      expect(secondCall.system_prompt).toContain('Hello with model 1');
+      expect(secondCall.llm_model_id).toBe('model-2');
+    });
+
+    it('should maintain conversation context when system instruction changes', async () => {
+      mockQuerySource.mockResolvedValue(mockSuccessResponse);
+
+      const { result, rerender } = renderHook(
+        ({ systemInstruction }) =>
+          useChatbotMessages({
+            modelId: mockModelId,
+            selectedSourceSettings: mockSourceSettings,
+            systemInstruction,
+            isRawUploaded: true,
+          }),
+        { initialProps: { systemInstruction: 'Be concise.' } },
+      );
+
+      // Send message with first instruction
+      await act(async () => {
+        await result.current.handleMessageSend('Hello with concise instruction');
+      });
+
+      // Change system instruction
+      rerender({ systemInstruction: 'Be detailed.' });
+
+      // Send message with second instruction
+      await act(async () => {
+        await result.current.handleMessageSend('Hello with detailed instruction');
+      });
+
+      // Verify conversation context is preserved
+      const secondCall = mockQuerySource.mock.calls[1][0];
+      expect(secondCall.system_prompt).toContain('Be detailed.');
+      expect(secondCall.system_prompt).toContain('Hello with concise instruction');
     });
   });
 });
