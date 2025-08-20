@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { DashboardEmptyTableView, Table } from 'mod-arch-shared';
+import { DashboardEmptyTableView, SortableData, Table } from 'mod-arch-shared';
 import { ModelVersion, RegisteredModel } from '~/app/types';
 import { mvColumns } from '~/app/pages/modelRegistry/screens/ModelVersions/ModelVersionsTableColumns';
 import ModelVersionsTableRow from '~/app/pages/modelRegistry/screens/ModelVersions/ModelVersionsTableRow';
@@ -9,19 +9,28 @@ import { MRDeploymentsContextProvider } from './MRDeploymentsContextProvider';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 
 type OdhModelVersionsTableProps = {
-    clearFilters: () => void;
-    modelVersions: ModelVersion[];
+    data: ModelVersion[];
+    columns: SortableData<ModelVersion>[];
+    defaultSortColumn: number;
+    enablePagination: boolean;
+    onClearFilters: () => void;
+    emptyTableView: React.ReactNode;
     isArchiveModel?: boolean;
     refresh: () => void;
     rm: RegisteredModel;
 } & Partial<Pick<React.ComponentProps<typeof Table>, 'toolbarContent'>>;
 
 const OdhModelVersionsTableContent: React.FC<Omit<OdhModelVersionsTableProps, 'rm'>> = ({
-  clearFilters,
-  modelVersions,
+  data,
+  columns,
+  defaultSortColumn,
+  enablePagination,
+  onClearFilters,
+  emptyTableView,
   toolbarContent,
   isArchiveModel,
   refresh,
+  ...props
 }) => {
     const { deployments, loaded } = useDeploymentsState();
     const hasDeploys = (mvId: string) =>
@@ -30,14 +39,13 @@ const OdhModelVersionsTableContent: React.FC<Omit<OdhModelVersionsTableProps, 'r
         );
     return (
         <Table
-            data-testid="model-versions-table"
-            data={modelVersions}
-            columns={mvColumns}
+            data={data}
+            columns={columns}
             toolbarContent={toolbarContent}
-            defaultSortColumn={3}
-            enablePagination
-            onClearFilters={clearFilters}
-            emptyTableView={<DashboardEmptyTableView onClearFilters={clearFilters} />}
+            defaultSortColumn={defaultSortColumn}
+            enablePagination={enablePagination}
+            onClearFilters={onClearFilters}
+            emptyTableView={emptyTableView}
             rowRenderer={(mv: ModelVersion) => (
                 <ModelVersionsTableRow
                     key={mv.name}
@@ -47,17 +55,23 @@ const OdhModelVersionsTableContent: React.FC<Omit<OdhModelVersionsTableProps, 'r
                     hasDeployment={hasDeploys(mv.id) && loaded}
                 />
             )}
+            {...props}
         />
     );
 }
 
 const OdhModelVersionsTable: React.FC<OdhModelVersionsTableProps> = ({
-  clearFilters,
-  modelVersions,
+  data,
+  columns,
   toolbarContent,
+  defaultSortColumn,
+  enablePagination,
+  onClearFilters,
+  emptyTableView,
   isArchiveModel,
   refresh,
   rm,
+  ...props
 }) => {
     const labelSelectors = {
         [KnownLabels.REGISTERED_MODEL_ID]: rm.id,
@@ -66,11 +80,16 @@ const OdhModelVersionsTable: React.FC<OdhModelVersionsTableProps> = ({
     return (
         <MRDeploymentsContextProvider labelSelectors={labelSelectors} mrName={preferredModelRegistry?.name}>
             <OdhModelVersionsTableContent
-                clearFilters={clearFilters}
-                modelVersions={modelVersions}
+                data={data}
+                columns={columns}
+                defaultSortColumn={defaultSortColumn}
+                enablePagination={enablePagination}
+                onClearFilters={onClearFilters}
+                emptyTableView={emptyTableView}
                 toolbarContent={toolbarContent}
                 isArchiveModel={isArchiveModel}
                 refresh={refresh}
+                {...props}
             />
         </MRDeploymentsContextProvider>
     )

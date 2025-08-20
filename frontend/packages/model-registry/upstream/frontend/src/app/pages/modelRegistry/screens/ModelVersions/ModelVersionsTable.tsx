@@ -1,7 +1,8 @@
 import * as React from 'react';
-import { Table } from 'mod-arch-shared';
+import { DashboardEmptyTableView, Table } from 'mod-arch-shared';
 import { ModelVersion, RegisteredModel } from '~/app/types';
 import OdhModelVersionsTable from '~/odh/components/OdhModelVersionsTable';
+import { mvColumns } from './ModelVersionsTableColumns';
 
 type ModelVersionsTableProps = {
   clearFilters: () => void;
@@ -20,9 +21,14 @@ const ModelVersionsTable: React.FC<ModelVersionsTableProps> = ({
   rm,
 }) => (
   <OdhModelVersionsTable
-    clearFilters={clearFilters}
-    modelVersions={modelVersions}
+    data-testid="model-versions-table"
+    data={modelVersions}
+    columns={mvColumns}
     toolbarContent={toolbarContent}
+    defaultSortColumn={3}
+    enablePagination
+    onClearFilters={clearFilters}
+    emptyTableView={<DashboardEmptyTableView onClearFilters={clearFilters} />}
     isArchiveModel={isArchiveModel}
     refresh={refresh}
     rm={rm}
