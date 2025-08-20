@@ -268,8 +268,9 @@ jobs:
             echo "Found mocked tests directory"
 
             # Get directories and create JSON array - force compact output with -c
+            # Replace forward slashes with hyphens for artifact names
             DIRS=$(cd ${{ github.workspace }}/frontend/src/__tests__/cypress/cypress/tests/mocked && \
-                  find . -name "*.cy.*" -printf "%h\n" | sed 's|^\./||' | sort -u | \
+                  find . -name "*.cy.*" -printf "%h\n" | sed 's|^\./||' | sed 's|/|-|g' | sort -u | \
                   jq -R . | jq -c -s .)
 
             # Output in the correct format for GitHub Actions
@@ -358,7 +359,10 @@ jobs:
           if [ "${{ matrix.test-group }}" == "default" ]; then
             npm run test:cypress-ci:coverage:nobuild
           else
-            npm run test:cypress-ci:coverage:nobuild -- --spec "src/__tests__/cypress/cypress/tests/mocked/${{ matrix.test-group }}/*"
+            # Convert hyphenated test group back to directory path for test execution
+            TEST_PATH="${{ matrix.test-group }}"
+            TEST_PATH="${TEST_PATH//-//}"  # Replace hyphens back to slashes
+            npm run test:cypress-ci:coverage:nobuild -- --spec "src/__tests__/cypress/cypress/tests/mocked/$TEST_PATH/*"
           fi
       - name: Upload Cypress Mock results
         if: always()  # Upload even if tests fail
