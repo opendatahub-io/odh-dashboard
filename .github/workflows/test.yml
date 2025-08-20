@@ -13,7 +13,7 @@ jobs:
       - name: Generate modules cache key
         id: key
         run: |
-          echo "modules-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}" >> $GITHUB_OUTPUT
+          echo "modules-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}" >> "$GITHUB_OUTPUT"
       - name: Node.js modules cache
         uses: actions/cache@v4
         id: modules-cache
@@ -151,19 +151,18 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
 
-      - name: Check for model-registry changes
+      - name: Check for contract test changes
         id: changes
         working-directory: ./frontend
         run: |
-          # Use turbo to check if model-registry package has changes that would affect contract tests
-          # This includes the package itself and its dependencies (plugin-core, tsconfig, etc.)
-          # TODO: Remove this check once Model Registry has its own pipeline
-          echo "Checking for changes in model-registry package and its dependencies..."
+          # Check for changes in model-registry and pact-testing packages
+          echo "Checking for changes in contract test packages..."
 
-          # Check if there are tasks to run for the model-registry package
-          if npx turbo run test:contract:with-bff --filter=@odh-dashboard/model-registry --dry-run=json 2>/dev/null | jq -e '.tasks | length > 0' >/dev/null; then
+          # Check if there are tasks to run for either package
+          if npx turbo run test:contract:with-bff --filter=@odh-dashboard/model-registry --dry-run=json 2>/dev/null | jq -e '.tasks | length > 0' >/dev/null || \
+             npx turbo run test:contract:with-bff --filter=@odh-dashboard/pact-testing --dry-run=json 2>/dev/null | jq -e '.tasks | length > 0' >/dev/null; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "✅ Model Registry or its dependencies have changes, running contract tests"
+            echo "✅ Contract test packages have changes, running tests"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "⏭️  No relevant changes found, skipping contract tests"
@@ -198,11 +197,17 @@ jobs:
           echo "KUBEBUILDER_ASSETS=$ASSETS_PATH" >> "$GITHUB_ENV"
           echo "✅ Kubebuilder assets installed at: $ASSETS_PATH"
 
-      - name: Run Model Registry contract tests
+      - name: Run contract tests
         if: steps.changes.outputs.changed == 'true'
-        working-directory: ./frontend/packages/model-registry
         run: |
+          # Run pact-testing tests first
+          echo "🧪 Running pact-testing contract tests..."
+          cd packages/pact-testing
+          npm run test:contract:with-bff
+
+          # Run model-registry tests
           echo "🧪 Running Model Registry contract tests..."
+          cd ../../frontend/packages/model-registry
           npm run test:contract:with-bff
 
       - name: Upload contract test results
@@ -215,6 +220,10 @@ jobs:
             frontend/packages/*/pact/pact-test-results/*/junit.xml
             frontend/packages/*/pact/pact-test-results/*/contract-test-output.log
             frontend/packages/*/pact/pact-test-results/*/bff-mock.log
+            packages/pact-testing/pact-test-results/*/contract-test-report.html
+            packages/pact-testing/pact-test-results/*/junit.xml
+            packages/pact-testing/pact-test-results/*/contract-test-output.log
+            packages/pact-testing/pact-test-results/*/bff-mock.log
           if-no-files-found: warn
 
   Get-Test-Groups:
@@ -259,7 +268,7 @@ jobs:
       - name: Generate cypress cache key
         id: key
         run: |
-          echo "cypress-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-build-${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "cypress-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-build-${{ github.sha }}" >> "$GITHUB_OUTPUT"
       - name: Cypress build cache
         uses: actions/cache@v4
         id: cypress-build-cache
