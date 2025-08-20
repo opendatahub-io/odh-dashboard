@@ -4,6 +4,119 @@ env:
   NODE_VERSION: 20.x
   DO_NOT_TRACK: 1
 jobs:
+  Setup:
+    runs-on: ubuntu-latest
+    outputs:
+      modules-cache-key: ${{ steps.key.outputs.modules-cache-key }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate modules cache key
+        id: key
+        run: |
+          echo "modules-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}" >> "$GITHUB_OUTPUT"
+      - name: Node.js modules cache
+        uses: actions/cache@v4
+        id: modules-cache
+        with:
+          lookup-only: true
+          path: |
+            ~/.cache/Cypress
+            **/node_modules
+          key: ${{ steps.key.outputs.modules-cache-key }}
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        if: steps.modules-cache.outputs.cache-hit != 'true'
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install dependencies
+        if: steps.modules-cache.outputs.cache-hit != 'true'
+        run: npm install
+
+  Type-Check:
+    needs: Setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Restore cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cache/Cypress
+            **/node_modules
+          key: ${{ needs.Setup.outputs.modules-cache-key }}
+      - name: Cache turbo
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.turbo
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-type-check
+          restore-keys: |
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
+      - name: Run type checks
+        run: npm run type-check
+
+  Lint:
+    needs: Setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Restore cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cache/Cypress
+            **/node_modules
+          key: ${{ needs.Setup.outputs.modules-cache-key }}
+      - name: Cache turbo
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.turbo
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-lint
+          restore-keys: |
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
+      - name: Run linting and formatting checks
+        run: NODE_OPTIONS="--max-old-space-size=8192" npm run lint
+
+  Unit-Tests:
+    needs: [Setup, Lint, Type-Check]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Restore cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cache/Cypress
+            **/node_modules
+          key: ${{ needs.Setup.outputs.modules-cache-key }}
+      - name: Cache turbo
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.turbo
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-unit-tests
+          restore-keys: |
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
+      - name: Unit tests with coverage
+        run: |
+          npm run test-unit-coverage
+      - name: Upload unit test coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-coverage
+          path: ./jest-coverage
+          if-no-files-found: error
+
   Contract-Tests:
     needs: [Setup, Lint, Type-Check]
     runs-on: ubuntu-latest
@@ -49,7 +162,7 @@ jobs:
             echo "⏭️  No relevant changes found, skipping contract tests"
           fi
 
-      - name: Setup Go 1.24.6
+      - name: Setup Go 1.21.6
         if: steps.changes.outputs.changed == 'true'
         uses: actions/setup-go@v5
         with:
