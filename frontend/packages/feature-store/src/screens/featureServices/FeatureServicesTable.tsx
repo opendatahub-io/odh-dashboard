@@ -9,6 +9,7 @@ type FeatureServicesTableProps = {
   featureServices: FeatureService[];
   onClearFilters: () => void;
   fsProject?: string;
+  onTagClick: (tag: string) => void;
 } & Partial<Pick<React.ComponentProps<typeof Table>, 'toolbarContent'>>;
 
 const FeatureServicesTable: React.FC<FeatureServicesTableProps> = ({
@@ -16,6 +17,7 @@ const FeatureServicesTable: React.FC<FeatureServicesTableProps> = ({
   onClearFilters,
   toolbarContent,
   fsProject,
+  onTagClick,
 }) => (
   <Table
     data-testid="feature-services-table"
@@ -31,6 +33,7 @@ const FeatureServicesTable: React.FC<FeatureServicesTableProps> = ({
         key={`${fs.spec.name}-${idx}`}
         featureService={fs}
         fsProject={fsProject}
+        onTagClick={onTagClick}
       />
     )}
   />

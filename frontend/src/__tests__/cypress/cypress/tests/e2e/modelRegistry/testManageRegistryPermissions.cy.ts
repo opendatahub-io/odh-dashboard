@@ -63,7 +63,7 @@ describe('Verify model registry permissions can be managed', () => {
 
   it(
     'Admin can add user permissions to model registry',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -97,7 +97,7 @@ describe('Verify model registry permissions can be managed', () => {
 
   it(
     'Contributor user can access model registry after being added',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
     () => {
       cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
       cy.visitWithLogin(`/modelRegistry/${registryName}`, LDAP_CONTRIBUTOR_USER);
@@ -110,7 +110,7 @@ describe('Verify model registry permissions can be managed', () => {
 
   it(
     'Admin can remove user permissions from model registry',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -136,7 +136,7 @@ describe('Verify model registry permissions can be managed', () => {
 
   it(
     'Contributor user cannot access model registry after being removed',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
     () => {
       cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
       cy.visitWithLogin(`/modelRegistry/${registryName}`, LDAP_CONTRIBUTOR_USER);
@@ -148,7 +148,7 @@ describe('Verify model registry permissions can be managed', () => {
 
   it(
     'Admin can add group permissions to model registry',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -183,7 +183,7 @@ describe('Verify model registry permissions can be managed', () => {
 
   it(
     'User can access model registry through group membership',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
     () => {
       cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
       cy.visitWithLogin(`/modelRegistry/${registryName}`, LDAP_CONTRIBUTOR_USER);
@@ -196,7 +196,7 @@ describe('Verify model registry permissions can be managed', () => {
 
   it(
     'Admin can remove group permissions from model registry',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -222,7 +222,7 @@ describe('Verify model registry permissions can be managed', () => {
 
   it(
     'User cannot access model registry after group is removed',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
     () => {
       cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
       cy.visitWithLogin(`/modelRegistry/${registryName}`, LDAP_CONTRIBUTOR_USER);
@@ -234,7 +234,7 @@ describe('Verify model registry permissions can be managed', () => {
 
   it(
     'Admin can add project permissions to model registry',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
