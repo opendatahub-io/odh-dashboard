@@ -16,10 +16,7 @@
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./api": {
-      "types": "./dist/api.d.ts",
-      "default": "./dist/api.js"
-    }
+    "./api": "./src/api.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
