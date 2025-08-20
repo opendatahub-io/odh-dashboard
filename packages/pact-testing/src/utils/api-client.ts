@@ -41,6 +41,8 @@ export class ContractApiClient {
     const url = `${this.config.baseUrl}${path}`;
     const headers = { ...this.config.defaultHeaders, ...options.headers };
     const controller = new AbortController();
+    const httpAgent = new (await import('http')).Agent({ keepAlive: false });
+    const httpsAgent = new (await import('https')).Agent({ keepAlive: false });
 
     try {
       logApiCall('GET', url, headers);
@@ -50,6 +52,8 @@ export class ContractApiClient {
         params: options.params,
         timeout: this.config.timeout,
         signal: controller.signal,
+        httpAgent,
+        httpsAgent,
       });
 
       const apiResponse: ApiResponse = {
