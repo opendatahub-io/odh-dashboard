@@ -27,6 +27,7 @@ const CustomServingRuntimeModelTypeSelector: React.FC<
       id="custom-serving-model-type-selection"
     >
       <CheckboxSelect
+        toggleContent="Select model types"
         initialOptions={modelTypeOptions}
         onSelect={(_ev, value) => {
           if (
