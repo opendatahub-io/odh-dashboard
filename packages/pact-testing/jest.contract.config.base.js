@@ -19,10 +19,11 @@ try {
 module.exports = {
   ...baseConfig,
 
-  // Module resolution - extending from parent config
+  // Module resolution - extending from parent config and adding our paths
   moduleNameMapper: {
-    '^@odh-dashboard/pact-testing$': '<rootDir>/../../pact-testing/src/index.ts',
-    '^@odh-dashboard/pact-testing/(.*)$': '<rootDir>/../../pact-testing/src/$1',
+    ...baseConfig.moduleNameMapper,
+    '^@odh-dashboard/pact-testing$': require('path').resolve(__dirname, 'src/index.ts'),
+    '^@odh-dashboard/pact-testing/(.*)$': require('path').resolve(__dirname, 'src/$1'),
   },
 
   // Setup files
@@ -47,7 +48,8 @@ module.exports = {
         inlineSource: true,
         darkTheme: false,
         openReport: !process.env.CI,
-        useCSSFile: false,
+        useCSSFile: true,
+        styleOverridePath: require('path').resolve(__dirname, 'report-style.css'),
         // Save test results as JSON for CI processing
         json: true,
 
@@ -64,35 +66,6 @@ module.exports = {
           { title: 'Test Runner', value: 'Jest' },
           { title: 'Test Framework', value: 'Contract Tests with Mock BFF' },
         ],
-
-        // Enhanced styling
-        styleOverrides: {
-          'html, body': {
-            'font-family': '-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji"',
-          },
-          '.suite-info': {
-            'margin-bottom': '1rem',
-            padding: '1rem',
-            'background-color': '#f6f8fa',
-            'border-radius': '6px',
-          },
-          '.test-case': {
-            'margin-bottom': '0.5rem',
-            padding: '0.5rem',
-            'border-left': '4px solid #2da44e',
-          },
-          '.test-case.failed': {
-            'border-left-color': '#cf222e',
-          },
-          '.console-message': {
-            'font-family': 'ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace',
-            'font-size': '85%',
-            padding: '0.5rem',
-            'background-color': '#f6f8fa',
-            'border-radius': '6px',
-            margin: '0.5rem 0',
-          },
-        },
       },
     ],
     [

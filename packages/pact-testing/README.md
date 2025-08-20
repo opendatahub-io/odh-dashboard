@@ -25,7 +25,9 @@ This package provides shared utilities and configurations for contract testing a
 
 2. **Use Shared Utilities**:
    ```typescript
-   import { ApiClient, SchemaValidator } from '@odh-dashboard/pact-testing';
+   import { ContractApiClient, ContractSchemaValidator } from '@odh-dashboard/pact-testing';
+   // For API client only:
+   import { ContractApiClient } from '@odh-dashboard/pact-testing/api';
    ```
 
 3. **Extend Base Setup**:
