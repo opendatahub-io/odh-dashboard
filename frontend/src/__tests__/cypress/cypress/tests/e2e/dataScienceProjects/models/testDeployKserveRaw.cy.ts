@@ -57,7 +57,7 @@ describe('Verify a user can deploy KServe Raw Deployment Model', () => {
   it(
     'Verify model deployment with Standard deployment mode (KServe Raw)',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent'],
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent', '@Maintain'],
     },
     () => {
       cy.step(`Log into the application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
