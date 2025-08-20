@@ -167,6 +167,17 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.21.6'
+          cache: true
+          cache-dependency-path: frontend/packages/model-registry/upstream/bff/go.sum
+
+      - name: Cache kubebuilder assets
+        if: steps.changes.outputs.changed == 'true'
+        uses: actions/cache@v4
+        with:
+          path: frontend/packages/model-registry/upstream/bff/bin
+          key: ${{ runner.os }}-kubebuilder-1.29.0
+          restore-keys: |
+            ${{ runner.os }}-kubebuilder-
 
       - name: Setup Go test dependencies (kubebuilder assets)
         if: steps.changes.outputs.changed == 'true'
