@@ -8,12 +8,121 @@ import {
   ModelVersion,
   RegisteredModelList,
   RegisteredModel,
+  RegistryExperiment,
+  RegistryExperimentList,
+  RegistryExperimentRun,
+  RegistryExperimentRunList,
+  RegistryArtifactList,
+  ModelRegistryQueryParams,
 } from '#~/concepts/modelRegistry/types';
 import { MODEL_REGISTRY_API_VERSION } from '#~/concepts/modelRegistry/const';
 import { bumpRegisteredModelTimestamp } from '#~/concepts/modelRegistry/utils/updateTimestamps';
 import { proxyCREATE, proxyGET, proxyPATCH } from '#~/api/proxyUtils';
 import { K8sAPIOptions } from '#~/k8sTypes';
 import { handleModelRegistryFailures } from './errorUtils';
+
+const queryParamBuilder = (url: string, params: ModelRegistryQueryParams = {}) => {
+  const queryParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    queryParams.set(key, value.toString());
+  });
+  return `${url}?${queryParams.toString()}`;
+};
+
+export const getRegistryExperiment =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, experimentId: string): Promise<RegistryExperiment> =>
+    handleModelRegistryFailures(
+      proxyGET(
+        hostPath,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/experiments/${experimentId}`,
+        {},
+        opts,
+      ),
+    );
+
+export const getListRegistryExperiments =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions): Promise<RegistryExperimentList> =>
+    handleModelRegistryFailures(
+      proxyGET(hostPath, `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/experiments`, {}, opts),
+    );
+
+export const getRegistryExperimentRuns =
+  (hostPath: string) =>
+  (
+    opts: K8sAPIOptions,
+    experimentId: string,
+    params?: ModelRegistryQueryParams,
+  ): Promise<RegistryExperimentRunList> =>
+    handleModelRegistryFailures(
+      proxyGET(
+        hostPath,
+        queryParamBuilder(
+          `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/experiments/${experimentId}/experiment_runs`,
+          params,
+        ),
+        {},
+        opts,
+      ),
+    );
+
+export const getListRegistryRuns =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, params?: ModelRegistryQueryParams): Promise<RegistryExperimentRunList> =>
+    handleModelRegistryFailures(
+      proxyGET(
+        hostPath,
+        queryParamBuilder(
+          `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/experiment_runs`,
+          params,
+        ),
+        {},
+        opts,
+      ),
+    );
+
+export const getRegistryExperimentRun =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, experimentRunId: string): Promise<RegistryExperimentRun> =>
+    handleModelRegistryFailures(
+      proxyGET(
+        hostPath,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/experiment_runs/${experimentRunId}`,
+        {},
+        opts,
+      ),
+    );
+
+export const getRegistryExperimentRunArtifacts =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, experimentRunId: string): Promise<RegistryArtifactList> =>
+    handleModelRegistryFailures(
+      proxyGET(
+        hostPath,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/experiment_runs/${experimentRunId}/artifacts`,
+        {},
+        opts,
+      ),
+    );
+
+export const getRegistryExperimentRunMetricHistory =
+  (hostPath: string) =>
+  (
+    opts: K8sAPIOptions,
+    experimentRunId: string,
+    metricName?: string,
+  ): Promise<RegistryArtifactList> => {
+    const params = metricName ? { name: metricName } : {};
+    return handleModelRegistryFailures(
+      proxyGET(
+        hostPath,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/experiment_runs/${experimentRunId}/metric_history`,
+        params,
+        opts,
+      ),
+    );
+  };
 
 export const createRegisteredModel =
   (hostpath: string) =>
@@ -243,6 +352,19 @@ export const patchModelArtifact =
         hostPath,
         `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_artifacts/${modelartifactId}`,
         data,
+        opts,
+      ),
+    );
+
+// TODO: the pageSize value here is temporary until server-side filtering is implemented
+export const getListRegistryArtifacts =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, params: ModelRegistryQueryParams = {}): Promise<RegistryArtifactList> =>
+    handleModelRegistryFailures(
+      proxyGET(
+        hostPath,
+        queryParamBuilder(`/api/model_registry/${MODEL_REGISTRY_API_VERSION}/artifacts`, params),
+        {},
         opts,
       ),
     );

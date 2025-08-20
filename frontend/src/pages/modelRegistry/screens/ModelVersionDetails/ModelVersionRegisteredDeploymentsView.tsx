@@ -5,7 +5,7 @@ import InferenceServiceTable from '#~/pages/modelServing/screens/global/Inferenc
 import { getVersionDetailsInferenceServiceColumns } from '#~/pages/modelServing/screens/global/data';
 import ModelVersionDetailsTabs from '#~/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
 import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
-import EmptyModelRegistryState from '#~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
+import EmptyModelRegistryState from '#~/concepts/modelRegistry/content/EmptyModelRegistryState.tsx';
 
 type ModelVersionRegisteredDeploymentsViewProps = Pick<
   React.ComponentProps<typeof ModelVersionDetailsTabs>,

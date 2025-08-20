@@ -1,6 +1,34 @@
 import { K8sAPIOptions } from '#~/k8sTypes';
 import { ModelLocationType } from '#~/pages/modelRegistry/screens/RegisterModel/useRegisterModelData';
 
+export enum ExperimentState {
+  LIVE = 'LIVE',
+  ARCHIVED = 'ARCHIVED',
+}
+
+export enum ExperimentRunState {
+  LIVE = 'LIVE',
+  ARCHIVED = 'ARCHIVED',
+}
+
+export enum ExperimentRunStatus {
+  RUNNING = 'RUNNING',
+  SCHEDULED = 'SCHEDULED',
+  FINISHED = 'FINISHED',
+  FAILED = 'FAILED',
+  KILLED = 'KILLED',
+}
+
+export enum ArtifactState {
+  UNKNOWN = 'UNKNOWN',
+  PENDING = 'PENDING',
+  LIVE = 'LIVE',
+  MARKED_FOR_DELETION = 'MARKED_FOR_DELETION',
+  DELETED = 'DELETED',
+  ABANDONED = 'ABANDONED',
+  REFERENCE = 'REFERENCE',
+}
+
 export enum ModelState {
   LIVE = 'LIVE',
   ARCHIVED = 'ARCHIVED',
@@ -44,6 +72,19 @@ export enum ModelRegistryMetadataType {
   PROTO = 'MetadataProtoValue',
   BOOL = 'MetadataBoolValue',
 }
+
+// MLflow tag keys for experiment runs
+export enum MLflowTagKeys {
+  PARENT_RUN_ID = 'mlflow.parentRunId',
+}
+
+export type ModelRegistryQueryParams = {
+  filterQuery?: string;
+  pageSize?: number;
+  nextPageToken?: string;
+  sortOrder?: string;
+  orderBy?: string;
+};
 
 export type ModelRegistryCustomPropertyInt = {
   metadataType: ModelRegistryMetadataType.INT;
@@ -262,6 +303,91 @@ export type PatchModelArtifact = (
   modelartifactId: string,
 ) => Promise<ModelArtifact>;
 
+export type RegistryExperiment = ModelRegistryBase & {
+  state?: ExperimentState;
+  owner?: string;
+};
+
+export type RegistryExperimentRun = ModelRegistryBase & {
+  experimentId: string;
+  state?: ExperimentRunState;
+  status?: ExperimentRunStatus;
+  startTimeSinceEpoch?: string;
+  endTimeSinceEpoch?: string;
+  owner?: string;
+  customProperties: ModelRegistryCustomProperties & {
+    [MLflowTagKeys.PARENT_RUN_ID]?: ModelRegistryCustomPropertyString;
+  };
+};
+
+export type RegistryArtifact = ModelRegistryBase & {
+  uri?: string;
+  state?: ArtifactState;
+  artifactType: string;
+  experimentRunId?: string;
+  parentId?: string;
+};
+
+export type RegistryMetricArtifact = RegistryArtifact & {
+  artifactType: 'metric';
+  value?: number;
+  timestamp?: string;
+  step?: number;
+};
+
+export type RegistryParameterArtifact = RegistryArtifact & {
+  artifactType: 'parameter';
+  value?: string;
+  parameterType?: 'string' | 'number' | 'boolean' | 'object';
+};
+
+export type RegistryExperimentList = ModelRegistryListParams & { items: RegistryExperiment[] };
+
+export type RegistryExperimentRunList = ModelRegistryListParams & {
+  items: RegistryExperimentRun[];
+};
+
+export type RegistryArtifactList = ModelRegistryListParams & { items: RegistryArtifact[] };
+
+export type GetRegistryExperiment = (
+  opts: K8sAPIOptions,
+  experimentId: string,
+) => Promise<RegistryExperiment>;
+
+export type GetListRegistryExperiments = (opts: K8sAPIOptions) => Promise<RegistryExperimentList>;
+
+export type GetRegistryExperimentRuns = (
+  opts: K8sAPIOptions,
+  experimentId: string,
+  params?: ModelRegistryQueryParams,
+) => Promise<RegistryExperimentRunList>;
+
+export type GetRegistryExperimentRun = (
+  opts: K8sAPIOptions,
+  experimentRunId: string,
+) => Promise<RegistryExperimentRun>;
+
+export type GetRegistryExperimentRunArtifacts = (
+  opts: K8sAPIOptions,
+  experimentRunId: string,
+) => Promise<RegistryArtifactList>;
+
+export type GetRegistryExperimentRunMetricHistory = (
+  opts: K8sAPIOptions,
+  experimentRunId: string,
+  metricName?: string,
+) => Promise<RegistryArtifactList>;
+
+export type GetListRegistryRuns = (
+  opts: K8sAPIOptions,
+  params?: ModelRegistryQueryParams,
+) => Promise<RegistryExperimentRunList>;
+
+export type GetListRegistryArtifacts = (
+  opts: K8sAPIOptions,
+  params?: ModelRegistryQueryParams,
+) => Promise<RegistryArtifactList>;
+
 export type ModelRegistryAPIs = {
   createRegisteredModel: CreateRegisteredModel;
   createModelVersion: CreateModelVersion;
@@ -279,4 +405,12 @@ export type ModelRegistryAPIs = {
   patchRegisteredModel: PatchRegisteredModel;
   patchModelVersion: PatchModelVersion;
   patchModelArtifact: PatchModelArtifact;
+  getExperiment: GetRegistryExperiment;
+  listExperiments: GetListRegistryExperiments;
+  getExperimentRuns: GetRegistryExperimentRuns;
+  getExperimentRun: GetRegistryExperimentRun;
+  getExperimentRunArtifacts: GetRegistryExperimentRunArtifacts;
+  getExperimentRunMetricHistory: GetRegistryExperimentRunMetricHistory;
+  listRuns: GetListRegistryRuns;
+  listArtifacts: GetListRegistryArtifacts;
 };

@@ -6,7 +6,6 @@ import {
   ModelVersion,
   RegisteredModel,
 } from '#~/concepts/modelRegistry/types';
-import { ServiceKind } from '#~/k8sTypes';
 import { KeyValuePair } from '#~/types';
 import { ModelRegistryFilterDataType, ModelRegistryVersionsFilterDataType } from './const';
 
@@ -171,9 +170,6 @@ export const filterRegisteredModels = (
     return !ownerFilter || rm.owner?.toLowerCase().includes(ownerFilter);
   });
 };
-
-export const getServerAddress = (resource: ServiceKind): string =>
-  resource.metadata.annotations?.['routing.opendatahub.io/external-address-rest'] || '';
 
 export const isValidHttpUrl = (value: string): boolean => {
   try {
