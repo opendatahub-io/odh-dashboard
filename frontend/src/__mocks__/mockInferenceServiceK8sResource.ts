@@ -44,6 +44,7 @@ type MockResourceConfigType = {
   lastTransitionTime?: string;
   isReady?: boolean;
   predictorAnnotations?: Record<string, string>;
+  storageUri?: string;
 };
 
 type InferenceServicek8sError = K8sStatus & {
@@ -120,6 +121,7 @@ export const mockInferenceServiceK8sResource = ({
   lastTransitionTime = '2023-03-17T16:12:41Z',
   isReady = false,
   predictorAnnotations = undefined,
+  storageUri = undefined,
 }: MockResourceConfigType): InferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1beta1',
   kind: 'InferenceService',
@@ -186,10 +188,14 @@ export const mockInferenceServiceK8sResource = ({
           : {}),
         ...(resources && { resources }),
         runtime: modelName,
-        storage: {
-          key: secretName,
-          path,
-        },
+        ...(storageUri
+          ? { storageUri }
+          : {
+              storage: {
+                key: secretName,
+                path,
+              },
+            }),
         args,
         env,
       },
