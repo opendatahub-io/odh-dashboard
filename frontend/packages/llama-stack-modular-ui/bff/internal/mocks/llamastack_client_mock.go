@@ -108,27 +108,15 @@ func (m *MockLlamaStackClient) UploadFile(ctx context.Context, params clients.Up
 
 // CreateResponse returns a mock response with comprehensive parameter support
 func (m *MockLlamaStackClient) CreateResponse(ctx context.Context, params clients.CreateResponseParams) (*responses.Response, error) {
-	// Create a simple mock response - we'll create a minimal structure that compiles
-	return &responses.Response{
+	// Create a simple mock response that compiles - the BFF will extract content using the simplified response handler
+	mockResponse := &responses.Response{
 		ID:        "resp_mock123",
 		Object:    "response",
 		CreatedAt: 1234567890.0,
 		Model:     params.Model,
 		Status:    "completed",
 		Metadata:  map[string]string{},
-		// Note: Usage and Output fields have complex structures - leaving as zero values for now
-	}, nil
-}
+	}
 
-// GetResponse returns a mock response by ID
-func (m *MockLlamaStackClient) GetResponse(ctx context.Context, responseID string) (*responses.Response, error) {
-	return &responses.Response{
-		ID:        responseID,
-		Object:    "response",
-		CreatedAt: 1234567890.0,
-		Model:     "llama-3.1-8b",
-		Status:    "completed",
-		Metadata:  map[string]string{},
-		// Note: Usage and Output fields have complex structures - leaving as zero values for now
-	}, nil
+	return mockResponse, nil
 }

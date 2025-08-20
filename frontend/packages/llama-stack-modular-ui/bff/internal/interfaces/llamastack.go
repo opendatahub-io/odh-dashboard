@@ -15,9 +15,7 @@ type LlamaStackClientInterface interface {
 	ListVectorStores(ctx context.Context, params clients.ListVectorStoresParams) ([]openai.VectorStore, error)
 	CreateVectorStore(ctx context.Context, params clients.CreateVectorStoreParams) (*openai.VectorStore, error)
 
-	// UploadFile uploads a file and optionally adds it to a vector store in one operation
 	UploadFile(ctx context.Context, params clients.UploadFileParams) (*clients.FileUploadResult, error)
 
 	CreateResponse(ctx context.Context, params clients.CreateResponseParams) (*responses.Response, error)
-	GetResponse(ctx context.Context, responseID string) (*responses.Response, error)
 }

@@ -6,20 +6,14 @@ import (
 
 // Repositories struct is a single convenient container to hold and represent all our repositories.
 type Repositories struct {
-	HealthCheck            *HealthCheckRepository
-	LlamaStackModels       *LlamaStackModels
-	LlamaStackVectorStores *LlamaStackVectorStores
-	LlamaStackResponses    *LlamaStackResponses
-	LlamaStackFiles        *LlamaStackFiles
+	HealthCheck *HealthCheckRepository
+	LlamaStack  *LlamaStackRepository
 }
 
-// NewRepositories creates repositories with OpenAI SDK support
+// NewRepositories creates repositories with the specified client interface.
 func NewRepositories(client interfaces.LlamaStackClientInterface) *Repositories {
 	return &Repositories{
-		HealthCheck:            NewHealthCheckRepository(),
-		LlamaStackModels:       NewLlamaStackModels(client),
-		LlamaStackVectorStores: NewLlamaStackVectorStores(client),
-		LlamaStackResponses:    NewLlamaStackResponses(client),
-		LlamaStackFiles:        NewLlamaStackFiles(client),
+		HealthCheck: NewHealthCheckRepository(),
+		LlamaStack:  NewLlamaStackRepository(client),
 	}
 }

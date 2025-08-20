@@ -6,9 +6,31 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/clients"
 )
+
+// SimplifiedResponseData contains only the essential response information
+type SimplifiedResponseData struct {
+	ID        string           `json:"id"`
+	Model     string           `json:"model"`
+	Status    string           `json:"status"`
+	CreatedAt float64          `json:"created_at"`
+	Content   string           `json:"content"`
+	Usage     *SimplifiedUsage `json:"usage,omitempty"`
+}
+
+// SimplifiedUsage contains only populated token usage information
+type SimplifiedUsage struct {
+	InputTokens  int64 `json:"input_tokens,omitempty"`
+	OutputTokens int64 `json:"output_tokens,omitempty"`
+	TotalTokens  int64 `json:"total_tokens,omitempty"`
+}
+
+// ChatContextMessage represents a message in chat context history
+type ChatContextMessage struct {
+	Role    string `json:"role"`    // "user" or "assistant"
+	Content string `json:"content"` // Message content
+}
 
 // CreateResponseRequest represents the request body for creating a response
 type CreateResponseRequest struct {
@@ -17,46 +39,19 @@ type CreateResponseRequest struct {
 	Model string `json:"model"`
 
 	// === CORE PARAMETERS ===
-	VectorStoreIDs     []string `json:"vector_store_ids,omitempty"`
-	PreviousResponseID string   `json:"previous_response_id,omitempty"`
-	Store              *bool    `json:"store,omitempty"`
+	// === WORKING PARAMETERS (tested and confirmed) ===
+	VectorStoreIDs []string             `json:"vector_store_ids,omitempty"` // ✅ Enables RAG
+	ChatContext    []ChatContextMessage `json:"chatcontext,omitempty"`      // ✅ Conversation history
+	Temperature    *float64             `json:"temperature,omitempty"`      // ✅ Controls creativity (0.0-2.0)
+	TopP           *float64             `json:"top_p,omitempty"`            // ✅ Controls randomness (0.0-1.0)
+	Instructions   string               `json:"instructions,omitempty"`     // ✅ System message/behavior
 
-	// === GENERATION PARAMETERS ===
-	Temperature     *float64 `json:"temperature,omitempty"`
-	TopP            *float64 `json:"top_p,omitempty"`
-	MaxOutputTokens *int64   `json:"max_output_tokens,omitempty"`
-	TopLogprobs     *int64   `json:"top_logprobs,omitempty"`
-
-	// === TOOL PARAMETERS ===
-	MaxToolCalls      *int64 `json:"max_tool_calls,omitempty"`
-	ParallelToolCalls *bool  `json:"parallel_tool_calls,omitempty"`
-
-	// === ADVANCED PARAMETERS ===
-	Instructions string `json:"instructions,omitempty"`
-	Background   *bool  `json:"background,omitempty"`
-	ServiceTier  string `json:"service_tier,omitempty"`
-	Truncation   string `json:"truncation,omitempty"`
-
-	// === STREAMING PARAMETERS ===
-	Stream        *bool                  `json:"stream,omitempty"`
-	StreamOptions map[string]interface{} `json:"stream_options,omitempty"`
-
-	// === IDENTIFICATION PARAMETERS ===
-	User             string `json:"user,omitempty"`
-	SafetyIdentifier string `json:"safety_identifier,omitempty"`
-	PromptCacheKey   string `json:"prompt_cache_key,omitempty"`
-
-	// === RESPONSE FORMAT PARAMETERS ===
-	ResponseFormat map[string]interface{} `json:"response_format,omitempty"`
-	Include        []string               `json:"include,omitempty"`
-	Metadata       map[string]string      `json:"metadata,omitempty"`
-
-	// === LLAMA STACK EXTENSIONS ===
-	MaxInferIters *int `json:"max_infer_iters,omitempty"`
+	// Note: store, metadata, user, max_output_tokens, service_tier, and 20+ other
+	// parameters are not working with Llama Stack's OpenAI-compatible API - removed
 }
 
 type ResponseData struct {
-	Data *responses.Response `json:"data"`
+	Data interface{} `json:"data"`
 }
 
 // LlamaStackCreateResponseHandler handles POST /genai/v1/responses
@@ -80,71 +75,75 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Convert to client params
-	params := clients.CreateResponseParams{
-		Input:              createRequest.Input,
-		Model:              createRequest.Model,
-		VectorStoreIDs:     createRequest.VectorStoreIDs,
-		PreviousResponseID: createRequest.PreviousResponseID,
-		Store:              createRequest.Store,
-		Temperature:        createRequest.Temperature,
-		TopP:               createRequest.TopP,
-		MaxOutputTokens:    createRequest.MaxOutputTokens,
-		TopLogprobs:        createRequest.TopLogprobs,
-		MaxToolCalls:       createRequest.MaxToolCalls,
-		ParallelToolCalls:  createRequest.ParallelToolCalls,
-		Instructions:       createRequest.Instructions,
-		Background:         createRequest.Background,
-		ServiceTier:        createRequest.ServiceTier,
-		Truncation:         createRequest.Truncation,
-		Stream:             createRequest.Stream,
-		StreamOptions:      createRequest.StreamOptions,
-		User:               createRequest.User,
-		SafetyIdentifier:   createRequest.SafetyIdentifier,
-		PromptCacheKey:     createRequest.PromptCacheKey,
-		ResponseFormat:     createRequest.ResponseFormat,
-		Include:            createRequest.Include,
-		Metadata:           createRequest.Metadata,
-		MaxInferIters:      createRequest.MaxInferIters,
+	// ChatContext validation (no conflicts with previous_response_id anymore)
+
+	// Convert chat context format
+	var chatContext []clients.ChatContextMessage
+	for _, msg := range createRequest.ChatContext {
+		chatContext = append(chatContext, clients.ChatContextMessage{
+			Role:    msg.Role,
+			Content: msg.Content,
+		})
 	}
 
-	response, err := app.repositories.LlamaStackResponses.CreateResponse(ctx, params)
+	// Convert to client params (only working parameters)
+	params := clients.CreateResponseParams{
+		Input:          createRequest.Input,
+		Model:          createRequest.Model,
+		VectorStoreIDs: createRequest.VectorStoreIDs,
+		ChatContext:    chatContext,
+		Temperature:    createRequest.Temperature,
+		TopP:           createRequest.TopP,
+		Instructions:   createRequest.Instructions,
+	}
+
+	llamaResponse, err := app.repositories.LlamaStack.CreateResponse(ctx, params)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 
+	// Extract the actual content from the response
+	content := ""
+	if len(llamaResponse.Output) > 0 {
+		for _, output := range llamaResponse.Output {
+			if output.Type == "message" && len(output.Content) > 0 {
+				for _, contentPart := range output.Content {
+					if contentPart.Type == "output_text" {
+						content = contentPart.Text
+						break
+					}
+				}
+				if content != "" {
+					break
+				}
+			}
+		}
+	}
+
+	// Create simplified response
+	simplified := SimplifiedResponseData{
+		ID:        llamaResponse.ID,
+		Model:     llamaResponse.Model,
+		Status:    string(llamaResponse.Status),
+		CreatedAt: llamaResponse.CreatedAt,
+		Content:   content,
+	}
+
+	// Add usage if tokens are populated
+	if llamaResponse.Usage.InputTokens > 0 || llamaResponse.Usage.OutputTokens > 0 || llamaResponse.Usage.TotalTokens > 0 {
+		simplified.Usage = &SimplifiedUsage{
+			InputTokens:  llamaResponse.Usage.InputTokens,
+			OutputTokens: llamaResponse.Usage.OutputTokens,
+			TotalTokens:  llamaResponse.Usage.TotalTokens,
+		}
+	}
+
 	responseData := ResponseData{
-		Data: response,
+		Data: simplified,
 	}
 
 	err = app.WriteJSON(w, http.StatusCreated, responseData, nil)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-	}
-}
-
-// LlamaStackGetResponseHandler handles GET /genai/v1/responses/{id}
-func (app *App) LlamaStackGetResponseHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	ctx := r.Context()
-	responseID := params.ByName("id")
-
-	if responseID == "" {
-		app.badRequestResponse(w, r, errors.New("response id is required"))
-		return
-	}
-
-	response, err := app.repositories.LlamaStackResponses.GetResponse(ctx, responseID)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-
-	responseData := ResponseData{
-		Data: response,
-	}
-
-	err = app.WriteJSON(w, http.StatusOK, responseData, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

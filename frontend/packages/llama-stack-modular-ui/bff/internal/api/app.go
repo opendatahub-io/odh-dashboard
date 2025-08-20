@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/clients"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/interfaces"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/mocks"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/repositories"
 
 	"github.com/julienschmidt/httprouter"
@@ -44,7 +46,7 @@ type App struct {
 	repositories     *repositories.Repositories
 	openAPI          *OpenAPIHandler
 	tokenFactory     *integrations.TokenClientFactory
-	llamaStackClient *clients.LlamaStackClient
+	llamaStackClient interfaces.LlamaStackClientInterface
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -56,13 +58,24 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		return nil, fmt.Errorf("failed to create OpenAPI handler: %w", err)
 	}
 
-	// Initialize OpenAI client for new endpoints
-	llamaStackClient := clients.NewLlamaStackClient(cfg.LlamaStackURL)
+	// Initialize client - use mock if requested
+	var llamaStackClient interfaces.LlamaStackClientInterface
+
+	if cfg.MockLSClient {
+		logger.Info("Using mock LlamaStack client")
+		llamaStackClient = mocks.NewMockLlamaStackClient()
+	} else {
+		logger.Info("Using real LlamaStack client", "url", cfg.LlamaStackURL)
+		llamaStackClient = clients.NewLlamaStackClient(cfg.LlamaStackURL)
+	}
+
+	// Initialize repositories (only for healthcheck now)
+	repos := repositories.NewRepositories(llamaStackClient)
 
 	app := &App{
 		config:           cfg,
 		logger:           logger,
-		repositories:     repositories.NewRepositories(llamaStackClient),
+		repositories:     repos,
 		openAPI:          openAPIHandler,
 		tokenFactory:     integrations.NewTokenClientFactory(logger, cfg),
 		llamaStackClient: llamaStackClient,
@@ -87,7 +100,6 @@ func (app *App) Routes() http.Handler {
 
 	// Responses (OpenAI Responses API)
 	apiRouter.POST(genaiPrefix+"/responses", app.RequireAccessToService(app.LlamaStackCreateResponseHandler))
-	apiRouter.GET(genaiPrefix+"/responses/:id", app.RequireAccessToService(app.LlamaStackGetResponseHandler))
 
 	// Vector Stores
 	apiRouter.GET(genaiPrefix+"/vectorstores", app.RequireAccessToService(app.LlamaStackListVectorStoresHandler))

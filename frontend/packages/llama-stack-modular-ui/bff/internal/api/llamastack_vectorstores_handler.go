@@ -3,51 +3,52 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/openai/openai-go/v2"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/clients"
 )
 
 type VectorStoresResponse struct {
-	Data []openai.VectorStore `json:"data"`
+	Data interface{} `json:"data"`
 }
 
 type VectorStoreResponse struct {
-	Data *openai.VectorStore `json:"data"`
+	Data interface{} `json:"data"`
 }
 
 // CreateVectorStoreRequest represents the request body for creating a vector store
 type CreateVectorStoreRequest struct {
-	// Name: Optional name for the vector store (max 256 chars)
-	Name string `json:"name,omitempty"`
-	// FileIDs: List of file IDs to include in vector store
-	FileIDs []string `json:"file_ids,omitempty"`
-	// Metadata: Set of 16 key-value pairs, keys max 64 chars, values max 512 chars
+	// Name: Required name for the vector store (1-256 chars)
+	Name string `json:"name"`
+	// Metadata: Set of 16 key-value pairs, keys max 64 chars, values max 512 chars (optional)
 	Metadata map[string]string `json:"metadata,omitempty"`
-	// ExpiresAfter: Expiration policy (days/hours)
-	ExpiresAfter map[string]interface{} `json:"expires_after,omitempty"`
-	// ChunkingStrategy: "auto" or custom strategy
-	ChunkingStrategy string `json:"chunking_strategy,omitempty"`
-	// EmbeddingModel: Model for embeddings (Llama Stack extension)
-	EmbeddingModel string `json:"embedding_model,omitempty"`
-	// EmbeddingDimension: Vector dimension, default 384 (Llama Stack extension)
-	EmbeddingDimension *int `json:"embedding_dimension,omitempty"`
-	// ProviderID: Llama Stack provider ID (Llama Stack extension)
-	ProviderID string `json:"provider_id,omitempty"`
+	// Note: expires_after, provider_id, chunking_strategy, embedding_model, embedding_dimension, file_ids
+	// parameters are not working with Llama Stack - removed from API
 }
 
 // LlamaStackListVectorStoresHandler handles GET /genai/v1/vectorstores
 func (app *App) LlamaStackListVectorStoresHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
-	// Parse optional query parameters
+	// Parse query parameters
 	params := clients.ListVectorStoresParams{}
 
-	// TODO: Parse query parameters if needed (limit, order, after, before)
-	// For now, use empty params (all defaults)
+	// Parse limit parameter (1-100, default 20)
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if limit, err := strconv.ParseInt(limitStr, 10, 64); err == nil {
+			if limit >= 1 && limit <= 100 {
+				params.Limit = &limit
+			}
+		}
+	}
 
-	vectorStores, err := app.repositories.LlamaStackVectorStores.ListVectorStores(ctx, params)
+	// Parse order parameter ("asc" or "desc")
+	if order := r.URL.Query().Get("order"); order == "asc" || order == "desc" {
+		params.Order = order
+	}
+
+	vectorStores, err := app.repositories.LlamaStack.ListVectorStores(ctx, params)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -74,19 +75,13 @@ func (app *App) LlamaStackCreateVectorStoreHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// Convert to client params
+	// Convert to client params (only working parameters)
 	params := clients.CreateVectorStoreParams{
-		Name:               createRequest.Name,
-		FileIDs:            createRequest.FileIDs,
-		Metadata:           createRequest.Metadata,
-		ExpiresAfter:       createRequest.ExpiresAfter,
-		ChunkingStrategy:   createRequest.ChunkingStrategy,
-		EmbeddingModel:     createRequest.EmbeddingModel,
-		EmbeddingDimension: createRequest.EmbeddingDimension,
-		ProviderID:         createRequest.ProviderID,
+		Name:     createRequest.Name,
+		Metadata: createRequest.Metadata,
 	}
 
-	vectorStore, err := app.repositories.LlamaStackVectorStores.CreateVectorStore(ctx, params)
+	vectorStore, err := app.repositories.LlamaStack.CreateVectorStore(ctx, params)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
