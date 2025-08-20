@@ -1,0 +1,14 @@
+
+> @odh-dashboard/pact-testing@0.0.0 test:contract
+> jest --config jest.contract.config.js
+
+PASS src/__tests__/sample.contract.test.ts
+  Sample contract test
+    ✓ should pass (1 ms)
+
+📦 report is created on: /Users/acoughli/forked-odh-dashboard/odh-dashboard/packages/pact-testing/pact/pact-test-results/20250820_092333/contract-test-report.html
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        1.491 s
+Ran all test suites.

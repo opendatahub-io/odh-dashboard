@@ -9,6 +9,7 @@
     "test:watch": "jest --watch",
     "test:contract": "jest --config jest.contract.config.js",
     "test:contract:watch": "jest --config jest.contract.config.js --watch",
+    "test:contract:with-bff": "scripts/run-with-mock-bff.sh",
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix"
   },

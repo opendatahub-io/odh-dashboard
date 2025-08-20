@@ -1,0 +1,20 @@
+
+> @odh-dashboard/pact-testing@0.0.0 test:contract
+> jest --config jest.contract.config.js
+
+Error: Can't find a root directory while resolving a config file path.
+Provided path to resolve: jest.contract.config.js
+cwd: /Users/acoughli/forked-odh-dashboard/odh-dashboard/packages/pact-testing
+    at resolveConfigPath (/Users/acoughli/forked-odh-dashboard/odh-dashboard/node_modules/jest-config/build/resolveConfigPath.js:123:11)
+    at readInitialOptions (/Users/acoughli/forked-odh-dashboard/odh-dashboard/node_modules/jest-config/build/index.js:386:55)
+    at readConfig (/Users/acoughli/forked-odh-dashboard/odh-dashboard/node_modules/jest-config/build/index.js:147:54)
+    at readConfigs (/Users/acoughli/forked-odh-dashboard/odh-dashboard/node_modules/jest-config/build/index.js:424:32)
+    at runCLI (/Users/acoughli/forked-odh-dashboard/odh-dashboard/node_modules/@jest/core/build/cli/index.js:152:29)
+    at Object.run (/Users/acoughli/forked-odh-dashboard/odh-dashboard/node_modules/jest-cli/build/run.js:130:62)
+npm error Lifecycle script `test:contract` failed with error:
+npm error code 1
+npm error path /Users/acoughli/forked-odh-dashboard/odh-dashboard/packages/pact-testing
+npm error workspace @odh-dashboard/pact-testing@0.0.0
+npm error location /Users/acoughli/forked-odh-dashboard/odh-dashboard/packages/pact-testing
+npm error command failed
+npm error command sh -c jest --config jest.contract.config.js
