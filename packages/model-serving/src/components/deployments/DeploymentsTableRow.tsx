@@ -4,7 +4,7 @@ import { Label, Content, ContentVariants } from '@patternfly/react-core';
 import ResourceActionsColumn from '@odh-dashboard/internal/components/ResourceActionsColumn';
 import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
 import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';
-import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import StateActionToggle from '@odh-dashboard/internal/components/StateActionToggle';
@@ -148,7 +148,7 @@ export const DeploymentRow: React.FC<{
         </Td>
         <Td dataLabel="Status">
           <ModelStatusIcon
-            state={deployment.status?.state ?? InferenceServiceModelState.UNKNOWN}
+            state={deployment.status?.state ?? ModelDeploymentState.UNKNOWN}
             bodyContent={deployment.status?.message}
             defaultHeaderContent="Inference Service Status"
             stoppedStates={deployment.status?.stoppedStates}

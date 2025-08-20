@@ -6,7 +6,7 @@ import {
   NotificationWatcherContext,
 } from '#~/concepts/notificationWatcher/NotificationWatcherContext';
 import { getInferenceService } from '#~/api';
-import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
+import { ModelDeploymentState } from '#~/pages/modelServing/screens/types';
 import {
   getInferenceServiceLastFailureReason,
   getInferenceServiceModelState,
@@ -28,7 +28,7 @@ export const useModelDeploymentNotification = (
   const notification = useNotification();
   const { registerNotification } = React.useContext(NotificationWatcherContext);
   const [modelStatus] = useModelStatus(namespace, modelName, isKserve);
-  const lastSeenState = React.useRef<InferenceServiceModelState | null>(null);
+  const lastSeenState = React.useRef<ModelDeploymentState | null>(null);
 
   const watchDeployment = React.useCallback(() => {
     registerNotification({
@@ -59,10 +59,10 @@ export const useModelDeploymentNotification = (
           const isStarting =
             !inferenceService.status?.modelStatus?.states?.activeModelState &&
             inferenceService.status?.modelStatus?.states?.targetModelState !==
-              InferenceServiceModelState.FAILED_TO_LOAD &&
+              ModelDeploymentState.FAILED_TO_LOAD &&
             !baseStatus.isStopped;
 
-          const isRunning = inferenceServiceModelState === InferenceServiceModelState.LOADED;
+          const isRunning = inferenceServiceModelState === ModelDeploymentState.LOADED;
 
           // Track previous state
           const lastState = lastSeenState.current;
@@ -71,8 +71,8 @@ export const useModelDeploymentNotification = (
           // Only consider it failed if it's not stopped, the state is FAILED_TO_LOAD, and the last state was PENDING
           const isFailed =
             !isStopped &&
-            inferenceServiceModelState === InferenceServiceModelState.FAILED_TO_LOAD &&
-            lastState === InferenceServiceModelState.PENDING;
+            inferenceServiceModelState === ModelDeploymentState.FAILED_TO_LOAD &&
+            lastState === ModelDeploymentState.PENDING;
 
           const lastFailureReason = getInferenceServiceLastFailureReason(inferenceService);
 
@@ -91,7 +91,7 @@ export const useModelDeploymentNotification = (
             return { status: NotificationResponseStatus.STOP };
           }
 
-          if (isRunning && lastState === InferenceServiceModelState.LOADED) {
+          if (isRunning && lastState === ModelDeploymentState.LOADED) {
             // Model is running, stop polling
             return { status: NotificationResponseStatus.STOP };
           }
@@ -103,8 +103,8 @@ export const useModelDeploymentNotification = (
 
           if (
             isStarting ||
-            inferenceServiceModelState === InferenceServiceModelState.PENDING ||
-            inferenceServiceModelState === InferenceServiceModelState.LOADING
+            inferenceServiceModelState === ModelDeploymentState.PENDING ||
+            inferenceServiceModelState === ModelDeploymentState.LOADING
           ) {
             // Model is still starting/loading, continue polling
             return { status: NotificationResponseStatus.REPOLL };

@@ -10,12 +10,12 @@ import type {
 import type { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import type { ModelServingPodSpecOptionsState } from '@odh-dashboard/internal/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import type { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import type { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { ToggleState } from '@odh-dashboard/internal/components/StateActionToggle';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
 
 export type DeploymentStatus = {
-  state: InferenceServiceModelState;
+  state: ModelDeploymentState;
   message?: string;
   stoppedStates?: ToggleState;
 };

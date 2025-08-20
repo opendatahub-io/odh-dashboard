@@ -1,7 +1,7 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { Deployment } from '../../../../extension-points';
 import { mockExtensions } from '../../../__tests__/mockUtils';
 import { DeploymentRow } from '../DeploymentsTableRow';
@@ -104,7 +104,7 @@ describe('DeploymentsTableRow', () => {
         <tbody>
           <DeploymentRow
             deployment={mockDeployment({
-              status: { state: InferenceServiceModelState.LOADED },
+              status: { state: ModelDeploymentState.LOADED },
             })}
             platformColumns={[]}
             onDelete={onDelete}
