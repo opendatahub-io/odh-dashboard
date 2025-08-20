@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Generic script template for running contract tests with Mock BFF
-# Copy this to your package's pact/scripts/ directory and customize the configuration section
+# Copy this to your package's contract-test/scripts/ directory and customize the configuration section
 
 set -euo pipefail
 
@@ -23,7 +23,7 @@ BFF_DIR="$PACKAGE_ROOT/upstream/bff"
 # ========================================
 # LOAD SHARED UTILITIES
 # ========================================
-# Try to find pact-testing package by searching upward
+# Try to find contract-testing helpers by searching upward
 find_helpers() {
     local current_dir="$1"
     local max_depth=5
@@ -55,7 +55,7 @@ if [[ -n "$HELPERS_FILE" ]]; then
     # shellcheck disable=SC1090
     source "$HELPERS_FILE"
 else
-    echo "❌ Could not find pact-testing package in parent directories"
+    echo "❌ Could not find contract-testing helpers in parent directories"
     echo "💡 Make sure @odh-dashboard/pact-testing package is installed"
     exit 1
 fi
@@ -64,7 +64,7 @@ fi
 # MAIN EXECUTION
 # ========================================
 
-log_info "🚀 Starting $PACKAGE_NAME Pact tests with Mock BFF"
+log_info "🚀 Starting $PACKAGE_NAME contract tests with Mock BFF"
 
 # Create test results directory
 TEST_RUN_DIR=$(create_test_results_dir)

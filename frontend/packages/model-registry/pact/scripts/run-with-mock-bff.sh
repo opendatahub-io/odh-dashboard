@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Model Registry Pact Tests with Mock BFF
+# Model Registry contract tests with Mock BFF
 # This script builds and runs the Model Registry BFF server in mock mode,
-# then executes contract tests against it to generate real Pact contracts.
+# then executes contract tests against it to validate API contracts.
 
 set -euo pipefail
 
@@ -170,9 +170,9 @@ start_mock_bff() {
     fi
 }
 
-# Run Pact tests
+# Run contract tests
 run_pact_tests() {
-    log_info "Running Pact consumer tests against Mock BFF..."
+    log_info "Running contract tests against Mock BFF..."
     cd "$PACKAGE_ROOT" || exit 1
 
     # Set environment for tests
@@ -185,9 +185,9 @@ run_pact_tests() {
     
     # Run the tests with detailed output and force exit to handle open handles
     if npm run test:contract -- --verbose --forceExit 2>&1 | tee "$TEST_OUTPUT_FILE"; then
-        log_success "Pact tests completed successfully!"
+        log_success "Contract tests completed successfully!"
     else
-        log_error "Pact tests failed"
+        log_error "Contract tests failed"
         log_error "Check detailed logs: $TEST_OUTPUT_FILE"
         exit 1
     fi
@@ -207,7 +207,7 @@ show_results() {
 
 # Main execution
 main() {
-    log_info "🚀 Starting Model Registry Pact tests with Mock BFF"
+    log_info "🚀 Starting Model Registry contract tests with Mock BFF"
     
     check_go
     build_bff
@@ -220,13 +220,13 @@ main() {
 case "${1:-}" in
     "--help"|"-h")
         cat << EOF
-Model Registry Pact Tests with Mock BFF
+Model Registry contract tests with Mock BFF
 
 This script:
 1. Builds the Model Registry BFF server
 2. Starts it in mock mode (--mock-k8s-client --mock-mr-client)
-3. Runs Pact consumer tests against the real BFF endpoints
-4. Generates Pact contracts based on actual API responses
+3. Runs contract tests against the BFF endpoints
+4. Validates contracts based on actual API responses
 
 USAGE:
     $0 [options]

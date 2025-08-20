@@ -4,5 +4,5 @@
 jest.setTimeout(30000);
 
 // Log test start for debugging
-console.log('🔧 Pact testing setup complete');
+console.log('🔧 Contract testing setup complete');
 console.log('🕐 Test timeout: 30s');

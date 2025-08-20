@@ -1,7 +1,7 @@
 {
   "name": "@odh-dashboard/pact-testing-base",
   "version": "1.0.0",
-  "description": "Base configuration for pact testing modules",
+  "description": "Base configuration for contract testing modules",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {

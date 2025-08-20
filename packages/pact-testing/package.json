@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "@odh-dashboard/pact-testing",
-  "description": "Shared utilities for Pact contract testing across ODH Dashboard packages.",
+  "description": "Shared utilities for contract testing across ODH Dashboard packages.",
   "version": "0.0.0",
   "scripts": {
     "build": "tsc && mkdir -p dist/helpers && cp src/helpers/shell-helpers.sh dist/helpers/",

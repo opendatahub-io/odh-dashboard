@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Shared shell helper functions for Pact testing scripts
+# Shared shell helper functions for contract testing scripts
 # Source this file in your package's run-with-mock-bff.sh script
 
 # Enable strict mode
@@ -170,7 +170,7 @@ cleanup_bff() {
 run_contract_tests() {
     local TEST_RUN_DIR="$1"
     
-    log_info "Running Pact consumer tests against Mock BFF..."
+    log_info "Running contract tests against Mock BFF..."
     log_info "Test output: $TEST_RUN_DIR/contract-test-output.log"
 
     # Set environment variables for Jest
@@ -178,10 +178,10 @@ run_contract_tests() {
 
     # Run tests and capture output
     if npm run test:contract > "$TEST_RUN_DIR/contract-test-output.log" 2>&1; then
-        log_success "Pact tests completed successfully!"
+        log_success "Contract tests completed successfully!"
         return 0
     else
-        log_warning "Pact tests completed with issues"
+        log_warning "Contract tests completed with issues"
         return 1
     fi
 }

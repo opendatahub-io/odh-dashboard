@@ -1,4 +1,4 @@
-# Pact Testing Package
+# Contract Testing Package
 
 This package provides shared utilities and configurations for contract testing across all ODH Dashboard modules.
 
