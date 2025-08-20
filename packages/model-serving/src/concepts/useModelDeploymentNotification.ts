@@ -7,16 +7,19 @@ import {
 } from '@odh-dashboard/internal/concepts/notificationWatcher/NotificationWatcherContext';
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { FAST_POLL_INTERVAL } from '@odh-dashboard/internal/utilities/const';
-import { DeploymentStatus } from '../../extension-points';
+import { Deployment } from '../../extension-points';
 
 type ModelDeploymentNotification = {
   watchDeployment: () => void;
 };
 
 export const useModelDeploymentNotification = (
-  deploymentStatusRef: React.MutableRefObject<DeploymentStatus | undefined>,
-  namespace: string,
+  deployment: Deployment,
 ): ModelDeploymentNotification => {
+  const deploymentStatusRef = React.useRef(deployment.status);
+  deploymentStatusRef.current = deployment.status;
+  const { namespace } = deployment.model.metadata;
+
   const navigate = useNavigate();
   const notification = useNotification();
   const { registerNotification } = React.useContext(NotificationWatcherContext);
@@ -31,9 +34,9 @@ export const useModelDeploymentNotification = (
           if (!currentStatus) {
             return { status: NotificationResponseStatus.STOP };
           }
+          console.log('currentStatus', currentStatus);
 
           const deploymentState = currentStatus.state;
-          //const isStoppedState = currentStatus.stoppedStates?.isStopped || false;
           const {
             isStarting: isStartingState,
             isRunning: isRunningState,
