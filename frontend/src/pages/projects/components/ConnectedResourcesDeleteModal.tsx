@@ -69,7 +69,7 @@ const ConnectedResourcesDeleteModal: React.FC<ConnectedResourcesDeleteModalProps
                     toggleId="expand-connected-notebooks-toggle"
                   >
                     <Content>
-                      <Content component="ul">
+                      <Content component="ul" className="pf-v6-u-ml-lg">
                         {connectedNotebooks.map((notebook) => (
                           <Content
                             component="li"
@@ -108,7 +108,7 @@ const ConnectedResourcesDeleteModal: React.FC<ConnectedResourcesDeleteModalProps
                     contentId="expanded-connected-models"
                   >
                     <Content>
-                      <Content component="ul">
+                      <Content component="ul" className="pf-v6-u-ml-lg">
                         {connectedModels.map((model) => (
                           <Content
                             component="li"
