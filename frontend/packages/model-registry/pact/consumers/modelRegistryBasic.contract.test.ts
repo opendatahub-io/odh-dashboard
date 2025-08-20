@@ -49,9 +49,11 @@ describe('Model Registry API - Mock BFF Contract Tests', () => {
     }
   });
 
-  afterAll((done) => {
-    // Close any open handles
-    setTimeout(done, 500);
+  afterAll(async () => {
+    // Clean up any pending requests
+    await new Promise((resolve) => {
+      setTimeout(resolve, 500);
+    });
   });
 
   describe('Model Registry List Endpoint', () => {

@@ -175,8 +175,8 @@ run_pact_tests() {
     
     log_info "Test output: $TEST_OUTPUT_FILE"
     
-    # Run the tests with detailed output
-    if npm run test:contract -- --verbose 2>&1 | tee "$TEST_OUTPUT_FILE"; then
+    # Run the tests with detailed output and force exit to handle open handles
+    if npm run test:contract -- --verbose --forceExit 2>&1 | tee "$TEST_OUTPUT_FILE"; then
         log_success "Pact tests completed successfully!"
     else
         log_error "Pact tests failed"
@@ -188,7 +188,12 @@ run_pact_tests() {
 # Show results
 show_results() {
     display_test_summary "$TEST_RUN_DIR"
-    open_html_report "$TEST_RUN_DIR"
+    # Only try to open the report in non-CI environments
+    if [[ "${CI:-}" != "true" ]]; then
+        if ! open_html_report "$TEST_RUN_DIR" 2>/dev/null; then
+            log_warning "Could not open HTML report in browser (this is normal in CI)"
+        fi
+    fi
     complete_test_summary "Model Registry" "$TEST_RUN_DIR"
 }
 
