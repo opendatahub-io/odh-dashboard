@@ -66,15 +66,7 @@ export const DeploymentRow: React.FC<{
   const [dontShowModalValue] = useStopModalPreference();
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
 
-  // Use a ref to always get the latest deployment status
-  const statusRef = React.useRef(deployment.status);
-  statusRef.current = deployment.status; // Always update with latest status
-
-  // Always call the hook unconditionally
-  const { watchDeployment } = useModelDeploymentNotification(
-    statusRef,
-    deployment.model.metadata.namespace,
-  );
+  const { watchDeployment } = useModelDeploymentNotification(deployment);
 
   const onStart = React.useCallback(() => {
     startStopActionExtension?.properties.patchDeploymentStoppedStatus().then((resolvedFunction) => {
