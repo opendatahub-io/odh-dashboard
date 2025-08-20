@@ -10,7 +10,7 @@ import {
   ActionListItem,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
-import { ModelState, ModelVersion } from '~/app/types';
+import { ModelState, ModelVersion, ModelArtifactList } from '~/app/types';
 import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { ArchiveModelVersionModal } from '~/app/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
@@ -21,12 +21,15 @@ import ArchiveButtonDropdownItem from '~/odh/components/ArchiveButtonDropdownIte
 interface ModelVersionsDetailsHeaderActionsProps {
   mv: ModelVersion;
   refresh: () => void;
+  modelArtifacts: ModelArtifactList;
 }
 
 const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActionsProps> = ({
   mv,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   refresh,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  modelArtifacts,
 }) => {
   const { deployments } = useDeploymentsState();
   const hasDeployment = deployments && deployments.length > 0;
