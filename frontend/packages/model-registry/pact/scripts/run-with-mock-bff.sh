@@ -9,18 +9,20 @@ set -euo pipefail
 # Load shared shell helpers from pact-testing package
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PACKAGE_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-HELPERS_FILE="$(cd "$PACKAGE_ROOT/../../.." && pwd)/packages/pact-testing/src/helpers/shell-helpers.sh"
+WORKSPACE_ROOT="$(cd "$PACKAGE_ROOT/../../.." && pwd)"
+HELPERS_FILE="$WORKSPACE_ROOT/packages/pact-testing/src/helpers/shell-helpers.sh"
 
-if [[ ! -f "$HELPERS_FILE" ]]; then
-    echo "❌ Could not find shared shell helpers at $HELPERS_FILE"
-    echo "💡 Make sure @odh-dashboard/pact-testing package is installed"
-    exit 1
+# Try to source helpers from src first, then dist if src fails
+if ! source "$HELPERS_FILE" 2>/dev/null; then
+    HELPERS_FILE="$WORKSPACE_ROOT/packages/pact-testing/dist/helpers/shell-helpers.sh"
+    if ! source "$HELPERS_FILE"; then
+        echo "❌ Could not find shared shell helpers at $HELPERS_FILE"
+        echo "💡 Make sure @odh-dashboard/pact-testing package is installed"
+        exit 1
+    fi
 fi
 
-source "$HELPERS_FILE"
-
 # Configuration
-# Already have PACKAGE_ROOT
 PACT_DIR="$PACKAGE_ROOT/pact"
 BFF_DIR="$PACKAGE_ROOT/upstream/bff"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -120,7 +122,13 @@ start_mock_bff() {
     
     # Set up envtest path for Kubernetes testing
     if [[ -z "${KUBEBUILDER_ASSETS:-}" ]]; then
-        export KUBEBUILDER_ASSETS=$(./bin/setup-envtest-release-0.17 use 1.29.0 --print path)
+        # Fix SC2155: Declare and assign separately to avoid masking return values
+        ASSETS_PATH=$(./bin/setup-envtest-release-0.17 use 1.29.0 --print path)
+        if [[ $? -ne 0 ]]; then
+            log_error "Failed to get kubebuilder assets path"
+            exit 1
+        fi
+        export KUBEBUILDER_ASSETS="$ASSETS_PATH"
         log_info "Setting KUBEBUILDER_ASSETS to: $KUBEBUILDER_ASSETS"
     fi
     

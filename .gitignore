@@ -32,3 +32,12 @@ dist/
 
 # Local copies of shared files
 frontend/packages/model-registry/pact/scripts/helpers/
+
+# Pact test results
+**/pact-test-results/
+**/contract-test-report.html
+**/junit.xml
+**/bff-mock.log
+**/contract-test-output.log
+**/bff.pid
+**/artifacts/

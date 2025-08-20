@@ -5,6 +5,7 @@
     "lib": ["ES2020"],
     "outDir": "./dist",
     "rootDir": "../../../../",
+    "baseUrl": "../../../../",  // Added baseUrl to enable paths
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -20,8 +21,8 @@
     "types": ["jest", "node"],
     "typeRoots": ["../../../../node_modules/@types"],
     "paths": {
-      "@odh-dashboard/pact-testing": ["../../../../packages/pact-testing/src"],
-      "@odh-dashboard/pact-testing/*": ["../../../../packages/pact-testing/src/*"]
+      "@odh-dashboard/pact-testing": ["packages/pact-testing/src"],
+      "@odh-dashboard/pact-testing/*": ["packages/pact-testing/src/*"]
     }
   },
   "include": [
