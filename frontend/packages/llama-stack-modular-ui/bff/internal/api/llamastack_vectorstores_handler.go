@@ -23,8 +23,6 @@ type CreateVectorStoreRequest struct {
 	Name string `json:"name"`
 	// Metadata: Set of 16 key-value pairs, keys max 64 chars, values max 512 chars (optional)
 	Metadata map[string]string `json:"metadata,omitempty"`
-	// Note: expires_after, provider_id, chunking_strategy, embedding_model, embedding_dimension, file_ids
-	// parameters are not working with Llama Stack - removed from API
 }
 
 // LlamaStackListVectorStoresHandler handles GET /genai/v1/vectorstores

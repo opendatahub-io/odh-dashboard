@@ -34,20 +34,14 @@ type ChatContextMessage struct {
 
 // CreateResponseRequest represents the request body for creating a response
 type CreateResponseRequest struct {
-	// === REQUIRED PARAMETERS ===
 	Input string `json:"input"`
 	Model string `json:"model"`
 
-	// === CORE PARAMETERS ===
-	// === WORKING PARAMETERS (tested and confirmed) ===
-	VectorStoreIDs []string             `json:"vector_store_ids,omitempty"` // ✅ Enables RAG
-	ChatContext    []ChatContextMessage `json:"chatcontext,omitempty"`      // ✅ Conversation history
-	Temperature    *float64             `json:"temperature,omitempty"`      // ✅ Controls creativity (0.0-2.0)
-	TopP           *float64             `json:"top_p,omitempty"`            // ✅ Controls randomness (0.0-1.0)
-	Instructions   string               `json:"instructions,omitempty"`     // ✅ System message/behavior
-
-	// Note: store, metadata, user, max_output_tokens, service_tier, and 20+ other
-	// parameters are not working with Llama Stack's OpenAI-compatible API - removed
+	VectorStoreIDs []string             `json:"vector_store_ids,omitempty"` // Enables RAG
+	ChatContext    []ChatContextMessage `json:"chatcontext,omitempty"`      // Conversation history
+	Temperature    *float64             `json:"temperature,omitempty"`      // Controls creativity (0.0-2.0)
+	TopP           *float64             `json:"top_p,omitempty"`            // Controls randomness (0.0-1.0)
+	Instructions   string               `json:"instructions,omitempty"`     // System message/behavior
 }
 
 type ResponseData struct {
@@ -74,8 +68,6 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		app.badRequestResponse(w, r, errors.New("model is required"))
 		return
 	}
-
-	// ChatContext validation (no conflicts with previous_response_id anymore)
 
 	// Convert chat context format
 	var chatContext []clients.ChatContextMessage

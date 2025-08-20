@@ -46,16 +46,9 @@ type App struct {
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
-	logger.Info("Initializing app with config", slog.Any("config", cfg))
-
-	// Initialize OpenAPI handler
-	openAPIHandler, err := NewOpenAPIHandler(logger)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create OpenAPI handler: %w", err)
-	}
-
-	// Initialize client - use mock if requested
 	var llamaStackClient interfaces.LlamaStackClientInterface
+
+	logger.Info("Initializing app with config", slog.Any("config", cfg))
 
 	if cfg.MockLSClient {
 		logger.Info("Using mock LlamaStack client")
@@ -65,13 +58,16 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		llamaStackClient = clients.NewLlamaStackClient(cfg.LlamaStackURL)
 	}
 
-	// Initialize repositories (only for healthcheck now)
-	repos := repositories.NewRepositories(llamaStackClient)
+	// Initialize OpenAPI handler
+	openAPIHandler, err := NewOpenAPIHandler(logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create OpenAPI handler: %w", err)
+	}
 
 	app := &App{
 		config:           cfg,
 		logger:           logger,
-		repositories:     repos,
+		repositories:     repositories.NewRepositories(llamaStackClient),
 		openAPI:          openAPIHandler,
 		tokenFactory:     integrations.NewTokenClientFactory(logger, cfg),
 		llamaStackClient: llamaStackClient,
@@ -86,23 +82,20 @@ func (app *App) Routes() http.Handler {
 	apiRouter.NotFound = http.HandlerFunc(app.notFoundResponse)
 	apiRouter.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
-	// OLD ENDPOINTS REMOVED - all functionality moved to /genai/v1/* endpoints
-
-	// NEW OPENAI SDK-BASED ENDPOINTS (use /genai/v1 prefix)
 	genaiPrefix := "/genai/v1"
 
 	// Models
-	apiRouter.GET(genaiPrefix+"/models", app.RequireAccessToService(app.LlamaStackModelsHandler))
+	apiRouter.GET(genaiPrefix+"/models", app.RequireAccessToService(app.AttachRESTClient(app.LlamaStackModelsHandler)))
 
 	// Responses (OpenAI Responses API)
-	apiRouter.POST(genaiPrefix+"/responses", app.RequireAccessToService(app.LlamaStackCreateResponseHandler))
+	apiRouter.POST(genaiPrefix+"/responses", app.RequireAccessToService(app.AttachRESTClient(app.LlamaStackCreateResponseHandler)))
 
 	// Vector Stores
-	apiRouter.GET(genaiPrefix+"/vectorstores", app.RequireAccessToService(app.LlamaStackListVectorStoresHandler))
-	apiRouter.POST(genaiPrefix+"/vectorstores", app.RequireAccessToService(app.LlamaStackCreateVectorStoreHandler))
+	apiRouter.GET(genaiPrefix+"/vectorstores", app.RequireAccessToService(app.AttachRESTClient(app.LlamaStackListVectorStoresHandler)))
+	apiRouter.POST(genaiPrefix+"/vectorstores", app.RequireAccessToService(app.AttachRESTClient(app.LlamaStackCreateVectorStoreHandler)))
 
 	// Files Upload
-	apiRouter.POST(genaiPrefix+"/files/upload", app.RequireAccessToService(app.LlamaStackUploadFileHandler))
+	apiRouter.POST(genaiPrefix+"/files/upload", app.RequireAccessToService(app.AttachRESTClient(app.LlamaStackUploadFileHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()

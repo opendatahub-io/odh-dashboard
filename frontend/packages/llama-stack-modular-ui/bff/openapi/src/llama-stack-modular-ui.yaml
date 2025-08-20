@@ -295,6 +295,7 @@ components:
             type: string
           example:
             provider_id: "milvus"
+            provider_vector_db_id: "vs_abc123-def456"
             description: "Customer support documents"
           description: Key-value metadata (max 16 pairs, keys ≤64 chars, values ≤512 chars)
 
@@ -353,6 +354,7 @@ components:
           example:
             department: "support"
             category: "faq"
+            provider_id: "milvus"
           description: Optional key-value metadata (max 16 pairs, keys ≤64 chars, values ≤512 chars)
 
 
@@ -370,7 +372,7 @@ components:
         vector_store_id:
           type: string
           example: "vs_abc123-def456"
-          description: Required vector store ID to add the file to
+          description: Vector store ID to add the file to (required)
         purpose:
           type: string
           enum: [assistants, batch, fine-tune, vision, user_data, evals]
@@ -433,19 +435,15 @@ components:
     FileUploadResult:
       type: object
       required:
-        - message
         - file_id
       properties:
-        message:
-          type: string
-          example: "File uploaded and added to vector store successfully"
-          description: Success message
         file_id:
           type: string
           example: "file-abc123def456"
           description: Unique identifier of uploaded file
         vector_store_file:
           $ref: "#/components/schemas/VectorStoreFile"
+          description: Details about the file added to the vector store (only present if vector_store_id was provided)
 
     VectorStoreFile:
       type: object
@@ -784,11 +782,15 @@ components:
                 $ref: "#/components/schemas/SimplifiedResponse"
             example:
               data:
-                id: "resp-3a1d5804-f846-41e8-92c4-fa1561af5eda"
+                id: "resp-78d9c676-d1b0-4fed-b89a-9fd81a9d990c"
                 model: "ollama/llama3.2:3b"
                 status: "completed"
-                created_at: 1755695135.0
-                content: "Hello! It's nice to meet you. Is there something I can help you with or would you like to chat for a bit?"
+                created_at: 1755721435.0
+                content: "This is a sample AI response. The content would contain the actual generated text from the AI model based on the input prompt and any retrieved context from vector stores."
+                usage:
+                  input_tokens: 15
+                  output_tokens: 45
+                  total_tokens: 60
 
 
 

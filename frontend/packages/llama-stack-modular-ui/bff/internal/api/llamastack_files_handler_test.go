@@ -26,6 +26,7 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 
 	// Helper function to create multipart request
 	createMultipartRequest := func(filename, content, vectorStoreID, purpose, chunkingType string) (*http.Request, error) {
+		var err error
 		var body bytes.Buffer
 		writer := multipart.NewWriter(&body)
 
@@ -43,13 +44,22 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 
 		// Add form fields
 		if vectorStoreID != "" {
-			writer.WriteField("vector_store_id", vectorStoreID)
+			err = writer.WriteField("vector_store_id", vectorStoreID)
+			if err != nil {
+				return nil, err
+			}
 		}
 		if purpose != "" {
-			writer.WriteField("purpose", purpose)
+			err = writer.WriteField("purpose", purpose)
+			if err != nil {
+				return nil, err
+			}
 		}
 		if chunkingType != "" {
-			writer.WriteField("chunking_type", chunkingType)
+			err = writer.WriteField("chunking_type", chunkingType)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		writer.Close()
@@ -191,10 +201,14 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		_, err = fileWriter.Write([]byte("Test content"))
 		assert.NoError(t, err)
 
-		writer.WriteField("vector_store_id", "vs_test123")
-		writer.WriteField("chunking_type", "static")
-		writer.WriteField("max_chunk_size_tokens", "512")
-		writer.WriteField("chunk_overlap_tokens", "50")
+		err = writer.WriteField("vector_store_id", "vs_test123")
+		assert.NoError(t, err)
+		err = writer.WriteField("chunking_type", "static")
+		assert.NoError(t, err)
+		err = writer.WriteField("max_chunk_size_tokens", "512")
+		assert.NoError(t, err)
+		err = writer.WriteField("chunk_overlap_tokens", "50")
+		assert.NoError(t, err)
 		writer.Close()
 
 		req, err := http.NewRequest(http.MethodPost, "/genai/v1/files/upload", &body)

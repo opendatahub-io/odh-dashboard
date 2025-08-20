@@ -22,16 +22,16 @@ func NewMockLlamaStackClient() *MockLlamaStackClient {
 func (m *MockLlamaStackClient) ListModels(ctx context.Context) ([]openai.Model, error) {
 	return []openai.Model{
 		{
-			ID:      "llama-3.1-8b",
+			ID:      "ollama/llama3.2:3b",
 			Object:  "model",
-			Created: 1234567890,
-			OwnedBy: "meta",
+			Created: 1755721063,
+			OwnedBy: "llama_stack",
 		},
 		{
-			ID:      "llama-3.1-70b",
+			ID:      "ollama/all-minilm:l6-v2",
 			Object:  "model",
-			Created: 1234567890,
-			OwnedBy: "meta",
+			Created: 1755721063,
+			OwnedBy: "llama_stack",
 		},
 	}, nil
 }
@@ -40,11 +40,11 @@ func (m *MockLlamaStackClient) ListModels(ctx context.Context) ([]openai.Model, 
 func (m *MockLlamaStackClient) ListVectorStores(ctx context.Context, params clients.ListVectorStoresParams) ([]openai.VectorStore, error) {
 	return []openai.VectorStore{
 		{
-			ID:         "vs_test123",
+			ID:         "vs_mock123",
 			Object:     "vector_store",
-			CreatedAt:  1234567890,
-			Name:       "Test Vector Store",
-			UsageBytes: 1024,
+			CreatedAt:  1755721097,
+			Name:       "Mock Vector Store",
+			UsageBytes: 0,
 			FileCounts: openai.VectorStoreFileCounts{
 				InProgress: 0,
 				Completed:  1,
@@ -53,8 +53,11 @@ func (m *MockLlamaStackClient) ListVectorStores(ctx context.Context, params clie
 				Total:      1,
 			},
 			Status:       "completed",
-			LastActiveAt: 1234567890,
-			Metadata:     map[string]string{},
+			LastActiveAt: 1755721097,
+			Metadata: map[string]string{
+				"provider_id":           "milvus",
+				"provider_vector_db_id": "vs_mock123",
+			},
 		},
 	}, nil
 }
@@ -66,10 +69,11 @@ func (m *MockLlamaStackClient) CreateVectorStore(ctx context.Context, params cli
 		name = "Mock Vector Store"
 	}
 
+	mockID := "vs_mock_new123"
 	return &openai.VectorStore{
-		ID:         "vs_new123",
+		ID:         mockID,
 		Object:     "vector_store",
-		CreatedAt:  1234567890,
+		CreatedAt:  1755721097,
 		Name:       name,
 		UsageBytes: 0,
 		FileCounts: openai.VectorStoreFileCounts{
@@ -79,25 +83,29 @@ func (m *MockLlamaStackClient) CreateVectorStore(ctx context.Context, params cli
 			Cancelled:  0,
 			Total:      0,
 		},
-		Status:       "pending",
-		LastActiveAt: 1234567890,
-		Metadata:     map[string]string{},
+		Status:       "completed",
+		LastActiveAt: 1755721097,
+		Metadata: map[string]string{
+			"provider_id":           "milvus",
+			"provider_vector_db_id": mockID,
+		},
 	}, nil
 }
 
 // UploadFile uploads a file with optional parameters and optionally adds to vector store
 func (m *MockLlamaStackClient) UploadFile(ctx context.Context, params clients.UploadFileParams) (*clients.FileUploadResult, error) {
+	mockFileID := "file-mock123abc456def"
 	result := &clients.FileUploadResult{
-		FileID: "file_mock123",
+		FileID: mockFileID,
 	}
 
 	// If vector store ID is provided, simulate adding to vector store
 	if params.VectorStoreID != "" {
 		result.VectorStoreFile = &openai.VectorStoreFile{
-			ID:            "vsf_mock123",
+			ID:            mockFileID,
 			Object:        "vector_store.file",
-			UsageBytes:    1024,
-			CreatedAt:     1234567890,
+			UsageBytes:    0,
+			CreatedAt:     1755721386,
 			VectorStoreID: params.VectorStoreID,
 			Status:        "completed",
 		}
