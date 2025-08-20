@@ -39,7 +39,7 @@ jobs:
         if: steps.changes.outputs.changed == 'true'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24.6'
+          go-version: '1.21.6'
 
       - name: Setup Go test dependencies (kubebuilder assets)
         if: steps.changes.outputs.changed == 'true'
