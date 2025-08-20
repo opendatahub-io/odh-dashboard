@@ -130,6 +130,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
         isArchiveModel={isArchiveModel}
         clearFilters={resetFilters}
         modelVersions={sortModelVersionsByCreateTime(filteredModelVersions)}
+        rm={rm}
         toolbarContent={
           <Toolbar data-testid="model-versions-table-toolbar" clearAllFilters={resetFilters}>
             <ToolbarContent>

@@ -31,6 +31,7 @@ type ProjectDeploymentWatcherProps = {
   ) => void;
   unloadProjectDeployments: (projectName: string) => void;
   labelSelectors?: { [key: string]: string };
+  mrName?: string;
 };
 
 const ProjectDeploymentWatcher: React.FC<ProjectDeploymentWatcherProps> = ({
@@ -39,10 +40,11 @@ const ProjectDeploymentWatcher: React.FC<ProjectDeploymentWatcherProps> = ({
   labelSelectors,
   onStateChange,
   unloadProjectDeployments,
+  mrName,
 }) => {
   const useWatchDeployments = watcher.properties.watch;
 
-  const [deployments, loaded, error] = useWatchDeployments(project, labelSelectors);
+  const [deployments, loaded, error] = useWatchDeployments(project, labelSelectors, mrName);
   const projectName = project.metadata.name;
 
   React.useEffect(() => {
@@ -78,6 +80,7 @@ type ModelDeploymentsProviderProps = {
   modelServingPlatforms: ModelServingPlatform[];
   labelSelectors?: { [key: string]: string };
   children: React.ReactNode;
+  mrName?: string;
 };
 
 export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> = ({
@@ -85,6 +88,7 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
   modelServingPlatforms,
   labelSelectors,
   children,
+  mrName,
 }) => {
   const [deploymentWatchers, deploymentWatchersLoaded] = useResolvedExtensions(
     isModelServingPlatformWatchDeployments,
@@ -166,6 +170,7 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
               labelSelectors={labelSelectors}
               onStateChange={updateProjectDeployments}
               unloadProjectDeployments={unloadProjectDeployments}
+              mrName={mrName}
             />
           );
         })
