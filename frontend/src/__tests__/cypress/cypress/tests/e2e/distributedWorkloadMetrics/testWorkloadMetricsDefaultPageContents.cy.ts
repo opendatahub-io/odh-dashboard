@@ -19,7 +19,7 @@ import {
 } from '#~/__tests__/cypress/cypress/utils/workloadMetricsUtils';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 
-describe('[Product Bug: RHOAIENG-30510] Verify Workload Metrics Default page Contents', () => {
+describe('Verify Workload Metrics Default page Contents', () => {
   let testData: WorkloadMetricsTestData;
   let projectName: string;
   const uuid = generateTestUUID();
@@ -61,7 +61,7 @@ describe('[Product Bug: RHOAIENG-30510] Verify Workload Metrics Default page Con
 
   it(
     'Verify Workload Metrics Home page Contents',
-    { tags: ['@Sanity', '@SanitySet3', '@WorkloadMetrics', '@Bug'] },
+    { tags: ['@Sanity', '@SanitySet3', '@WorkloadMetrics'] },
     () => {
       cy.step('Login to the Application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);

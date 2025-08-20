@@ -29,7 +29,7 @@ import {
   getImageStreamDisplayName,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/imageStreams';
 
-describe('Create, Delete and Edit - Workbench Tests', () => {
+describe('[Product Bug: RHOAIENG-31579] Create, Delete and Edit - Workbench Tests', () => {
   let editTestNamespace: string;
   let editedTestNamespace: string;
   let editedTestDescription: string;
@@ -86,7 +86,17 @@ describe('Create, Delete and Edit - Workbench Tests', () => {
 
   it(
     'Create Workbench from the launcher page and verify that it is created successfully.',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@ODS-2218', '@Dashboard', '@Workbenches'] },
+    {
+      tags: [
+        '@Sanity',
+        '@SanitySet1',
+        '@ODS-1931',
+        '@ODS-2218',
+        '@Dashboard',
+        '@Workbenches',
+        '@Bug',
+      ],
+    },
     () => {
       const workbenchName = editTestNamespace.replace('dsp-', '');
       let selectedImageStream: string;
@@ -156,7 +166,17 @@ describe('Create, Delete and Edit - Workbench Tests', () => {
   );
   it(
     'Verify user can delete PV storage, data connection and workbench in a shared DS project',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@ODS-2218', '@Dashboard', '@Workbenches'] },
+    {
+      tags: [
+        '@Sanity',
+        '@SanitySet1',
+        '@ODS-1931',
+        '@ODS-2218',
+        '@Dashboard',
+        '@Workbenches',
+        '@Bug',
+      ],
+    },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
