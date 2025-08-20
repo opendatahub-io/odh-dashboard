@@ -13,6 +13,7 @@ jobs:
       - name: Generate modules cache key
         id: key
         run: |
+          set -euo pipefail
           echo "modules-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}" >> "$GITHUB_OUTPUT"
       - name: Node.js modules cache
         uses: actions/cache@v4
@@ -112,6 +113,7 @@ jobs:
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
       - name: Unit tests with coverage
         run: |
+          set -euo pipefail
           npm run test-unit-coverage
       - name: Upload unit test coverage
         uses: actions/upload-artifact@v4
@@ -123,6 +125,7 @@ jobs:
   Contract-Tests:
     needs: [Setup, Lint, Type-Check]
     runs-on: ubuntu-latest
+    timeout-minutes: 15  # Timeout for the entire job
     steps:
       - uses: actions/checkout@v4
         with:
@@ -153,6 +156,7 @@ jobs:
         id: changes
         working-directory: ./frontend
         run: |
+          set -euo pipefail
           # Check for changes in model-registry package
           echo "Checking for changes in model-registry package..."
 
@@ -186,6 +190,7 @@ jobs:
         if: steps.changes.outputs.changed == 'true'
         working-directory: ./frontend/packages/model-registry/upstream/bff
         run: |
+          set -euo pipefail
           echo "📦 Installing kubebuilder test assets..."
           make envtest
 
@@ -197,7 +202,9 @@ jobs:
       - name: Run Model Registry contract tests
         if: steps.changes.outputs.changed == 'true'
         working-directory: ./frontend/packages/model-registry
+        timeout-minutes: 10  # Timeout for the test step
         run: |
+          set -euo pipefail
           echo "🧪 Running Model Registry contract tests..."
           npm run test:contract:with-bff
 
@@ -222,6 +229,7 @@ jobs:
       - id: set-groups
         shell: bash
         run: |
+          set -euo pipefail
           set -x  # Enable debug mode to see each command
 
           echo "Checking directory structure..."
@@ -255,6 +263,7 @@ jobs:
       - name: Generate cypress cache key
         id: key
         run: |
+          set -euo pipefail
           echo "cypress-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-build-${{ github.sha }}" >> "$GITHUB_OUTPUT"
       - name: Cypress build cache
         uses: actions/cache@v4
@@ -310,6 +319,7 @@ jobs:
           key: ${{ needs.Cypress-Setup.outputs.cypress-cache-key }}
       - name: Run Cypress Mock tests
         run: |
+          set -euo pipefail
           if [ "${{ matrix.test-group }}" == "default" ]; then
             npm run test:cypress-ci:coverage:nobuild
           else
@@ -345,6 +355,7 @@ jobs:
         run: npm install nyc --no-save
       - name: Combine coverage reports
         run: |
+          set -euo pipefail
           mkdir -p ./coverage
           cp all-artifacts/unit-coverage/coverage-final.json ./coverage/unit-coverage-final.json || true
           [ -f all-artifacts/backend-coverage/coverage-final.json ] && cp all-artifacts/backend-coverage/coverage-final.json ./coverage/backend-coverage-final.json || true
@@ -356,12 +367,14 @@ jobs:
           ls -R ./coverage
       - name: Merge coverage reports
         run: |
+          set -euo pipefail
           npx nyc merge ./coverage ./coverage/merged-coverage.json
           echo "Cleaning up merged coverage file..."
           jq 'del(.[] | select(.statementMap == {}))' ./coverage/merged-coverage.json > ./coverage/cleaned-coverage.json
           mv ./coverage/cleaned-coverage.json ./coverage/merged-coverage.json
       - name: Generate coverage report
         run: |
+          set -euo pipefail
           mkdir -p ./coverage/report
           npx nyc report --reporter=html --reporter=text-summary --temp-directory ./coverage -t ./coverage --report-dir ./coverage/report
           cp ./coverage/unit-coverage-final.json ./coverage/combined-coverage-final.json || true
@@ -372,6 +385,7 @@ jobs:
           path: ./coverage/combined-coverage-final.json
       - name: Cleanup interim coverage files
         run: |
+          set -euo pipefail
           rm -rf ./coverage/unit-coverage-final.json
           rm -rf ./coverage/backend-coverage-final.json
           find ./coverage -name "*-coverage-final.json" -type f -delete
