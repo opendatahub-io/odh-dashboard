@@ -551,6 +551,16 @@ class KServeModal extends InferenceServiceModal {
     return this.find().findByTestId('max-replicas').findByRole('button', { name: 'Minus' });
   }
 
+  findMaxReplicasErrorMessage() {
+    return this.find().contains(
+      'Maximum replicas must be greater than or equal to minimum replicas',
+    );
+  }
+
+  findMinReplicasErrorMessage() {
+    return this.find().contains('Minimum replicas must be less than or equal to maximum replicas');
+  }
+
   findCPURequestedCheckbox() {
     return this.find().findByTestId('cpu-requested-checkbox');
   }

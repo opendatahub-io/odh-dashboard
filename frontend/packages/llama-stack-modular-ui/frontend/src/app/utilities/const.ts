@@ -1,3 +1,7 @@
-const URL_PREFIX = process.env.URL_PREFIX || '';
+import { asEnumMember, DeploymentMode } from 'mod-arch-core';
 
-export { URL_PREFIX };
+const URL_PREFIX = process.env.URL_PREFIX || '';
+const DEPLOYMENT_MODE =
+  asEnumMember(process.env.DEPLOYMENT_MODE, DeploymentMode) || DeploymentMode.Federated;
+
+export { URL_PREFIX, DEPLOYMENT_MODE };

@@ -374,42 +374,6 @@ export const ConnectionSection: React.FC<Props> = ({
   }
   return (
     <>
-      {pvcs && pvcs.length > 0 && (
-        <Radio
-          label="Existing cluster storage"
-          name="pvc-serving-radio"
-          id="pvc-serving-radio"
-          data-testid="pvc-serving-radio"
-          isChecked={data.storage.type === InferenceServiceStorageType.PVC_STORAGE}
-          onChange={() => {
-            setConnection(undefined);
-            setData('storage', {
-              ...data.storage,
-              type: InferenceServiceStorageType.PVC_STORAGE,
-              uri: undefined,
-              alert: undefined,
-            });
-          }}
-          body={
-            data.storage.type === InferenceServiceStorageType.PVC_STORAGE && (
-              <PvcSelect
-                pvcs={pvcs}
-                selectedPVC={selectedPVC}
-                onSelect={(selection) => {
-                  setData('storage', {
-                    ...data.storage,
-                    type: InferenceServiceStorageType.PVC_STORAGE,
-                    pvcConnection: selection.metadata.name,
-                  });
-                }}
-                setModelUri={(uri) => setData('storage', { ...data.storage, uri })}
-                setIsConnectionValid={setIsConnectionValid}
-                initialModelPath={initialModelPath}
-              />
-            )
-          }
-        />
-      )}
       {existingUriOption && !hasImagePullSecret && !foundPVC.current && (
         <Radio
           id="existing-uri-radio"
@@ -475,7 +439,6 @@ export const ConnectionSection: React.FC<Props> = ({
             id="new-connection-radio"
             data-testid="new-connection-radio"
             label="Create connection"
-            className="pf-v6-u-mb-lg"
             isChecked={data.storage.type === InferenceServiceStorageType.NEW_STORAGE}
             onChange={() => {
               setConnection(undefined);
@@ -517,6 +480,42 @@ export const ConnectionSection: React.FC<Props> = ({
               )
             }
           />
+          {pvcs && pvcs.length > 0 && (
+            <Radio
+              label="Existing cluster storage"
+              name="pvc-serving-radio"
+              id="pvc-serving-radio"
+              data-testid="pvc-serving-radio"
+              isChecked={data.storage.type === InferenceServiceStorageType.PVC_STORAGE}
+              onChange={() => {
+                setConnection(undefined);
+                setData('storage', {
+                  ...data.storage,
+                  type: InferenceServiceStorageType.PVC_STORAGE,
+                  uri: undefined,
+                  alert: undefined,
+                });
+              }}
+              body={
+                data.storage.type === InferenceServiceStorageType.PVC_STORAGE && (
+                  <PvcSelect
+                    pvcs={pvcs}
+                    selectedPVC={selectedPVC}
+                    onSelect={(selection) => {
+                      setData('storage', {
+                        ...data.storage,
+                        type: InferenceServiceStorageType.PVC_STORAGE,
+                        pvcConnection: selection.metadata.name,
+                      });
+                    }}
+                    setModelUri={(uri) => setData('storage', { ...data.storage, uri })}
+                    setIsConnectionValid={setIsConnectionValid}
+                    initialModelPath={initialModelPath}
+                  />
+                )
+              }
+            />
+          )}
         </>
       ) : pvcs && pvcs.length === 0 ? ( // No connections and no pvcs
         <FormGroup

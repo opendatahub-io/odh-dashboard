@@ -1,8 +1,8 @@
 /* eslint-disable camelcase */
 import React, { act } from 'react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
+import { renderHook } from '@odh-dashboard/jest-config/hooks';
 import { buildMockExperimentKF, buildMockPipelineVersion } from '#~/__mocks__';
-import { renderHook } from '#~/__tests__/unit/testUtils/hooks';
 import usePipelineFilter, {
   FilterOptions,
   usePipelineFilterSearchParams,

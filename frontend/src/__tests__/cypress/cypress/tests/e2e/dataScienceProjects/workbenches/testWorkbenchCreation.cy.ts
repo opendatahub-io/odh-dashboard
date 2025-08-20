@@ -42,8 +42,8 @@ describe('[Product Bug: RHOAIENG-31579] Create, Delete and Edit - Workbench Test
   const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
-  retryableBefore(() => {
-    return loadPVCEditFixture('e2e/dataScienceProjects/testWorkbenchEditing.yaml')
+  retryableBefore(() =>
+    loadPVCEditFixture('e2e/dataScienceProjects/testWorkbenchEditing.yaml')
       .then((fixtureData: WBEditTestData) => {
         editTestNamespace = `${fixtureData.editTestNamespace}-${uuid}`;
         editedTestNamespace = fixtureData.editedTestNamespace;
@@ -74,8 +74,8 @@ describe('[Product Bug: RHOAIENG-31579] Create, Delete and Edit - Workbench Test
       .then(() => {
         cy.log(`Project ${editTestNamespace} confirmed to be created and verified successfully`);
         addUserToProject(editTestNamespace, contributor, 'edit');
-      });
-  });
+      }),
+  );
   after(() => {
     // Delete provisioned Project
     if (editTestNamespace) {

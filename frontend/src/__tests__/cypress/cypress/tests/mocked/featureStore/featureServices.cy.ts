@@ -1,5 +1,9 @@
 /* eslint-disable camelcase */
 
+import { mockFeatureStoreService } from '@odh-dashboard/feature-store/mocks/mockFeatureStoreService';
+import { mockFeatureStoreProject } from '@odh-dashboard/feature-store/mocks/mockFeatureStoreProject';
+import { mockFeatureService } from '@odh-dashboard/feature-store/mocks/mockFeatureServices';
+import { mockFeatureStore } from '@odh-dashboard/feature-store/mocks/mockFeatureStore';
 import { featureServicesTable } from '#~/__tests__/cypress/cypress/pages/featureStore/featureService';
 import { featureStoreGlobal } from '#~/__tests__/cypress/cypress/pages/featureStore/featureStoreGlobal';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
@@ -8,10 +12,6 @@ import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { ProjectModel, ServiceModel } from '#~/__tests__/cypress/cypress/utils/models';
 import { asClusterAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
-import { mockFeatureStoreService } from '#~/__mocks__/mockFeatureStoreService';
-import { mockFeatureStoreProject } from '#~/__mocks__/mockFeatureStoreProject';
-import { mockFeatureService } from '#~/__mocks__/mockFeatureServices';
-import { mockFeatureStore } from '#~/__mocks__/mockFeatureStore';
 
 const k8sNamespace = 'default';
 const fsName = 'demo';
@@ -120,9 +120,11 @@ describe('Feature Services', () => {
     featureServiceRow.shouldHaveFeaturesViewsCount(5); // Based on mock data - 5 feature views
     featureServiceRow.shouldHaveOwner('risk-team@company.com');
 
-    featureServiceRow.shouldHaveTag('version = v1');
-    featureServiceRow.shouldHaveTag('team = risk');
-    featureServiceRow.shouldHaveTag('use_case = credit_scoring');
+    featureServiceRow.findTags().within(() => {
+      cy.contains('version=v1');
+      cy.contains('team=risk');
+      cy.contains('use_case=credit_scoring');
+    });
   });
 
   it('should allow filtering by feature service name', () => {
@@ -132,19 +134,6 @@ describe('Feature Services', () => {
 
     toolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Feature service').click();
     toolbar.findSearchInput().type('credit');
-    featureServicesTable.shouldHaveFeatureServiceCount(1);
-
-    toolbar.findSearchInput().clear().type('nonexistent');
-    featureServicesTable.shouldHaveFeatureServiceCount(0);
-  });
-
-  it('should allow filtering by tags', () => {
-    featureStoreGlobal.visitFeatureServices(fsProjectName);
-
-    const toolbar = featureServicesTable.findToolbar();
-
-    toolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Tags').click();
-    toolbar.findSearchInput().type('team');
     featureServicesTable.shouldHaveFeatureServiceCount(1);
 
     toolbar.findSearchInput().clear().type('nonexistent');

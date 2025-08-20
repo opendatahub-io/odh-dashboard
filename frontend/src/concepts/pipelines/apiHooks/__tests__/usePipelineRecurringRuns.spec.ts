@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import usePipelineRecurringRuns from '#~/concepts/pipelines/apiHooks/usePipelineRecurringRuns';
 import { buildMockRecurringRunKF } from '#~/__mocks__';

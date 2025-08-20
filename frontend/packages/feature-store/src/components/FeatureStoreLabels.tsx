@@ -19,6 +19,7 @@ interface FeatureStoreLabelsProps extends Omit<LabelProps, 'color'> {
   icon?: React.ReactNode;
   textMaxWidth?: string;
   variant?: 'outline' | 'filled';
+  onClick?: () => void;
 }
 
 const FeatureStoreLabels: React.FC<FeatureStoreLabelsProps> = ({
@@ -30,6 +31,7 @@ const FeatureStoreLabels: React.FC<FeatureStoreLabelsProps> = ({
   style,
   textMaxWidth = '40ch',
   variant,
+  onClick,
 }) => (
   <Label
     color={color}
@@ -39,6 +41,7 @@ const FeatureStoreLabels: React.FC<FeatureStoreLabelsProps> = ({
     style={style}
     textMaxWidth={textMaxWidth}
     variant={variant}
+    onClick={onClick}
   >
     {children}
   </Label>

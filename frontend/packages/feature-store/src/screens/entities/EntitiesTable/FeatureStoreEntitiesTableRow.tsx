@@ -15,6 +15,7 @@ import { getRelationshipsByTargetType } from '../../../utils/filterUtils';
 type FeatureStoreEntitiesTableRowType = {
   entity: Entity;
   relationships?: Record<string, FeatureStoreRelationship[]>;
+  onTagClick?: (tagString: string) => void;
 };
 
 const EntityName: React.FC<{ entity: Entity; currentProject: string | undefined }> = ({
@@ -54,6 +55,7 @@ const renderTableCell = (label: string, content: React.ReactNode, testId?: strin
 const FeatureStoreEntitiesTableRow: React.FC<FeatureStoreEntitiesTableRowType> = ({
   entity,
   relationships = {},
+  onTagClick,
 }) => {
   const { currentProject } = useFeatureStoreProject();
   const featureViews = React.useMemo(() => {
@@ -86,7 +88,11 @@ const FeatureStoreEntitiesTableRow: React.FC<FeatureStoreEntitiesTableRowType> =
       {renderTableCell('Project', entity.project, 'project-name')}
       {renderTableCell(
         'Tags',
-        <FeatureStoreTags tags={entity.spec.tags ?? {}} showAllTags={false} />,
+        <FeatureStoreTags
+          tags={entity.spec.tags ?? {}}
+          showAllTags={false}
+          onTagClick={onTagClick}
+        />,
       )}
       {renderTableCell('Join key', entity.spec.joinKey ?? '-', 'join-key')}
       {renderTableCell(

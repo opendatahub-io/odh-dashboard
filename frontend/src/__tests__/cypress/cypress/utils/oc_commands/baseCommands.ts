@@ -147,6 +147,86 @@ export const waitForPodReady = (
 };
 
 /**
+ * Wait for a specific pod to complete (succeed or fail) across all namespaces.
+ * Useful for job-like pods with restartPolicy: Never that exit after completing their task.
+ *
+ * @param podNameContains A substring to partially match against the pod name (e.g., "pvc-loader-pod").
+ * @param timeout The amount of time to wait for the pod to complete (default is 300 seconds, e.g., '300s', '10m').
+ * @param namespace The namespace to search for the pod. Defaults to `-A` for all namespaces, or can specify a specific namespace with `-n <namespace>`.
+ * @param waitTimeBeforeParsing Time to wait before parsing the result (default 10000ms).
+ * @returns A Cypress chainable that waits for the pod to complete.
+ */
+export const waitForPodCompletion = (
+  podNameContains: string,
+  timeout = '300s',
+  namespace?: string,
+  waitTimeBeforeParsing = 10000,
+): Cypress.Chainable<CommandLineResult> => {
+  const namespaceFlag = namespace ? `-n ${namespace}` : '-A';
+
+  // find pods
+  const findPodsCommand = `oc get pods ${namespaceFlag} -o custom-columns="NAMESPACE:.metadata.namespace,NAME:.metadata.name" --no-headers | grep ${podNameContains}`;
+  cy.log(`Finding pods with command: ${findPodsCommand}`);
+
+  // wait before parsing the result
+  cy.wait(waitTimeBeforeParsing);
+  return cy
+    .exec(findPodsCommand, { failOnNonZeroExit: false })
+    .then((result: CommandLineResult) => {
+      const pods = result.stdout
+        .trim()
+        .split('\n')
+        .map((line) => {
+          // parse the result
+          const parsedResult = line.trim().split(/\s+/);
+          if (parsedResult.length === 2) {
+            const [podNamespace, podName] = parsedResult;
+            cy.log(`Parsed: namespace = ${podNamespace}, podName = ${podName}`);
+            return { namespace: podNamespace, name: podName };
+          }
+
+          cy.log(`Error parsing line: "${line}"`);
+          return null;
+        })
+        .filter((pod): pod is { namespace: string; name: string } => pod !== null);
+
+      cy.log(`Found ${pods.length} matching pods`);
+
+      if (pods.length === 0) {
+        cy.log('No matching pods found');
+        return;
+      }
+
+      // loop through matching pods and wait for completion
+      pods.forEach((pod) => {
+        const { namespace: podNamespace, name: podName } = pod;
+
+        // wait for each pod to complete (either succeed or fail)
+        const waitForPodCommand = `oc wait --for=jsonpath='{.status.phase}'=Succeeded pod/${podName} -n ${podNamespace} --timeout=${timeout}`;
+        cy.log(`Executing command to wait for pod completion: ${waitForPodCommand}`);
+
+        cy.exec(waitForPodCommand, { failOnNonZeroExit: false, timeout: 300000 }).then(
+          (waitResult: CommandLineResult) => {
+            if (waitResult.code !== 0) {
+              cy.log(`Pod completion check failed: ${waitResult.stderr}`);
+              // Check if pod failed instead of succeeded
+              const checkFailedCommand = `oc get pod/${podName} -n ${podNamespace} -o jsonpath='{.status.phase}'`;
+              cy.exec(checkFailedCommand).then((statusResult: CommandLineResult) => {
+                cy.log(`Pod status: ${statusResult.stdout}`);
+                if (statusResult.stdout === 'Failed') {
+                  throw new Error(`Pod ${podName} failed to complete successfully`);
+                }
+              });
+            } else {
+              cy.log(`Pod completed successfully: ${waitResult.stdout}`);
+            }
+          },
+        );
+      });
+    });
+};
+
+/**
  * Deletes notebooks matching a given name pattern across all namespaces.
  *
  * @param notebookNameContains A substring to match against the notebook name (e.g., "jupyter-nb").

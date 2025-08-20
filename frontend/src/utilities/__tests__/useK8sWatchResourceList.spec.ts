@@ -1,5 +1,5 @@
 import { WatchK8sResource, useK8sWatchResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { TemplateModel, groupVersionKind } from '#~/api';
 import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 

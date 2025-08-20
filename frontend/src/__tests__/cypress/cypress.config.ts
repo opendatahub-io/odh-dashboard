@@ -26,7 +26,7 @@ export default defineConfig({
   // Disable watching only if env variable `CY_WATCH=false`
   watchForFileChanges: env.CY_WATCH ? env.CY_WATCH !== 'false' : undefined,
   // Use relative path as a workaround to https://github.com/cypress-io/cypress/issues/6406
-  reporter: '../../../node_modules/cypress-multi-reporters',
+  reporter: '../../../../node_modules/cypress-multi-reporters',
   reporterOptions: {
     reporterEnabled: 'cypress-mochawesome-reporter, mocha-junit-reporter',
     mochaJunitReporterReporterOptions: {

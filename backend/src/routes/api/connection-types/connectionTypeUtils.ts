@@ -42,7 +42,7 @@ export const listConnectionTypes = async (fastify: KubeFastifyInstance): Promise
     }
     return connectionTypes;
   } catch (e) {
-    fastify.log.error(`Error fetching configmaps for connection types: `, e);
+    fastify.log.error(e, `Error fetching configmaps for connection types: `);
     throw new Error(`Failed to list connection types: ${errorHandler(e)}.`);
   }
 };
@@ -60,7 +60,7 @@ export const getConnectionType = async (
     }
     return response.body;
   } catch (e) {
-    fastify.log.error(`Error fetching connection type: `, e);
+    fastify.log.error(e, `Error fetching connection type: `);
     throw new Error(`Failed to get connection type: ${errorHandler(e)}.`);
   }
 };

@@ -185,7 +185,7 @@ Test Data should be referenced from fixture files and loaded into the test in th
 It's recommended to use `testIDs` when referencing page objects. If an element does not have a `testID`, please add one:
 
 ```javascript
-findActions() {
+function findActions() {
   return cy.findByTestId('project-actions');
 }
 ```
@@ -207,7 +207,7 @@ Tests are parameterized using tags and applied to the 'it' block:
 
 **Usage in tests:**
 ```javascript
-{ tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard', '@Workbenches'] },
+{ tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard', '@Workbenches'] }
 ```
 
 ### Test Contents

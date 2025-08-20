@@ -18,6 +18,7 @@ type FeatureViewTableRowType = {
   featureView: FeatureView;
   fsProject?: string;
   relationships: Record<string, Relationship[]>;
+  onTagClick: (tag: string) => void;
 };
 
 const getFeatureViewType = (type: FeatureView['type']) => {
@@ -34,6 +35,7 @@ const FeatureViewTableRow: React.FC<FeatureViewTableRowType> = ({
   featureView,
   fsProject,
   relationships,
+  onTagClick,
 }) => {
   const { currentProject } = useFeatureStoreProject();
   const features = React.useMemo(() => {
@@ -87,7 +89,11 @@ const FeatureViewTableRow: React.FC<FeatureViewTableRowType> = ({
       </Td>
       <Td dataLabel="Project">{featureView.project ? featureView.project : currentProject}</Td>
       <Td dataLabel="Tags">
-        <FeatureStoreTags tags={featureView.spec.tags ?? {}} threshold={3} />
+        <FeatureStoreTags
+          tags={featureView.spec.tags ?? {}}
+          threshold={3}
+          onTagClick={onTagClick}
+        />
       </Td>
       <Td dataLabel="Features">
         <ScrollableLinksPopover

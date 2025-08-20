@@ -17,13 +17,12 @@ import { applyOpenShiftYaml, patchOpenShiftResource } from './baseCommands';
 export const createStorageClass = (
   storageClassReplacements: SCReplacements,
   yamlFilePath = 'resources/yaml/storage_class.yaml',
-): Cypress.Chainable<CommandLineResult> => {
-  return cy.fixture(yamlFilePath).then((yamlContent) => {
+): Cypress.Chainable<CommandLineResult> =>
+  cy.fixture(yamlFilePath).then((yamlContent) => {
     cy.log(yamlContent);
     const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, storageClassReplacements);
     return applyOpenShiftYaml(modifiedYamlContent);
   });
-};
 
 /**
  * Delete an Storage Class given its name
@@ -110,8 +109,8 @@ export const getStorageClassNames = (): Cypress.Chainable<string[]> => {
  * @returns The display name of the default and enabled storage class,
  *          or an error message if none is found
  */
-export const getDefaultEnabledStorageClass = (): Cypress.Chainable<string> => {
-  return getStorageClassNames().then((scNames: string[]) => {
+export const getDefaultEnabledStorageClass = (): Cypress.Chainable<string> =>
+  getStorageClassNames().then((scNames: string[]) => {
     const checkStorageClass = (index: number): Cypress.Chainable<string> => {
       if (index >= scNames.length) {
         return cy.wrap('No storage class found that is both default and enabled');
@@ -130,8 +129,8 @@ export const getDefaultEnabledStorageClass = (): Cypress.Chainable<string> => {
           }
           return result.stdout;
         })
-        .then((config: string) => {
-          return cy.then(() => {
+        .then((config: string) =>
+          cy.then(() => {
             try {
               const parsedConfig = JSON.parse(config);
               if (parsedConfig.isDefault && parsedConfig.isEnabled) {
@@ -146,13 +145,12 @@ export const getDefaultEnabledStorageClass = (): Cypress.Chainable<string> => {
               );
               return checkStorageClass(index + 1);
             }
-          });
-        });
+          }),
+        );
     };
 
     return checkStorageClass(0);
   });
-};
 
 /**
  * Patch an Storage Class based on the storageClassReplacements config
@@ -213,12 +211,11 @@ export const disableNonDefaultStorageClasses = (): Cypress.Chainable<void> => {
         return () => cy.wrap(null);
       });
 
-      return updatePromises.reduce((chain, updateFn) => {
-        return chain.then(updateFn);
-      }, cy.wrap(null));
+      return updatePromises.reduce((chain, updateFn) => chain.then(updateFn), cy.wrap(null));
     })
-    .then(() => {
-      // This empty then() ensures the chain resolves to void
-      return undefined;
-    }) as unknown as Cypress.Chainable<void>;
+    .then(
+      () =>
+        // This empty then() ensures the chain resolves to void
+        undefined,
+    ) as unknown as Cypress.Chainable<void>;
 };
