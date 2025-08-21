@@ -75,7 +75,7 @@ export const useWatchDeployments = (
   ];
 };
 
-export const useFetchDeploymentStatus = async (
+export const fetchDeploymentStatus = async (
   name: string,
   namespace: string,
   opts?: K8sAPIOptions,
