@@ -171,7 +171,7 @@ start_mock_bff() {
 }
 
 # Run contract tests
-run_pact_tests() {
+run_contract_tests() {
     log_info "Running contract tests against Mock BFF..."
     cd "$PACKAGE_ROOT" || exit 1
 
@@ -212,7 +212,7 @@ main() {
     check_go
     build_bff
     start_mock_bff
-    run_pact_tests
+    run_contract_tests
     show_results
 }
 

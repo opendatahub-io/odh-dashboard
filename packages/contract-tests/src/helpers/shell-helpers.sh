@@ -33,12 +33,12 @@ log_error() {
 # Create timestamped results directory
 create_test_results_dir() {
     local TIMESTAMP
-    local PACT_TEST_RESULTS_BASE
+    local CONTRACT_TEST_RESULTS_BASE
     local TEST_RUN_DIR
     
     TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-    PACT_TEST_RESULTS_BASE="contract-tests/contract-test-results"
-    TEST_RUN_DIR="$PACT_TEST_RESULTS_BASE/$TIMESTAMP"
+    CONTRACT_TEST_RESULTS_BASE="contract-tests/contract-test-results"
+    TEST_RUN_DIR="$CONTRACT_TEST_RESULTS_BASE/$TIMESTAMP"
     
     mkdir -p "$TEST_RUN_DIR"
     
