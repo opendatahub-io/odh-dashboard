@@ -97,6 +97,9 @@ func (app *App) Routes() http.Handler {
 	// Files Upload
 	apiRouter.POST(genaiPrefix+"/files/upload", app.RequireAccessToService(app.AttachRESTClient(app.LlamaStackUploadFileHandler)))
 
+	//Code Exporter
+	apiRouter.POST(genaiPrefix+"/code-exporter", app.RequireAccessToService(app.AttachRESTClient(app.CodeExporterHandler)))
+
 	// App Router
 	appMux := http.NewServeMux()
 
