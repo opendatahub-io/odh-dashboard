@@ -144,22 +144,22 @@ const extensions: NavExtension[] = [
   {
     type: 'app.navigation/section',
     flags: {
-      required: [SupportedArea.MODEL_REGISTRY],
+      // required: [SupportedArea.MODEL_REGISTRY],
     },
     properties: {
       id: 'experiments',
       title: 'Experimentation',
+      group: '5_experiments',
     },
   },
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.MODEL_REGISTRY],
+      // required: [SupportedArea.MODEL_REGISTRY],
     },
     properties: {
       id: 'experiments-runs',
       title: 'Experiments',
-      group: '5_experiments',
       href: '/experiments/runs',
       section: 'experiments',
       path: '/experiments/runs',
@@ -168,7 +168,7 @@ const extensions: NavExtension[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.MODEL_REGISTRY],
+      // required: [SupportedArea.MODEL_REGISTRY],
     },
     properties: {
       id: 'experiments-metrics',
@@ -181,7 +181,7 @@ const extensions: NavExtension[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.MODEL_REGISTRY],
+      // required: [SupportedArea.MODEL_REGISTRY],
     },
     properties: {
       id: 'experiments-params',
