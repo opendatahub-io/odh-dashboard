@@ -161,7 +161,6 @@ export const assembleInferenceService = (
     if (imagePullSecrets) {
       annotations['opendatahub.io/connection'] = dataConnectionKey;
     }
-    predictor.imagePullSecrets = imagePullSecrets;
   }
 
   const model = { ...predictor.model };
