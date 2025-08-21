@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Wizard, WizardStep } from '@patternfly/react-core';
+import { Spinner, Form, FormSection, Wizard, WizardStep } from '@patternfly/react-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { getDeploymentWizardExitRoute } from './utils';
 
@@ -9,6 +9,7 @@ import {
   type UseModelDeploymentWizardProps,
 } from './useDeploymentWizard';
 import { ModelSourceStepContent } from './steps/ModelSourceStep';
+import { ModelDeploymentStepContent } from './steps/ModelDeploymentStep';
 
 type ModelDeploymentWizardProps = {
   title: string;
@@ -29,7 +30,18 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     navigate(getDeploymentWizardExitRoute(location.pathname));
   }, [navigate, location.pathname]);
 
+  const projectName = React.useMemo(() => {
+    const { pathname } = location;
+    const deployIndex = pathname.indexOf('/deploy/');
+
+    const beforeDeploy = pathname.substring(0, deployIndex);
+
+    return beforeDeploy.split('/').at(-1);
+  }, [location.pathname]);
+
   const modelDeploymentWizardData = useModelDeploymentWizard(existingData);
+
+  const isLoading = false;
 
   return (
     <ApplicationsPage title={title} description={description} loaded empty={false}>
@@ -38,7 +50,16 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           <ModelSourceStepContent wizardData={modelDeploymentWizardData} />
         </WizardStep>
         <WizardStep name="Model deployment" id="model-deployment-step">
-          Step 2 content
+          {isLoading ? (
+            <Spinner data-testid="spinner" />
+          ) : (
+            projectName && (
+              <ModelDeploymentStepContent
+                projectName={projectName}
+                wizardData={modelDeploymentWizardData}
+              />
+            )
+          )}
         </WizardStep>
         <WizardStep name="Advanced options" id="advanced-options-step">
           Step 3 content

@@ -7,6 +7,7 @@ import {
   TextArea,
   TextInput,
 } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import {
   K8sNameDescriptionFieldData,
   K8sNameDescriptionFieldUpdateFunction,
@@ -43,6 +44,7 @@ type K8sNameDescriptionFieldProps = {
   hideDescription?: boolean;
   maxLength?: number;
   maxLengthDesc?: number;
+  showNonEmptyNameWarning?: boolean;
 };
 
 /**
@@ -60,6 +62,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   hideDescription,
   maxLength,
   maxLengthDesc,
+  showNonEmptyNameWarning,
 }) => {
   const [showK8sField, setShowK8sField] = React.useState(false);
 
@@ -87,6 +90,11 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
             <HelperTextItem>
               Cannot exceed {maxLength} characters ({maxLength - name.length} remaining)
             </HelperTextItem>
+          </HelperText>
+        )}
+        {showNonEmptyNameWarning && (
+          <HelperText>
+            <HelperTextItem variant="error">Name cannot be empty.</HelperTextItem>
           </HelperText>
         )}
         {nameHelperText || (!showK8sField && !k8sName.state.immutable) ? (
