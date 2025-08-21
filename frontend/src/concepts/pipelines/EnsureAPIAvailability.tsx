@@ -13,6 +13,7 @@ const spinningText = 'Initializing Pipeline Server';
 const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children }) => {
   const { apiAvailable, pipelinesServer, namespace, startingStatusModalOpenRef } =
     usePipelinesAPI();
+
   const [showModal, setShowModal] = React.useState(false);
 
   React.useEffect(() => {
@@ -22,16 +23,23 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
   }, [namespace, showModal, startingStatusModalOpenRef]);
 
   const modalLink = (
-    <Button
-      data-testid="open-pipeline-status-link"
-      variant="link"
-      isInline
-      onClick={() => {
-        setShowModal(true);
-      }}
-    >
-      {spinningText}
-    </Button>
+    <Flex direction={{ default: 'column' }}>
+      <FlexItem>The {namespace} pipeline server is being initialized.</FlexItem>
+      <FlexItem>The process should take less than five minutes. When the server is ready,</FlexItem>
+      <FlexItem>you will be able to create and import pipelines.</FlexItem>
+      <FlexItem>
+        <Button
+          data-testid="open-pipeline-status-link"
+          variant="link"
+          isInline
+          onClick={() => {
+            setShowModal(true);
+          }}
+        >
+          {spinningText}
+        </Button>
+      </FlexItem>
+    </Flex>
   );
 
   const makePipelineSpinner = (isStarting: boolean) => {
@@ -44,13 +52,10 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
             <FlexItem>
               <Flex alignSelf={{ default: 'alignSelfCenter' }} gap={{ default: 'gapSm' }}>
                 <FlexItem>
-                  <Spinner size="md" />
+                  <Spinner diameter="80px" />
                 </FlexItem>
                 <FlexItem>{contents}</FlexItem>
               </Flex>
-            </FlexItem>
-            <FlexItem>
-              <div style={{ textAlign: 'center' }}>This may take a while</div>
             </FlexItem>
           </Flex>
         </Bullseye>
@@ -58,29 +63,31 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
     );
   };
 
-  const getMainComponent = () => {
-    const { isStarting, compatible, timedOut } = pipelinesServer;
+  //const getMainComponent = () => {
+  //       return     makePipelineSpinner(true);
 
-    if (timedOut && compatible) {
-      return <PipelineServerTimedOut />;
-    }
-    if (isStarting) {
-      return makePipelineSpinner(!!isStarting);
-    }
+  // const { isStarting, compatible, timedOut } = pipelinesServer;
 
-    if (!apiAvailable && compatible) {
-      return (
-        <Bullseye style={{ minHeight: '150px' }} data-testid="pipelines-api-not-available">
-          <Spinner />
-        </Bullseye>
-      );
-    }
+  // if (timedOut && compatible) {
+  //   return <PipelineServerTimedOut />;
+  // }
+  // if (isStarting) {
+  //   return makePipelineSpinner(!!isStarting);
+  // }
 
-    return children;
-  };
+  // if (!apiAvailable && compatible) {
+  //   return (
+  //     <Bullseye style={{ minHeight: '150px' }} data-testid="pipelines-api-not-available">
+  //       <Spinner />
+  //     </Bullseye>
+  //   );
+  // }
+
+  // return children;
+  // };
   return (
     <>
-      {getMainComponent()}
+      {makePipelineSpinner(true)}
       {showModal && <StartingStatusModal onClose={() => setShowModal(false)} />}
     </>
   );

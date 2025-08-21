@@ -22,6 +22,8 @@ const isFlagOn = (flag: string, flagState: FlagState): 'on' | 'off' => {
   }
   const enabled = flag.startsWith('disable') ? !flagState[flag] : flagState[flag];
   return enabled ? 'on' : 'off';
+
+  
 };
 
 export const isAreaAvailable = (
