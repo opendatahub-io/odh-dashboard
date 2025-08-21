@@ -65,7 +65,8 @@ export async function verifyBffHealth(config: Partial<BffConfig>): Promise<BffHe
       const url = anyErr.config?.url as string | undefined;
       let dataPreview: string | undefined;
       try {
-        dataPreview = typeof data === 'string' ? data.slice(0, 500) : JSON.stringify(data).slice(0, 500);
+        dataPreview =
+          typeof data === 'string' ? data.slice(0, 500) : JSON.stringify(data).slice(0, 500);
       } catch {
         dataPreview = undefined;
       }
