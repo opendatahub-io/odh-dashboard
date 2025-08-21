@@ -294,7 +294,9 @@ export const getInferenceServicePods = (
         model: PodModel,
         queryOptions: {
           ns: namespace,
-          selector: { 'serving.kserve.io/inferenceservice': name },
+          queryParams: {
+            labelSelector: `serving.kserve.io/inferenceservice=${name}`,
+          },
         },
       },
       opts,

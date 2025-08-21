@@ -69,11 +69,14 @@ export const DeploymentRow: React.FC<{
   const { watchDeployment } = useModelDeploymentNotification(deployment);
 
   const onStart = React.useCallback(() => {
-    startStopActionExtension?.properties.patchDeploymentStoppedStatus().then((resolvedFunction) => {
-      resolvedFunction(deployment, false);
-      // Start watching for deployment status changes
-      watchDeployment();
-    });
+    if (!startStopActionExtension) return;
+    startStopActionExtension.properties
+      .patchDeploymentStoppedStatus()
+      .then(async (resolvedFunction) => {
+        await resolvedFunction(deployment, false);
+        // Start watching for deployment status changes
+        watchDeployment();
+      });
   }, [deployment, startStopActionExtension, watchDeployment]);
 
   const onStop = React.useCallback(() => {

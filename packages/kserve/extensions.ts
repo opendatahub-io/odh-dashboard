@@ -132,7 +132,7 @@ const extensions: (
     type: 'model-serving.platform/fetch-deployment-status',
     properties: {
       platform: KSERVE_ID,
-      fetch: () => import('./src/deployments').then((m) => m.useFetchDeploymentStatus),
+      fetch: () => import('./src/deployments').then((m) => m.fetchDeploymentStatus),
     },
   },
 ];
