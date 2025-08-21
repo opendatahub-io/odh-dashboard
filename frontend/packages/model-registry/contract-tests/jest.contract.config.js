@@ -12,6 +12,16 @@ module.exports = {
       '<rootDir>/../../../../packages/contract-tests/src/$1',
   },
 
+  // Ensure ts-jest uses the contract-tests tsconfig for path mapping
+  transform: {
+    '^.+\\.(ts|tsx)$': [
+      'ts-jest',
+      {
+        tsconfig: '<rootDir>/contract-tests/tsconfig.json',
+      },
+    ],
+  },
+
   // Setup files
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
 };

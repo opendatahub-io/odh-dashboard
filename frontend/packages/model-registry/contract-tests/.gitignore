@@ -1,9 +1,11 @@
-# Pact generated files
-pacts/
+# Contract test generated files
+contracts/
 logs/
+pact-test-results/
+pacts/
 
 # Test results and logs
-pact-test-results/
+contract-test-results/
 *.log
 contract-test-output.log
 full-test-output.log

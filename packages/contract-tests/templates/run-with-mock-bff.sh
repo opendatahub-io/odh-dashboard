@@ -13,7 +13,7 @@ BFF_BINARY_NAME="your-bff-binary"          # e.g., "bff-mock", "llama-bff", "kse
 BFF_PORT=${BFF_PORT:-8080}                 # Default port, can be overridden
 BFF_MOCK_FLAGS="--mock-k8s-client --dev-mode"  # BFF startup flags for mock mode
 
-# Calculate package root (two levels up from pact/scripts)
+# Calculate package root (two levels up from contract-tests/scripts)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PACKAGE_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
@@ -31,8 +31,8 @@ find_helpers() {
     
     while [[ $depth -lt $max_depth && -n "$current_dir" && "$current_dir" != "/" ]]; do
         # Try dist first, then src
-        local dist_helper="$current_dir/packages/contract-testing/dist/helpers/shell-helpers.sh"
-        local src_helper="$current_dir/packages/contract-testing/src/helpers/shell-helpers.sh"
+        local dist_helper="$current_dir/packages/contract-tests/dist/helpers/shell-helpers.sh"
+        local src_helper="$current_dir/packages/contract-tests/src/helpers/shell-helpers.sh"
         
         if [[ -f "$dist_helper" ]]; then
             echo "$dist_helper"
