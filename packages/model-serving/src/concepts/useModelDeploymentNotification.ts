@@ -68,8 +68,7 @@ export const useModelDeploymentNotification = (
           const isFailedState = deploymentState === ModelDeploymentState.FAILED_TO_LOAD;
 
           // Track previous state of the deployment
-          const lastState = lastSeenState.current;
-          let adjustedLastState = lastState;
+          let lastState = lastSeenState.current;
 
           // Reset lastState if we're transitioning from a failed state to a starting state
           if (
@@ -78,13 +77,13 @@ export const useModelDeploymentNotification = (
               deploymentState === ModelDeploymentState.PENDING)
           ) {
             lastSeenState.current = null;
-            adjustedLastState = null;
+            lastState = null;
           } else {
             lastSeenState.current = deploymentState;
           }
 
           // Only consider it failed if it's not stopped, the state is FAILED_TO_LOAD, and the last state was PENDING
-          const isFailed = isFailedState && adjustedLastState === ModelDeploymentState.PENDING;
+          const isFailed = isFailedState && lastState === ModelDeploymentState.PENDING;
 
           if (isFailed) {
             notification.error(
@@ -101,7 +100,7 @@ export const useModelDeploymentNotification = (
             return { status: NotificationResponseStatus.STOP };
           }
 
-          if (isRunningState && adjustedLastState === ModelDeploymentState.LOADED) {
+          if (isRunningState && lastState === ModelDeploymentState.LOADED) {
             // Model is running, stop polling
             return { status: NotificationResponseStatus.STOP };
           }
@@ -109,7 +108,7 @@ export const useModelDeploymentNotification = (
           if (isStoppedState) {
             // Model appears stopped, but let's continue polling for a bit to see if it's just in transition
             // Only stop if we've seen the same stopped state multiple times
-            if (adjustedLastState === ModelDeploymentState.UNKNOWN || adjustedLastState === null) {
+            if (lastState === ModelDeploymentState.UNKNOWN || lastState === null) {
               // First time seeing this state, continue polling
               return { status: NotificationResponseStatus.REPOLL };
             }
@@ -119,8 +118,8 @@ export const useModelDeploymentNotification = (
 
           if (
             isStartingState ||
-            adjustedLastState === ModelDeploymentState.PENDING ||
-            adjustedLastState === ModelDeploymentState.LOADING
+            lastState === ModelDeploymentState.PENDING ||
+            lastState === ModelDeploymentState.LOADING
           ) {
             // Model is still starting/loading, continue polling
             return { status: NotificationResponseStatus.REPOLL };
