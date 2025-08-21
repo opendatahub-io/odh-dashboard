@@ -128,7 +128,7 @@ class ImportUpdateNotebookImageModal extends Modal {
   findHardwareProfileSelectOptionValues() {
     return cy
       .findAllByRole('option')
-      .then((options) => [...options].map((option) => option.textContent?.trim()));
+      .then((options) => [...options].map((option) => option.textContent.trim()));
   }
 
   findHardwareProfileSelectOption(option: string) {
