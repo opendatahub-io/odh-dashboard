@@ -677,7 +677,7 @@ class KServeRow extends ModelMeshRow {
     return this.find().findByTestId('state-action-toggle');
   }
 
-  findStatusLabel(label?: string, timeout = 120000) {
+  findStatusLabel(label?: string, timeout?: number) {
     if (label) {
       return this.find()
         .findByTestId('model-status-text', { timeout })
