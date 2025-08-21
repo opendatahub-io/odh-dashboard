@@ -42,11 +42,15 @@ jobs:
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Install dependencies
+      - name: Install dependencies (deterministic)
         if: steps.modules-cache.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
-          npm install
+          if [ ! -f package-lock.json ]; then
+            echo "Error: package-lock.json not found. Please commit the lockfile for deterministic CI installs." >&2
+            exit 1
+          fi
+          npm ci
 
       - name: Check for uncommitted changes
         run: |
@@ -398,14 +402,20 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p ${{ github.workspace }}/coverage
-          cp ${{ github.workspace }}/all-artifacts/unit-coverage/coverage-final.json ${{ github.workspace }}/coverage/unit-coverage-final.json || true
-          [ -f ${{ github.workspace }}/all-artifacts/backend-coverage/coverage-final.json ] && cp ${{ github.workspace }}/all-artifacts/backend-coverage/coverage-final.json ${{ github.workspace }}/coverage/backend-coverage-final.json || true
-          find ${{ github.workspace }}/all-artifacts -name "cypress-coverage-*" -type d | while read dir; do
+          if [ -f "${{ github.workspace }}/all-artifacts/unit-coverage/coverage-final.json" ]; then
+            cp "${{ github.workspace }}/all-artifacts/unit-coverage/coverage-final.json" "${{ github.workspace }}/coverage/unit-coverage-final.json"
+          fi
+          if [ -f "${{ github.workspace }}/all-artifacts/backend-coverage/coverage-final.json" ]; then
+            cp "${{ github.workspace }}/all-artifacts/backend-coverage/coverage-final.json" "${{ github.workspace }}/coverage/backend-coverage-final.json"
+          fi
+          find ${{ github.workspace }}/all-artifacts -name "cypress-coverage-*" -type d -print0 | while IFS= read -r -d '' dir; do
             group_name=$(basename "$dir")
-            cp "$dir/coverage-final.json" "${{ github.workspace }}/coverage/${group_name}-coverage-final.json" || true
+            if [ -f "$dir/coverage-final.json" ]; then
+              cp "$dir/coverage-final.json" "${{ github.workspace }}/coverage/${group_name}-coverage-final.json" || true
+            fi
           done
           echo "Combined coverage files:"
-          ls -R ${{ github.workspace }}/coverage
+          ls -R "${{ github.workspace }}/coverage"
       - name: Merge coverage reports
         run: |
           set -euo pipefail

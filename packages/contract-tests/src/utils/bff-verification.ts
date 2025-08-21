@@ -55,6 +55,35 @@ export async function verifyBffHealth(config: Partial<BffConfig>): Promise<BffHe
       error: `Unexpected status code: ${response.status}`,
     };
   } catch (error) {
+    // Enrich Axios error diagnostics without throwing
+    const anyErr = error as any;
+    const isAxios = !!(anyErr && (anyErr.isAxiosError || anyErr.response || anyErr.config));
+    if (isAxios) {
+      const status = anyErr.response?.status as number | undefined;
+      const data = anyErr.response?.data;
+      const code = anyErr.code as string | undefined;
+      const url = anyErr.config?.url as string | undefined;
+      let dataPreview: string | undefined;
+      try {
+        dataPreview = typeof data === 'string' ? data.slice(0, 500) : JSON.stringify(data).slice(0, 500);
+      } catch {
+        dataPreview = undefined;
+      }
+
+      const parts = [
+        status !== undefined ? `status=${status}` : undefined,
+        code ? `code=${code}` : undefined,
+        url ? `url=${url}` : undefined,
+        anyErr.message ? `message=${anyErr.message}` : undefined,
+        dataPreview ? `data=${dataPreview}` : undefined,
+      ].filter(Boolean);
+
+      return {
+        isHealthy: false,
+        error: parts.join('; '),
+      };
+    }
+
     return {
       isHealthy: false,
       error: error instanceof Error ? error.message : 'Unknown error',

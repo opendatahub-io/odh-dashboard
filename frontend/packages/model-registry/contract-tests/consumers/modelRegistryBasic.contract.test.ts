@@ -5,7 +5,7 @@ import * as path from 'path';
 import { describe, it, expect, beforeAll } from '@jest/globals';
 import {
   logTestSetup,
-  verifyBffHealth,
+  waitForBffHealth,
   createBffConfig,
   ContractApiClient,
   ContractSchemaValidator,
@@ -42,11 +42,12 @@ describe('Model Registry API - Mock BFF Contract Tests', () => {
     // Load schema definitions
     await schemaValidator.loadSchema('ModelRegistryAPI', apiSchema);
 
-    // Verify Mock BFF is available
-    const healthResult = await verifyBffHealth(bffConfig);
+    // Verify Mock BFF is available with polling/backoff
+    const healthResult = await waitForBffHealth({ ...bffConfig, maxRetries: 20, retryDelay: 500 });
     bffHealthy = healthResult.isHealthy;
     if (!bffHealthy) {
-      console.error('❌ Mock BFF is not healthy. Tests will be skipped.');
+      const reason = healthResult.error ? ` (${healthResult.error})` : '';
+      throw new Error(`❌ Mock BFF is not healthy${reason}`);
     }
   });
 

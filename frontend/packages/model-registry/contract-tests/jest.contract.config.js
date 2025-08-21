@@ -5,7 +5,7 @@ module.exports = {
 
   // Module resolution - extending from parent config
   moduleNameMapper: {
-    '^~/(.*)$': '<rootDir>/upstream/frontend/src/$1',
+    '^~/(.*)$': '<rootDir>/../../../../frontend/src/$1',
     '^@odh-dashboard/contract-testing$':
       '<rootDir>/../../../../packages/contract-tests/src/index.ts',
     '^@odh-dashboard/contract-testing/(.*)$':
@@ -22,6 +22,6 @@ module.exports = {
     ],
   },
 
-  // Setup files
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+  // Setup files - merge base and local
+  setupFilesAfterEnv: [...(baseConfig.setupFilesAfterEnv || []), '<rootDir>/jest.setup.ts'],
 };

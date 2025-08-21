@@ -71,22 +71,27 @@ cleanup() {
         if [[ -n "$BFF_PID" ]]; then
             log_info "Stopping Mock BFF server (PID: $BFF_PID)"
             kill "$BFF_PID" 2>/dev/null || true
-            
-            # Wait a moment for graceful shutdown
             sleep 2
-            
-            # Force kill if still running
             if kill -0 "$BFF_PID" 2>/dev/null; then
+                log_warning "Force killing lingering BFF PID $BFF_PID"
                 kill -9 "$BFF_PID" 2>/dev/null || true
             fi
         fi
         rm -f "$BFF_PID_FILE"
-    fi
-    
-    # Kill any process using port 8080
-    if lsof -ti:8080 >/dev/null 2>&1; then
-        log_warning "Force killing processes on port 8080"
-        lsof -ti:8080 | xargs kill -9 2>/dev/null || true
+    else
+        # Fallback: gracefully stop any processes listening on 8080 (avoid blanket kill)
+        mapfile -t PIDS < <(lsof -ti:8080 2>/dev/null || true)
+        for PID in "${PIDS[@]}"; do
+            if [[ -n "$PID" ]]; then
+                log_warning "Attempting graceful stop of PID $PID on port 8080"
+                kill "$PID" 2>/dev/null || true
+                sleep 2
+                if kill -0 "$PID" 2>/dev/null; then
+                    log_warning "Force killing lingering PID $PID on port 8080"
+                    kill -9 "$PID" 2>/dev/null || true
+                fi
+            fi
+        done
     fi
 }
 

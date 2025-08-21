@@ -71,13 +71,15 @@ build_bff_server() {
     local TEST_RUN_DIR="$2"
     
     log_info "Building Mock BFF server..."
-    cd "$BFF_DIR" || exit 1
-
-    if ! make build > "$TEST_RUN_DIR/bff-build.log" 2>&1; then
+    (
+        cd "$BFF_DIR" || return 1
+        make build 2>&1 | tee "$TEST_RUN_DIR/bff-build.log"
+    )
+    local build_status=$?
+    if [ $build_status -ne 0 ]; then
         log_error "Failed to build BFF server. Check log: $TEST_RUN_DIR/bff-build.log"
-        exit 1
+        return $build_status
     fi
-
     log_success "BFF server built successfully"
 }
 
