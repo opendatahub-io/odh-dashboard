@@ -158,6 +158,9 @@ export const assembleInferenceService = (
   if (!isModelMesh) {
     predictor.minReplicas = minReplicas;
     predictor.maxReplicas = maxReplicas;
+    if (imagePullSecrets) {
+      annotations['opendatahub.io/connection'] = dataConnectionKey;
+    }
     predictor.imagePullSecrets = imagePullSecrets;
   }
 
@@ -173,8 +176,10 @@ export const assembleInferenceService = (
     delete model.storage;
   } else {
     delete model.storageUri;
+    if (dataConnectionKey) {
+      annotations['opendatahub.io/connection'] = dataConnectionKey;
+    }
     model.storage = {
-      key: dataConnectionKey,
       path,
     };
   }
