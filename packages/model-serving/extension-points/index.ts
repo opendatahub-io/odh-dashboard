@@ -235,3 +235,17 @@ export const isModelServingStartStopAction = <D extends Deployment = Deployment>
   extension: Extension,
 ): extension is ModelServingStartStopAction<D> =>
   extension.type === 'model-serving.deployments-table/start-stop-action';
+
+export type ModelServingPlatformFetchDeploymentStatus<D extends Deployment = Deployment> =
+  Extension<
+    'model-serving.platform/fetch-deployment-status',
+    {
+      platform: D['modelServingPlatformId'];
+      fetch: CodeRef<(name: string, namespace: string) => Promise<D | null>>;
+    }
+  >;
+
+export const isModelServingPlatformFetchDeploymentStatus = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingPlatformFetchDeploymentStatus<D> =>
+  extension.type === 'model-serving.platform/fetch-deployment-status';
