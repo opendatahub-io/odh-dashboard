@@ -39,7 +39,6 @@ const extensions: (
   {
     type: 'model-registry.model-version/deployments-context',
     properties: {
-      useDeploymentsContext: () => import('../modelRegistry/useDeployments').then((m) => m.default),
       DeploymentsProvider: () =>
         import('../modelRegistry/DeploymentsContextProvider').then((m) => m.default),
     },
