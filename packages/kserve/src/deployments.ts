@@ -7,7 +7,12 @@ import {
   ServingRuntimeKind,
 } from '@odh-dashboard/internal/k8sTypes';
 import { Deployment } from '@odh-dashboard/model-serving/extension-points';
-import { deleteInferenceService, deleteServingRuntime } from '@odh-dashboard/internal/api/index';
+import {
+  deleteInferenceService,
+  deleteServingRuntime,
+  getInferenceService,
+  getInferenceServicePods,
+} from '@odh-dashboard/internal/api/index';
 import { getAPIProtocolFromServingRuntime } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { getKServeDeploymentEndpoints } from './deploymentEndpoints';
 import { useWatchDeploymentPods, useWatchServingRuntimes, useWatchInferenceServices } from './api';
@@ -68,6 +73,31 @@ export const useWatchDeployments = (
     inferenceServiceLoaded && servingRuntimeLoaded && deploymentPodsLoaded,
     inferenceServiceError || servingRuntimeError || deploymentPodsError,
   ];
+};
+
+export const useFetchDeploymentStatus = async (
+  name: string,
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<KServeDeployment | null> => {
+  try {
+    const inferenceService = await getInferenceService(name, namespace, opts);
+
+    const deploymentPods = await getInferenceServicePods(name, namespace);
+
+    const deployment: KServeDeployment = {
+      modelServingPlatformId: KSERVE_ID,
+      model: inferenceService,
+      status: getKServeDeploymentStatus(inferenceService, deploymentPods),
+    };
+
+    return deployment;
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('404')) {
+      return null;
+    }
+    throw error;
+  }
 };
 
 export const deleteDeployment = async (deployment: KServeDeployment): Promise<void> => {

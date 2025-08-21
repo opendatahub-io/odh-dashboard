@@ -7,7 +7,12 @@ import {
 } from '@odh-dashboard/internal/concepts/notificationWatcher/NotificationWatcherContext';
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { FAST_POLL_INTERVAL } from '@odh-dashboard/internal/utilities/const';
-import { Deployment } from '../../extension-points';
+import { useResolvedDeploymentExtension } from '../concepts/extensionUtils';
+import {
+  Deployment,
+  isModelServingPlatformFetchDeploymentStatus,
+  ModelServingPlatformFetchDeploymentStatus,
+} from '../../extension-points';
 
 type ModelDeploymentNotification = {
   watchDeployment: () => void;
@@ -16,13 +21,18 @@ type ModelDeploymentNotification = {
 export const useModelDeploymentNotification = (
   deployment: Deployment,
 ): ModelDeploymentNotification => {
-  const deploymentStatusRef = React.useRef(deployment.status);
-  deploymentStatusRef.current = deployment.status;
   const { namespace } = deployment.model.metadata;
+
+  const [fetchDeploymentExtension, fetchDeploymentExtensionLoaded] =
+    useResolvedDeploymentExtension<ModelServingPlatformFetchDeploymentStatus>(
+      isModelServingPlatformFetchDeploymentStatus,
+      deployment,
+    );
 
   const navigate = useNavigate();
   const notification = useNotification();
   const { registerNotification } = React.useContext(NotificationWatcherContext);
+  // Holds initial deployment state when the notification is registered, and updates when the deployment state changes
   const lastSeenState = React.useRef<ModelDeploymentState | null>(null);
 
   const watchDeployment = React.useCallback(() => {
@@ -30,11 +40,24 @@ export const useModelDeploymentNotification = (
       callbackDelay: FAST_POLL_INTERVAL,
       callback: async () => {
         try {
-          const currentStatus = deploymentStatusRef.current;
+          if (!fetchDeploymentExtensionLoaded) {
+            return { status: NotificationResponseStatus.REPOLL };
+          }
+
+          if (!fetchDeploymentExtension) {
+            return { status: NotificationResponseStatus.STOP };
+          }
+
+          const fetchedDeployment = await fetchDeploymentExtension.properties.fetch(
+            deployment.model.metadata.name,
+            deployment.model.metadata.namespace,
+          );
+          const deploymentStatus = fetchedDeployment?.status;
+
+          const currentStatus = deploymentStatus;
           if (!currentStatus) {
             return { status: NotificationResponseStatus.STOP };
           }
-          console.log('currentStatus', currentStatus);
 
           const deploymentState = currentStatus.state;
           const {
@@ -44,12 +67,24 @@ export const useModelDeploymentNotification = (
           } = currentStatus.stoppedStates || {};
           const isFailedState = deploymentState === ModelDeploymentState.FAILED_TO_LOAD;
 
-          // Track previous state
+          // Track previous state of the deployment
           const lastState = lastSeenState.current;
-          lastSeenState.current = deploymentState;
+          let adjustedLastState = lastState;
+
+          // Reset lastState if we're transitioning from a failed state to a starting state
+          if (
+            lastState === ModelDeploymentState.FAILED_TO_LOAD &&
+            (deploymentState === ModelDeploymentState.UNKNOWN ||
+              deploymentState === ModelDeploymentState.PENDING)
+          ) {
+            lastSeenState.current = null;
+            adjustedLastState = null;
+          } else {
+            lastSeenState.current = deploymentState;
+          }
 
           // Only consider it failed if it's not stopped, the state is FAILED_TO_LOAD, and the last state was PENDING
-          const isFailed = isFailedState && lastState === ModelDeploymentState.PENDING;
+          const isFailed = isFailedState && adjustedLastState === ModelDeploymentState.PENDING;
 
           if (isFailed) {
             notification.error(
@@ -66,7 +101,7 @@ export const useModelDeploymentNotification = (
             return { status: NotificationResponseStatus.STOP };
           }
 
-          if (isRunningState && lastState === ModelDeploymentState.LOADED) {
+          if (isRunningState && adjustedLastState === ModelDeploymentState.LOADED) {
             // Model is running, stop polling
             return { status: NotificationResponseStatus.STOP };
           }
@@ -74,7 +109,7 @@ export const useModelDeploymentNotification = (
           if (isStoppedState) {
             // Model appears stopped, but let's continue polling for a bit to see if it's just in transition
             // Only stop if we've seen the same stopped state multiple times
-            if (lastState === ModelDeploymentState.UNKNOWN || lastState === null) {
+            if (adjustedLastState === ModelDeploymentState.UNKNOWN || adjustedLastState === null) {
               // First time seeing this state, continue polling
               return { status: NotificationResponseStatus.REPOLL };
             }
@@ -84,8 +119,8 @@ export const useModelDeploymentNotification = (
 
           if (
             isStartingState ||
-            lastState === ModelDeploymentState.PENDING ||
-            lastState === ModelDeploymentState.LOADING
+            adjustedLastState === ModelDeploymentState.PENDING ||
+            adjustedLastState === ModelDeploymentState.LOADING
           ) {
             // Model is still starting/loading, continue polling
             return { status: NotificationResponseStatus.REPOLL };
@@ -107,7 +142,14 @@ export const useModelDeploymentNotification = (
         }
       },
     });
-  }, [registerNotification, navigate, deploymentStatusRef, namespace, notification]);
+  }, [
+    registerNotification,
+    navigate,
+    namespace,
+    notification,
+    fetchDeploymentExtension,
+    fetchDeploymentExtensionLoaded,
+  ]);
 
   return { watchDeployment };
 };
