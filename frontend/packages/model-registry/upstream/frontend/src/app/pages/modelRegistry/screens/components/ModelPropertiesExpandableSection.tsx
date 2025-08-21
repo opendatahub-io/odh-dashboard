@@ -12,12 +12,14 @@ type ModelPropertiesExpandableSectionProps = {
   customProperties?: ModelRegistryCustomProperties;
   isArchive?: boolean;
   saveEditedCustomProperties: (properties: ModelRegistryCustomProperties) => Promise<unknown>;
+  isExpandedByDefault?: boolean;
 };
 
 const ModelPropertiesExpandableSection: React.FC<ModelPropertiesExpandableSectionProps> = ({
   customProperties = {},
   isArchive,
   saveEditedCustomProperties,
+  isExpandedByDefault = false,
 }) => {
   const [editingPropertyKeys, setEditingPropertyKeys] = React.useState<string[]>([]);
   const setIsEditingKey = (key: string, isEditing: boolean) =>
@@ -48,8 +50,12 @@ const ModelPropertiesExpandableSection: React.FC<ModelPropertiesExpandableSectio
     </span>
   );
 
+  const [isExpanded, setIsExpanded] = React.useState(isExpandedByDefault);
+
   return (
     <ExpandableSection
+      isExpanded={isExpanded}
+      onToggle={() => setIsExpanded(!isExpanded)}
       toggleContent={
         <>
           Properties <Badge isRead>{keys.length}</Badge>
@@ -70,7 +76,7 @@ const ModelPropertiesExpandableSection: React.FC<ModelPropertiesExpandableSectio
               <ModelPropertiesTableRow
                 key={key}
                 isArchive={isArchive}
-                keyValuePair={{ key, value: filteredProperties[key].string_value }}
+                keyValuePair={{ key, value: filteredProperties[key].string_value || '' }}
                 allExistingKeys={allExistingKeys}
                 isEditing={editingPropertyKeys.includes(key)}
                 setIsEditing={(isEditing) => setIsEditingKey(key, isEditing)}
