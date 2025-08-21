@@ -23,7 +23,7 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
   }, [namespace, showModal, startingStatusModalOpenRef]);
 
   const modalLink = (
-    <Flex direction={{ default: 'column' }}>
+    <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }}>
       <FlexItem>The {namespace} pipeline server is being initialized.</FlexItem>
       <FlexItem>The process should take less than five minutes. When the server is ready,</FlexItem>
       <FlexItem>you will be able to create and import pipelines.</FlexItem>
@@ -48,15 +48,15 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
     return (
       <div>
         <Bullseye data-testid="pipelines-api-not-available">
-          <Flex direction={{ default: 'column' }} gap={{ default: 'gapMd' }}>
+          <Flex
+            direction={{ default: 'column' }}
+            gap={{ default: 'gapMd' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
             <FlexItem>
-              <Flex alignSelf={{ default: 'alignSelfCenter' }} gap={{ default: 'gapSm' }}>
-                <FlexItem>
-                  <Spinner diameter="80px" />
-                </FlexItem>
-                <FlexItem>{contents}</FlexItem>
-              </Flex>
+              <Spinner diameter="80px" />
             </FlexItem>
+            {contents}
           </Flex>
         </Bullseye>
       </div>
