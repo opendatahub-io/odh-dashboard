@@ -49,7 +49,7 @@ create_test_results_dir() {
         TEST_RUN_DIR="$(cd "$TEST_RUN_DIR" && pwd)"
     fi
     
-    export PACT_TEST_RESULTS_DIR="$TEST_RUN_DIR"
+    export CONTRACT_TEST_RESULTS_DIR="$TEST_RUN_DIR"
     echo "$TEST_RUN_DIR"
 }
 
@@ -109,7 +109,7 @@ start_bff_server() {
     kill_process_on_port "$BFF_PORT"
 
     # Start BFF in background, redirecting output to log
-    ./"$BFF_BINARY_NAME" --port "$BFF_PORT" $BFF_MOCK_FLAGS > "$TEST_RUN_DIR/bff-mock.log" 2>&1 &
+    ./$BFF_BINARY_NAME --port "$BFF_PORT" $BFF_MOCK_FLAGS > "$TEST_RUN_DIR/bff-mock.log" 2>&1 &
     BFF_PID=$!
 
     # Store PID for cleanup
@@ -174,7 +174,7 @@ run_contract_tests() {
     log_info "Test output: $TEST_RUN_DIR/contract-test-output.log"
 
     # Set environment variables for Jest
-    export PACT_TEST_RESULTS_DIR="$TEST_RUN_DIR"
+    export CONTRACT_TEST_RESULTS_DIR="$TEST_RUN_DIR"
 
     # Run tests and capture output
     if npm run test:contract > "$TEST_RUN_DIR/contract-test-output.log" 2>&1; then

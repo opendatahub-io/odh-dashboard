@@ -5,13 +5,13 @@ try {
 } catch (e) {
   // If JS config not found, try TS config
   try {
+    // eslint-disable-next-line import/no-extraneous-dependencies
     require('ts-node/register');
     baseConfig = require('./jest.config.base.ts').default;
   } catch (tsError) {
+    const originalMessage = (tsError && tsError.message) || e.message;
     throw new Error(
-      'Could not load Jest base config. Ensure either jest.config.base.js exists ' +
-      'or ts-node is available to load jest.config.base.ts.\n' +
-      'Original error: ' + (tsError.message || e.message)
+      `Could not load Jest base config. Ensure either jest.config.base.js exists or ts-node is available to load jest.config.base.ts.\nOriginal error: ${originalMessage}`,
     );
   }
 }
@@ -35,7 +35,7 @@ module.exports = {
     [
       'jest-html-reporters',
       {
-        publicPath: process.env.PACT_TEST_RESULTS_DIR || './contract-test-results/latest',
+        publicPath: process.env.CONTRACT_TEST_RESULTS_DIR || './contract-test-results/latest',
         filename: 'contract-test-report.html',
         expand: true,
         pageTitle: 'Contract Test Report',
@@ -71,7 +71,7 @@ module.exports = {
     [
       'jest-junit',
       {
-        outputDirectory: process.env.PACT_TEST_RESULTS_DIR || './contract-test-results/latest',
+        outputDirectory: process.env.CONTRACT_TEST_RESULTS_DIR || './contract-test-results/latest',
         outputName: 'junit.xml',
         classNameTemplate: '{classname}',
         titleTemplate: '{title}',

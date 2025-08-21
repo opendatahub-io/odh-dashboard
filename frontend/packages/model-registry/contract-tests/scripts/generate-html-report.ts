@@ -64,7 +64,7 @@ interface ParsedTestData {
 
 // Get the test results directory from environment or use latest
 const resultsDir =
-  process.env.PACT_TEST_RESULTS_DIR || './contract-tests/contract-test-results/latest';
+  process.env.CONTRACT_TEST_RESULTS_DIR || './contract-tests/contract-test-results/latest';
 const testOutputFile = path.join(resultsDir, 'contract-test-output.log');
 const bffLogFile = path.join(resultsDir, 'bff-mock.log');
 const htmlReportFile = path.join(resultsDir, 'contract-test-report-enhanced.html');

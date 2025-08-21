@@ -42,7 +42,7 @@ cd "$PACKAGE_ROOT" || exit 1
 export PACKAGE_NAME="model-registry"
 
 # Set Jest HTML reporter environment variables
-export PACT_TEST_RESULTS_DIR="$TEST_RUN_DIR"
+export CONTRACT_TEST_RESULTS_DIR="$TEST_RUN_DIR"
 export JEST_HTML_REPORT="$TEST_RUN_DIR/contract-test-report.html"
 export JEST_HTML_REPORTERS_PUBLIC_PATH="$TEST_RUN_DIR"
 export JEST_HTML_REPORTERS_FILENAME="contract-test-report.html"
@@ -176,7 +176,7 @@ run_contract_tests() {
     cd "$PACKAGE_ROOT" || exit 1
 
     # Set environment for tests
-    export PACT_MOCK_BFF_URL="http://localhost:8080"
+    export CONTRACT_MOCK_BFF_URL="http://localhost:8080"
     
     # Create detailed test output files
     TEST_OUTPUT_FILE="$TEST_RUN_DIR/contract-test-output.log"

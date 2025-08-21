@@ -1,8 +1,6 @@
 # Contract test generated files
 contracts/
 logs/
-pact-test-results/
-pacts/
 
 # Test results and logs
 contract-test-results/

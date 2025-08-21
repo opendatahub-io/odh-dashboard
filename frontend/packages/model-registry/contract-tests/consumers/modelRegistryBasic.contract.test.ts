@@ -21,7 +21,7 @@ const schemaValidator = new ContractSchemaValidator();
 // Test configuration
 const BFF_URL = 'http://localhost:8080';
 const TEST_RESULTS_DIR =
-  process.env.PACT_TEST_RESULTS_DIR || './contract-tests/contract-test-results/latest';
+  process.env.CONTRACT_TEST_RESULTS_DIR || './contract-tests/contract-test-results/latest';
 const DEFAULT_HEADERS = { 'kubeflow-userid': 'user@example.com' };
 
 // Create BFF configuration
