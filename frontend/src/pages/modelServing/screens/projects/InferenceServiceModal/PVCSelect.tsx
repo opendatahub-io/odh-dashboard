@@ -54,8 +54,9 @@ export const PvcSelect: React.FC<PvcSelectProps> = ({
   const didInitialPrefill = React.useRef(false);
 
   // Whether to show the PVC not founderror
-  const showPVCError = React.useRef(
-    existingUriOption && !pvcExists && pvcNameFromUri && !selectedPVC,
+  const showPVCError = React.useMemo(
+    () => Boolean(existingUriOption && !pvcExists && pvcNameFromUri && !selectedPVC),
+    [existingUriOption, pvcExists, pvcNameFromUri, selectedPVC],
   );
 
   // Create a local copy of pvcs with the missing PVC added if needed
@@ -173,7 +174,7 @@ export const PvcSelect: React.FC<PvcSelectProps> = ({
             </Alert>
           </StackItem>
         )}
-        {showPVCError.current && !selectedPVC && (
+        {showPVCError && !selectedPVC && (
           <StackItem>
             <Alert variant="warning" title="Cannot access cluster storage" isInline>
               The selected <strong>{pvcNameFromUri}</strong> cluster storage has been deleted or
