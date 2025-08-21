@@ -1,5 +1,5 @@
 /**
- * @odh-dashboard/pact-testing
+ * @odh-dashboard/contract-testing
  *
  * Shared utilities for contract testing across ODH Dashboard packages.
  * Provides reusable components for API testing, BFF verification, schema validation,
@@ -13,7 +13,7 @@
  *   verifyBffHealth,
  *   ContractSchemaValidator,
  *   logTestSetup
- * } from '@odh-dashboard/pact-testing';
+ * } from '@odh-dashboard/contract-testing';
  *
  * // 1. Set up test logging
  * logTestSetup('my-package', 'http://localhost:8080', './results');

@@ -37,7 +37,7 @@ create_test_results_dir() {
     local TEST_RUN_DIR
     
     TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-    PACT_TEST_RESULTS_BASE="pact/pact-test-results"
+    PACT_TEST_RESULTS_BASE="contract-tests/contract-test-results"
     TEST_RUN_DIR="$PACT_TEST_RESULTS_BASE/$TIMESTAMP"
     
     mkdir -p "$TEST_RUN_DIR"

@@ -8,7 +8,7 @@ module.exports = {
     [
       'jest-html-reporters',
       {
-        publicPath: process.env.JEST_HTML_REPORTERS_PUBLIC_PATH || './pact-test-results/latest',
+        publicPath: process.env.JEST_HTML_REPORTERS_PUBLIC_PATH || './contract-test-results/latest',
         filename: process.env.JEST_HTML_REPORTERS_FILE_NAME || 'contract-test-report.html',
         expand: process.env.JEST_HTML_REPORTERS_EXPAND === 'true',
         pageTitle: process.env.JEST_HTML_REPORTERS_PAGE_TITLE || 'Contract Test Report',

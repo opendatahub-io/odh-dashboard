@@ -5,9 +5,9 @@
   "version": "0.0.0",
   "scripts": {
     "update-subtree": "../../scripts/package-subtree.sh model-registry",
-    "test:contract": "jest --config=pact/jest.contract.config.js --detectOpenHandles",
+    "test:contract": "jest --config=contract-tests/jest.contract.config.js --detectOpenHandles",
     "test:contract:watch": "npm run test:contract -- --watch",
-    "test:contract:with-bff": "pact/scripts/run-with-mock-bff.sh"
+    "test:contract:with-bff": "contract-tests/scripts/run-with-mock-bff.sh"
   },
   "subtree": {
     "repo": "https://github.com/kubeflow/model-registry.git",
@@ -44,7 +44,7 @@
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/tsconfig": "*",
-    "@odh-dashboard/pact-testing": "*",
+    "@odh-dashboard/contract-testing": "*",
     "@jest/globals": "^29.5.0"
   }
 }

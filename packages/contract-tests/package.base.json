@@ -1,5 +1,5 @@
 {
-  "name": "@odh-dashboard/pact-testing-base",
+  "name": "@odh-dashboard/contract-testing-base",
   "version": "1.0.0",
   "description": "Base configuration for contract testing modules",
   "main": "dist/index.js",
@@ -26,6 +26,6 @@
     "typescript": "^5.0.0"
   },
   "peerDependencies": {
-    "@odh-dashboard/pact-testing": "workspace:*"
+    "@odh-dashboard/contract-testing": "workspace:*"
   }
 }

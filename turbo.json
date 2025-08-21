@@ -22,15 +22,15 @@
     "test:contract:with-bff": {
       "inputs": [
         "$TURBO_DEFAULT$",
-        "pact/**",
+        "contract-tests/**",
         "upstream/bff/**",
-        "$TURBO_ROOT$/packages/pact-testing/**",
+        "$TURBO_ROOT$/packages/contract-testing/**",
         "$TURBO_ROOT$/packages/plugin-core/**",
         "$TURBO_ROOT$/packages/tsconfig/**"
       ],
       "outputs": [
-        "pact/pact-test-results/**",
-        "pact-test-results/**"
+        "contract-tests/contract-test-results/**",
+        "contract-test-results/**"
       ]
     }
   }

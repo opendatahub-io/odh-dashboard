@@ -21,8 +21,8 @@
     "types": ["jest", "node"],
     "typeRoots": ["../../../../node_modules/@types"],
     "paths": {
-      "@odh-dashboard/pact-testing": ["packages/pact-testing/src"],
-      "@odh-dashboard/pact-testing/*": ["packages/pact-testing/src/*"]
+      "@odh-dashboard/contract-testing": ["packages/contract-tests/src"],
+      "@odh-dashboard/contract-testing/*": ["packages/contract-tests/src/*"]
     }
   },
   "include": [

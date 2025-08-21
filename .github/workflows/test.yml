@@ -242,10 +242,10 @@ jobs:
         with:
           name: contract-test-results
           path: |
-            ${{ github.workspace }}/frontend/packages/*/pact/pact-test-results/*/contract-test-report.html
-            ${{ github.workspace }}/frontend/packages/*/pact/pact-test-results/*/junit.xml
-            ${{ github.workspace }}/frontend/packages/*/pact/pact-test-results/*/contract-test-output.log
-            ${{ github.workspace }}/frontend/packages/*/pact/pact-test-results/*/bff-mock.log
+            ${{ github.workspace }}/frontend/packages/*/contract-tests/contract-test-results/*/contract-test-report.html
+            ${{ github.workspace }}/frontend/packages/*/contract-tests/contract-test-results/*/junit.xml
+            ${{ github.workspace }}/frontend/packages/*/contract-tests/contract-test-results/*/contract-test-output.log
+            ${{ github.workspace }}/frontend/packages/*/contract-tests/contract-test-results/*/bff-mock.log
           if-no-files-found: warn
 
   Get-Test-Groups:

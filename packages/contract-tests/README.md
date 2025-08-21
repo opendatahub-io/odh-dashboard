@@ -16,7 +16,7 @@ This package provides shared utilities and configurations for contract testing a
 1. **Extend Base Configurations**:
    ```js
    // jest.contract.config.js
-   const baseConfig = require('../../packages/pact-testing/jest.contract.config.base.js');
+   const baseConfig = require('../../packages/contract-testing/jest.contract.config.base.js');
    module.exports = {
      ...baseConfig,
      // Add module-specific overrides
@@ -25,22 +25,22 @@ This package provides shared utilities and configurations for contract testing a
 
 2. **Use Shared Utilities**:
    ```typescript
-   import { ContractApiClient, ContractSchemaValidator } from '@odh-dashboard/pact-testing';
+   import { ContractApiClient, ContractSchemaValidator } from '@odh-dashboard/contract-testing';
    // For API client only:
-   import { ContractApiClient } from '@odh-dashboard/pact-testing/api';
+   import { ContractApiClient } from '@odh-dashboard/contract-testing/api';
    ```
 
 3. **Extend Base Setup**:
    ```typescript
    // setup.ts
-   import '../../packages/pact-testing/setup.base';
+   import '../../packages/contract-testing/setup.base';
    // Add module-specific setup
    ```
 
 ### Package Structure
 
 ```
-packages/pact-testing/
+packages/contract-testing/
 ├── src/                    # Source code
 ├── jest.config.base.ts     # Base Jest configuration
 ├── jest.contract.config.base.js  # Base contract test configuration

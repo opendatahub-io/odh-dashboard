@@ -31,8 +31,8 @@ find_helpers() {
     
     while [[ $depth -lt $max_depth && -n "$current_dir" && "$current_dir" != "/" ]]; do
         # Try dist first, then src
-        local dist_helper="$current_dir/packages/pact-testing/dist/helpers/shell-helpers.sh"
-        local src_helper="$current_dir/packages/pact-testing/src/helpers/shell-helpers.sh"
+        local dist_helper="$current_dir/packages/contract-testing/dist/helpers/shell-helpers.sh"
+        local src_helper="$current_dir/packages/contract-testing/src/helpers/shell-helpers.sh"
         
         if [[ -f "$dist_helper" ]]; then
             echo "$dist_helper"
@@ -56,7 +56,7 @@ if [[ -n "$HELPERS_FILE" ]]; then
     source "$HELPERS_FILE"
 else
     echo "❌ Could not find contract-testing helpers in parent directories"
-    echo "💡 Make sure @odh-dashboard/pact-testing package is installed"
+    echo "💡 Make sure @odh-dashboard/contract-testing package is installed"
     exit 1
 fi
 

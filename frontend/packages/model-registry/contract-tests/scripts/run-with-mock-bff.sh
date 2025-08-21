@@ -10,11 +10,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PACKAGE_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 WORKSPACE_ROOT="$(cd "$PACKAGE_ROOT/../../.." && pwd)"
-HELPERS_FILE="$WORKSPACE_ROOT/packages/contract-testing/src/helpers/shell-helpers.sh"
+HELPERS_FILE="$WORKSPACE_ROOT/packages/contract-tests/src/helpers/shell-helpers.sh"
 
 # Try to source helpers from src first, then dist if src fails
 if ! source "$HELPERS_FILE" 2>/dev/null; then
-    HELPERS_FILE="$WORKSPACE_ROOT/packages/contract-testing/dist/helpers/shell-helpers.sh"
+    HELPERS_FILE="$WORKSPACE_ROOT/packages/contract-tests/dist/helpers/shell-helpers.sh"
     if ! source "$HELPERS_FILE"; then
         echo "❌ Could not find shared shell helpers at $HELPERS_FILE"
         echo "💡 Make sure @odh-dashboard/contract-testing package is installed"
@@ -23,10 +23,10 @@ if ! source "$HELPERS_FILE" 2>/dev/null; then
 fi
 
 # Configuration
-PACT_DIR="$PACKAGE_ROOT/pact"
+CONTRACT_DIR="$PACKAGE_ROOT/contract-tests"
 BFF_DIR="$PACKAGE_ROOT/upstream/bff"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-TEST_RUN_DIR="$PACT_DIR/pact-test-results/$TIMESTAMP"
+TEST_RUN_DIR="$CONTRACT_DIR/contract-test-results/$TIMESTAMP"
 BFF_PID_FILE="$TEST_RUN_DIR/bff.pid"
 BFF_PID=""
 

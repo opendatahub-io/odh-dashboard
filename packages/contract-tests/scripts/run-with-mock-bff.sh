@@ -24,9 +24,9 @@ else
 fi
 
 # Set up variables
-PACT_DIR="$PACKAGE_ROOT/pact"
+CONTRACT_DIR="$PACKAGE_ROOT/contract-tests"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-TEST_RUN_DIR="$PACT_DIR/pact-test-results/$TIMESTAMP"
+TEST_RUN_DIR="$CONTRACT_DIR/contract-test-results/$TIMESTAMP"
 
 # Create test results directory
 mkdir -p "$TEST_RUN_DIR"
@@ -47,7 +47,7 @@ export JEST_HTML_REPORTERS_INLINE_SOURCE=true
 export JEST_HTML_REPORTERS_DARK_THEME=false
 export JEST_HTML_REPORTERS_USE_CSS_FILE=false
 export JEST_HTML_REPORTERS_JSON=true
-export PACKAGE_NAME="pact-testing"
+export PACKAGE_NAME="contract-testing"
 
 # Run contract tests
 TEST_EXIT_CODE=0

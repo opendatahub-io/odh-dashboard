@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "@odh-dashboard/pact-testing",
+  "name": "@odh-dashboard/contract-testing",
   "description": "Shared utilities for contract testing across ODH Dashboard packages.",
   "version": "0.0.0",
   "scripts": {

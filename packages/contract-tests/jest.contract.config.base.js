@@ -22,8 +22,8 @@ module.exports = {
   // Module resolution - extending from parent config and adding our paths
   moduleNameMapper: {
     ...baseConfig.moduleNameMapper,
-    '^@odh-dashboard/pact-testing$': require('path').resolve(__dirname, 'src/index.ts'),
-    '^@odh-dashboard/pact-testing/(.*)$': require('path').resolve(__dirname, 'src/$1'),
+    '^@odh-dashboard/contract-testing$': require('path').resolve(__dirname, 'src/index.ts'),
+    '^@odh-dashboard/contract-testing/(.*)$': require('path').resolve(__dirname, 'src/$1'),
   },
 
   // Setup files
@@ -35,7 +35,7 @@ module.exports = {
     [
       'jest-html-reporters',
       {
-        publicPath: process.env.PACT_TEST_RESULTS_DIR || './pact-test-results/latest',
+        publicPath: process.env.PACT_TEST_RESULTS_DIR || './contract-test-results/latest',
         filename: 'contract-test-report.html',
         expand: true,
         pageTitle: 'Contract Test Report',
@@ -71,7 +71,7 @@ module.exports = {
     [
       'jest-junit',
       {
-        outputDirectory: process.env.PACT_TEST_RESULTS_DIR || './pact-test-results/latest',
+        outputDirectory: process.env.PACT_TEST_RESULTS_DIR || './contract-test-results/latest',
         outputName: 'junit.xml',
         classNameTemplate: '{classname}',
         titleTemplate: '{title}',
