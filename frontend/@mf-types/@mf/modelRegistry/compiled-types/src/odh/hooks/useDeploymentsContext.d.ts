@@ -7,7 +7,12 @@ export declare const useDeploymentsContext: () => {
         projects?: any[];
     };
     DeploymentsProviderComponent: false | React.ComponentType<{
-        children: React.ReactNode;
+        children: ({ deployments, loaded, errors, projects, }: {
+            deployments?: any[];
+            loaded: boolean;
+            errors?: Error[];
+            projects?: import("@odh-dashboard/internal/k8sTypes.js").ProjectKind[];
+        }) => React.ReactNode;
         labelSelectors?: {
             [key: string]: string;
         };

@@ -1,21 +1,41 @@
 import React from 'react';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { useExtensions } from '@odh-dashboard/plugin-core';
-import { ModelDeploymentsProvider } from '../src/concepts/ModelDeploymentsContext';
-import { isModelServingPlatformExtension } from '../extension-points';
+import {
+  ModelDeploymentsContext,
+  ModelDeploymentsProvider,
+} from '../src/concepts/ModelDeploymentsContext';
+import { Deployment, isModelServingPlatformExtension } from '../extension-points';
 
 interface DeploymentsContextProviderProps {
-  children: React.ReactNode;
+  children: ({
+    deployments,
+    loaded,
+  }: {
+    deployments?: Deployment[];
+    loaded: boolean;
+  }) => React.ReactNode;
   labelSelectors?: { [key: string]: string };
+  mrName?: string;
 }
 
-/**
- * Wrapper component for ModelDeploymentsProvider to be used as an extension
- * Gets projects and modelServingPlatforms internally to be self-contained
- */
+const ModelDeploymentsProviderContent: React.FC<{
+  children: ({
+    deployments,
+    loaded,
+  }: {
+    deployments?: Deployment[];
+    loaded: boolean;
+  }) => React.ReactNode;
+}> = ({ children }) => {
+  const { deployments, loaded } = React.useContext(ModelDeploymentsContext);
+  return <>{children({ deployments, loaded })}</>;
+};
+
 const DeploymentsContextProvider: React.FC<DeploymentsContextProviderProps> = ({
   children,
   labelSelectors,
+  mrName,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
   const modelServingPlatforms = useExtensions(isModelServingPlatformExtension);
@@ -25,8 +45,9 @@ const DeploymentsContextProvider: React.FC<DeploymentsContextProviderProps> = ({
       projects={projects}
       modelServingPlatforms={modelServingPlatforms}
       labelSelectors={labelSelectors}
+      mrName={mrName}
     >
-      {children}
+      <ModelDeploymentsProviderContent>{children}</ModelDeploymentsProviderContent>
     </ModelDeploymentsProvider>
   );
 };

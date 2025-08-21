@@ -13,6 +13,7 @@ import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { ArchiveRegisteredModelModal } from '~/app/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
 import { registeredModelsUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
+import ArchiveButtonDropdownItem from '~/odh/components/ArchiveButtonDropdownItem';
 
 interface ModelVersionsHeaderActionsProps {
   rm: RegisteredModel;
@@ -28,7 +29,6 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
 
   const navigate = useNavigate();
   const [isOpen, setOpen] = React.useState(false);
-  const tooltipRef = React.useRef<HTMLButtonElement>(null);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
 
   return (
@@ -54,21 +54,7 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
             )}
           >
             <DropdownList>
-              <DropdownItem
-                id="archive-model-button"
-                aria-label="Archive model"
-                key="archive-model-button"
-                onClick={() => setIsArchiveModalOpen(true)}
-                ref={tooltipRef}
-                isAriaDisabled={hasDeployments}
-                tooltipProps={
-                  hasDeployments
-                    ? { content: 'Models with deployed versions cannot be archived.' }
-                    : undefined
-                }
-              >
-                Archive model
-              </DropdownItem>
+              <ArchiveButtonDropdownItem setIsArchiveModalOpen={setIsArchiveModalOpen} />
             </DropdownList>
           </Dropdown>
         </FlexItem>
