@@ -86,12 +86,14 @@ The system is implemented using a multi-container architecture with modern web t
 - **Documentation**: Comprehensive OpenAPI specification with Swagger UI
 
 ### Integration Architecture
-- **Unified Repository Pattern**: Single LlamaStackRepository handling all operations
-- **OpenAI SDK Client**: Official SDK for robust Llama Stack API communication
+- **Domain-Specific Repository Pattern**: Separate repositories for Models, VectorStores, Files, and Responses operations
+- **Factory Pattern**: LlamaStackClientFactory with RealClientFactory and MockClientFactory implementations
+- **Envelope Pattern**: Consistent `{data, metadata}` API response structure across all endpoints
+- **OpenAI SDK Client**: Official SDK for robust Llama Stack API communication with direct streaming support
 - **Interface-based Design**: Clean abstractions enabling easy mocking and testing
 - **Authentication**: OAuth 2.0 token validation with browser storage persistence
 - **Error Handling**: Comprehensive error transformation and user-friendly messaging
-- **Development Mode**: Configurable mock client with `MOCK_LS_CLIENT` flag
+- **Development Mode**: Configurable mock client with factory-based creation
 
 ### Modular UI Deployment (ODH Dashboard Integration)
 - **Module Federation**: Deployed as a federated module within ODH Dashboard using Webpack 5 Module Federation
@@ -307,10 +309,10 @@ graph TB
         end
         
         subgraph LlamaStackHandlers["LlamaStack API Handlers (/genai/v1/)"]
-            ModelsHandler["llamastack_models_handler<br/>(GET /genai/v1/models)"]
-            VectorStoresHandler["llamastack_vectorstores_handler<br/>(GET/POST /genai/v1/vectorstores)"]
-            FilesHandler["llamastack_files_handler<br/>(POST /genai/v1/files/upload)"]
-            ResponsesHandler["llamastack_responses_handler<br/>(POST /genai/v1/responses)"]
+            ModelsHandler["models_handler<br/>(GET /genai/v1/models)"]
+            VectorStoresHandler["vectorstores_handler<br/>(GET/POST /genai/v1/vectorstores)"]
+            FilesHandler["files_handler<br/>(POST /genai/v1/files/upload)"]
+            ResponsesHandler["responses_handler<br/>(POST /genai/v1/responses)"]
         end
         
         subgraph SupportHandlers["Support Handlers"]
@@ -318,15 +320,21 @@ graph TB
             HealthHandler["healthcheck_handler<br/>(Service Health)"]
         end
         
-        subgraph BusinessLogic["Business Logic Layer"]
-            LlamaStackRepo["LlamaStackRepository<br/>(Unified Operations)"]
+        subgraph BusinessLogic["Domain-Specific Repository Layer"]
+            ModelsRepo["ModelsRepository<br/>(Model Operations & Transformations)"]
+            VectorStoresRepo["VectorStoresRepository<br/>(Vector Store Operations)"]
+            FilesRepo["FilesRepository<br/>(File Upload Operations)"]
+            ResponsesRepo["ResponsesRepository<br/>(AI Response Operations)"]
             HealthRepo["HealthCheckRepository<br/>(Health Operations)"]
         end
         
         subgraph ClientLayer["Client Integration Layer"]
+            ClientFactory["LlamaStackClientFactory<br/>(Factory Pattern Interface)"]
+            RealFactory["RealClientFactory<br/>(Production Client Creation)"]
+            MockFactory["MockClientFactory<br/>(Testing Client Creation)"]
             LlamaClient["LlamaStackClient<br/>(OpenAI SDK v2.1.0)"]
-            MockClient["MockLlamaStackClient<br/>(Testing & Development)"]
-            ClientInterface["LlamaStackClientInterface<br/>(Abstraction)"]
+            MockClient["MockLlamaStackClient<br/>(Development & Testing)"]
+            ClientInterface["LlamaStackClientInterface<br/>(Client Abstraction)"]
         end
     end
     
@@ -342,10 +350,22 @@ graph TB
     Middleware --> LlamaStackHandlers
     Middleware --> SupportHandlers
     
-    LlamaStackHandlers --> LlamaStackRepo
+    ModelsHandler --> ModelsRepo
+    VectorStoresHandler --> VectorStoresRepo
+    FilesHandler --> FilesRepo
+    ResponsesHandler --> ResponsesRepo
     HealthHandler --> HealthRepo
     
-    LlamaStackRepo --> ClientInterface
+    ModelsRepo --> ClientInterface
+    VectorStoresRepo --> ClientInterface
+    FilesRepo --> ClientInterface
+    ResponsesRepo --> ClientInterface
+    
+    ClientFactory --> RealFactory
+    ClientFactory --> MockFactory
+    RealFactory --> LlamaClient
+    MockFactory --> MockClient
+    
     ClientInterface --> LlamaClient
     ClientInterface --> MockClient
     
@@ -356,13 +376,15 @@ graph TB
     classDef handlers fill:#388e3c,stroke:#1b5e20,stroke-width:2px,color:#fff
     classDef support fill:#f57c00,stroke:#e65100,stroke-width:2px,color:#fff
     classDef business fill:#e91e63,stroke:#ad1457,stroke-width:2px,color:#fff
-    classDef client fill:#9c27b0,stroke:#6a1b99,stroke-width:2px,color:#fff
+    classDef factory fill:#9c27b0,stroke:#6a1b99,stroke-width:2px,color:#fff
+    classDef client fill:#673ab7,stroke:#4527a0,stroke-width:2px,color:#fff
     classDef config fill:#757575,stroke:#424242,stroke-width:2px,color:#fff
     
     class Router,Middleware,StaticServer routing
     class ModelsHandler,VectorStoresHandler,FilesHandler,ResponsesHandler handlers
     class OpenAPIHandler,HealthHandler support
-    class LlamaStackRepo,HealthRepo business
+    class ModelsRepo,VectorStoresRepo,FilesRepo,ResponsesRepo,HealthRepo business
+    class ClientFactory,RealFactory,MockFactory factory
     class LlamaClient,MockClient,ClientInterface client
     class EnvConfig,OpenAPISpec config
 ```
