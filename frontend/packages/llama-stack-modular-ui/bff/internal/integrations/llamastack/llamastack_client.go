@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/option"
@@ -81,14 +82,18 @@ type CreateVectorStoreParams struct {
 
 // CreateVectorStore creates a new vector store with the specified parameters.
 func (c *LlamaStackClient) CreateVectorStore(ctx context.Context, params CreateVectorStoreParams) (*openai.VectorStore, error) {
+	// Validate required fields first
+	if strings.TrimSpace(params.Name) == "" {
+		return nil, fmt.Errorf("name is required")
+	}
+
 	apiParams := openai.VectorStoreNewParams{}
 
-	if params.Name != "" {
-		if len(params.Name) > 256 {
-			return nil, fmt.Errorf("name must be ≤256 characters, got: %d", len(params.Name))
-		}
-		apiParams.Name = openai.String(params.Name)
+	// Validate name length and set parameter
+	if len(params.Name) > 256 {
+		return nil, fmt.Errorf("name must be ≤256 characters, got: %d", len(params.Name))
 	}
+	apiParams.Name = openai.String(params.Name)
 
 	if len(params.Metadata) > 0 {
 		if len(params.Metadata) > 16 {

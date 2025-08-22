@@ -231,7 +231,7 @@ func TestLlamaStackCreateVectorStoreHandler(t *testing.T) {
 		assert.Equal(t, "Test Vector Store with Metadata", vectorStore["name"])
 	})
 
-	t.Run("should handle empty name", func(t *testing.T) {
+	t.Run("should return error for empty name", func(t *testing.T) {
 		payload := CreateVectorStoreRequest{
 			Name: "",
 		}
@@ -242,8 +242,45 @@ func TestLlamaStackCreateVectorStoreHandler(t *testing.T) {
 		rr := httptest.NewRecorder()
 		app.LlamaStackCreateVectorStoreHandler(rr, req, nil)
 
-		// Should still work - name validation happens in client layer
-		assert.Equal(t, http.StatusCreated, rr.Code)
+		// Should return 400 Bad Request for empty name
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+		body, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response map[string]interface{}
+		err = json.Unmarshal(body, &response)
+		assert.NoError(t, err)
+
+		errorObj := response["error"].(map[string]interface{})
+		assert.Contains(t, errorObj["message"], "name is required")
+	})
+
+	t.Run("should return error for whitespace-only name", func(t *testing.T) {
+		payload := CreateVectorStoreRequest{
+			Name: "   ",
+		}
+
+		req, err := createJSONRequest(payload)
+		assert.NoError(t, err)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackCreateVectorStoreHandler(rr, req, nil)
+
+		// Should return 400 Bad Request for whitespace-only name
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+		body, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response map[string]interface{}
+		err = json.Unmarshal(body, &response)
+		assert.NoError(t, err)
+
+		errorObj := response["error"].(map[string]interface{})
+		assert.Contains(t, errorObj["message"], "name is required")
 	})
 
 	t.Run("should return error for invalid JSON", func(t *testing.T) {

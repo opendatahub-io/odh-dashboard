@@ -2,8 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack"
@@ -65,6 +67,12 @@ func (app *App) LlamaStackCreateVectorStoreHandler(w http.ResponseWriter, r *htt
 	var createRequest CreateVectorStoreRequest
 	if err := json.NewDecoder(r.Body).Decode(&createRequest); err != nil {
 		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	// Validate required fields
+	if strings.TrimSpace(createRequest.Name) == "" {
+		app.badRequestResponse(w, r, errors.New("name is required"))
 		return
 	}
 

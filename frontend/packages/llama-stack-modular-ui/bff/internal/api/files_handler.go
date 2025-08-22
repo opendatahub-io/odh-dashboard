@@ -21,6 +21,13 @@ func (app *App) LlamaStackUploadFileHandler(w http.ResponseWriter, r *http.Reque
 		app.badRequestResponse(w, r, fmt.Errorf("failed to parse multipart form: %w", err))
 		return
 	}
+	// Ensure cleanup of any temporary files created by ParseMultipartForm
+	defer func() {
+		if r.MultipartForm != nil {
+			// Intentionally ignore error from cleanup - best effort to remove temp files
+			_ = r.MultipartForm.RemoveAll()
+		}
+	}()
 
 	file, header, err := r.FormFile("file")
 	if err != nil {

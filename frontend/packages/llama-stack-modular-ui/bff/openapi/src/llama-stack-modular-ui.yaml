@@ -536,7 +536,7 @@ components:
             type: string
           example: ["vs_abc123", "vs_def456"]
           description: Vector store IDs for file search (RAG functionality)
-        chatcontext:
+        chat_context:
           type: array
           items:
             $ref: "#/components/schemas/ChatContextMessage"

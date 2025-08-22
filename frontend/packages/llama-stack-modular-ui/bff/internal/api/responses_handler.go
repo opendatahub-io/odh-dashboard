@@ -38,7 +38,7 @@ type CreateResponseRequest struct {
 	Model string `json:"model"`
 
 	VectorStoreIDs []string             `json:"vector_store_ids,omitempty"` // Enables RAG
-	ChatContext    []ChatContextMessage `json:"chatcontext,omitempty"`      // Conversation history
+	ChatContext    []ChatContextMessage `json:"chat_context,omitempty"`     // Conversation history
 	Temperature    *float64             `json:"temperature,omitempty"`      // Controls creativity (0.0-2.0)
 	TopP           *float64             `json:"top_p,omitempty"`            // Controls randomness (0.0-1.0)
 	Instructions   string               `json:"instructions,omitempty"`     // System message/behavior

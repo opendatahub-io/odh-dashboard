@@ -110,14 +110,14 @@ sequenceDiagram
     
     alt Sources flag enabled (RAG mode)
         Note over UI,BFF: Send chat message with RAG
-        UI->>BFF: POST /genai/v1/responses<br/>{input, model, vector_store_ids[], chatcontext[], temperature, instructions}
+        UI->>BFF: POST /genai/v1/responses<br/>{input, model, vector_store_ids[], chat_context[], temperature, instructions}
     else Sources flag disabled (Direct chat)
         Note over UI,BFF: Send chat message without RAG
-        UI->>BFF: POST /genai/v1/responses<br/>{input, model, chatcontext[], temperature, instructions}
+        UI->>BFF: POST /genai/v1/responses<br/>{input, model, chat_context[], temperature, instructions}
     end
     
     BFF->>BFF: Parse request and validate required parameters
-    BFF->>BFF: Convert chatcontext to OpenAI format
+    BFF->>BFF: Convert chat_context to OpenAI format
     
     Note over BFF,LS: Generate AI Response with Integrated RAG
     BFF->>LS: POST /v1/openai/v1/responses
@@ -133,9 +133,9 @@ sequenceDiagram
     UI->>UI: Display assistant response
     
     Note over UI: Update conversation context
-    UI->>UI: Add user input to chatcontext array
-    UI->>UI: Add assistant response to chatcontext array
-    UI->>UI: Store updated chatcontext for next interaction
+    UI->>UI: Add user input to chat_context array
+    UI->>UI: Add assistant response to chat_context array
+    UI->>UI: Store updated chat_context for next interaction
     
     alt RAG was used
         UI->>UI: Show "Sources" section with document chunks
@@ -160,7 +160,7 @@ sequenceDiagram
 ### Chat Completion Flow  
 - **Unified Response API**: Single endpoint handles both simple chat and RAG queries
 - **Integrated RAG**: Vector store IDs automatically enable file search functionality
-- **Conversation Context**: Multi-turn conversations via chatcontext parameter
+- **Conversation Context**: Multi-turn conversations via chat_context parameter
 - **Generation Control**: Temperature, top_p, and instructions for response customization
 - **Simplified Responses**: Clean response structure with only essential fields
 - **Error Handling**: Proper error forwarding from Llama Stack
@@ -201,7 +201,7 @@ sequenceDiagram
     "input": "What is the main topic of the documents?",
     "model": "ollama/llama3.2:3b",
     "vector_store_ids": ["vs_abc123-def456"],
-    "chatcontext": [
+    "chat_context": [
       {
         "role": "user",
         "content": "Previous question"
