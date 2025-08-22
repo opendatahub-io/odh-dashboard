@@ -1,0 +1,137 @@
+name: Comment Quality Gates Summary
+
+on:
+  workflow_run:
+    workflows: ["Modular Architecture - Quality Gates"]
+    types:
+      - completed
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+
+jobs:
+  comment-pr:
+    name: Post Quality Gates Summary
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.event == 'pull_request' && (github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure') }}
+    steps:
+      - name: Debug workflow run info
+        run: |
+          echo "Workflow run event: ${{ github.event.workflow_run.event }}"
+          echo "Workflow run conclusion: ${{ github.event.workflow_run.conclusion }}"
+          echo "Workflow run head SHA: ${{ github.event.workflow_run.head_sha }}"
+          echo "Workflow run ID: ${{ github.event.workflow_run.id }}"
+          
+      - name: Download Quality Gates Summary
+        uses: actions/download-artifact@v4
+        with:
+          name: quality-gates-summary
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Get PR number from workflow run
+        id: get-pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Get PR number from the workflow run
+            const pullRequests = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: '${{ github.event.workflow_run.head_sha }}'
+            });
+            
+            if (pullRequests.data.length === 0) {
+              console.log('❌ No PR found for this workflow run');
+              return;
+            }
+            
+            const prNumber = pullRequests.data[0].number;
+            console.log('📋 Found PR #' + prNumber);
+            core.setOutput('pr-number', prNumber);
+            return prNumber;
+
+      - name: Read quality gates summary
+        id: read-summary
+        run: |
+          if [ -f "quality-gates-summary.md" ]; then
+            echo "✅ Found quality gates summary file"
+            echo "summary-exists=true" >> $GITHUB_OUTPUT
+            # Read content and escape for output
+            summary_content=$(cat quality-gates-summary.md)
+            echo "summary-content<<EOF" >> $GITHUB_OUTPUT
+            echo "$summary_content" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Quality gates summary file not found"
+            echo "summary-exists=false" >> $GITHUB_OUTPUT
+            echo "summary-content<<EOF" >> $GITHUB_OUTPUT
+            echo "## 🚦 Quality Gates Summary" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "❌ Unable to load summary content. Please check the workflow logs." >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Post or update PR comment
+        if: steps.get-pr.outputs.pr-number
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = ${{ steps.get-pr.outputs.pr-number }};
+            const summaryContent = `${{ steps.read-summary.outputs.summary-content }}`;
+            
+            console.log(`📋 Posting to PR #${prNumber}`);
+            console.log(`📊 Summary length: ${summaryContent.length} characters`);
+            
+            try {
+              // Check for existing quality gates comments
+              const comments = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber
+              });
+              
+              const botComment = comments.data.find(comment => 
+                comment.user.type === 'Bot' && 
+                comment.body.includes('🚦 Modular Architecture Quality Gates Results')
+              );
+              
+              if (botComment) {
+                // Update existing comment
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: summaryContent
+                });
+                console.log('✅ Updated existing quality gates comment');
+              } else {
+                // Create new comment
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  body: summaryContent
+                });
+                console.log('✅ Created new quality gates comment');
+              }
+            } catch (error) {
+              console.log('❌ Failed to post comment:', error.message);
+              console.log('📊 Error details:', error);
+              
+              // Fallback: try to post a simple message
+              try {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  body: '## 🚦 Quality Gates Summary\n\n❌ Failed to post detailed summary. Check workflow logs for details.'
+                });
+                console.log('✅ Posted fallback comment');
+              } catch (fallbackError) {
+                console.log('❌ Fallback comment also failed:', fallbackError.message);
+              }
+            }
