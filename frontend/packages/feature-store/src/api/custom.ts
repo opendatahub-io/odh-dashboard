@@ -7,6 +7,7 @@ import { Features, FeaturesList } from '../types/features';
 import { ProjectList } from '../types/featureStoreProjects';
 import { FeatureService, FeatureServicesList } from '../types/featureServices';
 import { FeatureView, FeatureViewsList } from '../types/featureView';
+import { DataSet, DataSetList } from '../types/dataSets';
 
 export const listFeatureStoreProject =
   (hostPath: string) =>
@@ -148,4 +149,34 @@ export const getFeatureViewByName =
     )}?project=${encodeURIComponent(project)}&include_relationships=true`;
 
     return handleFeatureStoreFailures<FeatureView>(proxyGET(hostPath, endpoint, opts));
+  };
+
+export const getSavedDatasets =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, project?: string): Promise<DataSetList> => {
+    let endpoint = `/api/${FEATURE_STORE_API_VERSION}/saved_datasets/all?include_relationships=true`;
+    if (project) {
+      endpoint = `/api/${FEATURE_STORE_API_VERSION}/saved_datasets?project=${encodeURIComponent(
+        project,
+      )}&include_relationships=true`;
+    }
+
+    return handleFeatureStoreFailures<DataSetList>(proxyGET(hostPath, endpoint, opts));
+  };
+
+export const getDataSetByName =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, project?: string, dataSetName?: string): Promise<DataSet> => {
+    if (!project) {
+      throw new Error('Project is required');
+    }
+    if (!dataSetName) {
+      throw new Error('Data set name is required');
+    }
+
+    const endpoint = `/api/${FEATURE_STORE_API_VERSION}/saved_datasets/${encodeURIComponent(
+      dataSetName,
+    )}?project=${encodeURIComponent(project)}&include_relationships=true`;
+
+    return handleFeatureStoreFailures<DataSet>(proxyGET(hostPath, endpoint, opts));
   };

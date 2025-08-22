@@ -63,6 +63,19 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension | NavSe
         required: [PLUGIN_FEATURE_STORE],
       },
       properties: {
+        id: 'featureStore-dataSets',
+        title: 'Data sets',
+        href: '/featureStore/dataSets',
+        section: 'feature-store',
+        path: '/featureStore/dataSets/*',
+      },
+    },
+    {
+      type: 'app.navigation/href',
+      flags: {
+        required: [PLUGIN_FEATURE_STORE],
+      },
+      properties: {
         id: 'featureStore-features',
         title: 'Features',
         href: '/featureStore/features',

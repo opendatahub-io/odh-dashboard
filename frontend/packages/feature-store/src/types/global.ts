@@ -3,6 +3,7 @@ import { GetFeatureByName, GetFeatures } from './features';
 import { GetProjects } from './featureStoreProjects';
 import { GetFeatureViews, GetFeatureViewsByName } from './featureView';
 import { GetFeatureServiceByName, GetFeatureServices } from './featureServices';
+import { GetDataSetByName, GetSavedDatasets } from './dataSets';
 
 export type FeatureStorePagination = {
   page: number;
@@ -76,4 +77,6 @@ export type FeatureStoreAPIs = {
   getFeatureServices: GetFeatureServices;
   getFeatureServiceByName: GetFeatureServiceByName;
   getFeatureViewByName: GetFeatureViewsByName;
+  getSavedDatasets: GetSavedDatasets;
+  getDataSetByName: GetDataSetByName;
 };

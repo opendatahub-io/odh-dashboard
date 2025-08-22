@@ -6,6 +6,7 @@ import { FeatureServicesList } from '../../types/featureServices';
 import { FeatureStoreToolbar } from '../../components/FeatureStoreToolbar';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import { useTagFilterHandlers } from '../../utils/useTagFilterHandlers';
+import { applyTagFilters } from '../../utils/filterUtils';
 
 const FeatureServicesListView = ({
   featureServices,
@@ -50,16 +51,7 @@ const FeatureServicesListView = ({
       featureServices.relationships,
       filterData,
     );
-
-    if (tagFilters.length > 0) {
-      filtered = filtered.filter((featureService) => {
-        const featureServiceTags = featureService.spec.tags || {};
-        return tagFilters.every((tagFilter) => {
-          const tagEntries = Object.entries(featureServiceTags);
-          return tagEntries.some(([key, value]) => `${key}=${value}` === tagFilter);
-        });
-      });
-    }
+    filtered = applyTagFilters(filtered, tagFilters);
     return filtered;
   }, [processedFeatureServices, featureServices.relationships, filterData, tagFilters]);
 
