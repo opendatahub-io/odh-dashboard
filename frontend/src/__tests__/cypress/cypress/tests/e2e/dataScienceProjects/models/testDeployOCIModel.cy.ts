@@ -104,7 +104,7 @@ describe(
         cy.reload();
         modelServingSection.findModelMetricsLink(modelDeploymentName);
         modelServingSection.findStatusTooltip().click({ force: true });
-        cy.contains('Model is deployed', { timeout: 120000 }).should('be.visible');
+        cy.contains('Model deployment is active.', { timeout: 120000 }).should('be.visible');
       },
     );
   },
