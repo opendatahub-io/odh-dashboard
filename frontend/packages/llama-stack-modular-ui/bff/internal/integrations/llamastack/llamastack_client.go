@@ -1,4 +1,4 @@
-package clients
+package llamastack
 
 import (
 	"context"
@@ -161,13 +161,13 @@ func (c *LlamaStackClient) UploadFile(ctx context.Context, params UploadFilePara
 
 	// Handle both streaming and file path approaches
 	if params.Reader != nil {
-		// Direct streaming approach - no temp file needed!
+		// Direct streaming approach
 		if params.Filename == "" {
 			return nil, fmt.Errorf("filename is required when using Reader")
 		}
 		apiParams.File = openai.File(params.Reader, params.Filename, params.ContentType)
 	} else if params.FilePath != "" {
-		// Existing file path approach
+		// File path approach
 		file, err := os.Open(params.FilePath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to open file: %w", err)
@@ -281,13 +281,28 @@ func (c *LlamaStackClient) CreateResponse(ctx context.Context, params CreateResp
 	if len(params.ChatContext) > 0 {
 		inputItems := make(responses.ResponseInputParam, 0)
 
+		// Add chat context messages first
 		for _, msg := range params.ChatContext {
+			// Convert role string to appropriate enum
+			var role responses.EasyInputMessageRole
+			switch msg.Role {
+			case "user":
+				role = responses.EasyInputMessageRoleUser
+			case "assistant":
+				role = responses.EasyInputMessageRoleAssistant
+			case "system":
+				role = responses.EasyInputMessageRoleSystem
+			default:
+				role = responses.EasyInputMessageRoleUser // fallback to user
+			}
+
 			inputItems = append(inputItems, responses.ResponseInputItemParamOfMessage(
 				msg.Content,
-				responses.EasyInputMessageRole(msg.Role),
+				role,
 			))
 		}
 
+		// Add the new user input
 		inputItems = append(inputItems, responses.ResponseInputItemParamOfMessage(
 			params.Input,
 			responses.EasyInputMessageRoleUser,
@@ -296,9 +311,19 @@ func (c *LlamaStackClient) CreateResponse(ctx context.Context, params CreateResp
 		apiParams.Input = responses.ResponseNewParamsInputUnion{
 			OfInputItemList: inputItems,
 		}
+
+		// Set instructions separately for chat context mode
+		if params.Instructions != "" {
+			apiParams.Instructions = openai.String(params.Instructions)
+		}
 	} else {
 		apiParams.Input = responses.ResponseNewParamsInputUnion{
 			OfString: openai.String(params.Input),
+		}
+
+		// Set instructions normally for single message mode
+		if params.Instructions != "" {
+			apiParams.Instructions = openai.String(params.Instructions)
 		}
 	}
 
@@ -318,14 +343,11 @@ func (c *LlamaStackClient) CreateResponse(ctx context.Context, params CreateResp
 		apiParams.TopP = openai.Float(*params.TopP)
 	}
 
-	if params.Instructions != "" {
-		apiParams.Instructions = openai.String(params.Instructions)
-	}
-
 	if len(params.VectorStoreIDs) > 0 {
 		fileSearchTool := responses.ToolParamOfFileSearch(params.VectorStoreIDs)
 		apiParams.Tools = []responses.ToolUnionParam{fileSearchTool}
 	}
+
 	response, err := c.client.Responses.New(ctx, apiParams)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create response: %w", err)

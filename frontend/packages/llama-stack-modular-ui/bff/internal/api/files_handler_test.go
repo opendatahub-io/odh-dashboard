@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/config"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/mocks"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/repositories"
 	"github.com/stretchr/testify/assert"
 )
@@ -21,7 +21,7 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		config: config.EnvConfig{
 			Port: 4000,
 		},
-		repositories: repositories.NewRepositories(mocks.NewMockLlamaStackClient()),
+		repositories: repositories.NewRepositories(lsmocks.NewMockLlamaStackClient()),
 	}
 
 	// Helper function to create multipart request
@@ -89,10 +89,14 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
+		// Verify envelope structure
+		assert.Contains(t, response, "data")
+		data := response["data"].(map[string]interface{})
+
 		// Verify mock response structure
-		assert.Contains(t, response, "file_id")
-		assert.Equal(t, "file-mock123abc456def", response["file_id"])
-		assert.Contains(t, response, "vector_store_file")
+		assert.Contains(t, data, "file_id")
+		assert.Equal(t, "file-mock123abc456def", data["file_id"])
+		assert.Contains(t, data, "vector_store_file")
 	})
 
 	t.Run("should upload file with optional parameters", func(t *testing.T) {
@@ -112,10 +116,13 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
-		assert.Equal(t, "file-mock123abc456def", response["file_id"])
+		// Verify envelope structure
+		assert.Contains(t, response, "data")
+		data := response["data"].(map[string]interface{})
+		assert.Equal(t, "file-mock123abc456def", data["file_id"])
 
 		// Verify vector store file details
-		vectorStoreFile := response["vector_store_file"].(map[string]interface{})
+		vectorStoreFile := data["vector_store_file"].(map[string]interface{})
 		assert.Equal(t, "vs_test123", vectorStoreFile["vector_store_id"])
 		assert.Equal(t, "completed", vectorStoreFile["status"])
 	})
@@ -163,9 +170,8 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 	})
 
 	t.Run("should use unified repository pattern", func(t *testing.T) {
-		// Verify we're using the unified repository approach
 		assert.NotNil(t, app.repositories)
-		assert.NotNil(t, app.repositories.LlamaStack)
+		assert.NotNil(t, app.repositories.Files)
 
 		req, err := createMultipartRequest("test.txt", "Test content", "vs_test123", "assistants", "")
 		assert.NoError(t, err)
@@ -184,12 +190,16 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
+		// Verify envelope structure
+		assert.Contains(t, response, "data")
+		data := response["data"].(map[string]interface{})
+
 		// Should have FileUploadResult structure
-		assert.Contains(t, response, "file_id")
-		assert.Contains(t, response, "vector_store_file")
+		assert.Contains(t, data, "file_id")
+		assert.Contains(t, data, "vector_store_file")
 
 		// Verify mock file ID
-		assert.Equal(t, "file-mock123abc456def", response["file_id"])
+		assert.Equal(t, "file-mock123abc456def", data["file_id"])
 	})
 
 	t.Run("should handle static chunking parameters", func(t *testing.T) {
@@ -228,6 +238,9 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		err = json.Unmarshal(responseBody, &response)
 		assert.NoError(t, err)
 
-		assert.Equal(t, "file-mock123abc456def", response["file_id"])
+		// Verify envelope structure
+		assert.Contains(t, response, "data")
+		data := response["data"].(map[string]interface{})
+		assert.Equal(t, "file-mock123abc456def", data["file_id"])
 	})
 }

@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/clients"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack"
 )
 
 // SimplifiedResponseData contains only the essential response information
@@ -44,9 +44,7 @@ type CreateResponseRequest struct {
 	Instructions   string               `json:"instructions,omitempty"`     // System message/behavior
 }
 
-type ResponseData struct {
-	Data interface{} `json:"data"`
-}
+type ResponseData = llamastack.APIResponse
 
 // LlamaStackCreateResponseHandler handles POST /genai/v1/responses
 func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -70,16 +68,16 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Convert chat context format
-	var chatContext []clients.ChatContextMessage
+	var chatContext []llamastack.ChatContextMessage
 	for _, msg := range createRequest.ChatContext {
-		chatContext = append(chatContext, clients.ChatContextMessage{
+		chatContext = append(chatContext, llamastack.ChatContextMessage{
 			Role:    msg.Role,
 			Content: msg.Content,
 		})
 	}
 
 	// Convert to client params (only working parameters)
-	params := clients.CreateResponseParams{
+	params := llamastack.CreateResponseParams{
 		Input:          createRequest.Input,
 		Model:          createRequest.Model,
 		VectorStoreIDs: createRequest.VectorStoreIDs,
@@ -89,7 +87,7 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		Instructions:   createRequest.Instructions,
 	}
 
-	llamaResponse, err := app.repositories.LlamaStack.CreateResponse(ctx, params)
+	llamaResponse, err := app.repositories.Responses.CreateResponse(ctx, params)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

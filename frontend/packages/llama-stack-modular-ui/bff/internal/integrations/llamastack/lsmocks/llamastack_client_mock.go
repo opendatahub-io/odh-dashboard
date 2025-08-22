@@ -1,11 +1,11 @@
-package mocks
+package lsmocks
 
 import (
 	"context"
 
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/responses"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/clients"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack"
 )
 
 // MockLlamaStackClient provides a mock implementation of the LlamaStackClient for testing
@@ -37,7 +37,7 @@ func (m *MockLlamaStackClient) ListModels(ctx context.Context) ([]openai.Model, 
 }
 
 // ListVectorStores returns mock vector store data with optional parameters
-func (m *MockLlamaStackClient) ListVectorStores(ctx context.Context, params clients.ListVectorStoresParams) ([]openai.VectorStore, error) {
+func (m *MockLlamaStackClient) ListVectorStores(ctx context.Context, params llamastack.ListVectorStoresParams) ([]openai.VectorStore, error) {
 	return []openai.VectorStore{
 		{
 			ID:         "vs_mock123",
@@ -63,7 +63,7 @@ func (m *MockLlamaStackClient) ListVectorStores(ctx context.Context, params clie
 }
 
 // CreateVectorStore returns a mock created vector store with optional parameters
-func (m *MockLlamaStackClient) CreateVectorStore(ctx context.Context, params clients.CreateVectorStoreParams) (*openai.VectorStore, error) {
+func (m *MockLlamaStackClient) CreateVectorStore(ctx context.Context, params llamastack.CreateVectorStoreParams) (*openai.VectorStore, error) {
 	name := params.Name
 	if name == "" {
 		name = "Mock Vector Store"
@@ -93,9 +93,9 @@ func (m *MockLlamaStackClient) CreateVectorStore(ctx context.Context, params cli
 }
 
 // UploadFile uploads a file with optional parameters and optionally adds to vector store
-func (m *MockLlamaStackClient) UploadFile(ctx context.Context, params clients.UploadFileParams) (*clients.FileUploadResult, error) {
+func (m *MockLlamaStackClient) UploadFile(ctx context.Context, params llamastack.UploadFileParams) (*llamastack.FileUploadResult, error) {
 	mockFileID := "file-mock123abc456def"
-	result := &clients.FileUploadResult{
+	result := &llamastack.FileUploadResult{
 		FileID: mockFileID,
 	}
 
@@ -115,8 +115,8 @@ func (m *MockLlamaStackClient) UploadFile(ctx context.Context, params clients.Up
 }
 
 // CreateResponse returns a mock response with comprehensive parameter support
-func (m *MockLlamaStackClient) CreateResponse(ctx context.Context, params clients.CreateResponseParams) (*responses.Response, error) {
-	// Create a simple mock response that compiles - the BFF will extract content using the simplified response handler
+func (m *MockLlamaStackClient) CreateResponse(ctx context.Context, params llamastack.CreateResponseParams) (*responses.Response, error) {
+	// Create a mock response with proper Output structure that the handler can extract content from
 	mockResponse := &responses.Response{
 		ID:        "resp_mock123",
 		Object:    "response",
@@ -124,6 +124,20 @@ func (m *MockLlamaStackClient) CreateResponse(ctx context.Context, params client
 		Model:     params.Model,
 		Status:    "completed",
 		Metadata:  map[string]string{},
+		Output: []responses.ResponseOutputItemUnion{
+			{
+				ID:     "msg_mock123",
+				Type:   "message",
+				Role:   "assistant",
+				Status: "completed",
+				Content: []responses.ResponseOutputMessageContentUnion{
+					{
+						Type: "output_text",
+						Text: "This is a mock response to your query: " + params.Input,
+					},
+				},
+			},
+		},
 	}
 
 	return mockResponse, nil

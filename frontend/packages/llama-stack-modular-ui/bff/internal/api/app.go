@@ -7,9 +7,8 @@ import (
 	"path"
 	"strings"
 
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/clients"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/interfaces"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/mocks"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/repositories"
 
 	"github.com/julienschmidt/httprouter"
@@ -34,29 +33,30 @@ func (app *App) isAPIRoute(path string) bool {
 		strings.HasPrefix(path, "/llama-stack/")
 }
 
-// Old path generation methods removed - all functionality moved to /genai/v1/* endpoints
-
 type App struct {
 	config           config.EnvConfig
 	logger           *slog.Logger
 	repositories     *repositories.Repositories
 	openAPI          *OpenAPIHandler
 	tokenFactory     *integrations.TokenClientFactory
-	llamaStackClient interfaces.LlamaStackClientInterface
+	llamaStackClient llamastack.LlamaStackClientInterface
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
-	var llamaStackClient interfaces.LlamaStackClientInterface
+	var llamaStackClient llamastack.LlamaStackClientInterface
 
 	logger.Info("Initializing app with config", slog.Any("config", cfg))
 
+	// Initialize LlamaStack client using factory pattern
+	var factory llamastack.LlamaStackClientFactory
 	if cfg.MockLSClient {
 		logger.Info("Using mock LlamaStack client")
-		llamaStackClient = mocks.NewMockLlamaStackClient()
+		factory = lsmocks.NewMockClientFactory()
 	} else {
 		logger.Info("Using real LlamaStack client", "url", cfg.LlamaStackURL)
-		llamaStackClient = clients.NewLlamaStackClient(cfg.LlamaStackURL)
+		factory = llamastack.NewRealClientFactory()
 	}
+	llamaStackClient = factory.CreateClient(cfg.LlamaStackURL)
 
 	// Initialize OpenAPI handler
 	openAPIHandler, err := NewOpenAPIHandler(logger)

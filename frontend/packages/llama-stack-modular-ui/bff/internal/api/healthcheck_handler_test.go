@@ -9,7 +9,7 @@ import (
 
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/config"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/constants"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/mocks"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/models"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/repositories"
 	"github.com/stretchr/testify/assert"
@@ -20,7 +20,7 @@ func TestHealthCheckHandler(t *testing.T) {
 		config: config.EnvConfig{
 			Port: 4000,
 		},
-		repositories: repositories.NewRepositories(mocks.NewMockLlamaStackClient()),
+		repositories: repositories.NewRepositories(lsmocks.NewMockLlamaStackClient()),
 	}
 
 	rr := httptest.NewRecorder()

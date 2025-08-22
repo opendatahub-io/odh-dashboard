@@ -9,7 +9,7 @@ import (
 	"io"
 
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/config"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/mocks"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/repositories"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +20,7 @@ func TestLlamaStackModelsHandler(t *testing.T) {
 		config: config.EnvConfig{
 			Port: 4000,
 		},
-		repositories: repositories.NewRepositories(mocks.NewMockLlamaStackClient()),
+		repositories: repositories.NewRepositories(lsmocks.NewMockLlamaStackClient()),
 	}
 
 	t.Run("should return all models successfully", func(t *testing.T) {
@@ -83,9 +83,8 @@ func TestLlamaStackModelsHandler(t *testing.T) {
 	})
 
 	t.Run("should use unified repository pattern", func(t *testing.T) {
-		// Verify we're using the unified repository approach
 		assert.NotNil(t, app.repositories)
-		assert.NotNil(t, app.repositories.LlamaStack)
+		assert.NotNil(t, app.repositories.Models)
 
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodGet, "/genai/v1/models", nil)

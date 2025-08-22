@@ -6,16 +6,11 @@ import (
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/clients"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack"
 )
 
-type VectorStoresResponse struct {
-	Data interface{} `json:"data"`
-}
-
-type VectorStoreResponse struct {
-	Data interface{} `json:"data"`
-}
+type VectorStoresResponse = llamastack.APIResponse
+type VectorStoreResponse = llamastack.APIResponse
 
 // CreateVectorStoreRequest represents the request body for creating a vector store
 type CreateVectorStoreRequest struct {
@@ -30,7 +25,7 @@ func (app *App) LlamaStackListVectorStoresHandler(w http.ResponseWriter, r *http
 	ctx := r.Context()
 
 	// Parse query parameters
-	params := clients.ListVectorStoresParams{}
+	params := llamastack.ListVectorStoresParams{}
 
 	// Parse limit parameter (1-100, default 20)
 	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
@@ -46,7 +41,7 @@ func (app *App) LlamaStackListVectorStoresHandler(w http.ResponseWriter, r *http
 		params.Order = order
 	}
 
-	vectorStores, err := app.repositories.LlamaStack.ListVectorStores(ctx, params)
+	vectorStores, err := app.repositories.VectorStores.ListVectorStores(ctx, params)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -74,12 +69,12 @@ func (app *App) LlamaStackCreateVectorStoreHandler(w http.ResponseWriter, r *htt
 	}
 
 	// Convert to client params (only working parameters)
-	params := clients.CreateVectorStoreParams{
+	params := llamastack.CreateVectorStoreParams{
 		Name:     createRequest.Name,
 		Metadata: createRequest.Metadata,
 	}
 
-	vectorStore, err := app.repositories.LlamaStack.CreateVectorStore(ctx, params)
+	vectorStore, err := app.repositories.VectorStores.CreateVectorStore(ctx, params)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

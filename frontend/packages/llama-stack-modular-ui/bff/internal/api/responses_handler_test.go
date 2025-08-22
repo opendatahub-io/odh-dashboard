@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/config"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/mocks"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/repositories"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +20,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		config: config.EnvConfig{
 			Port: 4000,
 		},
-		repositories: repositories.NewRepositories(mocks.NewMockLlamaStackClient()),
+		repositories: repositories.NewRepositories(lsmocks.NewMockLlamaStackClient()),
 	}
 
 	// Helper function to create JSON request
@@ -221,9 +221,8 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 	})
 
 	t.Run("should use unified repository pattern", func(t *testing.T) {
-		// Verify we're using the unified repository approach
 		assert.NotNil(t, app.repositories)
-		assert.NotNil(t, app.repositories.LlamaStack)
+		assert.NotNil(t, app.repositories.Responses)
 
 		payload := CreateResponseRequest{
 			Input: "Test unified repository",

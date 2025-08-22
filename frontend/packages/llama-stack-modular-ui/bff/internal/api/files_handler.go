@@ -7,10 +7,10 @@ import (
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/clients"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack"
 )
 
-type FileUploadResponse = clients.FileUploadResult
+type FileUploadResponse = llamastack.APIResponse
 
 // LlamaStackUploadFileHandler handles POST /genai/v1/files/upload.
 func (app *App) LlamaStackUploadFileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -37,16 +37,16 @@ func (app *App) LlamaStackUploadFileHandler(w http.ResponseWriter, r *http.Reque
 
 	purpose := r.FormValue("purpose")
 
-	var chunkingStrategy *clients.ChunkingStrategy
+	var chunkingStrategy *llamastack.ChunkingStrategy
 	if chunkingType := r.FormValue("chunking_type"); chunkingType != "" {
-		chunkingStrategy = &clients.ChunkingStrategy{
+		chunkingStrategy = &llamastack.ChunkingStrategy{
 			Type: chunkingType,
 		}
 		if chunkingType == "static" {
 			if maxChunkStr := r.FormValue("max_chunk_size_tokens"); maxChunkStr != "" {
 				if maxChunk, err := strconv.Atoi(maxChunkStr); err == nil && maxChunk > 0 {
 					if chunkingStrategy.Static == nil {
-						chunkingStrategy.Static = &clients.StaticChunkingConfig{}
+						chunkingStrategy.Static = &llamastack.StaticChunkingConfig{}
 					}
 					chunkingStrategy.Static.MaxChunkSizeTokens = maxChunk
 				}
@@ -55,7 +55,7 @@ func (app *App) LlamaStackUploadFileHandler(w http.ResponseWriter, r *http.Reque
 			if overlapStr := r.FormValue("chunk_overlap_tokens"); overlapStr != "" {
 				if overlap, err := strconv.Atoi(overlapStr); err == nil && overlap >= 0 {
 					if chunkingStrategy.Static == nil {
-						chunkingStrategy.Static = &clients.StaticChunkingConfig{}
+						chunkingStrategy.Static = &llamastack.StaticChunkingConfig{}
 					}
 					chunkingStrategy.Static.ChunkOverlapTokens = overlap
 				}
@@ -64,7 +64,7 @@ func (app *App) LlamaStackUploadFileHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Use direct streaming - no temp file needed!
-	uploadParams := clients.UploadFileParams{
+	uploadParams := llamastack.UploadFileParams{
 		Reader:           file,
 		Filename:         header.Filename,
 		ContentType:      header.Header.Get("Content-Type"),
@@ -73,13 +73,16 @@ func (app *App) LlamaStackUploadFileHandler(w http.ResponseWriter, r *http.Reque
 		ChunkingStrategy: chunkingStrategy,
 	}
 
-	result, err := app.repositories.LlamaStack.UploadFile(ctx, uploadParams)
+	result, err := app.repositories.Files.UploadFile(ctx, uploadParams)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 
-	response := result
+	// Use envelope pattern for consistent response structure
+	response := FileUploadResponse{
+		Data: result,
+	}
 
 	err = app.WriteJSON(w, http.StatusCreated, response, nil)
 	if err != nil {
