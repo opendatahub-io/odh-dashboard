@@ -31,6 +31,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
       }
       isManagedSidebar={isStandalone}
       sidebar={isStandalone ? <AppNavSidebar /> : undefined}
+      isContentFilled
     >
       {children}
     </Page>

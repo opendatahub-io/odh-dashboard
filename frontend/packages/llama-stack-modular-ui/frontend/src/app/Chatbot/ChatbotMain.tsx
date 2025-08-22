@@ -6,6 +6,9 @@ import {
   DrawerContentBody,
   Bullseye,
   Spinner,
+  Flex,
+  FlexItem,
+  Title,
 } from '@patternfly/react-core';
 import {
   Chatbot,
@@ -18,26 +21,43 @@ import {
   MessageBox,
 } from '@patternfly/chatbot';
 import { ApplicationsPage } from 'mod-arch-shared';
-import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
+import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
+import useFetchLlamaModels from '~/app//hooks/useFetchLlamaModels';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import { ChatbotMessages } from './ChatbotMessagesList';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
+import ProjectDropdown from './components/ProjectDropdown';
 import useChatbotMessages from './hooks/useChatbotMessages';
 import useSourceManagement from './hooks/useSourceManagement';
 import useAlertManagement from './hooks/useAlertManagement';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from './const';
+import SDKInitialize from '../SDKInitialize';
 
 const ChatbotMain: React.FunctionComponent = () => {
+  const { config } = useModularArchContext();
+  const isStandalone = config.deploymentMode === DeploymentMode.Standalone;
   const displayMode = ChatbotDisplayMode.embedded;
   const { models, loading, error } = useFetchLlamaModels();
   const [selectedModel, setSelectedModel] = React.useState<string>('');
+  const [availableProjects, setAvailableProjects] = React.useState<string[]>([]);
+  const [selectedProject, setSelectedProject] = React.useState<string>('');
+
+  React.useEffect(() => {
+    if (!selectedProject && availableProjects.length > 0) {
+      setSelectedProject(availableProjects[0]);
+    }
+  }, [selectedProject, availableProjects]);
 
   const modelId = selectedModel || models[0]?.identifier;
   const [systemInstruction, setSystemInstruction] = React.useState<string>(
     DEFAULT_SYSTEM_INSTRUCTIONS,
   );
+
+  const handleProjectChange = (projectName: string) => {
+    setSelectedProject(projectName);
+  };
 
   React.useEffect(() => {
     if (!selectedModel) {
@@ -98,13 +118,48 @@ const ChatbotMain: React.FunctionComponent = () => {
     />
   );
 
-  return (
+  const applicationsPage = (
     <ApplicationsPage
-      title="AI playground"
+      title={
+        <Flex
+          component="span"
+          alignItems={{ default: 'alignItemsCenter' }}
+          gap={{ default: 'gapLg' }}
+        >
+          <FlexItem>
+            <Title headingLevel="h1">AI playground</Title>
+          </FlexItem>
+          <FlexItem>
+            <Flex
+              spaceItems={{ default: 'spaceItemsXs' }}
+              alignItems={{ default: 'alignItemsCenter' }}
+              style={{ display: 'inline-flex' }}
+            >
+              <FlexItem>
+                <img
+                  src="/images/UI_icon-Red_Hat-Folder-RGB.svg"
+                  alt="Project"
+                  style={{ width: '20px', height: '20px', marginTop: '10px', marginLeft: '10px' }}
+                />
+              </FlexItem>
+              <FlexItem>
+                <span style={{ fontSize: '16px', marginRight: '10px' }}>Project</span>
+              </FlexItem>
+              <FlexItem>
+                <ProjectDropdown
+                  selectedProject={selectedProject}
+                  onProjectChange={handleProjectChange}
+                  onProjectsLoaded={setAvailableProjects}
+                  isDisabled={loading}
+                />
+              </FlexItem>
+            </Flex>
+          </FlexItem>
+        </Flex>
+      }
       loaded={!loading}
       empty={false}
       loadError={error}
-      headerContent={<></>}
     >
       {sourceManagement.isSourceSettingsOpen && (
         <ChatbotSourceSettingsModal
@@ -149,6 +204,20 @@ const ChatbotMain: React.FunctionComponent = () => {
       </Drawer>
     </ApplicationsPage>
   );
+
+  const flexApplicationsPage = (
+    // In federated mode, DrawerBody is not flex which the Page items expect the parent to be.
+    // This is a workaround to make the drawer body flex.
+    <Flex
+      direction={{ default: 'column' }}
+      flexWrap={{ default: 'nowrap' }}
+      style={{ height: '100%' }}
+    >
+      {applicationsPage}
+    </Flex>
+  );
+
+  return <SDKInitialize>{isStandalone ? applicationsPage : flexApplicationsPage}</SDKInitialize>;
 };
 
 export { ChatbotMain };

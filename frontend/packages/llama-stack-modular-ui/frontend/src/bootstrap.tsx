@@ -1,7 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ModularArchConfig, ModularArchContextProvider } from 'mod-arch-core';
-import { Theme, ThemeProvider } from 'mod-arch-kubeflow';
 import { BrowserRouter as Router } from 'react-router-dom';
 import axe from 'react-axe';
 import { DEPLOYMENT_MODE, URL_PREFIX } from '~/app/utilities/const';
@@ -32,9 +31,7 @@ root.render(
   <React.StrictMode>
     <Router>
       <ModularArchContextProvider config={modularArchConfig}>
-        <ThemeProvider theme={Theme.Patternfly}>
-          <App />
-        </ThemeProvider>
+        <App />
       </ModularArchContextProvider>
     </Router>
   </React.StrictMode>,

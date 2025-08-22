@@ -44,7 +44,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     },
     properties: {
       path: '/chat-playground/*',
-      component: () => import('./llamaStackWrapper'),
+      component: () => import('./LlamaStackWrapper'),
     },
   },
 ];
