@@ -767,7 +767,19 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/FileUploadResult"
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/FileUploadResult"
+            example:
+              data:
+                file_id: "file-abc123def456"
+                vector_store_file:
+                  id: "vsf-def789ghi012"
+                  vector_store_id: "vs_abc123"
+                  status: "completed"
 
     CreateResponseResponse:
       description: Created AI response with essential information only
