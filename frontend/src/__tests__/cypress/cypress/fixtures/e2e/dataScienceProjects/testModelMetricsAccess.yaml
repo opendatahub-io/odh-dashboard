@@ -4,3 +4,7 @@ projectDescription: Test project to Access the Model Metrics from UI.
 projectResourceName: test-model-metrics-project
 singleModelName: 'test-model-metrics'
 modelOpenVinoPath: kserve-openvino-test/openvino-example-model
+# Time range configuration
+modelMetricsConfig:
+  defaultTimeRange: '24 hours'
+  defaultRefreshInterval: '5 seconds'

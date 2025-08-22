@@ -226,7 +226,7 @@ class ConfigureBiasMetricModal extends Modal {
     return this.find().findByTestId('metric-batch-size');
   }
 }
-
+export const modelMetricsGlobal = new ModelMetricsGlobal();
 export const modelMetricsPerformance = new ModelMetricsPerformance();
 export const modelMetricsNim = new ModelMetricsNim();
 export const modelMetricsBias = new ModelMetricsBias();
