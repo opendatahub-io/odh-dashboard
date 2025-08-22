@@ -1,11 +1,19 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { Breadcrumb, BreadcrumbItem, Flex, FlexItem, Truncate } from '@patternfly/react-core';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  Flex,
+  FlexItem,
+  Truncate,
+  Title,
+} from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import useRegisteredModelById from '~/app/hooks/useRegisteredModelById';
 import useModelVersionById from '~/app/hooks/useModelVersionById';
+import useModelArtifactsByVersionId from '~/app/hooks/useModelArtifactsByVersionId';
 import { ModelState } from '~/app/types';
 import {
   archiveModelVersionDetailsUrl,
@@ -33,10 +41,16 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
   const { modelVersionId: mvId, registeredModelId: rmId } = useParams();
   const [rm] = useRegisteredModelById(rmId);
   const [mv, mvLoaded, mvLoadError, refreshModelVersion] = useModelVersionById(mvId);
+  const [modelArtifacts, modelArtifactsLoaded, modelArtifactsLoadError, refreshModelArtifacts] =
+    useModelArtifactsByVersionId(mvId);
 
   const refresh = React.useCallback(() => {
     refreshModelVersion();
-  }, [refreshModelVersion]);
+    refreshModelArtifacts();
+  }, [refreshModelVersion, refreshModelArtifacts]);
+
+  const loaded = mvLoaded && modelArtifactsLoaded;
+  const loadError = mvLoadError || modelArtifactsLoadError;
 
   useEffect(() => {
     if (rm?.state === ModelState.ARCHIVED && mv?.id) {
@@ -61,6 +75,7 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
             )}
           />
           <BreadcrumbItem
+            data-testid="breadcrumb-model-version"
             render={() => (
               <Link to={registeredModelUrl(rmId, preferredModelRegistry?.name)}>
                 {rm?.name || 'Loading...'}
@@ -72,15 +87,15 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
           </BreadcrumbItem>
         </Breadcrumb>
       }
-      title={mv?.name}
-      headerAction={
-        mvLoaded &&
-        mv && (
-          <Flex
-            spaceItems={{ default: 'spaceItemsMd' }}
-            alignItems={{ default: 'alignItemsFlexStart' }}
-          >
-            <FlexItem style={{ width: '300px' }}>
+      title={
+        <Flex alignItems={{ default: 'alignItemsCenter' }}>
+          <FlexItem>
+            <Title headingLevel="h1" size="xl">
+              {rm?.name || 'Loading...'}
+            </Title>
+          </FlexItem>
+          <FlexItem>
+            {mv && (
               <ModelVersionSelector
                 rmId={rmId}
                 selection={mv}
@@ -88,17 +103,31 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
                   navigate(modelVersionUrl(modelVersionId, rmId, preferredModelRegistry?.name))
                 }
               />
-            </FlexItem>
+            )}
+          </FlexItem>
+        </Flex>
+      }
+      headerAction={
+        loaded &&
+        mv && (
+          <Flex
+            spaceItems={{ default: 'spaceItemsMd' }}
+            alignItems={{ default: 'alignItemsFlexStart' }}
+          >
             <MRDeployButton mv={mv} />
             <FlexItem>
-              <ModelVersionsDetailsHeaderActions mv={mv} refresh={refresh} />
+              <ModelVersionsDetailsHeaderActions
+                mv={mv}
+                refresh={refresh}
+                modelArtifacts={modelArtifacts}
+              />
             </FlexItem>
           </Flex>
         )
       }
       description={<Truncate content={mv?.description || ''} />}
-      loadError={mvLoadError}
-      loaded={mvLoaded}
+      loadError={loadError}
+      loaded={loaded}
       provideChildrenPadding
     >
       {mv !== null && (
@@ -106,6 +135,7 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
           tab={tab}
           modelVersion={mv}
           refresh={refresh}
+          modelArtifacts={modelArtifacts}
         />
       )}
     </ApplicationsPage>

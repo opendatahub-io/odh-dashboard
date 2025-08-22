@@ -108,6 +108,7 @@
     "dompurify": "^3.2.4",
     "@types/tar": "^6.1.13",
     "jsonpath-plus": "^10.3.0",
-    "tough-cookie": "^4.1.3"
+    "tough-cookie": "^4.1.3",
+    "redux": "^4.2.0"
   }
 }
