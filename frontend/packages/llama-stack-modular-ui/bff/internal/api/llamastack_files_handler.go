@@ -3,10 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
@@ -66,27 +63,11 @@ func (app *App) LlamaStackUploadFileHandler(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	tempDir := os.TempDir()
-	tempFilePath := filepath.Join(tempDir, header.Filename)
-
-	tempFile, err := os.Create(tempFilePath)
-	if err != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to create temp file: %w", err))
-		return
-	}
-	defer func() {
-		tempFile.Close()
-		os.Remove(tempFilePath)
-	}()
-
-	_, err = io.Copy(tempFile, file)
-	if err != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to save uploaded file: %w", err))
-		return
-	}
-	tempFile.Close()
+	// Use direct streaming - no temp file needed!
 	uploadParams := clients.UploadFileParams{
-		FilePath:         tempFilePath,
+		Reader:           file,
+		Filename:         header.Filename,
+		ContentType:      header.Header.Get("Content-Type"),
 		Purpose:          purpose,
 		VectorStoreID:    vectorStoreID,
 		ChunkingStrategy: chunkingStrategy,

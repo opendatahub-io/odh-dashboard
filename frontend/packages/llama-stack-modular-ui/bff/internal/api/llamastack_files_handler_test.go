@@ -91,7 +91,7 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 
 		// Verify mock response structure
 		assert.Contains(t, response, "file_id")
-		assert.Equal(t, "file_mock123", response["file_id"])
+		assert.Equal(t, "file-mock123abc456def", response["file_id"])
 		assert.Contains(t, response, "vector_store_file")
 	})
 
@@ -112,7 +112,7 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
-		assert.Equal(t, "file_mock123", response["file_id"])
+		assert.Equal(t, "file-mock123abc456def", response["file_id"])
 
 		// Verify vector store file details
 		vectorStoreFile := response["vector_store_file"].(map[string]interface{})
@@ -189,7 +189,7 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		assert.Contains(t, response, "vector_store_file")
 
 		// Verify mock file ID
-		assert.Equal(t, "file_mock123", response["file_id"])
+		assert.Equal(t, "file-mock123abc456def", response["file_id"])
 	})
 
 	t.Run("should handle static chunking parameters", func(t *testing.T) {
@@ -228,6 +228,6 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		err = json.Unmarshal(responseBody, &response)
 		assert.NoError(t, err)
 
-		assert.Equal(t, "file_mock123", response["file_id"])
+		assert.Equal(t, "file-mock123abc456def", response["file_id"])
 	})
 }

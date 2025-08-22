@@ -77,9 +77,9 @@ func TestLlamaStackModelsHandler(t *testing.T) {
 		assert.Contains(t, firstModel, "owned_by")
 
 		// Verify mock model values
-		assert.Equal(t, "llama-3.1-8b", firstModel["id"])
+		assert.Equal(t, "ollama/llama3.2:3b", firstModel["id"])
 		assert.Equal(t, "model", firstModel["object"])
-		assert.Equal(t, "meta", firstModel["owned_by"])
+		assert.Equal(t, "llama_stack", firstModel["owned_by"])
 	})
 
 	t.Run("should use unified repository pattern", func(t *testing.T) {
@@ -106,6 +106,6 @@ func TestLlamaStackModelsHandler(t *testing.T) {
 
 		models := response["data"].([]interface{})
 		firstModel := models[0].(map[string]interface{})
-		assert.Equal(t, "llama-3.1-8b", firstModel["id"])
+		assert.Equal(t, "ollama/llama3.2:3b", firstModel["id"])
 	})
 }

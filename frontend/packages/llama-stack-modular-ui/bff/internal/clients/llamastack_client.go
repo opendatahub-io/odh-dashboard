@@ -3,6 +3,7 @@ package clients
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/openai/openai-go/v2"
@@ -131,8 +132,14 @@ type StaticChunkingConfig struct {
 
 // UploadFileParams contains parameters for file upload operations.
 type UploadFileParams struct {
-	// FilePath is the path to the file to upload (required).
+	// FilePath is the path to the file to upload (use this OR Reader+Filename).
 	FilePath string
+	// Reader provides file content for direct streaming (use this OR FilePath).
+	Reader io.Reader
+	// Filename is required when using Reader (ignored when using FilePath).
+	Filename string
+	// ContentType is optional when using Reader (auto-detected if empty).
+	ContentType string
 	// Purpose specifies the intended use case (optional, defaults to "assistants").
 	// Valid values: "assistants", "batch", "fine-tune", "vision", "user_data", "evals".
 	Purpose string
@@ -150,14 +157,25 @@ type FileUploadResult struct {
 
 // UploadFile uploads a file with optional parameters and optionally adds to vector store
 func (c *LlamaStackClient) UploadFile(ctx context.Context, params UploadFileParams) (*FileUploadResult, error) {
-	file, err := os.Open(params.FilePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open file: %w", err)
-	}
-	defer file.Close()
+	var apiParams openai.FileNewParams
 
-	apiParams := openai.FileNewParams{
-		File: openai.File(file, params.FilePath, ""),
+	// Handle both streaming and file path approaches
+	if params.Reader != nil {
+		// Direct streaming approach - no temp file needed!
+		if params.Filename == "" {
+			return nil, fmt.Errorf("filename is required when using Reader")
+		}
+		apiParams.File = openai.File(params.Reader, params.Filename, params.ContentType)
+	} else if params.FilePath != "" {
+		// Existing file path approach
+		file, err := os.Open(params.FilePath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open file: %w", err)
+		}
+		defer file.Close()
+		apiParams.File = openai.File(file, params.FilePath, "")
+	} else {
+		return nil, fmt.Errorf("either FilePath or Reader+Filename must be provided")
 	}
 
 	purpose := params.Purpose

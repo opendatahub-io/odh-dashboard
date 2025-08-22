@@ -46,8 +46,8 @@ func TestLlamaStackListVectorStoresHandler(t *testing.T) {
 
 		// Verify first vector store structure
 		firstStore := vectorStores[0].(map[string]interface{})
-		assert.Equal(t, "vs_test123", firstStore["id"])
-		assert.Equal(t, "Test Vector Store", firstStore["name"])
+		assert.Equal(t, "vs_mock123", firstStore["id"])
+		assert.Equal(t, "Mock Vector Store", firstStore["name"])
 		assert.Equal(t, "completed", firstStore["status"])
 	})
 
@@ -196,9 +196,9 @@ func TestLlamaStackCreateVectorStoreHandler(t *testing.T) {
 
 		// Verify mock response structure
 		vectorStore := response.Data.(map[string]interface{})
-		assert.Equal(t, "vs_new123", vectorStore["id"])
+		assert.Equal(t, "vs_mock_new123", vectorStore["id"])
 		assert.Equal(t, "Test Vector Store", vectorStore["name"])
-		assert.Equal(t, "pending", vectorStore["status"])
+		assert.Equal(t, "completed", vectorStore["status"])
 	})
 
 	t.Run("should create vector store with name and metadata", func(t *testing.T) {
@@ -228,7 +228,7 @@ func TestLlamaStackCreateVectorStoreHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		vectorStore := response.Data.(map[string]interface{})
-		assert.Equal(t, "vs_new123", vectorStore["id"])
+		assert.Equal(t, "vs_mock_new123", vectorStore["id"])
 		assert.Equal(t, "Test Vector Store with Metadata", vectorStore["name"])
 	})
 
