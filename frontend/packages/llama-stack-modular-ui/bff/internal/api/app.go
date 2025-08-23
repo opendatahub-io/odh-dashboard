@@ -7,6 +7,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/api/integrations/kubernetes"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/repositories"
@@ -15,7 +16,6 @@ import (
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/config"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/constants"
 	helper "github.com/opendatahub-io/llama-stack-modular-ui/internal/helpers"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations"
 )
 
 // isAPIRoute checks if the given path is an API route
@@ -34,12 +34,12 @@ func (app *App) isAPIRoute(path string) bool {
 }
 
 type App struct {
-	config           config.EnvConfig
-	logger           *slog.Logger
-	repositories     *repositories.Repositories
-	openAPI          *OpenAPIHandler
-	tokenFactory     *integrations.TokenClientFactory
-	llamaStackClient llamastack.LlamaStackClientInterface
+	config                  config.EnvConfig
+	logger                  *slog.Logger
+	repositories            *repositories.Repositories
+	openAPI                 *OpenAPIHandler
+	kubernetesClientFactory kubernetes.KubernetesClientFactory
+	llamaStackClient        llamastack.LlamaStackClientInterface
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -64,13 +64,18 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		return nil, fmt.Errorf("failed to create OpenAPI handler: %w", err)
 	}
 
+	k8sFactory, err := kubernetes.NewKubernetesClientFactory(cfg, logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Kubernetes client factory: %w", err)
+	}
+
 	app := &App{
-		config:           cfg,
-		logger:           logger,
-		repositories:     repositories.NewRepositories(llamaStackClient),
-		openAPI:          openAPIHandler,
-		tokenFactory:     integrations.NewTokenClientFactory(logger, cfg),
-		llamaStackClient: llamaStackClient,
+		config:                  cfg,
+		logger:                  logger,
+		repositories:            repositories.NewRepositories(llamaStackClient),
+		openAPI:                 openAPIHandler,
+		kubernetesClientFactory: k8sFactory,
+		llamaStackClient:        llamaStackClient,
 	}
 	return app, nil
 }
@@ -97,6 +102,8 @@ func (app *App) Routes() http.Handler {
 	// Files Upload
 	apiRouter.POST(genaiPrefix+"/files/upload", app.RequireAccessToService(app.AttachRESTClient(app.LlamaStackUploadFileHandler)))
 
+	// Settings path namespace endpoints. This endpoint will get all the namespaces
+	apiRouter.GET(genaiPrefix+"/namespaces", app.RequireAccessToService(app.GetNamespaceHandler))
 	// App Router
 	appMux := http.NewServeMux()
 
