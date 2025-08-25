@@ -8,11 +8,11 @@ import {
   PlayIcon,
   SyncAltIcon,
 } from '@patternfly/react-icons';
-import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
+import { ModelDeploymentState } from '#~/pages/modelServing/screens/types';
 import { ToggleState } from '#~/components/StateActionToggle';
 
 type ModelStatusIconProps = {
-  state: InferenceServiceModelState;
+  state: ModelDeploymentState;
   defaultHeaderContent?: string;
   bodyContent?: string;
   isCompact?: boolean;
@@ -56,8 +56,8 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
     // Show 'Starting' for optimistic updates or for loading/pending states from the backend.
     if (
       stoppedStates?.isStarting ||
-      state === InferenceServiceModelState.LOADING ||
-      state === InferenceServiceModelState.PENDING
+      state === ModelDeploymentState.LOADING ||
+      state === ModelDeploymentState.PENDING
     ) {
       return {
         label: 'Starting',
@@ -69,21 +69,21 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
 
     // Only check the state if not stopped
     switch (state) {
-      case InferenceServiceModelState.LOADED:
-      case InferenceServiceModelState.STANDBY:
+      case ModelDeploymentState.LOADED:
+      case ModelDeploymentState.STANDBY:
         return {
           label: 'Started',
           status: 'success',
           icon: <PlayIcon />,
           message: 'Model deployment is active.',
         };
-      case InferenceServiceModelState.FAILED_TO_LOAD:
+      case ModelDeploymentState.FAILED_TO_LOAD:
         return {
           label: 'Failed',
           status: 'danger',
           icon: <ExclamationCircleIcon />,
         };
-      case InferenceServiceModelState.UNKNOWN:
+      case ModelDeploymentState.UNKNOWN:
         return {
           label: defaultHeaderContent || 'Status',
           color: 'grey',

@@ -26,7 +26,7 @@ import {
   modelVersionDetails,
   navigationBlockerModal,
 } from '#~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDetails';
-import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
+import { ModelDeploymentState } from '#~/pages/modelServing/screens/types';
 import { modelServingGlobal } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import {
   ModelRegistryMetadataType,
@@ -585,7 +585,7 @@ describe('Model version details', () => {
         mockK8sResourceList([
           mockInferenceServiceK8sResource({
             url: 'test-inference-status.url.com',
-            activeModelState: InferenceServiceModelState.LOADED,
+            activeModelState: ModelDeploymentState.LOADED,
             additionalLabels: {
               [KnownLabels.REGISTERED_MODEL_ID]: '1',
               [KnownLabels.MODEL_VERSION_ID]: '1',
@@ -595,7 +595,7 @@ describe('Model version details', () => {
             url: 'test-inference-status.url.com',
             displayName: 'Test Inference Service-2',
             name: 'Test Inference Service-2',
-            activeModelState: InferenceServiceModelState.LOADED,
+            activeModelState: ModelDeploymentState.LOADED,
             additionalLabels: {
               [KnownLabels.REGISTERED_MODEL_ID]: '1',
               [KnownLabels.MODEL_VERSION_ID]: '1',
@@ -606,7 +606,7 @@ describe('Model version details', () => {
             url: 'test-inference-status.url.com',
             displayName: 'Test Inference Service-3',
             name: 'Test Inference Service-3',
-            activeModelState: InferenceServiceModelState.LOADED,
+            activeModelState: ModelDeploymentState.LOADED,
             additionalLabels: {
               [KnownLabels.REGISTERED_MODEL_ID]: '1',
               [KnownLabels.MODEL_VERSION_ID]: '1',
