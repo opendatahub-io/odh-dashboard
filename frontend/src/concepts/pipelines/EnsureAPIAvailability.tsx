@@ -7,8 +7,6 @@ type EnsureAPIAvailabilityProps = {
   children: React.ReactNode;
 };
 
-const spinningText = 'Initializing Pipeline Server';
-
 // if isInitialized but not ready, show spinner; if isNot initialized then show new status
 const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children }) => {
   const { apiAvailable, pipelinesServer, namespace, startingStatusModalOpenRef } =
@@ -21,6 +19,14 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
       startingStatusModalOpenRef.current = showModal ? namespace : null;
     }
   }, [namespace, showModal, startingStatusModalOpenRef]);
+
+  const defaultConnectingText = (
+    <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }}>
+      <FlexItem>The {namespace} pipeline server connection is being established.</FlexItem>
+      <FlexItem>The process should take less than five minutes. When the server is ready,</FlexItem>
+      <FlexItem>you will be able to create and import pipelines.</FlexItem>
+    </Flex>
+  );
 
   const modalLink = (
     <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }}>
@@ -48,7 +54,7 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
   );
 
   const makePipelineSpinner = (isStarting: boolean) => {
-    const contents = isStarting ? modalLink : spinningText;
+    const contents = isStarting ? modalLink : defaultConnectingText;
 
     return (
       <div>
@@ -68,31 +74,29 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
     );
   };
 
-  //const getMainComponent = () => {
-  //       return     makePipelineSpinner(true);
+  const getMainComponent = () => {
+    const { isStarting, compatible, timedOut } = pipelinesServer;
 
-  // const { isStarting, compatible, timedOut } = pipelinesServer;
+    if (timedOut && compatible) {
+      return <PipelineServerTimedOut />;
+    }
+    if (isStarting) {
+      return makePipelineSpinner(!!isStarting);
+    }
 
-  // if (timedOut && compatible) {
-  //   return <PipelineServerTimedOut />;
-  // }
-  // if (isStarting) {
-  //   return makePipelineSpinner(!!isStarting);
-  // }
+    if (!apiAvailable && compatible) {
+      return (
+        <Bullseye style={{ minHeight: '150px' }} data-testid="pipelines-api-not-available">
+          <Spinner />
+        </Bullseye>
+      );
+    }
 
-  // if (!apiAvailable && compatible) {
-  //   return (
-  //     <Bullseye style={{ minHeight: '150px' }} data-testid="pipelines-api-not-available">
-  //       <Spinner />
-  //     </Bullseye>
-  //   );
-  // }
-
-  // return children;
-  // };
+    return children;
+  };
   return (
     <>
-      {makePipelineSpinner(true)}
+      {getMainComponent()}
       {showModal && <StartingStatusModal onClose={() => setShowModal(false)} />}
     </>
   );
