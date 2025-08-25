@@ -4,7 +4,6 @@ import TypeaheadSelect, { TypeaheadSelectOption } from '#~/components/TypeaheadS
 import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { getModelServingPVCAnnotations } from '#~/pages/modelServing/utils';
-import { getModelPathFromUri } from '#~/pages/modelServing/screens/projects/utils';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { getPvcAccessMode } from '#~/pages/projects/utils';
 import { PVCFields } from './PVCFields';
@@ -12,7 +11,7 @@ import { PVCFields } from './PVCFields';
 type PvcSelectProps = {
   pvcs?: PersistentVolumeClaimKind[];
   selectedPVC?: PersistentVolumeClaimKind;
-  onSelect: (selection: PersistentVolumeClaimKind) => void;
+  onSelect: (selection?: PersistentVolumeClaimKind | undefined) => void;
   setModelUri: (uri: string) => void;
   setIsConnectionValid: (isValid: boolean) => void;
   pvcNameFromUri?: string;
@@ -28,14 +27,6 @@ export const PvcSelect: React.FC<PvcSelectProps> = ({
   pvcNameFromUri,
   existingUriOption,
 }) => {
-  // Get the model path from the URI if it's a PVC URI
-  const initialModelPath = React.useMemo(() => {
-    if (existingUriOption) {
-      return getModelPathFromUri(existingUriOption);
-    }
-    return undefined;
-  }, [existingUriOption]);
-
   // Check whether the PVC from URI exists
   const pvcExists = React.useMemo(() => {
     if (!pvcNameFromUri || !pvcs) {
@@ -44,91 +35,18 @@ export const PvcSelect: React.FC<PvcSelectProps> = ({
     return Boolean(pvcs.some((pvc) => pvc.metadata.name === pvcNameFromUri) && pvcNameFromUri);
   }, [pvcs, pvcNameFromUri]);
 
-  const [modelPath, setModelPath] = React.useState(initialModelPath ?? '');
-  const getModelPath = (pvc: PersistentVolumeClaimKind): string => {
-    const { modelPath: annotatedPath } = getModelServingPVCAnnotations(pvc);
-    return annotatedPath ?? '';
-  };
-
-  // Whether the model path has been prefilled
-  const didInitialPrefill = React.useRef(false);
-
   // Whether to show the PVC not founderror
   const showPVCError = React.useMemo(
     () => Boolean(existingUriOption && !pvcExists && pvcNameFromUri && !selectedPVC),
     [existingUriOption, pvcExists, pvcNameFromUri, selectedPVC],
   );
 
-  // Create a local copy of pvcs with the missing PVC added if needed
-  const localPvcs = React.useMemo(() => {
-    // Only add the missing PVC if it's not present in the list of PVCs
-    if (
-      !pvcExists &&
-      pvcNameFromUri &&
-      pvcs &&
-      !pvcs.find((pvc) => pvc.metadata.name === pvcNameFromUri)
-    ) {
-      return [
-        ...pvcs,
-        // Mock PVC to populate the dropdown with the missing PVC
-        {
-          metadata: {
-            name: pvcNameFromUri,
-            namespace: 'default',
-            // Add the model path annotation if the uri has a model path
-            ...(initialModelPath && {
-              annotations: {
-                'dashboard.opendatahub.io/model-path': initialModelPath,
-                // Don't show the model storage description for the missing PVC
-                'dont-show-model-storage-description': 'true',
-              },
-            }),
-          },
-          apiVersion: 'v1',
-          kind: 'PersistentVolumeClaim',
-          spec: {
-            // RWX access mode to ignore the access mode error
-            accessModes: [AccessMode.RWX],
-            resources: {
-              requests: {
-                storage: '',
-              },
-            },
-            volumeMode: 'Filesystem' as const,
-          },
-        },
-      ];
-    }
-    // Otherwise, return the original list of PVCs
-    return pvcs || [];
-  }, [pvcs, pvcExists, pvcNameFromUri, initialModelPath]);
-
-  // Handle the PVC select change for prefilling and updating the model path
-  const handlePVCSelectChange = (newlySelectedPVC?: PersistentVolumeClaimKind) => {
-    if (newlySelectedPVC) {
-      if (!didInitialPrefill.current && initialModelPath !== undefined && pvcExists) {
-        setModelPath(initialModelPath);
-        didInitialPrefill.current = true;
-      } else {
-        setModelPath(getModelPath(newlySelectedPVC));
-      }
-    } else if (!pvcExists && pvcNameFromUri && initialModelPath !== undefined) {
-      // Handle case where PVC doesn't exist but we have an initial model path from the URI
-      if (!didInitialPrefill.current) {
-        setModelPath(initialModelPath);
-        didInitialPrefill.current = true;
-      }
-    }
-  };
-
-  const options: TypeaheadSelectOption[] = React.useMemo(
+  const options: TypeaheadSelectOption[] | undefined = React.useMemo(
     () =>
-      localPvcs.map((pvc) => {
+      pvcs?.map((pvc) => {
         const displayName = getDisplayNameFromK8sResource(pvc);
         const { modelPath: modelPathAnnotation, modelName } = getModelServingPVCAnnotations(pvc);
-        const isModelServingPVC =
-          (!!modelPathAnnotation || !!modelName) &&
-          !pvc.metadata.annotations?.['dont-show-model-storage-description']; // Don't show the model storage description for the missing PVC
+        const isModelServingPVC = !!modelPathAnnotation || !!modelName;
         return {
           content: displayName,
           value: pvc.metadata.name,
@@ -140,8 +58,22 @@ export const PvcSelect: React.FC<PvcSelectProps> = ({
             : undefined,
         };
       }),
-    [localPvcs, selectedPVC, pvcNameFromUri, pvcExists],
+    [pvcs, selectedPVC, pvcNameFromUri, pvcExists],
   );
+  const additionalOptions = React.useMemo(() => {
+    if (!pvcExists && pvcNameFromUri) {
+      return [
+        ...(options ?? []),
+        {
+          content: pvcNameFromUri || '',
+          value: pvcNameFromUri || '',
+          isSelected: !selectedPVC,
+          description: 'Cluster storage not found',
+        },
+      ];
+    }
+    return options;
+  }, [options, pvcNameFromUri, pvcExists, selectedPVC]);
 
   const accessMode = selectedPVC ? getPvcAccessMode(selectedPVC) : undefined;
 
@@ -151,18 +83,15 @@ export const PvcSelect: React.FC<PvcSelectProps> = ({
         <StackItem>
           <TypeaheadSelect
             placeholder="Select existing storage"
-            selectOptions={options}
+            selectOptions={additionalOptions ?? []}
             selected={
               selectedPVC?.metadata.name ||
               (!pvcExists && pvcNameFromUri ? pvcNameFromUri : undefined)
             }
             dataTestId="pvc-connection-selector"
             onSelect={(_, selection) => {
-              const newlySelectedPVC = localPvcs.find((pvc) => pvc.metadata.name === selection);
-              handlePVCSelectChange(newlySelectedPVC);
-              if (newlySelectedPVC) {
-                onSelect(newlySelectedPVC);
-              }
+              const newlySelectedPVC = pvcs?.find((pvc) => pvc.metadata.name === selection);
+              onSelect(newlySelectedPVC);
             }}
           />
         </StackItem>
@@ -188,8 +117,7 @@ export const PvcSelect: React.FC<PvcSelectProps> = ({
             <PVCFields
               selectedPVC={selectedPVC}
               selectedPVCName={selectedPVC?.metadata.name || pvcNameFromUri || ''}
-              modelPath={modelPath}
-              setModelPath={setModelPath}
+              existingUriOption={existingUriOption}
               setModelUri={setModelUri}
               setIsConnectionValid={setIsConnectionValid}
             />

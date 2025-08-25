@@ -521,11 +521,11 @@ export const ConnectionSection: React.FC<Props> = ({
                   <PvcSelect
                     pvcs={pvcs}
                     selectedPVC={selectedPVC}
-                    onSelect={(selection) => {
+                    onSelect={(selection?: PersistentVolumeClaimKind | undefined) => {
                       setData('storage', {
                         ...data.storage,
                         type: InferenceServiceStorageType.PVC_STORAGE,
-                        pvcConnection: selection.metadata.name,
+                        pvcConnection: selection?.metadata.name ?? '',
                       });
                     }}
                     setModelUri={(uri) => setData('storage', { ...data.storage, uri })}
