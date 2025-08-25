@@ -7,6 +7,18 @@ const (
 	EmbeddingModelType = "embedding"
 )
 
+type APIResponse struct {
+	Data     interface{}       `json:"data"`
+	Metadata *ResponseMetadata `json:"metadata,omitempty"`
+}
+
+// ResponseMetadata contains metadata about the API response
+type ResponseMetadata struct {
+	RequestID string `json:"request_id,omitempty"`
+	Version   string `json:"version,omitempty"`
+	Timestamp int64  `json:"timestamp,omitempty"`
+}
+
 type ModelModelType string
 
 type Model struct {

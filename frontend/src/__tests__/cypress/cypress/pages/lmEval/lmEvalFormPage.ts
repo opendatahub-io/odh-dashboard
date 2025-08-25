@@ -150,7 +150,7 @@ class LMEvalFormPage {
       .then(($options) => {
         const modelExists = $options
           .toArray()
-          .some((option) => option.textContent?.includes(modelName));
+          .some((option) => option.textContent.includes(modelName));
 
         if (modelExists) {
           cy.findByText(modelName).click();

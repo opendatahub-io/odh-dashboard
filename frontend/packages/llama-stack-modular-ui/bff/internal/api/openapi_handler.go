@@ -11,13 +11,7 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/julienschmidt/httprouter"
-)
-
-const (
-	OpenAPIPath     = "/openapi"
-	OpenAPIJSONPath = "/openapi.json"
-	OpenAPIYAMLPath = "/openapi.yaml"
-	SwaggerUIPath   = "/swagger-ui"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/constants"
 )
 
 // OpenAPIHandler handles serving OpenAPI specifications
@@ -168,7 +162,7 @@ func (h *OpenAPIHandler) HandleSwaggerUI(w http.ResponseWriter, r *http.Request,
 
 // HandleOpenAPIRedirect redirects /openapi to /swagger-ui
 func (h *OpenAPIHandler) HandleOpenAPIRedirect(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	http.Redirect(w, r, SwaggerUIPath, http.StatusMovedPermanently)
+	http.Redirect(w, r, constants.SwaggerUIPath, http.StatusMovedPermanently)
 }
 
 // Wrapper methods for standard http.HandlerFunc compatibility

@@ -166,13 +166,3 @@ func ReadResponseBody(resp *http.Response) []byte {
 	Expect(err).NotTo(HaveOccurred())
 	return body
 }
-
-// stringPtr is a helper to convert a string to a pointer
-func stringPtr(s string) *string {
-	return &s
-}
-
-// intPtr is a helper to convert an int to a pointer
-func intPtr(i int) *int {
-	return &i
-}
