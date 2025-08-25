@@ -8,6 +8,7 @@ import {
   isNode,
   NodeStatus,
   observer,
+  useVisualizationController,
 } from '@patternfly/react-topology';
 import { OnSelect } from '@patternfly/react-topology/dist/esm/behavior';
 import { getClosestVisibleParent } from '@patternfly/react-topology/dist/esm/utils';
@@ -105,28 +106,31 @@ const createCurvedPath = (
     return path;
   }
 
-  // Create a smooth S-curve that flows horizontally first, like in data lineage diagrams
+  // Create subtle but proper Bézier curves for data lineage
   const dx = endPoint.x - startPoint.x;
 
-  // Calculate control points for horizontal-first flow
-  // The curve should start horizontally and end horizontally
+  // Calculate control points for gentle S-curve
+  // The key is to make control distance proportional but capped for subtlety
   const horizontalDistance = Math.abs(dx);
 
-  // Adaptive control distance based on both horizontal and vertical separation
-  const baseControlDistance = Math.max(horizontalDistance * 0.4, 80);
-  const controlDistance = Math.min(baseControlDistance, 150); // Cap the maximum curve
+  // Use larger control distance to route around nodes better
+  const controlRatio = 0.4; // Increased for better routing
+  const maxControlDistance = 60; // Increased to avoid node overlaps
+  const minControlDistance = 20; // Increased minimum for clearer routing
 
-  // For very close nodes, reduce the curve to avoid over-curving
-  const distanceRatio = Math.min(horizontalDistance / 200, 1);
-  const adaptiveControlDistance = controlDistance * distanceRatio;
+  const baseControlDistance = horizontalDistance * controlRatio;
+  const controlDistance = Math.max(
+    minControlDistance,
+    Math.min(baseControlDistance, maxControlDistance),
+  );
 
-  // First control point: move horizontally from start
-  const controlX1 = startPoint.x + (dx > 0 ? adaptiveControlDistance : -adaptiveControlDistance);
-  const controlY1 = startPoint.y;
+  // Create horizontal S-curve - control points only move horizontally
+  // This creates the classic data lineage flow pattern
+  const controlX1 = startPoint.x + (dx > 0 ? controlDistance : -controlDistance);
+  const controlY1 = startPoint.y; // Stay at start Y level
 
-  // Second control point: move horizontally toward end
-  const controlX2 = endPoint.x - (dx > 0 ? adaptiveControlDistance : -adaptiveControlDistance);
-  const controlY2 = endPoint.y;
+  const controlX2 = endPoint.x - (dx > 0 ? controlDistance : -controlDistance);
+  const controlY2 = endPoint.y; // Stay at end Y level
 
   return `M${startPoint.x} ${startPoint.y} C${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${endPoint.x} ${endPoint.y}`;
 };
@@ -153,6 +157,14 @@ const CurvedEdgeInner: React.FunctionComponent<CurvedEdgeInnerProps> = observer(
     const startPoint = element.getStartPoint();
     const endPoint = element.getEndPoint();
 
+    // Get the current visualization state to check for highlighting
+    const controller = useVisualizationController();
+    const state = controller.getState();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/consistent-type-assertions
+    const highlightedIds: string[] = (state as any).highlightedIds || [];
+    const isHighlighted = highlightedIds.includes(element.getId());
+    const isConnectedToSelection = isHighlighted && !selected;
+
     // If the edge connects to nodes in a collapsed group don't draw
     const sourceParent = getClosestVisibleParent(element.getSource());
     const targetParent = getClosestVisibleParent(element.getTarget());
@@ -170,6 +182,7 @@ const CurvedEdgeInner: React.FunctionComponent<CurvedEdgeInnerProps> = observer(
       className,
       selected && 'pf-m-selected',
       endTerminalStatus && StatusModifier[endTerminalStatus],
+      isConnectedToSelection && 'pf-m-highlighted',
     );
 
     const edgeAnimationDuration =
@@ -212,7 +225,14 @@ const CurvedEdgeInner: React.FunctionComponent<CurvedEdgeInnerProps> = observer(
           <path
             className={linkClassName}
             d={d}
-            style={{ animationDuration: `${edgeAnimationDuration}s` }}
+            style={{
+              animationDuration: `${edgeAnimationDuration}s`,
+              stroke: isConnectedToSelection ? '#007bff' : undefined,
+              strokeWidth: isConnectedToSelection ? 3 : undefined,
+              filter: isConnectedToSelection
+                ? 'drop-shadow(0 0 4px rgba(0, 123, 255, 0.4))'
+                : undefined,
+            }}
           />
           <DefaultConnectorTerminal
             className={startTerminalClass}
@@ -243,7 +263,7 @@ const CurvedEdge: React.FunctionComponent<CurvedEdgeProps> = ({
   startTerminalSize = 14,
   endTerminalType = EdgeTerminalType.directional,
   endTerminalSize = 6,
-  curveOffset = 80,
+  curveOffset = 30, // Increased to route around nodes better
   ...rest
 }: CurvedEdgeProps) => {
   if (!isEdge(element)) {
