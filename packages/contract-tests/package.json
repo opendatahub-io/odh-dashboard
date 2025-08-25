@@ -7,7 +7,7 @@
     "build": "tsc && mkdir -p dist/helpers && cp src/helpers/shell-helpers.sh dist/helpers/",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:contract": "npm run test:contract:with-bff",
+    "test:contract": "jest --config jest.contract.config.js --detectOpenHandles",
     "test:contract:watch": "jest --config jest.contract.config.js --watch",
     "test:contract:with-bff": "scripts/run-with-mock-bff.sh",
     "lint": "eslint src --ext .ts,.tsx",

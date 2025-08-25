@@ -57,12 +57,13 @@ create_test_results_dir() {
 check_go_available() {
     if ! command -v go &> /dev/null; then
         log_error "Go is not installed or not in PATH"
-        exit 1
+        return 1
     fi
 
     local GO_VERSION
     GO_VERSION=$(go version)
     log_success "Go found: $GO_VERSION"
+    return 0
 }
 
 # Build BFF server
@@ -110,8 +111,14 @@ start_bff_server() {
     # Kill any existing process on the port
     kill_process_on_port "$BFF_PORT"
 
+    # Prepare flags as an array to avoid word-splitting/globbing
+    local bff_flags=()
+    if [[ -n "$BFF_MOCK_FLAGS" ]]; then
+        # shellcheck disable=SC2206
+        bff_flags=($BFF_MOCK_FLAGS)
+    fi
     # Start BFF in background, redirecting output to log
-    ./$BFF_BINARY_NAME --port "$BFF_PORT" $BFF_MOCK_FLAGS > "$TEST_RUN_DIR/bff-mock.log" 2>&1 &
+    ./$BFF_BINARY_NAME --port "$BFF_PORT" "${bff_flags[@]}" > "$TEST_RUN_DIR/bff-mock.log" 2>&1 &
     BFF_PID=$!
 
     # Store PID for cleanup

@@ -80,8 +80,8 @@ cleanup() {
         rm -f "$BFF_PID_FILE"
     else
         # Fallback: gracefully stop any processes listening on 8080 (avoid blanket kill)
-        mapfile -t PIDS < <(lsof -ti:8080 2>/dev/null || true)
-        for PID in "${PIDS[@]}"; do
+        PIDS=$(lsof -ti:8080 2>/dev/null || true)
+        for PID in $PIDS; do
             if [[ -n "$PID" ]]; then
                 log_warning "Attempting graceful stop of PID $PID on port 8080"
                 kill "$PID" 2>/dev/null || true
@@ -127,9 +127,9 @@ start_mock_bff() {
     
     # Set up envtest path for Kubernetes testing
     if [[ -z "${KUBEBUILDER_ASSETS:-}" ]]; then
-        # Fix SC2155: Declare and assign separately to avoid masking return values
-        ASSETS_PATH=$(./bin/setup-envtest-release-0.17 use 1.29.0 --print path)
-        if [[ $? -ne 0 ]]; then
+        # Run command and handle failure explicitly under set -e
+        ASSETS_PATH=""
+        if ! ASSETS_PATH=$(./bin/setup-envtest-release-0.17 use 1.29.0 --print path); then
             log_error "Failed to get kubebuilder assets path"
             exit 1
         fi
@@ -215,6 +215,17 @@ main() {
     log_info "🚀 Starting Model Registry contract tests with Mock BFF"
     
     check_go
+    # Prune older test runs (keep last 5) to avoid buildup
+    RESULTS_BASE_DIR="$CONTRACT_DIR/contract-test-results"
+    if [[ -d "$RESULTS_BASE_DIR" ]]; then
+        # shellcheck disable=SC2012
+        OLD_RUNS=$(ls -1 "$RESULTS_BASE_DIR" | sort -r | tail -n +6 2>/dev/null || true)
+        for d in $OLD_RUNS; do
+            if [[ -n "$d" ]]; then
+                rm -rf "$RESULTS_BASE_DIR/$d" || true
+            fi
+        done
+    fi
     build_bff
     start_mock_bff
     run_contract_tests
