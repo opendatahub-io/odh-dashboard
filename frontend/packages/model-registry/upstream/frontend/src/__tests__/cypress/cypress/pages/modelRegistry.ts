@@ -30,6 +30,10 @@ class ModelRegistryTableRow extends TableRow {
     return this.find().findByTestId('description');
   }
 
+  findLatestVersion() {
+    return this.find().findByTestId('latest-version');
+  }
+
   findOwner() {
     return this.find().findByTestId('registered-model-owner');
   }
@@ -85,10 +89,6 @@ class ModelRegistry {
 
   findModelRegistryEmptyState() {
     return cy.findByTestId('empty-model-registries-state');
-  }
-
-  findModelRegistryEmptyTableState() {
-    return cy.findByTestId('dashboard-empty-table-state');
   }
 
   shouldregisteredModelsEmpty() {
@@ -181,15 +181,15 @@ class ModelRegistry {
   }
 
   findTableSearch() {
-    return cy.findByTestId('registered-model-table-search');
+    return cy.findByTestId('filter-toolbar-text-field');
+  }
+
+  findFilterDropdownItem(name: string) {
+    return cy.findByTestId(`filter-toolbar-dropdown`).findDropdownItem(name);
   }
 
   findModelVersionsTableToolbar() {
     return cy.findByTestId('model-versions-table-toolbar');
-  }
-
-  findModelVersionsTableSearch() {
-    return cy.findByTestId('model-versions-table-search');
   }
 
   findModelBreadcrumbItem() {
@@ -204,8 +204,8 @@ class ModelRegistry {
     return cy.findByTestId('model-version-action-toggle');
   }
 
-  findModelVersionsTableFilter() {
-    return cy.findByTestId('model-versions-table-filter');
+  findModelVersionsTableFilterOption(name: string) {
+    return cy.findByTestId('filter-toolbar-dropdown').findDropdownItem(name);
   }
 
   findRegisterModelButton() {

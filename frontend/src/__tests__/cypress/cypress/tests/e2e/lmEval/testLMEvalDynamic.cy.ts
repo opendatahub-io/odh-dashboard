@@ -34,7 +34,7 @@ let dynamicEvaluationName: string;
 describe(
   'Verify LMEval Functionality with Downloaded Models',
   {
-    tags: ['@Smoke', '@SmokeSet3', '@LMEval', '@RHOAIENG-26716', '@Featureflagged'],
+    tags: ['@LMEval', '@RHOAIENG-26716', '@Featureflagged'],
   },
   () => {
     // Load test configuration in before hook
@@ -64,7 +64,7 @@ describe(
     it(
       'should complete LMEval evaluation workflow for dynamic model',
       {
-        tags: ['@Smoke', '@SmokeSet3', '@LMEval', '@RHOAIENG-26716', '@Featureflagged'],
+        tags: ['@LMEval', '@RHOAIENG-26716', '@Featureflagged'],
       },
       () => {
         // Navigate to LMEval page

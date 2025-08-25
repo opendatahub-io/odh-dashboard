@@ -786,6 +786,11 @@ export enum ServingRuntimeAPIProtocol {
   GRPC = 'gRPC',
 }
 
+export enum ServingRuntimeModelType {
+  PREDICTIVE = 'predictive',
+  GENERATIVE = 'generative',
+}
+
 export type KeyValuePair = {
   key: string;
   value: string;

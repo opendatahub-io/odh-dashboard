@@ -1,7 +1,11 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { ServingRuntimeKind, TemplateKind } from '#~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
-import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '#~/types';
+import {
+  ServingRuntimeAPIProtocol,
+  ServingRuntimePlatform,
+  ServingRuntimeModelType,
+} from '#~/types';
 import { asEnumMember } from '#~/utilities/utils';
 import { CreatingServingRuntimeObject } from '#~/pages/modelServing/screens/types';
 
@@ -187,6 +191,31 @@ export const getAPIProtocolFromTemplate = (
       ServingRuntimeAPIProtocol,
     ) ?? undefined
   );
+};
+
+export const getModelTypesFromTemplate = (template: TemplateKind): ServingRuntimeModelType[] => {
+  if (!template.metadata.annotations?.['opendatahub.io/modelServingType']) {
+    return [];
+  }
+
+  try {
+    const modelTypes = JSON.parse(template.metadata.annotations['opendatahub.io/modelServingType']);
+    if (!Array.isArray(modelTypes)) {
+      return [];
+    }
+    const validTypes: ServingRuntimeModelType[] = [];
+    for (const type of modelTypes) {
+      if (
+        type === ServingRuntimeModelType.PREDICTIVE ||
+        type === ServingRuntimeModelType.GENERATIVE
+      ) {
+        validTypes.push(type);
+      }
+    }
+    return validTypes;
+  } catch (e) {
+    return [];
+  }
 };
 
 export const getAPIProtocolFromServingRuntime = (
