@@ -270,6 +270,10 @@ declare global {
     analytics?: any;
     clusterID?: string;
   }
+
+  // Webpack injected global variables
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const __COMMIT_HASH__: string | undefined;
 }
 
 export type ApplicationAction = {

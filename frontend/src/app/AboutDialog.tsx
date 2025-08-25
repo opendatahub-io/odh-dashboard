@@ -24,6 +24,9 @@ interface AboutDialogProps {
   onClose: () => void;
 }
 
+// The current commit hash of the latest code is printed to the console
+// every time this dialog is opened.  it is not put on the
+// dialog itself so as not to confuse users.
 const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
   const { isAdmin } = useUser();
   const { isRHOAI } = useAppContext();
@@ -71,6 +74,12 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
     });
     return result;
   }, [dscStatus?.components]);
+
+  // Print commit hash only *once* when dialog opens (though since this is mounted twice; it prints out twice)
+  // (to make it only show once we would need to use a reference; which is overkill)
+  React.useEffect(() => {
+    console.log('commit hash: ', __COMMIT_HASH__ || 'Unknown');
+  }, []);
 
   return (
     <AboutModal

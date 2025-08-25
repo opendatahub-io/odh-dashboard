@@ -9,6 +9,13 @@ import type { BooleanValues, RenderHookResultExt } from '../types';
 // @ts-ignore
 global.TextEncoder = TextEncoder;
 
+// Mock webpack-injected global variables
+declare global {
+  // eslint-disable-next-line no-var, @typescript-eslint/naming-convention
+  var __COMMIT_HASH__: string;
+}
+globalThis.__COMMIT_HASH__ = 'test-commit-hash';
+
 const tryExpect = (expectFn: () => void) => {
   try {
     expectFn();
