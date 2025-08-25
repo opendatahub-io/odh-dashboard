@@ -1,58 +1,32 @@
 import React from 'react';
 import { z } from 'zod';
-import { Form, useWizardContext, useWizardFooter, WizardFooter } from '@patternfly/react-core';
-import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
+import { Form } from '@patternfly/react-core';
+import type { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
 import { modelTypeSelectFieldSchema, ModelTypeSelectField } from '../fields/ModelTypeSelectField';
-import { UseModelDeploymentWizardProps } from '../useDeploymentWizard';
+import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 
-const modelSourceStepSchema = z.object({
+export const modelSourceStepSchema = z.object({
   modelType: modelTypeSelectFieldSchema,
 });
 
 export type ModelSourceStepData = z.infer<typeof modelSourceStepSchema>;
 
 type ModelSourceStepProps = {
-  wizardData: UseModelDeploymentWizardProps;
+  wizardState: UseModelDeploymentWizardState;
+  validation: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
 };
 
-export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({ wizardData }) => {
-  const { activeStep, goToNextStep, goToPrevStep, close } = useWizardContext();
-
-  const validationData: Partial<ModelSourceStepData> = React.useMemo(
-    () => ({
-      modelType: wizardData.modelTypeField,
-    }),
-    [wizardData.modelTypeField],
-  );
-
-  const { markFieldTouched, getFieldValidation, getFieldValidationProps } = useZodFormValidation(
-    validationData,
-    modelSourceStepSchema,
-  );
-
-  useWizardFooter(
-    <WizardFooter
-      activeStep={activeStep}
-      onNext={() => {
-        markFieldTouched(['modelType']);
-        if (getFieldValidation(['modelType'], true).length === 0) {
-          goToNextStep();
-        }
-      }}
-      onBack={goToPrevStep}
-      isBackDisabled={activeStep.index === 1}
-      onClose={close}
-      nextButtonText="Next"
-    />,
-  );
-
+export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
+  wizardState,
+  validation,
+}) => {
   return (
     <Form>
       <ModelTypeSelectField
-        modelType={wizardData.modelTypeField}
-        setModelType={wizardData.setModelType}
-        validationProps={getFieldValidationProps(['modelType'])}
-        validationIssues={getFieldValidation(['modelType'])}
+        modelType={wizardState.data.modelTypeField}
+        setModelType={wizardState.handlers.setModelType}
+        validationProps={validation.getFieldValidationProps(['modelType'])}
+        validationIssues={validation.getFieldValidation(['modelType'])}
       />
     </Form>
   );
