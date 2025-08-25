@@ -2,9 +2,6 @@ import React from 'react';
 type DeploymentsStateContextType = {
     deployments?: any[];
     loaded: boolean;
-    errors?: Error[];
-    projects?: any[];
-    isExtensionLoaded: boolean;
 };
 export declare const DeploymentsStateContext: React.Context<DeploymentsStateContextType>;
 /**

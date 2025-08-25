@@ -6,6 +6,7 @@ import {
   DrawerContentBody,
   Bullseye,
   Spinner,
+  Flex,
 } from '@patternfly/react-core';
 import {
   Chatbot,
@@ -18,6 +19,7 @@ import {
   MessageBox,
 } from '@patternfly/chatbot';
 import { ApplicationsPage } from 'mod-arch-shared';
+import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import { ChatbotMessages } from './ChatbotMessagesList';
@@ -30,6 +32,8 @@ import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from './const';
 
 const ChatbotMain: React.FunctionComponent = () => {
+  const { config } = useModularArchContext();
+  const isStandalone = config.deploymentMode === DeploymentMode.Standalone;
   const displayMode = ChatbotDisplayMode.embedded;
   const { models, loading, error } = useFetchLlamaModels();
   const [selectedModel, setSelectedModel] = React.useState<string>('');
@@ -98,14 +102,8 @@ const ChatbotMain: React.FunctionComponent = () => {
     />
   );
 
-  return (
-    <ApplicationsPage
-      title="AI playground"
-      loaded={!loading}
-      empty={false}
-      loadError={error}
-      headerContent={<></>}
-    >
+  const applicationsPage = (
+    <ApplicationsPage title="AI playground" loaded={!loading} empty={false} loadError={error}>
       {sourceManagement.isSourceSettingsOpen && (
         <ChatbotSourceSettingsModal
           onToggle={() =>
@@ -148,6 +146,20 @@ const ChatbotMain: React.FunctionComponent = () => {
         </DrawerContent>
       </Drawer>
     </ApplicationsPage>
+  );
+
+  return isStandalone ? (
+    applicationsPage
+  ) : (
+    // In federated mode, DrawerBody is not flex which the Page items expect the parent to be.
+    // This is a workaround to make the drawer body flex.
+    <Flex
+      direction={{ default: 'column' }}
+      flexWrap={{ default: 'nowrap' }}
+      style={{ height: '100%' }}
+    >
+      {applicationsPage}
+    </Flex>
   );
 };
 

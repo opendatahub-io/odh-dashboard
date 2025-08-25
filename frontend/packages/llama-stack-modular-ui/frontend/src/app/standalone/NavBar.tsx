@@ -54,7 +54,12 @@ const NavBar: React.FC<NavBarProps> = ({ username, onLogout }) => {
     <Masthead>
       <MastheadMain>
         <MastheadToggle>
-          <PageToggleButton id="page-nav-toggle" variant="plain" aria-label="Dashboard navigation">
+          <PageToggleButton
+            id="page-nav-toggle"
+            variant="plain"
+            aria-label="Dashboard navigation"
+            isHamburgerButton
+          >
             <BarsIcon />
           </PageToggleButton>
         </MastheadToggle>

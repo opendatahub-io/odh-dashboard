@@ -7,27 +7,24 @@ import (
 	"path"
 	"strings"
 
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/mocks"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/repositories"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/config"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/constants"
 	helper "github.com/opendatahub-io/llama-stack-modular-ui/internal/helpers"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations"
 )
 
-const (
-	Version         = "1.0.0"
-	HealthCheckPath = "/healthcheck"
-)
-
 // isAPIRoute checks if the given path is an API route
 func (app *App) isAPIRoute(path string) bool {
-	return path == HealthCheckPath ||
-		path == OpenAPIPath ||
-		path == OpenAPIJSONPath ||
-		path == OpenAPIYAMLPath ||
-		path == SwaggerUIPath ||
+	return path == constants.HealthCheckPath ||
+		path == constants.OpenAPIPath ||
+		path == constants.OpenAPIJSONPath ||
+		path == constants.OpenAPIYAMLPath ||
+		path == constants.SwaggerUIPath ||
 		// Match exactly the configured API path prefix or any sub-path under it
 		path == app.config.APIPathPrefix ||
 		strings.HasPrefix(path, app.config.APIPathPrefix+"/") ||
@@ -36,46 +33,30 @@ func (app *App) isAPIRoute(path string) bool {
 		strings.HasPrefix(path, "/llama-stack/")
 }
 
-// Path generation methods for configurable API paths
-func (app *App) getModelListPath() string {
-	return app.config.APIPathPrefix + "/models"
-}
-
-func (app *App) getVectorDBListPath() string {
-	return app.config.APIPathPrefix + "/vector-dbs"
-}
-
-func (app *App) getUploadPath() string {
-	return app.config.APIPathPrefix + "/upload"
-}
-
-func (app *App) getQueryPath() string {
-	return app.config.APIPathPrefix + "/query"
-}
-
 type App struct {
-	config       config.EnvConfig
-	logger       *slog.Logger
-	repositories *repositories.Repositories
-	openAPI      *OpenAPIHandler
-	tokenFactory *integrations.TokenClientFactory
+	config           config.EnvConfig
+	logger           *slog.Logger
+	repositories     *repositories.Repositories
+	openAPI          *OpenAPIHandler
+	tokenFactory     *integrations.TokenClientFactory
+	llamaStackClient llamastack.LlamaStackClientInterface
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
-	var lsClient repositories.LlamaStackClientInterface
-	var err error
+	var llamaStackClient llamastack.LlamaStackClientInterface
 
 	logger.Info("Initializing app with config", slog.Any("config", cfg))
 
+	// Initialize LlamaStack client using factory pattern
+	var factory llamastack.LlamaStackClientFactory
 	if cfg.MockLSClient {
-		lsClient, err = mocks.NewLlamastackClientMock()
+		logger.Info("Using mock LlamaStack client")
+		factory = lsmocks.NewMockClientFactory()
 	} else {
-		lsClient, err = repositories.NewLlamaStackClient()
+		logger.Info("Using real LlamaStack client", "url", cfg.LlamaStackURL)
+		factory = llamastack.NewRealClientFactory()
 	}
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to create llama stack client: %w", err)
-	}
+	llamaStackClient = factory.CreateClient(cfg.LlamaStackURL)
 
 	// Initialize OpenAPI handler
 	openAPIHandler, err := NewOpenAPIHandler(logger)
@@ -84,11 +65,12 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 
 	app := &App{
-		config:       cfg,
-		logger:       logger,
-		repositories: repositories.NewRepositories(lsClient),
-		openAPI:      openAPIHandler,
-		tokenFactory: integrations.NewTokenClientFactory(logger, cfg),
+		config:           cfg,
+		logger:           logger,
+		repositories:     repositories.NewRepositories(llamaStackClient),
+		openAPI:          openAPIHandler,
+		tokenFactory:     integrations.NewTokenClientFactory(logger, cfg),
+		llamaStackClient: llamaStackClient,
 	}
 	return app, nil
 }
@@ -100,13 +82,20 @@ func (app *App) Routes() http.Handler {
 	apiRouter.NotFound = http.HandlerFunc(app.notFoundResponse)
 	apiRouter.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
-	apiRouter.GET(app.getModelListPath(), app.RequireAccessToService(app.AttachRESTClient(app.GetAllModelsHandler)))
-	apiRouter.GET(app.getVectorDBListPath(), app.RequireAccessToService(app.AttachRESTClient(app.GetAllVectorDBsHandler)))
+	genaiPrefix := "/genai/v1"
 
-	// POST to register the vectorDB (/v1/vector-dbs)
-	apiRouter.POST(app.getVectorDBListPath(), app.RequireAccessToService(app.AttachRESTClient(app.RegisterVectorDBHandler)))
-	apiRouter.POST(app.getUploadPath(), app.RequireAccessToService(app.AttachRESTClient(app.UploadHandler)))
-	apiRouter.POST(app.getQueryPath(), app.RequireAccessToService(app.AttachRESTClient(app.QueryHandler)))
+	// Models
+	apiRouter.GET(genaiPrefix+"/models", app.RequireAccessToService(app.AttachRESTClient(app.LlamaStackModelsHandler)))
+
+	// Responses (OpenAI Responses API)
+	apiRouter.POST(genaiPrefix+"/responses", app.RequireAccessToService(app.AttachRESTClient(app.LlamaStackCreateResponseHandler)))
+
+	// Vector Stores
+	apiRouter.GET(genaiPrefix+"/vectorstores", app.RequireAccessToService(app.AttachRESTClient(app.LlamaStackListVectorStoresHandler)))
+	apiRouter.POST(genaiPrefix+"/vectorstores", app.RequireAccessToService(app.AttachRESTClient(app.LlamaStackCreateVectorStoreHandler)))
+
+	// Files Upload
+	apiRouter.POST(genaiPrefix+"/files/upload", app.RequireAccessToService(app.AttachRESTClient(app.LlamaStackUploadFileHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()
@@ -155,18 +144,18 @@ func (app *App) Routes() http.Handler {
 
 	healthcheckMux := http.NewServeMux()
 	healthcheckRouter := httprouter.New()
-	healthcheckRouter.GET(HealthCheckPath, app.HealthcheckHandler)
-	healthcheckMux.Handle(HealthCheckPath, app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(healthcheckRouter))))
+	healthcheckRouter.GET(constants.HealthCheckPath, app.HealthcheckHandler)
+	healthcheckMux.Handle(constants.HealthCheckPath, app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(healthcheckRouter))))
 
 	// Combines the healthcheck endpoint with the rest of the routes
 	combinedMux := http.NewServeMux()
-	combinedMux.Handle(HealthCheckPath, healthcheckMux)
+	combinedMux.Handle(constants.HealthCheckPath, healthcheckMux)
 
 	// OpenAPI routes (unprotected) - handle these before the main app routes
-	combinedMux.HandleFunc(OpenAPIPath, app.openAPI.HandleOpenAPIRedirectWrapper)
-	combinedMux.HandleFunc(OpenAPIJSONPath, app.openAPI.HandleOpenAPIJSONWrapper)
-	combinedMux.HandleFunc(OpenAPIYAMLPath, app.openAPI.HandleOpenAPIYAMLWrapper)
-	combinedMux.HandleFunc(SwaggerUIPath, app.openAPI.HandleSwaggerUIWrapper)
+	combinedMux.HandleFunc(constants.OpenAPIPath, app.openAPI.HandleOpenAPIRedirectWrapper)
+	combinedMux.HandleFunc(constants.OpenAPIJSONPath, app.openAPI.HandleOpenAPIJSONWrapper)
+	combinedMux.HandleFunc(constants.OpenAPIYAMLPath, app.openAPI.HandleOpenAPIYAMLWrapper)
+	combinedMux.HandleFunc(constants.SwaggerUIPath, app.openAPI.HandleSwaggerUIWrapper)
 
 	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(appMux)))))
 
