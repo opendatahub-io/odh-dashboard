@@ -1,4 +1,4 @@
-package k8mocks
+package k8smocks
 
 import (
 	"context"
@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/kubeflow/model-registry/ui/bff/internal/config"
-	"github.com/kubeflow/model-registry/ui/bff/internal/constants"
-	k8s "github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes"
+	k8s "github.com/opendatahub-io/llama-stack-modular-ui/internal/api/integrations/kubernetes"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/config"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/constants"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -21,13 +21,6 @@ type MockedKubernetesClientFactory interface {
 
 func NewMockedKubernetesClientFactory(clientset kubernetes.Interface, testEnv *envtest.Environment, cfg config.EnvConfig, logger *slog.Logger) (k8s.KubernetesClientFactory, error) {
 	switch cfg.AuthMethod {
-	case config.AuthMethodInternal:
-		k8sFactory, err := NewStaticClientFactory(clientset, logger)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create static client factory: %w", err)
-		}
-		return k8sFactory, nil
-
 	case config.AuthMethodUser:
 		k8sFactory, err := NewTokenClientFactory(clientset, testEnv.Config, logger)
 		if err != nil {
@@ -38,53 +31,6 @@ func NewMockedKubernetesClientFactory(clientset kubernetes.Interface, testEnv *e
 	default:
 		return nil, fmt.Errorf("invalid auth method: %q", cfg.AuthMethod)
 	}
-}
-
-// ─── MOCKED STATIC FACTORY (envtest + "INTERNAL ACCOUNT") ──────────────────────────────────────────
-type MockedStaticClientFactory struct {
-	logger                       *slog.Logger
-	serviceAccountMockedK8client k8s.KubernetesClientInterface
-	clientset                    kubernetes.Interface
-	initErr                      error
-	initLock                     sync.Mutex
-	realFactoryWithoutClient     k8s.StaticClientFactory
-}
-
-func NewStaticClientFactory(clientset kubernetes.Interface, logger *slog.Logger) (k8s.KubernetesClientFactory, error) {
-	realFactoryWithoutClient := k8s.StaticClientFactory{
-		Logger: logger,
-	}
-	return &MockedStaticClientFactory{
-		logger:                   logger,
-		clientset:                clientset,
-		realFactoryWithoutClient: realFactoryWithoutClient,
-	}, nil
-}
-
-func (f *MockedStaticClientFactory) GetClient(_ context.Context) (k8s.KubernetesClientInterface, error) {
-	f.initLock.Lock()
-	defer f.initLock.Unlock()
-
-	if f.serviceAccountMockedK8client != nil {
-		return f.serviceAccountMockedK8client, nil
-	}
-
-	f.logger.Info("Initializing mocked service account client")
-	client := newMockedInternalKubernetesClientFromClientset(f.clientset, f.logger)
-	if client == nil {
-		f.initErr = fmt.Errorf("failed to create mocked service account client")
-		return nil, f.initErr
-	}
-
-	f.serviceAccountMockedK8client = client
-	return f.serviceAccountMockedK8client, nil
-}
-
-func (f *MockedStaticClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*k8s.RequestIdentity, error) {
-	return f.realFactoryWithoutClient.ExtractRequestIdentity(httpHeader)
-}
-func (f *MockedStaticClientFactory) ValidateRequestIdentity(identity *k8s.RequestIdentity) error {
-	return f.realFactoryWithoutClient.ValidateRequestIdentity(identity)
 }
 
 // ─── MOCKED TOKEN FACTORY (envtest + "USER TOKEN") ──────────────────────────────
@@ -159,10 +105,7 @@ func (f *MockedTokenClientFactory) GetClient(ctx context.Context) (k8s.Kubernete
 	// Create a new rest.Config that impersonates the user.
 	// This bypasses the lack of real authentication in envtest and allows RBAC to work properly.
 	impersonatedCfg := rest.CopyConfig(f.restConfig)
-	impersonatedCfg.Impersonate = rest.ImpersonationConfig{
-		UserName: user.UserName,
-		Groups:   user.Groups,
-	}
+	impersonatedCfg.Impersonate = rest.ImpersonationConfig{}
 
 	clientset, err := kubernetes.NewForConfig(impersonatedCfg)
 	if err != nil {
