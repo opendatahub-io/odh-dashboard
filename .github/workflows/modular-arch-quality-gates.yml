@@ -268,8 +268,6 @@ jobs:
           fi
 
           # Check 2: E2E Tests - Look for module-specific e2e directories
-          # Temporarily disabled until a supported per-module e2e runner is available in CI
-          E2E_CHECK_ENABLED=false
           E2E_TESTS_FOUND=false
           E2E_BASE_DIR="frontend/src/__tests__/cypress/cypress/tests/e2e"
 
@@ -289,25 +287,17 @@ jobs:
             fi
           done
 
-          if [ "$E2E_CHECK_ENABLED" = true ]; then
-            if [ "$E2E_TESTS_FOUND" = true ]; then
-              echo "✅ E2E Tests - PRESENT"
-              if [ -n "$E2E_FOUND_PATH" ]; then
-                echo "   📁 Found E2E tests in: $E2E_FOUND_PATH"
-              fi
-              IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
-              ENABLED_CHECKS+=("E2E Tests")
-            else
-              echo "❌ E2E Tests - MISSING"
-              MISSING_CHECKS+=("End-to-end tests")
-              ENABLED_CHECKS+=("E2E Tests")
-            fi
-          else
-            echo "# E2E Tests - DISABLED"
-            DISABLED_CHECKS+=("E2E Tests")
+          if [ "$E2E_TESTS_FOUND" = true ]; then
+            echo "✅ E2E Tests - PRESENT"
             if [ -n "$E2E_FOUND_PATH" ]; then
               echo "   📁 Found E2E tests in: $E2E_FOUND_PATH"
             fi
+            IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
+            ENABLED_CHECKS+=("E2E Tests")
+          else
+            echo "❌ E2E Tests - MISSING"
+            MISSING_CHECKS+=("End-to-end tests")
+            ENABLED_CHECKS+=("E2E Tests")
           fi
 
           # Commented out checks (not yet implemented)
@@ -318,9 +308,9 @@ jobs:
           echo "# Check 3: Mock Tests - DISABLED"
           DISABLED_CHECKS+=("Mock Tests")
 
-          # Check 4: Pact Testing (commented out)
-          echo "# Check 4: Pact Testing - DISABLED"
-          DISABLED_CHECKS+=("Pact Testing")
+          # Check 4: Contract Testing (commented out)
+          echo "# Check 4: Contract Testing - DISABLED"
+          DISABLED_CHECKS+=("Contract Testing")
 
           # Check 5: API Functional Testing (disabled for all modules)
           # TODO: Enable once API functional testing is available as a common function for the Modular Architecture
@@ -381,20 +371,13 @@ jobs:
           fi
 
           # E2E
-          if [ "$E2E_CHECK_ENABLED" = true ]; then
-            if [ "$E2E_TESTS_FOUND" = true ]; then
-              echo "✅ E2E Tests - PRESENT" >> "$OUT_FILE"
-              if [ -n "$E2E_FOUND_PATH" ]; then
-                echo "   📁 Found E2E tests in: $E2E_FOUND_PATH" >> "$OUT_FILE"
-              fi
-            else
-              echo "❌ E2E Tests - MISSING" >> "$OUT_FILE"
-            fi
-          else
-            echo "# E2E Tests - DISABLED" >> "$OUT_FILE"
+          if [ "$E2E_TESTS_FOUND" = true ]; then
+            echo "✅ E2E Tests - PRESENT" >> "$OUT_FILE"
             if [ -n "$E2E_FOUND_PATH" ]; then
               echo "   📁 Found E2E tests in: $E2E_FOUND_PATH" >> "$OUT_FILE"
             fi
+          else
+            echo "❌ E2E Tests - MISSING" >> "$OUT_FILE"
           fi
 
           # Commented out checks
