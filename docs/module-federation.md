@@ -33,14 +33,17 @@ All federated modules **must** include these shared dependencies in their config
 
 ```javascript
 const deps = require('../package.json').dependencies;
-// ...
-shared: {
-  react: { singleton: true, requiredVersion: deps.react },
-  'react-dom': { singleton: true, requiredVersion: deps['react-dom'] },
-  'react-router': { singleton: true, requiredVersion: deps['react-router'] },
-  'react-router-dom': { singleton: true, requiredVersion: deps['react-router-dom'] },
-  '@patternfly/react-core': { singleton: true, requiredVersion: deps['@patternfly/react-core'] },
-}
+
+const config = {
+  // ...
+  shared: {
+    react: { singleton: true, requiredVersion: deps.react },
+    'react-dom': { singleton: true, requiredVersion: deps['react-dom'] },
+    'react-router': { singleton: true, requiredVersion: deps['react-router'] },
+    'react-router-dom': { singleton: true, requiredVersion: deps['react-router-dom'] },
+    '@patternfly/react-core': { singleton: true, requiredVersion: deps['@patternfly/react-core'] },
+  }
+};
 ```
 
 #### Optional Shared Dependencies
@@ -48,16 +51,19 @@ shared: {
 Include these if your module uses the corresponding functionality:
 
 ```javascript
-shared: {
-  '@openshift/dynamic-plugin-sdk': {
-    singleton: true,
-    requiredVersion: deps['@openshift/dynamic-plugin-sdk'],
-  },
-  '@odh-dashboard/plugin-core': {
-    singleton: true,
-    requiredVersion: deps['@odh-dashboard/plugin-core'],
-  },
-}
+const config = {
+  // ...
+  shared: {
+    '@openshift/dynamic-plugin-sdk': {
+      singleton: true,
+      requiredVersion: deps['@openshift/dynamic-plugin-sdk'],
+    },
+    '@odh-dashboard/plugin-core': {
+      singleton: true,
+      requiredVersion: deps['@odh-dashboard/plugin-core'],
+    },
+  }
+};
 ```
 
 ## Module Federation Configuration
