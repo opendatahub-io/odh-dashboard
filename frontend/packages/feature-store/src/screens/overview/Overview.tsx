@@ -23,7 +23,6 @@ const Overview = (): React.ReactElement => (
         }
       />
     }
-    provideChildrenPadding
   >
     <OverviewTabs />
   </ApplicationsPage>
