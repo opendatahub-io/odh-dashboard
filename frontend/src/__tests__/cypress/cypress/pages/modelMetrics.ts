@@ -4,11 +4,11 @@ import { TableRow } from './components/table';
 
 class ModelMetricsGlobal {
   findMetricsToolbarTimeRangeSelect() {
-    return cy.findByTestId('metrics-toolbar-time-range-select');
+    return cy.get('#metrics-toolbar-time-range-select-toggle');
   }
 
   findMetricsToolbarRefreshIntervalSelect() {
-    return cy.findByTestId('metrics-toolbar-refresh-interval-select');
+    return cy.get('#metrics-toolbar-refresh-interval-select-toggle');
   }
 
   getMetricsChart(title: string) {

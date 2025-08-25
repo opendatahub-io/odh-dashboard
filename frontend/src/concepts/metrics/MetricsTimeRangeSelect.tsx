@@ -23,6 +23,7 @@ export const MetricsTimeRangeSelect: React.FC = () => {
       )}
       value={currentTimeframe}
       toggleProps={{
+        id: 'metrics-toolbar-time-range-select-toggle',
         style: { width: '15ch' },
       }}
       data-testid="metrics-toolbar-time-range-select"

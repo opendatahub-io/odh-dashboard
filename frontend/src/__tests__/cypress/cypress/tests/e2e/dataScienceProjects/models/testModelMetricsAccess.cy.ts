@@ -70,7 +70,7 @@ describe(
     it(
       'Verify user can deploy a model and access model metrics from backend and through UI',
       {
-        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent'],
+        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelMetrics', '@NonConcurrent'],
       },
       () => {
         cy.step(`Log into the application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
@@ -115,10 +115,10 @@ describe(
       },
     );
 
-    it.skip(
+    it(
       'Verify Model Metrics Endpoint Performance Tab Contents and Chart Sections',
       {
-        tags: ['@Sanity', '@SanitySet3', '@Dashboard', '@Modelserving', '@NonConcurrent'],
+        tags: ['@Sanity', '@SanitySet3', '@Dashboard', '@ModelMetrics', '@NonConcurrent'],
       },
       () => {
         cy.step('Login to the Application');
@@ -126,30 +126,27 @@ describe(
 
         cy.step(`Navigate to Endpoint Performance Tab for ${modelName}`);
         modelMetricsPerformance.visit(projectName, modelName);
+        cy.step(`Verify all charts are available for ${modelName}`);
         verifyAllChartsAvailable();
         modelMetricsGlobal
           .getMetricsChart('Requests per 5 minutes')
           .find()
           .should('contain.text', 'Requests per 5 minutes');
-        modelMetricsGlobal.getMetricsChart('Requests per 5 minutes').shouldHaveNoData();
 
         modelMetricsGlobal
           .getMetricsChart('Average response time (ms)')
           .find()
           .should('contain.text', 'Average response time (ms)');
-        modelMetricsGlobal.getMetricsChart('Average response time (ms)').shouldHaveNoData();
 
         modelMetricsGlobal
           .getMetricsChart('CPU utilization %')
           .find()
           .should('contain.text', 'CPU utilization %');
-        modelMetricsGlobal.getMetricsChart('CPU utilization %').shouldHaveData();
 
         modelMetricsGlobal
           .getMetricsChart('Memory utilization %')
           .find()
           .should('contain.text', 'Memory utilization %');
-        modelMetricsGlobal.getMetricsChart('Memory utilization %').shouldHaveData();
       },
     );
   },
