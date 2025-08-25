@@ -32,51 +32,44 @@ export type Source = {
   }[];
 };
 
-export type Query = {
+export enum ChatMessageRole {
+  USER = 'user',
+  ASSISTANT = 'assistant',
+}
+
+export type ChatContextMessage = {
+  role: ChatMessageRole;
   content: string;
-  vector_db_ids?: string[];
-  query_config?: {
-    chunk_template: string;
-    max_chunks: number;
-    max_tokens_in_context: number;
-  };
-  llm_model_id: string;
-  sampling_params?: {
-    strategy: {
-      type: string;
-    };
-    max_tokens: number;
-  };
-  system_prompt?: string;
+};
+
+export type CreateResponseRequest = {
+  input: string;
+  model: string;
+  vector_store_ids?: string[];
+  chat_context?: ChatContextMessage[];
+  temperature?: number;
+  top_p?: number;
+  instructions?: string;
+};
+
+export type SimplifiedUsage = {
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+};
+
+export type SimplifiedResponseData = {
+  id: string;
+  model: string;
+  status: string;
+  created_at: number;
+  content: string;
+  usage?: SimplifiedUsage; // Optional - only present when Llama Stack API returns token data
 };
 
 export type SuccessResponse = {
   message?: string;
   vector_db_id?: string;
-};
-
-export type QueryResponseMetadata = {
-  document_ids: string[];
-  chunks: string[];
-  scores: number[];
-};
-
-export type QueryResponse = {
-  rag_response: {
-    content: {
-      type: string;
-      text: string;
-    }[];
-    metadata: QueryResponseMetadata;
-  };
-  chat_completion: {
-    metrics: Metric[];
-    completion_message: CompletionMessage;
-    logprobs?: unknown | null;
-  };
-  has_rag_content: boolean;
-  used_vector_dbs: boolean;
-  assistant_message: string;
 };
 
 // Roles must be 'user' and 'assistant' according to the Llama Stack API

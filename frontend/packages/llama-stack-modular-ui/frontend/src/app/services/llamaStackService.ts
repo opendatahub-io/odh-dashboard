@@ -6,8 +6,8 @@ import {
   VectorDB,
   ChatbotSourceSettings,
   Source,
-  Query,
-  QueryResponse,
+  CreateResponseRequest,
+  SimplifiedResponseData,
   SuccessResponse,
 } from '../types';
 import axios from '../utilities/axios';
@@ -19,10 +19,10 @@ import { URL_PREFIX } from '../utilities/const';
  * @throws Error - When the API request fails or returns an error response
  */
 export const getModels = (): Promise<LlamaModel[]> => {
-  const url = `${URL_PREFIX}/api/v1/models`;
+  const url = `${URL_PREFIX}/genai/v1/models`;
   return axios
     .get(url)
-    .then((response) => response.data.data.items)
+    .then((response) => response.data.data)
     .catch((error) => {
       throw new Error(
         error.response?.data?.error?.message || error.message || 'Failed to fetch models',
@@ -37,10 +37,10 @@ export const getModels = (): Promise<LlamaModel[]> => {
  * @throws Error - When the API request fails or returns an error response
  */
 export const getModelsByType = (modelType: LlamaModelType): Promise<LlamaModel[]> => {
-  const url = `${URL_PREFIX}/api/v1/models?model_type=${modelType}`;
+  const url = `${URL_PREFIX}/genai/v1/models?model_type=${modelType}`;
   return axios
     .get(url)
-    .then((response) => response.data.data.items)
+    .then((response) => response.data.data)
     .catch((error) => {
       throw new Error(
         error.response?.data?.error?.message || error.message || 'Failed to fetch models',
@@ -119,19 +119,19 @@ export const uploadSource = (
 };
 
 /**
- * Queries a source from the Llama Stack API
- * @param query - The query to execute
- * @returns Promise<QueryResponse> - A promise that resolves with the query response
+ * Request to generate AI responses with RAG and conversation context
+ * @param response - responses api request payload
+ * @returns Promise<ResponseData> - A promise that resolves with the generated responses
  * @throws Error - When the API request fails or returns an error response
  */
-export const querySource = (query: Query): Promise<QueryResponse> => {
-  const url = `${URL_PREFIX}/api/v1/query`;
+export const createResponse = (request: CreateResponseRequest): Promise<SimplifiedResponseData> => {
+  const url = `${URL_PREFIX}/genai/v1/responses`;
   return axios
-    .post(url, query)
-    .then((response) => response.data)
+    .post(url, request)
+    .then((response) => response.data.data)
     .catch((error) => {
       throw new Error(
-        error.response?.data?.error?.message || error.message || 'Failed to query source',
+        error.response?.data?.error?.message || error.message || 'Failed to generate responses',
       );
     });
 };
