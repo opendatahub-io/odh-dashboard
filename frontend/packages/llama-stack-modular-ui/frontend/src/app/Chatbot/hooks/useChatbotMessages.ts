@@ -66,7 +66,7 @@ const useChatbotMessages = ({
           content: message,
           ...(isRawUploaded &&
             selectedSourceSettings && {
-              vector_db_ids: [selectedSourceSettings.vectorDB],
+              vector_db_ids: [selectedSourceSettings.vectorStore],
             }),
           query_config: {
             chunk_template: QUERY_CONFIG.CHUNK_TEMPLATE,
