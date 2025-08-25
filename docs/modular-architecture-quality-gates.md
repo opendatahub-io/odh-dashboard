@@ -53,7 +53,7 @@ These checks are currently disabled but will be enabled as common functionality 
    - Will be enabled once standardized mocking approach is defined
    - Expected location: `cypress/tests/mocked/`
 
-4. **Pact Testing**
+4. **Contract Testing**
    - Will be enabled once contract testing is implemented
    - For API contract validation
 
