@@ -25,6 +25,8 @@ import ModelVersionSelector from './ModelVersionSelector';
 import ModelVersionDetailsTabs from './ModelVersionDetailsTabs';
 import ModelVersionsDetailsHeaderActions from './ModelVersionDetailsHeaderActions';
 import { MRDeployButton } from '~/odh/components/MRDeployButton';
+import { KnownLabels } from '~/odh/k8sTypes';
+import { MRDeploymentsContextProvider } from '~/odh/components/MRDeploymentsContextProvider';
 
 type ModelVersionsDetailProps = {
   tab: string;
@@ -33,7 +35,7 @@ type ModelVersionsDetailProps = {
   'breadcrumb' | 'title' | 'description' | 'loadError' | 'loaded' | 'provideChildrenPadding'
 >;
 
-const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...pageProps }) => {
+const ModelVersionsDetailsContent: React.FC<ModelVersionsDetailProps> = ({ tab, ...pageProps }) => {
   const navigate = useNavigate();
 
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
@@ -139,6 +141,24 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
         />
       )}
     </ApplicationsPage>
+  );
+};
+
+const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = (props) => {
+  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const { modelVersionId: mvId } = useParams();
+  
+  const labelSelectors = React.useMemo(() => {
+    if (!mvId) return undefined;
+    return {
+      [KnownLabels.MODEL_VERSION_ID]: mvId,
+    };
+  }, [mvId]);
+  
+  return (
+    <MRDeploymentsContextProvider labelSelectors={labelSelectors} mrName={preferredModelRegistry?.name}>
+      <ModelVersionsDetailsContent {...props} />
+    </MRDeploymentsContextProvider>
   );
 };
 
