@@ -112,18 +112,6 @@ describe(
         modelMetricsPerformance.findTab().should('be.visible');
         verifyDefaultTimeRange(testData.modelMetricsConfig.defaultTimeRange);
         verifyDefaultRefreshInterval(testData.modelMetricsConfig.defaultRefreshInterval);
-      },
-    );
-
-    it(
-      'Verify Model Metrics Endpoint Performance Tab Contents and Chart Sections',
-      {
-        tags: ['@Sanity', '@SanitySet3', '@Dashboard', '@ModelMetrics', '@NonConcurrent'],
-      },
-      () => {
-        cy.step('Login to the Application');
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-
         cy.step(`Navigate to Endpoint Performance Tab for ${modelName}`);
         modelMetricsPerformance.visit(projectName, modelName);
         cy.step(`Verify all charts are available for ${modelName}`);
