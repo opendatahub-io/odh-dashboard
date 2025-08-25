@@ -1,9 +1,9 @@
 import { DropdownItem } from '@patternfly/react-core';
 import * as React from 'react';
-import { useDeploymentsState } from '../hooks/useDeploymentsState';
 import { useParams } from 'react-router';
-import { KnownLabels } from '~/odh/k8sTypes';
 import { ModelVersion } from '~/app/types';
+import useModelVersionsByRegisteredModel from '~/app/hooks/useModelVersionsByRegisteredModel';
+import { useModelDeploymentDetection } from '../utils/deploymentUtils';
 
 type ArchiveButtonDropdownItemProps = {
     mv?: ModelVersion;
@@ -11,44 +11,31 @@ type ArchiveButtonDropdownItemProps = {
 }
 
 const ArchiveButtonDropdownItemContent: React.FC<ArchiveButtonDropdownItemProps> = ({ mv, setIsArchiveModalOpen }) => {
-    const { deployments, loaded } = useDeploymentsState();
     const { registeredModelId: rmId } = useParams();
+    const [rmModelVersions, rmMvLoaded] = useModelVersionsByRegisteredModel(rmId);
+    const { hasModelVersionDeployment, hasRegisteredModelDeploymentByVersionIds, loaded } = useModelDeploymentDetection();
     
-    const hasDeployments = React.useMemo(() => {
-        if (!loaded || !deployments) {
-            return false;
-        }
-        
+    const { hasDeployment } = React.useMemo(() => {
         if (mv) {
             // For model versions: check if this specific version is deployed
-            return deployments.some(deployment => {
-                const isInferenceService = deployment.model.kind === 'InferenceService';
-                const modelVersionId = deployment.model.metadata.labels?.[KnownLabels.MODEL_VERSION_ID];
-                return isInferenceService && modelVersionId === mv.id;
-            });
-        } else if (rmId) {
+            return hasModelVersionDeployment(mv.id);
+        } else if (rmId && rmMvLoaded) {
             // For registered models: check if any version of this registered model is deployed
-            // Use the same logic as the working table implementation
-            return deployments.some(deployment => {
-                const isInferenceService = deployment.model.kind === 'InferenceService';
-                const modelVersionId = deployment.model.metadata.labels?.[KnownLabels.MODEL_VERSION_ID];
-                // We need to check if this modelVersionId belongs to our registered model
-                // Since we don't have model versions here, we'll need to implement this check differently
-                return isInferenceService && modelVersionId; // Basic check for now
-            });
+            const mvIds = rmModelVersions.items.map((v) => v.id);
+            return hasRegisteredModelDeploymentByVersionIds(mvIds);
         } else {
-            return false;
+            return { hasDeployment: false, loaded };
         }
-    }, [deployments, loaded, mv, rmId]);
+    }, [mv, rmId, rmMvLoaded, rmModelVersions.items, hasModelVersionDeployment, hasRegisteredModelDeploymentByVersionIds, loaded]);
     return (
         <DropdownItem
             id={mv ? "archive-version-button" : "archive-model-button"}
             aria-label={mv ? "Archive model version" :"Archive model"}
             key={mv ? "archive-version-button" : "archive-model-button"}
             onClick={() => setIsArchiveModalOpen(true)}
-            isAriaDisabled={hasDeployments || !loaded}
+            isAriaDisabled={!loaded || (rmId ? !rmMvLoaded : false) || hasDeployment}
             tooltipProps={
-                hasDeployments
+                hasDeployment
                 ? { content: mv ? 'Deployed model versions cannot be archived' : 'Models with deployed versions cannot be archived.' }
                 : undefined
             }
