@@ -18,6 +18,20 @@
     },
     "type-check": {
       "dependsOn": ["^type-check"]
+    },
+    "test:contract:with-bff": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "contract-tests/**",
+        "upstream/bff/**",
+        "$TURBO_ROOT$/packages/contract-testing/**",
+        "$TURBO_ROOT$/packages/plugin-core/**",
+        "$TURBO_ROOT$/packages/tsconfig/**"
+      ],
+      "outputs": [
+        "contract-tests/contract-test-results/**",
+        "contract-test-results/**"
+      ]
     }
   }
 }

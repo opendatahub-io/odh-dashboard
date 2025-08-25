@@ -1,0 +1,37 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/contract-testing",
+  "description": "Shared utilities for contract testing across ODH Dashboard packages.",
+  "version": "0.0.0",
+  "scripts": {
+    "build": "tsc && mkdir -p dist/helpers && cp src/helpers/shell-helpers.sh dist/helpers/",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:contract": "jest --config jest.contract.config.js --detectOpenHandles",
+    "test:contract:watch": "jest --config jest.contract.config.js --watch",
+    "test:contract:with-bff": "scripts/run-with-mock-bff.sh",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix"
+  },
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./api": "./src/api.ts"
+  },
+  "dependencies": {
+    "@odh-dashboard/internal": "*",
+    "axios": "^1.6.0",
+    "ajv": "^8.12.0",
+    "ajv-formats": "^2.1.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.13",
+    "ts-jest": "^29.1.1"
+  },
+  "peerDependencies": {
+    "jest": "^29.0.0"
+  },
+  "overrides": {
+    "jest": "^29.0.0"
+  }
+}

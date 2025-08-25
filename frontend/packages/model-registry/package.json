@@ -4,7 +4,10 @@
   "description": "Model registry plugin.",
   "version": "0.0.0",
   "scripts": {
-    "update-subtree": "../../scripts/package-subtree.sh --package=@odh-dashboard/model-registry"
+    "update-subtree": "../../scripts/package-subtree.sh --package=@odh-dashboard/model-registry",
+    "test:contract": "jest --config=contract-tests/jest.contract.config.js --detectOpenHandles",
+    "test:contract:watch": "npm run test:contract -- --watch",
+    "test:contract:with-bff": "contract-tests/scripts/run-with-mock-bff.sh"
   },
   "subtree": {
     "repo": "https://github.com/kubeflow/model-registry.git",
@@ -40,6 +43,8 @@
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/tsconfig": "*"
+    "@odh-dashboard/tsconfig": "*",
+    "@odh-dashboard/contract-testing": "*",
+    "@jest/globals": "^29.5.0"
   }
 }

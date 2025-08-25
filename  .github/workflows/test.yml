@@ -42,15 +42,11 @@ jobs:
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Install dependencies (deterministic)
+      - name: Install dependencies
         if: steps.modules-cache.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
-          if [ ! -f package-lock.json ]; then
-            echo "Error: package-lock.json not found. Please commit the lockfile for deterministic CI installs." >&2
-            exit 1
-          fi
-          npm ci
+          npm install
 
       - name: Check for uncommitted changes
         run: |
@@ -246,10 +242,10 @@ jobs:
         with:
           name: contract-test-results
           path: |
-            ${{ github.workspace }}/frontend/packages/*/contract-tests/contract-test-results/*/contract-test-report.html
-            ${{ github.workspace }}/frontend/packages/*/contract-tests/contract-test-results/*/junit.xml
-            ${{ github.workspace }}/frontend/packages/*/contract-tests/contract-test-results/*/contract-test-output.log
-            ${{ github.workspace }}/frontend/packages/*/contract-tests/contract-test-results/*/bff-mock.log
+            ${{ github.workspace }}/frontend/packages/*/pact/pact-test-results/*/contract-test-report.html
+            ${{ github.workspace }}/frontend/packages/*/pact/pact-test-results/*/junit.xml
+            ${{ github.workspace }}/frontend/packages/*/pact/pact-test-results/*/contract-test-output.log
+            ${{ github.workspace }}/frontend/packages/*/pact/pact-test-results/*/bff-mock.log
           if-no-files-found: warn
 
   Get-Test-Groups:
@@ -272,9 +268,9 @@ jobs:
             echo "Found mocked tests directory"
 
             # Get directories and create JSON array - force compact output with -c
-            # Replace forward slashes with hyphens for artifact names
+            # Replace forward slashes with a sentinel for artifact-safe names
             DIRS=$(cd ${{ github.workspace }}/frontend/src/__tests__/cypress/cypress/tests/mocked && \
-                  find . -name "*.cy.*" -printf "%h\n" | sed 's|^\./||' | sed 's|/|-|g' | sort -u | \
+                  find . -name "*.cy.*" -printf "%h\n" | sed 's|^\./||' | sed 's|/|__SLASH__|g' | sort -u | \
                   jq -R . | jq -c -s .)
 
             # Output in the correct format for GitHub Actions
@@ -363,9 +359,9 @@ jobs:
           if [ "${{ matrix.test-group }}" == "default" ]; then
             npm run test:cypress-ci:coverage:nobuild
           else
-            # Convert hyphenated test group back to directory path for test execution
+            # Convert sentinel back to directory path for test execution
             TEST_PATH="${{ matrix.test-group }}"
-            TEST_PATH="${TEST_PATH//-//}"  # Replace hyphens back to slashes
+            TEST_PATH="${TEST_PATH//__SLASH__/\/}"
             npm run test:cypress-ci:coverage:nobuild -- --spec "src/__tests__/cypress/cypress/tests/mocked/$TEST_PATH/*"
           fi
       - name: Upload Cypress Mock results
@@ -402,20 +398,14 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p ${{ github.workspace }}/coverage
-          if [ -f "${{ github.workspace }}/all-artifacts/unit-coverage/coverage-final.json" ]; then
-            cp "${{ github.workspace }}/all-artifacts/unit-coverage/coverage-final.json" "${{ github.workspace }}/coverage/unit-coverage-final.json"
-          fi
-          if [ -f "${{ github.workspace }}/all-artifacts/backend-coverage/coverage-final.json" ]; then
-            cp "${{ github.workspace }}/all-artifacts/backend-coverage/coverage-final.json" "${{ github.workspace }}/coverage/backend-coverage-final.json"
-          fi
-          find ${{ github.workspace }}/all-artifacts -name "cypress-coverage-*" -type d -print0 | while IFS= read -r -d '' dir; do
+          cp ${{ github.workspace }}/all-artifacts/unit-coverage/coverage-final.json ${{ github.workspace }}/coverage/unit-coverage-final.json || true
+          [ -f ${{ github.workspace }}/all-artifacts/backend-coverage/coverage-final.json ] && cp ${{ github.workspace }}/all-artifacts/backend-coverage/coverage-final.json ${{ github.workspace }}/coverage/backend-coverage-final.json || true
+          find ${{ github.workspace }}/all-artifacts -name "cypress-coverage-*" -type d | while read dir; do
             group_name=$(basename "$dir")
-            if [ -f "$dir/coverage-final.json" ]; then
-              cp "$dir/coverage-final.json" "${{ github.workspace }}/coverage/${group_name}-coverage-final.json" || true
-            fi
+            cp "$dir/coverage-final.json" "${{ github.workspace }}/coverage/${group_name}-coverage-final.json" || true
           done
           echo "Combined coverage files:"
-          ls -R "${{ github.workspace }}/coverage"
+          ls -R ${{ github.workspace }}/coverage
       - name: Merge coverage reports
         run: |
           set -euo pipefail
