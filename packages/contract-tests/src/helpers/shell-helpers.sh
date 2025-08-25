@@ -73,6 +73,7 @@ build_bff_server() {
     
     log_info "Building Mock BFF server..."
     (
+        set -o pipefail
         cd "$BFF_DIR" || return 1
         make build 2>&1 | tee "$TEST_RUN_DIR/bff-build.log"
     )
