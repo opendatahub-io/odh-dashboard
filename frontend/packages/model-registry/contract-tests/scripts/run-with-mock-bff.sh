@@ -218,13 +218,14 @@ main() {
     # Prune older test runs (keep last 5) to avoid buildup
     RESULTS_BASE_DIR="$CONTRACT_DIR/contract-test-results"
     if [[ -d "$RESULTS_BASE_DIR" ]]; then
-        # shellcheck disable=SC2012
-        OLD_RUNS=$(ls -1 "$RESULTS_BASE_DIR" | sort -r | tail -n +6 2>/dev/null || true)
-        for d in $OLD_RUNS; do
-            if [[ -n "$d" ]]; then
-                rm -rf "$RESULTS_BASE_DIR/$d" || true
-            fi
-        done
+        # List only immediate subdirectories, sort newest-first (timestamped names), keep top 5
+        OLD_RUNS=$(find "${RESULTS_BASE_DIR:?}" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2>/dev/null | sort -r | awk 'NR>5')
+        if [[ -n "$OLD_RUNS" ]]; then
+            while IFS= read -r d; do
+                [[ -z "$d" ]] && continue
+                rm -rf "${RESULTS_BASE_DIR:?}/$d" || true
+            done <<< "$OLD_RUNS"
+        fi
     fi
     build_bff
     start_mock_bff

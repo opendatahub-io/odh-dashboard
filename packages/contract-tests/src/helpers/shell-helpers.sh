@@ -88,10 +88,21 @@ build_bff_server() {
 kill_process_on_port() {
     local PORT="$1"
     
-    if lsof -ti:"$PORT" >/dev/null 2>&1; then
-        log_warning "Port $PORT is in use, attempting to kill existing process..."
-        lsof -ti:"$PORT" | xargs kill -9 || true
+    local PIDS
+    PIDS=$(lsof -ti:"$PORT" 2>/dev/null || true)
+    if [[ -n "$PIDS" ]]; then
+        log_warning "Port $PORT is in use, attempting graceful shutdown (SIGTERM)..."
+        # Send SIGTERM first
+        echo "$PIDS" | xargs -r kill -15 || true
         sleep 2
+
+        # Re-check and SIGKILL remaining processes if any
+        PIDS=$(lsof -ti:"$PORT" 2>/dev/null || true)
+        if [[ -n "$PIDS" ]]; then
+            log_warning "Force killing remaining process(es) on port $PORT (SIGKILL)..."
+            echo "$PIDS" | xargs -r kill -9 || true
+            sleep 1
+        fi
     fi
 }
 
