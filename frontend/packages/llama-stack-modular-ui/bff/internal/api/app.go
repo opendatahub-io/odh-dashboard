@@ -1,16 +1,20 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"path"
 	"strings"
 
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/api/integrations/kubernetes"
+	k8s "github.com/opendatahub-io/llama-stack-modular-ui/internal/api/integrations/kubernetes"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/api/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/repositories"
+	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/config"
@@ -38,7 +42,7 @@ type App struct {
 	logger                  *slog.Logger
 	repositories            *repositories.Repositories
 	openAPI                 *OpenAPIHandler
-	kubernetesClientFactory kubernetes.KubernetesClientFactory
+	kubernetesClientFactory k8s.KubernetesClientFactory
 	llamaStackClient        llamastack.LlamaStackClientInterface
 }
 
@@ -64,7 +68,27 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		return nil, fmt.Errorf("failed to create OpenAPI handler: %w", err)
 	}
 
-	k8sFactory, err := kubernetes.NewKubernetesClientFactory(cfg, logger)
+	var k8sFactory k8s.KubernetesClientFactory
+	// used only on mocked k8s client
+	var testEnv *envtest.Environment
+
+	if cfg.MockK8sClient {
+		logger.Info("Using mocked Kubernetes client")
+		var clientset kubernetes.Interface
+		ctx, cancel := context.WithCancel(context.Background())
+		testEnv, clientset, err = k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
+			Users:  k8smocks.DefaultTestUsers,
+			Logger: logger,
+			Ctx:    ctx,
+			Cancel: cancel,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to setup envtest: %w", err)
+		}
+		k8sFactory, err = k8smocks.NewMockedKubernetesClientFactory(clientset, testEnv, cfg, logger)
+	} else {
+		k8sFactory, err = k8s.NewKubernetesClientFactory(cfg, logger)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Kubernetes client factory: %w", err)
 	}
