@@ -1,12 +1,11 @@
 import * as React from 'react';
-import { DashboardEmptyTableView, SortableData, Table } from 'mod-arch-shared';
+import { SortableData, Table } from 'mod-arch-shared';
 import { ModelVersion, RegisteredModel } from '~/app/types';
-import { mvColumns } from '~/app/pages/modelRegistry/screens/ModelVersions/ModelVersionsTableColumns';
 import ModelVersionsTableRow from '~/app/pages/modelRegistry/screens/ModelVersions/ModelVersionsTableRow';
-import { useDeploymentsState } from '~/odh/hooks/useDeploymentsState';
-import { KnownLabels } from '~/odh/k8sTypes';
+import { useModelDeploymentDetection } from '~/odh/utils/deploymentUtils';
 import { MRDeploymentsContextProvider } from './MRDeploymentsContextProvider';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
+import { KnownLabels } from '../k8sTypes';
 
 type OdhModelVersionsTableProps = {
     data: ModelVersion[];
@@ -32,11 +31,11 @@ const OdhModelVersionsTableContent: React.FC<Omit<OdhModelVersionsTableProps, 'r
   refresh,
   ...props
 }) => {
-    const { deployments, loaded } = useDeploymentsState();
-    const hasDeploys = (mvId: string) =>
-        !!deployments?.some(
-            (s) => s.model.kind === 'InferenceService' && s.model.metadata.labels?.[KnownLabels.MODEL_VERSION_ID] === mvId,
-        );
+    const { hasModelVersionDeployment, loaded } = useModelDeploymentDetection();
+    const hasDeploys = (mvId: string) => {
+        const { hasDeployment } = hasModelVersionDeployment(mvId);
+        return hasDeployment;
+    };
     return (
         <Table
             data={data}
@@ -52,7 +51,7 @@ const OdhModelVersionsTableContent: React.FC<Omit<OdhModelVersionsTableProps, 'r
                     modelVersion={mv}
                     isArchiveModel={isArchiveModel}
                     refresh={refresh}
-                    hasDeployment={hasDeploys(mv.id) && loaded}
+                    hasDeployment={hasDeploys(mv.id)}
                 />
             )}
             {...props}

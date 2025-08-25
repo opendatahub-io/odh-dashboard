@@ -137,8 +137,12 @@ const RegisteredModelListViewContent: React.FC<RegisteredModelListViewProps> = (
 
 const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = (props) => {
   // Create deployment context at the top level for all registered models
+  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   return (
-    <MRDeploymentsContextProvider labelSelectors={undefined}>
+    <MRDeploymentsContextProvider
+      labelSelectors={undefined}
+      mrName={preferredModelRegistry?.name}
+    >
       <RegisteredModelListViewContent {...props} />
     </MRDeploymentsContextProvider>
   );
