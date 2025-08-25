@@ -26,19 +26,24 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
     <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }}>
       <FlexItem>The {namespace} pipeline server is being initialized.</FlexItem>
       <FlexItem>The process should take less than five minutes. When the server is ready,</FlexItem>
-      <FlexItem>you will be able to create and import pipelines.</FlexItem>
-      <FlexItem>
-        <Button
-          data-testid="open-pipeline-status-link"
-          variant="link"
-          isInline
-          onClick={() => {
-            setShowModal(true);
-          }}
-        >
-          {spinningText}
-        </Button>
-      </FlexItem>
+      <Flex
+        direction={{ default: 'column' }}
+        spaceItems={{ default: 'spaceItemsLg' }}
+        alignItems={{ default: 'alignItemsCenter' }}
+      >
+        <FlexItem>you will be able to create and import pipelines.</FlexItem>
+        <FlexItem>
+          <Button
+            data-testid="open-pipeline-status-link"
+            variant="secondary"
+            onClick={() => {
+              setShowModal(true);
+            }}
+          >
+            View progress and event logs
+          </Button>
+        </FlexItem>
+      </Flex>
     </Flex>
   );
 
