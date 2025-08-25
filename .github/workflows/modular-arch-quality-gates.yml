@@ -85,11 +85,11 @@ jobs:
                   HAS_MODULE_FEDERATION=false
                   HAS_EXTENSIONS_EXPORT=false
 
-                  if grep -q '"module-federation"' "$base/package.json"; then
+                  if jq -e 'has("module-federation")' "$base/package.json" >/dev/null 2>&1; then
                     HAS_MODULE_FEDERATION=true
                   fi
 
-                  if grep -q '"./extensions"' "$base/package.json"; then
+                  if jq -e '.exports | type == "object" and has("./extensions")' "$base/package.json" >/dev/null 2>&1; then
                     HAS_EXTENSIONS_EXPORT=true
                   fi
 
@@ -216,7 +216,7 @@ jobs:
 
           # Check if module has BFF (API) capabilities
           HAS_BFF=false
-          if [ -f "$MODULE_PATH/package.json" ] && grep -q '"module-federation"' "$MODULE_PATH/package.json"; then
+          if [ -f "$MODULE_PATH/package.json" ] && jq -e 'has("module-federation")' "$MODULE_PATH/package.json" >/dev/null 2>&1; then
             HAS_BFF=true
           fi
 
@@ -268,6 +268,8 @@ jobs:
           fi
 
           # Check 2: E2E Tests - Look for module-specific e2e directories
+          # Temporarily disabled until a supported per-module e2e runner is available in CI
+          E2E_CHECK_ENABLED=false
           E2E_TESTS_FOUND=false
           E2E_BASE_DIR="frontend/src/__tests__/cypress/cypress/tests/e2e"
 
@@ -287,17 +289,25 @@ jobs:
             fi
           done
 
-          if [ "$E2E_TESTS_FOUND" = true ]; then
-            echo "✅ E2E Tests - PRESENT"
+          if [ "$E2E_CHECK_ENABLED" = true ]; then
+            if [ "$E2E_TESTS_FOUND" = true ]; then
+              echo "✅ E2E Tests - PRESENT"
+              if [ -n "$E2E_FOUND_PATH" ]; then
+                echo "   📁 Found E2E tests in: $E2E_FOUND_PATH"
+              fi
+              IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
+              ENABLED_CHECKS+=("E2E Tests")
+            else
+              echo "❌ E2E Tests - MISSING"
+              MISSING_CHECKS+=("End-to-end tests")
+              ENABLED_CHECKS+=("E2E Tests")
+            fi
+          else
+            echo "# E2E Tests - DISABLED"
+            DISABLED_CHECKS+=("E2E Tests")
             if [ -n "$E2E_FOUND_PATH" ]; then
               echo "   📁 Found E2E tests in: $E2E_FOUND_PATH"
             fi
-            IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
-            ENABLED_CHECKS+=("E2E Tests")
-          else
-            echo "❌ E2E Tests - MISSING"
-            MISSING_CHECKS+=("End-to-end tests")
-            ENABLED_CHECKS+=("E2E Tests")
           fi
 
           # Commented out checks (not yet implemented)
@@ -312,8 +322,8 @@ jobs:
           echo "# Check 4: Pact Testing - DISABLED"
           DISABLED_CHECKS+=("Pact Testing")
 
-                    # Check 5: API Functional Testing (disabled for all modules)
-          # TODO: This check will be enabled once API functional testing has been enabled as a common function for the Modular Architecture
+          # Check 5: API Functional Testing (disabled for all modules)
+          # TODO: Enable once API functional testing is available as a common function for the Modular Architecture
           echo "# Check 5: API Functional Testing - DISABLED"
           DISABLED_CHECKS+=("API Functional Testing")
           
@@ -371,13 +381,20 @@ jobs:
           fi
 
           # E2E
-          if [ "$E2E_TESTS_FOUND" = true ]; then
-            echo "✅ E2E Tests - PRESENT" >> "$OUT_FILE"
+          if [ "$E2E_CHECK_ENABLED" = true ]; then
+            if [ "$E2E_TESTS_FOUND" = true ]; then
+              echo "✅ E2E Tests - PRESENT" >> "$OUT_FILE"
+              if [ -n "$E2E_FOUND_PATH" ]; then
+                echo "   📁 Found E2E tests in: $E2E_FOUND_PATH" >> "$OUT_FILE"
+              fi
+            else
+              echo "❌ E2E Tests - MISSING" >> "$OUT_FILE"
+            fi
+          else
+            echo "# E2E Tests - DISABLED" >> "$OUT_FILE"
             if [ -n "$E2E_FOUND_PATH" ]; then
               echo "   📁 Found E2E tests in: $E2E_FOUND_PATH" >> "$OUT_FILE"
             fi
-          else
-            echo "❌ E2E Tests - MISSING" >> "$OUT_FILE"
           fi
 
           # Commented out checks
