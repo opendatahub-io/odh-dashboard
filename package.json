@@ -25,7 +25,7 @@
     "frontend/packages/*"
   ],
   "scripts": {
-    "build": "turbo run build",
+    "build": "run-p -l build:*",
     "build:backend": "cd ./backend && npm run build",
     "build:frontend": "cd ./frontend && npm run build",
     "dev": "run-p -l dev:*",
