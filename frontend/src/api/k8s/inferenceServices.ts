@@ -149,7 +149,6 @@ export const assembleInferenceService = (
   const labels = { ...updatedInferenceService.metadata.labels, ...data.labels };
   labels[KnownLabels.DASHBOARD_RESOURCE] = 'true';
 
-  updatedInferenceService.metadata.annotations = annotations;
   updatedInferenceService.metadata.labels = labels;
 
   const spec = { ...updatedInferenceService.spec };
@@ -159,7 +158,7 @@ export const assembleInferenceService = (
     predictor.minReplicas = minReplicas;
     predictor.maxReplicas = maxReplicas;
     if (imagePullSecrets) {
-      annotations['opendatahub.io/connection'] = dataConnectionKey;
+      annotations['opendatahub.io/connections'] = dataConnectionKey;
     }
   }
 
@@ -176,7 +175,7 @@ export const assembleInferenceService = (
   } else {
     delete model.storageUri;
     if (dataConnectionKey) {
-      annotations['opendatahub.io/connection'] = dataConnectionKey;
+      annotations['opendatahub.io/connections'] = dataConnectionKey;
     }
     model.storage = {
       path,
@@ -191,6 +190,8 @@ export const assembleInferenceService = (
   spec.predictor = predictor;
 
   updatedInferenceService.spec = spec;
+
+  updatedInferenceService.metadata.annotations = annotations;
 
   updatedInferenceService = applyAuthToInferenceService(
     updatedInferenceService,
