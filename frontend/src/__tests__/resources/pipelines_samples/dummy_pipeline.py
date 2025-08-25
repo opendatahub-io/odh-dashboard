@@ -1,6 +1,6 @@
 from kfp import compiler, dsl
 
-common_base_image = "registry.redhat.io/ubi8/python-39@sha256:3523b184212e1f2243e76d8094ab52b01ea3015471471290d011625e1763af61"
+common_base_image = "registry.redhat.io/ubi9/python-311@sha256:82a16d7c4da926081c0a4cc72a84d5ce37859b50a371d2f9364313f66b89adf7"
 
 
 @dsl.component(base_image=common_base_image)
