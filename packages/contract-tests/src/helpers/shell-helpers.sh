@@ -93,15 +93,22 @@ kill_process_on_port() {
     PIDS=$(lsof -ti:"$PORT" 2>/dev/null || true)
     if [[ -n "$PIDS" ]]; then
         log_warning "Port $PORT is in use, attempting graceful shutdown (SIGTERM)..."
-        # Send SIGTERM first
-        echo "$PIDS" | xargs -r kill -15 || true
+        while IFS=$'\n' read -r PID; do
+            [[ -z "$PID" ]] && continue
+            [[ "$PID" =~ ^[0-9]+$ ]] || continue
+            kill -15 "$PID" 2>/dev/null || true
+        done <<< "$PIDS"
         sleep 2
 
         # Re-check and SIGKILL remaining processes if any
         PIDS=$(lsof -ti:"$PORT" 2>/dev/null || true)
         if [[ -n "$PIDS" ]]; then
             log_warning "Force killing remaining process(es) on port $PORT (SIGKILL)..."
-            echo "$PIDS" | xargs -r kill -9 || true
+            while IFS=$'\n' read -r PID; do
+                [[ -z "$PID" ]] && continue
+                [[ "$PID" =~ ^[0-9]+$ ]] || continue
+                kill -9 "$PID" 2>/dev/null || true
+            done <<< "$PIDS"
             sleep 1
         fi
     fi
