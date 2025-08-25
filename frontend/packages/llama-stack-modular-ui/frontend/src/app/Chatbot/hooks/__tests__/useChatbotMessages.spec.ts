@@ -1,8 +1,8 @@
 /* eslint-disable camelcase */
 import { renderHook, act } from '@testing-library/react';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
-import { querySource } from '~/app/services/llamaStackService';
-import { ChatbotSourceSettings, QueryResponse } from '~/app/types';
+import { createResponse } from '~/app/services/llamaStackService';
+import { ChatbotSourceSettings, SimplifiedResponseData } from '~/app/types';
 
 // Mock external dependencies
 jest.mock('~/app/services/llamaStackService');
@@ -10,7 +10,7 @@ jest.mock('~/app/utilities/utils', () => ({
   getId: jest.fn(() => 'mock-id'),
 }));
 
-const mockQuerySource = querySource as jest.MockedFunction<typeof querySource>;
+const mockCreateResponse = createResponse as jest.MockedFunction<typeof createResponse>;
 
 describe('useChatbotMessages', () => {
   const mockModelId = 'test-model-id';
@@ -22,32 +22,18 @@ describe('useChatbotMessages', () => {
     chunkOverlap: 50,
   };
 
-  const mockSuccessResponse: QueryResponse = {
-    chat_completion: {
-      metrics: [],
-      completion_message: {
-        role: 'assistant',
-        content: 'This is a bot response',
-        stop_reason: 'stop',
-      },
-    },
-    rag_response: {
-      content: [],
-      metadata: {
-        document_ids: [],
-        chunks: [],
-        scores: [],
-      },
-    },
-    has_rag_content: false,
-    used_vector_dbs: false,
-    assistant_message: 'This is a bot response',
+  const mockSuccessResponse: SimplifiedResponseData = {
+    id: 'resp-123',
+    model: 'test-model-id',
+    status: 'completed',
+    created_at: 0,
+    content: 'This is a bot response',
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
     // Ensure querySource mock is properly reset
-    mockQuerySource.mockReset();
+    mockCreateResponse.mockReset();
   });
 
   describe('initialization', () => {
@@ -75,7 +61,7 @@ describe('useChatbotMessages', () => {
 
   describe('handleMessageSend', () => {
     it('should successfully send a message and receive a bot response', async () => {
-      mockQuerySource.mockResolvedValueOnce(mockSuccessResponse);
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
       const { result } = renderHook(() =>
         useChatbotMessages({
@@ -109,7 +95,7 @@ describe('useChatbotMessages', () => {
     });
 
     it('should disable and re-enable send button during message sending', async () => {
-      mockQuerySource.mockResolvedValueOnce(mockSuccessResponse);
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
       const { result } = renderHook(() =>
         useChatbotMessages({
@@ -131,8 +117,8 @@ describe('useChatbotMessages', () => {
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
     });
 
-    it('should call querySource with correct parameters', async () => {
-      mockQuerySource.mockResolvedValueOnce(mockSuccessResponse);
+    it('should call createResponse with correct parameters', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
       const { result } = renderHook(() =>
         useChatbotMessages({
@@ -147,23 +133,17 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test query');
       });
 
-      expect(mockQuerySource).toHaveBeenCalledWith({
-        content: 'Test query',
-        vector_db_ids: ['test-vector-db'],
-        query_config: {
-          chunk_template: 'Result {index}\nContent: {chunk.content}\nMetadata: {metadata}\n',
-          max_chunks: 5,
-          max_tokens_in_context: 1000,
-        },
-        llm_model_id: 'test-model-id',
-        sampling_params: {
-          strategy: {
-            type: 'greedy',
+      expect(mockCreateResponse).toHaveBeenCalledWith({
+        input: 'Test query',
+        model: 'test-model-id',
+        vector_store_ids: ['test-vector-db'],
+        chat_context: [
+          {
+            role: 'assistant',
+            content: 'Send a message to test your configuration',
           },
-          max_tokens: 500,
-        },
-        system_prompt:
-          "\n\nConversation History:\nbot: Send a message to test your configuration\n\nPlease respond to the user's message while considering the above conversation context.",
+        ],
+        instructions: '',
       });
     });
   });
@@ -190,11 +170,11 @@ describe('useChatbotMessages', () => {
         name: 'Bot',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
-      expect(mockQuerySource).not.toHaveBeenCalled();
+      expect(mockCreateResponse).not.toHaveBeenCalled();
     });
 
-    it('should handle missing selectedSourceSettings by calling querySource without vector_db_ids', async () => {
-      mockQuerySource.mockResolvedValueOnce(mockSuccessResponse);
+    it('should handle missing selectedSourceSettings by calling createResponse without vector_store_ids', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
       const { result } = renderHook(() =>
         useChatbotMessages({
@@ -216,27 +196,21 @@ describe('useChatbotMessages', () => {
         name: 'Bot',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
-      expect(mockQuerySource).toHaveBeenCalledWith({
-        content: 'Test message',
-        query_config: {
-          chunk_template: 'Result {index}\nContent: {chunk.content}\nMetadata: {metadata}\n',
-          max_chunks: 5,
-          max_tokens_in_context: 1000,
-        },
-        llm_model_id: 'test-model-id',
-        sampling_params: {
-          strategy: {
-            type: 'greedy',
+      expect(mockCreateResponse).toHaveBeenCalledWith({
+        input: 'Test message',
+        model: 'test-model-id',
+        chat_context: [
+          {
+            role: 'assistant',
+            content: 'Send a message to test your configuration',
           },
-          max_tokens: 500,
-        },
-        system_prompt:
-          "\n\nConversation History:\nbot: Send a message to test your configuration\n\nPlease respond to the user's message while considering the above conversation context.",
+        ],
+        instructions: '',
       });
     });
 
     it('should handle API errors', async () => {
-      mockQuerySource.mockRejectedValueOnce(new Error('API Error'));
+      mockCreateResponse.mockRejectedValueOnce(new Error('API Error'));
 
       const { result } = renderHook(() =>
         useChatbotMessages({
@@ -261,7 +235,7 @@ describe('useChatbotMessages', () => {
     });
 
     it('should re-enable send button even when errors occur', async () => {
-      mockQuerySource.mockRejectedValueOnce(new Error('API Error'));
+      mockCreateResponse.mockRejectedValueOnce(new Error('API Error'));
 
       const { result } = renderHook(() =>
         useChatbotMessages({
@@ -282,7 +256,7 @@ describe('useChatbotMessages', () => {
 
   describe('conversation context functionality', () => {
     it('should include conversation history in system prompt', async () => {
-      mockQuerySource.mockResolvedValueOnce(mockSuccessResponse);
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
       const { result } = renderHook(() =>
         useChatbotMessages({
@@ -304,24 +278,34 @@ describe('useChatbotMessages', () => {
       });
 
       // Check that querySource was called with conversation history in system prompt
-      expect(mockQuerySource).toHaveBeenCalledTimes(2);
+      expect(mockCreateResponse).toHaveBeenCalledTimes(2);
 
-      const firstCall = mockQuerySource.mock.calls[0][0];
-      expect(firstCall.system_prompt).toContain('You are a helpful assistant.');
-      expect(firstCall.system_prompt).toContain('Conversation History:');
-      expect(firstCall.system_prompt).toContain('bot: Send a message to test your configuration');
-      expect(firstCall.system_prompt).toContain(
-        "Please respond to the user's message while considering the above conversation context.",
-      );
+      const firstCall = mockCreateResponse.mock.calls[0][0];
+      expect(firstCall.instructions).toBe('You are a helpful assistant.');
+      expect(firstCall.chat_context).toHaveLength(1);
+      expect(firstCall.chat_context![0]).toMatchObject({
+        role: 'assistant',
+        content: 'Send a message to test your configuration',
+      });
 
-      const secondCall = mockQuerySource.mock.calls[1][0];
-      expect(secondCall.system_prompt).toContain('bot: Send a message to test your configuration');
-      expect(secondCall.system_prompt).toContain('user: Hello');
-      expect(secondCall.system_prompt).toContain('bot: This is a bot response');
+      const secondCall = mockCreateResponse.mock.calls[1][0];
+      expect(secondCall.chat_context).toHaveLength(3);
+      expect(secondCall.chat_context![0]).toMatchObject({
+        role: 'assistant',
+        content: 'Send a message to test your configuration',
+      });
+      expect(secondCall.chat_context![1]).toMatchObject({
+        role: 'user',
+        content: 'Hello',
+      });
+      expect(secondCall.chat_context![2]).toMatchObject({
+        role: 'assistant',
+        content: 'This is a bot response',
+      });
     });
 
     it('should handle empty system instruction correctly', async () => {
-      mockQuerySource.mockResolvedValueOnce(mockSuccessResponse);
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
       const { result } = renderHook(() =>
         useChatbotMessages({
@@ -336,16 +320,17 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      const call = mockQuerySource.mock.calls[0][0];
-      expect(call.system_prompt).toContain('Conversation History:');
-      expect(call.system_prompt).toContain('bot: Send a message to test your configuration');
-      expect(call.system_prompt).toContain(
-        "Please respond to the user's message while considering the above conversation context.",
-      );
+      const call = mockCreateResponse.mock.calls[0][0];
+      expect(call.instructions).toBe('');
+      expect(call.chat_context).toHaveLength(1);
+      expect(call.chat_context![0]).toMatchObject({
+        role: 'assistant',
+        content: 'Send a message to test your configuration',
+      });
     });
 
     it('should maintain conversation context when modelId changes', async () => {
-      mockQuerySource.mockResolvedValue(mockSuccessResponse);
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
 
       const { result, rerender } = renderHook(
         ({ modelId }) =>
@@ -372,13 +357,25 @@ describe('useChatbotMessages', () => {
       });
 
       // Verify conversation context is preserved
-      const secondCall = mockQuerySource.mock.calls[1][0];
-      expect(secondCall.system_prompt).toContain('Hello with model 1');
-      expect(secondCall.llm_model_id).toBe('model-2');
+      const secondCall = mockCreateResponse.mock.calls[1][0];
+      expect(secondCall.chat_context).toHaveLength(3);
+      expect(secondCall.chat_context![0]).toMatchObject({
+        role: 'assistant',
+        content: 'Send a message to test your configuration',
+      });
+      expect(secondCall.chat_context![1]).toMatchObject({
+        role: 'user',
+        content: 'Hello with model 1',
+      });
+      expect(secondCall.chat_context![2]).toMatchObject({
+        role: 'assistant',
+        content: 'This is a bot response',
+      });
+      expect(secondCall.model).toBe('model-2');
     });
 
     it('should maintain conversation context when system instruction changes', async () => {
-      mockQuerySource.mockResolvedValue(mockSuccessResponse);
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
 
       const { result, rerender } = renderHook(
         ({ systemInstruction }) =>
@@ -405,9 +402,21 @@ describe('useChatbotMessages', () => {
       });
 
       // Verify conversation context is preserved
-      const secondCall = mockQuerySource.mock.calls[1][0];
-      expect(secondCall.system_prompt).toContain('Be detailed.');
-      expect(secondCall.system_prompt).toContain('Hello with concise instruction');
+      const secondCall = mockCreateResponse.mock.calls[1][0];
+      expect(secondCall.instructions).toBe('Be detailed.');
+      expect(secondCall.chat_context).toHaveLength(3);
+      expect(secondCall.chat_context![0]).toMatchObject({
+        role: 'assistant',
+        content: 'Send a message to test your configuration',
+      });
+      expect(secondCall.chat_context![1]).toMatchObject({
+        role: 'user',
+        content: 'Hello with concise instruction',
+      });
+      expect(secondCall.chat_context![2]).toMatchObject({
+        role: 'assistant',
+        content: 'This is a bot response',
+      });
     });
   });
 });

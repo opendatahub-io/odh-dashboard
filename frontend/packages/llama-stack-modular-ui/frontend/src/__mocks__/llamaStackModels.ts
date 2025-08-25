@@ -4,26 +4,22 @@ import { LlamaModel } from '~/app/types';
 
 export const mockLlamaModels: LlamaModel[] = [
   {
-    identifier: 'llama-3.1-8b-instruct',
-    provider_id: 'meta-reference',
-    provider_resource_id: 'llama-3.1-8b-instruct',
-    model_type: 'llm',
-    metadata: {},
+    id: 'ollama/llama3.2:3b',
+    object: 'model',
+    created: 1755721063,
+    owned_by: 'llama_stack',
   },
   {
-    identifier: 'llama-3.1-70b-instruct',
-    provider_id: 'meta-reference',
-    provider_resource_id: 'llama-3.1-70b-instruct',
-    model_type: 'llm',
-    metadata: {},
+    id: 'ollama/all-minilm:l6-v2',
+    object: 'model',
+    created: 1755721063,
+    owned_by: 'llama_stack',
   },
 ];
 
 export const mockSingleModel: LlamaModel = {
-  identifier: 'llama-3.1-8b-instruct',
-  provider_id: 'meta-reference',
-  provider_resource_id: 'llama-3.1-8b-instruct',
-  model_type: 'llm',
-
-  metadata: {},
+  id: 'ollama/llama3.2:3b',
+  object: 'model',
+  created: 1755721063,
+  owned_by: 'llama_stack',
 };
