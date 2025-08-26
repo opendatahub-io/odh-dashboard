@@ -3,7 +3,7 @@ import { InferenceServiceKind } from '#~/k8sTypes';
 import { getInferenceServiceModelState } from '#~/concepts/modelServingKServe/kserveStatusUtils';
 import { FAST_POLL_INTERVAL } from '#~/utilities/const';
 import { useInferenceServiceStatus } from '#~/pages/modelServing/useInferenceServiceStatus.ts';
-import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
+import { ModelDeploymentState } from '#~/pages/modelServing/screens/types';
 import { getInferenceServiceStoppedStatus } from '#~/pages/modelServing/utils';
 
 // Mock dependencies
@@ -46,8 +46,8 @@ describe('useInferenceServiceStatus', () => {
     status: {
       modelStatus: {
         states: {
-          targetModelState: InferenceServiceModelState.LOADED,
-          activeModelState: InferenceServiceModelState.LOADED,
+          targetModelState: ModelDeploymentState.LOADED,
+          activeModelState: ModelDeploymentState.LOADED,
         },
       },
     },
@@ -87,7 +87,7 @@ describe('useInferenceServiceStatus', () => {
       refresh: jest.fn(),
     });
 
-    mockGetInferenceServiceModelState.mockReturnValue(InferenceServiceModelState.LOADED);
+    mockGetInferenceServiceModelState.mockReturnValue(ModelDeploymentState.LOADED);
     mockGetInferenceServiceStoppedStatus.mockReturnValue({
       inferenceService: mockInferenceService,
       isStopped: false,
@@ -138,7 +138,7 @@ describe('useInferenceServiceStatus', () => {
 
   describe('isStarting state management', () => {
     it('should set isStarting to true when model state is LOADING', () => {
-      mockGetInferenceServiceModelState.mockReturnValue(InferenceServiceModelState.LOADING);
+      mockGetInferenceServiceModelState.mockReturnValue(ModelDeploymentState.LOADING);
 
       const { result } = renderHook(
         ({ inferenceService, refresh }) => useInferenceServiceStatus(inferenceService, refresh),
@@ -155,7 +155,7 @@ describe('useInferenceServiceStatus', () => {
     });
 
     it('should set isStarting to true when model state is PENDING', () => {
-      mockGetInferenceServiceModelState.mockReturnValue(InferenceServiceModelState.PENDING);
+      mockGetInferenceServiceModelState.mockReturnValue(ModelDeploymentState.PENDING);
 
       const { result } = renderHook(
         ({ inferenceService, refresh }) => useInferenceServiceStatus(inferenceService, refresh),
@@ -172,7 +172,7 @@ describe('useInferenceServiceStatus', () => {
     });
 
     it('should set isStarting to false when model state is LOADED', () => {
-      mockGetInferenceServiceModelState.mockReturnValue(InferenceServiceModelState.LOADED);
+      mockGetInferenceServiceModelState.mockReturnValue(ModelDeploymentState.LOADED);
 
       const { result, rerender } = renderHook(
         ({ inferenceService, refresh }) => useInferenceServiceStatus(inferenceService, refresh),
@@ -194,7 +194,7 @@ describe('useInferenceServiceStatus', () => {
     });
 
     it('should set isStarting to false when model state is FAILED_TO_LOAD', () => {
-      mockGetInferenceServiceModelState.mockReturnValue(InferenceServiceModelState.FAILED_TO_LOAD);
+      mockGetInferenceServiceModelState.mockReturnValue(ModelDeploymentState.FAILED_TO_LOAD);
 
       const { result, rerender } = renderHook(
         ({ inferenceService, refresh }) => useInferenceServiceStatus(inferenceService, refresh),

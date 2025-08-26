@@ -1,12 +1,19 @@
-import React, { act } from 'react';
+import * as React from 'react';
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { Deployment } from '../../../../extension-points';
 import { mockExtensions } from '../../../__tests__/mockUtils';
 import { DeploymentRow } from '../DeploymentsTableRow';
 
 jest.mock('@odh-dashboard/plugin-core');
+
+// Mock the useModelDeploymentNotification hook
+jest.mock('../../../concepts/useModelDeploymentNotification', () => ({
+  useModelDeploymentNotification: () => ({
+    watchDeployment: jest.fn(),
+  }),
+}));
 
 const mockDeployment = (partial: Partial<Deployment> = {}) => ({
   modelServingPlatformId: 'test-platform',
@@ -97,7 +104,7 @@ describe('DeploymentsTableRow', () => {
         <tbody>
           <DeploymentRow
             deployment={mockDeployment({
-              status: { state: InferenceServiceModelState.LOADED },
+              status: { state: ModelDeploymentState.LOADED },
             })}
             platformColumns={[]}
             onDelete={onDelete}
