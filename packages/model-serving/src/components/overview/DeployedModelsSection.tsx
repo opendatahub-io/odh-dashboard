@@ -28,11 +28,13 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/
 import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
-import { useExtensions } from '@odh-dashboard/plugin-core';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
-import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
+import {
+  useProjectServingPlatform,
+  type ModelServingPlatform,
+} from '../../concepts/useProjectServingPlatform';
 import DeployedModelsDetails from '../deployments/DeployedModelsVersion';
-import { Deployment, isModelServingPlatformExtension } from '../../../extension-points';
+import { Deployment } from '../../../extension-points';
 import DeploymentStatus from '../deployments/DeploymentStatus';
 
 enum FilterStates {
@@ -182,10 +184,9 @@ const DeployedModelsGallery: React.FC<DeployedModelsGalleryProps> = ({
   );
 };
 
-const DeployedModelsSection: React.FC = () => {
-  const availablePlatforms = useExtensions(isModelServingPlatformExtension);
+const DeployedModelsSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({ platforms }) => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
-  const { activePlatform } = useProjectServingPlatform(currentProject, availablePlatforms);
+  const { activePlatform } = useProjectServingPlatform(currentProject, platforms);
   const [filteredState, setFilteredState] = React.useState<FilterStates | undefined>();
 
   const platformLabel = activePlatform?.properties.enableCardText.enabledText;
