@@ -17,6 +17,7 @@ import { patchInferenceServiceStoppedStatus } from '#~/api/k8s/inferenceServices
 import useStopModalPreference from '#~/pages/modelServing/useStopModalPreference.ts';
 import ModelServingStopModal from '#~/pages/modelServing/ModelServingStopModal';
 import { useInferenceServiceStatus } from '#~/pages/modelServing/useInferenceServiceStatus.ts';
+import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
@@ -63,12 +64,21 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   const { isStarting, isStopping, isStopped, isRunning, isFailed, setIsStarting, setIsStopping } =
     useInferenceServiceStatus(inferenceService, refresh);
 
+  const { watchDeployment } = useModelDeploymentNotification(
+    inferenceService.metadata.namespace,
+    inferenceService.metadata.name,
+    !modelMesh, // isKserve
+  );
+
   const onStart = React.useCallback(() => {
     setIsStarting(true);
     patchInferenceServiceStoppedStatus(inferenceService, 'false')
-      .then(refresh)
+      .then(() => {
+        refresh();
+        watchDeployment();
+      })
       .catch(() => setIsStarting(false));
-  }, [inferenceService, refresh, setIsStarting]);
+  }, [inferenceService, refresh, setIsStarting, watchDeployment]);
 
   const onStop = React.useCallback(() => {
     if (dontShowModalValue) {

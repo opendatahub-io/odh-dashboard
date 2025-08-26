@@ -8,8 +8,8 @@ import {
   k8sUpdateResource,
   k8sPatchResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { InferenceServiceModel } from '#~/api/models';
-import { InferenceServiceKind, K8sAPIOptions, KnownLabels } from '#~/k8sTypes';
+import { InferenceServiceModel, PodModel } from '#~/api/models';
+import { InferenceServiceKind, K8sAPIOptions, KnownLabels, PodKind } from '#~/k8sTypes';
 import { CreatingInferenceServiceObject } from '#~/pages/modelServing/screens/types';
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import { getInferenceServiceDeploymentMode } from '#~/pages/modelServing/screens/projects/utils';
@@ -282,6 +282,26 @@ export const getInferenceService = (
       opts,
     ),
   );
+
+export const getInferenceServicePods = (
+  name: string,
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<PodKind[]> =>
+  k8sListResource<PodKind>(
+    applyK8sAPIOptions(
+      {
+        model: PodModel,
+        queryOptions: {
+          ns: namespace,
+          queryParams: {
+            labelSelector: `serving.kserve.io/inferenceservice=${name}`,
+          },
+        },
+      },
+      opts,
+    ),
+  ).then((listResource) => listResource.items);
 
 export const createInferenceService = (
   data: CreatingInferenceServiceObject,

@@ -1,5 +1,5 @@
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
-import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { Deployment } from '../../extension-points';
 
 const isDeploymentInactive = (deployment: Deployment): boolean =>
@@ -11,8 +11,8 @@ export const deploymentNameSort = (a: Deployment, b: Deployment): number =>
 export const deploymentLastDeployedSort = (a: Deployment, b: Deployment): number => {
   const getScore = (deployment: Deployment): number => {
     if (
-      deployment.status?.state === InferenceServiceModelState.LOADING ||
-      deployment.status?.state === InferenceServiceModelState.PENDING
+      deployment.status?.state === ModelDeploymentState.LOADING ||
+      deployment.status?.state === ModelDeploymentState.PENDING
     ) {
       return 2;
     }

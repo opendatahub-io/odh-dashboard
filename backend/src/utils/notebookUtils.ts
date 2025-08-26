@@ -274,16 +274,7 @@ export const assembleNotebook = async (
                 ...configMapEnvs,
                 ...secretEnvs,
               ],
-              resources: {
-                requests: {
-                  cpu: resources.requests?.cpu,
-                  memory: resources.requests?.memory,
-                },
-                limits: {
-                  cpu: resources.limits?.cpu,
-                  memory: resources.limits?.memory,
-                },
-              },
+              resources,
               volumeMounts,
               ports: [
                 {
