@@ -3,7 +3,6 @@ import * as React from 'react';
 import { DropEvent } from '@patternfly/react-core';
 import { uploadSource } from '~/app/services/llamaStackService';
 import { ChatbotSourceSettings } from '~/app/types';
-import { extractTextFromFile } from '~/app/utilities/utils';
 
 export interface UseSourceManagementReturn {
   selectedSource: File[];
@@ -36,32 +35,22 @@ const useSourceManagement = ({
   const [isSourceSettingsOpen, setIsSourceSettingsOpen] = React.useState(false);
   const [extractedText, setExtractedText] = React.useState<string>('');
 
-  // Open source settings modal when source is selected
+  // Open source settings modal when source is selected with slight delay to prevent flicker
   React.useEffect(() => {
     if (selectedSource.length > 0) {
-      setIsSourceSettingsOpen(true);
+      // Small delay to allow file processing to complete before opening modal
+      const timer = setTimeout(() => {
+        setIsSourceSettingsOpen(true);
+      }, 100);
+
+      return () => clearTimeout(timer);
     }
+    return undefined;
   }, [selectedSource]);
 
-  const handleSourceDrop = React.useCallback(
-    async (event: DropEvent, source: File[]) => {
-      setSelectedSource(source);
-
-      if (source.length > 0) {
-        try {
-          const text = await extractTextFromFile(source[0]);
-          setExtractedText(text);
-        } catch (error) {
-          // eslint-disable-next-line no-console
-          console.error('Error extracting text from file:', error);
-          onShowErrorAlert();
-          // Clear the selected source on error
-          setSelectedSource([]);
-        }
-      }
-    },
-    [onShowErrorAlert],
-  );
+  const handleSourceDrop = React.useCallback(async (event: DropEvent, source: File[]) => {
+    setSelectedSource(source);
+  }, []);
 
   const removeUploadedSource = React.useCallback(() => {
     setExtractedText('');
@@ -74,25 +63,9 @@ const useSourceManagement = ({
       setSelectedSourceSettings(settings);
       setIsSourceSettingsOpen(false);
 
-      if (settings && settings.chunkOverlap && settings.maxChunkLength) {
-        const source = {
-          documents: [
-            {
-              document_id: selectedSource[0].name,
-              content: extractedText,
-            },
-          ],
-        };
-        const sourceSettings = {
-          embeddingModel: settings.embeddingModel,
-          vectorDB: settings.vectorDB,
-          delimiter: settings.delimiter,
-          chunkOverlap: settings.chunkOverlap,
-          maxChunkLength: settings.maxChunkLength,
-        };
-
+      if (settings) {
         try {
-          await uploadSource(source, sourceSettings);
+          await uploadSource(selectedSource[0], settings);
           onShowSuccessAlert();
         } catch {
           onShowErrorAlert();
@@ -102,7 +75,7 @@ const useSourceManagement = ({
         setExtractedText('');
       }
     },
-    [selectedSource, extractedText, onShowSuccessAlert, onShowErrorAlert],
+    [selectedSource, onShowSuccessAlert, onShowErrorAlert],
   );
 
   return {

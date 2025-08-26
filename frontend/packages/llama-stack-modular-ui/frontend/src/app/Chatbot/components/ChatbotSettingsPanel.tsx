@@ -17,11 +17,12 @@ import { ChatbotSourceUploadPanel } from '~/app/Chatbot/sourceUpload/ChatbotSour
 import { ACCORDION_ITEMS } from '~/app/Chatbot/const';
 import useAccordionState from '~/app/Chatbot/hooks/useAccordionState';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
+import { LlamaModel } from '~/app/types';
 import ModelDetailsDropdown from './ModelDetailsDropdown';
 import SystemPromptFormGroup from './SystemInstructionFormGroup';
 
 interface ChatbotSettingsPanelProps {
-  models: Array<{ identifier: string }>;
+  models: LlamaModel[];
   selectedModel: string;
   onModelChange: (value: string) => void;
   alerts: {

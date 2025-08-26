@@ -6,9 +6,10 @@ import {
   MenuToggle,
   MenuToggleElement,
 } from '@patternfly/react-core';
+import { LlamaModel } from '~/app/types';
 
 interface ModelDetailsDropdownProps {
-  models: Array<{ identifier: string }>;
+  models: LlamaModel[];
   selectedModel: string;
   onModelChange: (value: string) => void;
 }

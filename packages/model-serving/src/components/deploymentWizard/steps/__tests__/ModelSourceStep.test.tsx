@@ -1,9 +1,14 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { useWizardContext, useWizardFooter } from '@patternfly/react-core';
+import { useWizardContext, useWizardFooter, ValidatedOptions } from '@patternfly/react-core';
 import { z } from 'zod';
 import { ModelSourceStepContent } from '../ModelSourceStep';
 import { modelTypeSelectFieldSchema } from '../../fields/ModelTypeSelectField';
+import type {
+  ModelDeploymentWizardData,
+  ModelDeploymentWizardDataHandlers,
+  UseModelDeploymentWizardState,
+} from '../../useDeploymentWizard';
 
 const modelSourceStepSchema = z.object({
   modelType: modelTypeSelectFieldSchema,
@@ -24,7 +29,22 @@ const mockUseWizardFooter = useWizardFooter as jest.MockedFunction<typeof useWiz
 describe('ModelSourceStep', () => {
   const mockWizardData = {
     modelTypeField: undefined,
+  } satisfies ModelDeploymentWizardData;
+  const mockWizardHandlers = {
     setModelType: jest.fn(),
+  } satisfies ModelDeploymentWizardDataHandlers;
+  const mockWizardState = {
+    data: mockWizardData,
+    handlers: mockWizardHandlers,
+  } satisfies UseModelDeploymentWizardState;
+
+  const mockValidation = {
+    markFieldTouched: jest.fn(),
+    getFieldValidation: jest.fn(() => []),
+    getFieldValidationProps: jest.fn(() => ({
+      validated: 'default' as ValidatedOptions.default,
+      onBlur: jest.fn(),
+    })),
   };
 
   const mockWizardContext = {
@@ -70,29 +90,25 @@ describe('ModelSourceStep', () => {
 
   describe('Component', () => {
     it('should render ModelTypeSelectField', () => {
-      render(<ModelSourceStepContent wizardData={mockWizardData} />);
+      render(<ModelSourceStepContent wizardState={mockWizardState} validation={mockValidation} />);
       expect(screen.getByRole('button')).toBeInTheDocument();
     });
 
     it('should render with selected model type', () => {
       const wizardDataWithSelection = {
-        ...mockWizardData,
-        modelTypeField: 'generative-model' as const,
+        data: {
+          ...mockWizardData,
+          modelTypeField: 'generative-model' as const,
+        },
+        handlers: mockWizardHandlers,
       };
-      render(<ModelSourceStepContent wizardData={wizardDataWithSelection} />);
-      expect(screen.getByText('Generative AI model (e.g. LLM)')).toBeInTheDocument();
-    });
-
-    it('should setup wizard footer', () => {
-      render(<ModelSourceStepContent wizardData={mockWizardData} />);
-      expect(mockUseWizardFooter).toHaveBeenCalledWith(
-        expect.objectContaining({
-          props: expect.objectContaining({
-            activeStep: mockWizardContext.activeStep,
-            nextButtonText: 'Next',
-          }),
-        }),
+      render(
+        <ModelSourceStepContent
+          wizardState={wizardDataWithSelection}
+          validation={mockValidation}
+        />,
       );
+      expect(screen.getByText('Generative AI model (e.g. LLM)')).toBeInTheDocument();
     });
   });
 });

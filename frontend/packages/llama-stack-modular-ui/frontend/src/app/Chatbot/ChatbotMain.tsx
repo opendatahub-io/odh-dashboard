@@ -104,14 +104,13 @@ const ChatbotMain: React.FunctionComponent = () => {
 
   const applicationsPage = (
     <ApplicationsPage title="AI playground" loaded={!loading} empty={false} loadError={error}>
-      {sourceManagement.isSourceSettingsOpen && (
-        <ChatbotSourceSettingsModal
-          onToggle={() =>
-            sourceManagement.setIsSourceSettingsOpen(!sourceManagement.isSourceSettingsOpen)
-          }
-          onSubmitSettings={sourceManagement.handleSourceSettingsSubmit}
-        />
-      )}
+      <ChatbotSourceSettingsModal
+        isOpen={sourceManagement.isSourceSettingsOpen}
+        onToggle={() =>
+          sourceManagement.setIsSourceSettingsOpen(!sourceManagement.isSourceSettingsOpen)
+        }
+        onSubmitSettings={sourceManagement.handleSourceSettingsSubmit}
+      />
       <Drawer isExpanded isInline position="right">
         <DrawerContent panelContent={settingsPanelContent}>
           <DrawerContentBody>
