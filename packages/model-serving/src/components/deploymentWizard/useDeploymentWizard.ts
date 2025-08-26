@@ -3,14 +3,20 @@ import { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts
 import { extractK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
-import { useModelTypeField, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
 import { useModelFormatField } from './fields/ModelFormatField';
+import { ModelLocationData } from './fields/modelLocationFields/types';
+import { ModelLocationFieldData, useModelLocationField } from './fields/ModelLocationSelectField';
+import { useModelTypeField, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
+import { useModelLocationData } from './fields/ModelLocationInputFields';
 
 export type ModelDeploymentWizardData = {
   modelTypeField?: ModelTypeFieldData;
   k8sNameDesc?: K8sNameDescriptionFieldData;
   hardwareProfile?: Parameters<typeof useHardwareProfileConfig>;
   modelFormat?: SupportedModelFormats;
+  modelLocationField?: ModelLocationFieldData;
+  modelLocationData?: ModelLocationData;
+  // Add more field handlers as needed
 };
 
 export type UseModelDeploymentWizardState = {
@@ -20,6 +26,8 @@ export type UseModelDeploymentWizardState = {
     k8sNameDesc: ReturnType<typeof useK8sNameDescriptionFieldData>;
     hardwareProfileConfig: ReturnType<typeof useHardwareProfileConfig>;
     modelFormatState: ReturnType<typeof useModelFormatField>;
+    modelLocationField: ReturnType<typeof useModelLocationField>;
+    modelLocationData: ReturnType<typeof useModelLocationData>;
   };
 };
 
@@ -28,6 +36,8 @@ export const useModelDeploymentWizard = (
 ): UseModelDeploymentWizardState => {
   // Step 1: Model Source
   const modelType = useModelTypeField(initialData?.modelTypeField);
+  const modelLocationField = useModelLocationField(initialData?.modelLocationField);
+  const modelLocationData = useModelLocationData(initialData?.modelLocationData);
 
   // Step 2: Model Deployment
   const k8sNameDesc = useK8sNameDescriptionFieldData({
@@ -47,6 +57,8 @@ export const useModelDeploymentWizard = (
       k8sNameDesc,
       hardwareProfileConfig,
       modelFormatState,
+      modelLocationField,
+      modelLocationData,
     },
   };
 };

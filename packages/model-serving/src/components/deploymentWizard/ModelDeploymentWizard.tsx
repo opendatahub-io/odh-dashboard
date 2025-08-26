@@ -4,7 +4,6 @@ import { Wizard, WizardStep } from '@patternfly/react-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { getDeploymentWizardExitRoute } from './utils';
-
 import { useModelDeploymentWizard, type ModelDeploymentWizardData } from './useDeploymentWizard';
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
 import { ModelSourceStepContent } from './steps/ModelSourceStep';
@@ -40,7 +39,11 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     <ApplicationsPage title={title} description={description} loaded empty={false}>
       <Wizard onClose={exitWizard} onSave={exitWizard} footer={<WizardFooterWithDisablingNext />}>
         <WizardStep name="Source model" id="source-model-step">
-          <ModelSourceStepContent wizardState={wizardState} validation={validation.modelSource} />
+          <ModelSourceStepContent
+            wizardState={wizardState}
+            validation={validation.modelSource}
+            project={project}
+          />
         </WizardStep>
         <WizardStep
           name="Model deployment"
