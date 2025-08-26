@@ -15,11 +15,11 @@ const mockQuerySource = querySource as jest.MockedFunction<typeof querySource>;
 describe('useChatbotMessages', () => {
   const mockModelId = 'test-model-id';
   const mockSourceSettings: ChatbotSourceSettings = {
-    vectorDB: 'test-vector-db',
+    vectorStore: 'test-vector-db',
     embeddingModel: 'test-embedding-model',
-    maxChunkLength: '500',
+    maxChunkLength: 500,
     delimiter: '\n\n',
-    chunkOverlap: '50',
+    chunkOverlap: 50,
   };
 
   const mockSuccessResponse: QueryResponse = {
