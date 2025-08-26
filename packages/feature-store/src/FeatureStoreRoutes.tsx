@@ -37,7 +37,7 @@ const FeatureStoreRoutes: React.FC = () => (
         />
       }
     >
-      <Route index element={<FeatureStore empty={false} />} />
+      <Route path="overview/:fsProjectName?/*" element={<FeatureStore empty={false} />} />
       <Route path="entities/:fsProjectName?/*" element={<FeatureStoreEntities />} />
       <Route path="featureViews/:fsProjectName?/*" element={<FeatureViews />} />
       <Route path="featureViews/:fsProjectName/:featureViewName" element={<FeatureViewDetails />} />
