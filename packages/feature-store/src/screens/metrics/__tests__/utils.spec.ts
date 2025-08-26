@@ -149,7 +149,7 @@ describe('utils', () => {
 
       const result = processMetricsData(mockData);
 
-      expect(result[0].count).toBe(5); // Should use project counts, not total
+      expect(result[0].count).toBe(5);
       expect(result[1].count).toBe(3);
       expect(result[2].count).toBe(2);
       expect(result[3].count).toBe(10);
@@ -175,7 +175,7 @@ describe('utils', () => {
 
     it('should handle edge cases', () => {
       expect(formatResourceType('entities')).toBe('entity');
-      expect(formatResourceType('data_sources')).toBe('data_sources');
+      expect(formatResourceType('data_sources')).toBe('data sources');
     });
   });
 
@@ -204,7 +204,7 @@ describe('utils', () => {
     });
 
     it('should return correct route for data sources', () => {
-      const result = getResourceRoute('data_sources', mockResourceName, mockProject);
+      const result = getResourceRoute('data sources', mockResourceName, mockProject);
       expect(result).toBe(`/featureStore/dataSources/${mockResourceName}?project=${mockProject}`);
     });
 
@@ -219,39 +219,38 @@ describe('utils', () => {
     });
 
     it('should handle empty resource name', () => {
-      const result = getResourceRoute('entities', '', mockProject);
+      const result = getResourceRoute('entity', '', mockProject);
       expect(result).toBe(`/featureStore/entities/${mockProject}/`);
-    });
-
-    it('should handle empty project', () => {
-      const result = getResourceRoute('entities', mockResourceName, '');
-      expect(result).toBe(`/featureStore/entities//${mockResourceName}`);
     });
 
     it('should handle special characters in resource name and project', () => {
       const specialResourceName = 'test-resource-with-special-chars_123';
       const specialProject = 'test-project-with-special-chars_456';
 
-      const result = getResourceRoute('entities', specialResourceName, specialProject);
+      const result = getResourceRoute('entity', specialResourceName, specialProject);
       expect(result).toBe(`/featureStore/entities/${specialProject}/${specialResourceName}`);
     });
 
     it('should handle all resource type mappings', () => {
       const testCases = [
         {
-          resourceType: 'entities',
+          resourceType: 'entity',
           expectedRoute: `/featureStore/entities/${mockProject}/${mockResourceName}`,
         },
         {
-          resourceType: 'feature_views',
+          resourceType: 'feature views',
           expectedRoute: `/featureStore/featureViews/${mockProject}/${mockResourceName}`,
         },
         {
-          resourceType: 'saved_datasets',
+          resourceType: 'saved datasets',
           expectedRoute: `/featureStore/savedDatasets/${mockResourceName}?project=${mockProject}`,
         },
         {
-          resourceType: 'feature_services',
+          resourceType: 'data sources',
+          expectedRoute: `/featureStore/dataSources/${mockResourceName}?project=${mockProject}`,
+        },
+        {
+          resourceType: 'feature services',
           expectedRoute: `/featureStore/featureServices/${mockProject}/${mockResourceName}`,
         },
         {

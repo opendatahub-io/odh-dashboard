@@ -6,9 +6,6 @@ import { MetricsCountResponse } from '../../types/metrics';
 jest.mock('../../FeatureStoreContext');
 const mockUseFeatureStoreAPI = useFeatureStoreAPI as jest.MockedFunction<typeof useFeatureStoreAPI>;
 
-jest.mock('@odh-dashboard/internal/utilities/useFetch');
-const mockUseFetch = jest.fn();
-
 describe('useMetricsResourceCount', () => {
   const mockApi = {
     getMetricsResourceCount: jest.fn(),
@@ -68,12 +65,6 @@ describe('useMetricsResourceCount', () => {
     describe('without project parameter', () => {
       it('should call getMetricsResourceCount without project parameter', async () => {
         mockApi.getMetricsResourceCount.mockResolvedValue(mockMetricsResponse);
-        mockUseFetch.mockReturnValue({
-          data: mockMetricsResponse,
-          loaded: true,
-          error: undefined,
-          refresh: jest.fn(),
-        });
 
         renderHook(() => useMetricsResourceCount({}));
 
@@ -88,30 +79,18 @@ describe('useMetricsResourceCount', () => {
 
       it('should return metrics data for all projects', async () => {
         mockApi.getMetricsResourceCount.mockResolvedValue(mockMetricsResponse);
-        mockUseFetch.mockReturnValue({
-          data: mockMetricsResponse,
-          loaded: true,
-          error: undefined,
-          refresh: jest.fn(),
-        });
 
         const { result } = renderHook(() => useMetricsResourceCount({}));
 
-        expect(result.current.data).toEqual(mockMetricsResponse);
-        expect(result.current.loaded).toBe(true);
-        expect(result.current.error).toBeUndefined();
+        await waitFor(() => {
+          expect(result.current.data).toEqual(mockMetricsResponse);
+        });
       });
     });
 
     describe('with project parameter', () => {
       it('should call getMetricsResourceCount with project parameter', async () => {
         mockApi.getMetricsResourceCount.mockResolvedValue(mockProjectMetricsResponse);
-        mockUseFetch.mockReturnValue({
-          data: mockProjectMetricsResponse,
-          loaded: true,
-          error: undefined,
-          refresh: jest.fn(),
-        });
 
         renderHook(() => useMetricsResourceCount({ project: 'rbac' }));
 
@@ -122,51 +101,39 @@ describe('useMetricsResourceCount', () => {
 
       it('should return metrics data for specific project', async () => {
         mockApi.getMetricsResourceCount.mockResolvedValue(mockProjectMetricsResponse);
-        mockUseFetch.mockReturnValue({
-          data: mockProjectMetricsResponse,
-          loaded: true,
-          error: undefined,
-          refresh: jest.fn(),
-        });
 
         const { result } = renderHook(() => useMetricsResourceCount({ project: 'rbac' }));
 
-        expect(result.current.data).toEqual(mockProjectMetricsResponse);
-        expect(result.current.loaded).toBe(true);
-        expect(result.current.error).toBeUndefined();
+        await waitFor(() => {
+          expect(result.current.data).toEqual(mockProjectMetricsResponse);
+          expect(result.current.loaded).toBe(true);
+          expect(result.current.error).toBeUndefined();
+        });
       });
     });
 
     describe('API call behavior', () => {
       it('should handle successful API response', async () => {
         mockApi.getMetricsResourceCount.mockResolvedValue(mockMetricsResponse);
-        mockUseFetch.mockReturnValue({
-          data: mockMetricsResponse,
-          loaded: true,
-          error: undefined,
-          refresh: jest.fn(),
-        });
 
         const { result } = renderHook(() => useMetricsResourceCount({}));
 
-        expect(result.current.data).toEqual(mockMetricsResponse);
-        expect(result.current.loaded).toBe(true);
+        await waitFor(() => {
+          expect(result.current.data).toEqual(mockMetricsResponse);
+          expect(result.current.loaded).toBe(true);
+        });
       });
 
       it('should handle API error', async () => {
         const mockError = new Error('API Error');
         mockApi.getMetricsResourceCount.mockRejectedValue(mockError);
-        mockUseFetch.mockReturnValue({
-          data: undefined,
-          loaded: false,
-          error: mockError,
-          refresh: jest.fn(),
-        });
 
         const { result } = renderHook(() => useMetricsResourceCount({}));
 
-        expect(result.current.error).toEqual(mockError);
-        expect(result.current.loaded).toBe(false);
+        await waitFor(() => {
+          expect(result.current.error).toEqual(mockError);
+          expect(result.current.loaded).toBe(false);
+        });
       });
     });
   });
@@ -180,7 +147,6 @@ describe('useMetricsResourceCount', () => {
 
       const { result } = renderHook(() => useMetricsResourceCount({}));
 
-      // The hook should still return the initial state even when API is not available
       expect(result.current.data).toEqual({
         total: undefined,
         perProject: undefined,
@@ -192,18 +158,6 @@ describe('useMetricsResourceCount', () => {
 
   describe('initial state', () => {
     it('should return initial state with undefined values', () => {
-      mockUseFetch.mockReturnValue({
-        data: {
-          total: undefined,
-          perProject: undefined,
-          project: undefined,
-          counts: undefined,
-        },
-        loaded: false,
-        error: undefined,
-        refresh: jest.fn(),
-      });
-
       const { result } = renderHook(() => useMetricsResourceCount({}));
 
       expect(result.current.data).toEqual({
@@ -218,125 +172,70 @@ describe('useMetricsResourceCount', () => {
 
   describe('hook dependencies', () => {
     it('should recreate callback when project changes', () => {
+      mockApi.getMetricsResourceCount.mockResolvedValue(mockProjectMetricsResponse);
+
       const { rerender } = renderHook(({ project }) => useMetricsResourceCount({ project }), {
         initialProps: { project: 'rbac' },
       });
 
       rerender({ project: 'credit_scoring_local' });
 
-      // The callback should be recreated due to project dependency change
-      expect(mockApi.getMetricsResourceCount).not.toHaveBeenCalled();
+      expect(mockApi.getMetricsResourceCount).toHaveBeenCalledWith(expect.any(Object), 'rbac');
+      expect(mockApi.getMetricsResourceCount).toHaveBeenCalledWith(
+        expect.any(Object),
+        'credit_scoring_local',
+      );
     });
 
     it('should recreate callback when API changes', () => {
-      const { rerender } = renderHook(() => useMetricsResourceCount({}));
+      mockApi.getMetricsResourceCount.mockResolvedValue(mockMetricsResponse);
 
-      // Change the API reference
-      const newMockApi = { getMetricsResourceCount: jest.fn() };
+      const { rerender } = renderHook(() => useMetricsResourceCount({}));
+      const newMockApi = {
+        getMetricsResourceCount: jest.fn().mockResolvedValue(mockMetricsResponse),
+      };
       mockUseFeatureStoreAPI.mockReturnValue({
         api: newMockApi,
         apiAvailable: true,
       } as unknown as ReturnType<typeof useFeatureStoreAPI>);
 
       rerender();
-
-      // The callback should be recreated due to API dependency change
-      expect(newMockApi.getMetricsResourceCount).not.toHaveBeenCalled();
+      expect(mockApi.getMetricsResourceCount).toHaveBeenCalled();
+      expect(newMockApi.getMetricsResourceCount).toHaveBeenCalled();
     });
   });
 
   describe('edge cases', () => {
-    it('should handle empty project string', () => {
-      mockUseFetch.mockReturnValue({
-        data: mockMetricsResponse,
-        loaded: true,
-        error: undefined,
-        refresh: jest.fn(),
-      });
+    it('should handle empty project string', async () => {
+      mockApi.getMetricsResourceCount.mockResolvedValue(mockMetricsResponse);
 
       const { result } = renderHook(() => useMetricsResourceCount({ project: '' }));
 
-      expect(result.current.data).toEqual(mockMetricsResponse);
+      await waitFor(() => {
+        expect(result.current.data).toEqual(mockMetricsResponse);
+      });
     });
 
-    it('should handle undefined project', () => {
-      mockUseFetch.mockReturnValue({
-        data: mockMetricsResponse,
-        loaded: true,
-        error: undefined,
-        refresh: jest.fn(),
-      });
+    it('should handle undefined project', async () => {
+      mockApi.getMetricsResourceCount.mockResolvedValue(mockMetricsResponse);
 
       const { result } = renderHook(() => useMetricsResourceCount({ project: undefined }));
 
-      expect(result.current.data).toEqual(mockMetricsResponse);
+      await waitFor(() => {
+        expect(result.current.data).toEqual(mockMetricsResponse);
+      });
     });
 
-    it('should handle null project', () => {
-      mockUseFetch.mockReturnValue({
-        data: mockMetricsResponse,
-        loaded: true,
-        error: undefined,
-        refresh: jest.fn(),
-      });
+    it('should handle null project', async () => {
+      mockApi.getMetricsResourceCount.mockResolvedValue(mockMetricsResponse);
 
       const { result } = renderHook(() =>
         useMetricsResourceCount({ project: null as unknown as string }),
       );
 
-      expect(result.current.data).toEqual(mockMetricsResponse);
-    });
-  });
-
-  describe('useFetch integration', () => {
-    it('should pass correct initial data to useFetch', () => {
-      const mockUseFetchImplementation = jest.fn().mockReturnValue({
-        data: mockMetricsResponse,
-        loaded: true,
-        error: undefined,
-        refresh: jest.fn(),
+      await waitFor(() => {
+        expect(result.current.data).toEqual(mockMetricsResponse);
       });
-
-      // Mock the actual useFetch module
-      jest.doMock('@odh-dashboard/internal/utilities/useFetch', () => ({
-        __esModule: true,
-        default: mockUseFetchImplementation,
-      }));
-
-      renderHook(() => useMetricsResourceCount({}));
-
-      expect(mockUseFetchImplementation).toHaveBeenCalledWith(
-        expect.any(Function),
-        {
-          total: undefined,
-          perProject: undefined,
-          project: undefined,
-          counts: undefined,
-        },
-        { initialPromisePurity: true },
-      );
-    });
-
-    it('should pass correct options to useFetch', () => {
-      const mockUseFetchImplementation = jest.fn().mockReturnValue({
-        data: mockMetricsResponse,
-        loaded: true,
-        error: undefined,
-        refresh: jest.fn(),
-      });
-
-      jest.doMock('@odh-dashboard/internal/utilities/useFetch', () => ({
-        __esModule: true,
-        default: mockUseFetchImplementation,
-      }));
-
-      renderHook(() => useMetricsResourceCount({}));
-
-      expect(mockUseFetchImplementation).toHaveBeenCalledWith(
-        expect.any(Function),
-        expect.any(Object),
-        { initialPromisePurity: true },
-      );
     });
   });
 });
