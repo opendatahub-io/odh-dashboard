@@ -37,7 +37,7 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
       onFileDrop={handleSourceDrop}
       dropzoneProps={{
         accept: {
-          'text/plain': ['.txt'],
+          'text/plain': ['.txt', '.pdf', '.doc'],
         },
         maxFiles: 1,
       }}
@@ -48,7 +48,7 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
         titleIcon={<FileIcon />}
         titleText="Drag and drop file here"
         titleTextSeparator="or"
-        infoText="Accepted file types: TXT"
+        infoText="Accepted file types: PDF, DOC, TXT"
       />
       {selectedSourceSettings &&
         selectedSource.map((file) => (
