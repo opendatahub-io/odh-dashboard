@@ -183,6 +183,28 @@ paths:
       summary: Export Python Code
       description: Generates Python code based on provided configuration parameters.
 
+  /genai/v1/namespaces:
+    summary: List Kubernetes cluster namespaces
+    description: >-
+      Lists all namespaces in the Kubernetes cluster.
+      Returns namespace information including name and display name.
+      Requires valid Kubernetes authentication token.
+    get:
+      tags:
+        - Kubernetes
+      responses:
+        "200":
+          $ref: "#/components/responses/NamespacesResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: listNamespaces
+      summary: List All Namespaces
+      description: Gets a list of all namespaces in the Kubernetes cluster.
+
 components:
   schemas:
     HealthCheckModel:
@@ -860,6 +882,28 @@ components:
                     
             print("agent>", response.output_text)
 
+    # Kubernetes Namespace Schema
+    NamespaceModel:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: "default"
+          description: Kubernetes namespace name
+        displayName:
+          type: string
+          nullable: true
+          example: "default"
+          description: Human-readable display name for the namespace (optional, defaults to name)
+
+    NamespacesData:
+      type: array
+      items:
+        $ref: "#/components/schemas/NamespaceModel"
+      description: Array of Kubernetes namespaces
+
   responses:
     HealthCheckResponse:
       description: BFF service health status
@@ -941,6 +985,28 @@ components:
                   # Generated Python code for Llama Stack integration
                   # ... rest of the Python code
 
+    NamespacesResponse:
+      description: List of Kubernetes namespaces
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/NamespacesData"
+            example:
+              data:
+                - name: "default"
+                  displayName: "default"
+                - name: "kube-system"
+                  displayName: "kube-system"
+                - name: "llama-stack"
+                  displayName: "llama-stack"
+                - name: "test-namespace"
+                  displayName: null
+
     CreateResponseResponse:
       description: Created AI response with essential information only
       content:
@@ -966,6 +1032,13 @@ components:
 
     BadRequest:
       description: Bad Request - Invalid parameters or missing required fields
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+
+    Unauthorized:
+      description: Unauthorized - Invalid or missing authentication token
       content:
         application/json:
           schema:
@@ -998,3 +1071,5 @@ tags:
     description: AI response generation with comprehensive parameter support
   - name: CodeExporter
     description: Code generation for Llama Stack integration
+  - name: Kubernetes
+    description: Kubernetes cluster operations and namespace management
