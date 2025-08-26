@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import { SortableData } from '@odh-dashboard/internal/components/table/types';
-import { RecentlyVisitedResource } from 'src/types/metrics';
+import { RecentlyVisitedResource } from '../../types/metrics';
 
 export const recentlyVisitedResourcesColumns: SortableData<RecentlyVisitedResource>[] = [
   {
