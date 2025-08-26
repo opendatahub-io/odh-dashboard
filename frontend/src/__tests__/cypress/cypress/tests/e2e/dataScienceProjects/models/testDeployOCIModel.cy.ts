@@ -58,14 +58,7 @@ describe(
     it(
       'Verify User Can Create an OCI Connection in DS Connections Page And Deploy the Model',
       {
-        tags: [
-          '@Smoke',
-          '@SmokeSet3',
-          '@Dashboard',
-          '@Modelserving',
-          '@NonConcurrent',
-          '@Bug',
-        ],
+        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent', '@Bug'],
       },
       () => {
         cy.step(`Navigate to DS Project ${projectName}`);
