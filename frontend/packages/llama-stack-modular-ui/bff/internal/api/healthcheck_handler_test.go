@@ -2,28 +2,29 @@ package api
 
 import (
 	"encoding/json"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/config"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/mocks"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/models"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/repositories"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/config"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/constants"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack/lsmocks"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/models"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/repositories"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestHealthCheckHandler(t *testing.T) {
-	mockLSClient, _ := mocks.NewLlamastackClientMock()
-
-	app := App{config: config.EnvConfig{
-		Port: 4000,
-	},
-		repositories: repositories.NewRepositories(mockLSClient),
+	app := App{
+		config: config.EnvConfig{
+			Port: 4000,
+		},
+		repositories: repositories.NewRepositories(lsmocks.NewMockLlamaStackClient()),
 	}
 
 	rr := httptest.NewRecorder()
-	req, err := http.NewRequest(http.MethodGet, HealthCheckPath, nil)
+	req, err := http.NewRequest(http.MethodGet, constants.HealthCheckPath, nil)
 	assert.NoError(t, err)
 
 	app.HealthcheckHandler(rr, req, nil)
@@ -43,7 +44,7 @@ func TestHealthCheckHandler(t *testing.T) {
 	expected := models.HealthCheckModel{
 		Status: "available",
 		SystemInfo: models.SystemInfo{
-			Version: Version,
+			Version: constants.Version,
 		},
 	}
 

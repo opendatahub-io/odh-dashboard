@@ -10,8 +10,10 @@ import {
   checkModelRegistry,
   checkModelRegistryAvailable,
   cleanupRegisteredModelsFromDatabase,
+  createAndVerifyDatabase,
   createModelRegistryViaYAML,
   deleteModelRegistry,
+  deleteModelRegistryDatabase,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
 import { loadRegisterModelFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
@@ -44,6 +46,10 @@ describe('Verify that models and versions can be archived and restored via model
         testData = fixtureData;
         registryName = `${testData.registryNamePrefix}-${uuid}`;
 
+        // Create and verify SQL database
+        cy.step('Create and verify SQL database for model registry');
+        createAndVerifyDatabase().should('be.true');
+
         // creates a model registry
         cy.step('Create a model registry using YAML');
         createModelRegistryViaYAML(registryName);
@@ -64,7 +70,7 @@ describe('Verify that models and versions can be archived and restored via model
 
   it(
     'Registers model, adds versions, archives version, restores version, archives whole model, restores whole model',
-    { tags: ['@Maintain', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -242,5 +248,8 @@ describe('Verify that models and versions can be archived and restored via model
 
     cy.step('Verify model registry is removed from the backend');
     checkModelRegistry(registryName).should('be.false');
+
+    cy.step('Delete the SQL database');
+    deleteModelRegistryDatabase();
   });
 });

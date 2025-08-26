@@ -1,16 +1,18 @@
 {
+  "root": true,
   "parser": "@typescript-eslint/parser",
   "env": {
     "browser": true,
     "node": true
   },
+  "ignorePatterns": ["dist"],
   // tell the TypeScript parser that we want to use JSX syntax
   "parserOptions": {
     "tsx": true,
     "jsx": true,
     "js": true,
     "useJSXTextNode": true,
-    "project": "./tsconfig.json",
+    "project": true,
     "tsconfigRootDir": "."
   },
   // includes the typescript specific rules found here: https://github.com/typescript-eslint/typescript-eslint/tree/master/packages/eslint-plugin#supported-rules
@@ -18,8 +20,8 @@
   "extends": [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",
-    "prettier/@typescript-eslint",
-    "plugin:prettier/recommended"
+    "plugin:prettier/recommended",
+    "prettier"
   ],
   "globals": {
     "window": "readonly",
@@ -30,7 +32,6 @@
     "process": "readonly",
     "document": "readonly"
   },
-  "settings": {},
   "rules": {
     "no-barrel-files/no-barrel-files": "error",
     "@typescript-eslint/no-non-null-assertion": "error",

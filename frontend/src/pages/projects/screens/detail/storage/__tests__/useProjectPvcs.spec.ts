@@ -1,7 +1,7 @@
 import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
 import { act } from 'react';
+import { standardUseFetchStateObject, testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
-import { standardUseFetchStateObject, testHook } from '#~/__tests__/unit/testUtils/hooks';
 import { PVCModel } from '#~/api';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '#~/const';
 import { PersistentVolumeClaimKind } from '#~/k8sTypes';

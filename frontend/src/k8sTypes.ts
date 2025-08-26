@@ -526,6 +526,7 @@ export type InferenceServiceKind = K8sResourceCommon & {
   };
   spec: {
     predictor: {
+      annotations?: Record<string, string>;
       tolerations?: Toleration[];
       nodeSelector?: NodeSelector;
       model?: {
@@ -1227,6 +1228,7 @@ export type TemplateKind = K8sResourceCommon & {
       'opendatahub.io/template-enabled': string;
       'opendatahub.io/modelServingSupport': string;
       'opendatahub.io/apiProtocol': string;
+      'opendatahub.io/modelServingType': string;
     }>;
     name: string;
     namespace: string;
@@ -1282,6 +1284,7 @@ export type DashboardCommonConfig = {
   disableLMEval: boolean;
   disableKueue: boolean;
   disableModelTraining: boolean;
+  disableDeploymentWizard: boolean;
   disableFeatureStore?: boolean;
 };
 

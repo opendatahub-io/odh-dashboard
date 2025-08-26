@@ -32,7 +32,7 @@ let staticEvaluationName: string;
 describe(
   'Verify LMEval Functionality with Pre-existing Models',
   {
-    tags: ['@Sanity', '@SanitySet3', '@LMEval', '@RHOAIENG-26716', '@Featureflagged'],
+    tags: ['@LMEval', '@RHOAIENG-26716', '@Featureflagged'],
   },
   () => {
     // Load test configuration in before hook
@@ -62,7 +62,7 @@ describe(
     it(
       'should complete LMEval evaluation workflow for static model',
       {
-        tags: ['@Sanity', '@SanitySet3', '@LMEval', '@RHOAIENG-26716', '@Featureflagged'],
+        tags: ['@LMEval', '@RHOAIENG-26716', '@Featureflagged'],
       },
       () => {
         // Navigate to LMEval page

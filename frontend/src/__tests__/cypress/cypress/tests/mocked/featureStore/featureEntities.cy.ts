@@ -1,5 +1,10 @@
 /* eslint-disable camelcase */
 
+import { mockFeatureStoreService } from '@odh-dashboard/feature-store/mocks/mockFeatureStoreService';
+import { mockFeatureStore } from '@odh-dashboard/feature-store/mocks/mockFeatureStore';
+import { mockFeatureStoreProject } from '@odh-dashboard/feature-store/mocks/mockFeatureStoreProject';
+import { mockFeatureView } from '@odh-dashboard/feature-store/mocks/mockFeatureViews';
+import { mockEntities, mockEntity } from '@odh-dashboard/feature-store/mocks/mockEntities';
 import { featureStoreGlobal } from '#~/__tests__/cypress/cypress/pages/featureStore/featureStoreGlobal';
 import { featureEntitiesTable } from '#~/__tests__/cypress/cypress/pages/featureStore/featureEntities';
 import { featureEntityDetails } from '#~/__tests__/cypress/cypress/pages/featureStore/featureEntityDetails';
@@ -10,11 +15,6 @@ import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { ProjectModel, ServiceModel } from '#~/__tests__/cypress/cypress/utils/models';
 import { asClusterAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
-import { mockFeatureStoreService } from '#~/__mocks__/mockFeatureStoreService';
-import { mockFeatureStore } from '#~/__mocks__/mockFeatureStore';
-import { mockFeatureStoreProject } from '#~/__mocks__/mockFeatureStoreProject';
-import { mockEntities, mockEntity } from '#~/__mocks__/mockEntities';
-import { mockFeatureView } from '#~/__mocks__/mockFeatureViews';
 
 const k8sNamespace = 'default';
 const fsName = 'demo';
@@ -380,10 +380,38 @@ describe('Feature Entities', () => {
       },
     ).as('getEntityNotFound');
 
-    cy.visit(`/featureStore/entities/${fsProjectName}/nonexistent`);
+    cy.visit(
+      `/featureStore/entities/${fsProjectName}/nonexistent?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+    );
     cy.findByText(`Entity nonexistent does not exist in project ${fsProjectName}`).should(
       'be.visible',
     );
+  });
+
+  it('should add tag to filter when clicking on a tag for the entity row', () => {
+    featureStoreGlobal.visitEntities(fsProjectName);
+    featureEntitiesTable.findTable().should('be.visible');
+
+    featureEntitiesTable
+      .findRow('transaction_id')
+      .findTags()
+      .within(() => {
+        cy.contains('cardinality=high').click({ force: true });
+      });
+
+    featureEntitiesTable
+      .findRow('transaction_id')
+      .findTags()
+      .within(() => {
+        cy.contains('domain=transaction').click({ force: true });
+      });
+
+    featureEntitiesTable.shouldHaveEntityCount(1);
+    featureEntitiesTable.findRow('transaction_id').findEntityName().should('be.visible');
+
+    featureEntitiesTable.findToolbarClearFiltersButton().should('exist');
+    featureEntitiesTable.findToolbarClearFiltersButton().click();
+    featureEntitiesTable.shouldHaveEntityCount(2);
   });
 });
 
@@ -396,7 +424,9 @@ describe('Entity Feature Views Tab', () => {
   });
 
   it('should display feature views for the entity', () => {
-    cy.visit(`/featureStore/entities/${fsProjectName}/user_id`);
+    cy.visit(
+      `/featureStore/entities/${fsProjectName}/user_id?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+    );
     cy.wait('@getEntityDetails');
 
     featureEntityDetails.clickFeatureViewsTab();
@@ -424,7 +454,9 @@ describe('Entity Feature Views Tab', () => {
       },
     ).as('getEmptyEntityFeatureViews');
 
-    cy.visit(`/featureStore/entities/${fsProjectName}/user_id`);
+    cy.visit(
+      `/featureStore/entities/${fsProjectName}/user_id?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+    );
     cy.wait('@getEntityDetails');
     featureEntityDetails.clickFeatureViewsTab();
     cy.wait('@getEmptyEntityFeatureViews');
@@ -435,7 +467,9 @@ describe('Entity Feature Views Tab', () => {
   });
 
   it('should only call feature views API when tab is clicked', () => {
-    cy.visit(`/featureStore/entities/${fsProjectName}/user_id`);
+    cy.visit(
+      `/featureStore/entities/${fsProjectName}/user_id?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+    );
     cy.wait('@getEntityDetails');
 
     cy.get('@getEntityFeatureViews.all').should('have.length', 0);
@@ -448,7 +482,9 @@ describe('Entity Feature Views Tab', () => {
   });
 
   it('should navigate to feature view details when clicking on feature view name', () => {
-    cy.visit(`/featureStore/entities/${fsProjectName}/user_id`);
+    cy.visit(
+      `/featureStore/entities/${fsProjectName}/user_id?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+    );
     cy.wait('@getEntityDetails');
     featureEntityDetails.clickFeatureViewsTab();
     cy.wait('@getEntityFeatureViews');

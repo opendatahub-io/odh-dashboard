@@ -1,14 +1,15 @@
 import * as React from 'react';
 import { DashboardEmptyTableView, Table } from 'mod-arch-shared';
-import { ModelVersion } from '~/app/types';
-import { mvColumns } from '~/app/pages/modelRegistry/screens/ModelVersions/ModelVersionsTableColumns';
-import ModelVersionsTableRow from '~/app/pages/modelRegistry/screens/ModelVersions/ModelVersionsTableRow';
+import { ModelVersion, RegisteredModel } from '~/app/types';
+import OdhModelVersionsTable from '~/odh/components/OdhModelVersionsTable';
+import { mvColumns } from './ModelVersionsTableColumns';
 
 type ModelVersionsTableProps = {
   clearFilters: () => void;
   modelVersions: ModelVersion[];
   isArchiveModel?: boolean;
   refresh: () => void;
+  rm: RegisteredModel;
 } & Partial<Pick<React.ComponentProps<typeof Table>, 'toolbarContent'>>;
 
 const ModelVersionsTable: React.FC<ModelVersionsTableProps> = ({
@@ -17,8 +18,9 @@ const ModelVersionsTable: React.FC<ModelVersionsTableProps> = ({
   toolbarContent,
   isArchiveModel,
   refresh,
+  rm,
 }) => (
-  <Table
+  <OdhModelVersionsTable
     data-testid="model-versions-table"
     data={modelVersions}
     columns={mvColumns}
@@ -27,15 +29,9 @@ const ModelVersionsTable: React.FC<ModelVersionsTableProps> = ({
     enablePagination
     onClearFilters={clearFilters}
     emptyTableView={<DashboardEmptyTableView onClearFilters={clearFilters} />}
-    rowRenderer={(mv: ModelVersion) => (
-      <ModelVersionsTableRow
-        hasDeployment={false}
-        key={mv.name}
-        modelVersion={mv}
-        isArchiveModel={isArchiveModel}
-        refresh={refresh}
-      />
-    )}
+    isArchiveModel={isArchiveModel}
+    refresh={refresh}
+    rm={rm}
   />
 );
 

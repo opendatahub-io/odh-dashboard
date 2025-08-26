@@ -1,5 +1,5 @@
 import { act } from 'react';
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { GroupsConfig } from '#~/concepts/userConfigs/groupTypes';
 import { useWatchGroups } from '#~/concepts/userConfigs/useWatchGroups';
 import { getAuth, patchAuth, useGroups } from '#~/api';

@@ -4,13 +4,13 @@
   "description": "Model registry plugin.",
   "version": "0.0.0",
   "scripts": {
-    "update-subtree": "../../scripts/package-subtree.sh model-registry"
+    "update-subtree": "../../scripts/package-subtree.sh --package=@odh-dashboard/model-registry"
   },
   "subtree": {
     "repo": "https://github.com/kubeflow/model-registry.git",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "b4c43a0dfc6864f9a630a011e71f48c48b695df1"
+    "commit": "4236e064cf6c8835edef76b3fdd182a1aac0babf"
   },
   "module-federation": {
     "name": "modelRegistry",
@@ -37,5 +37,9 @@
   },
   "dependencies": {
     "@odh-dashboard/internal": "*"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/tsconfig": "*"
   }
 }

@@ -56,6 +56,17 @@ class ModelServingGlobal {
     return cy.findByTestId('deploy-button');
   }
 
+  clickDeployModelButtonWithRetry() {
+    this.findDeployModelButton().click();
+    // If modal doesn't appear, retry once
+    cy.get('body').then(($body) => {
+      if ($body.find('[role="dialog"]:visible').length === 0) {
+        this.findDeployModelButton().click();
+      }
+    });
+    return this;
+  }
+
   findNoProjectSelectedTooltip() {
     return cy.findByTestId('deploy-model-tooltip');
   }
@@ -532,6 +543,16 @@ class KServeModal extends InferenceServiceModal {
     return this.find().findByTestId('max-replicas').findByRole('button', { name: 'Minus' });
   }
 
+  findMaxReplicasErrorMessage() {
+    return this.find().contains(
+      'Maximum replicas must be greater than or equal to minimum replicas',
+    );
+  }
+
+  findMinReplicasErrorMessage() {
+    return this.find().contains('Minimum replicas must be less than or equal to maximum replicas');
+  }
+
   findCPURequestedCheckbox() {
     return this.find().findByTestId('cpu-requested-checkbox');
   }
@@ -656,11 +677,13 @@ class KServeRow extends ModelMeshRow {
     return this.find().findByTestId('state-action-toggle');
   }
 
-  findStatusLabel(label?: string) {
+  findStatusLabel(label?: string, timeout?: number) {
     if (label) {
-      return this.find().findByTestId('model-status-text').should('include.text', label);
+      return this.find()
+        .findByTestId('model-status-text', { timeout })
+        .should('include.text', label);
     }
-    return this.find().findByTestId('model-status-text');
+    return this.find().findByTestId('model-status-text', { timeout });
   }
 }
 

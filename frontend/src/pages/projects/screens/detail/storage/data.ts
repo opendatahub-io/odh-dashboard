@@ -45,6 +45,13 @@ export const columns: SortableData<StorageTableData>[] = [
     label: 'Storage context',
     width: 25,
     sortable: false,
+    info: {
+      popover:
+        'The context indicates the purpose of the storage: general purpose, or model storage.',
+      popoverProps: {
+        showClose: true,
+      },
+    },
   },
   {
     field: 'storage_size',

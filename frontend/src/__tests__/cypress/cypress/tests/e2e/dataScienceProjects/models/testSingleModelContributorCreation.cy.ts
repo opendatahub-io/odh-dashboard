@@ -27,10 +27,10 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_3' as const;
 const uuid = generateTestUUID();
 
-describe('Verify Model Creation and Validation using the UI', () => {
-  retryableBefore(() => {
+describe('[Product Bug: RHOAIENG-32764] Verify Model Creation and Validation using the UI', () => {
+  retryableBefore(() =>
     // Setup: Load test data and ensure clean state
-    return loadDSPFixture('e2e/dataScienceProjects/testSingleModelContributorCreation.yaml').then(
+    loadDSPFixture('e2e/dataScienceProjects/testSingleModelContributorCreation.yaml').then(
       (fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
         projectName = `${testData.projectSingleModelResourceName}-${uuid}`;
@@ -50,8 +50,8 @@ describe('Verify Model Creation and Validation using the UI', () => {
         );
         addUserToProject(projectName, contributor, 'edit');
       },
-    );
-  });
+    ),
+  );
   after(() => {
     // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
     // TODO: Review this timeout once RHOAIENG-19969 is resolved
@@ -61,7 +61,15 @@ describe('Verify Model Creation and Validation using the UI', () => {
   it(
     'Verify that a Non Admin can Serve and Query a Model using the UI',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@ODS-2552', '@Dashboard', '@Modelserving', '@NonConcurrent'],
+      tags: [
+        '@Smoke',
+        '@SmokeSet3',
+        '@ODS-2552',
+        '@Dashboard',
+        '@Modelserving',
+        '@NonConcurrent',
+        '@Bug',
+      ],
     },
     () => {
       cy.log('Model Name:', modelName);

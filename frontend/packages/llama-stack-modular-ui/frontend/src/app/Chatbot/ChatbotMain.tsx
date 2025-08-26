@@ -1,11 +1,12 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import {
-  Bullseye,
   Drawer,
   DrawerContent,
   DrawerContentBody,
+  Bullseye,
   Spinner,
+  Flex,
 } from '@patternfly/react-core';
 import {
   Chatbot,
@@ -17,9 +18,9 @@ import {
   MessageBar,
   MessageBox,
 } from '@patternfly/chatbot';
-
+import { ApplicationsPage } from 'mod-arch-shared';
+import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
-import '@patternfly/chatbot/dist/css/main.css';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import { ChatbotMessages } from './ChatbotMessagesList';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
@@ -29,9 +30,10 @@ import useAlertManagement from './hooks/useAlertManagement';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from './const';
-import ChatbotApplicationPage from './components/ChatbotApplicationPage';
 
 const ChatbotMain: React.FunctionComponent = () => {
+  const { config } = useModularArchContext();
+  const isStandalone = config.deploymentMode === DeploymentMode.Standalone;
   const displayMode = ChatbotDisplayMode.embedded;
   const { models, loading, error } = useFetchLlamaModels();
   const [selectedModel, setSelectedModel] = React.useState<string>('');
@@ -100,14 +102,8 @@ const ChatbotMain: React.FunctionComponent = () => {
     />
   );
 
-  return (
-    <ChatbotApplicationPage
-      title="AI playground"
-      loaded={!loading}
-      empty={false}
-      loadError={error}
-      headerContent={<></>}
-    >
+  const applicationsPage = (
+    <ApplicationsPage title="AI playground" loaded={!loading} empty={false} loadError={error}>
       {sourceManagement.isSourceSettingsOpen && (
         <ChatbotSourceSettingsModal
           onToggle={() =>
@@ -149,7 +145,21 @@ const ChatbotMain: React.FunctionComponent = () => {
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>
-    </ChatbotApplicationPage>
+    </ApplicationsPage>
+  );
+
+  return isStandalone ? (
+    applicationsPage
+  ) : (
+    // In federated mode, DrawerBody is not flex which the Page items expect the parent to be.
+    // This is a workaround to make the drawer body flex.
+    <Flex
+      direction={{ default: 'column' }}
+      flexWrap={{ default: 'nowrap' }}
+      style={{ height: '100%' }}
+    >
+      {applicationsPage}
+    </Flex>
   );
 };
 

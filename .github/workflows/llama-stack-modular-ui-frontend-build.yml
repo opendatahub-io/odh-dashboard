@@ -32,7 +32,7 @@ jobs:
 
       - name: Run tests
         working-directory: frontend/packages/llama-stack-modular-ui/frontend
-        run: npm run test
+        run: npm run test:standalone
 
       - name: Run clean
         working-directory: frontend/packages/llama-stack-modular-ui/frontend
@@ -40,7 +40,7 @@ jobs:
 
       - name: Run build
         working-directory: frontend/packages/llama-stack-modular-ui/frontend
-        run: npm run build
+        run: npm run build:standalone
 
       - name: Check if there are uncommitted file changes
         working-directory: frontend/packages/llama-stack-modular-ui/frontend

@@ -27,8 +27,8 @@ describe('Workbench and PVSs tests', () => {
   let defaultStorageClass: string;
   const uuid = generateTestUUID();
 
-  retryableBefore(() => {
-    return getOpenshiftDefaultStorageClass()
+  retryableBefore(() =>
+    getOpenshiftDefaultStorageClass()
       .then((result) => {
         if (result.code !== 0 || !result.stdout) {
           throw new Error(`Failed to get default storage class: ${result.stderr}`);
@@ -62,8 +62,8 @@ describe('Workbench and PVSs tests', () => {
       })
       .then((commandResult) => {
         cy.log(`Persistent Volume Claim created: ${JSON.stringify(commandResult)}`);
-      });
-  });
+      }),
+  );
 
   after(() => {
     if (projectName) {
