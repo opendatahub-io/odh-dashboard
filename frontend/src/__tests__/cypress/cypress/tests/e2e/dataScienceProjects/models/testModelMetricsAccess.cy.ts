@@ -33,7 +33,7 @@ const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
 describe(
-  'Verify user can deploy a model and access model metrics from UI',
+  '[Product Bug: RHOAIENG-32764] Verify user can deploy a model and access model metrics from UI',
   { testIsolation: false },
   () => {
     retryableBefore(() => {
@@ -70,7 +70,7 @@ describe(
     it(
       'Verify user can deploy a model and access model metrics from backend and through UI',
       {
-        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelMetrics', '@NonConcurrent'],
+        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelMetrics', '@NonConcurrent', '@Bug'],
       },
       () => {
         cy.step(`Log into the application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
