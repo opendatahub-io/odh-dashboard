@@ -46,7 +46,7 @@ const ModelsProjectDetailsView: React.FC<{
 
   return (
     <DetailsSection
-      objectType={ProjectObjectType.model}
+      objectType={hasModels ? ProjectObjectType.model : undefined}
       id={ProjectSectionID.MODEL_SERVER}
       title={hasModels ? 'Models and model servers' : undefined}
       popover={
