@@ -13,7 +13,7 @@ import { registeredModelArchiveDetailsUrl } from '~/app/pages/modelRegistry/scre
 import ModelVersionsTabs from './ModelVersionsTabs';
 
 type ModelVersionsProps = {
-  tab: ModelVersionsTab;
+  tab: ModelVersionsTab | string;
 } & Omit<
   React.ComponentProps<typeof ApplicationsPage>,
   'breadcrumb' | 'title' | 'description' | 'loadError' | 'loaded' | 'provideChildrenPadding'

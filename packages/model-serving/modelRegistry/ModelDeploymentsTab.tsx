@@ -59,7 +59,44 @@ const projectColumn = (projects: ProjectKind[]): DeploymentsTableColumn<Deployme
   ),
 });
 
-const DeploymentsTabContent: React.FC = () => {
+const getVersionName = (deployment: Deployment): string => {
+  // Try to extract version name from deployment name if it follows the pattern "model-name - version-name"
+  // This is the most reliable source for human-readable version names
+  const deploymentName = getDisplayNameFromK8sResource(deployment.model);
+  const versionMatch = deploymentName.match(/^.*?\s*-\s*(.+)$/);
+  if (versionMatch?.[1]) {
+    return versionMatch[1];
+  }
+
+  // Check annotations for version name
+  const versionNameAnnotation =
+    deployment.model.metadata.annotations?.['modelregistry.opendatahub.io/model-version-name'];
+  if (versionNameAnnotation) {
+    return versionNameAnnotation;
+  }
+
+  // Last resort: try version ID from labels (though this is likely a UUID)
+  const versionId =
+    deployment.model.metadata.labels?.['modelregistry.opendatahub.io/model-version-id'];
+  if (versionId) {
+    return versionId;
+  }
+
+  // Fallback to showing "Unknown"
+  return 'Unknown';
+};
+
+const versionColumn: DeploymentsTableColumn<Deployment> = {
+  field: 'version',
+  label: 'Version name',
+  sortable: (deploymentA: Deployment, deploymentB: Deployment) =>
+    getVersionName(deploymentA).localeCompare(getVersionName(deploymentB)),
+  cellRenderer: (deployment: Deployment) => (
+    <span data-testid="deployment-version-name">{getVersionName(deployment)}</span>
+  ),
+};
+
+const ModelDeploymentsTabContent: React.FC = () => {
   const { deployments, loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
   const { projects } = React.useContext(ProjectsContext);
   const [filterData, setFilterData] = React.useState<ModelServingFilterDataType>(
@@ -104,6 +141,8 @@ const DeploymentsTabContent: React.FC = () => {
     const result: DeploymentsTableColumn<Deployment>[] = [];
     // Add a generic 'project name' column
     result.push(projectColumn(projects));
+    // Add version name column
+    result.push(versionColumn);
     // Only add platform columns if all platforms have the same columns
     if (tableExtensions.length > 0) {
       const [firstExtension, ...restExtensions] = tableExtensions;
@@ -126,8 +165,8 @@ const DeploymentsTabContent: React.FC = () => {
             alt="missing deployment"
           />
         )}
-        description="No deployments initiated from model registry for this model version."
-        testid="model-version-deployments-empty-state"
+        description="No deployments initiated from model registry for this model."
+        testid="model-deployments-empty-state"
       />
     );
   }
@@ -140,7 +179,7 @@ const DeploymentsTabContent: React.FC = () => {
       toolbarContent={
         <>
           <FilterToolbar<keyof typeof modelServingFilterOptions>
-            data-testid="model-version-deployments-table-toolbar"
+            data-testid="model-deployments-table-toolbar"
             filterOptions={modelServingFilterOptions}
             filterOptionRenders={{
               [ModelServingToolbarFilterOptions.name]: ({ onChange, ...props }) => (
@@ -205,22 +244,17 @@ const DeploymentsTabContent: React.FC = () => {
   );
 };
 
-const DeploymentsTab: React.FC<{ rmId?: string; mvId?: string; mrName?: string }> = ({
-  rmId,
-  mvId,
-  mrName,
-}) => {
+const ModelDeploymentsTab: React.FC<{ rmId?: string; mrName?: string }> = ({ rmId, mrName }) => {
   const { projects } = React.useContext(ProjectsContext);
   const modelServingPlatforms = useExtensions(isModelServingPlatformExtension);
   const labelSelectors = React.useMemo(() => {
-    if (!rmId || !mvId) {
+    if (!rmId) {
       return undefined;
     }
     return {
       [KnownLabels.REGISTERED_MODEL_ID]: rmId,
-      [KnownLabels.MODEL_VERSION_ID]: mvId,
     };
-  }, [rmId, mvId]);
+  }, [rmId]);
 
   return (
     <ModelDeploymentsProvider
@@ -229,9 +263,9 @@ const DeploymentsTab: React.FC<{ rmId?: string; mvId?: string; mrName?: string }
       labelSelectors={labelSelectors}
       mrName={mrName}
     >
-      <DeploymentsTabContent />
+      <ModelDeploymentsTabContent />
     </ModelDeploymentsProvider>
   );
 };
 
-export default DeploymentsTab;
+export default ModelDeploymentsTab;
