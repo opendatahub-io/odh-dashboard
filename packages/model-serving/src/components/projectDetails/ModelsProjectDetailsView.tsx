@@ -9,8 +9,10 @@ import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { SelectPlatformView } from './SelectPlatformView';
 import { NoModelsView } from './NoModelsView';
 import { ProjectDeploymentsTable } from './ProjectDeploymentsTable';
-import { useAvailableClusterPlatforms } from '../../concepts/useAvailableClusterPlatforms';
-import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
+import {
+  useProjectServingPlatform,
+  type ModelServingPlatform,
+} from '../../concepts/useProjectServingPlatform';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
 import { DeployButton } from '../deploy/DeployButton';
 import { ResetPlatformButton } from '../platforms/ResetPlatformButton';
@@ -18,12 +20,8 @@ import { getDeploymentWizardRoute } from '../deploymentWizard/utils';
 
 const ModelsProjectDetailsView: React.FC<{
   project: ProjectKind;
-}> = ({ project }) => {
-  const {
-    clusterPlatforms: platforms,
-    clusterPlatformsLoaded,
-    clusterPlatformsError,
-  } = useAvailableClusterPlatforms();
+  platforms: ModelServingPlatform[];
+}> = ({ project, platforms }) => {
   const {
     deployments,
     loaded: deploymentsLoaded,
@@ -40,8 +38,7 @@ const ModelsProjectDetailsView: React.FC<{
     clearProjectPlatformError,
   } = useProjectServingPlatform(project, platforms);
 
-  const isLoading =
-    !project.metadata.name || !clusterPlatformsLoaded || (!!projectPlatform && !deploymentsLoaded);
+  const isLoading = !project.metadata.name || !deploymentsLoaded;
   const hasModels = !!deployments && deployments.length > 0;
 
   return (
@@ -63,7 +60,7 @@ const ModelsProjectDetailsView: React.FC<{
         ) : undefined
       }
       isLoading={isLoading}
-      loadError={deploymentsErrors?.[0] || clusterPlatformsError}
+      loadError={deploymentsErrors?.[0]}
       actions={
         hasModels && activePlatform
           ? [
