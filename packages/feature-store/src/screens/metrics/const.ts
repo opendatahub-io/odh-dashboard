@@ -31,6 +31,7 @@ export const resourceTypeMap: Record<string, string> = {
   entities: 'entity',
   feature_views: 'feature views',
   saved_datasets: 'saved datasets',
+  data_sources: 'data sources',
   feature_services: 'feature services',
   features: 'features',
 };

@@ -175,7 +175,7 @@ describe('utils', () => {
 
     it('should handle edge cases', () => {
       expect(formatResourceType('entities')).toBe('entity');
-      expect(formatResourceType('data_sources')).toBe('data_sources'); // Not in resourceTypeMap
+      expect(formatResourceType('data_sources')).toBe('data_sources');
     });
   });
 
@@ -237,7 +237,6 @@ describe('utils', () => {
     });
 
     it('should handle all resource type mappings', () => {
-      // Test all the resource types that are mapped in resourceTypeMap
       const testCases = [
         {
           resourceType: 'entities',
