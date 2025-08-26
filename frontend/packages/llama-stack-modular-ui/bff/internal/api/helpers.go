@@ -106,3 +106,22 @@ func ParseURLTemplate(tmpl string, params map[string]string) string {
 
 	return r.Replace(tmpl)
 }
+
+func (app *App) WritePlain(w http.ResponseWriter, status int, data string, headers http.Header) error {
+	// Set any custom headers
+	for key, value := range headers {
+		w.Header()[key] = value
+	}
+
+	// Set content type for plain text
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(status)
+
+	// Write the data and handle any errors
+	_, err := w.Write([]byte(data))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
