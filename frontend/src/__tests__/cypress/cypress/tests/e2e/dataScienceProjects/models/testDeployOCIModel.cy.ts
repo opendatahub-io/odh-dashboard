@@ -26,7 +26,7 @@ let modelDeploymentName: string;
 const uuid = generateTestUUID();
 
 describe(
-  'A user can create an OCI connection and deploy a model with it',
+  '[Product Bug: RHOAIENG-32763] A user can create an OCI connection and deploy a model with it',
   { testIsolation: false },
   () => {
     let testData: DeployOCIModelData;
@@ -64,7 +64,7 @@ describe(
           '@Dashboard',
           '@Modelserving',
           '@NonConcurrent',
-          '@Maintain',
+          '@Bug',
         ],
       },
       () => {

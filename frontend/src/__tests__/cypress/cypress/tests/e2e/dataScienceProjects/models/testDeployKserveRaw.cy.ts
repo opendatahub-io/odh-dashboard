@@ -22,7 +22,7 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('Verify a user can deploy KServe Raw Deployment Model', () => {
+describe('[Product Bug: RHOAIENG-32763] Verify a user can deploy KServe Raw Deployment Model', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
     return loadDSPFixture('e2e/dataScienceProjects/testDeployKserveRaw.yaml').then(
@@ -57,7 +57,7 @@ describe('Verify a user can deploy KServe Raw Deployment Model', () => {
   it(
     'Verify model deployment with Standard deployment mode (KServe Raw)',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent', '@Maintain'],
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent', '@Bug'],
     },
     () => {
       cy.step(`Log into the application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
