@@ -8,7 +8,6 @@ import {
 import { FilterIcon, SearchIcon } from '@patternfly/react-icons';
 import { ModelVersion, RegisteredModel } from '#~/concepts/modelRegistry/types';
 import { filterRegisteredModels } from '#~/pages/modelRegistry/screens/utils';
-import EmptyModelRegistryState from '#~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
 import FilterToolbar from '#~/components/FilterToolbar';
 import {
   initialModelRegistryFilterData,
@@ -16,6 +15,8 @@ import {
   modelRegistryFilterOptions,
   ModelRegistryFilterOptions,
 } from '#~/pages/modelRegistry/screens/const';
+import EmptyModelRegistryState from '#~/concepts/modelRegistry/content/EmptyModelRegistryState.tsx';
+import { asEnumMember } from '#~/utilities/utils';
 import RegisteredModelsArchiveTable from './RegisteredModelsArchiveTable';
 
 type RegisteredModelsArchiveListViewProps = {

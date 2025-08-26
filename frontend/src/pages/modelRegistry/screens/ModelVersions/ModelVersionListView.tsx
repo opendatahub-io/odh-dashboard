@@ -16,7 +16,8 @@ import {
 import { EllipsisVIcon, FilterIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router';
 import { ModelVersion, RegisteredModel } from '#~/concepts/modelRegistry/types';
-import EmptyModelRegistryState from '#~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import EmptyModelRegistryState from '#~/concepts/modelRegistry/content/EmptyModelRegistryState.tsx';
 import {
   filterModelVersions,
   sortModelVersionsByCreateTime,

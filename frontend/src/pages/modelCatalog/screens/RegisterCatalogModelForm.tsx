@@ -22,7 +22,6 @@ import { getCatalogModelDetailsRoute } from '#~/routes/modelCatalog/catalogModel
 import { registeredModelRoute } from '#~/routes/modelRegistry/registeredModels';
 import { useAppSelector } from '#~/redux/hooks';
 import { CatalogModel } from '#~/concepts/modelCatalog/types';
-import ModelRegistrySelector from '#~/pages/modelRegistry/screens/ModelRegistrySelector';
 import { createCustomPropertiesFromModel, getTagFromModel } from '#~/pages/modelCatalog/utils';
 import { ModelRegistryMetadataType, RegisteredModelList } from '#~/concepts/modelRegistry/types';
 import { CatalogModelDetailsParams } from '#~/pages/modelCatalog/types';
@@ -31,6 +30,7 @@ import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingPropertie
 import { catalogParamsToModelSourceProperties } from '#~/concepts/modelRegistry/utils';
 import { ServiceKind } from '#~/k8sTypes';
 import { ModelRegistryAPIState } from '#~/concepts/modelRegistry/context/useModelRegistryAPIState';
+import ModelRegistrySelector from '#~/concepts/modelRegistry/content/ModelRegistrySelector.tsx';
 
 interface RegisterCatalogModelFormProps {
   model: CatalogModel;

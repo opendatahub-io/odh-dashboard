@@ -3,7 +3,7 @@ import { SearchInput, ToolbarGroup } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
 import { ModelVersion, RegisteredModel } from '#~/concepts/modelRegistry/types';
 import { filterRegisteredModels } from '#~/pages/modelRegistry/screens/utils';
-import EmptyModelRegistryState from '#~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
+import EmptyModelRegistryState from '#~/concepts/modelRegistry/content/EmptyModelRegistryState.tsx';
 import { registerModelRoute } from '#~/routes/modelRegistry/register';
 import { registeredModelArchiveRoute } from '#~/routes/modelRegistry/modelArchive';
 import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';

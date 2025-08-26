@@ -144,51 +144,51 @@ const extensions: NavExtension[] = [
   {
     type: 'app.navigation/section',
     flags: {
-      required: [SupportedArea.DS_PIPELINES],
+      // required: [SupportedArea.MODEL_REGISTRY],
     },
     properties: {
       id: 'experiments',
-      title: 'Experiments',
+      title: 'Experimentation',
       group: '5_experiments',
     },
   },
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.DS_PIPELINES],
+      // required: [SupportedArea.MODEL_REGISTRY],
     },
     properties: {
-      id: 'experiments-and-runs',
-      title: 'Experiments and runs',
-      href: '/experiments',
+      id: 'experiments-runs',
+      title: 'Experiments',
+      href: '/experiments/runs',
       section: 'experiments',
-      path: '/experiments/*',
+      path: '/experiments/runs',
     },
   },
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.DS_PIPELINES],
+      // required: [SupportedArea.MODEL_REGISTRY],
     },
     properties: {
-      id: 'executions',
-      title: 'Executions',
-      href: '/executions',
+      id: 'experiments-metrics',
+      title: 'Metrics',
+      href: '/experiments/metrics',
       section: 'experiments',
-      path: '/executions/*',
+      path: '/experiments/metrics',
     },
   },
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.DS_PIPELINES],
+      // required: [SupportedArea.MODEL_REGISTRY],
     },
     properties: {
-      id: 'artifacts',
-      title: 'Artifacts',
-      href: '/artifacts',
+      id: 'experiments-params',
+      title: 'Parameters',
+      href: '/experiments/parameters',
       section: 'experiments',
-      path: '/artifacts/*',
+      path: '/experiments/parameters',
     },
   },
   {

@@ -5,13 +5,12 @@ import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { PathProps } from '#~/concepts/pipelines/content/types';
 import { useCompareRuns } from '#~/concepts/pipelines/content/compareRuns/CompareRunsContext';
 import { CompareRunsInvalidRunCount } from '#~/concepts/pipelines/content/compareRuns/CompareRunInvalidRunCount';
+
+import PipelineContextBreadcrumb from '#~/concepts/pipelines/content/PipelineContextBreadcrumb.tsx';
 import CompareRunsRunList from '#~/concepts/pipelines/content/compareRuns/CompareRunsRunList';
 import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { experimentRunsRoute } from '#~/routes/pipelines/experiments';
-import PipelineContextBreadcrumb from '#~/concepts/pipelines/content/PipelineContextBreadcrumb';
-import { CompareRunMetricsSection } from './CompareRunsMetricsSection';
-import { CompareRunParamsSection } from './CompareRunParamsSection';
 
 const CompareRunsPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
   const { runs, loaded } = useCompareRuns();
@@ -52,13 +51,9 @@ const CompareRunsPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
           <CompareRunsRunList />
         </StackItem>
 
-        <StackItem>
+        {/* <StackItem>
           <CompareRunParamsSection />
-        </StackItem>
-
-        <StackItem>
-          <CompareRunMetricsSection />
-        </StackItem>
+        </StackItem> */}
       </Stack>
     </ApplicationsPage>
   );
