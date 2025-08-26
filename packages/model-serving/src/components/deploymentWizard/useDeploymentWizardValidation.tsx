@@ -1,11 +1,14 @@
 import React from 'react';
 import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
+import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import type { ModelDeploymentWizardData } from './useDeploymentWizard';
 import { modelSourceStepSchema, type ModelSourceStepData } from './steps/ModelSourceStep';
 
 export type ModelDeploymentWizardValidation = {
   modelSource: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
   isModelSourceStepValid: boolean;
+  // modelDeploymentStep: ReturnType<typeof useZodFormValidation<ModelDeploymentStepData>>;
+  isModelDeploymentStepValid: boolean;
 };
 
 export const useModelDeploymentWizardValidation = (
@@ -27,5 +30,9 @@ export const useModelDeploymentWizardValidation = (
     modelSource: modelSourceStepValidation,
     isModelSourceStepValid:
       modelSourceStepValidation.getFieldValidation(undefined, true).length === 0,
+    // modelDeploymentStep: modelDeploymentStepValidation,
+    isModelDeploymentStepValid: !!(
+      data.k8sNameDesc && isK8sNameDescriptionDataValid(data.k8sNameDesc)
+    ),
   };
 };
