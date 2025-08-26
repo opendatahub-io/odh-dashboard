@@ -1,5 +1,5 @@
-import React from 'react';
-import { render, screen, fireEvent, renderHook, act } from '@testing-library/react';
+import React, { act } from 'react';
+import { render, screen, fireEvent, renderHook } from '@testing-library/react';
 import { type ZodIssue } from 'zod';
 import {
   ModelTypeSelectField,
@@ -86,13 +86,17 @@ describe('ModelTypeSelectField', () => {
       expect(screen.getByText('Predictive model')).toBeInTheDocument();
     });
 
-    it('should call setModelType on valid selection', () => {
+    it('should call setModelType on valid selection', async () => {
       render(<ModelTypeSelectField setModelType={mockSetModelType} />);
       const button = screen.getByRole('button');
 
-      fireEvent.click(button);
+      await act(async () => {
+        fireEvent.click(button);
+      });
       const option = screen.getByText('Generative AI model (e.g. LLM)');
-      fireEvent.click(option);
+      await act(async () => {
+        fireEvent.click(option);
+      });
 
       expect(mockSetModelType).toHaveBeenCalledWith('generative-model');
     });
@@ -109,11 +113,13 @@ describe('ModelTypeSelectField', () => {
       expect(screen.getByText('Select a model type.')).toBeInTheDocument();
     });
 
-    it('should render both model type options', () => {
+    it('should render both model type options', async () => {
       render(<ModelTypeSelectField />);
       const button = screen.getByRole('button');
 
-      fireEvent.click(button);
+      await act(async () => {
+        fireEvent.click(button);
+      });
 
       expect(screen.getByText('Predictive model')).toBeInTheDocument();
       expect(screen.getByText('Generative AI model (e.g. LLM)')).toBeInTheDocument();
