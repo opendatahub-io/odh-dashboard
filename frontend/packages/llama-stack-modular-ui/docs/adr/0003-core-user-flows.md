@@ -1,6 +1,7 @@
 # 0003 - Core User Flows
 
-* Date: 2025-01-25
+* Date: 2025-07-25
+* Updated: 2025-08-20
 * Authors: Matias Schimuneck
 
 ## Context and Problem Statement
@@ -37,54 +38,52 @@ sequenceDiagram
     participant User as User
     participant UI as Frontend
     participant BFF as BFF API
-    participant Repo as Repository Layer
     participant LS as Llama Stack
 
     Note over User,LS: Document Upload for RAG Setup
     
+    Note over UI,BFF: Page initialization - Load models for chat functionality
+    UI->>BFF: GET /genai/v1/models
+    BFF->>LS: GET /v1/openai/v1/models
+    LS-->>BFF: Model list response
+    BFF-->>UI: Available models (LLM & embedding)
+    
+    UI->>UI: Cache models for user selection
+    UI-->>User: Page ready with chat functionality
+    
     User->>UI: Click "Upload Documents"
-    UI->>UI: Show file selection dialog
+    
+    Note over UI,BFF: Load vector stores when upload is initiated
+    UI->>BFF: GET /genai/v1/vectorstores
+    BFF->>LS: GET /v1/openai/v1/vector_stores
+    LS-->>BFF: Vector store list
+    BFF-->>UI: Vector store options
+    
+    UI->>UI: Show file selection dialog with vector store options
     User->>UI: Select files (PDF, TXT, etc.)
     
-    Note over UI,BFF: Get available embedding models
-    UI->>BFF: GET /api/v1/models?model_type=embedding
-    BFF->>Repo: GetAllModels(embedding)
-    Repo->>LS: GET /v1/models
-    LS-->>Repo: Model list response
-    Repo-->>BFF: Filtered embedding models
-    BFF-->>UI: Available embedding models
-    
-    Note over UI,BFF: Get available vector databases
-    UI->>BFF: GET /api/v1/vector-dbs
-    BFF->>Repo: GetAllVectorDBs()
-    Repo->>LS: GET /v1/vector-dbs
-    LS-->>Repo: Vector DB list
-    Repo-->>BFF: Available vector databases
-    BFF-->>UI: Vector DB options
-    
-    UI-->>User: Show model & vector DB selection dialog
-    User->>UI: Select embedding model & vector DB name
+    UI-->>User: Show vector store selection or creation dialog
+    User->>UI: Select existing vector store OR create new one
+    User->>UI: Select files and upload options
     User->>UI: Click "Upload"
     
-         Note over UI,BFF: Process document upload
-     UI->>BFF: POST /api/v1/upload<br/>{documents, vector_db_id, embedding_model, chunk_size_in_tokens}
-    
-    Note over BFF: Validate and process request
-    BFF->>BFF: Validate files and parameters
-    
-    alt Vector DB doesn't exist
-        BFF->>Repo: RegisterVectorDB(vector_db_id, embedding_model)
-        Repo->>LS: POST /v1/vector-dbs
-        LS-->>Repo: Vector DB created
-        Repo-->>BFF: Success
+    alt Create new vector store
+        Note over UI,BFF: Create vector store first
+        UI->>BFF: POST /genai/v1/vectorstores<br/>{name, metadata}
+        BFF->>LS: POST /v1/openai/v1/vector_stores
+        LS-->>BFF: Vector store created {id, name, status}
+        BFF-->>UI: Vector store ready
     end
     
-         BFF->>Repo: InsertDocuments(documents, vector_db_id, chunk_size_in_tokens)
-    Repo->>LS: POST /v1/tool-runtime/rag-tool/insert
-    Note over LS: Process documents:<br/>- Extract text<br/>- Create chunks<br/>- Generate embeddings<br/>- Store in vector DB
-    LS-->>Repo: Documents processed successfully
-    Repo-->>BFF: Upload complete
-    BFF-->>UI: {message: "Documents uploaded successfully", vector_db_id}
+    Note over UI,BFF: Upload file to vector store
+    UI->>BFF: POST /genai/v1/files/upload<br/>{file, vector_store_id, chunking_type}
+    
+    Note over BFF: Process multipart upload
+    BFF->>BFF: Parse multipart form and validate parameters
+    BFF->>LS: POST /v1/openai/v1/files + POST /v1/openai/v1/vector_stores/{id}/files
+    Note over LS: Process file:<br/>- Upload to storage<br/>- Extract text<br/>- Create chunks<br/>- Generate embeddings<br/>- Add to vector store
+    LS-->>BFF: File processed and added to vector store
+    BFF-->>UI: Upload complete {file_id, vector_store_file}
     
     UI->>UI: Hide loading spinner
     UI->>UI: Show success notification
@@ -98,121 +97,131 @@ sequenceDiagram
     participant User as User
     participant UI as Frontend
     participant BFF as BFF API
-    participant Repo as Repository Layer
     participant LS as Llama Stack
 
     Note over User,LS: Chat Interaction with Optional RAG
     
+    User->>UI: Select model from available models (cached from page load)
+    UI->>UI: Set selected model for conversation
+    User->>UI: Toggle "Sources" flag (enable/disable RAG)
+    UI->>UI: Set RAG mode based on sources flag
     User->>UI: Type message and send
     UI->>UI: Show typing indicator
     
-         Note over UI,BFF: Send query with context
-     UI->>BFF: POST /api/v1/query<br/>{content, vector_db_ids[], llm_model_id, query_config, sampling_params}
-    
-    BFF->>BFF: Parse request and validate parameters
-    
-    alt User has uploaded documents (vector_db_ids provided)
-        Note over BFF,LS: RAG Retrieval Process
-        BFF->>Repo: QueryEmbeddingModel(content, vector_db_ids)
-        Repo->>LS: POST /v1/tool-runtime/rag-tool/query
-        Note over LS: - Convert query to embedding<br/>- Search vector databases<br/>- Retrieve relevant chunks
-        LS-->>Repo: {chunks, scores, metadata}
-        Repo-->>BFF: RAG context with relevant document chunks
-        BFF->>BFF: Extract and format context text
-    else No documents uploaded
-        Note over BFF: Skip RAG, proceed with direct chat
+    alt Sources flag enabled (RAG mode)
+        Note over UI,BFF: Send chat message with RAG
+        UI->>BFF: POST /genai/v1/responses<br/>{input, model, vector_store_ids[], chat_context[], temperature, instructions}
+    else Sources flag disabled (Direct chat)
+        Note over UI,BFF: Send chat message without RAG
+        UI->>BFF: POST /genai/v1/responses<br/>{input, model, chat_context[], temperature, instructions}
     end
     
-    Note over BFF,LS: Generate Chat Completion
-    BFF->>BFF: Create chat messages array:<br/>- System prompt<br/>- User message (+ RAG context if available)
+    BFF->>BFF: Parse request and validate required parameters
+    BFF->>BFF: Convert chat_context to OpenAI format
     
-    BFF->>Repo: ChatCompletion(messages, llm_model_id, sampling_params)
-    Repo->>LS: POST /v1/inference/chat-completion
-    Note over LS: Generate response using LLM<br/>(with RAG context if provided)
-    LS-->>Repo: Generated text response
-    Repo-->>BFF: Chat completion result
+    Note over BFF,LS: Generate AI Response with Integrated RAG
+    BFF->>LS: POST /v1/openai/v1/responses
+    Note over LS: Unified Response Generation:<br/>- If vector_store_ids provided: perform file search<br/>- Build conversation context<br/>- Generate response with retrieved context<br/>- Return complete response
+    LS-->>BFF: Complete response with content
     
-    BFF->>BFF: Combine response data:<br/>- Assistant message<br/>- RAG chunks used (if any)<br/>- Metadata
+    Note over BFF: Extract essential response data
+    BFF->>BFF: Simplify response:<br/>- Extract content from output array<br/>- Calculate usage tokens<br/>- Build simplified structure
     
-    BFF-->>UI: {assistant_message, rag_context?, chunk_sources?, has_rag_content}
+    BFF-->>UI: {id, model, status, created_at, content, usage}
     
     UI->>UI: Hide typing indicator
     UI->>UI: Display assistant response
+    
+    Note over UI: Update conversation context
+    UI->>UI: Add user input to chat_context array
+    UI->>UI: Add assistant response to chat_context array
+    UI->>UI: Store updated chat_context for next interaction
+    
     alt RAG was used
         UI->>UI: Show "Sources" section with document chunks
     end
     UI-->>User: Complete response with sources (if RAG)
+    
+    Note over User,UI: Conversation continues (loop back for next message)
+    User->>UI: Type message and send
 ```
 
 ## Flow Characteristics
 
 ### File Upload Flow
-- **Multi-Step Process**: File selection → Model selection → Upload → Processing
-- **Document Structure**: Files converted to Document objects with content, metadata, and IDs
-- **Vector DB Management**: Automatic creation if vector database doesn't exist
-- **Document Processing**: Text extraction, chunking, embedding generation, and storage
-- **User Experience**: Clear progress indicators, success notifications, and error handling
-- **Validation**: File type validation, parameter validation, and error recovery
-- **State Management**: UI tracks upload progress and completion status
+- **Simplified Process**: Vector store creation → File upload with chunking → Ready for RAG
+- **OpenAI SDK Integration**: Uses official SDK for all Llama Stack communication
+- **Vector Store Management**: Create new stores or use existing ones via dedicated endpoints
+- **File Processing**: Upload files directly to vector stores with automatic chunking
+- **User Experience**: Streamlined flow with clear progress indicators
+- **Validation**: Comprehensive parameter validation and error handling
+- **Chunking Control**: Support for auto and static chunking strategies
 
 ### Chat Completion Flow  
-- **Conditional RAG**: Performs retrieval only when vector databases are available
-- **Context Integration**: RAG results seamlessly integrated into chat prompt
-- **Dual Mode Operation**: Works with or without uploaded documents
-- **Configurable Parameters**: Supports query configuration and sampling parameters for fine-tuning
-- **Response Enhancement**: Returns assistant message plus source attribution when RAG is used
-- **User Feedback**: Typing indicators, streaming responses, and source citations
-- **Error Resilience**: Graceful degradation if RAG retrieval fails
+- **Unified Response API**: Single endpoint handles both simple chat and RAG queries
+- **Integrated RAG**: Vector store IDs automatically enable file search functionality
+- **Conversation Context**: Multi-turn conversations via chat_context parameter
+- **Generation Control**: Temperature, top_p, and instructions for response customization
+- **Simplified Responses**: Clean response structure with only essential fields
+- **Error Handling**: Proper error forwarding from Llama Stack
+- **Performance Optimized**: Reduced response payload size by 90%
 
 ## API Contracts
 
 ### File Upload Flow Endpoints
-- **Frontend → BFF**: `GET /api/v1/models?model_type=embedding` - Get available embedding models
-- **Frontend → BFF**: `GET /api/v1/vector-dbs` - Get existing vector databases  
-- **Frontend → BFF**: `POST /api/v1/upload` - Upload documents with config
+- **Frontend → BFF**: `GET /genai/v1/models` - Get available models (all types)
+- **Frontend → BFF**: `GET /genai/v1/vectorstores` - Get existing vector stores with pagination
+- **Frontend → BFF**: `POST /genai/v1/vectorstores` - Create new vector store
   ```json
   {
-    "documents": [
-      {
-        "document_id": "doc1",
-        "content": "Document text content here...",
-        "metadata": {
-          "filename": "file1.pdf",
-          "source": "upload"
-        }
-      }
-    ],
-    "vector_db_id": "my-documents",
-    "embedding_model": "sentence-transformers/all-MiniLM-L6-v2", 
-    "chunk_size_in_tokens": 500
+    "name": "My Documents",
+    "metadata": {
+      "department": "support",
+      "category": "faq"
+    }
+  }
+  ```
+- **Frontend → BFF**: `POST /genai/v1/files/upload` - Upload file to vector store
+  ```json
+  // Multipart form data:
+  {
+    "file": "<binary file data>",
+    "vector_store_id": "vs_abc123-def456",
+    "purpose": "assistants",
+    "chunking_type": "static",
+    "max_chunk_size_tokens": 600,
+    "chunk_overlap_tokens": 200
   }
   ```
 
 ### Chat Completion Flow Endpoints
-- **Frontend → BFF**: `POST /api/v1/query` - Send query with optional RAG
+- **Frontend → BFF**: `POST /genai/v1/responses` - Generate AI response with optional RAG
   ```json
   {
-    "content": "What is the main topic of the documents?",
-    "vector_db_ids": ["my-documents"],
-    "llm_model_id": "llama3.2:3b",
-    "query_config": {
-      "max_chunks": 5,
-      "max_tokens_in_context": 1000,
-      "chunk_template": "Result {index}\nContent: {chunk.content}\nMetadata: {metadata}\n"
-    },
-    "sampling_params": {
-      "strategy": {"type": "greedy"},
-      "max_tokens": 500
-    }
+    "input": "What is the main topic of the documents?",
+    "model": "ollama/llama3.2:3b",
+    "vector_store_ids": ["vs_abc123-def456"],
+    "chat_context": [
+      {
+        "role": "user",
+        "content": "Previous question"
+      },
+      {
+        "role": "assistant",
+        "content": "Previous response"
+      }
+    ],
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "instructions": "You are a helpful assistant"
   }
   ```
 
-### BFF → Llama Stack Internal Calls
-- `GET /v1/models` - Model discovery and filtering
-- `POST /v1/vector-dbs` - Vector database creation when needed
-- `POST /v1/tool-runtime/rag-tool/insert` - Document processing and embedding
-- `POST /v1/tool-runtime/rag-tool/query` - RAG retrieval for chat context
-- `POST /v1/inference/chat-completion` - LLM response generation
+### BFF → Llama Stack Internal Calls (via OpenAI SDK)
+- `GET /v1/openai/v1/models` - Model discovery using OpenAI-compatible endpoint
+- `POST /v1/openai/v1/vector_stores` - Vector store creation
+- `POST /v1/openai/v1/files` + `POST /v1/openai/v1/vector_stores/{id}/files` - File upload and embedding
+- `POST /v1/openai/v1/responses` - Unified response generation with integrated RAG
 
 ## State Management
 

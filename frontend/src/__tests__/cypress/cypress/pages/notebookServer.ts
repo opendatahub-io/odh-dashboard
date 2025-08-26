@@ -109,7 +109,7 @@ class NotebookServer {
 
   findHardwareProfileSelectOptionValues() {
     return cy.findAllByRole('option').then((options) => {
-      const values = [...options].map((option) => option.textContent?.trim());
+      const values = [...options].map((option) => option.textContent.trim());
       return cy.wrap(values);
     });
   }

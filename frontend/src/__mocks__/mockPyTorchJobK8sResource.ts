@@ -1,7 +1,12 @@
 import * as _ from 'lodash-es';
 import { genUID } from './mockUtils';
+<<<<<<< HEAD
 import { PyTorchJobKind } from '../../packages/model-training/src/k8sTypes';
 import { PyTorchJobState } from '../../packages/model-training/src/types';
+=======
+import { PyTorchJobState } from '../../../packages/model-training/src/types';
+import { PyTorchJobKind } from '../../../packages/model-training/src/k8sTypes';
+>>>>>>> model-training-table
 
 type MockResourceConfigType = {
   name?: string;

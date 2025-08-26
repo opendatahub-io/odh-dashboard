@@ -2,183 +2,109 @@ package api
 
 import (
 	"net/http"
+	"net/http/httptest"
+	"testing"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/constants"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/models"
+	"encoding/json"
+	"io"
+
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/config"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack/lsmocks"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/repositories"
+	"github.com/stretchr/testify/assert"
 )
 
-var _ = Describe("Models Handler", func() {
-	ExpectedModels := []models.Model{
-		{
-			Identifier:         "llama-3.1-8b",
-			ModelType:          "llm",
-			ProviderID:         "meta",
-			ProviderResourceID: "llama-3.1-8b-instruct",
+func TestLlamaStackModelsHandler(t *testing.T) {
+	// Create test app with mock client
+	app := App{
+		config: config.EnvConfig{
+			Port: 4000,
 		},
-		{
-			Identifier:         "text-embedding-ada-002",
-			ModelType:          "embedding",
-			ProviderID:         "openai",
-			ProviderResourceID: "openai/text-embedding-ada-002",
-		},
-		{
-			Identifier:         "claude-3-sonnet",
-			ModelType:          "llm",
-			ProviderID:         "anthropic",
-			ProviderResourceID: "claude-3-sonnet-20240229",
-		},
-		{
-			Identifier:         "sentence-transformers",
-			ModelType:          "embedding",
-			ProviderID:         "test-provider-4",
-			ProviderResourceID: "all-MiniLM-L6-v2",
-		},
+		repositories: repositories.NewRepositories(lsmocks.NewMockLlamaStackClient()),
 	}
 
-	ExpectedLLMModels := []models.Model{
-		{
-			Identifier:         "llama-3.1-8b",
-			ModelType:          "llm",
-			ProviderID:         "meta",
-			ProviderResourceID: "llama-3.1-8b-instruct",
-		},
-		{
-			Identifier:         "claude-3-sonnet",
-			ModelType:          "llm",
-			ProviderID:         "anthropic",
-			ProviderResourceID: "claude-3-sonnet-20240229",
-		},
-	}
+	t.Run("should return all models successfully", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/genai/v1/models", nil)
+		assert.NoError(t, err)
 
-	ExpectedEmbeddingModels := []models.Model{
-		{
-			Identifier:         "text-embedding-ada-002",
-			ModelType:          "embedding",
-			ProviderID:         "openai",
-			ProviderResourceID: "openai/text-embedding-ada-002",
-		},
-		{
-			Identifier:         "sentence-transformers",
-			ModelType:          "embedding",
-			ProviderID:         "test-provider-4",
-			ProviderResourceID: "all-MiniLM-L6-v2",
-		},
-	}
+		app.LlamaStackModelsHandler(rr, req, nil)
 
-	Describe("Models API", func() {
-		It("should return all models successfully", func() {
-			path := testCtx.App.getModelListPath()
-			req := JSONRequest("GET", path, nil)
-			resp := MakeRequest(req)
+		assert.Equal(t, http.StatusOK, rr.Code)
 
-			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+		body, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
 
-			var result ModelListEnvelope
-			ReadJSONResponse(resp, &result)
+		var response ModelsResponse
+		err = json.Unmarshal(body, &response)
+		assert.NoError(t, err)
 
-			// Verify all models are returned (mock returns 4 models)
-			Expect(result.Data.Items).To(HaveLen(4))
-			Expect(result.Data.Items).To(Equal(ExpectedModels))
-		})
-
-		When("user queries by LLM model type", func() {
-			It("should return only LLM models", func() {
-				path := testCtx.App.getModelListPath()
-				req := JSONRequest("GET", path, nil)
-				req.QueryParams = map[string]string{
-					"model_type": string(llamastack.LLMModelType),
-				}
-
-				resp := MakeRequest(req)
-
-				Expect(resp.StatusCode).To(Equal(http.StatusOK))
-
-				var result ModelListEnvelope
-				ReadJSONResponse(resp, &result)
-
-				// Should only return LLM models (2 from mock)
-				Expect(result.Data.Items).To(HaveLen(2))
-				Expect(result.Data.Items).To(Equal(ExpectedLLMModels))
-			})
-		})
-
-		When("user queries by embedding model type", func() {
-			It("should return only embedding models", func() {
-				path := testCtx.App.getModelListPath()
-				req := JSONRequest("GET", path, nil)
-				req.QueryParams = map[string]string{
-					"model_type": string(llamastack.EmbeddingModelType),
-				}
-
-				resp := MakeRequest(req)
-				Expect(resp.StatusCode).To(Equal(http.StatusOK))
-
-				var result ModelListEnvelope
-				ReadJSONResponse(resp, &result)
-
-				// Should only return embedding models (2 from mock)
-				Expect(result.Data.Items).To(HaveLen(2))
-				Expect(result.Data.Items).To(Equal(ExpectedEmbeddingModels))
-			})
-		})
-
-		When("user queries by invalid filter", func() {
-			It("should return all models (no filtering applied)", func() {
-				path := testCtx.App.getModelListPath()
-				req := JSONRequest("GET", path, nil)
-				req.QueryParams = map[string]string{
-					"model_type": "invalid_dummy_filter",
-				}
-
-				resp := MakeRequest(req)
-				Expect(resp.StatusCode).To(Equal(http.StatusOK))
-
-				var result ModelListEnvelope
-				ReadJSONResponse(resp, &result)
-
-				// Should return all models (no filtering applied for invalid filter)
-				Expect(result.Data.Items).To(HaveLen(4))
-			})
-		})
-
-		When("when checking response structure", func() {
-			It("should have correct envelope structure", func() {
-				path := testCtx.App.getModelListPath()
-				req := JSONRequest("GET", path, nil)
-				resp := MakeRequest(req)
-				Expect(resp.StatusCode).To(Equal(http.StatusOK))
-
-				// Parse as generic map to verify structure
-				var response map[string]interface{}
-				ReadJSONResponse(resp, &response)
-
-				// Verify envelope structure
-				Expect(response).To(HaveKey("data"))
-				Expect(response).NotTo(HaveKey("metadata"))
-
-				dataField := response["data"].(map[string]interface{})
-				Expect(dataField).To(HaveKey("items"))
-
-				items := dataField["items"].([]interface{})
-				Expect(items).To(HaveLen(4))
-
-				// Verify first item structure
-				firstItem := items[0].(map[string]interface{})
-				Expect(firstItem).To(HaveKey("identifier"))
-				Expect(firstItem).To(HaveKey("model_type"))
-				Expect(firstItem).To(HaveKey("provider_id"))
-				Expect(firstItem).To(HaveKey("provider_resource_id"))
-			})
-		})
+		// Verify mock returns 2 models
+		models := response.Data.([]interface{})
+		assert.Len(t, models, 2)
 	})
 
-	Describe("Model Constants", func() {
-		It("should have correct constant values", func() {
-			Expect(constants.LLMModelType).To(Equal("llm"))
-			Expect(constants.EmbeddingModelType).To(Equal("embedding"))
-		})
+	t.Run("should have correct response structure", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/genai/v1/models", nil)
+		assert.NoError(t, err)
+
+		app.LlamaStackModelsHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		// Parse as generic map to verify structure
+		var response map[string]interface{}
+		body, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		err = json.Unmarshal(body, &response)
+		assert.NoError(t, err)
+
+		// Verify envelope structure
+		assert.Contains(t, response, "data")
+
+		dataField := response["data"].([]interface{})
+		assert.Len(t, dataField, 2)
+
+		// Verify first model structure (OpenAI Model format)
+		firstModel := dataField[0].(map[string]interface{})
+		assert.Contains(t, firstModel, "id")
+		assert.Contains(t, firstModel, "object")
+		assert.Contains(t, firstModel, "created")
+		assert.Contains(t, firstModel, "owned_by")
+
+		// Verify mock model values
+		assert.Equal(t, "ollama/llama3.2:3b", firstModel["id"])
+		assert.Equal(t, "model", firstModel["object"])
+		assert.Equal(t, "llama_stack", firstModel["owned_by"])
 	})
-})
+
+	t.Run("should use unified repository pattern", func(t *testing.T) {
+		assert.NotNil(t, app.repositories)
+		assert.NotNil(t, app.repositories.Models)
+
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/genai/v1/models", nil)
+		assert.NoError(t, err)
+
+		app.LlamaStackModelsHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		// Verify response contains mock data
+		var response map[string]interface{}
+		body, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		err = json.Unmarshal(body, &response)
+		assert.NoError(t, err)
+
+		models := response["data"].([]interface{})
+		firstModel := models[0].(map[string]interface{})
+		assert.Equal(t, "ollama/llama3.2:3b", firstModel["id"])
+	})
+}
