@@ -15,7 +15,7 @@ import { KnownLabels } from '../k8sTypes';
 import { MRDeploymentsContextProvider } from './MRDeploymentsContextProvider';
 
 type ModelVersionsProps = {
-  tab: ModelVersionsTab;
+  tab: ModelVersionsTab | string;
 } & Omit<
   React.ComponentProps<typeof ApplicationsPage>,
   'breadcrumb' | 'title' | 'description' | 'loadError' | 'loaded' | 'provideChildrenPadding'
