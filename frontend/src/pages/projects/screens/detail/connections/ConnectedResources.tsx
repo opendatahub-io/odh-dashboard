@@ -24,7 +24,7 @@ const ConnectedResources: React.FC<ConnectedResourcesProps> = ({ connection, pvc
       : ConnectedNotebookContext.EXISTING_PVC,
     connection ? connection.metadata.name : pvc.metadata.name,
   );
-  const connectedModels = useInferenceServicesForConnection(connection);
+  const connectedModels = useInferenceServicesForConnection(connection ?? pvc);
 
   if (!notebooksLoaded) {
     return <Spinner size="sm" />;

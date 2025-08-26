@@ -24,7 +24,7 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('[Automation Bug: RHOAIENG-32294] Verify Admin Single Model Creation and Validation using the UI', () => {
+describe('[Product Bug: RHOAIENG-32764] Verify Admin Single Model Creation and Validation using the UI', () => {
   retryableBefore(() =>
     // Setup: Load test data and ensure clean state
     loadDSPFixture('e2e/dataScienceProjects/testSingleModelAdminCreation.yaml').then(
@@ -63,7 +63,7 @@ describe('[Automation Bug: RHOAIENG-32294] Verify Admin Single Model Creation an
         '@Dashboard',
         '@Modelserving',
         '@NonConcurrent',
-        '@Maintain',
+        '@Bug',
       ],
     },
     () => {

@@ -1,17 +1,19 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
-import { ModelVersion } from '~/app/types';
+import { ModelVersion, ModelArtifactList } from '~/app/types';
 import { ModelVersionDetailsTabTitle, ModelVersionDetailsTab } from './const';
 import ModelVersionDetailsView from './ModelVersionDetailsView';
 import { isModelRegistryVersionDetailsTabExtension } from '~/odh/extension-points/details';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
+import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 
 type ModelVersionDetailTabsProps = {
   tab: string;
   modelVersion: ModelVersion;
   isArchiveVersion?: boolean;
   refresh: () => void;
+  modelArtifacts: ModelArtifactList;
 };
 
 const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
@@ -19,10 +21,12 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
   modelVersion: mv,
   isArchiveVersion,
   refresh,
+  modelArtifacts,
 }) => {
   const navigate = useNavigate();
   const tabExtensions = useExtensions(isModelRegistryVersionDetailsTabExtension);
-
+  const { registeredModelId: rmId } = useParams();
+  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const modelVersionDetails = [
     <Tab
       key={ModelVersionDetailsTab.DETAILS}
@@ -36,6 +40,7 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
           modelVersion={mv}
           refresh={refresh}
           isArchiveVersion={isArchiveVersion}
+          modelArtifacts={modelArtifacts}
         />
       </PageSection>
     </Tab>,
@@ -52,7 +57,10 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
           isFilled
           data-testid={`${extension.properties.id}-tab-content`}
         >
-          <LazyCodeRefComponent component={extension.properties.component} />
+          <LazyCodeRefComponent
+            component={extension.properties.component}
+            props={{ rmId, mvId: mv.id, mrName: preferredModelRegistry?.name }}
+          />
         </PageSection>
       </Tab>
     )),

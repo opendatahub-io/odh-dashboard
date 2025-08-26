@@ -270,6 +270,10 @@ declare global {
     analytics?: any;
     clusterID?: string;
   }
+
+  // Webpack injected global variables
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const __COMMIT_HASH__: string | undefined;
 }
 
 export type ApplicationAction = {
@@ -784,6 +788,11 @@ export enum ServingRuntimePlatform {
 export enum ServingRuntimeAPIProtocol {
   REST = 'REST',
   GRPC = 'gRPC',
+}
+
+export enum ServingRuntimeModelType {
+  PREDICTIVE = 'predictive',
+  GENERATIVE = 'generative',
 }
 
 export type KeyValuePair = {

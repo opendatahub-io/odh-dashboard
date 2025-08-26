@@ -44,7 +44,7 @@ The `flags` property controls when extensions are available based on feature fla
 Extensions can be conditionally enabled using feature flags:
 
 ```typescript
-{
+const appRouteExtension = {
   type: 'app.route',
   flags: {
     required: ['MODEL_SERVING'],    // Must be enabled
@@ -137,7 +137,7 @@ The extensibility system provides specialized helper components for working with
 **Usage Patterns:**
 
 **Route Components:**
-```typescript
+```tsx
 import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
 
 const AppRoutes: React.FC = () => {
@@ -182,7 +182,7 @@ type LazyCodeRefComponentProps<T> = {
 `HookNotify` allows you to execute React hooks from code references and get notified when their values change.
 
 **Usage Pattern:**
-```typescript
+```tsx
 import { HookNotify } from '@odh-dashboard/plugin-core';
 
 // Extension with hook code reference
@@ -390,7 +390,7 @@ export type BadModelExtension = Extension<
 - **Error Boundaries**: Always handle code reference resolution errors gracefully
 
 **Interaction-Driven Loading Pattern:**
-```typescript
+```tsx
 const ModelCard: React.FC<{ extension: ModelExtension }> = ({ extension }) => {
   const [isDeploying, setIsDeploying] = React.useState(false);
   

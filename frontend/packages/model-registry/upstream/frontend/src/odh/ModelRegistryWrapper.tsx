@@ -4,10 +4,9 @@ import {
   NotificationContextProvider,
   ModularArchContextProvider,
   ModularArchConfig,
-  ThemeProvider,
-  Theme,
   DeploymentMode,
-} from 'mod-arch-shared';
+} from 'mod-arch-core';
+import { ThemeProvider, Theme } from 'mod-arch-kubeflow';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import ModelRegistryRoutes from '~/app/pages/modelRegistry/ModelRegistryRoutes';
 import { ModelRegistrySelectorContextProvider } from '~/app/context/ModelRegistrySelectorContext';

@@ -777,6 +777,9 @@ export const getPVCFromURI = (
 export const getPVCNameFromURI = (uri: string): string => {
   try {
     const url = new URL(uri);
+    if (url.protocol !== 'pvc:') {
+      return '';
+    }
     return url.hostname;
   } catch {
     return '';
