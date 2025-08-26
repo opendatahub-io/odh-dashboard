@@ -3,6 +3,9 @@
   "name": "@odh-dashboard/contract-testing",
   "description": "Shared utilities for contract testing across ODH Dashboard packages.",
   "version": "0.0.0",
+  "bin": {
+    "odh-contract-tests": "./scripts/run-consumer-with-mock-bff.sh"
+  },
   "scripts": {
     "build": "tsc && mkdir -p dist/helpers && cp src/helpers/shell-helpers.sh dist/helpers/",
     "test": "jest",

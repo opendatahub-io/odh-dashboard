@@ -16,8 +16,9 @@ Shared utilities and base configuration for consumer-driven contract tests acros
 - Run contract tests for a specific consumer package (example: Model Registry):
   - `npm -w frontend/packages/model-registry run test:contract`
   - To watch: `npm -w frontend/packages/model-registry run test:contract:watch`
-  - With mock BFF wrapper script (starts the mock BFF, runs tests, then shuts down):
-  - `npm -w frontend/packages/model-registry run test:contract:with-bff`
+  - With shared bin wrapper (starts mock BFF via consumer scripts or direct Jest):
+  - `npx odh-contract-tests -c frontend/packages/model-registry/contract-tests`
+  - Watch mode: `npx odh-contract-tests -c frontend/packages/model-registry/contract-tests -w`
 
 Run the shared package tests in this workspace (mostly for library changes here):
 - `npm -w packages/contract-tests run test`
@@ -65,6 +66,33 @@ packages/contract-testing/
 ├── tsconfig.base.json      # Base TypeScript configuration
 ├── setup.base.ts           # Base test setup
 └── package.base.json       # Base package.json template
+```
+
+## Adopt in a new consumer package (checklist)
+
+1. Create `contract-tests/` inside your package with:
+   - `jest.contract.config.js` extending `packages/contract-tests/jest.contract.config.base.js`
+   - Optional `jest.setup.ts` if you need consumer-specific setup
+   - Your schemas and `*.contract.test.ts` specs
+2. Map the shared utilities in `moduleNameMapper` (see model-registry example)
+3. Add package scripts:
+   - `"test:contract": "jest --config contract-tests/jest.contract.config.js"`
+   - Optional: `"test:contract:with-bff": "odh-contract-tests -c contract-tests"`
+4. Run: `npx odh-contract-tests -c <your-package>/contract-tests`
+5. CI: call the same bin in a workflow step; artifacts live under `contract-tests/contract-test-results/<timestamp>`
+
+## CLI usage
+
+```
+odh-contract-tests [options]
+
+Options:
+  -c, --consumer-dir <path>   Consumer contract-tests directory (default: CWD)
+  -j, --jest-config <path>    Path to consumer jest.contract.config.js (optional)
+  -r, --results-dir <path>    Directory to write results (default: <consumer>/contract-test-results/<ts>)
+  -n, --package-name <name>   Package name for report metadata (default: consumer dir name)
+  -w, --watch                 Run in watch mode
+  -h, --help                  Show help
 ```
 
 ## Dependencies
