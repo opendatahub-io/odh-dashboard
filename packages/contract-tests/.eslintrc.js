@@ -1,15 +1,19 @@
-module.exports = {
-  extends: [
-    '../../.eslintrc.js', // Extend from frontend eslint config
-  ],
-  rules: {
-    // Allow more flexibility for utility package that bridges different type systems
-    '@typescript-eslint/no-explicit-any': 'off',
-    '@typescript-eslint/consistent-type-assertions': 'off',
-    '@typescript-eslint/no-unsafe-assignment': 'off',
-    'comma-dangle': 'off',
-
-    // Console logs are expected in test utilities
-    'no-console': 'off',
-  },
-};
+module.exports = require('@odh-dashboard/eslint-config')
+  .extend({
+    rules: {
+      // Keep console in setup & helpers
+      'no-console': 'off',
+      // Keep other rules enabled; only relax inside matcher impl as needed
+    },
+    overrides: [
+      {
+        files: ['src/matchers/**/*.ts'],
+        rules: {
+          // Allow focused typing flexibility inside matcher implementation only
+          '@typescript-eslint/no-explicit-any': 'off',
+          '@typescript-eslint/consistent-type-assertions': 'off',
+        },
+      },
+    ],
+  })
+  .recommendedTypescript(__dirname);

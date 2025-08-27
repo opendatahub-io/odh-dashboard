@@ -34,8 +34,8 @@ export function createBffConfig(config: Partial<BffConfig>): BffConfig {
 /**
  * Verify BFF health by making a request to the health endpoint
  */
-export async function verifyBffHealth(config: Partial<BffConfig>): Promise<BffHealthResult> {
-  const bffConfig = createBffConfig(config);
+export async function verifyBffHealth(inputConfig: Partial<BffConfig>): Promise<BffHealthResult> {
+  const bffConfig = createBffConfig(inputConfig);
   const healthEndpoint = bffConfig.healthEndpoint ?? DEFAULT_BFF_CONFIG.healthEndpoint;
   const healthUrl = bffConfig.url + healthEndpoint;
 
@@ -56,13 +56,10 @@ export async function verifyBffHealth(config: Partial<BffConfig>): Promise<BffHe
     };
   } catch (error) {
     // Enrich Axios error diagnostics without throwing
-    const anyErr = error as any;
-    const isAxios = !!(anyErr && (anyErr.isAxiosError || anyErr.response || anyErr.config));
-    if (isAxios) {
-      const status = anyErr.response?.status as number | undefined;
-      const data = anyErr.response?.data;
-      const code = anyErr.code as string | undefined;
-      const url = anyErr.config?.url as string | undefined;
+    if (axios.isAxiosError(error)) {
+      const { status, data } = error.response ?? {};
+      const { code, config } = error;
+      const url = config?.url;
       let dataPreview: string | undefined;
       try {
         dataPreview =
@@ -75,7 +72,7 @@ export async function verifyBffHealth(config: Partial<BffConfig>): Promise<BffHe
         status !== undefined ? `status=${status}` : undefined,
         code ? `code=${code}` : undefined,
         url ? `url=${url}` : undefined,
-        anyErr.message ? `message=${anyErr.message}` : undefined,
+        error.message ? `message=${error.message}` : undefined,
         dataPreview ? `data=${dataPreview}` : undefined,
       ].filter(Boolean);
 

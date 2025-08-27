@@ -70,18 +70,14 @@ describe('Model Registry API - Mock BFF Contract Tests', () => {
       expect(result.success).toBe(true);
       expect(result.response).toBeDefined();
       if (result.response) {
-        expect(result.response.status).toBe(200);
         expect(result.response.data).toHaveProperty('data');
         expect(Array.isArray((result.response.data as any).data)).toBe(true);
 
-        // Validate response against OpenAPI schema
-        const validationResult = schemaValidator.validateResponse(
-          result.response,
-          'ModelRegistryAPI',
-          'Model Registry List - Success Case',
-          '#/definitions/ModelRegistryResponse',
-        );
-        expect(validationResult.isValid).toBe(true);
+        // Validate with shared matcher (status + schema)
+        (expect(result.response) as any).toMatchContract(apiSchema, {
+          ref: '#/definitions/ModelRegistryResponse',
+          expectedStatus: 200,
+        });
         console.log(`📊 Found ${(result.response.data as any).data.length} registries`);
         console.log('🔍 Using Mock BFF Server');
       }
@@ -98,19 +94,15 @@ describe('Model Registry API - Mock BFF Contract Tests', () => {
       expect(result.success).toBe(true);
       expect(result.response).toBeDefined();
       if (result.response) {
-        expect(result.response.status).toBe(200);
         expect(result.response.data).toHaveProperty('data');
         expect(Array.isArray((result.response.data as any).data)).toBe(true);
         expect((result.response.data as any).data).toHaveLength(0);
 
-        // Validate response against OpenAPI schema
-        const validationResult = schemaValidator.validateResponse(
-          result.response,
-          'ModelRegistryAPI',
-          'Model Registry List - Empty Case',
-          '#/definitions/ModelRegistryResponse',
-        );
-        expect(validationResult.isValid).toBe(true);
+        // Validate with shared matcher (status + schema)
+        (expect(result.response) as any).toMatchContract(apiSchema, {
+          ref: '#/definitions/ModelRegistryResponse',
+          expectedStatus: 200,
+        });
         console.log('📊 Registry count: 0');
       }
     });

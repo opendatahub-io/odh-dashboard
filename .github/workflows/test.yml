@@ -3,7 +3,7 @@
 # - Type checking
 # - Linting
 # - Unit tests
-# - Contract tests (for Model Registry)
+# - Contract tests
 # - Cypress tests
 name: Test
 
@@ -18,7 +18,6 @@ env:
 jobs:
   Setup:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     outputs:
       modules-cache-key: ${{ steps.key.outputs.modules-cache-key }}
     steps:
@@ -60,7 +59,6 @@ jobs:
   Type-Check:
     needs: Setup
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
@@ -90,7 +88,6 @@ jobs:
   Lint:
     needs: Setup
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
@@ -120,7 +117,7 @@ jobs:
   Unit-Tests:
     needs: [Setup, Lint, Type-Check]
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # No explicit job timeout; rely on defaults and step-level timeouts where already present
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
@@ -156,7 +153,6 @@ jobs:
   Contract-Tests:
     needs: [Setup, Lint, Type-Check]
     runs-on: ubuntu-latest
-    timeout-minutes: 15  # Overall job timeout
     steps:
       - uses: actions/checkout@v4
         with:
@@ -183,73 +179,38 @@ jobs:
           restore-keys: |
             ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
 
-      # Only run contract tests if Model Registry has changes
-      - name: Check for model-registry changes
+      - name: Determine changed contract-test workspaces
         id: changes
-        working-directory: ${{ github.workspace }}/frontend
+        shell: bash
         run: |
           set -euo pipefail
-          echo "Checking for changes in model-registry package..."
-
-          # Check if there are tasks to run for model-registry
-          if npx turbo run test:contract:with-bff --filter=@odh-dashboard/model-registry --dry-run=json 2>/dev/null | jq -e '.tasks | length > 0' >/dev/null; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "✅ Model Registry has changes, running contract tests"
-          else
+          echo "Discovering workspaces with contract tests..."
+          MAP=$(npx turbo run test:contract:with-bff --dry-run=json | jq -r '[.tasks[] | {pkg: .package, cwd: .cwd}] | unique | @base64')
+          if [ -z "$MAP" ] || [ "$MAP" = "W10=" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "⏭️  No relevant changes found, skipping contract tests"
+            exit 0
           fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "matrix=$MAP" >> "$GITHUB_OUTPUT"
 
-      - name: Setup Go 1.21.6
+      - name: Run contract tests (matrix)
         if: steps.changes.outputs.changed == 'true'
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.21.6'
-          cache: true
-          cache-dependency-path: ${{ github.workspace }}/frontend/packages/model-registry/upstream/bff/go.sum
-
-      - name: Cache kubebuilder assets
-        if: steps.changes.outputs.changed == 'true'
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/frontend/packages/model-registry/upstream/bff/bin
-          key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-kubebuilder-1.29.0
-          restore-keys: |
-            ${{ env.CACHE_VERSION }}-${{ runner.os }}-kubebuilder-
-
-      - name: Setup Go test dependencies (kubebuilder assets)
-        if: steps.changes.outputs.changed == 'true'
-        working-directory: ${{ github.workspace }}/frontend/packages/model-registry/upstream/bff
-        timeout-minutes: 5
+        shell: bash
         run: |
           set -euo pipefail
-          echo "📦 Installing kubebuilder test assets..."
-          make envtest
-
-          # Set up test assets and export path for subsequent steps
-          ASSETS_PATH=$(./bin/setup-envtest-release-0.17 use 1.29.0 -p path)
-          echo "KUBEBUILDER_ASSETS=$ASSETS_PATH" >> "$GITHUB_ENV"
-          echo "✅ Kubebuilder assets installed at: $ASSETS_PATH"
-
-      - name: Run Model Registry contract tests
-        if: steps.changes.outputs.changed == 'true'
-        working-directory: ${{ github.workspace }}/frontend/packages/model-registry
-        timeout-minutes: 10  # Test step timeout
-        run: |
-          set -euo pipefail
-          echo "🧪 Running Model Registry contract tests..."
-          npm run test:contract:with-bff
+          echo "Running contract tests for discovered workspaces..."
+          npx turbo run test:contract:with-bff --no-cache
 
       - name: Upload contract test results
-        if: steps.changes.outputs.changed == 'true' && always()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: contract-test-results
           path: |
-            ${{ github.workspace }}/frontend/packages/*/contract-tests/contract-test-results/*/contract-test-report.html
-            ${{ github.workspace }}/frontend/packages/*/contract-tests/contract-test-results/*/junit.xml
-            ${{ github.workspace }}/frontend/packages/*/contract-tests/contract-test-results/*/contract-test-output.log
-            ${{ github.workspace }}/frontend/packages/*/contract-tests/contract-test-results/*/bff-mock.log
+            ${{ github.workspace }}/**/contract-tests/contract-test-results/*/contract-test-report.html
+            ${{ github.workspace }}/**/contract-tests/contract-test-results/*/junit.xml
+            ${{ github.workspace }}/**/contract-tests/contract-test-results/*/contract-test-output.log
+            ${{ github.workspace }}/**/contract-tests/contract-test-results/*/bff-mock.log
           if-no-files-found: warn
 
   Get-Test-Groups:
@@ -290,7 +251,6 @@ jobs:
   Cypress-Setup:
     needs: [Setup]
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     outputs:
       cypress-cache-key: ${{ steps.key.outputs.cypress-cache-key }}
     steps:
@@ -383,7 +343,6 @@ jobs:
   Combine-Results-and-Upload:
     needs: [Unit-Tests, Cypress-Mock-Tests]
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}

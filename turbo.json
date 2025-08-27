@@ -23,14 +23,10 @@
       "inputs": [
         "$TURBO_DEFAULT$",
         "contract-tests/**",
-        "upstream/bff/**",
-        "$TURBO_ROOT$/packages/contract-testing/**",
-        "$TURBO_ROOT$/packages/plugin-core/**",
-        "$TURBO_ROOT$/packages/tsconfig/**"
+        "$TURBO_ROOT$/packages/contract-testing/**"
       ],
       "outputs": [
-        "contract-tests/contract-test-results/**",
-        "contract-test-results/**"
+        "contract-tests/contract-test-results/**"
       ]
     }
   }

@@ -4,7 +4,8 @@
   "description": "Shared utilities for contract testing across ODH Dashboard packages.",
   "version": "0.0.0",
   "bin": {
-    "odh-contract-tests": "./scripts/run-consumer-with-mock-bff.sh"
+    "odh-contract-tests": "./scripts/run-consumer-with-mock-bff.sh",
+    "odh-contract-report": "./scripts/generate-html-report.sh"
   },
   "scripts": {
     "build": "tsc && mkdir -p dist/helpers && cp src/helpers/shell-helpers.sh dist/helpers/",
@@ -23,12 +24,14 @@
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
-    "axios": "^1.6.0",
     "ajv": "^8.12.0",
-    "ajv-formats": "^2.1.1"
+    "ajv-formats": "^2.1.1",
+    "axios": "^1.6.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.13",
+    "jest-html-reporters": "^3.1.7",
+    "jest-junit": "^16.0.0",
     "ts-jest": "^29.1.1"
   },
   "peerDependencies": {

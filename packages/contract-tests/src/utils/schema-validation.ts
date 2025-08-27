@@ -12,6 +12,13 @@ export interface ValidationResult {
   errors?: string[];
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+function hasDataProperty(value: unknown): value is { data?: unknown } {
+  return isRecord(value) && Object.prototype.hasOwnProperty.call(value, 'data');
+}
+
 /**
  * JSON Schema validator for contract testing
  */
@@ -56,7 +63,10 @@ export class ContractSchemaValidator {
       };
     }
 
-    const dataToValidate = isErrorResponse ? response : (response as any)?.data;
+    let dataToValidate: unknown = response;
+    if (!isErrorResponse && hasDataProperty(response)) {
+      dataToValidate = response.data;
+    }
     let isValid = false;
 
     try {

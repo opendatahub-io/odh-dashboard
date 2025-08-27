@@ -22,6 +22,6 @@ module.exports = {
     ],
   },
 
-  // Setup files - merge base and local
-  setupFilesAfterEnv: [...(baseConfig.setupFilesAfterEnv || []), '<rootDir>/jest.setup.ts'],
+  // Setup files - use shared setup via local setup wrapper
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
 };

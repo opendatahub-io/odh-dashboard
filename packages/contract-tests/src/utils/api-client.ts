@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import axios, { AxiosResponse } from 'axios';
+import axios, { AxiosError, AxiosResponse, RawAxiosResponseHeaders } from 'axios';
 import { logApiCall, logApiResponse, logApiError, ApiResponse, ApiError } from '../helpers/logging';
 
 export interface ApiTestConfig {
@@ -19,6 +19,23 @@ export interface ApiTestResult {
  */
 export class ContractApiClient {
   private config: ApiTestConfig;
+
+  private static normalizeHeaders(
+    headers: RawAxiosResponseHeaders | Record<string, unknown> | undefined,
+  ): Record<string, string> {
+    const result: Record<string, string> = {};
+    if (!headers || typeof headers !== 'object') {
+      return result;
+    }
+    Object.entries(headers).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        result[key] = value.join(', ');
+      } else if (value != null) {
+        result[key] = String(value);
+      }
+    });
+    return result;
+  }
 
   constructor(config: ApiTestConfig) {
     this.config = {
@@ -58,7 +75,7 @@ export class ContractApiClient {
 
       const apiResponse: ApiResponse = {
         status: response.status,
-        headers: response.headers as any,
+        headers: ContractApiClient.normalizeHeaders(response.headers),
         data: response.data,
       };
 
@@ -109,7 +126,7 @@ export class ContractApiClient {
 
       const apiResponse: ApiResponse = {
         status: response.status,
-        headers: response.headers as any,
+        headers: ContractApiClient.normalizeHeaders(response.headers),
         data: response.data,
       };
 
@@ -160,7 +177,7 @@ export class ContractApiClient {
 
       const apiResponse: ApiResponse = {
         status: response.status,
-        headers: response.headers as any,
+        headers: ContractApiClient.normalizeHeaders(response.headers),
         data: response.data,
       };
 
@@ -206,7 +223,7 @@ export class ContractApiClient {
 
       const apiResponse: ApiResponse = {
         status: response.status,
-        headers: response.headers as any,
+        headers: ContractApiClient.normalizeHeaders(response.headers),
         data: response.data,
       };
 
@@ -232,11 +249,12 @@ export class ContractApiClient {
    */
   private handleAxiosError(error: unknown, testName: string): ApiError {
     if (axios.isAxiosError(error)) {
+      const err: AxiosError = error;
       const apiError: ApiError = {
-        status: error.response?.status,
-        headers: error.response?.headers as any,
-        data: error.response?.data,
-        message: error.message,
+        status: err.response?.status,
+        headers: ContractApiClient.normalizeHeaders(err.response?.headers),
+        data: err.response?.data,
+        message: err.message,
       };
 
       logApiError(testName, apiError);

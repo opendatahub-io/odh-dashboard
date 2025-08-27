@@ -56,6 +56,26 @@ Notes:
    // Add consumer-specific setup
    ```
 
+### Using the toMatchContract matcher
+
+- Validate a plain object against a full schema:
+  ```ts
+  expect(payload).toMatchContract(mySchema);
+  ```
+
+- Validate an HTTP response (status + headers + sub-schema via $ref):
+  ```ts
+  expect(response).toMatchContract(mySchema, {
+    ref: '#/definitions/ModelRegistryResponse',
+    expectedStatus: 200,
+    expectedHeaders: { 'content-type': /json/ },
+  });
+  ```
+
+Notes:
+- Schemas with `$schema: https://json-schema.org/draft/2020-12/schema` are supported (AJV 2020).
+- Internal `$ref`s are resolved by registering the entire schema and validating by `$ref`.
+
 ### Package structure
 
 ```
@@ -124,5 +144,17 @@ When changing code in `packages/contract-tests`:
     "compilerOptions": {
       "lib": ["ES2020", "DOM"]
     }
+  }
+  ```
+
+- If TypeScript in a consumer doesn’t see the matcher type, include typings in its `tsconfig.json`:
+  ```json
+  {
+    "include": [
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.d.ts",
+      "../../../../packages/jest-config/typings.d.ts"
+    ]
   }
   ```
