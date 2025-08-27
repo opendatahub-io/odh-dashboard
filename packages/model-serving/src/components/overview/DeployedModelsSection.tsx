@@ -26,13 +26,15 @@ import CollapsibleSection from '@odh-dashboard/internal/concepts/design/Collapsi
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';
-import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
-import { useExtensions } from '@odh-dashboard/plugin-core';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
-import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
+import {
+  useProjectServingPlatform,
+  type ModelServingPlatform,
+} from '../../concepts/useProjectServingPlatform';
 import DeployedModelsDetails from '../deployments/DeployedModelsVersion';
-import { Deployment, isModelServingPlatformExtension } from '../../../extension-points';
+import { Deployment } from '../../../extension-points';
 import DeploymentStatus from '../deployments/DeploymentStatus';
 
 enum FilterStates {
@@ -40,8 +42,8 @@ enum FilterStates {
   failed = 'failed',
 }
 
-const SUCCESS_STATUSES = [InferenceServiceModelState.LOADED, InferenceServiceModelState.STANDBY];
-const FAILED_STATUSES = [InferenceServiceModelState.FAILED_TO_LOAD];
+const SUCCESS_STATUSES = [ModelDeploymentState.LOADED, ModelDeploymentState.STANDBY];
+const FAILED_STATUSES = [ModelDeploymentState.FAILED_TO_LOAD];
 
 const DeployedModelCard: React.FC<{ deployment: Deployment }> = ({ deployment }) => {
   const displayName = getDisplayNameFromK8sResource(deployment.model);
@@ -53,7 +55,7 @@ const DeployedModelCard: React.FC<{ deployment: Deployment }> = ({ deployment })
           <Flex gap={{ default: 'gapSm' }} direction={{ default: 'column' }}>
             <FlexItem>
               <ModelStatusIcon
-                state={deployment.status?.state ?? InferenceServiceModelState.UNKNOWN}
+                state={deployment.status?.state ?? ModelDeploymentState.UNKNOWN}
                 bodyContent={deployment.status?.message}
                 stoppedStates={deployment.status?.stoppedStates}
               />
@@ -61,7 +63,7 @@ const DeployedModelCard: React.FC<{ deployment: Deployment }> = ({ deployment })
             <FlexItem>
               <ResourceNameTooltip resource={deployment.model}>
                 {deployment.model.metadata.namespace &&
-                deployment.status?.state === InferenceServiceModelState.LOADED ? (
+                deployment.status?.state === ModelDeploymentState.LOADED ? (
                   <Link
                     to={`/projects/${deployment.model.metadata.namespace}/metrics/model/${deployment.model.metadata.name}`}
                   >
@@ -182,10 +184,9 @@ const DeployedModelsGallery: React.FC<DeployedModelsGalleryProps> = ({
   );
 };
 
-const DeployedModelsSection: React.FC = () => {
-  const availablePlatforms = useExtensions(isModelServingPlatformExtension);
+const DeployedModelsSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({ platforms }) => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
-  const { activePlatform } = useProjectServingPlatform(currentProject, availablePlatforms);
+  const { activePlatform } = useProjectServingPlatform(currentProject, platforms);
   const [filteredState, setFilteredState] = React.useState<FilterStates | undefined>();
 
   const platformLabel = activePlatform?.properties.enableCardText.enabledText;

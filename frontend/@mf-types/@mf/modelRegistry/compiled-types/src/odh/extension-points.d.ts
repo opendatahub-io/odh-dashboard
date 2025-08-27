@@ -3,11 +3,11 @@ import type { ComponentCodeRef } from '@odh-dashboard/plugin-core/extension-poin
 import { ModelVersion } from '~/app/types';
 import { DisplayNameAnnotations, K8sAPIOptions, ProjectKind } from '@odh-dashboard/internal/k8sTypes.js';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types.js';
+import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types.js';
 import { EitherNotBoth, ProjectObjectType } from 'mod-arch-shared';
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types.js';
 export type DeploymentStatus = {
-    state: InferenceServiceModelState;
+    state: ModelDeploymentState;
     message?: string;
 };
 export type DeploymentEndpoint = {

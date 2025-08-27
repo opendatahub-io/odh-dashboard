@@ -81,7 +81,7 @@ spec:
                     pass
                 with open(output_file, 'w') as f:
                     f.write(_output_serializers[idx](_outputs[idx]))
-          image: registry.access.redhat.com/ubi8/python-39
+          image: registry.redhat.io/ubi9/python-311@sha256:82a16d7c4da926081c0a4cc72a84d5ce37859b50a371d2f9364313f66b89adf7
         results:
         - name: Output
           type: string
@@ -151,7 +151,7 @@ spec:
                     pass
                 with open(output_file, 'w') as f:
                     f.write(_output_serializers[idx](_outputs[idx]))
-          image: registry.access.redhat.com/ubi8/python-39
+          image: registry.redhat.io/ubi9/python-311@sha256:82a16d7c4da926081c0a4cc72a84d5ce37859b50a371d2f9364313f66b89adf7
         results:
         - name: Output
           type: string
@@ -196,7 +196,7 @@ spec:
             _parsed_args = vars(_parser.parse_args())
 
             _outputs = print_msg(**_parsed_args)
-          image: registry.access.redhat.com/ubi8/python-39
+          image: registry.redhat.io/ubi9/python-311@sha256:82a16d7c4da926081c0a4cc72a84d5ce37859b50a371d2f9364313f66b89adf7
         params:
         - name: random-num-Output
         metadata:
@@ -238,7 +238,7 @@ spec:
             _parsed_args = vars(_parser.parse_args())
 
             _outputs = print_msg(**_parsed_args)
-          image: registry.access.redhat.com/ubi8/python-39
+          image: registry.redhat.io/ubi9/python-311@sha256:82a16d7c4da926081c0a4cc72a84d5ce37859b50a371d2f9364313f66b89adf7
         params:
         - name: random-num-Output
         metadata:
@@ -311,7 +311,7 @@ spec:
                     pass
                 with open(output_file, 'w') as f:
                     f.write(_output_serializers[idx](_outputs[idx]))
-          image: registry.access.redhat.com/ubi8/python-39
+          image: registry.redhat.io/ubi9/python-311@sha256:82a16d7c4da926081c0a4cc72a84d5ce37859b50a371d2f9364313f66b89adf7
         results:
         - name: Output
           type: string
@@ -356,7 +356,7 @@ spec:
             _parsed_args = vars(_parser.parse_args())
 
             _outputs = print_msg(**_parsed_args)
-          image: registry.access.redhat.com/ubi8/python-39
+          image: registry.redhat.io/ubi9/python-311@sha256:82a16d7c4da926081c0a4cc72a84d5ce37859b50a371d2f9364313f66b89adf7
         params:
         - name: random-num-2-Output
         metadata:
@@ -398,7 +398,7 @@ spec:
             _parsed_args = vars(_parser.parse_args())
 
             _outputs = print_msg(**_parsed_args)
-          image: registry.access.redhat.com/ubi8/python-39
+          image: registry.redhat.io/ubi9/python-311@sha256:82a16d7c4da926081c0a4cc72a84d5ce37859b50a371d2f9364313f66b89adf7
         params:
         - name: random-num-2-Output
         metadata:
@@ -452,7 +452,7 @@ spec:
             f.close()
           - $(inputs.params.operand1)
           - $(inputs.params.operand2)
-          image: registry.access.redhat.com/ubi8/python-39
+          image: registry.redhat.io/ubi9/python-311@sha256:82a16d7c4da926081c0a4cc72a84d5ce37859b50a371d2f9364313f66b89adf7
     - name: condition-2
       params:
       - name: operand1
@@ -493,7 +493,7 @@ spec:
             f.close()
           - $(inputs.params.operand1)
           - $(inputs.params.operand2)
-          image: registry.access.redhat.com/ubi8/python-39
+          image: registry.redhat.io/ubi9/python-311@sha256:82a16d7c4da926081c0a4cc72a84d5ce37859b50a371d2f9364313f66b89adf7
       when:
       - input: $(tasks.condition-1.results.outcome)
         operator: in
@@ -539,7 +539,7 @@ spec:
             f.close()
           - $(inputs.params.operand1)
           - $(inputs.params.operand2)
-          image: registry.access.redhat.com/ubi8/python-39
+          image: registry.redhat.io/ubi9/python-311@sha256:82a16d7c4da926081c0a4cc72a84d5ce37859b50a371d2f9364313f66b89adf7
       when:
       - input: $(tasks.condition-1.results.outcome)
         operator: in
@@ -585,7 +585,7 @@ spec:
             f.close()
           - $(inputs.params.operand1)
           - $(inputs.params.operand2)
-          image: registry.access.redhat.com/ubi8/python-39
+          image: registry.redhat.io/ubi9/python-311@sha256:82a16d7c4da926081c0a4cc72a84d5ce37859b50a371d2f9364313f66b89adf7
     - name: condition-5
       params:
       - name: operand1
@@ -626,7 +626,7 @@ spec:
             f.close()
           - $(inputs.params.operand1)
           - $(inputs.params.operand2)
-          image: registry.access.redhat.com/ubi8/python-39
+          image: registry.redhat.io/ubi9/python-311@sha256:82a16d7c4da926081c0a4cc72a84d5ce37859b50a371d2f9364313f66b89adf7
       when:
       - input: $(tasks.condition-4.results.outcome)
         operator: in
@@ -672,7 +672,7 @@ spec:
             f.close()
           - $(inputs.params.operand1)
           - $(inputs.params.operand2)
-          image: registry.access.redhat.com/ubi8/python-39
+          image: registry.redhat.io/ubi9/python-311@sha256:82a16d7c4da926081c0a4cc72a84d5ce37859b50a371d2f9364313f66b89adf7
       when:
       - input: $(tasks.condition-4.results.outcome)
         operator: in

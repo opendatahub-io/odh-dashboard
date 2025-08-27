@@ -110,9 +110,9 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 			return
 		}
 
-		identity, error := app.tokenFactory.ExtractRequestIdentity(r.Header)
-		if error != nil {
-			app.badRequestResponse(w, r, error)
+		identity, err := app.kubernetesClientFactory.ExtractRequestIdentity(r.Header)
+		if err != nil {
+			app.badRequestResponse(w, r, err)
 			return
 		}
 
@@ -137,49 +137,24 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 			return
 		}
 
-		if err := app.tokenFactory.ValidateRequestIdentity(identity); err != nil {
+		if err := app.kubernetesClientFactory.ValidateRequestIdentity(identity); err != nil {
 			app.badRequestResponse(w, r, err)
 			return
 		}
 
-		// Implement service-level authorization
-		if err := app.authorizeServiceAccess(identity); err != nil {
-			app.forbiddenResponse(w, r, err.Error())
-			return
-		}
+		// TODO: Add validation that namespace is being sent in every request after the initial
+		// get namespace call.
+
+		// Implement service-level authorization for LlamaStack. Since the basic auth as of now
+		// is being done by K8s auth, removing this for now.
+		// Once we implement llama stack auth, do the following:
+		// Create a geneic RequestIdentity struct
+		// Move K8s.RequestIdentity to generic package, so that we can use for both LLS and K8s.
+		// Use the same token and add llamastack.Validate for the same RequestIdentity.
 
 		logger := helper.GetContextLoggerFromReq(r)
-		logger.Debug("Request authorized", slog.String("user_id", identity.UserID))
+		logger.Debug("Request authorized")
 
 		next(w, r, ps)
 	}
-}
-
-// authorizeServiceAccess implements service-level authorization logic
-// to verify the user/service has permission to access the llamastack service
-func (app *App) authorizeServiceAccess(identity *integrations.RequestIdentity) error {
-	// Basic authorization check - ensure user has a valid identity
-	if identity == nil {
-		return fmt.Errorf("missing user identity")
-	}
-
-	// Check if user has a valid token
-	if identity.Token == "" {
-		return fmt.Errorf("missing authentication token")
-	}
-
-	// Check if user has a valid user ID
-	if identity.UserID == "" {
-		return fmt.Errorf("missing user ID")
-	}
-
-	// TODO: Add more sophisticated authorization logic here as needed:
-	// - Check user permissions/roles
-	// - Validate against user groups
-	// - Check rate limiting
-	// - Verify service-specific permissions
-
-	// For now, we'll allow access if the basic identity validation passes
-	// This can be extended with more complex authorization rules as needed
-	return nil
 }

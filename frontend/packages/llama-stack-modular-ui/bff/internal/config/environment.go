@@ -25,6 +25,7 @@ type EnvConfig struct {
 	LogLevel        slog.Level
 	AllowedOrigins  []string
 	MockLSClient    bool
+	MockK8sClient   bool
 
 	// Llama Stack Configuration
 	LlamaStackURL string
