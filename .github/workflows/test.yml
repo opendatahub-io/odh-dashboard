@@ -153,6 +153,8 @@ jobs:
   Contract-Tests:
     needs: [Setup, Lint, Type-Check]
     runs-on: ubuntu-latest
+    outputs:
+      consumers: ${{ steps.consumers.outputs.json }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -193,6 +195,16 @@ jobs:
           echo "changed=true" >> "$GITHUB_OUTPUT"
           echo "matrix=$MAP" >> "$GITHUB_OUTPUT"
 
+      - name: Build consumer matrix JSON
+        id: consumers
+        if: steps.changes.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          RAW=$(npx turbo run test:contract:with-bff --filter=!@odh-dashboard/contract-testing --dry-run=json)
+          ARR=$(echo "$RAW" | jq -c '[.tasks[] | { package: .package, cwd: .cwd, name: (.package | sub("^@odh-dashboard/"; "")) }] | unique')
+          echo "json=$ARR" >> "$GITHUB_OUTPUT"
+
       - name: Run contract tests (matrix)
         if: steps.changes.outputs.changed == 'true'
         shell: bash
@@ -201,18 +213,49 @@ jobs:
           echo "Running contract tests for discovered workspaces..."
           npx turbo run test:contract:with-bff --filter=!@odh-dashboard/contract-testing --no-cache
 
-      - name: Upload contract test results
-        if: always()
+      - name: Note endpoints
+        if: steps.changes.outputs.changed != 'true'
+        run: echo "No consumer contract tests detected. Skipping artifact upload."
+
+  Upload-Contract-Results:
+    needs: [Contract-Tests]
+    if: needs.Contract-Tests.outputs.consumers != ''
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        consumer: ${{ fromJson(needs.Contract-Tests.outputs.consumers) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Discover latest result for ${{ matrix.consumer.name }}
+        id: discover
+        shell: bash
+        run: |
+          set -euo pipefail
+          CWD="${{ matrix.consumer.cwd }}"
+          if [ ! -d "$CWD/contract-tests/contract-test-results" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          LATEST=$(ls -1dt "$CWD"/contract-tests/contract-test-results/* 2>/dev/null | head -n1 || true)
+          if [ -z "$LATEST" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "dir=$LATEST" >> "$GITHUB_OUTPUT"
+      - name: Upload ${{ matrix.consumer.name }} contract test results
+        if: steps.discover.outputs.skip != 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: contract-test-results
+          name: contract-test-results-${{ matrix.consumer.name }}
           path: |
-            ${{ github.workspace }}/**/contract-tests/contract-test-results/*/contract-test-report.html
-            ${{ github.workspace }}/**/contract-tests/contract-test-results/*/junit.xml
-            ${{ github.workspace }}/**/contract-tests/contract-test-results/*/contract-test-output.log
-            ${{ github.workspace }}/**/contract-tests/contract-test-results/*/bff-mock.log
-            !${{ github.workspace }}/**/node_modules/**
-            !${{ github.workspace }}/packages/contract-tests/**
+            ${{ steps.discover.outputs.dir }}/contract-test-report.html
+            ${{ steps.discover.outputs.dir }}/junit.xml
+            ${{ steps.discover.outputs.dir }}/contract-test-output.log
+            ${{ steps.discover.outputs.dir }}/bff-mock.log
+            ${{ steps.discover.outputs.dir }}/artifacts/**
           if-no-files-found: warn
 
   Get-Test-Groups:
