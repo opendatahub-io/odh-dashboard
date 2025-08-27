@@ -211,6 +211,8 @@ jobs:
             ${{ github.workspace }}/**/contract-tests/contract-test-results/*/junit.xml
             ${{ github.workspace }}/**/contract-tests/contract-test-results/*/contract-test-output.log
             ${{ github.workspace }}/**/contract-tests/contract-test-results/*/bff-mock.log
+            !${{ github.workspace }}/**/node_modules/**
+            !${{ github.workspace }}/packages/contract-tests/**
           if-no-files-found: warn
 
   Get-Test-Groups:
