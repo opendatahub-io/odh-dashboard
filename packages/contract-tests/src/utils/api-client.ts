@@ -44,16 +44,29 @@ export class ContractApiClient {
     };
   }
 
+  private static getCurrentTestName(fallback?: string): string {
+    try {
+      const g = globalThis as unknown as {
+        expect?: { getState?: () => { currentTestName?: string } };
+      };
+      const state = g.expect?.getState?.();
+      const name = state?.currentTestName;
+      return name ?? fallback ?? '';
+    } catch {
+      return fallback ?? '';
+    }
+  }
+
   /**
    * Make a GET request and log the results
    */
   async get(
     path: string,
-    testName: string,
     options: {
       headers?: Record<string, string>;
       params?: Record<string, string>;
     } = {},
+    testName?: string,
   ): Promise<ApiTestResult> {
     const url = `${this.config.baseUrl}${path}`;
     const headers = { ...this.config.defaultHeaders, ...options.headers };
@@ -79,7 +92,7 @@ export class ContractApiClient {
         data: response.data,
       };
 
-      logApiResponse(testName, apiResponse);
+      logApiResponse(ContractApiClient.getCurrentTestName(testName || ''), apiResponse);
 
       return {
         success: true,
@@ -101,11 +114,11 @@ export class ContractApiClient {
    */
   async post(
     path: string,
-    testName: string,
     data: unknown,
     options: {
       headers?: Record<string, string>;
     } = {},
+    testName?: string,
   ): Promise<ApiTestResult> {
     const url = `${this.config.baseUrl}${path}`;
     const headers = {
@@ -130,7 +143,7 @@ export class ContractApiClient {
         data: response.data,
       };
 
-      logApiResponse(testName, apiResponse);
+      logApiResponse(ContractApiClient.getCurrentTestName(testName || ''), apiResponse);
 
       return {
         success: true,
@@ -152,11 +165,11 @@ export class ContractApiClient {
    */
   async put(
     path: string,
-    testName: string,
     data: unknown,
     options: {
       headers?: Record<string, string>;
     } = {},
+    testName?: string,
   ): Promise<ApiTestResult> {
     const url = `${this.config.baseUrl}${path}`;
     const headers = {
@@ -181,7 +194,7 @@ export class ContractApiClient {
         data: response.data,
       };
 
-      logApiResponse(testName, apiResponse);
+      logApiResponse(ContractApiClient.getCurrentTestName(testName || ''), apiResponse);
 
       return {
         success: true,
@@ -203,10 +216,10 @@ export class ContractApiClient {
    */
   async delete(
     path: string,
-    testName: string,
     options: {
       headers?: Record<string, string>;
     } = {},
+    testName?: string,
   ): Promise<ApiTestResult> {
     const url = `${this.config.baseUrl}${path}`;
     const headers = { ...this.config.defaultHeaders, ...options.headers };
@@ -227,7 +240,7 @@ export class ContractApiClient {
         data: response.data,
       };
 
-      logApiResponse(testName, apiResponse);
+      logApiResponse(ContractApiClient.getCurrentTestName(testName || ''), apiResponse);
 
       return {
         success: true,
@@ -247,7 +260,7 @@ export class ContractApiClient {
   /**
    * Handle axios errors consistently
    */
-  private handleAxiosError(error: unknown, testName: string): ApiError {
+  private handleAxiosError(error: unknown, testName?: string): ApiError {
     if (axios.isAxiosError(error)) {
       const err: AxiosError = error;
       const apiError: ApiError = {
@@ -257,7 +270,7 @@ export class ContractApiClient {
         message: err.message,
       };
 
-      logApiError(testName, apiError);
+      logApiError(ContractApiClient.getCurrentTestName(testName || ''), apiError);
       return apiError;
     }
 
@@ -265,7 +278,7 @@ export class ContractApiClient {
       message: error instanceof Error ? error.message : 'Unknown error',
     };
 
-    logApiError(testName, genericError);
+    logApiError(ContractApiClient.getCurrentTestName(testName || ''), genericError);
     return genericError;
   }
 }

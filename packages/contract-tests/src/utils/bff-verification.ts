@@ -115,3 +115,14 @@ export async function waitForBffHealth(config: Partial<BffConfig>): Promise<BffH
     error: `BFF not healthy after ${maxRetries} attempts`,
   };
 }
+
+/**
+ * Ensure BFF is healthy or throw with a helpful error message.
+ */
+export async function ensureBffHealthy(config: Partial<BffConfig>): Promise<void> {
+  const result = await waitForBffHealth({ ...config, maxRetries: 20, retryDelay: 500 });
+  if (!result.isHealthy) {
+    const reason = result.error ? ` (${result.error})` : '';
+    throw new Error(`❌ Mock BFF is not healthy${reason}`);
+  }
+}

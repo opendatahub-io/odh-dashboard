@@ -8,22 +8,19 @@
     "odh-contract-report": "./scripts/generate-html-report.sh"
   },
   "scripts": {
-    "build": "tsc && mkdir -p dist/helpers && cp src/helpers/shell-helpers.sh dist/helpers/",
-    "test": "jest",
-    "test:watch": "jest --watch",
+    "build": "mkdir -p dist/helpers && cp src/helpers/shell-helpers.sh dist/helpers/",
+    "test-unit": "jest",
+    "test-unit:watch": "jest --watch",
     "test:contract": "jest --config jest.contract.config.js --detectOpenHandles",
     "test:contract:watch": "jest --config jest.contract.config.js --watch",
     "test:contract:with-bff": "scripts/run-with-mock-bff.sh",
-    "lint": "eslint src --ext .ts,.tsx",
-    "lint:fix": "eslint src --ext .ts,.tsx --fix"
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
-  "main": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./api": "./src/api.ts"
+    ".": "./src/index.ts"
   },
   "dependencies": {
-    "@odh-dashboard/internal": "*",
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.1",
     "axios": "^1.6.0"

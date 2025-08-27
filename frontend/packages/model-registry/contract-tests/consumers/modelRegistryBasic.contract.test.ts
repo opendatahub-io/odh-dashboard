@@ -2,10 +2,9 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { describe, it, expect, beforeAll } from '@jest/globals';
 import {
   logTestSetup,
-  waitForBffHealth,
+  ensureBffHealthy,
   createBffConfig,
   ContractApiClient,
   ContractSchemaValidator,
@@ -34,38 +33,23 @@ const apiClient = new ContractApiClient({
 });
 
 describe('Model Registry API - Mock BFF Contract Tests', () => {
-  let bffHealthy = false;
-
   beforeAll(async () => {
     logTestSetup('Model Registry', BFF_URL, TEST_RESULTS_DIR);
 
     // Load schema definitions
     await schemaValidator.loadSchema('ModelRegistryAPI', apiSchema);
 
-    // Verify Mock BFF is available with polling/backoff
-    const healthResult = await waitForBffHealth({ ...bffConfig, maxRetries: 20, retryDelay: 500 });
-    bffHealthy = healthResult.isHealthy;
-    if (!bffHealthy) {
-      const reason = healthResult.error ? ` (${healthResult.error})` : '';
-      throw new Error(`❌ Mock BFF is not healthy${reason}`);
-    }
+    // Verify Mock BFF is available (throws on failure)
+    await ensureBffHealthy({ ...bffConfig, maxRetries: 20, retryDelay: 500 });
   });
 
   afterAll(async () => {
-    // Clean up any pending requests
-    await new Promise((resolve) => {
-      setTimeout(resolve, 500);
-    });
+    // no-op
   });
 
   describe('Model Registry List Endpoint', () => {
     it('should successfully retrieve model registries list', async () => {
-      expect(bffHealthy).toBe(true);
-
-      const result = await apiClient.get(
-        '/api/v1/model_registry?namespace=default',
-        'Model Registry List - Success Case',
-      );
+      const result = await apiClient.get('/api/v1/model_registry?namespace=default');
 
       expect(result.success).toBe(true);
       expect(result.response).toBeDefined();
@@ -84,12 +68,7 @@ describe('Model Registry API - Mock BFF Contract Tests', () => {
     });
 
     it('should handle empty registry list', async () => {
-      expect(bffHealthy).toBe(true);
-
-      const result = await apiClient.get(
-        '/api/v1/model_registry?namespace=nonexistent',
-        'Model Registry List - Empty Case',
-      );
+      const result = await apiClient.get('/api/v1/model_registry?namespace=nonexistent');
 
       expect(result.success).toBe(true);
       expect(result.response).toBeDefined();

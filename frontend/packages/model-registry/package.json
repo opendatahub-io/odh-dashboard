@@ -44,7 +44,6 @@
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/tsconfig": "*",
-    "@odh-dashboard/contract-testing": "*",
-    "@jest/globals": "^29.5.0"
+    "@odh-dashboard/contract-testing": "*"
   }
 }

@@ -62,6 +62,7 @@ import {
 import {
   verifyBffHealth,
   waitForBffHealth,
+  ensureBffHealthy,
   createBffConfig,
   DEFAULT_BFF_CONFIG,
   type BffConfig,
@@ -92,6 +93,7 @@ export {
   // BFF utilities
   verifyBffHealth,
   waitForBffHealth,
+  ensureBffHealthy,
   createBffConfig,
   DEFAULT_BFF_CONFIG,
   type BffConfig,
