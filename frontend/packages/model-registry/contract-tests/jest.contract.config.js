@@ -7,7 +7,13 @@ module.exports = {
     '^.+\\.(ts|tsx)$': [
       'ts-jest',
       {
-        tsconfig: '<rootDir>/../tsconfig.json',
+        tsconfig: {
+          baseUrl: '<rootDir>/../../../../',
+          paths: {
+            '@odh-dashboard/contract-testing': ['packages/contract-tests/src/index.ts'],
+            '@odh-dashboard/contract-testing/*': ['packages/contract-tests/src/*'],
+          },
+        },
       },
     ],
   },
