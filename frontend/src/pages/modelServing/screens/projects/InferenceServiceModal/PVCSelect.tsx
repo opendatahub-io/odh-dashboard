@@ -68,7 +68,6 @@ export const PvcSelect: React.FC<PvcSelectProps> = ({
           content: pvcNameFromUri || '',
           value: pvcNameFromUri || '',
           isSelected: !selectedPVC,
-          description: 'Cluster storage not found',
         },
       ];
     }

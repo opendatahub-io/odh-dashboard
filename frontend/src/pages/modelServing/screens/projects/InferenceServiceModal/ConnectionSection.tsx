@@ -500,7 +500,7 @@ export const ConnectionSection: React.FC<Props> = ({
               )
             }
           />
-          {pvcs && pvcs.length > 0 && (
+          {(pvcs && pvcs.length > 0) || pvcNameFromUri ? (
             <Radio
               label="Existing cluster storage"
               name="pvc-serving-radio"
@@ -536,7 +536,7 @@ export const ConnectionSection: React.FC<Props> = ({
                 )
               }
             />
-          )}
+          ) : null}
         </>
       ) : pvcs && pvcs.length === 0 ? ( // No connections and no pvcs
         <FormGroup
