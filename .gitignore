@@ -25,16 +25,9 @@ yarn.lock
 .turbo
 
 jest-coverage
-frontend/packages/model-registry/upstream/bff/bff-mock
 
 # Build outputs
 dist/
 
 # Contract test results
 **/contract-test-results/
-**/contract-test-report.html
-**/junit.xml
-**/bff-mock.log
-**/contract-test-output.log
-**/bff.pid
-**/artifacts/

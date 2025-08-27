@@ -11,11 +11,9 @@ type Options = {
   expectedHeaders?: Record<string, string | RegExp>;
 };
 
-const ajv = new Ajv2020({ allErrors: true, strict: false });
-addFormats(ajv);
-
-// Note: We register the whole schema with AJV to resolve internal $refs; a manual
-// JSON pointer resolver is not needed here.
+// Note: AJV instance is created per assertion to avoid schema id collisions and
+// memory growth across many tests. We register the whole schema with AJV to
+// resolve internal $refs; a manual JSON pointer resolver is not needed here.
 
 function formatAjvErrors(errors?: ErrorObject[]): string {
   if (!errors || errors.length === 0) return '';
@@ -53,16 +51,42 @@ export function toMatchContract(
     }
   }
 
-  // Optional headers check
+  // Optional headers check (normalize keys to lower-case and support string|string[])
   if (expectedHeaders && isHttpLike) {
-    const headers = (received as any).headers || {};
+    const rawHeaders: Record<string, unknown> = (received as any).headers || {};
+    const normalizedHeaders: Record<string, string | string[] | undefined> = {};
+    for (const [k, v] of Object.entries(rawHeaders)) {
+      const keyLc = k.toLowerCase();
+      if (Array.isArray(v)) {
+        normalizedHeaders[keyLc] = v.map((it) => String(it));
+      } else if (v != null) {
+        normalizedHeaders[keyLc] = String(v);
+      } else {
+        normalizedHeaders[keyLc] = undefined;
+      }
+    }
     for (const [key, expected] of Object.entries(expectedHeaders)) {
-      const actual = headers[key.toLowerCase()] ?? headers[key];
+      const actual = normalizedHeaders[key.toLowerCase()];
       if (expected instanceof RegExp) {
-        if (typeof actual !== 'string' || !expected.test(actual)) {
+        if (Array.isArray(actual)) {
+          const anyMatch = actual.some((h) => typeof h === 'string' && expected.test(h));
+          if (!anyMatch) {
+            return {
+              pass: false,
+              message: () => `Header ${key} did not match ${expected}; actual: ${String(actual)}`,
+            };
+          }
+        } else if (typeof actual !== 'string' || !expected.test(actual)) {
           return {
             pass: false,
             message: () => `Header ${key} did not match ${expected}; actual: ${String(actual)}`,
+          };
+        }
+      } else if (Array.isArray(actual)) {
+        if (!actual.some((h) => h === expected)) {
+          return {
+            pass: false,
+            message: () => `Header ${key} expected ${expected} but was ${String(actual)}`,
           };
         }
       } else if (actual !== expected) {
@@ -78,6 +102,8 @@ export function toMatchContract(
   let pass = false;
   let lastErrors: ErrorObject[] | undefined;
   try {
+    const ajv = new Ajv2020({ allErrors: true, strict: false });
+    addFormats(ajv);
     if (ref) {
       // Register schema with a unique id to avoid collisions
       const uniqueId = `inmem-${Date.now()}-${Math.random().toString(36).slice(2)}`;

@@ -7,7 +7,7 @@
     "update-subtree": "../../scripts/package-subtree.sh --package=@odh-dashboard/model-registry",
     "test:contract": "jest --config=contract-tests/jest.contract.config.js --detectOpenHandles",
     "test:contract:watch": "npm run test:contract -- --watch",
-    "test:contract:with-bff": "contract-tests/scripts/run-with-mock-bff.sh"
+    "test:contract:with-bff": "node -e \"require('child_process').spawnSync(require('path').resolve(__dirname, '../../../packages/contract-tests/scripts/run-go-bff-consumer.sh'), ['--bff-dir', require('path').resolve(__dirname, 'upstream/bff'), '--consumer-dir', require('path').resolve(__dirname, 'contract-tests'), '--package-name', 'model-registry'], { stdio: 'inherit', shell: true })\""
   },
   "subtree": {
     "repo": "https://github.com/kubeflow/model-registry.git",

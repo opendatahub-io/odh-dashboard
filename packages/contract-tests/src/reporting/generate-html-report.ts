@@ -95,13 +95,15 @@ function parseTestOutput(logContent: string): ParsedTestData {
           if (nl.includes('📊 Status:'))
             currentApiCall.response.status = nl.split('📊 Status: ')[1]?.trim() || null;
           if (nl.includes('📋 Headers:')) {
-            try {
-              const parsed = JSON.parse(lines[j + 1].trim());
-              if (isApiCallHeaders(parsed) && currentApiCall.response) {
-                currentApiCall.response.headers = parsed;
+            if (j + 1 < lines.length) {
+              try {
+                const parsed = JSON.parse(lines[j + 1].trim());
+                if (isApiCallHeaders(parsed) && currentApiCall.response) {
+                  currentApiCall.response.headers = parsed;
+                }
+              } catch {
+                // ignore
               }
-            } catch {
-              // ignore
             }
           }
           if (nl.includes('📄 Response Body:')) {
@@ -130,13 +132,15 @@ function parseTestOutput(logContent: string): ParsedTestData {
           if (nl.includes('📊 Error Status:'))
             currentApiCall.error.status = nl.split('📊 Error Status: ')[1]?.trim() || null;
           if (nl.includes('📋 Error Headers:')) {
-            try {
-              const parsed = JSON.parse(lines[j + 1].trim());
-              if (isApiCallHeaders(parsed) && currentApiCall.error) {
-                currentApiCall.error.headers = parsed;
+            if (j + 1 < lines.length) {
+              try {
+                const parsed = JSON.parse(lines[j + 1].trim());
+                if (isApiCallHeaders(parsed) && currentApiCall.error) {
+                  currentApiCall.error.headers = parsed;
+                }
+              } catch {
+                // ignore
               }
-            } catch {
-              // ignore
             }
           }
           if (nl.includes('📄 Error Body:')) {
@@ -172,6 +176,10 @@ function parseTestOutput(logContent: string): ParsedTestData {
   return { apiCalls, testResults };
 }
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function generateHtmlReport(
   apiCalls: ApiCall[],
   testResults: TestResults,
@@ -190,13 +198,13 @@ function generateHtmlReport(
   <h2>API Calls (${apiCalls.length})</h2>
   ${apiCalls
     .map((c) => {
-      const body = JSON.stringify(c.error?.body ?? c.response?.body ?? {}, null, 2);
+      const body = escapeHtml(JSON.stringify(c.error?.body ?? c.response?.body ?? {}, null, 2));
       const label = c.testName ? `— ${c.testName}` : '';
       return `<div><strong>${c.method}</strong> ${c.url} ${label}<pre>${body}</pre></div>`;
     })
     .join('')}
   <h2>Mock BFF Logs</h2>
-  <pre>${bffLogs.replace(/</g, '&lt;')}</pre>
+  <pre>${escapeHtml(bffLogs)}</pre>
   </body></html>`;
 }
 

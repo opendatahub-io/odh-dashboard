@@ -27,8 +27,9 @@ declare namespace jest {
     isIdentityEqual: (expected: unknown) => AsymmetricMatcher;
   }
 
-  // Contract testing matcher augmentation
-  interface Matchers<R> {
+  // Contract testing matcher augmentation (match Jest's generic arity)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface Matchers<R, T> {
     toMatchContract: (
       schema: Record<string, unknown>,
       options?: {
