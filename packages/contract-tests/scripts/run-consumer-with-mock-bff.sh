@@ -83,9 +83,12 @@ if [[ -z "$JEST_CONFIG" ]]; then
   fi
 fi
 
-# Results directory
+# Results directory (prefer injected env or flag to avoid duplicate timestamps)
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-if [[ -z "$RESULTS_DIR" ]]; then
+if [[ -z "${RESULTS_DIR:-}" ]]; then
+  RESULTS_DIR="${CONTRACT_TEST_RESULTS_DIR:-}"
+fi
+if [[ -z "${RESULTS_DIR:-}" ]]; then
   RESULTS_DIR="$CONSUMER_DIR/contract-test-results/$TIMESTAMP"
 fi
 mkdir -p "$RESULTS_DIR"
@@ -118,9 +121,11 @@ if [[ "$WATCH_MODE" == true ]]; then
   CMD+=(--watch)
 fi
 
+TEST_LOG="$RESULTS_DIR/contract-test-output.log"
+log_info "Test output: $TEST_LOG"
 set +e
-"${CMD[@]}" > "$RESULTS_DIR/contract-test-output.log" 2>&1
-EXIT_CODE=$?
+"${CMD[@]}" 2>&1 | tee "$TEST_LOG"
+EXIT_CODE=${PIPESTATUS[0]}
 set -e
 
 display_test_summary "$RESULTS_DIR"

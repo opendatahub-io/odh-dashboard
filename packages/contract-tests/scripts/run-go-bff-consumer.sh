@@ -75,6 +75,7 @@ export JEST_HTML_REPORTERS_EXPAND=true
 export JEST_HTML_REPORTERS_PAGE_TITLE="Contract Test Report"
 export JEST_HTML_REPORTERS_JSON=true
 export PACKAGE_NAME="$PACKAGE_NAME"
+export CONTRACT_TEST_RESULTS_DIR="$RESULTS_DIR"
 
 # Ensure Go is present
 if ! command -v go >/dev/null 2>&1; then
@@ -89,6 +90,7 @@ if ! go build -o bff-mock ./cmd; then
   log_error "Failed to build BFF server"
   exit 1
 fi
+log_success "BFF server built successfully"
 
 # Provision envtest assets if setup helper missing
 if [[ -z "${KUBEBUILDER_ASSETS:-}" ]]; then
@@ -119,6 +121,9 @@ BFF_LOG_FILE="$RESULTS_DIR/bff-mock.log"
 log_info "Starting Mock BFF server on port 8080..."
 ./bff-mock --mock-k8s-client --mock-mr-client --port 8080 > "$BFF_LOG_FILE" 2>&1 &
 BFF_PID=$!
+echo "$BFF_PID" > "$RESULTS_DIR/bff.pid"
+log_info "Mock BFF started (PID: $BFF_PID)"
+log_info "BFF logs: $BFF_LOG_FILE"
 popd >/dev/null
 
 cleanup() {
@@ -149,8 +154,8 @@ done
 export CONTRACT_MOCK_BFF_URL="http://localhost:8080"
 
 # Use shared CLI to run consumer tests
-log_info "Running consumer contract tests..."
-"$PACKAGE_ROOT/scripts/run-consumer-with-mock-bff.sh" -c "$CONSUMER_DIR" -n "$PACKAGE_NAME" || exit $?
+log_info "Running contract tests against Mock BFF..."
+"$PACKAGE_ROOT/scripts/run-consumer-with-mock-bff.sh" -c "$CONSUMER_DIR" -n "$PACKAGE_NAME" -r "$RESULTS_DIR" || exit $?
 
 display_test_summary "$RESULTS_DIR"
 
