@@ -7,7 +7,7 @@
     "update-subtree": "../../scripts/package-subtree.sh --package=@odh-dashboard/model-registry",
     "test:contract": "jest --config=contract-tests/jest.contract.config.js --detectOpenHandles",
     "test:contract:watch": "npm run test:contract -- --watch",
-    "test:contract:with-bff": "node -e \"require('child_process').spawnSync(require('path').resolve(__dirname, '../../../packages/contract-tests/scripts/run-go-bff-consumer.sh'), ['--bff-dir', require('path').resolve(__dirname, 'upstream/bff'), '--consumer-dir', require('path').resolve(__dirname, 'contract-tests'), '--package-name', 'model-registry'], { stdio: 'inherit', shell: true })\""
+    "test:contract:with-bff": "node -e \"const path=require('path'); const {spawnSync}=require('child_process'); const script=path.resolve(__dirname, '../../../packages/contract-tests/scripts/run-go-bff-consumer.sh'); const bff=path.resolve(__dirname, 'upstream/bff'); const consumer=path.resolve(__dirname, 'contract-tests'); const p=spawnSync('bash', [script, '--bff-dir', bff, '--consumer-dir', consumer, '--package-name', 'model-registry'], {stdio:'inherit'}); process.exit(p.status ?? 0);\""
   },
   "subtree": {
     "repo": "https://github.com/kubeflow/model-registry.git",

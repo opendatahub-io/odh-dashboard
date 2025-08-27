@@ -92,6 +92,7 @@ mkdir -p "$RESULTS_DIR"
 RESULTS_DIR="$(cd "$RESULTS_DIR" && pwd)"
 
 # Reporter env
+export CONTRACT_TEST_RESULTS_DIR="$RESULTS_DIR"
 export JEST_HTML_REPORTERS_PUBLIC_PATH="$RESULTS_DIR"
 export JEST_HTML_REPORTERS_FILE_NAME="contract-test-report.html"
 export JEST_HTML_REPORTERS_EXPAND=true
