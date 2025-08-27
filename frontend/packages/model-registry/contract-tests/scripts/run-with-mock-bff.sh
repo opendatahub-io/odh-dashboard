@@ -125,16 +125,18 @@ start_mock_bff() {
     log_info "Starting Mock BFF server on port 8080..."
     cd "$BFF_DIR" || exit 1
     
-    # Set up envtest path for Kubernetes testing
+    # Set up envtest path for Kubernetes testing (best-effort in CI)
     if [[ -z "${KUBEBUILDER_ASSETS:-}" ]]; then
-        # Run command and handle failure explicitly under set -e
         ASSETS_PATH=""
-        if ! ASSETS_PATH=$(./bin/setup-envtest-release-0.17 use 1.29.0 --print path); then
-            log_error "Failed to get kubebuilder assets path"
-            exit 1
+        if [[ -x ./bin/setup-envtest-release-0.17 ]]; then
+            ASSETS_PATH=$(./bin/setup-envtest-release-0.17 use 1.29.0 --print path || true)
+        else
+            log_warning "setup-envtest binary not found; skipping KUBEBUILDER_ASSETS for mock mode"
         fi
-        export KUBEBUILDER_ASSETS="$ASSETS_PATH"
-        log_info "Setting KUBEBUILDER_ASSETS to: $KUBEBUILDER_ASSETS"
+        if [[ -n "$ASSETS_PATH" ]]; then
+            export KUBEBUILDER_ASSETS="$ASSETS_PATH"
+            log_info "Setting KUBEBUILDER_ASSETS to: $KUBEBUILDER_ASSETS"
+        fi
     fi
     
     # Start BFF with mock settings
