@@ -185,7 +185,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "Discovering workspaces with contract tests..."
-          MAP=$(npx turbo run test:contract:with-bff --dry-run=json | jq -r '[.tasks[] | {pkg: .package, cwd: .cwd}] | unique | @base64')
+          MAP=$(npx turbo run test:contract:with-bff --filter=!@odh-dashboard/contract-testing --dry-run=json | jq -r '[.tasks[] | {pkg: .package, cwd: .cwd}] | unique | @base64')
           if [ -z "$MAP" ] || [ "$MAP" = "W10=" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
@@ -199,7 +199,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "Running contract tests for discovered workspaces..."
-          npx turbo run test:contract:with-bff --no-cache
+          npx turbo run test:contract:with-bff --filter=!@odh-dashboard/contract-testing --no-cache
 
       - name: Upload contract test results
         if: always()
