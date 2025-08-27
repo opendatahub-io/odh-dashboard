@@ -257,7 +257,6 @@ jobs:
         run: |
           mkdir -p ./coverage
           cp all-artifacts/unit-coverage/coverage-final.json ./coverage/unit-coverage-final.json || true
-          [ -f all-artifacts/backend-coverage/coverage-final.json ] && cp all-artifacts/backend-coverage/coverage-final.json ./coverage/backend-coverage-final.json || true
           find all-artifacts -name "cypress-coverage-*" -type d | while read dir; do
           group_name=$(basename "$dir")
           cp "$dir/coverage-final.json" "./coverage/${group_name}-coverage-final.json" || true
@@ -283,7 +282,6 @@ jobs:
       - name: Cleanup interim coverage files
         run: |
           rm -rf ./coverage/unit-coverage-final.json
-          rm -rf ./coverage/backend-coverage-final.json
           find ./coverage -name "*-coverage-final.json" -type f -delete
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4.6.0
