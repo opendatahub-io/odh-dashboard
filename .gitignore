@@ -4,6 +4,7 @@
 
 # misc
 .DS_Store
+Thumbs.db
 
 .env*.local
 

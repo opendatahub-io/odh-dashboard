@@ -76,9 +76,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.turbo
-          key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-type-check
+          key: shared-${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-type-check
           restore-keys: |
-            ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
+            shared-${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
       - name: Run type checks
         timeout-minutes: 5
         run: |
@@ -105,9 +105,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.turbo
-          key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-lint
+          key: shared-${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-lint
           restore-keys: |
-            ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
+            shared-${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
       - name: Run linting and formatting checks
         timeout-minutes: 5
         run: |
