@@ -193,45 +193,6 @@ jobs:
           echo "changed=true" >> "$GITHUB_OUTPUT"
           echo "matrix=$MAP" >> "$GITHUB_OUTPUT"
 
-      - name: Check if Model Registry contract tests will run
-        id: mr
-        if: steps.changes.outputs.changed == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          if npx turbo run test:contract:with-bff --filter=@odh-dashboard/model-registry --dry-run=json 2>/dev/null | jq -e '.tasks | length > 0' >/dev/null; then
-            echo "run_mr=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "run_mr=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Setup Go 1.21.6 (for MR envtest assets)
-        if: steps.mr.outputs.run_mr == 'true'
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.21.6'
-          cache: true
-
-      - name: Cache kubebuilder assets (MR)
-        if: steps.mr.outputs.run_mr == 'true'
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/frontend/packages/model-registry/upstream/bff/bin
-          key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-kubebuilder-1.29.0
-          restore-keys: |
-            ${{ env.CACHE_VERSION }}-${{ runner.os }}-kubebuilder-
-
-      - name: Prepare envtest assets (MR)
-        if: steps.mr.outputs.run_mr == 'true'
-        working-directory: ${{ github.workspace }}/frontend/packages/model-registry/upstream/bff
-        shell: bash
-        run: |
-          set -euo pipefail
-          make envtest
-          ASSETS_PATH=$(./bin/setup-envtest-release-0.17 use 1.29.0 --print path)
-          echo "KUBEBUILDER_ASSETS=$ASSETS_PATH" >> "$GITHUB_ENV"
-          echo "Prepared KUBEBUILDER_ASSETS at $ASSETS_PATH"
-
       - name: Run contract tests (matrix)
         if: steps.changes.outputs.changed == 'true'
         shell: bash
