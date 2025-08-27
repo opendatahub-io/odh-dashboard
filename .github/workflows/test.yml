@@ -213,6 +213,21 @@ jobs:
           echo "Running contract tests for discovered workspaces..."
           npx turbo run test:contract:with-bff --filter=!@odh-dashboard/contract-testing --no-cache
 
+      - name: Upload contract test results (rollup)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract-test-results
+          path: |
+            ${{ github.workspace }}/**/contract-tests/contract-test-results/*/contract-test-report.html
+            ${{ github.workspace }}/**/contract-tests/contract-test-results/*/junit.xml
+            ${{ github.workspace }}/**/contract-tests/contract-test-results/*/contract-test-output.log
+            ${{ github.workspace }}/**/contract-tests/contract-test-results/*/bff-mock.log
+            ${{ github.workspace }}/**/contract-tests/contract-test-results/*/artifacts/**
+            !${{ github.workspace }}/**/node_modules/**
+            !${{ github.workspace }}/packages/contract-tests/**
+          if-no-files-found: warn
+
       - name: Note endpoints
         if: steps.changes.outputs.changed != 'true'
         run: echo "No consumer contract tests detected. Skipping artifact upload."
