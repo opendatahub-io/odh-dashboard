@@ -4,6 +4,7 @@ import { TableRow } from '#~/__tests__/cypress/cypress/pages/components/table';
 import { mixin } from '#~/__tests__/cypress/cypress/utils/mixin';
 import { K8sNameDescriptionField } from '#~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
 import { Contextual } from './components/Contextual';
+import { Wizard } from './components/Wizard';
 
 class ModelServingToolbar extends Contextual<HTMLElement> {
   findToggleButton(id: string) {
@@ -850,6 +851,36 @@ class ModelServingSection {
   }
 }
 
+class ModelServingWizard extends Wizard {
+  constructor(private edit = false) {
+    super('Deploy a model');
+  }
+
+  findModelSourceStep() {
+    return this.findStep('source-model-step');
+  }
+
+  findModelDeploymentStep() {
+    return this.findStep('model-deployment-step');
+  }
+
+  findAdvancedOptionsStep() {
+    return this.findStep('advanced-options-step');
+  }
+
+  findModelTypeSelect() {
+    return cy.findByTestId('model-type-select');
+  }
+
+  findModelTypeSelectOption(name: string) {
+    return this.findModelTypeSelect().findSelectOption(name);
+  }
+
+  findModelDeploymentNameInput() {
+    return cy.findByTestId('model-deployment-name');
+  }
+}
+
 export const modelServingGlobal = new ModelServingGlobal();
 export const inferenceServiceModal = new InferenceServiceModal();
 export const inferenceServiceModalEdit = new InferenceServiceModal(true);
@@ -858,3 +889,5 @@ export const createServingRuntimeModal = new ServingRuntimeModal(false);
 export const editServingRuntimeModal = new ServingRuntimeModal(true);
 export const kserveModal = new KServeModal();
 export const kserveModalEdit = new KServeModal(true);
+export const modelServingWizard = new ModelServingWizard(false);
+export const modelServingWizardEdit = new ModelServingWizard(true);

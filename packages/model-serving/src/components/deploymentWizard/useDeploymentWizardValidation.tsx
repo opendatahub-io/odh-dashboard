@@ -7,7 +7,6 @@ import { modelSourceStepSchema, type ModelSourceStepData } from './steps/ModelSo
 export type ModelDeploymentWizardValidation = {
   modelSource: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
   isModelSourceStepValid: boolean;
-  // modelDeploymentStep: ReturnType<typeof useZodFormValidation<ModelDeploymentStepData>>;
   isModelDeploymentStepValid: boolean;
 };
 
@@ -30,7 +29,6 @@ export const useModelDeploymentWizardValidation = (
     modelSource: modelSourceStepValidation,
     isModelSourceStepValid:
       modelSourceStepValidation.getFieldValidation(undefined, true).length === 0,
-    // modelDeploymentStep: modelDeploymentStepValidation,
     isModelDeploymentStepValid: !!(
       data.k8sNameDesc && isK8sNameDescriptionDataValid(data.k8sNameDesc)
     ),

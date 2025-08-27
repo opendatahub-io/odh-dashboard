@@ -1,32 +1,78 @@
 import React from 'react';
-import { useLocation, useParams } from 'react-router-dom';
-import { useExtensions } from '@openshift/dynamic-plugin-sdk';
+import { useParams, useNavigate } from 'react-router-dom';
 import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
-import { Bullseye, Spinner } from '@patternfly/react-core';
+import {
+  Bullseye,
+  Spinner,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateFooter,
+  EmptyStateActions,
+  Button,
+} from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import { setupDefaults } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
-import { UseModelDeploymentWizardProps } from './useDeploymentWizard';
-import { Deployment, isModelServingPlatformExtension } from '../../../extension-points';
+import { ModelDeploymentWizardData } from './useDeploymentWizard';
+import { Deployment } from '../../../extension-points';
 import {
   ModelDeploymentsContext,
   ModelDeploymentsProvider,
 } from '../../concepts/ModelDeploymentsContext';
 import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
+import { useAvailableClusterPlatforms } from '../../concepts/useAvailableClusterPlatforms';
 
 const EditModelDeploymentPage: React.FC = () => {
   const { namespace } = useParams();
+  const navigate = useNavigate();
 
-  const { projects } = React.useContext(ProjectsContext);
-  const currentProject = projects.find(byName(namespace)) ?? undefined;
+  const { projects, loaded: projectsLoaded } = React.useContext(ProjectsContext);
+  const currentProject = projects.find(byName(namespace));
 
-  const platformExtensions = useExtensions(isModelServingPlatformExtension);
-  const { activePlatform } = useProjectServingPlatform(currentProject, platformExtensions);
+  const { clusterPlatforms, clusterPlatformsLoaded, clusterPlatformsError } =
+    useAvailableClusterPlatforms();
+  const { activePlatform } = useProjectServingPlatform(currentProject, clusterPlatforms);
+
+  if (!projectsLoaded || !clusterPlatformsLoaded) {
+    return (
+      <Bullseye>
+        <Spinner />
+      </Bullseye>
+    );
+  }
+
+  if (!currentProject || !activePlatform || clusterPlatformsError) {
+    return (
+      <Bullseye>
+        <EmptyState
+          headingLevel="h4"
+          icon={ExclamationCircleIcon}
+          titleText="Unable to edit model deployment"
+        >
+          <EmptyStateBody>
+            {!currentProject
+              ? `Project ${namespace ?? ''} not found.`
+              : !activePlatform
+              ? 'No model serving platform is configured for this project.'
+              : clusterPlatformsError
+              ? `Error loading cluster platforms: ${clusterPlatformsError.message}`
+              : 'Unable to edit model deployment.'}
+          </EmptyStateBody>
+          <EmptyStateFooter>
+            <EmptyStateActions>
+              <Button variant="primary" onClick={() => navigate(`/modelServing/`)}>
+                Return to model serving
+              </Button>
+            </EmptyStateActions>
+          </EmptyStateFooter>
+        </EmptyState>
+      </Bullseye>
+    );
+  }
 
   return (
-    <ModelDeploymentsProvider
-      modelServingPlatforms={activePlatform ? [activePlatform] : []}
-      projects={currentProject ? [currentProject] : []}
-    >
+    <ModelDeploymentsProvider modelServingPlatforms={[activePlatform]} projects={[currentProject]}>
       <EditModelDeploymentContent project={currentProject} />
     </ModelDeploymentsProvider>
   );
@@ -34,23 +80,18 @@ const EditModelDeploymentPage: React.FC = () => {
 
 export default EditModelDeploymentPage;
 
-const EditModelDeploymentContent: React.FC<{ project?: ProjectKind }> = ({ project }) => {
-  const location = useLocation();
+const EditModelDeploymentContent: React.FC<{ project: ProjectKind }> = ({ project }) => {
+  const { name: deploymentName } = useParams();
   const { deployments, loaded } = React.useContext(ModelDeploymentsContext);
 
   const existingDeployment = React.useMemo(() => {
-    const deploymentName = location.pathname.split('/').at(-1);
-
     return deployments?.find((d: Deployment) => d.model.metadata.name === deploymentName);
-  }, [deployments, location]);
+  }, [deployments, deploymentName]);
 
-  const extractFormDataFromDeployment: (deployment: Deployment) => UseModelDeploymentWizardProps = (
+  const extractFormDataFromDeployment: (deployment: Deployment) => ModelDeploymentWizardData = (
     deployment: Deployment,
   ) => ({
-    deploymentName: {
-      name: deployment.model.metadata.annotations?.['openshift.io/display-name'],
-      k8sName: deployment.model.metadata.name,
-    },
+    k8sNameDesc: setupDefaults({ initialData: deployment.model }),
   });
 
   const formData = React.useMemo(() => {
