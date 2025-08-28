@@ -47,7 +47,7 @@ Notes:
    ```
    import { ContractApiClient, ContractSchemaValidator } from '@odh-dashboard/contract-testing';
    // If you only need the API client:
-   import { ContractApiClient as Client } from '@odh-dashboard/contract-testing/api';
+   import { ContractApiClient as Client } from '@odh-dashboard/contract-testing';
    ```
 
 3. Extend test setup

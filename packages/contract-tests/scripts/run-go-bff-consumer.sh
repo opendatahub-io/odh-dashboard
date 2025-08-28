@@ -162,17 +162,28 @@ for i in $(seq 1 30); do
   sleep 1
 done
 
+# If loop finished without success, fail explicitly
+if ! curl -s -f "http://localhost:8080/healthcheck" >/dev/null 2>&1; then
+  log_error "Timed out waiting for Mock BFF to become ready"
+  log_error "BFF logs (tail):"
+  tail -n 200 "$BFF_LOG_FILE" || true
+  exit 1
+fi
+
 export CONTRACT_MOCK_BFF_URL="http://localhost:8080"
 
 # Use shared CLI to run consumer tests
 log_info "Running contract tests against Mock BFF..."
-"$PACKAGE_ROOT/scripts/run-consumer-with-mock-bff.sh" -c "$CONSUMER_DIR" -n "$PACKAGE_NAME" -r "$RESULTS_DIR" || exit $?
+"$PACKAGE_ROOT/scripts/run-consumer-with-mock-bff.sh" -c "$CONSUMER_DIR" -n "$PACKAGE_NAME" -r "$RESULTS_DIR"
+exit_code=$?
 
 display_test_summary "$RESULTS_DIR"
 
 if [[ "${CI:-}" != "true" ]]; then
   open_html_report "$RESULTS_DIR" 2>/dev/null || true
 fi
+
+exit "$exit_code"
 
 complete_test_summary "$PACKAGE_NAME" "$RESULTS_DIR"
 

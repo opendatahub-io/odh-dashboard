@@ -5,7 +5,11 @@
     "paths": {
       "@odh-dashboard/contract-testing": ["../../contract-tests/src"],
       "@odh-dashboard/contract-testing/*": ["../../contract-tests/src/*"]
-    }
+    },
+    "resolveJsonModule": true,
+    "moduleResolution": "node",
+    "types": ["jest", "node"],
+    "esModuleInterop": true
   },
   "include": [
     "**/*.ts",
