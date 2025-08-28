@@ -419,59 +419,38 @@ jobs:
           npm install nyc --no-save
       - name: Combine coverage reports
         run: |
-<<<<<<< HEAD
-          set -euo pipefail
-          mkdir -p ${{ github.workspace }}/coverage
-          if [ -f "${{ github.workspace }}/all-artifacts/unit-coverage/coverage-final.json" ]; then
-            cp "${{ github.workspace }}/all-artifacts/unit-coverage/coverage-final.json" "${{ github.workspace }}/coverage/unit-coverage-final.json"
-          fi
-          if [ -f "${{ github.workspace }}/all-artifacts/backend-coverage/coverage-final.json" ]; then
-            cp "${{ github.workspace }}/all-artifacts/backend-coverage/coverage-final.json" "${{ github.workspace }}/coverage/backend-coverage-final.json"
-          fi
-          find ${{ github.workspace }}/all-artifacts -name "cypress-coverage-*" -type d -print0 | while IFS= read -r -d '' dir; do
-            group_name=$(basename "$dir")
-            if [ -f "$dir/coverage-final.json" ]; then
-              cp "$dir/coverage-final.json" "${{ github.workspace }}/coverage/${group_name}-coverage-final.json" || true
-            fi
-=======
           mkdir -p ./coverage
           cp all-artifacts/unit-coverage/coverage-final.json ./coverage/unit-coverage-final.json || true
+          [ -f all-artifacts/backend-coverage/coverage-final.json ] && cp all-artifacts/backend-coverage/coverage-final.json ./coverage/backend-coverage-final.json || true
           find all-artifacts -name "cypress-coverage-*" -type d | while read dir; do
           group_name=$(basename "$dir")
           cp "$dir/coverage-final.json" "./coverage/${group_name}-coverage-final.json" || true
->>>>>>> upstream/main
           done
           echo "Combined coverage files:"
-          ls -R "${{ github.workspace }}/coverage"
+          ls -R "$GITHUB_WORKSPACE/coverage"
       - name: Merge coverage reports
         run: |
           set -euo pipefail
-          npx nyc merge ${{ github.workspace }}/coverage ${{ github.workspace }}/coverage/merged-coverage.json
+          npx nyc merge "$GITHUB_WORKSPACE/coverage" "$GITHUB_WORKSPACE/coverage/merged-coverage.json"
           echo "Cleaning up merged coverage file..."
-          jq 'del(.[] | select(.statementMap == {}))' ${{ github.workspace }}/coverage/merged-coverage.json > ${{ github.workspace }}/coverage/cleaned-coverage.json
-          mv ${{ github.workspace }}/coverage/cleaned-coverage.json ${{ github.workspace }}/coverage/merged-coverage.json
+          jq 'del(.[] | select(.statementMap == {}))' "$GITHUB_WORKSPACE/coverage/merged-coverage.json" > "$GITHUB_WORKSPACE/coverage/cleaned-coverage.json"
+          mv "$GITHUB_WORKSPACE/coverage/cleaned-coverage.json" "$GITHUB_WORKSPACE/coverage/merged-coverage.json"
       - name: Generate coverage report
         run: |
           set -euo pipefail
-          mkdir -p ${{ github.workspace }}/coverage/report
-          npx nyc report --reporter=html --reporter=text-summary --temp-directory ${{ github.workspace }}/coverage -t ${{ github.workspace }}/coverage --report-dir ${{ github.workspace }}/coverage/report
-          cp ${{ github.workspace }}/coverage/unit-coverage-final.json ${{ github.workspace }}/coverage/combined-coverage-final.json || true
+          mkdir -p "$GITHUB_WORKSPACE/coverage/report"
+          npx nyc report --reporter=html --reporter=text-summary --temp-directory "$GITHUB_WORKSPACE/coverage" -t "$GITHUB_WORKSPACE/coverage" --report-dir "$GITHUB_WORKSPACE/coverage/report"
+          cp "$GITHUB_WORKSPACE/coverage/unit-coverage-final.json" "$GITHUB_WORKSPACE/coverage/combined-coverage-final.json" || true
       - name: Upload combined results
         uses: actions/upload-artifact@v4
         with:
           name: combined-coverage-results
-          path: ${{ github.workspace }}/coverage/combined-coverage-final.json
+          path: $GITHUB_WORKSPACE/coverage/combined-coverage-final.json
       - name: Cleanup interim coverage files
         run: |
-<<<<<<< HEAD
-          set -euo pipefail
-          rm -rf ${{ github.workspace }}/coverage/unit-coverage-final.json
-          rm -rf ${{ github.workspace }}/coverage/backend-coverage-final.json
-          find ${{ github.workspace }}/coverage -name "*-coverage-final.json" -type f -delete
-=======
           rm -rf ./coverage/unit-coverage-final.json
+          rm -rf ./coverage/backend-coverage-final.json
           find ./coverage -name "*-coverage-final.json" -type f -delete
->>>>>>> upstream/main
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4.6.0
         with:
