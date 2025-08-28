@@ -22,6 +22,7 @@ import { ApplicationsPage } from 'mod-arch-shared';
 import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
 import { useUserContext } from '~/app/context/UserContext';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
+import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import { ChatbotMessages } from './ChatbotMessagesList';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
@@ -80,6 +81,8 @@ const ChatbotMain: React.FunctionComponent = () => {
     username,
   });
 
+  const lsdStatus = useFetchLSDStatus(selectedProject);
+
   // Create alert components
   const successAlert = (
     <SourceUploadSuccessAlert
@@ -103,17 +106,6 @@ const ChatbotMain: React.FunctionComponent = () => {
       <Bullseye>
         <Spinner />
       </Bullseye>
-    );
-  }
-
-  const noLsInstalled = true;
-
-  // Show empty state if no models are available
-  if (noLsInstalled) {
-    return (
-      <div style={{ height: '100vh', width: '100%' }}>
-        <ChatbotEmptyState />
-      </div>
     );
   }
 
@@ -144,46 +136,52 @@ const ChatbotMain: React.FunctionComponent = () => {
       empty={false}
       loadError={error}
     >
-      <ChatbotSourceSettingsModal
-        isOpen={sourceManagement.isSourceSettingsOpen}
-        onToggle={() =>
-          sourceManagement.setIsSourceSettingsOpen(!sourceManagement.isSourceSettingsOpen)
-        }
-        onSubmitSettings={sourceManagement.handleSourceSettingsSubmit}
-      />
-      <Drawer isExpanded isInline position="right">
-        <DrawerContent panelContent={settingsPanelContent}>
-          <DrawerContentBody>
-            <Chatbot displayMode={displayMode} data-testid="chatbot">
-              <ChatbotContent>
-                <MessageBox position="bottom">
-                  <ChatbotWelcomePrompt
-                    title={username ? `Hello, ${username}` : 'Hello'}
-                    description="Welcome to the chat playground"
-                  />
-                  <ChatbotMessages
-                    messageList={chatbotMessages.messages}
-                    scrollRef={chatbotMessages.scrollToBottomRef}
-                  />
-                </MessageBox>
-              </ChatbotContent>
-              <ChatbotFooter>
-                <MessageBar
-                  onSendMessage={(message) => {
-                    if (typeof message === 'string') {
-                      chatbotMessages.handleMessageSend(message);
-                    }
-                  }}
-                  hasAttachButton={false}
-                  isSendButtonDisabled={chatbotMessages.isMessageSendButtonDisabled}
-                  data-testid="chatbot-message-bar"
-                />
-                <ChatbotFootnote {...{ label: 'Bot uses AI. Check for mistakes.' }} />
-              </ChatbotFooter>
-            </Chatbot>
-          </DrawerContentBody>
-        </DrawerContent>
-      </Drawer>
+      {lsdStatus.data === null ? (
+        <ChatbotEmptyState />
+      ) : (
+        <>
+          <ChatbotSourceSettingsModal
+            isOpen={sourceManagement.isSourceSettingsOpen}
+            onToggle={() =>
+              sourceManagement.setIsSourceSettingsOpen(!sourceManagement.isSourceSettingsOpen)
+            }
+            onSubmitSettings={sourceManagement.handleSourceSettingsSubmit}
+          />
+          <Drawer isExpanded isInline position="right">
+            <DrawerContent panelContent={settingsPanelContent}>
+              <DrawerContentBody>
+                <Chatbot displayMode={displayMode} data-testid="chatbot">
+                  <ChatbotContent>
+                    <MessageBox position="bottom">
+                      <ChatbotWelcomePrompt
+                        title={username ? `Hello, ${username}` : 'Hello'}
+                        description="Welcome to the chat playground"
+                      />
+                      <ChatbotMessages
+                        messageList={chatbotMessages.messages}
+                        scrollRef={chatbotMessages.scrollToBottomRef}
+                      />
+                    </MessageBox>
+                  </ChatbotContent>
+                  <ChatbotFooter>
+                    <MessageBar
+                      onSendMessage={(message) => {
+                        if (typeof message === 'string') {
+                          chatbotMessages.handleMessageSend(message);
+                        }
+                      }}
+                      hasAttachButton={false}
+                      isSendButtonDisabled={chatbotMessages.isMessageSendButtonDisabled}
+                      data-testid="chatbot-message-bar"
+                    />
+                    <ChatbotFootnote {...{ label: 'Bot uses AI. Check for mistakes.' }} />
+                  </ChatbotFooter>
+                </Chatbot>
+              </DrawerContentBody>
+            </DrawerContent>
+          </Drawer>
+        </>
+      )}
     </ApplicationsPage>
   );
 

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { MenuItem } from '@patternfly/react-core';
+import { HelperText, HelperTextItem, MenuItem } from '@patternfly/react-core';
 import SearchSelector from '@odh-dashboard/internal/components/searchSelector/SearchSelector';
 import { useGenaiNamespaces } from '~/app/hooks/useGenaiNamespaces';
 
@@ -54,47 +54,48 @@ const ProjectDropdown: React.FC<ProjectDropdownProps> = ({
     toggleLabel = 'Error fetching projects';
   }
 
-  if (namespacesLoadError) {
-    return (
-      <span style={{ color: 'red', marginLeft: '10px' }}>
-        {namespacesLoadError.message || 'Error loading namespaces'}
-      </span>
-    );
-  }
-
   return (
-    <SearchSelector
-      dataTestId="ai-playground-project-selector"
-      minWidth="300px"
-      onSearchChange={(value: string) => setSearchText(value)}
-      onSearchClear={() => setSearchText('')}
-      searchFocusOnOpen
-      searchPlaceholder="Search projects..."
-      searchValue={searchText}
-      isLoading={!namespacesLoaded}
-      isDisabled={isDisabled || !namespacesLoaded}
-      toggleContent={toggleLabel}
-    >
-      <>
-        {!namespacesLoaded && <MenuItem isDisabled>Loading projects...</MenuItem>}
-        {namespacesLoaded && filteredProjects.length === 0 && (
-          <MenuItem isDisabled>No projects available</MenuItem>
-        )}
-        {namespacesLoaded &&
-          filteredProjects.map((projectName) => (
-            <MenuItem
-              key={projectName}
-              isSelected={projectName === selectedProject}
-              onClick={() => {
-                setSearchText('');
-                onProjectChange(projectName);
-              }}
-            >
-              {projectName}
-            </MenuItem>
-          ))}
-      </>
-    </SearchSelector>
+    <>
+      <SearchSelector
+        dataTestId="ai-playground-project-selector"
+        minWidth="300px"
+        onSearchChange={(value: string) => setSearchText(value)}
+        onSearchClear={() => setSearchText('')}
+        searchFocusOnOpen
+        searchPlaceholder="Search projects..."
+        searchValue={searchText}
+        isLoading={!namespacesLoaded}
+        isDisabled={isDisabled || !namespacesLoaded}
+        toggleContent={toggleLabel}
+      >
+        <>
+          {!namespacesLoaded && <MenuItem isDisabled>Loading projects...</MenuItem>}
+          {namespacesLoaded && filteredProjects.length === 0 && (
+            <MenuItem isDisabled>No projects available</MenuItem>
+          )}
+          {namespacesLoaded &&
+            filteredProjects.map((projectName) => (
+              <MenuItem
+                key={projectName}
+                isSelected={projectName === selectedProject}
+                onClick={() => {
+                  setSearchText('');
+                  onProjectChange(projectName);
+                }}
+              >
+                {projectName}
+              </MenuItem>
+            ))}
+        </>
+      </SearchSelector>
+      {namespacesLoadError && (
+        <HelperText>
+          <HelperTextItem variant="error">
+            {namespacesLoadError.message || 'Error loading namespaces'}
+          </HelperTextItem>
+        </HelperText>
+      )}
+    </>
   );
 };
 

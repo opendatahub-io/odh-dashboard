@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, EmptyState, EmptyStateBody, Title } from '@patternfly/react-core';
+import { Button, EmptyState, EmptyStateBody, EmptyStateFooter } from '@patternfly/react-core';
 import emptyStateImage from '~/app/bgimages/empty-state.svg';
 
 const ChatbotEmptyState: React.FC = () => {
@@ -8,23 +8,20 @@ const ChatbotEmptyState: React.FC = () => {
   };
 
   return (
-    <EmptyState style={{ marginTop: '100px' }}>
-      <EmptyStateBody
-        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}
-      >
-        <img src={emptyStateImage} alt="AI Playground Infrastructure" />
-        <div>
-          <Title headingLevel="h1" size="lg">
-            Enable AI Playground
-          </Title>
-          <p>
-            Create a playground environment for testing available AI assets, building a simple RAG
-            application, testing MCP servers and more.
-          </p>
-        </div>
-        <Button variant="primary" onClick={handleConfigure}>
-          Configure AI Playground
-        </Button>
+    <EmptyState
+      titleText="Enable AI Playground"
+      icon={() => <img src={emptyStateImage} alt="AI Playground Infrastructure" />}
+      variant="lg"
+      isFullHeight
+    >
+      <EmptyStateBody>
+        Create a playground to chat with the generative models deployed in this project. Experiment
+        with model output using a simple RAG simulation, custom prompt and MCP servers.
+        <EmptyStateFooter>
+          <Button variant="primary" onClick={handleConfigure}>
+            Configure AI Playground
+          </Button>
+        </EmptyStateFooter>
       </EmptyStateBody>
     </EmptyState>
   );
