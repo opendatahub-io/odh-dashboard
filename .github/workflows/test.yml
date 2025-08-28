@@ -49,7 +49,7 @@ jobs:
             echo "Error: package-lock.json not found. Please commit the lockfile for deterministic CI installs." >&2
             exit 1
           fi
-          npm ci
+          npm ci --ignore-scripts
 
       - name: Check for uncommitted changes
         run: |
