@@ -18,7 +18,6 @@ env:
 jobs:
   Setup:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     outputs:
       modules-cache-key: ${{ steps.key.outputs.modules-cache-key }}
     steps:
@@ -60,7 +59,6 @@ jobs:
   Type-Check:
     needs: Setup
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
@@ -74,15 +72,7 @@ jobs:
             ~/.cache/Cypress
             **/node_modules
           key: ${{ needs.Setup.outputs.modules-cache-key }}
-      - name: Cache turbo
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/.turbo
-          key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-type-check
-          restore-keys: |
-            ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
       - name: Run type checks
-        timeout-minutes: 5
         run: |
           set -euo pipefail
           npm run type-check
@@ -90,7 +80,6 @@ jobs:
   Lint:
     needs: Setup
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
@@ -104,15 +93,7 @@ jobs:
             ~/.cache/Cypress
             **/node_modules
           key: ${{ needs.Setup.outputs.modules-cache-key }}
-      - name: Cache turbo
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/.turbo
-          key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-lint
-          restore-keys: |
-            ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
       - name: Run linting and formatting checks
-        timeout-minutes: 5
         run: |
           set -euo pipefail
           NODE_OPTIONS="--max-old-space-size=8192" npm run lint
@@ -120,7 +101,6 @@ jobs:
   Unit-Tests:
     needs: [Setup, Lint, Type-Check]
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
@@ -134,15 +114,7 @@ jobs:
             ~/.cache/Cypress
             **/node_modules
           key: ${{ needs.Setup.outputs.modules-cache-key }}
-      - name: Cache turbo
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/.turbo
-          key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-unit-tests
-          restore-keys: |
-            ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
       - name: Unit tests with coverage
-        timeout-minutes: 10
         run: |
           set -euo pipefail
           npm run test-unit-coverage
@@ -156,17 +128,14 @@ jobs:
   Contract-Tests:
     needs: [Setup, Lint, Type-Check]
     runs-on: ubuntu-latest
-    timeout-minutes: 15  # Overall job timeout
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-
       - name: Restore node modules cache
         uses: actions/cache/restore@v4
         with:
@@ -174,82 +143,22 @@ jobs:
             ~/.cache/Cypress
             **/node_modules
           key: ${{ needs.Setup.outputs.modules-cache-key }}
-
-      - name: Cache turbo
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/.turbo
-          key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-contract-tests
-          restore-keys: |
-            ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
-
-      # Only run contract tests if Model Registry has changes
-      - name: Check for model-registry changes
-        id: changes
-        working-directory: ${{ github.workspace }}/frontend
-        run: |
-          set -euo pipefail
-          echo "Checking for changes in model-registry package..."
-
-          # Check if there are tasks to run for model-registry
-          if npx turbo run test:contract:with-bff --filter=@odh-dashboard/model-registry --dry-run=json 2>/dev/null | jq -e '.tasks | length > 0' >/dev/null; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "✅ Model Registry has changes, running contract tests"
-          else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "⏭️  No relevant changes found, skipping contract tests"
-          fi
-
-      - name: Setup Go 1.21.6
-        if: steps.changes.outputs.changed == 'true'
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.21.6'
-          cache: true
-          cache-dependency-path: ${{ github.workspace }}/frontend/packages/model-registry/upstream/bff/go.sum
-
-      - name: Cache kubebuilder assets
-        if: steps.changes.outputs.changed == 'true'
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/frontend/packages/model-registry/upstream/bff/bin
-          key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-kubebuilder-1.29.0
-          restore-keys: |
-            ${{ env.CACHE_VERSION }}-${{ runner.os }}-kubebuilder-
-
-      - name: Setup Go test dependencies (kubebuilder assets)
-        if: steps.changes.outputs.changed == 'true'
-        working-directory: ${{ github.workspace }}/frontend/packages/model-registry/upstream/bff
-        timeout-minutes: 5
-        run: |
-          set -euo pipefail
-          echo "📦 Installing kubebuilder test assets..."
-          make envtest
-
-          # Set up test assets and export path for subsequent steps
-          ASSETS_PATH=$(./bin/setup-envtest-release-0.17 use 1.29.0 -p path)
-          echo "KUBEBUILDER_ASSETS=$ASSETS_PATH" >> "$GITHUB_ENV"
-          echo "✅ Kubebuilder assets installed at: $ASSETS_PATH"
-
       - name: Run Model Registry contract tests
-        if: steps.changes.outputs.changed == 'true'
-        working-directory: ${{ github.workspace }}/frontend/packages/model-registry
-        timeout-minutes: 10  # Test step timeout
+        working-directory: ${{ github.workspace }}/packages/model-registry
         run: |
           set -euo pipefail
           echo "🧪 Running Model Registry contract tests..."
           npm run test:contract:with-bff
-
       - name: Upload contract test results
-        if: steps.changes.outputs.changed == 'true' && always()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: contract-test-results
           path: |
-            ${{ github.workspace }}/frontend/packages/*/contract-tests/contract-test-results/*/contract-test-report.html
-            ${{ github.workspace }}/frontend/packages/*/contract-tests/contract-test-results/*/junit.xml
-            ${{ github.workspace }}/frontend/packages/*/contract-tests/contract-test-results/*/contract-test-output.log
-            ${{ github.workspace }}/frontend/packages/*/contract-tests/contract-test-results/*/bff-mock.log
+            ${{ github.workspace }}/packages/model-registry/contract-tests/contract-test-results/*/contract-test-report.html
+            ${{ github.workspace }}/packages/model-registry/contract-tests/contract-test-results/*/junit.xml
+            ${{ github.workspace }}/packages/model-registry/contract-tests/contract-test-results/*/contract-test-output.log
+            ${{ github.workspace }}/packages/model-registry/contract-tests/contract-test-results/*/bff-mock.log
           if-no-files-found: warn
 
   Get-Test-Groups:
@@ -290,7 +199,6 @@ jobs:
   Cypress-Setup:
     needs: [Setup]
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     outputs:
       cypress-cache-key: ${{ steps.key.outputs.cypress-cache-key }}
     steps:
@@ -323,7 +231,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       - name: Build frontend for cypress
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
-        timeout-minutes: 5
         run: |
           set -euo pipefail
           cd ${{ github.workspace }}/frontend && npm run cypress:server:build:coverage
@@ -331,7 +238,6 @@ jobs:
   Cypress-Mock-Tests:
     needs: [Setup, Lint, Type-Check, Cypress-Setup, Get-Test-Groups]
     runs-on: ubuntu-latest
-    timeout-minutes: 30  # Longer timeout for Cypress
     strategy:
       fail-fast: false  # Continue other groups if one fails
       matrix:
@@ -356,7 +262,6 @@ jobs:
             ${{ github.workspace }}/frontend/public-cypress
           key: ${{ needs.Cypress-Setup.outputs.cypress-cache-key }}
       - name: Run Cypress Mock tests
-        timeout-minutes: 20  # Per test group timeout
         run: |
           set -euo pipefail
           cd ${{ github.workspace }}/frontend
@@ -383,7 +288,6 @@ jobs:
   Combine-Results-and-Upload:
     needs: [Unit-Tests, Cypress-Mock-Tests]
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
@@ -453,7 +357,6 @@ jobs:
 
   Tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
     needs:
       - Lint
       - Type-Check
