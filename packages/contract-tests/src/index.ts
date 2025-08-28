@@ -79,6 +79,9 @@ import {
   type ValidationResult,
 } from './utils/schema-validation';
 
+// Setup helper
+import { setupContractTest } from './helpers/setup';
+
 // Re-export everything
 export {
   // Logging utilities
@@ -106,4 +109,6 @@ export {
   ContractSchemaValidator,
   type SchemaValidationConfig,
   type ValidationResult,
+  // Setup helper
+  setupContractTest,
 };

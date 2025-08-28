@@ -28,7 +28,7 @@ yarn.lock
 jest-coverage
 
 # Build outputs
-dist/
+dist
 
 # Contract test results
-**/contract-test-results/
+contract-test-results

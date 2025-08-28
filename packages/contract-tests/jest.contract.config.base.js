@@ -19,13 +19,6 @@ try {
 module.exports = {
   ...baseConfig,
 
-  // Module resolution - extending from parent config and adding our paths
-  moduleNameMapper: {
-    ...baseConfig.moduleNameMapper,
-    '^@odh-dashboard/contract-testing$': require('path').resolve(__dirname, 'src/index.ts'),
-    '^@odh-dashboard/contract-testing/(.*)$': require('path').resolve(__dirname, 'src/$1'),
-  },
-
   // Setup files
   setupFilesAfterEnv: ['<rootDir>/setup.ts'],
 

@@ -9,27 +9,27 @@
   },
   "scripts": {
     "build": "mkdir -p dist/helpers && cp src/helpers/shell-helpers.sh dist/helpers/",
-    "test-unit": "jest",
-    "test-unit:watch": "jest --watch",
-    "test:contract": "jest --config jest.contract.config.js --detectOpenHandles",
-    "test:contract:watch": "jest --config jest.contract.config.js --watch",
-    "test:contract:with-bff": "scripts/run-with-mock-bff.sh",
+    "type-check": "tsc -p tsconfig.json --noEmit",
+    "test-unit": "jest --passWithNoTests",
+    "test-unit:watch": "jest --watch --passWithNoTests",
+    "test:contract": "echo 'No contract tests in shared package' && exit 0",
+    "test:contract:watch": "echo 'No contract tests in shared package' && exit 0",
+    "test:contract:with-bff": "echo 'Run in consumer packages only' && exit 0",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
   "exports": {
     ".": "./src/index.ts"
   },
-  "dependencies": {
-    "ajv": "^8.12.0",
-    "ajv-formats": "^2.1.1",
-    "axios": "^1.6.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/jest": "^29.5.13",
     "jest": "^29.7.0",
     "jest-html-reporters": "^3.1.7",
     "jest-junit": "^16.0.0",
-    "ts-jest": "^29.1.1"
+    "ts-jest": "^29.1.1",
+    "ajv": "^8.12.0",
+    "ajv-formats": "^2.1.1",
+    "axios": "^1.6.0"
   }
 }

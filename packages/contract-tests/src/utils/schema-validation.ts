@@ -1,4 +1,4 @@
-import type { JSONSchemaType } from 'ajv';
+import type { AnySchema } from 'ajv';
 import AjvModule from 'ajv/dist/2020';
 import addFormats from 'ajv-formats';
 
@@ -25,7 +25,7 @@ function hasDataProperty(value: unknown): value is { data?: unknown } {
 export class ContractSchemaValidator {
   private ajv: AjvModule;
 
-  private schemas: Map<string, JSONSchemaType<unknown>>;
+  private schemas: Map<string, AnySchema>;
 
   constructor(config?: SchemaValidationConfig) {
     this.ajv = new AjvModule({
@@ -40,7 +40,7 @@ export class ContractSchemaValidator {
   /**
    * Load a schema for validation
    */
-  async loadSchema(schemaId: string, schema: JSONSchemaType<unknown>): Promise<void> {
+  async loadSchema(schemaId: string, schema: AnySchema): Promise<void> {
     this.schemas.set(schemaId, schema);
     this.ajv.addSchema(schema, schemaId);
   }

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import axios, { AxiosError, AxiosResponse, RawAxiosResponseHeaders } from 'axios';
 import { logApiCall, logApiResponse, logApiError, ApiResponse, ApiError } from '../helpers/logging';
 
@@ -8,11 +7,19 @@ export interface ApiTestConfig {
   timeout?: number;
 }
 
-export interface ApiTestResult {
-  success: boolean;
-  response?: ApiResponse;
-  error?: ApiError;
+export interface ApiTestResultSuccess {
+  success: true;
+  response: ApiResponse;
+  error?: undefined;
 }
+
+export interface ApiTestResultError {
+  success: false;
+  response?: undefined;
+  error: ApiError;
+}
+
+export type ApiTestResult = ApiTestResultSuccess | ApiTestResultError;
 
 /**
  * Generic API client for contract testing
@@ -44,14 +51,34 @@ export class ContractApiClient {
     };
   }
 
+  private static isObjectRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
+  }
+
+  private static hasKey<K extends string>(
+    obj: Record<string, unknown>,
+    key: K,
+  ): obj is Record<K, unknown> {
+    return key in obj;
+  }
+
   private static getCurrentTestName(fallback?: string): string {
     try {
-      const g = globalThis as unknown as {
-        expect?: { getState?: () => { currentTestName?: string } };
-      };
-      const state = g.expect?.getState?.();
-      const name = state?.currentTestName;
-      return name ?? fallback ?? '';
+      const maybeExpect: unknown = Reflect.get(globalThis, 'expect');
+      if (typeof maybeExpect === 'function' || ContractApiClient.isObjectRecord(maybeExpect)) {
+        const getStateUnknown: unknown = Reflect.get(maybeExpect, 'getState');
+        if (typeof getStateUnknown === 'function') {
+          const state = getStateUnknown();
+          if (
+            ContractApiClient.isObjectRecord(state) &&
+            ContractApiClient.hasKey(state, 'currentTestName')
+          ) {
+            const { currentTestName } = state;
+            if (typeof currentTestName === 'string') return currentTestName;
+          }
+        }
+      }
+      return fallback ?? '';
     } catch {
       return fallback ?? '';
     }

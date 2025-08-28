@@ -20,11 +20,6 @@
       "dependsOn": ["^type-check"]
     },
     "test:contract:with-bff": {
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "contract-tests/**",
-        "$TURBO_ROOT$/packages/contract-tests/**"
-      ],
       "outputs": [
         "contract-tests/contract-test-results/**"
       ]

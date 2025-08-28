@@ -1,3 +1,10 @@
 {
-  "extends": "../../../packages/tsconfig/tsconfig.json"
+  "extends": "../tsconfig/tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@odh-dashboard/contract-testing": ["../contract-tests/src"],
+      "@odh-dashboard/contract-testing/*": ["../contract-tests/src/*"]
+    }
+  }
 }

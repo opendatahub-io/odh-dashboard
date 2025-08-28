@@ -27,6 +27,16 @@ function formatAjvErrors(errors?: ErrorObject[]): string {
     .join('\n');
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isHttpResponseLike(
+  value: unknown,
+): value is { status?: number; headers?: Record<string, unknown>; data?: unknown } {
+  return isRecord(value) && 'data' in value;
+}
+
 export function toMatchContract(
   this: jest.MatcherContext,
   received: { status?: number; headers?: Record<string, unknown>; data?: unknown } | unknown,
@@ -35,13 +45,14 @@ export function toMatchContract(
 ): { pass: boolean; message: () => string } {
   const { ref, expectedStatus, expectedHeaders } = options || {};
 
-  const isHttpLike =
-    typeof received === 'object' && received !== null && 'data' in (received as any);
-  const payload = isHttpLike ? (received as any).data : received;
+  let payload: unknown = received;
+  if (isHttpResponseLike(received)) {
+    payload = received.data;
+  }
 
   // Optional status check
   if (typeof expectedStatus === 'number') {
-    const actualStatus = isHttpLike ? (received as any).status : undefined;
+    const actualStatus = isHttpResponseLike(received) ? received.status : undefined;
     if (actualStatus !== expectedStatus) {
       return {
         pass: false,
@@ -52,8 +63,8 @@ export function toMatchContract(
   }
 
   // Optional headers check (normalize keys to lower-case and support string|string[])
-  if (expectedHeaders && isHttpLike) {
-    const rawHeaders: Record<string, unknown> = (received as any).headers || {};
+  if (expectedHeaders && isHttpResponseLike(received)) {
+    const rawHeaders: Record<string, unknown> = isRecord(received.headers) ? received.headers : {};
     const normalizedHeaders: Record<string, string | string[] | undefined> = {};
     for (const [k, v] of Object.entries(rawHeaders)) {
       const keyLc = k.toLowerCase();
@@ -109,16 +120,17 @@ export function toMatchContract(
       const uniqueId = `inmem-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       ajv.addSchema(schema, uniqueId);
       const refPath = ref.startsWith('#') ? `${uniqueId}${ref}` : `${uniqueId}#${ref}`;
-      pass = ajv.validate({ $ref: refPath }, payload) as boolean;
-      lastErrors = ajv.errors as ErrorObject[] | undefined;
+      pass = Boolean(ajv.validate({ $ref: refPath }, payload));
+      lastErrors = ajv.errors ?? undefined;
     } else {
       // Validate against whole schema
       const validateWhole: ValidateFunction = ajv.compile(schema);
-      pass = validateWhole(payload) as boolean;
-      lastErrors = validateWhole.errors as ErrorObject[] | undefined;
+      pass = Boolean(validateWhole(payload));
+      lastErrors = validateWhole.errors ?? undefined;
     }
   } catch (e) {
-    return { pass: false, message: () => `Failed to compile schema: ${(e as Error).message}` };
+    const msg = e instanceof Error ? e.message : String(e);
+    return { pass: false, message: () => `Failed to compile schema: ${msg}` };
   }
   if (pass) {
     return {

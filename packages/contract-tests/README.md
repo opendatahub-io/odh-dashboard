@@ -14,12 +14,12 @@ Shared utilities and base configuration for consumer-driven contract tests acros
 - From the repo root, install dependencies:
   - `npm install --ignore-scripts`
 - Run contract tests for a specific consumer package (example: Model Registry):
-  - Pure Jest (no BFF): `npm -w frontend/packages/model-registry run test:contract`
-  - Watch: `npm -w frontend/packages/model-registry run test:contract:watch`
-  - Shared bin wrapper (no BFF): `npx odh-contract-tests -c frontend/packages/model-registry/contract-tests`
-  - Watch mode: `npx odh-contract-tests -c frontend/packages/model-registry/contract-tests -w`
+  - Pure Jest (no BFF): `npm -w packages/model-registry run test:contract`
+  - Watch: `npm -w packages/model-registry run test:contract:watch`
+  - Shared bin wrapper (no BFF): `npx odh-contract-tests -c packages/model-registry/contract-tests`
+  - Watch mode: `npx odh-contract-tests -c packages/model-registry/contract-tests -w`
   - With Mock BFF (Go) using shared runner:
-    - `bash packages/contract-tests/scripts/run-go-bff-consumer.sh --bff-dir frontend/packages/model-registry/upstream/bff --consumer-dir frontend/packages/model-registry/contract-tests --package-name model-registry`
+    - `bash packages/contract-tests/scripts/run-go-bff-consumer.sh --bff-dir packages/model-registry/upstream/bff --consumer-dir packages/model-registry/contract-tests --package-name model-registry`
 
 Run the shared package tests in this workspace (mostly for library changes here):
 - `npm -w packages/contract-tests run test`
@@ -97,7 +97,7 @@ packages/contract-tests/
 - `odh-contract-report` (bin): generates enhanced HTML report from logs
   - Example (default latest dir): `npx odh-contract-report`
 - `scripts/run-go-bff-consumer.sh`: builds/starts Go Mock BFF, then runs consumer tests
-  - Example: `bash packages/contract-tests/scripts/run-go-bff-consumer.sh --bff-dir frontend/packages/model-registry/upstream/bff --consumer-dir frontend/packages/model-registry/contract-tests --package-name model-registry`
+  - Example: `bash packages/contract-tests/scripts/run-go-bff-consumer.sh --bff-dir packages/model-registry/upstream/bff --consumer-dir packages/model-registry/contract-tests --package-name model-registry`
 
 ## Adopt in a new consumer package (checklist)
 
@@ -108,7 +108,7 @@ packages/contract-tests/
 2. Extend from the shared base config; module resolution for `@odh-dashboard/contract-testing` is provided via `moduleNameMapper` in the base config (no extra paths needed).
 3. Add package scripts:
    - `"test:contract": "jest --config contract-tests/jest.contract.config.js"`
-   - Optional (BFF): `"test:contract:with-bff": "bash ../../packages/contract-tests/scripts/run-go-bff-consumer.sh --bff-dir ./upstream/bff --consumer-dir ./contract-tests --package-name <name>"`
+   - Optional (BFF): `"test:contract:with-bff": "bash ../../../packages/contract-tests/scripts/run-go-bff-consumer.sh --bff-dir ./upstream/bff --consumer-dir ./contract-tests --package-name <name>"`
 4. Run: `npx odh-contract-tests -c <your-package>/contract-tests`
 5. CI: call the same bin or the shared BFF runner; artifacts live under `contract-tests/contract-test-results/<timestamp>` and are controlled by `CONTRACT_TEST_RESULTS_DIR`.
 
@@ -174,3 +174,19 @@ When changing code in `packages/contract-tests`:
 
 - Import resolution for `@odh-dashboard/contract-testing` in consumer tests:
   - When extending the shared base config, `moduleNameMapper` is already set to resolve to the local workspace source (`packages/contract-tests/src`). If you override `transform.ts-jest.tsconfig`, ensure it does not break module mapping.
+
+## Shared setup helper
+
+Use `setupContractTest` to perform common setup for all tests:
+
+```ts
+import { setupContractTest } from '@odh-dashboard/contract-testing';
+ 
+const { apiClient } = await setupContractTest({
+  packageName: 'Model Registry',
+  baseUrl: 'http://localhost:8080',
+  schema: apiSchema,
+  resultsDir: process.env.CONTRACT_TEST_RESULTS_DIR,
+  defaultHeaders: { 'kubeflow-userid': 'user@example.com' },
+});
+```

@@ -9,4 +9,5 @@ console.log('🕐 Test timeout: 30s');
 
 // Register custom matchers
 import { toMatchContract } from './src/matchers/toMatchContract';
+
 expect.extend({ toMatchContract });
