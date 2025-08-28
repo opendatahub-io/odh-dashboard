@@ -8,9 +8,12 @@ import {
   Flex,
   FlexItem,
   FormGroup,
+  Icon,
+  Popover,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import SettingSection from '#~/components/SettingSection';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { ModelServingPlatformEnabled } from '#~/types';
@@ -77,12 +80,12 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
   const options: SimpleSelectOption[] = [
     {
       key: DeploymentMode.RawDeployment,
-      label: 'Standard (No additional dependencies)',
+      label: 'KServe RawDeployment',
       isDisabled: !allowedToPatchDSC,
     },
     {
       key: DeploymentMode.Serverless,
-      label: 'Advanced (Serverless and Service Mesh)',
+      label: 'Knative Serverless',
       isDisabled: !isServerlessAvailable || !allowedToPatchDSC,
     },
   ];
@@ -147,7 +150,40 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
                   fieldId="default-deployment-mode-select"
                   label="Default deployment mode"
                   labelHelp={
-                    <DashboardHelpTooltip content="Deployment modes define which technology stack will be used to deploy a model, offering different levels of management and scalability. The default deployment mode will be automatically selected during deployment." />
+                    <Popover
+                      bodyContent={
+                        <>
+                          <div>
+                            The selected deployment mode determines how the model server runs in
+                            your environment. The default deployment mode will be automatically
+                            selected for users during deployment.
+                          </div>
+                          <ul
+                            style={{
+                              listStyleType: 'disc',
+                              paddingLeft: '1.5rem',
+                              marginTop: '0.5rem',
+                              marginBottom: 0,
+                            }}
+                          >
+                            <li>
+                              <strong>Knative Serverless</strong>: Autoscale to and from zero based
+                              on request volume with minimal customization. Recommended for most
+                              workloads.
+                            </li>
+                            <li>
+                              <strong>KServe RawDeployment</strong>: Always running with no
+                              autoscaling. Use for custom serving setups or if your model needs to
+                              stay active.
+                            </li>
+                          </ul>
+                        </>
+                      }
+                    >
+                      <Icon aria-label="Deployment mode info" role="button">
+                        <OutlinedQuestionCircleIcon />
+                      </Icon>
+                    </Popover>
                   }
                 >
                   <SimpleSelect

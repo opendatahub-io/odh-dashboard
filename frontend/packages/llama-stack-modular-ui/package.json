@@ -10,8 +10,8 @@
     "tls": false,
     "proxy": [
       {
-        "path": "/llama-stack/api",
-        "pathRewrite": "/api"
+        "path": "/llama-stack/genai",
+        "pathRewrite": "/genai"
       }
     ],
     "local": {

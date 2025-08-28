@@ -419,6 +419,7 @@ jobs:
           npm install nyc --no-save
       - name: Combine coverage reports
         run: |
+<<<<<<< HEAD
           set -euo pipefail
           mkdir -p ${{ github.workspace }}/coverage
           if [ -f "${{ github.workspace }}/all-artifacts/unit-coverage/coverage-final.json" ]; then
@@ -432,6 +433,13 @@ jobs:
             if [ -f "$dir/coverage-final.json" ]; then
               cp "$dir/coverage-final.json" "${{ github.workspace }}/coverage/${group_name}-coverage-final.json" || true
             fi
+=======
+          mkdir -p ./coverage
+          cp all-artifacts/unit-coverage/coverage-final.json ./coverage/unit-coverage-final.json || true
+          find all-artifacts -name "cypress-coverage-*" -type d | while read dir; do
+          group_name=$(basename "$dir")
+          cp "$dir/coverage-final.json" "./coverage/${group_name}-coverage-final.json" || true
+>>>>>>> upstream/main
           done
           echo "Combined coverage files:"
           ls -R "${{ github.workspace }}/coverage"
@@ -455,10 +463,15 @@ jobs:
           path: ${{ github.workspace }}/coverage/combined-coverage-final.json
       - name: Cleanup interim coverage files
         run: |
+<<<<<<< HEAD
           set -euo pipefail
           rm -rf ${{ github.workspace }}/coverage/unit-coverage-final.json
           rm -rf ${{ github.workspace }}/coverage/backend-coverage-final.json
           find ${{ github.workspace }}/coverage -name "*-coverage-final.json" -type f -delete
+=======
+          rm -rf ./coverage/unit-coverage-final.json
+          find ./coverage -name "*-coverage-final.json" -type f -delete
+>>>>>>> upstream/main
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4.6.0
         with:

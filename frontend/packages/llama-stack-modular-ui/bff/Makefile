@@ -7,7 +7,7 @@ LOG_LEVEL ?= debug
 ALLOWED_ORIGINS ?= ""
 LLAMA_STACK_URL ?= ""
 MOCK_LS_CLIENT ?= false
-AUTH_METHOD ?= "disabled"
+AUTH_METHOD ?= "user_token"
 PATH_PREFIX ?= ""
 
 .PHONY: all

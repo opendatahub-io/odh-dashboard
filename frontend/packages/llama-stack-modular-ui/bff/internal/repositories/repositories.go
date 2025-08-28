@@ -11,6 +11,8 @@ type Repositories struct {
 	VectorStores *VectorStoresRepository
 	Files        *FilesRepository
 	Responses    *ResponsesRepository
+	Template     *TemplateRepository
+	Namespace    *NamespaceRepository
 }
 
 // NewRepositories creates domain-specific repositories with the specified client interface.
@@ -21,5 +23,7 @@ func NewRepositories(client llamastack.LlamaStackClientInterface) *Repositories 
 		VectorStores: NewVectorStoresRepository(client),
 		Files:        NewFilesRepository(client),
 		Responses:    NewResponsesRepository(client),
+		Template:     NewTemplateRepository(),
+		Namespace:    NewNamespaceRepository(),
 	}
 }

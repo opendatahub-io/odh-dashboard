@@ -4,7 +4,7 @@ import { Label, Content, ContentVariants } from '@patternfly/react-core';
 import ResourceActionsColumn from '@odh-dashboard/internal/components/ResourceActionsColumn';
 import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
 import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';
-import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import StateActionToggle from '@odh-dashboard/internal/components/StateActionToggle';
@@ -27,6 +27,7 @@ import {
   isModelServingMetricsExtension,
   isModelServingStartStopAction,
 } from '../../../extension-points';
+import { useModelDeploymentNotification } from '../../concepts/useModelDeploymentNotification';
 import { DeploymentMetricsLink } from '../metrics/DeploymentMetricsLink';
 import useStopModalPreference from '../../concepts/useStopModalPreference';
 
@@ -61,16 +62,22 @@ export const DeploymentRow: React.FC<{
     isModelServingStartStopAction,
     deployment,
   );
-
   const [isExpanded, setExpanded] = React.useState(false);
   const [dontShowModalValue] = useStopModalPreference();
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
 
+  const { watchDeployment } = useModelDeploymentNotification(deployment);
+
   const onStart = React.useCallback(() => {
-    startStopActionExtension?.properties
+    if (!startStopActionExtension) return;
+    startStopActionExtension.properties
       .patchDeploymentStoppedStatus()
-      .then((resolvedFunction) => resolvedFunction(deployment, false));
-  }, [deployment, startStopActionExtension]);
+      .then(async (resolvedFunction) => {
+        await resolvedFunction(deployment, false);
+        // Start watching for deployment status changes
+        watchDeployment();
+      });
+  }, [deployment, startStopActionExtension, watchDeployment]);
 
   const onStop = React.useCallback(() => {
     if (dontShowModalValue) {
@@ -136,7 +143,7 @@ export const DeploymentRow: React.FC<{
         </Td>
         <Td dataLabel="Status">
           <ModelStatusIcon
-            state={deployment.status?.state ?? InferenceServiceModelState.UNKNOWN}
+            state={deployment.status?.state ?? ModelDeploymentState.UNKNOWN}
             bodyContent={deployment.status?.message}
             defaultHeaderContent="Inference Service Status"
             stoppedStates={deployment.status?.stoppedStates}

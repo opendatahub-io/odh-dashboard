@@ -55,7 +55,7 @@ describe('[Product Bug: RHOAIENG-31261] Verify a user can deploy KServe Raw Depl
   });
 
   it(
-    'Verify model deployment with Standard deployment mode (KServe Raw)',
+    'Verify model deployment with KServe RawDeployment mode',
     {
       tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent', '@Bug'],
     },
@@ -79,20 +79,21 @@ describe('[Product Bug: RHOAIENG-31261] Verify a user can deploy KServe Raw Depl
       inferenceServiceModal.findGlobalScopedTemplateOption('OpenVINO Model Server').click();
       inferenceServiceModal.findModelFrameworkSelect().click();
       inferenceServiceModal.findOpenVinoIROpSet13().click();
-      // Select Standard Deployment mode (KServe Raw)
-      cy.step(
-        'Verify deployment mode dropdown exists and Select Standard Deployment mode (KServe Raw)',
-      );
+      // Select KServe RawDeployment mode
+      cy.step('Verify deployment mode dropdown exists and Select KServe RawDeployment mode');
       inferenceServiceModal.findDeploymentModeSelect().should('exist');
-      inferenceServiceModal.findDeploymentModeSelect().findSelectOption('Standard').click();
       inferenceServiceModal
         .findDeploymentModeSelect()
-        .findSelectOption('Standard')
+        .findSelectOption('KServe RawDeployment')
+        .click();
+      inferenceServiceModal
+        .findDeploymentModeSelect()
+        .findSelectOption('KServe RawDeployment')
         .should('have.attr', 'aria-selected', 'true');
 
       inferenceServiceModal
         .findDeploymentModeSelect()
-        .findSelectOption('Advanced')
+        .findSelectOption('Knative Serverless')
         .should('have.attr', 'aria-selected', 'false');
       inferenceServiceModal.findLocationPathInput().type(modelFilePath);
       cy.step('Deploy the model');

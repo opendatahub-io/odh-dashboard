@@ -2,7 +2,7 @@ import * as React from 'react';
 import { InferenceServiceKind } from '#~/k8sTypes';
 import { getRoute } from '#~/api';
 import { getUrlFromKserveInferenceService } from '#~/pages/modelServing/screens/projects/utils';
-import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
+import { ModelDeploymentState } from '#~/pages/modelServing/screens/types';
 import { getInferenceServiceModelState } from '#~/concepts/modelServingKServe/kserveStatusUtils';
 
 const useRouteForInferenceService = (
@@ -18,7 +18,7 @@ const useRouteForInferenceService = (
   const routeNamespace = inferenceService.metadata.namespace;
   const kserveRoute = isKServe ? getUrlFromKserveInferenceService(inferenceService) : null;
   const state = getInferenceServiceModelState(inferenceService);
-  const kserveLoaded = state === InferenceServiceModelState.LOADED;
+  const kserveLoaded = state === ModelDeploymentState.LOADED;
 
   React.useEffect(() => {
     if (isKServe) {

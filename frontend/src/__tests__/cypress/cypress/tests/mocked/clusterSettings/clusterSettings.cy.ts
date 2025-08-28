@@ -140,17 +140,17 @@ describe('Cluster Settings', () => {
 
     modelServingSettings
       .findSinglePlatformDeploymentModeSelect()
-      .findSelectOption('Standard (No additional dependencies)')
+      .findSelectOption('KServe RawDeployment')
       .should('have.attr', 'aria-selected', 'true');
     modelServingSettings
       .findSinglePlatformDeploymentModeSelect()
-      .findSelectOption('Advanced (Serverless and Service Mesh)')
+      .findSelectOption('Knative Serverless')
       .should('have.attr', 'aria-selected', 'false');
 
     modelServingSettings.findSubmitButton().should('be.disabled');
     modelServingSettings
       .findSinglePlatformDeploymentModeSelect()
-      .findSelectOption('Advanced (Serverless and Service Mesh)')
+      .findSelectOption('Knative Serverless')
       .click();
 
     modelServingSettings.findSubmitButton().should('be.enabled');
@@ -159,11 +159,11 @@ describe('Cluster Settings', () => {
 
     modelServingSettings
       .findSinglePlatformDeploymentModeSelect()
-      .findSelectOption('Standard (No additional dependencies)')
+      .findSelectOption('KServe RawDeployment')
       .should('have.attr', 'aria-selected', 'false');
     modelServingSettings
       .findSinglePlatformDeploymentModeSelect()
-      .findSelectOption('Advanced (Serverless and Service Mesh)')
+      .findSelectOption('Knative Serverless')
       .should('have.attr', 'aria-selected', 'true');
   });
 });
