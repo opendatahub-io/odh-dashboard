@@ -31,6 +31,7 @@ import useAlertManagement from './hooks/useAlertManagement';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from './const';
+import { useFetchLSDStatus } from '../hooks';
 
 const ChatbotMain: React.FunctionComponent = () => {
   const { config } = useModularArchContext();
@@ -64,6 +65,8 @@ const ChatbotMain: React.FunctionComponent = () => {
     isRawUploaded: sourceManagement.isRawUploaded,
   });
 
+  const lsdStatus = useFetchLSDStatus();
+
   // Create alert components
   const successAlert = (
     <SourceUploadSuccessAlert
@@ -90,15 +93,8 @@ const ChatbotMain: React.FunctionComponent = () => {
     );
   }
 
-  const noLsInstalled = true;
-
-  // Show empty state if no models are available
-  if (noLsInstalled) {
-    return (
-      <div style={{ height: '100vh', width: '100%' }}>
-        <ChatbotEmptyState />
-      </div>
-    );
+  if (lsdStatus === null) {
+    return <ChatbotEmptyState />;
   }
 
   // Settings panel content

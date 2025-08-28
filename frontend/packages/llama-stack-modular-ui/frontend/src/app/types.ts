@@ -157,3 +157,23 @@ export type CompletionMessage = {
   stop_reason: string;
   tool_calls?: unknown[];
 };
+
+export type LlamaStackDistributionModel = {
+  name: string;
+  phase: string;
+  version: string;
+  distributionConfig: {
+    activeDistribution: string;
+    providers: Array<{
+      providerID: string;
+      providerType: string;
+      api: string;
+      config?: Record<string, any> | null;
+      health: {
+        status: string;
+        message: string;
+      };
+    }>;
+    availableDistributions: Record<string, string>;
+  };
+};

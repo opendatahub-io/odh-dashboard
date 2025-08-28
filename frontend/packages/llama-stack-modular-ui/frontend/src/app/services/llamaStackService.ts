@@ -8,6 +8,7 @@ import {
   Query,
   QueryResponse,
   FileUploadResult,
+  LlamaStackDistributionModel,
 } from '../types';
 import axios from '../utilities/axios';
 import { URL_PREFIX } from '../utilities/const';
@@ -137,6 +138,18 @@ export const querySource = (query: Query): Promise<QueryResponse> => {
     .catch((error) => {
       throw new Error(
         error.response?.data?.error?.message || error.message || 'Failed to query source',
+      );
+    });
+};
+
+export const getLSDstatus = (namespace: string): Promise<LlamaStackDistributionModel> => {
+  const url = `${URL_PREFIX}/genai/v1/llamastack-distribution/status?namespace=${namespace}`;
+  return axios
+    .get(url)
+    .then((response) => response.data.data)
+    .catch((error) => {
+      throw new Error(
+        error.response?.data?.error?.message || error.message || 'Failed to fetch LSD status',
       );
     });
 };
