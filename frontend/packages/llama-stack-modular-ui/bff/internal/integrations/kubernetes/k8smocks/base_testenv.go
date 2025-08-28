@@ -9,10 +9,8 @@ import (
 	"runtime"
 
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
 
@@ -34,7 +32,7 @@ type TestEnvInput struct {
 	Cancel context.CancelFunc
 }
 
-func SetupEnvTest(input TestEnvInput) (*envtest.Environment, kubernetes.Interface, error) {
+func SetupEnvTest(input TestEnvInput) (*envtest.Environment, client.Client, error) {
 	projectRoot, err := getProjectRoot()
 	if err != nil {
 		input.Logger.Error("failed to find project root", slog.String("error", err.Error()))
@@ -55,22 +53,22 @@ func SetupEnvTest(input TestEnvInput) (*envtest.Environment, kubernetes.Interfac
 		os.Exit(1)
 	}
 
-	clientset, err := kubernetes.NewForConfig(cfg)
+	ctrlClient, err := client.New(cfg, client.Options{})
 	if err != nil {
-		input.Logger.Error("failed to create clientset", slog.String("error", err.Error()))
+		input.Logger.Error("failed to create controller-runtime client", slog.String("error", err.Error()))
 		input.Cancel()
 		os.Exit(1)
 	}
 
 	// bootstrap resources
-	err = setupMock(clientset, input.Ctx)
+	err = setupMock(ctrlClient, input.Ctx)
 	if err != nil {
 		input.Logger.Error("failed to setup mock data", slog.String("error", err.Error()))
 		input.Cancel()
 		os.Exit(1)
 	}
 
-	return testEnv, clientset, nil
+	return testEnv, ctrlClient, nil
 }
 
 func getProjectRoot() (string, error) {
@@ -95,7 +93,7 @@ func getProjectRoot() (string, error) {
 	}
 }
 
-func setupMock(mockK8sClient kubernetes.Interface, ctx context.Context) error {
+func setupMock(mockK8sClient client.Client, ctx context.Context) error {
 	err := createNamespace(mockK8sClient, ctx, "llama-stack")
 	if err != nil {
 		return fmt.Errorf("failed to create llama-stack namespace: %w", err)
@@ -119,18 +117,15 @@ func setupMock(mockK8sClient kubernetes.Interface, ctx context.Context) error {
 	return nil
 }
 
-func createNamespace(k8sClient kubernetes.Interface, ctx context.Context, namespace string) error {
+func createNamespace(k8sClient client.Client, ctx context.Context, namespace string) error {
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
 		},
 	}
 
-	_, err := k8sClient.CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
+	err := k8sClient.Create(ctx, ns)
 	if err != nil {
-		if apierrors.IsAlreadyExists(err) {
-			return nil
-		}
 		return fmt.Errorf("failed to create namespace %s: %w", namespace, err)
 	}
 

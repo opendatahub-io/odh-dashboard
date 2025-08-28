@@ -99,12 +99,23 @@ curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/genai/v1/vector
 curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/genai/v1/namespaces"
 ```
 
+**Get LlamaStack Distribution Status:**
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/genai/v1/llamastack-distribution/status?namespace=default"
+```
+
 #### Test Authentication (Should Fail)
 
 **Request without token:**
 ```bash
 curl -i "http://localhost:8080/genai/v1/models"
 # Expected: 400 Bad Request - missing required Header: Authorization
+```
+
+**Request without namespace parameter (LSD endpoint):**
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/genai/v1/llamastack-distribution/status"
+# Expected: 400 Bad Request - missing required query parameter: namespace
 ```
 
 ## Expected Responses
@@ -138,6 +149,43 @@ curl -i "http://localhost:8080/genai/v1/models"
       "displayName": "kube-system"
     }
   ]
+}
+```
+
+**LlamaStack Distribution Status Response (LSD Found):**
+```json
+{
+  "data": {
+    "name": "test-lsd",
+    "phase": "Ready",
+    "version": "v0.2.0",
+    "distributionConfig": {
+      "activeDistribution": "ollama",
+      "availableDistributions": {
+        "ollama": "docker.io/llamastack/distribution-ollama:latest",
+        "bedrock": "docker.io/llamastack/distribution-bedrock:latest"
+      },
+      "providers": [
+        {
+          "api": "mock-api",
+          "provider_id": "mock-provider",
+          "provider_type": "mock-type",
+          "config": null,
+          "health": {
+            "status": "healthy",
+            "message": "Provider is responding normally"
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+**LlamaStack Distribution Status Response (No LSD Found):**
+```json
+{
+  "data": null
 }
 ```
 
@@ -242,6 +290,44 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gena
       "displayName": "mock-test-namespace-3"
     }
   ]
+}
+```
+
+**Mock Data Source:** Hardcoded in `internal/integrations/kubernetes/k8smocks/token_k8s_client_mock.go`
+
+#### Get LlamaStack Distribution Status (Mock K8s)
+
+**Request:**
+```bash
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/genai/v1/llamastack-distribution/status?namespace=test-namespace"
+```
+
+**Expected Response (200 OK):**
+```json
+{
+  "data": {
+    "name": "mock-lsd",
+    "phase": "Ready",
+    "version": "v0.2.0",
+    "distributionConfig": {
+      "activeDistribution": "mock-distribution",
+      "availableDistributions": {
+        "mock-distribution": "mock-image:latest"
+      },
+      "providers": [
+        {
+          "api": "mock-api",
+          "provider_id": "mock-provider",
+          "provider_type": "mock-type",
+          "config": null,
+          "health": {
+            "status": "",
+            "message": ""
+          }
+        }
+      ]
+    }
+  }
 }
 ```
 

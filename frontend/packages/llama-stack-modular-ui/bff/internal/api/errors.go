@@ -48,6 +48,17 @@ func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err e
 	app.errorResponse(w, r, httpError)
 }
 
+func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, err error) {
+	httpError := &integrations.HTTPError{
+		StatusCode: http.StatusUnauthorized,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    strconv.Itoa(http.StatusUnauthorized),
+			Message: err.Error(),
+		},
+	}
+	app.errorResponse(w, r, httpError)
+}
+
 // TODO: remove nolint comment below when we use this method
 //
 //nolint:unused

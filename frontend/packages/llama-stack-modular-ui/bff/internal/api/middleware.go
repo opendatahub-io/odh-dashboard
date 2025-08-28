@@ -112,7 +112,7 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 
 		identity, err := app.kubernetesClientFactory.ExtractRequestIdentity(r.Header)
 		if err != nil {
-			app.badRequestResponse(w, r, err)
+			app.unauthorizedResponse(w, r, err)
 			return
 		}
 
@@ -154,6 +154,21 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 
 		logger := helper.GetContextLoggerFromReq(r)
 		logger.Debug("Request authorized")
+
+		next(w, r, ps)
+	}
+}
+
+func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		namespace := r.URL.Query().Get(string(constants.NamespaceQueryParameterKey))
+		if namespace == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("missing required query parameter: %s", constants.NamespaceQueryParameterKey))
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), constants.NamespaceQueryParameterKey, namespace)
+		r = r.WithContext(ctx)
 
 		next(w, r, ps)
 	}
