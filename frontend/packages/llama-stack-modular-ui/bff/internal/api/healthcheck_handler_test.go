@@ -2,25 +2,25 @@ package api
 
 import (
 	"encoding/json"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/config"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/constants"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/mocks"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/models"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/repositories"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/config"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/constants"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack/lsmocks"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/models"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/repositories"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestHealthCheckHandler(t *testing.T) {
-	mockLSClient, _ := mocks.NewLlamastackClientMock()
-
-	app := App{config: config.EnvConfig{
-		Port: 4000,
-	},
-		repositories: repositories.NewRepositories(mockLSClient),
+	app := App{
+		config: config.EnvConfig{
+			Port: 4000,
+		},
+		repositories: repositories.NewRepositories(lsmocks.NewMockLlamaStackClient()),
 	}
 
 	rr := httptest.NewRecorder()

@@ -13,11 +13,11 @@ type Props = {
 export const KServeDeploymentModeDropdown: React.FC<Props> = ({ isRaw, setIsRaw, isDisabled }) => {
   const options: SimpleSelectOption[] = [
     {
-      label: `Standard`,
+      label: `KServe RawDeployment`,
       key: DeploymentMode.RawDeployment,
     },
     {
-      label: `Advanced`,
+      label: `Knative Serverless`,
       key: DeploymentMode.Serverless,
     },
   ];
@@ -31,7 +31,10 @@ export const KServeDeploymentModeDropdown: React.FC<Props> = ({ isRaw, setIsRaw,
         <Popover
           bodyContent={
             <>
-              <div>Deployment modes determine the technology used to deploy your model:</div>
+              <div>
+                The selected deployment mode determines how the model server runs in your
+                environment.
+              </div>
               <ul
                 style={{
                   listStyleType: 'disc',
@@ -41,12 +44,12 @@ export const KServeDeploymentModeDropdown: React.FC<Props> = ({ isRaw, setIsRaw,
                 }}
               >
                 <li>
-                  <strong>Advanced</strong>: Uses Knative Serverless but requires some manual
-                  customization. Supports autoscaling.
+                  <strong>Knative Serverless</strong>: Autoscale to and from zero based on request
+                  volume with minimal customization. Recommended for most workloads.
                 </li>
                 <li>
-                  <strong>Standard</strong>: Uses Kubernetes resources with fewer dependencies and a
-                  simpler setup. Does not support autoscaling.
+                  <strong>KServe RawDeployment</strong>: Always running with no autoscaling. Use for
+                  custom serving setups or if your model needs to stay active.
                 </li>
               </ul>
             </>

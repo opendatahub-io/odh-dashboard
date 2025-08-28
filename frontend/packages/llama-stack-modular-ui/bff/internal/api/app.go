@@ -1,20 +1,25 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"path"
 	"strings"
 
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/mocks"
+	k8s "github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/kubernetes/k8smocks"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/repositories"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/config"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/constants"
 	helper "github.com/opendatahub-io/llama-stack-modular-ui/internal/helpers"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations"
 )
 
 // isAPIRoute checks if the given path is an API route
@@ -32,46 +37,30 @@ func (app *App) isAPIRoute(path string) bool {
 		strings.HasPrefix(path, "/llama-stack/")
 }
 
-// Path generation methods for configurable API paths
-func (app *App) getModelListPath() string {
-	return app.config.APIPathPrefix + "/models"
-}
-
-func (app *App) getVectorDBListPath() string {
-	return app.config.APIPathPrefix + "/vector-dbs"
-}
-
-func (app *App) getUploadPath() string {
-	return app.config.APIPathPrefix + "/upload"
-}
-
-func (app *App) getQueryPath() string {
-	return app.config.APIPathPrefix + "/query"
-}
-
 type App struct {
-	config       config.EnvConfig
-	logger       *slog.Logger
-	repositories *repositories.Repositories
-	openAPI      *OpenAPIHandler
-	tokenFactory *integrations.TokenClientFactory
+	config                  config.EnvConfig
+	logger                  *slog.Logger
+	repositories            *repositories.Repositories
+	openAPI                 *OpenAPIHandler
+	kubernetesClientFactory k8s.KubernetesClientFactory
+	llamaStackClient        llamastack.LlamaStackClientInterface
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
-	var lsClient repositories.LlamaStackClientInterface
-	var err error
+	var llamaStackClient llamastack.LlamaStackClientInterface
 
 	logger.Info("Initializing app with config", slog.Any("config", cfg))
 
+	// Initialize LlamaStack client using factory pattern
+	var factory llamastack.LlamaStackClientFactory
 	if cfg.MockLSClient {
-		lsClient, err = mocks.NewLlamastackClientMock()
+		logger.Info("Using mock LlamaStack client")
+		factory = lsmocks.NewMockClientFactory()
 	} else {
-		lsClient, err = repositories.NewLlamaStackClient()
+		logger.Info("Using real LlamaStack client", "url", cfg.LlamaStackURL)
+		factory = llamastack.NewRealClientFactory()
 	}
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to create llama stack client: %w", err)
-	}
+	llamaStackClient = factory.CreateClient(cfg.LlamaStackURL)
 
 	// Initialize OpenAPI handler
 	openAPIHandler, err := NewOpenAPIHandler(logger)
@@ -79,12 +68,38 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		return nil, fmt.Errorf("failed to create OpenAPI handler: %w", err)
 	}
 
+	var k8sFactory k8s.KubernetesClientFactory
+	// used only on mocked k8s client
+	var testEnv *envtest.Environment
+
+	if cfg.MockK8sClient {
+		logger.Info("Using mocked Kubernetes client")
+		var ctrlClient client.Client
+		ctx, cancel := context.WithCancel(context.Background())
+		testEnv, ctrlClient, err = k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
+			Users:  k8smocks.DefaultTestUsers,
+			Logger: logger,
+			Ctx:    ctx,
+			Cancel: cancel,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to setup envtest: %w", err)
+		}
+		k8sFactory, err = k8smocks.NewMockedKubernetesClientFactory(ctrlClient, testEnv, cfg, logger)
+	} else {
+		k8sFactory, err = k8s.NewKubernetesClientFactory(cfg, logger)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Kubernetes client factory: %w", err)
+	}
+
 	app := &App{
-		config:       cfg,
-		logger:       logger,
-		repositories: repositories.NewRepositories(lsClient),
-		openAPI:      openAPIHandler,
-		tokenFactory: integrations.NewTokenClientFactory(logger, cfg),
+		config:                  cfg,
+		logger:                  logger,
+		repositories:            repositories.NewRepositories(llamaStackClient),
+		openAPI:                 openAPIHandler,
+		kubernetesClientFactory: k8sFactory,
+		llamaStackClient:        llamaStackClient,
 	}
 	return app, nil
 }
@@ -96,14 +111,30 @@ func (app *App) Routes() http.Handler {
 	apiRouter.NotFound = http.HandlerFunc(app.notFoundResponse)
 	apiRouter.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
-	apiRouter.GET(app.getModelListPath(), app.RequireAccessToService(app.AttachRESTClient(app.GetAllModelsHandler)))
-	apiRouter.GET(app.getVectorDBListPath(), app.RequireAccessToService(app.AttachRESTClient(app.GetAllVectorDBsHandler)))
+	genaiPrefix := "/genai/v1"
 
-	// POST to register the vectorDB (/v1/vector-dbs)
-	apiRouter.POST(app.getVectorDBListPath(), app.RequireAccessToService(app.AttachRESTClient(app.RegisterVectorDBHandler)))
-	apiRouter.POST(app.getUploadPath(), app.RequireAccessToService(app.AttachRESTClient(app.UploadHandler)))
-	apiRouter.POST(app.getQueryPath(), app.RequireAccessToService(app.AttachRESTClient(app.QueryHandler)))
+	// TODO: Attach namespace to the routes.
+	// Models
+	apiRouter.GET(genaiPrefix+"/models", app.RequireAccessToService(app.AttachRESTClient(app.LlamaStackModelsHandler)))
 
+	// Responses (OpenAI Responses API)
+	apiRouter.POST(genaiPrefix+"/responses", app.RequireAccessToService(app.AttachRESTClient(app.LlamaStackCreateResponseHandler)))
+
+	// Vector Stores
+	apiRouter.GET(genaiPrefix+"/vectorstores", app.RequireAccessToService(app.AttachRESTClient(app.LlamaStackListVectorStoresHandler)))
+	apiRouter.POST(genaiPrefix+"/vectorstores", app.RequireAccessToService(app.AttachRESTClient(app.LlamaStackCreateVectorStoreHandler)))
+
+	// Files Upload
+	apiRouter.POST(genaiPrefix+"/files/upload", app.RequireAccessToService(app.AttachRESTClient(app.LlamaStackUploadFileHandler)))
+
+	//Code Exporter
+	apiRouter.POST(genaiPrefix+"/code-exporter", app.RequireAccessToService(app.AttachRESTClient(app.CodeExporterHandler)))
+
+	// Settings path namespace endpoints. This endpoint will get all the namespaces
+	apiRouter.GET(genaiPrefix+"/namespaces", app.RequireAccessToService(app.GetNamespaceHandler))
+
+	// Llama Stack Distribution status endpoint
+	apiRouter.GET(genaiPrefix+"/llamastack-distribution/status", app.RequireAccessToService(app.AttachNamespace(app.LlamaStackDistributionStatusHandler)))
 	// App Router
 	appMux := http.NewServeMux()
 
@@ -126,9 +157,9 @@ func (app *App) Routes() http.Handler {
 	appMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		ctxLogger := helper.GetContextLoggerFromReq(r)
 
-		// Skip API routes
+		// Skip API routes and health endpoint
 		if (r.URL.Path == "/" || r.URL.Path == "/index.html") ||
-			(len(r.URL.Path) > 0 && r.URL.Path[0] == '/' && !app.isAPIRoute(r.URL.Path)) {
+			(len(r.URL.Path) > 0 && r.URL.Path[0] == '/' && !app.isAPIRoute(r.URL.Path) && r.URL.Path != constants.HealthCheckPath) {
 
 			// Check if the requested file exists
 			cleanPath := path.Clean(r.URL.Path)

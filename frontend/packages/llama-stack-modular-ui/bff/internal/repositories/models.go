@@ -1,34 +1,27 @@
 package repositories
 
 import (
-	"encoding/json"
-	"fmt"
+	"context"
 
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations"
+	"github.com/openai/openai-go/v2"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack"
 )
 
-const modelsPath = "/v1/models"
-
-// Used on the FE side to interact with the models API.
-type ModelsInterface interface {
-	GetAllModels(client integrations.HTTPClientInterface) (*llamastack.ModelList, error)
+// ModelsRepository handles model-related operations and data transformations.
+type ModelsRepository struct {
+	client llamastack.LlamaStackClientInterface
 }
 
-type UIModels struct {
+// NewModelsRepository creates a new models repository.
+func NewModelsRepository(client llamastack.LlamaStackClientInterface) *ModelsRepository {
+	return &ModelsRepository{
+		client: client,
+	}
 }
 
-func (m UIModels) GetAllModels(client integrations.HTTPClientInterface) (*llamastack.ModelList, error) {
-	response, err := client.GET(modelsPath)
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve models: %w", err)
-	}
-
-	var models llamastack.ModelList
-	if err := json.Unmarshal(response, &models); err != nil {
-		return nil, fmt.Errorf("error decoding response data: %w", err)
-	}
-
-	return &models, nil
+// ListModels retrieves all available models and transforms them for BFF use.
+func (r *ModelsRepository) ListModels(ctx context.Context) ([]openai.Model, error) {
+	// Repository layer can add transformation logic here if needed
+	// For now, direct passthrough from client to handler
+	return r.client.ListModels(ctx)
 }

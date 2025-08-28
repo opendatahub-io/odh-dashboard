@@ -38,7 +38,7 @@ export default {
 
   collectCoverageFrom: [
     'extensions.ts',
-    'extensions/**/*.{ts,tsx},',
+    'extensions/**/*.{ts,tsx}',
     'extension-points.ts',
     'extension-points/**/*.{ts,tsx}',
     'src/**/*.{ts,tsx}',

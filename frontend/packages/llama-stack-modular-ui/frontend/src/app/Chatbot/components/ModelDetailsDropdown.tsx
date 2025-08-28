@@ -6,9 +6,10 @@ import {
   MenuToggle,
   MenuToggleElement,
 } from '@patternfly/react-core';
+import { LlamaModel } from '~/app/types';
 
 interface ModelDetailsDropdownProps {
-  models: Array<{ identifier: string }>;
+  models: LlamaModel[];
   selectedModel: string;
   onModelChange: (value: string) => void;
 }
@@ -49,8 +50,8 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
     >
       <DropdownList>
         {models.map((option) => (
-          <DropdownItem value={option.identifier} key={option.identifier}>
-            {option.identifier}
+          <DropdownItem value={option.id} key={option.id}>
+            {option.id}
           </DropdownItem>
         ))}
       </DropdownList>

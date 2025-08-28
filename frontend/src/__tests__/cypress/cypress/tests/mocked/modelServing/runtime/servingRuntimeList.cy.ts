@@ -1901,9 +1901,9 @@ describe('Serving Runtime List', () => {
       kserveModal.findLocationPathInput().type('test-model/');
       kserveModal.findSubmitButton().should('be.enabled');
       // raw
-      kserveModal.findDeploymentModeSelect().should('contain.text', 'Advanced');
+      kserveModal.findDeploymentModeSelect().should('contain.text', 'Knative Serverless');
 
-      // Test advanced mode replica settings
+      // Test Knative Serverless mode replica settings
       kserveModal.findMinReplicasInput().should('have.value', '1');
       kserveModal.findMinReplicasPlusButton().should('be.disabled');
       kserveModal.findMaxReplicasInput().should('have.value', '1');
@@ -1932,7 +1932,7 @@ describe('Serving Runtime List', () => {
       kserveModal.findMaxReplicasInput().clear().type('100');
       kserveModal.findMaxReplicasInput().should('have.value', '99');
       kserveModal.findMaxReplicasPlusButton().should('be.disabled');
-      kserveModal.findDeploymentModeSelect().findSelectOption('Standard').click();
+      kserveModal.findDeploymentModeSelect().findSelectOption('KServe RawDeployment').click();
 
       // test submitting form, the modal should close to indicate success.
       kserveModal.findSubmitButton().click();

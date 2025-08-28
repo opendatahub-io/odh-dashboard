@@ -1,6 +1,7 @@
 # 0002 - Llama Stack Modular UI System Architecture
 
-* Date: 2025-01-25
+* Date: 2025-07-25
+* Updated: 2025-08-20
 * Authors: Matias Schimuneck
 
 ## Context and Problem Statement
@@ -77,19 +78,22 @@ The system is implemented using a multi-container architecture with modern web t
 ### Backend-for-Frontend Container (Go 1.23)
 - **HTTP Router**: High-performance `julienschmidt/httprouter` for request routing
 - **Static Assets**: Serves built frontend files from `/static` directory with SPA fallback
-- **API Endpoints**: RESTful APIs under `/api/v1/*` with comprehensive OpenAPI documentation
-- **Proxy Layer**: Direct proxy to Llama Stack API via `/llama-stack/*` endpoints
+- **API Endpoints**: RESTful APIs under `/genai/v1/*` with comprehensive OpenAPI documentation
+- **OpenAI SDK Integration**: Uses official OpenAI Go SDK v2.1.0 for Llama Stack communication
 - **Middleware**: CORS, authentication, logging, panic recovery, and telemetry
 - **Configuration**: Environment-based config with OAuth 2.0/OIDC support
 - **Mock System**: Complete mock implementations for development and testing
-- **Documentation**: 750+ line OpenAPI specification with Swagger UI
+- **Documentation**: Comprehensive OpenAPI specification with Swagger UI
 
 ### Integration Architecture
-- **Repository Pattern**: Interface-based business logic abstraction
-- **HTTP Clients**: Go HTTP client for Llama Stack API communication
+- **Domain-Specific Repository Pattern**: Separate repositories for Models, VectorStores, Files, and Responses operations
+- **Factory Pattern**: LlamaStackClientFactory with RealClientFactory and MockClientFactory implementations
+- **Envelope Pattern**: Consistent `{data, metadata}` API response structure across all endpoints
+- **OpenAI SDK Client**: Official SDK for robust Llama Stack API communication with direct streaming support
+- **Interface-based Design**: Clean abstractions enabling easy mocking and testing
 - **Authentication**: OAuth 2.0 token validation with browser storage persistence
 - **Error Handling**: Comprehensive error transformation and user-friendly messaging
-- **Development Mode**: Configurable mock client with `MOCK_LS_CLIENT` flag
+- **Development Mode**: Configurable mock client with factory-based creation
 
 ### Modular UI Deployment (ODH Dashboard Integration)
 - **Module Federation**: Deployed as a federated module within ODH Dashboard using Webpack 5 Module Federation
@@ -108,30 +112,29 @@ The system is implemented using a multi-container architecture with modern web t
 Shows how the Llama Stack Modular UI fits into the broader ecosystem:
 
 ```mermaid
-C4Context
-    title System Context diagram for Llama Stack Modular UI
-
-    Person(user, "Persona X", "Target user persona for LLM interactions and RAG operations (still under definition)")
+graph TB
+    subgraph SystemContext["System Context - Llama Stack Modular UI"]
+        User["Persona X<br/>(Target User)<br/>LLM interactions & RAG operations"]
+        
+        subgraph LlamaStackUI["Llama Stack Modular UI System"]
+            UISystem["Llama Stack Modular UI<br/>Web-based interface for<br/>LLM interactions, document upload, RAG"]
+        end
+        
+        subgraph ExternalSystems["External Systems"]
+            LlamaStack["Llama Stack<br/>LLM orchestration service<br/>Complete ML platform with models,<br/>inference, and vector databases"]
+        end
+    end
     
-    System(llamaui, "Llama Stack Modular UI", "Provides web-based interface for LLM interactions, document upload, and RAG operations")
+    User -->|"Uses (HTTPS/WSS)"| UISystem
+    UISystem -->|"Communicates via OpenAI SDK (HTTP/REST)"| LlamaStack
     
-    System_Ext(llamastack, "Llama Stack", "LLM orchestration service providing model management, inference, and vector database capabilities")
-    System_Ext(vllm, "vLLM", "High-performance LLM inference server for serving large language models")
-    System_Ext(maas, "MaaS", "Model as a Service platform providing hosted LLM inference capabilities")
-    System_Ext(vectordb, "Vector Databases", "External vector storage systems (ChromaDB, FAISS) for document embeddings")
+    classDef userStyle fill:#1976d2,stroke:#0d47a1,stroke-width:2px,color:#fff
+    classDef uiStyle fill:#388e3c,stroke:#1b5e20,stroke-width:2px,color:#fff
+    classDef llamaStyle fill:#d32f2f,stroke:#b71c1c,stroke-width:2px,color:#fff
     
-    Rel(user, llamaui, "Uses", "HTTPS/WSS")
-    Rel(llamaui, llamastack, "Orchestrates", "HTTP/REST")
-    Rel(llamastack, vllm, "Queries models via", "HTTP/gRPC")
-    Rel(llamastack, maas, "Queries hosted models via", "HTTP/REST")
-    Rel(llamastack, vectordb, "Stores/retrieves", "Native protocols")
-    
-    UpdateElementStyle(user, $fontColor="white", $bgColor="#1976d2", $borderColor="#0d47a1")
-    UpdateElementStyle(llamaui, $fontColor="white", $bgColor="#388e3c", $borderColor="#1b5e20")
-    UpdateElementStyle(llamastack, $fontColor="white", $bgColor="#d32f2f", $borderColor="#b71c1c")
-    UpdateElementStyle(vllm, $fontColor="white", $bgColor="#ff5722", $borderColor="#d84315")
-    UpdateElementStyle(maas, $fontColor="white", $bgColor="#ff5722", $borderColor="#d84315")
-    UpdateElementStyle(vectordb, $fontColor="white", $bgColor="#f57c00", $borderColor="#e65100")
+    class User userStyle
+    class UISystem uiStyle
+    class LlamaStack llamaStyle
 ```
 
 ### Level 2: Container Diagram
@@ -139,191 +142,251 @@ C4Context
 Shows the high-level containers and their interactions within the Llama Stack Modular UI:
 
 ```mermaid
-C4Container
-    title Container diagram for Llama Stack Modular UI
-
-    Person(user, "Persona X", "Target user persona interacting with the system via web browser")
+graph TB
+    subgraph SystemOverview["Container Overview - Llama Stack Modular UI"]
+        User["Persona X<br/>(Target User)<br/>Web browser interaction"]
+        
+        subgraph LlamaStackSystem["Llama Stack Modular UI System"]
+            Frontend["Frontend Container<br/>(React/TypeScript)<br/>User interface for chat & upload"]
+            BFF["BFF API Container<br/>(Go/HTTP)<br/>Authentication & orchestration"]
+            StaticAssets["Static Assets<br/>(HTML/CSS/JS)<br/>React application files"]
+        end
+        
+        subgraph ExternalServices["External Services"]
+            LlamaStackAPI["Llama Stack API<br/>(HTTP/REST)<br/>Model management & inference"]
+            VLLM["vLLM<br/>(High-performance inference)<br/>Large language model serving"]
+            MaaS["MaaS<br/>(Model as a Service)<br/>Hosted LLM inference"]
+            VectorDB["Vector Databases<br/>(ChromaDB, FAISS)<br/>Document embeddings storage"]
+        end
+    end
     
-    System_Boundary(c1, "Llama Stack Modular UI") {
-        Container(spa, "Frontend", "JavaScript/React", "Provides the user interface for model interaction, chat, and document upload")
-        Container(bff, "BFF API", "Go/HTTP", "Handles authentication, request orchestration, and provides optimized APIs for the frontend")
-        ContainerDb(static, "Static Assets", "HTML/CSS/JS", "Serves the React application files")
-    }
+    User -->|"Visits (HTTPS)"| Frontend
+    Frontend -->|"Loads from (HTTPS)"| StaticAssets
+    Frontend -->|"API calls (JSON/HTTPS)"| BFF
+    BFF -->|"Orchestrates calls (JSON/HTTP)"| LlamaStackAPI
+    LlamaStackAPI -->|"Queries models (HTTP/gRPC)"| VLLM
+    LlamaStackAPI -->|"Queries hosted models (HTTP/REST)"| MaaS
+    LlamaStackAPI -->|"Manages embeddings (Native protocols)"| VectorDB
     
-    System_Ext(llamastack, "Llama Stack API", "HTTP/REST API providing model management, inference, and vector database capabilities")
-    System_Ext(vllm, "vLLM", "High-performance LLM inference server for serving large language models")
-    System_Ext(maas, "MaaS", "Model as a Service platform providing hosted LLM inference capabilities")
-    System_Ext(vectordb, "Vector Databases", "ChromaDB, FAISS or other vector storage systems")
+    classDef userStyle fill:#1976d2,stroke:#0d47a1,stroke-width:2px,color:#fff
+    classDef frontendStyle fill:#1976d2,stroke:#0d47a1,stroke-width:2px,color:#fff
+    classDef bffStyle fill:#388e3c,stroke:#1b5e20,stroke-width:2px,color:#fff
+    classDef assetsStyle fill:#757575,stroke:#424242,stroke-width:2px,color:#fff
+    classDef llamaStyle fill:#d32f2f,stroke:#b71c1c,stroke-width:2px,color:#fff
+    classDef inferenceStyle fill:#ff5722,stroke:#d84315,stroke-width:2px,color:#fff
+    classDef storageStyle fill:#f57c00,stroke:#e65100,stroke-width:2px,color:#fff
     
-    Rel(user, spa, "Visits", "HTTPS")
-    Rel(spa, static, "Loads from", "HTTPS")
-    Rel(spa, bff, "Makes API calls to", "JSON/HTTPS")
-    Rel(bff, llamastack, "Orchestrates calls to", "JSON/HTTP")
-    Rel(llamastack, vllm, "Queries models via", "HTTP/gRPC")
-    Rel(llamastack, maas, "Queries hosted models via", "HTTP/REST")
-    Rel(llamastack, vectordb, "Manages embeddings in", "Native protocols")
-
-    UpdateElementStyle(user, $fontColor="white", $bgColor="#1976d2", $borderColor="#0d47a1")
-    UpdateElementStyle(spa, $fontColor="white", $bgColor="#1976d2", $borderColor="#0d47a1")
-    UpdateElementStyle(bff, $fontColor="white", $bgColor="#388e3c", $borderColor="#1b5e20")
-    UpdateElementStyle(static, $fontColor="white", $bgColor="#757575", $borderColor="#424242")
-    UpdateElementStyle(llamastack, $fontColor="white", $bgColor="#d32f2f", $borderColor="#b71c1c")
-    UpdateElementStyle(vllm, $fontColor="white", $bgColor="#ff5722", $borderColor="#d84315")
-    UpdateElementStyle(maas, $fontColor="white", $bgColor="#ff5722", $borderColor="#d84315")
-    UpdateElementStyle(vectordb, $fontColor="white", $bgColor="#f57c00", $borderColor="#e65100")
+    class User userStyle
+    class Frontend frontendStyle
+    class BFF bffStyle
+    class StaticAssets assetsStyle
+    class LlamaStackAPI llamaStyle
+    class VLLM,MaaS inferenceStyle
+    class VectorDB storageStyle
 ```
 
 ### Level 3: Component Diagrams
 
 #### Frontend Components
 
-Shows the internal structure of the Frontend application:
+Shows the current internal structure of the Frontend application with visual grouping:
 
 ```mermaid
-C4Component
-    title Component diagram for Frontend
-
-    Container(spa, "Frontend", "React 18/TypeScript", "PatternFly-based React application built with Webpack")
+graph TB
+    subgraph Frontend["Frontend Application (React 18 + TypeScript)"]
+        subgraph AppFoundation["App Foundation"]
+            App["App.tsx<br/>(Main Application)"]
+            AppRoutes["AppRoutes.tsx<br/>(Route Configuration)"]
+            AppLayout["AppLayout.tsx<br/>(Layout Structure)"]
+        end
+        
+        subgraph ChatbotCore["Chatbot Core Components"]
+            ChatbotMain["ChatbotMain.tsx<br/>(Main Chat Interface)"]
+            ChatbotMessagesList["ChatbotMessagesList.tsx<br/>(Message Display)"]
+            ChatbotSettingsPanel["ChatbotSettingsPanel.tsx<br/>(Chat Settings)"]
+        end
+        
+        subgraph ChatbotUIComponents["Chatbot UI Components"]
+            ModelDetailsDropdown["ModelDetailsDropdown.tsx<br/>(Model Selection)"]
+            SystemInstructionForm["SystemInstructionFormGroup.tsx<br/>(Instructions Input)"]
+            UploadErrorAlert["SourceUploadErrorAlert.tsx<br/>(Error Display)"]
+            UploadSuccessAlert["SourceUploadSuccessAlert.tsx<br/>(Success Display)"]
+        end
+        
+        subgraph UploadComponents["Source Upload Components"]
+            SourceUploadPanel["ChatbotSourceUploadPanel.tsx<br/>(File Upload Interface)"]
+            SourceSettingsModal["ChatbotSourceSettingsModal.tsx<br/>(Upload Configuration)"]
+        end
+        
+        subgraph Navigation["Navigation Components"]
+            NavBar["NavBar.tsx<br/>(Top Navigation)"]
+            NavSidebar["NavSidebar.tsx<br/>(Side Navigation)"]
+            AppNavSidebar["AppNavSidebar.tsx<br/>(App Navigation)"]
+            NotFound["NotFound.tsx<br/>(404 Page)"]
+        end
+        
+        subgraph StateManagement["State Management (Hooks)"]
+            UseChatbotMessages["useChatbotMessages.ts<br/>(Chat State)"]
+            UseSourceManagement["useSourceManagement.ts<br/>(Upload State)"]
+            UseAlertManagement["useAlertManagement.ts<br/>(Alert State)"]
+            UseAccordionState["useAccordionState.ts<br/>(UI State)"]
+        end
+        
+        subgraph DataLayer["Data & Services Layer"]
+            LlamaStackService["llamaStackService.ts<br/>(BFF API Client)"]
+            UseFetchLlamaModels["useFetchLlamaModels.ts<br/>(Models Data)"]
+            UseFetchVectorDBs["useFetchVectorDBs.ts<br/>(Vector Stores Data)"]
+        end
+        
+        subgraph Utilities["Utilities & Configuration"]
+            AxiosConfig["axios.ts<br/>(HTTP Client Config)"]
+            Utils["utils.ts<br/>(Helper Functions)"]
+            Constants["const.ts<br/>(App Constants)"]
+            Types["types.ts<br/>(TypeScript Types)"]
+        end
+    end
     
-    Component(applayout, "App Layout", "React Component", "Main application layout and navigation structure")
-    Component(chatbotmain, "Chatbot Main", "PatternFly Chatbot", "Primary chat interface using @patternfly/chatbot components")
-    Component(chatmessages, "Messages List", "React Component", "Displays chat conversation history and responses")
-    Component(sharemodal, "Share Modal", "React Component", "Handles conversation sharing functionality")
-    Component(uploadsettings, "Upload Settings Modal", "React Component", "Document upload configuration interface")
-    Component(uploadpanel, "Upload Panel", "React Component", "File upload interface for RAG document processing")
-    Component(oauthcomps, "OAuth Components", "React Components", "Authentication UI components and flows")
-    Component(notfound, "Not Found", "React Component", "404 error page component")
+    subgraph External["External Dependencies"]
+        BFFApi["BFF API<br/>(/genai/v1/* endpoints)"]
+        PatternFlyComponents["PatternFly Components<br/>(UI Library)"]
+        ReactRouter["React Router<br/>(Navigation)"]
+    end
     
-    Component(llamaservice, "Llama Stack Service", "TypeScript Service", "BFF API client using axios and llama-stack-client")
-    Component(authservice, "Auth Service", "TypeScript Service", "Authentication and token management service")
-    Component(authcontext, "Auth Context", "React Context", "Global authentication state management")
-    Component(router, "React Router", "React Router v7", "Client-side routing and navigation")
-    Component(axiosconfig, "Axios Config", "HTTP Client", "Configured HTTP client for BFF communication")
+    App --> AppRoutes
+    AppRoutes --> AppLayout
+    AppRoutes --> NotFound
+    AppLayout --> ChatbotMain
+    AppLayout --> Navigation
     
-    ComponentDb(webpack, "Build System", "Webpack 5", "TypeScript compilation, hot-reload, and asset bundling")
-    ComponentDb(localStorage, "Browser Storage", "LocalStorage", "Client-side authentication token persistence")
+    ChatbotMain --> ChatbotMessagesList
+    ChatbotMain --> ChatbotSettingsPanel
+    ChatbotMain --> ChatbotUIComponents
+    ChatbotMain --> UploadComponents
     
-    Rel(applayout, chatbotmain, "Contains and manages")
-    Rel(chatbotmain, chatmessages, "Displays messages via")
-    Rel(chatbotmain, sharemodal, "Opens sharing dialog via")
-    Rel(chatbotmain, uploadpanel, "Manages document uploads via")
-    Rel(uploadpanel, uploadsettings, "Configures uploads via")
+    ChatbotCore --> StateManagement
+    UploadComponents --> StateManagement
     
-    Rel(chatbotmain, llamaservice, "Makes chat completions via")
-    Rel(uploadpanel, llamaservice, "Uploads documents via")
-    Rel(llamaservice, axiosconfig, "Uses HTTP client")
-    Rel(oauthcomps, authservice, "Authenticates users via")
+    StateManagement --> DataLayer
+    DataLayer --> LlamaStackService
+    LlamaStackService --> AxiosConfig
     
-    Rel(authservice, authcontext, "Updates auth state via")
-    Rel(authcontext, localStorage, "Persists tokens to")
-    Rel(llamaservice, authservice, "Gets auth tokens from")
+    LlamaStackService --> BFFApi
+    UseFetchLlamaModels --> BFFApi
+    UseFetchVectorDBs --> BFFApi
+    ChatbotCore --> PatternFlyComponents
+    AppRoutes --> ReactRouter
     
-    Rel(router, applayout, "Routes to main app")
-    Rel(router, oauthcomps, "Routes to auth flows")
-    Rel(router, notfound, "Routes to 404 page")
+    classDef foundation fill:#1976d2,stroke:#0d47a1,stroke-width:2px,color:#fff
+    classDef chatbot fill:#388e3c,stroke:#1b5e20,stroke-width:2px,color:#fff
+    classDef ui fill:#4caf50,stroke:#2e7d32,stroke-width:2px,color:#fff
+    classDef upload fill:#ff9800,stroke:#f57c00,stroke-width:2px,color:#fff
+    classDef nav fill:#f57c00,stroke:#e65100,stroke-width:2px,color:#fff
+    classDef state fill:#e91e63,stroke:#ad1457,stroke-width:2px,color:#fff
+    classDef data fill:#9c27b0,stroke:#6a1b99,stroke-width:2px,color:#fff
+    classDef utils fill:#757575,stroke:#424242,stroke-width:2px,color:#fff
     
-    Rel(webpack, spa, "Builds and serves")
-
-    UpdateElementStyle(applayout, $fontColor="white", $bgColor="#1976d2", $borderColor="#0d47a1")
-    UpdateElementStyle(chatbotmain, $fontColor="white", $bgColor="#1976d2", $borderColor="#0d47a1")
-    UpdateElementStyle(chatmessages, $fontColor="white", $bgColor="#1976d2", $borderColor="#0d47a1")
-    UpdateElementStyle(sharemodal, $fontColor="white", $bgColor="#1976d2", $borderColor="#0d47a1")
-    UpdateElementStyle(uploadsettings, $fontColor="white", $bgColor="#1976d2", $borderColor="#0d47a1")
-    UpdateElementStyle(uploadpanel, $fontColor="white", $bgColor="#1976d2", $borderColor="#0d47a1")
-    UpdateElementStyle(oauthcomps, $fontColor="white", $bgColor="#1976d2", $borderColor="#0d47a1")
-    UpdateElementStyle(notfound, $fontColor="white", $bgColor="#1976d2", $borderColor="#0d47a1")
-    UpdateElementStyle(llamaservice, $fontColor="white", $bgColor="#388e3c", $borderColor="#1b5e20")
-    UpdateElementStyle(authservice, $fontColor="white", $bgColor="#388e3c", $borderColor="#1b5e20")
-    UpdateElementStyle(axiosconfig, $fontColor="white", $bgColor="#388e3c", $borderColor="#1b5e20")
-    UpdateElementStyle(authcontext, $fontColor="white", $bgColor="#f57c00", $borderColor="#e65100")
-    UpdateElementStyle(router, $fontColor="white", $bgColor="#f57c00", $borderColor="#e65100")
-    UpdateElementStyle(webpack, $fontColor="white", $bgColor="#757575", $borderColor="#424242")
-    UpdateElementStyle(localStorage, $fontColor="white", $bgColor="#757575", $borderColor="#424242")
+    class App,AppRoutes,AppLayout foundation
+    class ChatbotMain,ChatbotMessagesList,ChatbotSettingsPanel chatbot
+    class ModelDetailsDropdown,SystemInstructionForm,UploadErrorAlert,UploadSuccessAlert ui
+    class SourceUploadPanel,SourceSettingsModal upload
+    class NavBar,NavSidebar,AppNavSidebar,NotFound nav
+    class UseChatbotMessages,UseSourceManagement,UseAlertManagement,UseAccordionState state
+    class LlamaStackService,UseFetchLlamaModels,UseFetchVectorDBs data
+    class AxiosConfig,Utils,Constants,Types utils
 ```
 
 #### BFF API Components
 
-Shows the internal structure of the Backend-for-Frontend API:
+Shows the simplified internal structure of the Backend-for-Frontend API with visual grouping:
 
 ```mermaid
-C4Component
-    title Component diagram for BFF API
-
-    Container(bff, "BFF API", "Go 1.23/HTTP", "Backend-for-Frontend service with httprouter and CORS support")
+graph TB
+    subgraph BFF["BFF API Container"]
+        subgraph RoutingLayer["Routing & Middleware Layer"]
+            Router["HTTP Router<br/>(httprouter)"]
+            Middleware["Middleware Chain<br/>(CORS, Auth, Logging, Recovery)"]
+            StaticServer["Static File Server<br/>(Frontend Assets)"]
+        end
+        
+        subgraph LlamaStackHandlers["LlamaStack API Handlers (/genai/v1/)"]
+            ModelsHandler["models_handler<br/>(GET /genai/v1/models)"]
+            VectorStoresHandler["vectorstores_handler<br/>(GET/POST /genai/v1/vectorstores)"]
+            FilesHandler["files_handler<br/>(POST /genai/v1/files/upload)"]
+            ResponsesHandler["responses_handler<br/>(POST /genai/v1/responses)"]
+        end
+        
+        subgraph SupportHandlers["Support Handlers"]
+            OpenAPIHandler["openapi_handler<br/>(Swagger UI & Docs)"]
+            HealthHandler["healthcheck_handler<br/>(Service Health)"]
+        end
+        
+        subgraph BusinessLogic["Domain-Specific Repository Layer"]
+            ModelsRepo["ModelsRepository<br/>(Model Operations & Transformations)"]
+            VectorStoresRepo["VectorStoresRepository<br/>(Vector Store Operations)"]
+            FilesRepo["FilesRepository<br/>(File Upload Operations)"]
+            ResponsesRepo["ResponsesRepository<br/>(AI Response Operations)"]
+            HealthRepo["HealthCheckRepository<br/>(Health Operations)"]
+        end
+        
+        subgraph ClientLayer["Client Integration Layer"]
+            ClientFactory["LlamaStackClientFactory<br/>(Factory Pattern Interface)"]
+            RealFactory["RealClientFactory<br/>(Production Client Creation)"]
+            MockFactory["MockClientFactory<br/>(Testing Client Creation)"]
+            LlamaClient["LlamaStackClient<br/>(OpenAI SDK v2.1.0)"]
+            MockClient["MockLlamaStackClient<br/>(Development & Testing)"]
+            ClientInterface["LlamaStackClientInterface<br/>(Client Abstraction)"]
+        end
+    end
     
-    Component(router, "HTTP Router", "julienschmidt/httprouter", "High-performance HTTP request router")
-    Component(middleware, "Middleware Chain", "Go middleware", "CORS, logging, authentication, panic recovery, and telemetry")
-    Component(staticserver, "Static File Server", "Go http.FileServer", "Serves built frontend assets from /static directory")
+    subgraph Config["Configuration & Specs"]
+        EnvConfig["Environment Config<br/>(Runtime Settings)"]
+        OpenAPISpec["OpenAPI Specification<br/>(YAML Documentation)"]
+    end
     
-    Component(openapi, "OpenAPI Handler", "Go handler", "Serves comprehensive API documentation and Swagger UI")
-    Component(modelshandler, "Models Handler", "Go handler", "Manages LLM model listing via /api/v1/models")
-    Component(uploadhandler, "Upload Handler", "Go handler", "Processes document uploads via /api/v1/upload")
-    Component(queryhandler, "Query Handler", "Go handler", "Handles chat completions via /api/v1/query")
-    Component(confighandler, "Config Handler", "Go handler", "Provides frontend configuration via /api/v1/config")
-    Component(oauthhandler, "OAuth Handler", "Go handler", "Manages OAuth flows via /api/v1/auth/*")
-    Component(vectordbhandler, "Vector DB Handler", "Go handler", "Manages vector databases via /api/v1/vector-dbs")
-    Component(proxyhandler, "Proxy Handler", "Go handler", "Proxies requests to Llama Stack via /llama-stack/*")
-    Component(healthhandler, "Health Handler", "Go handler", "Health checks via /healthcheck")
+    LlamaStackAPI["Llama Stack API<br/>(External LLM Service)"]
     
-    Component(repositories, "Repository Layer", "Go package", "Business logic abstraction with interface-based design")
-    Component(llamaclient, "Llama Stack Client", "Go HTTP client", "HTTP client for external Llama Stack API communication")
-    Component(modelsrepo, "Models Repository", "Go service", "Model management and listing operations")
-    Component(vectordbrepo, "Vector DB Repository", "Go service", "Vector database registration and management")
-    Component(ragtoolrepo, "RAG Tool Repository", "Go service", "Document processing and RAG operations")
-    Component(healthrepo, "Health Repository", "Go service", "System health checking and monitoring")
-    Component(mocksystem, "Mock System", "Go mocks", "Development and testing mock implementations")
+    Router --> Middleware
+    Middleware --> StaticServer
+    Middleware --> LlamaStackHandlers
+    Middleware --> SupportHandlers
     
-    ComponentDb(envconfig, "Environment Config", "EnvConfig struct", "Port, OAuth, Llama Stack URL, and feature flags")
-    ComponentDb(openapi_spec, "OpenAPI Spec", "YAML", "Comprehensive API specification with 750+ lines")
-    ComponentDb(auth, "Auth System", "OAuth 2.0/OIDC", "Token validation and user authentication")
+    ModelsHandler --> ModelsRepo
+    VectorStoresHandler --> VectorStoresRepo
+    FilesHandler --> FilesRepo
+    ResponsesHandler --> ResponsesRepo
+    HealthHandler --> HealthRepo
     
-    Rel(router, middleware, "All requests through")
-    Rel(middleware, staticserver, "Routes / to")
-    Rel(middleware, modelshandler, "Routes /api/v1/models to")
-    Rel(middleware, uploadhandler, "Routes /api/v1/upload to")
-    Rel(middleware, queryhandler, "Routes /api/v1/query to")
-    Rel(middleware, confighandler, "Routes /api/v1/config to")
-    Rel(middleware, oauthhandler, "Routes /api/v1/auth/* to")
-    Rel(middleware, vectordbhandler, "Routes /api/v1/vector-dbs to")
-    Rel(middleware, proxyhandler, "Routes /llama-stack/* to")
-    Rel(middleware, healthhandler, "Routes /healthcheck to")
-    Rel(middleware, openapi, "Routes /openapi* to")
+    ModelsRepo --> ClientInterface
+    VectorStoresRepo --> ClientInterface
+    FilesRepo --> ClientInterface
+    ResponsesRepo --> ClientInterface
     
-    Rel(modelshandler, modelsrepo, "Uses for model operations")
-    Rel(uploadhandler, ragtoolrepo, "Uses for document processing")
-    Rel(queryhandler, ragtoolrepo, "Uses for chat completions")
-    Rel(vectordbhandler, vectordbrepo, "Uses for DB management")
-    Rel(healthhandler, healthrepo, "Uses for health checks")
-    Rel(proxyhandler, llamaclient, "Direct proxy to Llama Stack")
+    ClientFactory --> RealFactory
+    ClientFactory --> MockFactory
+    RealFactory --> LlamaClient
+    MockFactory --> MockClient
     
-    Rel(repositories, llamaclient, "Production API calls")
-    Rel(repositories, mocksystem, "Development/testing calls")
-    Rel(oauthhandler, auth, "Token validation")
-    Rel(confighandler, envconfig, "Reads runtime config")
-    Rel(openapi, openapi_spec, "Serves API documentation")
-
-    UpdateElementStyle(router, $fontColor="white", $bgColor="#1976d2", $borderColor="#0d47a1")
-    UpdateElementStyle(middleware, $fontColor="white", $bgColor="#1976d2", $borderColor="#0d47a1")
-    UpdateElementStyle(staticserver, $fontColor="white", $bgColor="#1976d2", $borderColor="#0d47a1")
-    UpdateElementStyle(openapi, $fontColor="white", $bgColor="#1976d2", $borderColor="#0d47a1")
-    UpdateElementStyle(modelshandler, $fontColor="white", $bgColor="#388e3c", $borderColor="#1b5e20")
-    UpdateElementStyle(uploadhandler, $fontColor="white", $bgColor="#388e3c", $borderColor="#1b5e20")
-    UpdateElementStyle(queryhandler, $fontColor="white", $bgColor="#388e3c", $borderColor="#1b5e20")
-    UpdateElementStyle(confighandler, $fontColor="white", $bgColor="#388e3c", $borderColor="#1b5e20")
-    UpdateElementStyle(oauthhandler, $fontColor="white", $bgColor="#388e3c", $borderColor="#1b5e20")
-    UpdateElementStyle(vectordbhandler, $fontColor="white", $bgColor="#388e3c", $borderColor="#1b5e20")
-    UpdateElementStyle(proxyhandler, $fontColor="white", $bgColor="#388e3c", $borderColor="#1b5e20")
-    UpdateElementStyle(healthhandler, $fontColor="white", $bgColor="#388e3c", $borderColor="#1b5e20")
-    UpdateElementStyle(repositories, $fontColor="white", $bgColor="#f57c00", $borderColor="#e65100")
-    UpdateElementStyle(modelsrepo, $fontColor="white", $bgColor="#f57c00", $borderColor="#e65100")
-    UpdateElementStyle(vectordbrepo, $fontColor="white", $bgColor="#f57c00", $borderColor="#e65100")
-    UpdateElementStyle(ragtoolrepo, $fontColor="white", $bgColor="#f57c00", $borderColor="#e65100")
-    UpdateElementStyle(healthrepo, $fontColor="white", $bgColor="#f57c00", $borderColor="#e65100")
-    UpdateElementStyle(llamaclient, $fontColor="white", $bgColor="#7b1fa2", $borderColor="#4a148c")
-    UpdateElementStyle(mocksystem, $fontColor="white", $bgColor="#7b1fa2", $borderColor="#4a148c")
-    UpdateElementStyle(envconfig, $fontColor="white", $bgColor="#757575", $borderColor="#424242")
-    UpdateElementStyle(openapi_spec, $fontColor="white", $bgColor="#757575", $borderColor="#424242")
-    UpdateElementStyle(auth, $fontColor="white", $bgColor="#757575", $borderColor="#424242")
+    ClientInterface --> LlamaClient
+    ClientInterface --> MockClient
+    
+    LlamaClient --> LlamaStackAPI
+    OpenAPIHandler --> OpenAPISpec
+    
+    classDef routing fill:#1976d2,stroke:#0d47a1,stroke-width:2px,color:#fff
+    classDef handlers fill:#388e3c,stroke:#1b5e20,stroke-width:2px,color:#fff
+    classDef support fill:#f57c00,stroke:#e65100,stroke-width:2px,color:#fff
+    classDef business fill:#e91e63,stroke:#ad1457,stroke-width:2px,color:#fff
+    classDef factory fill:#9c27b0,stroke:#6a1b99,stroke-width:2px,color:#fff
+    classDef client fill:#673ab7,stroke:#4527a0,stroke-width:2px,color:#fff
+    classDef config fill:#757575,stroke:#424242,stroke-width:2px,color:#fff
+    
+    class Router,Middleware,StaticServer routing
+    class ModelsHandler,VectorStoresHandler,FilesHandler,ResponsesHandler handlers
+    class OpenAPIHandler,HealthHandler support
+    class ModelsRepo,VectorStoresRepo,FilesRepo,ResponsesRepo,HealthRepo business
+    class ClientFactory,RealFactory,MockFactory factory
+    class LlamaClient,MockClient,ClientInterface client
+    class EnvConfig,OpenAPISpec config
 ```
 
 ### Level 4: Deployment Diagram
@@ -331,75 +394,85 @@ C4Component
 Shows how the Llama Stack Modular UI is deployed as a module within the ODH Dashboard ecosystem:
 
 ```mermaid
-C4Deployment
-    title Deployment diagram for Llama Stack Modular UI as ODH Dashboard Module
-
-    Deployment_Node(k8s, "OpenShift/Kubernetes Cluster", "Red Hat OpenShift container platform") {
-        Deployment_Node(odhns, "opendatahub namespace", "OpenDataHub ecosystem namespace") {
-            Deployment_Node(dashboard_pod, "ODH Dashboard Pod", "Multi-container pod with modular architecture") {
-                Container(main_dashboard, "ODH Dashboard", "React/Node.js", "Main dashboard application with module federation host")
-                Container(llama_ui_module, "Llama Stack UI Module", "React/Go BFF", "Modular UI container serving both frontend and BFF on port 8043")
-                Container(model_registry_module, "Model Registry Module", "React/Go BFF", "Another modular UI example on port 8044")
-                ContainerDb(tls_certs, "TLS Certificates", "Volume Mount", "Shared TLS certificates for HTTPS")
-            }
+graph TB
+    subgraph DeploymentOverview["Deployment Overview - ODH Dashboard Module"]
+        subgraph UserEnvironment["User Environment"]
+            Browser["User's Browser<br/>(Web Browser)<br/>ODH Dashboard UI with Llama Stack module"]
+        end
+        
+        subgraph OpenShiftCluster["OpenShift/Kubernetes Cluster"]
+            subgraph ODHNamespace["opendatahub namespace"]
+                subgraph DashboardPod["ODH Dashboard Pod (Multi-container)"]
+                    MainDashboard["ODH Dashboard<br/>(React/Node.js)<br/>Module federation host"]
+                    LlamaUIModule["Llama Stack UI Module<br/>(React/Go BFF)<br/>Port 8043"]
+                    ModelRegistryModule["Model Registry Module<br/>(React/Go BFF)<br/>Port 8044"]
+                    TLSCerts["TLS Certificates<br/>(Volume Mount)<br/>Shared HTTPS certificates"]
+                end
+                
+                subgraph ODHConfig["ODH Configuration"]
+                    FederationConfig["Federation ConfigMap<br/>Module routing rules"]
+                    DashboardConfig["Dashboard ConfigMap<br/>Feature flags & config"]
+                end
+                
+                subgraph ODHServices["ODH Services"]
+                    DashboardService["ODH Dashboard Service<br/>(ClusterIP)<br/>Port 8080/8443"]
+                    ConsoleLink["OpenShift Console Link<br/>(ConsoleLink CRD)<br/>Web console integration"]
+                end
+            end
             
-            ContainerDb(federation_config, "Federation ConfigMap", "ConfigMap", "Module federation configuration and routing rules")
-            ContainerDb(dashboard_config, "Dashboard ConfigMap", "ConfigMap", "ODH Dashboard configuration and feature flags")
+            subgraph LlamaNamespace["llama-stack namespace"]
+                subgraph LlamaPod["Llama Stack Pod"]
+                    LlamaAPI["Llama Stack API<br/>(Python/FastAPI)<br/>LLM orchestration & RAG"]
+                    VectorDB["Vector Database<br/>(ChromaDB/FAISS)<br/>Document embeddings"]
+                end
+            end
             
-            Container(dashboard_service, "ODH Dashboard Service", "ClusterIP", "Routes traffic to dashboard pod on port 8080/8443")
-            Container(console_link, "OpenShift Console Link", "ConsoleLink CRD", "Integrates with OpenShift web console")
-        }
-        
-        Deployment_Node(llama_ns, "llama-stack namespace", "Llama Stack services namespace") {
-            Deployment_Node(llama_pod, "Llama Stack Pod", "External LLM services pod") {
-                Container(llama_api, "Llama Stack API", "Python/FastAPI", "Core LLM orchestration and RAG services")
-                ContainerDb(vector_db, "Vector Database", "ChromaDB/FAISS", "Document embeddings and vector storage")
-            }
-        }
-        
-        Deployment_Node(vllm_ns, "vllm namespace", "High-performance inference namespace") {
-            Container(vllm_server, "vLLM Server", "Python/gRPC", "GPU-optimized LLM inference server")
-        }
-        
-        Deployment_Node(auth_ns, "openshift-authentication", "Platform authentication") {
-            Container(oauth_server, "OAuth Server", "OpenShift OAuth", "RBAC and token validation")
-        }
-    }
+            subgraph VLLMNamespace["vllm namespace"]
+                VLLMServer["vLLM Server<br/>(Python/gRPC)<br/>GPU-optimized inference"]
+            end
+            
+            subgraph AuthNamespace["openshift-authentication"]
+                OAuthServer["OAuth Server<br/>(OpenShift OAuth)<br/>RBAC & token validation"]
+            end
+        end
+    end
     
-    Deployment_Node(browser, "User's Browser", "Web Browser") {
-        Container(browser_app, "ODH Dashboard UI", "HTML/CSS/JS", "Federated application with llama-stack module")
-    }
+    Browser -->|"HTTPS requests"| DashboardService
+    DashboardService --> MainDashboard
+    DashboardService -->|"Routes /llama-stack/*"| LlamaUIModule
     
-    Rel(browser_app, dashboard_service, "HTTPS requests to /")
-    Rel(dashboard_service, main_dashboard, "Routes main app traffic")
-    Rel(dashboard_service, llama_ui_module, "Routes /llama-stack/* traffic")
+    MainDashboard --> FederationConfig
+    MainDashboard -->|"Loads module via /remoteEntry.js"| LlamaUIModule
     
-    Rel(main_dashboard, federation_config, "Reads module federation config")
-    Rel(main_dashboard, llama_ui_module, "Loads remote module via /remoteEntry.js")
+    LlamaUIModule --> DashboardConfig
+    LlamaUIModule --> TLSCerts
+    LlamaUIModule --> OAuthServer
+    LlamaUIModule -->|"API calls via /genai/v1/* using OpenAI SDK"| LlamaAPI
     
-    Rel(llama_ui_module, dashboard_config, "Reads deployment configuration")
-    Rel(llama_ui_module, tls_certs, "Uses shared TLS certificates")
-    Rel(llama_ui_module, oauth_server, "Validates auth tokens")
-    Rel(llama_ui_module, llama_api, "API calls via /api/v1/*")
+    LlamaAPI --> VLLMServer
+    LlamaAPI --> VectorDB
     
-    Rel(llama_api, vllm_server, "Model inference requests")
-    Rel(llama_api, vector_db, "Vector operations")
+    ConsoleLink --> DashboardService
     
-    Rel(console_link, dashboard_service, "Links from OpenShift console")
-
-    UpdateElementStyle(browser_app, $fontColor="white", $bgColor="#1976d2", $borderColor="#0d47a1")
-    UpdateElementStyle(main_dashboard, $fontColor="white", $bgColor="#1976d2", $borderColor="#0d47a1")
-    UpdateElementStyle(llama_ui_module, $fontColor="white", $bgColor="#388e3c", $borderColor="#1b5e20")
-    UpdateElementStyle(model_registry_module, $fontColor="white", $bgColor="#388e3c", $borderColor="#1b5e20")
-    UpdateElementStyle(dashboard_service, $fontColor="white", $bgColor="#757575", $borderColor="#424242")
-    UpdateElementStyle(console_link, $fontColor="white", $bgColor="#757575", $borderColor="#424242")
-    UpdateElementStyle(federation_config, $fontColor="white", $bgColor="#757575", $borderColor="#424242")
-    UpdateElementStyle(dashboard_config, $fontColor="white", $bgColor="#757575", $borderColor="#424242")
-    UpdateElementStyle(tls_certs, $fontColor="white", $bgColor="#757575", $borderColor="#424242")
-    UpdateElementStyle(llama_api, $fontColor="white", $bgColor="#d32f2f", $borderColor="#b71c1c")
-    UpdateElementStyle(vllm_server, $fontColor="white", $bgColor="#ff5722", $borderColor="#d84315")
-    UpdateElementStyle(vector_db, $fontColor="white", $bgColor="#f57c00", $borderColor="#e65100")
-    UpdateElementStyle(oauth_server, $fontColor="white", $bgColor="#7b1fa2", $borderColor="#4a148c")
+    classDef browserStyle fill:#1976d2,stroke:#0d47a1,stroke-width:2px,color:#fff
+    classDef dashboardStyle fill:#1976d2,stroke:#0d47a1,stroke-width:2px,color:#fff
+    classDef moduleStyle fill:#388e3c,stroke:#1b5e20,stroke-width:2px,color:#fff
+    classDef configStyle fill:#757575,stroke:#424242,stroke-width:2px,color:#fff
+    classDef serviceStyle fill:#757575,stroke:#424242,stroke-width:2px,color:#fff
+    classDef llamaStyle fill:#d32f2f,stroke:#b71c1c,stroke-width:2px,color:#fff
+    classDef inferenceStyle fill:#ff5722,stroke:#d84315,stroke-width:2px,color:#fff
+    classDef storageStyle fill:#f57c00,stroke:#e65100,stroke-width:2px,color:#fff
+    classDef authStyle fill:#7b1fa2,stroke:#4a148c,stroke-width:2px,color:#fff
+    
+    class Browser browserStyle
+    class MainDashboard dashboardStyle
+    class LlamaUIModule,ModelRegistryModule moduleStyle
+    class FederationConfig,DashboardConfig,TLSCerts configStyle
+    class DashboardService,ConsoleLink serviceStyle
+    class LlamaAPI llamaStyle
+    class VLLMServer inferenceStyle
+    class VectorDB storageStyle
+    class OAuthServer authStyle
 ```
 
 ## Links

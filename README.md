@@ -20,6 +20,8 @@ We also have some [contributing guidelines] you can follow.
 
 ## Documentation
 
+To get the current commit hash from the UI, to confirm which code is deployed, the commit hash is printed to the console every time the About Dialog is opened.
+
 Read more about the Dashboard in one of our documentation links.
 
 * [Dev setup & Requirements]

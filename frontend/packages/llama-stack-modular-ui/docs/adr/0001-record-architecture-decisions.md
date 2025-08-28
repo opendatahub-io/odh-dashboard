@@ -1,6 +1,6 @@
 # 0001 - Record Architecture Decisions
 
-* Date: 2025-01-25
+* Date: 2025-07-25
 * Authors: Matias Schimuneck
 
 ## Context and Problem Statement

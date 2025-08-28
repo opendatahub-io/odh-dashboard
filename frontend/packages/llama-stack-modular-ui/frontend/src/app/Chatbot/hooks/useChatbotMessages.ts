@@ -4,14 +4,9 @@ import { MessageProps } from '@patternfly/chatbot';
 import userAvatar from '~/app/bgimages/user_avatar.svg';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { getId } from '~/app/utilities/utils';
-import { querySource } from '~/app/services/llamaStackService';
-import { ChatbotSourceSettings, Query } from '~/app/types';
-import {
-  QUERY_CONFIG,
-  SAMPLING_STRATEGY,
-  ERROR_MESSAGES,
-  initialBotMessage,
-} from '~/app/Chatbot/const';
+import { createResponse } from '~/app/services/llamaStackService';
+import { ChatbotSourceSettings, ChatMessageRole, CreateResponseRequest } from '~/app/types';
+import { ERROR_MESSAGES, initialBotMessage } from '~/app/Chatbot/const';
 
 export interface UseChatbotMessagesReturn {
   messages: MessageProps[];
@@ -44,70 +39,63 @@ const useChatbotMessages = ({
     }
   }, [messages]);
 
-  const handleMessageSend = React.useCallback(
-    async (message: string) => {
-      const userMessage: MessageProps = {
-        id: getId(),
-        role: 'user',
-        content: message,
-        name: 'User',
-        avatar: userAvatar,
+  const handleMessageSend = async (message: string) => {
+    const userMessage: MessageProps = {
+      id: getId(),
+      role: 'user',
+      content: message,
+      name: 'User',
+      avatar: userAvatar,
+    };
+
+    setMessages((prevMessages) => [...prevMessages, userMessage]);
+    setIsMessageSendButtonDisabled(true);
+
+    try {
+      if (!modelId) {
+        throw new Error(ERROR_MESSAGES.NO_MODEL_OR_SOURCE);
+      }
+
+      const responsesPayload: CreateResponseRequest = {
+        input: message,
+        model: modelId,
+        ...(isRawUploaded &&
+          selectedSourceSettings && {
+            vector_store_ids: [selectedSourceSettings.vectorStore],
+          }),
+        chat_context: messages
+          .map((msg) => ({
+            role:
+              msg.role === ChatMessageRole.USER ? ChatMessageRole.USER : ChatMessageRole.ASSISTANT,
+            content: msg.content || '',
+          }))
+          .filter((msg) => msg.content),
+        instructions: systemInstruction,
       };
 
-      setMessages((prevMessages) => [...prevMessages, userMessage]);
-      setIsMessageSendButtonDisabled(true);
+      const response = await createResponse(responsesPayload);
 
-      try {
-        if (!modelId) {
-          throw new Error(ERROR_MESSAGES.NO_MODEL_OR_SOURCE);
-        }
-
-        const query: Query = {
-          content: message,
-          ...(isRawUploaded &&
-            selectedSourceSettings && {
-              vector_db_ids: [selectedSourceSettings.vectorDB],
-            }),
-          query_config: {
-            chunk_template: QUERY_CONFIG.CHUNK_TEMPLATE,
-            max_chunks: QUERY_CONFIG.MAX_CHUNKS,
-            max_tokens_in_context: QUERY_CONFIG.MAX_TOKENS_IN_CONTEXT,
-          },
-          llm_model_id: modelId,
-          sampling_params: {
-            strategy: {
-              type: SAMPLING_STRATEGY.TYPE,
-            },
-            max_tokens: QUERY_CONFIG.MAX_TOKENS,
-          },
-          system_prompt: systemInstruction,
-        };
-
-        const response = await querySource(query);
-
-        const botMessage: MessageProps = {
-          id: getId(),
-          role: 'bot',
-          content: response.chat_completion.completion_message.content || 'No response received',
-          name: 'Bot',
-          avatar: botAvatar,
-        };
-        setMessages((prevMessages) => [...prevMessages, botMessage]);
-      } catch {
-        const botMessage: MessageProps = {
-          id: getId(),
-          role: 'bot',
-          content: 'Sorry, I encountered an error while processing your request. Please try again.',
-          name: 'Bot',
-          avatar: botAvatar,
-        };
-        setMessages((prevMessages) => [...prevMessages, botMessage]);
-      } finally {
-        setIsMessageSendButtonDisabled(false);
-      }
-    },
-    [isRawUploaded, modelId, selectedSourceSettings, systemInstruction],
-  );
+      const botMessage: MessageProps = {
+        id: getId(),
+        role: 'bot',
+        content: response.content || 'No response received',
+        name: 'Bot',
+        avatar: botAvatar,
+      };
+      setMessages((prevMessages) => [...prevMessages, botMessage]);
+    } catch {
+      const botMessage: MessageProps = {
+        id: getId(),
+        role: 'bot',
+        content: 'Sorry, I encountered an error while processing your request. Please try again.',
+        name: 'Bot',
+        avatar: botAvatar,
+      };
+      setMessages((prevMessages) => [...prevMessages, botMessage]);
+    } finally {
+      setIsMessageSendButtonDisabled(false);
+    }
+  };
 
   return {
     messages,
