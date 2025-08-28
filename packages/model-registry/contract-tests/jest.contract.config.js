@@ -7,13 +7,21 @@ const baseConfig = require(path.resolve(
 
 module.exports = {
   ...baseConfig,
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+  setupFilesAfterEnv: [
+    ...((baseConfig && baseConfig.setupFilesAfterEnv) || []),
+    '<rootDir>/jest.setup.ts',
+  ],
   transform: {
     '^.+\\.(ts|tsx)$': [
       'ts-jest',
       {
-        tsconfig: '<rootDir>/../tsconfig.json',
+        tsconfig: '<rootDir>/tsconfig.json',
       },
     ],
+  },
+  moduleNameMapper: {
+    '^@odh-dashboard/contract-testing/setup.base$': '<rootDir>/../../contract-tests/setup.base.ts',
+    '^@odh-dashboard/contract-testing$': '<rootDir>/../../contract-tests/src/index.ts',
+    '^@odh-dashboard/contract-testing/(.*)$': '<rootDir>/../../contract-tests/src/$1',
   },
 };

@@ -96,7 +96,10 @@ export class ContractApiClient {
     testName?: string,
   ): Promise<ApiTestResult> {
     const url = `${this.config.baseUrl}${path}`;
-    const headers = { ...this.config.defaultHeaders, ...options.headers };
+    const headers = {
+      ...(this.config.defaultHeaders ?? {}),
+      ...(options.headers ?? {}),
+    };
     const controller = new AbortController();
     const httpAgent = new (await import('http')).Agent({ keepAlive: false });
     const httpsAgent = new (await import('https')).Agent({ keepAlive: false });
@@ -150,8 +153,8 @@ export class ContractApiClient {
     const url = `${this.config.baseUrl}${path}`;
     const headers = {
       'Content-Type': 'application/json',
-      ...this.config.defaultHeaders,
-      ...options.headers,
+      ...(this.config.defaultHeaders ?? {}),
+      ...(options.headers ?? {}),
     };
     const controller = new AbortController();
 
@@ -201,8 +204,8 @@ export class ContractApiClient {
     const url = `${this.config.baseUrl}${path}`;
     const headers = {
       'Content-Type': 'application/json',
-      ...this.config.defaultHeaders,
-      ...options.headers,
+      ...(this.config.defaultHeaders ?? {}),
+      ...(options.headers ?? {}),
     };
     const controller = new AbortController();
 
@@ -249,7 +252,10 @@ export class ContractApiClient {
     testName?: string,
   ): Promise<ApiTestResult> {
     const url = `${this.config.baseUrl}${path}`;
-    const headers = { ...this.config.defaultHeaders, ...options.headers };
+    const headers = {
+      ...(this.config.defaultHeaders ?? {}),
+      ...(options.headers ?? {}),
+    };
     const controller = new AbortController();
 
     try {

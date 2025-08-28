@@ -1,0 +1,16 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@odh-dashboard/contract-testing": ["../../contract-tests/src"],
+      "@odh-dashboard/contract-testing/*": ["../../contract-tests/src/*"]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ]
+}
+
+

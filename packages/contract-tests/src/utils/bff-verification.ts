@@ -12,6 +12,21 @@ export interface BffHealthResult {
   isHealthy: boolean;
   error?: string;
 }
+function redactSecrets(input: string): string {
+  const patterns = /(authorization|token|password|secret|apiKey)\s*[:=]\s*([^\s,;]+)/gi;
+  return input.replace(patterns, (m, k) => `${k}:****`);
+}
+
+function safeStringify(payload: unknown, maxLen = 500): string | undefined {
+  try {
+    if (payload == null) return undefined;
+    if (typeof payload === 'string') return redactSecrets(payload).slice(0, maxLen);
+    const s = JSON.stringify(payload);
+    return redactSecrets(s).slice(0, maxLen);
+  } catch {
+    return undefined;
+  }
+}
 
 export const DEFAULT_BFF_CONFIG: BffConfig = {
   url: 'http://localhost:8080',
@@ -60,13 +75,7 @@ export async function verifyBffHealth(inputConfig: Partial<BffConfig>): Promise<
       const { status, data } = error.response ?? {};
       const { code, config } = error;
       const url = config?.url;
-      let dataPreview: string | undefined;
-      try {
-        dataPreview =
-          typeof data === 'string' ? data.slice(0, 500) : JSON.stringify(data).slice(0, 500);
-      } catch {
-        dataPreview = undefined;
-      }
+      const dataPreview = safeStringify(data);
 
       const parts = [
         status !== undefined ? `status=${status}` : undefined,

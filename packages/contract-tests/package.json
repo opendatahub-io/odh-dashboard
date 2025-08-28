@@ -19,7 +19,8 @@
     "lint:fix": "eslint . --fix"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./setup.base": "./setup.base.ts"
   },
   "dependencies": {},
   "devDependencies": {

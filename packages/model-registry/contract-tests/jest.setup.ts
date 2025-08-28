@@ -1,4 +1,4 @@
 /* eslint-disable no-console */
-import '../../../packages/contract-tests/setup.base';
+import '@odh-dashboard/contract-testing/setup.base';
 
 console.log('🔧 Contract test setup complete');

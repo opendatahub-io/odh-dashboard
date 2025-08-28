@@ -167,7 +167,7 @@ When changing code in `packages/contract-tests`:
       "**/*.ts",
       "**/*.tsx",
       "**/*.d.ts",
-      "../../../../packages/jest-config/typings.d.ts"
+      "../jest-config/typings.d.ts"
     ]
   }
   ```

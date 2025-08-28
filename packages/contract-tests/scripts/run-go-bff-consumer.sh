@@ -38,13 +38,24 @@ BFF_DIR=""
 CONSUMER_DIR=""
 PACKAGE_NAME=""
 
+require_arg() {
+  if [[ $# -lt 2 || -z "$2" || "$2" == -* ]]; then
+    echo "Missing value for $1"
+    print_help
+    exit 2
+  fi
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --bff-dir)
+      require_arg "$1" "${2:-}"
       BFF_DIR="$2"; shift 2;;
     --consumer-dir)
+      require_arg "$1" "${2:-}"
       CONSUMER_DIR="$2"; shift 2;;
     --package-name)
+      require_arg "$1" "${2:-}"
       PACKAGE_NAME="$2"; shift 2;;
     -h|--help)
       print_help; exit 0;;
