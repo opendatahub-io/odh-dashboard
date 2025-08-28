@@ -7,6 +7,7 @@ import { retryableBeforeEach } from '#~/__tests__/cypress/cypress/utils/retryabl
 import {
   checkModelRegistry,
   createAndVerifyDatabase,
+  deleteModelRegistry,
   deleteModelRegistryDatabase,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
 
@@ -71,6 +72,12 @@ describe('Verify a model registry can be created and deleted', () => {
   after(() => {
     cy.clearCookies();
     cy.clearLocalStorage();
+
+    cy.step('Delete the model registry');
+    deleteModelRegistry(registryName);
+
+    cy.step('Verify model registry is removed from the backend');
+    checkModelRegistry(registryName).should('be.false');
 
     cy.step('Delete the SQL database');
     deleteModelRegistryDatabase();

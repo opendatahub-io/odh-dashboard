@@ -4,7 +4,7 @@ import {
   checkModelRegistry,
   checkModelRegistryAvailable,
   createAndVerifyDatabase,
-  createModelRegistryViaYAML,
+  createAndVerifyModelRegistry,
   deleteModelRegistry,
   deleteModelRegistryDatabase,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
@@ -33,12 +33,8 @@ describe('Verify that admin users can edit a model registry', () => {
       cy.step('Create and verify SQL database for model registry');
       createAndVerifyDatabase().should('be.true');
 
-      // creates a model registry
-      cy.step('Create a model registry using YAML');
-      createModelRegistryViaYAML(registryName);
-
-      cy.step('Verify model registry is created');
-      checkModelRegistry(registryName).should('be.true');
+      cy.step('Create a model registry and verify it is ready');
+      createAndVerifyModelRegistry(registryName);
 
       cy.step('Wait for model registry to be in Available state');
       checkModelRegistryAvailable(registryName).should('be.true');

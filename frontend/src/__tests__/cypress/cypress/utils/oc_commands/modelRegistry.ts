@@ -34,12 +34,16 @@ export const createModelRegistryDatabaseViaYAML = (): Cypress.Chainable<CommandL
 
   cy.log(`Creating SQL database for model registry in namespace ${targetNamespace}`);
 
-  // Check if database already exists
+  // Check if database already exists and is ready
   return cy
-    .exec(`oc get deployment model-registry-db -n ${targetNamespace}`, { failOnNonZeroExit: false })
+    .exec(
+      `oc get deployment model-registry-db -n ${targetNamespace} -o jsonpath='{.status.readyReplicas}'`,
+      { failOnNonZeroExit: false },
+    )
     .then((checkResult: CommandLineResult) => {
-      if (checkResult.code === 0) {
-        cy.log('Model registry database already exists, skipping creation');
+      const readyReplicas = parseInt(checkResult.stdout.trim()) || 0;
+      if (checkResult.code === 0 && readyReplicas > 0) {
+        cy.log('Model registry database already exists and is ready, skipping creation');
         return cy.wrap(checkResult);
       }
 
@@ -275,11 +279,11 @@ export const cleanupModelRegistryComponents = (
  */
 export const deleteModelRegistry = (registryName: string): Cypress.Chainable<CommandLineResult> => {
   const targetNamespace = getModelRegistryNamespace();
-  const registryCommand = `oc delete modelregistry.modelregistry.opendatahub.io ${registryName} -n ${targetNamespace}`;
+  const registryCommand = `oc delete modelregistry.modelregistry.opendatahub.io ${registryName} -n ${targetNamespace} --timeout=240s`;
 
   cy.log(`Deleting model registry ${registryName} from namespace ${targetNamespace}`);
 
-  return cy.exec(registryCommand, { failOnNonZeroExit: false });
+  return cy.exec(registryCommand, { failOnNonZeroExit: false, timeout: 240000 });
 };
 
 /**

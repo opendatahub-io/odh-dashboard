@@ -39,7 +39,7 @@ items:
     - ReadWriteOnce
     resources:
       requests:
-        storage: 5Gi
+        storage: 4Gi
 - apiVersion: apps/v1
   kind: Deployment
   metadata:
@@ -104,6 +104,11 @@ items:
             periodSeconds: 10
             timeoutSeconds: 5
           name: mysql
+          resources:
+            limits:
+              memory: 512Mi
+            requests:
+              memory: 384Mi
           ports:
           - containerPort: 3306
             protocol: TCP
