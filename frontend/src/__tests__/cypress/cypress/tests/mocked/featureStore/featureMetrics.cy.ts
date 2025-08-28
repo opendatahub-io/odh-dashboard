@@ -339,7 +339,7 @@ describe('Feature Store Metrics Overview', () => {
   it('should navigate to feature view details when clicking on feature view in recently visited', () => {
     featureStoreGlobal.visitOverview(fsProjectName);
     cy.wait('@getRecentlyVisited');
-    featureMetricsOverview.findRecentlyVisitedRow('driver_hourly_stats').clickResourceLink();
+    featureMetricsOverview.findRecentlyVisitedRow('driver_hourly_stats').findResourceLink().click();
     cy.url().should('include', `/featureStore/featureViews/${fsProjectName}/driver_hourly_stats`);
   });
 

@@ -177,34 +177,28 @@ class FeatureMetricsOverview extends Contextual<HTMLElement> {
     return this;
   }
 
-  clickGoToEntities() {
-    this.findEntitiesCard().find('a').contains('Go to Entities').click();
-    return this;
+  findGoToEntitiesLink() {
+    return this.findEntitiesCard().find('a').contains('Go to Entities');
   }
 
-  clickGoToDataSources() {
-    this.findDataSourcesCard().find('a').contains('Go to Data Sources').click();
-    return this;
+  findGoToDataSourcesLink() {
+    return this.findDataSourcesCard().find('a').contains('Go to Data Sources');
   }
 
-  clickGoToSavedDatasets() {
-    this.findSavedDatasetsCard().find('a').contains('Go to Saved Datasets').click();
-    return this;
+  findGoToSavedDatasetsLink() {
+    return this.findSavedDatasetsCard().find('a').contains('Go to Saved Datasets');
   }
 
-  clickGoToFeatures() {
-    this.findFeaturesCard().find('a').contains('Go to Features').click();
-    return this;
+  findGoToFeaturesLink() {
+    return this.findFeaturesCard().find('a').contains('Go to Features');
   }
 
-  clickGoToFeatureViews() {
-    this.findFeatureViewsCard().find('a').contains('Go to Feature Views').click();
-    return this;
+  findGoToFeatureViewsLink() {
+    return this.findFeatureViewsCard().find('a').contains('Go to Feature Views');
   }
 
-  clickGoToFeatureServices() {
-    this.findFeatureServicesCard().find('a').contains('Go to Feature Services').click();
-    return this;
+  findGoToFeatureServicesLink() {
+    return this.findFeatureServicesCard().find('a').contains('Go to Feature Services');
   }
 
   shouldDisplayResourceCounts() {
@@ -274,14 +268,6 @@ class FeatureMetricsPopularTagRow extends Contextual<HTMLElement> {
     this.findViewAllLink().should('contain.text', count.toString());
     return this;
   }
-
-  clickFeatureViewLink(featureViewName: string) {
-    this.findFeatureViewLink(featureViewName).click();
-  }
-
-  clickViewAllLink() {
-    this.findViewAllLink().click();
-  }
 }
 
 class FeatureMetricsRecentlyVisitedRow extends Contextual<HTMLElement> {
@@ -309,10 +295,6 @@ class FeatureMetricsRecentlyVisitedRow extends Contextual<HTMLElement> {
   shouldHaveResourceType(type: string) {
     this.findResourceType().should('contain.text', type);
     return this;
-  }
-
-  clickResourceLink() {
-    this.findResourceLink().click();
   }
 }
 
