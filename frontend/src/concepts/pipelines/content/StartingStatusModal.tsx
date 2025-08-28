@@ -19,7 +19,10 @@ import {
   Alert,
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
-import { getStatusFromCondition } from '#~/concepts/pipelines/content/utils.tsx';
+import {
+  getStatusFromCondition,
+  messageForCondition,
+} from '#~/concepts/pipelines/content/utils.tsx';
 import PipelineComponentStatusIcon, {
   StatusType,
 } from '#~/concepts/pipelines/content/PipelineComponentStatusIcon.tsx';
@@ -54,7 +57,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
     </Flex>
   );
 
-  const statusConditions: [StatusType, K8sCondition][] | undefined =
+  const statusConditions: [StatusType, string, K8sCondition][] | undefined =
     pipelinesServer.crStatus?.conditions
       ?.filter(
         (unfilteredCondition) =>
@@ -62,7 +65,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
       )
       .map((condition) => {
         const containerStatus = getStatusFromCondition(condition);
-        return [containerStatus, condition];
+        return [containerStatus, messageForCondition(condition.type), condition];
       });
 
   // Find all error conditions

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Bullseye, Spinner, Button, Flex, FlexItem } from '@patternfly/react-core';
 import { usePipelinesAPI, PipelineServerTimedOut } from '#~/concepts/pipelines/context';
-import StartingStatusModal from '#~/concepts/pipelines/content/StartingStatusModal.tsx';
+import StartingStatusModal from '#~/concepts/pipelines/content/StartingStatusModal';
 
 type EnsureAPIAvailabilityProps = {
   children: React.ReactNode;

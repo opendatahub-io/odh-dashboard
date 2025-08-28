@@ -143,3 +143,39 @@ export const getStatusFromCondition = (condition: K8sCondition): StatusType => {
       return StatusType.ERROR;
   }
 };
+
+const CONDITION_TO_MESSAGE: Record<string, string> = {
+  DatabaseAvailable: 'Connect to database',
+  ObjectStoreAvailable: 'Connect to storage',
+  PersistenceAgentReady: 'Start API Server',
+  ScheduledWorkflowReady: 'Start PVC',
+  WorkflowControllerReady: 'Schedule workflow',
+  MLMDProxyReady: 'Start metadata proxy',
+  WebhookReady: 'Start webhook',
+  Ready: 'Start pipeline Server',
+};
+
+// Fallback: strip trailing "Ready"/"Available", un-camel the rest, and prefix "Start "
+const fallbackMessage = (raw: string): string => {
+  // 1) remove trailing "Ready" or "Available" (case-insensitive)
+  const base = raw.replace(/(?:Ready|Available)$/i, '');
+
+  // 2) split PascalCase/camelCase and acronyms; also handle snake/kebab just in case
+  const spaced = base
+    .replace(/[_-]+/g, ' ')
+    .replace(/([a-z\d])([A-Z])/g, '$1 $2') // aB -> a B
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2') // ABCd -> ABC d
+    .trim();
+
+  // 3) lowercase normal words but keep full acronyms (e.g., MLMD) as-is
+  const normalized = spaced
+    .split(/\s+/)
+    .map((w) => (w === w.toUpperCase() ? w : w.toLowerCase()))
+    .join(' ');
+
+  return `Start ${normalized}`;
+};
+
+// Main accessor: use table, else fallback
+export const messageForCondition = (raw: string): string =>
+  CONDITION_TO_MESSAGE[raw] ?? fallbackMessage(raw);
