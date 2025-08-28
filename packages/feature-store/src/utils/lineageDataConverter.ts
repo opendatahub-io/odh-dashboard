@@ -24,7 +24,7 @@ export const convertFeatureStoreLineageToVisualizationData = (
       label: `Entity: ${entity.spec.name}`,
       entityType: 'entity',
       description: entity.spec.description,
-      truncateLength: 20,
+      truncateLength: 30,
       layer: 0, // Position entities in layer 0 (leftmost)
     });
   });
@@ -32,10 +32,12 @@ export const convertFeatureStoreLineageToVisualizationData = (
   featureStoreLineage.objects.dataSources.forEach((dataSource: DataSource) => {
     nodes.push({
       id: `datasource-${dataSource.name}`,
-      label: `Data Source: ${dataSource.name}`,
+      label: `${
+        dataSource.type === 'batch' ? 'Batch' : dataSource.type === 'push' ? 'Push' : 'Request'
+      } Data Source: ${dataSource.name}`,
       entityType: 'batch_data_source',
       description: dataSource.description,
-      truncateLength: 20,
+      truncateLength: 30,
       layer: 1, // Position data sources in layer 1 (second from left)
     });
   });
@@ -46,20 +48,32 @@ export const convertFeatureStoreLineageToVisualizationData = (
   );
 
   actualFeatureViews.forEach((lineageFeatureView: LineageFeatureView) => {
-    const { name, description } =
+    const { name, description, features } =
       'featureView' in lineageFeatureView
         ? lineageFeatureView.featureView.spec
         : 'onDemandFeatureView' in lineageFeatureView
         ? lineageFeatureView.onDemandFeatureView.spec
         : lineageFeatureView.streamFeatureView.spec;
+    const type =
+      'featureView' in lineageFeatureView
+        ? 'batch_feature_view'
+        : 'onDemandFeatureView' in lineageFeatureView
+        ? 'on_demand_feature_view'
+        : 'stream_feature_view';
 
     nodes.push({
       id: `featureview-${name}`,
-      label: `FeatureView: ${name}`,
-      entityType: 'batch_feature_view',
-      // features: featureCount,
+      label: `${
+        type === 'batch_feature_view'
+          ? 'Batch'
+          : type === 'on_demand_feature_view'
+          ? 'On demand'
+          : 'Stream'
+      } Feature View: ${name}`,
+      entityType: type,
+      features: features.length,
       description,
-      truncateLength: 25,
+      truncateLength: 40,
       layer: 2, // Position feature views in layer 2 (third from left)
     });
   });
@@ -70,7 +84,7 @@ export const convertFeatureStoreLineageToVisualizationData = (
       label: `FeatureService: ${featureService.spec.name}`,
       entityType: 'feature_service',
       description: featureService.spec.description,
-      truncateLength: 25,
+      truncateLength: 40,
       layer: 3, // Position feature services in layer 3 (rightmost)
     });
   });
