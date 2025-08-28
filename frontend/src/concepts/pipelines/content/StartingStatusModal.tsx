@@ -69,25 +69,25 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
       });
 
   // Find all error conditions
-  const errorConditions: K8sCondition[] =
+  const errorConditions: [string, K8sCondition][] =
     statusConditions
       ?.filter((contents1) => contents1[0] === StatusType.ERROR)
-      .map((contents) => contents[1]) || [];
+      .map((contents) => [contents[1], contents[2]]) || [];
 
-  const serverErroredOut = errorConditions.some((c) => c.type === 'Ready');
+  const serverErroredOut = errorConditions.some((c) => c[2].type === 'Ready');
 
   const renderProgress = () => (
     <Panel isScrollable>
       <PanelMain>
         {/* Render an Alert for each error condition  that has a message*/}
         {errorConditions
-          .filter((c) => c.message)
-          .map((condition, idx) => (
+          .filter((c) => c[1].message)
+          .map(([humanReadableCondition, condition], idx) => (
             <Alert
               data-testid={`error-${idx}`}
               key={condition.type + idx}
               variant="danger"
-              title={`${condition.type} - ${condition.reason || 'Unknown'}` || 'Error'}
+              title={`${humanReadableCondition} - ${condition.reason || 'Unknown'}` || 'Error'}
               style={{ marginBottom: 16 }}
             >
               {condition.message}
@@ -96,18 +96,20 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
         <Stack hasGutter>
           <StackItem>
             <Stack hasGutter>
-              {statusConditions?.map(([containerStatus, condition], index) => (
-                <StackItem key={`${condition.type}-${index}`}>
-                  <Flex>
-                    <FlexItem>
-                      <PipelineComponentStatusIcon status={containerStatus} />
-                    </FlexItem>
-                    <FlexItem>
-                      <Content>{condition.type}</Content>
-                    </FlexItem>
-                  </Flex>
-                </StackItem>
-              ))}
+              {statusConditions?.map(
+                ([containerStatus, humanReadableCondition, condition], index) => (
+                  <StackItem key={`${condition.type}-${index}`}>
+                    <Flex>
+                      <FlexItem>
+                        <PipelineComponentStatusIcon status={containerStatus} />
+                      </FlexItem>
+                      <FlexItem>
+                        <Content>{humanReadableCondition}</Content>
+                      </FlexItem>
+                    </Flex>
+                  </StackItem>
+                ),
+              )}
             </Stack>
           </StackItem>
           <StackItem />
