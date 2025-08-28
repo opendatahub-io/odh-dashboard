@@ -1,6 +1,7 @@
 import { proxyGET } from '@odh-dashboard/internal/api/proxyUtils';
 import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import { handleFeatureStoreFailures } from './errorUtils';
+import { FeatureStoreLineage } from '../types/lineage';
 import { FEATURE_STORE_API_VERSION } from '../const';
 import { Entity, EntityList } from '../types/entities';
 import { Features, FeaturesList } from '../types/features';
@@ -207,4 +208,14 @@ export const getRecentlyVisitedResources =
     }
 
     return handleFeatureStoreFailures<RecentlyVisitedResponse>(proxyGET(hostPath, endpoint, opts));
+  };
+
+export const getLineageData =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, project: string): Promise<FeatureStoreLineage> => {
+    const endpoint = `/api/${FEATURE_STORE_API_VERSION}/lineage/complete?project=${encodeURIComponent(
+      project,
+    )}`;
+
+    return handleFeatureStoreFailures<FeatureStoreLineage>(proxyGET(hostPath, endpoint, opts));
   };

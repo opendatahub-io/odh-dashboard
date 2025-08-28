@@ -9,7 +9,7 @@ import {
   PageSection,
 } from '@patternfly/react-core';
 import * as React from 'react';
-import { Lineage } from '@odh-dashboard/internal/components/lineage/Lineage';
+import FeatureStoreLineage from './lineage/FeatureStoreLineage';
 
 enum OverviewTab {
   METRICS = 'metrics',
@@ -74,7 +74,7 @@ const OverviewTabs: React.FC = () => {
             hidden={OverviewTab.LINEAGE !== activeTabKey}
             className="pf-v6-u-h-100"
           >
-            <Lineage />
+            <FeatureStoreLineage />
           </TabContent>
         </FlexItem>
       </Flex>

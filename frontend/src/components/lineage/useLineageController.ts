@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { GRAPH_LAYOUT_END_EVENT, Visualization } from '@patternfly/react-topology';
-import { baselineLayoutFactory, baselineComponentFactory } from './Lineage';
+import { lineageLayoutFactory, lineageComponentFactory } from './factories';
 
 const useLineageController = (graphId: string): Visualization | null => {
   const [controller, setController] = React.useState<Visualization | null>(null);
@@ -8,10 +8,9 @@ const useLineageController = (graphId: string): Visualization | null => {
   React.useEffect(() => {
     const visualizationController = new Visualization();
     visualizationController.setFitToScreenOnLayout(true);
-    visualizationController.registerLayoutFactory(baselineLayoutFactory);
-    visualizationController.registerComponentFactory(baselineComponentFactory);
+    visualizationController.registerLayoutFactory(lineageLayoutFactory);
+    visualizationController.registerComponentFactory(lineageComponentFactory);
 
-    // Start with empty model like Pipeline topology does
     visualizationController.fromModel(
       {
         graph: {
