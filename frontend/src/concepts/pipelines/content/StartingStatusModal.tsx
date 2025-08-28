@@ -74,7 +74,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
       ?.filter((contents1) => contents1[0] === StatusType.ERROR)
       .map((contents) => [contents[1], contents[2]]) || [];
 
-  const serverErroredOut = errorConditions.some((c) => c[2].type === 'Ready');
+  const serverErroredOut = errorConditions.some((c) => c[1].type === 'Ready');
 
   const renderProgress = () => (
     <Panel isScrollable>
