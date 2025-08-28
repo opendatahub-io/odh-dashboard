@@ -3,7 +3,7 @@
 # - Type checking
 # - Linting
 # - Unit tests
-# - Contract tests
+# - Contract tests (for Model Registry)
 # - Cypress tests
 name: Test
 
@@ -18,6 +18,7 @@ env:
 jobs:
   Setup:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       modules-cache-key: ${{ steps.key.outputs.modules-cache-key }}
     steps:
@@ -59,6 +60,7 @@ jobs:
   Type-Check:
     needs: Setup
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
@@ -76,9 +78,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.turbo
-          key: shared-${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-type-check
+          key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-type-check
           restore-keys: |
-            shared-${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
+            ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
       - name: Run type checks
         timeout-minutes: 5
         run: |
@@ -88,6 +90,7 @@ jobs:
   Lint:
     needs: Setup
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
@@ -105,9 +108,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.turbo
-          key: shared-${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-lint
+          key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-lint
           restore-keys: |
-            shared-${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
+            ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
       - name: Run linting and formatting checks
         timeout-minutes: 5
         run: |
@@ -117,7 +120,7 @@ jobs:
   Unit-Tests:
     needs: [Setup, Lint, Type-Check]
     runs-on: ubuntu-latest
-    # No explicit job timeout; rely on defaults and step-level timeouts where already present
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
@@ -135,9 +138,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.turbo
-          key: shared-${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-unit-tests
+          key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-unit-tests
           restore-keys: |
-            shared-${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
+            ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
       - name: Unit tests with coverage
         timeout-minutes: 10
         run: |
@@ -153,8 +156,7 @@ jobs:
   Contract-Tests:
     needs: [Setup, Lint, Type-Check]
     runs-on: ubuntu-latest
-    outputs:
-      consumers: ${{ steps.consumers.outputs.json }}
+    timeout-minutes: 15  # Overall job timeout
     steps:
       - uses: actions/checkout@v4
         with:
@@ -177,106 +179,77 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.turbo
-          key: shared-${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-contract-tests
+          key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-contract-tests
           restore-keys: |
-            shared-${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
+            ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
 
-      - name: Determine changed contract-test workspaces
+      # Only run contract tests if Model Registry has changes
+      - name: Check for model-registry changes
         id: changes
-        shell: bash
+        working-directory: ${{ github.workspace }}/frontend
         run: |
           set -euo pipefail
-          echo "Discovering workspaces with contract tests..."
-          MAP=$(npx turbo run test:contract:with-bff --filter=!@odh-dashboard/contract-testing --dry-run=json | jq -r '[.tasks[] | {pkg: .package, cwd: .cwd}] | unique | @base64')
-          if [ -z "$MAP" ] || [ "$MAP" = "W10=" ]; then
+          echo "Checking for changes in model-registry package..."
+
+          # Check if there are tasks to run for model-registry
+          if npx turbo run test:contract:with-bff --filter=@odh-dashboard/model-registry --dry-run=json 2>/dev/null | jq -e '.tasks | length > 0' >/dev/null; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "✅ Model Registry has changes, running contract tests"
+          else
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "⏭️  No relevant changes found, skipping contract tests"
           fi
-          echo "changed=true" >> "$GITHUB_OUTPUT"
-          echo "matrix=$MAP" >> "$GITHUB_OUTPUT"
 
-      - name: Build consumer matrix JSON
-        id: consumers
+      - name: Setup Go 1.21.6
         if: steps.changes.outputs.changed == 'true'
-        shell: bash
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21.6'
+          cache: true
+          cache-dependency-path: ${{ github.workspace }}/frontend/packages/model-registry/upstream/bff/go.sum
+
+      - name: Cache kubebuilder assets
+        if: steps.changes.outputs.changed == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/frontend/packages/model-registry/upstream/bff/bin
+          key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-kubebuilder-1.29.0
+          restore-keys: |
+            ${{ env.CACHE_VERSION }}-${{ runner.os }}-kubebuilder-
+
+      - name: Setup Go test dependencies (kubebuilder assets)
+        if: steps.changes.outputs.changed == 'true'
+        working-directory: ${{ github.workspace }}/frontend/packages/model-registry/upstream/bff
+        timeout-minutes: 5
         run: |
           set -euo pipefail
-          RAW=$(npx turbo run test:contract:with-bff --filter=!@odh-dashboard/contract-testing --dry-run=json)
-          ARR=$(echo "$RAW" | jq -c '[.tasks[] | { package: .package, cwd: .cwd, name: (.package | sub("^@odh-dashboard/"; "")) }] | unique')
-          echo "json=$ARR" >> "$GITHUB_OUTPUT"
+          echo "📦 Installing kubebuilder test assets..."
+          make envtest
 
-      - name: Run contract tests (matrix)
+          # Set up test assets and export path for subsequent steps
+          ASSETS_PATH=$(./bin/setup-envtest-release-0.17 use 1.29.0 -p path)
+          echo "KUBEBUILDER_ASSETS=$ASSETS_PATH" >> "$GITHUB_ENV"
+          echo "✅ Kubebuilder assets installed at: $ASSETS_PATH"
+
+      - name: Run Model Registry contract tests
         if: steps.changes.outputs.changed == 'true'
-        shell: bash
+        working-directory: ${{ github.workspace }}/frontend/packages/model-registry
+        timeout-minutes: 10  # Test step timeout
         run: |
           set -euo pipefail
-          echo "Running contract tests for discovered workspaces..."
-          npx turbo run test:contract:with-bff --filter=!@odh-dashboard/contract-testing --no-cache
+          echo "🧪 Running Model Registry contract tests..."
+          npm run test:contract:with-bff
 
-      - name: Upload contract test results (rollup)
-        if: always()
+      - name: Upload contract test results
+        if: steps.changes.outputs.changed == 'true' && always()
         uses: actions/upload-artifact@v4
         with:
           name: contract-test-results
           path: |
-            ${{ github.workspace }}/**/contract-tests/contract-test-results/*/contract-test-report.html
-            ${{ github.workspace }}/**/contract-tests/contract-test-results/*/junit.xml
-            ${{ github.workspace }}/**/contract-tests/contract-test-results/*/contract-test-output.log
-            ${{ github.workspace }}/**/contract-tests/contract-test-results/*/bff-mock.log
-            ${{ github.workspace }}/**/contract-tests/contract-test-results/*/artifacts/**
-            !${{ github.workspace }}/**/node_modules/**
-            !${{ github.workspace }}/packages/contract-tests/**
-          if-no-files-found: warn
-
-      - name: Note endpoints
-        if: steps.changes.outputs.changed != 'true'
-        run: echo "No consumer contract tests detected. Skipping artifact upload."
-
-  Upload-Contract-Results:
-    needs: [Contract-Tests]
-    if: needs.Contract-Tests.outputs.consumers != ''
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        consumer: ${{ fromJson(needs.Contract-Tests.outputs.consumers) }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Download contract test rollup artifact
-        if: always()
-        uses: actions/download-artifact@v4
-        with:
-          name: contract-test-results
-          path: ${{ github.workspace }}/downloaded-results
-      - name: Discover latest result for ${{ matrix.consumer.name }}
-        id: discover
-        shell: bash
-        run: |
-          set -euo pipefail
-          CWD_BASE="${{ github.workspace }}/downloaded-results/${{ matrix.consumer.cwd }}/contract-tests/contract-test-results"
-          if [ ! -d "$CWD_BASE" ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          LATEST=$(ls -1dt "$CWD_BASE"/* 2>/dev/null | head -n1 || true)
-          if [ -z "$LATEST" ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          echo "dir=$LATEST" >> "$GITHUB_OUTPUT"
-      - name: Upload ${{ matrix.consumer.name }} contract test results
-        if: steps.discover.outputs.skip != 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: contract-test-results-${{ matrix.consumer.name }}
-          path: |
-            ${{ steps.discover.outputs.dir }}/contract-test-report.html
-            ${{ steps.discover.outputs.dir }}/junit.xml
-            ${{ steps.discover.outputs.dir }}/contract-test-output.log
-            ${{ steps.discover.outputs.dir }}/bff-mock.log
-            ${{ steps.discover.outputs.dir }}/artifacts/**
+            ${{ github.workspace }}/frontend/packages/*/contract-tests/contract-test-results/*/contract-test-report.html
+            ${{ github.workspace }}/frontend/packages/*/contract-tests/contract-test-results/*/junit.xml
+            ${{ github.workspace }}/frontend/packages/*/contract-tests/contract-test-results/*/contract-test-output.log
+            ${{ github.workspace }}/frontend/packages/*/contract-tests/contract-test-results/*/bff-mock.log
           if-no-files-found: warn
 
   Get-Test-Groups:
@@ -317,6 +290,7 @@ jobs:
   Cypress-Setup:
     needs: [Setup]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       cypress-cache-key: ${{ steps.key.outputs.cypress-cache-key }}
     steps:
@@ -409,6 +383,7 @@ jobs:
   Combine-Results-and-Upload:
     needs: [Unit-Tests, Cypress-Mock-Tests]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
@@ -425,38 +400,46 @@ jobs:
           npm install nyc --no-save
       - name: Combine coverage reports
         run: |
-          mkdir -p ./coverage
-          cp all-artifacts/unit-coverage/coverage-final.json ./coverage/unit-coverage-final.json || true
-          [ -f all-artifacts/backend-coverage/coverage-final.json ] && cp all-artifacts/backend-coverage/coverage-final.json ./coverage/backend-coverage-final.json || true
-          find all-artifacts -name "cypress-coverage-*" -type d | while read dir; do
-          group_name=$(basename "$dir")
-          cp "$dir/coverage-final.json" "./coverage/${group_name}-coverage-final.json" || true
+          set -euo pipefail
+          mkdir -p ${{ github.workspace }}/coverage
+          if [ -f "${{ github.workspace }}/all-artifacts/unit-coverage/coverage-final.json" ]; then
+            cp "${{ github.workspace }}/all-artifacts/unit-coverage/coverage-final.json" "${{ github.workspace }}/coverage/unit-coverage-final.json"
+          fi
+          if [ -f "${{ github.workspace }}/all-artifacts/backend-coverage/coverage-final.json" ]; then
+            cp "${{ github.workspace }}/all-artifacts/backend-coverage/coverage-final.json" "${{ github.workspace }}/coverage/backend-coverage-final.json"
+          fi
+          find ${{ github.workspace }}/all-artifacts -name "cypress-coverage-*" -type d -print0 | while IFS= read -r -d '' dir; do
+            group_name=$(basename "$dir")
+            if [ -f "$dir/coverage-final.json" ]; then
+              cp "$dir/coverage-final.json" "${{ github.workspace }}/coverage/${group_name}-coverage-final.json" || true
+            fi
           done
           echo "Combined coverage files:"
-          ls -R "$GITHUB_WORKSPACE/coverage"
+          ls -R "${{ github.workspace }}/coverage"
       - name: Merge coverage reports
         run: |
           set -euo pipefail
-          npx nyc merge "$GITHUB_WORKSPACE/coverage" "$GITHUB_WORKSPACE/coverage/merged-coverage.json"
+          npx nyc merge ${{ github.workspace }}/coverage ${{ github.workspace }}/coverage/merged-coverage.json
           echo "Cleaning up merged coverage file..."
-          jq 'del(.[] | select(.statementMap == {}))' "$GITHUB_WORKSPACE/coverage/merged-coverage.json" > "$GITHUB_WORKSPACE/coverage/cleaned-coverage.json"
-          mv "$GITHUB_WORKSPACE/coverage/cleaned-coverage.json" "$GITHUB_WORKSPACE/coverage/merged-coverage.json"
+          jq 'del(.[] | select(.statementMap == {}))' ${{ github.workspace }}/coverage/merged-coverage.json > ${{ github.workspace }}/coverage/cleaned-coverage.json
+          mv ${{ github.workspace }}/coverage/cleaned-coverage.json ${{ github.workspace }}/coverage/merged-coverage.json
       - name: Generate coverage report
         run: |
           set -euo pipefail
-          mkdir -p "$GITHUB_WORKSPACE/coverage/report"
-          npx nyc report --reporter=html --reporter=text-summary --temp-directory "$GITHUB_WORKSPACE/coverage" -t "$GITHUB_WORKSPACE/coverage" --report-dir "$GITHUB_WORKSPACE/coverage/report"
-          cp "$GITHUB_WORKSPACE/coverage/unit-coverage-final.json" "$GITHUB_WORKSPACE/coverage/combined-coverage-final.json" || true
+          mkdir -p ${{ github.workspace }}/coverage/report
+          npx nyc report --reporter=html --reporter=text-summary --temp-directory ${{ github.workspace }}/coverage -t ${{ github.workspace }}/coverage --report-dir ${{ github.workspace }}/coverage/report
+          cp ${{ github.workspace }}/coverage/unit-coverage-final.json ${{ github.workspace }}/coverage/combined-coverage-final.json || true
       - name: Upload combined results
         uses: actions/upload-artifact@v4
         with:
           name: combined-coverage-results
-          path: $GITHUB_WORKSPACE/coverage/combined-coverage-final.json
+          path: ${{ github.workspace }}/coverage/combined-coverage-final.json
       - name: Cleanup interim coverage files
         run: |
-          rm -rf ./coverage/unit-coverage-final.json
-          rm -rf ./coverage/backend-coverage-final.json
-          find ./coverage -name "*-coverage-final.json" -type f -delete
+          set -euo pipefail
+          rm -rf ${{ github.workspace }}/coverage/unit-coverage-final.json
+          rm -rf ${{ github.workspace }}/coverage/backend-coverage-final.json
+          find ${{ github.workspace }}/coverage -name "*-coverage-final.json" -type f -delete
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4.6.0
         with:
