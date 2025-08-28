@@ -6,7 +6,6 @@ import {
   EmptyStateVariant,
   Flex,
   FlexItem,
-  Skeleton,
 } from '@patternfly/react-core';
 import React from 'react';
 import { Link, useParams } from 'react-router';
@@ -65,22 +64,16 @@ const FeatureViewDetails = (): React.ReactElement => {
           <BreadcrumbItem
             render={() => <Link to="/featureStore/featureViews">Feature Views</Link>}
           />
-          {featureView.spec.name ? (
-            <BreadcrumbItem
-              data-testid="breadcrumb-version-name"
-              isActive
-              style={{
-                textDecoration: 'underline',
-                textUnderlineOffset: ExtraSmallSpacerSize.var,
-              }}
-            >
-              {featureView.spec.name}
-            </BreadcrumbItem>
-          ) : (
-            <BreadcrumbItem>
-              <Skeleton height="20px" width="100px" />
-            </BreadcrumbItem>
-          )}
+          <BreadcrumbItem
+            data-testid="breadcrumb-version-name"
+            isActive
+            style={{
+              textDecoration: 'underline',
+              textUnderlineOffset: ExtraSmallSpacerSize.var,
+            }}
+          >
+            {featureViewName}
+          </BreadcrumbItem>
         </Breadcrumb>
       }
     >
