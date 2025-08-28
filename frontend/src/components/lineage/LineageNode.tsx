@@ -14,23 +14,25 @@ import {
   TaskNodeSourceAnchor,
   TaskNodeTargetAnchor,
 } from '@patternfly/react-topology';
+import { DatabaseIcon, CubeIcon, CodeBranchIcon, BuildIcon } from '@patternfly/react-icons';
 import {
-  TableIcon,
-  DatabaseIcon,
-  CubeIcon,
-  ShareAltIcon,
-  CodeBranchIcon,
-} from '@patternfly/react-icons';
+  chart_color_blue_200 as chartColorBlue,
+  chart_color_green_200 as chartColorGreen,
+  chart_color_purple_200 as chartColorPurple,
+  chart_color_black_500 as chartColorBlack,
+} from '@patternfly/react-tokens';
 import { useEdgeHighlighting } from './edge/edgeStateUtils';
 
 // Define the types of lineage entities
 export type LineageEntityType =
   | 'entity'
   | 'batch_data_source'
+  | 'push_data_source'
+  | 'request_data_source'
   | 'batch_feature_view'
   | 'on_demand_feature_view'
-  | 'feature_service'
-  | 'request_source';
+  | 'stream_feature_view'
+  | 'feature_service';
 
 export interface LineageNodeData {
   label: string;
@@ -45,42 +47,24 @@ type LineageNodeProps = {
 } & WithSelectionProps;
 
 // Icon mapping for different entity types
-const getEntityIcon = (entityType: LineageEntityType) => {
-  switch (entityType) {
-    case 'entity':
-      return <TableIcon />;
-    case 'batch_data_source':
-      return <DatabaseIcon />;
-    case 'batch_feature_view':
-      return <CubeIcon />;
-    case 'on_demand_feature_view':
-      return <ShareAltIcon />;
-    case 'feature_service':
-      return <CodeBranchIcon />;
-    case 'request_source':
-      return <DatabaseIcon />;
-    default:
-      return <CubeIcon />;
-  }
-};
+const getEntityIcon = (entityType: LineageEntityType, selected = false) => {
+  const iconColor = selected ? '#ffffff' : undefined;
 
-// Status mapping for different entity types (optional - for visual variety)
-const getEntityStatus = (entityType: LineageEntityType): RunStatus => {
   switch (entityType) {
     case 'entity':
-      return RunStatus.Succeeded;
+      return <CodeBranchIcon style={{ color: iconColor || chartColorBlack.value }} />;
     case 'batch_data_source':
-      return RunStatus.Succeeded;
+    case 'push_data_source':
+    case 'request_data_source':
+      return <DatabaseIcon style={{ color: iconColor || chartColorBlue.value }} />;
     case 'batch_feature_view':
-      return RunStatus.Succeeded;
     case 'on_demand_feature_view':
-      return RunStatus.InProgress;
+    case 'stream_feature_view':
+      return <BuildIcon style={{ color: iconColor || chartColorPurple.value }} />;
     case 'feature_service':
-      return RunStatus.Succeeded;
-    case 'request_source':
-      return RunStatus.Succeeded;
+      return <BuildIcon style={{ color: iconColor || chartColorGreen.value }} />;
     default:
-      return RunStatus.Succeeded;
+      return <CubeIcon style={{ color: iconColor || chartColorBlack.value }} />;
   }
 };
 
@@ -109,15 +93,28 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
       AnchorEnd.target,
     );
 
-    // Get the appropriate icon and status for this entity type
-    const entityIcon = data?.entityType ? getEntityIcon(data.entityType) : <CubeIcon />;
-    const entityStatus = data?.entityType ? getEntityStatus(data.entityType) : RunStatus.Succeeded;
-
-    // Use custom truncate length or default to 30 for lineage nodes
+    const entityIcon = data?.entityType ? (
+      getEntityIcon(data.entityType, selected)
+    ) : (
+      <CubeIcon style={{ color: selected ? '#ffffff' : chartColorBlack.value }} />
+    );
     const truncateLength = data?.truncateLength ?? 30;
-
-    // Apply highlighting styles
     const nodeClassName = isConnectedToSelection ? 'pf-m-highlighted' : '';
+
+    // Create badge for feature views showing feature count
+    const badge = (() => {
+      if (
+        data?.entityType &&
+        ['batch_feature_view', 'on_demand_feature_view', 'stream_feature_view'].includes(
+          data.entityType,
+        ) &&
+        data.features !== undefined &&
+        data.features > 0
+      ) {
+        return `${data.features} feature${data.features === 1 ? '' : 's'}`;
+      }
+      return undefined;
+    })();
 
     return (
       <g
@@ -134,11 +131,12 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
           onSelect={onSelect}
           selected={selected}
           scaleNode={hover && detailsLevel !== ScaleDetailsLevel.high}
-          status={entityStatus}
+          status={RunStatus.Idle}
           customStatusIcon={entityIcon}
           hideDetailsAtMedium
-          hiddenDetailsShownStatuses={[RunStatus.Succeeded, RunStatus.InProgress]}
+          hiddenDetailsShownStatuses={[RunStatus.Idle]}
           truncateLength={truncateLength}
+          badge={badge}
         />
       </g>
     );

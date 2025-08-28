@@ -29,10 +29,12 @@ export const createLineageNode = (
         return 25; // Reduced for overview mode
       case 'batch_feature_view':
       case 'on_demand_feature_view':
+      case 'stream_feature_view':
         return 20; // Reduced for overview mode
       case 'entity':
       case 'batch_data_source':
-      case 'request_source':
+      case 'request_data_source':
+      case 'push_data_source':
         return 18; // Shorter for overview mode
       default:
         return 20;

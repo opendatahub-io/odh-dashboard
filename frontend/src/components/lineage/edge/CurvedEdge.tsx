@@ -71,6 +71,10 @@ const CurvedEdgeInner: React.FunctionComponent<CurvedEdgeInnerProps> = observer(
       return null;
     }
 
+    // Hide terminal pointers for positioning edges
+    const effectiveStartTerminalType = isPositioning ? EdgeTerminalType.none : startTerminalType;
+    const effectiveEndTerminalType = isPositioning ? EdgeTerminalType.none : endTerminalType;
+
     const { isConnectedToSelection } = useEdgeHighlighting(element.getId(), selected);
 
     const { groupClassName, linkClassName, edgeAnimationDuration } = getEdgeStyleConfig({
@@ -91,8 +95,8 @@ const CurvedEdgeInner: React.FunctionComponent<CurvedEdgeInnerProps> = observer(
       startPoint,
       endPoint,
       bendpoints,
-      startTerminalType,
-      endTerminalType,
+      effectiveStartTerminalType,
+      effectiveEndTerminalType,
       startTerminalSize,
       endTerminalSize,
       curveOffset,
@@ -121,7 +125,7 @@ const CurvedEdgeInner: React.FunctionComponent<CurvedEdgeInnerProps> = observer(
             isTarget={false}
             edge={element}
             size={startTerminalSize}
-            terminalType={startTerminalType}
+            terminalType={effectiveStartTerminalType}
             status={startTerminalStatus}
           />
           <DefaultConnectorTerminal
@@ -129,7 +133,7 @@ const CurvedEdgeInner: React.FunctionComponent<CurvedEdgeInnerProps> = observer(
             isTarget
             edge={element}
             size={endTerminalSize}
-            terminalType={endTerminalType}
+            terminalType={effectiveEndTerminalType}
             status={endTerminalStatus}
           />
           {children}
