@@ -13,7 +13,6 @@ import {
   AnchorEnd,
   TaskNodeSourceAnchor,
   TaskNodeTargetAnchor,
-  useVisualizationController,
 } from '@patternfly/react-topology';
 import {
   TableIcon,
@@ -22,6 +21,7 @@ import {
   ShareAltIcon,
   CodeBranchIcon,
 } from '@patternfly/react-icons';
+import { useEdgeHighlighting } from './edge/edgeStateUtils';
 
 // Define the types of lineage entities
 export type LineageEntityType =
@@ -91,12 +91,7 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
     const detailsLevel = element.getGraph().getDetailsLevel();
 
     // Get the current visualization state to check for highlighting
-    const controller = useVisualizationController();
-    const state = controller.getState();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/consistent-type-assertions
-    const highlightedIds: string[] = (state as any).highlightedIds || [];
-    const isHighlighted = highlightedIds.includes(element.getId());
-    const isConnectedToSelection = isHighlighted && !selected;
+    const { isConnectedToSelection } = useEdgeHighlighting(element.getId(), selected);
 
     // Set up proper anchors for edge connections with better positioning
     useAnchor(

@@ -11,10 +11,8 @@ const description =
 const Overview = (): React.ReactElement => (
   <ApplicationsPage
     empty={false}
-    emptyStatePage={<></>}
     title={title}
     description={description}
-    loadError={undefined}
     loaded
     headerContent={
       <FeatureStoreProjectSelectorNavigator
