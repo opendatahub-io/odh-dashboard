@@ -38,14 +38,14 @@ const ChatbotMain: React.FunctionComponent = () => {
   const { models, loading, error } = useFetchLlamaModels();
   const [selectedModel, setSelectedModel] = React.useState<string>('');
 
-  const modelId = selectedModel || models[0]?.identifier;
+  const modelId = selectedModel || models[0]?.id;
   const [systemInstruction, setSystemInstruction] = React.useState<string>(
     DEFAULT_SYSTEM_INSTRUCTIONS,
   );
 
   React.useEffect(() => {
     if (!selectedModel) {
-      setSelectedModel(models[0]?.identifier);
+      setSelectedModel(models[0]?.id);
     }
   }, [models, selectedModel]);
 
