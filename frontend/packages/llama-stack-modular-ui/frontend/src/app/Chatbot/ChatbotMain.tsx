@@ -24,6 +24,7 @@ import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import { ChatbotMessages } from './ChatbotMessagesList';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
+import { ChatbotEmptyState } from './components/ChatbotEmptyState';
 import useChatbotMessages from './hooks/useChatbotMessages';
 import useSourceManagement from './hooks/useSourceManagement';
 import useAlertManagement from './hooks/useAlertManagement';
@@ -86,6 +87,17 @@ const ChatbotMain: React.FunctionComponent = () => {
       <Bullseye>
         <Spinner />
       </Bullseye>
+    );
+  }
+
+  const noLsInstalled = true;
+
+  // Show empty state if no models are available
+  if (noLsInstalled) {
+    return (
+      <div style={{ height: '100vh', width: '100%' }}>
+        <ChatbotEmptyState />
+      </div>
     );
   }
 
