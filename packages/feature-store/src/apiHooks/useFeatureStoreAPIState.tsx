@@ -14,6 +14,8 @@ import {
   getMetricsResourceCount,
   getPopularTags,
   getRecentlyVisitedResources,
+  getSavedDatasets,
+  getDataSetByName,
 } from '../api/custom';
 import { FeatureStoreAPIs } from '../types/global';
 
@@ -36,6 +38,8 @@ const useFeatureStoreAPIState = (
       getMetricsResourceCount: getMetricsResourceCount(path),
       getPopularTags: getPopularTags(path),
       getRecentlyVisitedResources: getRecentlyVisitedResources(path),
+      getSavedDatasets: getSavedDatasets(path),
+      getDataSetByName: getDataSetByName(path),
     }),
     [],
   );
