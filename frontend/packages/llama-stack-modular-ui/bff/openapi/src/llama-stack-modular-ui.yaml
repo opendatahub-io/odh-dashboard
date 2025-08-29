@@ -205,6 +205,41 @@ paths:
       summary: List All Namespaces
       description: Gets a list of all namespaces in the Kubernetes cluster.
 
+  /genai/v1/llamastack-distribution/status:
+    summary: Get LlamaStack Distribution status
+    description: >-
+      Retrieves the status of LlamaStack Distribution (LSD) in the specified namespace.
+      Returns LSD information including name, phase, version, and distribution configuration.
+      Requires valid Kubernetes authentication token and namespace parameter.
+      Returns 400 for missing parameters or other validation errors.
+      Returns 401 for missing or invalid authentication tokens.
+      Returns 404 if the LSD CRD is not installed, the namespace doesn't exist, or no LSD resources are found.
+    get:
+      tags:
+        - Kubernetes
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace to query for LSD resources
+          required: true
+          schema:
+            type: string
+            example: "default"
+      responses:
+        "200":
+          $ref: "#/components/responses/LlamaStackDistributionStatusResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getLlamaStackDistributionStatus
+      summary: Get LSD Status
+      description: Gets the status of LlamaStack Distribution in the specified namespace.
+
 components:
   schemas:
     HealthCheckModel:
@@ -904,6 +939,96 @@ components:
         $ref: "#/components/schemas/NamespaceModel"
       description: Array of Kubernetes namespaces
 
+    # LlamaStack Distribution Schema
+    LlamaStackDistributionModel:
+      type: object
+      required:
+        - name
+        - phase
+        - version
+        - distributionConfig
+      properties:
+        name:
+          type: string
+          example: "test-lsd"
+          description: Name of the LlamaStack Distribution resource
+        phase:
+          type: string
+          example: "Ready"
+          description: Current phase of the LSD (e.g., Pending, Initializing, Ready, Failed, Terminating)
+        version:
+          type: string
+          example: "v0.2.0"
+          description: Version of the LlamaStack server
+        distributionConfig:
+          $ref: "#/components/schemas/DistributionConfig"
+
+    DistributionConfig:
+      type: object
+      required:
+        - activeDistribution
+        - availableDistributions
+        - providers
+      properties:
+        activeDistribution:
+          type: string
+          example: "ollama"
+          description: Currently active distribution type
+        availableDistributions:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            ollama: "docker.io/llamastack/distribution-ollama:latest"
+            bedrock: "docker.io/llamastack/distribution-bedrock:latest"
+          description: Map of available distribution types to their image references
+        providers:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProviderInfo"
+          description: List of provider information
+
+    ProviderInfo:
+      type: object
+      required:
+        - api
+        - provider_id
+        - provider_type
+      properties:
+        api:
+          type: string
+          example: "mock-api"
+          description: API endpoint for the provider
+        provider_id:
+          type: string
+          example: "mock-provider"
+          description: Unique identifier for the provider
+        provider_type:
+          type: string
+          example: "mock-type"
+          description: Type of the provider
+        config:
+          type: object
+          nullable: true
+          description: Provider-specific configuration
+        health:
+          $ref: "#/components/schemas/ProviderHealth"
+
+    ProviderHealth:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        status:
+          type: string
+          example: "healthy"
+          description: Health status of the provider
+        message:
+          type: string
+          example: "Provider is responding normally"
+          description: Additional health information
+
   responses:
     HealthCheckResponse:
       description: BFF service health status
@@ -1006,6 +1131,54 @@ components:
                   displayName: "llama-stack"
                 - name: "test-namespace"
                   displayName: null
+
+    LlamaStackDistributionStatusResponse:
+      description: LlamaStack Distribution status information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/LlamaStackDistributionModel"
+                nullable: true
+            example:
+              data:
+                name: "test-lsd"
+                phase: "Ready"
+                version: "v0.2.0"
+                distributionConfig:
+                  activeDistribution: "ollama"
+                  availableDistributions:
+                    ollama: "docker.io/llamastack/distribution-ollama:latest"
+                    bedrock: "docker.io/llamastack/distribution-bedrock:latest"
+                  providers:
+                    - api: "mock-api"
+                      provider_id: "mock-provider"
+                      provider_type: "mock-type"
+                      config: null
+                      health:
+                        status: "healthy"
+                        message: "Provider is responding normally"
+            examples:
+              lsd_found:
+                summary: LSD found
+                value:
+                  data:
+                    name: "test-lsd"
+                    phase: "Ready"
+                    version: "v0.2.0"
+                    distributionConfig:
+                      activeDistribution: "ollama"
+                      availableDistributions:
+                        ollama: "docker.io/llamastack/distribution-ollama:latest"
+                      providers: []
+              lsd_not_found:
+                summary: No LSD found
+                value:
+                  data: null
 
     CreateResponseResponse:
       description: Created AI response with essential information only

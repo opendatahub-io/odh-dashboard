@@ -152,3 +152,11 @@ export const isK8sNameDescriptionDataValid = ({
   },
 }: K8sNameDescriptionFieldData): boolean =>
   name.trim().length > 0 && isValidK8sName(value, regexp) && !invalidLength && !invalidCharacters;
+
+export const extractK8sNameDescriptionFieldData = (
+  k8sNameDesc?: K8sNameDescriptionFieldData,
+): K8sNameDescriptionType => ({
+  name: k8sNameDesc?.name,
+  k8sName: k8sNameDesc?.k8sName.value,
+  description: k8sNameDesc?.description,
+});

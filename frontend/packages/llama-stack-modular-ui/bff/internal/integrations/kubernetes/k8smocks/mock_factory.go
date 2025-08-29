@@ -11,8 +11,8 @@ import (
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/constants"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations"
 	k8s "github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/kubernetes"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
 
@@ -20,7 +20,7 @@ type MockedKubernetesClientFactory interface {
 	k8s.KubernetesClientFactory
 }
 
-func NewMockedKubernetesClientFactory(clientset kubernetes.Interface, testEnv *envtest.Environment, cfg config.EnvConfig, logger *slog.Logger) (k8s.KubernetesClientFactory, error) {
+func NewMockedKubernetesClientFactory(clientset client.Client, testEnv *envtest.Environment, cfg config.EnvConfig, logger *slog.Logger) (k8s.KubernetesClientFactory, error) {
 	switch cfg.AuthMethod {
 	case config.AuthMethodUser:
 		k8sFactory, err := NewTokenClientFactory(clientset, testEnv.Config, logger)
@@ -43,7 +43,7 @@ func NewMockedKubernetesClientFactory(clientset kubernetes.Interface, testEnv *e
 // which does not perform real token authentication.
 type MockedTokenClientFactory struct {
 	logger     *slog.Logger
-	clientset  kubernetes.Interface
+	clientset  client.Client
 	restConfig *rest.Config
 
 	clients        map[string]k8s.KubernetesClientInterface
@@ -52,7 +52,7 @@ type MockedTokenClientFactory struct {
 }
 
 // NewTokenClientFactory initializes a factory using a known envtest clientset + config.
-func NewTokenClientFactory(clientset kubernetes.Interface, restConfig *rest.Config, logger *slog.Logger) (k8s.KubernetesClientFactory, error) {
+func NewTokenClientFactory(ctrlClient client.Client, restConfig *rest.Config, logger *slog.Logger) (k8s.KubernetesClientFactory, error) {
 	cfg := config.EnvConfig{
 		AuthMethod:      config.AuthMethodUser,
 		AuthTokenHeader: config.DefaultAuthTokenHeader,
@@ -62,7 +62,7 @@ func NewTokenClientFactory(clientset kubernetes.Interface, restConfig *rest.Conf
 
 	return &MockedTokenClientFactory{
 		logger:         logger,
-		clientset:      clientset,
+		clientset:      ctrlClient,
 		restConfig:     restConfig,
 		realK8sFactory: realFactory,
 		clients:        make(map[string]k8s.KubernetesClientInterface),
@@ -108,12 +108,12 @@ func (f *MockedTokenClientFactory) GetClient(ctx context.Context) (k8s.Kubernete
 	impersonatedCfg := rest.CopyConfig(f.restConfig)
 	impersonatedCfg.Impersonate = rest.ImpersonationConfig{}
 
-	clientset, err := kubernetes.NewForConfig(impersonatedCfg)
+	ctrlClient, err := client.New(impersonatedCfg, client.Options{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create impersonated client: %w", err)
 	}
 
-	client := newMockedTokenKubernetesClientFromClientset(clientset, f.logger)
+	client := newMockedTokenKubernetesClientFromClientset(ctrlClient, impersonatedCfg, f.logger)
 	f.clients[identity.Token] = client
 	return client, nil
 }

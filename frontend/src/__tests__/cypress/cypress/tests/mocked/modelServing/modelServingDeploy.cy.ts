@@ -11,6 +11,8 @@ import {
 import {
   modelServingGlobal,
   modelServingSection,
+  modelServingWizard,
+  modelServingWizardEdit,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import {
   InferenceServiceModel,
@@ -100,5 +102,79 @@ describe('Model Serving Deploy Wizard', () => {
     cy.findByRole('heading', { name: 'Deploy a model' }).should('exist');
     cy.findByRole('button', { name: 'Cancel' }).click();
     cy.url().should('include', '/projects/test-project');
+  });
+
+  it('Create a new deployment and submit', () => {
+    initIntercepts();
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+    );
+
+    // TODO: visit directly when plugin is enabled
+    cy.visitWithLogin('/modelServing/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue');
+    modelServingGlobal.findDeployModelButton().click();
+
+    // Step 1: Model source
+    modelServingWizard.findModelSourceStep().should('be.enabled');
+    modelServingWizard.findModelDeploymentStep().should('be.disabled');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist');
+    modelServingWizard
+      .findModelTypeSelectOption('Generative AI model (e.g. LLM)')
+      .should('exist')
+      .click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Step 2: Model deployment
+    modelServingWizard.findModelDeploymentStep().should('be.enabled');
+    modelServingWizard.findAdvancedOptionsStep().should('be.disabled');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findModelDeploymentNameInput().type('test-model');
+    modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+    modelServingWizard.findNextButton().should('be.enabled').click();
+  });
+
+  it('Edit an existing deployment', () => {
+    initIntercepts();
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+    );
+
+    // TODO: visit directly when plugin is enabled
+    cy.visitWithLogin('/modelServing/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue');
+    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
+
+    // Step 1: Model source
+    modelServingWizardEdit.findModelSourceStep().should('be.enabled');
+    modelServingWizardEdit.findNextButton().should('be.disabled');
+
+    // Need to update this when you extract model type from deployment
+    modelServingWizardEdit.findModelTypeSelectOption('Predictive model').should('exist');
+    modelServingWizardEdit
+      .findModelTypeSelectOption('Generative AI model (e.g. LLM)')
+      .should('exist')
+      .click();
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+    // Step 2: Model deployment
+    modelServingWizardEdit.findModelDeploymentStep().should('be.enabled');
+    modelServingWizardEdit.findAdvancedOptionsStep().should('be.enabled');
+    modelServingWizardEdit.findNextButton().should('be.enabled');
+
+    modelServingWizardEdit
+      .findModelDeploymentNameInput()
+      .should('have.value', 'Test Inference Service');
+    modelServingWizardEdit.findModelDeploymentNameInput().type('test-model');
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
   });
 });

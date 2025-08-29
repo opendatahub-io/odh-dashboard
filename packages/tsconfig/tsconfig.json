@@ -22,7 +22,7 @@
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "paths": {
-      "@mf/*": ["../../@mf-types/@mf/*"]
+      "@mf/*": ["../../frontend/@mf-types/@mf/*"]
     }
   },
   "include": [
