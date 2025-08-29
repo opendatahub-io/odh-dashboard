@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Alert,
   Bullseye,
   Button,
   Dropdown,
@@ -18,6 +19,7 @@ import {
   ModalVariant,
   Popover,
   Spinner,
+  Stack,
   TextInput,
   Title,
 } from '@patternfly/react-core';
@@ -52,12 +54,13 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
   const [isVectorStoreDropdownOpen, setIsVectorStoreDropdownOpen] = React.useState(false);
   const maxChunkLengthLabelHelpRef = React.useRef(null);
   const sourceSettingsHelpRef = React.useRef(null);
-  const [vectorStores, vectorStoresLoaded, , refreshVectorStores] = useFetchVectorStores();
+  const [vectorStores, vectorStoresLoaded, vectorStoresError, refreshVectorStores] =
+    useFetchVectorStores();
 
   // Vector store creation state
   const [vectorStoreForm, setVectorStoreForm] = React.useState(DEFAULT_VECTOR_STORE_FORM);
   const [isCreatingVectorStore, setIsCreatingVectorStore] = React.useState(false);
-
+  const title = 'Source input settings';
   const vectorStoreName = vectorStores.find(
     (vectorStore) => vectorStore.id === fields.vectorStore,
   )?.name;
@@ -125,7 +128,7 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
   };
 
   // Loading state - maintain modal structure to prevent layout shift/flicker
-  if (!vectorStoresLoaded) {
+  if (!vectorStoresLoaded && !vectorStoresError) {
     return (
       <Modal
         variant={ModalVariant.small}
@@ -139,7 +142,7 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
         data-testid="source-settings-modal"
       >
         <ModalHeader
-          title="Source input settings"
+          title={title}
           description="Loading vector databases..."
           descriptorId="source-settings-modal-box-description-form"
           labelId="source-settings-form-modal-title"
@@ -148,6 +151,35 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
           <Bullseye>
             <Spinner size="lg" />
           </Bullseye>
+        </ModalBody>
+      </Modal>
+    );
+  }
+
+  if (vectorStoresError) {
+    return (
+      <Modal
+        isOpen
+        onClose={() => {
+          setFields(DEFAULT_SOURCE_SETTINGS);
+          setIsVectorStoreDropdownOpen(false);
+          onToggle();
+        }}
+        variant="medium"
+        data-testid="source-settings-modal"
+      >
+        <ModalHeader title={title} />
+        <ModalBody>
+          <Stack hasGutter>
+            <Alert
+              data-testid="error-message-alert"
+              isInline
+              variant="danger"
+              title="Error loading vector database"
+            >
+              {vectorStoresError instanceof Error ? vectorStoresError.message : vectorStoresError}
+            </Alert>
+          </Stack>
         </ModalBody>
       </Modal>
     );
@@ -167,7 +199,7 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
         data-testid="source-settings-modal"
       >
         <ModalHeader
-          title="Source input settings"
+          title={title}
           description={
             vectorStores.length !== 0
               ? 'Review the embedding settings that will be used to process your source'
