@@ -1,7 +1,7 @@
 import React from 'react';
 import { ModularArchConfig, DeploymentMode, ModularArchContextProvider } from 'mod-arch-core';
-import { AppRoutes } from '~/app/AppRoutes';
-import { URL_PREFIX } from '~/app/utilities/const';
+import { AppRoutes } from '../app/AppRoutes';
+import { URL_PREFIX } from '../app/utilities/const';
 
 const modularArchConfig: ModularArchConfig = {
   deploymentMode: DeploymentMode.Federated,
