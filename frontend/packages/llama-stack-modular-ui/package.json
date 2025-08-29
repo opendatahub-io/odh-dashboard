@@ -3,6 +3,9 @@
   "name": "@odh-dashboard/llama-stack-modular-ui",
   "description": "LLama Stack Modular UI plugin.",
   "version": "0.0.0",
+  "scripts": {
+    "type-check": "cd frontend && tsc --noEmit"
+  },
   "module-federation": {
     "name": "llamaStackModularUi",
     "remoteEntry": "/remoteEntry.js",
