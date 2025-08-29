@@ -7,13 +7,19 @@ import { retryableBeforeEach } from '#~/__tests__/cypress/cypress/utils/retryabl
 import {
   checkModelRegistry,
   createAndVerifyDatabase,
+  deleteModelRegistry,
   deleteModelRegistryDatabase,
+  ensureOperatorMemoryLimit,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
 
 describe('Verify a model registry can be created and deleted', () => {
   const registryName = `e2e-test-registry`;
 
   before(() => {
+    // ensure operator has optimal memory
+    cy.step('Ensure operator has optimal memory for testing');
+    ensureOperatorMemoryLimit().should('be.true');
+
     // Create and verify SQL database
     cy.step('Create and verify SQL database for model registry');
     createAndVerifyDatabase().should('be.true');
@@ -71,6 +77,12 @@ describe('Verify a model registry can be created and deleted', () => {
   after(() => {
     cy.clearCookies();
     cy.clearLocalStorage();
+
+    cy.step('Delete the model registry');
+    deleteModelRegistry(registryName);
+
+    cy.step('Verify model registry is removed from the backend');
+    checkModelRegistry(registryName).should('be.false');
 
     cy.step('Delete the SQL database');
     deleteModelRegistryDatabase();

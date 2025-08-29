@@ -14,6 +14,7 @@ import {
   createModelRegistryViaYAML,
   deleteModelRegistry,
   deleteModelRegistryDatabase,
+  ensureOperatorMemoryLimit,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
 import { loadRegisterModelFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
@@ -45,6 +46,10 @@ describe('Verify that models and versions can be archived and restored via model
       (fixtureData) => {
         testData = fixtureData;
         registryName = `${testData.registryNamePrefix}-${uuid}`;
+
+        // ensure operator has optimal memory
+        cy.step('Ensure operator has optimal memory for testing');
+        ensureOperatorMemoryLimit().should('be.true');
 
         // Create and verify SQL database
         cy.step('Create and verify SQL database for model registry');

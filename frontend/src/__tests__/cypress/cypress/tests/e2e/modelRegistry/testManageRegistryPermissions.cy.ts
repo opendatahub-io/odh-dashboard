@@ -11,6 +11,7 @@ import {
   createModelRegistryViaYAML,
   deleteModelRegistry,
   deleteModelRegistryDatabase,
+  ensureOperatorMemoryLimit,
   getModelRegistryNamespace,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
 import { loadManagePermissionsFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
@@ -34,6 +35,10 @@ describe('Verify model registry permissions can be managed', () => {
         testData = fixtureData;
         registryName = `${testData.registryNamePrefix}-${uuid}`;
         testProjectName = `${testData.testProjectNamePrefix}-${uuid}`;
+
+        // ensure operator has optimal memory
+        cy.step('Ensure operator has optimal memory for testing');
+        ensureOperatorMemoryLimit().should('be.true');
 
         // Create and verify SQL database
         cy.step('Create and verify SQL database for model registry');
