@@ -8,6 +8,7 @@ import { useModelDeploymentWizard, type ModelDeploymentWizardData } from './useD
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
 import { ModelSourceStepContent } from './steps/ModelSourceStep';
 import { WizardFooterWithDisablingNext } from './WizardFooterWithDisablingNext';
+import { AdvancedSettingsStepContent } from './steps/AdvancedOptionsStep';
 import { ModelDeploymentStepContent } from './steps/ModelDeploymentStep';
 import { isModelServingDeploy } from '../../../extension-points';
 import { useResolvedPlatformExtension } from '../../concepts/extensionUtils';
@@ -18,6 +19,7 @@ type ModelDeploymentWizardProps = {
   description?: string;
   primaryButtonText: string;
   existingData?: ModelDeploymentWizardData;
+  tokenAuthAlert?: boolean;
   project: ProjectKind;
   modelServingPlatform: ModelServingPlatform;
 };
@@ -27,6 +29,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   description,
   primaryButtonText,
   existingData,
+  tokenAuthAlert = false,
   project,
   modelServingPlatform,
 }) => {
@@ -104,7 +107,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           id="advanced-options-step"
           isDisabled={!validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid}
         >
-          Step 3 content
+          <AdvancedSettingsStepContent tokenAuthAlert={tokenAuthAlert} />
         </WizardStep>
         <WizardStep
           name="Summary"
