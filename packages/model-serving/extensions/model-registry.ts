@@ -41,7 +41,7 @@ const extensions: (
     properties: {
       id: 'deployments',
       title: 'Deployments',
-      component: () => import('../modelRegistry/DeploymentsTab').then((m) => m.default),
+      component: () => import('../modelRegistry/VersionDeploymentsTab').then((m) => m.default),
     },
     flags: {
       required: [SupportedArea.MODEL_SERVING],
@@ -62,7 +62,7 @@ const extensions: (
     properties: {
       id: 'deployments',
       title: 'Deployments',
-      component: () => import('../modelRegistry/ModelDeploymentsTab').then((m) => m.default),
+      component: () => import('../modelRegistry/ModelWideDeploymentsTab').then((m) => m.default),
     },
     flags: {
       required: [SupportedArea.MODEL_SERVING],
