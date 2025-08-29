@@ -1,0 +1,9 @@
+{
+  "extends": "@odh-dashboard/tsconfig/tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./",
+    "outDir": "./dist"
+  },
+  "include": ["src/**/*", "setup.base.ts"],
+  "exclude": ["dist", "node_modules"]
+}

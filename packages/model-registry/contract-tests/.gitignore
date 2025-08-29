@@ -1,0 +1,25 @@
+# Contract test generated files
+contracts/
+logs/
+
+# Test results and logs
+contract-test-results/
+*.log
+contract-test-output.log
+full-test-output.log
+junit.xml
+
+# Jest test outputs  
+test-results.json
+
+# HTML reports
+contract-test-report.html
+
+# Node modules (if any local dependencies)
+node_modules/
+
+# Coverage reports
+coverage/
+
+# OS generated files
+.DS_Store

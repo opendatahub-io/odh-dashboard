@@ -18,6 +18,11 @@
     },
     "type-check": {
       "dependsOn": ["^type-check"]
+    },
+    "test:contract:with-bff": {
+      "outputs": [
+        "contract-tests/contract-test-results/**"
+      ]
     }
   }
 }
