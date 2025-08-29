@@ -8,8 +8,8 @@ import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
 import { isHardwareProfileEnabled } from '#~/pages/hardwareProfiles/utils.ts';
 import { useDashboardNamespace } from '#~/redux/selectors';
-import { ProjectsContext, byName } from '#~/concepts/projects/ProjectsContext';
 import { useKueueConfiguration, filterProfilesByKueue } from '#~/kueueUtils';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext.tsx';
 import { isHardwareProfileConfigValid } from './validationUtils';
 import { getContainerResourcesFromHardwareProfile } from './utils';
 
@@ -137,17 +137,9 @@ export const useHardwareProfileConfig = (
   );
 
   const { dashboardNamespace } = useDashboardNamespace();
-  const { projects } = React.useContext(ProjectsContext);
 
-  // Get project for Kueue configuration if namespace is provided
-  const project = React.useMemo(() => {
-    if (!namespace) {
-      return undefined;
-    }
-    return projects.find(byName(namespace));
-  }, [namespace, projects]);
-
-  const { kueueFilteringState } = useKueueConfiguration(project);
+  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const { kueueFilteringState } = useKueueConfiguration(currentProject);
 
   React.useEffect(() => {
     if (!profilesLoaded || formData.selectedProfile) {

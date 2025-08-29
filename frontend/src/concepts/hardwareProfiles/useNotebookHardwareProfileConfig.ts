@@ -1,8 +1,6 @@
-import * as React from 'react';
 import { HardwareProfileFeatureVisibility, NotebookKind } from '#~/k8sTypes';
 import { Notebook } from '#~/types';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import {
   useHardwareProfileConfig,
   UseHardwareProfileConfigResult,
@@ -11,8 +9,6 @@ import {
 const useNotebookHardwareProfileConfig = (
   notebook?: NotebookKind | Notebook | null,
 ): UseHardwareProfileConfigResult => {
-  const { currentProject } = React.useContext(ProjectDetailsContext);
-
   const legacyName =
     notebook?.metadata.annotations?.['opendatahub.io/legacy-hardware-profile-name'];
   const name =
@@ -22,13 +18,10 @@ const useNotebookHardwareProfileConfig = (
   )?.resources;
   const tolerations = notebook?.spec.template.spec.tolerations;
   const nodeSelector = notebook?.spec.template.spec.nodeSelector;
+  const namespace = notebook?.metadata.namespace;
   const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   const hardwareProfileNamespace =
     notebook?.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'];
-
-  // Use notebook namespace if available (editing), otherwise use current project (creating new)
-  const namespace =
-    notebook?.metadata.namespace || (isProjectScoped ? currentProject.metadata.name : undefined);
 
   return useHardwareProfileConfig(
     name,
@@ -36,7 +29,7 @@ const useNotebookHardwareProfileConfig = (
     tolerations,
     nodeSelector,
     [HardwareProfileFeatureVisibility.WORKBENCH],
-    namespace,
+    isProjectScoped ? namespace : undefined,
     hardwareProfileNamespace,
   );
 };
