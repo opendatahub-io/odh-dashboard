@@ -4,8 +4,8 @@ metadata:
   name: {{SC_NAME}}
   annotations:
     description: description
-    opendatahub.io/sc-config: '{"isDefault":{{SC_IS_DEFAULT}},"isEnabled":{{SC_IS_ENABLED}},"displayName":"{{SC_NAME}}","lastModified":"2024-10-01T15:22:42.480Z"}'
-provisioner: cinder.csi.openstack.org
+    opendatahub.io/sc-config: '{"isDefault":{{SC_IS_DEFAULT}},"isEnabled":{{SC_IS_ENABLED}},"displayName":"{{SC_NAME}}","lastModified":"2024-10-01T15:22:42.480Z","accessModeSettings":{{SC_ACCESS_MODE}}}'
+provisioner: {{SC_PROVISIONER}}
 reclaimPolicy: Delete
 allowVolumeExpansion: true
 volumeBindingMode: WaitForFirstConsumer
