@@ -32,3 +32,13 @@ export type PodSpecOptionsState<T extends PodSpecOptions> = {
   hardwareProfile: ReturnType<typeof useHardwareProfileConfig>;
   podSpecOptions: T;
 };
+
+export enum ProfileIdentifier {
+  CPU = 'cpu',
+  MEMORY = 'memory',
+}
+
+export enum ProfileIdentifierType {
+  REQUEST = 'requests',
+  LIMIT = 'limits',
+}

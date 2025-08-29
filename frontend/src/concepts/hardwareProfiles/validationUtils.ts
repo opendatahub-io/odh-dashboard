@@ -1,10 +1,7 @@
 import { z } from 'zod';
 import {
-  CPU_UNITS,
   isCpuLimitLarger,
   isMemoryLimitLarger,
-  MEMORY_UNITS_FOR_PARSING,
-  splitValueUnit,
   ValueUnitCPU,
   ValueUnitString,
 } from '#~/utilities/valueUnits';
@@ -18,21 +15,17 @@ export enum ValidationErrorCodes {
 }
 
 export type ResourceSchema = z.ZodEffects<
-  z.ZodUnion<[z.ZodString, z.ZodNumber]>,
-  string | number,
-  string | number
+  z.ZodUnion<[z.ZodString, z.ZodNumber, z.ZodUndefined]>,
+  string | number | undefined,
+  string | number | undefined
 >;
 
 export const createCpuSchema = (minCount: ValueUnitCPU, maxCount?: ValueUnitCPU): ResourceSchema =>
-  z.union([z.string(), z.number()]).superRefine((val, ctx) => {
-    const stringVal = String(val);
-    const [value] = splitValueUnit(stringVal, CPU_UNITS);
-    if (value === undefined) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `CPU must be provided`,
-      });
+  z.union([z.string(), z.number(), z.undefined()]).superRefine((val, ctx) => {
+    if (val === undefined) {
+      return;
     }
+    const stringVal = String(val);
     if (isCpuLimitLarger(stringVal, minCount)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -51,15 +44,11 @@ export const createMemorySchema = (
   minCount: ValueUnitString,
   maxCount: ValueUnitString,
 ): ResourceSchema =>
-  z.union([z.string(), z.number()]).superRefine((val, ctx) => {
-    const stringVal = String(val);
-    const [value] = splitValueUnit(stringVal, MEMORY_UNITS_FOR_PARSING);
-    if (value === undefined) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `Memory must be provided`,
-      });
+  z.union([z.string(), z.number(), z.undefined()]).superRefine((val, ctx) => {
+    if (val === undefined) {
+      return;
     }
+    const stringVal = String(val);
     if (isMemoryLimitLarger(stringVal, minCount)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -75,7 +64,10 @@ export const createMemorySchema = (
   });
 
 export const createNumericSchema = (minCount: number, maxCount: number): ResourceSchema =>
-  z.union([z.string(), z.number()]).superRefine((val, ctx) => {
+  z.union([z.string(), z.number(), z.undefined()]).superRefine((val, ctx) => {
+    if (val === undefined) {
+      return;
+    }
     const value = Number(val);
     if (Number.isNaN(value)) {
       ctx.addIssue({
@@ -108,8 +100,8 @@ export const hardwareProfileValidationSchema = z
   .object({
     selectedProfile: z.custom<HardwareProfileKind>().optional(),
     resources: z.object({
-      requests: z.record(z.union([z.string(), z.number(), z.undefined()])),
-      limits: z.record(z.union([z.string(), z.number(), z.undefined()])),
+      requests: z.record(z.union([z.string(), z.number(), z.undefined()])).optional(),
+      limits: z.record(z.union([z.string(), z.number(), z.undefined()])).optional(),
     }),
     useExistingSettings: z.boolean(),
   })
@@ -128,8 +120,8 @@ export const hardwareProfileValidationSchema = z
         schema = createNumericSchema(Number(identifier.minCount), Number(identifier.maxCount));
       }
 
-      const request = data.resources.requests[identifier.identifier];
-      const limit = data.resources.limits[identifier.identifier];
+      const request = data.resources.requests?.[identifier.identifier];
+      const limit = data.resources.limits?.[identifier.identifier];
 
       // Validate against the schema
       const requestResult = schema.safeParse(request);
@@ -152,12 +144,15 @@ export const hardwareProfileValidationSchema = z
       }
 
       if (requestResult.success && limitResult.success) {
+        const isUndefinedOkay =
+          (request !== undefined && limit === undefined) ||
+          (request === undefined && limit === undefined);
         const isValid =
           identifier.identifier === 'cpu'
-            ? isCpuLimitLarger(request, limit, true)
+            ? isCpuLimitLarger(request, limit, true, isUndefinedOkay)
             : identifier.identifier === 'memory'
-            ? isMemoryLimitLarger(String(request), String(limit), true)
-            : Number(limit) >= Number(request);
+            ? isMemoryLimitLarger(String(request), String(limit), true, isUndefinedOkay)
+            : Number(limit) >= Number(request) || isUndefinedOkay;
 
         if (!isValid) {
           ctx.addIssue({
@@ -172,10 +167,6 @@ export const hardwareProfileValidationSchema = z
   });
 
 export const isHardwareProfileConfigValid = (data: HardwareProfileConfig): boolean => {
-  // if no resources, and not using existing settings, then not valid
-  if (!data.useExistingSettings && !data.resources) {
-    return false;
-  }
   const result = hardwareProfileValidationSchema.safeParse(data);
   return result.success;
 };
