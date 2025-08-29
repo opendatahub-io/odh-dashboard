@@ -4,17 +4,20 @@ This guide outlines how to run the upstream Model Registry and integrate it with
 
 ## Prerequisites
 
-1.  **Start the ODH Backend:**
+1. **Start the ODH Backend:**
     Ensure your ODH backend server is running. Navigate to the `backend` directory within your main Open Data Hub dashboard project and run:
+
     ```bash
     npm run start:dev
     ```
 
-2.  **Start the ODH Frontend:**
+2. **Start the ODH Frontend:**
     The main ODH dashboard frontend application must also be running. Navigate to the main Open Data Hub dashboard project root and run:
+
     ```bash
     npm run start:dev
     ```
+
     **Important:** Do not use `npm run start:dev:ext` for the ODH frontend when testing this upstream integration.
 
 ## Model Registry Setup
@@ -34,11 +37,11 @@ This package uses a workspace-aware Dockerfile to handle Module Federation depen
 
 ### Building the Docker Image
 
-**Important:** The Docker build must be run from the frontend directory level to access workspace dependencies:
+**Important:** The Docker build must be run from the repository root to access all workspace dependencies (frontend, backend, and shared packages):
 
 ```bash
-# Navigate to the frontend directory
-cd frontend
+# Ensure you're at the repository root
+pwd  # should show the root of odh-dashboard
 
 # Build the model-registry image
 docker build --file ./packages/model-registry/Dockerfile.workspace --tag model-registry:latest .
@@ -83,4 +86,4 @@ The workspace-aware Dockerfile ensures these dependencies are available during t
 3. Installing module-specific dependencies including federated modules
 4. Building from the workspace context rather than module isolation
 
-For more information about workspace Dockerfiles, see [docs/workspace-dockerfiles.md](../../../docs/workspace-dockerfiles.md).
+For more information about workspace Dockerfiles, see [docs/workspace-dockerfiles.md](../../docs/workspace-dockerfiles.md).
