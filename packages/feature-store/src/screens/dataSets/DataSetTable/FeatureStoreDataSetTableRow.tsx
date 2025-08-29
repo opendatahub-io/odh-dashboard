@@ -17,24 +17,23 @@ type FeatureStoreDataSetsTableRowType = {
 const DataSetName: React.FC<{ dataSet: DataSet; currentProject: string | undefined }> = ({
   dataSet,
   currentProject,
-}) => (
-  <TableRowTitleDescription
-    title={
-      <Link
-        to={
-          currentProject
-            ? featureDataSetRoute(dataSet.spec.name, currentProject)
-            : featureDataSetRoute(dataSet.spec.name, dataSet.project || '')
-        }
-        data-testid="data-set-name-link"
-      >
-        <Truncate content={dataSet.spec.name} style={{ textDecoration: 'underline' }} />
-      </Link>
-    }
-    description={dataSet.spec.description}
-    truncateDescriptionLines={2}
-  />
-);
+}) => {
+  const projectName = currentProject || dataSet.project || '';
+  return (
+    <TableRowTitleDescription
+      title={
+        <Link
+          to={featureDataSetRoute(dataSet.spec.name, projectName)}
+          data-testid="data-set-name-link"
+        >
+          <Truncate content={dataSet.spec.name} style={{ textDecoration: 'underline' }} />
+        </Link>
+      }
+      description={dataSet.spec.description}
+      truncateDescriptionLines={2}
+    />
+  );
+};
 
 const renderTableCell = (label: string, content: React.ReactNode, testId?: string) => (
   <Td dataLabel={label}>

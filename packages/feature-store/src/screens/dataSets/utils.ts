@@ -53,7 +53,8 @@ export const getStorageConfig = (storage: DataSet['spec']['storage']): Record<st
 
 export const getFileFormatKey = (storage: DataSet['spec']['storage']): string => {
   if ('fileStorage' in storage) {
-    const formatKey = Object.keys(storage.fileStorage.fileFormat)[0];
+    const { fileFormat } = storage.fileStorage;
+    const formatKey = Object.keys(fileFormat)[0];
     if (formatKey) {
       return formatKey.replace('Format', '').replace(/^./, (str) => str.toUpperCase());
     }
