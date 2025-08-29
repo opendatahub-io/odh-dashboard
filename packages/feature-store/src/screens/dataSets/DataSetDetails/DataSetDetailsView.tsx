@@ -19,7 +19,7 @@ import IndentSection from '@odh-dashboard/internal/pages/projects/components/Ind
 import FeatureStoreTimestamp from '../../../components/FeatureStoreTimestamp';
 import { hasContent } from '../../../const';
 import { DataSet } from '../../../types/dataSets';
-import { getStorageConfig } from '../utils';
+import { getStorageConfig, getFileFormatKey } from '../utils';
 import FeatureStoreTags from '../../../components/FeatureStoreTags';
 import { featureServiceRoute } from '../../../routes';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
@@ -104,14 +104,14 @@ const DataSetDetailsView: React.FC<DataSetDetailsViewProps> = ({ dataSet }) => {
                   testId="data-set-storage"
                   className={getDisabledClassName(getStorageType(dataSet.spec.storage))}
                 />
-                {/* {getStorageType(dataSet.spec.storage) === 'fileStorage' && (
-                <DetailsItem
-                  label="File format"
-                  value={getContentValue(getFileFormat(dataSet.spec.storage), 'No file format')}
-                  testId="data-set-file-format"
-                  className={getDisabledClassName(getStorageType(dataSet.spec.storage))}
-                />
-              )} */}
+                {getStorageType(dataSet.spec.storage) === 'fileStorage' && (
+                  <DetailsItem
+                    label="File format"
+                    value={getFileFormatKey(dataSet.spec.storage)}
+                    testId="data-set-file-format"
+                    className={getDisabledClassName(getStorageType(dataSet.spec.storage))}
+                  />
+                )}
                 {typeof storageConfig.table === 'string' && storageConfig.table && (
                   <DetailsItem
                     label="Table"
