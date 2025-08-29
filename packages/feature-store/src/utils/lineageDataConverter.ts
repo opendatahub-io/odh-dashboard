@@ -181,6 +181,9 @@ const mapObjectToNodeId = (objectRef: { name?: string; type?: string }): string 
     case 'entity':
       return `entity-${objectRef.name}`;
     case 'dataSource':
+    case 'batchDataSource':
+    case 'pushDataSource':
+    case 'requestDataSource':
       return `datasource-${objectRef.name}`;
     case 'featureView':
     case 'onDemandFeatureView':

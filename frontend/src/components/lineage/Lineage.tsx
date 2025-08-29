@@ -13,7 +13,7 @@ import {
   Alert,
   Title,
 } from '@patternfly/react-core';
-import { TopologyIcon } from '@patternfly/react-icons';
+import { PlusIcon } from '@patternfly/react-icons';
 import useLineageController from './useLineageController';
 import { useLineageSelection } from './useLineageSelection';
 import { createLineageTopologyControls } from './topologyControls';
@@ -130,13 +130,11 @@ export const Lineage: React.FC<LineageProps> = ({
         style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       >
         <EmptyState variant={EmptyStateVariant.lg}>
-          <TopologyIcon />
+          <PlusIcon />
           <Title headingLevel="h4" size="lg">
             {emptyStateMessage}
           </Title>
-          <EmptyStateBody>
-            Connect your data sources and feature views to see the lineage visualization.
-          </EmptyStateBody>
+          <EmptyStateBody>Select a signal project to see its lineage.</EmptyStateBody>
         </EmptyState>
       </div>
     );

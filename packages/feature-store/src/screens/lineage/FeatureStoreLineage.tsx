@@ -1,19 +1,30 @@
 import React, { useMemo, useState } from 'react';
-import { Alert } from '@patternfly/react-core';
+import { EmptyStateVariant, EmptyStateBody, EmptyState, PageSection } from '@patternfly/react-core';
+import { PlusCircleIcon } from '@patternfly/react-icons';
 import { Lineage } from '@odh-dashboard/internal/components/lineage/Lineage';
-import { useFeatureStoreProject } from '../../../FeatureStoreContext';
-import useFeatureStoreLineage from '../../../apiHooks/useFeatureStoreLineage';
-import { convertFeatureStoreLineageToVisualizationData } from '../../../utils/lineageDataConverter';
+import { useFeatureStoreProject } from '../../FeatureStoreContext';
+import useFeatureStoreLineage from '../../apiHooks/useFeatureStoreLineage';
+import { convertFeatureStoreLineageToVisualizationData } from '../../utils/lineageDataConverter';
 
 const FeatureStoreLineage: React.FC = () => {
   const { currentProject } = useFeatureStoreProject();
 
+  const emptyState = (
+    <EmptyState
+      headingLevel="h6"
+      icon={PlusCircleIcon}
+      titleText="No lineage available for 'All projects'"
+      variant={EmptyStateVariant.lg}
+      data-testid="empty-state-title"
+    >
+      <EmptyStateBody data-testid="empty-state-body">
+        Select a signal project to view it&apos;s lineage
+      </EmptyStateBody>
+    </EmptyState>
+  );
+
   if (!currentProject) {
-    return (
-      <Alert variant="warning" isInline title="No project selected">
-        Please select a feature store project to view lineage data.
-      </Alert>
-    );
+    return emptyState;
   }
 
   const {
@@ -48,13 +59,22 @@ const FeatureStoreLineage: React.FC = () => {
   }, [lineageData, lineageDataLoaded, error]);
 
   return (
-    <Lineage
-      data={visualizationData}
-      loading={!lineageDataLoaded}
-      error={error ? `Failed to load lineage data: ${String(error)}` : conversionError || undefined}
-      emptyStateMessage="No lineage data available for this feature store project"
-      height="100%"
-    />
+    <PageSection
+      hasBodyWrapper={false}
+      isFilled
+      padding={{ default: 'noPadding' }}
+      style={{ height: '100%' }}
+    >
+      <Lineage
+        data={visualizationData}
+        loading={!lineageDataLoaded}
+        error={
+          error ? `Failed to load lineage data: ${String(error)}` : conversionError || undefined
+        }
+        emptyStateMessage="No lineage data available for this feature store project"
+        height="100%"
+      />
+    </PageSection>
   );
 };
 
