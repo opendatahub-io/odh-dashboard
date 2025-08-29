@@ -4,6 +4,11 @@ import type {
   FeatureService,
   FeatureServicesList,
 } from '@odh-dashboard/feature-store/types/featureServices';
+import type {
+  MetricsCountResponse,
+  PopularTagsResponse,
+  RecentlyVisitedResponse,
+} from '@odh-dashboard/feature-store/types/metrics';
 import type { FeatureViewsList } from '@odh-dashboard/feature-store/types/featureView';
 import type { EntityList } from '@odh-dashboard/feature-store/types/entities';
 import type { ProjectList } from '@odh-dashboard/feature-store/types/featureStoreProjects';
@@ -848,6 +853,30 @@ declare global {
             };
           },
           response: OdhResponse<FeatureService>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/metrics/recently_visited',
+          options: {
+            path: { namespace: string; serviceName: string; apiVersion: string };
+            query?: { project?: string; limit?: string };
+          },
+          response: OdhResponse<RecentlyVisitedResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/metrics/popular_tags',
+          options: {
+            path: { namespace: string; serviceName: string; apiVersion: string };
+            query?: { project?: string; limit?: string };
+          },
+          response: OdhResponse<PopularTagsResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/metrics/resource_counts',
+          options: {
+            path: { namespace: string; serviceName: string; apiVersion: string };
+            query?: { project?: string };
+          },
+          response: OdhResponse<MetricsCountResponse>,
         ) => Cypress.Chainable<null>);
     }
   }

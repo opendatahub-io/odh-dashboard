@@ -7,6 +7,11 @@ import { Features, FeaturesList } from '../types/features';
 import { ProjectList } from '../types/featureStoreProjects';
 import { FeatureService, FeatureServicesList } from '../types/featureServices';
 import { FeatureView, FeatureViewsList } from '../types/featureView';
+import {
+  MetricsCountResponse,
+  PopularTagsResponse,
+  RecentlyVisitedResponse,
+} from '../types/metrics';
 
 export const listFeatureStoreProject =
   (hostPath: string) =>
@@ -148,4 +153,58 @@ export const getFeatureViewByName =
     )}?project=${encodeURIComponent(project)}&include_relationships=true`;
 
     return handleFeatureStoreFailures<FeatureView>(proxyGET(hostPath, endpoint, opts));
+  };
+
+export const getMetricsResourceCount =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, project?: string): Promise<MetricsCountResponse> => {
+    let endpoint = `/api/${FEATURE_STORE_API_VERSION}/metrics/resource_counts`;
+
+    if (project) {
+      endpoint = `/api/${FEATURE_STORE_API_VERSION}/metrics/resource_counts?project=${encodeURIComponent(
+        project,
+      )}`;
+    }
+
+    return handleFeatureStoreFailures<MetricsCountResponse>(proxyGET(hostPath, endpoint, opts));
+  };
+
+export const getPopularTags =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, project?: string, limit?: number): Promise<PopularTagsResponse> => {
+    let endpoint = `/api/${FEATURE_STORE_API_VERSION}/metrics/popular_tags`;
+
+    const queryParams: string[] = [];
+    if (project) {
+      queryParams.push(`project=${encodeURIComponent(project)}`);
+    }
+    if (limit) {
+      queryParams.push(`limit=${limit}`);
+    }
+
+    if (queryParams.length > 0) {
+      endpoint += `?${queryParams.join('&')}`;
+    }
+
+    return handleFeatureStoreFailures<PopularTagsResponse>(proxyGET(hostPath, endpoint, opts));
+  };
+
+export const getRecentlyVisitedResources =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, project?: string, limit?: number): Promise<RecentlyVisitedResponse> => {
+    let endpoint = `/api/${FEATURE_STORE_API_VERSION}/metrics/recently_visited`;
+
+    const queryParams: string[] = [];
+    if (project) {
+      queryParams.push(`project=${encodeURIComponent(project)}`);
+    }
+    if (limit) {
+      queryParams.push(`limit=${limit}`);
+    }
+
+    if (queryParams.length > 0) {
+      endpoint += `?${queryParams.join('&')}`;
+    }
+
+    return handleFeatureStoreFailures<RecentlyVisitedResponse>(proxyGET(hostPath, endpoint, opts));
   };
