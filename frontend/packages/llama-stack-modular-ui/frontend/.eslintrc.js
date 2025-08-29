@@ -231,6 +231,13 @@ module.exports = {
   },
   overrides: [
     {
+      // Workspace packages: disable import/no-extraneous-dependencies for @odh-dashboard packages
+      files: ['src/**/*.{ts,tsx}'],
+      rules: {
+        'import/no-extraneous-dependencies': 'off',
+      },
+    },
+    {
       // Config files: disable TypeScript parser to avoid project conflicts
       files: ['.eslintrc.js', 'config/**/*.js'],
       parser: 'espree',
