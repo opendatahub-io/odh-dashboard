@@ -91,6 +91,19 @@ export class CreateRunPage {
     return this.find().findByTestId('run-every-group');
   }
 
+  findRunEveryUnitDropdown(): Cypress.Chainable<JQuery<HTMLElement>> {
+    // Prefer test ID if available, fallback to role-based selector
+    return this.findScheduledRunRunEvery().findByTestId('run-every-unit-dropdown');
+  }
+
+  findRunEveryUnitOption(unitName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`run-every-unit-option-${unitName.toLowerCase()}`);
+  }
+
+  selectRunEveryUnitMinute(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('run-every-unit-option-minute');
+  }
+
   findScheduledRunCron(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('cron-string-group');
   }

@@ -74,12 +74,15 @@ const TriggerTypeField: React.FC<TriggerTypeFieldProps> = ({ data, onChange }) =
             </SplitItem>
             <SplitItem>
               <SimpleSelect
+                dataTestId="run-every-unit-dropdown"
                 popperProps={{ maxWidth: undefined }}
                 isFullWidth
                 options={Object.values(PeriodicOptions).map(
                   (v): SimpleSelectOption => ({
                     key: v,
                     label: v,
+                    dataTestId:
+                      v === PeriodicOptions.MINUTE ? 'run-every-unit-option-minute' : undefined,
                   }),
                 )}
                 value={unitPart}
