@@ -11,6 +11,9 @@ import {
   getFeatureServices,
   getFeatureServiceByName,
   getFeatureViewByName,
+  getMetricsResourceCount,
+  getPopularTags,
+  getRecentlyVisitedResources,
 } from '../api/custom';
 import { FeatureStoreAPIs } from '../types/global';
 
@@ -30,6 +33,9 @@ const useFeatureStoreAPIState = (
       getFeatureServices: getFeatureServices(path),
       getFeatureServiceByName: getFeatureServiceByName(path),
       getFeatureViewByName: getFeatureViewByName(path),
+      getMetricsResourceCount: getMetricsResourceCount(path),
+      getPopularTags: getPopularTags(path),
+      getRecentlyVisitedResources: getRecentlyVisitedResources(path),
     }),
     [],
   );

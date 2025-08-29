@@ -3,6 +3,7 @@ import { GetFeatureByName, GetFeatures } from './features';
 import { GetProjects } from './featureStoreProjects';
 import { GetFeatureViews, GetFeatureViewsByName } from './featureView';
 import { GetFeatureServiceByName, GetFeatureServices } from './featureServices';
+import { GetMetricsResourceCount, GetPopularTags, GetRecentlyVisitedResources } from './metrics';
 
 export type FeatureStorePagination = {
   page: number;
@@ -76,4 +77,7 @@ export type FeatureStoreAPIs = {
   getFeatureServices: GetFeatureServices;
   getFeatureServiceByName: GetFeatureServiceByName;
   getFeatureViewByName: GetFeatureViewsByName;
+  getMetricsResourceCount: GetMetricsResourceCount;
+  getPopularTags: GetPopularTags;
+  getRecentlyVisitedResources: GetRecentlyVisitedResources;
 };
