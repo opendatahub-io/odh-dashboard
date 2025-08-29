@@ -28,6 +28,14 @@ const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
   const loaded = mvLoaded && rmLoaded;
   const navigate = useNavigate();
 
+  // Find the latest model version (non-archived)
+  const latestModelVersion = React.useMemo(() => {
+    if (!modelVersions.items?.length) return undefined;
+    const liveVersions = modelVersions.items.filter(mv => mv.state !== ModelState.ARCHIVED);
+    return liveVersions
+      .toSorted((a, b) => Number(b.createTimeSinceEpoch) - Number(a.createTimeSinceEpoch))[0];
+  }, [modelVersions.items]);
+
   useEffect(() => {
     if (rm?.state === ModelState.ARCHIVED) {
       navigate(registeredModelArchiveDetailsUrl(rm.id, preferredModelRegistry?.name));
@@ -50,7 +58,7 @@ const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
         </Breadcrumb>
       }
       title={rm?.name}
-      headerAction={rm && <ModelVersionsHeaderActions hasDeployments={false} rm={rm} />}
+      headerAction={rm && <ModelVersionsHeaderActions hasDeployments={false} rm={rm} latestModelVersion={latestModelVersion} />}
       loadError={loadError}
       loaded={loaded}
       provideChildrenPadding

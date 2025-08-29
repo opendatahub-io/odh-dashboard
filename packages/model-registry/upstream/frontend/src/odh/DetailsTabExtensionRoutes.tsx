@@ -1,5 +1,5 @@
 import React from "react";
-import { ModelRegistryDetailsTabExtension } from "./extension-points";
+import { ModelRegistryDetailsTabExtension } from "~/odh/extension-points/details";
 import ModelVersions from "~/app/pages/modelRegistry/screens/ModelVersions/ModelVersions";
 import { Route } from "react-router-dom";
 import { LoadedExtension } from "@openshift/dynamic-plugin-sdk";
