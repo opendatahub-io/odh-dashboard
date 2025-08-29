@@ -30,7 +30,7 @@ import {
 import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { useProjectPermissionsTabVisible } from '#~/concepts/projects/accessChecks';
-import { useKueueConfiguration } from '#~/kueueUtils';
+import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
 import useCheckLogoutParams from './useCheckLogoutParams';
 import ProjectOverview from './overview/ProjectOverview';
 import NotebookList from './notebooks/NotebookList';

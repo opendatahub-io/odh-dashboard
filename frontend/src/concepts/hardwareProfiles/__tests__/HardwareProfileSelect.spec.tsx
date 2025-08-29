@@ -13,7 +13,10 @@ import { HardwareProfileKind, ProjectKind, KnownLabels } from '#~/k8sTypes';
 import { SchedulingType } from '#~/types';
 import { useHardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import HardwareProfileSelect from '#~/concepts/hardwareProfiles/HardwareProfileSelect';
-import { useKueueConfiguration, KueueFilteringState } from '#~/kueueUtils';
+import {
+  useKueueConfiguration,
+  KueueFilteringState,
+} from '#~/concepts/hardwareProfiles/kueueUtils';
 
 jest.mock('#~/concepts/hardwareProfiles/useHardwareProfileConfig');
 

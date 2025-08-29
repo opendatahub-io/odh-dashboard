@@ -8,7 +8,7 @@ import {
   Content,
   Tooltip,
 } from '@patternfly/react-core';
-import { KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE } from '#~/kueueConstants';
+import { KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE } from '#~/concepts/hardwareProfiles/kueueConstants';
 
 type MetricsCardProps = {
   title: string;

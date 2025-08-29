@@ -11,8 +11,8 @@ import EmptyDetailsView from '#~/components/EmptyDetailsView';
 import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
 import useRefreshInterval from '#~/utilities/useRefreshInterval';
-import { useKueueConfiguration } from '#~/kueueUtils';
-import { KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE } from '#~/kueueConstants';
+import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
+import { KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE } from '#~/concepts/hardwareProfiles/kueueConstants';
 import NotebookTable from './NotebookTable';
 
 const NotebookList: React.FC = () => {

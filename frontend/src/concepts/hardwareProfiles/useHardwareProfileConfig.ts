@@ -8,7 +8,10 @@ import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
 import { isHardwareProfileEnabled } from '#~/pages/hardwareProfiles/utils.ts';
 import { useDashboardNamespace } from '#~/redux/selectors';
-import { useKueueConfiguration, filterProfilesByKueue } from '#~/kueueUtils';
+import {
+  filterProfilesByKueue,
+  useKueueConfiguration,
+} from '#~/concepts/hardwareProfiles/kueueUtils';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext.tsx';
 import { isHardwareProfileConfigValid } from './validationUtils';
 import { getContainerResourcesFromHardwareProfile } from './utils';

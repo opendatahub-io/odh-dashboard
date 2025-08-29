@@ -38,7 +38,10 @@ import {
 } from '#~/pages/hardwareProfiles/utils.ts';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { ProjectsContext, byName } from '#~/concepts/projects/ProjectsContext';
-import { useKueueConfiguration, filterProfilesByKueue } from '#~/kueueUtils';
+import {
+  filterProfilesByKueue,
+  useKueueConfiguration,
+} from '#~/concepts/hardwareProfiles/kueueUtils';
 
 type HardwareProfileSelectProps = {
   initialHardwareProfile?: HardwareProfileKind;

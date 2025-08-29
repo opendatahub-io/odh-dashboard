@@ -16,8 +16,8 @@ import { ArrowRightIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { ProjectObjectType, SectionType, typedEmptyImage } from '#~/concepts/design/utils';
 import OverviewCard from '#~/pages/projects/screens/detail/overview/components/OverviewCard';
-import { useKueueConfiguration } from '#~/kueueUtils';
-import { KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE } from '#~/kueueConstants';
+import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
+import { KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE } from '#~/concepts/hardwareProfiles/kueueConstants';
 import NotebooksCardItems from './NotebooksCardItems';
 import MetricsContents from './MetricsContents';
 
