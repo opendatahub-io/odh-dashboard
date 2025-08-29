@@ -143,22 +143,58 @@ jobs:
             ~/.cache/Cypress
             **/node_modules
           key: ${{ needs.Setup.outputs.modules-cache-key }}
-      - name: Run Model Registry contract tests
-        working-directory: ${{ github.workspace }}/packages/model-registry
+      - name: Find modules with contract tests
+        id: find-modules
         run: |
           set -euo pipefail
-          echo "🧪 Running Model Registry contract tests..."
-          npm run test:contract:with-bff
+          echo "🔍 Finding modules with contract tests..."
+          
+          # Look for packages with contract-tests directory
+          MODULES_WITH_CONTRACTS=""
+          for module in packages/*/; do
+            if [ -d "${module}contract-tests" ] && [ -d "${module}upstream/bff" ]; then
+              module_name=$(basename "$module")
+              echo "Found module with contract tests: $module_name"
+              MODULES_WITH_CONTRACTS="$MODULES_WITH_CONTRACTS $module_name"
+            fi
+          done
+          
+          if [ -n "$MODULES_WITH_CONTRACTS" ]; then
+            echo "modules=$MODULES_WITH_CONTRACTS" >> "$GITHUB_OUTPUT"
+            echo "Found modules: $MODULES_WITH_CONTRACTS"
+          else
+            echo "No modules with contract tests found"
+            echo "modules=" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Run contract tests for modules
+        if: steps.find-modules.outputs.modules != ''
+        run: |
+          set -euo pipefail
+          MODULES="${{ steps.find-modules.outputs.modules }}"
+          
+          for module in $MODULES; do
+            echo "🧪 Running contract tests for $module..."
+            cd "packages/$module"
+            
+            # Run contract tests using the working BFF setup script
+            echo "Running contract tests for $module..."
+            if ../contract-tests/scripts/run-go-bff-consumer.sh --bff-dir upstream/bff --consumer-dir contract-tests --package-name "$module"; then
+              echo "✅ Contract tests completed for $module"
+            else
+              echo "❌ Contract tests failed for $module"
+              exit 1
+            fi
+          done
       - name: Upload contract test results
-        if: always()
+        if: always() && steps.find-modules.outputs.modules != ''
         uses: actions/upload-artifact@v4
         with:
           name: contract-test-results
           path: |
-            ${{ github.workspace }}/packages/model-registry/contract-tests/contract-test-results/*/contract-test-report.html
-            ${{ github.workspace }}/packages/model-registry/contract-tests/contract-test-results/*/junit.xml
-            ${{ github.workspace }}/packages/model-registry/contract-tests/contract-test-results/*/contract-test-output.log
-            ${{ github.workspace }}/packages/model-registry/contract-tests/contract-test-results/*/bff-mock.log
+            packages/*/contract-tests/contract-test-results/*/contract-test-report.html
+            packages/*/contract-tests/contract-test-results/*/junit.xml
+            packages/*/contract-tests/contract-test-results/*/contract-test-output.log
+            packages/*/contract-tests/contract-test-results/*/bff-mock.log
           if-no-files-found: warn
 
   Get-Test-Groups:
