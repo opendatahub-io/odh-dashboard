@@ -250,7 +250,7 @@ display_test_summary() {
 # Open HTML report in browser
 open_html_report() {
     local TEST_RUN_DIR="$1"
-    local JEST_HTML_REPORT="${JEST_HTML_REPORT:-$TEST_RUN_DIR/contract-test-report.html}"
+    local JEST_HTML_REPORT="$TEST_RUN_DIR/contract-test-report.html"
     
     if [[ -f "$JEST_HTML_REPORT" ]]; then
         log_info "📊 Opening Jest HTML report..."

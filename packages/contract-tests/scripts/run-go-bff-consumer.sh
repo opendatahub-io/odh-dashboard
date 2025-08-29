@@ -87,6 +87,7 @@ export JEST_HTML_REPORTERS_PAGE_TITLE="Contract Test Report"
 export JEST_HTML_REPORTERS_JSON=true
 export PACKAGE_NAME="$PACKAGE_NAME"
 export CONTRACT_TEST_RESULTS_DIR="$RESULTS_DIR"
+export CONTRACT_TEST_MODULE="$PACKAGE_NAME"
 
 # Ensure Go is present
 if ! command -v go >/dev/null 2>&1; then
@@ -174,17 +175,18 @@ export CONTRACT_MOCK_BFF_URL="http://localhost:8080"
 
 # Use shared CLI to run consumer tests
 log_info "Running contract tests against Mock BFF..."
-"$PACKAGE_ROOT/scripts/run-consumer-with-mock-bff.sh" -c "$CONSUMER_DIR" -n "$PACKAGE_NAME" -r "$RESULTS_DIR"
+"$PACKAGE_ROOT/scripts/run-consumer-with-mock-bff.sh" -c "$CONSUMER_DIR" -n "$PACKAGE_NAME" -r "$RESULTS_DIR" -j "$PACKAGE_ROOT/jest.preset.js"
 exit_code=$?
 
+# Display test summary and open coverage report
 display_test_summary "$RESULTS_DIR"
 
 if [[ "${CI:-}" != "true" ]]; then
-  open_html_report "$RESULTS_DIR" 2>/dev/null || true
+  if ! open_html_report "$RESULTS_DIR" 2>/dev/null; then
+    log_warning "Could not open HTML coverage report in browser"
+  fi
 fi
 
 exit "$exit_code"
-
-complete_test_summary "$PACKAGE_NAME" "$RESULTS_DIR"
 
 

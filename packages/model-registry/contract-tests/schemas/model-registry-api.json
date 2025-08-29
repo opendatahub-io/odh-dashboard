@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Model Registry API Schemas",
   "description": "JSON Schema definitions based on the OpenAPI specification in mod-arch.yaml",
   "definitions": {
