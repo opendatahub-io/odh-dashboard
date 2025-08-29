@@ -1,4 +1,4 @@
-import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
+// import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import { projectListPage, projectDetails } from '#~/__tests__/cypress/cypress/pages/projects';
 import { pipelineImportModal } from '#~/__tests__/cypress/cypress/pages/pipelines/pipelineImportModal';
@@ -39,10 +39,10 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
     });
   });
 
-  after(() => {
-    // Delete provisioned Project
-    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
-  });
+  // after(() => {
+  //   // Delete provisioned Project
+  //   deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+  // });
 
   it(
     'Verify User Can Create, Run and Delete A DS Pipeline From DS Project Details Page Using Custom Pip Mirror',
