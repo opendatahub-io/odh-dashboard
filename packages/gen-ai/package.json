@@ -3,6 +3,9 @@
   "name": "@odh-dashboard/gen-ai",
   "description": "Gen AI plugin.",
   "version": "0.0.0",
+  "exports": {
+    "./extensions": "./frontend/src/odh/extensions.ts"
+  },
   "module-federation": {
     "name": "genAi",
     "remoteEntry": "/remoteEntry.js",
