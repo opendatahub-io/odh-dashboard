@@ -1,192 +1,218 @@
-# Contract tests (shared utilities)
+# ODH Dashboard Contract Testing
 
-Shared utilities and base configuration for consumer-driven contract tests across ODH Dashboard packages.
+A simple, zero-config contract testing solution for ODH Dashboard packages.
 
-## Features
+## Quick Start
 
-- **Shared Utilities**: Common API client, schema validation, and logging utilities
-- **Base Configurations**: Reusable Jest and TypeScript configurations
-- **Mock BFF Server**: Shared mock backend for testing
-- **Schema Validation**: OpenAPI and JSON Schema validation helpers
+Teams can run contract tests with just one command:
 
-## How to run locally
+```bash
+# From any package directory
+npx @odh-dashboard/contract-tests
 
-- From the repo root, install dependencies:
-  - `npm install --ignore-scripts`
-- Run contract tests for a specific consumer package (example: Model Registry):
-  - Pure Jest (no BFF): `npm -w packages/model-registry run test:contract`
-  - Watch: `npm -w packages/model-registry run test:contract:watch`
-  - Shared bin wrapper (no BFF): `npx odh-contract-tests -c packages/model-registry/contract-tests`
-  - Watch mode: `npx odh-contract-tests -c packages/model-registry/contract-tests -w`
-  - With Mock BFF (Go) using shared runner:
-    - `bash packages/contract-tests/scripts/run-go-bff-consumer.sh --bff-dir packages/model-registry/upstream/bff --consumer-dir packages/model-registry/contract-tests --package-name model-registry`
+# Or install globally
+npm install -g @odh-dashboard/contract-tests
+odh-contract-test
+```
 
-Run the shared package tests in this workspace (mostly for library changes here):
-- `npm -w packages/contract-tests run test`
+## What You Get
 
-Notes:
-- Node 20+ is required. See the repo’s root `package.json` engines.
-- Contract tests are isolated from UI unit tests and use a Node test environment.
+- ✅ **Zero configuration** - Works out of the box
+- ✅ **Auto-discovery** - Finds BFF and test directories automatically
+- ✅ **Built-in reporting** - HTML reports and coverage
+- ✅ **BFF management** - Automatically builds and runs BFF server
+- ✅ **Test utilities** - API client, schema validation, health checks
+- ✅ **Schema validation** - OpenAPI/JSON Schema validation for API contracts
 
-## Usage in a consumer package
+## Directory Structure
 
-### For Module Developers
+Your package should have this structure:
 
-1. Extend base configuration
-   ```
-   // jest.contract.config.js
-   const baseConfig = require('../../../../packages/contract-tests/jest.contract.config.base.js');
+```
+your-package/
+├── contract-tests/           # Your contract tests
+│   └── __tests__/
+│       └── api.test.ts      # Your test files
+└── upstream/
+    └── bff/                 # BFF backend (teams create this)
+        ├── Makefile         # build and run targets
+        ├── go.mod           # Go module
+        └── cmd/bff-mock/    # BFF server code
+```
 
-   module.exports = {
-     ...baseConfig,
-     // Add consumer-specific overrides
-   };
-   ```
+## Package.json Setup
 
-2. Use shared utilities
-   ```
-   import { ContractApiClient, ContractSchemaValidator } from '@odh-dashboard/contract-testing';
-   // If you only need the API client:
-   import { ContractApiClient as Client } from '@odh-dashboard/contract-testing';
-   ```
+Add to your package.json:
 
-3. Extend test setup
-   ```
-   // setup.ts
-   import '../../../packages/contract-tests/setup.base';
-   // Add consumer-specific setup
-   ```
+```json
+{
+  "devDependencies": {
+    "@odh-dashboard/contract-tests": "workspace:*"
+  },
+  "scripts": {
+    "test:contract": "odh-contract-test",
+    "test:contract:watch": "odh-contract-test --watch",
+    "test:contract:report": "odh-contract-test --report"
+  }
+}
+```
 
-### Using the toMatchContract matcher
+## Writing Tests
 
-- Validate a plain object against a full schema:
-  ```ts
-  expect(payload).toMatchContract(mySchema);
-  ```
+Create test files in `contract-tests/__tests__/`:
 
-- Validate an HTTP response (status + headers + sub-schema via $ref):
-  ```ts
-  expect(response).toMatchContract(mySchema, {
-    ref: '#/definitions/ModelRegistryResponse',
-    expectedStatus: 200,
-    expectedHeaders: { 'content-type': /json/ },
+```typescript
+import { 
+  ContractApiClient, 
+  verifyBffHealth, 
+  ContractSchemaValidator 
+} from '@odh-dashboard/contract-tests';
+
+describe('Your API Contract Tests', () => {
+  let apiClient: ContractApiClient;
+  let schemaValidator: ContractSchemaValidator;
+
+  beforeAll(async () => {
+    // Verify BFF is healthy
+    await verifyBffHealth({ url: 'http://localhost:8080' });
+    
+    // Create API client
+    apiClient = new ContractApiClient({
+      baseUrl: 'http://localhost:8080'
+    });
+
+    // Set up schema validation
+    schemaValidator = new ContractSchemaValidator();
+    
+    // Load your schemas
+    const responseSchema = {
+      type: 'object',
+      properties: {
+        data: { type: 'array' },
+        total: { type: 'number' }
+      },
+      required: ['data', 'total']
+    };
+    
+    schemaValidator.loadSchema('ResponseSchema', responseSchema);
   });
-  ```
 
-Notes:
-- Schemas with `$schema: https://json-schema.org/draft/2020-12/schema` are supported via AJV 2020 (`ajv/dist/2020`).
-- Each assertion creates a fresh AJV instance to avoid `$id` collisions; internal `$ref`s are resolved by registering the entire schema and validating by `$ref`.
-- Header matching is case-insensitive and supports exact strings or `RegExp`. If the actual header value is an array, any matching element passes.
-
-### Package structure
-
-```
-packages/contract-tests/
-├── src/                         # Source code (utils, matchers, reporting)
-├── jest.config.base.js          # Base Jest configuration (loaded by base contract config)
-├── jest.contract.config.base.js # Base contract test configuration for consumers
-├── setup.base.ts                # Base test setup (registers matchers, logs)
-├── scripts/                     # Shared CLI scripts (see below)
-└── package.base.json            # Base package.json template for consumers
+  it('should return valid response', async () => {
+    const result = await apiClient.get('/api/v1/endpoint', 'Test Name');
+    expect(result.status).toBe(200);
+    
+    // Validate response schema
+    const validation = schemaValidator.validateResponse(
+      result.data, 
+      'ResponseSchema', 
+      'Test Name'
+    );
+    expect(validation.valid).toBe(true);
+  });
+});
 ```
 
-### Shared scripts (CLI)
+## BFF Requirements
 
-- `odh-contract-tests` (bin): runs consumer Jest with shared reporters
-  - Example: `npx odh-contract-tests -c frontend/packages/model-registry/contract-tests`
-- `odh-contract-report` (bin): generates enhanced HTML report from logs
-  - Example (default latest dir): `npx odh-contract-report`
-- `scripts/run-go-bff-consumer.sh`: builds/starts Go Mock BFF, then runs consumer tests
-  - Example: `bash packages/contract-tests/scripts/run-go-bff-consumer.sh --bff-dir packages/model-registry/upstream/bff --consumer-dir packages/model-registry/contract-tests --package-name model-registry`
+Your BFF must have a Makefile with these targets:
 
-## Adopt in a new consumer package (checklist)
+```makefile
+.PHONY: build run clean
 
-1. Create `contract-tests/` inside your package with:
-   - `jest.contract.config.js` extending `packages/contract-tests/jest.contract.config.base.js`
-   - Optional `jest.setup.ts` if you need consumer-specific setup
-   - Your schemas and `*.contract.test.ts` specs
-2. Extend from the shared base config; module resolution for `@odh-dashboard/contract-testing` is provided via `moduleNameMapper` in the base config (no extra paths needed).
-3. Add package scripts:
-   - `"test:contract": "jest --config contract-tests/jest.contract.config.js"`
-   - Optional (BFF): `"test:contract:with-bff": "bash ../../../packages/contract-tests/scripts/run-go-bff-consumer.sh --bff-dir ./upstream/bff --consumer-dir ./contract-tests --package-name <name>"`
-4. Run: `npx odh-contract-tests -c <your-package>/contract-tests`
-5. CI: call the same bin or the shared BFF runner; artifacts live under `contract-tests/contract-test-results/<timestamp>` and are controlled by `CONTRACT_TEST_RESULTS_DIR`.
+build:
+	go build -o bff-mock ./cmd/bff-mock
 
-## CLI usage
+run:
+	./bff-mock
 
-```
-odh-contract-tests [options]
-
-Options:
-  -c, --consumer-dir <path>   Consumer contract-tests directory (default: CWD)
-  -j, --jest-config <path>    Path to consumer jest.contract.config.js (optional)
-  -r, --results-dir <path>    Directory to write results (default: <consumer>/contract-test-results/<ts>)
-  -n, --package-name <name>   Package name for report metadata (default: consumer dir name)
-  -w, --watch                 Run in watch mode
-  -h, --help                  Show help
+clean:
+	rm -f bff-mock
 ```
 
-## Dependencies
+**Note**: Teams create their own BFF implementations. We don't provide templates.
 
-- `axios`: HTTP client for API calls
-- `ajv` / `ajv/dist/2020`: JSON Schema validation (Draft 2020-12)
-- `ajv-formats`: Additional JSON Schema formats
-- `jest-html-reporters` / `jest-junit`: HTML and JUnit reports (configured in base)
+## Available Commands
 
-## Contributing
+```bash
+# Basic usage
+odh-contract-test
 
-When changing code in `packages/contract-tests`:
+# Watch mode
+odh-contract-test --watch
 
-1. Keep helpers generic and reusable. Avoid consumer-specific logic.
-2. Add tests under `src/__tests__` to cover new utilities and edge cases.
-3. Run local checks from the repo root:
-   - Lint: `npm -w packages/contract-tests run lint`
-   - Type-check: `npm -w packages/contract-tests run type-check` (if applicable)
-   - Tests: `npm -w packages/contract-tests run test`
-4. If you alter the base Jest or TS configs used by consumers, verify at least one real consumer (e.g., Model Registry):
-   - `npm -w frontend/packages/model-registry run test:contract`
-   - With Mock BFF: `bash packages/contract-tests/scripts/run-go-bff-consumer.sh --bff-dir frontend/packages/model-registry/upstream/bff --consumer-dir frontend/packages/model-registry/contract-tests --package-name model-registry`
-5. Update this README when interfaces or setup steps change.
+# Generate HTML report
+odh-contract-test --report
+
+# Custom paths
+odh-contract-test --bff-dir ./custom-bff --consumer-dir ./custom-tests
+
+# Help
+odh-contract-test --help
+```
+
+## No Configuration Required
+
+- ❌ No Jest config files needed
+- ❌ No TypeScript config needed
+- ❌ No setup files needed
+- ❌ No complex npm scripts needed
+
+Everything is handled automatically by the preset configurations.
+
+## What Happens Under the Hood
+
+1. **Auto-discovery** - Finds your BFF and test directories
+2. **BFF setup** - Builds and starts your BFF server
+3. **Test execution** - Runs tests with optimized Jest configuration
+4. **Cleanup** - Stops BFF server and generates reports
+5. **Artifacts** - Creates HTML reports and coverage data
+
+## Schema Validation
+
+The main point of contract testing is to validate API responses against schemas:
+
+```typescript
+// Load your OpenAPI/JSON Schema
+const schema = {
+  type: 'object',
+  properties: {
+    id: { type: 'string' },
+    name: { type: 'string' },
+    status: { type: 'string', enum: ['active', 'inactive'] }
+  },
+  required: ['id', 'name', 'status']
+};
+
+schemaValidator.loadSchema('UserResponse', schema);
+
+// Validate API response
+const result = await apiClient.get('/api/v1/users/123', 'Get User');
+const validation = schemaValidator.validateResponse(
+  result.data, 
+  'UserResponse', 
+  'Get User'
+);
+
+expect(validation.valid).toBe(true);
+```
 
 ## Troubleshooting
 
-- AbortController type errors during contract tests (TS2552):
-  - Ensure the consumer package’s contract-tests `tsconfig.json` includes DOM libs, e.g.
-  ```json
-  {
-    "compilerOptions": {
-      "lib": ["ES2020", "DOM"]
-    }
-  }
-  ```
+If something goes wrong:
 
-- If TypeScript in a consumer doesn’t see the matcher type, include typings in its `tsconfig.json`:
-  ```json
-  {
-    "include": [
-      "**/*.ts",
-      "**/*.tsx",
-      "**/*.d.ts",
-      "../jest-config/typings.d.ts"
-    ]
-  }
-  ```
+1. Make sure you have a `contract-tests/` directory
+2. Make sure you have an `upstream/bff/` directory with a Makefile
+3. Check that your BFF builds with `make build`
+4. Check that your BFF runs with `make run`
 
-- Import resolution for `@odh-dashboard/contract-testing` in consumer tests:
-  - When extending the shared base config, `moduleNameMapper` is already set to resolve to the local workspace source (`packages/contract-tests/src`). If you override `transform.ts-jest.tsconfig`, ensure it does not break module mapping.
+## Examples
 
-## Shared setup helper
+See the `packages/model-registry/contract-tests/` directory for working examples.
 
-Use `setupContractTest` to perform common setup for all tests:
+## Available Utilities
 
-```ts
-import { setupContractTest } from '@odh-dashboard/contract-testing';
- 
-const { apiClient } = await setupContractTest({
-  packageName: 'Model Registry',
-  baseUrl: 'http://localhost:8080',
-  schema: apiSchema,
-  resultsDir: process.env.CONTRACT_TEST_RESULTS_DIR,
-  defaultHeaders: { 'kubeflow-userid': 'user@example.com' },
-});
-```
+- **`ContractApiClient`** - HTTP client for API testing
+- **`ContractSchemaValidator`** - JSON Schema validation
+- **`verifyBffHealth`** - BFF health checks
+- **`logTestSetup`** - Test logging utilities
+- **`validateContract`** - Contract validation helpers

@@ -5,9 +5,9 @@
   "version": "0.0.0",
   "scripts": {
     "update-subtree": "../../scripts/package-subtree.sh --package=@odh-dashboard/model-registry",
-    "test:contract": "jest --config=contract-tests/jest.contract.config.js --detectOpenHandles",
-    "test:contract:watch": "npm run test:contract -- --watch",
-    "test:contract:with-bff": "node -e \"const path=require('path'); const {spawnSync}=require('child_process'); const root=path.resolve(__dirname, '..', '..'); const script=path.resolve(root, 'packages/contract-tests/scripts/run-go-bff-consumer.sh'); const bff=path.resolve(__dirname, 'upstream/bff'); const consumer=path.resolve(__dirname, 'contract-tests'); const p=spawnSync('bash', [script, '--bff-dir', bff, '--consumer-dir', consumer, '--package-name', 'model-registry'], {stdio:'inherit'}); process.exit(p.status ?? 0);\""
+    "test:contract": "odh-contract-test",
+    "test:contract:watch": "odh-contract-test --watch",
+    "test:contract:report": "odh-contract-test --report"
   },
   "subtree": {
     "repo": "https://github.com/kubeflow/model-registry.git",
@@ -44,6 +44,6 @@
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/tsconfig": "*",
-    "@odh-dashboard/contract-testing": "*"
+    "@odh-dashboard/contract-tests": "*"
   }
 }
