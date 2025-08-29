@@ -1,25 +1,9 @@
 {
-  "extends": "../tsconfig/tsconfig.json",
+  "extends": "@odh-dashboard/tsconfig/tsconfig.json",
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "strict": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "declaration": true,
-    "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "./",
+    "outDir": "./dist"
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.test.ts",
-    "**/*.spec.ts"
-  ]
+  "include": ["src/**/*", "setup.base.ts"],
+  "exclude": ["dist", "node_modules"]
 }
