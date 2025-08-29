@@ -213,6 +213,10 @@ export const getRecentlyVisitedResources =
 export const getLineageData =
   (hostPath: string) =>
   (opts: K8sAPIOptions, project: string): Promise<FeatureStoreLineage> => {
+    if (!project) {
+      throw new Error('Project is required');
+    }
+
     const endpoint = `/api/${FEATURE_STORE_API_VERSION}/lineage/complete?project=${encodeURIComponent(
       project,
     )}`;

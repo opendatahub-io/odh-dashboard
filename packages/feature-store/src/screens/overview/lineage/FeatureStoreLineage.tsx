@@ -53,7 +53,6 @@ const FeatureStoreLineage: React.FC = () => {
       loading={!lineageDataLoaded}
       error={error ? `Failed to load lineage data: ${String(error)}` : conversionError || undefined}
       emptyStateMessage="No lineage data available for this feature store project"
-      title={`Feature Store Lineage: ${currentProject}`}
       height="100%"
     />
   );
