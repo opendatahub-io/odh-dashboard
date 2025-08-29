@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, Navigate } from 'react-router-dom';
 import { FeatureStoreObject } from './const';
 import FeatureStore from './FeatureStore';
 import FeatureStoreCoreLoader from './FeatureStoreCoreLoader';
@@ -37,6 +37,7 @@ const FeatureStoreRoutes: React.FC = () => (
         />
       }
     >
+      <Route index element={<Navigate to="overview" replace />} />
       <Route path="overview/:fsProjectName?/*" element={<FeatureStore empty={false} />} />
       <Route path="entities/:fsProjectName?/*" element={<FeatureStoreEntities />} />
       <Route path="featureViews/:fsProjectName?/*" element={<FeatureViews />} />
