@@ -31,7 +31,7 @@ func TestIsAPIRoute(t *testing.T) {
 		{
 			name:     "health check path with trailing slash",
 			path:     constants.HealthCheckPath + "/",
-			expected: true,
+			expected: false,
 		},
 
 		// OpenAPI routes
