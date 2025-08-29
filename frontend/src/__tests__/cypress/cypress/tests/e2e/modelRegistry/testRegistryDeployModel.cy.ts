@@ -11,6 +11,7 @@ import {
   createAndVerifyDatabase,
   createAndVerifyModelRegistry,
   deleteModelRegistryDatabase,
+  ensureOperatorMemoryLimit,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
 import { loadRegisterModelFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
@@ -38,6 +39,10 @@ describe('Verify models can be deployed from model registry', () => {
       registryName = `${testData.registryNamePrefix}-${uuid}`;
       modelName = `${testData.objectStorageModelName}-${uuid}`;
       projectName = `${testData.deployProjectNamePrefix}-${uuid}`;
+
+      // ensure operator has optimal memory
+      cy.step('Ensure operator has optimal memory for testing');
+      ensureOperatorMemoryLimit().should('be.true');
 
       // Create and verify SQL database
       cy.step('Create and verify SQL database for model registry');

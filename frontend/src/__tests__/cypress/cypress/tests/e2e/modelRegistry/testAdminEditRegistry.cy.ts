@@ -7,6 +7,7 @@ import {
   createAndVerifyModelRegistry,
   deleteModelRegistry,
   deleteModelRegistryDatabase,
+  ensureOperatorMemoryLimit,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
 import { loadRegisterModelFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
@@ -28,6 +29,10 @@ describe('Verify that admin users can edit a model registry', () => {
       testData = fixtureData;
       registryName = `${testData.registryNamePrefix}-${uuid}`;
       originalRegistryName = registryName; // Store original name for cleanup
+
+      // ensure operator has optimal memory
+      cy.step('Ensure operator has optimal memory for testing');
+      ensureOperatorMemoryLimit().should('be.true');
 
       // Create and verify SQL database
       cy.step('Create and verify SQL database for model registry');

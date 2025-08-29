@@ -22,6 +22,66 @@ export const getModelRegistryNamespace = (): string => {
 };
 
 /**
+ * Check and ensure the model registry operator has 1Gi memory limit
+ * @returns Cypress.Chainable<boolean> that resolves to true if operator is properly configured
+ */
+export const ensureOperatorMemoryLimit = (): Cypress.Chainable<boolean> => {
+  const operatorNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
+  const deploymentName = 'model-registry-operator-controller-manager';
+
+  if (!operatorNamespace) {
+    return cy.wrap(false);
+  }
+
+  // Check current memory limit
+  const checkCommand = `oc get deployment ${deploymentName} -n ${operatorNamespace} -o jsonpath='{.spec.template.spec.containers[0].resources.limits.memory}'`;
+
+  return cy.exec(checkCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
+    if (result.code !== 0) {
+      cy.log(`Failed to check operator memory limit: ${result.stderr}`);
+      return cy.wrap(false);
+    }
+
+    const currentMemory = result.stdout.trim();
+    cy.log(`Current operator memory limit: ${currentMemory}`);
+
+    // Check if it's already 1Gi (1024Mi)
+    if (currentMemory === '1Gi' || currentMemory === '1024Mi') {
+      cy.log('Operator memory limit is already 1Gi, no patch needed');
+      return cy.wrap(true);
+    }
+
+    // Need to patch to 1Gi
+    cy.log(`Patching operator memory limit from ${currentMemory} to 1Gi...`);
+    const patchCommand = `oc patch deployment ${deploymentName} -n ${operatorNamespace} -p '{"spec":{"template":{"spec":{"containers":[{"name":"manager","resources":{"limits":{"memory":"1Gi"}}}]}}}}'`;
+
+    return cy
+      .exec(patchCommand, { failOnNonZeroExit: false })
+      .then((patchResult: CommandLineResult) => {
+        if (patchResult.code !== 0) {
+          cy.log(`Failed to patch operator memory: ${patchResult.stderr}`);
+          return cy.wrap(false);
+        }
+
+        cy.log('Successfully patched operator memory to 1Gi');
+
+        // Wait for rollout to complete
+        const rolloutCommand = `oc rollout status deployment/${deploymentName} -n ${operatorNamespace} --timeout=120s`;
+        return cy
+          .exec(rolloutCommand, { failOnNonZeroExit: false, timeout: 120000 })
+          .then((rolloutResult: CommandLineResult) => {
+            if (rolloutResult.code === 0) {
+              cy.log('Operator rollout completed successfully');
+              return cy.wrap(true);
+            }
+            cy.log(`Operator rollout timeout or failed: ${rolloutResult.stderr}`);
+            return cy.wrap(false);
+          });
+      });
+  });
+};
+
+/**
  * Create a SQL database for model registry using YAML fixtures
  * @returns Cypress.Chainable<CommandLineResult>
  */
