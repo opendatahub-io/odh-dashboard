@@ -14,6 +14,7 @@ import { css } from '@patternfly/react-styles';
 import styles from '@patternfly/react-topology/dist/esm/css/topology-components';
 import DefaultConnectorTerminal from '@patternfly/react-topology/dist/esm/components/edges/terminals/DefaultConnectorTerminal';
 import { getConnectorStartPoint } from '@patternfly/react-topology/dist/esm/components/edges/terminals/terminalUtils';
+import StraightEndTerminal from './StraightEndTerminal';
 import {
   useEdgeHighlighting,
   getEdgeHighlightStyles,
@@ -128,7 +129,7 @@ const CurvedEdgeInner: React.FunctionComponent<CurvedEdgeInnerProps> = observer(
             terminalType={effectiveStartTerminalType}
             status={startTerminalStatus}
           />
-          <DefaultConnectorTerminal
+          <StraightEndTerminal
             className={endTerminalClass}
             isTarget
             edge={element}

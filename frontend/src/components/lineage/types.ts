@@ -1,4 +1,4 @@
-import { PipelineNodeModel, EdgeStyle } from '@patternfly/react-topology';
+import { EdgeStyle, NodeModel } from '@patternfly/react-topology';
 import { LineageEntityType } from './LineageNode';
 
 export interface LineageNode {
@@ -36,7 +36,7 @@ export interface LineageProps {
   title?: string;
 }
 
-export const convertToLineageNodeModel = (node: LineageNode): PipelineNodeModel => {
+export const convertToLineageNodeModel = (node: LineageNode): NodeModel => {
   const { id, label, entityType, features, description, truncateLength, layer } = node;
 
   return {
