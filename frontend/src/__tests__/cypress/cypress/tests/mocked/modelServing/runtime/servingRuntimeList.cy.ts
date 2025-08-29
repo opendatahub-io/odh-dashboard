@@ -577,6 +577,7 @@ describe('Serving Runtime List', () => {
             annotations: {
               'openshift.io/display-name': 'Test Name',
               'serving.kserve.io/deploymentMode': DeploymentMode.ModelMesh,
+              'opendatahub.io/connections': 'test-secret',
             },
           },
           spec: {
@@ -584,7 +585,7 @@ describe('Serving Runtime List', () => {
               model: {
                 modelFormat: { name: 'onnx', version: '1' },
                 runtime: 'test-model-legacy',
-                storage: { key: 'test-secret', path: 'test-model/' },
+                storage: { path: 'test-model/' },
               },
             },
           },
@@ -1079,6 +1080,7 @@ describe('Serving Runtime List', () => {
               'sidecar.istio.io/inject': 'true',
               'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
               'security.opendatahub.io/enable-auth': 'true',
+              'opendatahub.io/connections': 'test-secret',
             },
           },
           spec: {
@@ -1088,7 +1090,7 @@ describe('Serving Runtime List', () => {
               model: {
                 modelFormat: { name: 'onnx', version: '1' },
                 runtime: 'test-name',
-                storage: { key: 'test-secret', path: 'test-model/' },
+                storage: { path: 'test-model/' },
                 args: ['--arg=value'],
                 env: [{ name: 'test-name', value: 'test-value' }],
                 resources: {
@@ -1353,6 +1355,7 @@ describe('Serving Runtime List', () => {
               'serving.knative.openshift.io/enablePassthrough': 'true',
               'sidecar.istio.io/inject': 'true',
               'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
+              'opendatahub.io/connections': 'test-secret',
             },
             generation: 1,
             labels: { name: 'llama-service', 'opendatahub.io/dashboard': 'true' },
@@ -1366,7 +1369,7 @@ describe('Serving Runtime List', () => {
               model: {
                 modelFormat: { name: 'onnx', version: '1' },
                 runtime: 'llama-service',
-                storage: { key: 'test-secret', path: 'path/to/model' },
+                storage: { path: 'path/to/model' },
                 args: ['--arg=value1'],
                 env: [{ name: 'test-name1', value: 'test-value' }],
                 resources: {
@@ -1985,6 +1988,7 @@ describe('Serving Runtime List', () => {
               'openshift.io/display-name': 'Test Name',
               'serving.kserve.io/deploymentMode': DeploymentMode.RawDeployment,
               'security.opendatahub.io/enable-auth': 'true',
+              'opendatahub.io/connections': 'test-secret',
             },
             labels: {
               'opendatahub.io/dashboard': 'true',
@@ -1998,7 +2002,7 @@ describe('Serving Runtime List', () => {
               model: {
                 modelFormat: { name: 'onnx', version: '1' },
                 runtime: 'test-name',
-                storage: { key: 'test-secret', path: 'test-model/' },
+                storage: { path: 'test-model/' },
                 resources: {
                   requests: { cpu: '1', memory: '4Gi' },
                   limits: { cpu: '2', memory: '8Gi' },
@@ -2132,6 +2136,7 @@ describe('Serving Runtime List', () => {
               'openshift.io/display-name': 'Test Name',
               'serving.kserve.io/deploymentMode': DeploymentMode.RawDeployment,
               'security.opendatahub.io/enable-auth': 'true',
+              'opendatahub.io/connections': 'test-secret',
             },
             labels: {
               'opendatahub.io/dashboard': 'true',
@@ -2145,7 +2150,7 @@ describe('Serving Runtime List', () => {
               model: {
                 modelFormat: { name: 'onnx', version: '1' },
                 runtime: 'test-name',
-                storage: { key: 'test-secret', path: 'test-model/' },
+                storage: { path: 'test-model/' },
                 resources: {
                   requests: { cpu: '1', memory: '4Gi' },
                   limits: { cpu: '2', memory: '8Gi' },
@@ -2350,6 +2355,7 @@ describe('Serving Runtime List', () => {
               'serving.knative.openshift.io/enablePassthrough': 'true',
               'sidecar.istio.io/inject': 'true',
               'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
+              'opendatahub.io/connections': 'test-secret',
             },
             labels: {
               'opendatahub.io/dashboard': 'true',
@@ -2360,7 +2366,6 @@ describe('Serving Runtime List', () => {
             predictor: {
               minReplicas: 1,
               maxReplicas: 1,
-              imagePullSecrets: [{ name: 'test-secret' }],
               model: {
                 modelFormat: { name: 'onnx', version: '1' },
                 runtime: 'test-name',
