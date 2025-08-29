@@ -184,6 +184,7 @@ const mapObjectToNodeId = (objectRef: { name?: string; type?: string }): string 
       return `datasource-${objectRef.name}`;
     case 'featureView':
     case 'onDemandFeatureView':
+    case 'streamFeatureView':
       return `featureview-${objectRef.name}`;
     case 'featureService':
       return `featureservice-${objectRef.name}`;

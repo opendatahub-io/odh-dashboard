@@ -6,7 +6,8 @@ export const findConnectedElements = (nodeId: string, edges: TopologyEdgeModel[]
   const upstreamMap = new Map<string, TopologyEdgeModel[]>();
   const downstreamMap = new Map<string, TopologyEdgeModel[]>();
 
-  edges.forEach((edge) => {
+  const filteredEdges = edges.filter((e) => !e.data?.isPositioningEdge);
+  filteredEdges.forEach((edge) => {
     // Downstream map: source -> targets
     if (!downstreamMap.has(edge.source)) {
       downstreamMap.set(edge.source, []);
