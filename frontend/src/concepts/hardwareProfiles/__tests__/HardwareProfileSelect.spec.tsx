@@ -20,8 +20,8 @@ import {
 
 jest.mock('#~/concepts/hardwareProfiles/useHardwareProfileConfig');
 
-jest.mock('#~/kueueUtils', () => ({
-  ...jest.requireActual('#~/kueueUtils'),
+jest.mock('#~/concepts/hardwareProfiles/kueueUtils', () => ({
+  ...jest.requireActual('#~/concepts/hardwareProfiles/kueueUtils'),
   useKueueConfiguration: jest.fn(),
 }));
 
