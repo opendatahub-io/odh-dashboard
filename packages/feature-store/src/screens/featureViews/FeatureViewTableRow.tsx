@@ -27,7 +27,8 @@ const getFeatureViewType = (type: FeatureView['type']) => {
       return 'Batch';
     case 'onDemandFeatureView':
       return 'On demand';
-    // TODO: Add stream feature view type once available from backend
+    case 'streamFeatureView':
+      return 'Stream';
   }
 };
 
@@ -116,17 +117,19 @@ const FeatureViewTableRow: React.FC<FeatureViewTableRowType> = ({
       </Td>
       <Td dataLabel="Owner">{featureView.spec.owner ?? '-'}</Td>
       <Td dataLabel="Store type">
-        {featureView.spec.offline && (
+        {'offline' in featureView.spec && featureView.spec.offline && (
           <FeatureStoreLabels color="red" variant="outline" icon={<CheckCircleIcon />}>
             Offline
           </FeatureStoreLabels>
         )}
-        {featureView.spec.online && (
+        {'online' in featureView.spec && featureView.spec.online && (
           <FeatureStoreLabels color="green" variant="outline" icon={<CheckCircleIcon />}>
             Online
           </FeatureStoreLabels>
         )}
-        {!featureView.spec.offline && !featureView.spec.online && '-'}
+        {(!('offline' in featureView.spec) || !featureView.spec.offline) &&
+          (!('online' in featureView.spec) || !featureView.spec.online) &&
+          '-'}
       </Td>
     </Tr>
   );

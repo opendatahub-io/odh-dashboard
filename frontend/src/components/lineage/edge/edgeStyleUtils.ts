@@ -39,7 +39,7 @@ export const getEdgeLinkClassName = (
   edgeStyle?: EdgeStyle,
   elementEdgeStyle?: EdgeStyle,
 ): string => {
-  const finalEdgeStyle = edgeStyle || elementEdgeStyle;
+  const finalEdgeStyle = edgeStyle ?? elementEdgeStyle;
   return css(
     styles.topologyEdgeLink,
     finalEdgeStyle ? getEdgeStyleClassModifier(finalEdgeStyle) : undefined,

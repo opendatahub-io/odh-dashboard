@@ -70,7 +70,7 @@ const StraightEndTerminal: React.FunctionComponent<StraightEndTerminalProps> = o
     const terminalColor = 'var(--pf-global--Color--100)';
 
     return (
-      <g className={className}>
+      <g className={className} pointerEvents="none" aria-hidden="true">
         <path
           d={arrowPath}
           fill={terminalColor}
