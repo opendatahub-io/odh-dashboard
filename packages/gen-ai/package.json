@@ -1,0 +1,33 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/gen-ai",
+  "description": "Gen AI plugin.",
+  "version": "0.0.0",
+  "module-federation": {
+    "name": "genAi",
+    "remoteEntry": "/remoteEntry.js",
+    "authorize": true,
+    "tls": false,
+    "proxy": [
+      {
+        "path": "/llama-stack/gen-ai",
+        "pathRewrite": "/gen-ai"
+      }
+    ],
+    "local": {
+      "host": "localhost",
+      "port": 9002
+    },
+    "service": {
+      "name": "odh-dashboard",
+      "port": 8043
+    }
+  },
+  "dependencies": {
+    "@odh-dashboard/plugin-core": "*"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/tsconfig": "*"
+  }
+}
