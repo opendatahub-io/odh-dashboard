@@ -12,7 +12,7 @@ const Metrics: React.FC = () => {
     useMetricsResourceCount(currentProject ? { project: currentProject } : {});
 
   return (
-    <PageSection hasBodyWrapper={false} padding={{ default: 'noPadding' }}>
+    <PageSection hasBodyWrapper={false} isFilled>
       <MetricCards metricsData={metricsResourceCount} loaded={metricsResourceCountLoaded} />
       <PopularTags project={currentProject} limit={4} />
       <RecentlyVisitedResources project={currentProject} />
