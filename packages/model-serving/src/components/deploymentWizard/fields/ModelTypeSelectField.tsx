@@ -63,6 +63,7 @@ export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
       placeholder="Select model type"
       value={modelType}
       toggleProps={{ style: { minWidth: '250px' } }}
+      dataTestId="model-type-select"
     />
     <ZodErrorHelperText zodIssue={validationIssues} />
   </FormGroup>

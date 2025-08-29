@@ -156,6 +156,90 @@ paths:
       summary: Create AI Response
       description: Creates an AI response with full parameter control including RAG and conversation context. Returns a simplified response with only essential fields (id, model, status, created_at, content, usage).
 
+  /genai/v1/code-exporter:
+    summary: Generate Python code for Llama Stack integration
+    description: >-
+      Generates Python code templates for integrating with Llama Stack services.
+      Supports custom configuration including model selection, instructions, streaming, and tool configurations.
+      Returns executable Python code wrapped in a JSON envelope structure.
+    post:
+      tags:
+        - CodeExporter
+      requestBody:
+        description: Code generation request with configuration parameters
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CodeExportRequest"
+        required: true
+      responses:
+        "200":
+          $ref: "#/components/responses/CodeExportResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: exportCode
+      summary: Export Python Code
+      description: Generates Python code based on provided configuration parameters.
+
+  /genai/v1/namespaces:
+    summary: List Kubernetes cluster namespaces
+    description: >-
+      Lists all namespaces in the Kubernetes cluster.
+      Returns namespace information including name and display name.
+      Requires valid Kubernetes authentication token.
+    get:
+      tags:
+        - Kubernetes
+      responses:
+        "200":
+          $ref: "#/components/responses/NamespacesResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: listNamespaces
+      summary: List All Namespaces
+      description: Gets a list of all namespaces in the Kubernetes cluster.
+
+  /genai/v1/llamastack-distribution/status:
+    summary: Get LlamaStack Distribution status
+    description: >-
+      Retrieves the status of LlamaStack Distribution (LSD) in the specified namespace.
+      Returns LSD information including name, phase, version, and distribution configuration.
+      Requires valid Kubernetes authentication token and namespace parameter.
+      Returns 400 for missing parameters or other validation errors.
+      Returns 401 for missing or invalid authentication tokens.
+      Returns 404 if the LSD CRD is not installed, the namespace doesn't exist, or no LSD resources are found.
+    get:
+      tags:
+        - Kubernetes
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace to query for LSD resources
+          required: true
+          schema:
+            type: string
+            example: "default"
+      responses:
+        "200":
+          $ref: "#/components/responses/LlamaStackDistributionStatusResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getLlamaStackDistributionStatus
+      summary: Get LSD Status
+      description: Gets the status of LlamaStack Distribution in the specified namespace.
+
 components:
   schemas:
     HealthCheckModel:
@@ -716,7 +800,234 @@ components:
           type: object
           description: File attributes and metadata
 
+    # Code Exporter Schema
+    Tool:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum: [file_search]
+          example: "file_search"
+          description: Type of tool to include in the generated code
+        vector_store_ids:
+          type: array
+          items:
+            type: string
+          example: ["vs_abc123", "vs_def456"]
+          description: Vector store IDs to use with the tool
 
+    CodeExportRequest:
+      type: object
+      required:
+        - input
+        - model
+      properties:
+        input:
+          type: string
+          minLength: 1
+          example: "What is the capital of Ireland?"
+          description: User prompt
+        model:
+          type: string
+          example: "ollama/llama3.2:3b"
+          description: Model ID to use in the generated code
+        instructions:
+          type: string
+          example: "You are a helpful assistant. Use the RAG tool to answer questions as needed."
+          description: System instructions for code generation
+        stream:
+          type: boolean
+          default: false
+          example: false
+          description: Whether to enable streaming in the generated code
+        temperature:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 2.0
+          default: 0.7
+          example: 0.5
+          description: Controls randomness in code generation (0.0=deterministic, 2.0=very random)
+        tools:
+          type: array
+          items:
+            $ref: "#/components/schemas/Tool"
+          example:
+            - type: "file_search"
+              vector_store_ids: ["vs_abc123"]
+          description: Tools to include in the generated code
+
+    CodeExportData:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+          description: Generated Python code
+          example: |
+            # Llama Stack Quickstart Script
+            #
+            # README:
+            # This example shows how to configure a assistant using the Llama Stack client.
+            # Before using this code, make sure of the following:
+            #
+            # 1. Llama Stack Server:
+            #    - Your Llama Stack instance must be running and accessible
+            #    - Set the LLAMA_STACK_URL variable to the base URL of your Llama Stack server
+            #
+            # 2. Model Configuration:
+            #    - The selected model (e.g., "llama3.2:3b") must be available in your Llama Stack deployment.
+            #
+            # 3. Tools (MCP Integration):
+            #    - Any tools used must be properly pre-configured in your Llama Stack setup.
+                    
+            # Configuration adjust as needed:
+            LLAMA_STACK_URL = ""
+            input_text = "What is the capital of Ireland?"
+            model_name = "ollama/llama3.2:3b"
+            temperature = 0.7
+            stream_enabled = False
+            system_instructions = "You are a helpful assistant. Use the RAG tool to answer questions as needed."
+                    
+            # Tool configuration
+            tools = [
+                {
+                    "type": "file_search",
+                    "vector_store_ids": ["vs_abc123", "vs_def456"]
+                }
+            ]
+                    
+            from llama_stack_client import LlamaStackClient
+                    
+            client = LlamaStackClient(base_url=LLAMA_STACK_URL)
+                    
+            config = {
+                "input": input_text,
+                "model": model_name,
+                "temperature": temperature,
+                "stream": stream_enabled,
+                "instructions": system_instructions,
+                "tools": tools
+            }
+                    
+            response = client.responses.create(**config)
+                    
+            print("agent>", response.output_text)
+
+    # Kubernetes Namespace Schema
+    NamespaceModel:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: "default"
+          description: Kubernetes namespace name
+        displayName:
+          type: string
+          nullable: true
+          example: "default"
+          description: Human-readable display name for the namespace (optional, defaults to name)
+
+    NamespacesData:
+      type: array
+      items:
+        $ref: "#/components/schemas/NamespaceModel"
+      description: Array of Kubernetes namespaces
+
+    # LlamaStack Distribution Schema
+    LlamaStackDistributionModel:
+      type: object
+      required:
+        - name
+        - phase
+        - version
+        - distributionConfig
+      properties:
+        name:
+          type: string
+          example: "test-lsd"
+          description: Name of the LlamaStack Distribution resource
+        phase:
+          type: string
+          example: "Ready"
+          description: Current phase of the LSD (e.g., Pending, Initializing, Ready, Failed, Terminating)
+        version:
+          type: string
+          example: "v0.2.0"
+          description: Version of the LlamaStack server
+        distributionConfig:
+          $ref: "#/components/schemas/DistributionConfig"
+
+    DistributionConfig:
+      type: object
+      required:
+        - activeDistribution
+        - availableDistributions
+        - providers
+      properties:
+        activeDistribution:
+          type: string
+          example: "ollama"
+          description: Currently active distribution type
+        availableDistributions:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            ollama: "docker.io/llamastack/distribution-ollama:latest"
+            bedrock: "docker.io/llamastack/distribution-bedrock:latest"
+          description: Map of available distribution types to their image references
+        providers:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProviderInfo"
+          description: List of provider information
+
+    ProviderInfo:
+      type: object
+      required:
+        - api
+        - provider_id
+        - provider_type
+      properties:
+        api:
+          type: string
+          example: "mock-api"
+          description: API endpoint for the provider
+        provider_id:
+          type: string
+          example: "mock-provider"
+          description: Unique identifier for the provider
+        provider_type:
+          type: string
+          example: "mock-type"
+          description: Type of the provider
+        config:
+          type: object
+          nullable: true
+          description: Provider-specific configuration
+        health:
+          $ref: "#/components/schemas/ProviderHealth"
+
+    ProviderHealth:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        status:
+          type: string
+          example: "healthy"
+          description: Health status of the provider
+        message:
+          type: string
+          example: "Provider is responding normally"
+          description: Additional health information
 
   responses:
     HealthCheckResponse:
@@ -781,6 +1092,94 @@ components:
                   vector_store_id: "vs_abc123"
                   status: "completed"
 
+    CodeExportResponse:
+      description: Generated Python code for Llama Stack integration
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/CodeExportData"
+            example:
+              data:
+                code: |
+                  # Llama Stack Quickstart Script
+                  # Generated Python code for Llama Stack integration
+                  # ... rest of the Python code
+
+    NamespacesResponse:
+      description: List of Kubernetes namespaces
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/NamespacesData"
+            example:
+              data:
+                - name: "default"
+                  displayName: "default"
+                - name: "kube-system"
+                  displayName: "kube-system"
+                - name: "llama-stack"
+                  displayName: "llama-stack"
+                - name: "test-namespace"
+                  displayName: null
+
+    LlamaStackDistributionStatusResponse:
+      description: LlamaStack Distribution status information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/LlamaStackDistributionModel"
+                nullable: true
+            example:
+              data:
+                name: "test-lsd"
+                phase: "Ready"
+                version: "v0.2.0"
+                distributionConfig:
+                  activeDistribution: "ollama"
+                  availableDistributions:
+                    ollama: "docker.io/llamastack/distribution-ollama:latest"
+                    bedrock: "docker.io/llamastack/distribution-bedrock:latest"
+                  providers:
+                    - api: "mock-api"
+                      provider_id: "mock-provider"
+                      provider_type: "mock-type"
+                      config: null
+                      health:
+                        status: "healthy"
+                        message: "Provider is responding normally"
+            examples:
+              lsd_found:
+                summary: LSD found
+                value:
+                  data:
+                    name: "test-lsd"
+                    phase: "Ready"
+                    version: "v0.2.0"
+                    distributionConfig:
+                      activeDistribution: "ollama"
+                      availableDistributions:
+                        ollama: "docker.io/llamastack/distribution-ollama:latest"
+                      providers: []
+              lsd_not_found:
+                summary: No LSD found
+                value:
+                  data: null
+
     CreateResponseResponse:
       description: Created AI response with essential information only
       content:
@@ -804,10 +1203,15 @@ components:
                   output_tokens: 45
                   total_tokens: 60
 
-
-
     BadRequest:
       description: Bad Request - Invalid parameters or missing required fields
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+
+    Unauthorized:
+      description: Unauthorized - Invalid or missing authentication token
       content:
         application/json:
           schema:
@@ -838,3 +1242,7 @@ tags:
     description: File upload and vector store integration
   - name: Responses
     description: AI response generation with comprehensive parameter support
+  - name: CodeExporter
+    description: Code generation for Llama Stack integration
+  - name: Kubernetes
+    description: Kubernetes cluster operations and namespace management

@@ -1,9 +1,7 @@
 package integrations
 
 type RequestIdentity struct {
-	UserID string
-	Groups []string
-	Token  string
+	Token string `json:"token"`
 }
 
 type BearerToken struct {

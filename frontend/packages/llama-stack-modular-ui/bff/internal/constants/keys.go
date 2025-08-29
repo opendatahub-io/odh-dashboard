@@ -11,5 +11,6 @@ const (
 	TraceLoggerKey contextKey = "TraceLoggerKey"
 
 	// The following keys are used to store the user access token in the context
-	RequestIdentityKey contextKey = "requestIdentityKey"
+	RequestIdentityKey         contextKey = "requestIdentityKey"
+	NamespaceQueryParameterKey contextKey = "namespace"
 )

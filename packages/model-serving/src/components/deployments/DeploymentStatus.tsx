@@ -1,5 +1,5 @@
 import React from 'react';
-import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { ToggleState } from '@odh-dashboard/internal/components/StateActionToggle';
 import { DeploymentEndpointsPopupButton } from './DeploymentEndpointsPopupButton';
 import { Deployment } from '../../../extension-points';
@@ -15,7 +15,7 @@ const DeploymentStatus: React.FC<DeploymentStatusProps> = ({ deployment, stopped
   }
 
   if (
-    deployment.status?.state === InferenceServiceModelState.FAILED_TO_LOAD ||
+    deployment.status?.state === ModelDeploymentState.FAILED_TO_LOAD ||
     stoppedStates?.isStopped ||
     stoppedStates?.isStopping
   ) {

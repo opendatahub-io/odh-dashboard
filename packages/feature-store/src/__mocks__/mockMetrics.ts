@@ -1,0 +1,202 @@
+/* eslint-disable camelcase */
+import {
+  PopularTagsResponse,
+  RecentlyVisitedResponse,
+  MetricsCountResponse,
+} from '../types/metrics';
+
+export const mockPopularTags = (partial?: Partial<PopularTagsResponse>): PopularTagsResponse => ({
+  popular_tags: [
+    {
+      tag_key: 'team',
+      tag_value: 'driver_performance',
+      feature_views: [
+        {
+          name: 'driver_hourly_stats',
+          project: 'rbac',
+        },
+        {
+          name: 'driver_hourly_stats_fresh',
+          project: 'rbac',
+        },
+      ],
+      total_feature_views: 2,
+    },
+  ],
+  metadata: {
+    totalFeatureViews: 4,
+    totalTags: 1,
+    limit: 4,
+  },
+  ...partial,
+});
+
+export const mockRecentlyVisited = (
+  partial?: Partial<RecentlyVisitedResponse>,
+): RecentlyVisitedResponse => ({
+  visits: [
+    {
+      path: '/api/v1/entities/__dummy',
+      timestamp: '2025-08-14T08:59:24.066166+00:00',
+      project: 'rbac',
+      user: 'anonymous',
+      object: 'entities',
+      object_name: '__dummy',
+      method: 'GET',
+    },
+    {
+      path: '/api/v1/feature_views/transformed_conv_rate',
+      timestamp: '2025-08-14T08:59:32.015450+00:00',
+      project: 'rbac',
+      user: 'anonymous',
+      object: 'feature_views',
+      object_name: 'transformed_conv_rate',
+      method: 'GET',
+    },
+    {
+      path: '/api/v1/entities/driver',
+      timestamp: '2025-08-14T10:43:40.457031+00:00',
+      project: 'rbac',
+      user: 'anonymous',
+      object: 'entities',
+      object_name: 'driver',
+      method: 'GET',
+    },
+    {
+      path: '/api/v1/entities/driver',
+      timestamp: '2025-08-14T10:43:42.220702+00:00',
+      project: 'rbac',
+      user: 'anonymous',
+      object: 'entities',
+      object_name: 'driver',
+      method: 'GET',
+    },
+    {
+      path: '/api/v1/entities/__dummy',
+      timestamp: '2025-08-16T14:29:37.800303+00:00',
+      project: 'rbac',
+      user: 'anonymous',
+      object: 'entities',
+      object_name: '__dummy',
+      method: 'GET',
+    },
+    {
+      path: '/api/v1/entities/__dummy',
+      timestamp: '2025-08-17T09:01:40.405650+00:00',
+      project: 'rbac',
+      user: 'anonymous',
+      object: 'entities',
+      object_name: '__dummy',
+      method: 'GET',
+    },
+    {
+      path: '/api/v1/entities/__dummy',
+      timestamp: '2025-08-17T09:10:06.037243+00:00',
+      project: 'rbac',
+      user: 'anonymous',
+      object: 'entities',
+      object_name: '__dummy',
+      method: 'GET',
+    },
+    {
+      path: '/api/v1/entities/__dummy',
+      timestamp: '2025-08-17T17:50:14.578393+00:00',
+      project: 'rbac',
+      user: 'anonymous',
+      object: 'entities',
+      object_name: '__dummy',
+      method: 'GET',
+    },
+    {
+      path: '/api/v1/entities/__dummy',
+      timestamp: '2025-08-17T17:50:15.620771+00:00',
+      project: 'rbac',
+      user: 'anonymous',
+      object: 'entities',
+      object_name: '__dummy',
+      method: 'GET',
+    },
+    {
+      path: '/api/v1/entities/__dummy',
+      timestamp: '2025-08-18T16:35:07.562273+00:00',
+      project: 'rbac',
+      user: 'anonymous',
+      object: 'entities',
+      object_name: '__dummy',
+      method: 'GET',
+    },
+    {
+      path: '/api/v1/entities/__dummy',
+      timestamp: '2025-08-18T17:06:43.475963+00:00',
+      project: 'rbac',
+      user: 'anonymous',
+      object: 'entities',
+      object_name: '__dummy',
+      method: 'GET',
+    },
+    {
+      path: '/api/v1/entities/__dummy',
+      timestamp: '2025-08-18T17:44:41.272965+00:00',
+      project: 'rbac',
+      user: 'anonymous',
+      object: 'entities',
+      object_name: '__dummy',
+      method: 'GET',
+    },
+    {
+      path: '/api/v1/entities/__dummy',
+      timestamp: '2025-08-19T10:26:43.346491+00:00',
+      project: 'rbac',
+      user: 'anonymous',
+      object: 'entities',
+      object_name: '__dummy',
+      method: 'GET',
+    },
+    {
+      path: '/api/v1/feature_views/driver_hourly_stats',
+      timestamp: '2025-08-19T10:56:50.210598+00:00',
+      project: 'rbac',
+      user: 'anonymous',
+      object: 'feature_views',
+      object_name: 'driver_hourly_stats',
+      method: 'GET',
+    },
+    {
+      path: '/api/v1/entities/__dummy',
+      timestamp: '2025-08-21T18:17:04.767932+00:00',
+      project: 'rbac',
+      user: 'anonymous',
+      object: 'entities',
+      object_name: '__dummy',
+      method: 'GET',
+    },
+    {
+      path: '/api/v1/entities/__dummy',
+      timestamp: '2025-08-25T14:05:27.209125+00:00',
+      project: 'rbac',
+      user: 'anonymous',
+      object: 'entities',
+      object_name: '__dummy',
+      method: 'GET',
+    },
+  ],
+  pagination: {
+    totalCount: 16,
+  },
+  ...partial,
+});
+
+export const mockResourceCounts = (
+  partial?: Partial<MetricsCountResponse>,
+): MetricsCountResponse => ({
+  project: 'rbac',
+  counts: {
+    entities: 2,
+    dataSources: 3,
+    savedDatasets: 0,
+    features: 10,
+    featureViews: 2,
+    featureServices: 3,
+  },
+  ...partial,
+});

@@ -44,6 +44,15 @@ class FeatureStoreGlobal {
     this.waitForFeatureServices();
   }
 
+  visitOverview(project?: string) {
+    cy.visitWithLogin(
+      `/featureStore/overview${
+        project ? `/${project}` : ''
+      }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+    );
+    this.waitForOverview();
+  }
+
   visitFeatureServiceDetails(project: string, featureService: string) {
     const projectName = project;
     cy.visitWithLogin(
@@ -98,6 +107,11 @@ class FeatureStoreGlobal {
 
   private waitForFeatureServices() {
     cy.findByTestId('app-page-title').should('have.text', 'Feature services');
+    cy.testA11y();
+  }
+
+  private waitForOverview() {
+    cy.findByTestId('app-page-title').should('have.text', 'Overview');
     cy.testA11y();
   }
 

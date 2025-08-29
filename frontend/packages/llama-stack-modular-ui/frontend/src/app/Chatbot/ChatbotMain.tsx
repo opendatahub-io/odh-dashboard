@@ -38,14 +38,14 @@ const ChatbotMain: React.FunctionComponent = () => {
   const { models, loading, error } = useFetchLlamaModels();
   const [selectedModel, setSelectedModel] = React.useState<string>('');
 
-  const modelId = selectedModel || models[0]?.identifier;
+  const modelId = selectedModel || models[0]?.id;
   const [systemInstruction, setSystemInstruction] = React.useState<string>(
     DEFAULT_SYSTEM_INSTRUCTIONS,
   );
 
   React.useEffect(() => {
     if (!selectedModel) {
-      setSelectedModel(models[0]?.identifier);
+      setSelectedModel(models[0]?.id);
     }
   }, [models, selectedModel]);
 
@@ -104,14 +104,13 @@ const ChatbotMain: React.FunctionComponent = () => {
 
   const applicationsPage = (
     <ApplicationsPage title="AI playground" loaded={!loading} empty={false} loadError={error}>
-      {sourceManagement.isSourceSettingsOpen && (
-        <ChatbotSourceSettingsModal
-          onToggle={() =>
-            sourceManagement.setIsSourceSettingsOpen(!sourceManagement.isSourceSettingsOpen)
-          }
-          onSubmitSettings={sourceManagement.handleSourceSettingsSubmit}
-        />
-      )}
+      <ChatbotSourceSettingsModal
+        isOpen={sourceManagement.isSourceSettingsOpen}
+        onToggle={() =>
+          sourceManagement.setIsSourceSettingsOpen(!sourceManagement.isSourceSettingsOpen)
+        }
+        onSubmitSettings={sourceManagement.handleSourceSettingsSubmit}
+      />
       <Drawer isExpanded isInline position="right">
         <DrawerContent panelContent={settingsPanelContent}>
           <DrawerContentBody>
