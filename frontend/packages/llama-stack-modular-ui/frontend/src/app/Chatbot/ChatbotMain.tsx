@@ -24,12 +24,14 @@ import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import { ChatbotMessages } from './ChatbotMessagesList';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
+import { ChatbotEmptyState } from './components/ChatbotEmptyState';
 import useChatbotMessages from './hooks/useChatbotMessages';
 import useSourceManagement from './hooks/useSourceManagement';
 import useAlertManagement from './hooks/useAlertManagement';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from './const';
+import { useFetchLSDStatus } from '../hooks';
 
 const ChatbotMain: React.FunctionComponent = () => {
   const { config } = useModularArchContext();
@@ -63,6 +65,8 @@ const ChatbotMain: React.FunctionComponent = () => {
     isRawUploaded: sourceManagement.isRawUploaded,
   });
 
+  const lsdStatus = useFetchLSDStatus();
+
   // Create alert components
   const successAlert = (
     <SourceUploadSuccessAlert
@@ -87,6 +91,10 @@ const ChatbotMain: React.FunctionComponent = () => {
         <Spinner />
       </Bullseye>
     );
+  }
+
+  if (lsdStatus === null) {
+    return <ChatbotEmptyState />;
   }
 
   // Settings panel content
