@@ -19,7 +19,7 @@ const moduleFederationConfig = {
     },
   },
   exposes: {
-    './extensions': './src/odh/extensions',
+    './extensions': '../extensions',
   },
   runtime: false,
   // Enable runtime for proper HMR in development

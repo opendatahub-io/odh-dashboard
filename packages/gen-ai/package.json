@@ -4,7 +4,7 @@
   "description": "Gen AI plugin.",
   "version": "0.0.0",
   "exports": {
-    "./extensions": "./frontend/src/odh/extensions.ts"
+    "./extensions": "./extensions.ts"
   },
   "module-federation": {
     "name": "genAi",
@@ -27,6 +27,7 @@
     }
   },
   "dependencies": {
+    "@odh-dashboard/internal": "*",
     "@odh-dashboard/plugin-core": "*"
   },
   "devDependencies": {
