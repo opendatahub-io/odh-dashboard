@@ -15,6 +15,8 @@ import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
 import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
+import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
+import { KUEUE_MODEL_DEPLOYMENT_DISABLED_MESSAGE } from '#~/concepts/hardwareProfiles/kueueConstants';
 
 const ServeModelButton: React.FC = () => {
   const [platformSelected, setPlatformSelected] = React.useState<
@@ -35,11 +37,18 @@ const ServeModelButton: React.FC = () => {
 
   const project = projects.find(byName(namespace));
 
+  const { isKueueDisabled } = useKueueConfiguration(project);
+
   const templatesSorted = getSortedTemplates(templates, templateOrder);
   const templatesEnabled = templatesSorted.filter((template) =>
     getTemplateEnabled(template, templateDisablement),
   );
   const isKServeNIMEnabled = !!project && isProjectNIMSupported(project);
+
+  const isProjectModelMesh =
+    project &&
+    getProjectModelServingPlatform(project, servingPlatformStatuses).platform ===
+      ServingRuntimePlatform.MULTI;
 
   const onSubmit = (submit: boolean) => {
     if (submit) {
@@ -60,7 +69,10 @@ const ServeModelButton: React.FC = () => {
         )
       }
       isAriaDisabled={
-        !project || templatesEnabled.length === 0 || (!isNIMAvailable && isKServeNIMEnabled)
+        !project ||
+        templatesEnabled.length === 0 ||
+        (!isNIMAvailable && isKServeNIMEnabled) ||
+        (!isProjectModelMesh && isKueueDisabled)
       }
     >
       Deploy model
@@ -79,6 +91,10 @@ const ServeModelButton: React.FC = () => {
     return (
       <Tooltip content="NIM is not available. Contact your administrator.">{deployButton}</Tooltip>
     );
+  }
+
+  if (!isProjectModelMesh && isKueueDisabled) {
+    return <Tooltip content={KUEUE_MODEL_DEPLOYMENT_DISABLED_MESSAGE}>{deployButton}</Tooltip>;
   }
 
   return (
