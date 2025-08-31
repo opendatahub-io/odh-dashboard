@@ -20,14 +20,22 @@ export const columns: SortableData<PyTorchJobKind>[] = [
       a.metadata.namespace.localeCompare(b.metadata.namespace),
   },
   {
-    field: 'workerNodes',
-    label: 'Worker nodes',
+    field: 'nodes',
+    label: 'Nodes',
     width: 15,
     sortable: (a: PyTorchJobKind, b: PyTorchJobKind): number => {
-      const aWorker = a.spec.pytorchReplicaSpecs.Worker?.replicas || 0;
-      const bWorker = b.spec.pytorchReplicaSpecs.Worker?.replicas || 0;
+      const aNodes =
+        (a.spec.pytorchReplicaSpecs.Worker?.replicas || 0) +
+        (a.spec.pytorchReplicaSpecs.Master?.replicas || 0);
+      const bNodes =
+        (b.spec.pytorchReplicaSpecs.Worker?.replicas || 0) +
+        (b.spec.pytorchReplicaSpecs.Master?.replicas || 0);
 
-      return aWorker - bWorker;
+      return aNodes - bNodes;
+    },
+    info: {
+      popoverProps: { hasAutoWidth: true },
+      popover: 'Total number of nodes (Worker + Master replicas)',
     },
   },
   {

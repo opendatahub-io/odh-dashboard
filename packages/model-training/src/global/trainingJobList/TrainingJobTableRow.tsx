@@ -32,7 +32,9 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
   const [isToggling, setIsToggling] = React.useState(false);
 
   const displayName = getDisplayNameFromK8sResource(job);
-  const workerReplicas = job.spec.pytorchReplicaSpecs.Worker?.replicas || 0;
+  const nodes =
+    (job.spec.pytorchReplicaSpecs.Worker?.replicas || 0) +
+    (job.spec.pytorchReplicaSpecs.Master?.replicas || 0);
   const localQueueName = job.metadata.labels?.['kueue.x-k8s.io/queue-name'];
 
   const status = jobStatus || getJobStatusFromPyTorchJob(job);
@@ -99,7 +101,7 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
           <TrainingJobProject trainingJob={job} />
         </Td>
 
-        <Td dataLabel="Worker nodes">
+        <Td dataLabel="Nodes">
           <Flex
             alignItems={{ default: 'alignItemsCenter' }}
             spaceItems={{ default: 'spaceItemsSm' }}
@@ -112,7 +114,7 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
                 <FlexItem>
                   <CubesIcon />
                 </FlexItem>
-                <FlexItem>{workerReplicas}</FlexItem>
+                <FlexItem>{nodes}</FlexItem>
               </Flex>
             </FlexItem>
           </Flex>

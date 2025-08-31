@@ -50,6 +50,12 @@ export const getStatusInfo = (
         color: 'grey',
         IconComponent: PlayIcon,
       };
+    case PyTorchJobState.PAUSED:
+      return {
+        label: 'Paused',
+        color: 'grey',
+        IconComponent: PauseIcon,
+      };
     case PyTorchJobState.SUSPENDED:
       return {
         label: 'Suspended',
@@ -110,7 +116,7 @@ export const getJobStatusWithHibernation = async (
   try {
     const workload = await getWorkloadForPyTorchJob(job);
     if (workload && workload.spec.active === false) {
-      return PyTorchJobState.SUSPENDED;
+      return PyTorchJobState.PAUSED;
     }
   } catch (error) {
     console.warn('Failed to check hibernation status for PyTorchJob:', error);

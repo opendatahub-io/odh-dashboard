@@ -4,6 +4,7 @@ export enum PyTorchJobState {
   RUNNING = 'Running',
   SUCCEEDED = 'Succeeded',
   FAILED = 'Failed',
+  PAUSED = 'Paused',
   SUSPENDED = 'Suspended',
   PREEMTED = 'Preempted',
   UNKNOWN = 'Unknown',

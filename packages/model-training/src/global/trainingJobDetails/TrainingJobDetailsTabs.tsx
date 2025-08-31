@@ -37,7 +37,8 @@ const TrainingJobDetailsTabs: React.FC<TrainingJobDetailsTabsProps> = ({ job }) 
           <TrainingJobLogsTab job={job} />
         </TabContentBody>
       </Tab>
-      <Tab
+      {/* TODO: Hide details tab for now */}
+      {/* <Tab
         eventKey={TrainingJobDetailsTab.DETAILS}
         title={<TabTitleText>{TrainingJobDetailsTab.DETAILS}</TabTitleText>}
         aria-label="Training job details tab"
@@ -46,7 +47,7 @@ const TrainingJobDetailsTabs: React.FC<TrainingJobDetailsTabsProps> = ({ job }) 
         <TabContentBody>
           <div>Training job details will be implemented here.</div>
         </TabContentBody>
-      </Tab>
+      </Tab> */}
     </Tabs>
   );
 };
