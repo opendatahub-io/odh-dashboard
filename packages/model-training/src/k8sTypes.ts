@@ -17,8 +17,8 @@ export type PyTorchJobKind = K8sResourceCommon & {
     pytorchReplicaSpecs: {
       Master?: {
         replicas: number;
-        restartPolicy: string;
-        template: {
+        restartPolicy?: string;
+        template?: {
           spec: {
             containers: Array<{
               name: string;
@@ -41,8 +41,8 @@ export type PyTorchJobKind = K8sResourceCommon & {
       };
       Worker?: {
         replicas: number;
-        restartPolicy: string;
-        template: {
+        restartPolicy?: string;
+        template?: {
           spec: {
             containers: Array<{
               name: string;

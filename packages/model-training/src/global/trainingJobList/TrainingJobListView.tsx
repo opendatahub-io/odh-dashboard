@@ -2,6 +2,7 @@ import * as React from 'react';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import TrainingJobTable from './TrainingJobTable';
 import TrainingJobToolbar from './TrainingJobToolbar';
+import ScalingNotification from './components/ScalingNotification';
 import { initialTrainingJobFilterData, TrainingJobFilterDataType } from './const';
 import { getJobStatusFromPyTorchJob, getJobStatusWithHibernation } from './utils';
 import { PyTorchJobKind } from '../../k8sTypes';
@@ -11,6 +12,13 @@ type TrainingJobListViewProps = {
   trainingJobs: PyTorchJobKind[];
 };
 
+interface ScalingNotificationData {
+  job: PyTorchJobKind;
+  previousWorkerCount: number;
+  newWorkerCount: number;
+  wasResumed: boolean;
+}
+
 const TrainingJobListView: React.FC<TrainingJobListViewProps> = ({
   trainingJobs: unfilteredTrainingJobs,
 }) => {
@@ -18,6 +26,8 @@ const TrainingJobListView: React.FC<TrainingJobListViewProps> = ({
     initialTrainingJobFilterData,
   );
   const [jobStatuses, setJobStatuses] = React.useState<Map<string, PyTorchJobState>>(new Map());
+  const [scalingNotification, setScalingNotification] =
+    React.useState<ScalingNotificationData | null>(null);
 
   // Update job statuses with hibernation check for all jobs
   React.useEffect(() => {
@@ -64,6 +74,43 @@ const TrainingJobListView: React.FC<TrainingJobListViewProps> = ({
     });
   }, []);
 
+  // Handle job updates from scaling operations
+  const handleJobUpdate = React.useCallback(
+    (jobId: string, updatedJob: PyTorchJobKind) => {
+      // Store notification data before job update
+      const originalJob = unfilteredTrainingJobs.find(
+        (job) => (job.metadata.uid || job.metadata.name) === jobId,
+      );
+
+      if (originalJob) {
+        const previousWorkerCount = originalJob.spec.pytorchReplicaSpecs.Worker?.replicas || 0;
+        const newWorkerCount = updatedJob.spec.pytorchReplicaSpecs.Worker?.replicas || 0;
+
+        if (previousWorkerCount !== newWorkerCount) {
+          const currentStatus = jobStatuses.get(jobId);
+          const wasResumed = currentStatus === PyTorchJobState.RUNNING;
+
+          setScalingNotification({
+            job: updatedJob,
+            previousWorkerCount,
+            newWorkerCount,
+            wasResumed,
+          });
+
+          // Auto-dismiss notification after 8 seconds
+          setTimeout(() => {
+            setScalingNotification(null);
+          }, 8000);
+        }
+      }
+
+      // This would typically trigger a refresh of the jobs list
+      // In a real implementation, you might call a parent callback or trigger a data refetch
+      console.log('Job updated:', { jobId, updatedJob });
+    },
+    [unfilteredTrainingJobs, jobStatuses],
+  );
+
   const filteredTrainingJobs = React.useMemo(
     () =>
       unfilteredTrainingJobs.filter((job) => {
@@ -104,16 +151,32 @@ const TrainingJobListView: React.FC<TrainingJobListViewProps> = ({
   );
 
   return (
-    <TrainingJobTable
-      trainingJobs={filteredTrainingJobs}
-      jobStatuses={jobStatuses}
-      onStatusUpdate={handleStatusUpdate}
-      onClearFilters={onClearFilters}
-      clearFilters={Object.values(filterData).some((value) => !!value) ? onClearFilters : undefined}
-      toolbarContent={
-        <TrainingJobToolbar filterData={filterData} onFilterUpdate={onFilterUpdate} />
-      }
-    />
+    <>
+      {/* Success notification for scaling operations */}
+      {scalingNotification && (
+        <ScalingNotification
+          job={scalingNotification.job}
+          previousWorkerCount={scalingNotification.previousWorkerCount}
+          newWorkerCount={scalingNotification.newWorkerCount}
+          wasResumed={scalingNotification.wasResumed}
+          onClose={() => setScalingNotification(null)}
+        />
+      )}
+
+      <TrainingJobTable
+        trainingJobs={filteredTrainingJobs}
+        jobStatuses={jobStatuses}
+        onStatusUpdate={handleStatusUpdate}
+        onJobUpdate={handleJobUpdate}
+        onClearFilters={onClearFilters}
+        clearFilters={
+          Object.values(filterData).some((value) => !!value) ? onClearFilters : undefined
+        }
+        toolbarContent={
+          <TrainingJobToolbar filterData={filterData} onFilterUpdate={onFilterUpdate} />
+        }
+      />
+    </>
   );
 };
 

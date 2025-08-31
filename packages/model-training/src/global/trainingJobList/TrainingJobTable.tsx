@@ -11,6 +11,7 @@ type TrainingJobTableProps = {
   trainingJobs: PyTorchJobKind[];
   jobStatuses?: Map<string, PyTorchJobState>; // Batch fetched statuses
   onStatusUpdate?: (jobId: string, newStatus: PyTorchJobState) => void;
+  onJobUpdate?: (jobId: string, updatedJob: PyTorchJobKind) => void;
   clearFilters?: () => void;
   onClearFilters: () => void;
 } & Partial<Pick<React.ComponentProps<typeof Table>, 'enablePagination' | 'toolbarContent'>>;
@@ -19,6 +20,7 @@ const TrainingJobTable: React.FC<TrainingJobTableProps> = ({
   trainingJobs,
   jobStatuses,
   onStatusUpdate,
+  onJobUpdate,
   clearFilters,
   onClearFilters,
   toolbarContent,
@@ -48,6 +50,7 @@ const TrainingJobTable: React.FC<TrainingJobTableProps> = ({
               job={job}
               jobStatus={jobStatus}
               onStatusUpdate={onStatusUpdate}
+              onJobUpdate={onJobUpdate}
               onDelete={(trainingJob) => setDeleteTrainingJob(trainingJob)}
             />
           );

@@ -6,7 +6,7 @@ import { PyTorchJobKind } from '../../k8sTypes';
 
 type HibernationToggleModalProps = {
   job?: PyTorchJobKind;
-  isSuspended: boolean;
+  isPaused: boolean;
   isToggling: boolean;
   onClose: () => void;
   onConfirm: () => void;
@@ -14,7 +14,7 @@ type HibernationToggleModalProps = {
 
 const HibernationToggleModal: React.FC<HibernationToggleModalProps> = ({
   job,
-  isSuspended,
+  isPaused,
   isToggling,
   onClose,
   onConfirm,
@@ -24,8 +24,8 @@ const HibernationToggleModal: React.FC<HibernationToggleModalProps> = ({
   }
 
   const displayName = getDisplayNameFromK8sResource(job);
-  const action = isSuspended ? 'resume' : 'suspend';
-  const actionLabel = isSuspended ? 'Resume' : 'Suspend';
+  const action = isPaused ? 'resume' : 'suspend';
+  const actionLabel = isPaused ? 'Resume' : 'Suspend';
 
   return (
     <Modal
@@ -36,14 +36,14 @@ const HibernationToggleModal: React.FC<HibernationToggleModalProps> = ({
     >
       <ModalHeader
         title={`${actionLabel} training job`}
-        titleIconVariant={isSuspended ? 'info' : 'warning'}
+        titleIconVariant={isPaused ? 'info' : 'warning'}
       />
       <ModalBody>
         Are you sure you want to {action} the training job{' '}
         <strong>&quot;{displayName}&quot;</strong>?
         <br />
         <br />
-        {isSuspended
+        {isPaused
           ? `The job will be resumed and resources will be allocated to continue training.`
           : `The job will be paused and resources will be freed up. The job can be resumed later
               from where it left off.`}
@@ -53,7 +53,7 @@ const HibernationToggleModal: React.FC<HibernationToggleModalProps> = ({
           onCancel={onClose}
           onSubmit={onConfirm}
           submitLabel={actionLabel}
-          submitButtonVariant={isSuspended ? 'primary' : 'secondary'}
+          submitButtonVariant={isPaused ? 'primary' : 'secondary'}
           isSubmitLoading={isToggling}
           isSubmitDisabled={isToggling}
           isCancelDisabled={isToggling}
