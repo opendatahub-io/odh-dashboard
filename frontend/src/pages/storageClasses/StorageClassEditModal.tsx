@@ -221,6 +221,7 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
               if (!isSupported) {
                 return (
                   <Tooltip
+                    data-testid="sc-access-mode-unsupported-tooltip"
                     content="This access mode is not supported by the selected storage class."
                     key={`${modeName}-tooltip`}
                     position="top-start"

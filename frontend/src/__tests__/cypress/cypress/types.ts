@@ -67,12 +67,15 @@ export type StorageClassConfig = {
   isEnabled: boolean;
   displayName: string;
   description?: string;
+  accessModeSettings?: SCAccessMode;
 };
 
 export type SCReplacements = {
   SC_NAME: string;
   SC_IS_DEFAULT: string;
   SC_IS_ENABLED: string;
+  SC_ACCESS_MODE: string;
+  SC_PROVISIONER: string;
 };
 
 export type PVCReplacements = {
@@ -362,3 +365,10 @@ export enum AccessMode {
   ROX = 'ReadOnlyMany',
   RWOP = 'ReadWriteOncePod',
 }
+
+export type SCAccessMode = {
+  ReadWriteOnce?: boolean;
+  ReadWriteMany?: boolean;
+  ReadOnlyMany?: boolean;
+  ReadWriteOncePod?: boolean;
+};

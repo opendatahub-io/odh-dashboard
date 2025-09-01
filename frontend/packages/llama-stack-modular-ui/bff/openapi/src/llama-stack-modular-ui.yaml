@@ -8,6 +8,11 @@ info:
     url: "https://www.apache.org/licenses/LICENSE-2.0"
 servers:
   - url: "http://localhost:8080"
+
+# Global security requirement - all endpoints require Bearer token by default
+security:
+  - Bearer: []
+
 paths:
   /healthcheck:
     summary: BFF service health check
@@ -35,9 +40,13 @@ paths:
     get:
       tags:
         - Models
+      security:
+        - Bearer: []
       responses:
         "200":
           $ref: "#/components/responses/ModelsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
         "500":
           $ref: "#/components/responses/InternalServerError"
       operationId: listModels
@@ -52,6 +61,8 @@ paths:
     get:
       tags:
         - VectorStores
+      security:
+        - Bearer: []
       parameters:
         - name: limit
           in: query
@@ -77,6 +88,8 @@ paths:
           $ref: "#/components/responses/VectorStoresResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
         "500":
           $ref: "#/components/responses/InternalServerError"
       operationId: listVectorStores
@@ -85,6 +98,8 @@ paths:
     post:
       tags:
         - VectorStores
+      security:
+        - Bearer: []
       requestBody:
         description: Vector store creation request (only name is required, all other parameters are optional)
         content:
@@ -97,6 +112,8 @@ paths:
           $ref: "#/components/responses/VectorStoreResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
         "500":
           $ref: "#/components/responses/InternalServerError"
       operationId: createVectorStore
@@ -112,6 +129,8 @@ paths:
     post:
       tags:
         - Files
+      security:
+        - Bearer: []
       requestBody:
         description: Multipart form with file and vector store information
         content:
@@ -124,6 +143,8 @@ paths:
           $ref: "#/components/responses/FileUploadResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
         "500":
           $ref: "#/components/responses/InternalServerError"
       operationId: uploadFile
@@ -138,6 +159,8 @@ paths:
     post:
       tags:
         - Responses
+      security:
+        - Bearer: []
       requestBody:
         description: Response creation request with comprehensive parameter support
         content:
@@ -150,6 +173,8 @@ paths:
           $ref: "#/components/responses/CreateResponseResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
         "500":
           $ref: "#/components/responses/InternalServerError"
       operationId: createResponse
@@ -165,6 +190,8 @@ paths:
     post:
       tags:
         - CodeExporter
+      security:
+        - Bearer: []
       requestBody:
         description: Code generation request with configuration parameters
         content:
@@ -177,6 +204,8 @@ paths:
           $ref: "#/components/responses/CodeExportResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
         "500":
           $ref: "#/components/responses/InternalServerError"
       operationId: exportCode
@@ -192,6 +221,8 @@ paths:
     get:
       tags:
         - Kubernetes
+      security:
+        - Bearer: []
       responses:
         "200":
           $ref: "#/components/responses/NamespacesResponse"
@@ -217,6 +248,8 @@ paths:
     get:
       tags:
         - Kubernetes
+      security:
+        - Bearer: []
       parameters:
         - name: namespace
           in: query
@@ -241,6 +274,12 @@ paths:
       description: Gets the status of LlamaStack Distribution in the specified namespace.
 
 components:
+  securitySchemes:
+    Bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Bearer token authentication using OAuth2 JWT tokens
   schemas:
     HealthCheckModel:
       type: object
