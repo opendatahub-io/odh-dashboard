@@ -1,12 +1,19 @@
 import { proxyGET } from '@odh-dashboard/internal/api/proxyUtils';
 import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import { handleFeatureStoreFailures } from './errorUtils';
+import { FeatureStoreLineage } from '../types/lineage';
 import { FEATURE_STORE_API_VERSION } from '../const';
 import { Entity, EntityList } from '../types/entities';
 import { Features, FeaturesList } from '../types/features';
 import { ProjectList } from '../types/featureStoreProjects';
 import { FeatureService, FeatureServicesList } from '../types/featureServices';
 import { FeatureView, FeatureViewsList } from '../types/featureView';
+import {
+  MetricsCountResponse,
+  PopularTagsResponse,
+  RecentlyVisitedResponse,
+} from '../types/metrics';
+import { DataSet, DataSetList } from '../types/dataSets';
 
 export const listFeatureStoreProject =
   (hostPath: string) =>
@@ -148,4 +155,102 @@ export const getFeatureViewByName =
     )}?project=${encodeURIComponent(project)}&include_relationships=true`;
 
     return handleFeatureStoreFailures<FeatureView>(proxyGET(hostPath, endpoint, opts));
+  };
+
+export const getMetricsResourceCount =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, project?: string): Promise<MetricsCountResponse> => {
+    let endpoint = `/api/${FEATURE_STORE_API_VERSION}/metrics/resource_counts`;
+
+    if (project) {
+      endpoint = `/api/${FEATURE_STORE_API_VERSION}/metrics/resource_counts?project=${encodeURIComponent(
+        project,
+      )}`;
+    }
+
+    return handleFeatureStoreFailures<MetricsCountResponse>(proxyGET(hostPath, endpoint, opts));
+  };
+
+export const getPopularTags =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, project?: string, limit?: number): Promise<PopularTagsResponse> => {
+    let endpoint = `/api/${FEATURE_STORE_API_VERSION}/metrics/popular_tags`;
+
+    const queryParams: string[] = [];
+    if (project) {
+      queryParams.push(`project=${encodeURIComponent(project)}`);
+    }
+    if (limit) {
+      queryParams.push(`limit=${limit}`);
+    }
+
+    if (queryParams.length > 0) {
+      endpoint += `?${queryParams.join('&')}`;
+    }
+
+    return handleFeatureStoreFailures<PopularTagsResponse>(proxyGET(hostPath, endpoint, opts));
+  };
+
+export const getRecentlyVisitedResources =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, project?: string, limit?: number): Promise<RecentlyVisitedResponse> => {
+    let endpoint = `/api/${FEATURE_STORE_API_VERSION}/metrics/recently_visited`;
+
+    const queryParams: string[] = [];
+    if (project) {
+      queryParams.push(`project=${encodeURIComponent(project)}`);
+    }
+    if (limit) {
+      queryParams.push(`limit=${limit}`);
+    }
+
+    if (queryParams.length > 0) {
+      endpoint += `?${queryParams.join('&')}`;
+    }
+
+    return handleFeatureStoreFailures<RecentlyVisitedResponse>(proxyGET(hostPath, endpoint, opts));
+  };
+
+export const getLineageData =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, project: string): Promise<FeatureStoreLineage> => {
+    if (!project) {
+      throw new Error('Project is required');
+    }
+
+    const endpoint = `/api/${FEATURE_STORE_API_VERSION}/lineage/complete?project=${encodeURIComponent(
+      project,
+    )}`;
+
+    return handleFeatureStoreFailures<FeatureStoreLineage>(proxyGET(hostPath, endpoint, opts));
+  };
+
+export const getSavedDatasets =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, project?: string): Promise<DataSetList> => {
+    let endpoint = `/api/${FEATURE_STORE_API_VERSION}/saved_datasets/all?include_relationships=true`;
+    if (project) {
+      endpoint = `/api/${FEATURE_STORE_API_VERSION}/saved_datasets?project=${encodeURIComponent(
+        project,
+      )}&include_relationships=true`;
+    }
+
+    return handleFeatureStoreFailures<DataSetList>(proxyGET(hostPath, endpoint, opts));
+  };
+
+export const getDataSetByName =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, project?: string, dataSetName?: string): Promise<DataSet> => {
+    if (!project) {
+      throw new Error('Project is required');
+    }
+    if (!dataSetName) {
+      throw new Error('Data set name is required');
+    }
+
+    const endpoint = `/api/${FEATURE_STORE_API_VERSION}/saved_datasets/${encodeURIComponent(
+      dataSetName,
+    )}?project=${encodeURIComponent(project)}&include_relationships=true`;
+
+    return handleFeatureStoreFailures<DataSet>(proxyGET(hostPath, endpoint, opts));
   };

@@ -6,6 +6,7 @@ import { applyEntityFilters } from '../utils';
 import { entityTableFilterOptions } from '../const';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
 import { useTagFilterHandlers } from '../../../utils/useTagFilterHandlers';
+import { applyTagFilters } from '../../../utils/filterUtils';
 
 const FeatureStoreEntitiesListView = ({
   entities,
@@ -45,16 +46,7 @@ const FeatureStoreEntitiesListView = ({
   const filteredEntities = React.useMemo(() => {
     let filtered = processedEntities;
     filtered = applyEntityFilters(filtered, entities.relationships, filterData);
-    if (tagFilters.length > 0) {
-      filtered = filtered.filter((entity) => {
-        const entityTags = entity.spec.tags || {};
-        return tagFilters.every((tagFilter) => {
-          const tagEntries = Object.entries(entityTags);
-          return tagEntries.some(([key, value]) => `${key}=${value}` === tagFilter);
-        });
-      });
-    }
-
+    filtered = applyTagFilters(filtered, tagFilters);
     return filtered;
   }, [processedEntities, entities.relationships, filterData, tagFilters]);
 

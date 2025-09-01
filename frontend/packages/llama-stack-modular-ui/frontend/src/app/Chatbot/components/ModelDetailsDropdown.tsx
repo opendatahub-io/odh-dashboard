@@ -50,8 +50,8 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
     >
       <DropdownList>
         {models.map((option) => (
-          <DropdownItem value={option.identifier} key={option.identifier}>
-            {option.identifier}
+          <DropdownItem value={option.id} key={option.id}>
+            {option.id}
           </DropdownItem>
         ))}
       </DropdownList>

@@ -1,4 +1,0 @@
-# Mock BFF local binaries
-upstream/bff/bff-mock
-upstream/bff/bin/
-upstream/bff/bin/**

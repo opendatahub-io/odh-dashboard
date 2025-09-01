@@ -13,7 +13,7 @@ import (
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/repositories"
-	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	"github.com/julienschmidt/httprouter"
@@ -74,9 +74,9 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 	if cfg.MockK8sClient {
 		logger.Info("Using mocked Kubernetes client")
-		var clientset kubernetes.Interface
+		var ctrlClient client.Client
 		ctx, cancel := context.WithCancel(context.Background())
-		testEnv, clientset, err = k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
+		testEnv, ctrlClient, err = k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
 			Users:  k8smocks.DefaultTestUsers,
 			Logger: logger,
 			Ctx:    ctx,
@@ -85,7 +85,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to setup envtest: %w", err)
 		}
-		k8sFactory, err = k8smocks.NewMockedKubernetesClientFactory(clientset, testEnv, cfg, logger)
+		k8sFactory, err = k8smocks.NewMockedKubernetesClientFactory(ctrlClient, testEnv, cfg, logger)
 	} else {
 		k8sFactory, err = k8s.NewKubernetesClientFactory(cfg, logger)
 	}
@@ -113,6 +113,7 @@ func (app *App) Routes() http.Handler {
 
 	genaiPrefix := "/genai/v1"
 
+	// TODO: Attach namespace to the routes.
 	// Models
 	apiRouter.GET(genaiPrefix+"/models", app.RequireAccessToService(app.AttachRESTClient(app.LlamaStackModelsHandler)))
 
@@ -131,6 +132,9 @@ func (app *App) Routes() http.Handler {
 
 	// Settings path namespace endpoints. This endpoint will get all the namespaces
 	apiRouter.GET(genaiPrefix+"/namespaces", app.RequireAccessToService(app.GetNamespaceHandler))
+
+	// Llama Stack Distribution status endpoint
+	apiRouter.GET(genaiPrefix+"/llamastack-distribution/status", app.RequireAccessToService(app.AttachNamespace(app.LlamaStackDistributionStatusHandler)))
 	// App Router
 	appMux := http.NewServeMux()
 
@@ -153,9 +157,9 @@ func (app *App) Routes() http.Handler {
 	appMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		ctxLogger := helper.GetContextLoggerFromReq(r)
 
-		// Skip API routes
+		// Skip API routes and health endpoint
 		if (r.URL.Path == "/" || r.URL.Path == "/index.html") ||
-			(len(r.URL.Path) > 0 && r.URL.Path[0] == '/' && !app.isAPIRoute(r.URL.Path)) {
+			(len(r.URL.Path) > 0 && r.URL.Path[0] == '/' && !app.isAPIRoute(r.URL.Path) && r.URL.Path != constants.HealthCheckPath) {
 
 			// Check if the requested file exists
 			cleanPath := path.Clean(r.URL.Path)

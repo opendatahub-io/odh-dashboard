@@ -1,3 +1,4 @@
+import { StorageProvisioner } from '@odh-dashboard/internal/pages/storageClasses/storageEnums';
 import type { SCReplacements, CommandLineResult } from '#~/__tests__/cypress/cypress/types';
 import { replacePlaceholdersInYaml } from '#~/__tests__/cypress/cypress/utils/yaml_files';
 import { MetadataAnnotation } from '#~/k8sTypes';
@@ -205,6 +206,8 @@ export const disableNonDefaultStorageClasses = (): Cypress.Chainable<void> => {
             SC_NAME: scName,
             SC_IS_DEFAULT: 'false',
             SC_IS_ENABLED: 'false',
+            SC_ACCESS_MODE: JSON.stringify({ ReadWriteOnce: true }),
+            SC_PROVISIONER: StorageProvisioner.CINDER_CSI,
           };
           return () => updateStorageClass(scReplacements);
         }

@@ -4,13 +4,11 @@
   "description": "Model registry plugin.",
   "version": "0.0.0",
   "scripts": {
-    "build": "tsc",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:contract": "npm exec -w @odh-dashboard/contract-tests odh-ct-bff-consumer -- --bff-dir $(pwd)/upstream/bff --consumer-dir $(pwd)/contract-tests --package-name model-registry",
-    "test:contract:watch": "npm run test:contract",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "type-check": "tsc --noEmit",
+    "update-subtree": "../../scripts/package-subtree.sh --package=@odh-dashboard/model-registry",
+    "test:contract": "npm exec -w @odh-dashboard/contract-tests odh-ct-bff-consumer -- --bff-dir $(pwd)/upstream/bff --consumer-dir $(pwd)/contract-tests --package-name model-registry",
+    "test:contract:watch": "npm run test:contract"
   },
   "subtree": {
     "repo": "https://github.com/kubeflow/model-registry.git",

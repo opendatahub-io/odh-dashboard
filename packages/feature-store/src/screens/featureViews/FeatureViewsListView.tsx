@@ -7,6 +7,7 @@ import { FeatureViewsList } from '../../types/featureView';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import { FeatureStoreToolbar } from '../../components/FeatureStoreToolbar';
 import { useTagFilterHandlers } from '../../utils/useTagFilterHandlers';
+import { applyTagFilters } from '../../utils/filterUtils';
 
 const FeatureViewsListView = ({
   featureViews: featureViewsList,
@@ -65,17 +66,7 @@ const FeatureViewsListView = ({
       featureViewsList.relationships,
       debouncedFilterData,
     );
-
-    if (tagFilters.length > 0) {
-      filtered = filtered.filter((featureView) => {
-        const featureViewTags = featureView.spec.tags || {};
-        return tagFilters.every((tagFilter) => {
-          const tagEntries = Object.entries(featureViewTags);
-          return tagEntries.some(([key, value]) => `${key}=${value}` === tagFilter);
-        });
-      });
-    }
-
+    filtered = applyTagFilters(filtered, tagFilters);
     return filtered;
   }, [processedFeatureViews, featureViewsList.relationships, debouncedFilterData, tagFilters]);
 

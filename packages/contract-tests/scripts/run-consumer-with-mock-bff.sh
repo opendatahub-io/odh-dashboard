@@ -18,8 +18,8 @@ Options:
   -h, --help                  Show this help
 
 Examples:
-  odh-contract-tests -c frontend/packages/model-registry/contract-tests
-  odh-contract-tests -c frontend/packages/model-registry/contract-tests -w
+  odh-contract-tests -c packages/model-registry/contract-tests
+  odh-contract-tests -c packages/model-registry/contract-tests -w
 EOF
 }
 

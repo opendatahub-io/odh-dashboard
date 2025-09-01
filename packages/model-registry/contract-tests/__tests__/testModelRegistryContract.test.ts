@@ -20,9 +20,9 @@ describe('Model Registry List Endpoint', () => {
 
   it('should successfully retrieve model registries list', async () => {
     const result = await apiClient.get('/api/v1/model_registry?namespace=default', 'list-default');
-    // Expect-style contract matcher, aligned with PR style
+    expect(result.status).toBe(200);
     expect({ status: result.status, data: result.data }).toMatchContract(apiSchema, {
-      ref: '#/components/responses/ModelRegistryRespone/content/application/json/schema',
+      ref: '#/components/responses/ModelRegistryResponse/content/application/json/schema',
       expectedStatus: 200,
     });
   });
@@ -32,8 +32,9 @@ describe('Model Registry List Endpoint', () => {
       '/api/v1/model_registry?namespace=nonexistent',
       'list-empty',
     );
+    expect(result.status).toBe(200);
     expect({ status: result.status, data: result.data }).toMatchContract(apiSchema, {
-      ref: '#/components/responses/ModelRegistryRespone/content/application/json/schema',
+      ref: '#/components/responses/ModelRegistryResponse/content/application/json/schema',
       expectedStatus: 200,
     });
   });

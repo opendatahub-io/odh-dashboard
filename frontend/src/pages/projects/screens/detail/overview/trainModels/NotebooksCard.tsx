@@ -10,11 +10,14 @@ import {
   FlexItem,
   Spinner,
   Content,
+  Tooltip,
 } from '@patternfly/react-core';
 import { ArrowRightIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { ProjectObjectType, SectionType, typedEmptyImage } from '#~/concepts/design/utils';
 import OverviewCard from '#~/pages/projects/screens/detail/overview/components/OverviewCard';
+import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
+import { KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE } from '#~/concepts/hardwareProfiles/kueueConstants';
 import NotebooksCardItems from './NotebooksCardItems';
 import MetricsContents from './MetricsContents';
 
@@ -24,6 +27,8 @@ const NotebooksCard: React.FC = () => {
     currentProject,
     notebooks: { data: notebooks, loaded, error },
   } = React.useContext(ProjectDetailsContext);
+
+  const { isKueueDisabled } = useKueueConfiguration(currentProject);
 
   const statistics = React.useMemo(
     () => [
@@ -99,19 +104,30 @@ const NotebooksCard: React.FC = () => {
                     create pipelines, and configure cluster storage in your workbench.
                   </Content>
                 </Content>
-                <Button
-                  variant={ButtonVariant.primary}
-                  onClick={() => navigate(`/projects/${currentProject.metadata.name}/spawner`)}
-                >
-                  <Flex
-                    gap={{ default: 'gapMd' }}
-                    alignItems={{ default: 'alignItemsCenter' }}
-                    flexWrap={{ default: 'nowrap' }}
-                  >
-                    <FlexItem>Create a workbench</FlexItem>
-                    <ArrowRightIcon />
-                  </Flex>
-                </Button>
+                {(() => {
+                  const button = (
+                    <Button
+                      isAriaDisabled={isKueueDisabled}
+                      variant={ButtonVariant.primary}
+                      onClick={() => navigate(`/projects/${currentProject.metadata.name}/spawner`)}
+                    >
+                      <Flex
+                        gap={{ default: 'gapMd' }}
+                        alignItems={{ default: 'alignItemsCenter' }}
+                        flexWrap={{ default: 'nowrap' }}
+                      >
+                        <FlexItem>Create a workbench</FlexItem>
+                        <ArrowRightIcon />
+                      </Flex>
+                    </Button>
+                  );
+
+                  return isKueueDisabled ? (
+                    <Tooltip content={KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE}>{button}</Tooltip>
+                  ) : (
+                    button
+                  );
+                })()}
               </Flex>
             </FlexItem>
           </Flex>
@@ -133,6 +149,7 @@ const NotebooksCard: React.FC = () => {
         title="Workbenches"
         onCreate={() => navigate(`/projects/${currentProject.metadata.name}/spawner`)}
         createText="Create workbench"
+        isKueueDisabled={isKueueDisabled}
         statistics={statistics}
         listItems={
           <NotebooksCardItems
