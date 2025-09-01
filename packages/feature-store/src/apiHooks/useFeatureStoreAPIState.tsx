@@ -15,6 +15,8 @@ import {
   getPopularTags,
   getRecentlyVisitedResources,
   getLineageData,
+  getSavedDatasets,
+  getDataSetByName,
 } from '../api/custom';
 import { FeatureStoreAPIs } from '../types/global';
 
@@ -38,6 +40,8 @@ const useFeatureStoreAPIState = (
       getPopularTags: getPopularTags(path),
       getRecentlyVisitedResources: getRecentlyVisitedResources(path),
       getLineageData: getLineageData(path),
+      getSavedDatasets: getSavedDatasets(path),
+      getDataSetByName: getDataSetByName(path),
     }),
     [],
   );

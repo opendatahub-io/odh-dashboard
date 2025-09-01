@@ -5,6 +5,7 @@ import { GetFeatureViews, GetFeatureViewsByName } from './featureView';
 import { GetLineageData } from './lineage';
 import { GetFeatureServiceByName, GetFeatureServices } from './featureServices';
 import { GetMetricsResourceCount, GetPopularTags, GetRecentlyVisitedResources } from './metrics';
+import { GetDataSetByName, GetSavedDatasets } from './dataSets';
 
 export type FeatureStorePagination = {
   page: number;
@@ -82,4 +83,6 @@ export type FeatureStoreAPIs = {
   getPopularTags: GetPopularTags;
   getRecentlyVisitedResources: GetRecentlyVisitedResources;
   getLineageData: GetLineageData;
+  getSavedDatasets: GetSavedDatasets;
+  getDataSetByName: GetDataSetByName;
 };
