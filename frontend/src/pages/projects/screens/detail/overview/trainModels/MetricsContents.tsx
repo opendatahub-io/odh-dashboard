@@ -1,5 +1,14 @@
 import * as React from 'react';
-import { Button, CardBody, CardFooter, Flex, FlexItem, Content } from '@patternfly/react-core';
+import {
+  Button,
+  CardBody,
+  CardFooter,
+  Flex,
+  FlexItem,
+  Content,
+  Tooltip,
+} from '@patternfly/react-core';
+import { KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE } from '#~/concepts/hardwareProfiles/kueueConstants';
 
 type MetricsCardProps = {
   title: string;
@@ -8,6 +17,7 @@ type MetricsCardProps = {
   createText?: string;
   onCreate?: () => void;
   listItems?: React.ReactNode;
+  isKueueDisabled?: boolean;
 };
 
 const MetricsContents: React.FC<MetricsCardProps> = ({
@@ -17,6 +27,7 @@ const MetricsContents: React.FC<MetricsCardProps> = ({
   onCreate,
   statistics,
   listItems,
+  isKueueDisabled,
 }) => (
   <>
     <CardBody>
@@ -57,11 +68,18 @@ const MetricsContents: React.FC<MetricsCardProps> = ({
       </Flex>
     </CardBody>
     <CardFooter>
-      {createButton || (
-        <Button variant="link" isInline onClick={onCreate}>
-          {createText}
-        </Button>
-      )}
+      {createButton ||
+        (isKueueDisabled ? (
+          <Tooltip content={KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE}>
+            <Button isAriaDisabled variant="link" isInline onClick={onCreate}>
+              {createText}
+            </Button>
+          </Tooltip>
+        ) : (
+          <Button variant="link" isInline onClick={onCreate}>
+            {createText}
+          </Button>
+        ))}
     </CardFooter>
   </>
 );

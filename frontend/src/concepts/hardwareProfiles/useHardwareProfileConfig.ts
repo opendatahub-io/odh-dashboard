@@ -8,6 +8,11 @@ import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
 import { isHardwareProfileEnabled } from '#~/pages/hardwareProfiles/utils.ts';
 import { useDashboardNamespace } from '#~/redux/selectors';
+import {
+  filterProfilesByKueue,
+  useKueueConfiguration,
+} from '#~/concepts/hardwareProfiles/kueueUtils';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext.tsx';
 import { isHardwareProfileConfigValid } from './validationUtils';
 import { getContainerResourcesFromHardwareProfile } from './utils';
 
@@ -136,6 +141,9 @@ export const useHardwareProfileConfig = (
 
   const { dashboardNamespace } = useDashboardNamespace();
 
+  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const { kueueFilteringState } = useKueueConfiguration(currentProject);
+
   React.useEffect(() => {
     if (!profilesLoaded || formData.selectedProfile) {
       return;
@@ -171,7 +179,11 @@ export const useHardwareProfileConfig = (
 
       // if not editing existing profile, select the first enabled profile
       else {
-        selectedProfile = profiles.find((profile) => isHardwareProfileEnabled(profile));
+        const filteredProfiles = filterProfilesByKueue(
+          profiles.filter(isHardwareProfileEnabled),
+          kueueFilteringState,
+        );
+        selectedProfile = filteredProfiles.length > 0 ? filteredProfiles[0] : undefined;
         if (selectedProfile) {
           setFormData('resources', getContainerResourcesFromHardwareProfile(selectedProfile));
           setFormData('selectedProfile', selectedProfile);
@@ -192,6 +204,7 @@ export const useHardwareProfileConfig = (
     projectScopedProfiles,
     dashboardProfiles,
     dashboardNamespace,
+    kueueFilteringState,
   ]);
 
   return {

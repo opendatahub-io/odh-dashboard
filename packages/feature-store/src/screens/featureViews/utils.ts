@@ -35,7 +35,8 @@ const applyStoreTypeFilter = (featureViews: FeatureView[], filterString: string)
   const lowerFilterString = filterString.toLowerCase();
 
   return featureViews.filter((featureView) => {
-    const { online, offline } = featureView.spec;
+    const online = 'online' in featureView.spec ? featureView.spec.online : undefined;
+    const offline = 'offline' in featureView.spec ? featureView.spec.offline : undefined;
 
     const filterConditions = {
       online,
@@ -106,8 +107,8 @@ export const getFeatureViewType = (type: FeatureView['type']): string => {
       return 'Batch';
     case 'onDemandFeatureView':
       return 'On demand';
-    // case 'streamFeatureView':
-    //   return 'Stream';
+    case 'streamFeatureView':
+      return 'Stream';
   }
 };
 

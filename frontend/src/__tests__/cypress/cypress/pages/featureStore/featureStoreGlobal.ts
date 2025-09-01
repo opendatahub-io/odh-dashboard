@@ -36,6 +36,22 @@ class FeatureStoreGlobal {
     this.waitForFeatures();
   }
 
+  visitDataSets(project?: string) {
+    cy.visitWithLogin(
+      `/featureStore/dataSets${
+        project ? `/${project}` : ''
+      }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+    );
+    this.waitForDataSets();
+  }
+
+  visitDataSetDetails(project: string, dataSetName: string) {
+    cy.visitWithLogin(
+      `/featureStore/dataSets/${project}/${dataSetName}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+    );
+    this.waitForDataSetDetails(dataSetName);
+  }
+
   visitFeatureServices(project: string) {
     const projectName = project;
     cy.visitWithLogin(
@@ -105,13 +121,23 @@ class FeatureStoreGlobal {
     cy.testA11y();
   }
 
+  private waitForDataSets() {
+    cy.findByTestId('app-page-title').should('have.text', 'Datasets');
+    cy.testA11y();
+  }
+
+  private waitForDataSetDetails(dataSetName: string) {
+    cy.findByTestId('app-page-title').should('have.text', dataSetName);
+    cy.testA11y();
+  }
+
   private waitForFeatureServices() {
     cy.findByTestId('app-page-title').should('have.text', 'Feature services');
     cy.testA11y();
   }
 
   private waitForOverview() {
-    cy.findByTestId('app-page-title').should('have.text', 'Overview');
+    cy.findByTestId('app-page-title').should('have.text', 'Feature store');
     cy.testA11y();
   }
 
