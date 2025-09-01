@@ -1,7 +1,9 @@
+import { StorageProvisioner } from '@odh-dashboard/internal/pages/storageClasses/storageEnums';
 import type {
   CommandLineResult,
   StorageClassConfig,
   SCReplacements,
+  SCAccessMode,
 } from '#~/__tests__/cypress/cypress/types';
 import {
   createStorageClass,
@@ -19,8 +21,12 @@ import { createCleanProject } from './projectChecker';
  * (Settings -> Storage Classes)
  *
  * @param scName Project Name
+ * @param scAccessMode (Optional) Access Mode object in format of {"ReadWriteOnce":false}
  */
-export const provisionStorageClassFeature = (scName: string): string[] => {
+export const provisionStorageClassFeature = (
+  scName: string,
+  scAccessMode: SCAccessMode = { ReadWriteOnce: true },
+): string[] => {
   const createdStorageClasses: string[] = [];
 
   //Provision a disabled non-default sc
@@ -29,6 +35,8 @@ export const provisionStorageClassFeature = (scName: string): string[] => {
     SC_NAME: scNameDisabledNonDefault,
     SC_IS_DEFAULT: 'false',
     SC_IS_ENABLED: 'false',
+    SC_ACCESS_MODE: JSON.stringify(scAccessMode),
+    SC_PROVISIONER: StorageProvisioner.CINDER_CSI,
   };
   createStorageClass(SCReplacement);
   createdStorageClasses.push(scNameDisabledNonDefault);
@@ -39,6 +47,8 @@ export const provisionStorageClassFeature = (scName: string): string[] => {
     SC_NAME: scNameEnabledNonDefault,
     SC_IS_DEFAULT: 'false',
     SC_IS_ENABLED: 'true',
+    SC_ACCESS_MODE: JSON.stringify(scAccessMode),
+    SC_PROVISIONER: StorageProvisioner.CINDER_CSI,
   };
   createStorageClass(SCReplacement);
   createdStorageClasses.push(scNameEnabledNonDefault);
@@ -49,11 +59,35 @@ export const provisionStorageClassFeature = (scName: string): string[] => {
     SC_NAME: scNameEnabledToDefault,
     SC_IS_DEFAULT: 'false',
     SC_IS_ENABLED: 'true',
+    SC_ACCESS_MODE: JSON.stringify(scAccessMode),
+    SC_PROVISIONER: StorageProvisioner.CINDER_CSI,
   };
   createStorageClass(SCReplacement);
   createdStorageClasses.push(scNameEnabledToDefault);
 
   return createdStorageClasses;
+};
+
+/**
+ * Provision (using oc) a storage class based on a given name, provisioner and access modes
+ * @param scName Storage class name to create
+ * @param provisioner Expected provisioner
+ * @param scAccessMode Expected access mode
+ */
+export const provisionStorageClass = (
+  scName: string,
+  provisioner = StorageProvisioner.CINDER_CSI,
+  scAccessMode: SCAccessMode = { ReadWriteOnce: true },
+): string => {
+  const SCReplacement: SCReplacements = {
+    SC_NAME: scName,
+    SC_IS_DEFAULT: 'false',
+    SC_IS_ENABLED: 'true',
+    SC_ACCESS_MODE: JSON.stringify(scAccessMode),
+    SC_PROVISIONER: provisioner,
+  };
+  createStorageClass(SCReplacement);
+  return scName;
 };
 
 export const tearDownStorageClassFeature = (createdSC: string[]): void => {
@@ -99,6 +133,7 @@ export const parseStorageClassConfig = (result: CommandLineResult): StorageClass
     isEnabled: rawConfig.isEnabled,
     displayName: rawConfig.displayName,
     description: rawConfig.description,
+    accessModeSettings: rawConfig.accessModeSettings,
   };
 
   // If description is undefined, remove it from the final object
@@ -117,6 +152,7 @@ export const parseStorageClassConfig = (result: CommandLineResult): StorageClass
  * @param expectedIsEnabled (Optional) expected isEnabled
  * @param expectedDisplayName (Optional) expected Display Name
  * @param expectedDescription (Optional) expected Description
+ * @param expectedAccessModes (Optional) expected access modes
  */
 export const verifyStorageClassConfig = (
   scName: string,
@@ -124,8 +160,9 @@ export const verifyStorageClassConfig = (
   expectedIsEnabled?: boolean,
   expectedDisplayName?: string,
   expectedDescription?: string,
-): Cypress.Chainable<CommandLineResult> =>
-  getStorageClassConfig(scName).then((result) => {
+  expectedAccessModes?: SCAccessMode,
+): Cypress.Chainable<CommandLineResult> => {
+  return getStorageClassConfig(scName).then((result) => {
     const config = parseStorageClassConfig(result);
 
     if (expectedIsDefault !== undefined) {
@@ -147,6 +184,11 @@ export const verifyStorageClassConfig = (
         cy.wrap(config.description).should('equal', expectedDescription);
       }
     }
+
+    if (expectedDescription !== undefined) {
+      cy.wrap(config.accessModeSettings).should('equal', expectedAccessModes);
+    }
     cy.log('Storage Class Config:', JSON.stringify(config));
     return cy.wrap(result);
   });
+};

@@ -69,6 +69,7 @@ type HandlersProps = {
   disableWorkbenches?: boolean;
   namespace?: string;
   disableLlamaStackChatBot?: boolean;
+  disableKueue?: boolean;
   inferenceServices?: InferenceServiceKind[];
   servingRuntimes?: ServingRuntimeKind[];
 };
@@ -95,6 +96,7 @@ const initIntercepts = ({
   disableWorkbenches = false,
   namespace = 'test-project',
   disableLlamaStackChatBot = false,
+  disableKueue = true,
   inferenceServices = [],
   servingRuntimes = [],
 }: HandlersProps) => {
@@ -149,6 +151,7 @@ const initIntercepts = ({
       disableNIMModelServing: disableNIMConfig,
       disableKServeMetrics,
       disableLlamaStackChatBot,
+      disableKueue,
     }),
   );
   if (pipelineServerInstalled) {
@@ -1162,6 +1165,44 @@ describe('Project Details', () => {
       projectDetails.visitSection('test-project', 'cluster-storages');
 
       cy.get('th').contains('Connected workbenches').should('not.exist');
+    });
+  });
+
+  describe('Kueue disabled for Kueue-enabled project', () => {
+    beforeEach(() => {
+      initIntercepts({
+        disableKueue: true, // Kueue feature flag disabled
+        enableModelMesh: false, // Use KServe for model serving
+        templates: true, // Enable serving runtime templates
+      });
+      initModelServingIntercepts({ isEmpty: true });
+    });
+
+    it('should show Kueue alert and disable create workbench and deploy model buttons', () => {
+      // Create a Kueue-enabled project
+      const kueueEnabledProject = mockProjectK8sResource({
+        enableModelMesh: false,
+      });
+      kueueEnabledProject.metadata.labels = {
+        ...kueueEnabledProject.metadata.labels,
+        'kueue.openshift.io/managed': 'true', // Make project Kueue-enabled
+      };
+
+      cy.interceptK8s(ProjectModel, kueueEnabledProject);
+      cy.interceptK8sList(ProjectModel, mockK8sResourceList([kueueEnabledProject]));
+
+      projectDetails.visit('test-project');
+
+      // 1. Verify Kueue alert is displayed
+      cy.findByTestId('kueue-disabled-alert-project-details').should('be.visible');
+
+      // 2. Verify create workbench button is disabled
+      projectDetails.visitSection('test-project', 'workbenches');
+      cy.findByTestId('create-workbench-button').should('have.attr', 'aria-disabled', 'true');
+
+      // 3. Verify deploy model button is disabled
+      projectDetails.visitSection('test-project', 'model-server');
+      cy.findByTestId('deploy-button').should('have.attr', 'aria-disabled', 'true');
     });
   });
 });

@@ -146,7 +146,22 @@ func (h *OpenAPIHandler) HandleSwaggerUI(w http.ResponseWriter, r *http.Request,
                 plugins: [
                     SwaggerUIBundle.plugins.DownloadUrl
                 ],
-                layout: "StandaloneLayout"
+                layout: "StandaloneLayout",
+                // Enable authentication
+                onComplete: function() {
+                    // Add authentication button to the top bar
+                    const authBtn = ui.getSystem().authActions.authorize;
+                    if (authBtn) {
+                        // Trigger the authorize dialog
+                        authBtn();
+                    }
+                },
+                // Configure authentication
+                initOAuth: {
+                    clientId: "swagger-ui",
+                    realm: "swagger-ui",
+                    appName: "Llama Stack Modular UI API"
+                }
             });
         };
     </script>

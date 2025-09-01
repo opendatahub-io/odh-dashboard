@@ -8,7 +8,7 @@
           name: federation-config
 - op: add
   path: /spec/template/spec/containers/-
-  value: 
+  value:
     name: model-registry-ui
     image: $(model-registry-ui-image)
     imagePullPolicy: Always
@@ -46,14 +46,30 @@
       - name: proxy-tls
         mountPath: /etc/tls/private
         readOnly: true
+      - name: odh-trusted-ca-cert
+        mountPath: /etc/pki/tls/certs/odh-trusted-ca-bundle.crt
+        subPath: odh-trusted-ca-bundle.crt
+        readOnly: true
+      - name: odh-trusted-ca-cert
+        mountPath: /etc/ssl/certs/odh-trusted-ca-bundle.crt
+        subPath: odh-trusted-ca-bundle.crt
+        readOnly: true
+      - name: odh-ca-cert
+        mountPath: /etc/pki/tls/certs/odh-ca-bundle.crt
+        subPath: odh-ca-bundle.crt
+        readOnly: true
+      - name: odh-ca-cert
+        mountPath: /etc/ssl/certs/odh-ca-bundle.crt
+        subPath: odh-ca-bundle.crt
+        readOnly: true
     args:
-      - "--deployment-mode=federated"
-      - "--auth-method=user_token"
-      - "--auth-token-header=x-forwarded-access-token"
-      - "--auth-token-prefix="
-      - "--port=8043"
-      - "--cert-file=/etc/tls/private/tls.crt"
-      - "--key-file=/etc/tls/private/tls.key"
+      - '--deployment-mode=federated'
+      - '--auth-method=user_token'
+      - '--auth-token-header=x-forwarded-access-token'
+      - '--auth-token-prefix='
+      - '--port=8043'
+      - '--cert-file=/etc/tls/private/tls.crt'
+      - '--key-file=/etc/tls/private/tls.key'
     securityContext:
       allowPrivilegeEscalation: false
       capabilities:

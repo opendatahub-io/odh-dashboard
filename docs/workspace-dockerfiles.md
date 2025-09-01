@@ -4,7 +4,7 @@ This document explains the workspace-aware Dockerfile pattern used for building 
 
 ## Overview
 
-The ODH Dashboard uses a modular architecture with [Module Federation](./module-federation.md) to enable dynamic loading of UI components. Some packages in the `frontend/packages/` directory contain federated modules that depend on workspace packages and shared dependencies.
+The ODH Dashboard uses a modular architecture with [Module Federation](./module-federation.md) to enable dynamic loading of UI components. Federated modules now live under the root `packages/` directory (previously `frontend/packages/`) and depend on other workspace packages and shared dependencies (for example the main `frontend/` application and plugin core libraries).
 
 Traditional Dockerfiles that build from the package directory level fail for these modules because they cannot access workspace dependencies like `@odh-dashboard/plugin-core` and `@openshift/dynamic-plugin-sdk`.
 
@@ -27,7 +27,7 @@ Module not found: Error: Can't resolve '@openshift/dynamic-plugin-sdk'
 
 Workspace-aware Dockerfiles solve this problem by:
 
-1. **Building from the frontend directory level** - Provides access to all workspace packages
+1. **Building from the repository root** - Provides access to all workspace packages (root, frontend, backend, and module packages)
 2. **Installing workspace dependencies first** - Creates the workspace node_modules with all packages
 3. **Copying shared packages** - Ensures workspace packages are available during build
 4. **Installing federated dependencies** - Adds required Module Federation packages to the build context
@@ -38,7 +38,7 @@ The workspace Dockerfile follows this pattern:
 
 ```dockerfile
 # Multi-stage workspace-aware Dockerfile for Module Federation packages
-# Build from frontend directory: docker build --file ./packages/<module>/Dockerfile.workspace
+# Build from repository root: docker build --file ./packages/<module>/Dockerfile.workspace .
 
 # Source code arguments - can be overridden for different modules
 ARG MODULE_NAME=your-module
@@ -64,9 +64,6 @@ RUN npm ci --omit=optional
 # Set up the specific module
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
 
-# Install module-specific federated dependencies
-RUN npm install @openshift/dynamic-plugin-sdk@^5.0.1 --no-save
-
 # Install module dependencies and build
 RUN npm ci --omit=optional
 RUN npm run build:prod
@@ -79,8 +76,8 @@ Workspace Dockerfiles support parameterization through build arguments:
 | Argument | Description | Default |
 |----------|-------------|---------|
 | `MODULE_NAME` | Name of the module to build | `template` |
-| `UI_SOURCE_CODE` | Path to UI source relative to frontend dir | `./packages/${MODULE_NAME}/upstream/frontend` |
-| `BFF_SOURCE_CODE` | Path to BFF source relative to frontend dir | `./packages/${MODULE_NAME}/upstream/bff` |
+| `UI_SOURCE_CODE` | Path to UI source relative to repo root | `./packages/${MODULE_NAME}/upstream/frontend` |
+| `BFF_SOURCE_CODE` | Path to BFF source relative to repo root | `./packages/${MODULE_NAME}/upstream/bff` |
 | `NODE_BASE_IMAGE` | Base image for Node.js build stage | `registry.access.redhat.com/ubi9/nodejs-20:latest` |
 | `GOLANG_BASE_IMAGE` | Base image for Go build stage | `registry.access.redhat.com/ubi9/go-toolset:1.24` |
 | `DISTROLESS_BASE_IMAGE` | Base image for final runtime stage | `registry.access.redhat.com/ubi9-minimal:latest` |
@@ -90,8 +87,8 @@ Workspace Dockerfiles support parameterization through build arguments:
 ### Building a Specific Module
 
 ```bash
-# Navigate to the frontend directory (important!)
-cd frontend
+# (Build from repository root)
+cd ../.. # ensure you're at repo root if you were inside a subfolder
 
 # Build model-registry module
 docker build \
@@ -122,10 +119,9 @@ docker build \
    ARG MODULE_NAME=your-module
    ```
 
-3. Build from the frontend directory:
+3. Build from the repository root:
 
    ```bash
-   cd frontend
    docker build --file ./packages/your-module/Dockerfile.workspace --tag your-module:latest .
    ```
 
@@ -168,15 +164,14 @@ packages/*/upstream
 
 ## Best Practices
 
-### 1. Always Build from Frontend Directory
+### 1. Always Build from Repository Root
 
 ```bash
-# ✅ Correct - build from frontend directory
-cd frontend
+# ✅ Correct - build from repository root
 docker build --file ./packages/model-registry/Dockerfile.workspace --tag model-registry .
 
 # ❌ Wrong - build from package directory
-cd frontend/packages/model-registry
+cd packages/model-registry
 docker build --file ./Dockerfile.workspace --tag model-registry .
 ```
 
@@ -204,16 +199,6 @@ WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
 RUN npm ci --omit=optional  # missing workspace context
 ```
 
-### 4. Handle Federated Dependencies
-
-```dockerfile
-# ✅ Install required federated modules
-RUN npm install @openshift/dynamic-plugin-sdk@^5.0.1 --no-save
-
-# ❌ Assume federated modules are available
-# (will cause Module Federation runtime errors)
-```
-
 ## Troubleshooting
 
 ### Module Not Found Errors
@@ -222,22 +207,10 @@ RUN npm install @openshift/dynamic-plugin-sdk@^5.0.1 --no-save
 Module not found: Error: Can't resolve '@odh-dashboard/plugin-core'
 ```
 
-**Solution:** Ensure you're building from the frontend directory and copying workspace packages:
+**Solution:** Ensure you're building from the repository root and copying workspace packages:
 
 ```dockerfile
 COPY packages/plugin-core/ ./packages/plugin-core/
-```
-
-### Missing Federated Modules
-
-```text
-Error: Shared module @openshift/dynamic-plugin-sdk not found
-```
-
-**Solution:** Install federated dependencies in the module build context:
-
-```dockerfile
-RUN npm install @openshift/dynamic-plugin-sdk@^5.0.1 --no-save
 ```
 
 ### Large Build Context
@@ -272,6 +245,6 @@ Error: COPY failed: file not found in build context
 
 ## Examples in the Codebase
 
-- `frontend/packages/model-registry/Dockerfile.workspace` - Production workspace Dockerfile for Model Registry
-- `frontend/packages/template/Dockerfile.workspace` - Template for creating new workspace Dockerfiles
-- `frontend/.dockerignore` - Optimized dockerignore for workspace builds
+- `packages/model-registry/Dockerfile.workspace` - Production workspace Dockerfile for Model Registry
+- `packages/plugin-template/Dockerfile.workspace` - Template for creating new workspace Dockerfiles
+- `frontend/.dockerignore` - Optimized dockerignore for legacy frontend builds (module builds now use root context)
