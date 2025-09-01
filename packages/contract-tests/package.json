@@ -40,7 +40,10 @@
     "@types/js-yaml": "^4.0.9"
   },
   "exports": {
-    ".": "./dist/index.js",
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
     "./jest-config": "./jest-config/jest.config.ts",
     "./jest-config/hooks": "./jest-config/src/hooks.ts"
   },

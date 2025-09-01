@@ -9,4 +9,4 @@ export * from './api-client';
 export * from './schema-validator';
 export * from './bff-health';
 export * from './logging';
-export * from './matchers';
+export { toMatchContract } from './matchers/toMatchContract';
