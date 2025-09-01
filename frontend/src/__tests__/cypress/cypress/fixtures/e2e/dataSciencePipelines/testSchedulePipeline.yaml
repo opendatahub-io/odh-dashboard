@@ -1,0 +1,5 @@
+pipelineName: test-scheduled-pipeline
+pipelineDescription: Pipeline scheduled via E2E
+scheduleName: test-scheduled-run
+scheduleDescription: Scheduled run created by E2E
+pipelineUrl: https://raw.githubusercontent.com/opendatahub-io/odh-dashboard/refs/heads/main/frontend/src/__tests__/resources/pipelines_samples/dummy_pipeline_compiled.yaml
