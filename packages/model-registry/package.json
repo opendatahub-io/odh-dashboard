@@ -45,6 +45,6 @@
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/tsconfig": "*",
-    "@odh-dashboard/contract-tests": "*"
+    "@odh-dashboard/contract-tests": "workspace:*"
   }
 }
