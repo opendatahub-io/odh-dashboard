@@ -167,6 +167,7 @@ export type GetFeatureViews = (
   entity?: string,
   featureService?: string,
   feature?: string,
+  data_source?: string,
 ) => Promise<FeatureViewsList>;
 
 export type GetFeatureViewsByName = (
