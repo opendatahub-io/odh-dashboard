@@ -17,11 +17,17 @@ module.exports = {
       },
     ],
   },
+  moduleDirectories: ['node_modules', path.resolve(__dirname, '../../node_modules')],
   moduleNameMapper: {
     '^@odh-dashboard/contract-tests(.*)$': path.join(__dirname, 'src$1'),
     '^(\\.\\./)*src/(.*)$': path.join(__dirname, 'src/$2'),
+    // Compatibility: legacy hooks import path maps to shared hooks
+    '^@odh-dashboard/jest-config/hooks$': path.join(__dirname, 'jest-config/src/hooks.ts'),
   },
-  setupFilesAfterEnv: [path.join(__dirname, 'src/setup/setup.preset.js')],
+  setupFilesAfterEnv: [
+    path.join(__dirname, 'src/setup/setup.preset.js'),
+    path.join(__dirname, 'src/setup/setup.matchers.js'),
+  ],
   collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts'],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],

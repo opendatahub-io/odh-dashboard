@@ -1,5 +1,8 @@
 import * as React from 'react';
-import { createComparativeValue, renderHook, standardUseFetchState, testHook } from '../hooks';
+import { createComparativeValue, renderHook, testHook } from '../hooks';
+
+const standardUseFetchState = <D>(data: D, loaded = false, error?: Error) =>
+  [data, loaded, error, expect.any(Function)] as unknown[];
 
 const useSayHello = (who: string, showCount = false) => {
   const countRef = React.useRef(0);

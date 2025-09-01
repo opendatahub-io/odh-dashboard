@@ -7,11 +7,11 @@ A simple, zero-config contract testing solution for ODH Dashboard packages.
 Teams can run contract tests with just one command:
 
 ```bash
-# From any package directory
+# From any package directory (preferred via workspace)
 npm run test:contract
 
-# Or directly with Jest
-jest --config=../../contract-tests/jest.preset.js --testPathPattern=contract-tests
+# Add this script to your package.json
+# "test:contract": "npm exec -w @odh-dashboard/contract-tests odh-ct-bff-consumer -- --bff-dir $(pwd)/upstream/bff --consumer-dir $(pwd)/contract-tests --package-name <module>"
 ```
 
 ## What You Get
@@ -48,8 +48,8 @@ Add to your package.json:
     "@odh-dashboard/contract-tests": "workspace:*"
   },
   "scripts": {
-    "test:contract": "../contract-tests/scripts/run-go-bff-consumer.sh --bff-dir upstream/bff --consumer-dir contract-tests --package-name your-package-name",
-    "test:contract:watch": "../contract-tests/scripts/run-go-bff-consumer.sh --bff-dir upstream/bff --consumer-dir contract-tests --package-name your-package-name"
+    "test:contract": "npm exec -w @odh-dashboard/contract-tests odh-ct-bff-consumer -- --bff-dir $(pwd)/upstream/bff --consumer-dir $(pwd)/contract-tests --package-name <module>",
+    "test:contract:watch": "npm run test:contract"
   }
 }
 ```
@@ -78,55 +78,59 @@ flag.IntVar(&cfg.Port, "port", 8080, "API server port")
 
 Create test files in `contract-tests/__tests__/`:
 
-```typescript
-import { 
-  ContractApiClient, 
-  verifyBffHealth, 
-  ContractSchemaValidator 
-} from '@odh-dashboard/contract-tests';
+```javascript
+/* eslint-disable import/no-extraneous-dependencies, import/newline-after-import */
+const fs = require('fs');
+const path = require('path');
+const yaml = require('js-yaml');
+const { ContractApiClient } = require('@odh-dashboard/contract-tests');
 
 describe('Your API Contract Tests', () => {
-  let apiClient: ContractApiClient;
-  let schemaValidator: ContractSchemaValidator;
+  const api = new ContractApiClient({ baseUrl: 'http://localhost:8080' });
 
-  beforeAll(async () => {
-    // Verify BFF is healthy
-    await verifyBffHealth({ url: 'http://localhost:8080' });
-    
-    // Create API client
-    apiClient = new ContractApiClient({
-      baseUrl: 'http://localhost:8080'
+  // Option A: Use checked-in OpenAPI directly
+  const oasPath = path.resolve(process.cwd(), 'upstream/api/openapi/openapi.yaml');
+  const openApiDoc = yaml.load(fs.readFileSync(oasPath, 'utf8'));
+
+  it('validates response against OpenAPI', async () => {
+    const res = await api.get('/api/v1/resources', 'list');
+    expect({ status: res.status, data: res.data }).toMatchContract(openApiDoc, {
+      ref: '#/components/responses/ListResponse/content/application/json/schema',
+      expectedStatus: 200,
     });
-
-    // Set up schema validation
-    schemaValidator = new ContractSchemaValidator();
-    
-    // Load your schemas
-    const responseSchema = {
-      type: 'object',
-      properties: {
-        data: { type: 'array' },
-        total: { type: 'number' }
-      },
-      required: ['data', 'total']
-    };
-    
-    schemaValidator.loadSchema('ResponseSchema', responseSchema);
-  });
-
-  it('should return valid response', async () => {
-    const result = await apiClient.get('/api/v1/endpoint', 'Test Name');
-    expect(result.status).toBe(200);
-    
-    // Validate response schema
-    const validation = schemaValidator.validateResponse(
-      result.data, 
-      'ResponseSchema'
-    );
-    expect(validation.valid).toBe(true);
   });
 });
 ```
+
+## Schema Options
+
+You have three ways to provide schemas:
+
+- **Use checked-in OpenAPI (recommended)**
+  - Load YAML/JSON from your repo and validate with `expectContract(...).toMatchContract(openApiDoc, { ref, expectedStatus })`.
+
+- **Convert OpenAPI → JSON Schema with helpers**
+  ```javascript
+  /* eslint-disable import/no-extraneous-dependencies, import/newline-after-import */
+  const { createTestSchema, extractSchemaFromOpenApiResponse } = require('@odh-dashboard/contract-tests');
+  const responses = openApiDoc && openApiDoc.components && openApiDoc.components.responses ? openApiDoc.components.responses : {};
+  const myResp = responses['MyResponse'];
+  const schemaDef = extractSchemaFromOpenApiResponse({ 200: { content: { 'application/json': { schema: myResp } } } }, 200, 'application/json');
+  const testSchema = schemaDef ? createTestSchema({ 200: { content: { 'application/json': { schema: schemaDef } } } }, 'MyResponse') : null;
+  expect({ status: res.status, data: res.data }).toMatchContract(testSchema ? testSchema.schema : {}, { expectedStatus: 200 });
+  ```
+
+- **Fetch from a live Swagger/OpenAPI endpoint**
+  ```javascript
+  /* eslint-disable import/no-extraneous-dependencies, import/newline-after-import */
+  const axios = require('axios');
+  const openApiUrl = process.env.OPENAPI_URL || '';
+  const { data: liveOpenApi } = await axios.get(openApiUrl);
+  expect({ status: res.status, data: res.data }).toMatchContract(liveOpenApi, {
+    ref: '#/components/responses/MyResponse/content/application/json/schema',
+    expectedStatus: 200,
+  });
+  ```
 
 ## Mock BFF Requirements
 

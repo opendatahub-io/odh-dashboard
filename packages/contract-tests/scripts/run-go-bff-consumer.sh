@@ -20,7 +20,8 @@ EOF
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PACKAGE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Load shell helpers from dist or src
+# Load shell helpers from dist or src. If not found (e.g., script executed via temp symlink),
+# try resolving from repository root via git and fallback to workspace path.
 HELPERS_DIST="$PACKAGE_ROOT/dist/helpers/shell-helpers.sh"
 HELPERS_SRC="$PACKAGE_ROOT/src/helpers/shell-helpers.sh"
 if [[ -f "$HELPERS_DIST" ]]; then
@@ -30,8 +31,26 @@ elif [[ -f "$HELPERS_SRC" ]]; then
   # shellcheck disable=SC1090
   source "$HELPERS_SRC"
 else
-  echo "❌ Could not find shell helpers in dist/ or src/"
-  exit 1
+  # Attempt to resolve repo root and retry
+  if REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null); then
+    ALT_PACKAGE_ROOT="$REPO_ROOT/packages/contract-tests"
+    ALT_HELPERS_DIST="$ALT_PACKAGE_ROOT/dist/helpers/shell-helpers.sh"
+    ALT_HELPERS_SRC="$ALT_PACKAGE_ROOT/src/helpers/shell-helpers.sh"
+    if [[ -f "$ALT_HELPERS_DIST" ]]; then
+      # shellcheck disable=SC1090
+      source "$ALT_HELPERS_DIST"
+    elif [[ -f "$ALT_HELPERS_SRC" ]]; then
+      # shellcheck disable=SC1090
+      source "$ALT_HELPERS_SRC"
+    else
+      echo "❌ Could not find shell helpers in dist/ or src/"
+      exit 1
+    fi
+    PACKAGE_ROOT="$ALT_PACKAGE_ROOT"
+  else
+    echo "❌ Could not find shell helpers in dist/ or src/"
+    exit 1
+  fi
 fi
 
 BFF_DIR=""
@@ -175,7 +194,8 @@ export CONTRACT_MOCK_BFF_URL="http://localhost:8080"
 
 # Use shared CLI to run consumer tests
 log_info "Running contract tests against Mock BFF..."
-"$PACKAGE_ROOT/scripts/run-consumer-with-mock-bff.sh" -c "$CONSUMER_DIR" -n "$PACKAGE_NAME" -r "$RESULTS_DIR" -j "$PACKAGE_ROOT/jest.preset.js"
+CONSUMER_RUNNER="$PACKAGE_ROOT/scripts/run-consumer-with-mock-bff.sh"
+"$CONSUMER_RUNNER" -c "$CONSUMER_DIR" -n "$PACKAGE_NAME" -r "$RESULTS_DIR" -j "$PACKAGE_ROOT/jest.preset.js"
 exit_code=$?
 
 # Display test summary and open coverage report

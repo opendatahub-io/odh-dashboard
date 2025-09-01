@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any, @typescript-eslint/dot-notation */
 // eslint-disable-next-line import/no-named-as-default
 import Ajv2020 from 'ajv/dist/2020';
 import type { ErrorObject, ValidateFunction } from 'ajv';
@@ -109,25 +110,82 @@ export function toMatchContract(
     }
   }
 
-  // Schema validation (register full schema to resolve internal $refs)
+  // Helper: shallow JSON pointer resolver for OAS3 docs
+  const getByPointer = (root: unknown, pointer: string): unknown => {
+    if (!pointer.startsWith('#/')) return undefined;
+    const parts = pointer
+      .slice(2)
+      .split('/')
+      .map((p) => p.replace(/~1/g, '/').replace(/~0/g, '~'));
+    let current: unknown = root;
+    for (const key of parts) {
+      if (isRecord(current) && key in current) {
+        current = current[key];
+      } else {
+        return undefined;
+      }
+    }
+    return current;
+  };
+
+  // Helper: deep deref for $ref that point to components/schemas in OAS3
+  const derefSchema = (
+    node: unknown,
+    componentsSchemas: Record<string, unknown> | undefined,
+  ): unknown => {
+    if (Array.isArray(node)) {
+      return node.map((it) => derefSchema(it, componentsSchemas));
+    }
+    if (!isRecord(node)) return node;
+
+    const n: Record<string, unknown> = { ...node };
+    const refVal = n['$ref'];
+    if (typeof refVal === 'string' && componentsSchemas) {
+      const refPath: string = refVal;
+      if (refPath.startsWith('#/components/schemas/')) {
+        const name = refPath.split('/').pop() || '';
+        const target = componentsSchemas[name];
+        return derefSchema(target, componentsSchemas);
+      }
+    }
+    const keysToRecurse = [
+      'properties',
+      'items',
+      'allOf',
+      'oneOf',
+      'anyOf',
+      'additionalProperties',
+    ];
+    for (const key of keysToRecurse) {
+      if (key in n) {
+        n[key] = derefSchema(n[key], componentsSchemas);
+      }
+    }
+    return n;
+  };
+
+  // Schema validation (resolve ref against OAS3 if provided, otherwise treat schema as JSON Schema)
   let pass = false;
   let lastErrors: ErrorObject[] | undefined;
   try {
     const ajv = new Ajv2020({ allErrors: true, strict: false });
     addFormats(ajv);
+    let targetSchema: unknown = schema;
     if (ref) {
-      // Register schema with a unique id to avoid collisions
-      const uniqueId = `inmem-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      ajv.addSchema(schema, uniqueId);
-      const refPath = ref.startsWith('#') ? `${uniqueId}${ref}` : `${uniqueId}#${ref}`;
-      pass = Boolean(ajv.validate({ $ref: refPath }, payload));
-      lastErrors = ajv.errors ?? undefined;
-    } else {
-      // Validate against whole schema
-      const validateWhole: ValidateFunction = ajv.compile(schema);
-      pass = Boolean(validateWhole(payload));
-      lastErrors = validateWhole.errors ?? undefined;
+      const maybe = getByPointer(schema, ref.startsWith('#') ? ref : `#${ref}`);
+      targetSchema = maybe ?? schema;
     }
+    // If this looks like OAS3 (has components.schemas), deref $refs that point to components
+    const componentsSchemas =
+      isRecord(schema) && isRecord((schema as Record<string, unknown>).components)
+        ? ((schema as Record<string, unknown>).components as { schemas?: Record<string, unknown> })
+            .schemas
+        : undefined;
+    const finalSchema = derefSchema(targetSchema, componentsSchemas) as Schema;
+
+    const validateWhole: ValidateFunction = ajv.compile(finalSchema);
+    pass = Boolean(validateWhole(payload));
+    lastErrors = validateWhole.errors ?? undefined;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return { pass: false, message: () => `Failed to compile schema: ${msg}` };

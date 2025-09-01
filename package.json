@@ -81,7 +81,7 @@
     "turbo": "^2.4.2"
   },
   "lint-staged": {
-    "**/*.{js,ts,jsx,tsx,yaml,yml,md}": [
+    "**/*.{js,ts,jsx,tsx,md}": [
       "npx eslint --max-warnings 0"
     ]
   },

@@ -7,5 +7,5 @@ export default {
   testPathIgnorePatterns: ignorePatterns,
   modulePathIgnorePatterns: ignorePatterns,
   clearMocks: true,
-  collectCoverageFrom: [...config.collectCoverageFrom, '**/*.{ts,tsx}'],
+  collectCoverageFrom: ['**/*.{ts,tsx}'],
 };

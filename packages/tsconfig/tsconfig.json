@@ -22,7 +22,9 @@
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "paths": {
-      "@mf/*": ["../../frontend/@mf-types/@mf/*"]
+      "@mf/*": ["../../frontend/@mf-types/@mf/*"],
+      "@odh-dashboard/contract-tests/jest-config": ["../contract-tests/jest-config/jest.config.ts"],
+      "@odh-dashboard/contract-tests/jest-config/hooks": ["../contract-tests/jest-config/src/hooks.ts"]
     }
   },
   "include": [
@@ -33,5 +35,9 @@
     "${configDir}/**/**.cjs"
   ],
   "exclude": ["node_modules", "dist"],
-  "files": ["./typings.d.ts", "../jest-config/typings.d.ts"]
+  "files": [
+    "./typings.d.ts",
+    "../contract-tests/jest-config/typings.d.ts",
+    "../jest-config/typings.d.ts"
+  ]
 }

@@ -9,5 +9,11 @@ export {
   extractSchemaFromOpenApiResponse,
   convertOpenApiToJsonSchema,
 } from './schema-converter';
-export { validateContract, createContractMatcher } from './matchers';
+export {};
 export { runContractTests, type ContractTestOptions } from './runner';
+export {
+  OpenApiValidator,
+  type OpenApiSource,
+  type OperationSelector,
+  type ValidationResult,
+} from './openapi-validator';

@@ -7,8 +7,8 @@
     "build": "tsc",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:contract": "../contract-tests/scripts/run-go-bff-consumer.sh --bff-dir upstream/bff --consumer-dir contract-tests --package-name model-registry",
-    "test:contract:watch": "../contract-tests/scripts/run-go-bff-consumer.sh --bff-dir upstream/bff --consumer-dir contract-tests --package-name model-registry",
+    "test:contract": "npm exec -w @odh-dashboard/contract-tests odh-ct-bff-consumer -- --bff-dir $(pwd)/upstream/bff --consumer-dir $(pwd)/contract-tests --package-name model-registry",
+    "test:contract:watch": "npm run test:contract",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
@@ -47,6 +47,6 @@
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/tsconfig": "*",
-    "@odh-dashboard/contract-testing": "*"
+    "@odh-dashboard/contract-tests": "workspace:*"
   }
 }

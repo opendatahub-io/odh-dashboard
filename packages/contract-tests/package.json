@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Zero-config contract testing for ODH Dashboard packages",
   "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "types": "src/index.ts",
   "scripts": {
     "build": "tsc -p tsconfig.standalone.json",
     "type-check": "tsc -p tsconfig.json --noEmit",
@@ -13,11 +13,20 @@
     "lint:fix": "eslint . --fix",
     "clean": "rm -rf dist"
   },
+  "bin": {
+    "odh-ct-start-bff": "scripts/start-mock-bff.sh",
+    "odh-ct-stop-bff": "scripts/stop-mock-bff.sh",
+    "odh-ct-run": "scripts/run-consumer-tests.sh",
+    "odh-ct-bff-consumer": "scripts/run-go-bff-consumer.sh"
+  },
   "dependencies": {
     "axios": "^1.6.0",
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.1",
-    "jest-html-reporters": "^3.1.5"
+    "jest-html-reporters": "^3.1.5",
+    "@apidevtools/json-schema-ref-parser": "^11.0.0",
+    "openapi-response-validator": "^5.0.4",
+    "js-yaml": "^4.1.0"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "workspace:*",
@@ -27,7 +36,13 @@
     "eslint": "^8.0.0",
     "jest": "^29.0.0",
     "ts-jest": "^29.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "@types/js-yaml": "^4.0.9"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./jest-config": "./jest-config/jest.config.ts",
+    "./jest-config/hooks": "./jest-config/src/hooks.ts"
   },
   "peerDependencies": {
     "jest": "^29.0.0"

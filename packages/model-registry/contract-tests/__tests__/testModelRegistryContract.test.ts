@@ -1,47 +1,40 @@
 /* eslint-env jest */
-import * as fs from 'fs';
-import * as path from 'path';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { ContractSchemaValidator } from '@odh-dashboard/contract-tests/schema-validator';
+import { ContractApiClient } from '@odh-dashboard/contract-tests';
 
-describe('Model Registry Contract Tests', () => {
-  let schemaValidator: ContractSchemaValidator;
+describe('Model Registry List Endpoint', () => {
+  const baseUrl = process.env.CONTRACT_MOCK_BFF_URL || 'http://localhost:8080';
+  const apiClient = new ContractApiClient({
+    baseUrl,
+    defaultHeaders: {
+      'kubeflow-userid': 'dev-user@example.com',
+      'kubeflow-groups': 'system:masters',
+    },
+  });
 
-  beforeAll(() => {
-    schemaValidator = new ContractSchemaValidator();
+  const path = require('path');
+  const fs = require('fs');
+  const yaml = require('js-yaml');
+  const openApiPath = path.resolve(process.cwd(), 'upstream/api/openapi/mod-arch.yaml');
+  const openApiDoc = yaml.load(fs.readFileSync(openApiPath, 'utf8')) as Record<string, unknown>;
+  const apiSchema = openApiDoc;
 
-    // Load schemas from external JSON files
-    const schemasPath = path.join(__dirname, '../schemas');
-    const modelRegistrySchemas = JSON.parse(
-      fs.readFileSync(path.join(schemasPath, 'model-registry-api.json'), 'utf8'),
+  it('should successfully retrieve model registries list', async () => {
+    const result = await apiClient.get('/api/v1/model_registry?namespace=default', 'list-default');
+    // Expect-style contract matcher, aligned with PR style
+    expect({ status: result.status, data: result.data }).toMatchContract(apiSchema, {
+      ref: '#/components/responses/ModelRegistryRespone/content/application/json/schema',
+      expectedStatus: 200,
+    });
+  });
+
+  it('should handle empty registry list', async () => {
+    const result = await apiClient.get(
+      '/api/v1/model_registry?namespace=nonexistent',
+      'list-empty',
     );
-
-    // Load the entire schema document to resolve internal $refs
-    schemaValidator.loadSchema('ModelRegistryAPI', modelRegistrySchemas);
-
-    // Load health check schema
-    const healthSchema = {
-      type: 'object',
-      properties: {
-        status: { type: 'string', enum: ['healthy', 'unhealthy'] },
-      },
-      required: ['status'],
-    };
-    schemaValidator.loadSchema('HealthResponse', healthSchema);
-  });
-
-  it('should validate health response schema', () => {
-    const mockHealthResponse = { status: 'healthy' };
-
-    const validation = schemaValidator.validateResponse(mockHealthResponse, 'HealthResponse');
-    expect(validation.valid).toBe(true);
-  });
-
-  it('should reject invalid health response', () => {
-    const invalidHealthResponse = {};
-
-    const validation = schemaValidator.validateResponse(invalidHealthResponse, 'HealthResponse');
-    expect(validation.valid).toBe(false);
-    expect(validation.errors).toBeDefined();
+    expect({ status: result.status, data: result.data }).toMatchContract(apiSchema, {
+      ref: '#/components/responses/ModelRegistryRespone/content/application/json/schema',
+      expectedStatus: 200,
+    });
   });
 });

@@ -143,17 +143,25 @@ jobs:
             ~/.cache/Cypress
             **/node_modules
           key: ${{ needs.Setup.outputs.modules-cache-key }}
-      - name: Find modules with contract tests
+      - name: Find modules with contract tests changed in this PR/commit
         id: find-modules
         run: |
           set -euo pipefail
-          echo "🔍 Finding modules with contract tests..."
-          
-          # Look for packages with contract-tests directory
+          echo "🔍 Finding modules with contract tests that changed..."
+
+          # Determine changed files
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...${{ github.sha }})
+          else
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD || true)
+          fi
+
           MODULES_WITH_CONTRACTS=""
           for module in packages/*/; do
+            module_name=$(basename "$module")
+            # Skip if module didn't change
+            echo "$CHANGED_FILES" | grep -q "^packages/${module_name}/" || continue
             if [ -d "${module}contract-tests" ] && [ -d "${module}upstream/bff" ]; then
-              module_name=$(basename "$module")
               echo "Found module with contract tests: $module_name"
               MODULES_WITH_CONTRACTS="$MODULES_WITH_CONTRACTS $module_name"
             fi
@@ -199,7 +207,6 @@ jobs:
 
   Get-Test-Groups:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
     outputs:
       test-groups: ${{ steps.set-groups.outputs.test-groups }}
     steps:

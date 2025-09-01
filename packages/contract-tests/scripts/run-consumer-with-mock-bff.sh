@@ -26,6 +26,7 @@ EOF
 # Resolve package root (this script lives in packages/contract-tests/scripts)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PACKAGE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$PACKAGE_ROOT/../.." && pwd)"
 
 # Load shell helpers from dist or src
 HELPERS_DIST="$PACKAGE_ROOT/dist/helpers/shell-helpers.sh"
@@ -109,6 +110,9 @@ export JEST_HTML_REPORTERS_DARK_THEME=false
 export JEST_HTML_REPORTERS_USE_CSS_FILE=false
 export JEST_HTML_REPORTERS_JSON=true
 export PACKAGE_NAME="$PACKAGE_NAME"
+
+# Ensure Node can resolve workspace-hoisted modules from repository root
+export NODE_PATH="$REPO_ROOT/node_modules${NODE_PATH:+:$NODE_PATH}"
 
 # Run tests
 pushd "$CONSUMER_DIR" >/dev/null

@@ -33,7 +33,7 @@ export function extractSchemaFromOpenApiResponse(
   statusCode = '200',
   contentType = 'application/json',
 ): OpenApiSchema | null {
-  const responseEntry = openApiResponse[statusCode];
+  const { [statusCode]: responseEntry } = openApiResponse;
   const hasResponse = Object.prototype.hasOwnProperty.call(openApiResponse, statusCode);
   if (!hasResponse || !responseEntry) {
     return null;
@@ -44,7 +44,8 @@ export function extractSchemaFromOpenApiResponse(
   if (!hasContent) {
     return null;
   }
-  const contentEntry = responseEntry.content[contentType];
+  const { content } = responseEntry;
+  const contentEntry = content ? content[contentType] : undefined;
   return contentEntry && contentEntry.schema ? contentEntry.schema : null;
 }
 
