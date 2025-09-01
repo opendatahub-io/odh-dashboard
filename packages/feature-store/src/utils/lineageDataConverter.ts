@@ -1,9 +1,5 @@
 import { EdgeStyle } from '@patternfly/react-topology';
-import {
-  LineageData,
-  LineageNode,
-  LineageEdge,
-} from '@odh-dashboard/internal/components/lineage/types';
+import { LineageData, LineageNode, LineageEdge } from '../screens/lineage/types';
 import { FeatureStoreLineage, LineageFeatureView } from '../types/lineage';
 import { Entity } from '../types/entities';
 import { DataSource } from '../types/dataSources';
@@ -22,6 +18,7 @@ export const convertFeatureStoreLineageToVisualizationData = (
     nodes.push({
       id: `entity-${entity.spec.name}`,
       label: `Entity: ${entity.spec.name}`,
+      fsObjectTypes: 'entity',
       entityType: 'entity',
       description: entity.spec.description,
       truncateLength: 30,
@@ -39,6 +36,7 @@ export const convertFeatureStoreLineageToVisualizationData = (
           ? 'Push'
           : 'Request'
       } Data Source: ${dataSource.name}`,
+      fsObjectTypes: 'data_source',
       entityType: 'batch_data_source',
       description: dataSource.description,
       truncateLength: 30,
@@ -74,8 +72,9 @@ export const convertFeatureStoreLineageToVisualizationData = (
           ? 'On demand'
           : 'Stream'
       } Feature View: ${name}`,
+      fsObjectTypes: 'feature_view',
       entityType: type,
-      features: features.length,
+      features,
       description,
       truncateLength: 40,
       layer: 2, // Position feature views in layer 2 (third from left)
@@ -86,6 +85,7 @@ export const convertFeatureStoreLineageToVisualizationData = (
     nodes.push({
       id: `featureservice-${featureService.spec.name}`,
       label: `FeatureService: ${featureService.spec.name}`,
+      fsObjectTypes: 'feature_service',
       entityType: 'feature_service',
       description: featureService.spec.description,
       truncateLength: 40,

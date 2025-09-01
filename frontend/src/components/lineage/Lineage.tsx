@@ -14,17 +14,20 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { PlusIcon } from '@patternfly/react-icons';
-import useLineageController from './useLineageController';
-import { useLineageSelection } from './useLineageSelection';
-import { createLineageTopologyControls } from './topologyControls';
 import {
   LineageProps,
   convertToLineageNodeModel,
   convertToLineageEdgeModel,
   TopologyEdgeModel,
-} from './types';
+} from '@odh-dashboard/feature-store/screens/lineage/types';
+import useLineageController from './useLineageController';
+import { useLineageSelection } from './useLineageSelection';
+import { useLineagePopover } from './useLineagePopover';
+import LineageNodePopover from './LineageNodePopover';
+import { createLineageTopologyControls } from './topologyControls';
+import { LineageClickProvider, useLineageClick } from './LineageClickContext';
 
-export const Lineage: React.FC<LineageProps> = ({
+const LineageInner: React.FC<LineageProps> = ({
   data,
   height = '600px',
   loading = false,
@@ -32,7 +35,9 @@ export const Lineage: React.FC<LineageProps> = ({
   emptyStateMessage = 'No lineage data available',
   onNodeSelect,
   className,
+  showNodePopover = true,
 }) => {
+  const { getLastClickPosition } = useLineageClick();
   const controller = useLineageController('lineage-graph');
 
   // Convert generic lineage data to topology format
@@ -44,11 +49,45 @@ export const Lineage: React.FC<LineageProps> = ({
     return data.edges.map(convertToLineageEdgeModel);
   }, [data.edges]);
 
+  // Initialize popover hook
+  const {
+    selectedNode: popoverNode,
+    popoverPosition,
+    isPopoverVisible,
+    showPopover,
+    hidePopover,
+  } = useLineagePopover({
+    data,
+    enabled: showNodePopover,
+  });
+
+  // Enhanced node selection handler that also shows popover
+  const handleNodeSelect = React.useCallback(
+    (nodeId: string | null) => {
+      onNodeSelect?.(nodeId);
+
+      // Show popover for selected node if enabled
+      if (nodeId && showNodePopover) {
+        // Get the current click position using the ref (avoids React batching issues)
+        const currentClickPosition = getLastClickPosition();
+        if (currentClickPosition) {
+          // Create a mock MouseEvent object with the position
+          const mockEvent = {
+            clientX: currentClickPosition.x,
+            clientY: currentClickPosition.y,
+          };
+          showPopover(nodeId, mockEvent);
+        }
+      }
+    },
+    [onNodeSelect, showNodePopover, showPopover, getLastClickPosition],
+  );
+
   // Use selection management hook
   const { selectedIds, highlightedIds } = useLineageSelection({
     controller,
     edges,
-    onNodeSelect,
+    onNodeSelect: handleNodeSelect,
   });
 
   // Load nodes and edges into controller when it's ready
@@ -170,6 +209,20 @@ export const Lineage: React.FC<LineageProps> = ({
           </VisualizationProvider>
         </TopologyView>
       </div>
+
+      {/* Node popover */}
+      <LineageNodePopover
+        node={popoverNode}
+        position={popoverPosition}
+        isVisible={isPopoverVisible}
+        onClose={hidePopover}
+      />
     </div>
   );
 };
+
+export const Lineage: React.FC<LineageProps> = (props) => (
+  <LineageClickProvider>
+    <LineageInner {...props} />
+  </LineageClickProvider>
+);

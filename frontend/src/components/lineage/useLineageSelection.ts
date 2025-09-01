@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { SELECTION_EVENT, Visualization } from '@patternfly/react-topology';
+import { TopologyEdgeModel } from '@odh-dashboard/feature-store/screens/lineage/types';
 import { findConnectedElements } from './graphUtils';
-import { TopologyEdgeModel } from './types';
 
 interface UseLineageSelectionProps {
   controller: Visualization | null;

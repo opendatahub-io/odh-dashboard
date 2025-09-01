@@ -1,11 +1,22 @@
 import { EdgeStyle, NodeModel } from '@patternfly/react-topology';
-import { LineageEntityType } from './LineageNode';
+import { FeatureColumns } from '../../types/features';
+
+export type LineageEntityType =
+  | 'entity'
+  | 'batch_data_source'
+  | 'push_data_source'
+  | 'request_data_source'
+  | 'batch_feature_view'
+  | 'on_demand_feature_view'
+  | 'stream_feature_view'
+  | 'feature_service';
 
 export interface LineageNode {
   id: string;
   label: string;
   entityType: LineageEntityType;
-  features?: number;
+  fsObjectTypes: 'entity' | 'data_source' | 'feature_view' | 'feature_service';
+  features?: FeatureColumns[];
   description?: string;
   truncateLength?: number;
   layer?: number; // Optional layer for positioning (0=leftmost, higher=rightward)
@@ -34,6 +45,7 @@ export interface LineageProps {
   onNodeSelect?: (nodeId: string | null) => void;
   className?: string;
   title?: string;
+  showNodePopover?: boolean; // Enable/disable node popover functionality (default: true)
 }
 
 export const convertToLineageNodeModel = (node: LineageNode): NodeModel => {

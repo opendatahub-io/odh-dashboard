@@ -14,14 +14,11 @@ import {
   TaskNodeSourceAnchor,
   TaskNodeTargetAnchor,
 } from '@patternfly/react-topology';
-import { DatabaseIcon, CubeIcon, CodeBranchIcon, BuildIcon } from '@patternfly/react-icons';
-import {
-  chart_color_blue_200 as chartColorBlue,
-  chart_color_green_200 as chartColorGreen,
-  chart_color_purple_200 as chartColorPurple,
-  chart_color_black_500 as chartColorBlack,
-} from '@patternfly/react-tokens';
+import { CubeIcon } from '@patternfly/react-icons';
+import { chart_color_black_500 as chartColorBlack } from '@patternfly/react-tokens';
+import { getEntityTypeIcon } from '@odh-dashboard/feature-store/utils/featureStoreObjects';
 import { useEdgeHighlighting } from './edge/edgeStateUtils';
+import { useLineageClick } from './LineageClickContext';
 
 // Define the types of lineage entities
 export type LineageEntityType =
@@ -46,33 +43,12 @@ type LineageNodeProps = {
   element: GraphElement;
 } & WithSelectionProps;
 
-// Icon mapping for different entity types
-const getEntityIcon = (entityType: LineageEntityType, selected = false) => {
-  const iconColor = selected ? '#ffffff' : undefined;
-
-  switch (entityType) {
-    case 'entity':
-      return <CodeBranchIcon style={{ color: iconColor || chartColorBlack.value }} />;
-    case 'batch_data_source':
-    case 'push_data_source':
-    case 'request_data_source':
-      return <DatabaseIcon style={{ color: iconColor || chartColorBlue.value }} />;
-    case 'batch_feature_view':
-    case 'on_demand_feature_view':
-    case 'stream_feature_view':
-      return <BuildIcon style={{ color: iconColor || chartColorPurple.value }} />;
-    case 'feature_service':
-      return <BuildIcon style={{ color: iconColor || chartColorGreen.value }} />;
-    default:
-      return <CubeIcon style={{ color: iconColor || chartColorBlack.value }} />;
-  }
-};
-
 const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = observer(
   ({ element, onSelect, selected }) => {
     const data = element.getData();
     const [hover, hoverRef] = useHover<SVGGElement>();
     const detailsLevel = element.getGraph().getDetailsLevel();
+    const { setClickPosition } = useLineageClick();
 
     // Get the current visualization state to check for highlighting
     const { isConnectedToSelection } = useEdgeHighlighting(element.getId(), selected);
@@ -94,7 +70,7 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
     );
 
     const entityIcon = data?.entityType ? (
-      getEntityIcon(data.entityType, selected)
+      getEntityTypeIcon(data.entityType, selected)
     ) : (
       <CubeIcon style={{ color: selected ? '#ffffff' : chartColorBlack.value }} />
     );
@@ -103,18 +79,35 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
 
     // Create badge for feature views showing feature count
     const badge = (() => {
+      const featureCount = data?.features?.length ?? 0;
       if (
         data?.entityType &&
         ['batch_feature_view', 'on_demand_feature_view', 'stream_feature_view'].includes(
           data.entityType,
         ) &&
-        data.features !== undefined &&
-        data.features > 0
+        featureCount > 0
       ) {
-        return `${data.features} feature${data.features === 1 ? '' : 's'}`;
+        return `${featureCount} feature${featureCount === 1 ? '' : 's'}`;
       }
       return undefined;
     })();
+
+    // Custom click handler that captures mouse position
+    const handleNodeClick = React.useCallback(
+      (e: React.MouseEvent) => {
+        // Store click position for popover positioning
+        setClickPosition({
+          x: e.clientX,
+          y: e.clientY,
+        });
+
+        // Call original selection handler with proper signature
+        if (onSelect) {
+          onSelect(e);
+        }
+      },
+      [setClickPosition, onSelect],
+    );
 
     return (
       <g
@@ -124,11 +117,13 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
           filter: isConnectedToSelection
             ? 'drop-shadow(0 0 6px rgba(0, 123, 255, 0.6))'
             : undefined,
+          cursor: 'pointer',
         }}
+        onClick={handleNodeClick} // Use our custom click handler
       >
         <TaskNode
           element={element}
-          onSelect={onSelect}
+          onSelect={() => undefined} // Disable default selection
           selected={selected}
           scaleNode={hover && detailsLevel !== ScaleDetailsLevel.high}
           status={RunStatus.Idle}
