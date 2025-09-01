@@ -33,7 +33,11 @@ export const convertFeatureStoreLineageToVisualizationData = (
     nodes.push({
       id: `datasource-${dataSource.name}`,
       label: `${
-        dataSource.type === 'batch' ? 'Batch' : dataSource.type === 'push' ? 'Push' : 'Request'
+        dataSource.type === 'BATCH_FILE'
+          ? 'Batch'
+          : dataSource.type === 'PUSH_SOURCE'
+          ? 'Push'
+          : 'Request'
       } Data Source: ${dataSource.name}`,
       entityType: 'batch_data_source',
       description: dataSource.description,
