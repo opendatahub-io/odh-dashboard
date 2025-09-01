@@ -65,7 +65,17 @@ const FeatureStore: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
                 aria-label="Metrics tab"
                 data-testid="metrics-tab"
                 tabContentId={`tabContent-${FeatureStoreTabs.METRICS}`}
-              />
+              >
+                <TabContent
+                  id={`tabContent-${FeatureStoreTabs.METRICS}`}
+                  eventKey={FeatureStoreTabs.METRICS}
+                  activeKey={activeTabKey}
+                  hidden={FeatureStoreTabs.METRICS !== activeTabKey}
+                  style={{ height: '100%' }}
+                >
+                  <Metrics />
+                </TabContent>
+              </Tab>
               <Tab
                 eventKey={FeatureStoreTabs.LINEAGE}
                 title={<TabTitleText>Lineage</TabTitleText>}
@@ -76,15 +86,6 @@ const FeatureStore: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
             </Tabs>
           </FlexItem>
           <FlexItem flex={{ default: 'flex_1' }} style={{ overflowY: 'hidden' }}>
-            <TabContent
-              id={`tabContent-${FeatureStoreTabs.METRICS}`}
-              eventKey={FeatureStoreTabs.METRICS}
-              activeKey={activeTabKey}
-              hidden={FeatureStoreTabs.METRICS !== activeTabKey}
-              style={{ height: '100%' }}
-            >
-              <Metrics />
-            </TabContent>
             <TabContent
               id={`tabContent-${FeatureStoreTabs.LINEAGE}`}
               eventKey={FeatureStoreTabs.LINEAGE}
