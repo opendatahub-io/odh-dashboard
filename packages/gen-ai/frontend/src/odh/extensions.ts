@@ -1,16 +1,27 @@
 import type {
-  HrefNavItemExtension,
+  NavExtension,
+  RouteExtension,
   AreaExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 
 const PLUGIN_GEN_AI = 'plugin-gen-ai';
 
-const extensions: (AreaExtension | HrefNavItemExtension)[] = [
+const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.area',
     properties: {
       id: PLUGIN_GEN_AI,
       devFlags: ['Gen AI plugin'],
+    },
+  },
+  {
+    type: 'app.navigation/section',
+    flags: {
+      required: [PLUGIN_GEN_AI],
+    },
+    properties: {
+      id: 'gen-ai-v3',
+      title: 'GEN AI V3',
     },
   },
   {
@@ -22,8 +33,18 @@ const extensions: (AreaExtension | HrefNavItemExtension)[] = [
       id: 'chat-playground',
       title: 'Chat playground',
       href: '/chat-playground',
-      section: 'models',
+      section: 'gen-ai-v3',
       path: '/chat-playground/*',
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [PLUGIN_GEN_AI],
+    },
+    properties: {
+      path: '/chat-playground/*',
+      component: () => import('./GenAiWrapper'),
     },
   },
 ];

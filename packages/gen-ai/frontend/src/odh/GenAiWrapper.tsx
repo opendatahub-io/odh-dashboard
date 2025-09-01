@@ -9,10 +9,10 @@ const modularArchConfig: ModularArchConfig = {
   BFF_API_VERSION: 'v1',
 };
 
-const LlamaStackWrapper: React.FC = () => (
+const GenAiWrapper: React.FC = () => (
   <ModularArchContextProvider config={modularArchConfig}>
     <AppRoutes />
   </ModularArchContextProvider>
 );
 
-export default LlamaStackWrapper;
+export default GenAiWrapper;
