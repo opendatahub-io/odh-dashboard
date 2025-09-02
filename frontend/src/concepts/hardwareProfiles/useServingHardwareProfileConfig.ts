@@ -7,7 +7,6 @@ import {
 
 export const extractHardwareProfileConfigFromInferenceService = (
   inferenceService?: InferenceServiceKind | null,
-  isProjectScoped?: boolean,
 ): Parameters<typeof useHardwareProfileConfig> => {
   const legacyName =
     inferenceService?.metadata.annotations?.['opendatahub.io/legacy-hardware-profile-name'];
@@ -26,7 +25,7 @@ export const extractHardwareProfileConfigFromInferenceService = (
     tolerations,
     nodeSelector,
     [HardwareProfileFeatureVisibility.MODEL_SERVING],
-    isProjectScoped ? namespace : undefined,
+    namespace,
     hardwareProfileNamespace,
   ];
 };
@@ -44,7 +43,7 @@ const useServingHardwareProfileConfig = (
     visibility,
     namespace,
     hardwareProfileNamespace,
-  ] = extractHardwareProfileConfigFromInferenceService(inferenceService, isProjectScoped);
+  ] = extractHardwareProfileConfigFromInferenceService(inferenceService);
 
   return useHardwareProfileConfig(
     name,
@@ -52,7 +51,7 @@ const useServingHardwareProfileConfig = (
     tolerations,
     nodeSelector,
     visibility,
-    namespace,
+    isProjectScoped ? namespace : undefined,
     hardwareProfileNamespace,
   );
 };

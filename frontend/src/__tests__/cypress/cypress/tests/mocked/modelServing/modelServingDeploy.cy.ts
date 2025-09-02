@@ -16,12 +16,14 @@ import {
   modelServingWizardEdit,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import {
+  HardwareProfileModel,
   InferenceServiceModel,
   ProjectModel,
   ServingRuntimeModel,
   TemplateModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { ServingRuntimePlatform } from '#~/types';
+import { mockGlobalScopedHardwareProfiles } from '#~/__mocks__/mockHardwareProfile';
 
 const initIntercepts = () => {
   cy.interceptOdh(
@@ -43,6 +45,11 @@ const initIntercepts = () => {
     }),
   );
   cy.interceptOdh('GET /api/components', null, []);
+
+  cy.interceptK8sList(
+    { model: HardwareProfileModel, ns: 'opendatahub' },
+    mockK8sResourceList(mockGlobalScopedHardwareProfiles),
+  );
 
   cy.interceptK8sList(
     TemplateModel,
@@ -156,8 +163,8 @@ describe('Model Serving Deploy Wizard', () => {
       { model: InferenceServiceModel, ns: 'test-project' },
       mockK8sResourceList([
         mockInferenceServiceK8sResource({
-          hardwareProfileName: 'large-profile-1',
-          hardwareProfileNamespace: 'test-project',
+          hardwareProfileName: 'large-profile',
+          hardwareProfileNamespace: 'opendatahub',
           resources: {
             requests: {
               cpu: '4',
@@ -204,8 +211,8 @@ describe('Model Serving Deploy Wizard', () => {
     hardwareProfileSection.findHardwareProfileSearchSelector().should('be.visible');
     hardwareProfileSection
       .findHardwareProfileSearchSelector()
-      .should('contain.text', 'Large Profile-1');
-    hardwareProfileSection.findProjectScopedLabel().should('exist');
+      .should('contain.text', 'Large Profile');
+    hardwareProfileSection.findGlobalScopedLabel().should('exist');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
   });
 });

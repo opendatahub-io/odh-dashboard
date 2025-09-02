@@ -50,7 +50,10 @@ const EditModelDeploymentPage: React.FC = () => {
   const { namespace } = useParams();
 
   const { projects, loaded: projectsLoaded } = React.useContext(ProjectsContext);
-  const currentProject = projects.find(byName(namespace));
+  const currentProject = React.useMemo(
+    () => projects.find(byName(namespace)),
+    [projects, namespace],
+  );
 
   const { clusterPlatforms, clusterPlatformsLoaded, clusterPlatformsError } =
     useAvailableClusterPlatforms();
