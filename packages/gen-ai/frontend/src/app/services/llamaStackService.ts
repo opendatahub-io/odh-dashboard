@@ -18,7 +18,7 @@ import { URL_PREFIX } from '../utilities/const';
  * @throws Error - When the API request fails or returns an error response
  */
 export const getModels = (): Promise<LlamaModel[]> => {
-  const url = `${URL_PREFIX}/gen-ai/api/v1/models`;
+  const url = `${URL_PREFIX}/api/v1/models`;
   return axios
     .get(url)
     .then((response) => response.data.data)
@@ -39,7 +39,7 @@ export const getModels = (): Promise<LlamaModel[]> => {
 //Should be fixed by updating the API to return only the models of the specified type.
 //Leaving this here as a reminder for now as it is not being used anywhere.
 export const getModelsByType = (modelType: LlamaModelType): Promise<LlamaModel[]> => {
-  const url = `${URL_PREFIX}/gen-ai/api/v1/models?model_type=${modelType}`;
+  const url = `${URL_PREFIX}/api/v1/models?model_type=${modelType}`;
   return axios
     .get(url)
     .then((response) => response.data.data)
@@ -56,7 +56,7 @@ export const getModelsByType = (modelType: LlamaModelType): Promise<LlamaModel[]
  * @throws Error - When the API request fails or returns an error response
  */
 export const getVectorStores = (): Promise<VectorStore[]> => {
-  const url = `${URL_PREFIX}/gen-ai/api/v1/vectorstores`;
+  const url = `${URL_PREFIX}/api/v1/vectorstores`;
   return axios
     .get(url)
     .then((response) => response.data.data)
@@ -75,7 +75,7 @@ export const getVectorStores = (): Promise<VectorStore[]> => {
  * @throws Error - When the API request fails or returns an error response
  */
 export const createVectorStore = (vectorName: string): Promise<VectorStore> => {
-  const url = `${URL_PREFIX}/gen-ai/api/v1/vectorstores`;
+  const url = `${URL_PREFIX}/api/v1/vectorstores`;
   return axios
     .post(url, {
       name: vectorName,
@@ -99,7 +99,7 @@ export const uploadSource = (
   file: File,
   settings: ChatbotSourceSettings,
 ): Promise<FileUploadResult> => {
-  const url = `${URL_PREFIX}/gen-ai/api/v1/files/upload`;
+  const url = `${URL_PREFIX}/api/v1/files/upload`;
 
   // Create FormData for multipart/form-data upload
   const formData = new FormData();
@@ -133,7 +133,7 @@ export const uploadSource = (
  * @throws Error - When the API request fails or returns an error response.
  */
 export const createResponse = (request: CreateResponseRequest): Promise<SimplifiedResponseData> => {
-  const url = `${URL_PREFIX}/gen-ai/api/v1/responses`;
+  const url = `${URL_PREFIX}/api/v1/responses`;
   return axios
     .post(url, request)
     .then((response) => response.data.data)

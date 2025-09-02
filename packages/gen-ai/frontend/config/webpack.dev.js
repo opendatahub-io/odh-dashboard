@@ -56,7 +56,7 @@ module.exports = merge(
       },
       proxy: [
         {
-          context: ['/gen-ai', '/llama-stack/gen-ai'],
+          context: ['/api', '/gen-ai/api'],
           target: {
             host: PROXY_HOST,
             port: PROXY_PORT,

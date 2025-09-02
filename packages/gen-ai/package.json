@@ -10,8 +10,8 @@
     "tls": false,
     "proxy": [
       {
-        "path": "/llama-stack/gen-ai",
-        "pathRewrite": "/gen-ai"
+        "path": "/gen-ai/api",
+        "pathRewrite": "/api"
       }
     ],
     "local": {
