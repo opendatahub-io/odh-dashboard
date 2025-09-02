@@ -58,6 +58,7 @@ const LineageInner: React.FC<LineageProps> = ({
     hidePopover,
   } = useLineagePopover({
     data,
+    controller,
     enabled: showNodePopover,
   });
 
