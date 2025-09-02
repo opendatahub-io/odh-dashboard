@@ -8,8 +8,8 @@ import { getDeploymentWizardExitRoute } from './utils';
 import { useModelDeploymentWizard, type ModelDeploymentWizardData } from './useDeploymentWizard';
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
 import { ModelSourceStepContent } from './steps/ModelSourceStep';
-import { WizardFooterWithDisablingNext } from './WizardFooterWithDisablingNext';
 import { ModelDeploymentStepContent } from './steps/ModelDeploymentStep';
+import { WizardFooterWithDisablingNext } from './WizardFooterWithDisablingNext';
 
 type ModelDeploymentWizardProps = {
   title: string;
@@ -33,42 +33,61 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     navigate(getDeploymentWizardExitRoute(location.pathname));
   }, [navigate, location.pathname]);
 
-  const wizardState = useModelDeploymentWizard(existingData);
-  const validation = useModelDeploymentWizardValidation(wizardState.data);
-
   return (
     <ApplicationsPage title={title} description={description} loaded empty={false}>
-      <Wizard onClose={exitWizard} onSave={exitWizard} footer={<WizardFooterWithDisablingNext />}>
-        <WizardStep name="Source model" id="source-model-step">
-          <ModelSourceStepContent wizardState={wizardState} validation={validation.modelSource} />
-        </WizardStep>
-        <WizardStep
-          name="Model deployment"
-          id="model-deployment-step"
-          isDisabled={!validation.isModelSourceStepValid}
-        >
-          <ModelDeploymentStepContent
-            projectName={project.metadata.name}
-            wizardState={wizardState}
-          />
-        </WizardStep>
-        <WizardStep
-          name="Advanced options"
-          id="advanced-options-step"
-          isDisabled={!validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid}
-        >
-          Step 3 content
-        </WizardStep>
-        <WizardStep
-          name="Summary"
-          id="summary-step"
-          footer={{ nextButtonText: primaryButtonText }}
-          isDisabled={!validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid}
-        >
-          Review step content
-        </WizardStep>
-      </Wizard>
+      <ModelDeploymentWizardContent
+        primaryButtonText={primaryButtonText}
+        existingData={existingData}
+        project={project}
+        exitWizard={exitWizard}
+      />
     </ApplicationsPage>
+  );
+};
+
+type ModelDeploymentWizardContentProps = {
+  primaryButtonText: string;
+  existingData?: ModelDeploymentWizardData;
+  project: ProjectKind;
+  exitWizard: () => void;
+};
+const ModelDeploymentWizardContent: React.FC<ModelDeploymentWizardContentProps> = ({
+  primaryButtonText,
+  existingData,
+  project,
+  exitWizard,
+}) => {
+  const wizardState = useModelDeploymentWizard(existingData);
+  const validation = useModelDeploymentWizardValidation(wizardState.state);
+
+  return (
+    <Wizard onClose={exitWizard} onSave={exitWizard} footer={<WizardFooterWithDisablingNext />}>
+      <WizardStep name="Source model" id="source-model-step">
+        <ModelSourceStepContent wizardState={wizardState} validation={validation.modelSource} />
+      </WizardStep>
+      <WizardStep
+        name="Model deployment"
+        id="model-deployment-step"
+        isDisabled={!validation.isModelSourceStepValid}
+      >
+        <ModelDeploymentStepContent projectName={project.metadata.name} wizardState={wizardState} />
+      </WizardStep>
+      <WizardStep
+        name="Advanced options"
+        id="advanced-options-step"
+        isDisabled={!validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid}
+      >
+        Step 3 content
+      </WizardStep>
+      <WizardStep
+        name="Summary"
+        id="summary-step"
+        footer={{ nextButtonText: primaryButtonText }}
+        isDisabled={!validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid}
+      >
+        Review step content
+      </WizardStep>
+    </Wizard>
   );
 };
 

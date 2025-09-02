@@ -1,3 +1,4 @@
+import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
@@ -136,6 +137,16 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+    hardwareProfileSection.findHardwareProfileSearchSelector().click();
+    const globalScopedHardwareProfile = hardwareProfileSection.getGlobalScopedHardwareProfile();
+    globalScopedHardwareProfile
+      .find()
+      .findByRole('menuitem', {
+        name: /Medium/,
+        hidden: true,
+      })
+      .click();
+    hardwareProfileSection.findGlobalScopedLabel().should('exist');
     modelServingWizard.findNextButton().should('be.enabled').click();
   });
 
@@ -143,7 +154,22 @@ describe('Model Serving Deploy Wizard', () => {
     initIntercepts();
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
-      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+      mockK8sResourceList([
+        mockInferenceServiceK8sResource({
+          hardwareProfileName: 'large-profile-1',
+          hardwareProfileNamespace: 'test-project',
+          resources: {
+            requests: {
+              cpu: '4',
+              memory: '8Gi',
+            },
+            limits: {
+              cpu: '8',
+              memory: '16Gi',
+            },
+          },
+        }),
+      ]),
     );
     cy.interceptK8sList(
       { model: ServingRuntimeModel, ns: 'test-project' },
@@ -175,6 +201,11 @@ describe('Model Serving Deploy Wizard', () => {
       .findModelDeploymentNameInput()
       .should('have.value', 'Test Inference Service');
     modelServingWizardEdit.findModelDeploymentNameInput().type('test-model');
+    hardwareProfileSection.findHardwareProfileSearchSelector().should('be.visible');
+    hardwareProfileSection
+      .findHardwareProfileSearchSelector()
+      .should('contain.text', 'Large Profile-1');
+    hardwareProfileSection.findProjectScopedLabel().should('exist');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
   });
 });

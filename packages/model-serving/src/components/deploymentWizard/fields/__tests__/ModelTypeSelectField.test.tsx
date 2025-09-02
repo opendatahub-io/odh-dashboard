@@ -51,20 +51,20 @@ describe('ModelTypeSelectField', () => {
   describe('useModelTypeField hook', () => {
     it('should initialize with undefined by default', () => {
       const { result } = renderHook(() => useModelTypeField());
-      expect(result.current[0]).toBeUndefined();
+      expect(result.current.data).toBeUndefined();
     });
 
     it('should initialize with existing data', () => {
       const { result } = renderHook(() => useModelTypeField('predictive-model'));
-      expect(result.current[0]).toBe('predictive-model');
+      expect(result.current.data).toBe('predictive-model');
     });
 
     it('should update model type', () => {
       const { result } = renderHook(() => useModelTypeField());
       act(() => {
-        result.current[1]('generative-model');
+        result.current.setData('generative-model');
       });
-      expect(result.current[0]).toBe('generative-model');
+      expect(result.current.data).toBe('generative-model');
     });
   });
 
