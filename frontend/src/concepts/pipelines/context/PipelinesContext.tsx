@@ -10,7 +10,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { ExclamationTriangleIcon } from '@patternfly/react-icons';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { DSPipelineKind, DSPipelineManagedPipelinesKind, ProjectKind } from '#~/k8sTypes';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import DeletePipelineServerModal from '#~/concepts/pipelines/content/DeletePipelineServerModal';
@@ -319,11 +319,16 @@ export const PipelineServerTimedOut: React.FC = () => {
   return (
     <>
       <Bullseye style={{ minHeight: '300px' }}>
-        <EmptyState icon={ExclamationTriangleIcon} titleText="Pipeline server failed" variant="lg">
+        <EmptyState
+          icon={ExclamationCircleIcon}
+          titleText="Pipeline server failed"
+          variant="lg"
+          status="danger"
+        >
           <EmptyStateBody>
-            The {crName || 'server'} either could not start or be contacted. You must delete this
-            server to fix the issue, but this will also permanently delete all associated resources.
-            You will need to configure a new server afterward.
+            The {crName || 'pipeline server'} either could not start or be contacted. You must
+            delete this server to fix the issue, but this will also permanently delete all
+            associated resources. You will need to configure a new server afterward.
           </EmptyStateBody>
           <EmptyStateActions>
             <Button variant="primary" onClick={() => setDeleteOpen(true)}>
