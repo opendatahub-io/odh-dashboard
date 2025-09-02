@@ -37,6 +37,14 @@ const mockDeploymentWizardState = (
           data: undefined,
           setData: jest.fn(),
         },
+        modelLocationField: {
+          data: undefined,
+          setData: jest.fn(),
+        },
+        modelLocationData: {
+          data: undefined,
+          setData: jest.fn(),
+        },
         k8sNameDesc: {
           data: mockK8sNameDescriptionFieldData(),
           onDataChange: jest.fn(),
@@ -123,9 +131,10 @@ describe('ModelSourceStep', () => {
         <ModelSourceStepContent
           wizardState={mockDeploymentWizardState()}
           validation={mockValidation}
+          project={null}
         />,
       );
-      expect(screen.getByRole('button')).toBeInTheDocument();
+      expect(screen.getByTestId('model-type-select')).toBeInTheDocument();
     });
 
     it('should render with selected model type', () => {
@@ -140,6 +149,7 @@ describe('ModelSourceStep', () => {
         <ModelSourceStepContent
           wizardState={wizardDataWithSelection}
           validation={mockValidation}
+          project={null}
         />,
       );
       expect(screen.getByText('Generative AI model (e.g. LLM)')).toBeInTheDocument();
