@@ -127,7 +127,7 @@ const ConnectionTypeFormFields: React.FC<Props> = ({
   };
 
   const getFieldValue = (fieldName: string) => {
-    return fieldValues[fieldName] || '';
+    return fieldValues[fieldName] ?? '';
   };
 
   const fieldGroups = React.useMemo(
@@ -188,7 +188,7 @@ const ConnectionTypeFormFields: React.FC<Props> = ({
     if (connectionType === ConnectionTypeRefs.OCI) {
       return (
         <OCIConnectionField
-          ociHost={getFieldValue('OCI_REGISTRY_HOST')}
+          ociHost={getFieldValue('OCI_HOST')}
           modelUri={getFieldValue('OCI_MODEL_URI')}
           setModelUri={memoizedSetModelUri}
           isNewConnection
@@ -211,15 +211,12 @@ const ConnectionTypeFormFields: React.FC<Props> = ({
         fieldGroup.section ? (
           <SectionFormField field={fieldGroup.section} key={i} data-testid="fields-section">
             {renderDataFields(fieldGroup.fields)}
-            {renderAdditionalFields()}
           </SectionFormField>
         ) : (
-          <React.Fragment key={i}>
-            {renderDataFields(fieldGroup.fields)}
-            {renderAdditionalFields()}
-          </React.Fragment>
+          <React.Fragment key={i}>{renderDataFields(fieldGroup.fields)}</React.Fragment>
         ),
       )}
+      {renderAdditionalFields()}
     </>
   );
 };
