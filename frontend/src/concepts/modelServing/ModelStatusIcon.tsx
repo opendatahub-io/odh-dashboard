@@ -1,5 +1,5 @@
 import React from 'react';
-import { Label, LabelProps, Popover } from '@patternfly/react-core';
+import { Icon, Label, LabelProps, Popover } from '@patternfly/react-core';
 import {
   ExclamationCircleIcon,
   InProgressIcon,
@@ -18,6 +18,7 @@ type ModelStatusIconProps = {
   isCompact?: boolean;
   onClick?: LabelProps['onClick'];
   stoppedStates?: ToggleState;
+  hideLabel?: boolean;
 };
 
 export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
@@ -27,6 +28,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
   isCompact,
   onClick,
   stoppedStates,
+  hideLabel,
 }) => {
   const statusSettings = React.useMemo((): {
     label: string;
@@ -101,17 +103,26 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
       bodyContent={statusSettings.message || bodyContent}
       isVisible={bodyContent ? undefined : false}
     >
-      <Label
-        isCompact={isCompact}
-        color={statusSettings.color}
-        status={statusSettings.status}
-        icon={statusSettings.icon}
-        data-testid="model-status-text"
-        style={{ width: 'fit-content', cursor: 'pointer' }}
-        onClick={onClick}
-      >
-        {statusSettings.label}
-      </Label>
+      {hideLabel ? (
+        <Icon
+          style={{ cursor: 'pointer' }}
+          status={statusSettings.status}
+          color={statusSettings.color}
+          children={statusSettings.icon}
+        />
+      ) : (
+        <Label
+          isCompact={isCompact}
+          color={statusSettings.color}
+          status={statusSettings.status}
+          icon={statusSettings.icon}
+          data-testid="model-status-text"
+          style={{ width: 'fit-content', cursor: 'pointer' }}
+          onClick={onClick}
+        >
+          {statusSettings.label}
+        </Label>
+      )}
     </Popover>
   );
 };

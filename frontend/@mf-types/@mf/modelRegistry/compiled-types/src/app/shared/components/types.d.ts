@@ -46,3 +46,7 @@ export type ProjectKind = K8sResourceCommon & {
         phase: 'Active' | 'Terminating';
     };
 };
+export type NamespaceKind = {
+    name: string;
+    displayName?: string;
+};
