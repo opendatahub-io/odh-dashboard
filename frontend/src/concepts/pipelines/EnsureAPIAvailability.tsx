@@ -71,7 +71,7 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
             }}
             isDisabled={!deleteIsAvailable}
           >
-            Cancel and delete pipeline server
+            Cancel pipeline server setup
           </Button>
         </FlexItem>
         {isDeleting ? (
