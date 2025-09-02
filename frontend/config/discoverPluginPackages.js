@@ -43,15 +43,12 @@ function discoverPluginPackages() {
       .map((name) => name.trim())
       .filter(Boolean);
 
-    // Use a plain object map to avoid relying on global Set (ES env in lint)
-    const availablePluginsMap = Object.fromEntries(
-      availablePluginNames.map((name) => [name, true]),
-    );
+    const availablePluginsSet = new Set(availablePluginNames);
     const validPackages = [];
     const invalidPackages = [];
 
     for (const packageName of wantedPackageNames) {
-      if (availablePluginsMap[packageName]) {
+      if (availablePluginsSet.has(packageName)) {
         validPackages.push(packageName);
       } else {
         invalidPackages.push(packageName);

@@ -240,7 +240,7 @@ const useFetch = <Type>(
   const callRef = React.useRef(call);
   callRef.current = call;
 
-  const refresh = React.useCallback<FetchStateRefreshPromise<Type>>(function refresh() {
+  const refresh = React.useCallback<FetchStateRefreshPromise<Type>>(() => {
     abortCallbackRef.current();
     const [callPromise, unload] = callRef.current();
     abortCallbackRef.current = unload;
