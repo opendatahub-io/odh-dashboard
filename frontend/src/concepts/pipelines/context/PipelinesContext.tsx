@@ -319,23 +319,31 @@ export const PipelineServerTimedOut: React.FC = () => {
   return (
     <>
       <Bullseye style={{ minHeight: '300px' }}>
-        <EmptyState
-          icon={ExclamationCircleIcon}
-          titleText="Pipeline server failed"
-          variant="lg"
-          status="danger"
-        >
-          <EmptyStateBody>
-            The {crName || 'pipeline server'} either could not start or be contacted. You must
-            delete this server to fix the issue, but this will also permanently delete all
-            associated resources. You will need to configure a new server afterward.
-          </EmptyStateBody>
-          <EmptyStateActions>
-            <Button variant="primary" onClick={() => setDeleteOpen(true)}>
-              Delete pipeline server
-            </Button>
-          </EmptyStateActions>
-        </EmptyState>
+        <Stack hasGutter spaceItems={{ default: 'spaceItemsLg' }}>
+          <StackItem>
+            <EmptyState
+              icon={ExclamationCircleIcon}
+              titleText="Pipeline server failed"
+              variant="lg"
+              status="danger"
+            >
+              <EmptyStateBody>
+                The {crName || 'pipeline server'} either could not start or be contacted. You must
+                delete this server to fix the issue, but this will also permanently delete all
+                associated resources. You will need to configure a new server afterward.
+              </EmptyStateBody>
+              <EmptyStateActions>
+                <Button
+                  variant="primary"
+                  onClick={() => setDeleteOpen(true)}
+                  style={{ marginTop: '32px' }}
+                >
+                  Delete pipeline server
+                </Button>
+              </EmptyStateActions>
+            </EmptyState>
+          </StackItem>
+        </Stack>
       </Bullseye>
       {deleteOpen ? (
         <DeleteServerModal
