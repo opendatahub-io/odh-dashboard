@@ -13,6 +13,11 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
     usePipelinesAPI();
 
   const [showModal, setShowModal] = React.useState(false);
+  console.log(
+    'ensure api availability; namespace/pipelinesServer.name:',
+    namespace,
+    pipelinesServer.name,
+  );
 
   React.useEffect(() => {
     if (startingStatusModalOpenRef) {

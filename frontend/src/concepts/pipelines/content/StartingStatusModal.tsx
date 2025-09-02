@@ -45,6 +45,11 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
     (c) => c.type === 'Ready' && c.status === 'True',
   );
 
+  console.log(
+    'StartingStatusModal; namespace/pipelinesServer.name:',
+    namespace,
+    pipelinesServer.name,
+  );
   // Use the custom hook to get all events
   const allEvents = useWatchAllPodEventsAndFilter(namespace);
 
