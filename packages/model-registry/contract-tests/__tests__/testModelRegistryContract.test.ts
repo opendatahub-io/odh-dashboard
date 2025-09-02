@@ -1,5 +1,5 @@
 /* eslint-env jest */
-import { ContractApiClient } from '@odh-dashboard/contract-tests';
+import { ContractApiClient, loadOpenAPISchema } from '@odh-dashboard/contract-tests';
 
 describe('Model Registry List Endpoint', () => {
   const baseUrl = process.env.CONTRACT_MOCK_BFF_URL || 'http://localhost:8080';
@@ -11,12 +11,8 @@ describe('Model Registry List Endpoint', () => {
     },
   });
 
-  const path = require('path');
-  const fs = require('fs');
-  const yaml = require('js-yaml');
-  const openApiPath = path.resolve(process.cwd(), 'upstream/api/openapi/mod-arch.yaml');
-  const openApiDoc = yaml.load(fs.readFileSync(openApiPath, 'utf8')) as Record<string, unknown>;
-  const apiSchema = openApiDoc;
+  // Option 2: Load OpenAPI schema (recommended approach)
+  const apiSchema = loadOpenAPISchema('upstream/api/openapi/mod-arch.yaml');
 
   it('should successfully retrieve model registries list', async () => {
     const result = await apiClient.get('/api/v1/model_registry?namespace=default', 'list-default');

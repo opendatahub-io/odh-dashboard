@@ -123,7 +123,9 @@ export const standardUseFetchState = <D>(
   loaded = false,
   error?: Error,
 ): LocalFetchState<D> => {
-  const refresh: LocalFetchRefresh<D> = async () => undefined;
+  const refresh: LocalFetchRefresh<D> = async function refresh() {
+    return undefined;
+  };
   return [data, loaded, error, refresh];
 };
 
@@ -132,7 +134,9 @@ export const standardUseFetchStateObject = <D>(args: {
   loaded?: boolean;
   error?: Error;
 }): LocalFetchStateObject<D> => {
-  const refresh: LocalFetchRefresh<D> = async () => undefined;
+  const refresh: LocalFetchRefresh<D> = async function refresh() {
+    return undefined;
+  };
   return {
     data: args.data,
     loaded: args.loaded ?? false,

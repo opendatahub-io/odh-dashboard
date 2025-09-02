@@ -281,10 +281,10 @@ Everything is handled automatically by the Jest preset configuration.
 
 ## Schema Validation
 
-The main point of contract testing is to validate API responses against schemas:
+The main point of contract testing is to validate API responses against schemas. You have three options:
 
+### Option 1: Inline JSON Schema (Simple)
 ```typescript
-// Load your OpenAPI/JSON Schema
 const schema = {
   type: 'object',
   properties: {
@@ -295,14 +295,37 @@ const schema = {
   required: ['id', 'name', 'status']
 };
 
+expect({ status: result.status, data: result.data }).toMatchContract(schema, {
+  expectedStatus: 200,
+});
+```
+
+### Option 2: OpenAPI Reference (Recommended)
+```typescript
+// Load OpenAPI spec from upstream
+const path = require('path');
+const fs = require('fs');
+const yaml = require('js-yaml');
+
+const openApiPath = path.resolve(process.cwd(), 'upstream/api/openapi/spec.yaml');
+const openApiDoc = yaml.load(fs.readFileSync(openApiPath, 'utf8'));
+
+expect({ status: result.status, data: result.data }).toMatchContract(openApiDoc, {
+  ref: '#/components/responses/ModelRegistryResponse/content/application/json/schema',
+  expectedStatus: 200,
+});
+```
+
+### Option 3: Custom Schema Loader (Advanced)
+```typescript
+import { SchemaValidator } from '@odh-dashboard/contract-tests';
+
+const schemaValidator = new SchemaValidator();
 schemaValidator.loadSchema('UserResponse', schema);
 
 // Validate API response
 const result = await apiClient.get('/api/v1/users/123', 'Get User');
-const validation = schemaValidator.validateResponse(
-  result.data, 
-  'UserResponse'
-);
+const validation = schemaValidator.validateResponse(result.data, 'UserResponse');
 
 expect(validation.valid).toBe(true);
 ```

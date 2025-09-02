@@ -1,4 +1,4 @@
-import config from '@odh-dashboard/jest-config';
+import config from '@odh-dashboard/contract-tests/jest-config';
 
 const ignorePatterns = ['<rootDir>/__tests__/cypress/'];
 

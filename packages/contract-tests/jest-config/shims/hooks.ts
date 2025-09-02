@@ -1,5 +1,5 @@
 // Shim for legacy hooks export to keep function identity names stable for deep-equality tests
-// Import directly from the source to avoid moduleNameMapper recursion
+// Re-export directly to avoid any import issues
 export {
   renderHook,
   testHook,

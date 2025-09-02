@@ -1,10 +1,9 @@
 {
   "extends": "@odh-dashboard/tsconfig/tsconfig.json",
   "compilerOptions": {
-    "rootDir": "./",
     "outDir": "./dist",
     "paths": {
-      "@odh-dashboard/jest-config/hooks": ["jest-config/src/hooks.ts"]
+      "@odh-dashboard/jest-config/hooks": ["../../../jest-config/src/hooks.ts"]
     }
   },
   "include": ["src/**/*", "setup.base.ts", "jest-config/**/*"],

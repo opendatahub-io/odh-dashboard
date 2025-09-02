@@ -17,3 +17,4 @@ export {
   type OperationSelector,
   type ValidationResult,
 } from './openapi-validator';
+export { loadOpenAPISchema, createSchemaMatcher } from './schema-helpers';

@@ -20,6 +20,6 @@ export default {
       require.resolve('./config/transform.file.js'),
     '^monaco-editor$': require.resolve('./config/transform.file.js'),
     // Legacy hooks path (keep consumers working without local jest configs)
-    '^@odh-dashboard/jest-config/hooks$': '@odh-dashboard/jest-config/src/hooks.ts',
+    '^@odh-dashboard/jest-config/hooks$': require.resolve('./shims/hooks.ts'),
   },
 };
