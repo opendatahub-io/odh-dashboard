@@ -334,7 +334,6 @@ export const PipelineServerTimedOut: React.FC = () => {
       </Bullseye>
       {deleteOpen ? (
         <DeleteServerModal
-          removeConfirmation={true}
           onClose={() => {
             setDeleteOpen(false);
           }}

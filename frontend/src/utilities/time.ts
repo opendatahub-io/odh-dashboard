@@ -239,7 +239,9 @@ export const getTimeRangeCategory = (
     return 'longRange';
   }
 
-  const diffMinutes = (now - timestampMs) / 60000; // 60 000
+  // DANGER WILL ROBINSON!
+  // changed to half time..............
+  const diffMinutes = (now - timestampMs) / 120000; // 60 000
 
   if (diffMinutes < 0) {
     // Future timestamp – treat as shortest range
