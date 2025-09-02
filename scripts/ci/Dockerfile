@@ -44,11 +44,9 @@ RUN dnf install --nodocs -y \
     git \
     xorg-x11-server-Xvfb \
     krb5-workstation \
-    python3-pip \
     python3.11 \
     python3.11-devel \
     yq \
-    python3-distro \
     curl \
     openssl \
     chromedriver \
@@ -73,28 +71,30 @@ RUN chmod +x /usr/local/bin/droute
 # Install ca-certificates and prepare for corporate certificates
 RUN dnf install -y ca-certificates
 
-# Install Python Poetry
-RUN pip3 install poetry
+# Install pip for Python 3.11 and Poetry
+RUN python3.11 -m ensurepip --upgrade && \
+    python3.11 -m pip install --upgrade pip setuptools wheel && \
+    python3.11 -m pip install poetry
 
 # Clean system cache
 RUN dnf clean all
 RUN rm -rf /var/cache/yum
 
-# Set capability to adjust OOM score for Node
-RUN echo CAP_SYS_NICE >> /etc/security/limits.conf
-
 # Copy NodeJS packages lists (json files)
 WORKDIR $USER_HOME
-COPY ./package*.json ./
+COPY package*.json ./
 RUN chown $USER:0 ./*
 
-# Switch to the user, export env variables, and prepare NVM directories
+# Switch to the user and export env variables for the Cache directories
 USER $USER
 ENV USER $USER
 ENV HOME $USER_HOME
 ENV NVM_DIR $USER_HOME/nvm
 ENV NODE_PATH "$NVM_DIR/versions/node/$NODE_VERSION/lib/node_modules"
 ENV PATH "$NVM_DIR/versions/node/$NODE_VERSION/bin:/bin:$HOME/.local/bin:/root/.local/bin:/usr/local/bin:$NPM_CACHE/bin:/usr/bin:$PATH"
+ENV NPM_CONFIG_CACHE $NPM_CACHE
+ENV CYPRESS_CACHE_FOLDER $CYPRESS_CACHE
+ENV POETRY_CACHE_DIR $POETRY_CACHE
 RUN mkdir -p $NVM_DIR
 
 # Install Node Version Manager, NodeJS and the packages for CI (package-lock.json)
@@ -115,11 +115,6 @@ RUN /bin/bash -c "source $NVM_DIR/nvm.sh && \
     npm install --prefix=$NPM_CACHE -g \
     cypress \
     junit-report-merger"
-
-# Export environment variables for the Cache directories
-ENV NPM_CONFIG_CACHE $NPM_CACHE
-ENV CYPRESS_CACHE_FOLDER $CYPRESS_CACHE
-ENV POETRY_CACHE_DIR $POETRY_CACHE
 
 # Label the Image
 LABEL io.opendatahub.component="odh-cypress" \
