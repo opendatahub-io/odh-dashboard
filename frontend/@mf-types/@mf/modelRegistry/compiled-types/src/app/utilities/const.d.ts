@@ -1,4 +1,5 @@
-import { Theme, DeploymentMode } from 'mod-arch-shared';
+import { DeploymentMode } from 'mod-arch-core';
+import { Theme } from 'mod-arch-kubeflow';
 declare const STYLE_THEME: Theme;
 declare const DEPLOYMENT_MODE: DeploymentMode;
 declare const DEV_MODE: boolean;
