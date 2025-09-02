@@ -7,6 +7,8 @@ import type {
 } from '@odh-dashboard/plugin-core/extension-points';
 import { StatusReportLoader } from '#~/app/status-provider/StatusReportLoader';
 import { StatusReportIcon } from '#~/app/status-provider/StatusReportIcon';
+import { asEnumMember } from '#~/utilities/utils.ts';
+import { NavIconType } from '#~/concepts/design/utils.ts';
 import { NavItemTitle } from './NavItemTitle';
 
 type Props = {
@@ -16,7 +18,7 @@ type Props = {
 
 export const NavItemHref: React.FC<Props> = ({
   extension: {
-    properties: { href, path, dataAttributes, title, statusProviderId },
+    properties: { href, path, dataAttributes, title, statusProviderId, icon, label },
   },
   onNotifyStatus,
 }) => {
@@ -38,7 +40,9 @@ export const NavItemHref: React.FC<Props> = ({
         <Link {...dataAttributes} to={href}>
           <NavItemTitle
             title={title}
-            icon={status ? <StatusReportIcon status={status} isInline /> : null}
+            navIcon={asEnumMember(icon, NavIconType) ?? undefined}
+            statusIcon={status ? <StatusReportIcon status={status} isInline /> : null}
+            label={label}
           />
         </Link>
       </NavItem>

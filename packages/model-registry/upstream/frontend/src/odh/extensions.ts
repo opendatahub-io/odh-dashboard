@@ -23,9 +23,9 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     },
     properties: {
       id: 'modelRegistry-kf',
-      title: 'Model registry (KF)',
+      title: 'Registry (KF)',
       href: '/model-registry',
-      section: 'models',
+      section: 'ai-hub',
       path: '/model-registry/*',
     },
   },

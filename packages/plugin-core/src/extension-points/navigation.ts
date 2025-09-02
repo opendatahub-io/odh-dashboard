@@ -26,10 +26,7 @@ export type HrefNavItemExtension = Extension<
 /**
  * Adds a navigation section to the host application.
  */
-export type NavSectionExtension = Extension<
-  'app.navigation/section',
-  Omit<NavItemProperties, 'section'>
->;
+export type NavSectionExtension = Extension<'app.navigation/section', NavItemProperties>;
 
 export type NavExtension = HrefNavItemExtension | NavSectionExtension;
 
@@ -44,6 +41,10 @@ export type NavItemProperties = {
   dataAttributes?: { [key: string]: string };
   /** Group are used to sort items lexographically. Unspecified items will be sorted into the '5_default' group. */
   group?: string;
+  /** Icon for this item. */
+  icon?: string;
+  /** Label for this item. */
+  label?: string;
 };
 
 // Type guards

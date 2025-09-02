@@ -35,6 +35,11 @@ import {
   ModelRegistrySelectIcon,
   ModelEvaluationIcon,
   LabTuningIcon,
+  AiHubIcon,
+  GenAiStudioIcon,
+  ObserveAndMonitorIcon,
+  LearningResourcesIcon,
+  ApplicationsIcon,
 } from '#~/images/icons';
 
 type TypedObjectIconProps = SVGIconProps & {
@@ -157,6 +162,21 @@ const TypedObjectIcon: React.FC<TypedObjectIconProps> = ({
       break;
     case ProjectObjectType.modelEvaluation:
       Icon = ModelEvaluationIcon;
+      break;
+    case ProjectObjectType.aiHub:
+      Icon = AiHubIcon;
+      break;
+    case ProjectObjectType.genAiStudio:
+      Icon = GenAiStudioIcon;
+      break;
+    case ProjectObjectType.observeAndMonitor:
+      Icon = ObserveAndMonitorIcon;
+      break;
+    case ProjectObjectType.learningResources:
+      Icon = LearningResourcesIcon;
+      break;
+    case ProjectObjectType.applications:
+      Icon = ApplicationsIcon;
       break;
     default:
       return null;

@@ -32,6 +32,18 @@ export enum SectionType {
   general = 'general',
 }
 
+export enum NavIconType {
+  home = 'home',
+  projects = 'projects',
+  aiHub = 'ai-hub',
+  genAiStudio = 'gen-ai-studio',
+  developAndTrain = 'develop-and-train',
+  observeAndMonitor = 'observe-and-monitor',
+  learningResources = 'learning-resources',
+  applications = 'applications',
+  settings = 'settings',
+}
+
 export enum ProjectObjectType {
   project = 'project',
   projectContext = 'projectContext',
@@ -74,6 +86,11 @@ export enum ProjectObjectType {
   exploreApplications = 'explore-applications',
   resources = 'resources',
   featureStore = 'feature-store',
+  aiHub = 'ai-hub',
+  genAiStudio = 'gen-ai-studio',
+  observeAndMonitor = 'observe-and-monitor',
+  learningResources = 'learning-resources',
+  applications = 'applications',
 }
 
 export const typedIconColor = (objectType: ProjectObjectType): string => {

@@ -36,3 +36,8 @@ export { default as StorageClassIcon } from './StorageClassIcon';
 export { default as StorageIcon } from './StorageIcon';
 export { default as UserIcon } from './UserIcon';
 export { default as LabTuningIcon } from './LabTuningIcon';
+export { default as AiHubIcon } from './AiHubIcon';
+export { default as GenAiStudioIcon } from './GenAiStudioIcon';
+export { default as ObserveAndMonitorIcon } from './ObserveAndMonitorIcon';
+export { default as LearningResourcesIcon } from './LearningResourcesIcon';
+export { default as ApplicationsIcon } from './ApplicationsIcon';

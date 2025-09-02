@@ -14,6 +14,8 @@ import { useExtensions } from '@odh-dashboard/plugin-core';
 import { useAccessReviewExtensions } from '@odh-dashboard/internal/utilities/useAccessReviewExtensions';
 import { StatusReportIcon } from '#~/app/status-provider/StatusReportIcon';
 import { getStatusReportSummary } from '#~/app/status-provider/utils';
+import { asEnumMember } from '#~/utilities/utils.ts';
+import { NavIconType } from '#~/concepts/design/utils.ts';
 import { NavItem } from './NavItem';
 import { NavItemTitle } from './NavItemTitle';
 import { compareNavItemGroups } from './utils';
@@ -24,7 +26,7 @@ type Props = {
 
 export const NavSection: React.FC<Props> = ({
   extension: {
-    properties: { id, title, dataAttributes },
+    properties: { id, title, dataAttributes, icon },
   },
 }) => {
   const [status, setStatus] = React.useState<Record<string, StatusReport | undefined>>({});
@@ -34,9 +36,7 @@ export const NavSection: React.FC<Props> = ({
   const navExtensions = React.useMemo(
     () =>
       extensions
-        .filter(
-          (extension) => !isNavSectionExtension(extension) && id === extension.properties.section,
-        )
+        .filter((extension) => id === extension.properties.section)
         .toSorted(compareNavItemGroups),
     [id, extensions],
   );
@@ -49,11 +49,25 @@ export const NavSection: React.FC<Props> = ({
   const navExtensionIsActive = React.useCallback(
     (e: LoadedExtension<NavExtension>) => {
       if (isHrefNavItemExtension(e)) {
-        return matchPath(e.properties.path ?? e.properties.href, pathname);
+        return !!matchPath(e.properties.path ?? e.properties.href, pathname);
+      }
+      if (isNavSectionExtension(e)) {
+        const childExtensions = extensions.filter(
+          (childExt) => e.properties.id === childExt.properties.section,
+        );
+        return childExtensions.some((childExt): boolean => {
+          if (isHrefNavItemExtension(childExt)) {
+            return !!matchPath(childExt.properties.path ?? childExt.properties.href, pathname);
+          }
+          if (isNavSectionExtension(childExt)) {
+            return navExtensionIsActive(childExt);
+          }
+          return false;
+        });
       }
       return false;
     },
-    [pathname],
+    [pathname, extensions],
   );
 
   const isActive = React.useMemo(
@@ -92,7 +106,8 @@ export const NavSection: React.FC<Props> = ({
       title={
         <NavItemTitle
           title={title}
-          icon={summaryStatus ? <StatusReportIcon status={summaryStatus} /> : null}
+          navIcon={asEnumMember(icon, NavIconType) ?? undefined}
+          statusIcon={summaryStatus ? <StatusReportIcon status={summaryStatus} /> : null}
         />
       }
       isActive={isActive}
