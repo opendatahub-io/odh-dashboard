@@ -73,8 +73,9 @@ const OCIConnectionField: React.FC<OCIConnectionFieldProps> = ({
                 onChange={(e, value: string) => {
                   setModelUri(value);
                 }}
-                onBlur={() => {
-                  setModelUri(addUriPrefix(hideUriPrefix(modelUri?.trim())));
+                onBlur={(e) => {
+                  const raw = (e.currentTarget.value ?? '').trim();
+                  setModelUri(addUriPrefix(hideUriPrefix(raw)));
                 }}
                 onPaste={(e) => trimInputOnPaste(modelUri, setModelUri)(e)}
               />

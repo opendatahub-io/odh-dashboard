@@ -107,11 +107,9 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
   const selectedConnectionType = React.useMemo(
     () =>
       modelServingConnectionTypes.find(
-        (t) =>
-          getResourceNameFromK8sResource(t) ===
-          getConnectionTypeRef(selectedConnection?.connection),
+        (t) => getResourceNameFromK8sResource(t) === getConnectionTypeRef(selectedConnectionState),
       ),
-    [modelServingConnectionTypes, selectedConnection],
+    [modelServingConnectionTypes, selectedConnectionState],
   );
   return (
     <FormGroup fieldId="model-location-select" label="Model location" isRequired>
@@ -159,7 +157,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
           modelLocation={modelLocation}
           connections={connections}
           connectionTypes={modelServingConnectionTypes}
-          selectedConnection={selectedConnection?.connection}
+          selectedConnection={selectedConnectionState}
           setSelectedConnection={setSelectedConnection}
           selectedConnectionType={selectedConnectionType}
           setModelLocationData={setModelLocationData}

@@ -9,7 +9,7 @@ import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
-import z from 'zod';
+import { z } from 'zod';
 import { OCIAlert } from './modelLocationFields/OCIAlert';
 import { ExistingConnectionField } from './modelLocationFields/ExistingConnectionField';
 import { ModelLocationFieldData } from './ModelLocationSelectField';
