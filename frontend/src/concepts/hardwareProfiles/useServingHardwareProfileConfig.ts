@@ -52,7 +52,7 @@ const useServingHardwareProfileConfig = (
     tolerations,
     nodeSelector,
     visibility,
-    isProjectScoped ? namespace : undefined,
+    namespace,
     hardwareProfileNamespace,
   );
 };

@@ -68,28 +68,7 @@ export const ModelServingHardwareProfileSection: React.FC<
 > = ({ hardwareProfileConfig, project, isEditing = false }) => {
   const podSpecOptionsState: PodSpecOptionsState<PodSpecOptions> = React.useMemo(
     () => ({
-      acceleratorProfile: {
-        initialState: {
-          acceleratorProfiles: [],
-          acceleratorProfile: undefined,
-          count: 0,
-          unknownProfileDetected: false,
-        },
-        formData: {
-          profile: undefined,
-          count: 0,
-          useExistingSettings: false,
-        },
-        setFormData: () => {
-          // No-op: accelerator profiles are deprecated
-        },
-        resetFormData: () => {
-          // No-op: accelerator profiles are deprecated
-        },
-        loaded: true,
-        loadError: undefined,
-        refresh: () => Promise.resolve(undefined),
-      },
+      acceleratorProfile: createAcceleratorProfileStub(),
       hardwareProfile: hardwareProfileConfig,
       podSpecOptions: {
         resources: hardwareProfileConfig.formData.resources,

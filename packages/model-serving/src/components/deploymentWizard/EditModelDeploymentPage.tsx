@@ -74,7 +74,7 @@ const EditModelDeploymentPage: React.FC = () => {
               ? `Project ${namespace ?? ''} not found.`
               : !activePlatform
               ? 'No model serving platform is configured for this project.'
-              : 'Unknown error',
+              : 'Unable to edit model deployment.',
           )
         }
       />

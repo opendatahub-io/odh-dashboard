@@ -24,7 +24,7 @@ export const extractHardwareProfileConfig = (
 
 export const applyHardwareProfileToDeployment = (
   kserveDeployment: KServeDeployment,
-  // TODO: use parameters to assemble hardware profile config
+  // TODO: use parameters to assemble hardware profile config for the deployment action
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   parameters: ReturnType<typeof useHardwareProfileConfig>,
 ): KServeDeployment => {
