@@ -1,13 +1,16 @@
 import * as React from 'react';
 import {
   Alert,
-  AlertActionLink,
   Bullseye,
   Button,
   ButtonProps,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateBody,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { DSPipelineKind, DSPipelineManagedPipelinesKind, ProjectKind } from '#~/k8sTypes';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import DeletePipelineServerModal from '#~/concepts/pipelines/content/DeletePipelineServerModal';
@@ -310,38 +313,28 @@ export const ViewServerModal = ({ onClose }: { onClose: () => void }): React.JSX
 };
 
 export const PipelineServerTimedOut: React.FC = () => {
-  const { crStatus } = React.useContext(PipelinesContext);
+  const { crName } = React.useContext(PipelinesContext);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
-  const errorMessage =
-    crStatus?.conditions?.find((condition) => condition.type === 'Ready')?.message || '';
+
   return (
     <>
-      <Alert
-        variant="danger"
-        isInline
-        title="Pipeline server failed"
-        actionLinks={
-          <>
-            <AlertActionLink onClick={() => setDeleteOpen(true)}>
+      <Bullseye style={{ minHeight: '300px' }}>
+        <EmptyState icon={ExclamationTriangleIcon} titleText="Pipeline server failed" variant="lg">
+          <EmptyStateBody>
+            The {crName || 'server'} either could not start or be contacted. You must delete this
+            server to fix the issue, but this will also permanently delete all associated resources.
+            You will need to configure a new server afterward.
+          </EmptyStateBody>
+          <EmptyStateActions>
+            <Button variant="primary" onClick={() => setDeleteOpen(true)}>
               Delete pipeline server
-            </AlertActionLink>
-          </>
-        }
-      >
-        <Stack hasGutter>
-          {errorMessage && (
-            <StackItem data-testid="timeout-pipeline-error-message">{errorMessage}</StackItem>
-          )}
-          <StackItem>
-            We encountered an error creating or loading your pipeline server. To continue, delete
-            this pipeline server and create a new one. Deleting this pipeline server will delete all
-            of its resources, including pipelines, runs, and jobs.
-          </StackItem>
-          <StackItem>To get help contact your administrator.</StackItem>
-        </Stack>
-      </Alert>
+            </Button>
+          </EmptyStateActions>
+        </EmptyState>
+      </Bullseye>
       {deleteOpen ? (
         <DeleteServerModal
+          removeConfirmation={true}
           onClose={() => {
             setDeleteOpen(false);
           }}

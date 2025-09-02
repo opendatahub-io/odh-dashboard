@@ -45,6 +45,10 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
     (c) => c.type === 'Ready' && c.status === 'True',
   );
 
+  const onDelete = () => {
+    console.log('would delete pipeline server here....todo');
+  };
+
   console.log(
     'StartingStatusModal; namespace/pipelinesServer.name:',
     namespace,
@@ -212,6 +216,9 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
         </Stack>
       </ModalBody>
       <ModalFooter>
+        <Button variant="primary" onClick={onDelete}>
+          Delete pipeline server
+        </Button>
         <Button variant="primary" onClick={onClose}>
           Close
         </Button>
