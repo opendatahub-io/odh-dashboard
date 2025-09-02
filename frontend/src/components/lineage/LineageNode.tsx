@@ -11,14 +11,13 @@ import {
   ScaleDetailsLevel,
   useAnchor,
   AnchorEnd,
-  TaskNodeSourceAnchor,
-  TaskNodeTargetAnchor,
 } from '@patternfly/react-topology';
 import { CubeIcon } from '@patternfly/react-icons';
 import { chart_color_black_500 as chartColorBlack } from '@patternfly/react-tokens';
 import { getEntityTypeIcon } from '@odh-dashboard/feature-store/utils/featureStoreObjects';
 import { useEdgeHighlighting } from './edge/edgeStateUtils';
 import { useLineageClick } from './LineageClickContext';
+import { LineageSourceAnchor, LineageTargetAnchor } from './customAnchors';
 
 // Define the types of lineage entities
 export type LineageEntityType =
@@ -53,19 +52,15 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
     // Get the current visualization state to check for highlighting
     const { isConnectedToSelection } = useEdgeHighlighting(element.getId(), selected);
 
-    // Set up proper anchors for edge connections with better positioning
+    // Set up custom anchors for precise edge positioning
+    // Source anchor positioned at the right edge of the node for outgoing edges
     useAnchor(
-      React.useCallback(
-        (node: Node) => new TaskNodeSourceAnchor(node, ScaleDetailsLevel.high, 0, false),
-        [],
-      ),
+      React.useCallback((node: Node) => new LineageSourceAnchor(node), []),
       AnchorEnd.source,
     );
+    // Target anchor positioned at the left edge of the node for incoming edges
     useAnchor(
-      React.useCallback(
-        (node: Node) => new TaskNodeTargetAnchor(node, 0, ScaleDetailsLevel.high, 0, false),
-        [],
-      ),
+      React.useCallback((node: Node) => new LineageTargetAnchor(node), []),
       AnchorEnd.target,
     );
 

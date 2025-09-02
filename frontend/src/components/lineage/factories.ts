@@ -19,11 +19,11 @@ export const lineageLayoutFactory: LayoutFactory = (
 ): Layout | undefined => {
   return new DagreLayout(graph, {
     rankdir: 'LR',
-    nodesep: 20,
-    ranksep: 80,
-    marginx: 10,
-    marginy: 10,
-    edgesep: 15,
+    nodesep: 80,
+    ranksep: 140,
+    marginx: 40,
+    marginy: 60,
+    edgesep: 30,
     ranker: 'network-simplex',
     layoutOnDrag: false,
   });
