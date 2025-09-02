@@ -6,7 +6,7 @@ import FeatureStoreDataSourceListView from './dataSourceTable/FeatureStoreDataSo
 import FeatureStoreProjectSelectorNavigator from '../components/FeatureStoreProjectSelectorNavigator';
 import { featureStoreRoute } from '../../routes';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
-import useFeatureStoreDataSources from '../../apiHooks/useFeastureStoreDataSources';
+import useFeatureStoreDataSources from '../../apiHooks/useFeatureStoreDataSources';
 
 const title = 'Data Sources';
 const description =

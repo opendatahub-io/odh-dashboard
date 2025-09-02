@@ -41,14 +41,6 @@ class FeatureDataSourceDetails extends Contextual<HTMLElement> {
     return cy.findByTestId('data-source-interactive-example');
   }
 
-  findProject() {
-    return cy.findByTestId('data-source-project');
-  }
-
-  findBackButton() {
-    return cy.findByTestId('back-button');
-  }
-
   findBreadcrumbLink() {
     return cy.findByTestId('data-source-details-breadcrumb-link');
   }
@@ -98,18 +90,15 @@ class FeatureDataSourceDetails extends Contextual<HTMLElement> {
   }
 
   clickDetailsTab() {
-    this.findDetailsTab().click();
-    return this;
+    return this.findDetailsTab();
   }
 
   clickFeatureViewsTab() {
-    this.findFeatureViewsTab().click();
-    return this;
+    return this.findFeatureViewsTab();
   }
 
   clickSchemaTab() {
-    this.findSchemaTab().click();
-    return this;
+    return this.findSchemaTab();
   }
 
   shouldHaveApplicationsPageDescription(description: string) {
@@ -140,10 +129,6 @@ class FeatureDataSourceDetails extends Contextual<HTMLElement> {
   shouldHaveBatchDataSource(batchDataSource: string) {
     this.findBatchDataSource().should('contain.text', batchDataSource);
     return this;
-  }
-
-  clickBackButton() {
-    this.findBackButton().click();
   }
 
   shouldHaveFeatureViewsCount(count: number) {

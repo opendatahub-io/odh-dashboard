@@ -10,7 +10,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import * as React from 'react';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import { SearchIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import DataSourceDetailsView from './DataSourceDetailsView';
@@ -95,7 +95,7 @@ const SchemaTabContent: React.FC<{
         </Tr>
       </Thead>
       <Tbody>
-        {dataSource.requestDataOptions?.schema.map((schemaData) => (
+        {(dataSource.requestDataOptions?.schema ?? []).map((schemaData) => (
           <Tr key={schemaData.name}>
             <Td>{schemaData.name}</Td>
             <Td>{schemaData.valueType}</Td>
@@ -121,10 +121,12 @@ const DataSourceDetailsTabs: React.FC<DataSourceDetailsTabsProps> = ({ dataSourc
 
   const featureViewsWithServices = React.useMemo(() => {
     const project = dataSource.project || currentProject;
-    return featureViews.featureViews.map((featureView) => {
+    const featureViewsList = featureViews.featureViews;
+    const featureViewsRelationships = featureViews.relationships;
+    return featureViewsList.map((featureView) => {
       const featureViewName = featureView.spec.name;
       const featureServices = getRelationshipsByTargetType(
-        featureViews.relationships,
+        featureViewsRelationships,
         featureViewName,
         'featureService',
       );
@@ -138,7 +140,7 @@ const DataSourceDetailsTabs: React.FC<DataSourceDetailsTabsProps> = ({ dataSourc
         })),
       };
     });
-  }, [featureViews.relationships, dataSource.name, dataSource.project, currentProject]);
+  }, [featureViews, dataSource.name, dataSource.project, currentProject]);
 
   const emptyState = (
     <EmptyState>
@@ -203,7 +205,7 @@ const DataSourceDetailsTabs: React.FC<DataSourceDetailsTabsProps> = ({ dataSourc
                 </Title>
                 <FeatureViewsTabContent
                   featureViewsWithServices={featureViewsWithServices}
-                  currentProject={currentProject ?? ''}
+                  currentProject={dataSource.project || currentProject || ''}
                 />
               </>
             ) : (

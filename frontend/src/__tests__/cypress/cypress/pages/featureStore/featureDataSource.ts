@@ -12,7 +12,7 @@ class FeatureDataSourcesTable extends Contextual<HTMLElement> {
 
   findRow(dataSourceName: string) {
     return new FeatureDataSourceTableRow(() =>
-      this.findTable().find('[data-label="Data Sources"]').contains(dataSourceName).parents('tr'),
+      this.findTable().find('tr').contains(dataSourceName).parents('tr'),
     );
   }
 
@@ -40,11 +40,11 @@ class FeatureDataSourcesTable extends Contextual<HTMLElement> {
 
 class FeatureDataSourceToolbar extends Contextual<HTMLElement> {
   findToggleButton(id: string) {
-    return this.find().pfSwitch(id).click();
+    return this.find().pfSwitch(id);
   }
 
   findFilterMenuOption(id: string, name: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findToggleButton(id).parents().findByRole('menuitem', { name });
+    return this.findToggleButton(id).click().parents().findByRole('menuitem', { name });
   }
 
   findSearchInput(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -58,7 +58,7 @@ class FeatureDataSourceToolbar extends Contextual<HTMLElement> {
 
 class FeatureDataSourceTableRow extends TableRow {
   findDataSourceName() {
-    return this.find().find('[data-label="Data Sources"]');
+    return this.find().findByTestId('data-source-name-cell');
   }
 
   findDataSourceLink() {
@@ -66,27 +66,27 @@ class FeatureDataSourceTableRow extends TableRow {
   }
 
   findProject() {
-    return this.find().find('[data-label="Project"]');
+    return this.find().findByTestId('data-source-project-name-cell');
   }
 
   findType() {
-    return this.find().find('[data-label="Data source connector"]');
+    return this.find().findByTestId('data-source-connector-cell');
   }
 
   findFeatureViews() {
-    return this.find().find('[data-label="Feature views"]');
+    return this.find().findByTestId('data-source-feature-views-cell');
   }
 
   findLastModified() {
-    return this.find().find('[data-label="Last modified"]');
+    return this.find().findByTestId('data-source-last-modified-cell');
   }
 
   findCreated() {
-    return this.find().find('[data-label="Created"]');
+    return this.find().findByTestId('data-source-created-cell');
   }
 
   findOwner() {
-    return this.find().find('[data-label="Owner"]');
+    return this.find().findByTestId('data-source-owner-cell');
   }
 
   shouldHaveDataSourceName(name: string) {
@@ -111,16 +111,6 @@ class FeatureDataSourceTableRow extends TableRow {
 
   shouldHaveOwner(owner: string) {
     this.findOwner().should('contain.text', owner);
-    return this;
-  }
-
-  clickDataSourceLink() {
-    this.findDataSourceLink().click();
-  }
-
-  // Feature views popover methods
-  clickFeatureViewsPopover() {
-    this.findFeatureViews().find('button').click();
     return this;
   }
 
@@ -178,8 +168,7 @@ class DataSourceDetailsPage extends Contextual<HTMLElement> {
   }
 
   clickFeatureView(featureViewName: string) {
-    this.findFeatureViewRow(featureViewName).click();
-    return this;
+    return this.findFeatureViewRow(featureViewName);
   }
 
   shouldNavigateToFeatureView(featureViewName: string, projectName: string) {

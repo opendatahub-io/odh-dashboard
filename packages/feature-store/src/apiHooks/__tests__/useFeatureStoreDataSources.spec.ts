@@ -2,7 +2,7 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { useFeatureStoreAPI } from '../../FeatureStoreContext';
 import { DataSource, DataSourceList } from '../../types/dataSources';
-import useFeatureStoreDataSources from '../useFeastureStoreDataSources';
+import useFeatureStoreDataSources from '../useFeatureStoreDataSources';
 
 jest.mock('../../FeatureStoreContext', () => ({
   useFeatureStoreAPI: jest.fn(),

@@ -45,8 +45,8 @@ const DataSourceName: React.FC<{ dataSource: DataSource; currentProject: string 
   </>
 );
 
-const renderTableCell = (label: string, content: React.ReactNode, testId?: string) => (
-  <Td dataLabel={label}>
+const renderTableCell = (label: string, content: React.ReactNode, testId: string) => (
+  <Td dataLabel={label} data-testid={`${testId}-cell`}>
     {testId ? (
       <Content component="p" data-testid={testId}>
         {content}
@@ -91,9 +91,14 @@ const FeatureStoreDataSourcesTableRow: React.FC<FeatureStoreDataSourcesTableRowT
       {renderTableCell(
         'Data Sources',
         <DataSourceName dataSource={dataSource} currentProject={currentProject} />,
+        'data-source-name',
       )}
-      {renderTableCell('Project', dataSource.project)}
-      {renderTableCell('Data source connector', getDataSourceConnectorType(dataSource.type))}
+      {renderTableCell('Project', dataSource.project, 'data-source-project-name')}
+      {renderTableCell(
+        'Data source connector',
+        getDataSourceConnectorType(dataSource.type),
+        'data-source-connector',
+      )}
       {renderTableCell(
         'Feature views',
         <ScrollableLinksPopover
@@ -101,16 +106,19 @@ const FeatureStoreDataSourcesTableRow: React.FC<FeatureStoreDataSourcesTableRowT
           links={featureViewLinks}
           aria-label="Feature views popover"
         />,
+        'data-source-feature-views',
       )}
       {renderTableCell(
         'Last modified',
         <FeatureStoreTimestamp date={dataSource.meta.lastUpdatedTimestamp} />,
+        'data-source-last-modified',
       )}
       {renderTableCell(
         'Created',
         <FeatureStoreTimestamp date={dataSource.meta.createdTimestamp} />,
+        'data-source-created',
       )}
-      {renderTableCell('Owner', dataSource.owner ?? '-')}
+      {renderTableCell('Owner', dataSource.owner ?? '-', 'data-source-owner')}
     </Tr>
   );
 };

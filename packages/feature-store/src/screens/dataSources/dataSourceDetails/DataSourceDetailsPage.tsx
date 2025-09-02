@@ -64,7 +64,7 @@ const DataSourceDetailsPage = (): React.ReactElement => {
       empty={!dataSourceLoaded}
       emptyStatePage={emptyState}
       title={dataSource.name}
-      data-testid="dataSource-details-page"
+      data-testid="data-source-details-page"
       description={dataSource.description}
       loadError={dataSourceLoadError}
       loadErrorPage={dataSourceLoadError ? errorState : undefined}

@@ -13,7 +13,7 @@ export const columns: SortableData<DataSource>[] = [
     label: 'Project',
     width: 10,
     sortable: (a: DataSource, b: DataSource): number =>
-      a.project?.localeCompare(b.project ?? '') ?? 0,
+      (a.project ?? '').localeCompare(b.project ?? ''),
   },
   {
     field: 'type',
@@ -58,7 +58,8 @@ export const columns: SortableData<DataSource>[] = [
     field: 'owner',
     label: 'Owner',
     width: 10,
-    sortable: (a: DataSource, b: DataSource): number => a.owner?.localeCompare(b.owner ?? '') ?? 0,
+    sortable: (a: DataSource, b: DataSource): number =>
+      (a.owner ?? '').localeCompare(b.owner ?? ''),
   },
 ];
 

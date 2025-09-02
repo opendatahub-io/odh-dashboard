@@ -278,12 +278,11 @@ describe('Feature Data Sources for all projects', () => {
     featureStoreGlobal.visitDataSources();
 
     featureDataSourcesTable.findTable().should('be.visible');
-    featureDataSourcesTable
-      .findRow('loan_data')
-      .clickFeatureViewsPopover()
-      .shouldShowFeatureViewsPopover()
-      .clickFeatureViewInPopover('loan_features')
-      .shouldNavigateToFeatureView('loan_features', 'credit_scoring_local');
+    const row = featureDataSourcesTable.findRow('loan_data');
+    row.findFeatureViews().find('button').click();
+    row.shouldShowFeatureViewsPopover();
+    row.clickFeatureViewInPopover('loan_features');
+    row.shouldNavigateToFeatureView('loan_features', 'credit_scoring_local');
   });
 
   it('should navigate to data source details when clicking data source name in all projects view', () => {
@@ -304,15 +303,25 @@ describe('Feature Data Sources for all projects', () => {
     featureDataSourceDetails.findBreadcrumbItem().should('contain.text', 'loan_data');
   });
 
-  it('should navigate back to data sources page when clicking breadcrumb link', () => {
+  it('should navigate to data source details and return via breadcrumb', () => {
     mockDataSourceDetailsIntercept();
     featureStoreGlobal.visitDataSources();
     featureDataSourcesTable.findTable().should('be.visible');
+
     featureDataSourcesTable.findRow('loan_data').findDataSourceLink().click();
     cy.url().should('include', '/featureStore/dataSources/credit_scoring_local');
 
+    featureDataSourceDetails
+      .shouldHaveApplicationsPageDescription(
+        'Loan application data including personal and loan characteristics',
+      )
+      .shouldHaveDataSourceConnector('BATCH_FILE')
+      .shouldHaveOwner('risk-team@company.com');
+    featureDataSourceDetails.findInteractiveExample().should('be.visible');
+
     featureDataSourceDetails.findBreadcrumbLink().should('be.visible');
     featureDataSourceDetails.findBreadcrumbItem().should('contain.text', 'loan_data');
+
     featureDataSourceDetails.findBreadcrumbLink().click();
 
     cy.url().should('include', '/featureStore/dataSources');
@@ -379,12 +388,11 @@ describe('Feature Data Sources', () => {
     featureStoreGlobal.visitDataSources(fsProjectName);
 
     featureDataSourcesTable.findTable().should('be.visible');
-    featureDataSourcesTable
-      .findRow('loan_data')
-      .clickFeatureViewsPopover()
-      .shouldShowFeatureViewsPopover()
-      .clickFeatureViewInPopover('loan_features')
-      .shouldNavigateToFeatureView('loan_features', 'credit_scoring_local');
+    const row = featureDataSourcesTable.findRow('loan_data');
+    row.findFeatureViews().find('button').click();
+    row.shouldShowFeatureViewsPopover();
+    row.clickFeatureViewInPopover('loan_features');
+    row.shouldNavigateToFeatureView('loan_features', 'credit_scoring_local');
   });
 
   it('should handle data source not found with proper error message', () => {
@@ -436,7 +444,7 @@ describe('Data Source Feature Views Tab', () => {
     );
     cy.wait('@getDataSourceDetails');
 
-    featureDataSourceDetails.clickFeatureViewsTab();
+    featureDataSourceDetails.clickFeatureViewsTab().click();
     cy.wait('@getDataSourceFeatureViews');
     featureDataSourceDetails.findFeatureViewsTabContent().within(() => {
       dataSourceDetailsPage.shouldShowFeatureViewsTable();
@@ -462,7 +470,7 @@ describe('Data Source Feature Views Tab', () => {
       `/featureStore/dataSources/${fsProjectName}/loan_data?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     cy.wait('@getDataSourceDetails');
-    featureDataSourceDetails.clickFeatureViewsTab();
+    featureDataSourceDetails.clickFeatureViewsTab().click();
     cy.wait('@getEmptyDataSourceFeatureViews');
     featureDataSourceDetails.findFeatureViewsTabContent().within(() => {
       dataSourceDetailsPage.shouldShowEmptyState();
@@ -476,7 +484,7 @@ describe('Data Source Feature Views Tab', () => {
     cy.wait('@getDataSourceDetails');
 
     cy.get('@getDataSourceFeatureViews.all').should('have.length', 0);
-    featureDataSourceDetails.clickFeatureViewsTab();
+    featureDataSourceDetails.clickFeatureViewsTab().click();
     cy.wait('@getDataSourceFeatureViews');
     cy.get('@getDataSourceFeatureViews.all').should('have.length.at.least', 1);
     featureDataSourceDetails.findFeatureViewsTabContent().within(() => {
@@ -489,10 +497,10 @@ describe('Data Source Feature Views Tab', () => {
       `/featureStore/dataSources/${fsProjectName}/loan_data?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     cy.wait('@getDataSourceDetails');
-    featureDataSourceDetails.clickFeatureViewsTab();
+    featureDataSourceDetails.clickFeatureViewsTab().click();
     cy.wait('@getDataSourceFeatureViews');
     featureDataSourceDetails.findFeatureViewsTabContent().within(() => {
-      dataSourceDetailsPage.clickFeatureView('loan_features');
+      dataSourceDetailsPage.findFeatureViewRow('loan_features').click();
     });
     dataSourceDetailsPage.shouldNavigateToFeatureView('loan_features', fsProjectName);
   });
@@ -627,7 +635,7 @@ describe('Data Source Schema Tab', () => {
     cy.wait('@getUserProfileFeatureViews');
 
     featureDataSourceDetails.findSchemaTab().should('be.visible');
-    featureDataSourceDetails.clickSchemaTab();
+    featureDataSourceDetails.clickSchemaTab().click();
     featureDataSourceDetails.findSchemaTabContent().within(() => {
       cy.findByText('user_id').should('be.visible');
       cy.findByText('STRING').should('be.visible');

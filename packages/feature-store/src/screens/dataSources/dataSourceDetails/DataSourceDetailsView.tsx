@@ -17,6 +17,7 @@ import { hasContent } from '../../../const';
 import { DataSource } from '../../../types/dataSources';
 import FeatureStoreCodeBlock from '../../../components/FeatureStoreCodeBlock';
 import FeatureStoreTimestamp from '../../../components/FeatureStoreTimestamp';
+
 import { featureDataSourceRoute } from '../../../routes';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
 
@@ -96,16 +97,26 @@ const DataSourceDetailsView: React.FC<DataSourceDetailsViewProps> = ({ dataSourc
             <DetailsItem
               label="Last modified"
               value={
-                <FeatureStoreTimestamp date={new Date(dataSource.meta.lastUpdatedTimestamp)} />
+                dataSource.meta.lastUpdatedTimestamp ? (
+                  <FeatureStoreTimestamp date={new Date(dataSource.meta.lastUpdatedTimestamp)} />
+                ) : (
+                  'No last modified'
+                )
               }
               testId="data-source-last-modified"
               className={getDisabledClassName(dataSource.meta.lastUpdatedTimestamp)}
             />
             <DetailsItem
               label="Created"
-              value={<FeatureStoreTimestamp date={new Date(dataSource.meta.createdTimestamp)} />}
+              value={
+                dataSource.meta.createdTimestamp ? (
+                  <FeatureStoreTimestamp date={new Date(dataSource.meta.createdTimestamp)} />
+                ) : (
+                  'No created date'
+                )
+              }
               testId="data-source-created"
-              className={getDisabledClassName(dataSource.meta.lastUpdatedTimestamp)}
+              className={getDisabledClassName(dataSource.meta.createdTimestamp)}
             />
             <DetailsItem
               label="Owner"
@@ -117,14 +128,13 @@ const DataSourceDetailsView: React.FC<DataSourceDetailsViewProps> = ({ dataSourc
               <DetailsItem
                 label="Batch data source"
                 value={
-                  <Link
-                    to={featureDataSourceRoute(
-                      dataSource.batchSource?.name ?? '',
-                      currentProject ?? '',
-                    )}
-                  >
-                    {dataSource.batchSource?.name}
-                  </Link>
+                  dataSource.batchSource?.name && currentProject ? (
+                    <Link to={featureDataSourceRoute(dataSource.batchSource.name, currentProject)}>
+                      {dataSource.batchSource.name}
+                    </Link>
+                  ) : (
+                    'No batch data source'
+                  )
                 }
                 testId="data-source-batch-data-source"
                 className={getDisabledClassName(dataSource.batchSource?.name)}
