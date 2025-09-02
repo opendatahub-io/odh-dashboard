@@ -2,9 +2,7 @@
   "extends": "@odh-dashboard/tsconfig/tsconfig.json",
   "compilerOptions": {
     "paths": {
-      "@mf/*": ["@mf-types/@mf/*"],
-      "@odh-dashboard/jest-config": ["../packages/jest-config/jest.config.ts"],
-      "@odh-dashboard/jest-config/hooks": ["../packages/jest-config/src/hooks.ts"]
+      "@mf/*": ["@mf-types/@mf/*"]
     }
   },
   "exclude": [
