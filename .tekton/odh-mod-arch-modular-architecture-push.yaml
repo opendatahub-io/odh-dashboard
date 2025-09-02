@@ -29,7 +29,7 @@ spec:
   - name: dockerfile
     value: packages/model-registry/Dockerfile.workspace
   - name: path-context
-    value: ./frontend
+    value: .
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while maintaining trust after pipeline customization.
