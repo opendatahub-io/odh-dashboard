@@ -1,36 +1,36 @@
 import React from 'react';
-import FeatureStoreEntitiesTable from './FeatureStoreEntitiesTable';
-import { EntityList } from '../../../types/entities';
+import FeatureStoreDataSetsTable from './FeatureStoreDatasetTable';
 import { FeatureStoreToolbar } from '../../../components/FeatureStoreToolbar';
-import { applyEntityFilters } from '../utils';
-import { entityTableFilterOptions } from '../const';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
+import { DataSetList } from '../../../types/dataSets';
+import { dataSetTableFilterOptions } from '../const';
+import { applyDataSetFilters } from '../utils';
 import { useTagFilterHandlers } from '../../../utils/useTagFilterHandlers';
 import { applyTagFilters } from '../../../utils/filterUtils';
 
-const FeatureStoreEntitiesListView = ({
-  entities,
+const FeatureStoreDataSetsListView = ({
+  dataSets,
 }: {
-  entities: EntityList;
+  dataSets: DataSetList;
 }): React.ReactElement => {
   const [filterData, setFilterData] = React.useState<
     Record<string, string | { label: string; value: string } | undefined>
   >({});
-  const [currentFilterType, setCurrentFilterType] = React.useState<string>('entity');
+  const [currentFilterType, setCurrentFilterType] = React.useState<string>('dataSet');
   const [tagFilters, setTagFilters] = React.useState<string[]>([]);
   const { currentProject } = useFeatureStoreProject();
 
   const tagHandlers = useTagFilterHandlers(setTagFilters, setCurrentFilterType);
 
-  const processedEntities = React.useMemo(() => {
+  const processedDataSets = React.useMemo(() => {
     if (currentProject) {
-      return entities.entities.map((entity) => ({
-        ...entity,
-        project: entity.project || currentProject,
+      return dataSets.savedDatasets.map((dataSet) => ({
+        ...dataSet,
+        project: dataSet.project || currentProject,
       }));
     }
-    return entities.entities;
-  }, [entities.entities, currentProject]);
+    return dataSets.savedDatasets;
+  }, [dataSets.savedDatasets, currentProject]);
 
   const onFilterUpdate = React.useCallback(
     (key: string, value: string | { label: string; value: string } | undefined) =>
@@ -43,22 +43,20 @@ const FeatureStoreEntitiesListView = ({
     setTagFilters([]);
   }, []);
 
-  const filteredEntities = React.useMemo(() => {
-    let filtered = processedEntities;
-    filtered = applyEntityFilters(filtered, entities.relationships, filterData);
+  const filteredDataSets = React.useMemo(() => {
+    let filtered = applyDataSetFilters(processedDataSets, dataSets.relationships, filterData);
     filtered = applyTagFilters(filtered, tagFilters);
     return filtered;
-  }, [processedEntities, entities.relationships, filterData, tagFilters]);
+  }, [processedDataSets, dataSets.relationships, filterData, tagFilters]);
 
   return (
-    <FeatureStoreEntitiesTable
-      entities={filteredEntities}
-      relationships={entities.relationships}
+    <FeatureStoreDataSetsTable
+      dataSets={filteredDataSets}
       onClearFilters={onClearFilters}
       onTagClick={tagHandlers.handleTagClick}
       toolbarContent={
         <FeatureStoreToolbar
-          filterOptions={entityTableFilterOptions}
+          filterOptions={dataSetTableFilterOptions}
           filterData={filterData}
           onFilterUpdate={onFilterUpdate}
           currentFilterType={currentFilterType}
@@ -72,4 +70,4 @@ const FeatureStoreEntitiesListView = ({
   );
 };
 
-export default FeatureStoreEntitiesListView;
+export default FeatureStoreDataSetsListView;

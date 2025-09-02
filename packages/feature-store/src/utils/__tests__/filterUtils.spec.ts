@@ -3,6 +3,7 @@ import {
   getRelationshipsByTargetType,
   FeatureStoreFilterUtils,
   createFeatureStoreFilterUtils,
+  applyTagFilters,
   FilterableItem,
   GenericRelationship,
 } from '../filterUtils';
@@ -464,5 +465,294 @@ describe('createFeatureStoreFilterUtils', () => {
     );
     expect(result).toHaveLength(1);
     expect(result[0].spec.name).toBe('test-item');
+  });
+});
+
+describe('applyTagFilters', () => {
+  interface TestItem {
+    spec: {
+      name: string;
+      tags?: Record<string, string>;
+    };
+  }
+
+  const mockItemsWithTags: TestItem[] = [
+    {
+      spec: {
+        name: 'item-1',
+        tags: {
+          environment: 'production',
+          team: 'ml',
+          version: 'v1.0',
+        },
+      },
+    },
+    {
+      spec: {
+        name: 'item-2',
+        tags: {
+          environment: 'staging',
+          team: 'data',
+          version: 'v2.0',
+        },
+      },
+    },
+    {
+      spec: {
+        name: 'item-3',
+        tags: {
+          environment: 'production',
+          team: 'ml',
+          version: 'v1.5',
+        },
+      },
+    },
+    {
+      spec: {
+        name: 'item-4',
+        tags: {},
+      },
+    },
+    {
+      spec: {
+        name: 'item-5',
+        tags: undefined,
+      },
+    },
+  ];
+
+  it('should return all items when no tag filters are provided', () => {
+    const result = applyTagFilters(mockItemsWithTags, []);
+    expect(result).toHaveLength(5);
+    expect(result).toEqual(mockItemsWithTags);
+  });
+
+  it('should return all items when tagFilters array is empty', () => {
+    const result = applyTagFilters(mockItemsWithTags, []);
+    expect(result).toHaveLength(5);
+  });
+
+  it('should filter by single tag filter', () => {
+    const result = applyTagFilters(mockItemsWithTags, ['environment=production']);
+    expect(result).toHaveLength(2);
+    expect(result[0].spec.name).toBe('item-1');
+    expect(result[1].spec.name).toBe('item-3');
+  });
+
+  it('should filter by multiple tag filters (AND logic)', () => {
+    const result = applyTagFilters(mockItemsWithTags, ['environment=production', 'team=ml']);
+    expect(result).toHaveLength(2);
+    expect(result[0].spec.name).toBe('item-1');
+    expect(result[1].spec.name).toBe('item-3');
+  });
+
+  it('should return empty array when no items match all tag filters', () => {
+    const result = applyTagFilters(mockItemsWithTags, ['environment=production', 'team=data']);
+    expect(result).toHaveLength(0);
+  });
+
+  it('should handle items with empty tags object', () => {
+    const result = applyTagFilters(mockItemsWithTags, ['environment=production']);
+    expect(result).toHaveLength(2);
+    expect(result.every((item) => item.spec.name !== 'item-4')).toBe(true);
+  });
+
+  it('should handle items with undefined tags', () => {
+    const result = applyTagFilters(mockItemsWithTags, ['environment=production']);
+    expect(result).toHaveLength(2);
+    expect(result.every((item) => item.spec.name !== 'item-5')).toBe(true);
+  });
+
+  it('should handle case-sensitive tag matching', () => {
+    const result = applyTagFilters(mockItemsWithTags, ['environment=Production']);
+    expect(result).toHaveLength(0);
+  });
+
+  it('should handle tag filters with spaces', () => {
+    const itemsWithSpaces = [
+      {
+        spec: {
+          name: 'item-with-spaces',
+          tags: {
+            'team name': 'ml team',
+            'environment type': 'production',
+          },
+        },
+      },
+    ];
+
+    const result = applyTagFilters(itemsWithSpaces, ['team name=ml team']);
+    expect(result).toHaveLength(1);
+    expect(result[0].spec.name).toBe('item-with-spaces');
+  });
+
+  it('should handle special characters in tag keys and values', () => {
+    const itemsWithSpecialChars = [
+      {
+        spec: {
+          name: 'item-special',
+          tags: {
+            'team-name': 'ml-team',
+            'env.type': 'prod-env',
+          },
+        },
+      },
+    ];
+
+    const result = applyTagFilters(itemsWithSpecialChars, [
+      'team-name=ml-team',
+      'env.type=prod-env',
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result[0].spec.name).toBe('item-special');
+  });
+
+  it('should handle numeric values in tags', () => {
+    const itemsWithNumericTags = [
+      {
+        spec: {
+          name: 'item-numeric',
+          tags: {
+            version: '1.0',
+            build: '123',
+            priority: '5',
+          },
+        },
+      },
+    ];
+
+    const result = applyTagFilters(itemsWithNumericTags, ['version=1.0', 'build=123']);
+    expect(result).toHaveLength(1);
+    expect(result[0].spec.name).toBe('item-numeric');
+  });
+
+  it('should handle empty string values in tags', () => {
+    const itemsWithEmptyValues = [
+      {
+        spec: {
+          name: 'item-empty',
+          tags: {
+            status: '',
+            description: 'test',
+          },
+        },
+      },
+    ];
+
+    const result = applyTagFilters(itemsWithEmptyValues, ['status=']);
+    expect(result).toHaveLength(1);
+    expect(result[0].spec.name).toBe('item-empty');
+  });
+
+  it('should handle malformed tag filter strings', () => {
+    const result = applyTagFilters(mockItemsWithTags, ['invalid-tag-filter']);
+    expect(result).toHaveLength(0);
+  });
+
+  it('should handle tag filter with only key (no equals sign)', () => {
+    const result = applyTagFilters(mockItemsWithTags, ['environment']);
+    expect(result).toHaveLength(0);
+  });
+
+  it('should handle tag filter with only equals sign', () => {
+    const result = applyTagFilters(mockItemsWithTags, ['=']);
+    expect(result).toHaveLength(0);
+  });
+
+  it('should work with different entity types (DataSets, Entities, FeatureViews, FeatureServices)', () => {
+    const dataSet = {
+      spec: {
+        name: 'test-dataset',
+        tags: { environment: 'production', team: 'ml' },
+      },
+    };
+
+    const entity = {
+      spec: {
+        name: 'test-entity',
+        tags: { environment: 'staging', team: 'data' },
+      },
+    };
+
+    const featureView = {
+      spec: {
+        name: 'test-feature-view',
+        tags: { environment: 'production', team: 'ml' },
+      },
+    };
+
+    const featureService = {
+      spec: {
+        name: 'test-feature-service',
+        tags: { environment: 'production', team: 'ml' },
+      },
+    };
+
+    const items = [dataSet, entity, featureView, featureService];
+
+    const result = applyTagFilters(items, ['environment=production', 'team=ml']);
+    expect(result).toHaveLength(3);
+    expect(result.map((item) => item.spec.name)).toEqual([
+      'test-dataset',
+      'test-feature-view',
+      'test-feature-service',
+    ]);
+  });
+
+  it('should preserve original item structure', () => {
+    const originalItem = {
+      spec: {
+        name: 'test-item',
+        tags: { environment: 'production' },
+        otherProperty: 'other-value',
+      },
+      meta: {
+        created: '2023-01-01',
+      },
+    };
+
+    const result = applyTagFilters([originalItem], ['environment=production']);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual(originalItem);
+    expect(result[0].spec.otherProperty).toBe('other-value');
+    expect(result[0].meta.created).toBe('2023-01-01');
+  });
+
+  it('should handle large number of tag filters efficiently', () => {
+    const itemWithManyTags = {
+      spec: {
+        name: 'item-many-tags',
+        tags: {
+          tag1: 'value1',
+          tag2: 'value2',
+          tag3: 'value3',
+          tag4: 'value4',
+          tag5: 'value5',
+        },
+      },
+    };
+
+    const manyTagFilters = [
+      'tag1=value1',
+      'tag2=value2',
+      'tag3=value3',
+      'tag4=value4',
+      'tag5=value5',
+    ];
+
+    const result = applyTagFilters([itemWithManyTags], manyTagFilters);
+    expect(result).toHaveLength(1);
+    expect(result[0].spec.name).toBe('item-many-tags');
+  });
+
+  it('should handle items with no spec.tags property gracefully', () => {
+    const itemWithoutTags: TestItem = {
+      spec: {
+        name: 'item-no-tags',
+      },
+    };
+
+    const result = applyTagFilters([itemWithoutTags], ['environment=production']);
+    expect(result).toHaveLength(0);
   });
 });
