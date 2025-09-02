@@ -15,7 +15,7 @@ describe('Model Registry List Endpoint', () => {
   const apiSchema = loadOpenAPISchema('upstream/api/openapi/mod-arch.yaml');
 
   it('should successfully retrieve model registries list', async () => {
-    const result = await apiClient.get('/api/v1/model_registry?namespace=default', 'list-default');
+    const result = await apiClient.get('/api/v1/model_registry?namespace=default');
     expect(result.status).toBe(200);
     expect({ status: result.status, data: result.data }).toMatchContract(apiSchema, {
       ref: '#/components/responses/ModelRegistryResponse/content/application/json/schema',
@@ -24,10 +24,7 @@ describe('Model Registry List Endpoint', () => {
   });
 
   it('should handle empty registry list', async () => {
-    const result = await apiClient.get(
-      '/api/v1/model_registry?namespace=nonexistent',
-      'list-empty',
-    );
+    const result = await apiClient.get('/api/v1/model_registry?namespace=nonexistent');
     expect(result.status).toBe(200);
     expect({ status: result.status, data: result.data }).toMatchContract(apiSchema, {
       ref: '#/components/responses/ModelRegistryResponse/content/application/json/schema',
