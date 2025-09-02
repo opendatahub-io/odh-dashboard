@@ -19,11 +19,10 @@ import {
   convertToLineageNodeModel,
   convertToLineageEdgeModel,
   TopologyEdgeModel,
-} from '@odh-dashboard/feature-store/screens/lineage/types';
+} from './types';
 import useLineageController from './useLineageController';
 import { useLineageSelection } from './useLineageSelection';
 import { useLineagePopover } from './useLineagePopover';
-import LineageNodePopover from './LineageNodePopover';
 import { createLineageTopologyControls } from './topologyControls';
 import { LineageClickProvider, useLineageClick } from './LineageClickContext';
 
@@ -36,9 +35,11 @@ const LineageInner: React.FC<LineageProps> = ({
   onNodeSelect,
   className,
   showNodePopover = true,
+  componentFactory,
+  popoverComponent: PopoverComponent,
 }) => {
   const { getLastClickPosition } = useLineageClick();
-  const controller = useLineageController('lineage-graph');
+  const controller = useLineageController('lineage-graph', componentFactory);
 
   // Convert generic lineage data to topology format
   const nodes = useMemo(() => {
@@ -59,7 +60,7 @@ const LineageInner: React.FC<LineageProps> = ({
   } = useLineagePopover({
     data,
     controller,
-    enabled: showNodePopover,
+    enabled: showNodePopover && !!PopoverComponent,
   });
 
   // Enhanced node selection handler that also shows popover
@@ -68,7 +69,7 @@ const LineageInner: React.FC<LineageProps> = ({
       onNodeSelect?.(nodeId);
 
       // Show popover for selected node if enabled
-      if (nodeId && showNodePopover) {
+      if (nodeId && showNodePopover && PopoverComponent) {
         // Get the current click position using the ref (avoids React batching issues)
         const currentClickPosition = getLastClickPosition();
         if (currentClickPosition) {
@@ -81,7 +82,7 @@ const LineageInner: React.FC<LineageProps> = ({
         }
       }
     },
-    [onNodeSelect, showNodePopover, showPopover, getLastClickPosition],
+    [onNodeSelect, showNodePopover, PopoverComponent, showPopover, getLastClickPosition],
   );
 
   // Use selection management hook
@@ -212,12 +213,14 @@ const LineageInner: React.FC<LineageProps> = ({
       </div>
 
       {/* Node popover */}
-      <LineageNodePopover
-        node={popoverNode}
-        position={popoverPosition}
-        isVisible={isPopoverVisible}
-        onClose={hidePopover}
-      />
+      {PopoverComponent && (
+        <PopoverComponent
+          node={popoverNode}
+          position={popoverPosition}
+          isVisible={isPopoverVisible}
+          onClose={hidePopover}
+        />
+      )}
     </div>
   );
 };

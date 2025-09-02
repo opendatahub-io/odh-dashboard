@@ -12,18 +12,10 @@ import {
   List,
   ListItem,
 } from '@patternfly/react-core';
-import {
-  FsObjectType,
-  getEntityTypeIcon,
-} from '@odh-dashboard/feature-store/utils/featureStoreObjects';
-import { LineageNode } from '@odh-dashboard/feature-store/screens/lineage/types';
+import { LineageNode, PopoverPosition } from '@odh-dashboard/internal/components/lineage/types.js';
+import { FsObjectType, getEntityTypeIcon } from '../../../utils/featureStoreObjects.tsx';
 
-export interface PopoverPosition {
-  x: number;
-  y: number;
-}
-
-export interface LineageNodePopoverProps {
+export interface FeatureStoreLineageNodePopoverProps {
   node: LineageNode | null;
   position: PopoverPosition | null;
   isVisible: boolean;
@@ -40,7 +32,7 @@ const getFsObjectTypeLabel = (fsObjectType: FsObjectType): string => {
   return typeLabels[fsObjectType] || fsObjectType;
 };
 
-const LineageNodePopover: React.FC<LineageNodePopoverProps> = ({
+const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverProps> = ({
   node,
   position,
   isVisible,
@@ -127,4 +119,4 @@ const LineageNodePopover: React.FC<LineageNodePopoverProps> = ({
   return ReactDOM.createPortal(popoverContent, document.body);
 };
 
-export default LineageNodePopover;
+export default FeatureStoreLineageNodePopover;

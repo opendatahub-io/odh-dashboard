@@ -2,12 +2,21 @@ import React, { useMemo, useState } from 'react';
 import { EmptyStateVariant, EmptyStateBody, EmptyState, PageSection } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { Lineage } from '@odh-dashboard/internal/components/lineage/Lineage';
+import { createLineageComponentFactory } from '@odh-dashboard/internal/components/lineage/factories';
+import FeatureStoreLineageNode from './node/FeatureStoreLineageNode';
+import FeatureStoreLineageNodePopover from './node/FeatureStoreLineageNodePopover';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import useFeatureStoreLineage from '../../apiHooks/useFeatureStoreLineage';
 import { convertFeatureStoreLineageToVisualizationData } from '../../utils/lineageDataConverter';
 
 const FeatureStoreLineage: React.FC = () => {
   const { currentProject } = useFeatureStoreProject();
+
+  // Create component factory with FeatureStoreLineageNode
+  const componentFactory = useMemo(
+    () => createLineageComponentFactory(FeatureStoreLineageNode),
+    [],
+  );
 
   const emptyState = (
     <EmptyState
@@ -73,6 +82,8 @@ const FeatureStoreLineage: React.FC = () => {
         }
         emptyStateMessage="No lineage data available for this feature store project"
         height="100%"
+        componentFactory={componentFactory}
+        popoverComponent={FeatureStoreLineageNodePopover}
       />
     </PageSection>
   );

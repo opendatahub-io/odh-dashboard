@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   ComponentFactory,
   DefaultGroup,
@@ -9,9 +10,10 @@ import {
   DagreLayout,
   withPanZoom,
   withSelection,
+  WithSelectionProps,
+  GraphElement,
 } from '@patternfly/react-topology';
 import CurvedEdge from './edge/CurvedEdge';
-import LineageNode from './LineageNode';
 
 export const lineageLayoutFactory: LayoutFactory = (
   type: string,
@@ -29,24 +31,31 @@ export const lineageLayoutFactory: LayoutFactory = (
   });
 };
 
-export const lineageComponentFactory: ComponentFactory = (kind: ModelKind, type: string) => {
-  switch (type) {
-    case 'group':
-      return DefaultGroup;
-    case 'curved-edge':
-      return withSelection()(CurvedEdge);
-    case 'lineage-node':
-      return withSelection()(LineageNode);
-    default:
-      switch (kind) {
-        case ModelKind.graph:
-          return withPanZoom()(withSelection()(GraphComponent));
-        case ModelKind.node:
-          return withSelection()(LineageNode);
-        case ModelKind.edge:
-          return withSelection()(CurvedEdge);
-        default:
-          return undefined;
-      }
-  }
-};
+type NodeComponentType = React.ComponentType<{ element: GraphElement } & WithSelectionProps>;
+
+export const createLineageComponentFactory =
+  (customNodeComponent?: NodeComponentType): ComponentFactory =>
+  (kind: ModelKind, type: string) => {
+    switch (type) {
+      case 'group':
+        return DefaultGroup;
+      case 'curved-edge':
+        return withSelection()(CurvedEdge);
+      case 'lineage-node':
+        return customNodeComponent ? withSelection()(customNodeComponent) : undefined;
+      default:
+        switch (kind) {
+          case ModelKind.graph:
+            return withPanZoom()(withSelection()(GraphComponent));
+          case ModelKind.node:
+            return customNodeComponent ? withSelection()(customNodeComponent) : undefined;
+          case ModelKind.edge:
+            return withSelection()(CurvedEdge);
+          default:
+            return undefined;
+        }
+    }
+  };
+
+// Default component factory for backward compatibility
+export const lineageComponentFactory: ComponentFactory = createLineageComponentFactory();

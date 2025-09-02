@@ -1,4 +1,4 @@
-import { TopologyEdgeModel } from '@odh-dashboard/feature-store/screens/lineage/types';
+import { TopologyEdgeModel } from './types';
 
 export const findConnectedElements = (nodeId: string, edges: TopologyEdgeModel[]): string[] => {
   if (!nodeId) return [];

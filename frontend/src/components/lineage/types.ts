@@ -1,5 +1,14 @@
-import { EdgeStyle, NodeModel } from '@patternfly/react-topology';
-import { FeatureColumns } from '../../types/features';
+import React from 'react';
+import { EdgeStyle, NodeModel, ComponentFactory } from '@patternfly/react-topology';
+
+export interface LineageEdge {
+  id: string;
+  source: string;
+  target: string;
+  edgeStyle?: EdgeStyle;
+  type?: string;
+  isPositioningEdge?: boolean; // Marks edges used only for layout positioning
+}
 
 export type LineageEntityType =
   | 'entity'
@@ -16,25 +25,35 @@ export interface LineageNode {
   label: string;
   entityType: LineageEntityType;
   fsObjectTypes: 'entity' | 'data_source' | 'feature_view' | 'feature_service';
-  features?: FeatureColumns[];
+  features?: {
+    name: string;
+    valueType: string;
+    description?: string;
+    tags?: Record<string, string>;
+  }[];
   description?: string;
   truncateLength?: number;
   layer?: number; // Optional layer for positioning (0=leftmost, higher=rightward)
-}
-
-export interface LineageEdge {
-  id: string;
-  source: string;
-  target: string;
-  edgeStyle?: EdgeStyle;
-  type?: string;
-  isPositioningEdge?: boolean; // Marks edges used only for layout positioning
 }
 
 export interface LineageData {
   nodes: LineageNode[];
   edges: LineageEdge[];
 }
+
+export interface PopoverPosition {
+  x: number;
+  y: number;
+}
+
+export interface PopoverComponentProps {
+  node: LineageNode | null;
+  position: PopoverPosition | null;
+  isVisible: boolean;
+  onClose: () => void;
+}
+
+export type PopoverComponent = React.ComponentType<PopoverComponentProps>;
 
 export interface LineageProps {
   data: LineageData;
@@ -46,6 +65,8 @@ export interface LineageProps {
   className?: string;
   title?: string;
   showNodePopover?: boolean; // Enable/disable node popover functionality (default: true)
+  componentFactory?: ComponentFactory; // Optional custom component factory for nodes
+  popoverComponent?: PopoverComponent; // Optional custom popover component
 }
 
 export const convertToLineageNodeModel = (node: LineageNode): NodeModel => {

@@ -1,11 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { LineageNode, LineageData } from '@odh-dashboard/feature-store/screens/lineage/types';
 import { Visualization, GRAPH_LAYOUT_END_EVENT } from '@patternfly/react-topology';
-
-export interface PopoverPosition {
-  x: number;
-  y: number;
-}
+import { LineageData, LineageNode, PopoverPosition } from './types';
 
 export interface UseLineagePopoverReturn {
   selectedNode: LineageNode | null;

@@ -14,29 +14,10 @@ import {
 } from '@patternfly/react-topology';
 import { CubeIcon } from '@patternfly/react-icons';
 import { chart_color_black_500 as chartColorBlack } from '@patternfly/react-tokens';
-import { getEntityTypeIcon } from '@odh-dashboard/feature-store/utils/featureStoreObjects';
-import { useEdgeHighlighting } from './edge/edgeStateUtils';
-import { useLineageClick } from './LineageClickContext';
-import { LineageSourceAnchor, LineageTargetAnchor } from './customAnchors';
-
-// Define the types of lineage entities
-export type LineageEntityType =
-  | 'entity'
-  | 'batch_data_source'
-  | 'push_data_source'
-  | 'request_data_source'
-  | 'batch_feature_view'
-  | 'on_demand_feature_view'
-  | 'stream_feature_view'
-  | 'feature_service';
-
-export interface LineageNodeData {
-  label: string;
-  entityType: LineageEntityType;
-  features?: number; // For feature views
-  description?: string;
-  truncateLength?: number; // Control text truncation (default: 30 for lineage)
-}
+import { useEdgeHighlighting } from '@odh-dashboard/internal/components/lineage/edge/edgeStateUtils';
+import { useLineageClick } from '@odh-dashboard/internal/components/lineage/LineageClickContext';
+import { LineageSourceAnchor, LineageTargetAnchor } from './customAnchors.ts';
+import { getEntityTypeIcon } from '../../../utils/featureStoreObjects.tsx';
 
 type LineageNodeProps = {
   element: GraphElement;
@@ -133,11 +114,11 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
   },
 );
 
-const LineageNode: React.FC<LineageNodeProps> = ({ element, ...rest }) => {
+const FeatureStoreLineageNode: React.FC<LineageNodeProps> = ({ element, ...rest }) => {
   if (!isNode(element)) {
     throw new Error('LineageNode must be used only on Node elements');
   }
   return <LineageNodeInner element={element} {...rest} />;
 };
 
-export default observer(LineageNode);
+export default observer(FeatureStoreLineageNode);
