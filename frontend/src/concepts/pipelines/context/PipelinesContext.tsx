@@ -280,10 +280,17 @@ export const CreatePipelineServerButton: React.FC<CreatePipelineServerButtonProp
   );
 };
 
-export const DeleteServerModal = ({ onClose }: { onClose: () => void }): React.JSX.Element => {
+export const DeleteServerModal = ({
+  onClose,
+  removeConfirmation = false,
+}: {
+  onClose: () => void;
+  removeConfirmation?: boolean;
+}): React.JSX.Element => {
   const { refreshState } = React.useContext(PipelinesContext);
   return (
     <DeletePipelineServerModal
+      removeConfirmation={removeConfirmation}
       onClose={(deleted) => {
         if (deleted) {
           refreshState().then(onClose);

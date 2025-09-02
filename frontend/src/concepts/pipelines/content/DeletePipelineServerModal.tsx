@@ -8,10 +8,14 @@ import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingPropertie
 
 type DeletePipelineServerModalProps = {
   onClose: (deleted: boolean) => void;
+  removeConfirmation?: boolean;
 };
 
 const eventName = 'Pipeline Server Deleted';
-const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({ onClose }) => {
+const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({
+  onClose,
+  removeConfirmation = false,
+}) => {
   const [deleting, setDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const { project, namespace, pipelinesServer } = usePipelinesAPI();
@@ -24,6 +28,8 @@ const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({ o
 
   return (
     <DeleteModal
+      removeConfirmation={removeConfirmation}
+      ß
       title="Delete pipeline server?"
       onClose={() => {
         console.log(

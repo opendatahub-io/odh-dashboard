@@ -1,6 +1,10 @@
 import * as React from 'react';
 import { Bullseye, Spinner, Button, Flex, FlexItem } from '@patternfly/react-core';
-import { usePipelinesAPI, PipelineServerTimedOut } from '#~/concepts/pipelines/context';
+import {
+  usePipelinesAPI,
+  PipelineServerTimedOut,
+  DeleteServerModal,
+} from '#~/concepts/pipelines/context';
 import StartingStatusModal from '#~/concepts/pipelines/content/StartingStatusModal';
 
 type EnsureAPIAvailabilityProps = {
@@ -13,6 +17,8 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
     usePipelinesAPI();
 
   const [showModal, setShowModal] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+
   console.log(
     'ensure api availability; namespace/pipelinesServer.name:',
     namespace,
@@ -54,6 +60,20 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
             View progress and event logs
           </Button>
         </FlexItem>
+        <FlexItem>
+          <Button
+            data-testid="delete-init-pipeline-server"
+            variant="secondary"
+            onClick={() => {
+              setIsDeleting(true);
+            }}
+          >
+            Cancel and delete pipeline server
+          </Button>
+        </FlexItem>
+        {isDeleting ? (
+          <DeleteServerModal removeConfirmation={true} onClose={() => setIsDeleting(false)} />
+        ) : null}
       </Flex>
     </Flex>
   );
