@@ -25,6 +25,8 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
     pipelinesServer.name,
   );
 
+  const deleteIsAvailable = namespace && pipelinesServer.name && !isDeleting;
+
   React.useEffect(() => {
     if (startingStatusModalOpenRef) {
       startingStatusModalOpenRef.current = showModal ? namespace : null;
@@ -67,6 +69,7 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
             onClick={() => {
               setIsDeleting(true);
             }}
+            isDisabled={!deleteIsAvailable}
           >
             Cancel and delete pipeline server
           </Button>
