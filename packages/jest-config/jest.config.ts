@@ -1,3 +1,3 @@
-// Forward to shared contract-tests jest config to avoid duplication (TS ignores import/no-extraneous)
+// Compose shared contract-tests Jest config and add package-specific setup (hook matchers)
 // eslint-disable-next-line import/no-extraneous-dependencies
-export { default } from '@odh-dashboard/contract-tests/jest-config';
+export { default } from './jest.config.js';

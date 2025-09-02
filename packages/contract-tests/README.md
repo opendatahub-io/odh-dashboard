@@ -1,10 +1,12 @@
 # ODH Dashboard Contract Testing
 
-A simple, zero-config contract testing solution for ODH Dashboard packages.
+Consumer contract testing for ODH Dashboard packages. These tests validate that
+your frontend (consumer) and the Mock BFF (provider substitute) agree on the
+API contract by checking real HTTP responses against OpenAPI/JSON Schemas.
 
 ## Quick Start
 
-Teams can run contract tests with just one command:
+Run contract tests with one command:
 
 ```bash
 # From any package directory (preferred via workspace)
@@ -102,35 +104,54 @@ describe('Your API Contract Tests', () => {
 });
 ```
 
-## Schema Options
+## Schema Options (choose one)
 
-You have three ways to provide schemas:
+### Option 1: Use checked-in OpenAPI (recommended)
+```javascript
+const fs = require('fs');
+const path = require('path');
+const yaml = require('js-yaml');
+const { ContractApiClient } = require('@odh-dashboard/contract-tests');
 
-- **Use checked-in OpenAPI (recommended)**
-  - Load YAML/JSON from your repo and validate with `expectContract(...).toMatchContract(openApiDoc, { ref, expectedStatus })`.
+const api = new ContractApiClient({ baseUrl: 'http://localhost:8080' });
+const oasPath = path.resolve(process.cwd(), 'upstream/api/openapi/openapi.yaml');
+const openApiDoc = yaml.load(fs.readFileSync(oasPath, 'utf8')) || {};
 
-- **Convert OpenAPI → JSON Schema with helpers**
-  ```javascript
-  /* eslint-disable import/no-extraneous-dependencies, import/newline-after-import */
-  const { createTestSchema, extractSchemaFromOpenApiResponse } = require('@odh-dashboard/contract-tests');
-  const responses = openApiDoc && openApiDoc.components && openApiDoc.components.responses ? openApiDoc.components.responses : {};
-  const myResp = responses['MyResponse'];
-  const schemaDef = extractSchemaFromOpenApiResponse({ 200: { content: { 'application/json': { schema: myResp } } } }, 200, 'application/json');
-  const testSchema = schemaDef ? createTestSchema({ 200: { content: { 'application/json': { schema: schemaDef } } } }, 'MyResponse') : null;
-  expect({ status: res.status, data: res.data }).toMatchContract(testSchema ? testSchema.schema : {}, { expectedStatus: 200 });
-  ```
-
-- **Fetch from a live Swagger/OpenAPI endpoint**
-  ```javascript
-  /* eslint-disable import/no-extraneous-dependencies, import/newline-after-import */
-  const axios = require('axios');
-  const openApiUrl = process.env.OPENAPI_URL || '';
-  const { data: liveOpenApi } = await axios.get(openApiUrl);
-  expect({ status: res.status, data: res.data }).toMatchContract(liveOpenApi, {
-    ref: '#/components/responses/MyResponse/content/application/json/schema',
+it('validates response with OpenAPI ref', async () => {
+  const res = await api.get('/api/v1/resources', 'list');
+  expect({ status: res.status, data: res.data }).toMatchContract(openApiDoc, {
+    ref: '#/components/responses/ListResponse/content/application/json/schema',
     expectedStatus: 200,
   });
-  ```
+});
+```
+
+### Option 2: Convert OpenAPI → JSON Schema (helpers)
+```javascript
+const { createTestSchema, extractSchemaFromOpenApiResponse } = require('@odh-dashboard/contract-tests');
+
+const listResp = ((openApiDoc && openApiDoc.components && openApiDoc.components.responses) || {}).ListResponse;
+const extracted = extractSchemaFromOpenApiResponse({
+  200: { content: { 'application/json': { schema: listResp } } },
+});
+const testSchema = createTestSchema({
+  200: { content: { 'application/json': { schema: extracted } } },
+}, 'ListResponse');
+
+expect({ status: res.status, data: res.data }).toMatchContract(testSchema.schema, { expectedStatus: 200 });
+```
+
+### Option 3: Fetch Swagger/OpenAPI at runtime
+```javascript
+const axios = require('axios');
+
+const openApiUrl = process.env.OPENAPI_URL || '';
+const { data: liveOpenApi } = await axios.get(openApiUrl);
+expect({ status: res.status, data: res.data }).toMatchContract(liveOpenApi, {
+  ref: '#/components/responses/ListResponse/content/application/json/schema',
+  expectedStatus: 200,
+});
+```
 
 ## Mock BFF Requirements
 

@@ -1,4 +1,3 @@
-/* eslint-env node, es6 */
 const { execSync } = require('child_process');
 
 /**
@@ -44,12 +43,15 @@ function discoverPluginPackages() {
       .map((name) => name.trim())
       .filter(Boolean);
 
-    const availablePluginsSet = new Set(availablePluginNames);
+    // Use a plain object map to avoid relying on global Set (ES env in lint)
+    const availablePluginsMap = Object.fromEntries(
+      availablePluginNames.map((name) => [name, true]),
+    );
     const validPackages = [];
     const invalidPackages = [];
 
     for (const packageName of wantedPackageNames) {
-      if (availablePluginsSet.has(packageName)) {
+      if (availablePluginsMap[packageName]) {
         validPackages.push(packageName);
       } else {
         invalidPackages.push(packageName);
