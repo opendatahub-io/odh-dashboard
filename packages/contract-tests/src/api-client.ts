@@ -22,7 +22,7 @@ export class ContractApiClient {
     };
   }
 
-  async get(path: string, testName: string, config?: AxiosRequestConfig): Promise<ApiTestResult> {
+  async get(path: string, testName?: string, config?: AxiosRequestConfig): Promise<ApiTestResult> {
     const response = await axios.get(`${this.config.baseUrl}${path}`, {
       ...config,
       timeout: this.config.timeout,
@@ -42,7 +42,7 @@ export class ContractApiClient {
   async post(
     path: string,
     data: unknown,
-    testName: string,
+    testName?: string,
     config?: AxiosRequestConfig,
   ): Promise<ApiTestResult> {
     const response = await axios.post(`${this.config.baseUrl}${path}`, data, {
