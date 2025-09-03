@@ -1,7 +1,4 @@
 {
   "extends": "@odh-dashboard/tsconfig/tsconfig.json",
-  "exclude": ["node_modules", "upstream"],
-  "compilerOptions": {
-    "types": ["jest", "@types/node"]
-  }
+  "exclude": ["node_modules", "upstream"]
 }
