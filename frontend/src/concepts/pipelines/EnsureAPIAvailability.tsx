@@ -6,6 +6,7 @@ import {
   DeleteServerModal,
 } from '#~/concepts/pipelines/context';
 import StartingStatusModal from '#~/concepts/pipelines/content/StartingStatusModal';
+import { getPipelineServerName } from './context/PipelinesContext';
 
 type EnsureAPIAvailabilityProps = {
   children: React.ReactNode;
@@ -13,7 +14,7 @@ type EnsureAPIAvailabilityProps = {
 
 // if isInitialized but not ready, show spinner; if isNot initialized then show new status
 const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children }) => {
-  const { apiAvailable, pipelinesServer, namespace, startingStatusModalOpenRef } =
+  const { apiAvailable, pipelinesServer, namespace, startingStatusModalOpenRef, project } =
     usePipelinesAPI();
 
   const [showModal, setShowModal] = React.useState(false);
@@ -27,9 +28,10 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
     }
   }, [namespace, showModal, startingStatusModalOpenRef]);
 
+  const pipelineServerName = getPipelineServerName(project);
   const defaultConnectingText = (
     <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }}>
-      <FlexItem>The {namespace} pipeline server connection is being established.</FlexItem>
+      <FlexItem>The {pipelineServerName} connection is being established.</FlexItem>
       <FlexItem>The process should take less than five minutes. When the server is ready,</FlexItem>
       <FlexItem>you will be able to create and import pipelines.</FlexItem>
     </Flex>
@@ -37,7 +39,7 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
 
   const modalLink = (
     <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }}>
-      <FlexItem>The {namespace} pipeline server is being initialized.</FlexItem>
+      <FlexItem>The {pipelineServerName} is being initialized.</FlexItem>
       <FlexItem>The process should take less than five minutes. When the server is ready,</FlexItem>
       <Flex
         direction={{ default: 'column' }}
