@@ -8,6 +8,8 @@ import {
   SimplifiedResponseData,
   LlamaModel,
   FileUploadResult,
+  CodeExportRequest,
+  CodeExportResponse,
 } from '../types';
 import axios from '../utilities/axios';
 import { URL_PREFIX } from '../utilities/const';
@@ -140,6 +142,24 @@ export const createResponse = (request: CreateResponseRequest): Promise<Simplifi
     .catch((error) => {
       throw new Error(
         error.response?.data?.error?.message || error.message || 'Failed to generate responses',
+      );
+    });
+};
+
+/**
+ * Export code based on user input and configuration
+ * @param request - CodeExportRequest payload for /genai/v1/code-exporter.
+ * @returns Promise<CodeExportResponse> - The generated code export response.
+ * @throws Error - When the API request fails or returns an error response.
+ */
+export const exportCode = (request: CodeExportRequest): Promise<CodeExportResponse> => {
+  const url = `${URL_PREFIX}/api/v1/code-exporter`;
+  return axios
+    .post(url, request)
+    .then((response) => response.data)
+    .catch((error) => {
+      throw new Error(
+        error.response?.data?.error?.message || error.message || 'Failed to export code',
       );
     });
 };

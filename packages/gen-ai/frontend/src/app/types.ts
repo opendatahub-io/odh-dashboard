@@ -149,3 +149,25 @@ export type CompletionMessage = {
   stop_reason: string;
   tool_calls?: unknown[];
 };
+
+export type CodeExportTool = {
+  type: string;
+  vector_store_ids: string[];
+};
+
+export type CodeExportRequest = {
+  input: string;
+  instructions?: string;
+  model: string;
+  stream?: boolean;
+  temperature?: number;
+  tools?: CodeExportTool[];
+};
+
+export type CodeExportData = {
+  code: string;
+};
+
+export type CodeExportResponse = {
+  data: CodeExportData;
+};
