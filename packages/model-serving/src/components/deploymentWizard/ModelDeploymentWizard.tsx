@@ -107,13 +107,17 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           id="advanced-options-step"
           isDisabled={!validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid}
         >
-          <AdvancedSettingsStepContent tokenAuthAlert={tokenAuthAlert} />
+          <AdvancedSettingsStepContent wizardState={wizardState} tokenAuthAlert={tokenAuthAlert} />
         </WizardStep>
         <WizardStep
           name="Summary"
           id="summary-step"
           footer={{ nextButtonText: primaryButtonText }}
-          isDisabled={!validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid}
+          isDisabled={
+            !validation.isModelSourceStepValid ||
+            !validation.isModelDeploymentStepValid ||
+            !validation.isAdvancedSettingsStepValid
+          }
         >
           Review step content
         </WizardStep>

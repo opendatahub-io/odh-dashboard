@@ -9,12 +9,16 @@ import {
   EmptyStateFooter,
   EmptyStateActions,
   Button,
+  getUniqueId,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { setupDefaults } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
+import { getTokenNames } from '@odh-dashboard/internal/pages/modelServing/utils';
+import useServingRuntimeSecrets from '@odh-dashboard/internal/pages/modelServing/screens/projects/useServingRuntimeSecrets';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
 import { ModelDeploymentWizardData } from './useDeploymentWizard';
+import { AdvancedSettingsFieldData } from './fields/AdvancedSettingsSelectField';
 import { getModelTypeFromDeployment, setupModelLocationData } from './utils';
 import { Deployment, isModelServingDeploymentFormDataExtension } from '../../../extension-points';
 import {
@@ -48,6 +52,44 @@ const ErrorContent: React.FC<{ error: Error }> = ({ error }) => {
       </EmptyState>
     </Bullseye>
   );
+};
+
+// Utility function to extract advanced settings from deployment
+const extractAdvancedSettingsFromDeployment = (
+  deployment: Deployment,
+  projectSecrets: Array<{ metadata: { name: string; annotations?: Record<string, string> } }> = [],
+): AdvancedSettingsFieldData => {
+  // Check if deployment has external routes
+  const hasExternalRoute =
+    deployment.endpoints?.some((endpoint) => endpoint.type === 'external') ?? false;
+
+  // Check if token auth is enabled
+  const hasTokenAuth =
+    deployment.model.metadata.annotations?.['security.opendatahub.io/enable-auth'] === 'true';
+
+  // Extract tokens from secrets
+  const { serviceAccountName } = getTokenNames(
+    deployment.model.metadata.name,
+    deployment.model.metadata.namespace,
+  );
+
+  const deploymentSecrets = projectSecrets.filter(
+    (secret) =>
+      secret.metadata.annotations?.['kubernetes.io/service-account.name'] === serviceAccountName,
+  );
+
+  const tokens = deploymentSecrets.map((secret) => ({
+    uuid: getUniqueId('ml'),
+    name:
+      secret.metadata.annotations?.['kubernetes.io/service-account.name'] || secret.metadata.name,
+    error: undefined,
+  }));
+
+  return {
+    externalRoute: hasExternalRoute,
+    tokenAuth: hasTokenAuth,
+    tokens,
+  };
 };
 
 const EditModelDeploymentPage: React.FC = () => {
@@ -103,6 +145,7 @@ const EditModelDeploymentContent: React.FC<{
 }> = ({ project, modelServingPlatform }) => {
   const { name: deploymentName } = useParams();
   const { deployments, loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
+  const serverSecrets = useServingRuntimeSecrets(project.metadata.namespace);
 
   const existingDeployment = React.useMemo(() => {
     return deployments?.find((d: Deployment) => d.model.metadata.name === deploymentName);
@@ -111,29 +154,31 @@ const EditModelDeploymentContent: React.FC<{
   const [formDataExtension, formDataExtensionLoaded, formDataExtensionErrors] =
     useResolvedDeploymentExtension(isModelServingDeploymentFormDataExtension, existingDeployment);
 
-  const extractFormDataFromDeployment: (deployment: Deployment) => ModelDeploymentWizardData = (
-    deployment: Deployment,
-  ) => ({
+  const extractFormDataFromDeployment = React.useCallback(
+    (deployment: Deployment): ModelDeploymentWizardData => ({
     modelTypeField: getModelTypeFromDeployment(deployment),
-    k8sNameDesc: setupDefaults({ initialData: deployment.model }),
+      k8sNameDesc: setupDefaults({ initialData: deployment.model }),
     hardwareProfile:
       formDataExtension?.properties.extractHardwareProfileConfig(deployment) ?? undefined,
     modelFormat: formDataExtension?.properties.extractModelFormat(deployment) ?? undefined,
     modelLocationData: setupModelLocationData(), // TODO: Implement fully in next ticket RHOAIENG-32186
-  });
+      advancedSettingsField: extractAdvancedSettingsFromDeployment(deployment, serverSecrets.data),
+    }),
+    [serverSecrets.data],
+  );
 
   const formData = React.useMemo(() => {
-    if (existingDeployment) {
+    if (existingDeployment && serverSecrets.loaded) {
       return extractFormDataFromDeployment(existingDeployment);
     }
     return undefined;
-  }, [existingDeployment, extractFormDataFromDeployment]);
+  }, [existingDeployment, extractFormDataFromDeployment, serverSecrets.loaded]);
 
   if (formDataExtensionErrors.length > 0) {
     return <ErrorContent error={formDataExtensionErrors[0]} />;
   }
 
-  if (!deploymentsLoaded || !formDataExtensionLoaded) {
+  if (!deploymentsLoaded || !formDataExtensionLoaded || !serverSecrets.loaded) {
     return (
       <Bullseye>
         <Spinner />

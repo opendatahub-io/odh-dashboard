@@ -91,6 +91,7 @@ const TokenInput: React.FC<TokenInputProps> = ({ data, setData, token, disabled 
           <Button
             variant="plain"
             aria-label="Remove service account"
+            data-testid="remove-service-account-button"
             icon={<MinusCircleIcon />}
             isDisabled={disabled}
             onClick={() => {

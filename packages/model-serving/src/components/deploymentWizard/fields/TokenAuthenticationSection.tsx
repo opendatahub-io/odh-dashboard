@@ -28,7 +28,7 @@ const TokenAuthenticationSection: React.FC<TokenAuthenticationSectionProps> = ({
         <Checkbox
           label="Require token authentication"
           id="alt-form-checkbox-auth"
-          data-testid="alt-form-checkbox-auth"
+          data-testid="token-authentication-checkbox"
           name="alt-form-checkbox-auth"
           isDisabled={!allowCreate}
           isChecked={data.tokenAuth}

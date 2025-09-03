@@ -264,6 +264,27 @@ describe('Model Serving Deploy Wizard', () => {
     cy.get('@createInferenceService.all').then((interceptions) => {
       expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
     });
+
+    // Step 3: Advanced Options
+    // Model access & Token authentication
+    modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+    modelServingWizard.findExternalRouteCheckbox().click();
+    modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
+    modelServingWizard.findTokenAuthenticationCheckbox().click();
+    modelServingWizard.findTokenWarningAlert().should('exist');
+    modelServingWizard.findTokenAuthenticationCheckbox().click();
+    modelServingWizard.findServiceAccountByIndex(0).should('have.value', 'default-name');
+    modelServingWizard.findAddServiceAccountButton().click();
+    modelServingWizard.findServiceAccountByIndex(1).should('have.value', 'default-name');
+    modelServingWizard.findServiceNameAlert().should('exist');
+    modelServingWizard.findServiceAccountByIndex(1).clear().type('new-name');
+    modelServingWizard.findServiceNameAlert().should('not.exist');
+    modelServingWizard.findRemoveServiceAccountByIndex(1).click();
+    modelServingWizard.findRemoveServiceAccountByIndex(0).click();
+    modelServingWizard.findTokenWarningAlert().should('exist');
+    modelServingWizard.findTokenAuthenticationCheckbox().click();
+
+    modelServingWizard.findNextButton().should('be.enabled').click();
   });
 
   it('Create a new predictive deployment and submit', () => {

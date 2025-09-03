@@ -6,12 +6,18 @@ import { hardwareProfileValidationSchema } from '@odh-dashboard/internal/concept
 import type { UseModelDeploymentWizardState } from './useDeploymentWizard';
 import { modelSourceStepSchema, type ModelSourceStepData } from './steps/ModelSourceStep';
 import { modelFormatFieldSchema } from './fields/ModelFormatField';
+import {
+  advancedSettingsFieldSchema,
+  type AdvancedSettingsFieldData,
+} from './fields/AdvancedSettingsSelectField';
 
 export type ModelDeploymentWizardValidation = {
   modelSource: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
   hardwareProfile: ReturnType<typeof useValidation>;
+  advancedSettings: ReturnType<typeof useZodFormValidation<AdvancedSettingsFieldData>>;
   isModelSourceStepValid: boolean;
   isModelDeploymentStepValid: boolean;
+  isAdvancedSettingsStepValid: boolean;
 };
 
 export const useModelDeploymentWizardValidation = (
@@ -29,6 +35,11 @@ export const useModelDeploymentWizardValidation = (
   const modelSourceStepValidation = useZodFormValidation(
     modelSourceStepValidationData,
     modelSourceStepSchema,
+  );
+
+  const advancedSettingsValidation = useZodFormValidation(
+    data.advancedSettingsField,
+    advancedSettingsFieldSchema,
   );
 
   // Step 2: Model Deployment
@@ -55,7 +66,10 @@ export const useModelDeploymentWizardValidation = (
   return {
     modelSource: modelSourceStepValidation,
     hardwareProfile: hardwareProfileValidation,
+    advancedSettings: advancedSettingsValidation,
     isModelSourceStepValid,
     isModelDeploymentStepValid,
+    isAdvancedSettingsStepValid:
+      advancedSettingsValidation.getFieldValidation(undefined, true).length === 0,
   };
 };

@@ -11,16 +11,26 @@ import { useModelFormatField } from './fields/ModelFormatField';
 import { ModelLocationData } from './fields/modelLocationFields/types';
 import { useModelTypeField, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
 import { useModelLocationData } from './fields/ModelLocationInputFields';
+import {
+  useAdvancedSettingsField,
+  type AdvancedSettingsFieldData,
+} from './fields/AdvancedSettingsSelectField';
 
 export type ModelDeploymentWizardData = {
   modelTypeField?: ModelTypeFieldData;
   k8sNameDesc?: K8sNameDescriptionFieldData;
+  advancedSettingsField?: AdvancedSettingsFieldData;
   hardwareProfile?: Parameters<typeof useHardwareProfileConfig>;
   modelFormat?: SupportedModelFormats;
   modelLocationData?: ModelLocationData;
   connections?: LabeledConnection[];
   initSelectedConnection?: LabeledConnection | undefined;
   // Add more field handlers as needed
+  setAdvancedSettings: (data: AdvancedSettingsFieldData) => void;
+  updateAdvancedSettingsField: (
+    key: keyof AdvancedSettingsFieldData,
+    value: AdvancedSettingsFieldData[keyof AdvancedSettingsFieldData],
+  ) => void;
 };
 
 export type UseModelDeploymentWizardState = {
@@ -57,15 +67,20 @@ export const useModelDeploymentWizard = (
   // Step 3: Advanced Options
 
   // Step 4: Summary
+  const [advancedSettings, setAdvancedSettings, updateAdvancedSettingsField] =
+    useAdvancedSettingsField(existingData?.advancedSettingsField);
 
   return {
     initialData,
     state: {
       modelType,
       k8sNameDesc,
+      advancedSettingsField: advancedSettings,
       hardwareProfileConfig,
       modelFormatState,
       modelLocationData,
+      setAdvancedSettings,
+      updateAdvancedSettingsField,
     },
   };
 };
