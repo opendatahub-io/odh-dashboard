@@ -1,5 +1,6 @@
 import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
 import { Contextual } from '#~/__tests__/cypress/cypress/pages/components/Contextual';
+import type { UserAuthConfig } from '#~/__tests__/cypress/cypress/types';
 
 class FeatureStoreGlobal {
   visit(project?: string) {
@@ -9,10 +10,24 @@ class FeatureStoreGlobal {
     this.wait();
   }
 
+  visitFeatureStore(project?: string, user?: UserAuthConfig) {
+    const url = `/featureStore${
+      project ? `/${project}` : ''
+    }?devFeatureFlags=Feature+store+plugin%3Dtrue`;
+    if (user) {
+      cy.visitWithLogin(url, user);
+    } else {
+      cy.visitWithLogin(url);
+    }
+    appChrome.findNavSection('Feature store').click();
+    appChrome.findNavItem('Overview').click();
+    this.wait();
+  }
+
   visitFeatureViews(project: string) {
     const projectName = project;
     cy.visitWithLogin(
-      `/featureStore/featureViews/${projectName}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/featureStore/featureViews/${projectName}/?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     this.waitForFeatureViews();
   }
@@ -21,7 +36,7 @@ class FeatureStoreGlobal {
     cy.visitWithLogin(
       `/featureStore/entities${
         project ? `/${project}` : ''
-      }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      }/?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     this.waitForEntities();
   }
@@ -40,7 +55,7 @@ class FeatureStoreGlobal {
     cy.visitWithLogin(
       `/featureStore/features${
         projectName ? `/${projectName}` : ''
-      }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      }/?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     this.waitForFeatures();
   }
@@ -49,14 +64,14 @@ class FeatureStoreGlobal {
     cy.visitWithLogin(
       `/featureStore/dataSets${
         project ? `/${project}` : ''
-      }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      }/?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     this.waitForDataSets();
   }
 
   visitDataSetDetails(project: string, dataSetName: string) {
     cy.visitWithLogin(
-      `/featureStore/dataSets/${project}/${dataSetName}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/featureStore/dataSets/${project}/${dataSetName}/?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     this.waitForDataSetDetails(dataSetName);
   }
@@ -64,7 +79,7 @@ class FeatureStoreGlobal {
   visitFeatureServices(project: string) {
     const projectName = project;
     cy.visitWithLogin(
-      `/featureStore/featureServices/${projectName}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/featureStore/featureServices/${projectName}/?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     this.waitForFeatureServices();
   }
@@ -73,7 +88,7 @@ class FeatureStoreGlobal {
     cy.visitWithLogin(
       `/featureStore/overview${
         project ? `/${project}` : ''
-      }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      }/?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     this.waitForOverview();
   }
@@ -81,7 +96,7 @@ class FeatureStoreGlobal {
   visitFeatureServiceDetails(project: string, featureService: string) {
     const projectName = project;
     cy.visitWithLogin(
-      `/featureStore/featureServices/${projectName}/${featureService}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/featureStore/featureServices/${projectName}/${featureService}/?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     this.waitForFeatureServiceDetails(featureService);
   }
@@ -91,9 +106,24 @@ class FeatureStoreGlobal {
     this.wait();
   }
 
+  navigateToOverview() {
+    appChrome.findNavItem('Overview').click();
+    this.waitForOverview();
+  }
+
   navigateToFeatureViews() {
     appChrome.findNavItem('Feature views').click();
     this.waitForFeatureViews();
+  }
+
+  navigateToDataSources() {
+    appChrome.findNavItem('Data sources').click();
+    this.waitForDataSources();
+  }
+
+  navigateToDatasets() {
+    appChrome.findNavItem('Datasets').click();
+    this.waitForDataSets();
   }
 
   navigateToEntities() {
@@ -104,6 +134,11 @@ class FeatureStoreGlobal {
   navigateToFeatures() {
     appChrome.findNavItem('Features').click();
     this.waitForFeatures();
+  }
+
+  navigateToFeatureServices() {
+    appChrome.findNavItem('Feature services').click();
+    this.waitForFeatureServices();
   }
 
   findHeading() {

@@ -390,3 +390,12 @@ export type SCAccessMode = {
   ReadOnlyMany?: boolean;
   ReadWriteOncePod?: boolean;
 };
+
+export type FeatureStoreTestData = {
+  projectName: string;
+  s3AccessKey: string;
+  s3SecretKey: string;
+  awsBucketName: string;
+  feastCreditScoringProject: string;
+  feastDriverRankingProject: string;
+};
