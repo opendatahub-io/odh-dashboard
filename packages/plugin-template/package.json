@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "@odh-dashboard/template",
-  "description": "This is a template for creating new packages",
+  "description": "Testing - This is a template for creating new packages",
   "version": "0.0.0",
   "scripts__options": {
     "lint": "eslint .",
