@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core';
+import { Button, Drawer, DrawerContent, DrawerContentBody, Tooltip } from '@patternfly/react-core';
 import {
   Chatbot,
   ChatbotContent,
@@ -12,6 +12,7 @@ import {
   MessageBox,
 } from '@patternfly/chatbot';
 import { ApplicationsPage } from 'mod-arch-shared';
+import { CodeIcon } from '@patternfly/react-icons';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import ChatbotEmptyState from '~/app/EmptyStates/NoData';
@@ -25,6 +26,7 @@ import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAle
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from './const';
 import ChatbotHeader from './ChatbotHeader';
+import { ViewCodeModal } from './components/ViewCodeModal';
 
 const ChatbotMain: React.FunctionComponent = () => {
   const displayMode = ChatbotDisplayMode.embedded;
@@ -36,6 +38,8 @@ const ChatbotMain: React.FunctionComponent = () => {
   const [systemInstruction, setSystemInstruction] = React.useState<string>(
     DEFAULT_SYSTEM_INSTRUCTIONS,
   );
+  const [isViewCodeModalOpen, setIsViewCodeModalOpen] = React.useState(false);
+  const [input, setInput] = React.useState<string>('');
 
   React.useEffect(() => {
     if (!selectedModel) {
@@ -49,6 +53,22 @@ const ChatbotMain: React.FunctionComponent = () => {
     onShowSuccessAlert: alertManagement.onShowSuccessAlert,
     onShowErrorAlert: alertManagement.onShowErrorAlert,
   });
+
+  const isViewCodeDisabled = !input || !modelId;
+
+  // Get disabled reason for popover
+  const getDisabledReason = () => {
+    if (!input && !modelId) {
+      return 'Please input a message and select a model to generate code';
+    }
+    if (!input) {
+      return 'Please input a message to generate code';
+    }
+    if (!modelId) {
+      return 'Please select a model to generate code';
+    }
+    return '';
+  };
 
   const chatbotMessages = useChatbotMessages({
     modelId,
@@ -104,6 +124,29 @@ const ChatbotMain: React.FunctionComponent = () => {
         />
       }
       loadError={lsdStatusError || modelsError}
+      headerAction={
+        isViewCodeDisabled ? (
+          <Tooltip content={getDisabledReason()}>
+            <Button
+              variant="secondary"
+              aria-label="View generated code (disabled)"
+              icon={<CodeIcon />}
+              isAriaDisabled={isViewCodeDisabled}
+            >
+              View Code
+            </Button>
+          </Tooltip>
+        ) : (
+          <Button
+            variant="secondary"
+            aria-label="View generated code"
+            onClick={() => setIsViewCodeModalOpen(true)}
+            icon={<CodeIcon />}
+          >
+            View Code
+          </Button>
+        )
+      }
     >
       <ChatbotSourceSettingsModal
         isOpen={sourceManagement.isSourceSettingsOpen}
@@ -111,6 +154,13 @@ const ChatbotMain: React.FunctionComponent = () => {
           sourceManagement.setIsSourceSettingsOpen(!sourceManagement.isSourceSettingsOpen)
         }
         onSubmitSettings={sourceManagement.handleSourceSettingsSubmit}
+      />
+      <ViewCodeModal
+        isOpen={isViewCodeModalOpen}
+        onToggle={() => setIsViewCodeModalOpen(!isViewCodeModalOpen)}
+        input={input}
+        model={modelId}
+        systemInstruction={systemInstruction}
       />
       <Drawer isExpanded isInline position="right">
         <DrawerContent panelContent={settingsPanelContent}>
@@ -133,6 +183,7 @@ const ChatbotMain: React.FunctionComponent = () => {
                   onSendMessage={(message) => {
                     if (typeof message === 'string') {
                       chatbotMessages.handleMessageSend(message);
+                      setInput(message);
                     }
                   }}
                   hasAttachButton={false}
