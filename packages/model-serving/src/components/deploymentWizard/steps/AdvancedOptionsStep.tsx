@@ -1,40 +1,23 @@
 import React from 'react';
 import { Form } from '@patternfly/react-core';
-import {
-  AdvancedSettingsSelectField,
-  AdvancedSettingsData,
-  AdvancedSettingsValue,
-} from '../fields/AdvancedSettingsSelectField';
+import { AdvancedSettingsSelectField } from '../fields/AdvancedSettingsSelectField';
+import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 
 type AdvancedSettingsStepContentProps = {
+  wizardState: UseModelDeploymentWizardState;
   tokenAuthAlert?: boolean;
 };
 
 export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentProps> = ({
+  wizardState,
   tokenAuthAlert = false,
 }) => {
-  const [advancedSettings, setAdvancedSettings] = React.useState<AdvancedSettingsData>({
-    externalRoute: false,
-    tokenAuth: false,
-    tokens: [],
-  });
-
-  const handleSetData = React.useCallback(
-    (key: keyof AdvancedSettingsData, value: AdvancedSettingsValue) => {
-      setAdvancedSettings((prev) => ({
-        ...prev,
-        [key]: value,
-      }));
-    },
-    [],
-  );
-
   return (
     <>
       <Form>
         <AdvancedSettingsSelectField
-          data={advancedSettings}
-          setData={handleSetData}
+          data={wizardState.data.advancedSettingsField}
+          setData={wizardState.handlers.updateAdvancedSettingsField}
           allowCreate
           tokenAuthAlert={tokenAuthAlert}
         />

@@ -8,20 +8,74 @@ import {
   StackItem,
   getUniqueId,
 } from '@patternfly/react-core';
+import { z } from 'zod';
 import TokenAuthenticationSection from './TokenAuthenticationSection';
-import { ServingRuntimeToken } from './TokenInput';
 
-export type AdvancedSettingsData = {
-  externalRoute: boolean;
-  tokenAuth: boolean;
-  tokens: ServingRuntimeToken[];
+// Schema
+
+const servingRuntimeTokenSchema = z.object({
+  uuid: z.string(),
+  name: z.string().min(1, 'Service account name is required'),
+  error: z.string().optional(),
+});
+
+export const advancedSettingsFieldSchema = z.object({
+  externalRoute: z.boolean(),
+  tokenAuth: z.boolean(),
+  tokens: z.array(servingRuntimeTokenSchema),
+});
+
+export type AdvancedSettingsFieldData = z.infer<typeof advancedSettingsFieldSchema>;
+
+export const isValidAdvancedSettings = (value: unknown): value is AdvancedSettingsFieldData => {
+  return advancedSettingsFieldSchema.safeParse(value).success;
 };
 
-export type AdvancedSettingsValue = AdvancedSettingsData[keyof AdvancedSettingsData];
+// Hooks
+
+export type AdvancedSettingsField = [
+  data: AdvancedSettingsFieldData | undefined,
+  setData: (data: AdvancedSettingsFieldData) => void,
+  updateField: (
+    key: keyof AdvancedSettingsFieldData,
+    value: AdvancedSettingsFieldData[keyof AdvancedSettingsFieldData],
+  ) => void,
+];
+
+export const useAdvancedSettingsField = (
+  existingData?: AdvancedSettingsFieldData,
+): AdvancedSettingsField => {
+  const [advancedSettings, setAdvancedSettings] = React.useState<
+    AdvancedSettingsFieldData | undefined
+  >(existingData || { externalRoute: false, tokenAuth: false, tokens: [] });
+
+  const updateField = React.useCallback(
+    (
+      key: keyof AdvancedSettingsFieldData,
+      value: AdvancedSettingsFieldData[keyof AdvancedSettingsFieldData],
+    ) => {
+      setAdvancedSettings((prev) => {
+        const current = prev || { externalRoute: false, tokenAuth: false, tokens: [] };
+        return {
+          ...current,
+          [key]: value,
+        };
+      });
+    },
+    [],
+  );
+
+  return [advancedSettings, setAdvancedSettings, updateField];
+};
+
+// Component
 
 type AdvancedSettingsSelectFieldProps = {
-  data?: AdvancedSettingsData;
-  setData?: (key: keyof AdvancedSettingsData, value: AdvancedSettingsValue) => void;
+  data?: AdvancedSettingsFieldData;
+  setData?: (
+    key: keyof AdvancedSettingsFieldData,
+    value: AdvancedSettingsFieldData[keyof AdvancedSettingsFieldData],
+  ) => void;
   allowCreate?: boolean;
   tokenAuthAlert?: boolean;
 };
@@ -54,6 +108,7 @@ export const AdvancedSettingsSelectField: React.FC<AdvancedSettingsSelectFieldPr
           <FormGroup fieldId="model-access" label="Model access">
             <Checkbox
               id="alt-form-checkbox-route"
+              data-testid="model-access-checkbox"
               label="Make model deployment available through an external route"
               isChecked={data.externalRoute}
               isDisabled={!allowCreate}

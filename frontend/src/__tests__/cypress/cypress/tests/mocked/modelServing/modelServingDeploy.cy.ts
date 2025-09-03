@@ -137,6 +137,27 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
     modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Step 3: Advanced Options
+    // Model access & Token authentication
+    modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+    modelServingWizard.findExternalRouteCheckbox().click();
+    modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
+    modelServingWizard.findTokenAuthenticationCheckbox().click();
+    modelServingWizard.findTokenWarningAlert().should('exist');
+    modelServingWizard.findTokenAuthenticationCheckbox().click();
+    modelServingWizard.findServiceAccountByIndex(0).should('have.value', 'default-name');
+    modelServingWizard.findAddServiceAccountButton().click();
+    modelServingWizard.findServiceAccountByIndex(1).should('have.value', 'default-name');
+    modelServingWizard.findServiceNameAlert().should('exist');
+    modelServingWizard.findServiceAccountByIndex(1).clear().type('new-name');
+    modelServingWizard.findServiceNameAlert().should('not.exist');
+    modelServingWizard.findRemoveServiceAccountByIndex(1).click();
+    modelServingWizard.findRemoveServiceAccountByIndex(0).click();
+    modelServingWizard.findTokenWarningAlert().should('exist');
+    modelServingWizard.findTokenAuthenticationCheckbox().click();
+
+    modelServingWizard.findNextButton().should('be.enabled').click();
   });
 
   it('Edit an existing deployment', () => {
