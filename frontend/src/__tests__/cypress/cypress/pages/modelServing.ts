@@ -887,6 +887,18 @@ class ModelServingWizard extends Wizard {
   findModelFormatSelectOption(name: string) {
     return this.findModelFormatSelect().findSelectOption(name);
   }
+
+  findModelLocationSelect() {
+    return cy.findByTestId('model-location-select');
+  }
+
+  findModelLocationSelectOption(name: string) {
+    return this.findModelLocationSelect().findSelectOption(name);
+  }
+
+  findUrilocationInput() {
+    return cy.findByTestId('field URI');
+  }
 }
 
 export const modelServingGlobal = new ModelServingGlobal();

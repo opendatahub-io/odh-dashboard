@@ -1,8 +1,12 @@
+import React from 'react';
+import { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import { useParams } from 'react-router-dom';
 import { K8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/types';
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { extractK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
-import { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
+import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
+import { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { useModelFormatField } from './fields/ModelFormatField';
 import { ModelLocationData } from './fields/modelLocationFields/types';
 import { ModelLocationFieldData, useModelLocationField } from './fields/ModelLocationSelectField';
@@ -16,6 +20,8 @@ export type ModelDeploymentWizardData = {
   modelFormat?: SupportedModelFormats;
   modelLocationField?: ModelLocationFieldData;
   modelLocationData?: ModelLocationData;
+  connections?: LabeledConnection[];
+  initSelectedConnection?: LabeledConnection | undefined;
   // Add more field handlers as needed
 };
 
@@ -36,8 +42,16 @@ export const useModelDeploymentWizard = (
 ): UseModelDeploymentWizardState => {
   // Step 1: Model Source
   const modelType = useModelTypeField(initialData?.modelTypeField);
-  const modelLocationField = useModelLocationField(initialData?.modelLocationField);
   const modelLocationData = useModelLocationData(initialData?.modelLocationData);
+  const { namespace } = useParams();
+  const { projects } = React.useContext(ProjectsContext);
+  const currentProject = projects.find(byName(namespace));
+
+  const modelLocationField = useModelLocationField(
+    currentProject ?? null,
+    modelLocationData.data,
+    initialData?.modelLocationField,
+  );
 
   // Step 2: Model Deployment
   const k8sNameDesc = useK8sNameDescriptionFieldData({

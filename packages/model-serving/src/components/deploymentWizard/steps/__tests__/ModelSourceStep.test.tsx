@@ -40,6 +40,9 @@ const mockDeploymentWizardState = (
         modelLocationField: {
           data: undefined,
           setData: jest.fn(),
+          connections: [],
+          setSelectedConnection: jest.fn(),
+          selectedConnection: undefined,
         },
         modelLocationData: {
           data: undefined,
@@ -131,7 +134,7 @@ describe('ModelSourceStep', () => {
         <ModelSourceStepContent
           wizardState={mockDeploymentWizardState()}
           validation={mockValidation}
-          project={null}
+          connections={[]}
         />,
       );
       expect(screen.getByTestId('model-type-select')).toBeInTheDocument();
@@ -149,7 +152,7 @@ describe('ModelSourceStep', () => {
         <ModelSourceStepContent
           wizardState={wizardDataWithSelection}
           validation={mockValidation}
-          project={null}
+          connections={[]}
         />,
       );
       expect(screen.getByText('Generative AI model (e.g. LLM)')).toBeInTheDocument();

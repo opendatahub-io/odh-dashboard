@@ -22,7 +22,7 @@ export const useModelDeploymentWizardValidation = (
     () => ({
       modelType: state.modelType.data,
       modelLocation: state.modelLocationField.data,
-      modelLocationData: state.modelLocationData,
+      modelLocationData: state.modelLocationData.data,
     }),
     [state.modelType, state.modelLocationField, state.modelLocationData],
   );

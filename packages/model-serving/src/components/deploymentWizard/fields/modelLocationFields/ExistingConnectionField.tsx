@@ -18,14 +18,10 @@ import {
   Connection,
   ConnectionTypeConfigMapObj,
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import S3ConnectionField from './S3ConnectionField';
-import OCIConnectionField from './OCIConnectionField';
-import {
-  ConnectionTypeRefs,
-  isExistingModelLocation,
-  ModelLocationData,
-  ModelLocationType,
-} from './types';
+import ConnectionS3FolderPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionS3FolderPathField';
+import ConnectionOciPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciPathField';
+import { ConnectionTypeRefs, ModelLocationData, ModelLocationType } from './types';
+import { isExistingModelLocation } from '../../utils';
 
 type ExistingConnectionFieldProps = {
   children: React.ReactNode;
@@ -155,7 +151,7 @@ export const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = (
       </Flex>
       {children}
       {selectedConnectionType?.metadata.name === ConnectionTypeRefs.S3 && (
-        <S3ConnectionField
+        <ConnectionS3FolderPathField
           folderPath={
             isExistingModelLocation(modelLocationData) ? modelLocationData.modelPath ?? '' : ''
           }
@@ -167,7 +163,7 @@ export const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = (
         />
       )}
       {selectedConnectionType?.metadata.name === ConnectionTypeRefs.OCI && (
-        <OCIConnectionField
+        <ConnectionOciPathField
           ociHost={window.atob(selectedConnection?.data?.OCI_HOST ?? '')}
           modelUri={isExistingModelLocation(modelLocationData) ? modelLocationData.modelUri : ''}
           setModelUri={(uri) => {

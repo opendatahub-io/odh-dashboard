@@ -24,6 +24,7 @@ import {
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { ServingRuntimeModelType, ServingRuntimePlatform } from '#~/types';
 import { mockGlobalScopedHardwareProfiles } from '#~/__mocks__/mockHardwareProfile';
+import { mockConnectionTypeConfigMap } from '../../../../../../__mocks__/mockConnectionType';
 
 const initIntercepts = () => {
   cy.interceptOdh(
@@ -45,6 +46,22 @@ const initIntercepts = () => {
     }),
   );
   cy.interceptOdh('GET /api/components', null, []);
+  cy.interceptOdh('GET /api/connection-types', [
+    mockConnectionTypeConfigMap({
+      displayName: 'URI - v1',
+      name: 'uri-v1',
+      category: ['existing-category'],
+      fields: [
+        {
+          type: 'uri',
+          name: 'URI',
+          envVar: 'URI',
+          required: true,
+          properties: {},
+        },
+      ],
+    }),
+  ]).as('getConnectionTypes');
 
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'opendatahub' },
@@ -159,6 +176,9 @@ describe('Model Serving Deploy Wizard', () => {
       .findModelTypeSelectOption('Generative AI model (e.g. LLM)')
       .should('exist')
       .click();
+    modelServingWizard.findModelLocationSelect().should('exist');
+    modelServingWizard.findModelLocationSelectOption('URI').should('exist').click();
+    modelServingWizard.findUrilocationInput().should('exist').type('https://test');
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
@@ -247,6 +267,7 @@ describe('Model Serving Deploy Wizard', () => {
             },
           },
         }),
+        mockInferenceServiceK8sResource({ storageUri: 'https://test' }),
       ]),
     );
     cy.interceptK8sList(
@@ -266,6 +287,10 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit
       .findModelTypeSelectOption('Predictive model')
       .should('have.attr', 'aria-selected', 'true');
+
+    modelServingWizardEdit.findModelLocationSelect().should('exist');
+    modelServingWizardEdit.findUrilocationInput().should('have.value', 'https://test');
+
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
