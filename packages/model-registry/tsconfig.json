@@ -1,4 +1,7 @@
 {
   "extends": "@odh-dashboard/tsconfig/tsconfig.json",
-  "exclude": ["node_modules", "upstream"]
+  "exclude": ["node_modules", "upstream"],
+  "compilerOptions": {
+    "types": ["jest", "@odh-dashboard/contract-tests"]
+  }
 }
