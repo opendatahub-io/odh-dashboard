@@ -261,7 +261,7 @@ describe('StartingStatusModal', () => {
 
     render(<StartingStatusModal onClose={mockOnClose} onDelete={mockOnDelete} />);
 
-    fireEvent.click(screen.getByTestId('pipeline-delete-from-modal');
-    expect(mockOnClose).toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('pipeline-delete-from-modal'));
+    expect(mockOnDelete).toHaveBeenCalled();
   });
 });
