@@ -23,6 +23,7 @@ import { MetadataStoreServicePromiseClient } from '#~/third_party/mlmd';
 import { getGenericErrorCode } from '#~/api';
 import UnauthorizedError from '#~/pages/UnauthorizedError';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { projectDisplayNameToNamespace } from '#~/concepts/projects/utils.ts';
 import usePipelineAPIState, { PipelineAPIState } from './usePipelineAPIState';
 
 import usePipelineNamespaceCR, {
@@ -177,8 +178,11 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
   );
 });
 
-export const getPipelineServerName = (project: ProjectKind) =>
-  `${getDisplayNameFromK8sResource(project)} pipeline server`;
+export const getPipelineServerName = (project?: ProjectKind): string => {
+  const displayName = project ? getDisplayNameFromK8sResource(project) : null;
+  const defaultName = 'pipeline server';
+  return displayName ? `${displayName} ${defaultName}` : defaultName;
+};
 
 type UsePipelinesAPI = PipelineAPIState & {
   /** The contextual namespace */
@@ -318,7 +322,7 @@ export const ViewServerModal = ({ onClose }: { onClose: () => void }): React.JSX
 };
 
 export const PipelineServerTimedOut: React.FC = () => {
-  const { namespace } = React.useContext(PipelinesContext);
+  const { project } = React.useContext(PipelinesContext);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
 
   return (
@@ -333,9 +337,9 @@ export const PipelineServerTimedOut: React.FC = () => {
               status="danger"
             >
               <EmptyStateBody>
-                The {namespace || 'pipeline server'} either could not start or be contacted. You
-                must delete this server to fix the issue, but this will also permanently delete all
-                associated resources. You will need to configure a new server afterward.
+                The <b>{getPipelineServerName(project)}</b> either could not start or be contacted.
+                You must delete this server to fix the issue, but this will also permanently delete
+                all associated resources. You will need to configure a new server afterward.
               </EmptyStateBody>
               <EmptyStateActions>
                 <Button
