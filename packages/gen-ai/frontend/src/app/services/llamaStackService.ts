@@ -19,7 +19,7 @@ import { URL_PREFIX } from '../utilities/const';
  * @throws Error - When the API request fails or returns an error response
  */
 export const getNamespaces = (): Promise<NamespaceModel[]> => {
-  const url = `${URL_PREFIX}/genai/v1/namespaces`;
+  const url = `${URL_PREFIX}/api/v1/namespaces`;
   return axios
     .get<{ data: NamespaceModel[] }>(url)
     .then((response) => response.data.data)
