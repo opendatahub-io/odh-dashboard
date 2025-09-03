@@ -2,6 +2,9 @@
 
 /// <reference types="jest" />
 
+// Import Jest types (this ensures they're available to consuming packages)
+import './jest.d.ts';
+
 // Setup Jest matchers
 import { toMatchContract } from './matchers/toMatchContract';
 

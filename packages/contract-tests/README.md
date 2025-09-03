@@ -58,19 +58,32 @@ Add to your package.json:
 
 ## TypeScript Configuration
 
-Add the following to your `tsconfig.json` to enable Jest and contract-testing types:
+**Zero-Config Setup (Recommended)**
+
+No TypeScript configuration needed! Jest and contract-testing types are automatically available when you import `@odh-dashboard/contract-tests`.
+
+```json
+{
+  "extends": "@odh-dashboard/tsconfig/tsconfig.json",
+  "exclude": ["node_modules", "upstream"]
+}
+```
+
+**Manual Configuration (Optional)**
+
+If you need to customize your TypeScript setup:
 
 ```json
 {
   "extends": "@odh-dashboard/tsconfig/tsconfig.json",
   "exclude": ["node_modules", "upstream"],
   "compilerOptions": {
-    "types": ["jest", "@odh-dashboard/contract-tests"]
+    "types": ["jest"]
   }
 }
 ```
 
-This configuration provides:
+**What's automatically provided:**
 - ✅ Jest types for testing (`describe`, `it`, `expect`)
 - ✅ Contract-tests types for matchers (`toMatchContract`)
 - ✅ Standard ODH TypeScript configuration
@@ -284,11 +297,9 @@ npm run test:contract:watch
 jest --config=../../contract-tests/jest.preset.js --testPathPattern=contract-tests
 ```
 
-## Minimal Configuration Required
+## Zero Configuration Required
 
-Add the following to your package.json and tsconfig.json:
-
-**package.json:**
+**package.json (Required):**
 ```json
 {
   "devDependencies": {
@@ -300,22 +311,21 @@ Add the following to your package.json and tsconfig.json:
 }
 ```
 
-**tsconfig.json:**
+**tsconfig.json (Optional - uses defaults):**
 ```json
 {
   "extends": "@odh-dashboard/tsconfig/tsconfig.json",
-  "compilerOptions": {
-    "types": ["jest", "@odh-dashboard/contract-tests"]
-  }
+  "exclude": ["node_modules", "upstream"]
 }
 ```
 
-**Everything else is handled automatically:**
-- ✅ Jest configuration and setup
+**Everything is handled automatically:**
+- ✅ Jest configuration and types
 - ✅ Contract-tests matcher types
 - ✅ BFF lifecycle management
 - ✅ Schema validation setup
 - ✅ Test result reporting
+- ✅ TypeScript type definitions
 
 ## What Happens Under the Hood
 

@@ -6,6 +6,6 @@
       "@odh-dashboard/jest-config/hooks": ["../../../jest-config/src/hooks.ts"]
     }
   },
-  "include": ["src/**/*", "setup.base.ts", "jest-config/**/*"],
+  "include": ["src/**/*", "setup.base.ts", "jest-config/**/*", "src/jest.d.ts"],
   "exclude": ["dist", "node_modules"]
 }

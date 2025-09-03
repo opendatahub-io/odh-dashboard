@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "types": "src/index.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.standalone.json",
+    "build": "tsc -p tsconfig.standalone.json && cp src/jest.d.ts dist/",
     "type-check": "tsc -p tsconfig.json --noEmit",
     "test-unit": "jest --passWithNoTests",
     "test-unit:watch": "jest --watch --passWithNoTests",
@@ -43,9 +43,6 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./dist/index.js"
-    },
-    "./jest": {
-      "types": "./src/jest.d.ts"
     }
   },
   "peerDependencies": {
