@@ -31,11 +31,6 @@ const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({
       removeConfirmation={removeConfirmation}
       title="Delete pipeline server?"
       onClose={() => {
-        console.log(
-          'onClose; for cancelling ....namespace/pipelinesServer.name:',
-          namespace,
-          pipelinesServer.name,
-        );
         onBeforeClose(false);
       }}
       deleting={deleting}
