@@ -6,7 +6,8 @@ const { moduleFederationPlugins } = require('./moduleFederation');
 
 const BG_IMAGES_DIRNAME = 'bgimages';
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
-const { name } = require('../../package.json');
+
+const { name } = require('../package.json');
 
 const SRC_DIR = process.env._SRC_DIR;
 const DIST_DIR = process.env._DIST_DIR;
