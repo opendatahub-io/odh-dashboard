@@ -21,8 +21,6 @@ export const useTrainingJobStatuses = (
   const [jobStatuses, setJobStatuses] = React.useState<Map<string, PyTorchJobState>>(new Map());
   const [isLoading, setIsLoading] = React.useState(false);
 
-  console.log('jobStatuses', jobStatuses);
-
   // Update all job statuses
   const updateAllStatuses = React.useCallback(async () => {
     if (jobs.length === 0) {

@@ -3,6 +3,7 @@ export enum PyTorchJobState {
   PENDING = 'Pending',
   QUEUED = 'Queued',
   RUNNING = 'Running',
+  RESTARTING = 'Restarting',
   SUCCEEDED = 'Succeeded',
   FAILED = 'Failed',
   PAUSED = 'Paused',

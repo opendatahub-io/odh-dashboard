@@ -8,10 +8,6 @@ import {
   Form,
   FormGroup,
   Alert,
-  DescriptionList,
-  DescriptionListGroup,
-  DescriptionListTerm,
-  DescriptionListDescription,
   Flex,
   FlexItem,
   Icon,
@@ -43,7 +39,6 @@ const ScaleWorkersModal: React.FC<ScaleWorkersModalProps> = ({
   isLoading = false,
 }) => {
   const currentWorkerReplicas = job.spec.pytorchReplicaSpecs.Worker?.replicas || 0;
-  console.log('currentWorkerReplicas', currentWorkerReplicas);
   const [newWorkerCount, setNewWorkerCount] = React.useState(currentWorkerReplicas);
   const [validationError, setValidationError] = React.useState<string>('');
 
@@ -105,22 +100,9 @@ const ScaleWorkersModal: React.FC<ScaleWorkersModalProps> = ({
     }
   };
 
-  const isPaused = jobStatus === PyTorchJobState.PAUSED;
+  const isTerminalState =
+    jobStatus === PyTorchJobState.SUCCEEDED || jobStatus === PyTorchJobState.FAILED;
   const hasChanges = newWorkerCount !== currentWorkerReplicas;
-  const resourceDelta = newWorkerCount - currentWorkerReplicas;
-
-  // Estimated resource impact (these would typically come from job spec or cluster configs)
-  const estimatedResourcesPerWorker = {
-    gpu: 1,
-    cpu: '4',
-    memory: '8Gi',
-  };
-
-  const resourceImpact = {
-    gpu: resourceDelta * estimatedResourcesPerWorker.gpu,
-    cpu: `${resourceDelta > 0 ? '+' : ''}${Math.abs(resourceDelta) * 4}`,
-    memory: `${resourceDelta > 0 ? '+' : ''}${Math.abs(resourceDelta) * 8}Gi`,
-  };
 
   return (
     <Modal variant="medium" isOpen onClose={onClose}>
@@ -141,7 +123,7 @@ const ScaleWorkersModal: React.FC<ScaleWorkersModalProps> = ({
       />
       <ModalBody id="scale-workers-description">
         <Stack hasGutter>
-          {!isPaused && (
+          {isTerminalState && (
             <StackItem>
               <Alert
                 variant="warning"
@@ -164,53 +146,13 @@ const ScaleWorkersModal: React.FC<ScaleWorkersModalProps> = ({
                   onChange={handleWorkerCountChange}
                   min={1}
                   max={100}
-                  isDisabled={!isPaused}
+                  isDisabled={isTerminalState}
                   validated={validationError ? 'error' : 'default'}
                 />
 
                 {validationError && <div>{validationError}</div>}
               </FormGroup>
             </Form>
-          </StackItem>
-
-          {/* Resource Impact */}
-          <StackItem>
-            {hasChanges && isPaused && (
-              <Alert
-                variant={resourceDelta > 0 ? 'info' : 'warning'}
-                title="Estimated Resource Impact"
-                isInline
-              >
-                <DescriptionList isHorizontal isCompact>
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Worker Change</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      <strong>
-                        {resourceDelta > 0 ? '+' : ''}
-                        {resourceDelta} workers
-                      </strong>
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>GPU Impact</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      {resourceImpact.gpu > 0 ? '+' : ''}
-                      {resourceImpact.gpu} GPUs
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>CPU Impact</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      {resourceImpact.cpu} cores
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Memory Impact</DescriptionListTerm>
-                    <DescriptionListDescription>{resourceImpact.memory}</DescriptionListDescription>
-                  </DescriptionListGroup>
-                </DescriptionList>
-              </Alert>
-            )}
           </StackItem>
         </Stack>
       </ModalBody>
@@ -219,7 +161,7 @@ const ScaleWorkersModal: React.FC<ScaleWorkersModalProps> = ({
         <Button
           variant="primary"
           onClick={handleConfirmAndResume}
-          isDisabled={!isPaused || !hasChanges || !!validationError || isLoading}
+          isDisabled={isTerminalState || !hasChanges || !!validationError || isLoading}
           isLoading={isLoading}
           icon={<PlayIcon />}
         >
@@ -228,7 +170,7 @@ const ScaleWorkersModal: React.FC<ScaleWorkersModalProps> = ({
         <Button
           variant="secondary"
           onClick={handleConfirm}
-          isDisabled={!isPaused || !hasChanges || !!validationError || isLoading}
+          isDisabled={isTerminalState || !hasChanges || !!validationError || isLoading}
           icon={<SaveIcon />}
         >
           Confirm (Stay Paused)

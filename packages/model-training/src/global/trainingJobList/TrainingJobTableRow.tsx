@@ -14,6 +14,7 @@ import { Link } from 'react-router-dom';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
+import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import TrainingJobProject from './TrainingJobProject';
 import { getTrainingJobStatusSync } from './utils';
 import TrainingJobClusterQueue from './TrainingJobClusterQueue';
@@ -23,7 +24,7 @@ import ScaleWorkersModal from './ScaleWorkersModal';
 import { PyTorchJobKind } from '../../k8sTypes';
 import { PyTorchJobState } from '../../types';
 import { togglePyTorchJobHibernation } from '../../api';
-import { updatePyTorchJobWorkerReplicas, resumePyTorchJob } from '../../api/scaling';
+import { scaleWorkersAndStayPaused, scaleWorkersAndResume } from '../../api/scaling';
 
 type PyTorchJobTableRowProps = {
   job: PyTorchJobKind;
@@ -40,6 +41,7 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
   onStatusUpdate,
   onJobUpdate,
 }) => {
+  const notification = useNotification();
   const [hibernationModalOpen, setHibernationModalOpen] = React.useState(false);
   const [scaleWorkersModalOpen, setScaleWorkersModalOpen] = React.useState(false);
   const [isToggling, setIsToggling] = React.useState(false);
@@ -81,17 +83,38 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
 
   const handleScaleWorkers = async (newWorkerCount: number) => {
     setIsScaling(true);
+    const previousWorkerCount = workerReplicas;
     try {
-      const result = await updatePyTorchJobWorkerReplicas(job, newWorkerCount);
-      if (result.success && result.updatedJob) {
-        const jobId = job.metadata.uid || job.metadata.name;
-        onJobUpdate?.(jobId, result.updatedJob);
-      } else {
-        console.error('Failed to scale workers:', result.error);
-        throw new Error(result.error || 'Failed to scale workers');
+      // Scale workers and ensure job stays paused
+      const { updatedJob, pauseResult } = await scaleWorkersAndStayPaused(job, newWorkerCount);
+
+      if (!pauseResult.success) {
+        throw new Error(pauseResult.error || 'Failed to keep job paused after scaling');
       }
+
+      const jobId = job.metadata.uid || job.metadata.name;
+      onJobUpdate?.(jobId, updatedJob);
+
+      // Show success notification
+      const resourceDelta = newWorkerCount - previousWorkerCount;
+      const totalNodes = newWorkerCount + masterReplicas;
+      const deltaText =
+        resourceDelta > 0
+          ? `Scaled up by +${resourceDelta} worker${resourceDelta !== 1 ? 's' : ''}`
+          : `Scaled down by ${resourceDelta} worker${Math.abs(resourceDelta) !== 1 ? 's' : ''}`;
+
+      notification.success(
+        'Workers scaled successfully',
+        `${displayName} now has ${newWorkerCount} worker${
+          newWorkerCount !== 1 ? 's' : ''
+        } (${totalNodes} total nodes). ${deltaText}. Job remains paused.`,
+      );
     } catch (error) {
       console.error('Error scaling workers:', error);
+      notification.error(
+        'Failed to scale workers',
+        error instanceof Error ? error.message : 'Unknown error occurred',
+      );
       throw error; // Re-throw to let modal handle the error
     } finally {
       setIsScaling(false);
@@ -100,25 +123,40 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
 
   const handleScaleWorkersAndResume = async (newWorkerCount: number) => {
     setIsScaling(true);
+    const previousWorkerCount = workerReplicas;
     try {
-      // First scale the workers
-      const scaleResult = await updatePyTorchJobWorkerReplicas(job, newWorkerCount);
-      if (!scaleResult.success || !scaleResult.updatedJob) {
-        throw new Error(scaleResult.error || 'Failed to scale workers');
-      }
+      // Scale workers and resume in one operation
+      const { updatedJob, hibernationResult } = await scaleWorkersAndResume(job, newWorkerCount);
 
-      // Then resume the job
-      const resumeResult = await resumePyTorchJob(scaleResult.updatedJob);
-      if (!resumeResult.success) {
-        throw new Error(resumeResult.error || 'Failed to resume job after scaling');
+      if (!hibernationResult.success) {
+        throw new Error(hibernationResult.error || 'Failed to resume job after scaling');
       }
 
       // Update both job and status
       const jobId = job.metadata.uid || job.metadata.name;
-      onJobUpdate?.(jobId, scaleResult.updatedJob);
+      onJobUpdate?.(jobId, updatedJob);
       onStatusUpdate?.(jobId, PyTorchJobState.RUNNING);
+
+      // Show success notification
+      const resourceDelta = newWorkerCount - previousWorkerCount;
+      const totalNodes = newWorkerCount + masterReplicas;
+      const deltaText =
+        resourceDelta > 0
+          ? `Scaled up by +${resourceDelta} worker${resourceDelta !== 1 ? 's' : ''}`
+          : `Scaled down by ${resourceDelta} worker${Math.abs(resourceDelta) !== 1 ? 's' : ''}`;
+
+      notification.success(
+        'Workers scaled and job resumed',
+        `${displayName} now has ${newWorkerCount} worker${
+          newWorkerCount !== 1 ? 's' : ''
+        } (${totalNodes} total nodes). ${deltaText} and training has resumed.`,
+      );
     } catch (error) {
       console.error('Error scaling workers and resuming:', error);
+      notification.error(
+        'Failed to scale workers and resume',
+        error instanceof Error ? error.message : 'Unknown error occurred',
+      );
       throw error; // Re-throw to let modal handle the error
     } finally {
       setIsScaling(false);

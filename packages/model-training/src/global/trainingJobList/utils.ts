@@ -40,6 +40,12 @@ export const getStatusInfo = (
         color: 'blue',
         IconComponent: InProgressIcon,
       };
+    case PyTorchJobState.RESTARTING:
+      return {
+        label: 'Restarting',
+        color: 'blue',
+        IconComponent: InProgressIcon,
+      };
     case PyTorchJobState.PENDING:
       return {
         label: 'Pending',
@@ -115,6 +121,8 @@ const getBasicJobStatus = (job: PyTorchJobKind): PyTorchJobState => {
       return PyTorchJobState.RUNNING;
     case 'Created':
       return PyTorchJobState.CREATED;
+    case 'Restarting':
+      return PyTorchJobState.RESTARTING;
     default:
       return PyTorchJobState.UNKNOWN;
   }
