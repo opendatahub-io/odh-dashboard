@@ -1,27 +1,37 @@
 import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
 import { Contextual } from '#~/__tests__/cypress/cypress/pages/components/Contextual';
+import type { UserAuthConfig } from '#~/__tests__/cypress/cypress/types';
+
+const FEAST_FEATURE_FLAGS =
+  'devFeatureFlags=disableFeatureStore%3Dfalse%2CFeature+store+plugin%3Dtrue';
 
 class FeatureStoreGlobal {
   visit(project?: string) {
-    cy.visitWithLogin(
-      `/featureStore${project ? `/${project}` : ''}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
-    );
+    cy.visitWithLogin(`/featureStore${project ? `/${project}` : ''}?${FEAST_FEATURE_FLAGS}`);
+    this.wait();
+  }
+
+  visitFeatureStore(project?: string, user?: UserAuthConfig) {
+    const url = `/featureStore${project ? `/${project}` : ''}?${FEAST_FEATURE_FLAGS}`;
+    if (user) {
+      cy.visitWithLogin(url, user);
+    } else {
+      cy.visitWithLogin(url);
+    }
+    appChrome.findNavSection('Feature store').click();
+    appChrome.findNavItem('Overview').click();
     this.wait();
   }
 
   visitFeatureViews(project: string) {
     const projectName = project;
-    cy.visitWithLogin(
-      `/featureStore/featureViews/${projectName}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
-    );
+    cy.visitWithLogin(`/featureStore/featureViews/${projectName}/?${FEAST_FEATURE_FLAGS}`);
     this.waitForFeatureViews();
   }
 
   visitEntities(project?: string) {
     cy.visitWithLogin(
-      `/featureStore/entities${
-        project ? `/${project}` : ''
-      }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/featureStore/entities${project ? `/${project}` : ''}/?${FEAST_FEATURE_FLAGS}`,
     );
     this.waitForEntities();
   }
@@ -38,42 +48,32 @@ class FeatureStoreGlobal {
   visitFeatures(project?: string) {
     const projectName = project;
     cy.visitWithLogin(
-      `/featureStore/features${
-        projectName ? `/${projectName}` : ''
-      }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/featureStore/features${projectName ? `/${projectName}` : ''}/?${FEAST_FEATURE_FLAGS}`,
     );
     this.waitForFeatures();
   }
 
   visitDataSets(project?: string) {
     cy.visitWithLogin(
-      `/featureStore/dataSets${
-        project ? `/${project}` : ''
-      }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/featureStore/dataSets${project ? `/${project}` : ''}/?${FEAST_FEATURE_FLAGS}`,
     );
     this.waitForDataSets();
   }
 
   visitDataSetDetails(project: string, dataSetName: string) {
-    cy.visitWithLogin(
-      `/featureStore/dataSets/${project}/${dataSetName}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
-    );
+    cy.visitWithLogin(`/featureStore/dataSets/${project}/${dataSetName}/?${FEAST_FEATURE_FLAGS}`);
     this.waitForDataSetDetails(dataSetName);
   }
 
   visitFeatureServices(project: string) {
     const projectName = project;
-    cy.visitWithLogin(
-      `/featureStore/featureServices/${projectName}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
-    );
+    cy.visitWithLogin(`/featureStore/featureServices/${projectName}/?${FEAST_FEATURE_FLAGS}`);
     this.waitForFeatureServices();
   }
 
   visitOverview(project?: string) {
     cy.visitWithLogin(
-      `/featureStore/overview${
-        project ? `/${project}` : ''
-      }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/featureStore/overview${project ? `/${project}` : ''}/?${FEAST_FEATURE_FLAGS}`,
     );
     this.waitForOverview();
   }
@@ -81,7 +81,7 @@ class FeatureStoreGlobal {
   visitFeatureServiceDetails(project: string, featureService: string) {
     const projectName = project;
     cy.visitWithLogin(
-      `/featureStore/featureServices/${projectName}/${featureService}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/featureStore/featureServices/${projectName}/${featureService}/?${FEAST_FEATURE_FLAGS}`,
     );
     this.waitForFeatureServiceDetails(featureService);
   }
@@ -91,9 +91,24 @@ class FeatureStoreGlobal {
     this.wait();
   }
 
+  navigateToOverview() {
+    appChrome.findNavItem('Overview').click();
+    this.waitForOverview();
+  }
+
   navigateToFeatureViews() {
     appChrome.findNavItem('Feature views').click();
     this.waitForFeatureViews();
+  }
+
+  navigateToDataSources() {
+    appChrome.findNavItem('Data sources').click();
+    this.waitForDataSources();
+  }
+
+  navigateToDatasets() {
+    appChrome.findNavItem('Datasets').click();
+    this.waitForDataSets();
   }
 
   navigateToEntities() {
@@ -106,12 +121,17 @@ class FeatureStoreGlobal {
     this.waitForFeatures();
   }
 
+  navigateToFeatureServices() {
+    appChrome.findNavItem('Feature services').click();
+    this.waitForFeatureServices();
+  }
+
   findHeading() {
     return cy.findByTestId('app-page-title');
   }
 
   private wait() {
-    cy.findByTestId('app-page-title').should('have.text', 'Feature Store');
+    cy.findByTestId('app-page-title').should('have.text', 'Feature store');
     cy.testA11y();
   }
 
