@@ -1,27 +1,23 @@
 import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
 import { Contextual } from '#~/__tests__/cypress/cypress/pages/components/Contextual';
 
+const FEAST_FEATURE_FLAGS = 'devFeatureFlags=Feature+store+plugin%3Dtrue';
+
 class FeatureStoreGlobal {
   visit(project?: string) {
-    cy.visitWithLogin(
-      `/featureStore${project ? `/${project}` : ''}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
-    );
+    cy.visitWithLogin(`/featureStore${project ? `/${project}` : ''}?${FEAST_FEATURE_FLAGS}`);
     this.wait();
   }
 
   visitFeatureViews(project: string) {
     const projectName = project;
-    cy.visitWithLogin(
-      `/featureStore/featureViews/${projectName}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
-    );
+    cy.visitWithLogin(`/featureStore/featureViews/${projectName}/?${FEAST_FEATURE_FLAGS}`);
     this.waitForFeatureViews();
   }
 
   visitEntities(project?: string) {
     cy.visitWithLogin(
-      `/featureStore/entities${
-        project ? `/${project}` : ''
-      }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/featureStore/entities${project ? `/${project}` : ''}/?${FEAST_FEATURE_FLAGS}`,
     );
     this.waitForEntities();
   }
@@ -29,42 +25,32 @@ class FeatureStoreGlobal {
   visitFeatures(project?: string) {
     const projectName = project;
     cy.visitWithLogin(
-      `/featureStore/features${
-        projectName ? `/${projectName}` : ''
-      }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/featureStore/features${projectName ? `/${projectName}` : ''}/?${FEAST_FEATURE_FLAGS}`,
     );
     this.waitForFeatures();
   }
 
   visitDataSets(project?: string) {
     cy.visitWithLogin(
-      `/featureStore/dataSets${
-        project ? `/${project}` : ''
-      }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/featureStore/dataSets${project ? `/${project}` : ''}/?${FEAST_FEATURE_FLAGS}`,
     );
     this.waitForDataSets();
   }
 
   visitDataSetDetails(project: string, dataSetName: string) {
-    cy.visitWithLogin(
-      `/featureStore/dataSets/${project}/${dataSetName}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
-    );
+    cy.visitWithLogin(`/featureStore/dataSets/${project}/${dataSetName}/?${FEAST_FEATURE_FLAGS}`);
     this.waitForDataSetDetails(dataSetName);
   }
 
   visitFeatureServices(project: string) {
     const projectName = project;
-    cy.visitWithLogin(
-      `/featureStore/featureServices/${projectName}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
-    );
+    cy.visitWithLogin(`/featureStore/featureServices/${projectName}/?${FEAST_FEATURE_FLAGS}`);
     this.waitForFeatureServices();
   }
 
   visitOverview(project?: string) {
     cy.visitWithLogin(
-      `/featureStore/overview${
-        project ? `/${project}` : ''
-      }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/featureStore/overview${project ? `/${project}` : ''}/?${FEAST_FEATURE_FLAGS}`,
     );
     this.waitForOverview();
   }
@@ -72,7 +58,7 @@ class FeatureStoreGlobal {
   visitFeatureServiceDetails(project: string, featureService: string) {
     const projectName = project;
     cy.visitWithLogin(
-      `/featureStore/featureServices/${projectName}/${featureService}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/featureStore/featureServices/${projectName}/${featureService}/?${FEAST_FEATURE_FLAGS}`,
     );
     this.waitForFeatureServiceDetails(featureService);
   }
@@ -95,6 +81,11 @@ class FeatureStoreGlobal {
   navigateToFeatures() {
     appChrome.findNavItem('Features').click();
     this.waitForFeatures();
+  }
+
+  navigateToFeatureServices() {
+    appChrome.findNavItem('Feature services').click();
+    this.waitForFeatureServices();
   }
 
   findHeading() {
