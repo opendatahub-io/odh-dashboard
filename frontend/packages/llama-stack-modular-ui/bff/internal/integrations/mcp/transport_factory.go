@@ -3,9 +3,10 @@ package mcp
 import (
 	"crypto/tls"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
-
+	"strings"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -69,6 +70,7 @@ func (f *ProxiedTransportFactory) CreateSSETransport(
 	transport := mcp.NewSSEClientTransport(serverURL, &mcp.SSEClientTransportOptions{
 		HTTPClient: httpClient,
 	})
+
 	return transport, nil
 }
 
@@ -166,4 +168,89 @@ func (f *ProxiedTransportFactory) createHTTPClient(opts *TransportOptions, ident
 	}
 
 	return httpClient
+}
+
+// checkForJSONErrorResponse makes a preliminary request to detect non-SSE responses
+func (f *ProxiedTransportFactory) checkForJSONErrorResponse(serverURL string, httpClient *http.Client) error {
+	req, err := http.NewRequest("GET", serverURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Set headers to accept SSE - this is what a real SSE client would send
+	req.Header.Set("Accept", "text/event-stream")
+	req.Header.Set("Cache-Control", "no-cache")
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to connect to server: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response body for analysis
+	body, readErr := io.ReadAll(resp.Body)
+	if readErr != nil {
+		return fmt.Errorf("failed to read server response (status: %d)", resp.StatusCode)
+	}
+
+	// For any error status code, return the response body as context
+	if resp.StatusCode >= 400 {
+		return &NonSSEResponseError{
+			StatusCode: resp.StatusCode,
+			Body:       string(body),
+			Headers:    resp.Header,
+		}
+	}
+
+	// Check content type to see if it's not SSE
+	contentType := resp.Header.Get("Content-Type")
+	if contentType != "" && !f.isSSEContentType(contentType) {
+		return &NonSSEResponseError{
+			StatusCode: resp.StatusCode,
+			Body:       string(body),
+			Headers:    resp.Header,
+		}
+	}
+
+	// Check response body format to detect JSON or other non-SSE formats
+	if len(body) > 0 && f.looksLikeJSON(body) {
+		return &NonSSEResponseError{
+			StatusCode: resp.StatusCode,
+			Body:       string(body),
+			Headers:    resp.Header,
+		}
+	}
+
+	// If we reach here, the response appears to be a valid SSE stream
+	return nil
+}
+
+// NonSSEResponseError represents a response that should be SSE but isn't
+type NonSSEResponseError struct {
+	StatusCode int
+	Body       string
+	Headers    http.Header
+}
+
+func (e *NonSSEResponseError) Error() string {
+	return fmt.Sprintf("expected SSE stream but got HTTP %d: %s", e.StatusCode, e.Body)
+}
+
+// isSSEContentType checks if the content type indicates SSE
+func (f *ProxiedTransportFactory) isSSEContentType(contentType string) bool {
+	lower := strings.ToLower(contentType)
+	return strings.Contains(lower, "text/event-stream") ||
+		strings.Contains(lower, "text/plain") // Some servers use text/plain for SSE
+}
+
+// looksLikeJSON attempts to detect if response body is JSON
+func (f *ProxiedTransportFactory) looksLikeJSON(body []byte) bool {
+	trimmed := strings.TrimSpace(string(body))
+	if len(trimmed) == 0 {
+		return false
+	}
+
+	// Check if it starts with JSON object or array
+	firstChar := trimmed[0]
+	return firstChar == '{' || firstChar == '['
 }

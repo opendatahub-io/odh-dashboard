@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -339,23 +340,66 @@ func convertMCPInputSchema(mcpSchema *jsonschema.Schema) map[string]interface{} 
 
 // mapMCPError maps MCP SDK errors to our error types
 func (c *ProxiedMCPClient) mapMCPError(err error, serverURL string) error {
-	// This is a simplified error mapping - you might want to inspect specific MCP error types
+	// Check for our custom NonSSEResponseError first (defined in transport_factory.go)
+	if nonSSEErr, ok := err.(*NonSSEResponseError); ok {
+		return c.mapNonSSEError(nonSSEErr, serverURL)
+	}
+
+	// Check if this is an SSE parsing error that might indicate a JSON response
 	errMsg := err.Error()
-
-	if strings.Contains(errMsg, "unauthorized") || strings.Contains(errMsg, "authentication") {
-		return NewMCPErrorWithServer(ErrCodeUnauthorized, "Authentication failed", serverURL, 401)
+	if strings.Contains(errMsg, "malformed line in SSE stream") && strings.Contains(errMsg, "{") {
+		// This looks like the MCP SDK tried to parse JSON as SSE
+		// Try to make a request to get the actual JSON response
+		if jsonErr := c.detectJSONErrorResponse(serverURL); jsonErr != nil {
+			return jsonErr
+		}
 	}
 
-	if strings.Contains(errMsg, "timeout") {
-		return NewMCPErrorWithServer(ErrCodeTimeout, "Request timeout", serverURL, 408)
-	}
-
-	if strings.Contains(errMsg, "connection") || strings.Contains(errMsg, "transport") {
-		return NewConnectionError(serverURL, fmt.Sprintf("Connection error: %v", err))
-	}
-
-	// Default to server unavailable
+	// For all other errors, return a generic server unavailable error
 	return NewMCPErrorWithServer(ErrCodeServerUnavailable, fmt.Sprintf("MCP error: %v", err), serverURL, 500)
+}
+
+// detectJSONErrorResponse makes a request to detect if server returned JSON instead of SSE
+func (c *ProxiedMCPClient) detectJSONErrorResponse(serverURL string) error {
+	req, err := http.NewRequest("GET", serverURL, nil)
+	if err != nil {
+		return nil // If we can't make request, just return nil
+	}
+
+	// Set headers to accept SSE
+	req.Header.Set("Accept", "text/event-stream")
+	req.Header.Set("Cache-Control", "no-cache")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil // If request fails, just return nil
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil
+	}
+
+	// Check if this looks like a JSON error response
+	bodyStr := strings.TrimSpace(string(body))
+	if len(bodyStr) > 0 && (bodyStr[0] == '{' || bodyStr[0] == '[') {
+		return &NonSSEResponseError{
+			StatusCode: resp.StatusCode,
+			Body:       bodyStr,
+			Headers:    resp.Header,
+		}
+	}
+
+	return nil
+}
+
+// mapNonSSEError maps NonSSEResponseError to appropriate MCP error types
+func (c *ProxiedMCPClient) mapNonSSEError(nonSSEErr *NonSSEResponseError, serverURL string) error {
+	// Simply return the NonSSEResponseError as-is
+	// The API layer will handle converting it to appropriate HTTP response
+	return nonSSEErr
 }
 
 // buildHealthCheckURL constructs the health check URL for an MCP server
