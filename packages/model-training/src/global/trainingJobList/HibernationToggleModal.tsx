@@ -24,8 +24,8 @@ const HibernationToggleModal: React.FC<HibernationToggleModalProps> = ({
   }
 
   const displayName = getDisplayNameFromK8sResource(job);
-  const action = isPaused ? 'resume' : 'suspend';
-  const actionLabel = isPaused ? 'Resume' : 'Suspend';
+  const action = isPaused ? 'resume' : 'pause';
+  const actionLabel = isPaused ? 'Resume' : 'Pause';
 
   return (
     <Modal

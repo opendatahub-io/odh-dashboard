@@ -62,8 +62,8 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
     try {
       const result = await togglePyTorchJobHibernation(job);
       if (result.success) {
-        // Update status optimistically
-        const newStatus = isPaused ? PyTorchJobState.RUNNING : PyTorchJobState.SUSPENDED;
+        // Update status optimistically based on current state
+        const newStatus = isPaused ? PyTorchJobState.RUNNING : PyTorchJobState.PAUSED;
         const jobId = job.metadata.uid || job.metadata.name;
         onStatusUpdate?.(jobId, newStatus);
       } else {

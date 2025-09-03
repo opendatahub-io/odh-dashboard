@@ -130,7 +130,6 @@ export const getTrainingJobStatus = async (
   job: PyTorchJobKind,
   options: {
     skipHibernationCheck?: boolean;
-    enableCaching?: boolean;
   } = {},
 ): Promise<{ status: PyTorchJobState; isLoading: boolean; error?: string }> => {
   const { skipHibernationCheck = false } = options;
@@ -148,10 +147,12 @@ export const getTrainingJobStatus = async (
       return { status: basicStatus, isLoading: false };
     }
 
-    // Check workload status for queuing, hibernation and preemption
+    // Check workload status for Kueue-enabled jobs and runPolicy for non-Kueue jobs
     const workload = await getWorkloadForPyTorchJob(job);
 
     if (workload) {
+      // Kueue-enabled job: Check workload status for queuing, hibernation and preemption
+
       // Check for queued status: workload conditions indicate waiting for resources
       const conditions = workload.status?.conditions || [];
       const quotaReservedCondition = conditions.find((c) => c.type === 'QuotaReserved');
@@ -183,6 +184,13 @@ export const getTrainingJobStatus = async (
       if (workload.spec.active === false) {
         return { status: PyTorchJobState.PAUSED, isLoading: false };
       }
+    } else {
+      // Non-Kueue job: Check PyTorchJob runPolicy.suspend for hibernation
+      const isSuspendedByRunPolicy = job.spec.runPolicy?.suspend === true;
+
+      if (isSuspendedByRunPolicy) {
+        return { status: PyTorchJobState.PAUSED, isLoading: false };
+      }
     }
 
     // Return basic status if no special conditions are met
@@ -202,10 +210,23 @@ export const getTrainingJobStatus = async (
 
 /**
  * Get training job status (synchronous version for sorting/filtering)
- * This version only returns the basic PyTorch job status without hibernation check
+ * This version checks basic PyTorch job status and runPolicy.suspend for non-Kueue jobs
  * @param job - PyTorch job to check status for
- * @returns Basic job status
+ * @returns Job status including basic hibernation check
  */
 export const getTrainingJobStatusSync = (job: PyTorchJobKind): PyTorchJobState => {
-  return getBasicJobStatus(job);
+  const basicStatus = getBasicJobStatus(job);
+
+  // Skip hibernation check for terminal states
+  if (basicStatus === PyTorchJobState.SUCCEEDED || basicStatus === PyTorchJobState.FAILED) {
+    return basicStatus;
+  }
+
+  // Check for non-Kueue job suspension via runPolicy.suspend
+  const isSuspendedByRunPolicy = job.spec.runPolicy?.suspend === true;
+  if (isSuspendedByRunPolicy) {
+    return PyTorchJobState.PAUSED;
+  }
+
+  return basicStatus;
 };

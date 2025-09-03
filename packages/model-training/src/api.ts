@@ -95,26 +95,68 @@ export const patchWorkloadHibernation = async (
   return result;
 };
 
+export const patchPyTorchJobSuspension = async (
+  job: PyTorchJobKind,
+  isSuspended: boolean,
+  opts?: K8sAPIOptions,
+): Promise<PyTorchJobKind> => {
+  const result = await k8sPatchResource<PyTorchJobKind>(
+    applyK8sAPIOptions(
+      {
+        model: PyTorchJobModel,
+        queryOptions: {
+          name: job.metadata.name || '',
+          ns: job.metadata.namespace || '',
+        },
+        patches: [
+          {
+            op: 'replace',
+            path: '/spec/runPolicy/suspend',
+            value: isSuspended,
+          },
+        ],
+      },
+      opts,
+    ),
+  );
+
+  return result;
+};
+
 export const togglePyTorchJobHibernation = async (
   job: PyTorchJobKind,
   opts?: K8sAPIOptions,
-): Promise<{ success: boolean; workload?: WorkloadKind; error?: string }> => {
+): Promise<{
+  success: boolean;
+  workload?: WorkloadKind;
+  updatedJob?: PyTorchJobKind;
+  error?: string;
+}> => {
   try {
     const workload = await getWorkloadForPyTorchJob(job);
-    if (!workload) {
+
+    if (workload) {
+      // Path 1: Kueue-enabled job - use workload hibernation
+      const isCurrentlyHibernated = workload.spec.active === false;
+      const updatedWorkload = await patchWorkloadHibernation(
+        workload,
+        !isCurrentlyHibernated,
+        opts,
+      );
+
       return {
-        success: false,
-        error:
-          'No workload found for this PyTorchJob. Hibernation is only available for jobs managed by Kueue.',
+        success: true,
+        workload: updatedWorkload,
       };
     }
 
-    const isCurrentlyHibernated = workload.spec.active === false;
-    const updatedWorkload = await patchWorkloadHibernation(workload, !isCurrentlyHibernated, opts);
+    // Path 2: Non-Kueue job - use PyTorchJob runPolicy.suspend
+    const isCurrentlySuspended = job.spec.runPolicy?.suspend === true;
+    const updatedJob = await patchPyTorchJobSuspension(job, !isCurrentlySuspended, opts);
 
     return {
       success: true,
-      workload: updatedWorkload,
+      updatedJob,
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
