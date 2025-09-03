@@ -660,7 +660,7 @@ spec:
     - name: netrc
       optional: true
   taskRunTemplate:
-    serviceAccountName: build-pipeline-odh-mod-arch-modular-architecture
+    serviceAccountName: build-pipeline-odh-model-registry-mod-arch
   workspaces:
   - name: git-auth
     secret:
