@@ -22,7 +22,9 @@ import { DEV_MODE } from '#~/utilities/const';
 import { MetadataStoreServicePromiseClient } from '#~/third_party/mlmd';
 import { getGenericErrorCode } from '#~/api';
 import UnauthorizedError from '#~/pages/UnauthorizedError';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import usePipelineAPIState, { PipelineAPIState } from './usePipelineAPIState';
+
 import usePipelineNamespaceCR, {
   dspaLoaded,
   hasServerTimedOut,
@@ -175,6 +177,9 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
   );
 });
 
+export const getPipelineServerName = (project: ProjectKind) =>
+  `${getDisplayNameFromK8sResource(project)} pipeline server`;
+
 type UsePipelinesAPI = PipelineAPIState & {
   /** The contextual namespace */
   namespace: string;
@@ -313,13 +318,13 @@ export const ViewServerModal = ({ onClose }: { onClose: () => void }): React.JSX
 };
 
 export const PipelineServerTimedOut: React.FC = () => {
-  const { crName } = React.useContext(PipelinesContext);
+  const { namespace } = React.useContext(PipelinesContext);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
 
   return (
     <>
       <Bullseye style={{ minHeight: '300px' }}>
-        <Stack hasGutter spaceItems={{ default: 'spaceItemsLg' }}>
+        <Stack hasGutter>
           <StackItem>
             <EmptyState
               icon={ExclamationCircleIcon}
@@ -328,8 +333,8 @@ export const PipelineServerTimedOut: React.FC = () => {
               status="danger"
             >
               <EmptyStateBody>
-                The {crName || 'pipeline server'} either could not start or be contacted. You must
-                delete this server to fix the issue, but this will also permanently delete all
+                The {namespace || 'pipeline server'} either could not start or be contacted. You
+                must delete this server to fix the issue, but this will also permanently delete all
                 associated resources. You will need to configure a new server afterward.
               </EmptyStateBody>
               <EmptyStateActions>

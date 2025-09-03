@@ -36,18 +36,15 @@ const EVENT_LOG_TAB = 'Events log';
 
 type StartingStatusModalProps = {
   onClose: () => void;
+  onDelete: () => void;
 };
 
-const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) => {
+const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose, onDelete }) => {
   const { pipelinesServer, namespace } = usePipelinesAPI();
   const [activeTab, setActiveTab] = React.useState<string>(PROGRESS_TAB);
   const isServerReadyAndCompletelyDone = pipelinesServer.crStatus?.conditions?.some(
     (c) => c.type === 'Ready' && c.status === 'True',
   );
-
-  const onDelete = () => {
-    console.log('would delete pipeline server here....todo');
-  };
 
   console.log(
     'StartingStatusModal; namespace/pipelinesServer.name:',
@@ -216,10 +213,10 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
         </Stack>
       </ModalBody>
       <ModalFooter>
-        <Button variant="primary" onClick={onDelete}>
+        <Button variant="primary" onClick={onDelete} data-testid="pipeline-delete-from-modal">
           Delete pipeline server
         </Button>
-        <Button variant="primary" onClick={onClose}>
+        <Button variant="primary" onClick={onClose} data-testid="pipeline-close-status-modal">
           Close
         </Button>
       </ModalFooter>

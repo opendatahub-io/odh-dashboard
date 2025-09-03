@@ -125,7 +125,15 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
   return (
     <>
       {getMainComponent()}
-      {showModal && <StartingStatusModal onClose={() => setShowModal(false)} />}
+      {showModal && (
+        <StartingStatusModal
+          onClose={() => setShowModal(false)}
+          onDelete={() => {
+            setShowModal(false);
+            setIsDeleting(true);
+          }}
+        />
+      )}
     </>
   );
 };

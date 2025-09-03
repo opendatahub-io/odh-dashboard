@@ -78,6 +78,7 @@ const mockUseWatchAllPodEventsAndFilter = jest.mocked(useWatchAllPodEventsAndFil
 
 describe('StartingStatusModal', () => {
   const mockOnClose = jest.fn();
+  const mockOnDelete = jest.fn();
 
   const createMockConditions = (conditions: K8sCondition[]) => ({
     pipelinesServer: {
@@ -143,7 +144,7 @@ describe('StartingStatusModal', () => {
       ]),
     );
 
-    render(<StartingStatusModal onClose={mockOnClose} />);
+    render(<StartingStatusModal onClose={mockOnClose} onDelete={mockOnDelete} />);
 
     expect(screen.getByText('Initializing Pipeline Server')).toBeInTheDocument();
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
@@ -163,7 +164,7 @@ describe('StartingStatusModal', () => {
       ]),
     );
 
-    render(<StartingStatusModal onClose={mockOnClose} />);
+    render(<StartingStatusModal onClose={mockOnClose} onDelete={mockOnDelete} />);
 
     expect(screen.getByTestId('inProgressDescription')).toBeInTheDocument();
   });
@@ -184,7 +185,7 @@ describe('StartingStatusModal', () => {
       ]),
     );
 
-    render(<StartingStatusModal onClose={mockOnClose} />);
+    render(<StartingStatusModal onClose={mockOnClose} onDelete={mockOnDelete} />);
 
     // Should show error alert
     expect(screen.getByTestId('error-0')).toBeInTheDocument();
@@ -206,7 +207,7 @@ describe('StartingStatusModal', () => {
       ]),
     );
 
-    render(<StartingStatusModal onClose={mockOnClose} />);
+    render(<StartingStatusModal onClose={mockOnClose} onDelete={mockOnDelete} />);
     expect(screen.getByTestId('successDescription')).toBeInTheDocument();
   });
 
@@ -217,7 +218,7 @@ describe('StartingStatusModal', () => {
     ];
     mockUsePipelinesAPI.mockReturnValue(createMockConditions(conditions));
 
-    render(<StartingStatusModal onClose={mockOnClose} />);
+    render(<StartingStatusModal onClose={mockOnClose} onDelete={mockOnDelete} />);
 
     // Progress tab is the default tab, so conditions should be visible
     conditions.forEach((condition) => {
@@ -226,7 +227,7 @@ describe('StartingStatusModal', () => {
   });
 
   it('should display events in the events log tab', () => {
-    render(<StartingStatusModal onClose={mockOnClose} />);
+    render(<StartingStatusModal onClose={mockOnClose} onDelete={mockOnDelete} />);
 
     // Switch to events log tab
     fireEvent.click(screen.getByText('Events log'));
@@ -245,9 +246,22 @@ describe('StartingStatusModal', () => {
       ]),
     );
 
-    render(<StartingStatusModal onClose={mockOnClose} />);
+    render(<StartingStatusModal onClose={mockOnClose} onDelete={mockOnDelete} />);
 
-    fireEvent.click(screen.getByText('Close'));
+    fireEvent.click(screen.getByTestId('pipeline-close-status-modal'));
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it('should call onDelete when delete button is clicked', () => {
+    mockUsePipelinesAPI.mockReturnValue(
+      createMockConditions([
+        { type: 'APIServerReady', status: 'False', message: 'API server not ready' },
+      ]),
+    );
+
+    render(<StartingStatusModal onClose={mockOnClose} onDelete={mockOnDelete} />);
+
+    fireEvent.click(screen.getByTestId('pipeline-delete-from-modal');
     expect(mockOnClose).toHaveBeenCalled();
   });
 });

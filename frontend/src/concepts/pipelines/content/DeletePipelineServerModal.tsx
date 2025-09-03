@@ -2,9 +2,9 @@ import * as React from 'react';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { deleteServer } from '#~/concepts/pipelines/utils';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
+import { getPipelineServerName } from '#~/concepts/pipelines/context/PipelinesContext';
 
 type DeletePipelineServerModalProps = {
   onClose: (deleted: boolean) => void;
@@ -24,12 +24,11 @@ const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({
     onClose(deleted);
   };
 
-  const deleteName = `${getDisplayNameFromK8sResource(project)} pipeline server`;
+  const deleteName = getPipelineServerName(project);
 
   return (
     <DeleteModal
       removeConfirmation={removeConfirmation}
-      ß
       title="Delete pipeline server?"
       onClose={() => {
         console.log(
