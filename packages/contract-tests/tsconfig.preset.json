@@ -1,31 +1,6 @@
 {
-  "extends": "../tsconfig/tsconfig.json",
+  "extends": "@odh-dashboard/tsconfig/tsconfig.json",
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "types": ["jest", "node"],
-    "strict": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "declaration": true,
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "baseUrl": ".",
-    "paths": {
-      "@odh-dashboard/contract-tests/*": ["src/*"],
-      "@odh-dashboard/jest-config/hooks": ["jest-config/src/hooks.ts"]
-    }
-  },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.test.ts",
-    "**/*.spec.ts"
-  ]
+    "types": ["jest", "@odh-dashboard/contract-tests"]
+  }
 }

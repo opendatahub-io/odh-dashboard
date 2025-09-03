@@ -56,6 +56,25 @@ Add to your package.json:
 }
 ```
 
+## TypeScript Configuration
+
+Add the following to your `tsconfig.json` to enable Jest and contract-testing types:
+
+```json
+{
+  "extends": "@odh-dashboard/tsconfig/tsconfig.json",
+  "exclude": ["node_modules", "upstream"],
+  "compilerOptions": {
+    "types": ["jest", "@odh-dashboard/contract-tests"]
+  }
+}
+```
+
+This configuration provides:
+- ✅ Jest types for testing (`describe`, `it`, `expect`)
+- ✅ Contract-tests types for matchers (`toMatchContract`)
+- ✅ Standard ODH TypeScript configuration
+
 ## BFF Lifecycle Management
 
 The contract test runner automatically manages your Mock BFF lifecycle:
@@ -111,6 +130,7 @@ describe('Your API Contract Tests', () => {
 const fs = require('fs');
 const path = require('path');
 const yaml = require('js-yaml');
+// eslint-disable-next-line import/no-extraneous-dependencies
 const { ContractApiClient } = require('@odh-dashboard/contract-tests');
 
 const api = new ContractApiClient({ baseUrl: 'http://localhost:8080' });
@@ -128,6 +148,7 @@ it('validates response with OpenAPI ref', async () => {
 
 ### Option 2: Convert OpenAPI → JSON Schema (helpers)
 ```javascript
+// eslint-disable-next-line import/no-extraneous-dependencies
 const { createTestSchema, extractSchemaFromOpenApiResponse } = require('@odh-dashboard/contract-tests');
 
 const listResp = ((openApiDoc && openApiDoc.components && openApiDoc.components.responses) || {}).ListResponse;
@@ -263,14 +284,38 @@ npm run test:contract:watch
 jest --config=../../contract-tests/jest.preset.js --testPathPattern=contract-tests
 ```
 
-## No Configuration Required
+## Minimal Configuration Required
 
-- ❌ No Jest config files needed
-- ❌ No TypeScript config needed
-- ❌ No setup files needed
-- ❌ No complex npm scripts needed
+Add the following to your package.json and tsconfig.json:
 
-Everything is handled automatically by the Jest preset configuration.
+**package.json:**
+```json
+{
+  "devDependencies": {
+    "@odh-dashboard/contract-tests": "workspace:*"
+  },
+  "scripts": {
+    "test:contract": "npm exec -w @odh-dashboard/contract-tests odh-ct-bff-consumer -- --bff-dir $(pwd)/upstream/bff --consumer-dir $(pwd)/contract-tests --package-name <module>"
+  }
+}
+```
+
+**tsconfig.json:**
+```json
+{
+  "extends": "@odh-dashboard/tsconfig/tsconfig.json",
+  "compilerOptions": {
+    "types": ["jest", "@odh-dashboard/contract-tests"]
+  }
+}
+```
+
+**Everything else is handled automatically:**
+- ✅ Jest configuration and setup
+- ✅ Contract-tests matcher types
+- ✅ BFF lifecycle management
+- ✅ Schema validation setup
+- ✅ Test result reporting
 
 ## What Happens Under the Hood
 
