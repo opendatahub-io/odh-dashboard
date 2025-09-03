@@ -219,12 +219,8 @@ export const convertSecondsToPeriodicTime = (seconds: number): string => {
 
 // server timeout is 5 minutes; in src/utilities/const.ts
 // so we are using that same timeout here
-// const shortTimeRangeMinuteLimit = 3; // 3 minutes
-// const mediumTimeRangeMinuteLimit = SERVER_TIMEOUT / 60000; // 5 minutes is the default server timeout
-
-// for TESTING ONLY DANGER WILL ROBINSON
-const shortTimeRangeMinuteLimit = 1; // 3 minutes
-const mediumTimeRangeMinuteLimit = 2; // 5 minutes is the default server timeout
+const shortTimeRangeMinuteLimit = 3; // 3 minutes
+const mediumTimeRangeMinuteLimit = SERVER_TIMEOUT / 60000; // 5 minutes is the default server timeout
 
 export const getTimeRangeCategory = (
   timestamp: string | undefined | null,
@@ -239,9 +235,7 @@ export const getTimeRangeCategory = (
     return 'longRange';
   }
 
-  // DANGER WILL ROBINSON!
-  // changed to half time..............
-  const diffMinutes = (now - timestampMs) / 120000; // 60 000
+  const diffMinutes = (now - timestampMs) / 60000; // 60 000
 
   if (diffMinutes < 0) {
     // Future timestamp – treat as shortest range
