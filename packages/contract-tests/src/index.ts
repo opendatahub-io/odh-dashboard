@@ -1,5 +1,7 @@
 /* eslint-disable no-barrel-files/no-barrel-files */
 
+/// <reference types="jest" />
+
 // Setup Jest matchers
 import { toMatchContract } from './matchers/toMatchContract';
 
