@@ -14,6 +14,9 @@ export type PyTorchJobKind = K8sResourceCommon & {
     uid: string;
   };
   spec: {
+    runPolicy?: {
+      suspend?: boolean;
+    };
     pytorchReplicaSpecs: {
       Master?: {
         replicas: number;

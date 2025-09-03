@@ -1,6 +1,6 @@
 import React from 'react';
 import { Flex, FlexItem, Label, Progress, Skeleton } from '@patternfly/react-core';
-import { getJobStatusFromPyTorchJob, getStatusInfo } from '../utils';
+import { getTrainingJobStatusSync, getStatusInfo } from '../utils';
 import { PyTorchJobKind } from '../../../k8sTypes';
 import { PyTorchJobState } from '../../../types';
 
@@ -11,7 +11,7 @@ const TrainingJobStatus = ({
   job: PyTorchJobKind;
   jobStatus?: PyTorchJobState;
 }): React.ReactElement => {
-  const status = jobStatus || getJobStatusFromPyTorchJob(job);
+  const status = jobStatus || getTrainingJobStatusSync(job);
   const isLoadingStatus = jobStatus === undefined;
   const isRunning = status === PyTorchJobState.RUNNING;
 

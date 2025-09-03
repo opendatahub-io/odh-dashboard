@@ -15,7 +15,7 @@ import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceName
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import TrainingJobProject from './TrainingJobProject';
-import { getJobStatusFromPyTorchJob } from './utils';
+import { getTrainingJobStatusSync } from './utils';
 import TrainingJobClusterQueue from './TrainingJobClusterQueue';
 import HibernationToggleModal from './HibernationToggleModal';
 import TrainingJobStatus from './components/TrainingJobStatus';
@@ -51,9 +51,10 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
   const nodesCount = workerReplicas + masterReplicas;
   const localQueueName = job.metadata.labels?.['kueue.x-k8s.io/queue-name'];
 
-  const status = jobStatus || getJobStatusFromPyTorchJob(job);
-  // const isSuspended = status === PyTorchJobState.SUSPENDED;
+  const status = jobStatus || getTrainingJobStatusSync(job);
   const isPaused = status === PyTorchJobState.PAUSED;
+  const isPreempted = status === PyTorchJobState.PREEMPTED;
+  const isQueued = status === PyTorchJobState.QUEUED;
   const canScaleWorkers = isPaused; // Only allow scaling when paused
 
   const handleHibernationToggle = async () => {
@@ -150,8 +151,8 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
       });
     }
 
-    // Add hibernation toggle action
-    if (!isTerminalState) {
+    // Add hibernation toggle action (but not for preempted or queued jobs)
+    if (!isTerminalState && !isPreempted && !isQueued) {
       items.push({
         title: isPaused ? 'Resume' : 'Pause',
         onClick: () => setHibernationModalOpen(true),
@@ -165,7 +166,7 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
     });
 
     return items;
-  }, [status, isPaused, job, onDelete]);
+  }, [status, isPaused, isPreempted, isQueued, job, onDelete]);
 
   return (
     <>

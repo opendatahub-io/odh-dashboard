@@ -11,7 +11,7 @@ import TrainingJobLogsTabStatus from './TrainingJobLogsTabStatus';
 import TrainingJobLogsToolbar from './TrainingJobLogsToolbar';
 import { PyTorchJobKind } from '../../k8sTypes';
 import { PyTorchJobState } from '../../types';
-import { getJobStatusFromPyTorchJob } from '../trainingJobList/utils';
+import { getTrainingJobStatusSync } from '../trainingJobList/utils';
 
 interface TrainingJobLogsTabProps {
   job: PyTorchJobKind;
@@ -22,7 +22,7 @@ const TrainingJobLogsTab: React.FC<TrainingJobLogsTabProps> = ({ job }) => {
   const { name: jobName } = job.metadata;
   const podName = `${jobName}-master-0`;
 
-  const status = getJobStatusFromPyTorchJob(job);
+  const status = getTrainingJobStatusSync(job);
   const isFailedJob = status === PyTorchJobState.FAILED;
 
   const {
