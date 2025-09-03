@@ -2,28 +2,11 @@ approvers:
   - dpanshug
   - claudialphonse78
   - manaswinidas
-  - ederign
-  - christianvogt
-  - andrewballantyne
-  - lucferbux
-  - antowaddle
 
 reviewers:
-  - alexcreasy
-  - christianvogt
-  - Gkrumbach07
-  - lucferbux
-  - DaoDaoNoCode
-  - manaswinidas
-  - pnaik1
-  - ppadti
   - dpanshug
-  - mturley
-  - antowaddle
-  - manosnoam
-  - FedeAlonso
-  - Griffin-Sullivan
-  - YuliaKrimerman
+  - claudialphonse78
+  - manaswinidas
 
 labels:
-  - area/feature-store-modular-ui
+  - area/feature-store

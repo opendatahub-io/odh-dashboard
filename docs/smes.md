@@ -2,7 +2,6 @@
 [andrewballantyne]: https://github.com/andrewballantyne
 [Gkrumbach07]: https://github.com/Gkrumbach07
 [lucferbux]: https://github.com/lucferbux
-[alexcreasy]: https://github.com/alexcreasy
 [DaoDaoNoCode]: https://github.com/DaoDaoNoCode
 
 <!-- SME UX -->
@@ -47,7 +46,7 @@ Below there will be some terms like “previous” and “backup”, these are f
     - UX: `Yan` ([yannnz])
         - Previous: `Kyle` ([kywalker-rh])
 - Explainability, Bias
-    - Feature lead: `Alex` ([alexcreasy])
+    - Feature lead: 
     - UX: `Vince` ([vconzola])
 - Model Serving (Custom runtimes, general Model Serving)
     - Feature lead: `Lucas` ([lucferbux])
