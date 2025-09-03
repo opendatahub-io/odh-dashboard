@@ -29,9 +29,14 @@ const mockUseWizardFooter = useWizardFooter as jest.MockedFunction<typeof useWiz
 describe('ModelSourceStep', () => {
   const mockWizardData = {
     modelTypeField: undefined,
+    k8sNameDesc: undefined,
+    advancedSettingsField: undefined,
   } satisfies ModelDeploymentWizardData;
   const mockWizardHandlers = {
     setModelType: jest.fn(),
+    setDeploymentName: jest.fn(),
+    setAdvancedSettings: jest.fn(),
+    updateAdvancedSettingsField: jest.fn(),
   } satisfies ModelDeploymentWizardDataHandlers;
   const mockWizardState = {
     data: mockWizardData,
@@ -101,7 +106,7 @@ describe('ModelSourceStep', () => {
           modelTypeField: 'generative-model' as const,
         },
         handlers: mockWizardHandlers,
-      };
+      } satisfies UseModelDeploymentWizardState;
       render(
         <ModelSourceStepContent
           wizardState={wizardDataWithSelection}

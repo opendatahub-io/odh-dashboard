@@ -9,6 +9,7 @@ import { useModelDeploymentWizard, type ModelDeploymentWizardData } from './useD
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
 import { ModelSourceStepContent } from './steps/ModelSourceStep';
 import { WizardFooterWithDisablingNext } from './WizardFooterWithDisablingNext';
+import { AdvancedSettingsStepContent } from './steps/AdvancedOptionsStep';
 import { ModelDeploymentStepContent } from './steps/ModelDeploymentStep';
 
 type ModelDeploymentWizardProps = {
@@ -16,6 +17,7 @@ type ModelDeploymentWizardProps = {
   description?: string;
   primaryButtonText: string;
   existingData?: ModelDeploymentWizardData;
+  tokenAuthAlert?: boolean;
   project: ProjectKind;
 };
 
@@ -24,6 +26,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   description,
   primaryButtonText,
   existingData,
+  tokenAuthAlert = false,
   project,
 }) => {
   const navigate = useNavigate();
@@ -57,13 +60,17 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           id="advanced-options-step"
           isDisabled={!validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid}
         >
-          Step 3 content
+          <AdvancedSettingsStepContent wizardState={wizardState} tokenAuthAlert={tokenAuthAlert} />
         </WizardStep>
         <WizardStep
           name="Summary"
           id="summary-step"
           footer={{ nextButtonText: primaryButtonText }}
-          isDisabled={!validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid}
+          isDisabled={
+            !validation.isModelSourceStepValid ||
+            !validation.isModelDeploymentStepValid ||
+            !validation.isAdvancedSettingsStepValid
+          }
         >
           Review step content
         </WizardStep>
