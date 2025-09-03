@@ -2,6 +2,20 @@ import { renderHook as renderHookRTL, RenderHookOptions, waitFor } from '@testin
 import { queries, Queries } from '@testing-library/dom';
 import type { BooleanValues, RenderHookResultExt } from '../types';
 
+/**
+ * Wrapper on top of RTL `renderHook` returning a result that implements the `RenderHookResultExt` interface.
+ *
+ * `renderHook` provides full control over the rendering of your hook including the ability to wrap the test component.
+ * This is usually used to add context providers from `React.createContext` for the hook to access with `useContext`.
+ * `initialProps` and props subsequently set by `rerender` will be provided to the wrapper.
+ *
+ * ```
+ * const renderResult = renderHook(({ who }: { who: string }) => useSayHello(who), { initialProps: { who: 'world' }});
+ * expect(renderResult).hookToBe('Hello world!');
+ * renderResult.rerender({ who: 'there' });
+ * expect(renderResult).hookToBe('Hello there!');
+ * ```
+ */
 export const renderHook = <
   Result,
   Props,
@@ -25,8 +39,11 @@ export const renderHook = <
 
   const renderResultExt: RenderHookResultExt<Result, Props> = {
     ...renderResult,
+
     getPreviousResult: () => (updateCount > 1 ? prevResult : renderResult.result.current),
+
     getUpdateCount: () => updateCount,
+
     waitForNextUpdate: async (currentOptions) => {
       const expected = updateCount;
       try {
@@ -40,8 +57,21 @@ export const renderHook = <
   return renderResultExt;
 };
 
+/**
+ * Lightweight API for testing a single hook.
+ *
+ * Prefer this method of testing over `renderHook` for simplicity.
+ *
+ * ```
+ * const renderResult = testHook(useSayHello)('world');
+ * expect(renderResult).hookToBe('Hello world!');
+ * renderResult.rerender('there');
+ * expect(renderResult).hookToBe('Hello there!');
+ * ```
+ */
 export const testHook =
   <Result, P extends unknown[]>(hook: (...params: P) => Result) =>
+  // not ideal to nest functions in terms of API but cannot find a better way to infer P from hook and not initialParams
   (
     ...initialParams: P
   ): Omit<RenderHookResultExt<Result, { $params: typeof initialParams }>, 'rerender'> & {
@@ -49,29 +79,95 @@ export const testHook =
   } => {
     const renderResult = renderHook<Result, { $params: typeof initialParams }>(
       ({ $params }) => hook(...$params),
-      { initialProps: { $params: initialParams } },
+      {
+        initialProps: {
+          $params: initialParams,
+        },
+      },
     );
 
-    return { ...renderResult, rerender: (...params) => renderResult.rerender({ $params: params }) };
+    return {
+      ...renderResult,
+      rerender: (...params) => renderResult.rerender({ $params: params }),
+    };
   };
 
-const everything = () => expect.anything();
+/**
+ * @deprecated use useFetch instead of useFetchState, and standardUseFetchStateObject instead of standardUseFetchState
+ *
+ * A helper function for asserting the return value of hooks based on `useFetchState`.
+ *
+ * eg.
+ * ```
+ * expect(renderResult).hookToStrictEqual(standardUseFetchState('test value', true))
+ * ```
+ * is equivalent to:
+ * ```
+ * expect(renderResult).hookToStrictEqual(['test value', true, undefined, expect.any(Function)])
+ * ```
+ */
+export const standardUseFetchState = <D>(
+  data: D,
+  loaded = false,
+  error?: Error,
+): [
+  data: D,
+  loaded: boolean,
+  loadError: Error | undefined,
+  refresh: () => Promise<D | undefined>,
+] => [data, loaded, error, expect.any(Function)];
 
-const identityEqual = (value: unknown) => ({
-  asymmetricMatch: (other: unknown) => Object.is(other, value),
-});
+/**
+ * A helper function for asserting the return value of hooks based on `useFetch`.
+ *
+ * eg.
+ * ```
+ * expect(renderResult).hookToStrictEqual(standardUseFetchState('test value', true))
+ * ```
+ * is equivalent to:
+ * ```
+ * expect(renderResult).hookToStrictEqual({ data: 'test value', loaded: true, error: undefined, refresh: expect.any(Function) })
+ * ```
+ */
+export const standardUseFetchStateObject = <D>({
+  data,
+  loaded = false,
+  error,
+}: {
+  data: D;
+  loaded?: boolean;
+  error?: Error;
+}): {
+  data: D;
+  loaded: boolean;
+  error: Error | undefined;
+  refresh: () => Promise<D | undefined>;
+} => ({ data, loaded, error, refresh: expect.any(Function) });
 
+// create a new asymmetric matcher that matches everything
+const everything = () => {
+  const r = expect.anything();
+  r.asymmetricMatch = () => true;
+  return r;
+};
+
+/**
+ * Extracts a subset of values from the source that can be used to compare equality.
+ *
+ * Recursively traverses the `booleanTarget`. For every property or array index equal to `true`,
+ * adds the value of the source to the result wrapped in custom matcher `expect.isIdentityEqual`.
+ * If the entry is `false` or `undefined`, add an everything matcher to the result.
+ */
 export const createComparativeValue = <T>(source: T, booleanTarget: BooleanValues<T>): unknown =>
   createComparativeValueRecursive(source, booleanTarget);
 
-type PrimitiveOrFn = boolean | string | number | ((...args: unknown[]) => unknown);
-
 const createComparativeValueRecursive = <T>(
   source: unknown,
-  booleanTarget: PrimitiveOrFn | BooleanValues<T>,
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  booleanTarget: boolean | string | number | Function | BooleanValues<T>,
 ) => {
   if (typeof booleanTarget === 'boolean') {
-    return booleanTarget ? identityEqual(source) : everything();
+    return booleanTarget ? expect.isIdentityEqual(source) : everything();
   }
   if (Array.isArray(booleanTarget)) {
     if (Array.isArray(source)) {
@@ -107,40 +203,4 @@ const createComparativeValueRecursive = <T>(
     });
   }
   return expect.objectContaining(obj);
-};
-
-type LocalFetchRefresh<D> = (...args: unknown[]) => Promise<D | undefined>;
-export type LocalFetchState<D> = [D, boolean, Error | undefined, LocalFetchRefresh<D>];
-export type LocalFetchStateObject<D, E = Error> = {
-  data: D;
-  loaded: boolean;
-  error?: E;
-  refresh: LocalFetchRefresh<D>;
-};
-
-export const standardUseFetchState = <D>(
-  data: D,
-  loaded = false,
-  error?: Error,
-): LocalFetchState<D> => {
-  const refresh: LocalFetchRefresh<D> = async function refresh() {
-    return undefined;
-  };
-  return [data, loaded, error, refresh];
-};
-
-export const standardUseFetchStateObject = <D>(args: {
-  data: D;
-  loaded?: boolean;
-  error?: Error;
-}): LocalFetchStateObject<D> => {
-  const refresh: LocalFetchRefresh<D> = async function refresh() {
-    return undefined;
-  };
-  return {
-    data: args.data,
-    loaded: args.loaded ?? false,
-    error: args.error,
-    refresh,
-  };
 };

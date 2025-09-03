@@ -1,7 +1,6 @@
 module.exports = {
   env: {
     node: true,
-    es6: true,
   },
   parserOptions: {
     ecmaVersion: 2022,
@@ -14,7 +13,6 @@ module.exports = {
     expect: 'readonly',
     it: 'readonly',
     process: 'readonly',
-    Set: 'readonly',
   },
   plugins: ['eslint-plugin-react-hooks', 'import', 'no-only-tests', 'no-relative-import-paths'],
   extends: ['eslint:recommended'],
@@ -26,7 +24,6 @@ module.exports = {
     'public-cypress',
     'node_modules',
     'dist',
-    '@mf-types',
   ],
   rules: {
     'arrow-body-style': 'error',

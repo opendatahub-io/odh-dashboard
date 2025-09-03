@@ -23,11 +23,9 @@ module.exports = {
     '^(\\.\\./)*src/(.*)$': path.join(__dirname, 'src/$2'),
     // Compatibility: legacy hooks import path maps to shared hooks
     '^@odh-dashboard/jest-config/hooks$': path.join(__dirname, 'jest-config/src/hooks.ts'),
+    '^ansi-regex$': path.join(__dirname, 'src/mocks/ansi-regex.js'),
   },
-  setupFilesAfterEnv: [
-    path.join(__dirname, 'src/setup/setup.preset.js'),
-    path.join(__dirname, 'src/setup/setup.matchers.js'),
-  ],
+  setupFilesAfterEnv: [path.join(__dirname, 'src/setup/jest-matchers.ts')],
   collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts'],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],

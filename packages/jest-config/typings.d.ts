@@ -26,16 +26,4 @@ declare namespace jest {
   interface Expect {
     isIdentityEqual: (expected: unknown) => AsymmetricMatcher;
   }
-
-  // Contract testing matcher augmentation
-  interface Matchers<R> {
-    toMatchContract: (
-      schema: Record<string, unknown>,
-      options?: {
-        ref?: string;
-        expectedStatus?: number;
-        expectedHeaders?: Record<string, string | RegExp>;
-      },
-    ) => R;
-  }
 }
