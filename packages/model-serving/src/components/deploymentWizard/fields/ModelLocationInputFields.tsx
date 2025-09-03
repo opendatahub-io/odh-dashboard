@@ -10,16 +10,16 @@ import {
   ModelServingCompatibleTypes,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { z } from 'zod';
-import { OCIAlert } from './modelLocationFields/OCIAlert';
+import { ConnectionOciAlert } from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciAlert';
 import { ExistingConnectionField } from './modelLocationFields/ExistingConnectionField';
 import { ModelLocationFieldData } from './ModelLocationSelectField';
 import {
   ConnectionTypeRefs,
-  isExistingModelLocation,
   ModelLocationData,
   ModelLocationType,
 } from './modelLocationFields/types';
-import { NewConnectionField } from './modelLocationFields/NewConnectionField';
+import NewConnectionField from './modelLocationFields/NewConnectionField';
+import { isExistingModelLocation } from '../utils';
 
 export type ModelLocationDataField = {
   data: ModelLocationData | undefined;
@@ -91,7 +91,7 @@ type ModelLocationInputFieldsProps = {
   selectedConnection: Connection | undefined;
   setSelectedConnection: (connection: Connection) => void;
   selectedConnectionType: ConnectionTypeConfigMapObj | undefined;
-  setModelLocationData?: (data: ModelLocationData | undefined) => void;
+  setModelLocationData: (data: ModelLocationData | undefined) => void;
   resetModelLocationData: () => void;
   modelLocationData?: ModelLocationData;
 };
@@ -123,7 +123,7 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
       >
         {selectedConnectionType &&
           isModelServingCompatible(selectedConnectionType, ModelServingCompatibleTypes.OCI) && (
-            <OCIAlert />
+            <ConnectionOciAlert />
           )}
       </ExistingConnectionField>
     );
@@ -136,7 +136,7 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
       return (
         <NewConnectionField
           modelLocationType={ModelLocationType.URI}
-          connectionTypes={connectionTypes}
+          connectionType={uriConnectionType}
           setModelLocationData={setModelLocationData}
           modelLocationData={modelLocationData}
         />
@@ -151,7 +151,7 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
       return (
         <NewConnectionField
           modelLocationType={ModelLocationType.OCI}
-          connectionTypes={connectionTypes}
+          connectionType={ociConnectionType}
           setModelLocationData={setModelLocationData}
           modelLocationData={modelLocationData}
         />
@@ -185,12 +185,12 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
       return (
         <NewConnectionField
           modelLocationType={ModelLocationType.S3}
-          connectionTypes={connectionTypes}
+          connectionType={s3ConnectionType}
           setModelLocationData={setModelLocationData}
           modelLocationData={modelLocationData}
         />
       );
     }
   }
-  return <div>ModelLocationInputFields</div>;
+  return <div>Connection type not found</div>;
 };

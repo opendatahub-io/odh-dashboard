@@ -11,12 +11,10 @@ import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/typ
 import { getConnectionTypeRef } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
+import { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { ModelLocationInputFields } from './ModelLocationInputFields';
-import {
-  isExistingModelLocation,
-  ModelLocationData,
-  ModelLocationType,
-} from './modelLocationFields/types';
+import { ModelLocationData, ModelLocationType } from './modelLocationFields/types';
+import { isExistingModelLocation, mapStringToConnectionType } from '../utils';
 
 // Schema
 export const modelLocationSelectFieldSchema = z.enum(
@@ -45,17 +43,52 @@ export const isValidModelLocation = (value: string): value is ModelLocationField
 export type ModelLocationField = {
   data: ModelLocationFieldData | undefined;
   setData: (data: ModelLocationFieldData) => void;
+  connections: LabeledConnection[];
+  setSelectedConnection: (connection: LabeledConnection | undefined) => void;
+  selectedConnection: LabeledConnection | undefined;
 };
 export const useModelLocationField = (
+  project: ProjectKind | null,
+  modelLocationData?: ModelLocationData,
   existingData?: ModelLocationFieldData,
+  setModelLocationData?: (data: ModelLocationData | undefined) => void,
 ): ModelLocationField => {
   const [modelLocation, setModelLocation] = React.useState<ModelLocationFieldData | undefined>(
     existingData,
   );
-
+  const [fetchedConnections] = useServingConnections(project?.metadata.name ?? '');
+  const { connections } = useLabeledConnections(undefined, fetchedConnections);
+  const selectedConnection = React.useMemo(() => {
+    if (
+      modelLocation === ModelLocationType.EXISTING &&
+      isExistingModelLocation(modelLocationData)
+    ) {
+      return connections.find(
+        (c) => getResourceNameFromK8sResource(c.connection) === modelLocationData.connection,
+      );
+    }
+    return undefined;
+  }, [connections, modelLocation, modelLocationData]);
+  const updateSelectedConnection = React.useCallback(
+    (connection: LabeledConnection | undefined) => {
+      if (connection && setModelLocationData) {
+        setModelLocationData({
+          type: ModelLocationType.EXISTING,
+          connectionType: mapStringToConnectionType(
+            getConnectionTypeRef(connection.connection) ?? '',
+          ),
+          connection: getResourceNameFromK8sResource(connection.connection),
+        });
+      }
+    },
+    [setModelLocationData],
+  );
   return {
     data: modelLocation,
     setData: setModelLocation,
+    connections,
+    setSelectedConnection: updateSelectedConnection,
+    selectedConnection,
   };
 };
 
@@ -66,42 +99,26 @@ type ModelLocationSelectFieldProps = {
   setModelLocation?: (value: ModelLocationFieldData) => void;
   validationProps?: FieldValidationProps;
   validationIssues?: ZodIssue[];
-  project: ProjectKind | null;
-  setModelLocationData?: (data: ModelLocationData | undefined) => void;
+  connections: LabeledConnection[];
+  setModelLocationData: (data: ModelLocationData | undefined) => void;
   resetModelLocationData: () => void;
   modelLocationData?: ModelLocationData;
+  initSelectedConnection: LabeledConnection | undefined;
 };
 export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> = ({
   modelLocation,
   setModelLocation,
   validationProps,
   validationIssues = [],
-  project,
+  connections,
   setModelLocationData,
   resetModelLocationData,
   modelLocationData,
+  initSelectedConnection,
 }) => {
-  const [fetchedConnections] = useServingConnections(project?.metadata.name ?? '');
-  const { connections } = useLabeledConnections(undefined, fetchedConnections);
-  const selectedConnection = React.useMemo(
-    () =>
-      modelLocation === ModelLocationType.EXISTING && isExistingModelLocation(modelLocationData)
-        ? connections.find(
-            (c) => getResourceNameFromK8sResource(c.connection) === modelLocationData.connection,
-          )
-        : undefined,
-    [connections, modelLocation, modelLocationData],
-  );
-
   const [selectedConnectionState, setSelectedConnection] = React.useState<Connection | undefined>(
-    undefined,
+    initSelectedConnection?.connection ?? undefined,
   );
-
-  React.useEffect(() => {
-    if (selectedConnection && !selectedConnectionState) {
-      setSelectedConnection(selectedConnection.connection);
-    }
-  }, [selectedConnection, selectedConnectionState, setSelectedConnection]);
   const [modelServingConnectionTypes] = useWatchConnectionTypes(true);
 
   const selectedConnectionType = React.useMemo(
@@ -117,6 +134,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
         <HelperTextItem>Where is the model you want to deploy located?</HelperTextItem>
       </FormHelperText>
       <SimpleSelect
+        dataTestId="model-location-select"
         options={[
           {
             key: ModelLocationType.EXISTING,

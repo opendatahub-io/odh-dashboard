@@ -59,17 +59,3 @@ export type ModelLocationData =
   | S3ModelLocation
   | PVCModelLocation
   | URIModelLocation;
-
-export const isOCIModelLocation = (data?: ModelLocationData): data is OCIModelLocation => {
-  return data?.type === ModelLocationType.OCI;
-};
-
-export const isS3ModelLocation = (data?: ModelLocationData): data is S3ModelLocation => {
-  return data?.type === ModelLocationType.S3;
-};
-
-export const isExistingModelLocation = (
-  data?: ModelLocationData,
-): data is ExistingModelLocation => {
-  return data?.type === 'existing';
-};
