@@ -23,7 +23,6 @@ import { MetadataStoreServicePromiseClient } from '#~/third_party/mlmd';
 import { getGenericErrorCode } from '#~/api';
 import UnauthorizedError from '#~/pages/UnauthorizedError';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
-import { projectDisplayNameToNamespace } from '#~/concepts/projects/utils.ts';
 import usePipelineAPIState, { PipelineAPIState } from './usePipelineAPIState';
 
 import usePipelineNamespaceCR, {
