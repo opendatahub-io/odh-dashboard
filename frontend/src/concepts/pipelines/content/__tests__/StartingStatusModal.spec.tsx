@@ -119,7 +119,7 @@ describe('StartingStatusModal', () => {
     // Set up default mock for usePipelinesAPI
     mockUsePipelinesAPI.mockReturnValue(
       createMockConditions([
-        { type: 'APIServerReady', status: 'False', message: 'API server not ready' },
+        { type: 'ApiServerReady', status: 'False', message: 'API server not ready' },
         { type: 'Ready', status: 'False', message: 'Server not ready' },
       ]),
     );
@@ -189,7 +189,7 @@ describe('StartingStatusModal', () => {
 
     // Should show error alert
     expect(screen.getByTestId('error-0')).toBeInTheDocument();
-    expect(screen.getByText('APIServerReady - ComponentDeploymentNotFound')).toBeInTheDocument();
+    expect(screen.getByText('Start API server - ComponentDeploymentNotFound')).toBeInTheDocument();
     expect(screen.getByText('API server not ready yet')).toBeInTheDocument();
   });
 
@@ -220,9 +220,10 @@ describe('StartingStatusModal', () => {
 
     render(<StartingStatusModal onClose={mockOnClose} onDelete={mockOnDelete} />);
 
+    const humanReadableConditions = ['Start API server', 'Start pipeline Server'];
     // Progress tab is the default tab, so conditions should be visible
-    conditions.forEach((condition) => {
-      expect(screen.getByText(condition.type)).toBeInTheDocument();
+    humanReadableConditions.forEach((condition) => {
+      expect(screen.getByText(condition)).toBeInTheDocument();
     });
   });
 

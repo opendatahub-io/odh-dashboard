@@ -147,9 +147,10 @@ export const getStatusFromCondition = (condition: K8sCondition): StatusType => {
 const CONDITION_TO_MESSAGE: Record<string, string> = {
   DatabaseAvailable: 'Connect to database',
   ObjectStoreAvailable: 'Connect to storage',
-  PersistenceAgentReady: 'Start API Server',
-  ScheduledWorkflowReady: 'Start PVC',
-  WorkflowControllerReady: 'Schedule workflow',
+  PersistenceAgentReady: 'Start PVC',
+  ApiServerReady: 'Start API server',
+  ScheduledWorkflowReady: 'Schedule workflow',
+  WorkflowControllerReady: 'Start workflow controller',
   MLMDProxyReady: 'Start metadata proxy',
   WebhookReady: 'Start webhook',
   Ready: 'Start pipeline Server',
