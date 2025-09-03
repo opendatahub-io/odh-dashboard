@@ -26,7 +26,6 @@ import ModelVersionSelector from './ModelVersionSelector';
 import ModelVersionDetailsTabs from './ModelVersionDetailsTabs';
 import ModelVersionsDetailsHeaderActions from './ModelVersionDetailsHeaderActions';
 import { MRDeployButton } from '~/odh/components/MRDeployButton';
-import { KnownLabels } from '~/odh/k8sTypes';
 import { MRDeploymentsContextProvider } from '~/odh/components/MRDeploymentsContextProvider';
 
 type ModelVersionsDetailProps = {
