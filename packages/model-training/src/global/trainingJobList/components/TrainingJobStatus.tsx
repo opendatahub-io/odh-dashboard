@@ -11,7 +11,9 @@ const TrainingJobStatus = ({
   job: PyTorchJobKind;
   jobStatus?: PyTorchJobState;
 }): React.ReactElement => {
+  console.log('jobStatus', jobStatus);
   const status = jobStatus || getTrainingJobStatusSync(job);
+  console.log('status', status);
   const isLoadingStatus = jobStatus === undefined;
   const isRunning = status === PyTorchJobState.RUNNING;
 

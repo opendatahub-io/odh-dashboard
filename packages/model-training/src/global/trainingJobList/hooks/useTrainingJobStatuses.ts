@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { allSettledPromises } from '@odh-dashboard/internal/utilities/allSettledPromises';
 import { getTrainingJobStatus } from '../utils';
 import { PyTorchJobKind } from '../../../k8sTypes';
 import { PyTorchJobState } from '../../../types';
@@ -8,9 +9,19 @@ import { PyTorchJobState } from '../../../types';
  * @param jobs - Array of PyTorch jobs to get statuses for
  * @returns Object with status map and update functions
  */
-export const useTrainingJobStatuses = (jobs: PyTorchJobKind[]) => {
+export const useTrainingJobStatuses = (
+  jobs: PyTorchJobKind[],
+): {
+  jobStatuses: Map<string, PyTorchJobState>;
+  isLoading: boolean;
+  updateJobStatus: (jobId: string, newStatus: PyTorchJobState) => void;
+  getJobStatus: (job: PyTorchJobKind) => PyTorchJobState | undefined;
+  refreshStatuses: () => void;
+} => {
   const [jobStatuses, setJobStatuses] = React.useState<Map<string, PyTorchJobState>>(new Map());
   const [isLoading, setIsLoading] = React.useState(false);
+
+  console.log('jobStatuses', jobStatuses);
 
   // Update all job statuses
   const updateAllStatuses = React.useCallback(async () => {
@@ -30,11 +41,9 @@ export const useTrainingJobStatuses = (jobs: PyTorchJobKind[]) => {
         return { jobId, status: result.status };
       });
 
-      const results = await Promise.allSettled(statusPromises);
-      results.forEach((result) => {
-        if (result.status === 'fulfilled') {
-          statusMap.set(result.value.jobId, result.value.status);
-        }
+      const [successResults] = await allSettledPromises(statusPromises);
+      successResults.forEach((result) => {
+        statusMap.set(result.value.jobId, result.value.status);
       });
 
       setJobStatuses(statusMap);

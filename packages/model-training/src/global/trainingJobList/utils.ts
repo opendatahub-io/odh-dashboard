@@ -153,7 +153,20 @@ export const getTrainingJobStatus = async (
     if (workload) {
       // Kueue-enabled job: Check workload status for queuing, hibernation and preemption
 
-      // Check for queued status: workload conditions indicate waiting for resources
+      // Priority 1: Check for paused/hibernated status - workload.spec.active = false
+      if (workload.spec.active === false) {
+        return { status: PyTorchJobState.PAUSED, isLoading: false };
+      }
+
+      // Priority 2: Check for preempted status - workload.spec.active = true AND job.spec.runPolicy.suspend = true
+      const isWorkloadActive = workload.spec.active === true;
+      const isJobSuspended = job.spec.runPolicy?.suspend === true;
+
+      if (isWorkloadActive && isJobSuspended) {
+        return { status: PyTorchJobState.PREEMPTED, isLoading: false };
+      }
+
+      // Priority 3: Check for queued status - workload conditions indicate waiting for resources
       const conditions = workload.status?.conditions || [];
       const quotaReservedCondition = conditions.find((c) => c.type === 'QuotaReserved');
       const podsReadyCondition = conditions.find((c) => c.type === 'PodsReady');
@@ -169,20 +182,6 @@ export const getTrainingJobStatus = async (
 
       if (isWaitingForQuota && isWaitingForPods) {
         return { status: PyTorchJobState.QUEUED, isLoading: false };
-      }
-
-      // Check for preempted status: workload.spec.active = true AND job.spec.runPolicy.suspend = false
-      const isWorkloadActive = workload.spec.active === true;
-      // Check if runPolicy exists and suspend is set to false
-      const isJobNotSuspended = job.spec.runPolicy?.suspend === false;
-
-      if (isWorkloadActive && isJobNotSuspended) {
-        return { status: PyTorchJobState.PREEMPTED, isLoading: false };
-      }
-
-      // Check for paused/hibernated status: workload.spec.active = false
-      if (workload.spec.active === false) {
-        return { status: PyTorchJobState.PAUSED, isLoading: false };
       }
     } else {
       // Non-Kueue job: Check PyTorchJob runPolicy.suspend for hibernation
