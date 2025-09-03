@@ -6,6 +6,7 @@ import (
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/gen-ai/internal/models/genaiassets"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
@@ -52,6 +53,36 @@ func (m *TokenKubernetesClientMock) GetNamespaces(ctx context.Context, identity 
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "mock-test-namespace-3",
+			},
+		},
+	}, nil
+}
+
+// GetAAModels returns mock AA models for testing
+func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]genaiassets.AAModel, error) {
+	// Return mock AA models for testing
+	return []genaiassets.AAModel{
+		{
+			ModelName:      "mock-model-1",
+			ServingRuntime: "OpenVINO Model Server",
+			APIProtocol:    "v2",
+			Version:        "v2025.1",
+			Description:    "A high-performance computer vision model for object detection and classification",
+			Usecase:        "Computer Vision",
+			Endpoints: []string{
+				"internal: http://mock-model-1.namespace.svc.cluster.local:8080",
+				"external: https://mock-model-1.example.com",
+			},
+		},
+		{
+			ModelName:      "mock-model-2",
+			ServingRuntime: "TorchServe",
+			APIProtocol:    "v1",
+			Version:        "v2025.1",
+			Description:    "A natural language processing model for text generation and completion",
+			Usecase:        "Natural Language Processing",
+			Endpoints: []string{
+				"internal: http://mock-model-2.namespace.svc.cluster.local:8080",
 			},
 		},
 	}, nil
