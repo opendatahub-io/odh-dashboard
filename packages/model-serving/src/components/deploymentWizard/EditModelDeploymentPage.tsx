@@ -15,20 +15,45 @@ import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { setupDefaults } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
 import { ModelDeploymentWizardData } from './useDeploymentWizard';
-import { Deployment } from '../../../extension-points';
+import { Deployment, isModelServingDeploymentResourcesExtension } from '../../../extension-points';
 import {
   ModelDeploymentsContext,
   ModelDeploymentsProvider,
 } from '../../concepts/ModelDeploymentsContext';
 import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
 import { useAvailableClusterPlatforms } from '../../concepts/useAvailableClusterPlatforms';
+import { useResolvedDeploymentExtension } from '../../concepts/extensionUtils';
+
+const ErrorContent: React.FC<{ error: Error }> = ({ error }) => {
+  const navigate = useNavigate();
+  return (
+    <Bullseye>
+      <EmptyState
+        headingLevel="h4"
+        icon={ExclamationCircleIcon}
+        titleText="Unable to edit model deployment"
+      >
+        <EmptyStateBody>{error.message}</EmptyStateBody>
+        <EmptyStateFooter>
+          <EmptyStateActions>
+            <Button variant="primary" onClick={() => navigate(`/modelServing/`)}>
+              Return to model serving
+            </Button>
+          </EmptyStateActions>
+        </EmptyStateFooter>
+      </EmptyState>
+    </Bullseye>
+  );
+};
 
 const EditModelDeploymentPage: React.FC = () => {
   const { namespace } = useParams();
-  const navigate = useNavigate();
 
   const { projects, loaded: projectsLoaded } = React.useContext(ProjectsContext);
-  const currentProject = projects.find(byName(namespace));
+  const currentProject = React.useMemo(
+    () => projects.find(byName(namespace)),
+    [projects, namespace],
+  );
 
   const { clusterPlatforms, clusterPlatformsLoaded, clusterPlatformsError } =
     useAvailableClusterPlatforms();
@@ -44,30 +69,18 @@ const EditModelDeploymentPage: React.FC = () => {
 
   if (!currentProject || !activePlatform || clusterPlatformsError) {
     return (
-      <Bullseye>
-        <EmptyState
-          headingLevel="h4"
-          icon={ExclamationCircleIcon}
-          titleText="Unable to edit model deployment"
-        >
-          <EmptyStateBody>
-            {!currentProject
+      <ErrorContent
+        error={
+          clusterPlatformsError ??
+          new Error(
+            !currentProject
               ? `Project ${namespace ?? ''} not found.`
               : !activePlatform
               ? 'No model serving platform is configured for this project.'
-              : clusterPlatformsError
-              ? `Error loading cluster platforms: ${clusterPlatformsError.message}`
-              : 'Unable to edit model deployment.'}
-          </EmptyStateBody>
-          <EmptyStateFooter>
-            <EmptyStateActions>
-              <Button variant="primary" onClick={() => navigate(`/modelServing/`)}>
-                Return to model serving
-              </Button>
-            </EmptyStateActions>
-          </EmptyStateFooter>
-        </EmptyState>
-      </Bullseye>
+              : 'Unable to edit model deployment.',
+          )
+        }
+      />
     );
   }
 
@@ -82,16 +95,27 @@ export default EditModelDeploymentPage;
 
 const EditModelDeploymentContent: React.FC<{ project: ProjectKind }> = ({ project }) => {
   const { name: deploymentName } = useParams();
-  const { deployments, loaded } = React.useContext(ModelDeploymentsContext);
+  const { deployments, loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
 
   const existingDeployment = React.useMemo(() => {
     return deployments?.find((d: Deployment) => d.model.metadata.name === deploymentName);
   }, [deployments, deploymentName]);
 
+  const [
+    extractHWProfileExtension,
+    extractHWProfileExtensionLoaded,
+    extractHWProfileExtensionErrors,
+  ] = useResolvedDeploymentExtension(
+    isModelServingDeploymentResourcesExtension,
+    existingDeployment,
+  );
+
   const extractFormDataFromDeployment: (deployment: Deployment) => ModelDeploymentWizardData = (
     deployment: Deployment,
   ) => ({
     k8sNameDesc: setupDefaults({ initialData: deployment.model }),
+    hardwareProfile:
+      extractHWProfileExtension?.properties.extractHardwareProfileConfig(deployment) ?? undefined,
   });
 
   const formData = React.useMemo(() => {
@@ -101,7 +125,11 @@ const EditModelDeploymentContent: React.FC<{ project: ProjectKind }> = ({ projec
     return undefined;
   }, [existingDeployment, extractFormDataFromDeployment]);
 
-  if (!loaded) {
+  if (extractHWProfileExtensionErrors.length > 0) {
+    return <ErrorContent error={new Error('Unable to extract hardware profile config')} />;
+  }
+
+  if (!deploymentsLoaded || !extractHWProfileExtensionLoaded) {
     return (
       <Bullseye>
         <Spinner />
