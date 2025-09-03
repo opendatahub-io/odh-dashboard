@@ -52,6 +52,7 @@ const OdhModelVersionsTableContent: React.FC<Omit<OdhModelVersionsTableProps, 'r
                     isArchiveModel={isArchiveModel}
                     refresh={refresh}
                     hasDeployment={hasDeploys(mv.id)}
+                    loaded={loaded}
                 />
             )}
             {...props}

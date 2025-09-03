@@ -23,6 +23,7 @@ type RegisteredModelTableRowProps = {
   latestModelVersion: ModelVersion | undefined;
   isArchiveRow?: boolean;
   hasDeploys?: boolean;
+  loaded?: boolean;
   refresh: () => void;
 };
 
@@ -31,6 +32,7 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
   latestModelVersion,
   isArchiveRow,
   hasDeploys = false,
+  loaded = true,
   refresh,
 }) => {
   const { apiState } = React.useContext(ModelRegistryContext);
@@ -74,10 +76,12 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
           {
             title: 'Archive model',
             onClick: () => setIsArchiveModalOpen(true),
-            isAriaDisabled: hasDeploys,
-            tooltipProps: hasDeploys
-              ? { content: 'Models with deployed versions cannot be archived.' }
-              : undefined,
+            isAriaDisabled: !loaded || hasDeploys,
+            tooltipProps: !loaded 
+              ? { content: 'Checking deployments…' }
+              : hasDeploys
+                ? { content: 'Models with deployed versions cannot be archived.' }
+                : undefined,
           },
         ]),
   ];

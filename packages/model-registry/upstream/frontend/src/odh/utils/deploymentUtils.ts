@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useDeploymentsState } from '../hooks/useDeploymentsState';
 import { KnownLabels } from '../k8sTypes';
-import { ModelVersion } from '~/app/types';
+import { ModelVersion } from '../../app/types';
 
 export type DeploymentDetectionResult = {
   hasDeployment: boolean;
@@ -18,8 +18,8 @@ export const useModelDeploymentDetection = () => {
     }
 
     const hasDeployment = deployments.some(deployment => {
-      const isInferenceService = deployment.model.kind === 'InferenceService';
-      const modelVersionId = deployment.model.metadata.labels?.[KnownLabels.MODEL_VERSION_ID];
+      const isInferenceService = deployment.model?.kind === 'InferenceService';
+      const modelVersionId = deployment.model?.metadata?.labels?.[KnownLabels.MODEL_VERSION_ID];
       return isInferenceService && modelVersionId === mvId;
     });
 
@@ -43,8 +43,8 @@ export const useModelDeploymentDetection = () => {
 
     // Check if any model version of this registered model is deployed
     const hasDeployment = deployments.some(deployment => {
-      const isInferenceService = deployment.model.kind === 'InferenceService';
-      const modelVersionId = deployment.model.metadata.labels?.[KnownLabels.MODEL_VERSION_ID];
+      const isInferenceService = deployment.model?.kind === 'InferenceService';
+      const modelVersionId = deployment.model?.metadata?.labels?.[KnownLabels.MODEL_VERSION_ID];
       return isInferenceService && modelVersionId && mvIds.includes(modelVersionId);
     });
 
@@ -63,8 +63,8 @@ export const useModelDeploymentDetection = () => {
     }
 
     const hasDeployment = deployments.some(deployment => {
-      const isInferenceService = deployment.model.kind === 'InferenceService';
-      const modelVersionId = deployment.model.metadata.labels?.[KnownLabels.MODEL_VERSION_ID];
+      const isInferenceService = deployment.model?.kind === 'InferenceService';
+      const modelVersionId = deployment.model?.metadata?.labels?.[KnownLabels.MODEL_VERSION_ID];
       return isInferenceService && modelVersionId && mvIds.includes(modelVersionId);
     });
 

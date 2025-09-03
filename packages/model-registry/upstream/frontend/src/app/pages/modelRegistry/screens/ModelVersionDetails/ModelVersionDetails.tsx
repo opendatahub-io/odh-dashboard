@@ -11,6 +11,7 @@ import {
 import { Link } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
+import { KnownLabels } from '~/odh/k8sTypes';
 import useRegisteredModelById from '~/app/hooks/useRegisteredModelById';
 import useModelVersionById from '~/app/hooks/useModelVersionById';
 import useModelArtifactsByVersionId from '~/app/hooks/useModelArtifactsByVersionId';
@@ -149,10 +150,7 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = (props) => {
   const { modelVersionId: mvId } = useParams();
   
   const labelSelectors = React.useMemo(() => {
-    if (!mvId) return undefined;
-    return {
-      [KnownLabels.MODEL_VERSION_ID]: mvId,
-    };
+    return mvId ? { [KnownLabels.MODEL_VERSION_ID]: mvId } : undefined;
   }, [mvId]);
   
   return (

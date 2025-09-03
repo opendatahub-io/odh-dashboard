@@ -49,6 +49,7 @@ const RegisteredModelTableContent: React.FC<RegisteredModelTableProps> = ({
           <RegisteredModelTableRow
             key={rm.name}
             hasDeploys={deploymentInfo.hasDeploys}
+            loaded={deploymentInfo.loaded}
             registeredModel={rm}
             latestModelVersion={getLatestVersionForRegisteredModel(modelVersions, rm.id)}
             refresh={refresh}
