@@ -177,7 +177,6 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
   );
 });
 
-// todo: add test for this function
 export const getPipelineServerName = (project?: ProjectKind): string => {
   const displayName = project ? getDisplayNameFromK8sResource(project) : null;
   const defaultName = 'pipeline server';
