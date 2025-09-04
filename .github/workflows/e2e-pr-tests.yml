@@ -3,8 +3,6 @@ name: E2E PR Tests
 on:
   issue_comment:
     types: [created]
-  pull_request:
-    types: [opened, synchronize, reopened]
   workflow_dispatch:
     inputs:
       test_type:
@@ -25,7 +23,7 @@ env:
 jobs:
   test-workflow-trigger:
     runs-on: ubuntu-latest
-    if: github.event_name == 'issue_comment' || github.event_name == 'pull_request'
+    if: github.event_name == 'issue_comment'
     steps:
       - name: Test workflow trigger
         run: |
