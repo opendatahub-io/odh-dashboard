@@ -27,18 +27,18 @@ const ExtendedRegisteredModelTable: React.FC<ExtendedRegisteredModelTableProps> 
 
   const extendedColumns = React.useMemo(() => {
     const columns = [...rmColumns];
-    
+
     if (columnExtensionsLoaded && columnExtensions.length > 0) {
-      // Add extension columns before the kebab column
-      const kebabIndex = columns.findIndex(col => col.field === 'kebab');
-      const insertIndex = kebabIndex >= 0 ? kebabIndex : columns.length;
-      
-      columnExtensions.forEach(extension => {
+      // Insert Deployments column between "Latest version" and "Labels"
+      const labelsIndex = columns.findIndex((col) => col.field === 'labels');
+      const insertIndex = labelsIndex >= 0 ? labelsIndex : 2; // Default to index 2 if labels not found
+
+      columnExtensions.forEach((extension) => {
         const column = extension.properties.column();
         columns.splice(insertIndex, 0, column);
       });
     }
-    
+
     return columns;
   }, [columnExtensions, columnExtensionsLoaded]);
 
