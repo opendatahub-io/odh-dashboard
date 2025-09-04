@@ -155,8 +155,8 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose, onDe
 
   const errorDesc = (
     <Content data-testid="errorDescription">
-      We encountered an error creating your pipeline server. Close this modal to see further
-      instructions.
+      Pipeline server creation failed. Delete the server below to retry now, or close this window to
+      view more details and delete it later.
     </Content>
   );
 

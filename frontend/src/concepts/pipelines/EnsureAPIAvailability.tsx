@@ -9,11 +9,15 @@ import StartingStatusModal from '#~/concepts/pipelines/content/StartingStatusMod
 import { getPipelineServerName } from './context/PipelinesContext';
 
 type EnsureAPIAvailabilityProps = {
+  inTab?: boolean;
   children: React.ReactNode;
 };
 
 // if isInitialized but not ready, show spinner; if isNot initialized then show new status
-const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children }) => {
+const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({
+  inTab = false,
+  children,
+}) => {
   const { apiAvailable, pipelinesServer, namespace, startingStatusModalOpenRef, project } =
     usePipelinesAPI();
 
@@ -37,13 +41,13 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
     </Flex>
   );
 
-  const modalLink = (
+  const inProgressButtons = (
     <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }}>
       <FlexItem>The {pipelineServerName} is being initialized.</FlexItem>
       <FlexItem>The process should take less than five minutes. When the server is ready,</FlexItem>
       <Flex
         direction={{ default: 'column' }}
-        spaceItems={{ default: 'spaceItemsLg' }}
+        spaceItems={{ default: 'spaceItemsMd' }}
         alignItems={{ default: 'alignItemsCenter' }}
       >
         <FlexItem>you will be able to create and import pipelines.</FlexItem>
@@ -78,10 +82,12 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
   );
 
   const makePipelineSpinner = (isStarting: boolean) => {
-    const contents = isStarting ? modalLink : defaultConnectingText;
+    const contents = isStarting ? inProgressButtons : defaultConnectingText;
 
+    const diameter = inTab ? '60px' : '80px';
+    const topMargin = inTab ? '-25px' : '25px';
     return (
-      <div>
+      <div style={{ marginTop: topMargin }}>
         <Bullseye data-testid="pipelines-api-not-available">
           <Flex
             direction={{ default: 'column' }}
@@ -89,7 +95,7 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
             alignItems={{ default: 'alignItemsCenter' }}
           >
             <FlexItem>
-              <Spinner diameter="80px" />
+              <Spinner diameter={diameter} />
             </FlexItem>
             {contents}
           </Flex>
@@ -100,7 +106,7 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
 
   const getMainComponent = () => {
     const { isStarting, compatible, timedOut } = pipelinesServer;
-
+  
     if (timedOut && compatible) {
       return <PipelineServerTimedOut />;
     }

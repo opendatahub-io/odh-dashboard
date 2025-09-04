@@ -187,9 +187,12 @@ describe('StartingStatusModal', () => {
 
     render(<StartingStatusModal onClose={mockOnClose} onDelete={mockOnDelete} />);
 
+    const errorText =
+      'Pipeline server creation failed. Delete the server below to retry now, or close this window to view more details and delete it later.';
     // Should show error alert
     expect(screen.getByTestId('error-0')).toBeInTheDocument();
     expect(screen.getByText('Start API server - ComponentDeploymentNotFound')).toBeInTheDocument();
+    expect(screen.getByTestId('errorDescription')).toHaveTextContent(errorText);
     expect(screen.getByText('API server not ready yet')).toBeInTheDocument();
   });
 
