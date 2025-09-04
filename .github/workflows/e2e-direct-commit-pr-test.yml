@@ -89,7 +89,16 @@ jobs:
             echo "Token length: ${#GITLAB_TOKEN}"
             echo "URL length: ${#GITLAB_TEST_VARS_URL}"
 
-            if curl -f -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
+            # Debug: Show first few characters of secrets (safely)
+            if [ -n "${{ secrets.GITLAB_TOKEN }}" ]; then
+              echo "Token starts with: ${{ secrets.GITLAB_TOKEN }}" | cut -c1-10
+            fi
+            if [ -n "${{ secrets.GITLAB_TEST_VARS_URL }}" ]; then
+              echo "URL starts with: ${{ secrets.GITLAB_TEST_VARS_URL }}" | cut -c1-20
+            fi
+
+            # Try with SSL verification disabled (for self-signed certs)
+            if curl -f -k -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
                      "${{ secrets.GITLAB_TEST_VARS_URL }}" \
                      -o ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml; then
               echo "✅ Successfully downloaded test configuration from GitLab"
@@ -97,6 +106,18 @@ jobs:
             else
               echo "❌ Failed to download from GitLab"
               echo "Curl exit code: $?"
+              
+              # Try to get more details about the failure
+              echo "Trying without -f to see error details..."
+              curl -k -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
+                   "${{ secrets.GITLAB_TEST_VARS_URL }}" \
+                   -o /tmp/test-response 2>&1 || echo "Curl failed with: $?"
+              
+              if [ -f /tmp/test-response ]; then
+                echo "GitLab API Response:"
+                head -10 /tmp/test-response
+              fi
+              
               exit 1
             fi
           else
