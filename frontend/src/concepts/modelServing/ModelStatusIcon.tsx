@@ -107,9 +107,12 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
         <Icon
           style={{ cursor: 'pointer' }}
           status={statusSettings.status}
+          aria-label={statusSettings.label}
           color={statusSettings.color}
-          children={statusSettings.icon}
-        />
+          onClick={onClick}
+        >
+          {statusSettings.icon}
+        </Icon>
       ) : (
         <Label
           isCompact={isCompact}

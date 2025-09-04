@@ -94,9 +94,10 @@ const DeploymentCardContent: React.FC<{ deployment: Deployment }> = ({ deploymen
 
 const DeploymentCard: React.FC = () => {
   const { deployments, loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
-  const latestDeployments = deployments
-    ?.toSorted((a, b) => deploymentLastDeployedSort(a, b))
-    .slice(0, 5);
+  const latestDeployments = React.useMemo(() => {
+    if (!deployments) return [];
+    return deployments.toSorted((a, b) => deploymentLastDeployedSort(a, b)).slice(0, 5);
+  }, [deployments]);
 
   if (!deploymentsLoaded) {
     return (
@@ -117,14 +118,17 @@ const DeploymentCard: React.FC = () => {
       ) : (
         <List isPlain isBordered>
           {latestDeployments?.map((deployment) => (
-            <DeploymentCardContent deployment={deployment} key={deployment.model.metadata.name} />
+            <DeploymentCardContent
+              deployment={deployment}
+              key={`${deployment.model.metadata.namespace}/${deployment.model.metadata.name}`}
+            />
           ))}
-          {latestDeployments && (
+          {deployments && deployments.length > 0 && (
             <ListItem className="pf-v6-u-pt-md">
               {/* TODO: update this Link with deployment tab once this PR https://github.com/opendatahub-io/odh-dashboard/pull/4765 is merged */}
               <Link to="/">
                 <Button isInline variant="link" icon={<ArrowRightIcon />} iconPosition="right">
-                  {`View all ${latestDeployments.length} deployments`}
+                  {`View all ${deployments.length} deployments`}
                 </Button>
               </Link>
             </ListItem>
