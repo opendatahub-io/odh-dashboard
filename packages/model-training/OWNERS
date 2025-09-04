@@ -1,29 +1,13 @@
 approvers:
   - dpanshug
+  - claudialphonse78
   - manaswinidas
-  - ikeola13
-  - ederign
-  - christianvogt
-  - andrewballantyne
-  - lucferbux
-  - antowaddle
 
 reviewers:
-  - alexcreasy
-  - christianvogt
-  - Gkrumbach07
-  - lucferbux
-  - DaoDaoNoCode
-  - manaswinidas
-  - pnaik1
-  - ppadti
   - dpanshug
-  - mturley
-  - antowaddle
-  - manosnoam
-  - FedeAlonso
-  - Griffin-Sullivan
-  - YuliaKrimerman
+  - claudialphonse78
+  - manaswinidas
+
 
 labels:
-  - area/model-training-modular-ui
+  - area/model-training
