@@ -111,7 +111,9 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
                   field: 'api_key',
                   validator: (value: string) => {
                     const regex = odhApp.spec.enable?.warningValidation?.validationRegex;
-                    if (!regex) return false;
+                    if (!regex) {
+                      return false;
+                    }
                     try {
                       const re = new RegExp(regex);
                       return re.test(value);
