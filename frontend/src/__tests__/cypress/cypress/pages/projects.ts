@@ -89,7 +89,7 @@ class ProjectListPage {
   }
 
   navigate() {
-    appChrome.findNavItem('Data science projects').click();
+    appChrome.findNavItem({ name: 'Projects' }).click();
     this.wait();
   }
 

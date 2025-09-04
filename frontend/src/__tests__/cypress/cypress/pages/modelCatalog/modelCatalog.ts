@@ -17,7 +17,7 @@ class ModelCatalog {
   }
 
   navigate() {
-    appChrome.findNavItem('Model catalog').click();
+    appChrome.findNavItem({ name: 'Catalog', rootSection: 'AI hub' }).click();
     this.wait();
   }
 
@@ -32,12 +32,12 @@ class ModelCatalog {
   }
 
   tabEnabled() {
-    appChrome.findNavItem('Model catalog').should('exist');
+    appChrome.findNavItem({ name: 'Catalog', rootSection: 'AI hub' }).should('exist');
     return this;
   }
 
   tabDisabled() {
-    appChrome.findNavItem('Model catalog').should('not.exist');
+    appChrome.findNavItem({ name: 'Catalog', rootSection: 'AI hub' }).should('not.exist');
     return this;
   }
 

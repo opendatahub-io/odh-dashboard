@@ -61,7 +61,11 @@ class ServingRuntimes {
   }
 
   findNavItem() {
-    return appChrome.findNavItem('Serving runtimes', 'Settings');
+    return appChrome.findNavItem({
+      name: 'Serving runtimes',
+      rootSection: 'Settings',
+      subSection: 'Model resources and operations',
+    });
   }
 
   findAppTitle() {

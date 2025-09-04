@@ -1,5 +1,3 @@
-import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
-
 type AccordionSection = 'prerequisites' | 'project-setup' | 'next-steps';
 
 type PrerequisitesAccordionItem =
@@ -41,10 +39,6 @@ class ModelCustomizationLandingPage {
 
   findPage() {
     return cy.findByTestId('app-page-title').should('have.text', 'Model customization');
-  }
-
-  findNavItem() {
-    return appChrome.findNavItem('Model customization', 'Models');
   }
 
   findNotFoundPage() {
@@ -93,11 +87,6 @@ class ModelCustomizationLandingPage {
 
   findDrawerContentCloseButton() {
     return this.findDrawerContent().findByTestId('close');
-  }
-
-  navigate() {
-    this.findNavItem().click();
-    this.wait();
   }
 
   private wait() {
