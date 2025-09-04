@@ -3,6 +3,8 @@ name: E2E PR Tests
 on:
   issue_comment:
     types: [created]
+  pull_request:
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
     inputs:
       test_type:
@@ -21,6 +23,20 @@ env:
   DO_NOT_TRACK: 1
 
 jobs:
+  test-workflow-trigger:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issue_comment' || github.event_name == 'pull_request'
+    steps:
+      - name: Test workflow trigger
+        run: |
+          echo "Workflow triggered!"
+          echo "Event: ${{ github.event_name }}"
+          echo "Action: ${{ github.event.action }}"
+          if [ "${{ github.event_name }}" = "issue_comment" ]; then
+            echo "Comment: ${{ github.event.comment.body }}"
+            echo "Issue: ${{ github.event.issue.number }}"
+          fi
+
   pr-comment-parser:
     runs-on: ubuntu-latest
     outputs:
