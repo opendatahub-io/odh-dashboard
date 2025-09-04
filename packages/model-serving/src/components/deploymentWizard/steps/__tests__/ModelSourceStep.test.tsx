@@ -37,16 +37,12 @@ const mockDeploymentWizardState = (
           data: undefined,
           setData: jest.fn(),
         },
-        modelLocationField: {
+        modelLocationData: {
           data: undefined,
           setData: jest.fn(),
           connections: [],
           setSelectedConnection: jest.fn(),
           selectedConnection: undefined,
-        },
-        modelLocationData: {
-          data: undefined,
-          setData: jest.fn(),
         },
         k8sNameDesc: {
           data: mockK8sNameDescriptionFieldData(),

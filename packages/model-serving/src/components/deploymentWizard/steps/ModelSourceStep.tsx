@@ -5,29 +5,18 @@ import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormVa
 import { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { modelTypeSelectFieldSchema, ModelTypeSelectField } from '../fields/ModelTypeSelectField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
-import {
-  ModelLocationSelectField,
-  modelLocationSelectFieldSchema,
-} from '../fields/ModelLocationSelectField';
+import { ModelLocationSelectField } from '../fields/ModelLocationSelectField';
 import { isValidModelLocationData } from '../fields/ModelLocationInputFields';
+import { ModelLocationData } from '../fields/modelLocationFields/types';
 
 // Schema
-export const modelSourceStepSchema = z
-  .object({
-    modelType: modelTypeSelectFieldSchema,
-    modelLocation: modelLocationSelectFieldSchema,
-    modelLocationData: z.any(),
-  })
-  .refine(
-    // To validate modelLocationData, we need to validate based on the modelLocation type.
-    (data) => {
-      return isValidModelLocationData(data.modelLocation, data.modelLocationData);
-    },
-    {
-      message: 'Invalid model location data for selected type',
-      path: ['modelLocationData'],
-    },
-  );
+export const modelSourceStepSchema = z.object({
+  modelType: modelTypeSelectFieldSchema,
+  modelLocationData: z.custom<ModelLocationData>((val) => {
+    if (!val) return false;
+    return isValidModelLocationData(val.type, val);
+  }),
+});
 
 export type ModelSourceStepData = z.infer<typeof modelSourceStepSchema>;
 
@@ -45,15 +34,14 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
   return (
     <Form>
       <ModelLocationSelectField
-        modelLocation={wizardState.state.modelLocationField.data}
-        setModelLocation={wizardState.state.modelLocationField.setData}
+        modelLocation={wizardState.state.modelLocationData.data?.type}
         validationProps={validation.getFieldValidationProps(['modelLocation', 'modelLocationData'])}
         validationIssues={validation.getFieldValidation(['modelLocation', 'modelLocationData'])}
         connections={connections ?? []}
         setModelLocationData={wizardState.state.modelLocationData.setData}
         resetModelLocationData={() => wizardState.state.modelLocationData.setData(undefined)}
         modelLocationData={wizardState.state.modelLocationData.data}
-        initSelectedConnection={wizardState.state.modelLocationField.selectedConnection}
+        initSelectedConnection={wizardState.state.modelLocationData.selectedConnection}
       />
       <ModelTypeSelectField
         modelType={wizardState.state.modelType.data}

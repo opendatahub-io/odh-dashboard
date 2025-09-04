@@ -4,78 +4,145 @@ import type { LabeledConnection } from '@odh-dashboard/internal/pages/modelServi
 import {
   Connection,
   ConnectionTypeConfigMapObj,
+  ConnectionTypeDataField,
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
+  getConnectionTypeRef,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { z } from 'zod';
 import { ConnectionOciAlert } from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciAlert';
+import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import useServingConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections';
+import useLabeledConnections from '@odh-dashboard/internal/pages/modelServing/screens/projects/useLabeledConnections';
+import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { ExistingConnectionField } from './modelLocationFields/ExistingConnectionField';
-import { ModelLocationFieldData } from './ModelLocationSelectField';
-import {
-  ConnectionTypeRefs,
-  ModelLocationData,
-  ModelLocationType,
-} from './modelLocationFields/types';
+import { ModelLocationData, ModelLocationType } from './modelLocationFields/types';
 import NewConnectionField from './modelLocationFields/NewConnectionField';
 import { isExistingModelLocation } from '../utils';
 
 export type ModelLocationDataField = {
   data: ModelLocationData | undefined;
   setData: (data: ModelLocationData | undefined) => void;
+  connections: LabeledConnection[];
+  setSelectedConnection: (
+    connection: LabeledConnection | undefined,
+    connectionTypes: ConnectionTypeConfigMapObj[],
+  ) => void;
+  selectedConnection: LabeledConnection | undefined;
 };
-
-export const useModelLocationData = (existingData?: ModelLocationData): ModelLocationDataField => {
+export const useModelLocationData = (
+  project: ProjectKind | null,
+  existingData?: ModelLocationData,
+  setModelLocationDataState?: (data: ModelLocationData | undefined) => void,
+): ModelLocationDataField => {
   const [modelLocationData, setModelLocationData] = React.useState<ModelLocationData | undefined>(
     existingData,
+  );
+  const [fetchedConnections] = useServingConnections(project?.metadata.name ?? '');
+  const { connections } = useLabeledConnections(undefined, fetchedConnections);
+  const selectedConnection = React.useMemo(() => {
+    if (
+      modelLocationData?.type === ModelLocationType.EXISTING &&
+      isExistingModelLocation(modelLocationData)
+    ) {
+      return connections.find(
+        (c) => getResourceNameFromK8sResource(c.connection) === modelLocationData.connection,
+      );
+    }
+    return undefined;
+  }, [connections, modelLocationData]);
+  const updateSelectedConnection = React.useCallback(
+    (connection: LabeledConnection | undefined, connectionTypes: ConnectionTypeConfigMapObj[]) => {
+      const connectionTypeRef = getConnectionTypeRef(connection?.connection);
+      const actualConnectionType = connectionTypes.find(
+        (ct) => ct.metadata.name === connectionTypeRef,
+      );
+      if (connection && setModelLocationDataState && actualConnectionType) {
+        setModelLocationData({
+          type: ModelLocationType.EXISTING,
+          connectionTypeObject: actualConnectionType,
+          connection: getResourceNameFromK8sResource(connection.connection),
+          fieldValues: {},
+          additionalFields: {},
+        });
+      }
+    },
+    [setModelLocationData],
   );
   return {
     data: modelLocationData,
     setData: setModelLocationData,
+    connections,
+    setSelectedConnection: (
+      connection: LabeledConnection | undefined,
+      connectionTypes: ConnectionTypeConfigMapObj[],
+    ) => {
+      updateSelectedConnection(connection, connectionTypes);
+    },
+    selectedConnection,
   };
 };
 
 export const isValidModelLocationData = (
-  modelLocation: ModelLocationFieldData,
+  modelLocation: ModelLocationData['type'],
   modelLocationData?: ModelLocationData,
 ): boolean => {
   if (!modelLocationData) return false;
-
   switch (modelLocation) {
     case ModelLocationType.EXISTING:
       return (
-        isExistingModelLocation(modelLocationData) &&
+        modelLocationData.type === ModelLocationType.EXISTING &&
         !!modelLocationData.connection &&
-        (!!modelLocationData.modelUri || !!modelLocationData.modelPath)
+        hasRequiredAdditionalFields(modelLocationData)
       );
-
-    case ModelLocationType.URI:
-      return modelLocationData.type === ModelLocationType.URI && !!modelLocationData.uri;
-
-    case ModelLocationType.OCI:
-      return (
-        modelLocationData.type === ModelLocationType.OCI &&
-        !!modelLocationData.secretDetails &&
-        !!modelLocationData.registryHost &&
-        !!modelLocationData.uri
-      );
-
-    case ModelLocationType.S3:
-      return (
-        modelLocationData.type === ModelLocationType.S3 &&
-        !!modelLocationData.accessKey &&
-        !!modelLocationData.secretKey &&
-        !!modelLocationData.endpoint &&
-        !!modelLocationData.path
-      );
-
     case ModelLocationType.PVC:
-      return modelLocationData.type === ModelLocationType.PVC && !!modelLocationData.storageUri;
-
+      return (
+        modelLocationData.type === ModelLocationType.PVC &&
+        hasRequiredAdditionalFields(modelLocationData)
+      );
     default:
-      return false;
+      return (
+        modelLocationData.type === ModelLocationType.NEW &&
+        hasRequiredConnectionTypeFields(modelLocationData) &&
+        hasRequiredAdditionalFields(modelLocationData)
+      );
   }
+};
+
+const hasRequiredConnectionTypeFields = (modelLocationData: ModelLocationData): boolean => {
+  const dataFields =
+    modelLocationData.connectionTypeObject.data?.fields?.filter(
+      (field): field is ConnectionTypeDataField => 'envVar' in field && 'required' in field,
+    ) || [];
+
+  const requiredFields = dataFields.filter((field) => field.required).map((field) => field.envVar);
+
+  return requiredFields.every((fieldName) => {
+    const value = modelLocationData.fieldValues[fieldName];
+    return value !== undefined && String(value).trim() !== '';
+  });
+};
+
+const hasRequiredAdditionalFields = (modelLocationData: ModelLocationData): boolean => {
+  if (
+    isModelServingCompatible(
+      modelLocationData.connectionTypeObject,
+      ModelServingCompatibleTypes.S3ObjectStorage,
+    )
+  ) {
+    return !!modelLocationData.additionalFields.modelPath;
+  }
+  if (
+    isModelServingCompatible(
+      modelLocationData.connectionTypeObject,
+      ModelServingCompatibleTypes.OCI,
+    )
+  ) {
+    return !!modelLocationData.additionalFields.modelUri;
+  }
+  return true;
 };
 
 export const modelLocationDataSchema = z.object({
@@ -85,7 +152,7 @@ export const modelLocationDataSchema = z.object({
 });
 
 type ModelLocationInputFieldsProps = {
-  modelLocation: ModelLocationFieldData;
+  modelLocation: ModelLocationData['type'];
   connections: LabeledConnection[];
   connectionTypes: ConnectionTypeConfigMapObj[];
   selectedConnection: Connection | undefined;
@@ -128,36 +195,18 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
       </ExistingConnectionField>
     );
   }
-  if (modelLocation === ModelLocationType.URI) {
-    const uriConnectionType = connectionTypes.find(
-      (ct) => ct.metadata.name === ConnectionTypeRefs.URI,
-    );
-    if (uriConnectionType) {
+  if (modelLocation === ModelLocationType.NEW) {
+    if (selectedConnectionType) {
       return (
         <NewConnectionField
-          modelLocationType={ModelLocationType.URI}
-          connectionType={uriConnectionType}
+          connectionType={selectedConnectionType}
           setModelLocationData={setModelLocationData}
           modelLocationData={modelLocationData}
         />
       );
     }
   }
-  if (modelLocation === ModelLocationType.OCI) {
-    const ociConnectionType = connectionTypes.find(
-      (ct) => ct.metadata.name === ConnectionTypeRefs.OCI,
-    );
-    if (ociConnectionType) {
-      return (
-        <NewConnectionField
-          modelLocationType={ModelLocationType.OCI}
-          connectionType={ociConnectionType}
-          setModelLocationData={setModelLocationData}
-          modelLocationData={modelLocationData}
-        />
-      );
-    }
-  }
+
   if (modelLocation === ModelLocationType.PVC) {
     return (
       <div>
@@ -177,20 +226,6 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
       </div>
     );
   }
-  if (modelLocation === ModelLocationType.S3) {
-    const s3ConnectionType = connectionTypes.find(
-      (ct) => ct.metadata.name === ConnectionTypeRefs.S3,
-    );
-    if (s3ConnectionType) {
-      return (
-        <NewConnectionField
-          modelLocationType={ModelLocationType.S3}
-          connectionType={s3ConnectionType}
-          setModelLocationData={setModelLocationData}
-          modelLocationData={modelLocationData}
-        />
-      );
-    }
-  }
+
   return <div>Connection type not found</div>;
 };

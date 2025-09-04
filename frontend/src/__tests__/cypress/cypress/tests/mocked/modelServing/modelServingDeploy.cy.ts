@@ -177,7 +177,7 @@ describe('Model Serving Deploy Wizard', () => {
       .should('exist')
       .click();
     modelServingWizard.findModelLocationSelect().should('exist');
-    modelServingWizard.findModelLocationSelectOption('URI').should('exist').click();
+    modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
     modelServingWizard.findUrilocationInput().should('exist').type('https://test');
     modelServingWizard.findNextButton().should('be.enabled').click();
 
