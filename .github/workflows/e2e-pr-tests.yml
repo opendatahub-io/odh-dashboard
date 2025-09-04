@@ -133,7 +133,7 @@ jobs:
             sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: ${{ secrets.ODH_DASHBOARD_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
           fi
 
-          export CY_TEST_CONFIG=${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
 
       - name: Build frontend for E2E tests
         run: |
@@ -195,7 +195,7 @@ jobs:
 
               ${status === 'success' ? '✅ Tests passed!' : '❌ Tests failed. Check the artifacts for details.'}
 
-              [View test artifacts](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+              [View test artifacts](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID})`;
 
               github.rest.issues.createComment({
                 issue_number: prNumber,
