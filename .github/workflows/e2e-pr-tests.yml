@@ -39,10 +39,14 @@ jobs:
       test-sets: ${{ steps.parse-comment.outputs.test-sets }}
       tag-name: ${{ steps.parse-comment.outputs.tag-name }}
     steps:
-      - name: Debug trigger
+      - name: Debug event type
         run: |
           echo "Event name: ${{ github.event_name }}"
           echo "Event action: ${{ github.event.action }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Workflow dispatch inputs:"
+            echo "test_type: ${{ inputs.test_type }}"
+          fi
           if [ "${{ github.event_name }}" = "issue_comment" ]; then
             echo "Comment body: ${{ github.event.comment.body }}"
             echo "Issue number: ${{ github.event.issue.number }}"
