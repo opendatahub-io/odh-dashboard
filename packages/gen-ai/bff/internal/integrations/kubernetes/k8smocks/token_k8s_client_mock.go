@@ -126,3 +126,26 @@ func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Conte
 		},
 	}, nil
 }
+
+// GetMCPServerConfig returns mock MCP server ConfigMap for testing
+func (m *TokenKubernetesClientMock) GetMCPServerConfig(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.ConfigMap, error) {
+	// Return mock MCP server ConfigMap for testing
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Data: map[string]string{
+			"dev-cluster": `{
+  "url": "https://mcp-one:8080",
+  "description": "Manage resources in a Kubernetes cluster.",
+  "logo": "https://mysite.com/logo.png"
+}`,
+			"git-hub": `{
+  "url": "https://mcp-two",
+  "description": "Manage a GitHub repository.",
+  "logo": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+}`,
+		},
+	}, nil
+}

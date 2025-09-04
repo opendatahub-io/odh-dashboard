@@ -172,6 +172,24 @@ func (kc *TokenKubernetesClient) GetLlamaStackDistributions(ctx context.Context,
 	return lsdList, nil
 }
 
+func (kc *TokenKubernetesClient) GetMCPServerConfig(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.ConfigMap, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	configMap := &corev1.ConfigMap{}
+	err := kc.Client.Get(ctx, client.ObjectKey{
+		Namespace: namespace,
+		Name:      name,
+	}, configMap)
+
+	if err != nil {
+		kc.Logger.Error("failed to get MCP server ConfigMap", "error", err, "namespace", namespace, "name", name)
+		return nil, fmt.Errorf("failed to get MCP server ConfigMap: %w", err)
+	}
+
+	return configMap, nil
+}
+
 func (kc *TokenKubernetesClient) BearerToken() (string, error) {
 	return kc.Token.Raw(), nil
 }
@@ -304,6 +322,5 @@ func (kc *TokenKubernetesClient) extractEndpoints(isvc *kservev1beta1.InferenceS
 			endpoints = append(endpoints, fmt.Sprintf("external: %s", external))
 		}
 	}
-
 	return endpoints
 }

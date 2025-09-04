@@ -273,6 +273,35 @@ paths:
       summary: Get LSD Status
       description: Gets the status of LlamaStack Distribution in the specified namespace.
 
+  /genai/v1/mcp-servers/config:
+    summary: Get MCP server configuration
+    description: >-
+      Retrieves the global MCP (Model Context Protocol) server configuration from the 'mcp-servers' namespace.
+      Returns a ConfigMap containing server definitions, URLs, capabilities, and connection details.
+      Requires valid Kubernetes authentication token with read access to ConfigMaps in the 'mcp-servers' namespace.
+      Returns 400 for missing authentication or other validation errors.
+      Returns 401 for missing or invalid authentication tokens.
+      Returns 404 if the 'mcp-servers' namespace doesn't exist or the 'global-mcp-list' ConfigMap is not found.
+    get:
+      tags:
+        - Kubernetes
+      security:
+        - Bearer: []
+      responses:
+        "200":
+          $ref: "#/components/responses/MCPServerConfigResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getMCPServerConfig
+      summary: Get MCP Server Configuration
+      description: Gets the global MCP server configuration from the 'global-mcp-list' ConfigMap in the 'mcp-servers' namespace.
+
 components:
   securitySchemes:
     Bearer:
@@ -666,7 +695,7 @@ components:
           example:
             - role: "user"
               content: "What is artificial intelligence?"
-            - role: "assistant" 
+            - role: "assistant"
               content: "Artificial intelligence (AI) is a branch of computer science that aims to create machines capable of intelligent behavior, learning, and decision-making."
             - role: "user"
               content: "Can you give me some examples?"
@@ -922,7 +951,7 @@ components:
             #
             # 3. Tools (MCP Integration):
             #    - Any tools used must be properly pre-configured in your Llama Stack setup.
-                    
+
             # Configuration adjust as needed:
             LLAMA_STACK_URL = ""
             input_text = "What is the capital of Ireland?"
@@ -930,7 +959,7 @@ components:
             temperature = 0.7
             stream_enabled = False
             system_instructions = "You are a helpful assistant. Use the RAG tool to answer questions as needed."
-                    
+
             # Tool configuration
             tools = [
                 {
@@ -938,11 +967,11 @@ components:
                     "vector_store_ids": ["vs_abc123", "vs_def456"]
                 }
             ]
-                    
+
             from llama_stack_client import LlamaStackClient
-                    
+
             client = LlamaStackClient(base_url=LLAMA_STACK_URL)
-                    
+
             config = {
                 "input": input_text,
                 "model": model_name,
@@ -951,9 +980,9 @@ components:
                 "instructions": system_instructions,
                 "tools": tools
             }
-                    
+
             response = client.responses.create(**config)
-                    
+
             print("agent>", response.output_text)
 
     # Kubernetes Namespace Schema
@@ -1067,6 +1096,70 @@ components:
           type: string
           example: "Provider is responding normally"
           description: Additional health information
+
+    # MCP Server Configuration Schema
+    MCPServerConfigMap:
+      type: object
+      required:
+        - metadata
+        - data
+      properties:
+        metadata:
+          $ref: "#/components/schemas/ConfigMapMetadata"
+        data:
+          type: object
+          additionalProperties:
+            type: string
+          description: Map of JSON configuration data for MCP servers
+          example:
+            dev-cluster: |
+              {
+                "url": "https://mcp-one:8080",
+                "description": "Manage resources in a Kubernetes cluster.",
+                "logo": "https://mysite.com/logo.png"
+              }
+            git-hub: |
+              {
+                "url": "https://mcp-two",
+                "description": "Manage a GitHub repository.",
+                "logo": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+              }
+
+    ConfigMapMetadata:
+      type: object
+      required:
+        - name
+        - namespace
+      properties:
+        name:
+          type: string
+          example: "global-mcp-list"
+          description: Name of the ConfigMap
+        namespace:
+          type: string
+          example: "mcp-servers"
+          description: Kubernetes namespace containing the ConfigMap
+        creationTimestamp:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2024-01-15T10:30:00Z"
+          description: Timestamp when the ConfigMap was created
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+          example:
+            app: "mcp-server-registry"
+            version: "v1.0.0"
+          description: Labels applied to the ConfigMap
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+          description: Annotations applied to the ConfigMap
 
   responses:
     HealthCheckResponse:
@@ -1218,6 +1311,40 @@ components:
                 summary: No LSD found
                 value:
                   data: null
+
+    MCPServerConfigResponse:
+      description: MCP server configuration from Kubernetes ConfigMap
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/MCPServerConfigMap"
+            example:
+              data:
+                metadata:
+                  name: "global-mcp-list"
+                  namespace: "mcp-servers"
+                  creationTimestamp: "2024-01-15T10:30:00Z"
+                  labels:
+                    app: "mcp-server-registry"
+                    version: "v1.0.0"
+                data:
+                  dev-cluster: |
+                    {
+                      "url": "https://mcp-one:8080",
+                      "description": "Manage resources in a Kubernetes cluster.",
+                      "logo": "https://mysite.com/logo.png"
+                    }
+                  git-hub: |
+                    {
+                      "url": "https://mcp-two",
+                      "description": "Manage a GitHub repository.",
+                      "logo": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+                    }
 
     CreateResponseResponse:
       description: Created AI response with essential information only

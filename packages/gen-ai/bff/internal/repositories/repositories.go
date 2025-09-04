@@ -15,6 +15,7 @@ type Repositories struct {
 	Template               *TemplateRepository
 	Namespace              *NamespaceRepository
 	LlamaStackDistribution *LlamaStackDistributionRepository
+	MCPServer              *MCPServerRepository
 }
 
 // NewRepositories creates domain-specific repositories with the specified client interface.
@@ -29,5 +30,6 @@ func NewRepositories(client llamastack.LlamaStackClientInterface) *Repositories 
 		Template:               NewTemplateRepository(),
 		Namespace:              NewNamespaceRepository(),
 		LlamaStackDistribution: NewLlamaStackDistributionRepository(),
+		MCPServer:              NewMCPServerRepository(),
 	}
 }
