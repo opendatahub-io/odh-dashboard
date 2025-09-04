@@ -1,8 +1,8 @@
 name: E2E PR Tests
 
 on:
-  pull_request_target:
-    types: [opened, reopened, edited]
+  issue_comment:
+    types: [created, edited]
   workflow_dispatch:
     inputs:
       test_type:
@@ -23,15 +23,17 @@ env:
 jobs:
   test-workflow-trigger:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request_target'
+    if: github.event_name == 'issue_comment'
     steps:
       - name: Debug trigger
         run: |
-          echo "E2E tests triggered for PR #${{ github.event.pull_request.number }}"
+          echo "E2E tests triggered for PR #${{ github.event.issue.number }}"
+          echo "Comment: ${{ github.event.comment.body }}"
           echo "Event: ${{ github.event_name }}"
 
   pr-comment-parser:
     runs-on: ubuntu-latest
+    if: github.event_name == 'issue_comment' && github.event.issue.pull_request
     outputs:
       test-type: ${{ steps.parse-comment.outputs.test-type }}
       should-run: ${{ steps.parse-comment.outputs.should-run }}
@@ -71,22 +73,9 @@ jobs:
             exit 0
           fi
 
-          # For pull_request_target, get PR comments and check for /e2e
-          if [ "${{ github.event_name }}" = "pull_request_target" ]; then
-            echo "Getting PR comments for #${{ github.event.pull_request.number }}"
-
-            # Get all PR comments and find the latest /e2e command
-            LATEST_E2E_COMMENT=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" | \
-              jq -r '.[] | select(.body | contains("/e2e")) | .body' | tail -1)
-
-            COMMENT="$LATEST_E2E_COMMENT"
-            PR_NUMBER="${{ github.event.pull_request.number }}"
-          else
-            # Fallback for issue_comment (if we keep it)
-            COMMENT="${{ github.event.comment.body }}"
-            PR_NUMBER="${{ github.event.issue.number }}"
-          fi
+          # For issue_comment events (PR comments)
+          COMMENT="${{ github.event.comment.body }}"
+          PR_NUMBER="${{ github.event.issue.number }}"
 
           echo "Parsing comment: $COMMENT"
           echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
@@ -136,12 +125,29 @@ jobs:
       - name: Download test configuration
         run: |
           # Download test-variables.yml from GitLab securely
-          curl -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
-               "${{ secrets.GITLAB_TEST_VARS_URL }}" \
-               -o ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          # For forked PRs, this will fail due to missing secrets - use local test-vars.yml
+          if [ -n "${{ secrets.GITLAB_TOKEN }}" ] && [ -n "${{ secrets.GITLAB_TEST_VARS_URL }}" ]; then
+            curl -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
+                 "${{ secrets.GITLAB_TEST_VARS_URL }}" \
+                 -o ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          else
+            echo "⚠️  GitLab secrets not available (forked PR) - using local test-variables.yml"
+            # Ensure local test-variables.yml exists
+            if [ ! -f "${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml" ]; then
+              echo "❌ Local test-variables.yml not found"
+              exit 1
+            fi
+          fi
 
       - name: Login to OpenShift cluster
         run: |
+          # For forked PRs, skip OpenShift login since secrets are not available
+          if [ -z "${{ secrets.OC_SERVER }}" ]; then
+            echo "⚠️  OpenShift secrets not available (forked PR) - skipping cluster login"
+            echo "💡 Tests will run in mock mode or against local test environment"
+            exit 0
+          fi
+
           # Read credentials from downloaded test-variables.yml
           TEST_VARS_FILE="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
 
@@ -156,12 +162,22 @@ jobs:
 
       - name: Set test configuration
         run: |
-          # Override cluster-specific URLs with GitHub secrets
+          # For forked PRs, use default URLs from local test-vars.yml
           if [ -n "${{ secrets.OCP_CONSOLE_URL }}" ]; then
             sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: ${{ secrets.OCP_CONSOLE_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
           fi
           if [ -n "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
             sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: ${{ secrets.ODH_DASHBOARD_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          fi
+
+          # For forked PRs, set default URLs if secrets are not available
+          if [ -z "${{ secrets.OCP_CONSOLE_URL }}" ]; then
+            echo "⚠️  OCP_CONSOLE_URL secret not available (forked PR) - using localhost"
+            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:9001|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          fi
+          if [ -z "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
+            echo "⚠️  ODH_DASHBOARD_URL secret not available (forked PR) - using localhost"
+            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:9001|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
           fi
 
           export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
@@ -180,6 +196,13 @@ jobs:
           TAG_NAME="${{ needs.pr-comment-parser.outputs.tag-name }}"
 
           echo "Running test type: $TEST_TYPE, test set: $TEST_SET, tag name: $TAG_NAME"
+
+          # Check if we're in a forked PR (no secrets available)
+          if [ -z "${{ secrets.OC_SERVER }}" ]; then
+            echo "🔄 Running in forked PR mode - using mock tests"
+            export CY_MOCK=1
+            export CY_WS_PORT=9002
+          fi
 
           # Use clean npm script for concurrent server + tests execution
           if [ "$TEST_TYPE" = "e2e" ]; then
