@@ -5,9 +5,9 @@ info:
   description: REST API for Gen AI Backend for Frontend (BFF) using OpenAI SDK v2.1.0
   license:
     name: Apache 2.0
-    url: "https://www.apache.org/licenses/LICENSE-2.0"
+    url: 'https://www.apache.org/licenses/LICENSE-2.0'
 servers:
-  - url: "http://localhost:8080"
+  - url: 'http://localhost:8080'
 
 # Global security requirement - all endpoints require Bearer token by default
 security:
@@ -23,10 +23,10 @@ paths:
       tags:
         - HealthCheck
       responses:
-        "200":
-          $ref: "#/components/responses/HealthCheckResponse"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          $ref: '#/components/responses/HealthCheckResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: healthcheck
       summary: BFF Health Check
       description: Returns BFF service status and version information.
@@ -43,12 +43,12 @@ paths:
       security:
         - Bearer: []
       responses:
-        "200":
-          $ref: "#/components/responses/ModelsResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          $ref: '#/components/responses/ModelsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: listModels
       summary: List All Models
       description: Gets a list of all available AI models from Llama Stack.
@@ -84,14 +84,14 @@ paths:
             example: desc
 
       responses:
-        "200":
-          $ref: "#/components/responses/VectorStoresResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          $ref: '#/components/responses/VectorStoresResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: listVectorStores
       summary: List Vector Stores
       description: Gets a list of vector stores with optional pagination and sorting.
@@ -105,17 +105,17 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateVectorStoreRequest"
+              $ref: '#/components/schemas/CreateVectorStoreRequest'
         required: true
       responses:
-        "201":
-          $ref: "#/components/responses/VectorStoreResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '201':
+          $ref: '#/components/responses/VectorStoreResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: createVectorStore
       summary: Create Vector Store
       description: Creates a new vector store for document storage and RAG. Only the name field is required.
@@ -136,17 +136,17 @@ paths:
         content:
           multipart/form-data:
             schema:
-              $ref: "#/components/schemas/FileUploadRequest"
+              $ref: '#/components/schemas/FileUploadRequest'
         required: true
       responses:
-        "201":
-          $ref: "#/components/responses/FileUploadResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '201':
+          $ref: '#/components/responses/FileUploadResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: uploadFile
       summary: Upload File to Vector Store
       description: Uploads a file and adds it to the specified vector store for RAG functionality. Supports custom chunking strategies for optimal document processing.
@@ -166,17 +166,17 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateResponseRequest"
+              $ref: '#/components/schemas/CreateResponseRequest'
         required: true
       responses:
-        "201":
-          $ref: "#/components/responses/CreateResponseResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '201':
+          $ref: '#/components/responses/CreateResponseResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: createResponse
       summary: Create AI Response
       description: Creates an AI response with full parameter control including RAG and conversation context. Returns a simplified response with only essential fields (id, model, status, created_at, content, usage).
@@ -197,17 +197,17 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CodeExportRequest"
+              $ref: '#/components/schemas/CodeExportRequest'
         required: true
       responses:
-        "200":
-          $ref: "#/components/responses/CodeExportResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          $ref: '#/components/responses/CodeExportResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: exportCode
       summary: Export Python Code
       description: Generates Python code based on provided configuration parameters.
@@ -224,14 +224,14 @@ paths:
       security:
         - Bearer: []
       responses:
-        "200":
-          $ref: "#/components/responses/NamespacesResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          $ref: '#/components/responses/NamespacesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: listNamespaces
       summary: List All Namespaces
       description: Gets a list of all namespaces in the Kubernetes cluster.
@@ -257,18 +257,18 @@ paths:
           required: true
           schema:
             type: string
-            example: "default"
+            example: 'default'
       responses:
-        "200":
-          $ref: "#/components/responses/LlamaStackDistributionStatusResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          $ref: '#/components/responses/LlamaStackDistributionStatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: getLlamaStackDistributionStatus
       summary: Get LSD Status
       description: Gets the status of LlamaStack Distribution in the specified namespace.
@@ -286,15 +286,181 @@ paths:
       security:
         - Bearer: []
       responses:
-        "200":
-          $ref: "#/components/responses/UserResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          $ref: '#/components/responses/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: getCurrentUser
       summary: Get Current User
       description: Gets the current authenticated user information from the Kubernetes cluster.
+
+  /gen-ai/api/v1/mcp/tools:
+    summary: Get tools from MCP server by URL
+    description: >-
+      Retrieves the available tools from a specific MCP (Model Context Protocol) server by its URL.
+      Uses the MCP client to connect to the server specified by the server_url parameter and fetch its tool definitions.
+      Returns tool information including names, descriptions, and input schemas.
+
+      The server_url parameter should be the full URL-encoded endpoint for the MCP server.
+
+      Requires valid authentication token for MCP client operations.
+      Optionally accepts MCP server authentication via X-MCP-Bearer header.
+    get:
+      tags:
+        - MCP Servers
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace
+          required: true
+          schema:
+            type: string
+            example: 'demo'
+        - name: server_url
+          in: query
+          description: Full URL-encoded endpoint for the MCP server
+          required: true
+          schema:
+            type: string
+            format: uri
+            example: 'http%3A%2F%2Flocalhost%3A9090%2Fsse'
+        - name: X-MCP-Bearer
+          in: header
+          description: Optional Bearer token for MCP server authentication. Must include 'Bearer ' prefix.
+          required: false
+          schema:
+            type: string
+            pattern: '^Bearer .+'
+            example: 'Bearer mcp_server_token_123'
+      responses:
+        '200':
+          $ref: '#/components/responses/MCPToolsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getMCPTools
+      summary: Get MCP Tools by URL
+      description: Gets the available tools from the MCP server specified by URL.
+
+  /gen-ai/api/v1/mcp/status:
+    summary: Get connection status from MCP server by URL
+    description: >-
+      Retrieves the connection status of a specific MCP (Model Context Protocol) server by its URL.
+      Uses the MCP client to connect to the server specified by the server_url parameter and check its availability.
+      Returns connection status information including connectivity state, response message, and last check timestamp.
+
+      The server_url parameter should be the full URL-encoded endpoint for the MCP server.
+
+      Requires valid authentication token for MCP client operations.
+      Optionally accepts MCP server authentication via X-MCP-Bearer header.
+    get:
+      tags:
+        - MCP Servers
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace
+          required: true
+          schema:
+            type: string
+            example: 'demo'
+        - name: server_url
+          in: query
+          description: Full URL-encoded endpoint for the MCP server
+          required: true
+          schema:
+            type: string
+            format: uri
+            example: 'http%3A%2F%2Flocalhost%3A9090%2Fsse'
+        - name: X-MCP-Bearer
+          in: header
+          description: Optional Bearer token for MCP server authentication. Must include 'Bearer ' prefix.
+          required: false
+          schema:
+            type: string
+            pattern: '^Bearer .+'
+            example: 'Bearer mcp_server_token_123'
+      responses:
+        '200':
+          $ref: '#/components/responses/MCPStatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getMCPStatus
+      summary: Get MCP Server Status by URL
+      description: Gets the connection status of the MCP server specified by URL.
+
+  /gen-ai/api/v1/aa/mcps:
+    get:
+      tags:
+        - MCP Servers
+      operationId: getMCPServersList
+      summary: Get Enhanced List of Available MCP Servers
+      description: >-
+        Retrieves an enhanced list of available MCP (Model Context Protocol) servers from the ConfigMap.
+        Returns a flattened server array with comprehensive metadata.
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+      responses:
+        '200':
+          description: Successfully retrieved enhanced list of MCP servers with metadata
+          $ref: '#/components/responses/MCPServersListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Access denied to ConfigMap
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                config_map_access_denied:
+                  summary: ConfigMap Access Denied
+                  value:
+                    error:
+                      code: '403'
+                      message: "Access denied to ConfigMap 'gen-ai-aa-mcp-servers-e' in namespace 'mcp-servers'"
+                      details:
+                        config_map_name: 'gen-ai-aa-mcp-servers-e'
+                        namespace: 'mcp-servers'
+                        reason: 'Insufficient permissions'
+        '404':
+          description: ConfigMap not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                config_map_not_found:
+                  summary: ConfigMap Not Found
+                  value:
+                    error:
+                      code: '404'
+                      message: "ConfigMap 'gen-ai-aa-mcp-servers-e' not found in namespace 'mcp-servers'"
+                      details:
+                        config_map_name: 'gen-ai-aa-mcp-servers-e'
+                        namespace: 'mcp-servers'
+                        reason: 'ConfigMap does not exist'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
 components:
   securitySchemes:
@@ -303,6 +469,15 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: Bearer token authentication using OAuth2 JWT tokens
+  parameters:
+    NamespaceParam:
+      name: namespace
+      in: query
+      description: Kubernetes namespace to operate in.
+      required: true
+      schema:
+        type: string
+        example: 'demo'
   schemas:
     HealthCheckModel:
       type: object
@@ -312,13 +487,13 @@ components:
       properties:
         status:
           type: string
-          example: "available"
+          example: 'available'
           description: BFF service availability status
         system_info:
-          $ref: "#/components/schemas/SystemInfo"
+          $ref: '#/components/schemas/SystemInfo'
         userId:
           type: string
-          example: "user@example.com"
+          example: 'user@example.com'
           description: User identifier (optional)
 
     SystemInfo:
@@ -328,7 +503,7 @@ components:
       properties:
         version:
           type: string
-          example: "1.0.0"
+          example: '1.0.0'
           description: BFF service version
 
     Error:
@@ -339,11 +514,11 @@ components:
       properties:
         code:
           type: string
-          example: "400"
+          example: '400'
           description: HTTP status code
         message:
           type: string
-          example: "Bad request"
+          example: 'Bad request'
           description: Human-readable error message
 
     ErrorEnvelope:
@@ -352,7 +527,7 @@ components:
         - error
       properties:
         error:
-          $ref: "#/components/schemas/Error"
+          $ref: '#/components/schemas/Error'
 
     # Models Schema
     Model:
@@ -365,11 +540,11 @@ components:
       properties:
         id:
           type: string
-          example: "ollama/llama3.2:3b"
+          example: 'ollama/llama3.2:3b'
           description: Unique model identifier
         object:
           type: string
-          example: "model"
+          example: 'model'
           description: Object type (always "model")
         created:
           type: integer
@@ -378,13 +553,13 @@ components:
           description: Unix timestamp when model was created
         owned_by:
           type: string
-          example: "llama_stack"
+          example: 'llama_stack'
           description: Model owner/provider
 
     ModelsData:
       type: array
       items:
-        $ref: "#/components/schemas/Model"
+        $ref: '#/components/schemas/Model'
       description: Array of available models
 
     # Vector Stores Schema
@@ -403,11 +578,11 @@ components:
       properties:
         id:
           type: string
-          example: "vs_abc123-def456"
+          example: 'vs_abc123-def456'
           description: Unique vector store identifier
         object:
           type: string
-          example: "vector_store"
+          example: 'vector_store'
           description: Object type (always "vector_store")
         created_at:
           type: integer
@@ -416,7 +591,7 @@ components:
           description: Unix timestamp when vector store was created
         name:
           type: string
-          example: "Support Documents"
+          example: 'Support Documents'
           description: Human-readable name (max 256 characters)
         usage_bytes:
           type: integer
@@ -424,11 +599,11 @@ components:
           example: 1024
           description: Storage usage in bytes
         file_counts:
-          $ref: "#/components/schemas/FileCounts"
+          $ref: '#/components/schemas/FileCounts'
         status:
           type: string
           enum: [pending, completed, failed]
-          example: "completed"
+          example: 'completed'
           description: Vector store processing status
         last_active_at:
           type: integer
@@ -440,9 +615,9 @@ components:
           additionalProperties:
             type: string
           example:
-            provider_id: "milvus"
-            provider_vector_db_id: "vs_abc123-def456"
-            description: "Customer support documents"
+            provider_id: 'milvus'
+            provider_vector_db_id: 'vs_abc123-def456'
+            description: 'Customer support documents'
           description: Key-value metadata (max 16 pairs, keys ≤64 chars, values ≤512 chars)
 
     FileCounts:
@@ -478,7 +653,7 @@ components:
     VectorStoresData:
       type: array
       items:
-        $ref: "#/components/schemas/VectorStore"
+        $ref: '#/components/schemas/VectorStore'
       description: Array of vector stores
 
     CreateVectorStoreRequest:
@@ -490,7 +665,7 @@ components:
           type: string
           minLength: 1
           maxLength: 256
-          example: "Customer Support FAQ"
+          example: 'Customer Support FAQ'
           description: Required name for the vector store (1-256 characters)
         metadata:
           type: object
@@ -498,11 +673,10 @@ components:
             type: string
           maxProperties: 16
           example:
-            department: "support"
-            category: "faq"
-            provider_id: "milvus"
+            department: 'support'
+            category: 'faq'
+            provider_id: 'milvus'
           description: Optional key-value metadata (max 16 pairs, keys ≤64 chars, values ≤512 chars)
-
 
     # File Upload Schema
     FileUploadRequest:
@@ -517,18 +691,18 @@ components:
           description: File to upload (max 512MB, supports PDF, TXT, DOC, etc.)
         vector_store_id:
           type: string
-          example: "vs_abc123-def456"
+          example: 'vs_abc123-def456'
           description: Vector store ID to add the file to (required)
         purpose:
           type: string
           enum: [assistants, batch, fine-tune, vision, user_data, evals]
-          default: "assistants"
-          example: "assistants"
+          default: 'assistants'
+          example: 'assistants'
           description: Intended file purpose (defaults to "assistants" for RAG)
         chunking_type:
           type: string
           enum: [auto, static]
-          example: "static"
+          example: 'static'
           description: Optional chunking strategy ("auto" uses defaults, "static" allows custom configuration)
         max_chunk_size_tokens:
           type: integer
@@ -551,7 +725,7 @@ components:
         type:
           type: string
           enum: [auto, static]
-          example: "static"
+          example: 'static'
           description: Type of chunking strategy applied
         static:
           type: object
@@ -571,11 +745,11 @@ components:
       properties:
         code:
           type: string
-          example: "server_error"
+          example: 'server_error'
           description: Error code if file processing failed
         message:
           type: string
-          example: "File processing failed"
+          example: 'File processing failed'
           description: Error message if file processing failed
 
     FileUploadResult:
@@ -585,10 +759,10 @@ components:
       properties:
         file_id:
           type: string
-          example: "file-abc123def456"
+          example: 'file-abc123def456'
           description: Unique identifier of uploaded file
         vector_store_file:
-          $ref: "#/components/schemas/VectorStoreFile"
+          $ref: '#/components/schemas/VectorStoreFile'
           description: Details about the file added to the vector store (only present if vector_store_id was provided)
 
     VectorStoreFile:
@@ -604,11 +778,11 @@ components:
       properties:
         id:
           type: string
-          example: "vsf-abc123"
+          example: 'vsf-abc123'
           description: Unique vector store file identifier
         object:
           type: string
-          example: "vector_store.file"
+          example: 'vector_store.file'
           description: Object type
         usage_bytes:
           type: integer
@@ -622,20 +796,20 @@ components:
           description: Unix timestamp when file was added
         vector_store_id:
           type: string
-          example: "vs_abc123"
+          example: 'vs_abc123'
           description: Parent vector store ID
         status:
           type: string
           enum: [pending, completed, failed]
-          example: "completed"
+          example: 'completed'
           description: File processing status
         chunking_strategy:
-          $ref: "#/components/schemas/ChunkingStrategyResult"
+          $ref: '#/components/schemas/ChunkingStrategyResult'
         attributes:
           type: object
           description: File attributes and metadata
         last_error:
-          $ref: "#/components/schemas/FileError"
+          $ref: '#/components/schemas/FileError'
 
     # Chat Context Schema
     ChatContextMessage:
@@ -647,14 +821,14 @@ components:
         role:
           type: string
           enum: [user, assistant]
-          example: "user"
+          example: 'user'
           description: Message role in conversation
         content:
           type: string
-          example: "Hello, how are you?"
+          example: 'Hello, how are you?'
           description: Message content
       example:
-        role: "assistant"
+        role: 'assistant'
         content: "Hello! I'm doing well, thank you for asking. How can I help you today?"
 
     # Response Creation Schema
@@ -668,11 +842,11 @@ components:
         input:
           type: string
           minLength: 1
-          example: "Tell me about artificial intelligence"
+          example: 'Tell me about artificial intelligence'
           description: Text input for AI response generation (required)
         model:
           type: string
-          example: "ollama/llama3.2:3b"
+          example: 'ollama/llama3.2:3b'
           description: Model ID to use for generation (required, see /gen-ai/api/v1/models)
 
         # === OPTIONAL PARAMETERS (TESTED & WORKING) ===
@@ -680,19 +854,19 @@ components:
           type: array
           items:
             type: string
-          example: ["vs_abc123", "vs_def456"]
+          example: ['vs_abc123', 'vs_def456']
           description: Vector store IDs for file search (RAG functionality)
         chat_context:
           type: array
           items:
-            $ref: "#/components/schemas/ChatContextMessage"
+            $ref: '#/components/schemas/ChatContextMessage'
           example:
-            - role: "user"
-              content: "What is artificial intelligence?"
-            - role: "assistant"
-              content: "Artificial intelligence (AI) is a branch of computer science that aims to create machines capable of intelligent behavior, learning, and decision-making."
-            - role: "user"
-              content: "Can you give me some examples?"
+            - role: 'user'
+              content: 'What is artificial intelligence?'
+            - role: 'assistant'
+              content: 'Artificial intelligence (AI) is a branch of computer science that aims to create machines capable of intelligent behavior, learning, and decision-making.'
+            - role: 'user'
+              content: 'Can you give me some examples?'
           description: Full conversation history for multi-turn conversations
 
         # === GENERATION PARAMETERS ===
@@ -712,7 +886,7 @@ components:
           description: Nucleus sampling parameter (alternative to temperature)
         instructions:
           type: string
-          example: "You are a helpful AI assistant that provides detailed explanations."
+          example: 'You are a helpful AI assistant that provides detailed explanations.'
           description: System instructions for response generation
 
     # Simplified Response Schema - Only Essential Fields
@@ -727,15 +901,15 @@ components:
       properties:
         id:
           type: string
-          example: "resp-abc123-def456"
+          example: 'resp-abc123-def456'
           description: Unique response identifier
         model:
           type: string
-          example: "ollama/llama3.2:3b"
+          example: 'ollama/llama3.2:3b'
           description: AI model used for generation
         status:
           type: string
-          example: "completed"
+          example: 'completed'
           description: Response completion status
         created_at:
           type: number
@@ -744,10 +918,10 @@ components:
           description: Response creation timestamp
         content:
           type: string
-          example: "Hello! How can I help you today?"
+          example: 'Hello! How can I help you today?'
           description: The actual AI response text content
         usage:
-          $ref: "#/components/schemas/SimplifiedUsage"
+          $ref: '#/components/schemas/SimplifiedUsage'
           description: Token usage information (only if populated)
 
     # Simplified Usage Schema - Only Populated Fields
@@ -779,38 +953,38 @@ components:
       properties:
         id:
           type: string
-          example: "msg_abc123"
+          example: 'msg_abc123'
           description: Output item identifier
         type:
           type: string
           enum: [message, file_search_call, code_interpreter_call]
-          example: "message"
+          example: 'message'
           description: Type of output item
         status:
           type: string
           enum: [pending, in_progress, completed, failed]
-          example: "completed"
+          example: 'completed'
           description: Output item status
         content:
           type: array
           items:
-            $ref: "#/components/schemas/ResponseContent"
+            $ref: '#/components/schemas/ResponseContent'
           description: Content array for message outputs
         role:
           type: string
           enum: [assistant]
-          example: "assistant"
+          example: 'assistant'
           description: Role for message outputs
         queries:
           type: array
           items:
             type: string
-          example: ["search query"]
+          example: ['search query']
           description: Search queries for file_search_call outputs
         results:
           type: array
           items:
-            $ref: "#/components/schemas/SearchResult"
+            $ref: '#/components/schemas/SearchResult'
           description: Search results for file_search_call outputs
 
     ResponseContent:
@@ -822,11 +996,11 @@ components:
         type:
           type: string
           enum: [output_text, refusal]
-          example: "output_text"
+          example: 'output_text'
           description: Content type
         text:
           type: string
-          example: "AI response text content"
+          example: 'AI response text content'
           description: Generated text content
         annotations:
           type: array
@@ -839,7 +1013,7 @@ components:
           description: Log probabilities (if requested)
         refusal:
           type: string
-          example: ""
+          example: ''
           description: Refusal message (if content was refused)
 
     SearchResult:
@@ -847,7 +1021,7 @@ components:
       properties:
         filename:
           type: string
-          example: "document.pdf"
+          example: 'document.pdf'
           description: Source filename
         score:
           type: number
@@ -856,7 +1030,7 @@ components:
           description: Relevance score (0.0-1.0)
         text:
           type: string
-          example: "Relevant document content"
+          example: 'Relevant document content'
           description: Retrieved text content
         attributes:
           type: object
@@ -871,13 +1045,13 @@ components:
         type:
           type: string
           enum: [file_search]
-          example: "file_search"
+          example: 'file_search'
           description: Type of tool to include in the generated code
         vector_store_ids:
           type: array
           items:
             type: string
-          example: ["vs_abc123", "vs_def456"]
+          example: ['vs_abc123', 'vs_def456']
           description: Vector store IDs to use with the tool
 
     CodeExportRequest:
@@ -889,15 +1063,15 @@ components:
         input:
           type: string
           minLength: 1
-          example: "What is the capital of Ireland?"
+          example: 'What is the capital of Ireland?'
           description: User prompt
         model:
           type: string
-          example: "ollama/llama3.2:3b"
+          example: 'ollama/llama3.2:3b'
           description: Model ID to use in the generated code
         instructions:
           type: string
-          example: "You are a helpful assistant. Use the RAG tool to answer questions as needed."
+          example: 'You are a helpful assistant. Use the RAG tool to answer questions as needed.'
           description: System instructions for code generation
         stream:
           type: boolean
@@ -915,10 +1089,10 @@ components:
         tools:
           type: array
           items:
-            $ref: "#/components/schemas/Tool"
+            $ref: '#/components/schemas/Tool'
           example:
-            - type: "file_search"
-              vector_store_ids: ["vs_abc123"]
+            - type: 'file_search'
+              vector_store_ids: ['vs_abc123']
           description: Tools to include in the generated code
 
     CodeExportData:
@@ -945,7 +1119,7 @@ components:
             #
             # 3. Tools (MCP Integration):
             #    - Any tools used must be properly pre-configured in your Llama Stack setup.
-                    
+
             # Configuration adjust as needed:
             LLAMA_STACK_URL = ""
             input_text = "What is the capital of Ireland?"
@@ -953,7 +1127,7 @@ components:
             temperature = 0.7
             stream_enabled = False
             system_instructions = "You are a helpful assistant. Use the RAG tool to answer questions as needed."
-                    
+
             # Tool configuration
             tools = [
                 {
@@ -961,11 +1135,11 @@ components:
                     "vector_store_ids": ["vs_abc123", "vs_def456"]
                 }
             ]
-                    
+
             from llama_stack_client import LlamaStackClient
-                    
+
             client = LlamaStackClient(base_url=LLAMA_STACK_URL)
-                    
+
             config = {
                 "input": input_text,
                 "model": model_name,
@@ -974,9 +1148,9 @@ components:
                 "instructions": system_instructions,
                 "tools": tools
             }
-                    
+
             response = client.responses.create(**config)
-                    
+
             print("agent>", response.output_text)
 
     # Kubernetes Namespace Schema
@@ -987,18 +1161,18 @@ components:
       properties:
         name:
           type: string
-          example: "default"
+          example: 'default'
           description: Kubernetes namespace name
         displayName:
           type: string
           nullable: true
-          example: "default"
+          example: 'default'
           description: Human-readable display name for the namespace (optional, defaults to name)
 
     NamespacesData:
       type: array
       items:
-        $ref: "#/components/schemas/NamespaceModel"
+        $ref: '#/components/schemas/NamespaceModel'
       description: Array of Kubernetes namespaces
 
     # LlamaStack Distribution Schema
@@ -1012,18 +1186,18 @@ components:
       properties:
         name:
           type: string
-          example: "test-lsd"
+          example: 'test-lsd'
           description: Name of the LlamaStack Distribution resource
         phase:
           type: string
-          example: "Ready"
+          example: 'Ready'
           description: Current phase of the LSD (e.g., Pending, Initializing, Ready, Failed, Terminating)
         version:
           type: string
-          example: "v0.2.0"
+          example: 'v0.2.0'
           description: Version of the LlamaStack server
         distributionConfig:
-          $ref: "#/components/schemas/DistributionConfig"
+          $ref: '#/components/schemas/DistributionConfig'
 
     DistributionConfig:
       type: object
@@ -1034,20 +1208,20 @@ components:
       properties:
         activeDistribution:
           type: string
-          example: "ollama"
+          example: 'ollama'
           description: Currently active distribution type
         availableDistributions:
           type: object
           additionalProperties:
             type: string
           example:
-            ollama: "docker.io/llamastack/distribution-ollama:latest"
-            bedrock: "docker.io/llamastack/distribution-bedrock:latest"
+            ollama: 'docker.io/llamastack/distribution-ollama:latest'
+            bedrock: 'docker.io/llamastack/distribution-bedrock:latest'
           description: Map of available distribution types to their image references
         providers:
           type: array
           items:
-            $ref: "#/components/schemas/ProviderInfo"
+            $ref: '#/components/schemas/ProviderInfo'
           description: List of provider information
 
     ProviderInfo:
@@ -1059,22 +1233,22 @@ components:
       properties:
         api:
           type: string
-          example: "mock-api"
+          example: 'mock-api'
           description: API endpoint for the provider
         provider_id:
           type: string
-          example: "mock-provider"
+          example: 'mock-provider'
           description: Unique identifier for the provider
         provider_type:
           type: string
-          example: "mock-type"
+          example: 'mock-type'
           description: Type of the provider
         config:
           type: object
           nullable: true
           description: Provider-specific configuration
         health:
-          $ref: "#/components/schemas/ProviderHealth"
+          $ref: '#/components/schemas/ProviderHealth'
 
     ProviderHealth:
       type: object
@@ -1084,11 +1258,11 @@ components:
       properties:
         status:
           type: string
-          example: "healthy"
+          example: 'healthy'
           description: Health status of the provider
         message:
           type: string
-          example: "Provider is responding normally"
+          example: 'Provider is responding normally'
           description: Additional health information
 
     # User Schema
@@ -1099,8 +1273,429 @@ components:
       properties:
         userId:
           type: string
-          example: "user@example.com"
+          example: 'user@example.com'
           description: Current authenticated user identifier from Kubernetes cluster
+
+    # MCP Server Configuration Schema
+    MCPServerConfigMap:
+      type: object
+      required:
+        - metadata
+        - data
+      properties:
+        metadata:
+          $ref: '#/components/schemas/ConfigMapMetadata'
+        data:
+          type: object
+          additionalProperties:
+            type: string
+          description: Map of JSON configuration data for MCP servers
+          example:
+            dev-cluster: |
+              {
+                "url": "https://mcp-one:8080",
+                "description": "Manage resources in a Kubernetes cluster.",
+                "logo": "https://mysite.com/logo.png"
+              }
+            git-hub: |
+              {
+                "url": "https://mcp-two",
+                "description": "Manage a GitHub repository.",
+                "logo": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+              }
+
+    # MCP Server Status and Tools Schema
+    MCPServerConnectionStatus:
+      type: object
+      required:
+        - server_url
+        - status
+        - last_checked
+      properties:
+        server_url:
+          type: string
+          example: 'http://kubectl-mcp-server.mcp-servers.svc.cluster.local:8080'
+          description: URL of the MCP server
+        status:
+          type: string
+          enum: [connected, disconnected, error]
+          example: 'connected'
+          description: Connection status of the MCP server
+        message:
+          type: string
+          example: 'Successfully connected to MCP server'
+          description: Optional message providing additional status information
+        last_checked:
+          type: integer
+          format: int64
+          example: 1755721435
+          description: Unix timestamp when the status was last checked
+
+    MCPTool:
+      type: object
+      required:
+        - name
+        - description
+        - input_schema
+      properties:
+        name:
+          type: string
+          example: 'kubectl_get_pods'
+          description: Name of the MCP tool
+        description:
+          type: string
+          example: 'List pods in a Kubernetes namespace'
+          description: Human-readable description of what the tool does
+        input_schema:
+          type: object
+          example:
+            type: 'object'
+            properties:
+              namespace:
+                type: 'string'
+                description: 'Kubernetes namespace to list pods from'
+              label_selector:
+                type: 'string'
+                description: 'Optional label selector to filter pods'
+            required: ['namespace']
+          description: JSON schema defining the tool's input parameters
+
+    MCPServersMap:
+      type: object
+      description: MCP server information where each key is the server name and value contains server details
+      additionalProperties:
+        $ref: '#/components/schemas/MCPServerConfig'
+      example:
+        brave:
+          url: 'http://localhost:9090/sse'
+          transport: 'sse'
+          description: 'Search the Internet.'
+        kubernetes:
+          url: 'http://localhost:9091/mcp'
+          transport: 'streamable-http'
+          description: 'Manage resources in a Kubernetes cluster.'
+          logo: 'https://kubernetes.io/_common-resources/images/flower.svg'
+
+    MCPServerConfig:
+      type: object
+      required:
+        - url
+        - transport
+      properties:
+        url:
+          type: string
+          format: uri
+          example: 'http://localhost:9090/sse'
+          description: Full URL of the MCP server endpoint
+        transport:
+          type: string
+          enum: ['sse', 'streamable-http']
+          example: 'sse'
+          description: Transport type used by the MCP server
+        description:
+          type: string
+          example: 'Brave search MCP server'
+          description: Optional description of the MCP server functionality
+        logo:
+          type: string
+          format: uri
+          example: 'https://kubernetes.io/images/kubernetes-horizontal-color.png'
+          description: Optional logo URL for the MCP server
+
+    MCPErrorDetails:
+      type: object
+      required:
+        - code
+        - status_code
+        - raw_error
+      properties:
+        code:
+          type: string
+          enum:
+            [
+              'connection_error',
+              'CONNECTION_FAILED',
+              'unauthorized',
+              'timeout',
+              'bad_request',
+              'internal_error',
+            ]
+          example: 'unauthorized'
+          description: Error category for structured error handling
+        status_code:
+          type: integer
+          example: 401
+          description: HTTP-equivalent status code for the error
+        raw_error:
+          type: string
+          example: 'failed to connect to MCP server: HTTP 401: Missing credentials'
+          description: Original raw error message for debugging purposes
+
+    MCPServerInfo:
+      type: object
+      required:
+        - name
+        - version
+        - protocol_version
+      properties:
+        name:
+          type: string
+          example: 'brave'
+          description: MCP server name or ConfigMap key fallback
+        version:
+          type: string
+          example: '1.0.0'
+          description: MCP server version or 'N/A' if unavailable
+        protocol_version:
+          type: string
+          example: '2024-11-05'
+          description: MCP protocol version or empty string if unavailable
+
+    MCPConnectionStatus:
+      type: object
+      required:
+        - server_url
+        - status
+        - message
+        - last_checked
+        - server_info
+      properties:
+        server_url:
+          type: string
+          format: uri
+          example: 'http://localhost:9090/sse'
+          description: URL of the MCP server
+        status:
+          type: string
+          enum: ['connected', 'error']
+          example: 'connected'
+          description: Connection status of the MCP server
+        message:
+          type: string
+          example: 'Server is responding normally'
+          description: Detailed status message or error description
+        last_checked:
+          type: integer
+          format: int64
+          example: 1755721435
+          description: Unix timestamp when the status was last checked
+        server_info:
+          $ref: '#/components/schemas/MCPServerInfo'
+          description: Nested server information including name, version, and protocol version
+        ping_response_time_ms:
+          type: integer
+          format: int64
+          example: 45
+          description: Ping response time in milliseconds (only present on successful connection)
+        error_details:
+          $ref: '#/components/schemas/MCPErrorDetails'
+          description: Structured error information (only present when status is 'error')
+
+    MCPToolsStatus:
+      type: object
+      required:
+        - server_url
+        - status
+        - message
+        - last_checked
+        - server_info
+        - tools
+      properties:
+        server_url:
+          type: string
+          format: uri
+          example: 'http://localhost:9090/sse'
+          description: URL of the MCP server
+        status:
+          type: string
+          enum: ['success', 'error']
+          example: 'success'
+          description: Status of the tools retrieval operation
+        message:
+          type: string
+          example: 'Successfully retrieved 2 tools'
+          description: Success message or clean error message
+        last_checked:
+          type: integer
+          format: int64
+          example: 1755721435
+          description: Unix timestamp when the tools were last checked
+        server_info:
+          $ref: '#/components/schemas/MCPServerInfo'
+          description: Nested server information including name, version, and protocol version
+        tools_count:
+          type: integer
+          example: 2
+          description: Number of available tools (only present on successful connection)
+        tools:
+          type: array
+          items:
+            $ref: '#/components/schemas/MCPTool'
+          description: List of tools (empty array on error)
+        error_details:
+          $ref: '#/components/schemas/MCPErrorDetails'
+          description: Structured error information (only present when status is 'error')
+
+    MCPListData:
+      type: object
+      required:
+        - servers
+        - total_count
+        - config_map_info
+      properties:
+        servers:
+          type: array
+          items:
+            $ref: '#/components/schemas/MCPServerSummary'
+          description: Array of MCP server summaries for frontend table display
+        total_count:
+          type: integer
+          example: 2
+          description: Total number of MCP servers in the ConfigMap
+        config_map_info:
+          $ref: '#/components/schemas/MCPConfigMapInfo'
+          description: Metadata about the source ConfigMap
+
+    MCPServerSummary:
+      type: object
+      required:
+        - name
+        - url
+        - transport
+        - description
+        - status
+      properties:
+        name:
+          type: string
+          example: 'brave'
+          description: MCP server name (ConfigMap key)
+        url:
+          type: string
+          format: uri
+          example: 'http://localhost:9090/sse'
+          description: Full URL of the MCP server endpoint
+        transport:
+          type: string
+          enum: ['sse', 'streamable-http']
+          example: 'sse'
+          description: Transport type used by the MCP server
+        description:
+          type: string
+          example: 'Search the Internet.'
+          description: Description of the MCP server functionality
+        logo:
+          type: string
+          format: uri
+          nullable: true
+          example: 'https://kubernetes.io/images/kubernetes-horizontal-color.png'
+          description: Optional logo URL for the MCP server (null if not provided)
+        status:
+          type: string
+          enum: ['healthy', 'error', 'unknown']
+          example: 'healthy'
+          description: Server status based on ConfigMap data only (no MCP calls made)
+
+    MCPConfigMapInfo:
+      type: object
+      required:
+        - name
+        - namespace
+        - last_updated
+      properties:
+        name:
+          type: string
+          example: 'gen-ai-aa-mcp-servers-e'
+          description: Name of the ConfigMap containing MCP server configurations
+        namespace:
+          type: string
+          example: 'mcp-servers'
+          description: Kubernetes namespace containing the ConfigMap
+        last_updated:
+          type: string
+          format: date-time
+          example: '2024-01-15T10:30:00Z'
+          description: ISO 8601 timestamp when the ConfigMap was last updated
+
+    MCPServerStatus:
+      type: object
+      required:
+        - name
+        - config
+        - connection_status
+      properties:
+        name:
+          type: string
+          example: 'kubectl-server'
+          description: Name/identifier of the MCP server
+        config:
+          $ref: '#/components/schemas/MCPServerConfigLegacy'
+        connection_status:
+          $ref: '#/components/schemas/MCPConnectionStatus'
+        tools:
+          type: array
+          items:
+            $ref: '#/components/schemas/MCPTool'
+          description: Available tools from the MCP server (only present when include_tools=true)
+
+    MCPServerConfigLegacy:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          example: 'http://kubectl-mcp-server.mcp-servers.svc.cluster.local:8080'
+          description: URL endpoint for the MCP server
+        description:
+          type: string
+          example: 'Manage resources in a Kubernetes cluster'
+          description: Human-readable description of the MCP server's capabilities
+        logo:
+          type: string
+          example: 'https://kubernetes.io/images/kubernetes-horizontal-color.png'
+          description: Optional logo URL for the MCP server
+
+    MCPServersStatusData:
+      type: array
+      items:
+        $ref: '#/components/schemas/MCPServerStatus'
+      description: Array of MCP server status information
+
+    ConfigMapMetadata:
+      type: object
+      required:
+        - name
+        - namespace
+      properties:
+        name:
+          type: string
+          example: 'gen-ai-aa-mcp-servers'
+          description: Name of the ConfigMap
+        namespace:
+          type: string
+          example: 'mcp-servers'
+          description: Kubernetes namespace containing the ConfigMap
+        creationTimestamp:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2024-01-15T10:30:00Z'
+          description: Timestamp when the ConfigMap was created
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+          example:
+            app: 'mcp-server-registry'
+            version: 'v1.0.0'
+          description: Labels applied to the ConfigMap
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+          description: Annotations applied to the ConfigMap
 
   responses:
     HealthCheckResponse:
@@ -1108,7 +1703,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/HealthCheckModel"
+            $ref: '#/components/schemas/HealthCheckModel'
 
     ModelsResponse:
       description: List of available AI models
@@ -1120,7 +1715,7 @@ components:
               - data
             properties:
               data:
-                $ref: "#/components/schemas/ModelsData"
+                $ref: '#/components/schemas/ModelsData'
 
     VectorStoresResponse:
       description: List of vector stores with pagination support
@@ -1132,7 +1727,7 @@ components:
               - data
             properties:
               data:
-                $ref: "#/components/schemas/VectorStoresData"
+                $ref: '#/components/schemas/VectorStoresData'
 
     VectorStoreResponse:
       description: Created vector store
@@ -1144,7 +1739,7 @@ components:
               - data
             properties:
               data:
-                $ref: "#/components/schemas/VectorStore"
+                $ref: '#/components/schemas/VectorStore'
 
     FileUploadResponse:
       description: File upload and vector store addition result
@@ -1156,14 +1751,14 @@ components:
               - data
             properties:
               data:
-                $ref: "#/components/schemas/FileUploadResult"
+                $ref: '#/components/schemas/FileUploadResult'
             example:
               data:
-                file_id: "file-abc123def456"
+                file_id: 'file-abc123def456'
                 vector_store_file:
-                  id: "vsf-def789ghi012"
-                  vector_store_id: "vs_abc123"
-                  status: "completed"
+                  id: 'vsf-def789ghi012'
+                  vector_store_id: 'vs_abc123'
+                  status: 'completed'
 
     CodeExportResponse:
       description: Generated Python code for Llama Stack integration
@@ -1175,7 +1770,7 @@ components:
               - data
             properties:
               data:
-                $ref: "#/components/schemas/CodeExportData"
+                $ref: '#/components/schemas/CodeExportData'
             example:
               data:
                 code: |
@@ -1193,16 +1788,16 @@ components:
               - data
             properties:
               data:
-                $ref: "#/components/schemas/NamespacesData"
+                $ref: '#/components/schemas/NamespacesData'
             example:
               data:
-                - name: "default"
-                  displayName: "default"
-                - name: "kube-system"
-                  displayName: "kube-system"
-                - name: "llama-stack"
-                  displayName: "llama-stack"
-                - name: "test-namespace"
+                - name: 'default'
+                  displayName: 'default'
+                - name: 'kube-system'
+                  displayName: 'kube-system'
+                - name: 'llama-stack'
+                  displayName: 'llama-stack'
+                - name: 'test-namespace'
                   displayName: null
 
     LlamaStackDistributionStatusResponse:
@@ -1215,43 +1810,236 @@ components:
               - data
             properties:
               data:
-                $ref: "#/components/schemas/LlamaStackDistributionModel"
+                $ref: '#/components/schemas/LlamaStackDistributionModel'
                 nullable: true
             example:
               data:
-                name: "test-lsd"
-                phase: "Ready"
-                version: "v0.2.0"
+                name: 'test-lsd'
+                phase: 'Ready'
+                version: 'v0.2.0'
                 distributionConfig:
-                  activeDistribution: "ollama"
+                  activeDistribution: 'ollama'
                   availableDistributions:
-                    ollama: "docker.io/llamastack/distribution-ollama:latest"
-                    bedrock: "docker.io/llamastack/distribution-bedrock:latest"
+                    ollama: 'docker.io/llamastack/distribution-ollama:latest'
+                    bedrock: 'docker.io/llamastack/distribution-bedrock:latest'
                   providers:
-                    - api: "mock-api"
-                      provider_id: "mock-provider"
-                      provider_type: "mock-type"
+                    - api: 'mock-api'
+                      provider_id: 'mock-provider'
+                      provider_type: 'mock-type'
                       config: null
                       health:
-                        status: "healthy"
-                        message: "Provider is responding normally"
+                        status: 'healthy'
+                        message: 'Provider is responding normally'
             examples:
               lsd_found:
                 summary: LSD found
                 value:
                   data:
-                    name: "test-lsd"
-                    phase: "Ready"
-                    version: "v0.2.0"
+                    name: 'test-lsd'
+                    phase: 'Ready'
+                    version: 'v0.2.0'
                     distributionConfig:
-                      activeDistribution: "ollama"
+                      activeDistribution: 'ollama'
                       availableDistributions:
-                        ollama: "docker.io/llamastack/distribution-ollama:latest"
+                        ollama: 'docker.io/llamastack/distribution-ollama:latest'
                       providers: []
               lsd_not_found:
                 summary: No LSD found
                 value:
                   data: null
+
+    MCPToolsResponse:
+      description: Comprehensive tools information from MCP server specified by URL
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/MCPToolsStatus'
+                description: Comprehensive status and tools information from the MCP server
+          examples:
+            success_response:
+              summary: Successful Tools Retrieval
+              value:
+                data:
+                  server_url: 'http://localhost:9090/sse'
+                  status: 'success'
+                  message: 'Successfully retrieved 2 tools'
+                  last_checked: 1755721435
+                  server_info:
+                    name: 'brave'
+                    version: '1.0.0'
+                    protocol_version: '2024-11-05'
+                  tools_count: 2
+                  tools:
+                    - name: 'brave_web_search'
+                      description: 'Search the web using Brave Search API'
+                      input_schema:
+                        type: 'object'
+                        properties:
+                          query:
+                            type: 'string'
+                            description: 'Search query string'
+                          count:
+                            type: 'integer'
+                            description: 'Number of results to return (1-20)'
+                            default: 10
+                        required: ['query']
+                    - name: 'brave_local_search'
+                      description: 'Search for local businesses using Brave Local Search API'
+                      input_schema:
+                        type: 'object'
+                        properties:
+                          query:
+                            type: 'string'
+                            description: "Local search query (e.g. 'pizza near Central Park')"
+                          count:
+                            type: 'integer'
+                            description: 'Number of results to return (1-20)'
+                            default: 5
+                        required: ['query']
+            connection_error:
+              summary: Connection Error
+              value:
+                data:
+                  server_url: 'http://localhost:9090/sse'
+                  status: 'error'
+                  message: 'Server is not reachable'
+                  last_checked: 1755721435
+                  server_info:
+                    name: 'brave'
+                    version: 'N/A'
+                    protocol_version: ''
+                  tools: []
+                  error_details:
+                    code: 'connection_error'
+                    status_code: 503
+                    raw_error: 'failed to create SSE transport: dial tcp: connection refused'
+            authentication_failure:
+              summary: Authentication Failed
+              value:
+                data:
+                  server_url: 'http://localhost:7008/api/mcp-actions/v1/sse'
+                  status: 'error'
+                  message: 'Authentication failed'
+                  last_checked: 1755721435
+                  server_info:
+                    name: 'brave'
+                    version: 'N/A'
+                    protocol_version: ''
+                  tools: []
+                  error_details:
+                    code: 'unauthorized'
+                    status_code: 401
+                    raw_error: 'failed to connect to MCP server: HTTP 401: invalid bearer token'
+
+    MCPStatusResponse:
+      description: Connection status from MCP server specified by URL
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/MCPConnectionStatus'
+                description: Connection status information for the MCP server
+          examples:
+            successful_connection:
+              summary: Successful Connection
+              value:
+                data:
+                  server_url: 'http://localhost:9090/sse'
+                  status: 'connected'
+                  message: 'Connection successful'
+                  last_checked: 1757090417
+                  server_info:
+                    name: 'example-servers/brave-search'
+                    version: '0.1.0'
+                    protocol_version: '2025-06-18'
+                  ping_response_time_ms: 2444
+            server_unavailable:
+              summary: Server Unavailable
+              value:
+                data:
+                  server_url: 'http://localhost:9090/sse'
+                  status: 'error'
+                  message: 'Server is not reachable'
+                  last_checked: 1757090515
+                  server_info:
+                    name: 'brave'
+                    version: 'N/A'
+                    protocol_version: ''
+                  error_details:
+                    code: 'CONNECTION_FAILED'
+                    status_code: 503
+                    raw_error: 'failed to connect to MCP server: Get "http://localhost:9090/sse": dial tcp [::1]:9090: connect: connection refused'
+            authentication_failure:
+              summary: Authentication Failed
+              value:
+                data:
+                  server_url: 'http://localhost:7008/api/mcp-actions/v1/sse'
+                  status: 'error'
+                  message: 'Authentication failed'
+                  last_checked: 1757090647
+                  server_info:
+                    name: 'brave'
+                    version: 'N/A'
+                    protocol_version: ''
+                  error_details:
+                    code: 'unauthorized'
+                    status_code: 401
+                    raw_error: "failed to connect to MCP server: Get \"http://localhost:7008/api/mcp-actions/v1/sse\": HTTP 401: {\n  \"error\": {\n    \"name\": \"AuthenticationError\",\n    \"message\": \"Illegal token\",\n    \"stack\": \"AuthenticationError: Illegal token\\n    at DefaultAuthService.authenticate (/Users/akundu/Desktop/DeveloperHub/learning-projects/my-portal/node_modules/@backstage/backend-defaults/src/entrypoints/auth/DefaultAuthService.ts:102:11)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\\n    at async DefaultHttpAuthService.#extractCredentialsFromRequest (/Users/akundu/Desktop/DeveloperHub/learning-projects/my-portal/node_modules/@backstage/backend-defaults/src/entrypoints/httpAuth/httpAuthServiceFactory.ts:124:12)\\n    at async DefaultHttpAuthService.credentials (/Users/akundu/Desktop/DeveloperHub/learning-projects/my-portal/node_modules/@backstage/backend-defaults/src/entrypoints/httpAuth/httpAuthServiceFactory.ts:167:9)\"\n  },\n  \"request\": {\n    \"method\": \"GET\",\n    \"url\": \"/v1/sse\"\n  },\n  \"response\": {\n    \"statusCode\": 401\n  }\n}"
+
+    MCPServersListResponse:
+      description: Enhanced list of available MCP servers from ConfigMap with metadata
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/MCPListData'
+                description: Enhanced MCP servers list with metadata
+          examples:
+            success_response:
+              summary: Successful MCP Servers List
+              value:
+                data:
+                  servers:
+                    - name: 'brave'
+                      url: 'http://localhost:9090/sse'
+                      transport: 'sse'
+                      description: 'Search the Internet.'
+                      logo: null
+                      status: 'healthy'
+                    - name: 'kubernetes'
+                      url: 'http://localhost:9091/mcp'
+                      transport: 'streamable-http'
+                      description: 'Manage resources in a Kubernetes cluster.'
+                      logo: 'https://kubernetes.io/_common-resources/images/flower.svg'
+                      status: 'healthy'
+                  total_count: 2
+                  config_map_info:
+                    name: 'gen-ai-aa-mcp-servers-e'
+                    namespace: 'mcp-servers'
+                    last_updated: '2024-01-15T10:30:00Z'
+            empty_response:
+              summary: Empty ConfigMap
+              value:
+                data:
+                  servers: []
+                  total_count: 0
+                  config_map_info:
+                    name: 'gen-ai-aa-mcp-servers-e'
+                    namespace: 'mcp-servers'
+                    last_updated: '2024-01-15T10:30:00Z'
 
     CreateResponseResponse:
       description: Created AI response with essential information only
@@ -1263,55 +2051,68 @@ components:
               - data
             properties:
               data:
-                $ref: "#/components/schemas/SimplifiedResponse"
+                $ref: '#/components/schemas/SimplifiedResponse'
             example:
               data:
-                id: "resp-78d9c676-d1b0-4fed-b89a-9fd81a9d990c"
-                model: "ollama/llama3.2:3b"
-                status: "completed"
+                id: 'resp-78d9c676-d1b0-4fed-b89a-9fd81a9d990c'
+                model: 'ollama/llama3.2:3b'
+                status: 'completed'
                 created_at: 1755721435.0
-                content: "This is a sample AI response. The content would contain the actual generated text from the AI model based on the input prompt and any retrieved context from vector stores."
+                content: 'This is a sample AI response. The content would contain the actual generated text from the AI model based on the input prompt and any retrieved context from vector stores.'
                 usage:
                   input_tokens: 15
                   output_tokens: 45
                   total_tokens: 60
 
     BadRequest:
-      description: Bad Request - Invalid parameters or missing required fields
+      description: Bad Request - Invalid parameters, missing required fields, or malformed MCP Bearer token
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorEnvelope"
+            $ref: '#/components/schemas/ErrorEnvelope'
+          examples:
+            malformed_mcp_token:
+              summary: Malformed MCP Bearer Token
+              value:
+                error:
+                  code: '400'
+                  message: "malformed MCP token: expected X-MCP-Bearer header to start with 'Bearer '"
+            missing_parameter:
+              summary: Missing Required Parameter
+              value:
+                error:
+                  code: '400'
+                  message: 'missing required query parameter: namespace'
 
     Unauthorized:
       description: Unauthorized - Invalid or missing authentication token
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorEnvelope"
+            $ref: '#/components/schemas/ErrorEnvelope'
 
     NotFound:
       description: Not Found - Requested resource does not exist
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorEnvelope"
+            $ref: '#/components/schemas/ErrorEnvelope'
 
     InternalServerError:
       description: Internal Server Error - Server encountered an unexpected condition
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorEnvelope"
+            $ref: '#/components/schemas/ErrorEnvelope'
 
     UserResponse:
       description: Current user information
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/UserModel"
+            $ref: '#/components/schemas/UserModel'
           example:
-            userId: "user@example.com"
+            userId: 'user@example.com'
 
 tags:
   - name: HealthCheck
@@ -1330,3 +2131,5 @@ tags:
     description: Kubernetes cluster operations and namespace management
   - name: Identity
     description: User identity and authentication operations
+  - name: MCP Servers
+    description: Model Context Protocol (MCP) server management and tool discovery
