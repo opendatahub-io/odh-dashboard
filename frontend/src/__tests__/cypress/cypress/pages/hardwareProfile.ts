@@ -85,7 +85,11 @@ class HardwareProfile {
   }
 
   findNavItem() {
-    return appChrome.findNavItem('Hardware profiles', 'Settings');
+    return appChrome.findNavItem({
+      name: 'Hardware profiles',
+      rootSection: 'Settings',
+      subSection: 'Environment setup',
+    });
   }
 
   getCell(rowIndex: number, columnIndex: number) {

@@ -19,7 +19,11 @@ class ClusterSettings {
   }
 
   findNavItem() {
-    return appChrome.findNavItem('Cluster settings', 'Settings');
+    return appChrome.findNavItem({
+      name: 'General settings',
+      rootSection: 'Settings',
+      subSection: 'Cluster settings',
+    });
   }
 
   findSubmitButton() {

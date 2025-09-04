@@ -17,6 +17,7 @@ import { getStatusReportSummary } from '#~/app/status-provider/utils';
 import { NavItem } from './NavItem';
 import { NavItemTitle } from './NavItemTitle';
 import { compareNavItemGroups } from './utils';
+import NavIcon from './NavIcon';
 
 type Props = {
   extension: NavSectionExtension;
@@ -24,7 +25,7 @@ type Props = {
 
 export const NavSection: React.FC<Props> = ({
   extension: {
-    properties: { id, title, dataAttributes },
+    properties: { id, title, dataAttributes, iconRef },
   },
 }) => {
   const [status, setStatus] = React.useState<Record<string, StatusReport | undefined>>({});
@@ -34,9 +35,7 @@ export const NavSection: React.FC<Props> = ({
   const navExtensions = React.useMemo(
     () =>
       extensions
-        .filter(
-          (extension) => !isNavSectionExtension(extension) && id === extension.properties.section,
-        )
+        .filter((extension) => id === extension.properties.section)
         .toSorted(compareNavItemGroups),
     [id, extensions],
   );
@@ -49,11 +48,25 @@ export const NavSection: React.FC<Props> = ({
   const navExtensionIsActive = React.useCallback(
     (e: LoadedExtension<NavExtension>) => {
       if (isHrefNavItemExtension(e)) {
-        return matchPath(e.properties.path ?? e.properties.href, pathname);
+        return !!matchPath(e.properties.path ?? e.properties.href, pathname);
+      }
+      if (isNavSectionExtension(e)) {
+        const childExtensions = extensions.filter(
+          (childExt) => e.properties.id === childExt.properties.section,
+        );
+        return childExtensions.some((childExt): boolean => {
+          if (isHrefNavItemExtension(childExt)) {
+            return !!matchPath(childExt.properties.path ?? childExt.properties.href, pathname);
+          }
+          if (isNavSectionExtension(childExt)) {
+            return navExtensionIsActive(childExt);
+          }
+          return false;
+        });
       }
       return false;
     },
-    [pathname],
+    [pathname, extensions],
   );
 
   const isActive = React.useMemo(
@@ -92,7 +105,8 @@ export const NavSection: React.FC<Props> = ({
       title={
         <NavItemTitle
           title={title}
-          icon={summaryStatus ? <StatusReportIcon status={summaryStatus} /> : null}
+          navIcon={iconRef ? <NavIcon componentRef={iconRef} /> : null}
+          statusIcon={summaryStatus ? <StatusReportIcon status={summaryStatus} /> : null}
         />
       }
       isActive={isActive}

@@ -8,7 +8,7 @@ class Resources {
   }
 
   navigate() {
-    appChrome.findNavItem('Resources').click();
+    appChrome.findNavItem({ name: 'Learning resources' }).click();
     this.wait();
   }
 

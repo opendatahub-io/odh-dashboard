@@ -1,5 +1,6 @@
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import type { AccessReviewResourceAttributes } from '@odh-dashboard/internal/k8sTypes';
+import type { ComponentCodeRef } from '../core/types';
 
 /**
  * Adds a navigation item to the host application.
@@ -26,10 +27,7 @@ export type HrefNavItemExtension = Extension<
 /**
  * Adds a navigation section to the host application.
  */
-export type NavSectionExtension = Extension<
-  'app.navigation/section',
-  Omit<NavItemProperties, 'section'>
->;
+export type NavSectionExtension = Extension<'app.navigation/section', NavItemProperties>;
 
 export type NavExtension = HrefNavItemExtension | NavSectionExtension;
 
@@ -44,6 +42,10 @@ export type NavItemProperties = {
   dataAttributes?: { [key: string]: string };
   /** Group are used to sort items lexographically. Unspecified items will be sorted into the '5_default' group. */
   group?: string;
+  /** Icon reference for this item. */
+  iconRef?: ComponentCodeRef;
+  /** Label for this item. */
+  label?: string;
 };
 
 // Type guards

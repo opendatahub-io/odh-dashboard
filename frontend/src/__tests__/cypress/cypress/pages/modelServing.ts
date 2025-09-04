@@ -26,7 +26,7 @@ class ModelServingGlobal {
   }
 
   navigate() {
-    appChrome.findNavItem('Model deployments').click();
+    appChrome.findNavItem({ name: 'Deployments', rootSection: 'AI hub' }).click();
     this.wait();
   }
 

@@ -28,10 +28,15 @@ declare global {
       /**
        * Finds a app nav item relative to the subject element.
        *
-       * @param name the name of the item
-       * @param section the section of the item
+       * @param args.name the name of the item
+       * @param args.rootSection the root section of the item
+       * @param args.subSection the sub-section of the item (optional, for nested navigation)
        */
-      findAppNavItem: (name: string, section?: string) => Cypress.Chainable<JQuery>;
+      findAppNavItem: (args: {
+        name: string;
+        rootSection?: string;
+        subSection?: string;
+      }) => Cypress.Chainable<JQuery>;
 
       /**
        * Find a patternfly kebab toggle button.
@@ -188,30 +193,66 @@ declare global {
   }
 }
 
-Cypress.Commands.addQuery('findAppNavItem', (name: string, section?: string) => {
-  Cypress.log({
-    displayName: 'findAppNavItem',
-    message: `name: ${name}, section: ${section ?? 'none'}`,
-  });
+Cypress.Commands.addQuery(
+  'findAppNavItem',
+  (args: { name: string; rootSection?: string; subSection?: string }) => {
+    Cypress.log({
+      displayName: 'findAppNavItem',
+      message: `name: ${args.name}, rootSection: ${args.rootSection ?? 'none'}, subSection: ${
+        args.subSection ?? 'none'
+      }`,
+    });
 
-  return (subject) => {
-    Cypress.ensure.isElement(subject, 'findAppNavItem', cy);
-    const $el: JQuery<HTMLElement> = subject;
+    return (subject) => {
+      Cypress.ensure.isElement(subject, 'findAppNavItem', cy);
+      const $el: JQuery<HTMLElement> = subject;
 
-    let $parent = $el;
-    if (section) {
-      const $section = $el.find(`:contains('${section}')`).closest('button');
-      if ($section.length) {
-        $parent = $section.parent();
-        if ($section.attr('aria-expanded') === 'false') {
-          $section.trigger('click');
+      let $parent = $el;
+
+      if (args.rootSection) {
+        const $rootSectionElement = $parent
+          .find(`:contains('${args.rootSection}')`)
+          .closest('button');
+        if ($rootSectionElement.length) {
+          // Expand the root section if it's collapsed
+          if ($rootSectionElement.attr('aria-expanded') === 'false') {
+            $rootSectionElement.trigger('click');
+          }
+          // Move to the expanded root section's content area
+          $parent = $rootSectionElement.parent();
+        } else {
+          Cypress.log({
+            displayName: 'findAppNavItem',
+            message: `Root section '${args.rootSection}' not found`,
+          });
+          return $parent.find('__non_existent_selector__');
         }
       }
-    }
 
-    return $parent.find(`:contains('${name}')`).closest('a');
-  };
-});
+      if (args.subSection && args.rootSection) {
+        const $subSectionElement = $parent
+          .find(`:contains('${args.subSection}')`)
+          .closest('button');
+        if ($subSectionElement.length) {
+          // Expand the sub-section if it's collapsed
+          if ($subSectionElement.attr('aria-expanded') === 'false') {
+            $subSectionElement.trigger('click');
+          }
+          // Move to the expanded sub-section's content area
+          $parent = $subSectionElement.parent();
+        } else {
+          Cypress.log({
+            displayName: 'findAppNavItem',
+            message: `Sub-section '${args.subSection}' not found in root section '${args.rootSection}'`,
+          });
+          return $parent.find('__non_existent_selector__');
+        }
+      }
+
+      return $parent.find(`:contains('${args.name}')`).closest('a');
+    };
+  },
+);
 
 Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUSTER_ADMIN_USER) => {
   if (Cypress.env('MOCK')) {

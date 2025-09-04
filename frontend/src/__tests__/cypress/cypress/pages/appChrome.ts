@@ -36,8 +36,8 @@ class AppChrome {
     return this.findSideBar().findByRole('button', { name });
   }
 
-  findNavItem(name: string, section?: string) {
-    return this.findSideBar().findAppNavItem(name, section);
+  findNavItem(args: { name: string; rootSection?: string; subSection?: string }) {
+    return this.findSideBar().findAppNavItem(args);
   }
 }
 

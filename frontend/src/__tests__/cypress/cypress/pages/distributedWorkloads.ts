@@ -13,7 +13,7 @@ class GlobalDistributedWorkloads {
   }
 
   findNavItem() {
-    return appChrome.findNavItem('Distributed workloads');
+    return appChrome.findNavItem({ name: 'Workload metrics', rootSection: 'Observe & monitor' });
   }
 
   shouldNotFoundPage() {
