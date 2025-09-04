@@ -10,6 +10,8 @@ jobs:
       modules-cache-key: ${{ steps.key.outputs.modules-cache-key }}
     steps:
       - uses: actions/checkout@v4
+      - name: Validate all package-lock.json files
+        run: ./scripts/check-package-lock.sh --all
       - name: Generate modules cache key
         id: key
         run: |
