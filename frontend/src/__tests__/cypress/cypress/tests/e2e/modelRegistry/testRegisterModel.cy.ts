@@ -30,6 +30,7 @@ describe('Verify models can be registered in a model registry', () => {
   let testData: RegisterModelTestData;
   let registryName: string;
   let objectStorageModelName: string;
+  let deploymentName: string;
   const uuid = generateTestUUID();
 
   before(() => {
@@ -38,10 +39,11 @@ describe('Verify models can be registered in a model registry', () => {
       testData = fixtureData;
       registryName = `${testData.registryNamePrefix}-${uuid}`;
       objectStorageModelName = `${testData.objectStorageModelName}-${uuid}`;
+      deploymentName = testData.operatorDeploymentName;
 
       // ensure operator has optimal memory
       cy.step('Ensure operator has optimal memory for testing');
-      ensureOperatorMemoryLimit().should('be.true');
+      ensureOperatorMemoryLimit(deploymentName).should('be.true');
 
       // create and verify SQL database for the model registry
       cy.step('Create and verify SQL database for model registry');

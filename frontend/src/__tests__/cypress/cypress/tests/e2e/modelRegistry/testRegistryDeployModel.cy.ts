@@ -30,6 +30,7 @@ describe('Verify models can be deployed from model registry', () => {
   let registryName: string;
   let modelName: string;
   let projectName: string;
+  let deploymentName: string;
   const uuid = generateTestUUID();
 
   retryableBefore(() => {
@@ -39,10 +40,11 @@ describe('Verify models can be deployed from model registry', () => {
       registryName = `${testData.registryNamePrefix}-${uuid}`;
       modelName = `${testData.objectStorageModelName}-${uuid}`;
       projectName = `${testData.deployProjectNamePrefix}-${uuid}`;
+      deploymentName = testData.operatorDeploymentName;
 
       // ensure operator has optimal memory
       cy.step('Ensure operator has optimal memory for testing');
-      ensureOperatorMemoryLimit().should('be.true');
+      ensureOperatorMemoryLimit(deploymentName).should('be.true');
 
       // Create and verify SQL database
       cy.step('Create and verify SQL database for model registry');

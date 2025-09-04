@@ -23,11 +23,11 @@ export const getModelRegistryNamespace = (): string => {
 
 /**
  * Check and ensure the model registry operator has 1Gi memory limit
+ * @param deploymentName The deployment name from configuration
  * @returns Cypress.Chainable<boolean> that resolves to true if operator is properly configured
  */
-export const ensureOperatorMemoryLimit = (): Cypress.Chainable<boolean> => {
+export const ensureOperatorMemoryLimit = (deploymentName: string): Cypress.Chainable<boolean> => {
   const operatorNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
-  const deploymentName = 'model-registry-operator-controller-manager';
 
   if (!operatorNamespace) {
     return cy.wrap(false);

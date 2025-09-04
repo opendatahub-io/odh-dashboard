@@ -38,6 +38,7 @@ import {
 describe('Verify that models and versions can be archived and restored via model registry', () => {
   let testData: RegisterModelTestData;
   let registryName: string;
+  let deploymentName: string;
   const uuid = generateTestUUID();
 
   before(() => {
@@ -46,10 +47,11 @@ describe('Verify that models and versions can be archived and restored via model
       (fixtureData) => {
         testData = fixtureData;
         registryName = `${testData.registryNamePrefix}-${uuid}`;
+        deploymentName = testData.operatorDeploymentName;
 
         // ensure operator has optimal memory
         cy.step('Ensure operator has optimal memory for testing');
-        ensureOperatorMemoryLimit().should('be.true');
+        ensureOperatorMemoryLimit(deploymentName).should('be.true');
 
         // Create and verify SQL database
         cy.step('Create and verify SQL database for model registry');

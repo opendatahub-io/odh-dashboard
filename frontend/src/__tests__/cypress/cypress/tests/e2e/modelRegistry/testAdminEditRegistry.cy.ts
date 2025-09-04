@@ -21,6 +21,7 @@ describe('Verify that admin users can edit a model registry', () => {
   let testData: RegisterModelTestData;
   let registryName: string;
   let originalRegistryName: string;
+  let deploymentName: string;
   const uuid = generateTestUUID();
 
   before(() => {
@@ -29,10 +30,11 @@ describe('Verify that admin users can edit a model registry', () => {
       testData = fixtureData;
       registryName = `${testData.registryNamePrefix}-${uuid}`;
       originalRegistryName = registryName; // Store original name for cleanup
+      deploymentName = testData.operatorDeploymentName;
 
       // ensure operator has optimal memory
       cy.step('Ensure operator has optimal memory for testing');
-      ensureOperatorMemoryLimit().should('be.true');
+      ensureOperatorMemoryLimit(deploymentName).should('be.true');
 
       // Create and verify SQL database
       cy.step('Create and verify SQL database for model registry');

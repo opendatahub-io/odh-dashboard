@@ -26,6 +26,7 @@ describe('Verify model registry permissions can be managed', () => {
   let testData: ManageRegistryPermissionsTestData;
   let registryName: string;
   let testProjectName: string;
+  let deploymentName: string;
   const uuid = generateTestUUID();
 
   before(() => {
@@ -35,10 +36,11 @@ describe('Verify model registry permissions can be managed', () => {
         testData = fixtureData;
         registryName = `${testData.registryNamePrefix}-${uuid}`;
         testProjectName = `${testData.testProjectNamePrefix}-${uuid}`;
+        deploymentName = testData.operatorDeploymentName;
 
         // ensure operator has optimal memory
         cy.step('Ensure operator has optimal memory for testing');
-        ensureOperatorMemoryLimit().should('be.true');
+        ensureOperatorMemoryLimit(deploymentName).should('be.true');
 
         // Create and verify SQL database
         cy.step('Create and verify SQL database for model registry');

@@ -322,6 +322,8 @@ export type NotebookTolerationsTestData = {
 
 export type RegisterModelTestData = {
   registryNamePrefix: string;
+  // Model Registry Operator Configuration
+  operatorDeploymentName: string;
   // First model (Object Storage)
   objectStorageModelName: string;
   objectStorageModelDescription: string;
@@ -357,6 +359,8 @@ export type ManageRegistryPermissionsTestData = {
   registryNamePrefix: string;
   testProjectNamePrefix: string;
   rhodsUsersGroup: string;
+  // Model Registry Operator Configuration
+  operatorDeploymentName: string;
 };
 
 export enum AccessMode {

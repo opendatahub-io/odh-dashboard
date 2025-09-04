@@ -1,6 +1,9 @@
 # Test data for model registry registration tests
 registryNamePrefix: "test-model-registry"
 
+# Model Registry Operator Configuration
+operatorDeploymentName: "model-registry-operator-controller-manager"
+
 # First model (Object Storage)
 objectStorageModelName: "test-object-storage-model"
 objectStorageModelDescription: "E2E test model using object storage"

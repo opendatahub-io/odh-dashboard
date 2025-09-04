@@ -2,3 +2,6 @@
 registryNamePrefix: "test-mr-permissions-registry"
 testProjectNamePrefix: "test-mr-permissions-project"
 rhodsUsersGroup: "rhods-users"
+
+# Model Registry Operator Configuration
+operatorDeploymentName: "model-registry-operator-controller-manager"
