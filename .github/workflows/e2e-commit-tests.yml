@@ -30,23 +30,90 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Debug available secrets
+        run: |
+          echo "🔍 DEBUG: Checking available secrets..."
+          echo "Event name: ${{ github.event_name }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Repository owner: ${{ github.repository_owner }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Base ref: ${{ github.base_ref }}"
+          echo "Head ref: ${{ github.head_ref }}"
+
+          # Check for specific secrets without revealing values
+          if [ -n "${{ secrets.GITLAB_TOKEN }}" ]; then
+            echo "✅ GITLAB_TOKEN: Available (length: ${#GITLAB_TOKEN})"
+          else
+            echo "❌ GITLAB_TOKEN: Not available or empty"
+          fi
+
+          if [ -n "${{ secrets.GITLAB_TEST_VARS_URL }}" ]; then
+            echo "✅ GITLAB_TEST_VARS_URL: Available (length: ${#GITLAB_TEST_VARS_URL})"
+          else
+            echo "❌ GITLAB_TEST_VARS_URL: Not available or empty"
+          fi
+
+          # Check other potentially relevant secrets
+          if [ -n "${{ secrets.OC_SERVER }}" ]; then
+            echo "✅ OC_SERVER: Available"
+          else
+            echo "❌ OC_SERVER: Not available"
+          fi
+
+          if [ -n "${{ secrets.OCP_CONSOLE_URL }}" ]; then
+            echo "✅ OCP_CONSOLE_URL: Available"
+          else
+            echo "❌ OCP_CONSOLE_URL: Not available"
+          fi
+
+          if [ -n "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
+            echo "✅ ODH_DASHBOARD_URL: Available"
+          else
+            echo "❌ ODH_DASHBOARD_URL: Not available"
+          fi
+
+          # List all available secrets (names only)
+          echo "📋 Available secrets in this environment:"
+          env | grep -E '^[^=]+=' | sed 's/=.*//' | grep -i secret || echo "No SECRET variables found"
+
       - name: Download test configuration
         run: |
+          # Debug: Show what we're working with
+          echo "🔧 DEBUG: Attempting to download test configuration..."
+          echo "GITLAB_TOKEN present: $([ -n "${{ secrets.GITLAB_TOKEN }}" ] && echo 'YES' || echo 'NO')"
+          echo "GITLAB_TEST_VARS_URL present: $([ -n "${{ secrets.GITLAB_TEST_VARS_URL }}" ] && echo 'YES' || echo 'NO')"
+
           # Try to download test-variables.yml from GitLab securely
           if [ -n "${{ secrets.GITLAB_TOKEN }}" ] && [ -n "${{ secrets.GITLAB_TEST_VARS_URL }}" ]; then
-            echo "🔄 Attempting to download test configuration from GitLab..."
+            echo "🔄 Both secrets are available, attempting download..."
+            echo "Token length: ${#GITLAB_TOKEN}"
+            echo "URL length: ${#GITLAB_TEST_VARS_URL}"
+
             if curl -f -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
                      "${{ secrets.GITLAB_TEST_VARS_URL }}" \
                      -o ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml; then
               echo "✅ Successfully downloaded test configuration from GitLab"
+              ls -la ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
             else
               echo "❌ Failed to download from GitLab"
+              echo "Curl exit code: $?"
               exit 1
             fi
           else
             echo "⚠️  GitLab secrets not available - cannot download test configuration"
             echo "💡 This workflow requires GITLAB_TOKEN and GITLAB_TEST_VARS_URL secrets to be configured"
             echo "💡 For forked PRs, these secrets need to be available in the upstream repository"
+            echo ""
+            echo "🔍 DEBUG INFO:"
+            echo "- Repository: ${{ github.repository }}"
+            echo "- Event: ${{ github.event_name }}"
+            echo "- Is fork: $([ '${{ github.repository_owner }}' != 'opendatahub-io' ] && echo 'YES' || echo 'NO')"
+            echo "- Base repo: ${{ github.base_ref && github.repository || 'N/A' }}"
+            echo ""
+            echo "💡 POSSIBLE SOLUTIONS:"
+            echo "1. Ensure secrets are configured in upstream repo (opendatahub-io/odh-dashboard)"
+            echo "2. For testing, secrets need to be available when PR is merged"
+            echo "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
             exit 1
           fi
 
