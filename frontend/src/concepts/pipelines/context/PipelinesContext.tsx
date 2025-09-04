@@ -331,9 +331,11 @@ export const PipelineServerTimedOut: React.FC = () => {
     <>
       <Bullseye style={{ minHeight: '300px' }}>
         <Stack hasGutter>
-          {errorMessage && (
-            <StackItem data-testid="timeout-pipeline-error-message">{errorMessage}</StackItem>
-          )}
+          <StackItem style={{ textAlign: 'center' }}>
+            {errorMessage && (
+              <StackItem data-testid="timeout-pipeline-error-message">{errorMessage}</StackItem>
+            )}
+          </StackItem>
           <StackItem>
             <EmptyState
               icon={ExclamationCircleIcon}
