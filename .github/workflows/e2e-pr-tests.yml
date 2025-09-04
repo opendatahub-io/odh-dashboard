@@ -11,6 +11,11 @@ on:
         default: 'e2e'
         type: string
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 env:
   NODE_VERSION: 20.x
   DO_NOT_TRACK: 1
@@ -25,6 +30,16 @@ jobs:
       test-sets: ${{ steps.parse-comment.outputs.test-sets }}
       tag-name: ${{ steps.parse-comment.outputs.tag-name }}
     steps:
+      - name: Debug trigger
+        run: |
+          echo "Event name: ${{ github.event_name }}"
+          echo "Event action: ${{ github.event.action }}"
+          if [ "${{ github.event_name }}" = "issue_comment" ]; then
+            echo "Comment body: ${{ github.event.comment.body }}"
+            echo "Issue number: ${{ github.event.issue.number }}"
+            echo "Comment user: ${{ github.event.comment.user.login }}"
+          fi
+
       - name: Parse PR comment
         id: parse-comment
         run: |
@@ -37,7 +52,8 @@ jobs:
               echo "tag-name=" >> $GITHUB_OUTPUT
             else
               echo 'test-sets=["1"]' >> $GITHUB_OUTPUT
-              echo "tag-name=${{ inputs.test_type }}" | sed 's/^e2e//' >> $GITHUB_OUTPUT
+              TAG_NAME="${{ inputs.test_type }}"
+              echo "tag-name=${TAG_NAME#e2e}" >> $GITHUB_OUTPUT
             fi
             exit 0
           fi
