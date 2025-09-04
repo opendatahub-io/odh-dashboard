@@ -136,15 +136,17 @@ func (m *TokenKubernetesClientMock) GetMCPServerConfig(ctx context.Context, iden
 			Namespace: namespace,
 		},
 		Data: map[string]string{
-			"dev-cluster": `{
-  "url": "https://mcp-one:8080",
-  "description": "Manage resources in a Kubernetes cluster.",
-  "logo": "https://mysite.com/logo.png"
+			"brave": `{
+  "url": "http://localhost:9090/sse",
+  "type": "sse",
+  "version": "1.0.0",
+  "description": "Search the Internet."
 }`,
-			"git-hub": `{
-  "url": "https://mcp-two",
-  "description": "Manage a GitHub repository.",
-  "logo": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+			"kubernetes": `{
+  "url": "http://localhost:9091/mcp",
+  "type": "streamable-http",
+  "version": "2.1.0",
+  "description": "Manage resources in a Kubernetes cluster."
 }`,
 		},
 	}, nil

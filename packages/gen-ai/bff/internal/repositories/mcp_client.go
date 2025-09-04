@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations"
 	kubernetes "github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/kubernetes"
@@ -13,12 +14,17 @@ import (
 // MCPClientRepository handles MCP client operations
 type MCPClientRepository struct {
 	mcpClientFactory mcp.MCPClientFactory
+	logger           *slog.Logger
 }
 
 // NewMCPClientRepository creates a new MCP client repository
-func NewMCPClientRepository(mcpClientFactory mcp.MCPClientFactory) *MCPClientRepository {
+func NewMCPClientRepository(mcpClientFactory mcp.MCPClientFactory, logger *slog.Logger) *MCPClientRepository {
+	if logger == nil {
+		logger = slog.Default()
+	}
 	return &MCPClientRepository{
 		mcpClientFactory: mcpClientFactory,
+		logger:           logger,
 	}
 }
 
@@ -56,7 +62,10 @@ func (r *MCPClientRepository) GetMCPServersFromConfig(
 	for serverName, configJSON := range configMap.Data {
 		var config mcp.MCPServerConfig
 		if err := json.Unmarshal([]byte(configJSON), &config); err != nil {
-			// Log the error but continue with other servers
+			// Log the error with details
+			r.logger.Error("Failed to parse MCP server configuration JSON",
+				"server_name", serverName,
+				"error", err)
 			continue
 		}
 
@@ -73,28 +82,28 @@ func (r *MCPClientRepository) GetMCPServersFromConfig(
 func (r *MCPClientRepository) CheckMCPServerStatus(
 	ctx context.Context,
 	identity *integrations.RequestIdentity,
-	serverURL string,
+	serverConfig mcp.MCPServerConfig,
 ) (*mcp.ConnectionStatus, error) {
 	mcpClient, err := r.mcpClientFactory.GetClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get MCP client: %w", err)
 	}
 
-	return mcpClient.CheckConnectionStatus(ctx, identity, serverURL)
+	return mcpClient.CheckConnectionStatus(ctx, identity, serverConfig)
 }
 
 // ListMCPServerTools retrieves the list of tools from an MCP server
 func (r *MCPClientRepository) ListMCPServerTools(
 	ctx context.Context,
 	identity *integrations.RequestIdentity,
-	serverURL string,
+	serverConfig mcp.MCPServerConfig,
 ) (*mcp.ToolList, error) {
 	mcpClient, err := r.mcpClientFactory.GetClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get MCP client: %w", err)
 	}
 
-	return mcpClient.ListTools(ctx, identity, serverURL)
+	return mcpClient.ListTools(ctx, identity, serverConfig)
 }
 
 // GetMCPServersStatus retrieves status information for all MCP servers
@@ -122,7 +131,7 @@ func (r *MCPClientRepository) GetMCPServersStatus(
 		}
 
 		// Check connection status
-		connectionStatus, err := r.CheckMCPServerStatus(ctx, identity, server.Config.URL)
+		connectionStatus, err := r.CheckMCPServerStatus(ctx, identity, server.Config)
 		if err != nil {
 			// If we can't check status, create a disconnected status
 			status.ConnectionStatus = &mcp.ConnectionStatus{
@@ -136,7 +145,7 @@ func (r *MCPClientRepository) GetMCPServersStatus(
 
 		// If requested and server is connected, get tools
 		if includeTools && status.ConnectionStatus.Status == "connected" {
-			toolList, err := r.ListMCPServerTools(ctx, identity, server.Config.URL)
+			toolList, err := r.ListMCPServerTools(ctx, identity, server.Config)
 			if err == nil {
 				status.Tools = toolList.Tools
 			}

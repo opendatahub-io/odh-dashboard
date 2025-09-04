@@ -60,42 +60,60 @@ func NewProxiedMCPClientWithConfig(logger *slog.Logger, config *MCPClientConfig)
 	}
 }
 
-// CheckConnectionStatus checks if an MCP server is reachable and responsive using hybrid approach
-func (c *ProxiedMCPClient) CheckConnectionStatus(ctx context.Context, identity *integrations.RequestIdentity, serverURL string) (*ConnectionStatus, error) {
-	c.logger.Debug("Checking MCP server connection status", "server_url", serverURL)
+// CheckConnectionStatus checks if an MCP server is reachable and responsive using simplified HTTP check
+func (c *ProxiedMCPClient) CheckConnectionStatus(ctx context.Context, identity *integrations.RequestIdentity, serverConfig MCPServerConfig) (*ConnectionStatus, error) {
+	c.logger.Debug("Checking MCP server connection status", "server_url", serverConfig.URL)
 
-	// Step 1: HTTP Health Check (fast, lightweight)
-	status, err := c.checkHTTPHealth(ctx, identity, serverURL)
+	// Resolve version using priority: ConfigMap -> MCP server -> "N/A"
+	version := c.resolveServerVersion(ctx, identity, serverConfig)
+
+	// Make a simple HTTP request to the server URL
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, serverConfig.URL, nil)
 	if err != nil {
-		return nil, err
+		return &ConnectionStatus{
+			ServerURL:   serverConfig.URL,
+			Status:      "error",
+			Message:     fmt.Sprintf("failed to create request: %v", err),
+			LastChecked: time.Now().Unix(),
+			Version:     version,
+		}, nil
 	}
 
-	// If HTTP health check failed, return early
-	if status.Status == "disconnected" || status.Status == "error" {
-		return status, nil
+	// Add authentication if available
+	if identity != nil && identity.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+identity.Token)
 	}
 
-	// Step 2: Optional MCP Protocol Health Check (deeper validation)
-	if c.config.EnableProtocolHealthCheck {
-		protocolStatus := c.checkMCPProtocolHealth(ctx, identity, serverURL)
-		if protocolStatus != nil {
-			// Combine results: HTTP passed, check MCP protocol result
-			if protocolStatus.Status == "connected" {
-				status.Status = "connected"
-				status.Message = "HTTP and MCP protocol both healthy"
-			} else {
-				status.Status = "connected-http-only"
-				status.Message = fmt.Sprintf("HTTP healthy, MCP protocol issue: %s", protocolStatus.Message)
-			}
-		}
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return &ConnectionStatus{
+			ServerURL:   serverConfig.URL,
+			Status:      "disconnected",
+			Message:     fmt.Sprintf("HTTP request failed: %v", err),
+			LastChecked: time.Now().Unix(),
+			Version:     version,
+		}, nil
+	}
+	defer resp.Body.Close()
+
+	// Consider any 2xx or 3xx response as connected
+	if resp.StatusCode < 400 {
+		return &ConnectionStatus{
+			ServerURL:   serverConfig.URL,
+			Status:      "connected",
+			Message:     fmt.Sprintf("HTTP %d", resp.StatusCode),
+			LastChecked: time.Now().Unix(),
+			Version:     version,
+		}, nil
 	}
 
-	c.logger.Debug("MCP server connection check completed",
-		"server_url", serverURL,
-		"status", status.Status,
-		"protocol_check_enabled", c.config.EnableProtocolHealthCheck)
-
-	return status, nil
+	return &ConnectionStatus{
+		ServerURL:   serverConfig.URL,
+		Status:      "error",
+		Message:     fmt.Sprintf("HTTP %d", resp.StatusCode),
+		LastChecked: time.Now().Unix(),
+		Version:     version,
+	}, nil
 }
 
 // checkHTTPHealth performs the HTTP health check (existing logic)
@@ -148,8 +166,12 @@ func (c *ProxiedMCPClient) checkHTTPHealth(ctx context.Context, identity *integr
 func (c *ProxiedMCPClient) checkMCPProtocolHealth(ctx context.Context, identity *integrations.RequestIdentity, serverURL string) *ConnectionStatus {
 	c.logger.Debug("Performing MCP protocol health check", "server_url", serverURL)
 
-	// Create a short-lived session for health check
-	session, err := c.createMCPSession(ctx, serverURL, identity)
+	// Create a short-lived session for health check - this method is now deprecated since we use simplified health check
+	// but keeping it here for potential future use
+	_ = serverURL
+	_ = identity
+	session := (*mcp.ClientSession)(nil)
+	err := fmt.Errorf("deprecated method - using simplified health check instead")
 	if err != nil {
 		c.logger.Debug("Failed to create MCP session for health check", "server_url", serverURL, "error", err)
 		return &ConnectionStatus{
@@ -183,33 +205,33 @@ func (c *ProxiedMCPClient) checkMCPProtocolHealth(ctx context.Context, identity 
 }
 
 // ListTools retrieves the list of available tools from an MCP server using MCP SDK
-func (c *ProxiedMCPClient) ListTools(ctx context.Context, identity *integrations.RequestIdentity, serverURL string) (*ToolList, error) {
-	c.logger.Debug("Listing tools from MCP server using MCP SDK", "server_url", serverURL)
+func (c *ProxiedMCPClient) ListTools(ctx context.Context, identity *integrations.RequestIdentity, serverConfig MCPServerConfig) (*ToolList, error) {
+	c.logger.Debug("Listing tools from MCP server using MCP SDK", "server_url", serverConfig.URL)
 
 	// Get or create MCP session
 	session, err := c.sessionManager.GetOrCreateSession(
 		ctx,
-		serverURL,
+		serverConfig.URL,
 		identity,
 		func(ctx context.Context) (*mcp.ClientSession, error) {
-			return c.createMCPSession(ctx, serverURL, identity)
+			return c.createMCPSession(ctx, serverConfig, identity)
 		},
 	)
 	if err != nil {
-		c.logger.Error("Failed to get MCP session for ListTools", "server_url", serverURL, "error", err)
-		return nil, NewConnectionError(serverURL, fmt.Sprintf("Failed to establish MCP session: %v", err))
+		c.logger.Error("Failed to get MCP session for ListTools", "server_url", serverConfig.URL, "error", err)
+		return nil, NewConnectionError(serverConfig.URL, fmt.Sprintf("Failed to establish MCP session: %v", err))
 	}
 
 	// Call MCP ListTools method
 	result, err := session.ListTools(ctx, nil)
 	if err != nil {
-		c.logger.Error("Failed to list tools via MCP protocol", "server_url", serverURL, "error", err)
+		c.logger.Error("Failed to list tools via MCP protocol", "server_url", serverConfig.URL, "error", err)
 
 		// Close the session on error as it might be corrupted
-		c.sessionManager.CloseSession(serverURL, identity)
+		c.sessionManager.CloseSession(serverConfig.URL, identity)
 
 		// Map MCP errors to our error types
-		return nil, c.mapMCPError(err, serverURL)
+		return nil, c.mapMCPError(err, serverConfig.URL)
 	}
 
 	// Convert MCP SDK response to our format
@@ -223,44 +245,47 @@ func (c *ProxiedMCPClient) ListTools(ctx context.Context, identity *integrations
 	}
 
 	toolList := &ToolList{
-		ServerURL: serverURL,
+		ServerURL: serverConfig.URL,
 		Tools:     tools,
 	}
 
 	c.logger.Debug("Successfully retrieved tools from MCP server using SDK",
-		"server_url", serverURL,
+		"server_url", serverConfig.URL,
 		"tool_count", len(toolList.Tools))
 
 	return toolList, nil
 }
 
 // createMCPSession creates a new MCP client session
-func (c *ProxiedMCPClient) createMCPSession(ctx context.Context, serverURL string, identity *integrations.RequestIdentity) (*mcp.ClientSession, error) {
+func (c *ProxiedMCPClient) createMCPSession(ctx context.Context, serverConfig MCPServerConfig, identity *integrations.RequestIdentity) (*mcp.ClientSession, error) {
 	// Create MCP client
 	client := mcp.NewClient(
 		c.config.ToMCPImplementation(),
 		c.config.ToMCPClientOptions(),
 	)
 
-	// Create transport based on configuration
+	// Validate and normalize transport type from server config
+	transportType := ValidateAndNormalizeTransportType(serverConfig.Type, c.logger, serverConfig.URL)
+
+	// Create transport based on server configuration
 	var transport mcp.Transport
 	var err error
 
 	transportOptions := c.config.ToTransportOptions()
 
-	switch c.config.DefaultTransportType {
+	switch transportType {
 	case TransportTypeSSE:
-		transport, err = c.transportFactory.CreateSSETransport(serverURL, identity, transportOptions)
+		transport, err = c.transportFactory.CreateSSETransport(serverConfig.URL, identity, transportOptions)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create SSE transport: %w", err)
 		}
 	case TransportTypeStreamableHTTP:
-		transport, err = c.transportFactory.CreateStreamableHTTPTransport(serverURL, identity, transportOptions)
+		transport, err = c.transportFactory.CreateStreamableHTTPTransport(serverConfig.URL, identity, transportOptions)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create StreamableHTTP transport: %w", err)
 		}
 	default:
-		return nil, fmt.Errorf("unsupported transport type: %s", c.config.DefaultTransportType)
+		return nil, fmt.Errorf("unsupported transport type: %s", transportType)
 	}
 
 	// Connect to server
@@ -372,6 +397,57 @@ func (c *ProxiedMCPClient) GetSessionStats() map[string]interface{} {
 		"total_sessions":     0,
 		"sessions_by_server": map[string]int{},
 	}
+}
+
+// resolveServerVersion resolves the server version by connecting to MCP server
+func (c *ProxiedMCPClient) resolveServerVersion(ctx context.Context, identity *integrations.RequestIdentity, serverConfig MCPServerConfig) string {
+	// Get version directly from MCP server initialization
+	mcpVersion := c.getMCPServerVersion(ctx, identity, serverConfig)
+	if mcpVersion != "" {
+		c.logger.Debug("Retrieved version from MCP server", "server_url", serverConfig.URL, "version", mcpVersion)
+		return mcpVersion
+	}
+
+	// Fallback to "N/A" if MCP server version retrieval failed
+	c.logger.Debug("No version available from MCP server, using N/A", "server_url", serverConfig.URL)
+	return "N/A"
+}
+
+// getMCPServerVersion attempts to get the version from MCP server initialization
+func (c *ProxiedMCPClient) getMCPServerVersion(ctx context.Context, identity *integrations.RequestIdentity, serverConfig MCPServerConfig) string {
+	// Create a temporary MCP session to get initialization result
+	session, err := c.createMCPSession(ctx, serverConfig, identity)
+	if err != nil {
+		c.logger.Error("Failed to create MCP session for version retrieval", "server_url", serverConfig.URL, "error", err)
+		return ""
+	}
+	defer func() {
+		if session != nil {
+			session.Close()
+		}
+	}()
+
+	// Get initialization result
+	initResult := session.InitializeResult()
+	if initResult == nil {
+		c.logger.Warn("No initialization result available from MCP server", "server_url", serverConfig.URL)
+		return ""
+	}
+
+	// Extract version from ServerInfo (based on MCP SDK v0.3.1 documentation)
+	if initResult.ServerInfo != nil && initResult.ServerInfo.Version != "" {
+		c.logger.Info("Successfully retrieved version from MCP server", "server_url", serverConfig.URL, "version", initResult.ServerInfo.Version)
+		return initResult.ServerInfo.Version
+	}
+
+	// Log different scenarios for better debugging
+	if initResult.ServerInfo == nil {
+		c.logger.Info("MCP server initialization result has no ServerInfo", "server_url", serverConfig.URL)
+	} else {
+		c.logger.Info("MCP server ServerInfo has empty version", "server_url", serverConfig.URL)
+	}
+
+	return ""
 }
 
 // NewInternalError creates an internal error

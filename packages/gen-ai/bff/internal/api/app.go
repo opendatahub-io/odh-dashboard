@@ -99,7 +99,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	app := &App{
 		config:                  cfg,
 		logger:                  logger,
-		repositories:            repositories.NewRepositoriesWithMCP(llamaStackClient, mcpFactory),
+		repositories:            repositories.NewRepositoriesWithMCP(llamaStackClient, mcpFactory, logger),
 		openAPI:                 openAPIHandler,
 		kubernetesClientFactory: k8sFactory,
 		llamaStackClient:        llamaStackClient,
@@ -170,6 +170,9 @@ func (app *App) Routes() http.Handler {
 	// MCP Client endpoints
 	apiRouter.GET(genaiPrefix+"/mcp-servers/status", app.RequireAccessToService(app.MCPServersStatusHandler))
 	apiRouter.GET(genaiPrefix+"/mcp-server/:server_name/tools", app.RequireAccessToService(app.MCPServerToolsHandler))
+	apiRouter.GET(genaiPrefix+"/mcp/tools", app.RequireAccessToService(app.MCPToolsHandler))
+	apiRouter.GET(genaiPrefix+"/mcp/status", app.RequireAccessToService(app.MCPStatusHandler))
+	apiRouter.GET(genaiPrefix+"/aa/mcps", app.RequireAccessToService(app.MCPServersListHandler))
 	// App Router
 	appMux := http.NewServeMux()
 

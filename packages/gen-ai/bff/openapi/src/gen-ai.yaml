@@ -371,6 +371,125 @@ paths:
       summary: Get MCP Server Tools
       description: Gets the available tools from the specified MCP server.
 
+  /genai/v1/mcp/tools:
+    summary: Get tools from MCP server by URL
+    description: >-
+      Retrieves the available tools from a specific MCP (Model Context Protocol) server by its URL.
+      Uses the MCP client to connect to the server specified by the mcp_url parameter and fetch its tool definitions.
+      Returns tool information including names, descriptions, and input schemas.
+
+      The namespace parameter is required but ignored in the implementation - it's maintained for API consistency.
+      The mcp_url parameter should be the full URL-encoded endpoint for the MCP server.
+
+      Requires valid authentication token for MCP client operations.
+    get:
+      tags:
+        - MCP Servers
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace (required but ignored in implementation)
+          required: true
+          schema:
+            type: string
+            example: "demo"
+        - name: mcp_url
+          in: query
+          description: Full URL-encoded endpoint for the MCP server
+          required: true
+          schema:
+            type: string
+            format: uri
+            example: "http%3A%2F%2Flocalhost%3A9090%2Fsse"
+      responses:
+        "200":
+          $ref: "#/components/responses/MCPToolsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getMCPTools
+      summary: Get MCP Tools by URL
+      description: Gets the available tools from the MCP server specified by URL.
+
+  /genai/v1/mcp/status:
+    summary: Get connection status from MCP server by URL
+    description: >-
+      Retrieves the connection status of a specific MCP (Model Context Protocol) server by its URL.
+      Uses the MCP client to connect to the server specified by the mcp_url parameter and check its availability.
+      Returns connection status information including connectivity state, response message, and last check timestamp.
+
+      The namespace parameter is required but ignored in the implementation - it's maintained for API consistency.
+      The mcp_url parameter should be the full URL-encoded endpoint for the MCP server.
+
+      Requires valid authentication token for MCP client operations.
+    get:
+      tags:
+        - MCP Servers
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace (required but ignored in implementation)
+          required: true
+          schema:
+            type: string
+            example: "demo"
+        - name: mcp_url
+          in: query
+          description: Full URL-encoded endpoint for the MCP server
+          required: true
+          schema:
+            type: string
+            format: uri
+            example: "http%3A%2F%2Flocalhost%3A9090%2Fsse"
+      responses:
+        "200":
+          $ref: "#/components/responses/MCPStatusResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getMCPStatus
+      summary: Get MCP Server Status by URL
+      description: Gets the connection status of the MCP server specified by URL.
+
+  /genai/v1/aa/mcps:
+    get:
+      tags:
+        - MCP Servers
+      operationId: getMCPServersList
+      summary: Get List of Available MCP Servers
+      description: >-
+        Retrieves the list of available MCP (Model Context Protocol) servers from the ConfigMap.
+        Returns basic server information including names, URLs, types, and descriptions for all configured MCP servers.
+
+        The namespace parameter is required but ignored in the implementation - it's maintained for API consistency.
+        This endpoint provides an overview of all available MCP servers without checking their connection status.
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+      responses:
+        '200':
+          description: Successfully retrieved list of MCP servers.
+          $ref: '#/components/responses/MCPServersListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
 components:
   securitySchemes:
     Bearer:
@@ -378,6 +497,15 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: Bearer token authentication using OAuth2 JWT tokens
+  parameters:
+    NamespaceParam:
+      name: namespace
+      in: query
+      description: Kubernetes namespace to operate in. Required for API consistency but may be ignored in implementation.
+      required: true
+      schema:
+        type: string
+        example: "demo"
   schemas:
     HealthCheckModel:
       type: object
@@ -1195,7 +1323,7 @@ components:
               }
 
     # MCP Server Status and Tools Schema
-    MCPConnectionStatus:
+    MCPServerConnectionStatus:
       type: object
       required:
         - server_url
@@ -1250,6 +1378,79 @@ components:
             required: ["namespace"]
           description: JSON schema defining the tool's input parameters
 
+    MCPServerInfo:
+      type: object
+      required:
+        - name
+        - config
+      properties:
+        name:
+          type: string
+          example: "brave-server"
+          description: Name of the MCP server
+        config:
+          $ref: "#/components/schemas/MCPServerConfig"
+          description: Configuration details for the MCP server
+
+    MCPServerConfig:
+      type: object
+      required:
+        - url
+        - type
+      properties:
+        url:
+          type: string
+          format: uri
+          example: "http://localhost:9090/sse"
+          description: Full URL of the MCP server endpoint
+        type:
+          type: string
+          enum: ["sse", "streamable-http"]
+          example: "sse"
+          description: Transport type used by the MCP server
+        description:
+          type: string
+          example: "Brave search MCP server"
+          description: Optional description of the MCP server functionality
+        logo:
+          type: string
+          format: uri
+          example: "https://kubernetes.io/images/kubernetes-horizontal-color.png"
+          description: Optional logo URL for the MCP server
+
+    MCPConnectionStatus:
+      type: object
+      required:
+        - server_url
+        - status
+        - message
+        - last_checked
+        - version
+      properties:
+        server_url:
+          type: string
+          format: uri
+          example: "http://localhost:9090/sse"
+          description: URL of the MCP server
+        status:
+          type: string
+          enum: ["connected", "disconnected", "error"]
+          example: "connected"
+          description: Connection status of the MCP server
+        message:
+          type: string
+          example: "Server is responding normally"
+          description: Detailed status message or error description
+        last_checked:
+          type: integer
+          format: int64
+          example: 1755721435
+          description: Unix timestamp when the status was last checked
+        version:
+          type: string
+          example: "1.0.0"
+          description: MCP server version from initialization or ConfigMap
+
     MCPServerStatus:
       type: object
       required:
@@ -1262,7 +1463,7 @@ components:
           example: "kubectl-server"
           description: Name/identifier of the MCP server
         config:
-          $ref: "#/components/schemas/MCPServerConfig"
+          $ref: "#/components/schemas/MCPServerConfigLegacy"
         connection_status:
           $ref: "#/components/schemas/MCPConnectionStatus"
         tools:
@@ -1271,7 +1472,7 @@ components:
             $ref: "#/components/schemas/MCPTool"
           description: Available tools from the MCP server (only present when include_tools=true)
 
-    MCPServerConfig:
+    MCPServerConfigLegacy:
       type: object
       required:
         - url
@@ -1640,6 +1841,96 @@ components:
                             type: "string"
                             description: "Name of the pod to describe"
                         required: ["namespace", "pod_name"]
+
+    MCPToolsResponse:
+      description: Available tools from MCP server specified by URL
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MCPTool"
+                description: Array of available tools from the MCP server
+            example:
+              data:
+                - name: "brave_web_search"
+                  description: "Search the web using Brave Search API"
+                  input_schema:
+                    type: "object"
+                    properties:
+                      query:
+                        type: "string"
+                        description: "Search query string"
+                      count:
+                        type: "integer"
+                        description: "Number of results to return (1-20)"
+                        default: 10
+                    required: ["query"]
+                - name: "brave_local_search"
+                  description: "Search for local businesses using Brave Local Search API"
+                  input_schema:
+                    type: "object"
+                    properties:
+                      query:
+                        type: "string"
+                        description: "Local search query (e.g. 'pizza near Central Park')"
+                      count:
+                        type: "integer"
+                        description: "Number of results to return (1-20)"
+                        default: 5
+                    required: ["query"]
+
+    MCPStatusResponse:
+      description: Connection status from MCP server specified by URL
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/MCPConnectionStatus"
+                description: Connection status information for the MCP server
+            example:
+              data:
+                server_url: "http://localhost:9090/sse"
+                status: "connected"
+                message: "Server is responding normally"
+                last_checked: 1755721435
+                version: "1.0.0"
+
+    MCPServersListResponse:
+      description: List of available MCP servers from ConfigMap
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MCPServerInfo"
+                description: Array of available MCP servers
+            example:
+              data:
+                - name: "brave-server"
+                  config:
+                    url: "http://localhost:9090/sse"
+                    type: "sse"
+                    description: "Brave search MCP server"
+                - name: "kubernetes-server"
+                  config:
+                    url: "http://localhost:9091/mcp"
+                    type: "streamable-http"
+                    description: "Kubernetes management MCP server"
 
     CreateResponseResponse:
       description: Created AI response with essential information only

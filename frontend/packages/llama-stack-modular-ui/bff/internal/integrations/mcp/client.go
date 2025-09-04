@@ -9,10 +9,10 @@ import (
 // MCPClientInterface defines the contract for MCP client operations
 type MCPClientInterface interface {
 	// Connection management
-	CheckConnectionStatus(ctx context.Context, identity *integrations.RequestIdentity, serverURL string) (*ConnectionStatus, error)
+	CheckConnectionStatus(ctx context.Context, identity *integrations.RequestIdentity, serverConfig MCPServerConfig) (*ConnectionStatus, error)
 
 	// Tool operations
-	ListTools(ctx context.Context, identity *integrations.RequestIdentity, serverURL string) (*ToolList, error)
+	ListTools(ctx context.Context, identity *integrations.RequestIdentity, serverConfig MCPServerConfig) (*ToolList, error)
 }
 
 // ConnectionStatus represents the status of an MCP server connection
@@ -21,6 +21,7 @@ type ConnectionStatus struct {
 	Status      string `json:"status"` // "connected", "disconnected", "error"
 	Message     string `json:"message,omitempty"`
 	LastChecked int64  `json:"last_checked"` // Unix timestamp
+	Version     string `json:"version"`      // Server version from MCP initialization or ConfigMap
 }
 
 // Tool represents an MCP tool definition
@@ -38,7 +39,7 @@ type ToolList struct {
 
 // MCPServerConfig represents the configuration for an MCP server from ConfigMap
 type MCPServerConfig struct {
-	URL         string `json:"url"`
+	URL         string `json:"url"`  // Full URL with endpoint path included
+	Type        string `json:"type"` // Transport type: "sse" or "streamable-http"
 	Description string `json:"description,omitempty"`
-	Logo        string `json:"logo,omitempty"`
 }

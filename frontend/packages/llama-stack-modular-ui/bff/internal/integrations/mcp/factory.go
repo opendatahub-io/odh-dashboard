@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
+
 	"strings"
 
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/config"
@@ -42,19 +42,8 @@ func NewMCPClientFactory(cfg config.EnvConfig, logger *slog.Logger) (MCPClientFa
 func createMCPConfigFromEnv() *MCPClientConfig {
 	config := DefaultMCPClientConfig()
 
-	// Read transport type from environment variable
-	if transportType := os.Getenv("MCP_TRANSPORT_TYPE"); transportType != "" {
-		config.DefaultTransportType = TransportType(transportType)
-	}
-
-	// Read endpoint paths from environment variables
-	if sseEndpoint := os.Getenv("MCP_SSE_ENDPOINT_PATH"); sseEndpoint != "" {
-		config.SSEEndpointPath = sseEndpoint
-	}
-
-	if streamableEndpoint := os.Getenv("MCP_STREAMABLE_HTTP_ENDPOINT_PATH"); streamableEndpoint != "" {
-		config.StreamableHTTPEndpointPath = streamableEndpoint
-	}
+	// Transport type is now determined per-server from ConfigMap
+	// No transport-related environment variables needed anymore
 
 	return config
 }

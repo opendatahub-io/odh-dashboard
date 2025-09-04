@@ -1,7 +1,6 @@
 package mcp
 
 import (
-	"strings"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -20,13 +19,10 @@ type MCPClientConfig struct {
 	SessionCleanupInterval time.Duration `json:"session_cleanup_interval"`
 
 	// Transport configuration
-	DefaultTransportType       TransportType `json:"default_transport_type"`
-	TransportTimeout           time.Duration `json:"transport_timeout"`
-	InsecureSkipVerify         bool          `json:"insecure_skip_verify"`
-	MaxIdleConns               int           `json:"max_idle_conns"`
-	IdleConnTimeout            time.Duration `json:"idle_conn_timeout"`
-	SSEEndpointPath            string        `json:"sse_endpoint_path"`
-	StreamableHTTPEndpointPath string        `json:"streamable_http_endpoint_path"`
+	TransportTimeout   time.Duration `json:"transport_timeout"`
+	InsecureSkipVerify bool          `json:"insecure_skip_verify"`
+	MaxIdleConns       int           `json:"max_idle_conns"`
+	IdleConnTimeout    time.Duration `json:"idle_conn_timeout"`
 
 	// Retry behavior configuration
 	MaxRetries    int           `json:"max_retries"`
@@ -52,13 +48,10 @@ func DefaultMCPClientConfig() *MCPClientConfig {
 		SessionCleanupInterval: 1 * time.Minute,
 
 		// Transport
-		DefaultTransportType:       TransportTypeSSE,
-		TransportTimeout:           60 * time.Second,
-		InsecureSkipVerify:         false,
-		MaxIdleConns:               5,
-		IdleConnTimeout:            30 * time.Second,
-		SSEEndpointPath:            "/sse",
-		StreamableHTTPEndpointPath: "/mcp",
+		TransportTimeout:   60 * time.Second,
+		InsecureSkipVerify: false,
+		MaxIdleConns:       5,
+		IdleConnTimeout:    30 * time.Second,
 
 		// Retry behavior
 		MaxRetries:    3,
@@ -125,42 +118,18 @@ func (c *MCPClientConfig) Validate() error {
 		c.ClientVersion = "v1.0.0"
 	}
 
-	if c.DefaultTransportType == "" {
-		c.DefaultTransportType = TransportTypeSSE
-	}
-
-	if c.SSEEndpointPath == "" {
-		c.SSEEndpointPath = "/sse"
-	}
-
-	if c.StreamableHTTPEndpointPath == "" {
-		c.StreamableHTTPEndpointPath = "/mcp"
-	}
-
-	// Validate SSE endpoint path format
-	if c.SSEEndpointPath != "" && !strings.HasPrefix(c.SSEEndpointPath, "/") {
-		c.SSEEndpointPath = "/" + c.SSEEndpointPath
-	}
-
-	// Validate StreamableHTTP endpoint path format
-	if c.StreamableHTTPEndpointPath != "" && !strings.HasPrefix(c.StreamableHTTPEndpointPath, "/") {
-		c.StreamableHTTPEndpointPath = "/" + c.StreamableHTTPEndpointPath
-	}
-
-	// Validate transport type
-	return ValidateTransportType(c.DefaultTransportType)
+	// No transport type validation needed since it's now per-server
+	return nil
 }
 
 // ToTransportOptions converts the config to transport options
 func (c *MCPClientConfig) ToTransportOptions() *TransportOptions {
 	return &TransportOptions{
-		Timeout:                    c.TransportTimeout,
-		KeepAlive:                  c.SessionKeepAlive,
-		InsecureSkipVerify:         c.InsecureSkipVerify,
-		MaxIdleConns:               c.MaxIdleConns,
-		IdleConnTimeout:            c.IdleConnTimeout,
-		SSEEndpointPath:            c.SSEEndpointPath,
-		StreamableHTTPEndpointPath: c.StreamableHTTPEndpointPath,
+		Timeout:            c.TransportTimeout,
+		KeepAlive:          c.SessionKeepAlive,
+		InsecureSkipVerify: c.InsecureSkipVerify,
+		MaxIdleConns:       c.MaxIdleConns,
+		IdleConnTimeout:    c.IdleConnTimeout,
 	}
 }
 

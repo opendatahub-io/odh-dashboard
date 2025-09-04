@@ -1,7 +1,10 @@
 package repositories
 
 import (
+	"log/slog"
+
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
+
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/mcp"
 )
 
@@ -38,8 +41,8 @@ func NewRepositories(client llamastack.LlamaStackClientInterface) *Repositories 
 }
 
 // NewRepositoriesWithMCP creates repositories with both LlamaStack and MCP clients
-func NewRepositoriesWithMCP(client llamastack.LlamaStackClientInterface, mcpClientFactory mcp.MCPClientFactory) *Repositories {
+func NewRepositoriesWithMCP(client llamastack.LlamaStackClientInterface, mcpClientFactory mcp.MCPClientFactory, logger *slog.Logger) *Repositories {
 	repos := NewRepositories(client)
-	repos.MCPClient = NewMCPClientRepository(mcpClientFactory)
+	repos.MCPClient = NewMCPClientRepository(mcpClientFactory, logger)
 	return repos
 }

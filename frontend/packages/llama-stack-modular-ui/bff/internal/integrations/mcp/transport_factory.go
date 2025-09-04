@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/url"
-	"strings"
+
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -21,25 +20,21 @@ type TransportFactory interface {
 
 // TransportOptions contains configuration for transport creation
 type TransportOptions struct {
-	Timeout                    time.Duration
-	KeepAlive                  time.Duration
-	InsecureSkipVerify         bool
-	MaxIdleConns               int
-	IdleConnTimeout            time.Duration
-	SSEEndpointPath            string
-	StreamableHTTPEndpointPath string
+	Timeout            time.Duration
+	KeepAlive          time.Duration
+	InsecureSkipVerify bool
+	MaxIdleConns       int
+	IdleConnTimeout    time.Duration
 }
 
 // DefaultTransportOptions provides sensible defaults for transport configuration
 func DefaultTransportOptions() *TransportOptions {
 	return &TransportOptions{
-		Timeout:                    60 * time.Second,
-		KeepAlive:                  30 * time.Second,
-		InsecureSkipVerify:         false,
-		MaxIdleConns:               5,
-		IdleConnTimeout:            30 * time.Second,
-		SSEEndpointPath:            "/sse",
-		StreamableHTTPEndpointPath: "/mcp",
+		Timeout:            60 * time.Second,
+		KeepAlive:          30 * time.Second,
+		InsecureSkipVerify: false,
+		MaxIdleConns:       5,
+		IdleConnTimeout:    30 * time.Second,
 	}
 }
 
@@ -68,13 +63,10 @@ func (f *ProxiedTransportFactory) CreateSSETransport(
 	}
 
 	httpClient := f.createHTTPClient(opts, identity)
-	sseURL, err := f.buildTransportURL(serverURL, opts.SSEEndpointPath, "/sse")
-	if err != nil {
-		return nil, fmt.Errorf("failed to build SSE URL: %w", err)
-	}
 
-	slog.Debug("MCP SSE transport created", "url", sseURL)
-	transport := mcp.NewSSEClientTransport(sseURL, &mcp.SSEClientTransportOptions{
+	// Use the server URL directly since it already contains the endpoint path
+	slog.Debug("MCP SSE transport created", "url", serverURL)
+	transport := mcp.NewSSEClientTransport(serverURL, &mcp.SSEClientTransportOptions{
 		HTTPClient: httpClient,
 	})
 	return transport, nil
@@ -90,14 +82,11 @@ func (f *ProxiedTransportFactory) CreateStreamableHTTPTransport(
 	}
 
 	httpClient := f.createHTTPClient(opts, identity)
-	streamableURL, err := f.buildTransportURL(serverURL, opts.StreamableHTTPEndpointPath, "/mcp")
-	if err != nil {
-		return nil, fmt.Errorf("failed to build StreamableHTTP URL: %w", err)
-	}
 
-	slog.Debug("MCP StreamableHTTP transport created", "url", streamableURL)
+	// Use the server URL directly since it already contains the endpoint path
+	slog.Debug("MCP StreamableHTTP transport created", "url", serverURL)
 	return &mcp.StreamableClientTransport{
-		Endpoint:   streamableURL,
+		Endpoint:   serverURL,
 		HTTPClient: httpClient,
 	}, nil
 }
@@ -129,7 +118,7 @@ const (
 	// TransportTypeSSE represents Server-Sent Events transport
 	TransportTypeSSE TransportType = "sse"
 	// TransportTypeStreamableHTTP represents StreamableHTTP transport
-	TransportTypeStreamableHTTP TransportType = "streamable_http"
+	TransportTypeStreamableHTTP TransportType = "streamable-http"
 )
 
 func ValidateTransportType(transportType TransportType) error {
@@ -138,6 +127,20 @@ func ValidateTransportType(transportType TransportType) error {
 		return nil
 	default:
 		return fmt.Errorf("unknown transport type: %s", transportType)
+	}
+}
+
+// ValidateAndNormalizeTransportType validates the transport type and falls back to SSE with info logging
+func ValidateAndNormalizeTransportType(transportType string, logger *slog.Logger, serverURL string) TransportType {
+	switch transportType {
+	case string(TransportTypeSSE):
+		return TransportTypeSSE
+	case string(TransportTypeStreamableHTTP):
+		return TransportTypeStreamableHTTP
+	default:
+		logger.Info("Invalid or missing transport type, falling back to SSE",
+			"server", serverURL, "type", transportType)
+		return TransportTypeSSE
 	}
 }
 
@@ -163,31 +166,4 @@ func (f *ProxiedTransportFactory) createHTTPClient(opts *TransportOptions, ident
 	}
 
 	return httpClient
-}
-
-// buildTransportURL constructs the full transport URL from base URL and endpoint path
-func (f *ProxiedTransportFactory) buildTransportURL(baseURL, endpointPath, defaultPath string) (string, error) {
-	if baseURL == "" {
-		return "", fmt.Errorf("base URL cannot be empty")
-	}
-
-	if endpointPath == "" {
-		endpointPath = defaultPath
-	}
-
-	parsedURL, err := url.Parse(baseURL)
-	if err != nil {
-		return "", fmt.Errorf("invalid base URL %q: %w", baseURL, err)
-	}
-
-	basePath := strings.TrimSuffix(parsedURL.Path, "/")
-	endpointPath = strings.TrimPrefix(endpointPath, "/")
-
-	if basePath == "" {
-		parsedURL.Path = "/" + endpointPath
-	} else {
-		parsedURL.Path = basePath + "/" + endpointPath
-	}
-
-	return parsedURL.String(), nil
 }

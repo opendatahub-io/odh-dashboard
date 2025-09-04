@@ -119,21 +119,23 @@ func (app *App) MCPServerToolsHandler(w http.ResponseWriter, r *http.Request, ps
 	}
 
 	// Find the requested server
-	var serverURL string
+	var serverConfig mcp.MCPServerConfig
+	var found bool
 	for _, server := range servers {
 		if server.Name == serverName {
-			serverURL = server.Config.URL
+			serverConfig = server.Config
+			found = true
 			break
 		}
 	}
 
-	if serverURL == "" {
+	if !found {
 		app.notFoundResponse(w, r)
 		return
 	}
 
 	// Get tools from the MCP server
-	toolList, err := app.repositories.MCPClient.ListMCPServerTools(ctx, identity, serverURL)
+	toolList, err := app.repositories.MCPClient.ListMCPServerTools(ctx, identity, serverConfig)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -141,11 +143,9 @@ func (app *App) MCPServerToolsHandler(w http.ResponseWriter, r *http.Request, ps
 
 	// Create response with envelope - we'll return a single server status with tools
 	serverStatus := repositories.MCPServerStatus{
-		Name: serverName,
-		Config: mcp.MCPServerConfig{
-			URL: serverURL,
-		},
-		Tools: toolList.Tools,
+		Name:   serverName,
+		Config: serverConfig,
+		Tools:  toolList.Tools,
 	}
 
 	response := MCPServerToolsEnvelope{
