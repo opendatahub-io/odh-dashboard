@@ -158,11 +158,9 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose, warning
 
   // Cleanup debounce timeout on unmount
   React.useEffect(() => {
-    return () => {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
-    };
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
   }, []);
 
   if (!selectedApp.spec.enable) {
