@@ -2,9 +2,7 @@ name: E2E PR Tests
 
 on:
   pull_request_target:
-    types: [opened, synchronize, reopened]
-  issue_comment:
-    types: [created]
+    types: [opened, synchronize, reopened, edited]
   workflow_dispatch:
     inputs:
       test_type:
@@ -25,17 +23,15 @@ env:
 jobs:
   test-workflow-trigger:
     runs-on: ubuntu-latest
-    if: github.event_name == 'issue_comment'
+    if: github.event_name == 'pull_request_target'
     steps:
       - name: Test workflow trigger
         run: |
           echo "Workflow triggered!"
           echo "Event: ${{ github.event_name }}"
           echo "Action: ${{ github.event.action }}"
-          if [ "${{ github.event_name }}" = "issue_comment" ]; then
-            echo "Comment: ${{ github.event.comment.body }}"
-            echo "Issue: ${{ github.event.issue.number }}"
-          fi
+          echo "PR Number: ${{ github.event.pull_request.number }}"
+          echo "PR Title: ${{ github.event.pull_request.title }}"
 
   pr-comment-parser:
     runs-on: ubuntu-latest
@@ -74,24 +70,49 @@ jobs:
             exit 0
           fi
 
-          COMMENT="${{ github.event.comment.body }}"
-          PR_NUMBER="${{ github.event.issue.number }}"
+          # For pull_request_target, fetch the latest comments
+          if [ "${{ github.event_name }}" = "pull_request_target" ]; then
+            echo "Fetching PR comments for PR #${{ github.event.pull_request.number }}"
+
+            # Get the latest comment from the PR
+            LATEST_COMMENT=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments?per_page=1" | \
+              jq -r '.[-1].body // empty')
+
+            COMMENT="$LATEST_COMMENT"
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+          else
+            # Fallback for issue_comment (if we keep it)
+            COMMENT="${{ github.event.comment.body }}"
+            PR_NUMBER="${{ github.event.issue.number }}"
+          fi
 
           echo "Parsing comment: $COMMENT"
           echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
 
-          if [[ "$COMMENT" =~ ^/e2e$ ]]; then
-            echo "test-type=e2e" >> $GITHUB_OUTPUT
-            echo "should-run=true" >> $GITHUB_OUTPUT
-            echo 'test-sets=["1","2","3"]' >> $GITHUB_OUTPUT
-            echo "tag-name=" >> $GITHUB_OUTPUT
-          elif [[ "$COMMENT" =~ ^/e2e([A-Z][a-zA-Z]*)$ ]]; then
-            TAG_NAME="${BASH_REMATCH[1]}"
-            echo "test-type=e2e${TAG_NAME}" >> $GITHUB_OUTPUT
-            echo "should-run=true" >> $GITHUB_OUTPUT
-            echo 'test-sets=["1"]' >> $GITHUB_OUTPUT
-            echo "tag-name=$TAG_NAME" >> $GITHUB_OUTPUT
+          if [[ "$COMMENT" =~ /e2e ]]; then
+            echo "Found /e2e command in comment: $COMMENT"
+
+            if [[ "$COMMENT" =~ ^/e2e$ ]]; then
+              echo "test-type=e2e" >> $GITHUB_OUTPUT
+              echo "should-run=true" >> $GITHUB_OUTPUT
+              echo 'test-sets=["1","2","3"]' >> $GITHUB_OUTPUT
+              echo "tag-name=" >> $GITHUB_OUTPUT
+            elif [[ "$COMMENT" =~ ^/e2e([A-Z][a-zA-Z]*)$ ]]; then
+              TAG_NAME="${BASH_REMATCH[1]}"
+              echo "test-type=e2e${TAG_NAME}" >> $GITHUB_OUTPUT
+              echo "should-run=true" >> $GITHUB_OUTPUT
+              echo 'test-sets=["1"]' >> $GITHUB_OUTPUT
+              echo "tag-name=$TAG_NAME" >> $GITHUB_OUTPUT
+            else
+              echo "Unsupported /e2e command format"
+              echo "test-type=none" >> $GITHUB_OUTPUT
+              echo "should-run=false" >> $GITHUB_OUTPUT
+              echo 'test-sets=["1"]' >> $GITHUB_OUTPUT
+              echo "tag-name=" >> $GITHUB_OUTPUT
+            fi
           else
+            echo "No /e2e command found in latest comment"
             echo "test-type=none" >> $GITHUB_OUTPUT
             echo "should-run=false" >> $GITHUB_OUTPUT
             echo 'test-sets=["1"]' >> $GITHUB_OUTPUT
