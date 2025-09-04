@@ -105,3 +105,25 @@ export const patchNotebookSizes = (
       opts,
     ),
   );
+
+export const patchDashboardConfigHardwareProfileOrder = (
+  hardwareProfileOrder: string[],
+  ns: string,
+  opts?: K8sAPIOptions,
+): Promise<DashboardConfigKind> =>
+  k8sPatchResource<DashboardConfigKind>(
+    applyK8sAPIOptions(
+      {
+        model: ODHDashboardConfigModel,
+        queryOptions: { name: DASHBOARD_CONFIG, ns },
+        patches: [
+          {
+            op: 'replace',
+            path: '/spec/hardwareProfileOrder',
+            value: hardwareProfileOrder,
+          },
+        ],
+      },
+      opts,
+    ),
+  );

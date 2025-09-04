@@ -72,20 +72,24 @@ const useTableColumnSort = <T>(
   columns: SortableData<T>[],
   subColumns: SortableData<T>[],
   defaultSortColIndex?: number,
+  enableCustomOrder?: boolean,
 ): {
   transformData: (data: T[]) => T[];
   getColumnSort: GetColumnSort;
+  isCustomOrder: boolean;
 } => {
   const [activeSortIndex, setActiveSortIndex] = React.useState<number | undefined>(
-    defaultSortColIndex,
+    enableCustomOrder ? undefined : defaultSortColIndex,
   );
-  const [activeSortDirection, setActiveSortDirection] = React.useState<'desc' | 'asc' | undefined>(
-    'asc',
-  );
+  const [activeSortDirection, setActiveSortDirection] = React.useState<
+    'desc' | 'asc' | 'custom' | undefined
+  >(enableCustomOrder ? 'custom' : 'asc');
+
+  const isCustomOrder = enableCustomOrder && activeSortDirection === 'custom';
 
   return {
     transformData: (data: T[]): T[] => {
-      if (activeSortIndex === undefined) {
+      if (activeSortIndex === undefined || activeSortDirection === 'custom') {
         return data;
       }
 
@@ -121,14 +125,51 @@ const useTableColumnSort = <T>(
         return compute() * (activeSortDirection === 'desc' ? -1 : 1);
       });
     },
-    getColumnSort: getTableColumnSortByIndex<T>({
-      columns,
-      subColumns,
-      sortDirection: activeSortDirection,
-      setSortDirection: setActiveSortDirection,
-      sortIndex: activeSortIndex,
-      setSortIndex: setActiveSortIndex,
-    }),
+    getColumnSort: enableCustomOrder
+      ? (columnIndex: number) => {
+          const column =
+            columnIndex < columns.length
+              ? columns[columnIndex]
+              : subColumns[columnIndex - columns.length];
+
+          if (!column.sortable) {
+            return undefined;
+          }
+
+          return {
+            sortBy: {
+              index: activeSortIndex,
+              direction: activeSortDirection === 'custom' ? undefined : activeSortDirection,
+              defaultDirection: 'asc',
+            },
+            onSort: (_event, index) => {
+              if (activeSortDirection === 'custom') {
+                setActiveSortIndex(index);
+                setActiveSortDirection('asc');
+              } else if (activeSortDirection === 'asc') {
+                setActiveSortDirection('desc');
+              } else if (activeSortDirection === 'desc') {
+                setActiveSortIndex(undefined);
+                setActiveSortDirection('custom');
+              } else if (activeSortIndex !== index) {
+                setActiveSortIndex(index);
+                setActiveSortDirection('asc');
+              }
+            },
+            columnIndex,
+          };
+        }
+      : getTableColumnSortByIndex<T>({
+          columns,
+          subColumns,
+          sortDirection: activeSortDirection === 'custom' ? undefined : activeSortDirection,
+          setSortDirection: (dir: 'asc' | 'desc') => {
+            setActiveSortDirection(dir);
+          },
+          sortIndex: activeSortIndex,
+          setSortIndex: setActiveSortIndex,
+        }),
+    isCustomOrder: isCustomOrder ?? false,
   };
 };
 
