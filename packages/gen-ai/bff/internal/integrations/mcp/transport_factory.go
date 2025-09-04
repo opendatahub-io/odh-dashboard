@@ -131,7 +131,7 @@ func ValidateTransportType(transportType TransportType) error {
 	}
 }
 
-// ValidateAndNormalizeTransportType validates the transport type and falls back to SSE with info logging
+// ValidateAndNormalizeTransportType validates the transport type and falls back to streamable-http with info logging
 func ValidateAndNormalizeTransportType(transportType string, logger *slog.Logger, serverURL string) TransportType {
 	switch transportType {
 	case string(TransportTypeSSE):
@@ -139,9 +139,9 @@ func ValidateAndNormalizeTransportType(transportType string, logger *slog.Logger
 	case string(TransportTypeStreamableHTTP):
 		return TransportTypeStreamableHTTP
 	default:
-		logger.Info("Invalid or missing transport type, falling back to SSE",
+		logger.Info("Invalid or missing transport type, falling back to streamable-http",
 			"server", serverURL, "type", transportType)
-		return TransportTypeSSE
+		return TransportTypeStreamableHTTP
 	}
 }
 

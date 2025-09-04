@@ -40,7 +40,7 @@ type ToolList struct {
 // MCPServerConfig represents the configuration for an MCP server from ConfigMap
 type MCPServerConfig struct {
 	URL         string `json:"url"`                   // Full URL with endpoint path included
-	Transport   string `json:"transport"`             // Transport type: "sse" or "streamable-http"
+	Transport   string `json:"transport,omitempty"`   // Optional transport type: "sse" or "streamable-http" (defaults to "streamable-http")
 	Description string `json:"description,omitempty"` // Optional description of the MCP server functionality
 	Logo        string `json:"logo,omitempty"`        // Optional logo URL for the MCP server
 }

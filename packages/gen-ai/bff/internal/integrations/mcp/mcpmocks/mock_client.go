@@ -79,6 +79,22 @@ func (m *MockMCPClient) CheckConnectionStatus(ctx context.Context, identity *int
 			LastChecked: timestamp,
 			Version:     version,
 		}, nil
+	case "http://localhost:9092/default-transport":
+		return &mcp.ConnectionStatus{
+			ServerURL:   serverConfig.URL,
+			Status:      "connected",
+			Message:     "Mock: Server with default transport (streamable-http) is healthy",
+			LastChecked: timestamp,
+			Version:     version,
+		}, nil
+	case "http://localhost:9093/invalid-transport":
+		return &mcp.ConnectionStatus{
+			ServerURL:   serverConfig.URL,
+			Status:      "connected",
+			Message:     "Mock: Server with invalid transport field (defaults to streamable-http) is healthy",
+			LastChecked: timestamp,
+			Version:     version,
+		}, nil
 	default:
 		return &mcp.ConnectionStatus{
 			ServerURL:   serverConfig.URL,
@@ -173,6 +189,40 @@ func (m *MockMCPClient) ListTools(ctx context.Context, identity *integrations.Re
 	case "https://mcp-unavailable:8080/sse":
 		// Simulate server unavailable
 		return nil, mcp.NewServerUnavailableError(serverConfig.URL)
+	case "http://localhost:9092/default-transport":
+		tools = []mcp.Tool{
+			{
+				Name:        "default_transport_tool",
+				Description: "A tool from server with default transport (streamable-http)",
+				InputSchema: map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"input": map[string]interface{}{
+							"type":        "string",
+							"description": "Input parameter for default transport tool",
+						},
+					},
+					"required": []string{"input"},
+				},
+			},
+		}
+	case "http://localhost:9093/invalid-transport":
+		tools = []mcp.Tool{
+			{
+				Name:        "invalid_transport_tool",
+				Description: "A tool from server with invalid transport field (defaults to streamable-http)",
+				InputSchema: map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"input": map[string]interface{}{
+							"type":        "string",
+							"description": "Input parameter for invalid transport tool",
+						},
+					},
+					"required": []string{"input"},
+				},
+			},
+		}
 	default:
 		// Default mock tools
 		tools = []mcp.Tool{
@@ -210,6 +260,10 @@ func (m *MockMCPClient) getMockMCPServerVersion(serverConfig mcp.MCPServerConfig
 		return "N/A" // Simulate connection failure
 	case "https://mcp-error:8080/mcp":
 		return "N/A" // Simulate server error
+	case "http://localhost:9092/default-transport":
+		return "1.5.0" // Mock version for default transport server
+	case "http://localhost:9093/invalid-transport":
+		return "1.6.0" // Mock version for invalid transport server
 	default:
 		// Return mock version for unknown servers
 		return "1.0.0"
