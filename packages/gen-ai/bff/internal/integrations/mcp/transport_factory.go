@@ -65,9 +65,10 @@ func (f *ProxiedTransportFactory) CreateSSETransport(
 
 	// Use the server URL directly since it already contains the endpoint path
 	slog.Debug("MCP SSE transport created", "url", serverURL)
-	transport := mcp.NewSSEClientTransport(serverURL, &mcp.SSEClientTransportOptions{
+	transport := &mcp.SSEClientTransport{
+		Endpoint:   serverURL,
 		HTTPClient: httpClient,
-	})
+	}
 
 	return transport, nil
 }

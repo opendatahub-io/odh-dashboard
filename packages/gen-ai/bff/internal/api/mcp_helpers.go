@@ -96,7 +96,9 @@ func (app *App) handleMCPClientError(w http.ResponseWriter, r *http.Request, err
 		// Return the server's JSON response as-is with the original status code
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(nonSSEErr.StatusCode)
-		w.Write([]byte(nonSSEErr.Body))
+		if _, writeErr := w.Write([]byte(nonSSEErr.Body)); writeErr != nil {
+			app.logger.Error("failed to write response body", "error", writeErr)
+		}
 		return
 	}
 

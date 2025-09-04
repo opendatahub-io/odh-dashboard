@@ -164,15 +164,16 @@ func (app *App) Routes() http.Handler {
 	// Llama Stack Distribution status endpoint
 	apiRouter.GET(constants.LlamaStackDistributionStatusPath, app.RequireAccessToService(app.AttachNamespace(app.LlamaStackDistributionStatusHandler)))
 
-	// MCP Server Configuration endpoint
-	apiRouter.GET(constants.MCPServerConfigPath, app.RequireAccessToService(app.MCPServerConfigHandler))
-
 	// MCP Client endpoints
-	apiRouter.GET(constants.MCPServersStatusPath, app.RequireAccessToService(app.MCPServersStatusHandler))
-	apiRouter.GET(constants.MCPServerToolsPath, app.RequireAccessToService(app.MCPServerToolsHandler))
 	apiRouter.GET(constants.MCPToolsPath, app.RequireAccessToService(app.MCPToolsHandler))
 	apiRouter.GET(constants.MCPStatusPath, app.RequireAccessToService(app.MCPStatusHandler))
 	apiRouter.GET(constants.MCPServersListPath, app.RequireAccessToService(app.MCPServersListHandler))
+
+	// MCP Client endpoints (TEST ONLY)
+	apiRouter.GET(constants.MCPServerConfigPath, app.RequireAccessToService(app.MCPServerConfigHandler))
+	apiRouter.GET(constants.MCPServersStatusPath, app.RequireAccessToService(app.MCPServersStatusHandler))
+	apiRouter.GET(constants.MCPServerToolsPath, app.RequireAccessToService(app.MCPServerToolsHandler))
+
 	// App Router
 	appMux := http.NewServeMux()
 
