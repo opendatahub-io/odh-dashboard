@@ -111,13 +111,13 @@ const DeploymentCard: React.FC = () => {
   return (
     <CardBody>
       <Divider />
-      {latestDeployments?.length === 0 ? (
+      {latestDeployments.length === 0 ? (
         <div className="pf-v6-u-pt-md" data-testid="no-versions-text">
           No deployments
         </div>
       ) : (
         <List isPlain isBordered>
-          {latestDeployments?.map((deployment) => (
+          {latestDeployments.map((deployment) => (
             <DeploymentCardContent
               deployment={deployment}
               key={`${deployment.model.metadata.namespace}/${deployment.model.metadata.name}`}
