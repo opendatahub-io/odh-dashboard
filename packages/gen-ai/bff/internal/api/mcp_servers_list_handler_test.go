@@ -89,11 +89,15 @@ func TestMCPServersListHandler(t *testing.T) {
 		require.NotNil(t, response.Data)
 		assert.Greater(t, len(response.Data), 0, "Should return at least one MCP server")
 
-		// Verify server structure
-		for _, server := range response.Data {
-			assert.NotEmpty(t, server.Name, "Server should have a name")
-			assert.NotEmpty(t, server.Config.URL, "Server should have a URL")
-			assert.NotEmpty(t, server.Config.Type, "Server should have a type")
+		// Verify server structure - each item is a map[serverName]config
+		for _, serverMap := range response.Data {
+			assert.Equal(t, 1, len(serverMap), "Each server map should have exactly one key-value pair")
+			for serverName, config := range serverMap {
+				assert.NotEmpty(t, serverName, "Server should have a name")
+				assert.NotEmpty(t, config.URL, "Server should have a URL")
+				assert.NotEmpty(t, config.Transport, "Server should have a transport")
+				assert.NotEmpty(t, config.Logo, "Server should have a logo")
+			}
 		}
 	})
 

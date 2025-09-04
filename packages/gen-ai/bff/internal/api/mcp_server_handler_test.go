@@ -82,19 +82,19 @@ func TestMCPServerConfigHandler(t *testing.T) {
 		assert.Equal(t, "mcp-servers", configMap.Namespace)
 
 		// Verify ConfigMap data contains expected mock server configurations
-		assert.Contains(t, configMap.Data, "dev-cluster")
-		assert.Contains(t, configMap.Data, "git-hub")
+		assert.Contains(t, configMap.Data, "brave")
+		assert.Contains(t, configMap.Data, "kubernetes")
 
-		// Verify dev-cluster configuration content
-		devClusterConfig := configMap.Data["dev-cluster"]
-		assert.Contains(t, devClusterConfig, "https://mcp-one:8080")
-		assert.Contains(t, devClusterConfig, "Manage resources in a Kubernetes cluster")
-		assert.Contains(t, devClusterConfig, "https://mysite.com/logo.png")
+		// Verify brave configuration content
+		braveConfig := configMap.Data["brave"]
+		assert.Contains(t, braveConfig, "http://localhost:9090/sse")
+		assert.Contains(t, braveConfig, "Search the Internet.")
+		assert.Contains(t, braveConfig, "https://brave.com/static-assets/images/brave-logo-sans-text.svg")
 
-		// Verify git-hub configuration content
-		gitHubConfig := configMap.Data["git-hub"]
-		assert.Contains(t, gitHubConfig, "https://mcp-two")
-		assert.Contains(t, gitHubConfig, "Manage a GitHub repository")
+		// Verify kubernetes configuration content
+		kubernetesConfig := configMap.Data["kubernetes"]
+		assert.Contains(t, kubernetesConfig, "http://localhost:9091/mcp")
+		assert.Contains(t, kubernetesConfig, "Manage resources in a Kubernetes cluster.")
 	})
 
 	t.Run("should return 400 when request identity is missing", func(t *testing.T) {

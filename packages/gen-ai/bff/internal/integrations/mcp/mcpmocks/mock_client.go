@@ -33,7 +33,7 @@ func NewMockMCPClientWithFixedTime(logger *slog.Logger, timestamp int64) *MockMC
 // CheckConnectionStatus returns mock connection status
 func (m *MockMCPClient) CheckConnectionStatus(ctx context.Context, identity *integrations.RequestIdentity, serverConfig mcp.MCPServerConfig) (*mcp.ConnectionStatus, error) {
 	if m.logger != nil {
-		m.logger.Debug("Mock: Checking MCP server connection status", "server_url", serverConfig.URL, "type", serverConfig.Type)
+		m.logger.Debug("Mock: Checking MCP server connection status", "server_url", serverConfig.URL, "transport", serverConfig.Transport)
 	}
 
 	// Get timestamp to use
@@ -93,7 +93,7 @@ func (m *MockMCPClient) CheckConnectionStatus(ctx context.Context, identity *int
 // ListTools returns mock tool list
 func (m *MockMCPClient) ListTools(ctx context.Context, identity *integrations.RequestIdentity, serverConfig mcp.MCPServerConfig) (*mcp.ToolList, error) {
 	if m.logger != nil {
-		m.logger.Debug("Mock: Listing tools from MCP server", "server_url", serverConfig.URL, "type", serverConfig.Type)
+		m.logger.Debug("Mock: Listing tools from MCP server", "server_url", serverConfig.URL, "transport", serverConfig.Transport)
 	}
 
 	// Return different mock tools based on server URL

@@ -9,7 +9,7 @@ import (
 
 type MCPStatusEnvelope = Envelope[*mcp.ConnectionStatus, None]
 
-// MCPStatusHandler handles GET /genai/v1/mcp/status?namespace=<>&mcp_url=<>
+// MCPStatusHandler handles GET /genai/v1/mcp/status?namespace=<>&server_url=<>
 func (app *App) MCPStatusHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 

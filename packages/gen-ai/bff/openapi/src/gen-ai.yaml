@@ -375,11 +375,10 @@ paths:
     summary: Get tools from MCP server by URL
     description: >-
       Retrieves the available tools from a specific MCP (Model Context Protocol) server by its URL.
-      Uses the MCP client to connect to the server specified by the mcp_url parameter and fetch its tool definitions.
+      Uses the MCP client to connect to the server specified by the server_url parameter and fetch its tool definitions.
       Returns tool information including names, descriptions, and input schemas.
 
-      The namespace parameter is required but ignored in the implementation - it's maintained for API consistency.
-      The mcp_url parameter should be the full URL-encoded endpoint for the MCP server.
+      The server_url parameter should be the full URL-encoded endpoint for the MCP server.
 
       Requires valid authentication token for MCP client operations.
     get:
@@ -390,12 +389,12 @@ paths:
       parameters:
         - name: namespace
           in: query
-          description: Kubernetes namespace (required but ignored in implementation)
+          description: Kubernetes namespace
           required: true
           schema:
             type: string
             example: "demo"
-        - name: mcp_url
+        - name: server_url
           in: query
           description: Full URL-encoded endpoint for the MCP server
           required: true
@@ -422,11 +421,10 @@ paths:
     summary: Get connection status from MCP server by URL
     description: >-
       Retrieves the connection status of a specific MCP (Model Context Protocol) server by its URL.
-      Uses the MCP client to connect to the server specified by the mcp_url parameter and check its availability.
+      Uses the MCP client to connect to the server specified by the server_url parameter and check its availability.
       Returns connection status information including connectivity state, response message, and last check timestamp.
 
-      The namespace parameter is required but ignored in the implementation - it's maintained for API consistency.
-      The mcp_url parameter should be the full URL-encoded endpoint for the MCP server.
+      The server_url parameter should be the full URL-encoded endpoint for the MCP server.
 
       Requires valid authentication token for MCP client operations.
     get:
@@ -437,12 +435,12 @@ paths:
       parameters:
         - name: namespace
           in: query
-          description: Kubernetes namespace (required but ignored in implementation)
+          description: Kubernetes namespace
           required: true
           schema:
             type: string
             example: "demo"
-        - name: mcp_url
+        - name: server_url
           in: query
           description: Full URL-encoded endpoint for the MCP server
           required: true
@@ -475,7 +473,6 @@ paths:
         Retrieves the list of available MCP (Model Context Protocol) servers from the ConfigMap.
         Returns basic server information including names, URLs, types, and descriptions for all configured MCP servers.
 
-        The namespace parameter is required but ignored in the implementation - it's maintained for API consistency.
         This endpoint provides an overview of all available MCP servers without checking their connection status.
       parameters:
         - $ref: '#/components/parameters/NamespaceParam'
@@ -501,7 +498,7 @@ components:
     NamespaceParam:
       name: namespace
       in: query
-      description: Kubernetes namespace to operate in. Required for API consistency but may be ignored in implementation.
+      description: Kubernetes namespace to operate in.
       required: true
       schema:
         type: string
@@ -1380,30 +1377,32 @@ components:
 
     MCPServerInfo:
       type: object
-      required:
-        - name
-        - config
-      properties:
-        name:
-          type: string
-          example: "brave-server"
-          description: Name of the MCP server
-        config:
-          $ref: "#/components/schemas/MCPServerConfig"
-          description: Configuration details for the MCP server
+      description: MCP server information where each key is the server name and value contains server details
+      additionalProperties:
+        $ref: "#/components/schemas/MCPServerConfig"
+      example:
+        brave:
+          url: "http://localhost:9090/sse"
+          transport: "sse"
+          description: "Search the Internet."
+        kubernetes:
+          url: "http://localhost:9091/mcp"
+          transport: "streamable-http"
+          description: "Manage resources in a Kubernetes cluster."
+          logo: "https://kubernetes.io/_common-resources/images/flower.svg"
 
     MCPServerConfig:
       type: object
       required:
         - url
-        - type
+        - transport
       properties:
         url:
           type: string
           format: uri
           example: "http://localhost:9090/sse"
           description: Full URL of the MCP server endpoint
-        type:
+        transport:
           type: string
           enum: ["sse", "streamable-http"]
           example: "sse"
@@ -1921,16 +1920,15 @@ components:
                 description: Array of available MCP servers
             example:
               data:
-                - name: "brave-server"
-                  config:
+                - brave:
                     url: "http://localhost:9090/sse"
-                    type: "sse"
-                    description: "Brave search MCP server"
-                - name: "kubernetes-server"
-                  config:
+                    transport: "sse"
+                    description: "Search the Internet."
+                - kubernetes:
                     url: "http://localhost:9091/mcp"
-                    type: "streamable-http"
-                    description: "Kubernetes management MCP server"
+                    transport: "streamable-http"
+                    description: "Manage resources in a Kubernetes cluster."
+                    logo: "https://kubernetes.io/_common-resources/images/flower.svg"
 
     CreateResponseResponse:
       description: Created AI response with essential information only

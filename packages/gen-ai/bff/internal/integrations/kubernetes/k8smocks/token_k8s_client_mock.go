@@ -138,15 +138,15 @@ func (m *TokenKubernetesClientMock) GetMCPServerConfig(ctx context.Context, iden
 		Data: map[string]string{
 			"brave": `{
   "url": "http://localhost:9090/sse",
-  "type": "sse",
-  "version": "1.0.0",
-  "description": "Search the Internet."
+  "transport": "sse",
+  "description": "Search the Internet.",
+  "logo": "https://brave.com/static-assets/images/brave-logo-sans-text.svg"
 }`,
 			"kubernetes": `{
   "url": "http://localhost:9091/mcp",
-  "type": "streamable-http",
-  "version": "2.1.0",
-  "description": "Manage resources in a Kubernetes cluster."
+  "transport": "streamable-http",
+  "description": "Manage resources in a Kubernetes cluster.",
+  "logo": "https://kubernetes.io/images/kubernetes-horizontal-color.png"
 }`,
 		},
 	}, nil

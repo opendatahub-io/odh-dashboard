@@ -5,10 +5,10 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
-	"github.com/opendatahub-io/gen-ai/internal/repositories"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp"
 )
 
-type MCPServersListEnvelope = Envelope[[]repositories.MCPServerInfo, None]
+type MCPServersListEnvelope = Envelope[[]map[string]mcp.MCPServerConfig, None]
 
 // MCPServersListHandler handles GET /genai/v1/aa/mcps?namespace=<>
 func (app *App) MCPServersListHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -21,7 +21,7 @@ func (app *App) MCPServersListHandler(w http.ResponseWriter, r *http.Request, ps
 		return
 	}
 
-	// Parse and validate parameters using helper (mcp_url not required for this endpoint)
+	// Parse and validate parameters using helper (server_url not required for this endpoint)
 	_, _, _, err = app.parseMCPEndpointParams(r, false)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
@@ -42,9 +42,18 @@ func (app *App) MCPServersListHandler(w http.ResponseWriter, r *http.Request, ps
 		return
 	}
 
-	// Create response with envelope - return just the server info (name + config)
+	// Transform servers to the new format: each server becomes a map[serverName]config
+	transformedServers := make([]map[string]mcp.MCPServerConfig, 0, len(servers))
+	for _, server := range servers {
+		serverMap := map[string]mcp.MCPServerConfig{
+			server.Name: server.Config,
+		}
+		transformedServers = append(transformedServers, serverMap)
+	}
+
+	// Create response with envelope - return the transformed server data
 	response := MCPServersListEnvelope{
-		Data: servers,
+		Data: transformedServers,
 	}
 
 	// Return JSON response with envelope structure

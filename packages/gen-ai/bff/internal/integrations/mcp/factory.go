@@ -41,10 +41,6 @@ func NewMCPClientFactory(cfg config.EnvConfig, logger *slog.Logger) (MCPClientFa
 // createMCPConfigFromEnv creates MCP configuration from environment variables
 func createMCPConfigFromEnv() *MCPClientConfig {
 	config := DefaultMCPClientConfig()
-
-	// Transport type is now determined per-server from ConfigMap
-	// No transport-related environment variables needed anymore
-
 	return config
 }
 

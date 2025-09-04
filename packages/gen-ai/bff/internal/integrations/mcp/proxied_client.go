@@ -6,7 +6,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -21,7 +20,7 @@ type ProxiedMCPClient struct {
 	config           *MCPClientConfig
 	transportFactory TransportFactory
 	sessionManager   *SessionManager
-	httpClient       *http.Client // Still needed for HTTP health checks
+	httpClient       *http.Client
 }
 
 // NewProxiedMCPClient creates a new proxied MCP client
@@ -117,94 +116,6 @@ func (c *ProxiedMCPClient) CheckConnectionStatus(ctx context.Context, identity *
 	}, nil
 }
 
-// checkHTTPHealth performs the HTTP health check (existing logic)
-func (c *ProxiedMCPClient) checkHTTPHealth(ctx context.Context, identity *integrations.RequestIdentity, serverURL string) (*ConnectionStatus, error) {
-	// Build health check URL
-	healthURL, err := c.buildHealthCheckURL(serverURL)
-	if err != nil {
-		return nil, NewInvalidResponseError(serverURL, fmt.Sprintf("invalid server URL: %v", err))
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "GET", healthURL, nil)
-	if err != nil {
-		return nil, NewInternalError(fmt.Sprintf("failed to create request: %v", err))
-	}
-
-	// Add authentication if available
-	if identity != nil && identity.Token != "" {
-		req.Header.Set("Authorization", "Bearer "+identity.Token)
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		c.logger.Error("Failed to connect to MCP server via HTTP", "server_url", serverURL, "error", err)
-		return &ConnectionStatus{
-			ServerURL:   serverURL,
-			Status:      "disconnected",
-			Message:     fmt.Sprintf("HTTP connection failed: %v", err),
-			LastChecked: time.Now().Unix(),
-		}, nil
-	}
-	defer resp.Body.Close()
-
-	status := &ConnectionStatus{
-		ServerURL:   serverURL,
-		LastChecked: time.Now().Unix(),
-	}
-
-	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-		status.Status = "connected"
-		status.Message = "HTTP health check passed"
-	} else {
-		status.Status = "error"
-		status.Message = fmt.Sprintf("HTTP health check failed with status %d", resp.StatusCode)
-	}
-
-	return status, nil
-}
-
-// checkMCPProtocolHealth performs MCP protocol-level health check using Ping
-func (c *ProxiedMCPClient) checkMCPProtocolHealth(ctx context.Context, identity *integrations.RequestIdentity, serverURL string) *ConnectionStatus {
-	c.logger.Debug("Performing MCP protocol health check", "server_url", serverURL)
-
-	// Create a short-lived session for health check - this method is now deprecated since we use simplified health check
-	// but keeping it here for potential future use
-	_ = serverURL
-	_ = identity
-	session := (*mcp.ClientSession)(nil)
-	err := fmt.Errorf("deprecated method - using simplified health check instead")
-	if err != nil {
-		c.logger.Debug("Failed to create MCP session for health check", "server_url", serverURL, "error", err)
-		return &ConnectionStatus{
-			ServerURL:   serverURL,
-			Status:      "error",
-			Message:     fmt.Sprintf("MCP session creation failed: %v", err),
-			LastChecked: time.Now().Unix(),
-		}
-	}
-	defer session.Close()
-
-	// Perform ping to test MCP protocol connectivity
-	err = session.Ping(ctx, &mcp.PingParams{})
-	if err != nil {
-		c.logger.Debug("MCP protocol ping failed", "server_url", serverURL, "error", err)
-		return &ConnectionStatus{
-			ServerURL:   serverURL,
-			Status:      "error",
-			Message:     fmt.Sprintf("MCP ping failed: %v", err),
-			LastChecked: time.Now().Unix(),
-		}
-	}
-
-	c.logger.Debug("MCP protocol health check passed", "server_url", serverURL)
-	return &ConnectionStatus{
-		ServerURL:   serverURL,
-		Status:      "connected",
-		Message:     "MCP protocol ping successful",
-		LastChecked: time.Now().Unix(),
-	}
-}
-
 // ListTools retrieves the list of available tools from an MCP server using MCP SDK
 func (c *ProxiedMCPClient) ListTools(ctx context.Context, identity *integrations.RequestIdentity, serverConfig MCPServerConfig) (*ToolList, error) {
 	c.logger.Debug("Listing tools from MCP server using MCP SDK", "server_url", serverConfig.URL)
@@ -266,7 +177,7 @@ func (c *ProxiedMCPClient) createMCPSession(ctx context.Context, serverConfig MC
 	)
 
 	// Validate and normalize transport type from server config
-	transportType := ValidateAndNormalizeTransportType(serverConfig.Type, c.logger, serverConfig.URL)
+	transportType := ValidateAndNormalizeTransportType(serverConfig.Transport, c.logger, serverConfig.URL)
 
 	// Create transport based on server configuration
 	var transport mcp.Transport
@@ -305,7 +216,6 @@ func convertMCPInputSchema(mcpSchema *jsonschema.Schema) map[string]interface{} 
 	}
 
 	// Convert the jsonschema.Schema to a generic map
-	// This is a simplified conversion - in a production system you might want more sophisticated handling
 	result := make(map[string]interface{})
 
 	if mcpSchema.Type != "" {
@@ -397,31 +307,8 @@ func (c *ProxiedMCPClient) detectJSONErrorResponse(serverURL string) error {
 
 // mapNonSSEError maps NonSSEResponseError to appropriate MCP error types
 func (c *ProxiedMCPClient) mapNonSSEError(nonSSEErr *NonSSEResponseError, serverURL string) error {
-	// Simply return the NonSSEResponseError as-is
 	// The API layer will handle converting it to appropriate HTTP response
 	return nonSSEErr
-}
-
-// buildHealthCheckURL constructs the health check URL for an MCP server
-func (c *ProxiedMCPClient) buildHealthCheckURL(serverURL string) (string, error) {
-	baseURL, err := url.Parse(serverURL)
-	if err != nil {
-		return "", err
-	}
-
-	// Try common health check endpoints
-	// Most MCP servers should implement a health endpoint
-	healthPath := "/health"
-	if !strings.HasSuffix(baseURL.Path, "/") && baseURL.Path != "" {
-		healthPath = baseURL.Path + "/health"
-	} else if baseURL.Path == "/" || baseURL.Path == "" {
-		healthPath = "/health"
-	} else {
-		healthPath = strings.TrimSuffix(baseURL.Path, "/") + "/health"
-	}
-
-	baseURL.Path = healthPath
-	return baseURL.String(), nil
 }
 
 // Close closes all active sessions and cleans up resources

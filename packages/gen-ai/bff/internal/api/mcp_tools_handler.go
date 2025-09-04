@@ -9,7 +9,7 @@ import (
 
 type MCPToolsEnvelope = Envelope[[]mcp.Tool, None]
 
-// MCPToolsHandler handles GET /genai/v1/mcp/tools?namespace=<>&mcp_url=<>
+// MCPToolsHandler handles GET /genai/v1/mcp/tools?namespace=<>&server_url=<>
 func (app *App) MCPToolsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 

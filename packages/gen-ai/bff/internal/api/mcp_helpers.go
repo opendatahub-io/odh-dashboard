@@ -13,29 +13,29 @@ import (
 )
 
 // parseMCPEndpointParams extracts and validates query parameters common to MCP endpoints
-func (app *App) parseMCPEndpointParams(r *http.Request, requireMcpURL bool) (namespace, mcpURL, decodedURL string, err error) {
+func (app *App) parseMCPEndpointParams(r *http.Request, requireServerURL bool) (namespace, serverURL, decodedURL string, err error) {
 	namespace = r.URL.Query().Get("namespace")
-	mcpURL = r.URL.Query().Get("mcp_url")
+	serverURL = r.URL.Query().Get("server_url")
 
 	// Validate required parameters
 	if namespace == "" {
 		return "", "", "", fmt.Errorf("namespace parameter is required")
 	}
 
-	// Only validate mcp_url if required
-	if requireMcpURL {
-		if mcpURL == "" {
-			return "", "", "", fmt.Errorf("mcp_url parameter is required")
+	// Only validate server_url if required
+	if requireServerURL {
+		if serverURL == "" {
+			return "", "", "", fmt.Errorf("server_url parameter is required")
 		}
 
-		// URL decode the mcp_url parameter
-		decodedURL, err = url.QueryUnescape(mcpURL)
+		// URL decode the server_url parameter
+		decodedURL, err = url.QueryUnescape(serverURL)
 		if err != nil {
-			return "", "", "", fmt.Errorf("invalid mcp_url parameter: %w", err)
+			return "", "", "", fmt.Errorf("invalid server_url parameter: %w", err)
 		}
 	}
 
-	return namespace, mcpURL, decodedURL, nil
+	return namespace, serverURL, decodedURL, nil
 }
 
 // setupMCPEndpoint performs common setup for MCP endpoints: identity extraction, k8s client setup, and repository validation
