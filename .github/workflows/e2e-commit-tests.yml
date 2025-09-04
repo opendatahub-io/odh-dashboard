@@ -1,14 +1,6 @@
 name: E2E Commit Tests
 
-on:
-  push:
-  workflow_dispatch:
-    inputs:
-      test_type:
-        description: 'Test type to run - e2e for all Smoke/Sanity sets, or e2e[TagName] for specific tag tests'
-        required: true
-        default: 'e2e'
-        type: string
+on: [push, pull_request]
 
 permissions:
   contents: read
@@ -131,7 +123,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-test-results-${{ needs.pr-comment-parser.outputs.test-type }}-${{ matrix.test-set }}
+          name: e2e-test-results-smoke-${{ matrix.test-set }}
           path: |
             frontend/src/__tests__/cypress/results/
             frontend/src/__tests__/cypress/videos/
