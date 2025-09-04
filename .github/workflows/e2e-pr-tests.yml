@@ -1,0 +1,190 @@
+name: E2E PR Tests
+
+on:
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Test type to run - e2e for all Smoke/Sanity sets, or e2e[TagName] for specific tag tests'
+        required: true
+        default: 'e2e'
+        type: string
+
+env:
+  NODE_VERSION: 20.x
+  DO_NOT_TRACK: 1
+
+jobs:
+  pr-comment-parser:
+    runs-on: ubuntu-latest
+    outputs:
+      test-type: ${{ steps.parse-comment.outputs.test-type }}
+      should-run: ${{ steps.parse-comment.outputs.should-run }}
+      pr-number: ${{ steps.parse-comment.outputs.pr-number }}
+      test-sets: ${{ steps.parse-comment.outputs.test-sets }}
+      tag-name: ${{ steps.parse-comment.outputs.tag-name }}
+    steps:
+      - name: Parse PR comment
+        id: parse-comment
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "test-type=${{ inputs.test_type }}" >> $GITHUB_OUTPUT
+            echo "should-run=true" >> $GITHUB_OUTPUT
+            echo "pr-number=manual" >> $GITHUB_OUTPUT
+            if [ "${{ inputs.test_type }}" = "e2e" ]; then
+              echo 'test-sets=["1","2","3"]' >> $GITHUB_OUTPUT
+              echo "tag-name=" >> $GITHUB_OUTPUT
+            else
+              echo 'test-sets=["1"]' >> $GITHUB_OUTPUT
+              echo "tag-name=${{ inputs.test_type }}" | sed 's/^e2e//' >> $GITHUB_OUTPUT
+            fi
+            exit 0
+          fi
+
+          COMMENT="${{ github.event.comment.body }}"
+          PR_NUMBER="${{ github.event.issue.number }}"
+
+          echo "Parsing comment: $COMMENT"
+          echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
+
+          if [[ "$COMMENT" =~ ^/e2e$ ]]; then
+            echo "test-type=e2e" >> $GITHUB_OUTPUT
+            echo "should-run=true" >> $GITHUB_OUTPUT
+            echo 'test-sets=["1","2","3"]' >> $GITHUB_OUTPUT
+            echo "tag-name=" >> $GITHUB_OUTPUT
+          elif [[ "$COMMENT" =~ ^/e2e([A-Z][a-zA-Z]*)$ ]]; then
+            TAG_NAME="${BASH_REMATCH[1]}"
+            echo "test-type=e2e${TAG_NAME}" >> $GITHUB_OUTPUT
+            echo "should-run=true" >> $GITHUB_OUTPUT
+            echo 'test-sets=["1"]' >> $GITHUB_OUTPUT
+            echo "tag-name=$TAG_NAME" >> $GITHUB_OUTPUT
+          else
+            echo "test-type=none" >> $GITHUB_OUTPUT
+            echo "should-run=false" >> $GITHUB_OUTPUT
+            echo 'test-sets=["1"]' >> $GITHUB_OUTPUT
+            echo "tag-name=" >> $GITHUB_OUTPUT
+          fi
+
+  e2e-tests:
+    needs: pr-comment-parser
+    if: needs.pr-comment-parser.outputs.should-run == 'true'
+    runs-on: self-hosted
+    strategy:
+      fail-fast: false
+      matrix:
+        test-set: ${{ fromJson(needs.pr-comment-parser.outputs.test-sets) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download test configuration
+        run: |
+          # Download test-variables.yml from GitLab securely
+          curl -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
+               "${{ secrets.GITLAB_TEST_VARS_URL }}" \
+               -o ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+
+      - name: Login to OpenShift cluster
+        run: |
+          # Read credentials from downloaded test-variables.yml
+          TEST_VARS_FILE="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
+
+          # Extract OC_USERNAME from OCP_ADMIN_USER section
+          OC_USERNAME=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
+
+          # Extract OC_PASSWORD from OCP_ADMIN_USER section
+          OC_PASSWORD=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
+
+          echo "Logging in to OpenShift cluster..."
+          oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="${{ secrets.OC_SERVER }}"
+
+      - name: Set test configuration
+        run: |
+          # Override cluster-specific URLs with GitHub secrets
+          if [ -n "${{ secrets.OCP_CONSOLE_URL }}" ]; then
+            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: ${{ secrets.OCP_CONSOLE_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          fi
+          if [ -n "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
+            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: ${{ secrets.ODH_DASHBOARD_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          fi
+
+          export CY_TEST_CONFIG=${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+
+      - name: Build frontend for E2E tests
+        run: |
+          cd frontend
+          # Build frontend to public-cypress directory (same as mock tests)
+          npm run cypress:server:build
+
+      - name: Run E2E Tests
+        run: |
+          cd frontend
+          TEST_TYPE="${{ needs.pr-comment-parser.outputs.test-type }}"
+          TEST_SET="${{ matrix.test-set }}"
+          TAG_NAME="${{ needs.pr-comment-parser.outputs.tag-name }}"
+
+          echo "Running test type: $TEST_TYPE, test set: $TEST_SET, tag name: $TAG_NAME"
+
+          # Use clean npm script for concurrent server + tests execution
+          if [ "$TEST_TYPE" = "e2e" ]; then
+            export CY_TEST_TAGS="@SanitySet$TEST_SET,@SmokeSet$TEST_SET"
+            export CY_SKIP_TAGS="@Bug,@Maintain,@NonConcurrent"
+            npm run test:cypress:e2e:ci -- --parallel
+          elif [ -n "$TAG_NAME" ]; then
+            export CY_TEST_TAGS="@$TAG_NAME"
+            export CY_SKIP_TAGS="@Bug,@Maintain,@NonConcurrent"
+            npm run test:cypress:e2e:ci -- --parallel
+          else
+            echo "Unknown test configuration"
+            exit 1
+          fi
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results-${{ needs.pr-comment-parser.outputs.test-type }}-${{ matrix.test-set }}
+          path: |
+            frontend/src/__tests__/cypress/results/
+            frontend/src/__tests__/cypress/videos/
+            frontend/src/__tests__/cypress/screenshots/
+            frontend/src/__tests__/cypress/coverage/
+          retention-days: 7
+
+      - name: Comment on PR with results
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const testType = '${{ needs.pr-comment-parser.outputs.test-type }}';
+            const testSet = '${{ matrix.test-set }}';
+            const prNumber = '${{ needs.pr-comment-parser.outputs.pr-number }}';
+            const status = '${{ job.status }}';
+
+            if (prNumber !== 'manual') {
+              const comment = `## E2E Test Results
+
+              **Test Type:** ${testType}
+              **Test Set:** ${testSet}
+              **Status:** ${status}
+
+              ${status === 'success' ? '✅ Tests passed!' : '❌ Tests failed. Check the artifacts for details.'}
+
+              [View test artifacts](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+
+              github.rest.issues.createComment({
+                issue_number: prNumber,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
