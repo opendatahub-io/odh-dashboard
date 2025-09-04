@@ -1,6 +1,7 @@
 import React, { act } from 'react';
 import { render, screen, fireEvent, renderHook } from '@testing-library/react';
 import { type ZodIssue } from 'zod';
+import { ServingRuntimeModelType } from '@odh-dashboard/internal/types.js';
 import {
   ModelTypeSelectField,
   modelTypeSelectFieldSchema,
@@ -55,16 +56,16 @@ describe('ModelTypeSelectField', () => {
     });
 
     it('should initialize with existing data', () => {
-      const { result } = renderHook(() => useModelTypeField('predictive-model'));
-      expect(result.current.data).toBe('predictive-model');
+      const { result } = renderHook(() => useModelTypeField(ServingRuntimeModelType.PREDICTIVE));
+      expect(result.current.data).toBe(ServingRuntimeModelType.PREDICTIVE);
     });
 
     it('should update model type', () => {
       const { result } = renderHook(() => useModelTypeField());
       act(() => {
-        result.current.setData('generative-model');
+        result.current.setData(ServingRuntimeModelType.GENERATIVE);
       });
-      expect(result.current.data).toBe('generative-model');
+      expect(result.current.data).toBe(ServingRuntimeModelType.GENERATIVE);
     });
   });
 
@@ -82,7 +83,7 @@ describe('ModelTypeSelectField', () => {
     });
 
     it('should render with selected value', () => {
-      render(<ModelTypeSelectField modelType="predictive-model" />);
+      render(<ModelTypeSelectField modelType={ServingRuntimeModelType.PREDICTIVE} />);
       expect(screen.getByText('Predictive model')).toBeInTheDocument();
     });
 

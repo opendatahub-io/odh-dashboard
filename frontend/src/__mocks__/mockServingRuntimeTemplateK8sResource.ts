@@ -1,5 +1,9 @@
 import { K8sDSGResource, SupportedModelFormats, TemplateKind } from '#~/k8sTypes';
-import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '#~/types';
+import {
+  ServingRuntimeAPIProtocol,
+  ServingRuntimePlatform,
+  type ServingRuntimeModelType,
+} from '#~/types';
 
 type MockResourceConfigType = {
   name?: string;
@@ -7,6 +11,7 @@ type MockResourceConfigType = {
   displayName?: string;
   replicas?: number;
   platforms?: ServingRuntimePlatform[];
+  modelTypes?: ServingRuntimeModelType[];
   preInstalled?: boolean;
   apiProtocol?: ServingRuntimeAPIProtocol;
   isModelmesh?: boolean;
@@ -26,6 +31,7 @@ export const mockServingRuntimeTemplateK8sResource = ({
   isModelmesh = false,
   apiProtocol = ServingRuntimeAPIProtocol.REST,
   platforms,
+  modelTypes,
   preInstalled = false,
   containerName = 'ovms',
   containerEnvVars = undefined,
@@ -57,7 +63,7 @@ export const mockServingRuntimeTemplateK8sResource = ({
     annotations: {
       'opendatahub.io/modelServingSupport': JSON.stringify(platforms),
       'opendatahub.io/apiProtocol': apiProtocol,
-      'opendatahub.io/modelServingType': '["predictive","generative"]',
+      'opendatahub.io/model-type': JSON.stringify(modelTypes),
       ...annotations,
     },
   },

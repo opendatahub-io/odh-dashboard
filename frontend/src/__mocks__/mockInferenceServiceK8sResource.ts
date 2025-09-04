@@ -45,6 +45,7 @@ type MockResourceConfigType = {
   isReady?: boolean;
   predictorAnnotations?: Record<string, string>;
   storageUri?: string;
+  modelType?: string;
 };
 
 type InferenceServicek8sError = K8sStatus & {
@@ -122,6 +123,7 @@ export const mockInferenceServiceK8sResource = ({
   isReady = false,
   predictorAnnotations = undefined,
   storageUri = undefined,
+  modelType = 'predictive',
 }: MockResourceConfigType): InferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1beta1',
   kind: 'InferenceService',
@@ -146,6 +148,7 @@ export const mockInferenceServiceK8sResource = ({
       ...(hardwareProfileNamespace && {
         'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
       }),
+      ...(modelType && { 'opendatahub.io/model-type': modelType }),
     },
     creationTimestamp,
     ...(deleted ? { deletionTimestamp: new Date().toUTCString() } : {}),
