@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button, Tooltip } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { SortableData } from '@odh-dashboard/internal/components/table/types';
@@ -21,6 +21,7 @@ import { ModelDeploymentsContext } from '../src/concepts/ModelDeploymentsContext
 
 const DeploymentsColumn: React.FC<{ registeredModel: RegisteredModel }> = ({ registeredModel }) => {
   const { deployments, loaded } = React.useContext(ModelDeploymentsContext);
+  const navigate = useNavigate();
 
   if (!loaded) {
     return <span>-</span>;
@@ -39,10 +40,8 @@ const DeploymentsColumn: React.FC<{ registeredModel: RegisteredModel }> = ({ reg
   if (deploymentCount === 0) {
     return <span>-</span>;
   }
-
   const handleDeploymentsClick = () => {
-    // Navigate to the model's deployments tab
-    // This will be handled by the parent component
+    navigate(`/model-registry/${registeredModel.id}/deployments`);
   };
 
   return (
