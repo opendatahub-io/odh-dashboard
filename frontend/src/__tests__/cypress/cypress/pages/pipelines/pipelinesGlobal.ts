@@ -13,7 +13,9 @@ class PipelinesGlobal {
   }
 
   navigate() {
-    appChrome.findNavItem('Pipelines', 'Data Science Pipelines').click();
+    appChrome
+      .findNavItem({ name: 'Pipelines', rootSection: 'Develop & train', subSection: 'Pipelines' })
+      .click();
     this.wait();
   }
 

@@ -9,8 +9,8 @@ class NavSidebar {
     return appChrome.findNavSection(name);
   }
 
-  findNavItem(name: string, section: string) {
-    return appChrome.findNavItem(name, section);
+  findNavItem(args: { name: string; rootSection?: string; subSection?: string }) {
+    return appChrome.findNavItem(args);
   }
 }
 

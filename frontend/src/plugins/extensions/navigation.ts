@@ -16,6 +16,7 @@ const extensions: NavExtension[] = [
       title: 'Home',
       href: '/',
       group: '1_home',
+      iconRef: () => import('@patternfly/react-icons/dist/esm/icons/home-icon'),
     },
   },
 
@@ -25,20 +26,22 @@ const extensions: NavExtension[] = [
       required: [SupportedArea.DS_PROJECTS_VIEW],
     },
     properties: {
-      id: 'dsg',
-      title: 'Data science projects',
+      id: 'projects',
+      title: 'Projects',
       href: '/projects',
       path: '/projects/*',
       group: '2_projects',
+      iconRef: () => import('@patternfly/react-icons/dist/esm/icons/folder-icon'),
     },
   },
 
   {
     type: 'app.navigation/section',
     properties: {
-      id: 'models',
-      title: 'Models',
-      group: '3_models',
+      id: 'ai-hub',
+      title: 'AI hub',
+      group: '3_ai_hub',
+      iconRef: () => import('#~/images/icons/AiHubIcon'),
     },
   },
   {
@@ -48,9 +51,9 @@ const extensions: NavExtension[] = [
     },
     properties: {
       id: 'modelCatalog',
-      title: 'Model catalog',
+      title: 'Catalog',
       href: '/modelCatalog',
-      section: 'models',
+      section: 'ai-hub',
       path: '/modelCatalog/*',
     },
   },
@@ -61,9 +64,9 @@ const extensions: NavExtension[] = [
     },
     properties: {
       id: 'modelRegistry',
-      title: 'Model registry',
+      title: 'Registry',
       href: '/modelRegistry',
-      section: 'models',
+      section: 'ai-hub',
       path: '/modelRegistry/*',
     },
   },
@@ -75,44 +78,29 @@ const extensions: NavExtension[] = [
     },
     properties: {
       id: 'modelServing',
-      title: 'Model deployments',
+      title: 'Deployments',
       href: '/modelServing',
-      section: 'models',
+      section: 'ai-hub',
       path: '/modelServing/*',
     },
   },
+
   {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.FINE_TUNING],
-    },
+    type: 'app.navigation/section',
     properties: {
-      id: 'modelCustomization',
-      title: 'Model customization',
-      href: '/modelCustomization',
-      section: 'models',
-      path: '/modelCustomization/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.LM_EVAL],
-    },
-    properties: {
-      id: 'lm-eval',
-      title: 'Model evaluation runs',
-      href: '/modelEvaluations',
-      section: 'models',
-      path: '/modelEvaluations/*',
+      id: 'develop-and-train',
+      title: 'Develop & train',
+      group: '5_develop_and_train',
+      iconRef: () => import('@patternfly/react-icons/dist/esm/icons/code-icon'),
     },
   },
   {
     type: 'app.navigation/section',
     properties: {
-      id: 'pipelines-and-runs',
-      title: 'Data science pipelines',
-      group: '4_pipelines',
+      id: 'ai-pipelines',
+      title: 'Pipelines',
+      group: '2_pipelines',
+      section: 'develop-and-train',
     },
   },
   {
@@ -124,7 +112,7 @@ const extensions: NavExtension[] = [
       id: 'pipelines',
       title: 'Pipelines',
       href: '/pipelines',
-      section: 'pipelines-and-runs',
+      section: 'ai-pipelines',
       path: '/pipelines/*',
     },
   },
@@ -137,45 +125,8 @@ const extensions: NavExtension[] = [
       id: 'runs',
       title: 'Runs',
       href: '/pipelineRuns',
-      section: 'pipelines-and-runs',
+      section: 'ai-pipelines',
       path: '/pipelineRuns/*',
-    },
-  },
-  {
-    type: 'app.navigation/section',
-    flags: {
-      required: [SupportedArea.DS_PIPELINES],
-    },
-    properties: {
-      id: 'experiments',
-      title: 'Experiments',
-      group: '5_experiments',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.DS_PIPELINES],
-    },
-    properties: {
-      id: 'experiments-and-runs',
-      title: 'Experiments and runs',
-      href: '/experiments',
-      section: 'experiments',
-      path: '/experiments/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.DS_PIPELINES],
-    },
-    properties: {
-      id: 'executions',
-      title: 'Executions',
-      href: '/executions',
-      section: 'experiments',
-      path: '/executions/*',
     },
   },
   {
@@ -187,8 +138,57 @@ const extensions: NavExtension[] = [
       id: 'artifacts',
       title: 'Artifacts',
       href: '/artifacts',
-      section: 'experiments',
+      section: 'ai-pipelines',
       path: '/artifacts/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.DS_PIPELINES],
+    },
+    properties: {
+      id: 'executions',
+      title: 'Executions',
+      href: '/executions',
+      section: 'ai-pipelines',
+      path: '/executions/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.LM_EVAL],
+    },
+    properties: {
+      id: 'lm-eval',
+      title: 'Evaluations',
+      href: '/modelEvaluations',
+      section: 'develop-and-train',
+      path: '/modelEvaluations/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.DS_PIPELINES],
+    },
+    properties: {
+      id: 'experiments',
+      title: 'Experiments',
+      href: '/experiments',
+      section: 'develop-and-train',
+      path: '/experiments/*',
+    },
+  },
+
+  {
+    type: 'app.navigation/section',
+    properties: {
+      id: 'observe-and-monitor',
+      title: 'Observe & monitor',
+      group: '6_observe_and_monitor',
+      iconRef: () => import('#~/images/icons/ObserveAndMonitorIcon'),
     },
   },
   {
@@ -198,10 +198,21 @@ const extensions: NavExtension[] = [
     },
     properties: {
       id: 'workloadMetrics',
-      title: 'Distributed workloads',
+      title: 'Workload metrics',
       href: '/distributedWorkloads',
       path: '/distributedWorkloads/*',
-      group: '6_distributed_workloads',
+      section: 'observe-and-monitor',
+    },
+  },
+
+  {
+    type: 'app.navigation/href',
+    properties: {
+      id: 'learning-resources',
+      title: 'Learning resources',
+      href: '/resources',
+      group: '7_other',
+      iconRef: () => import('#~/images/icons/LearningResourcesIcon'),
     },
   },
 
@@ -210,7 +221,8 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'applications',
       title: 'Applications',
-      group: '9_other',
+      group: '8_other',
+      iconRef: () => import('#~/images/icons/ApplicationsIcon'),
     },
   },
   {
@@ -248,34 +260,21 @@ const extensions: NavExtension[] = [
   },
 
   {
-    type: 'app.navigation/href',
-    properties: {
-      id: 'resources',
-      title: 'Resources',
-      href: '/resources',
-      group: '9_other',
-    },
-  },
-
-  {
     type: 'app.navigation/section',
     properties: {
       id: 'settings',
       title: 'Settings',
-      group: '10_settings',
+      group: '8_settings',
+      iconRef: () => import('@patternfly/react-icons/dist/esm/icons/cog-icon'),
     },
   },
   {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.BYON, ADMIN_USER],
-    },
+    type: 'app.navigation/section',
     properties: {
-      id: 'settings-notebook-images',
-      title: 'Workbench images',
-      href: '/workbenchImages',
+      id: 'cluster-settings',
+      title: 'Cluster settings',
+      group: '1_cluster_settings',
       section: 'settings',
-      path: '/workbenchImages/*',
     },
   },
   {
@@ -284,13 +283,47 @@ const extensions: NavExtension[] = [
       required: [SupportedArea.CLUSTER_SETTINGS, ADMIN_USER],
     },
     properties: {
-      id: 'settings-cluster-settings',
-      title: 'Cluster settings',
+      id: 'settings-general-cluster-settings',
+      title: 'General settings',
       href: '/clusterSettings',
+      section: 'cluster-settings',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.STORAGE_CLASSES, ADMIN_USER],
+    },
+    properties: {
+      id: 'settings-storage-classes',
+      title: 'Storage classes',
+      href: '/storageClasses',
+      section: 'cluster-settings',
+      path: '/storageClasses/*',
+    },
+  },
+  {
+    type: 'app.navigation/section',
+    properties: {
+      id: 'settings-environment-setup',
+      title: 'Environment setup',
+      group: '2_environment_setup',
       section: 'settings',
     },
   },
-
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.BYON, ADMIN_USER],
+    },
+    properties: {
+      id: 'settings-workbench-images',
+      title: 'Workbench images',
+      href: '/workbenchImages',
+      section: 'settings-environment-setup',
+      path: '/workbenchImages/*',
+    },
+  },
   {
     type: 'app.navigation/href',
     flags: {
@@ -301,7 +334,7 @@ const extensions: NavExtension[] = [
       id: 'settings-accelerator-profiles',
       title: 'Accelerator profiles',
       href: '/acceleratorProfiles',
-      section: 'settings',
+      section: 'settings-environment-setup',
       path: '/acceleratorProfiles/*',
     },
   },
@@ -314,7 +347,7 @@ const extensions: NavExtension[] = [
       id: 'settings-hardware-profiles',
       title: 'Hardware profiles',
       href: '/hardwareProfiles',
-      section: 'settings',
+      section: 'settings-environment-setup',
       path: '/hardwareProfiles/*',
       statusProviderId: 'hardware-profiles.status',
       accessReview: {
@@ -324,21 +357,6 @@ const extensions: NavExtension[] = [
       },
     },
   },
-
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
-    },
-    properties: {
-      id: 'settings-custom-serving-runtimes',
-      title: 'Serving runtimes',
-      href: '/servingRuntimes',
-      section: 'settings',
-      path: '/servingRuntimes/*',
-    },
-  },
-
   {
     type: 'app.navigation/href',
     flags: {
@@ -348,25 +366,32 @@ const extensions: NavExtension[] = [
       id: 'settings-connection-types',
       title: 'Connection types',
       href: '/connectionTypes',
-      section: 'settings',
+      section: 'settings-environment-setup',
       path: '/connectionTypes/*',
     },
   },
-
+  {
+    type: 'app.navigation/section',
+    properties: {
+      id: 'settings-model-resources-and-operations',
+      title: 'Model resources and operations',
+      group: '3_model_resources_and_operations',
+      section: 'settings',
+    },
+  },
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.STORAGE_CLASSES, ADMIN_USER],
+      required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
     },
     properties: {
-      id: 'settings-storage-classes',
-      title: 'Storage classes',
-      href: '/storageClasses',
-      section: 'settings',
-      path: '/storageClasses/*',
+      id: 'settings-custom-serving-runtimes',
+      title: 'Serving runtimes',
+      href: '/servingRuntimes',
+      section: 'settings-model-resources-and-operations',
+      path: '/servingRuntimes/*',
     },
   },
-
   {
     type: 'app.navigation/href',
     flags: {
@@ -376,7 +401,7 @@ const extensions: NavExtension[] = [
       id: 'settings-model-registry',
       title: 'Model registry settings',
       href: '/modelRegistrySettings',
-      section: 'settings',
+      section: 'settings-model-resources-and-operations',
       path: '/modelRegistrySettings/*',
     },
   },
