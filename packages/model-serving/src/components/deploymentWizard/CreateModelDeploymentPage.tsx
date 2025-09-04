@@ -12,6 +12,9 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
+import { useAvailableClusterPlatforms } from '../../concepts/useAvailableClusterPlatforms';
+import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
+import { ModelDeploymentsProvider } from '../../concepts/ModelDeploymentsContext';
 
 const CreateModelDeploymentPage: React.FC = () => {
   const { namespace } = useParams();
@@ -20,7 +23,11 @@ const CreateModelDeploymentPage: React.FC = () => {
   const { projects, loaded: projectsLoaded } = React.useContext(ProjectsContext);
   const currentProject = projects.find(byName(namespace));
 
-  if (!projectsLoaded) {
+  const { clusterPlatforms, clusterPlatformsLoaded, clusterPlatformsError } =
+    useAvailableClusterPlatforms();
+  const { activePlatform } = useProjectServingPlatform(currentProject, clusterPlatforms);
+
+  if (!projectsLoaded || !clusterPlatformsLoaded) {
     return (
       <Bullseye>
         <Spinner />
@@ -28,7 +35,7 @@ const CreateModelDeploymentPage: React.FC = () => {
     );
   }
 
-  if (!currentProject) {
+  if (!currentProject || !activePlatform || clusterPlatformsError) {
     return (
       <Bullseye>
         <EmptyState
@@ -50,12 +57,15 @@ const CreateModelDeploymentPage: React.FC = () => {
   }
 
   return (
-    <ModelDeploymentWizard
-      title="Deploy a model"
-      description="Configure and deploy your model."
-      primaryButtonText="Deploy model"
-      project={currentProject}
-    />
+    <ModelDeploymentsProvider modelServingPlatforms={[activePlatform]} projects={[currentProject]}>
+      <ModelDeploymentWizard
+        title="Deploy a model"
+        description="Configure and deploy your model."
+        primaryButtonText="Deploy model"
+        project={currentProject}
+        modelServingPlatform={activePlatform}
+      />
+    </ModelDeploymentsProvider>
   );
 };
 
