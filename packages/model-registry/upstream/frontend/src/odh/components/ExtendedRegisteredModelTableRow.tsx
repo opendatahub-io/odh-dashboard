@@ -79,7 +79,11 @@ const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowP
       : [
           {
             title: 'Archive model',
-            onClick: () => setIsArchiveModalOpen(true),
+            onClick: () => {
+                            if (!hasDeploys) {
+                              setIsArchiveModalOpen(true);
+                            }
+                          },
             isAriaDisabled: hasDeploys,
             tooltipProps: hasDeploys
               ? { content: 'Models with deployed versions cannot be archived.' }
