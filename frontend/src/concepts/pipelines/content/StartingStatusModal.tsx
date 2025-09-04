@@ -58,6 +58,8 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose, onDe
     </Flex>
   );
 
+  // remove not applicable conditions and add the human readable message
+  // the 1st element is the human readable message
   const statusConditions: [StatusType, string, K8sCondition][] | undefined =
     pipelinesServer.crStatus?.conditions
       ?.filter(
@@ -69,7 +71,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose, onDe
         return [containerStatus, messageForCondition(condition.type), condition];
       });
 
-  // Find all error conditions
+  // Find all error conditions (human readable message, condition)
   const errorConditions: [string, K8sCondition][] =
     statusConditions
       ?.filter((contents1) => contents1[0] === StatusType.ERROR)

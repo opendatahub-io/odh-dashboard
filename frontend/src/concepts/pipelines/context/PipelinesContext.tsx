@@ -177,6 +177,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
   );
 });
 
+// todo: add test for this function
 export const getPipelineServerName = (project?: ProjectKind): string => {
   const displayName = project ? getDisplayNameFromK8sResource(project) : null;
   const defaultName = 'pipeline server';
@@ -321,13 +322,18 @@ export const ViewServerModal = ({ onClose }: { onClose: () => void }): React.JSX
 };
 
 export const PipelineServerTimedOut: React.FC = () => {
-  const { project } = React.useContext(PipelinesContext);
+  const { crStatus, project } = React.useContext(PipelinesContext);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const errorMessage =
+    crStatus?.conditions?.find((condition) => condition.type === 'Ready')?.message || '';
 
   return (
     <>
       <Bullseye style={{ minHeight: '300px' }}>
         <Stack hasGutter>
+          {errorMessage && (
+            <StackItem data-testid="timeout-pipeline-error-message">{errorMessage}</StackItem>
+          )}
           <StackItem>
             <EmptyState
               icon={ExclamationCircleIcon}
