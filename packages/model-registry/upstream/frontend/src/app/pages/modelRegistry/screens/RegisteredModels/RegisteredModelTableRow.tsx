@@ -77,11 +77,9 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
             title: 'Archive model',
             onClick: () => setIsArchiveModalOpen(true),
             isAriaDisabled: !loaded || hasDeploys,
-            tooltipProps: !loaded 
-              ? { content: 'Checking deployments…' }
-              : hasDeploys
-                ? { content: 'Models with deployed versions cannot be archived.' }
-                : undefined,
+            tooltipProps: loaded && hasDeploys
+              ? { content: 'Models with deployed versions cannot be archived.' }
+              : undefined,
           },
         ]),
   ];

@@ -35,7 +35,7 @@ const ArchiveButtonDropdownItemContent: React.FC<ArchiveButtonDropdownItemProps>
             onClick={() => setIsArchiveModalOpen(true)}
             isAriaDisabled={!loaded || (rmId ? !rmMvLoaded : false) || hasDeployment}
             tooltipProps={
-                hasDeployment
+                loaded && hasDeployment
                 ? { content: mv ? 'Deployed model versions cannot be archived' : 'Models with deployed versions cannot be archived.' }
                 : undefined
             }

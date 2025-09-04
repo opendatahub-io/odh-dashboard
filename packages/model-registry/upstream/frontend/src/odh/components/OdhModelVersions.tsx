@@ -3,16 +3,16 @@ import { useNavigate, useParams } from 'react-router';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { ModelVersionsTab } from '~/app/pages/modelRegistry/screens/ModelVersions/const';
-import useModelVersionsByRegisteredModel from '~/app/hooks/useModelVersionsByRegisteredModel';
-import useRegisteredModelById from '~/app/hooks/useRegisteredModelById';
-import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
-import ModelVersionsHeaderActions from '~/app/pages/modelRegistry/screens/ModelVersions/ModelVersionsHeaderActions';
-import { ModelState } from '~/app/types';
-import { registeredModelArchiveDetailsUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
-import ModelVersionsTabs from './ModelVersionsTabs';
-import { KnownLabels } from '~/odh/k8sTypes';
-import { MRDeploymentsContextProvider } from '~/odh/components/MRDeploymentsContextProvider';
+import { ModelVersionsTab } from '../../app/pages/modelRegistry/screens/ModelVersions/const';
+import useModelVersionsByRegisteredModel from '../../app/hooks/useModelVersionsByRegisteredModel';
+import useRegisteredModelById from '../../app/hooks/useRegisteredModelById';
+import { ModelRegistrySelectorContext } from '../../app/context/ModelRegistrySelectorContext';
+import ModelVersionsHeaderActions from '../../app/pages/modelRegistry/screens/ModelVersions/ModelVersionsHeaderActions';
+import { ModelState } from '../../app/types';
+import { registeredModelArchiveDetailsUrl } from '../../app/pages/modelRegistry/screens/routeUtils';
+import ModelVersionsTabs from '../../app/pages/modelRegistry/screens/ModelVersions/ModelVersionsTabs';
+import { KnownLabels } from '../k8sTypes';
+import { MRDeploymentsContextProvider } from './MRDeploymentsContextProvider';
 
 type ModelVersionsProps = {
   tab: ModelVersionsTab;

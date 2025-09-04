@@ -1,11 +1,12 @@
 import * as React from 'react';
-import { SortableData, Table } from 'mod-arch-shared';
+import { DashboardEmptyTableView, SortableData, Table } from 'mod-arch-shared';
 import { ModelVersion, RegisteredModel } from '~/app/types';
-import ModelVersionsTableRow from '~/app/pages/modelRegistry/screens/ModelVersions/ModelVersionsTableRow';
-import { useModelDeploymentDetection } from '~/odh/utils/deploymentUtils';
+import { mvColumns } from '~/app/pages/modelRegistry/screens/ModelVersions/ModelVersionsTableColumns';
+import ModelVersionsTableRow from '../../app/pages/modelRegistry/screens/ModelVersions/ModelVersionsTableRow';
+import { useDeploymentsState } from '~/odh/hooks/useDeploymentsState';
+import { KnownLabels } from '~/odh/k8sTypes';
 import { MRDeploymentsContextProvider } from './MRDeploymentsContextProvider';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
-import { KnownLabels } from '../k8sTypes';
 
 type OdhModelVersionsTableProps = {
     data: ModelVersion[];
@@ -31,11 +32,11 @@ const OdhModelVersionsTableContent: React.FC<Omit<OdhModelVersionsTableProps, 'r
   refresh,
   ...props
 }) => {
-    const { hasModelVersionDeployment, loaded } = useModelDeploymentDetection();
-    const hasDeploys = (mvId: string) => {
-        const { hasDeployment } = hasModelVersionDeployment(mvId);
-        return hasDeployment;
-    };
+    const { deployments, loaded } = useDeploymentsState();
+    const hasDeploys = (mvId: string) =>
+        !!deployments?.some(
+            (s) => s.model.kind === 'InferenceService' && s.model.metadata.labels?.[KnownLabels.MODEL_VERSION_ID] === mvId,
+        );
     return (
         <Table
             data={data}
@@ -51,8 +52,7 @@ const OdhModelVersionsTableContent: React.FC<Omit<OdhModelVersionsTableProps, 'r
                     modelVersion={mv}
                     isArchiveModel={isArchiveModel}
                     refresh={refresh}
-                    hasDeployment={hasDeploys(mv.id)}
-                    loaded={loaded}
+                    hasDeployment={hasDeploys(mv.id) && loaded}
                 />
             )}
             {...props}
