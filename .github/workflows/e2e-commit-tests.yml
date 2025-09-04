@@ -22,7 +22,7 @@ env:
 
 jobs:
   e2e-tests:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest  # Use GitHub's runners for testing on forked repo
     strategy:
       fail-fast: false
       matrix:
