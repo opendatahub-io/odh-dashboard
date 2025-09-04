@@ -3,6 +3,9 @@ name: E2E PR Tests
 on:
   pull_request_target:
     types: [opened, synchronize, reopened, edited]
+    # Smart filtering: Workflow triggers on PR events but only runs E2E tests
+    # if recent comments contain /e2e commands. This avoids unnecessary runs
+    # while supporting forked PR workflows.
   workflow_dispatch:
     inputs:
       test_type:
@@ -27,11 +30,11 @@ jobs:
     steps:
       - name: Test workflow trigger
         run: |
-          echo "Workflow triggered!"
-          echo "Event: ${{ github.event_name }}"
-          echo "Action: ${{ github.event.action }}"
+          echo "Workflow triggered by: ${{ github.event_name }}"
+          echo "Event action: ${{ github.event.action }}"
           echo "PR Number: ${{ github.event.pull_request.number }}"
           echo "PR Title: ${{ github.event.pull_request.title }}"
+          echo "Checking for /e2e commands in PR comments..."
 
   pr-comment-parser:
     runs-on: ubuntu-latest
@@ -70,16 +73,26 @@ jobs:
             exit 0
           fi
 
-          # For pull_request_target, fetch the latest comments
+          # For pull_request_target, check for recent /e2e comments
           if [ "${{ github.event_name }}" = "pull_request_target" ]; then
-            echo "Fetching PR comments for PR #${{ github.event.pull_request.number }}"
+            echo "Checking for /e2e commands in PR #${{ github.event.pull_request.number }} comments"
 
-            # Get the latest comment from the PR
-            LATEST_COMMENT=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments?per_page=1" | \
-              jq -r '.[-1].body // empty')
+            # Get recent comments and look for /e2e commands
+            E2E_COMMENTS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments?per_page=10" | \
+              jq -r '.[] | select(.body | test("/e2e")) | .body' | head -1)
 
-            COMMENT="$LATEST_COMMENT"
+            if [ -z "$E2E_COMMENTS" ]; then
+              echo "No /e2e commands found in recent comments - skipping E2E tests"
+              echo "test-type=none" >> $GITHUB_OUTPUT
+              echo "should-run=false" >> $GITHUB_OUTPUT
+              echo 'test-sets=["1"]' >> $GITHUB_OUTPUT
+              echo "tag-name=" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+
+            echo "Found /e2e command in comments: $E2E_COMMENTS"
+            COMMENT="$E2E_COMMENTS"
             PR_NUMBER="${{ github.event.pull_request.number }}"
           else
             # Fallback for issue_comment (if we keep it)
