@@ -273,7 +273,7 @@ paths:
       summary: Get LSD Status
       description: Gets the status of LlamaStack Distribution in the specified namespace.
 
-  /genai/v1/mcp-servers/config:
+  /gen-ai/api/v1/mcp-servers/config:
     summary: Get MCP server configuration
     description: >-
       Retrieves the global MCP (Model Context Protocol) server configuration from the 'mcp-servers' namespace.
@@ -302,7 +302,7 @@ paths:
       summary: Get MCP Server Configuration
       description: Gets the global MCP server configuration from the 'global-mcp-list' ConfigMap in the 'mcp-servers' namespace.
 
-  /genai/v1/mcp-servers/status:
+  /gen-ai/api/v1/mcp-servers/status:
     summary: Get MCP servers status and tools
     description: >-
       Retrieves the connection status of all configured MCP (Model Context Protocol) servers.
@@ -336,7 +336,7 @@ paths:
       summary: Get MCP Servers Status
       description: Gets the connection status and optionally tools for all configured MCP servers.
 
-  /genai/v1/mcp-server/{server_name}/tools:
+  /gen-ai/api/v1/mcp-server/{server_name}/tools:
     summary: Get tools from a specific MCP server
     description: >-
       Retrieves the available tools from a specific MCP (Model Context Protocol) server.
@@ -371,7 +371,7 @@ paths:
       summary: Get MCP Server Tools
       description: Gets the available tools from the specified MCP server.
 
-  /genai/v1/mcp/tools:
+  /gen-ai/api/v1/mcp/tools:
     summary: Get tools from MCP server by URL
     description: >-
       Retrieves the available tools from a specific MCP (Model Context Protocol) server by its URL.
@@ -418,7 +418,7 @@ paths:
       summary: Get MCP Tools by URL
       description: Gets the available tools from the MCP server specified by URL.
 
-  /genai/v1/mcp/status:
+  /gen-ai/api/v1/mcp/status:
     summary: Get connection status from MCP server by URL
     description: >-
       Retrieves the connection status of a specific MCP (Model Context Protocol) server by its URL.
@@ -465,7 +465,7 @@ paths:
       summary: Get MCP Server Status by URL
       description: Gets the connection status of the MCP server specified by URL.
 
-  /genai/v1/aa/mcps:
+  /gen-ai/api/v1/aa/mcps:
     get:
       tags:
         - MCP Servers

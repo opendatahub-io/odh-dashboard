@@ -9,8 +9,8 @@ import (
 
 	"strings"
 
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/config"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/config"
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
 )
 
 // MCPClientFactory interface for creating MCP clients

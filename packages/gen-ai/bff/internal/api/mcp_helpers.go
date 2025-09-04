@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/constants"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations"
-	kubernetes "github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/kubernetes"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/mcp"
+	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	kubernetes "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp"
 )
 
 // parseMCPEndpointParams extracts and validates query parameters common to MCP endpoints

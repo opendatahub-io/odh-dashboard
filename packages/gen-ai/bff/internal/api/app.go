@@ -14,8 +14,8 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/mcp"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/mcp/mcpmocks"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp/mcpmocks"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -165,14 +165,14 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(constants.LlamaStackDistributionStatusPath, app.RequireAccessToService(app.AttachNamespace(app.LlamaStackDistributionStatusHandler)))
 
 	// MCP Server Configuration endpoint
-	apiRouter.GET(genaiPrefix+"/mcp-servers/config", app.RequireAccessToService(app.MCPServerConfigHandler))
+	apiRouter.GET(constants.MCPServerConfigPath, app.RequireAccessToService(app.MCPServerConfigHandler))
 
 	// MCP Client endpoints
-	apiRouter.GET(genaiPrefix+"/mcp-servers/status", app.RequireAccessToService(app.MCPServersStatusHandler))
-	apiRouter.GET(genaiPrefix+"/mcp-server/:server_name/tools", app.RequireAccessToService(app.MCPServerToolsHandler))
-	apiRouter.GET(genaiPrefix+"/mcp/tools", app.RequireAccessToService(app.MCPToolsHandler))
-	apiRouter.GET(genaiPrefix+"/mcp/status", app.RequireAccessToService(app.MCPStatusHandler))
-	apiRouter.GET(genaiPrefix+"/aa/mcps", app.RequireAccessToService(app.MCPServersListHandler))
+	apiRouter.GET(constants.MCPServersStatusPath, app.RequireAccessToService(app.MCPServersStatusHandler))
+	apiRouter.GET(constants.MCPServerToolsPath, app.RequireAccessToService(app.MCPServerToolsHandler))
+	apiRouter.GET(constants.MCPToolsPath, app.RequireAccessToService(app.MCPToolsHandler))
+	apiRouter.GET(constants.MCPStatusPath, app.RequireAccessToService(app.MCPStatusHandler))
+	apiRouter.GET(constants.MCPServersListPath, app.RequireAccessToService(app.MCPServersListHandler))
 	// App Router
 	appMux := http.NewServeMux()
 

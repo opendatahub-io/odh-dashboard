@@ -5,7 +5,7 @@ import (
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/mcp"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp"
 )
 
 // Repositories struct is a single convenient container to hold and represent all our repositories.

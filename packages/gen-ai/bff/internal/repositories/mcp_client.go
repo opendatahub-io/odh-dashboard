@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations"
-	kubernetes "github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/kubernetes"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/mcp"
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	kubernetes "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp"
 )
 
 // MCPClientRepository handles MCP client operations

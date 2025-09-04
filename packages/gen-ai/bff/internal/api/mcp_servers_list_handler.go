@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/constants"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/repositories"
+	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/repositories"
 )
 
 type MCPServersListEnvelope = Envelope[[]repositories.MCPServerInfo, None]

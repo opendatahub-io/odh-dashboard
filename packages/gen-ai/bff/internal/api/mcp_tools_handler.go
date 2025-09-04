@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/mcp"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp"
 )
 
 type MCPToolsEnvelope = Envelope[[]mcp.Tool, None]

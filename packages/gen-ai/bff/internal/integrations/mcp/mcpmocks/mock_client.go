@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/mcp"
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp"
 )
 
 // MockMCPClient implements MCPClientInterface for testing

@@ -6,10 +6,10 @@ import (
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/constants"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/mcp"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/repositories"
+	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp"
+	"github.com/opendatahub-io/gen-ai/internal/repositories"
 )
 
 // MCPServersStatusEnvelope represents the response envelope for MCP servers status

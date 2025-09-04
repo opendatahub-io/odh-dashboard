@@ -12,7 +12,7 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
 )
 
 // ProxiedMCPClient implements MCPClientInterface using MCP SDK with transport factory

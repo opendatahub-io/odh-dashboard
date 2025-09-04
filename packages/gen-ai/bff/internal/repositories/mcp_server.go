@@ -3,8 +3,8 @@ package repositories
 import (
 	"context"
 
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations"
-	kubernetes "github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	kubernetes "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	corev1 "k8s.io/api/core/v1"
 )
 

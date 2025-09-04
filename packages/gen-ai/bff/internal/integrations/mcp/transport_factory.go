@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
 )
 
 // TransportFactory interface for creating MCP client transports

@@ -3,7 +3,7 @@ package mcp
 import (
 	"context"
 
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
 )
 
 // MCPClientInterface defines the contract for MCP client operations

@@ -5,9 +5,9 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/config"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/mcp"
+	"github.com/opendatahub-io/gen-ai/internal/config"
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp"
 )
 
 // MockedMCPClientFactory implements MCPClientFactory for testing

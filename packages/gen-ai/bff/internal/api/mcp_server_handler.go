@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/constants"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
