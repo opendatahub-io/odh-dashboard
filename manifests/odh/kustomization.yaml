@@ -6,7 +6,7 @@ commonLabels:
 resources:
   - ../common
   - ../modular-architecture
-# - ../core-bases/base
+# - ../core-bases/base Disabling it to enable modular architecture, re-enable if we switch mod arch deployments
   - ../core-bases/consolelink
 configMapGenerator:
   - name: odh-dashboard-params
