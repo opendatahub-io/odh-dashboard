@@ -32,19 +32,22 @@ jobs:
 
       - name: Download test configuration
         run: |
-          # Download test-variables.yml from GitLab securely
-          # For forked PRs, this will fail due to missing secrets - use local test-vars.yml
+          # Try to download test-variables.yml from GitLab securely
           if [ -n "${{ secrets.GITLAB_TOKEN }}" ] && [ -n "${{ secrets.GITLAB_TEST_VARS_URL }}" ]; then
-            curl -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
-                 "${{ secrets.GITLAB_TEST_VARS_URL }}" \
-                 -o ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
-          else
-            echo "⚠️  GitLab secrets not available (forked PR) - using local test-variables.yml"
-            # Ensure local test-variables.yml exists
-            if [ ! -f "${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml" ]; then
-              echo "❌ Local test-variables.yml not found"
+            echo "🔄 Attempting to download test configuration from GitLab..."
+            if curl -f -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
+                     "${{ secrets.GITLAB_TEST_VARS_URL }}" \
+                     -o ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml; then
+              echo "✅ Successfully downloaded test configuration from GitLab"
+            else
+              echo "❌ Failed to download from GitLab"
               exit 1
             fi
+          else
+            echo "⚠️  GitLab secrets not available - cannot download test configuration"
+            echo "💡 This workflow requires GITLAB_TOKEN and GITLAB_TEST_VARS_URL secrets to be configured"
+            echo "💡 For forked PRs, these secrets need to be available in the upstream repository"
+            exit 1
           fi
 
       - name: Login to OpenShift cluster
