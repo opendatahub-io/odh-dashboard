@@ -123,6 +123,7 @@ func (app *App) Routes() http.Handler {
 	// LlamaStack API routes (require service access)
 	// Models
 	apiRouter.GET(constants.ModelsListPath, app.RequireAccessToService(app.AttachRESTClient(app.LlamaStackModelsHandler)))
+	apiRouter.GET(constants.ModelsAAPath, app.RequireAccessToService(app.AttachNamespace(app.ModelsAAHandler)))
 
 	// Responses (OpenAI Responses API)
 	apiRouter.POST(constants.ResponsesPath, app.RequireAccessToService(app.AttachRESTClient(app.LlamaStackCreateResponseHandler)))
