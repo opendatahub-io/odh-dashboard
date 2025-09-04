@@ -1,0 +1,215 @@
+name: E2E Commit Tests
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+env:
+  NODE_VERSION: 20.x
+  DO_NOT_TRACK: 1
+
+jobs:
+  e2e-tests:
+    runs-on: self-hosted
+    strategy:
+      fail-fast: false
+      matrix:
+        test-set: [1]  # Just run one test set for commit-based testing
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Debug available secrets
+        run: |
+          echo "🔍 DEBUG: Checking available secrets..."
+          echo "Event name: ${{ github.event_name }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Repository owner: ${{ github.repository_owner }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Base ref: ${{ github.base_ref }}"
+          echo "Head ref: ${{ github.head_ref }}"
+
+          # Check for specific secrets without revealing values
+          if [ -n "${{ secrets.GITLAB_TOKEN }}" ]; then
+            echo "✅ GITLAB_TOKEN: Available (length: ${#GITLAB_TOKEN})"
+          else
+            echo "❌ GITLAB_TOKEN: Not available or empty"
+          fi
+
+          if [ -n "${{ secrets.GITLAB_TEST_VARS_URL }}" ]; then
+            echo "✅ GITLAB_TEST_VARS_URL: Available (length: ${#GITLAB_TEST_VARS_URL})"
+          else
+            echo "❌ GITLAB_TEST_VARS_URL: Not available or empty"
+          fi
+
+          # Check other potentially relevant secrets
+          if [ -n "${{ secrets.OC_SERVER }}" ]; then
+            echo "✅ OC_SERVER: Available"
+          else
+            echo "❌ OC_SERVER: Not available"
+          fi
+
+          if [ -n "${{ secrets.OCP_CONSOLE_URL }}" ]; then
+            echo "✅ OCP_CONSOLE_URL: Available"
+          else
+            echo "❌ OCP_CONSOLE_URL: Not available"
+          fi
+
+          if [ -n "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
+            echo "✅ ODH_DASHBOARD_URL: Available"
+          else
+            echo "❌ ODH_DASHBOARD_URL: Not available"
+          fi
+
+          # List all available secrets (names only)
+          echo "📋 Available secrets in this environment:"
+          env | grep -E '^[^=]+=' | sed 's/=.*//' | grep -i secret || echo "No SECRET variables found"
+
+      - name: Download test configuration
+        run: |
+          # Debug: Show what we're working with
+          echo "🔧 DEBUG: Attempting to download test configuration..."
+          echo "GITLAB_TOKEN present: $([ -n "${{ secrets.GITLAB_TOKEN }}" ] && echo 'YES' || echo 'NO')"
+          echo "GITLAB_TEST_VARS_URL present: $([ -n "${{ secrets.GITLAB_TEST_VARS_URL }}" ] && echo 'YES' || echo 'NO')"
+
+          # Try to download test-variables.yml from GitLab securely
+          if [ -n "${{ secrets.GITLAB_TOKEN }}" ] && [ -n "${{ secrets.GITLAB_TEST_VARS_URL }}" ]; then
+            echo "🔄 Both secrets are available, attempting download..."
+            echo "Token length: ${#GITLAB_TOKEN}"
+            echo "URL length: ${#GITLAB_TEST_VARS_URL}"
+
+            if curl -f -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
+                     "${{ secrets.GITLAB_TEST_VARS_URL }}" \
+                     -o ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml; then
+              echo "✅ Successfully downloaded test configuration from GitLab"
+              ls -la ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+            else
+              echo "❌ Failed to download from GitLab"
+              echo "Curl exit code: $?"
+              exit 1
+            fi
+          else
+            echo "⚠️  GitLab secrets not available - cannot download test configuration"
+            echo "💡 This workflow requires GITLAB_TOKEN and GITLAB_TEST_VARS_URL secrets to be configured"
+            echo "💡 For forked PRs, these secrets need to be available in the upstream repository"
+            echo ""
+            echo "🔍 DEBUG INFO:"
+            echo "- Repository: ${{ github.repository }}"
+            echo "- Event: ${{ github.event_name }}"
+            echo "- Is fork: $([ '${{ github.repository_owner }}' != 'opendatahub-io' ] && echo 'YES' || echo 'NO')"
+            echo "- Base repo: ${{ github.base_ref && github.repository || 'N/A' }}"
+            echo ""
+            echo "💡 POSSIBLE SOLUTIONS:"
+            echo "1. Ensure secrets are configured in upstream repo (opendatahub-io/odh-dashboard)"
+            echo "2. For testing, secrets need to be available when PR is merged"
+            echo "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
+            exit 1
+          fi
+
+      - name: Login to OpenShift cluster
+        run: |
+          # For forked PRs, skip OpenShift login since secrets are not available
+          if [ -z "${{ secrets.OC_SERVER }}" ]; then
+            echo "⚠️  OpenShift secrets not available (forked PR) - skipping cluster login"
+            echo "💡 Tests will run in mock mode or against local test environment"
+            exit 0
+          fi
+
+          # Read credentials from downloaded test-variables.yml
+          TEST_VARS_FILE="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
+
+          # Extract OC_USERNAME from OCP_ADMIN_USER section
+          OC_USERNAME=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
+
+          # Extract OC_PASSWORD from OCP_ADMIN_USER section
+          OC_PASSWORD=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
+
+          echo "Logging in to OpenShift cluster..."
+          oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="${{ secrets.OC_SERVER }}"
+
+      - name: Set test configuration
+        run: |
+          # For forked PRs, use default URLs from local test-vars.yml
+          if [ -n "${{ secrets.OCP_CONSOLE_URL }}" ]; then
+            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: ${{ secrets.OCP_CONSOLE_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          fi
+          if [ -n "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
+            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: ${{ secrets.ODH_DASHBOARD_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          fi
+
+          # For forked PRs, set default URLs if secrets are not available
+          if [ -z "${{ secrets.OCP_CONSOLE_URL }}" ]; then
+            echo "⚠️  OCP_CONSOLE_URL secret not available (forked PR) - using localhost"
+            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:9001|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          fi
+          if [ -z "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
+            echo "⚠️  ODH_DASHBOARD_URL secret not available (forked PR) - using localhost"
+            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:9001|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          fi
+
+          export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
+
+      - name: Build frontend for E2E tests
+        run: |
+          cd frontend
+          # Build frontend to public-cypress directory (same as mock tests)
+          npm run cypress:server:build
+
+      - name: Run E2E Tests
+        run: |
+          cd frontend
+
+          echo "🧪 Running commit-based E2E tests..."
+          echo "Event: ${{ github.event_name }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+
+          # Always run in mock mode for commit-based testing
+          echo "🔄 Running in mock mode for commit testing"
+          export CY_MOCK=1
+          export CY_WS_PORT=9002
+
+          # Run a simple test suite - just SmokeSet1 for commit testing
+          export CY_TEST_TAGS="@SmokeSet1"
+          export CY_SKIP_TAGS="@Bug,@Maintain,@NonConcurrent"
+
+          echo "🎯 Running tests with tags: $CY_TEST_TAGS"
+          echo "🚫 Skipping tags: $CY_SKIP_TAGS"
+
+          npm run test:cypress:e2e:ci
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results-smoke-${{ matrix.test-set }}
+          path: |
+            frontend/src/__tests__/cypress/results/
+            frontend/src/__tests__/cypress/videos/
+            frontend/src/__tests__/cypress/screenshots/
+            frontend/src/__tests__/cypress/coverage/
+          retention-days: 7
+
+      - name: Log test completion
+        if: always()
+        run: |
+          echo "🏁 E2E Test completed!"
+          echo "Status: ${{ job.status }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Run ID: ${{ github.run_id }}"
+          echo ""
+          echo "📊 Test artifacts uploaded to:"
+          echo "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
