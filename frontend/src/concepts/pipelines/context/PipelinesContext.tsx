@@ -331,11 +331,6 @@ export const PipelineServerTimedOut: React.FC = () => {
     <>
       <Bullseye style={{ minHeight: '300px' }}>
         <Stack hasGutter>
-          <StackItem style={{ textAlign: 'center' }}>
-            {errorMessage && (
-              <StackItem data-testid="timeout-pipeline-error-message">{errorMessage}</StackItem>
-            )}
-          </StackItem>
           <StackItem>
             <EmptyState
               icon={ExclamationCircleIcon}
@@ -344,9 +339,20 @@ export const PipelineServerTimedOut: React.FC = () => {
               status="danger"
             >
               <EmptyStateBody>
-                The <b>{getPipelineServerName(project)}</b> either could not start or be contacted.
-                You must delete this server to fix the issue, but this will also permanently delete
-                all associated resources. You will need to configure a new server afterward.
+                <Stack hasGutter>
+                  <StackItem>
+                    The <b>{getPipelineServerName(project)}</b> either could not start or be
+                    contacted. You must delete this server to fix the issue, but this will also
+                    permanently delete all associated resources. You will need to configure a new
+                    server afterward.
+                  </StackItem>
+
+                  {errorMessage && (
+                    <StackItem data-testid="timeout-pipeline-error-message">
+                      {errorMessage}
+                    </StackItem>
+                  )}
+                </Stack>
               </EmptyStateBody>
               <EmptyStateActions>
                 <Button
