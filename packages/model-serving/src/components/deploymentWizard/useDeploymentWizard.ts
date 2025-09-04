@@ -7,13 +7,11 @@ import { extractK8sNameDescriptionFieldData } from '@odh-dashboard/internal/conc
 import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { ModelLocationData } from './fields/modelLocationFields/types';
-import { ModelLocationFieldData, useModelLocationField } from './fields/ModelLocationSelectField';
 import { useModelTypeField, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
 import { useModelLocationData } from './fields/ModelLocationInputFields';
 
 export type ModelDeploymentWizardData = {
   modelTypeField?: ModelTypeFieldData;
-  modelLocationField?: ModelLocationFieldData;
   modelLocationData?: ModelLocationData;
   connections?: LabeledConnection[];
   initSelectedConnection?: LabeledConnection | undefined;
@@ -28,7 +26,6 @@ export type UseModelDeploymentWizardState = {
     modelType: ReturnType<typeof useModelTypeField>;
     k8sNameDesc: ReturnType<typeof useK8sNameDescriptionFieldData>;
     hardwareProfileConfig: ReturnType<typeof useHardwareProfileConfig>;
-    modelLocationField: ReturnType<typeof useModelLocationField>;
     modelLocationData: ReturnType<typeof useModelLocationData>;
   };
 };
@@ -38,15 +35,12 @@ export const useModelDeploymentWizard = (
 ): UseModelDeploymentWizardState => {
   // Step 1: Model Source
   const modelType = useModelTypeField(initialData?.modelTypeField);
-  const modelLocationData = useModelLocationData(initialData?.modelLocationData);
   const { namespace } = useParams();
   const { projects } = React.useContext(ProjectsContext);
   const currentProject = projects.find(byName(namespace));
-
-  const modelLocationField = useModelLocationField(
+  const modelLocationData = useModelLocationData(
     currentProject ?? null,
-    modelLocationData.data,
-    initialData?.modelLocationField,
+    initialData?.modelLocationData,
   );
 
   // Step 2: Model Deployment
@@ -65,7 +59,6 @@ export const useModelDeploymentWizard = (
       modelType,
       k8sNameDesc,
       hardwareProfileConfig,
-      modelLocationField,
       modelLocationData,
     },
   };

@@ -42,7 +42,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           <ModelSourceStepContent
             wizardState={wizardState}
             validation={validation.modelSource}
-            connections={wizardState.state.modelLocationField.connections}
+            connections={wizardState.state.modelLocationData.connections}
           />
         </WizardStep>
         <WizardStep

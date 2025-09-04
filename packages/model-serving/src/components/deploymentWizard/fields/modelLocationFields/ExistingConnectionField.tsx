@@ -13,6 +13,8 @@ import { ConnectionDetailsHelperText } from '@odh-dashboard/internal/concepts/co
 import {
   getConnectionTypeDisplayName,
   getConnectionTypeRef,
+  isModelServingCompatible,
+  ModelServingCompatibleTypes,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import {
   Connection,
@@ -108,33 +110,39 @@ export const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = (
                 (conn) => getResourceNameFromK8sResource(conn.connection) === value,
               )?.connection;
               if (!newConnection) return;
+
               onSelect(newConnection);
+
               const newConnectionType = connectionTypes.find(
                 (ct) => ct.metadata.name === getConnectionTypeRef(newConnection),
               );
-              if (newConnectionType?.metadata.name === ConnectionTypeRefs.S3) {
+
+              if (newConnectionType) {
+                const additionalFields: { modelPath?: string; modelUri?: string } = {};
+
+                if (
+                  isModelServingCompatible(
+                    newConnectionType,
+                    ModelServingCompatibleTypes.S3ObjectStorage,
+                  )
+                ) {
+                  additionalFields.modelPath = newConnection.data?.AWS_S3_FOLDER_PATH ?? '';
+                }
+
+                if (isModelServingCompatible(newConnectionType, ModelServingCompatibleTypes.OCI)) {
+                  additionalFields.modelUri = newConnection.data?.OCI_MODEL_URI ?? '';
+                }
+
+                if (isModelServingCompatible(newConnectionType, ModelServingCompatibleTypes.URI)) {
+                  additionalFields.modelUri = window.atob(newConnection.data?.URI ?? '');
+                }
+
                 setModelLocationData?.({
                   type: ModelLocationType.EXISTING,
+                  connectionTypeObject: newConnectionType,
                   connection: getResourceNameFromK8sResource(newConnection),
-                  connectionType: newConnectionType.metadata.name,
-                  modelPath: newConnection.data?.AWS_S3_FOLDER_PATH ?? '',
-                });
-              }
-              if (newConnectionType?.metadata.name === ConnectionTypeRefs.OCI) {
-                setModelLocationData?.({
-                  type: ModelLocationType.EXISTING,
-                  connection: getResourceNameFromK8sResource(newConnection),
-                  connectionType: newConnectionType.metadata.name,
-                  modelUri: newConnection.data?.OCI_MODEL_URI ?? '',
-                });
-              }
-              if (newConnectionType?.metadata.name === ConnectionTypeRefs.URI) {
-                setModelLocationData?.({
-                  type: ModelLocationType.EXISTING,
-                  connection: getResourceNameFromK8sResource(newConnection),
-                  connectionType: newConnectionType.metadata.name,
-                  // Decode the URI
-                  modelUri: window.atob(newConnection.data?.URI ?? ''),
+                  fieldValues: {},
+                  additionalFields,
                 });
               }
             }}
@@ -153,11 +161,13 @@ export const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = (
       {selectedConnectionType?.metadata.name === ConnectionTypeRefs.S3 && (
         <ConnectionS3FolderPathField
           folderPath={
-            isExistingModelLocation(modelLocationData) ? modelLocationData.modelPath ?? '' : ''
+            isExistingModelLocation(modelLocationData)
+              ? modelLocationData.additionalFields.modelPath ?? ''
+              : ''
           }
           setFolderPath={(path) => {
             if (isExistingModelLocation(modelLocationData) && setModelLocationData) {
-              setModelLocationData({ ...modelLocationData, modelPath: path });
+              setModelLocationData({ ...modelLocationData, additionalFields: { modelPath: path } });
             }
           }}
         />
@@ -165,10 +175,17 @@ export const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = (
       {selectedConnectionType?.metadata.name === ConnectionTypeRefs.OCI && (
         <ConnectionOciPathField
           ociHost={window.atob(selectedConnection?.data?.OCI_HOST ?? '')}
-          modelUri={isExistingModelLocation(modelLocationData) ? modelLocationData.modelUri : ''}
+          modelUri={
+            isExistingModelLocation(modelLocationData)
+              ? modelLocationData.additionalFields.modelUri ?? ''
+              : ''
+          }
           setModelUri={(uri) => {
             if (isExistingModelLocation(modelLocationData) && setModelLocationData) {
-              setModelLocationData({ ...modelLocationData, modelUri: uri ?? '' });
+              setModelLocationData({
+                ...modelLocationData,
+                additionalFields: { modelUri: uri ?? '' },
+              });
             }
           }}
         />
