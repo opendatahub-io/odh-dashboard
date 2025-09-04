@@ -109,7 +109,7 @@ const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowP
       const column = extension.properties.column();
       return (
         <Td key={`extension-${index}`} dataLabel={column.label}>
-          {column.cellRenderer ? column.cellRenderer(rm) : null}
+          {column.cellRenderer(rm)}
         </Td>
       );
     });
@@ -148,6 +148,7 @@ const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowP
           '-'
         )}
       </Td>
+      {renderExtensionColumns()}
       <Td dataLabel="Labels">
         <ModelLabels customProperties={rm.customProperties} name={rm.name} />
       </Td>
@@ -159,7 +160,6 @@ const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowP
           {rm.owner || '-'}
         </Content>
       </Td>
-      {renderExtensionColumns()}
       <Td isActionCell>
         <ActionsColumn items={actions} />
         {isArchiveModalOpen ? (
