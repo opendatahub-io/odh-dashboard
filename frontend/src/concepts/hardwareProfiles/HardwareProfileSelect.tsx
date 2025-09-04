@@ -16,11 +16,7 @@ import {
 import * as React from 'react';
 import HardwareProfileDetailsPopover from '#~/concepts/hardwareProfiles/HardwareProfileDetailsPopover';
 import { HardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
-import {
-  formatResource,
-  formatResourceValue,
-  getProfileScore,
-} from '#~/concepts/hardwareProfiles/utils';
+import { formatResource, formatResourceValue } from '#~/concepts/hardwareProfiles/utils';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { HardwareProfileKind } from '#~/k8sTypes';
 import TruncatedText from '#~/components/TruncatedText';
@@ -35,6 +31,7 @@ import {
   getHardwareProfileDescription,
   getHardwareProfileDisplayName,
   isHardwareProfileEnabled,
+  orderHardwareProfiles,
 } from '#~/pages/hardwareProfiles/utils.ts';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { ProjectsContext, byName } from '#~/concepts/projects/ProjectsContext';
@@ -61,6 +58,7 @@ type HardwareProfileSelectProps = {
   isHardwareProfileSupported: (profile: HardwareProfileKind) => boolean;
   onChange: (profile: HardwareProfileKind | undefined) => void;
   project?: string;
+  hardwareProfileOrder?: string[];
 };
 
 const EXISTING_SETTINGS_KEY = '.existing';
@@ -79,6 +77,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   isHardwareProfileSupported,
   onChange,
   project,
+  hardwareProfileOrder = [],
 }) => {
   const [searchHardwareProfile, setSearchHardwareProfile] = React.useState('');
   const [
@@ -104,23 +103,10 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   const { kueueFilteringState } = useKueueConfiguration(projectForKueue);
 
   const options = React.useMemo(() => {
-    const enabledProfiles = filterProfilesByKueue(
-      hardwareProfiles.filter((hp) => isHardwareProfileEnabled(hp)),
-      kueueFilteringState,
-    ).toSorted((a, b) => {
-      // First compare by whether they have extra resources
-      const aHasExtra = (a.spec.identifiers ?? []).length > 2;
-      const bHasExtra = (b.spec.identifiers ?? []).length > 2;
-
-      // If one has extra resources and the other doesn't, sort the extra resources one later
-      if (aHasExtra !== bHasExtra) {
-        return aHasExtra ? 1 : -1;
-      }
-
-      // If they're the same (both have or both don't have extra resources),
-      // then sort by their score
-      return getProfileScore(a) - getProfileScore(b);
-    });
+    const enabledProfiles = orderHardwareProfiles(
+      filterProfilesByKueue(hardwareProfiles.filter(isHardwareProfileEnabled), kueueFilteringState),
+      hardwareProfileOrder,
+    );
 
     // allow continued use of already selected profile if it is disabled
     if (initialHardwareProfile && !isHardwareProfileEnabled(initialHardwareProfile)) {
@@ -192,6 +178,8 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     allowExistingSettings,
     isHardwareProfileSupported,
     kueueFilteringState,
+    hardwareProfileOrder,
+    searchHardwareProfile,
   ]);
 
   const renderMenuItem = (
@@ -245,49 +233,24 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     );
   };
 
-  // Restore filtering and sorting logic for project and global hardware profiles
-  const getHardwareProfiles = () => {
-    const currentProjectEnabledProfiles = currentProjectHardwareProfiles
-      .filter((hp) => isHardwareProfileEnabled(hp))
-      .toSorted((a, b) => {
-        const aHasExtra = (a.spec.identifiers ?? []).length > 2;
-        const bHasExtra = (b.spec.identifiers ?? []).length > 2;
-        if (aHasExtra !== bHasExtra) {
-          return aHasExtra ? 1 : -1;
-        }
-        return getProfileScore(a) - getProfileScore(b);
-      });
+  const processHardwareProfilesForSelection = (profiles: HardwareProfileKind[]) => {
+    const enabledProfiles = profiles.filter(isHardwareProfileEnabled);
     if (initialHardwareProfile && !isHardwareProfileEnabled(initialHardwareProfile)) {
-      currentProjectEnabledProfiles.push(initialHardwareProfile);
+      enabledProfiles.push(initialHardwareProfile);
     }
-    return filterProfilesByKueue(currentProjectEnabledProfiles, kueueFilteringState).filter(
-      (profile) =>
-        getHardwareProfileDisplayName(profile)
-          .toLocaleLowerCase()
-          .includes(searchHardwareProfile.toLocaleLowerCase()),
-    );
-  };
-
-  const getDashboardHardwareProfiles = () => {
-    const DashboardEnabledProfiles = hardwareProfiles
-      .filter((hp) => isHardwareProfileEnabled(hp))
-      .toSorted((a, b) => {
-        const aHasExtra = (a.spec.identifiers ?? []).length > 2;
-        const bHasExtra = (b.spec.identifiers ?? []).length > 2;
-        if (aHasExtra !== bHasExtra) {
-          return aHasExtra ? 1 : -1;
-        }
-        return getProfileScore(a) - getProfileScore(b);
-      });
-    if (initialHardwareProfile && !isHardwareProfileEnabled(initialHardwareProfile)) {
-      DashboardEnabledProfiles.push(initialHardwareProfile);
-    }
-    return filterProfilesByKueue(DashboardEnabledProfiles, kueueFilteringState).filter((profile) =>
+    const orderedProfiles = orderHardwareProfiles(enabledProfiles, hardwareProfileOrder);
+    return filterProfilesByKueue(orderedProfiles, kueueFilteringState).filter((profile) =>
       getHardwareProfileDisplayName(profile)
         .toLocaleLowerCase()
         .includes(searchHardwareProfile.toLocaleLowerCase()),
     );
   };
+
+  const projectHardwareProfiles = processHardwareProfilesForSelection(
+    currentProjectHardwareProfiles,
+  );
+
+  const globalHardwareProfiles = processHardwareProfilesForSelection(hardwareProfiles);
 
   if (isProjectScoped && !currentProjectHardwareProfilesLoaded && !hardwareProfilesLoaded) {
     return <Skeleton />;
@@ -300,8 +263,8 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
           {isProjectScoped && currentProjectHardwareProfiles.length > 0 ? (
             <>
               <ProjectScopedSearchDropdown
-                projectScopedItems={getHardwareProfiles()}
-                globalScopedItems={getDashboardHardwareProfiles()}
+                projectScopedItems={projectHardwareProfiles}
+                globalScopedItems={globalHardwareProfiles}
                 renderMenuItem={renderMenuItem}
                 searchValue={searchHardwareProfile}
                 onSearchChange={setSearchHardwareProfile}
