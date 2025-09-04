@@ -126,3 +126,28 @@ func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Conte
 		},
 	}, nil
 }
+
+// GetMCPServerConfig returns mock MCP server ConfigMap for testing
+func (m *TokenKubernetesClientMock) GetMCPServerConfig(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.ConfigMap, error) {
+	// Return mock MCP server ConfigMap for testing
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Data: map[string]string{
+			"brave": `{
+  "url": "http://localhost:9090/sse",
+  "transport": "sse",
+  "description": "Search the Internet.",
+  "logo": "https://brave.com/static-assets/images/brave-logo-sans-text.svg"
+}`,
+			"kubernetes": `{
+  "url": "http://localhost:9091/mcp",
+  "transport": "streamable-http",
+  "description": "Manage resources in a Kubernetes cluster.",
+  "logo": "https://kubernetes.io/images/kubernetes-horizontal-color.png"
+}`,
+		},
+	}, nil
+}

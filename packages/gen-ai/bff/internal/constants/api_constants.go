@@ -20,4 +20,12 @@ const (
 	CodeExporterPath                 = ApiPathPrefix + "/code-exporter"
 	NamespacesPath                   = ApiPathPrefix + "/namespaces"
 	LlamaStackDistributionStatusPath = ApiPathPrefix + "/llamastack-distribution/status"
+
+	// MCP (Model Context Protocol) endpoint paths
+	MCPServerConfigPath  = ApiPathPrefix + "/mcp-servers/config"
+	MCPServersStatusPath = ApiPathPrefix + "/mcp-servers/status"
+	MCPServerToolsPath   = ApiPathPrefix + "/mcp-server/:server_name/tools"
+	MCPToolsPath         = ApiPathPrefix + "/mcp/tools"
+	MCPStatusPath        = ApiPathPrefix + "/mcp/status"
+	MCPServersListPath   = ApiPathPrefix + "/aa/mcps"
 )

@@ -24,4 +24,7 @@ type KubernetesClientInterface interface {
 
 	// LlamaStack Distribution
 	GetLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*lsdapi.LlamaStackDistributionList, error)
+
+	// MCP Server Configuration
+	GetMCPServerConfig(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.ConfigMap, error)
 }
