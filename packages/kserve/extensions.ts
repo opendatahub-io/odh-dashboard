@@ -76,6 +76,10 @@ const extensions: (
     properties: {
       platform: KSERVE_ID,
       useResources: () => import('./src/useKServeResources').then((m) => m.useKServeResources),
+      extractHardwareProfileConfig: () =>
+        import('./src/useKServeResources').then((m) => m.extractHardwareProfileConfig),
+      applyHardwareProfileToDeployment: () =>
+        import('./src/useKServeResources').then((m) => m.applyHardwareProfileToDeployment),
     },
   },
   {

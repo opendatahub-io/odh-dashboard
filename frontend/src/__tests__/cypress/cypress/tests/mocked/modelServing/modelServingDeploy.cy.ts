@@ -1,3 +1,4 @@
+import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
@@ -15,12 +16,14 @@ import {
   modelServingWizardEdit,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import {
+  HardwareProfileModel,
   InferenceServiceModel,
   ProjectModel,
   ServingRuntimeModel,
   TemplateModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { ServingRuntimePlatform } from '#~/types';
+import { mockGlobalScopedHardwareProfiles } from '#~/__mocks__/mockHardwareProfile';
 
 const initIntercepts = () => {
   cy.interceptOdh(
@@ -42,6 +45,11 @@ const initIntercepts = () => {
     }),
   );
   cy.interceptOdh('GET /api/components', null, []);
+
+  cy.interceptK8sList(
+    { model: HardwareProfileModel, ns: 'opendatahub' },
+    mockK8sResourceList(mockGlobalScopedHardwareProfiles),
+  );
 
   cy.interceptK8sList(
     TemplateModel,
@@ -136,6 +144,16 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+    hardwareProfileSection.findHardwareProfileSearchSelector().click();
+    const globalScopedHardwareProfile = hardwareProfileSection.getGlobalScopedHardwareProfile();
+    globalScopedHardwareProfile
+      .find()
+      .findByRole('menuitem', {
+        name: /Medium/,
+        hidden: true,
+      })
+      .click();
+    hardwareProfileSection.findGlobalScopedLabel().should('exist');
     modelServingWizard.findNextButton().should('be.enabled').click();
   });
 
@@ -143,7 +161,22 @@ describe('Model Serving Deploy Wizard', () => {
     initIntercepts();
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
-      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+      mockK8sResourceList([
+        mockInferenceServiceK8sResource({
+          hardwareProfileName: 'large-profile',
+          hardwareProfileNamespace: 'opendatahub',
+          resources: {
+            requests: {
+              cpu: '4',
+              memory: '8Gi',
+            },
+            limits: {
+              cpu: '8',
+              memory: '16Gi',
+            },
+          },
+        }),
+      ]),
     );
     cy.interceptK8sList(
       { model: ServingRuntimeModel, ns: 'test-project' },
@@ -175,6 +208,11 @@ describe('Model Serving Deploy Wizard', () => {
       .findModelDeploymentNameInput()
       .should('have.value', 'Test Inference Service');
     modelServingWizardEdit.findModelDeploymentNameInput().type('test-model');
+    hardwareProfileSection.findHardwareProfileSearchSelector().should('be.visible');
+    hardwareProfileSection
+      .findHardwareProfileSearchSelector()
+      .should('contain.text', 'Large Profile');
+    hardwareProfileSection.findGlobalScopedLabel().should('exist');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
   });
 });

@@ -23,8 +23,8 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
   return (
     <Form>
       <ModelTypeSelectField
-        modelType={wizardState.data.modelTypeField}
-        setModelType={wizardState.handlers.setModelType}
+        modelType={wizardState.state.modelType.data}
+        setModelType={wizardState.state.modelType.setData}
         validationProps={validation.getFieldValidationProps(['modelType'])}
         validationIssues={validation.getFieldValidation(['modelType'])}
       />
