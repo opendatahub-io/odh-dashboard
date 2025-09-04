@@ -1,142 +1,141 @@
-/* eslint-disable camelcase */
-import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { testHook } from '@odh-dashboard/jest-config/hooks';
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
-import { FeatureStoreKind } from '@odh-dashboard/internal/k8sTypes';
-import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
+import React from 'react';
+import { renderHook } from '@testing-library/react';
 import { mockFeatureStore } from '../../__mocks__/mockFeatureStore';
-import { FEATURE_STORE_UI_LABEL_KEY, FEATURE_STORE_UI_LABEL_VALUE } from '../../const';
+import { FeatureStoreCRContext } from '../../contexts/FeatureStoreContext';
 import { useFeatureStoreCR } from '../useFeatureStoreCR';
-
-jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
-  k8sListResource: jest.fn(),
-}));
-
-const k8sListResourceMock = jest.mocked(k8sListResource<FeatureStoreKind>);
 
 describe('useFeatureStoreCR', () => {
   const mockFeatureStoreCR = mockFeatureStore({
     name: 'demo',
     namespace: 'default',
   });
-  const mockFeatureStoreCRWithLabel = {
-    ...mockFeatureStoreCR,
-    metadata: {
-      ...mockFeatureStoreCR.metadata,
-      labels: {
-        [FEATURE_STORE_UI_LABEL_KEY]: FEATURE_STORE_UI_LABEL_VALUE,
-      },
-    },
+
+  const createWrapper = (
+    contextValue: React.ComponentProps<typeof FeatureStoreCRContext.Provider>['value'],
+  ) => {
+    // eslint-disable-next-line react/display-name
+    return ({ children }: { children: React.ReactNode }) => (
+      <FeatureStoreCRContext.Provider value={contextValue}>
+        {children}
+      </FeatureStoreCRContext.Provider>
+    );
   };
 
-  beforeEach(() => {
-    jest.clearAllMocks();
+  it('should return successful feature store CR when CR exists', () => {
+    const contextValue = {
+      featureStores: [mockFeatureStoreCR],
+      activeFeatureStore: mockFeatureStoreCR,
+      accessibleProjects: [],
+      loaded: true,
+      loadError: undefined,
+    };
+
+    const wrapper = createWrapper(contextValue);
+    const { result } = renderHook(() => useFeatureStoreCR(), { wrapper });
+
+    expect(result.current.data).toEqual(mockFeatureStoreCR);
+    expect(result.current.loaded).toBe(true);
+    expect(result.current.error).toBeUndefined();
   });
 
-  it('should return successful feature store CR when CR with correct label exists', async () => {
-    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([mockFeatureStoreCRWithLabel]));
+  it('should return null when no CRs exist', () => {
+    const contextValue = {
+      featureStores: [],
+      activeFeatureStore: null,
+      accessibleProjects: [],
+      loaded: true,
+      loadError: undefined,
+    };
 
-    const renderResult = testHook(useFeatureStoreCR)();
+    const wrapper = createWrapper(contextValue);
+    const { result } = renderHook(() => useFeatureStoreCR(), { wrapper });
 
-    expect(renderResult.result.current.data).toBe(null);
-    expect(renderResult.result.current.loaded).toBe(false);
-    expect(renderResult.result.current.error).toBeUndefined();
-    expect(renderResult).hookToHaveUpdateCount(1);
-
-    await renderResult.waitForNextUpdate();
-
-    expect(renderResult.result.current.data).toEqual(mockFeatureStoreCRWithLabel);
-    expect(renderResult.result.current.loaded).toBe(true);
-    expect(renderResult.result.current.error).toBeUndefined();
-    expect(renderResult).hookToHaveUpdateCount(2);
-    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
-    expect(k8sListResourceMock).toHaveBeenCalledWith({
-      model: FeatureStoreModel,
-      queryOptions: {
-        queryParams: {
-          labelSelector: `${FEATURE_STORE_UI_LABEL_KEY}=${FEATURE_STORE_UI_LABEL_VALUE}`,
-        },
-      },
-    });
+    expect(result.current.data).toBe(null);
+    expect(result.current.loaded).toBe(true);
+    expect(result.current.error).toBeUndefined();
   });
 
-  it('should return null when no CRs exist', async () => {
-    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([]));
-
-    const renderResult = testHook(useFeatureStoreCR)();
-
-    expect(renderResult.result.current.data).toBe(null);
-    expect(renderResult.result.current.loaded).toBe(false);
-    expect(renderResult.result.current.error).toBeUndefined();
-    expect(renderResult).hookToHaveUpdateCount(1);
-
-    await renderResult.waitForNextUpdate();
-
-    expect(renderResult.result.current.data).toBe(null);
-    expect(renderResult.result.current.loaded).toBe(true);
-    expect(renderResult.result.current.error).toBeUndefined();
-    expect(renderResult).hookToHaveUpdateCount(2);
-    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('should handle errors when API call fails', async () => {
+  it('should handle errors when API call fails', () => {
     const testError = new Error('Failed to fetch feature store CRs');
-    k8sListResourceMock.mockRejectedValue(testError);
+    const contextValue = {
+      featureStores: [],
+      activeFeatureStore: null,
+      accessibleProjects: [],
+      loaded: false,
+      loadError: testError,
+    };
 
-    const renderResult = testHook(useFeatureStoreCR)();
+    const wrapper = createWrapper(contextValue);
+    const { result } = renderHook(() => useFeatureStoreCR(), { wrapper });
 
-    expect(renderResult.result.current.data).toBe(null);
-    expect(renderResult.result.current.loaded).toBe(false);
-    expect(renderResult.result.current.error).toBeUndefined();
-    expect(renderResult).hookToHaveUpdateCount(1);
-
-    await renderResult.waitForNextUpdate();
-
-    expect(renderResult.result.current.data).toBe(null);
-    expect(renderResult.result.current.loaded).toBe(false);
-    expect(renderResult.result.current.error).toEqual(testError);
-    expect(renderResult).hookToHaveUpdateCount(2);
-    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
+    expect(result.current.data).toBe(null);
+    expect(result.current.loaded).toBe(false);
+    expect(result.current.error).toEqual(testError);
   });
 
-  it('should return first matching CR when multiple CRs have correct labels', async () => {
+  it('should return the active feature store when multiple CRs exist', () => {
     const secondFeatureStoreCR = {
-      ...mockFeatureStoreCRWithLabel,
+      ...mockFeatureStoreCR,
       metadata: {
-        ...mockFeatureStoreCRWithLabel.metadata,
+        ...mockFeatureStoreCR.metadata,
         name: 'second-cr',
         uid: 'second-uid',
       },
     };
 
-    k8sListResourceMock.mockResolvedValue(
-      mockK8sResourceList([mockFeatureStoreCRWithLabel, secondFeatureStoreCR]),
-    );
+    const contextValue = {
+      featureStores: [mockFeatureStoreCR, secondFeatureStoreCR],
+      activeFeatureStore: mockFeatureStoreCR, // The context determines which is active
+      accessibleProjects: [],
+      loaded: true,
+      loadError: undefined,
+    };
 
-    const renderResult = testHook(useFeatureStoreCR)();
+    const wrapper = createWrapper(contextValue);
+    const { result } = renderHook(() => useFeatureStoreCR(), { wrapper });
 
-    await renderResult.waitForNextUpdate();
-
-    expect(renderResult.result.current.data).toEqual(mockFeatureStoreCRWithLabel);
-    expect(renderResult.result.current.loaded).toBe(true);
-    expect(renderResult.result.current.error).toBeUndefined();
-    expect(renderResult).hookToHaveUpdateCount(2);
+    expect(result.current.data).toEqual(mockFeatureStoreCR);
+    expect(result.current.loaded).toBe(true);
+    expect(result.current.error).toBeUndefined();
   });
 
-  it('should be stable when re-rendered with same parameters', async () => {
-    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([mockFeatureStoreCRWithLabel]));
-
-    const renderResult = testHook(useFeatureStoreCR)();
-
-    await renderResult.waitForNextUpdate();
-    expect(renderResult).hookToHaveUpdateCount(2);
-
-    renderResult.rerender();
-    expect(renderResult).hookToHaveUpdateCount(3);
-    expect(renderResult).hookToBeStable({
-      data: false,
+  it('should be stable when re-rendered with same context values', () => {
+    const contextValue = {
+      featureStores: [mockFeatureStoreCR],
+      activeFeatureStore: mockFeatureStoreCR,
+      accessibleProjects: [],
       loaded: true,
-      error: true,
-    });
+      loadError: undefined,
+    };
+
+    const wrapper = createWrapper(contextValue);
+    const { result, rerender } = renderHook(() => useFeatureStoreCR(), { wrapper });
+
+    const firstResult = result.current;
+    rerender();
+    const secondResult = result.current;
+
+    // The result should be memoized and stable
+    expect(firstResult).toBe(secondResult);
+    expect(result.current.data).toEqual(mockFeatureStoreCR);
+    expect(result.current.loaded).toBe(true);
+    expect(result.current.error).toBeUndefined();
+  });
+
+  it('should handle loading state', () => {
+    const contextValue = {
+      featureStores: [],
+      activeFeatureStore: null,
+      accessibleProjects: [],
+      loaded: false,
+      loadError: undefined,
+    };
+
+    const wrapper = createWrapper(contextValue);
+    const { result } = renderHook(() => useFeatureStoreCR(), { wrapper });
+
+    expect(result.current.data).toBe(null);
+    expect(result.current.loaded).toBe(false);
+    expect(result.current.error).toBeUndefined();
   });
 });

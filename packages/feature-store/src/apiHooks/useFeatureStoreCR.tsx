@@ -2,7 +2,7 @@ import React from 'react';
 import { FeatureStoreKind } from '@odh-dashboard/internal/k8sTypes';
 import { FeatureStoreCRContext } from '../contexts/FeatureStoreContext';
 
-type UseFeatureStoreCRResult = {
+export type UseFeatureStoreCRResult = {
   data: FeatureStoreKind | null;
   loaded: boolean;
   error: Error | undefined;

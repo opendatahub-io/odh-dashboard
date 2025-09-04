@@ -1,7 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
 import { FeatureStoreKind } from '@odh-dashboard/internal/k8sTypes';
 import { useFeatureStoreAPI } from '../FeatureStoreContext';
 import { useFeatureStoreCR } from '../apiHooks/useFeatureStoreCR';
@@ -30,8 +29,7 @@ describe('EnsureFeatureStoreAPIAvailability', () => {
       data: { metadata: { name: 'feature-store' } } as FeatureStoreKind,
       loaded: true,
       error: undefined,
-      refresh: jest.fn(),
-    } as FetchStateObject<FeatureStoreKind | null>);
+    });
   });
 
   it('should render children when API is available', () => {
@@ -64,8 +62,7 @@ describe('EnsureFeatureStoreAPIAvailability', () => {
       data: { metadata: { name: 'feature-store' } } as FeatureStoreKind,
       loaded: true,
       error: undefined,
-      refresh: jest.fn(),
-    } as FetchStateObject<FeatureStoreKind | null>);
+    });
 
     render(
       <EnsureFeatureStoreAPIAvailability>
@@ -94,8 +91,7 @@ describe('EnsureFeatureStoreAPIAvailability', () => {
       data: null,
       loaded: true,
       error: new Error('CR load error'),
-      refresh: jest.fn(),
-    } as FetchStateObject<FeatureStoreKind | null>);
+    });
 
     render(
       <EnsureFeatureStoreAPIAvailability>
@@ -119,8 +115,7 @@ describe('EnsureFeatureStoreAPIAvailability', () => {
       data: null,
       loaded: true,
       error: undefined,
-      refresh: jest.fn(),
-    } as FetchStateObject<FeatureStoreKind | null>);
+    });
 
     render(
       <EnsureFeatureStoreAPIAvailability>
