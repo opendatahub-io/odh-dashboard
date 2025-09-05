@@ -1,8 +1,7 @@
 # Test data for FeatureStore Entities E2E tests
-namespace: "test-feature-store"
+namespace: "default"
 featureStoreNames: 
-  - "test-feature-store-1"
-  - "test-feature-store-2"
+  - "test-s3"
 projectName: "credit_scoring_local"
 searchTerm: "dummy"
 expectedColumns:

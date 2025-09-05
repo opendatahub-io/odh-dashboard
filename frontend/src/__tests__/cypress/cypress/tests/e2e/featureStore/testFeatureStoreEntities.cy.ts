@@ -34,6 +34,9 @@ describe('FeatureStore Entities E2E Tests', () => {
   });
 
   after(() => {
+    cy.clearCookies();
+    cy.clearLocalStorage();
+
     cy.step('Clean up FeatureStore resources');
     deleteFeatureStoreResources(featureStoreNames, testNamespace, {
       wait: false,
@@ -42,7 +45,7 @@ describe('FeatureStore Entities E2E Tests', () => {
   });
 
   it(
-    'Should navigate to FeatureStore Entities and verify basic functionality',
+    'Navigates to FeatureStore Entities and verifies basic functionality',
     {
       tags: ['@FeatureStore', '@Dashboard', '@FeatureFlagged'],
     },
@@ -60,7 +63,7 @@ describe('FeatureStore Entities E2E Tests', () => {
   );
 
   it(
-    'Should display and interact with Entities table',
+    'Displays and interacts with the Entities table',
     {
       tags: ['@FeatureStore', '@Dashboard', '@FeatureFlagged'],
     },
@@ -77,7 +80,6 @@ describe('FeatureStore Entities E2E Tests', () => {
         .findRows()
         .first()
         .within(() => {
-          // Check for all entity table columns from fixture data
           testData.expectedColumns.forEach((columnName) => {
             cy.get(`[data-label="${columnName}"]`).should('exist');
           });
@@ -87,16 +89,26 @@ describe('FeatureStore Entities E2E Tests', () => {
       const toolbar = featureEntitiesTable.findToolbar();
       toolbar.findSearchInput().should('be.visible');
 
-      cy.step('Test search functionality');
-      toolbar.findSearchInput().type(testData.searchTerm);
-      // Wait for filtering to complete by checking table state
-      featureEntitiesTable.findRows().should('be.visible');
-      toolbar.findSearchInput().clear();
+      cy.step('Test search functionality with validation');
+      featureEntitiesTable
+        .findRows()
+        .its('length')
+        .then((initialCount) => {
+          toolbar.findSearchInput().type(testData.searchTerm);
+
+          featureEntitiesTable.findRows().each(($row) => {
+            cy.wrap($row).should('contain.text', testData.searchTerm);
+          });
+
+          featureEntitiesTable.findRows().should('have.length.at.most', initialCount);
+          featureEntitiesTable.findToolbarClearFiltersButton().click();
+          featureEntitiesTable.findRows().should('have.length', initialCount);
+        });
     },
   );
 
   it(
-    'Should navigate to entity details when clicking on entity',
+    'Navigates to entity details and verifies functionality',
     {
       tags: ['@FeatureStore', '@Dashboard', '@FeatureFlagged'],
     },
@@ -127,6 +139,10 @@ describe('FeatureStore Entities E2E Tests', () => {
           cy.step('Verify entity details page has expected sections');
           featureEntityDetails.findValueType().should('be.visible');
           featureEntityDetails.findJoinKey().should('be.visible');
+
+          cy.step('Verify Feature Views tab is accessible and functional');
+          featureEntityDetails.findFeatureViewsTab().should('be.visible').click();
+          featureEntityDetails.findFeatureViewsTabContent().should('be.visible');
         }
       });
     },

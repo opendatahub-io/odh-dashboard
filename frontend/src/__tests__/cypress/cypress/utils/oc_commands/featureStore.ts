@@ -32,7 +32,7 @@ export const deleteFeatureStoreResources = (
     .join(' && ');
 
   // Also delete the secret
-  const fullCommand = `${deleteCommands} && oc delete secret workbench-s3-credentials -n ${namespace} --ignore-not-found`;
+  const fullCommand = `${deleteCommands} && oc delete secret s3-credentials-secret -n ${namespace} --ignore-not-found`;
 
   const execOptions = {
     failOnNonZeroExit: false,
@@ -57,18 +57,18 @@ export const createFeatureStoreDeploymentViaYAML = (): Cypress.Chainable<boolean
 
   cy.log(`Creating FeatureStore deployment in namespace ${targetNamespace}`);
 
-  // Use AWS_BUCKETS.BUCKET_2 credentials from test-variables.yml (has write permissions)
-  const s3Config = AWS_BUCKETS.BUCKET_2;
+  // Use AWS_BUCKETS.BUCKET_1 credentials from test-variables.yml (same as PR #4802)
+  const s3Config = AWS_BUCKETS.BUCKET_1;
   const awsAccessKey = AWS_BUCKETS.AWS_ACCESS_KEY_ID;
   const awsSecretKey = AWS_BUCKETS.AWS_SECRET_ACCESS_KEY;
   const awsDefaultRegion = s3Config.REGION;
 
   const featureStoreReplacements = {
-    NAMESPACE: targetNamespace,
-    AWS_ACCESS_KEY_ID: awsAccessKey,
-    AWS_SECRET_ACCESS_KEY: awsSecretKey,
-    AWS_DEFAULT_REGION: awsDefaultRegion,
-    BUCKET_NAME: s3Config.NAME,
+    awsAccessKey,
+    awsSecretKey,
+    awsDefaultRegion,
+    namespace: targetNamespace,
+    awsBucketName: s3Config.NAME,
   };
 
   return cy
@@ -86,9 +86,8 @@ export const createFeatureStoreDeploymentViaYAML = (): Cypress.Chainable<boolean
         }
 
         cy.log('FeatureStore resources applied successfully, waiting for readiness');
-        // Wait for feast-related pods to be ready with 10 minute timeout
         return cy.wrap(null).then(() => {
-          waitForPodReady('feast', '600s', targetNamespace);
+          waitForPodReady('feast-test-s3', '1000s', targetNamespace);
           return cy.wrap(true);
         });
       });
