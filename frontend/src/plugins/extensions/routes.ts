@@ -95,13 +95,13 @@ const extensions: RouteExtension[] = [
       component: () => import('#~/pages/modelCatalog/ModelCatalogRoutes'),
     },
   },
-  {
-    type: 'app.route',
-    properties: {
-      path: '/modelRegistry/*',
-      component: () => import('#~/pages/modelRegistry/ModelRegistryRoutes'),
-    },
-  },
+  // {
+  //   type: 'app.route',
+  //   properties: {
+  //     path: '/modelRegistry/*',
+  //     component: () => import('#~/pages/modelRegistry/ModelRegistryRoutes'),
+  //   },
+  // },
   {
     type: 'app.route',
     properties: {

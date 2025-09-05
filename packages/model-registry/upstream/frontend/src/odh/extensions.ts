@@ -3,6 +3,7 @@ import type {
   RouteExtension,
   AreaExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
+import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 
 const reliantAreas = ['model-registry'];
 const PLUGIN_MODEL_REGISTRY = 'model-registry-plugin';
@@ -19,7 +20,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [PLUGIN_MODEL_REGISTRY],
+      required: [SupportedArea.MODEL_REGISTRY],
     },
     properties: {
       id: 'modelRegistry-kf',
@@ -45,7 +46,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.route',
     flags: {
-      required: [PLUGIN_MODEL_REGISTRY],
+      required: [SupportedArea.MODEL_REGISTRY],
     },
     properties: {
       path: '/model-registry/*',
