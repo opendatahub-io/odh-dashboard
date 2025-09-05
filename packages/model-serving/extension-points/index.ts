@@ -14,6 +14,7 @@ import type { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelSe
 import type { ToggleState } from '@odh-dashboard/internal/components/StateActionToggle';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
 import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import type { UseModelDeploymentWizardState } from 'src/components/deploymentWizard/useDeploymentWizard';
 
 export type DeploymentStatus = {
   state: ModelDeploymentState;
@@ -256,3 +257,22 @@ export const isModelServingPlatformFetchDeploymentStatus = <D extends Deployment
   extension: Extension,
 ): extension is ModelServingPlatformFetchDeploymentStatus<D> =>
   extension.type === 'model-serving.platform/fetch-deployment-status';
+
+export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
+  'model-serving.deploy',
+  {
+    platform: D['modelServingPlatformId'];
+    deploy: CodeRef<
+      (
+        wizardData: UseModelDeploymentWizardState['state'],
+        projectName: string,
+        existingDeployment?: D,
+        dryRun?: boolean,
+      ) => Promise<D>
+    >;
+  }
+>;
+
+export const isModelServingDeploy = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingDeploy<D> => extension.type === 'model-serving.deploy';

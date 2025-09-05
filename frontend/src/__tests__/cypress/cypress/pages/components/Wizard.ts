@@ -1,7 +1,7 @@
 import type { ByRoleOptions } from '@testing-library/react';
 
 export class Wizard {
-  constructor(private title: ByRoleOptions['name']) {}
+  constructor(private title: ByRoleOptions['name'], private submitButtonText: string) {}
 
   findFooter(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.get('footer');
@@ -9,6 +9,10 @@ export class Wizard {
 
   findNextButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findFooter().findByRole('button', { name: 'Next' });
+  }
+
+  findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findFooter().findByRole('button', { name: this.submitButtonText });
   }
 
   findBackButton(): Cypress.Chainable<JQuery<HTMLElement>> {

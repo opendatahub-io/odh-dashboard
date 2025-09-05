@@ -853,7 +853,7 @@ class ModelServingSection {
 
 class ModelServingWizard extends Wizard {
   constructor(private edit = false) {
-    super('Deploy a model');
+    super('Deploy a model', 'Deploy model');
   }
 
   findModelSourceStep() {

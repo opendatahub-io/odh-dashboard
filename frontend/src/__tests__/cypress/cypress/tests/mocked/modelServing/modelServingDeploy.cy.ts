@@ -82,6 +82,18 @@ const initIntercepts = () => {
     ProjectModel,
     mockK8sResourceList([mockProjectK8sResource({ enableModelMesh: false })]),
   );
+
+  cy.interceptK8s(
+    'POST',
+    {
+      model: InferenceServiceModel,
+      ns: 'test-project',
+    },
+    {
+      statusCode: 200,
+      body: mockInferenceServiceK8sResource({ name: 'test-model' }),
+    },
+  ).as('createInferenceService');
 };
 
 describe('Model Serving Deploy Wizard', () => {
@@ -155,6 +167,56 @@ describe('Model Serving Deploy Wizard', () => {
       .click();
     hardwareProfileSection.findGlobalScopedLabel().should('exist');
     modelServingWizard.findNextButton().should('be.enabled').click();
+    modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Step 3: Advanced options
+
+    // Step 4: Summary
+    modelServingWizard.findSubmitButton().should('be.enabled').click();
+
+    // dry run request
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'test-model',
+          namespace: 'test-project',
+          labels: { 'opendatahub.io/dashboard': 'true' },
+          annotations: {
+            'openshift.io/display-name': 'test-model',
+            'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+            'opendatahub.io/legacy-hardware-profile-name': 'medium-serving-wz9u9',
+            'opendatahub.io/model-type': 'generative-model',
+          },
+        },
+        spec: {
+          predictor: {
+            model: {
+              resources: {
+                requests: {
+                  cpu: '4',
+                  memory: '8Gi',
+                },
+                limits: {
+                  cpu: '4',
+                  memory: '8Gi',
+                },
+              },
+            },
+          },
+        },
+      });
+    });
+
+    // Actual request
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    cy.get('@createInferenceService.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
   });
 
   it('Edit an existing deployment', () => {
