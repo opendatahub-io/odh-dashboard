@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { SearchInput, ToolbarGroup, ToolbarItem, Pagination } from '@patternfly/react-core';
+import { SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import FilterToolbar from '@odh-dashboard/internal/components/FilterToolbar';
 import {
   ModelServingFilterDataType,
@@ -15,28 +15,12 @@ type GlobalModelsToolbarProps = {
   filterData: ModelServingFilterDataType;
   onFilterUpdate: (key: string, value?: string | { label: string; value: string }) => void;
   hideDeployButton?: boolean;
-  showPagination?: boolean;
-  paginationProps?: {
-    itemCount: number;
-    perPage: number;
-    page: number;
-    onSetPage: (
-      event: React.MouseEvent | React.KeyboardEvent | MouseEvent,
-      newPage: number,
-    ) => void;
-    onPerPageSelect: (
-      event: React.MouseEvent | React.KeyboardEvent | MouseEvent,
-      newPerPage: number,
-    ) => void;
-  };
 };
 
 const GlobalModelsToolbar: React.FC<GlobalModelsToolbarProps> = ({
   filterData,
   onFilterUpdate,
   hideDeployButton = false,
-  showPagination = false,
-  paginationProps,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
   const { namespace: modelNamespace } = useParams<{ namespace: string }>();
@@ -80,19 +64,6 @@ const GlobalModelsToolbar: React.FC<GlobalModelsToolbarProps> = ({
             />
           </ToolbarItem>
         </ToolbarGroup>
-      )}
-      {showPagination && paginationProps && (
-        <ToolbarItem variant="pagination" align={{ default: 'alignEnd' }}>
-          <Pagination
-            itemCount={paginationProps.itemCount}
-            perPage={paginationProps.perPage}
-            page={paginationProps.page}
-            onSetPage={paginationProps.onSetPage}
-            onPerPageSelect={paginationProps.onPerPageSelect}
-            variant="top"
-            isCompact
-          />
-        </ToolbarItem>
       )}
     </FilterToolbar>
   );

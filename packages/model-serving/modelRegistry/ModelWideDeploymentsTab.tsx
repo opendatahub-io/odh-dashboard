@@ -3,11 +3,9 @@ import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/conc
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
 import { useExtensions } from '@odh-dashboard/plugin-core';
-import { Alert } from '@patternfly/react-core';
-import { Link } from 'react-router-dom';
 import EmptyDeploymentsState from './EmptyDeploymentsState';
 import { isModelServingPlatformExtension } from '../extension-points';
-import GlobalDeploymentsTable from '../src/components/global/GlobalDeploymentsTable';
+import ModelRegistryDeploymentsTable from './ModelRegistryDeploymentsTable';
 import {
   ModelDeploymentsContext,
   ModelDeploymentsProvider,
@@ -33,20 +31,11 @@ const ModelWideDeploymentsTabContent: React.FC<{ mrName?: string }> = ({ mrName 
   }
 
   return (
-    <GlobalDeploymentsTable
+    <ModelRegistryDeploymentsTable
       deployments={deployments ?? []}
       loaded={deploymentsLoaded}
-      hideDeployButton
-      showAlert
-      showVersionColumn
       mrName={mrName}
-      alertContent={
-        <Alert variant="info" isInline title="Filtered list: Deployments from model registry only">
-          This list includes only deployments that were initiated from the model registry. To view
-          and manage all of your deployments, go to the{' '}
-          <Link to="/modelServing">Model Serving</Link> page.
-        </Alert>
-      }
+      // No mvId = model-wide deployments (shows version column)
     />
   );
 };

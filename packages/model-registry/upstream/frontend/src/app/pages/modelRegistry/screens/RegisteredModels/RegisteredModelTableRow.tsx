@@ -8,7 +8,6 @@ import { ArchiveRegisteredModelModal } from '~/app/pages/modelRegistry/screens/c
 import ModelLabels from '~/app/pages/modelRegistry/screens/components/ModelLabels';
 import ModelTimestamp from '~/app/pages/modelRegistry/screens/components/ModelTimestamp';
 import { RestoreRegisteredModelModal } from '~/app/pages/modelRegistry/screens/components/RestoreRegisteredModel';
-import DeployModalExtension from '~/odh/components/DeployModalExtension';
 import {
   archiveModelVersionDetailsUrl,
   archiveModelVersionListUrl,
@@ -18,7 +17,7 @@ import {
   registeredModelUrl,
 } from '~/app/pages/modelRegistry/screens/routeUtils';
 import { ModelState, ModelVersion, RegisteredModel } from '~/app/types';
-import './RegisteredModelTableRow.scss';
+import DeployModalExtension from '~/odh/components/DeployModalExtension';
 
 type RegisteredModelTableRowProps = {
   registeredModel: RegisteredModel;
@@ -48,6 +47,7 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
     {
       title: 'View model information',
       isDisabled: true,
+      className: 'pf-v6-u-font-size-sm pf-v6-u-color-200 pf-v6-u-text-transform-uppercase pf-v6-u-p-xs',
     },
     {
       title: 'Overview',
@@ -81,6 +81,7 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
     {
       title: 'Latest version actions',
       isDisabled: true,
+      className: 'pf-v6-u-font-size-sm pf-v6-u-color-200 pf-v6-u-text-transform-uppercase pf-v6-u-p-xs',
     },
   ];
 

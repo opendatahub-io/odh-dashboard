@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {
   Dropdown,
+  DropdownGroup,
   DropdownList,
   MenuToggle,
   DropdownItem,
@@ -14,9 +15,7 @@ import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { ArchiveRegisteredModelModal } from '~/app/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
 import { registeredModelsUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
-import ArchiveButtonDropdownItem from '~/odh/components/ArchiveButtonDropdownItem';
 import DeployModalExtension from '~/odh/components/DeployModalExtension';
-import '../RegisteredModels/RegisteredModelTableRow.scss';
 
 interface ModelVersionsHeaderActionsProps {
   rm: RegisteredModel;
@@ -40,37 +39,31 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
     <>
       <Flex>
         <FlexItem>
-          {latestModelVersion ? (
-            <DeployModalExtension
-              mv={latestModelVersion}
-              render={(buttonState, onOpenModal, isModalAvailable) => (
-                <Dropdown
-                  isOpen={isOpen}
-                  onSelect={() => setOpen(false)}
-                  onOpenChange={(open) => setOpen(open)}
-                  popperProps={{ position: 'end', appendTo: 'inline' }}
-                  toggle={(toggleRef) => (
-                    <MenuToggle
-                      variant="secondary"
-                      ref={toggleRef}
-                      onClick={() => setOpen(!isOpen)}
-                      isExpanded={isOpen}
-                      aria-label="Model action toggle"
-                      data-testid="model-action-toggle"
-                    >
-                      Actions
-                    </MenuToggle>
-                  )}
-                >
-                  <DropdownList>
-                    {isModalAvailable && (
-                      <>
-                        <DropdownItem
-                          isDisabled
-                          className="model-registry-section-header"
-                        >
-                          Latest version actions
-                        </DropdownItem>
+          <Dropdown
+            isOpen={isOpen}
+            onSelect={() => setOpen(false)}
+            onOpenChange={(open) => setOpen(open)}
+            popperProps={{ position: 'end', appendTo: 'inline' }}
+            toggle={(toggleRef) => (
+              <MenuToggle
+                variant="secondary"
+                ref={toggleRef}
+                onClick={() => setOpen(!isOpen)}
+                isExpanded={isOpen}
+                aria-label="Model action toggle"
+                data-testid="model-action-toggle"
+              >
+                Actions
+              </MenuToggle>
+            )}
+          >
+            <DropdownList>
+              {latestModelVersion && (
+                <DropdownGroup label="Latest version actions">
+                  <DeployModalExtension
+                    mv={latestModelVersion}
+                    render={(buttonState, onOpenModal, isModalAvailable) =>
+                      isModalAvailable ? (
                         <DropdownItem
                           onClick={() => {
                             onOpenModal();
@@ -81,38 +74,19 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
                         >
                           Deploy <strong>{latestModelVersion.name}</strong>
                         </DropdownItem>
-                        <Divider />
-                      </>
-                    )}
-                    <ArchiveButtonDropdownItem setIsArchiveModalOpen={setIsArchiveModalOpen} />
-                  </DropdownList>
-                </Dropdown>
+                      ) : null
+                    }
+                  />
+                </DropdownGroup>
               )}
-            />
-          ) : (
-            <Dropdown
-              isOpen={isOpen}
-              onSelect={() => setOpen(false)}
-              onOpenChange={(open) => setOpen(open)}
-              popperProps={{ position: 'end', appendTo: 'inline' }}
-              toggle={(toggleRef) => (
-                <MenuToggle
-                  variant="secondary"
-                  ref={toggleRef}
-                  onClick={() => setOpen(!isOpen)}
-                  isExpanded={isOpen}
-                  aria-label="Model action toggle"
-                  data-testid="model-action-toggle"
-                >
-                  Actions
-                </MenuToggle>
-              )}
-            >
-              <DropdownList>
-                <ArchiveButtonDropdownItem setIsArchiveModalOpen={setIsArchiveModalOpen} />
-              </DropdownList>
-            </Dropdown>
-          )}
+
+              <Divider />
+
+              <DropdownGroup>
+                <DropdownItem onClick={() => setIsArchiveModalOpen(true)}>Archive model</DropdownItem>
+              </DropdownGroup>
+            </DropdownList>
+          </Dropdown>
         </FlexItem>
       </Flex>
       {isArchiveModalOpen ? (
