@@ -14,16 +14,16 @@ import {
   ensureOperatorMemoryLimit,
   getModelRegistryNamespace,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
-import { loadManagePermissionsFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
+import { loadModelRegistryFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
-import type { ManageRegistryPermissionsTestData } from '#~/__tests__/cypress/cypress/types';
+import type { ModelRegistryTestData } from '#~/__tests__/cypress/cypress/types';
 import { modelRegistrySettings } from '#~/__tests__/cypress/cypress/pages/modelRegistrySettings';
 import { createCleanProject } from '#~/__tests__/cypress/cypress/utils/projectChecker';
 import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { checkModelRegistryRoleBindings } from '#~/__tests__/cypress/cypress/utils/oc_commands/roleBindings';
 
 describe('Verify model registry permissions can be managed', () => {
-  let testData: ManageRegistryPermissionsTestData;
+  let testData: ModelRegistryTestData;
   let registryName: string;
   let testProjectName: string;
   let deploymentName: string;
@@ -31,10 +31,10 @@ describe('Verify model registry permissions can be managed', () => {
 
   before(() => {
     cy.step('Load test data from fixture');
-    loadManagePermissionsFixture('e2e/modelRegistry/testManageRegistryPermissions.yaml').then(
-      (fixtureData: ManageRegistryPermissionsTestData) => {
+    loadModelRegistryFixture('e2e/modelRegistry/testModelRegistry.yaml').then(
+      (fixtureData: ModelRegistryTestData) => {
         testData = fixtureData;
-        registryName = `${testData.registryNamePrefix}-${uuid}`;
+        registryName = `${testData.permissionsRegistryNamePrefix}-${uuid}`;
         testProjectName = `${testData.testProjectNamePrefix}-${uuid}`;
         deploymentName = testData.operatorDeploymentName;
 

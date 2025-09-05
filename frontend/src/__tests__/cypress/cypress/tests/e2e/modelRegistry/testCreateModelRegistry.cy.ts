@@ -11,17 +11,17 @@ import {
   deleteModelRegistryDatabase,
   ensureOperatorMemoryLimit,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
-import { loadRegisterModelFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
-import type { RegisterModelTestData } from '#~/__tests__/cypress/cypress/types';
+import { loadModelRegistryFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
+import type { ModelRegistryTestData } from '#~/__tests__/cypress/cypress/types';
 
 describe('Verify a model registry can be created and deleted', () => {
-  let testData: RegisterModelTestData;
+  let testData: ModelRegistryTestData;
   let deploymentName: string;
   const registryName = `e2e-test-registry`;
 
   before(() => {
     cy.step('Load test data from fixture');
-    loadRegisterModelFixture('e2e/modelRegistry/testRegisterModel.yaml').then((fixtureData) => {
+    loadModelRegistryFixture('e2e/modelRegistry/testModelRegistry.yaml').then((fixtureData) => {
       testData = fixtureData;
       deploymentName = testData.operatorDeploymentName;
 

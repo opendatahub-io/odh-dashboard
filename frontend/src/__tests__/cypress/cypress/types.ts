@@ -320,7 +320,7 @@ export type NotebookTolerationsTestData = {
   hardwareProfileDeploymentSize: string;
 };
 
-export type RegisterModelTestData = {
+export type ModelRegistryTestData = {
   registryNamePrefix: string;
   // Model Registry Operator Configuration
   operatorDeploymentName: string;
@@ -353,6 +353,11 @@ export type RegisterModelTestData = {
   newNameSuffix: string;
   newDescription: string;
   deployProjectNamePrefix: string;
+
+  // Permissions management configuration
+  permissionsRegistryNamePrefix: string;
+  testProjectNamePrefix: string;
+  rhodsUsersGroup: string;
 };
 
 export type ManageRegistryPermissionsTestData = {

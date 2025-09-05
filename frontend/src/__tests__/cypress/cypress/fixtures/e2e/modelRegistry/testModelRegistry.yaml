@@ -1,4 +1,4 @@
-# Test data for model registry registration tests
+# Comprehensive test data for all model registry tests
 registryNamePrefix: "test-model-registry"
 
 # Model Registry Operator Configuration
@@ -35,3 +35,8 @@ uriVersion2: "s3://test-bucket/models/tensorflow-model-v2?endpoint=http%3A%2F%2F
 newNameSuffix: "-edited"
 newDescription: "Updated description for e2e test"
 deployProjectNamePrefix: "test-deploy-project"
+
+# Permissions management configuration
+permissionsRegistryNamePrefix: "test-mr-permissions-registry"
+testProjectNamePrefix: "test-mr-permissions-project"
+rhodsUsersGroup: "rhods-users"

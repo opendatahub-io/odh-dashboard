@@ -16,9 +16,9 @@ import {
   deleteModelRegistryDatabase,
   ensureOperatorMemoryLimit,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
-import { loadRegisterModelFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
+import { loadModelRegistryFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
-import type { RegisterModelTestData } from '#~/__tests__/cypress/cypress/types';
+import type { ModelRegistryTestData } from '#~/__tests__/cypress/cypress/types';
 import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
 import {
   archiveVersionModal,
@@ -36,14 +36,14 @@ import {
 } from '#~/__tests__/cypress/cypress/pages/modelRegistry/registerVersionPage';
 
 describe('Verify that models and versions can be archived and restored via model registry', () => {
-  let testData: RegisterModelTestData;
+  let testData: ModelRegistryTestData;
   let registryName: string;
   let deploymentName: string;
   const uuid = generateTestUUID();
 
   before(() => {
     cy.step('Load test data from fixture');
-    return loadRegisterModelFixture('e2e/modelRegistry/testRegisterModel.yaml').then(
+    return loadModelRegistryFixture('e2e/modelRegistry/testModelRegistry.yaml').then(
       (fixtureData) => {
         testData = fixtureData;
         registryName = `${testData.registryNamePrefix}-${uuid}`;
