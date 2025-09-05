@@ -1,7 +1,7 @@
 import React, { act } from 'react';
 import { render, screen, fireEvent, renderHook } from '@testing-library/react';
 import { type ZodIssue } from 'zod';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types.js';
+import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import {
   ModelTypeSelectField,
   modelTypeSelectFieldSchema,
@@ -11,16 +11,16 @@ import {
 
 describe('ModelTypeSelectField', () => {
   describe('Schema validation', () => {
-    it('should validate predictive-model', () => {
-      const result = modelTypeSelectFieldSchema.safeParse('predictive-model');
+    it('should validate predictive', () => {
+      const result = modelTypeSelectFieldSchema.safeParse(ServingRuntimeModelType.PREDICTIVE);
       expect(result.success).toBe(true);
-      expect(result.data).toBe('predictive-model');
+      expect(result.data).toBe(ServingRuntimeModelType.PREDICTIVE);
     });
 
     it('should validate generative-model', () => {
-      const result = modelTypeSelectFieldSchema.safeParse('generative-model');
+      const result = modelTypeSelectFieldSchema.safeParse(ServingRuntimeModelType.GENERATIVE);
       expect(result.success).toBe(true);
-      expect(result.data).toBe('generative-model');
+      expect(result.data).toBe(ServingRuntimeModelType.GENERATIVE);
     });
 
     it('should reject invalid values', () => {
@@ -39,8 +39,8 @@ describe('ModelTypeSelectField', () => {
 
   describe('isValidModelType', () => {
     it('should return true for valid model types', () => {
-      expect(isValidModelType('predictive-model')).toBe(true);
-      expect(isValidModelType('generative-model')).toBe(true);
+      expect(isValidModelType(ServingRuntimeModelType.PREDICTIVE)).toBe(true);
+      expect(isValidModelType(ServingRuntimeModelType.GENERATIVE)).toBe(true);
     });
 
     it('should return false for invalid model types', () => {
@@ -99,7 +99,7 @@ describe('ModelTypeSelectField', () => {
         fireEvent.click(option);
       });
 
-      expect(mockSetModelType).toHaveBeenCalledWith('generative-model');
+      expect(mockSetModelType).toHaveBeenCalledWith(ServingRuntimeModelType.GENERATIVE);
     });
 
     it('should display validation errors', () => {

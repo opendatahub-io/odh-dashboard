@@ -6,7 +6,7 @@ import { ModelFormatField, modelFormatFieldSchema, useModelFormatField } from '.
 import { useServingRuntimeTemplates } from '../../../../concepts/servingRuntimeTemplates/useServingRuntimeTemplates';
 
 // Mock dependencies
-jest.mock('@odh-dashboard/internal/concepts/servingRuntimeTemplates/useServingRuntimeTemplates');
+jest.mock('../../../../concepts/servingRuntimeTemplates/useServingRuntimeTemplates');
 jest.mock('@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils', () => ({
   getModelTypesFromTemplate: jest.fn(),
   getServingRuntimeFromTemplate: jest.fn(),

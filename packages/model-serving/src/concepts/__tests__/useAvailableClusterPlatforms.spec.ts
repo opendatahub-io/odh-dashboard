@@ -1,7 +1,7 @@
 import React from 'react';
 import { renderHook } from '@odh-dashboard/jest-config/hooks';
 import { isEnabled } from '@odh-dashboard/internal/concepts/integrations/useIsComponentIntegrationEnabled';
-import { IntegrationAppStatus } from '@odh-dashboard/internal/types.js';
+import { IntegrationAppStatus } from '@odh-dashboard/internal/types';
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 import { useAvailableClusterPlatforms } from '../useAvailableClusterPlatforms';
 import { ModelServingPlatform } from '../useProjectServingPlatform';
