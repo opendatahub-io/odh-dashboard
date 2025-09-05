@@ -1,6 +1,6 @@
 name: E2E Direct Commit PR Tests
 
-on: [push]
+on: [push, pull_request]
 
 permissions:
   contents: read
@@ -90,7 +90,7 @@ jobs:
 
             # Add additional GUI libraries that might be needed
             echo "Installing additional GUI libraries..."
-            sudo dnf install -y libgbm libgbm-devel libxss libnotify libnotify-devel
+            sudo dnf install -y libgbm libgbm-devel libnotify libnotify-devel
 
             # Update library cache
             sudo ldconfig
