@@ -15,6 +15,7 @@ import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { setupDefaults } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
 import { ModelDeploymentWizardData } from './useDeploymentWizard';
+import { setupModelLocationData } from './utils';
 import { Deployment, isModelServingDeploymentResourcesExtension } from '../../../extension-points';
 import {
   ModelDeploymentsContext,
@@ -116,6 +117,7 @@ const EditModelDeploymentContent: React.FC<{ project: ProjectKind }> = ({ projec
     k8sNameDesc: setupDefaults({ initialData: deployment.model }),
     hardwareProfile:
       extractHWProfileExtension?.properties.extractHardwareProfileConfig(deployment) ?? undefined,
+    modelLocationData: setupModelLocationData(), // TODO: Implement fully in next ticket RHOAIENG-32186
   });
 
   const formData = React.useMemo(() => {

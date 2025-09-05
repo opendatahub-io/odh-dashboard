@@ -1,13 +1,23 @@
+import React from 'react';
+import { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import { useParams } from 'react-router-dom';
 import { K8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/types';
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { extractK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
-import { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
+import { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { ModelLocationData } from './fields/modelLocationFields/types';
 import { useModelTypeField, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
+import { useModelLocationData } from './fields/ModelLocationInputFields';
 
 export type ModelDeploymentWizardData = {
   modelTypeField?: ModelTypeFieldData;
+  modelLocationData?: ModelLocationData;
+  connections?: LabeledConnection[];
+  initSelectedConnection?: LabeledConnection | undefined;
   k8sNameDesc?: K8sNameDescriptionFieldData;
   hardwareProfile?: Parameters<typeof useHardwareProfileConfig>;
+  // Add more field handlers as needed
 };
 
 export type UseModelDeploymentWizardState = {
@@ -16,6 +26,7 @@ export type UseModelDeploymentWizardState = {
     modelType: ReturnType<typeof useModelTypeField>;
     k8sNameDesc: ReturnType<typeof useK8sNameDescriptionFieldData>;
     hardwareProfileConfig: ReturnType<typeof useHardwareProfileConfig>;
+    modelLocationData: ReturnType<typeof useModelLocationData>;
   };
 };
 
@@ -24,6 +35,13 @@ export const useModelDeploymentWizard = (
 ): UseModelDeploymentWizardState => {
   // Step 1: Model Source
   const modelType = useModelTypeField(initialData?.modelTypeField);
+  const { namespace } = useParams();
+  const { projects } = React.useContext(ProjectsContext);
+  const currentProject = projects.find(byName(namespace));
+  const modelLocationData = useModelLocationData(
+    currentProject ?? null,
+    initialData?.modelLocationData,
+  );
 
   // Step 2: Model Deployment
   const k8sNameDesc = useK8sNameDescriptionFieldData({
@@ -41,6 +59,7 @@ export const useModelDeploymentWizard = (
       modelType,
       k8sNameDesc,
       hardwareProfileConfig,
+      modelLocationData,
     },
   };
 };
