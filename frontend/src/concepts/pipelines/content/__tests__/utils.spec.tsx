@@ -281,7 +281,7 @@ describe('messageForCondition', () => {
   it('should return predefined messages for known conditions', () => {
     expect(messageForCondition('DatabaseAvailable')).toBe('Connect to database');
     expect(messageForCondition('ObjectStoreAvailable')).toBe('Connect to storage');
-    expect(messageForCondition('PersistenceAgentReady')).toBe('Start PVC');
+    expect(messageForCondition('PersistenceAgentReady')).toBe('Start Persistence Agentt');
     expect(messageForCondition('ApiServerReady')).toBe('Start API server');
     expect(messageForCondition('ScheduledWorkflowReady')).toBe('Schedule workflow');
     expect(messageForCondition('WorkflowControllerReady')).toBe('Start workflow controller');
