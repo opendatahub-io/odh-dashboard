@@ -200,10 +200,19 @@ export const assembleInferenceService = (
     data.isKServeRawDeployment,
   );
 
-  // Only add resources for KServe, but not tolerations and nodeSelector
   if (!isModelMesh && podSpecOptions) {
-    const { resources } = podSpecOptions;
-
+    const { tolerations, resources, nodeSelector } = podSpecOptions;
+    const isLegacyHardwareProfile =
+      podSpecOptions.selectedHardwareProfile &&
+      !podSpecOptions.selectedHardwareProfile.metadata.uid;
+    if (isLegacyHardwareProfile) {
+      if (tolerations && tolerations.length !== 0) {
+        updatedInferenceService.spec.predictor.tolerations = tolerations;
+      }
+      if (nodeSelector) {
+        updatedInferenceService.spec.predictor.nodeSelector = nodeSelector;
+      }
+    }
     updatedInferenceService.spec.predictor.model = {
       ...updatedInferenceService.spec.predictor.model,
       resources: {
