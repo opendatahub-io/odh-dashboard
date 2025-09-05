@@ -103,7 +103,7 @@ export const mockDataSource_BATCH_FILE = (partial?: Partial<DataSource>): DataSo
   ...partial,
 });
 
-export const mockEntities = ({
+export const mockDataSources = ({
   dataSources = [mockDataSource_REQUEST_SOURCE({}), mockDataSource_BATCH_FILE({})],
 }: Partial<DataSourceList>): DataSourceList => ({
   dataSources,
