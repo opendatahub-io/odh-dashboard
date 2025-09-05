@@ -15,27 +15,42 @@ const ArchiveButtonDropdownItemContent: React.FC<ArchiveButtonDropdownItemProps>
     const [rmModelVersions, rmMvLoaded] = useModelVersionsByRegisteredModel(rmId);
     const { hasModelVersionDeployment, hasRegisteredModelDeploymentByVersionIds, loaded } = useModelDeploymentDetection();
     
-    const { hasDeployment } = React.useMemo(() => {
+    // Extract stable mvIds safely - only compute when data is actually loaded
+    const mvIds = React.useMemo(() => {
+        if (!rmMvLoaded || !rmModelVersions?.items) {
+            return [];
+        }
+        return rmModelVersions.items.map((v) => v.id);
+    }, [rmMvLoaded, rmModelVersions?.items]);
+    
+    const { hasDeployment, isLoading } = React.useMemo(() => {
         if (mv) {
             // For model versions: check if this specific version is deployed
-            return hasModelVersionDeployment(mv.id);
-        } else if (rmId && rmMvLoaded) {
-            // For registered models: check if any version of this registered model is deployed
-            const mvIds = rmModelVersions.items.map((v) => v.id);
-            return hasRegisteredModelDeploymentByVersionIds(mvIds);
+            // This path doesn't need to wait for registered model data
+            const result = hasModelVersionDeployment(mv.id);
+            return { hasDeployment: result.hasDeployment, isLoading: !result.loaded };
+        } else if (!rmId) {
+            // No registered model ID available
+            return { hasDeployment: false, isLoading: false };
+        } else if (!rmMvLoaded) {
+            // Still loading registered model versions - be conservative
+            return { hasDeployment: true, isLoading: true };
         } else {
-            return { hasDeployment: false, loaded };
+            // For registered models: check if any version of this registered model is deployed
+            const result = hasRegisteredModelDeploymentByVersionIds(mvIds);
+            return { hasDeployment: result.hasDeployment, isLoading: !result.loaded };
         }
-    }, [mv, rmId, rmMvLoaded, rmModelVersions.items, hasModelVersionDeployment, hasRegisteredModelDeploymentByVersionIds, loaded]);
+    }, [mv, mv?.id, rmId, rmMvLoaded, mvIds, hasModelVersionDeployment, hasRegisteredModelDeploymentByVersionIds, loaded]);
+
+    const isDisabled = isLoading || hasDeployment;
     return (
         <DropdownItem
-            id={mv ? "archive-version-button" : "archive-model-button"}
+            id={`${mv ? 'archive-version-button' : 'archive-model-button'}-${mv?.id ?? rmId ?? 'global'}`}
             aria-label={mv ? "Archive model version" :"Archive model"}
-            key={mv ? "archive-version-button" : "archive-model-button"}
             onClick={() => setIsArchiveModalOpen(true)}
-            isAriaDisabled={!loaded || (rmId ? !rmMvLoaded : false) || hasDeployment}
+            isDisabled={isDisabled}
             tooltipProps={
-                loaded && hasDeployment
+                !isLoading && hasDeployment
                 ? { content: mv ? 'Deployed model versions cannot be archived' : 'Models with deployed versions cannot be archived.' }
                 : undefined
             }

@@ -1,8 +1,12 @@
 import * as React from 'react';
 import { ModelVersion, RegisteredModel } from '../../app/types';
 import { useDeploymentsState } from '../hooks/useDeploymentsState';
+import { KnownLabels } from '../k8sTypes';
 import RegisteredModelTableRow from '../../app/pages/modelRegistry/screens/RegisteredModels/RegisteredModelTableRow';
 import { getLatestVersionForRegisteredModel } from '../../app/pages/modelRegistry/screens/utils';
+
+// Simple helper to check if deployment is an InferenceService
+const isInferenceService = (deployment: any) => deployment?.model?.kind === 'InferenceService';
 
 type RegisteredModelTableWithDeploymentProps = {
   clearFilters: () => void;
@@ -33,27 +37,19 @@ export const OdhRegisteredModelTableWrapper: React.FC<RegisteredModelTableWithDe
       return true;
     }
 
-    // Get model version IDs for this specific registered model
-    const modelVersionsForRM = modelVersions.filter(mv => mv.registeredModelId === rmId);
-    const mvIds = modelVersionsForRM.map(mv => mv.id);
-    
-    if (mvIds.length === 0) {
-      return false;
-    }
-
-    // Check if any deployment exists for this specific registered model's versions
+    // Check if any deployment exists for this registered model
+    // This avoids pagination/staleness issues with the modelVersions array
     const hasDeployment = deployments.some(deployment => {
-      const isInferenceService = deployment.model?.kind === 'InferenceService';
-      const deploymentModelVersionId = deployment.model?.metadata?.labels?.['modelregistry.opendatahub.io/model-version-id'];
-      const deploymentRegisteredModelId = deployment.model?.metadata?.labels?.['modelregistry.opendatahub.io/registered-model-id'];
+      if (!isInferenceService(deployment)) {
+        return false;
+      }
       
-      return isInferenceService && 
-             deploymentModelVersionId && mvIds.includes(deploymentModelVersionId) &&
-             deploymentRegisteredModelId === rmId;
+      const deploymentRegisteredModelId = deployment.model?.metadata?.labels?.[KnownLabels.REGISTERED_MODEL_ID];
+      return deploymentRegisteredModelId === rmId;
     });
 
     return hasDeployment;
-  }, [deployments, loaded, modelVersions]);
+  }, [deployments, loaded]);
 
   const enhancedRowRenderer = React.useCallback((rm: RegisteredModel) => (
     <RegisteredModelTableRow
