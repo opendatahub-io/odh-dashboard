@@ -18,6 +18,14 @@
     "./types/*": [
       "./src/types/*",
       "./src/types/*.ts"
+    ],
+    "./screens/lineage/*": [
+      "./src/screens/lineage/*",
+      "./src/screens/lineage/*.ts",
+      "./src/screens/lineage/*.tsx"
+    ],
+    "./routes": [
+      "./src/routes.ts"
     ]
   },
   "dependencies": {

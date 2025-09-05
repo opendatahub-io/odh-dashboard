@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { SELECTION_EVENT, Visualization } from '@patternfly/react-topology';
-import { findConnectedElements } from './graphUtils';
 import { TopologyEdgeModel } from './types';
+import { findConnectedElements } from './graphUtils';
 
 interface UseLineageSelectionProps {
   controller: Visualization | null;

@@ -6,7 +6,7 @@ import { getClosestVisibleParent } from '@patternfly/react-topology/dist/esm/uti
  * @param element - The edge element to check
  * @returns true if the edge should be rendered, false if it should be hidden
  */
-export const shouldRenderEdge = (element: Edge): boolean => {
+const shouldRenderEdge = (element: Edge): boolean => {
   // If the edge connects to nodes in a collapsed group, don't draw
   const sourceParent = getClosestVisibleParent(element.getSource());
   const targetParent = getClosestVisibleParent(element.getTarget());
