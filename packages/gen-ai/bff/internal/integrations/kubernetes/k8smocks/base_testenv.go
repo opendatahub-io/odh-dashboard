@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"runtime"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,17 +32,24 @@ type TestEnvInput struct {
 }
 
 func SetupEnvTest(input TestEnvInput) (*envtest.Environment, client.Client, error) {
-	projectRoot, err := getProjectRoot()
-	if err != nil {
-		input.Logger.Error("failed to find project root", slog.String("error", err.Error()))
-		input.Cancel()
-		os.Exit(1)
+	// Use ENVTEST_ASSETS environment variable if set, otherwise fall back to project root
+	var binaryAssetsDir string
+	if envtestAssets := os.Getenv("ENVTEST_ASSETS"); envtestAssets != "" {
+		binaryAssetsDir = envtestAssets
+		input.Logger.Info("Using ENVTEST_ASSETS environment variable", slog.String("path", binaryAssetsDir))
+	} else {
+		projectRoot, err := getProjectRoot()
+		if err != nil {
+			input.Logger.Error("failed to find project root", slog.String("error", err.Error()))
+			input.Cancel()
+			os.Exit(1)
+		}
+		binaryAssetsDir = filepath.Join(projectRoot, "bin", "k8s", "1.29.0-darwin-arm64")
+		input.Logger.Info("Using fallback binary assets directory", slog.String("path", binaryAssetsDir))
 	}
 
 	testEnv := &envtest.Environment{
-		// TODO: Refactor this to use setup envtest.
-		// It is much efficient and user friendly, Manually declaring the path means this can break.
-		BinaryAssetsDirectory: filepath.Join(projectRoot, "bin", "k8s", fmt.Sprintf("1.29.0-%s-%s", runtime.GOOS, runtime.GOARCH)),
+		BinaryAssetsDirectory: binaryAssetsDir,
 	}
 
 	cfg, err := testEnv.Start()

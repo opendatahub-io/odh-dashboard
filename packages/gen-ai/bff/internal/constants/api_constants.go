@@ -13,6 +13,7 @@ const (
 	OpenAPIYAMLPath                  = PathPrefix + "/openapi.yaml"
 	SwaggerUIPath                    = PathPrefix + "/swagger-ui"
 	ModelsListPath                   = ApiPathPrefix + "/models"
+	ModelsAAPath                     = ApiPathPrefix + "/aa/models"
 	VectorStoresListPath             = ApiPathPrefix + "/vectorstores"
 	ResponsesPath                    = ApiPathPrefix + "/responses"
 	FilesUploadPath                  = ApiPathPrefix + "/files/upload"

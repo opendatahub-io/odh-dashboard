@@ -8,6 +8,7 @@ import (
 type Repositories struct {
 	HealthCheck            *HealthCheckRepository
 	Models                 *ModelsRepository
+	AAModels               *AAModelsRepository
 	VectorStores           *VectorStoresRepository
 	Files                  *FilesRepository
 	Responses              *ResponsesRepository
@@ -21,6 +22,7 @@ func NewRepositories(client llamastack.LlamaStackClientInterface) *Repositories 
 	return &Repositories{
 		HealthCheck:            NewHealthCheckRepository(),
 		Models:                 NewModelsRepository(client),
+		AAModels:               NewAAModelsRepository(),
 		VectorStores:           NewVectorStoresRepository(client),
 		Files:                  NewFilesRepository(client),
 		Responses:              NewResponsesRepository(client),
