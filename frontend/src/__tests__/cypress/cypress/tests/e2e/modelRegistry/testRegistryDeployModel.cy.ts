@@ -11,10 +11,11 @@ import {
   createAndVerifyDatabase,
   createAndVerifyModelRegistry,
   deleteModelRegistryDatabase,
+  ensureOperatorMemoryLimit,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
-import { loadRegisterModelFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
+import { loadModelRegistryFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
-import type { RegisterModelTestData } from '#~/__tests__/cypress/cypress/types';
+import type { ModelRegistryTestData } from '#~/__tests__/cypress/cypress/types';
 import { modelVersionDeployModal } from '#~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDeployModal';
 import { clickRegisterModelButton } from '#~/__tests__/cypress/cypress/utils/modelRegistryUtils';
 import { kserveModal, modelServingGlobal } from '#~/__tests__/cypress/cypress/pages/modelServing';
@@ -25,19 +26,25 @@ import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_co
 import { AWS_BUCKETS } from '#~/__tests__/cypress/cypress/utils/s3Buckets';
 
 describe('Verify models can be deployed from model registry', () => {
-  let testData: RegisterModelTestData;
+  let testData: ModelRegistryTestData;
   let registryName: string;
   let modelName: string;
   let projectName: string;
+  let deploymentName: string;
   const uuid = generateTestUUID();
 
   retryableBefore(() => {
     cy.step('Load test data from fixture');
-    loadRegisterModelFixture('e2e/modelRegistry/testRegisterModel.yaml').then((fixtureData) => {
+    loadModelRegistryFixture('e2e/modelRegistry/testModelRegistry.yaml').then((fixtureData) => {
       testData = fixtureData;
       registryName = `${testData.registryNamePrefix}-${uuid}`;
       modelName = `${testData.objectStorageModelName}-${uuid}`;
       projectName = `${testData.deployProjectNamePrefix}-${uuid}`;
+      deploymentName = testData.operatorDeploymentName;
+
+      // ensure operator has optimal memory
+      cy.step('Ensure operator has optimal memory for testing');
+      ensureOperatorMemoryLimit(deploymentName).should('be.true');
 
       // Create and verify SQL database
       cy.step('Create and verify SQL database for model registry');
