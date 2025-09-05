@@ -12,7 +12,7 @@ import {
   List,
   ListItem,
 } from '@patternfly/react-core';
-import { LineageNode, PopoverPosition } from '@odh-dashboard/internal/components/lineage/types.js';
+import { LineageNode, PopoverPosition } from '@odh-dashboard/internal/components/lineage/types';
 import { FsObjectType, getEntityTypeIcon } from '../../../utils/featureStoreObjects.tsx';
 
 export interface FeatureStoreLineageNodePopoverProps {
@@ -32,27 +32,43 @@ const getFsObjectTypeLabel = (fsObjectType: FsObjectType): string => {
   return typeLabels[fsObjectType] || fsObjectType;
 };
 
+// const goToDetailsPage = (node: LineageNode, project: string): string | undefined => {
+//   const { fsObjectTypes } = node;
+//   switch (fsObjectTypes) {
+//     case 'entity':
+//       return featureEntityRoute(node.name, project);
+//     case 'data_source':
+//       return featureDataSourceRoute(node.name, project);
+//     case 'feature_view':
+//       return featureViewRoute(node.name, project);
+//     case 'feature_service':
+//       return featureServiceRoute(node.name, project);
+//     default:
+//       return undefined;
+//   }
+// };
+
 const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverProps> = ({
   node,
   position,
   isVisible,
   onClose,
 }) => {
-  if (!node || !position || !isVisible) {
-    return null;
-  }
-
-  // Create a temporary div to act as the popover reference
   const popoverRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
-    if (popoverRef.current) {
+    if (popoverRef.current && position) {
       popoverRef.current.style.position = 'absolute';
       popoverRef.current.style.left = `${position.x}px`;
       popoverRef.current.style.top = `${position.y}px`;
       popoverRef.current.style.zIndex = '1000';
     }
   }, [position]);
+
+  // Conditional rendering after all hooks
+  if (!node || !position || !isVisible) {
+    return null;
+  }
 
   const popoverContent = (
     <div
@@ -93,13 +109,24 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
         footerContent={
           <Flex>
             <FlexItem>
-              <Button variant="secondary" onClick={() => undefined}>
+              <Button
+                variant="secondary"
+                // onClick={() => {
+                //   const route = goToDetailsPage(node, currentProject);
+                //   if (route) {
+                //     navigate(route);
+                //   }
+                // }}
+              >
                 View {getFsObjectTypeLabel(node.fsObjectTypes)} details page
               </Button>
             </FlexItem>
             {node.fsObjectTypes === 'feature_view' && (
               <FlexItem>
-                <Button variant="link" onClick={() => undefined}>
+                <Button
+                  variant="link"
+                  // onClick={() => navigate(featureViewRoute(node.name, currentProject))}
+                >
                   View all features
                 </Button>
               </FlexItem>

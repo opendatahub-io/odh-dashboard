@@ -31,6 +31,7 @@ export interface LineageNode {
     description?: string;
     tags?: Record<string, string>;
   }[];
+  name: string;
   description?: string;
   truncateLength?: number;
   layer?: number; // Optional layer for positioning (0=leftmost, higher=rightward)

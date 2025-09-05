@@ -5,7 +5,6 @@ import {
   Node,
   observer,
   WithSelectionProps,
-  TaskNode,
   RunStatus,
   useHover,
   ScaleDetailsLevel,
@@ -16,7 +15,11 @@ import { CubeIcon } from '@patternfly/react-icons';
 import { chart_color_black_500 as chartColorBlack } from '@patternfly/react-tokens';
 import { useEdgeHighlighting } from '@odh-dashboard/internal/components/lineage/edge/edgeStateUtils';
 import { useLineageClick } from '@odh-dashboard/internal/components/lineage/LineageClickContext';
-import { LineageSourceAnchor, LineageTargetAnchor } from './customAnchors.ts';
+import LineageTaskPill from '@odh-dashboard/internal/components/lineage/node/LineageTaskPill';
+import {
+  LineageSourceAnchor,
+  LineageTargetAnchor,
+} from '@odh-dashboard/internal/components/lineage/anchors/customAnchors.js';
 import { getEntityTypeIcon } from '../../../utils/featureStoreObjects.tsx';
 
 type LineageNodeProps = {
@@ -85,6 +88,9 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
       [setClickPosition, onSelect],
     );
 
+    // Get node bounds for positioning
+    const bounds = element.getBounds();
+
     return (
       <g
         ref={hoverRef}
@@ -97,7 +103,7 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
         }}
         onClick={handleNodeClick} // Use our custom click handler
       >
-        <TaskNode
+        <LineageTaskPill
           element={element}
           onSelect={() => undefined} // Disable default selection
           selected={selected}
@@ -108,6 +114,10 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
           hiddenDetailsShownStatuses={[RunStatus.Idle]}
           truncateLength={truncateLength}
           badge={badge}
+          hover={hover}
+          width={bounds.width}
+          x={0} // Position relative to the group
+          y={0}
         />
       </g>
     );

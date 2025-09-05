@@ -14,10 +14,17 @@ export interface EdgeStyleConfig {
   isConnectedToSelection?: boolean;
 }
 
-/**
- * Generates the CSS class name for the edge group element
- */
-export const getEdgeGroupClassName = ({
+interface EdgeRenderConfig {
+  edgeStyle?: EdgeStyle;
+  animationDuration?: number;
+  className?: string;
+  selected?: boolean;
+  endTerminalStatus?: NodeStatus;
+  isConnectedToSelection?: boolean;
+  elementEdgeStyle?: EdgeStyle;
+}
+
+const getEdgeGroupClassName = ({
   className,
   selected,
   endTerminalStatus,
@@ -32,13 +39,7 @@ export const getEdgeGroupClassName = ({
   );
 };
 
-/**
- * Generates the CSS class name for the edge link path
- */
-export const getEdgeLinkClassName = (
-  edgeStyle?: EdgeStyle,
-  elementEdgeStyle?: EdgeStyle,
-): string => {
+const getEdgeLinkClassName = (edgeStyle?: EdgeStyle, elementEdgeStyle?: EdgeStyle): string => {
   const finalEdgeStyle = edgeStyle ?? elementEdgeStyle;
   return css(
     styles.topologyEdgeLink,
@@ -46,28 +47,14 @@ export const getEdgeLinkClassName = (
   );
 };
 
-export const calculateEdgeAnimationDuration = (animationDuration?: number): number => {
-  // If explicit duration is provided, use it
+const calculateEdgeAnimationDuration = (animationDuration?: number): number => {
   if (animationDuration !== undefined) {
     return animationDuration;
   }
 
-  return 1; // Default 1 second animation duration
+  return 1;
 };
 
-export interface EdgeRenderConfig {
-  edgeStyle?: EdgeStyle;
-  animationDuration?: number;
-  className?: string;
-  selected?: boolean;
-  endTerminalStatus?: NodeStatus;
-  isConnectedToSelection?: boolean;
-  elementEdgeStyle?: EdgeStyle;
-}
-
-/**
- * Function to get all styling information for an edge
- */
 export const getEdgeStyleConfig = (
   config: EdgeRenderConfig,
 ): {

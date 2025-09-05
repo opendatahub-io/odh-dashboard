@@ -13,7 +13,7 @@ import {
   WithSelectionProps,
   GraphElement,
 } from '@patternfly/react-topology';
-import CurvedEdge from './edge/CurvedEdge';
+import LineageEdge from './edge/LineageEdge';
 
 export const lineageLayoutFactory: LayoutFactory = (
   type: string,
@@ -21,11 +21,11 @@ export const lineageLayoutFactory: LayoutFactory = (
 ): Layout | undefined => {
   return new DagreLayout(graph, {
     rankdir: 'LR',
-    nodesep: 80,
-    ranksep: 140,
-    marginx: 40,
-    marginy: 60,
-    edgesep: 30,
+    nodesep: 20,
+    ranksep: 80,
+    marginx: 10,
+    marginy: 10,
+    edgesep: 15,
     ranker: 'network-simplex',
     layoutOnDrag: false,
   });
@@ -40,7 +40,7 @@ export const createLineageComponentFactory =
       case 'group':
         return DefaultGroup;
       case 'curved-edge':
-        return withSelection()(CurvedEdge);
+        return withSelection()(LineageEdge);
       case 'lineage-node':
         return customNodeComponent ? withSelection()(customNodeComponent) : undefined;
       default:
@@ -50,7 +50,7 @@ export const createLineageComponentFactory =
           case ModelKind.node:
             return customNodeComponent ? withSelection()(customNodeComponent) : undefined;
           case ModelKind.edge:
-            return withSelection()(CurvedEdge);
+            return withSelection()(LineageEdge);
           default:
             return undefined;
         }
