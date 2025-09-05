@@ -213,7 +213,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose, onDe
         <Button variant="primary" onClick={onDelete} data-testid="pipeline-delete-from-modal">
           Delete pipeline server
         </Button>
-        <Button variant="primary" onClick={onClose} data-testid="pipeline-close-status-modal">
+        <Button variant="link" onClick={onClose} data-testid="pipeline-close-status-modal">
           Close
         </Button>
       </ModalFooter>
