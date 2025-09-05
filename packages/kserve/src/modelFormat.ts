@@ -18,7 +18,7 @@ export const applyKServeModelFormatToDeployment = (
   deployment: KServeDeployment,
   modelFormat: SupportedModelFormats,
 ): KServeDeployment => {
-  const updatedDeployment = { ...deployment };
+  const updatedDeployment = structuredClone(deployment);
   if (!updatedDeployment.model.spec.predictor.model) {
     updatedDeployment.model.spec.predictor.model = {};
   }

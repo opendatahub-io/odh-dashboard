@@ -203,7 +203,6 @@ export const getModelTypesFromTemplate = (template: TemplateKind): ServingRuntim
     if (!Array.isArray(modelTypes)) {
       return [];
     }
-    console.log('modelTypes', modelTypes);
     const validTypes: ServingRuntimeModelType[] = [];
     for (const type of modelTypes) {
       if (
@@ -213,7 +212,6 @@ export const getModelTypesFromTemplate = (template: TemplateKind): ServingRuntim
         validTypes.push(type);
       }
     }
-    console.log('validTypes', validTypes);
     return validTypes;
   } catch (e) {
     return [];

@@ -71,7 +71,7 @@ describe('ModelFormatField', () => {
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error.issues[0].message).toBe(
-          'Model format is requied for predictive models',
+          'Model format is required for predictive models',
         );
       }
     });

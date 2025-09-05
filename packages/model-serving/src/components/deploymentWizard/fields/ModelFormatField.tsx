@@ -13,6 +13,10 @@ import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { modelTypeSelectFieldSchema, type ModelTypeFieldData } from './ModelTypeSelectField';
 import { useServingRuntimeTemplates } from '../../../concepts/servingRuntimeTemplates/useServingRuntimeTemplates';
 
+const getModelFormatLabel = (modelFormat: SupportedModelFormats): string => {
+  return modelFormat.version ? `${modelFormat.name} - ${modelFormat.version}` : modelFormat.name;
+};
+
 // Schema
 
 export const modelFormatFieldSchema = z
@@ -21,7 +25,7 @@ export const modelFormatFieldSchema = z
     format: z.custom<SupportedModelFormats>().optional(),
   })
   .refine((data) => !(data.type === ServingRuntimeModelType.PREDICTIVE && !data.format), {
-    message: 'Model format is requied for predictive models',
+    message: 'Model format is required for predictive models',
   });
 
 // Hooks
@@ -117,22 +121,18 @@ export const ModelFormatField: React.FC<ModelFormatFieldProps> = ({ modelFormatS
         dataTestId="model-framework-select"
         toggleProps={{ id: 'model-framework-select' }}
         options={modelFormatOptions.map((framework): SimpleSelectOption => {
-          const name = framework.version
-            ? `${framework.name} - ${framework.version}`
-            : `${framework.name}`;
+          const label = getModelFormatLabel(framework);
           return {
-            optionKey: name,
-            key: name,
-            label: name,
+            optionKey: label,
+            key: label,
+            label,
           };
         })}
         isSkeleton={!loaded}
         isFullWidth
-        toggleLabel={
-          modelFormat?.version ? `${modelFormat.name} - ${modelFormat.version}` : modelFormat?.name
-        }
+        toggleLabel={modelFormat ? getModelFormatLabel(modelFormat) : undefined}
         placeholder="Select a model format"
-        value={modelFormat?.name}
+        value={modelFormat ? getModelFormatLabel(modelFormat) : undefined}
         onChange={(option) => {
           const [name, version] = option.split(' - ');
           setModelFormat({ name, version });

@@ -233,6 +233,7 @@ describe('Model Serving Deploy Wizard', () => {
       { model: InferenceServiceModel, ns: 'test-project' },
       mockK8sResourceList([
         mockInferenceServiceK8sResource({
+          modelType: ServingRuntimeModelType.PREDICTIVE,
           hardwareProfileName: 'large-profile',
           hardwareProfileNamespace: 'opendatahub',
           resources: {

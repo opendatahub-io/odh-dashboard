@@ -1,8 +1,8 @@
 import { K8sDSGResource, SupportedModelFormats, TemplateKind } from '#~/k8sTypes';
 import {
   ServingRuntimeAPIProtocol,
+  ServingRuntimeModelType,
   ServingRuntimePlatform,
-  type ServingRuntimeModelType,
 } from '#~/types';
 
 type MockResourceConfigType = {
@@ -31,7 +31,7 @@ export const mockServingRuntimeTemplateK8sResource = ({
   isModelmesh = false,
   apiProtocol = ServingRuntimeAPIProtocol.REST,
   platforms,
-  modelTypes,
+  modelTypes = [ServingRuntimeModelType.PREDICTIVE, ServingRuntimeModelType.GENERATIVE],
   preInstalled = false,
   containerName = 'ovms',
   containerEnvVars = undefined,
