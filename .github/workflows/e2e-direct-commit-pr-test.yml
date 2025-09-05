@@ -74,140 +74,29 @@ jobs:
 
       - name: Install Cypress Dependencies
         run: |
-          echo "🔧 Installing Cypress system dependencies for Fedora..."
+          echo "🔧 Installing Cypress system dependencies for Fedora (based on Cypress docs)..."
 
-          # Check if Xvfb is already installed
-          if command -v Xvfb &> /dev/null; then
-            echo "✅ Xvfb is already installed"
-            Xvfb -help 2>&1 | head -1 || echo "Xvfb version check not available"
-            exit 0
-          fi
-
-          echo "❌ Xvfb not found, installing dependencies..."
-
-          # Install Xvfb and other required dependencies
+          # Use the simplified approach from Cypress documentation for Amazon Linux 2023 (Fedora-compatible)
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            echo "📦 Installing Cypress dependencies for Linux..."
+            echo "📦 Installing minimal Cypress dependencies for Linux..."
 
-            # Check which package manager is available
-            if command -v dnf &> /dev/null; then
-              echo "Using dnf package manager..."
-              PACKAGE_MANAGER="dnf"
-            elif command -v yum &> /dev/null; then
-              echo "Using yum package manager..."
-              PACKAGE_MANAGER="yum"
-            elif command -v apt-get &> /dev/null; then
-              echo "Using apt package manager..."
-              PACKAGE_MANAGER="apt"
-            else
-              echo "❌ No supported package manager found"
-              exit 1
-            fi
+            # Based on Cypress docs for Amazon Linux 2023 - Fedora compatible
+            echo "Installing core dependencies..."
+            sudo dnf install -y xorg-x11-server-Xvfb gtk3-devel nss alsa-lib
 
-            # Install all Cypress dependencies - FIXED: no empty lines
-            case $PACKAGE_MANAGER in
-              dnf|yum)
-                echo "Installing Cypress dependencies with $PACKAGE_MANAGER..."
-                sudo $PACKAGE_MANAGER update -y || echo "Update failed, continuing..."
+            # Add the missing ATK packages that Cypress actually needs
+            echo "Installing ATK dependencies..."
+            sudo dnf install -y atk atk-devel libatk1.0-0 at-spi2-atk
 
-                # Install X11 and display dependencies
-                sudo $PACKAGE_MANAGER install -y \
-                  xorg-x11-server-Xvfb \
-                  xorg-x11-fonts-misc \
-                  xorg-x11-fonts-75dpi \
-                  xorg-x11-fonts-100dpi \
-                  xorg-x11-fonts-Type1 \
-                  xorg-x11-fonts-cyrillic || echo "Some X11 packages failed"
+            # Add additional GUI libraries that might be needed
+            echo "Installing additional GUI libraries..."
+            sudo dnf install -y libgbm libgbm-devel libxss libnotify libnotify-devel
 
-                # Install GTK and GUI dependencies
-                sudo $PACKAGE_MANAGER install -y \
-                  gtk3 \
-                  gtk3-devel \
-                  atk \
-                  atk-devel \
-                  libatk1.0-0 \
-                  libatk-bridge2.0-0 \
-                  libnotify \
-                  libnotify-devel \
-                  GConf2 \
-                  GConf2-devel \
-                  libXScrnSaver \
-                  alsa-lib \
-                  alsa-lib-devel \
-                  libXdamage \
-                  libXcomposite \
-                  libXcursor \
-                  libXext \
-                  libXfixes \
-                  libXi \
-                  libXtst \
-                  cups-libs \
-                  libXrandr \
-                  libXss \
-                  libgtk-3.so.0 \
-                  libgbm.so.1 \
-                  libxss1 \
-                  libasound2 || echo "Some GUI packages failed"
+            # Update library cache
+            sudo ldconfig
 
-                # Install NSS and security libraries (CRITICAL - fixes libnss3.so error)
-                sudo $PACKAGE_MANAGER install -y \
-                  nss \
-                  nss-devel \
-                  nss-tools \
-                  nspr \
-                  nspr-devel || echo "Some NSS packages failed"
-
-                # Install additional required libraries
-                sudo $PACKAGE_MANAGER install -y \
-                  libjpeg-turbo \
-                  libjpeg-turbo-devel \
-                  libpng \
-                  libpng-devel \
-                  zlib \
-                  zlib-devel \
-                  freetype \
-                  freetype-devel \
-                  fontconfig \
-                  fontconfig-devel || echo "Some additional packages failed"
-
-                # Try EPEL for any missing packages
-                sudo $PACKAGE_MANAGER install -y epel-release 2>/dev/null || true
-                sudo $PACKAGE_MANAGER install -y \
-                  libX11-xcb \
-                  libxcb-dri3 \
-                  libxcb-dri2 \
-                  libxcb-glx \
-                  libxcb-present \
-                  libxcb-sync \
-                  libxcb-xfixes 2>/dev/null || echo "Some EPEL packages not available"
-                ;;
-
-              apt)
-                echo "Installing with apt..."
-                sudo apt-get update
-                sudo apt-get install -y \
-                  xvfb \
-                  libgtk-3-0 \
-                  libnotify4 \
-                  libgconf-2-4 \
-                  libnss3 \
-                  libxss1 \
-                  libasound2 \
-                  libxtst6 \
-                  libxrandr2 \
-                  libpangocairo-1.0-0 \
-                  libatk1.0-0 \
-                  libcairo-gobject2 \
-                  libgtk-3-0 \
-                  libgdk-pixbuf2.0-0 || {
-                  echo "❌ apt install failed"
-                  exit 1
-                }
-                ;;
-            esac
-
-            # Verify critical dependencies
-            echo "🔍 Verifying critical dependencies..."
+            # Verify installations
+            echo "🔍 Verifying installations..."
             if command -v Xvfb &> /dev/null; then
               echo "✅ Xvfb installed"
             else
@@ -215,7 +104,7 @@ jobs:
             fi
 
             if ldconfig -p | grep -q libnss3; then
-              echo "✅ NSS libraries installed (fixes libnss3.so error)"
+              echo "✅ NSS libraries installed"
             else
               echo "❌ NSS libraries missing"
             fi
@@ -225,41 +114,9 @@ jobs:
               echo "📋 ATK libraries found:"
               ldconfig -p | grep libatk
             else
-              echo "❌ ATK libraries missing - trying alternative installation..."
-              # Try installing ATK with different package names
-              sudo $PACKAGE_MANAGER install -y libatk1.0-0 libatk-bridge2.0-0 at-spi2-atk || echo "Alternative ATK packages failed"
-
-              # Try to find ATK library manually
-              find /usr/lib* -name "*libatk*" 2>/dev/null || echo "No ATK libraries found in /usr/lib*"
-              find /lib* -name "*libatk*" 2>/dev/null || echo "No ATK libraries found in /lib*"
-
-              # Try to locate the library with pkg-config if available
-              if command -v pkg-config &> /dev/null; then
-                pkg-config --libs atk || echo "pkg-config can't find ATK"
-              fi
-
-              # If still no ATK, try downloading and installing manually
-              if ! ldconfig -p | grep -q libatk; then
-                echo "🔄 Still no ATK found - trying manual download..."
-                # Try to download ATK library from Ubuntu repositories as last resort
-                curl -L -o /tmp/libatk.deb "http://archive.ubuntu.com/ubuntu/pool/main/a/atk1.0/libatk1.0-0_2.36.0-3build1_amd64.deb" || echo "Ubuntu package download failed"
-                if [ -f /tmp/libatk.deb ]; then
-                  # Extract the deb package manually
-                  mkdir -p /tmp/atk-extract
-                  cd /tmp/atk-extract
-                  ar x /tmp/libatk.deb
-                  tar -xf data.tar.xz
-                  sudo cp -r usr/lib/x86_64-linux-gnu/* /usr/lib64/ 2>/dev/null || sudo cp -r usr/lib/* /usr/lib64/ 2>/dev/null || echo "Manual ATK extraction failed"
-                  sudo ldconfig
-                fi
-              fi
-
-              # Final check
-              if ldconfig -p | grep -q libatk; then
-                echo "✅ ATK libraries finally installed!"
-              else
-                echo "❌ ATK libraries still missing - Cypress may fail"
-              fi
+              echo "❌ ATK libraries still missing - checking what we have..."
+              sudo dnf list installed | grep -i atk || echo "No ATK packages found"
+              find /usr/lib* -name "*libatk*" 2>/dev/null || echo "No ATK libraries found in filesystem"
             fi
 
             echo "🎯 Cypress dependencies installation completed"
@@ -270,7 +127,6 @@ jobs:
 
           elif [[ "$RUNNER_OS" == "Windows" ]]; then
             echo "🪟 Windows detected - Cypress dependencies usually pre-installed"
-            # Windows typically has these dependencies pre-installed
           fi
 
       - name: Debug available secrets
