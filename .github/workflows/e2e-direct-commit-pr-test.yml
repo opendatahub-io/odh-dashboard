@@ -75,11 +75,20 @@ jobs:
       - name: Install Cypress Dependencies
         run: |
           echo "🔧 Installing Cypress system dependencies for Fedora..."
-          
-          # Install all required Cypress dependencies for Fedora/RHEL
+
+          # Check if Xvfb is already installed
+          if command -v Xvfb &> /dev/null; then
+            echo "✅ Xvfb is already installed"
+            Xvfb -help 2>&1 | head -1 || echo "Xvfb version check not available"
+            exit 0
+          fi
+
+          echo "❌ Xvfb not found, installing dependencies..."
+
+          # Install Xvfb and other required dependencies
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             echo "📦 Installing Cypress dependencies for Linux..."
-            
+
             # Check which package manager is available
             if command -v dnf &> /dev/null; then
               echo "Using dnf package manager..."
@@ -94,13 +103,13 @@ jobs:
               echo "❌ No supported package manager found"
               exit 1
             fi
-            
-            # Install all Cypress dependencies
+
+            # Install all Cypress dependencies - FIXED: no empty lines
             case $PACKAGE_MANAGER in
               dnf|yum)
                 echo "Installing Cypress dependencies with $PACKAGE_MANAGER..."
                 sudo $PACKAGE_MANAGER update -y || echo "Update failed, continuing..."
-                
+
                 # Install X11 and display dependencies
                 sudo $PACKAGE_MANAGER install -y \
                   xorg-x11-server-Xvfb \
@@ -109,13 +118,13 @@ jobs:
                   xorg-x11-fonts-100dpi \
                   xorg-x11-fonts-Type1 \
                   xorg-x11-fonts-cyrillic || echo "Some X11 packages failed"
-                
+
                 # Install GTK and GUI dependencies
                 sudo $PACKAGE_MANAGER install -y \
                   gtk3 \
                   gtk3-devel \
-                  atk \                   
-                  atk-devel \            
+                  atk \
+                  atk-devel \
                   libnotify \
                   libnotify-devel \
                   GConf2 \
@@ -137,7 +146,7 @@ jobs:
                   libgbm.so.1 \
                   libxss1 \
                   libasound2 || echo "Some GUI packages failed"
-                
+
                 # Install NSS and security libraries (CRITICAL - fixes libnss3.so error)
                 sudo $PACKAGE_MANAGER install -y \
                   nss \
@@ -145,7 +154,7 @@ jobs:
                   nss-tools \
                   nspr \
                   nspr-devel || echo "Some NSS packages failed"
-                
+
                 # Install additional required libraries
                 sudo $PACKAGE_MANAGER install -y \
                   libjpeg-turbo \
@@ -158,7 +167,7 @@ jobs:
                   freetype-devel \
                   fontconfig \
                   fontconfig-devel || echo "Some additional packages failed"
-                
+
                 # Try EPEL for any missing packages
                 sudo $PACKAGE_MANAGER install -y epel-release 2>/dev/null || true
                 sudo $PACKAGE_MANAGER install -y \
@@ -170,7 +179,7 @@ jobs:
                   libxcb-sync \
                   libxcb-xfixes 2>/dev/null || echo "Some EPEL packages not available"
                 ;;
-                
+
               apt)
                 echo "Installing with apt..."
                 sudo apt-get update
@@ -194,7 +203,7 @@ jobs:
                 }
                 ;;
             esac
-            
+
             # Verify critical dependencies
             echo "🔍 Verifying critical dependencies..."
             if command -v Xvfb &> /dev/null; then
@@ -202,19 +211,25 @@ jobs:
             else
               echo "❌ Xvfb missing"
             fi
-            
+
             if ldconfig -p | grep -q libnss3; then
               echo "✅ NSS libraries installed (fixes libnss3.so error)"
             else
               echo "❌ NSS libraries missing"
             fi
-            
+
+            if ldconfig -p | grep -q libatk-1.0; then
+              echo "✅ ATK libraries installed (fixes libatk-1.0.so.0 error)"
+            else
+              echo "❌ ATK libraries missing"
+            fi
+
             echo "🎯 Cypress dependencies installation completed"
-            
+
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            echo "🍎 macOS detected - Cypress dependencies usually pre-installed"
-            # macOS typically has these dependencies pre-installed
-            
+            echo "🍎 macOS detected - installing Xvfb..."
+            brew install xorg-server || echo "Homebrew install failed, Xvfb may already be available"
+
           elif [[ "$RUNNER_OS" == "Windows" ]]; then
             echo "🪟 Windows detected - Cypress dependencies usually pre-installed"
             # Windows typically has these dependencies pre-installed
@@ -289,8 +304,8 @@ jobs:
 
             # Try with SSL verification disabled (for self-signed certs)
             if curl -f -k -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
-                     "${{ secrets.GITLAB_TEST_VARS_URL }}" \
-                     -o ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml; then
+                        "${{ secrets.GITLAB_TEST_VARS_URL }}" \
+                        -o ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml; then
               echo "✅ Successfully downloaded test configuration from GitLab"
               ls -la ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
             else
@@ -300,8 +315,8 @@ jobs:
               # Try to get more details about the failure
               echo "Trying without -f to see error details..."
               curl -k -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
-                   "${{ secrets.GITLAB_TEST_VARS_URL }}" \
-                   -o /tmp/test-response 2>&1 || echo "Curl failed with: $?"
+                  "${{ secrets.GITLAB_TEST_VARS_URL }}" \
+                  -o /tmp/test-response 2>&1 || echo "Curl failed with: $?"
 
               if [ -f /tmp/test-response ]; then
                 echo "GitLab API Response:"
@@ -323,8 +338,8 @@ jobs:
             echo ""
             echo "💡 POSSIBLE SOLUTIONS:"
             echo "1. Ensure secrets are configured in upstream repo (opendatahub-io/odh-dashboard)"
-            echo "2. For testing, secrets need to be available when PR is merged"
-            echo "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
+            "2. For testing, secrets need to be available when PR is merged"
+            "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
             exit 1
           fi
 
