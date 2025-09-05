@@ -6,7 +6,9 @@
   "scripts": {
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
-    "update-subtree": "../../scripts/package-subtree.sh --package=@odh-dashboard/model-registry"
+    "update-subtree": "../../scripts/package-subtree.sh --package=@odh-dashboard/model-registry",
+    "test:contract": "npm exec -w @odh-dashboard/contract-tests odh-ct-bff-consumer -- --bff-dir $(pwd)/upstream/bff --consumer-dir $(pwd)/contract-tests --package-name model-registry",
+    "test:contract:watch": "npm run test:contract"
   },
   "subtree": {
     "repo": "https://github.com/kubeflow/model-registry.git",
@@ -42,6 +44,7 @@
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/tsconfig": "*"
+    "@odh-dashboard/tsconfig": "*",
+    "@odh-dashboard/contract-tests": "*"
   }
 }
