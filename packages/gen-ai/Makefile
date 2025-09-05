@@ -12,11 +12,11 @@ dev-install-dependencies: ## Install dependencies for frontend
 
 .PHONY: dev-bff
 dev-bff: ## Run only the bff in development mode
-	cd bff && make run MOCK_LS_CLIENT=true PATH_PREFIX="/gen-ai"
+	cd bff && make run MOCK_LS_CLIENT=true
 
 .PHONY: dev-frontend
 dev-frontend: ## Run only the frontend in development mode
-	cd frontend && URL_PREFIX='/gen-ai' PORT=9002 npm run start:dev
+	cd frontend && npm run start:dev
 
 .PHONY: dev-start
 dev-start: ## Run both frontend and bff in development mode
