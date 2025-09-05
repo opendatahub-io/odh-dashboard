@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { ChatbotMain } from '~/app/Chatbot/ChatbotMain';
+import { AIAssetsPage } from '~/app/AIAssets/AIAssetsPage';
 import { NotFound } from '~/app/NotFound/NotFound';
 import { NavDataItem } from '~/app/standalone/types';
 
@@ -30,6 +31,13 @@ const routes: AppRouteConfig[] = [
     path: '/',
     title: 'Chatbot Main Page',
   },
+  {
+    element: <AIAssetsPage />,
+    exact: true,
+    label: 'AI Assets',
+    path: '/ai-assets',
+    title: 'AI asset endpoints page',
+  },
 ];
 
 const flattenedRoutes: IAppRoute[] = routes.reduce<IAppRoute[]>(
@@ -44,6 +52,10 @@ export const useNavData = (): NavDataItem[] => [
       {
         label: 'Chat playground',
         path: '/',
+      },
+      {
+        label: 'AI asset endpoints',
+        path: '/ai-assets',
       },
     ],
   },
