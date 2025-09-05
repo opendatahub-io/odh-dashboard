@@ -86,7 +86,7 @@ jobs:
 
             # Add the missing ATK packages that Cypress actually needs
             echo "Installing ATK dependencies..."
-            sudo dnf install -y atk atk-devel libatk1.0-0 at-spi2-atk
+            sudo dnf install -y atk atk-devel at-spi2-atk
 
             # Add additional GUI libraries that might be needed
             echo "Installing additional GUI libraries..."
