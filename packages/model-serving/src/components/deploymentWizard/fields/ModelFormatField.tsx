@@ -21,8 +21,8 @@ const getModelFormatLabel = (modelFormat: SupportedModelFormats): string => {
 
 export const modelFormatFieldSchema = z
   .object({
-    type: modelTypeSelectFieldSchema.optional(),
-    format: z.custom<SupportedModelFormats>().optional(),
+    type: modelTypeSelectFieldSchema,
+    format: z.custom<SupportedModelFormats>(),
   })
   .refine((data) => !(data.type === ServingRuntimeModelType.PREDICTIVE && !data.format), {
     message: 'Model format is required for predictive models',
