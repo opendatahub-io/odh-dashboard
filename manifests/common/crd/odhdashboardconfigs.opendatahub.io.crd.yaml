@@ -204,3 +204,7 @@ spec:
                   type: array
                   items:
                     type: string
+                hardwareProfileOrder:
+                  type: array
+                  items:
+                    type: string

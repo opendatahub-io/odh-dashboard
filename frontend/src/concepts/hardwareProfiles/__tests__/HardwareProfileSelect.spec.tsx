@@ -142,6 +142,7 @@ const renderComponent = (
           isHardwareProfileSupported={() => true}
           onChange={() => null}
           project={projectProp}
+          hardwareProfileOrder={[]}
         />
       </ProjectDetailsContext.Provider>
     </ProjectsContext.Provider>,

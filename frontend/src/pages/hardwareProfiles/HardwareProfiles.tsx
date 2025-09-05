@@ -19,12 +19,13 @@ import { useNavigate } from 'react-router-dom';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import HardwareProfilesTable from '#~/pages/hardwareProfiles/HardwareProfilesTable';
 import { useAccessAllowed, verbModelAccess } from '#~/concepts/userSSAR';
-import { HardwareProfileModel } from '#~/api';
+import { HardwareProfileModel, patchDashboardConfigHardwareProfileOrder } from '#~/api';
 import { generateWarningForHardwareProfiles } from '#~/pages/hardwareProfiles/utils';
 import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
+import { useApplicationSettings } from '#~/app/useApplicationSettings.tsx';
 import useMigratedHardwareProfiles from './migration/useMigratedHardwareProfiles';
 
 const description =
@@ -32,6 +33,7 @@ const description =
 
 const HardwareProfiles: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
+  const { dashboardConfig, refresh: refreshDashboardConfig } = useApplicationSettings();
   const {
     data: migratedHardwareProfiles,
     loaded: loadedMigratedHardwareProfiles,
@@ -56,6 +58,12 @@ const HardwareProfiles: React.FC = () => {
 
   const isEmpty = allMigratedHardwareProfiles.length === 0;
   const warningMessages = generateWarningForHardwareProfiles(allMigratedHardwareProfiles);
+
+  const hardwareProfileOrder = dashboardConfig?.spec.hardwareProfileOrder || [];
+  const setHardwareProfileOrder = (hwpNameOrder: string[]) =>
+    patchDashboardConfigHardwareProfileOrder(hwpNameOrder, dashboardNamespace).then(() =>
+      refreshDashboardConfig(),
+    );
 
   const noHardwareProfilePageSection = (
     <PageSection isFilled>
@@ -135,7 +143,11 @@ const HardwareProfiles: React.FC = () => {
         )}
         <StackItem>
           {hardwareProfiles.length > 0 ? (
-            <HardwareProfilesTable hardwareProfiles={hardwareProfiles} />
+            <HardwareProfilesTable
+              hardwareProfiles={hardwareProfiles}
+              hardwareProfileOrder={hardwareProfileOrder}
+              setHardwareProfileOrder={setHardwareProfileOrder}
+            />
           ) : (
             noHardwareProfilePageSection
           )}
@@ -161,6 +173,8 @@ const HardwareProfiles: React.FC = () => {
                   isMigratedTable
                   hardwareProfiles={migratedHardwareProfiles}
                   getMigrationAction={getMigrationAction}
+                  hardwareProfileOrder={hardwareProfileOrder}
+                  setHardwareProfileOrder={setHardwareProfileOrder}
                 />
               </ExpandableSection>
             </StackItem>
