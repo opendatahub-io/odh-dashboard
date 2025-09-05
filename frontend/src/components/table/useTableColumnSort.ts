@@ -143,17 +143,18 @@ const useTableColumnSort = <T>(
               defaultDirection: 'asc',
             },
             onSort: (_event, index) => {
-              if (activeSortDirection === 'custom') {
+              // If user clicked a different column, start at asc for that column.
+              if (activeSortDirection !== 'custom' && index !== activeSortIndex) {
+                setActiveSortIndex(index);
+                setActiveSortDirection('asc');
+              } else if (activeSortDirection === 'custom') {
                 setActiveSortIndex(index);
                 setActiveSortDirection('asc');
               } else if (activeSortDirection === 'asc') {
                 setActiveSortDirection('desc');
-              } else if (activeSortDirection === 'desc') {
+              } else {
                 setActiveSortIndex(undefined);
                 setActiveSortDirection('custom');
-              } else if (activeSortIndex !== index) {
-                setActiveSortIndex(index);
-                setActiveSortDirection('asc');
               }
             },
             columnIndex,
