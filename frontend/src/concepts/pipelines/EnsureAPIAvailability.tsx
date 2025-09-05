@@ -74,9 +74,6 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({
             Cancel pipeline server setup
           </Button>
         </FlexItem>
-        {isDeleting ? (
-          <DeleteServerModal removeConfirmation={true} onClose={() => setIsDeleting(false)} />
-        ) : null}
       </Flex>
     </Flex>
   );
@@ -106,7 +103,7 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({
 
   const getMainComponent = () => {
     const { isStarting, compatible, timedOut } = pipelinesServer;
-  
+
     if (timedOut && compatible) {
       return <PipelineServerTimedOut />;
     }
@@ -124,6 +121,8 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({
 
     return children;
   };
+  // deleteServerModal is on the top so it can always be shown (even after the server is done
+  // being initialized)
   return (
     <>
       {getMainComponent()}
@@ -136,6 +135,9 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({
           }}
         />
       )}
+      {isDeleting ? (
+        <DeleteServerModal removeConfirmation={true} onClose={() => setIsDeleting(false)} />
+      ) : null}
     </>
   );
 };
