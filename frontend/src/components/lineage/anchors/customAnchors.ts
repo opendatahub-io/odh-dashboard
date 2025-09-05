@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import { AbstractAnchor, Node, Point, ScaleDetailsLevel } from '@patternfly/react-topology';
-import { TaskPillDimensions } from '#~/src/components/lineage/node/LineageTaskPill';
+import { TaskPillDimensions } from '#~/components/lineage/node/LineageTaskPill';
 
 /**
  * Custom source anchor that positions connection points at the right edge of the node

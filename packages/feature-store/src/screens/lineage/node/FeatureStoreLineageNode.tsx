@@ -19,7 +19,7 @@ import LineageTaskPill from '@odh-dashboard/internal/components/lineage/node/Lin
 import {
   LineageSourceAnchor,
   LineageTargetAnchor,
-} from '@odh-dashboard/internal/components/lineage/anchors/customAnchors.js';
+} from '@odh-dashboard/internal/components/lineage/anchors/customAnchors';
 import { getEntityTypeIcon } from '../../../utils/featureStoreObjects.tsx';
 
 type LineageNodeProps = {

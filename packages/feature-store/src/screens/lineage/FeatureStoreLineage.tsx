@@ -12,12 +12,6 @@ import { convertFeatureStoreLineageToVisualizationData } from '../../utils/linea
 const FeatureStoreLineage: React.FC = () => {
   const { currentProject } = useFeatureStoreProject();
 
-  // Create component factory with FeatureStoreLineageNode
-  const componentFactory = useMemo(
-    () => createLineageComponentFactory(FeatureStoreLineageNode),
-    [],
-  );
-
   const emptyState = (
     <EmptyState
       headingLevel="h6"
@@ -35,6 +29,12 @@ const FeatureStoreLineage: React.FC = () => {
   if (!currentProject) {
     return emptyState;
   }
+
+  // Create component factory with FeatureStoreLineageNode
+  const componentFactory = useMemo(
+    () => createLineageComponentFactory(FeatureStoreLineageNode),
+    [],
+  );
 
   const {
     data: lineageData,
