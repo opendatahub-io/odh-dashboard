@@ -125,7 +125,7 @@ jobs:
               echo "📋 ATK libraries found:"
               ldconfig -p | grep libatk
             else
-              echo "❌ ATK libraries still missing - checking what we have..."
+              echo "❌ ATK libraries missing - checking what we have..."
               sudo dnf list installed | grep -i atk || echo "No ATK packages found"
               find /usr/lib* -name "*libatk*" 2>/dev/null || echo "No ATK libraries found in filesystem"
             fi
@@ -312,6 +312,7 @@ jobs:
           # Run tests with matrix tag
           export CY_TEST_TAGS="${{ matrix.test-tag }}"
           export CY_SKIP_TAGS="@Bug,@Maintain,@NonConcurrent"
+          export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
 
           echo "🎯 Running tests with tags: $CY_TEST_TAGS"
           echo "🚫 Skipping tags: $CY_SKIP_TAGS"
@@ -320,8 +321,8 @@ jobs:
           # Use Electron browser since Chrome is not available on Fedora
           echo "🔄 Using Electron browser (Chrome not available on Fedora)"
 
-          # Use existing test:cypress:e2e:ci script with browser override
-          CYPRESS_BROWSER=electron npm run test:cypress:e2e:ci
+          # Use existing test:cypress:e2e:ci script with browser override and correct baseUrl
+          CYPRESS_BROWSER=electron CYPRESS_BASE_URL=http://localhost:9001 npm run test:cypress:e2e:ci
 
       - name: Test tag name
         if: ${{ always() }}
@@ -352,4 +353,3 @@ jobs:
           echo ""
           echo "📊 Test artifacts uploaded to:"
           echo "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-
