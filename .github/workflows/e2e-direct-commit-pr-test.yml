@@ -125,6 +125,8 @@ jobs:
                   gtk3-devel \
                   atk \
                   atk-devel \
+                  libatk1.0-0 \
+                  libatk-bridge2.0-0 \
                   libnotify \
                   libnotify-devel \
                   GConf2 \
@@ -218,10 +220,46 @@ jobs:
               echo "❌ NSS libraries missing"
             fi
 
-            if ldconfig -p | grep -q libatk-1.0; then
+            if ldconfig -p | grep -q libatk; then
               echo "✅ ATK libraries installed (fixes libatk-1.0.so.0 error)"
+              echo "📋 ATK libraries found:"
+              ldconfig -p | grep libatk
             else
-              echo "❌ ATK libraries missing"
+              echo "❌ ATK libraries missing - trying alternative installation..."
+              # Try installing ATK with different package names
+              sudo $PACKAGE_MANAGER install -y libatk1.0-0 libatk-bridge2.0-0 at-spi2-atk || echo "Alternative ATK packages failed"
+
+              # Try to find ATK library manually
+              find /usr/lib* -name "*libatk*" 2>/dev/null || echo "No ATK libraries found in /usr/lib*"
+              find /lib* -name "*libatk*" 2>/dev/null || echo "No ATK libraries found in /lib*"
+
+              # Try to locate the library with pkg-config if available
+              if command -v pkg-config &> /dev/null; then
+                pkg-config --libs atk || echo "pkg-config can't find ATK"
+              fi
+
+              # If still no ATK, try downloading and installing manually
+              if ! ldconfig -p | grep -q libatk; then
+                echo "🔄 Still no ATK found - trying manual download..."
+                # Try to download ATK library from Ubuntu repositories as last resort
+                curl -L -o /tmp/libatk.deb "http://archive.ubuntu.com/ubuntu/pool/main/a/atk1.0/libatk1.0-0_2.36.0-3build1_amd64.deb" || echo "Ubuntu package download failed"
+                if [ -f /tmp/libatk.deb ]; then
+                  # Extract the deb package manually
+                  mkdir -p /tmp/atk-extract
+                  cd /tmp/atk-extract
+                  ar x /tmp/libatk.deb
+                  tar -xf data.tar.xz
+                  sudo cp -r usr/lib/x86_64-linux-gnu/* /usr/lib64/ 2>/dev/null || sudo cp -r usr/lib/* /usr/lib64/ 2>/dev/null || echo "Manual ATK extraction failed"
+                  sudo ldconfig
+                fi
+              fi
+
+              # Final check
+              if ldconfig -p | grep -q libatk; then
+                echo "✅ ATK libraries finally installed!"
+              else
+                echo "❌ ATK libraries still missing - Cypress may fail"
+              fi
             fi
 
             echo "🎯 Cypress dependencies installation completed"
