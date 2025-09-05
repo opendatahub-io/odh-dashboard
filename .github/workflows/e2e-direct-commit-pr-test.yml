@@ -1,6 +1,6 @@
 name: E2E Direct Commit PR Tests
 
-on: [push]
+on: [push, pull_request]
 
 permissions:
   contents: read
@@ -71,6 +71,73 @@ jobs:
           # Final verification
           echo "🎯 Final oc version check:"
           oc version --client || echo "⚠️  Could not determine oc version"
+
+      - name: Install Cypress Dependencies
+        run: |
+          echo "🔧 Checking and installing Cypress system dependencies..."
+          
+          # Check if Xvfb is already installed
+          if command -v Xvfb &> /dev/null; then
+            echo "✅ Xvfb is already installed"
+            Xvfb -version
+            exit 0
+          fi
+          
+          echo "❌ Xvfb not found, installing dependencies..."
+          
+          # Install Xvfb and other required dependencies
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            echo "📦 Installing dependencies for Linux..."
+            
+            # Update package list
+            sudo dnf update -y || sudo yum update -y || echo "Package list update failed, continuing..."
+            
+            # Install Xvfb and Cypress dependencies
+            sudo dnf install -y \
+              xorg-x11-server-Xvfb \
+              gtk3-devel \
+              libnotify-devel \
+              GConf2-devel \
+              libXScrnSaver \
+              alsa-lib-devel \
+              libXdamage \
+              libXcomposite \
+              libXcursor \
+              libXext \
+              libXfixes \
+              libXi \
+              libXtst \
+              cups-libs \
+              libXrandr \
+              libXss \
+              libgtk-3.so.0 \
+              libgbm.so.1 \
+              libxss1 \
+              libasound2 2>/dev/null || echo "Some packages may not be available, continuing..."
+            
+            # Alternative: Try with yum if dnf fails
+            if ! command -v Xvfb &> /dev/null; then
+              echo "Trying with yum..."
+              sudo yum install -y xorg-x11-server-Xvfb 2>/dev/null || echo "yum install failed"
+            fi
+            
+            # Verify Xvfb installation
+            if command -v Xvfb &> /dev/null; then
+              echo "✅ Xvfb installed successfully"
+              Xvfb -version
+            else
+              echo "❌ Xvfb installation failed - Cypress may not work properly"
+              echo "🔄 Continuing anyway - some systems have Xvfb pre-installed"
+            fi
+            
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            echo "🍎 macOS detected - Cypress dependencies usually pre-installed"
+            # macOS typically has these dependencies pre-installed
+            
+          elif [[ "$RUNNER_OS" == "Windows" ]]; then
+            echo "🪟 Windows detected - Cypress dependencies usually pre-installed"
+            # Windows typically has these dependencies pre-installed
+          fi
 
       - name: Debug available secrets
         run: |
