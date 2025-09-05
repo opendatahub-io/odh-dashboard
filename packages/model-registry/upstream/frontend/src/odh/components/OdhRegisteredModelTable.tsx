@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ModelVersion, RegisteredModel } from '../../app/types';
-import { useModelDeploymentDetection } from '../utils/deploymentUtils';
+import { useDeploymentsState } from '../hooks/useDeploymentsState';
 import RegisteredModelTableRow from '../../app/pages/modelRegistry/screens/RegisteredModels/RegisteredModelTableRow';
 import { getLatestVersionForRegisteredModel } from '../../app/pages/modelRegistry/screens/utils';
 
@@ -25,12 +25,35 @@ export const OdhRegisteredModelTableWrapper: React.FC<RegisteredModelTableWithDe
   refresh,
   children,
 }) => {
-  const { hasRegisteredModelDeployment, loaded } = useModelDeploymentDetection();
+  const { deployments, loaded } = useDeploymentsState();
   
   const hasDeploysForModel = React.useCallback((rmId: string) => {
-    const { hasDeployment } = hasRegisteredModelDeployment(rmId, modelVersions);
+    if (!loaded || !deployments) {
+      // Conservative approach during loading
+      return true;
+    }
+
+    // Get model version IDs for this specific registered model
+    const modelVersionsForRM = modelVersions.filter(mv => mv.registeredModelId === rmId);
+    const mvIds = modelVersionsForRM.map(mv => mv.id);
+    
+    if (mvIds.length === 0) {
+      return false;
+    }
+
+    // Check if any deployment exists for this specific registered model's versions
+    const hasDeployment = deployments.some(deployment => {
+      const isInferenceService = deployment.model?.kind === 'InferenceService';
+      const deploymentModelVersionId = deployment.model?.metadata?.labels?.['modelregistry.opendatahub.io/model-version-id'];
+      const deploymentRegisteredModelId = deployment.model?.metadata?.labels?.['modelregistry.opendatahub.io/registered-model-id'];
+      
+      return isInferenceService && 
+             deploymentModelVersionId && mvIds.includes(deploymentModelVersionId) &&
+             deploymentRegisteredModelId === rmId;
+    });
+
     return hasDeployment;
-  }, [hasRegisteredModelDeployment, modelVersions]);
+  }, [deployments, loaded, modelVersions]);
 
   const enhancedRowRenderer = React.useCallback((rm: RegisteredModel) => (
     <RegisteredModelTableRow
