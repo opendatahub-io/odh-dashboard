@@ -210,8 +210,10 @@ export const isHardwareProfileEnabled = (hardwareProfile: HardwareProfileKind): 
 
 export const alphaSortHardwareProfilesByName = (
   profiles: HardwareProfileKind[],
-): HardwareProfileKind[] =>
-  profiles.toSorted((a, b) => a.metadata.name.localeCompare(b.metadata.name));
+): HardwareProfileKind[] => {
+  const collator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
+  return profiles.toSorted((a, b) => collator.compare(a.metadata.name, b.metadata.name));
+};
 
 export const orderHardwareProfiles = (
   profiles: HardwareProfileKind[],

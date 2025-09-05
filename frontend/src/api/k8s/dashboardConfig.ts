@@ -118,7 +118,7 @@ export const patchDashboardConfigHardwareProfileOrder = (
         queryOptions: { name: DASHBOARD_CONFIG, ns },
         patches: [
           {
-            op: 'replace',
+            op: 'add',
             path: '/spec/hardwareProfileOrder',
             value: hardwareProfileOrder,
           },
