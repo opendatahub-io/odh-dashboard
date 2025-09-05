@@ -1,4 +1,4 @@
-name: E2E Commit Tests
+name: E2E Direct Commit PR Tests
 
 on: [push, pull_request]
 
@@ -29,6 +29,48 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Check and Install OpenShift CLI
+        run: |
+          echo "🔍 Checking if OpenShift CLI (oc) is installed..."
+
+          # Check if oc is already installed
+          if command -v oc &> /dev/null; then
+            echo "✅ OpenShift CLI (oc) is already installed"
+            oc version --client
+          else
+            echo "❌ OpenShift CLI (oc) not found, installing..."
+
+            # Install oc CLI for Linux
+            if [[ "$RUNNER_OS" == "Linux" ]]; then
+              echo "📦 Installing oc CLI for Linux..."
+
+              # Download and install oc
+              curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz
+              tar -xzf oc.tar.gz
+              sudo mv oc /usr/local/bin/
+              sudo chmod +x /usr/local/bin/oc
+
+              # Verify installation
+              echo "✅ OpenShift CLI installed successfully"
+              oc version --client
+
+            elif [[ "$RUNNER_OS" == "macOS" ]]; then
+              echo "📦 Installing oc CLI for macOS..."
+              brew install openshift-cli
+
+            elif [[ "$RUNNER_OS" == "Windows" ]]; then
+              echo "📦 Installing oc CLI for Windows..."
+              choco install openshift-cli
+            else
+              echo "❌ Unsupported OS: $RUNNER_OS"
+              exit 1
+            fi
+          fi
+
+          # Final verification
+          echo "🎯 Final oc version check:"
+          oc version --client || echo "⚠️  Could not determine oc version"
 
       - name: Debug available secrets
         run: |
@@ -106,18 +148,18 @@ jobs:
             else
               echo "❌ Failed to download from GitLab"
               echo "Curl exit code: $?"
-              
+
               # Try to get more details about the failure
               echo "Trying without -f to see error details..."
               curl -k -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
                    "${{ secrets.GITLAB_TEST_VARS_URL }}" \
                    -o /tmp/test-response 2>&1 || echo "Curl failed with: $?"
-              
+
               if [ -f /tmp/test-response ]; then
                 echo "GitLab API Response:"
                 head -10 /tmp/test-response
               fi
-              
+
               exit 1
             fi
           else
