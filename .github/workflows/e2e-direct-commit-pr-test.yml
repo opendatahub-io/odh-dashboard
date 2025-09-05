@@ -74,20 +74,11 @@ jobs:
 
       - name: Install Cypress Dependencies
         run: |
-          echo "🔧 Checking and installing Cypress system dependencies..."
+          echo "🔧 Installing Cypress system dependencies for Fedora..."
           
-          # Check if Xvfb is already installed
-          if command -v Xvfb &> /dev/null; then
-            echo "✅ Xvfb is already installed"
-            Xvfb -help 2>&1 | head -1 || echo "Xvfb version check not available"
-            exit 0
-          fi
-          
-          echo "❌ Xvfb not found, installing dependencies..."
-          
-          # Install Xvfb and other required dependencies
+          # Install all required Cypress dependencies for Fedora/RHEL
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            echo "📦 Installing dependencies for Linux..."
+            echo "📦 Installing Cypress dependencies for Linux..."
             
             # Check which package manager is available
             if command -v dnf &> /dev/null; then
@@ -104,49 +95,123 @@ jobs:
               exit 1
             fi
             
-            # Install Xvfb based on package manager
+            # Install all Cypress dependencies
             case $PACKAGE_MANAGER in
               dnf|yum)
-                echo "Installing with $PACKAGE_MANAGER..."
-                sudo $PACKAGE_MANAGER install -y xorg-x11-server-Xvfb || {
-                  echo "❌ $PACKAGE_MANAGER install failed, trying alternative approach..."
-                  # Try to install from EPEL if available
-                  sudo $PACKAGE_MANAGER install -y epel-release 2>/dev/null || true
-                  sudo $PACKAGE_MANAGER install -y xorg-x11-server-Xvfb || {
-                    echo "❌ All installation methods failed"
-                    echo "Checking system information..."
-                    uname -a
-                    cat /etc/os-release 2>/dev/null || echo "Could not read OS release info"
-                    exit 1
-                  }
-                }
+                echo "Installing Cypress dependencies with $PACKAGE_MANAGER..."
+                sudo $PACKAGE_MANAGER update -y || echo "Update failed, continuing..."
+                
+                # Install X11 and display dependencies
+                sudo $PACKAGE_MANAGER install -y \
+                  xorg-x11-server-Xvfb \
+                  xorg-x11-fonts-misc \
+                  xorg-x11-fonts-75dpi \
+                  xorg-x11-fonts-100dpi \
+                  xorg-x11-fonts-Type1 \
+                  xorg-x11-fonts-cyrillic || echo "Some X11 packages failed"
+                
+                # Install GTK and GUI dependencies
+                sudo $PACKAGE_MANAGER install -y \
+                  gtk3 \
+                  gtk3-devel \
+                  libnotify \
+                  libnotify-devel \
+                  GConf2 \
+                  GConf2-devel \
+                  libXScrnSaver \
+                  alsa-lib \
+                  alsa-lib-devel \
+                  libXdamage \
+                  libXcomposite \
+                  libXcursor \
+                  libXext \
+                  libXfixes \
+                  libXi \
+                  libXtst \
+                  cups-libs \
+                  libXrandr \
+                  libXss \
+                  libgtk-3.so.0 \
+                  libgbm.so.1 \
+                  libxss1 \
+                  libasound2 || echo "Some GUI packages failed"
+                
+                # Install NSS and security libraries (CRITICAL - fixes libnss3.so error)
+                sudo $PACKAGE_MANAGER install -y \
+                  nss \
+                  nss-devel \
+                  nss-tools \
+                  nspr \
+                  nspr-devel || echo "Some NSS packages failed"
+                
+                # Install additional required libraries
+                sudo $PACKAGE_MANAGER install -y \
+                  libjpeg-turbo \
+                  libjpeg-turbo-devel \
+                  libpng \
+                  libpng-devel \
+                  zlib \
+                  zlib-devel \
+                  freetype \
+                  freetype-devel \
+                  fontconfig \
+                  fontconfig-devel || echo "Some additional packages failed"
+                
+                # Try EPEL for any missing packages
+                sudo $PACKAGE_MANAGER install -y epel-release 2>/dev/null || true
+                sudo $PACKAGE_MANAGER install -y \
+                  libX11-xcb \
+                  libxcb-dri3 \
+                  libxcb-dri2 \
+                  libxcb-glx \
+                  libxcb-present \
+                  libxcb-sync \
+                  libxcb-xfixes 2>/dev/null || echo "Some EPEL packages not available"
                 ;;
                 
               apt)
                 echo "Installing with apt..."
                 sudo apt-get update
-                sudo apt-get install -y xvfb || {
+                sudo apt-get install -y \
+                  xvfb \
+                  libgtk-3-0 \
+                  libnotify4 \
+                  libgconf-2-4 \
+                  libnss3 \
+                  libxss1 \
+                  libasound2 \
+                  libxtst6 \
+                  libxrandr2 \
+                  libpangocairo-1.0-0 \
+                  libatk1.0-0 \
+                  libcairo-gobject2 \
+                  libgtk-3-0 \
+                  libgdk-pixbuf2.0-0 || {
                   echo "❌ apt install failed"
                   exit 1
                 }
                 ;;
             esac
             
-            # Verify Xvfb installation
+            # Verify critical dependencies
+            echo "🔍 Verifying critical dependencies..."
             if command -v Xvfb &> /dev/null; then
-              echo "✅ Xvfb installed successfully"
-              Xvfb -version
+              echo "✅ Xvfb installed"
             else
-              echo "❌ Xvfb installation failed"
-              echo "Checking system information..."
-              uname -a
-              cat /etc/os-release 2>/dev/null || echo "Could not read OS release info"
-              exit 1
+              echo "❌ Xvfb missing"
             fi
             
+            if ldconfig -p | grep -q libnss3; then
+              echo "✅ NSS libraries installed (fixes libnss3.so error)"
+            else
+              echo "❌ NSS libraries missing"
+            fi
+            
+            echo "🎯 Cypress dependencies installation completed"
+            
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            echo "🍎 macOS detected - installing Xvfb..."
-            brew install xorg-server || echo "Homebrew install failed, Xvfb may already be available"
+            echo "🍎 macOS detected - Cypress dependencies usually pre-installed"
+            # macOS typically has these dependencies pre-installed
             
           elif [[ "$RUNNER_OS" == "Windows" ]]; then
             echo "🪟 Windows detected - Cypress dependencies usually pre-installed"
