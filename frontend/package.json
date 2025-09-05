@@ -54,7 +54,7 @@
     "cypress:server": "serve ./public-cypress -p 9001 -s -L",
     "cypress:server:dev": "POLL_INTERVAL=9999999 FAST_POLL_INTERVAL=9999999 ODH_PORT=9001 WS_HOSTNAME=localhost:9002 CYPRESS_TESTS=true npm run start:dev",
     "cypress:format": "prettier --write src/__tests__/**/*.snap.json",
-    "test:cypress:e2e": "cd src/__tests__/cypress && npx cypress run --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\" --browser chrome --headless",
+    "test:cypress:e2e": "cd src/__tests__/cypress && npx cypress run --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\" --browser electron --headless",
     "test:cypress:e2e:open": "cd src/__tests__/cypress && npx cypress open --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\"",
     "test:cypress:e2e:ci": "npx concurrently -P -k -s first \"npm run cypress:server\" \"npx wait-on tcp:127.0.0.1:9001 && npm run cypress:run:e2e -- {@}\" --"
   },
