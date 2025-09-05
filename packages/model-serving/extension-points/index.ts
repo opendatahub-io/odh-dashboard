@@ -13,6 +13,7 @@ import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { ToggleState } from '@odh-dashboard/internal/components/StateActionToggle';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
+import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 
 export type DeploymentStatus = {
   state: ModelDeploymentState;
@@ -133,6 +134,12 @@ export type ModelServingDeploymentResourcesExtension<D extends Deployment = Depl
   {
     platform: D['modelServingPlatformId'];
     useResources: CodeRef<(deployment: D) => ModelServingPodSpecOptionsState | null>;
+    extractHardwareProfileConfig: CodeRef<
+      (deployment: D) => Parameters<typeof useHardwareProfileConfig> | null
+    >;
+    applyHardwareProfileToDeployment: CodeRef<
+      (deployment: D, parameters: ReturnType<typeof useHardwareProfileConfig>) => D
+    >;
   }
 >;
 export const isModelServingDeploymentResourcesExtension = <D extends Deployment = Deployment>(

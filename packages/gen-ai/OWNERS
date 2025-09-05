@@ -1,0 +1,22 @@
+approvers:
+  - agagancarczyk
+  - akram
+  - ederign
+  - ikeola13
+  - pnaik1
+  - Schimuneck
+  - varshaprasad96
+
+reviewers:
+  - agagancarczyk
+  - akram
+  - Bobbins228
+  - ChristianZaccaria
+  - ikeola13
+  - pnaik1
+  - Schimuneck
+  - varshaprasad96
+  - Ygnas
+
+labels:
+  - area/gen-ai

@@ -18,14 +18,17 @@ export const isValidModelType = (value: string): value is ModelTypeFieldData =>
 
 // Hooks
 
-export type ModelTypeField = [
-  data: ModelTypeFieldData | undefined,
-  setData: (data: ModelTypeFieldData) => void,
-];
+export type ModelTypeField = {
+  data: ModelTypeFieldData | undefined;
+  setData: (data: ModelTypeFieldData) => void;
+};
 export const useModelTypeField = (existingData?: ModelTypeFieldData): ModelTypeField => {
   const [modelType, setModelType] = React.useState<ModelTypeFieldData | undefined>(existingData);
 
-  return [modelType, setModelType];
+  return {
+    data: modelType,
+    setData: setModelType,
+  };
 };
 
 // Component
