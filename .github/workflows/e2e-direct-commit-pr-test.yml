@@ -79,7 +79,7 @@ jobs:
           # Check if Xvfb is already installed
           if command -v Xvfb &> /dev/null; then
             echo "✅ Xvfb is already installed"
-            Xvfb -version
+            Xvfb -help 2>&1 | head -1 || echo "Xvfb version check not available"
             exit 0
           fi
           
