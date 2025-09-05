@@ -1,0 +1,73 @@
+kind: Secret
+apiVersion: v1
+metadata:
+  name: workbench-s3-credentials
+  namespace: default
+stringData:
+  AWS_ACCESS_KEY_ID: ${awsAccessKey}
+  AWS_SECRET_ACCESS_KEY: ${awsSecretKey}
+  AWS_DEFAULT_REGION: ${awsDefaultRegion}
+type: Opaque
+---
+apiVersion: feast.dev/v1alpha1
+kind: FeatureStore
+metadata:
+  name: multiproject
+  namespace: default
+  labels:
+    feature-store-ui: enabled
+spec:
+  feastProject: credit_scoring_local
+  feastProjectDir:
+    git:
+      ref: master
+      url: 'https://github.com/ntkathole/feast-credit-score-local-tutorial.git'
+  services:
+    onlineStore:
+      server:
+        envFrom:
+          - secretRef:
+              name: workbench-s3-credentials
+    registry:
+      local:
+        persistence:
+          file:
+            path: 's3://ibutsu-payloads/registry.pb'
+        server:
+          envFrom:
+            - secretRef:
+                name: workbench-s3-credentials
+          grpc: false
+          image: 'quay.io/feastdev-ci/feature-server:1c59bbae120078b945d5a8574b96d66b1173513c'
+          restAPI: true
+---
+apiVersion: feast.dev/v1alpha1
+kind: FeatureStore
+metadata:
+  name: rbac
+  namespace: default
+spec:
+  authz:
+    kubernetes:
+      roles:
+        - feast-data-scientists
+        - feast-data-engineer
+  feastProject: rbac
+  services:
+    onlineStore:
+      server:
+        envFrom:
+          - secretRef:
+              name: workbench-s3-credentials
+    registry:
+      local:
+        persistence:
+          file:
+            path: 's3://ibutsu-payloads/registry.pb'
+        server:
+          envFrom:
+            - secretRef:
+                name: workbench-s3-credentials
+          grpc: false
+          image: 'quay.io/feastdev-ci/feature-server:1c59bbae120078b945d5a8574b96d66b1173513c'
+          restAPI: true

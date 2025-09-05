@@ -21,7 +21,7 @@ class FeatureStoreGlobal {
     cy.visitWithLogin(
       `/featureStore/entities${
         project ? `/${project}` : ''
-      }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      }?devFeatureFlags=disableFeatureStore%3Dfalse%2CFeature+store+plugin%3Dtrue`,
     );
     this.waitForEntities();
   }
@@ -88,8 +88,8 @@ class FeatureStoreGlobal {
   }
 
   navigateToEntities() {
-    appChrome.findNavItem('Entities').click();
-    this.waitForEntities();
+    appChrome.findNavItem('Feature store', 'Entities').click();
+    this.wait();
   }
 
   navigateToFeatures() {

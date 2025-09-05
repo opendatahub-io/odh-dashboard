@@ -372,3 +372,11 @@ export type SCAccessMode = {
   ReadOnlyMany?: boolean;
   ReadWriteOncePod?: boolean;
 };
+
+export type FeatureStoreEntitiesTestData = {
+  namespace: string;
+  featureStoreNames: string[];
+  projectName: string;
+  searchTerm: string;
+  expectedColumns: string[];
+};

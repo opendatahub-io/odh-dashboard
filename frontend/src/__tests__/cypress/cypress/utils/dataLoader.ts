@@ -14,6 +14,7 @@ import type {
   ModelTolerationsTestData,
   RegisterModelTestData,
   ManageRegistryPermissionsTestData,
+  FeatureStoreEntitiesTestData,
 } from '#~/__tests__/cypress/cypress/types';
 
 // Load fixture function that returns DataScienceProjectData
@@ -124,5 +125,13 @@ export const loadManagePermissionsFixture = (
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as ManageRegistryPermissionsTestData;
 
+    return data;
+  });
+
+export const loadFeatureStoreEntitiesFixture = (
+  fixturePath: string,
+): Cypress.Chainable<FeatureStoreEntitiesTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as FeatureStoreEntitiesTestData;
     return data;
   });
