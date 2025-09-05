@@ -1,6 +1,6 @@
 name: E2E Direct Commit PR Tests
 
-on: [push, pull_request]
+on: [push]
 
 permissions:
   contents: read
@@ -89,50 +89,64 @@ jobs:
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             echo "📦 Installing dependencies for Linux..."
             
-            # Update package list
-            sudo dnf update -y || sudo yum update -y || echo "Package list update failed, continuing..."
-            
-            # Install Xvfb and Cypress dependencies
-            sudo dnf install -y \
-              xorg-x11-server-Xvfb \
-              gtk3-devel \
-              libnotify-devel \
-              GConf2-devel \
-              libXScrnSaver \
-              alsa-lib-devel \
-              libXdamage \
-              libXcomposite \
-              libXcursor \
-              libXext \
-              libXfixes \
-              libXi \
-              libXtst \
-              cups-libs \
-              libXrandr \
-              libXss \
-              libgtk-3.so.0 \
-              libgbm.so.1 \
-              libxss1 \
-              libasound2 2>/dev/null || echo "Some packages may not be available, continuing..."
-            
-            # Alternative: Try with yum if dnf fails
-            if ! command -v Xvfb &> /dev/null; then
-              echo "Trying with yum..."
-              sudo yum install -y xorg-x11-server-Xvfb 2>/dev/null || echo "yum install failed"
+            # Check which package manager is available
+            if command -v dnf &> /dev/null; then
+              echo "Using dnf package manager..."
+              PACKAGE_MANAGER="dnf"
+            elif command -v yum &> /dev/null; then
+              echo "Using yum package manager..."
+              PACKAGE_MANAGER="yum"
+            elif command -v apt-get &> /dev/null; then
+              echo "Using apt package manager..."
+              PACKAGE_MANAGER="apt"
+            else
+              echo "❌ No supported package manager found"
+              exit 1
             fi
+            
+            # Install Xvfb based on package manager
+            case $PACKAGE_MANAGER in
+              dnf|yum)
+                echo "Installing with $PACKAGE_MANAGER..."
+                sudo $PACKAGE_MANAGER install -y xorg-x11-server-Xvfb || {
+                  echo "❌ $PACKAGE_MANAGER install failed, trying alternative approach..."
+                  # Try to install from EPEL if available
+                  sudo $PACKAGE_MANAGER install -y epel-release 2>/dev/null || true
+                  sudo $PACKAGE_MANAGER install -y xorg-x11-server-Xvfb || {
+                    echo "❌ All installation methods failed"
+                    echo "Checking system information..."
+                    uname -a
+                    cat /etc/os-release 2>/dev/null || echo "Could not read OS release info"
+                    exit 1
+                  }
+                }
+                ;;
+                
+              apt)
+                echo "Installing with apt..."
+                sudo apt-get update
+                sudo apt-get install -y xvfb || {
+                  echo "❌ apt install failed"
+                  exit 1
+                }
+                ;;
+            esac
             
             # Verify Xvfb installation
             if command -v Xvfb &> /dev/null; then
               echo "✅ Xvfb installed successfully"
               Xvfb -version
             else
-              echo "❌ Xvfb installation failed - Cypress may not work properly"
-              echo "🔄 Continuing anyway - some systems have Xvfb pre-installed"
+              echo "❌ Xvfb installation failed"
+              echo "Checking system information..."
+              uname -a
+              cat /etc/os-release 2>/dev/null || echo "Could not read OS release info"
+              exit 1
             fi
             
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            echo "🍎 macOS detected - Cypress dependencies usually pre-installed"
-            # macOS typically has these dependencies pre-installed
+            echo "🍎 macOS detected - installing Xvfb..."
+            brew install xorg-server || echo "Homebrew install failed, Xvfb may already be available"
             
           elif [[ "$RUNNER_OS" == "Windows" ]]; then
             echo "🪟 Windows detected - Cypress dependencies usually pre-installed"
