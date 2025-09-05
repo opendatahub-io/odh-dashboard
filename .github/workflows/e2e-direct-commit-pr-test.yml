@@ -1,6 +1,6 @@
 name: E2E Direct Commit PR Tests
 
-on: [push, pull_request]
+on: [push]
 
 permissions:
   contents: read
@@ -12,12 +12,23 @@ env:
   DO_NOT_TRACK: 1
 
 jobs:
+  get-test-tags:
+    runs-on: self-hosted
+    outputs:
+      test-tags: ${{ steps.set-tags.outputs.test-tags }}
+    steps:
+      - name: Set default test tags
+        id: set-tags
+        run: |
+          echo "test-tags=[\"@SmokeSet1\",\"@SmokeSet2\",\"@SmokeSet3\",\"@SanitySet1\",\"@SanitySet2\",\"@SanitySet3\"]" >> $GITHUB_OUTPUT
+
   e2e-tests:
+    needs: get-test-tags
     runs-on: self-hosted
     strategy:
       fail-fast: false
       matrix:
-        test-set: [1]  # Just run one test set for commit-based testing
+        test-tag: ${{ fromJson(needs.get-test-tags.outputs.test-tags) }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -295,25 +306,32 @@ jobs:
           echo "Branch: ${{ github.ref_name }}"
           echo "Commit: ${{ github.sha }}"
 
-          # Always run in mock mode for commit-based testing
-          echo "🔄 Running in mock mode for commit testing"
-          export CY_MOCK=1
-          export CY_WS_PORT=9002
+          # Run real E2E tests (not mock mode)
+          echo "🚀 Running real E2E tests against live dashboard"
 
-          # Run a simple test suite - just SmokeSet1 for commit testing
-          export CY_TEST_TAGS="@SmokeSet1"
+          # Run tests with matrix tag
+          export CY_TEST_TAGS="${{ matrix.test-tag }}"
           export CY_SKIP_TAGS="@Bug,@Maintain,@NonConcurrent"
 
           echo "🎯 Running tests with tags: $CY_TEST_TAGS"
           echo "🚫 Skipping tags: $CY_SKIP_TAGS"
+          echo "📋 Test group: ${{ matrix.test-tag }}"
 
-          npm run test:cypress:e2e:ci
+          # Use Electron browser since Chrome is not available on Fedora
+          echo "🔄 Using Electron browser (Chrome not available on Fedora)"
+
+          # Use existing test:cypress:e2e:ci script with browser override
+          CYPRESS_BROWSER=electron npm run test:cypress:e2e:ci
+
+      - name: Test tag name
+        if: ${{ always() }}
+        run: echo "TEST_TAG_NAME=$(echo ${{ matrix.test-tag }} | tr '/' '_' | tr '@' '')" >> $GITHUB_ENV
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-test-results-smoke-${{ matrix.test-set }}
+          name: e2e-test-results-${{ env.TEST_TAG_NAME }}
           path: |
             frontend/src/__tests__/cypress/results/
             frontend/src/__tests__/cypress/videos/
@@ -328,8 +346,10 @@ jobs:
           echo "Status: ${{ job.status }}"
           echo "Event: ${{ github.event_name }}"
           echo "Branch: ${{ github.ref_name }}"
+          echo "Test Tag: ${{ matrix.test-tag }}"
           echo "Commit: ${{ github.sha }}"
           echo "Run ID: ${{ github.run_id }}"
           echo ""
           echo "📊 Test artifacts uploaded to:"
           echo "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
