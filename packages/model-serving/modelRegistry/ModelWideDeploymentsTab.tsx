@@ -4,8 +4,8 @@ import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/Proje
 import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import EmptyDeploymentsState from './EmptyDeploymentsState';
-import { isModelServingPlatformExtension } from '../extension-points';
 import ModelRegistryDeploymentsTable from './ModelRegistryDeploymentsTable';
+import { isModelServingPlatformExtension } from '../extension-points';
 import {
   ModelDeploymentsContext,
   ModelDeploymentsProvider,
