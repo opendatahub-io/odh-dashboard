@@ -2,7 +2,10 @@ import { TextEncoder } from 'util';
 import { JestAssertionError } from 'expect';
 import 'core-js/actual/array/to-sorted';
 import { BooleanValues, RenderHookResultExt, createComparativeValue } from './testUtils/hooks';
+import '@testing-library/jest-dom';
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 global.TextEncoder = TextEncoder;
 
 const tryExpect = (expectFn: () => void) => {
