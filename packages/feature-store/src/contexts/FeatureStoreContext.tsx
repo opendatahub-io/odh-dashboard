@@ -2,24 +2,11 @@ import * as React from 'react';
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
 import { FeatureStoreKind, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
-import { getProjects } from '@odh-dashboard/internal/api/k8s/projects';
 import { FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
 import { FEATURE_STORE_UI_LABEL_KEY, FEATURE_STORE_UI_LABEL_VALUE } from '../const';
+import { useFeatureStoreAccessibleProjects } from '../hooks/useFeatureStoreAccessibleProjects';
 
 const labelSelector = `${FEATURE_STORE_UI_LABEL_KEY}=${FEATURE_STORE_UI_LABEL_VALUE}`;
-
-const isFeatureStoreAccessibleProject = (
-  projectName: string,
-  dashboardNamespace: string,
-): boolean =>
-  !(
-    projectName.startsWith('openshift-') ||
-    projectName.startsWith('kube-') ||
-    // Note: We DO allow 'default' for FeatureStore access (unlike regular ProjectsContext)
-    projectName === 'system' ||
-    projectName === 'openshift' ||
-    projectName === dashboardNamespace
-  );
 
 type FeatureStoreFetchState = FetchStateObject<FeatureStoreKind[]>;
 
@@ -44,28 +31,7 @@ type FeatureStoreCRProviderProps = {
 };
 
 const FeatureStoreCRContextProvider: React.FC<FeatureStoreCRProviderProps> = ({ children }) => {
-  const [accessibleProjects, setAccessibleProjects] = React.useState<ProjectKind[]>([]);
-  const [projectsLoaded, setProjectsLoaded] = React.useState(false);
-
-  React.useEffect(() => {
-    const loadProjects = async () => {
-      try {
-        const allProjects = await getProjects();
-
-        const filteredProjects = allProjects.filter((project) =>
-          isFeatureStoreAccessibleProject(project.metadata.name, ''),
-        );
-
-        setAccessibleProjects(filteredProjects);
-        setProjectsLoaded(true);
-      } catch (error) {
-        console.error('Failed to load projects for FeatureStore context:', error);
-        setProjectsLoaded(true);
-      }
-    };
-
-    loadProjects();
-  }, []);
+  const { accessibleProjects, projectsLoaded, projectsError } = useFeatureStoreAccessibleProjects();
 
   const [featureStoreData, setFeatureStoreData] = React.useState<FeatureStoreKind[]>([]);
   const [loaded, setLoaded] = React.useState(false);
@@ -122,6 +88,7 @@ const FeatureStoreCRContextProvider: React.FC<FeatureStoreCRProviderProps> = ({ 
   }, [featureStoreData, accessibleProjects, projectsLoaded]);
 
   const activeFeatureStore = React.useMemo(() => {
+    //INFO: For GA we are only allowing one FeatureStore and hence we are picking the first one
     return filteredFeatureStores.length > 0 ? filteredFeatureStores[0] : null;
   }, [filteredFeatureStores]);
 
@@ -131,7 +98,7 @@ const FeatureStoreCRContextProvider: React.FC<FeatureStoreCRProviderProps> = ({ 
       activeFeatureStore,
       accessibleProjects,
       loaded: loaded && projectsLoaded,
-      loadError,
+      loadError: loadError || projectsError,
     }),
     [
       filteredFeatureStores,
@@ -140,6 +107,7 @@ const FeatureStoreCRContextProvider: React.FC<FeatureStoreCRProviderProps> = ({ 
       loaded,
       projectsLoaded,
       loadError,
+      projectsError,
     ],
   );
 
