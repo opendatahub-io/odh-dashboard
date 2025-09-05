@@ -114,6 +114,8 @@ jobs:
                 sudo $PACKAGE_MANAGER install -y \
                   gtk3 \
                   gtk3-devel \
+                  atk \                   
+                  atk-devel \            
                   libnotify \
                   libnotify-devel \
                   GConf2 \
