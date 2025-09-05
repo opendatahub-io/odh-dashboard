@@ -1,5 +1,6 @@
 # Comprehensive test data for all model registry tests
 registryNamePrefix: "test-model-registry"
+createRegistryName: "e2e-test-registry"
 
 # Model Registry Operator Configuration
 operatorDeploymentName: "model-registry-operator-controller-manager"

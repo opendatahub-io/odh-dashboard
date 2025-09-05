@@ -17,12 +17,13 @@ import type { ModelRegistryTestData } from '#~/__tests__/cypress/cypress/types';
 describe('Verify a model registry can be created and deleted', () => {
   let testData: ModelRegistryTestData;
   let deploymentName: string;
-  const registryName = `e2e-test-registry`;
+  let registryName: string;
 
   before(() => {
     cy.step('Load test data from fixture');
     loadModelRegistryFixture('e2e/modelRegistry/testModelRegistry.yaml').then((fixtureData) => {
       testData = fixtureData;
+      registryName = testData.createRegistryName;
       deploymentName = testData.operatorDeploymentName;
 
       // ensure operator has optimal memory

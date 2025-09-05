@@ -322,6 +322,7 @@ export type NotebookTolerationsTestData = {
 
 export type ModelRegistryTestData = {
   registryNamePrefix: string;
+  createRegistryName: string;
   // Model Registry Operator Configuration
   operatorDeploymentName: string;
   // First model (Object Storage)
