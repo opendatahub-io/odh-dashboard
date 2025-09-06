@@ -63,6 +63,7 @@ type DeploymentsTableProps = {
   showExpandedInfo?: boolean;
   platformColumns?: DeploymentsTableColumn<Deployment>[];
   loaded: boolean;
+  alertContent?: React.ReactNode;
 } & Partial<
   Pick<
     React.ComponentProps<typeof Table>,
@@ -75,6 +76,7 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
   showExpandedInfo,
   platformColumns,
   loaded = true,
+  alertContent,
   ...tableProps
 }) => {
   const navigate = useNavigate();
@@ -120,6 +122,7 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
           />
         )}
         loading={!loaded}
+        alertContent={alertContent}
         {...tableProps}
       />
       {deleteDeployment && (

@@ -15,11 +15,13 @@ import RegisteredModelsArchiveDetails from './screens/RegisteredModelsArchive/Re
 import RegisterModel from './screens/RegisterModel/RegisterModel';
 import RegisterVersion from './screens/RegisterModel/RegisterVersion';
 import { generateVersionDetailsTabExtensionRoutes } from '~/odh/VersionDetailsTabExtensionRoutes';
+import { generateDetailsTabExtensionRoutes } from '~/odh/DetailsTabExtensionRoutes';
 import { useExtensions } from '@odh-dashboard/plugin-core';
-import { isModelRegistryVersionDetailsTabExtension } from '~/odh/extension-points';
+import { isModelRegistryVersionDetailsTabExtension, isModelRegistryDetailsTabExtension } from '~/odh/extension-points';
 
 const ModelRegistryRoutes: React.FC = () => {
   const tabExtensions = useExtensions(isModelRegistryVersionDetailsTabExtension);
+  const detailsTabExtensions = useExtensions(isModelRegistryDetailsTabExtension);
   return(
     <Routes>
       <Route
@@ -41,6 +43,7 @@ const ModelRegistryRoutes: React.FC = () => {
             path={ModelVersionsTab.OVERVIEW}
             element={<ModelVersions tab={ModelVersionsTab.OVERVIEW} empty={false} />}
           />
+          {generateDetailsTabExtensionRoutes({ tabExtensions: detailsTabExtensions })}
           <Route path="registerVersion" element={<RegisterVersion />} />
           <Route path="versions/:modelVersionId">
             <Route index element={<Navigate to={ModelVersionDetailsTab.DETAILS} replace />} />

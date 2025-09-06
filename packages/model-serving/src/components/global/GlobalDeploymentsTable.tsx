@@ -2,14 +2,15 @@ import React from 'react';
 import {
   initialModelServingFilterData,
   type ModelServingFilterDataType,
+  ModelServingToolbarFilterOptions,
 } from '@odh-dashboard/internal/pages/modelServing/screens/global/const';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import DashboardEmptyTableView from '@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView';
+import { Label } from '@patternfly/react-core';
 import { namespaceToProjectDisplayName } from '@odh-dashboard/internal/concepts/projects/utils';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { useExtensions, useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
-import { Label } from '@patternfly/react-core';
 import GlobalModelsToolbar from './GlobalModelsToolbar';
 import DeploymentsTable from '../deployments/DeploymentsTable';
 import {
@@ -49,10 +50,15 @@ const projectColumn = (projects: ProjectKind[]): DeploymentsTableColumn => ({
   ),
 });
 
-const GlobalDeploymentsTable: React.FC<{ deployments: Deployment[]; loaded: boolean }> = ({
-  deployments,
-  loaded,
-}) => {
+// Removed model registry-specific logic - should be passed as customColumns prop
+
+const GlobalDeploymentsTable: React.FC<{
+  deployments: Deployment[];
+  loaded: boolean;
+  hideDeployButton?: boolean;
+  customColumns?: DeploymentsTableColumn<Deployment>[];
+  alertContent?: React.ReactNode;
+}> = ({ deployments, loaded, hideDeployButton = false, customColumns = [], alertContent }) => {
   const { projects } = React.useContext(ProjectsContext);
   const [filterData, setFilterData] = React.useState<ModelServingFilterDataType>(
     initialModelServingFilterData,
@@ -61,8 +67,8 @@ const GlobalDeploymentsTable: React.FC<{ deployments: Deployment[]; loaded: bool
   const filteredDeployments = React.useMemo(
     () =>
       deployments.filter((deployment) => {
-        const nameFilter = filterData.Name?.toLowerCase();
-        const projectFilter = filterData.Project?.toLowerCase();
+        const nameFilter = filterData[ModelServingToolbarFilterOptions.name]?.toLowerCase();
+        const projectFilter = filterData[ModelServingToolbarFilterOptions.project]?.toLowerCase();
 
         if (
           nameFilter &&
@@ -89,6 +95,8 @@ const GlobalDeploymentsTable: React.FC<{ deployments: Deployment[]; loaded: bool
     const result: DeploymentsTableColumn<Deployment>[] = [];
     // Add a generic 'project name' column
     result.push(projectColumn(projects));
+    // Add any custom columns passed in by the caller
+    result.push(...customColumns);
     // Only add platform columns if all platforms have the same columns
     if (tableExtensions.length > 0) {
       const [firstExtension, ...restExtensions] = tableExtensions;
@@ -99,7 +107,7 @@ const GlobalDeploymentsTable: React.FC<{ deployments: Deployment[]; loaded: bool
       result.push(...commonColumns);
     }
     return result;
-  }, [tableExtensions, projects]);
+  }, [tableExtensions, projects, customColumns]);
 
   return (
     <DeploymentsTable
@@ -110,8 +118,10 @@ const GlobalDeploymentsTable: React.FC<{ deployments: Deployment[]; loaded: bool
         <GlobalModelsToolbar
           filterData={filterData}
           onFilterUpdate={(key, value) => setFilterData((prev) => ({ ...prev, [key]: value }))}
+          hideDeployButton={hideDeployButton}
         />
       }
+      alertContent={alertContent}
       onClearFilters={() => setFilterData(initialModelServingFilterData)}
       enablePagination
       emptyTableView={

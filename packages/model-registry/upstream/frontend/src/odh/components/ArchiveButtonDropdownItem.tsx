@@ -1,6 +1,6 @@
 import { DropdownItem } from '@patternfly/react-core';
 import * as React from 'react';
-import { useParams } from 'react-router';
+import { useParams } from 'react-router-dom';
 import { ModelVersion } from '~/app/types';
 import useModelVersionsByRegisteredModel from '~/app/hooks/useModelVersionsByRegisteredModel';
 import { useModelDeploymentDetection } from '../utils/deploymentUtils';
@@ -51,7 +51,7 @@ const ArchiveButtonDropdownItemContent: React.FC<ArchiveButtonDropdownItemProps>
             isAriaDisabled={isDisabled}
             tooltipProps={
                 !isLoading && hasDeployment
-                ? { content: mv ? 'Deployed model versions cannot be archived' : 'Models with deployed versions cannot be archived.' }
+                ? { content: mv ? 'Deployed model versions cannot be archived.' : 'Models with deployed versions cannot be archived.' }
                 : undefined
             }
             >
