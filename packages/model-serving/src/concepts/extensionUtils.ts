@@ -53,7 +53,7 @@ export const useDeploymentExtension = <T extends PlatformExtension>(
 export const useResolvedDeploymentExtension = <T extends PlatformExtension>(
   extensionPredicate: ExtensionPredicate<T>,
   deployment?: Deployment | null,
-): [ResolvedExtension<T> | null, boolean, unknown[]] => {
+): [ResolvedExtension<T> | null, boolean, Error[]] => {
   const [resolvedExtensions, loaded, errors] = useResolvedExtensions<T>(extensionPredicate);
 
   return React.useMemo(
@@ -62,7 +62,7 @@ export const useResolvedDeploymentExtension = <T extends PlatformExtension>(
         (ext) => ext.properties.platform === deployment?.modelServingPlatformId,
       ) ?? null,
       loaded,
-      errors,
+      errors.map((error) => (error instanceof Error ? error : new Error(String(error)))),
     ],
     [resolvedExtensions, deployment?.modelServingPlatformId, loaded, errors],
   );
