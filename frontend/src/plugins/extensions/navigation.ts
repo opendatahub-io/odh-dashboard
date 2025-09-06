@@ -54,19 +54,19 @@ const extensions: NavExtension[] = [
       path: '/modelCatalog/*',
     },
   },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.MODEL_REGISTRY],
-    },
-    properties: {
-      id: 'modelRegistry',
-      title: 'Model registry',
-      href: '/modelRegistry',
-      section: 'models',
-      path: '/modelRegistry/*',
-    },
-  },
+  // {
+  //   type: 'app.navigation/href',
+  //   flags: {
+  //     required: [SupportedArea.MODEL_REGISTRY],
+  //   },
+  //   properties: {
+  //     id: 'modelRegistry',
+  //     title: 'Model registry',
+  //     href: '/modelRegistry',
+  //     section: 'models',
+  //     path: '/modelRegistry/*',
+  //   },
+  // },
   {
     type: 'app.navigation/href',
     flags: {
