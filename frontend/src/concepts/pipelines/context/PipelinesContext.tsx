@@ -1,13 +1,16 @@
 import * as React from 'react';
 import {
   Alert,
-  AlertActionLink,
   Bullseye,
   Button,
   ButtonProps,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateBody,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { DSPipelineKind, DSPipelineManagedPipelinesKind, ProjectKind } from '#~/k8sTypes';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import DeletePipelineServerModal from '#~/concepts/pipelines/content/DeletePipelineServerModal';
@@ -19,7 +22,9 @@ import { DEV_MODE } from '#~/utilities/const';
 import { MetadataStoreServicePromiseClient } from '#~/third_party/mlmd';
 import { getGenericErrorCode } from '#~/api';
 import UnauthorizedError from '#~/pages/UnauthorizedError';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import usePipelineAPIState, { PipelineAPIState } from './usePipelineAPIState';
+
 import usePipelineNamespaceCR, {
   dspaLoaded,
   hasServerTimedOut,
@@ -172,6 +177,12 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
   );
 });
 
+export const getPipelineServerName = (project?: ProjectKind): string => {
+  const displayName = project ? getDisplayNameFromK8sResource(project) : null;
+  const defaultName = 'pipeline server';
+  return displayName ? `${displayName} ${defaultName}` : defaultName;
+};
+
 type UsePipelinesAPI = PipelineAPIState & {
   /** The contextual namespace */
   namespace: string;
@@ -280,10 +291,17 @@ export const CreatePipelineServerButton: React.FC<CreatePipelineServerButtonProp
   );
 };
 
-export const DeleteServerModal = ({ onClose }: { onClose: () => void }): React.JSX.Element => {
+export const DeleteServerModal = ({
+  onClose,
+  removeConfirmation = false,
+}: {
+  onClose: () => void;
+  removeConfirmation?: boolean;
+}): React.JSX.Element => {
   const { refreshState } = React.useContext(PipelinesContext);
   return (
     <DeletePipelineServerModal
+      removeConfirmation={removeConfirmation}
       onClose={(deleted) => {
         if (deleted) {
           refreshState().then(onClose);
@@ -303,36 +321,51 @@ export const ViewServerModal = ({ onClose }: { onClose: () => void }): React.JSX
 };
 
 export const PipelineServerTimedOut: React.FC = () => {
-  const { crStatus } = React.useContext(PipelinesContext);
+  const { crStatus, project } = React.useContext(PipelinesContext);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const errorMessage =
     crStatus?.conditions?.find((condition) => condition.type === 'Ready')?.message || '';
+
   return (
     <>
-      <Alert
-        variant="danger"
-        isInline
-        title="Pipeline server failed"
-        actionLinks={
-          <>
-            <AlertActionLink onClick={() => setDeleteOpen(true)}>
-              Delete pipeline server
-            </AlertActionLink>
-          </>
-        }
-      >
+      <Bullseye style={{ minHeight: '300px' }}>
         <Stack hasGutter>
-          {errorMessage && (
-            <StackItem data-testid="timeout-pipeline-error-message">{errorMessage}</StackItem>
-          )}
           <StackItem>
-            We encountered an error creating or loading your pipeline server. To continue, delete
-            this pipeline server and create a new one. Deleting this pipeline server will delete all
-            of its resources, including pipelines, runs, and jobs.
+            <EmptyState
+              icon={ExclamationCircleIcon}
+              titleText="Pipeline server failed"
+              variant="lg"
+              status="danger"
+            >
+              <EmptyStateBody>
+                <Stack hasGutter>
+                  <StackItem>
+                    The <b>{getPipelineServerName(project)}</b> either could not start or be
+                    contacted. You must delete this server to fix the issue, but this will also
+                    permanently delete all associated resources. You will need to configure a new
+                    server afterward.
+                  </StackItem>
+
+                  {errorMessage && (
+                    <StackItem data-testid="timeout-pipeline-error-message">
+                      {errorMessage}
+                    </StackItem>
+                  )}
+                </Stack>
+              </EmptyStateBody>
+              <EmptyStateActions>
+                <Button
+                  variant="primary"
+                  onClick={() => setDeleteOpen(true)}
+                  style={{ marginTop: '32px' }}
+                >
+                  Delete pipeline server
+                </Button>
+              </EmptyStateActions>
+            </EmptyState>
           </StackItem>
-          <StackItem>To get help contact your administrator.</StackItem>
         </Stack>
-      </Alert>
+      </Bullseye>
       {deleteOpen ? (
         <DeleteServerModal
           onClose={() => {

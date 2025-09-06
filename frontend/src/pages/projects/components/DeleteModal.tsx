@@ -24,6 +24,7 @@ type DeleteModalProps = {
   children: React.ReactNode;
   testId?: string;
   genericLabel?: boolean;
+  removeConfirmation?: boolean;
 };
 
 const DeleteModal: React.FC<DeleteModalProps> = ({
@@ -37,6 +38,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   submitButtonLabel = 'Delete',
   testId,
   genericLabel,
+  removeConfirmation = false,
 }) => {
   const [value, setValue] = React.useState('');
 
@@ -65,27 +67,33 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
         <Stack hasGutter>
           <StackItem>{children}</StackItem>
 
-          <StackItem>
-            <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
-              <FlexItem>
-                Type <strong>{deleteNameSanitized}</strong> to confirm
-                {genericLabel ? '' : ' deletion'}:
-              </FlexItem>
+          {!removeConfirmation && (
+            <StackItem>
+              <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
+                <FlexItem>
+                  Type <strong>{deleteNameSanitized}</strong> to confirm
+                  {genericLabel ? '' : ' deletion'}:
+                </FlexItem>
 
-              <TextInput
-                id="delete-modal-input"
-                data-testid="delete-modal-input"
-                aria-label="Delete modal input"
-                value={value}
-                onChange={(_e, newValue) => setValue(newValue)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && value.trim() === deleteNameSanitized && !deleting) {
-                    onDelete();
-                  }
-                }}
-              />
-            </Flex>
-          </StackItem>
+                <TextInput
+                  id="delete-modal-input"
+                  data-testid="delete-modal-input"
+                  aria-label="Delete modal input"
+                  value={value}
+                  onChange={(_e, newValue) => setValue(newValue)}
+                  onKeyDown={(event) => {
+                    if (
+                      event.key === 'Enter' &&
+                      value.trim() === deleteNameSanitized &&
+                      !deleting
+                    ) {
+                      onDelete();
+                    }
+                  }}
+                />
+              </Flex>
+            </StackItem>
+          )}
 
           {error && (
             <StackItem>
@@ -106,7 +114,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
           key="delete-button"
           variant="danger"
           isLoading={deleting}
-          isDisabled={deleting || value.trim() !== deleteNameSanitized}
+          isDisabled={deleting || (!removeConfirmation && value.trim() !== deleteNameSanitized)}
           onClick={() => onBeforeClose(true)}
         >
           {submitButtonLabel}

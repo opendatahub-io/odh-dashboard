@@ -84,6 +84,7 @@ const PipelineServerActions: React.FC<PipelineServerActionsProps> = ({ variant, 
                     setDeleteOpen(true);
                   }}
                   key="delete-server"
+                  isDanger
                 >
                   Delete pipeline server
                 </DropdownItem>,
@@ -93,6 +94,7 @@ const PipelineServerActions: React.FC<PipelineServerActionsProps> = ({ variant, 
                         key="delete"
                         onClick={() => setDeletePipelinesOpen(true)}
                         isDisabled={pipelines.length === 0 && versions.length === 0}
+                        isDanger
                       >
                         Delete
                       </DropdownItem>,

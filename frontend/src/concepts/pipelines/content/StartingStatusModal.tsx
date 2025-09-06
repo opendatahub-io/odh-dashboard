@@ -19,7 +19,10 @@ import {
   Alert,
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
-import { getStatusFromCondition } from '#~/concepts/pipelines/content/utils.tsx';
+import {
+  getStatusFromCondition,
+  messageForCondition,
+} from '#~/concepts/pipelines/content/utils.tsx';
 import PipelineComponentStatusIcon, {
   StatusType,
 } from '#~/concepts/pipelines/content/PipelineComponentStatusIcon.tsx';
@@ -33,9 +36,10 @@ const EVENT_LOG_TAB = 'Events log';
 
 type StartingStatusModalProps = {
   onClose: () => void;
+  onDelete: () => void;
 };
 
-const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) => {
+const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose, onDelete }) => {
   const { pipelinesServer, namespace } = usePipelinesAPI();
   const [activeTab, setActiveTab] = React.useState<string>(PROGRESS_TAB);
   const isServerReadyAndCompletelyDone = pipelinesServer.crStatus?.conditions?.some(
@@ -54,7 +58,9 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
     </Flex>
   );
 
-  const statusConditions: [StatusType, K8sCondition][] | undefined =
+  // remove not applicable conditions and add the human readable message
+  // the 1st element is the human readable message
+  const statusConditions: [StatusType, string, K8sCondition][] | undefined =
     pipelinesServer.crStatus?.conditions
       ?.filter(
         (unfilteredCondition) =>
@@ -62,29 +68,29 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
       )
       .map((condition) => {
         const containerStatus = getStatusFromCondition(condition);
-        return [containerStatus, condition];
+        return [containerStatus, messageForCondition(condition.type), condition];
       });
 
-  // Find all error conditions
-  const errorConditions: K8sCondition[] =
+  // Find all error conditions (human readable message, condition)
+  const errorConditions: [string, K8sCondition][] =
     statusConditions
       ?.filter((contents1) => contents1[0] === StatusType.ERROR)
-      .map((contents) => contents[1]) || [];
+      .map((contents) => [contents[1], contents[2]]) || [];
 
-  const serverErroredOut = errorConditions.some((c) => c.type === 'Ready');
+  const serverErroredOut = errorConditions.some((c) => c[1].type === 'Ready');
 
   const renderProgress = () => (
     <Panel isScrollable>
       <PanelMain>
         {/* Render an Alert for each error condition  that has a message*/}
         {errorConditions
-          .filter((c) => c.message)
-          .map((condition, idx) => (
+          .filter((c) => c[1].message)
+          .map(([humanReadableCondition, condition], idx) => (
             <Alert
               data-testid={`error-${idx}`}
               key={condition.type + idx}
               variant="danger"
-              title={`${condition.type} - ${condition.reason || 'Unknown'}` || 'Error'}
+              title={`${humanReadableCondition} - ${condition.reason || 'Unknown'}` || 'Error'}
               style={{ marginBottom: 16 }}
             >
               {condition.message}
@@ -93,18 +99,20 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
         <Stack hasGutter>
           <StackItem>
             <Stack hasGutter>
-              {statusConditions?.map(([containerStatus, condition], index) => (
-                <StackItem key={`${condition.type}-${index}`}>
-                  <Flex>
-                    <FlexItem>
-                      <PipelineComponentStatusIcon status={containerStatus} />
-                    </FlexItem>
-                    <FlexItem>
-                      <Content>{condition.type}</Content>
-                    </FlexItem>
-                  </Flex>
-                </StackItem>
-              ))}
+              {statusConditions?.map(
+                ([containerStatus, humanReadableCondition, condition], index) => (
+                  <StackItem key={`${condition.type}-${index}`}>
+                    <Flex>
+                      <FlexItem>
+                        <PipelineComponentStatusIcon status={containerStatus} />
+                      </FlexItem>
+                      <FlexItem>
+                        <Content>{humanReadableCondition}</Content>
+                      </FlexItem>
+                    </Flex>
+                  </StackItem>
+                ),
+              )}
             </Stack>
           </StackItem>
           <StackItem />
@@ -147,8 +155,8 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
 
   const errorDesc = (
     <Content data-testid="errorDescription">
-      We encountered an error creating your pipeline server. Close this modal to see further
-      instructions.
+      Pipeline server creation failed. Delete the server below to retry now, or close this window to
+      view more details and delete it later.
     </Content>
   );
 
@@ -202,7 +210,10 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
         </Stack>
       </ModalBody>
       <ModalFooter>
-        <Button variant="primary" onClick={onClose}>
+        <Button variant="primary" onClick={onDelete} data-testid="pipeline-delete-from-modal">
+          Delete pipeline server
+        </Button>
+        <Button variant="link" onClick={onClose} data-testid="pipeline-close-status-modal">
           Close
         </Button>
       </ModalFooter>

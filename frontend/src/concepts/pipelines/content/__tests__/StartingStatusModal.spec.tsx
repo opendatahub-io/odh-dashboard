@@ -78,6 +78,7 @@ const mockUseWatchAllPodEventsAndFilter = jest.mocked(useWatchAllPodEventsAndFil
 
 describe('StartingStatusModal', () => {
   const mockOnClose = jest.fn();
+  const mockOnDelete = jest.fn();
 
   const createMockConditions = (conditions: K8sCondition[]) => ({
     pipelinesServer: {
@@ -118,7 +119,7 @@ describe('StartingStatusModal', () => {
     // Set up default mock for usePipelinesAPI
     mockUsePipelinesAPI.mockReturnValue(
       createMockConditions([
-        { type: 'APIServerReady', status: 'False', message: 'API server not ready' },
+        { type: 'ApiServerReady', status: 'False', message: 'API server not ready' },
         { type: 'Ready', status: 'False', message: 'Server not ready' },
       ]),
     );
@@ -143,7 +144,7 @@ describe('StartingStatusModal', () => {
       ]),
     );
 
-    render(<StartingStatusModal onClose={mockOnClose} />);
+    render(<StartingStatusModal onClose={mockOnClose} onDelete={mockOnDelete} />);
 
     expect(screen.getByText('Initializing Pipeline Server')).toBeInTheDocument();
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
@@ -163,7 +164,7 @@ describe('StartingStatusModal', () => {
       ]),
     );
 
-    render(<StartingStatusModal onClose={mockOnClose} />);
+    render(<StartingStatusModal onClose={mockOnClose} onDelete={mockOnDelete} />);
 
     expect(screen.getByTestId('inProgressDescription')).toBeInTheDocument();
   });
@@ -184,11 +185,14 @@ describe('StartingStatusModal', () => {
       ]),
     );
 
-    render(<StartingStatusModal onClose={mockOnClose} />);
+    render(<StartingStatusModal onClose={mockOnClose} onDelete={mockOnDelete} />);
 
+    const errorText =
+      'Pipeline server creation failed. Delete the server below to retry now, or close this window to view more details and delete it later.';
     // Should show error alert
     expect(screen.getByTestId('error-0')).toBeInTheDocument();
-    expect(screen.getByText('APIServerReady - ComponentDeploymentNotFound')).toBeInTheDocument();
+    expect(screen.getByText('Start API server - ComponentDeploymentNotFound')).toBeInTheDocument();
+    expect(screen.getByTestId('errorDescription')).toHaveTextContent(errorText);
     expect(screen.getByText('API server not ready yet')).toBeInTheDocument();
   });
 
@@ -206,7 +210,7 @@ describe('StartingStatusModal', () => {
       ]),
     );
 
-    render(<StartingStatusModal onClose={mockOnClose} />);
+    render(<StartingStatusModal onClose={mockOnClose} onDelete={mockOnDelete} />);
     expect(screen.getByTestId('successDescription')).toBeInTheDocument();
   });
 
@@ -217,16 +221,17 @@ describe('StartingStatusModal', () => {
     ];
     mockUsePipelinesAPI.mockReturnValue(createMockConditions(conditions));
 
-    render(<StartingStatusModal onClose={mockOnClose} />);
+    render(<StartingStatusModal onClose={mockOnClose} onDelete={mockOnDelete} />);
 
+    const humanReadableConditions = ['Start API server', 'Start pipeline Server'];
     // Progress tab is the default tab, so conditions should be visible
-    conditions.forEach((condition) => {
-      expect(screen.getByText(condition.type)).toBeInTheDocument();
+    humanReadableConditions.forEach((condition) => {
+      expect(screen.getByText(condition)).toBeInTheDocument();
     });
   });
 
   it('should display events in the events log tab', () => {
-    render(<StartingStatusModal onClose={mockOnClose} />);
+    render(<StartingStatusModal onClose={mockOnClose} onDelete={mockOnDelete} />);
 
     // Switch to events log tab
     fireEvent.click(screen.getByText('Events log'));
@@ -245,9 +250,22 @@ describe('StartingStatusModal', () => {
       ]),
     );
 
-    render(<StartingStatusModal onClose={mockOnClose} />);
+    render(<StartingStatusModal onClose={mockOnClose} onDelete={mockOnDelete} />);
 
-    fireEvent.click(screen.getByText('Close'));
+    fireEvent.click(screen.getByTestId('pipeline-close-status-modal'));
     expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it('should call onDelete when delete button is clicked', () => {
+    mockUsePipelinesAPI.mockReturnValue(
+      createMockConditions([
+        { type: 'APIServerReady', status: 'False', message: 'API server not ready' },
+      ]),
+    );
+
+    render(<StartingStatusModal onClose={mockOnClose} onDelete={mockOnDelete} />);
+
+    fireEvent.click(screen.getByTestId('pipeline-delete-from-modal'));
+    expect(mockOnDelete).toHaveBeenCalled();
   });
 });
