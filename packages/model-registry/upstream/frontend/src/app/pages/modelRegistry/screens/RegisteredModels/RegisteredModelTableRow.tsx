@@ -166,7 +166,7 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
         {latestModelVersion && !isArchiveRow ? (
           <DeployModalExtension
             mv={latestModelVersion}
-            render={(buttonState: { enabled: any; tooltip: any; }, onOpenModal: any, isModalAvailable: any) =>
+            render={(buttonState, onOpenModal, isModalAvailable) =>
               isModalAvailable ? (
                 <ActionsColumn
                   items={[

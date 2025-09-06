@@ -3,19 +3,17 @@ import {
   Dropdown,
   DropdownList,
   MenuToggle,
-  DropdownItem,
   ButtonVariant,
   ActionList,
   ActionListGroup,
   ActionListItem,
 } from '@patternfly/react-core';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import { ModelState, ModelVersion, ModelArtifactList } from '~/app/types';
 import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { ArchiveModelVersionModal } from '~/app/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
 import { modelVersionListUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
-import { useDeploymentsState } from '~/odh/hooks/useDeploymentsState';
 import ArchiveButtonDropdownItem from '~/odh/components/ArchiveButtonDropdownItem';
 
 interface ModelVersionsDetailsHeaderActionsProps {
@@ -26,13 +24,7 @@ interface ModelVersionsDetailsHeaderActionsProps {
 
 const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActionsProps> = ({
   mv,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  refresh,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  modelArtifacts,
 }) => {
-  const { deployments } = useDeploymentsState();
-  const hasDeployment = deployments && deployments.length > 0;
   const { apiState } = React.useContext(ModelRegistryContext);
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const navigate = useNavigate();

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
@@ -62,7 +62,7 @@ const ModelVersionsContent: React.FC<ModelVersionsProps> = ({ tab, ...pageProps 
         </Breadcrumb>
       }
       title={rm?.name}
-      headerAction={rm && <ModelVersionsHeaderActions hasDeployments={false} rm={rm} latestModelVersion={latestModelVersion} />}
+      headerAction={rm && <ModelVersionsHeaderActions rm={rm} latestModelVersion={latestModelVersion} />}
       loadError={loadError}
       loaded={loaded}
       provideChildrenPadding
