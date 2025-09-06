@@ -4,12 +4,14 @@ import type {
   ModelRegistryDeployModalExtension,
   ModelRegistryVersionDeploymentsContextExtension,
   ModelRegistryVersionDetailsTabExtension,
+  ModelRegistryTableColumnExtension,
 } from '@mf/modelRegistry/extension-points';
 
 const extensions: (
   | ModelRegistryDeployModalExtension
   | ModelRegistryVersionDetailsTabExtension
   | ModelRegistryVersionDeploymentsContextExtension
+  | ModelRegistryTableColumnExtension
 )[] = [
   {
     type: 'model-registry.model-version/deploy-modal',
@@ -41,6 +43,16 @@ const extensions: (
     properties: {
       DeploymentsProvider: () =>
         import('../modelRegistry/DeploymentsContextProvider').then((m) => m.default),
+    },
+    flags: {
+      required: [SupportedArea.MODEL_SERVING],
+    },
+  },
+  {
+    type: 'model-registry.registered-models/table-column',
+    properties: {
+      column: () =>
+        import('../modelRegistry/DeploymentsColumn').then((m) => m.createDeploymentsColumn),
     },
     flags: {
       required: [SupportedArea.MODEL_SERVING],
