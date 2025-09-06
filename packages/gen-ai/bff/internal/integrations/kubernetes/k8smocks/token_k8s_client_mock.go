@@ -69,9 +69,20 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 			Version:        "v2025.1",
 			Description:    "A high-performance computer vision model for object detection and classification",
 			Usecase:        "Computer Vision",
-			Endpoints: []string{
-				"internal: http://mock-model-1.namespace.svc.cluster.local:8080",
-				"external: https://mock-model-1.example.com",
+			Endpoints: []genaiassets.Endpoint{
+				{
+					Internal: &genaiassets.InternalEndpoint{
+						URL: "http://mock-model-1.namespace.svc.cluster.local:8080",
+					},
+				},
+				{
+					External: &genaiassets.ExternalEndpoint{
+						URL:                "https://mock-model-1.example.com",
+						APIToken:           "mock-api-token-12345",
+						ServiceAccountName: "mock-model-1-sa",
+						SecretDisplayName:  "Mock Model 1 Secret",
+					},
+				},
 			},
 		},
 		{
@@ -81,8 +92,12 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 			Version:        "v2025.1",
 			Description:    "A natural language processing model for text generation and completion",
 			Usecase:        "Natural Language Processing",
-			Endpoints: []string{
-				"internal: http://mock-model-2.namespace.svc.cluster.local:8080",
+			Endpoints: []genaiassets.Endpoint{
+				{
+					Internal: &genaiassets.InternalEndpoint{
+						URL: "http://mock-model-2.namespace.svc.cluster.local:8080",
+					},
+				},
 			},
 		},
 	}, nil

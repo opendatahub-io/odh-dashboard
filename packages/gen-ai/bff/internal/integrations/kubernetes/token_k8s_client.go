@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"strings"
 	"time"
 
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
@@ -287,23 +286,103 @@ func (kc *TokenKubernetesClient) extractUseCaseFromInferenceService(isvc *kserve
 }
 
 // Helper method to extract endpoints from InferenceService
-func (kc *TokenKubernetesClient) extractEndpoints(isvc *kservev1beta1.InferenceService) []string {
-	endpoints := []string{}
+func (kc *TokenKubernetesClient) extractEndpoints(isvc *kservev1beta1.InferenceService) []genaiassets.Endpoint {
+	endpoints := []genaiassets.Endpoint{}
 
 	// Extract internal endpoint from Address
 	if isvc.Status.Address != nil && isvc.Status.Address.URL != nil {
-		internal := isvc.Status.Address.URL.String()
-		endpoints = append(endpoints, fmt.Sprintf("internal: %s", internal))
+		internalURL := isvc.Status.Address.URL.String()
+		endpoints = append(endpoints, genaiassets.Endpoint{
+			Internal: &genaiassets.InternalEndpoint{
+				URL: internalURL,
+			},
+		})
 	}
 
 	// Extract external endpoint from URL
 	if isvc.Status.URL != nil {
-		external := isvc.Status.URL.String()
-		// Only add if it's different from internal
-		if len(endpoints) == 0 || !strings.Contains(endpoints[0], external) {
-			endpoints = append(endpoints, fmt.Sprintf("external: %s", external))
+		externalURL := isvc.Status.URL.String()
+		// Check if we already have an internal endpoint with the same URL
+		hasInternalWithSameURL := false
+		if len(endpoints) > 0 && endpoints[0].Internal != nil {
+			hasInternalWithSameURL = endpoints[0].Internal.URL == externalURL
+		}
+
+		// Only add external if it's different from internal
+		if !hasInternalWithSameURL {
+			// Find service account and API token for external endpoint
+			apiToken, serviceAccountName, secretDisplayName := kc.findServiceAccountAndToken(isvc)
+
+			endpoints = append(endpoints, genaiassets.Endpoint{
+				External: &genaiassets.ExternalEndpoint{
+					URL:                externalURL,
+					APIToken:           apiToken,
+					ServiceAccountName: serviceAccountName,
+					SecretDisplayName:  secretDisplayName,
+				},
+			})
 		}
 	}
 
 	return endpoints
+}
+
+// findServiceAccountAndToken finds the service account with owner reference to the inference service
+// and retrieves the API token from the associated secret
+func (kc *TokenKubernetesClient) findServiceAccountAndToken(isvc *kservev1beta1.InferenceService) (string, string, string) {
+	ctx := context.Background()
+	namespace := isvc.Namespace
+
+	// List all service accounts in the namespace
+	var serviceAccountList corev1.ServiceAccountList
+	err := kc.Client.List(ctx, &serviceAccountList, client.InNamespace(namespace))
+	if err != nil {
+		kc.Logger.Error("failed to list service accounts", "error", err, "namespace", namespace)
+		return "", "", ""
+	}
+
+	// Find service account with owner reference to this inference service
+	var targetServiceAccount *corev1.ServiceAccount
+	for _, sa := range serviceAccountList.Items {
+		for _, ownerRef := range sa.OwnerReferences {
+			if ownerRef.UID == isvc.UID {
+				targetServiceAccount = &sa
+				break
+			}
+		}
+		if targetServiceAccount != nil {
+			break
+		}
+	}
+
+	if targetServiceAccount == nil {
+		kc.Logger.Warn("no service account found with owner reference to inference service, endpoint may be unprotected", "inferenceService", isvc.Name)
+		return "", "", ""
+	}
+
+	// List all secrets in the cluster
+	var secretList corev1.SecretList
+	err = kc.Client.List(ctx, &secretList)
+	if err != nil {
+		kc.Logger.Error("failed to list secrets", "error", err)
+		return "", targetServiceAccount.Name, ""
+	}
+
+	// Find secret with the service account annotation and correct type
+	for _, secret := range secretList.Items {
+		// Check if secret has the service account annotation
+		if secret.Annotations["kubernetes.io/service-account.name"] == targetServiceAccount.Name &&
+			secret.Type == corev1.SecretTypeServiceAccountToken {
+			// Extract the token from the secret
+			if token, exists := secret.Data["token"]; exists {
+				// Get display name from openshift.io/display-name annotation
+				secretDisplayName := secret.Annotations["openshift.io/display-name"]
+				kc.Logger.Info("found API token for service account", "serviceAccount", targetServiceAccount.Name, "secret", secret.Name, "secretDisplayName", secretDisplayName)
+				return string(token), targetServiceAccount.Name, secretDisplayName
+			}
+		}
+	}
+
+	kc.Logger.Warn("no service account token secret found", "serviceAccount", targetServiceAccount.Name)
+	return "", targetServiceAccount.Name, ""
 }
