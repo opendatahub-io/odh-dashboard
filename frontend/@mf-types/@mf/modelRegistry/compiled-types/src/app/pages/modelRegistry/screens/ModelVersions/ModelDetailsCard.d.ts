@@ -4,6 +4,7 @@ type ModelDetailsCardProps = {
     registeredModel: RegisteredModel;
     refresh: () => void;
     isArchiveModel?: boolean;
+    isExpandable?: boolean;
 };
 declare const ModelDetailsCard: React.FC<ModelDetailsCardProps>;
 export default ModelDetailsCard;

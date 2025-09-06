@@ -4,8 +4,6 @@ import { RoleBindingPermissionsRoleType } from './types';
 type RoleBindingPermissionsTableRowProps = {
     roleBindingObject?: RoleBindingKind;
     subjectKind: RoleBindingSubject['kind'];
-    isEditing: boolean;
-    isAdding: boolean;
     defaultRoleBindingName?: string;
     permissionOptions: {
         type: RoleBindingPermissionsRoleType;
@@ -13,8 +11,10 @@ type RoleBindingPermissionsTableRowProps = {
     }[];
     typeAhead?: string[];
     isProjectSubject?: boolean;
-    onChange: (name: string, roleType: RoleBindingPermissionsRoleType) => void;
-    onCancel: () => void;
+    isEditing?: boolean;
+    isAdding?: boolean;
+    onChange?: (subjectName: string, roleRefName: string) => void;
+    onCancel?: () => void;
     onEdit?: () => void;
     onDelete?: () => void;
 };

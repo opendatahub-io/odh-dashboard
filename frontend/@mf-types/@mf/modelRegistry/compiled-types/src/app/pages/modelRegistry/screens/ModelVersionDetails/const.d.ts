@@ -1,8 +1,6 @@
 export declare enum ModelVersionDetailsTab {
-    DETAILS = "details",
-    DEPLOYMENTS = "deployments"
+    DETAILS = "details"
 }
 export declare enum ModelVersionDetailsTabTitle {
-    DETAILS = "Details",
-    DEPLOYMENTS = "Deployments"
+    DETAILS = "Details"
 }

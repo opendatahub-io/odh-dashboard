@@ -1,4 +1,4 @@
-import { APIOptions } from 'mod-arch-shared';
+import { APIOptions } from 'mod-arch-core';
 import { CreateModelArtifactData, CreateModelVersionData, CreateRegisteredModelData, ModelArtifact, ModelArtifactList, ModelVersionList, ModelVersion, RegisteredModelList, RegisteredModel } from '~/app/types';
 export declare const createRegisteredModel: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, data: CreateRegisteredModelData) => Promise<RegisteredModel>;
 export declare const createModelVersionForRegisteredModel: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, registeredModelId: string, data: CreateModelVersionData, registeredModel: RegisteredModel, isFirstVersion?: boolean) => Promise<ModelVersion>;

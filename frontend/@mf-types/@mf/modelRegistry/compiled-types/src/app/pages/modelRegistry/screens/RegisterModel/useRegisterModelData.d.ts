@@ -1,4 +1,4 @@
-import { GenericObjectState } from 'mod-arch-shared';
+import { GenericObjectState } from 'mod-arch-core';
 import { ModelRegistryCustomProperties } from '~/app/types';
 export declare enum ModelLocationType {
     ObjectStorage = "Object storage",

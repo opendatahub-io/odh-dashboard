@@ -1,7 +1,8 @@
 import * as React from 'react';
-import { RegisteredModel } from '~/app/types';
+import { ModelVersion, RegisteredModel } from '~/app/types';
 type RegisteredModelTableRowProps = {
     registeredModel: RegisteredModel;
+    latestModelVersion: ModelVersion | undefined;
     isArchiveRow?: boolean;
     hasDeploys?: boolean;
     refresh: () => void;
