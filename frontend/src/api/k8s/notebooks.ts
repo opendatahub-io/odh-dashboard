@@ -54,6 +54,7 @@ export const assembleNotebook = (
       selectedAcceleratorProfile,
       selectedHardwareProfile,
     },
+    connections,
   } = data;
   const dashboardNamespace = data.dashboardNamespace ?? '';
   const {
@@ -114,6 +115,10 @@ export const assembleNotebook = (
     };
   }
 
+  const connectionsAnnotation = connections
+    ?.map((connection) => `${connection.metadata.namespace}/${connection.metadata.name}`)
+    .join(',');
+
   const resource: NotebookKind = {
     apiVersion: 'kubeflow.org/v1',
     kind: 'Notebook',
@@ -144,6 +149,7 @@ export const assembleNotebook = (
             : '',
         'notebooks.opendatahub.io/last-image-version-git-commit-selection':
           image.imageVersion?.annotations?.['opendatahub.io/notebook-build-commit'] ?? '',
+        'opendatahub.io/connections': connectionsAnnotation ?? '',
       },
       name: notebookId,
       namespace: projectName,
