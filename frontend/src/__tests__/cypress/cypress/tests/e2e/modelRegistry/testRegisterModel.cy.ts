@@ -20,23 +20,30 @@ import {
   createModelRegistryViaYAML,
   deleteModelRegistry,
   deleteModelRegistryDatabase,
+  ensureOperatorMemoryLimit,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
-import { loadRegisterModelFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
+import { loadModelRegistryFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
-import type { RegisterModelTestData } from '#~/__tests__/cypress/cypress/types';
+import type { ModelRegistryTestData } from '#~/__tests__/cypress/cypress/types';
 
 describe('Verify models can be registered in a model registry', () => {
-  let testData: RegisterModelTestData;
+  let testData: ModelRegistryTestData;
   let registryName: string;
   let objectStorageModelName: string;
+  let deploymentName: string;
   const uuid = generateTestUUID();
 
   before(() => {
     cy.step('Load test data from fixture');
-    loadRegisterModelFixture('e2e/modelRegistry/testRegisterModel.yaml').then((fixtureData) => {
+    loadModelRegistryFixture('e2e/modelRegistry/testModelRegistry.yaml').then((fixtureData) => {
       testData = fixtureData;
       registryName = `${testData.registryNamePrefix}-${uuid}`;
       objectStorageModelName = `${testData.objectStorageModelName}-${uuid}`;
+      deploymentName = testData.operatorDeploymentName;
+
+      // ensure operator has optimal memory
+      cy.step('Ensure operator has optimal memory for testing');
+      ensureOperatorMemoryLimit(deploymentName).should('be.true');
 
       // create and verify SQL database for the model registry
       cy.step('Create and verify SQL database for model registry');
