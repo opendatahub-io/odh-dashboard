@@ -17,6 +17,8 @@ import {
   getLineageData,
   getSavedDatasets,
   getDataSetByName,
+  getDataSources,
+  getDataSourceByName,
 } from '../api/custom';
 import { FeatureStoreAPIs } from '../types/global';
 
@@ -42,6 +44,8 @@ const useFeatureStoreAPIState = (
       getLineageData: getLineageData(path),
       getSavedDatasets: getSavedDatasets(path),
       getDataSetByName: getDataSetByName(path),
+      getDataSources: getDataSources(path),
+      getDataSourceByName: getDataSourceByName(path),
     }),
     [],
   );

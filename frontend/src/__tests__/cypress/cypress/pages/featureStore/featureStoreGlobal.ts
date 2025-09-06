@@ -26,6 +26,15 @@ class FeatureStoreGlobal {
     this.waitForEntities();
   }
 
+  visitDataSources(project?: string) {
+    cy.visitWithLogin(
+      `/featureStore/dataSources${
+        project ? `/${project}` : ''
+      }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+    );
+    this.waitForDataSources();
+  }
+
   visitFeatures(project?: string) {
     const projectName = project;
     cy.visitWithLogin(
@@ -143,6 +152,11 @@ class FeatureStoreGlobal {
 
   private waitForFeatureServiceDetails(serviceName: string) {
     cy.findByTestId('app-page-title').should('have.text', serviceName);
+    cy.testA11y();
+  }
+
+  private waitForDataSources() {
+    cy.findByTestId('app-page-title').should('have.text', 'Data Sources');
     cy.testA11y();
   }
 
