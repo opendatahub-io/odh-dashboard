@@ -2,6 +2,8 @@ package repositories
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
@@ -56,4 +58,22 @@ func (r *LlamaStackDistributionRepository) GetLlamaStackDistributionStatus(
 	}
 
 	return lsdModel, nil
+}
+
+func (r *LlamaStackDistributionRepository) InstallLlamaStackDistribution(
+	client kubernetes.KubernetesClientInterface,
+	ctx context.Context,
+	identity *integrations.RequestIdentity,
+	namespace string,
+	modelName string,
+) (*models.LlamaStackDistributionInstallModel, error) {
+	lsd, err := client.InstallLlamaStackDistribution(ctx, identity, namespace, modelName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.LlamaStackDistributionInstallModel{
+		Name:       lsd.Name,
+		HTTPStatus: fmt.Sprintf("%d", http.StatusOK),
+	}, nil
 }

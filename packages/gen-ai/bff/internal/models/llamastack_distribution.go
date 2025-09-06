@@ -19,3 +19,13 @@ type ErrorResponse struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
+
+type LlamaStackDistributionInstallResponse struct {
+	Data  *LlamaStackDistributionInstallModel `json:"data,omitempty"`
+	Error *ErrorResponse                      `json:"error,omitempty"`
+}
+
+type LlamaStackDistributionInstallModel struct {
+	Name       string `json:"name"`
+	HTTPStatus string `json:"http_status"`
+}

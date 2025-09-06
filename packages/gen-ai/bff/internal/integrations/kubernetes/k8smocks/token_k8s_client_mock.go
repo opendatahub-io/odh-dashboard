@@ -8,6 +8,7 @@ import (
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models/genaiassets"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -136,6 +137,82 @@ func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Conte
 							"mock-distribution": "mock-image:latest",
 						},
 					},
+				},
+			},
+		},
+	}, nil
+}
+
+// InstallLlamaStackDistribution returns a mock LSD installation for testing
+func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelName string) (*lsdapi.LlamaStackDistribution, error) {
+	// Return a mock LlamaStackDistribution for testing
+	return &lsdapi.LlamaStackDistribution{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "lsd-gen-ai-playground",
+			Namespace: namespace,
+		},
+		Spec: lsdapi.LlamaStackDistributionSpec{
+			Replicas: 1,
+			Server: lsdapi.ServerSpec{
+				Distribution: lsdapi.DistributionType{
+					Name: "rh-dev",
+				},
+				ContainerSpec: lsdapi.ContainerSpec{
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							"cpu":    resource.MustParse("250m"),
+							"memory": resource.MustParse("500Mi"),
+						},
+						Limits: corev1.ResourceList{
+							"cpu":    resource.MustParse("2"),
+							"memory": resource.MustParse("12Gi"),
+						},
+					},
+					Env: []corev1.EnvVar{
+						{
+							Name:  "INFERENCE_MODEL",
+							Value: modelName,
+						},
+						{
+							Name:  "VLLM_MAX_TOKENS",
+							Value: "4096",
+						},
+						{
+							Name:  "VLLM_URL",
+							Value: "http://mock-inference-service.namespace.svc.cluster.local:8080/v1",
+						},
+						{
+							Name:  "VLLM_TLS_VERIFY",
+							Value: "false",
+						},
+						{
+							Name:  "MILVUS_DB_PATH",
+							Value: "~/.llama/milvus.db",
+						},
+						{
+							Name:  "FMS_ORCHESTRATOR_URL",
+							Value: "http://localhost",
+						},
+					},
+				},
+			},
+		},
+		Status: lsdapi.LlamaStackDistributionStatus{
+			Phase: lsdapi.LlamaStackDistributionPhaseReady,
+			Version: lsdapi.VersionInfo{
+				LlamaStackServerVersion: "v0.2.0",
+			},
+			DistributionConfig: lsdapi.DistributionConfig{
+				ActiveDistribution: "rh-dev",
+				Providers: []lsdapi.ProviderInfo{
+					{
+						ProviderID:   "mock-provider",
+						ProviderType: "mock-type",
+						API:          "mock-api",
+					},
+				},
+				AvailableDistributions: map[string]string{
+					"rh-dev": "mock-image:latest",
 				},
 			},
 		},
