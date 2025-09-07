@@ -17,12 +17,10 @@ import ArchiveButtonDropdownItem from '~/odh/components/ArchiveButtonDropdownIte
 
 interface ModelVersionsHeaderActionsProps {
   rm: RegisteredModel;
-  hasDeployments?: boolean;
 }
 
 const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
   rm,
-  hasDeployments = false,
 }) => {
   const { apiState } = React.useContext(ModelRegistryContext);
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);

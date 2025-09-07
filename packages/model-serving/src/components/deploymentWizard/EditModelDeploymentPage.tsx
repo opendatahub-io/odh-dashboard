@@ -15,7 +15,8 @@ import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { setupDefaults } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
 import { ModelDeploymentWizardData } from './useDeploymentWizard';
-import { Deployment, isModelServingDeploymentResourcesExtension } from '../../../extension-points';
+import { getModelTypeFromDeployment } from './utils';
+import { Deployment, isModelServingDeploymentFormDataExtension } from '../../../extension-points';
 import {
   ModelDeploymentsContext,
   ModelDeploymentsProvider,
@@ -101,21 +102,17 @@ const EditModelDeploymentContent: React.FC<{ project: ProjectKind }> = ({ projec
     return deployments?.find((d: Deployment) => d.model.metadata.name === deploymentName);
   }, [deployments, deploymentName]);
 
-  const [
-    extractHWProfileExtension,
-    extractHWProfileExtensionLoaded,
-    extractHWProfileExtensionErrors,
-  ] = useResolvedDeploymentExtension(
-    isModelServingDeploymentResourcesExtension,
-    existingDeployment,
-  );
+  const [formDataExtension, formDataExtensionLoaded, formDataExtensionErrors] =
+    useResolvedDeploymentExtension(isModelServingDeploymentFormDataExtension, existingDeployment);
 
   const extractFormDataFromDeployment: (deployment: Deployment) => ModelDeploymentWizardData = (
     deployment: Deployment,
   ) => ({
+    modelTypeField: getModelTypeFromDeployment(deployment),
     k8sNameDesc: setupDefaults({ initialData: deployment.model }),
     hardwareProfile:
-      extractHWProfileExtension?.properties.extractHardwareProfileConfig(deployment) ?? undefined,
+      formDataExtension?.properties.extractHardwareProfileConfig(deployment) ?? undefined,
+    modelFormat: formDataExtension?.properties.extractModelFormat(deployment) ?? undefined,
   });
 
   const formData = React.useMemo(() => {
@@ -125,11 +122,11 @@ const EditModelDeploymentContent: React.FC<{ project: ProjectKind }> = ({ projec
     return undefined;
   }, [existingDeployment, extractFormDataFromDeployment]);
 
-  if (extractHWProfileExtensionErrors.length > 0) {
-    return <ErrorContent error={new Error('Unable to extract hardware profile config')} />;
+  if (formDataExtensionErrors.length > 0) {
+    return <ErrorContent error={formDataExtensionErrors[0]} />;
   }
 
-  if (!deploymentsLoaded || !extractHWProfileExtensionLoaded) {
+  if (!deploymentsLoaded || !formDataExtensionLoaded) {
     return (
       <Bullseye>
         <Spinner />
