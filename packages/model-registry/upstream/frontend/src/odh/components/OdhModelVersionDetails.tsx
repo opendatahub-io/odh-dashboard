@@ -10,21 +10,23 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
-import useRegisteredModelById from '~/app/hooks/useRegisteredModelById';
-import useModelVersionById from '~/app/hooks/useModelVersionById';
-import useModelArtifactsByVersionId from '~/app/hooks/useModelArtifactsByVersionId';
-import { ModelState } from '~/app/types';
+import { ModelRegistrySelectorContext } from '../../app/context/ModelRegistrySelectorContext';
+import { KnownLabels } from '../k8sTypes';
+import useRegisteredModelById from '../../app/hooks/useRegisteredModelById';
+import useModelVersionById from '../../app/hooks/useModelVersionById';
+import useModelArtifactsByVersionId from '../../app/hooks/useModelArtifactsByVersionId';
+import { ModelState } from '../../app/types';
 import {
   archiveModelVersionDetailsUrl,
   modelVersionArchiveDetailsUrl,
   modelVersionUrl,
   registeredModelUrl,
-} from '~/app/pages/modelRegistry/screens/routeUtils';
-import ModelVersionSelector from './ModelVersionSelector';
-import ModelVersionDetailsTabs from './ModelVersionDetailsTabs';
-import ModelVersionsDetailsHeaderActions from './ModelVersionDetailsHeaderActions';
-import { MRDeployButton } from '~/odh/components/MRDeployButton';
+} from '../../app/pages/modelRegistry/screens/routeUtils';
+import ModelVersionSelector from '../../app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionSelector';
+import ModelVersionDetailsTabs from '../../app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
+import ModelVersionsDetailsHeaderActions from '../../app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsHeaderActions';
+import { MRDeployButton } from './MRDeployButton';
+import { MRDeploymentsContextProvider } from './MRDeploymentsContextProvider';
 
 type ModelVersionsDetailProps = {
   tab: string;
@@ -33,7 +35,7 @@ type ModelVersionsDetailProps = {
   'breadcrumb' | 'title' | 'description' | 'loadError' | 'loaded' | 'provideChildrenPadding'
 >;
 
-const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...pageProps }) => {
+const ModelVersionsDetailsContent: React.FC<ModelVersionsDetailProps> = ({ tab, ...pageProps }) => {
   const navigate = useNavigate();
 
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
@@ -139,6 +141,25 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
         />
       )}
     </ApplicationsPage>
+  );
+};
+
+const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = (props) => {
+  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const { modelVersionId: mvId, registeredModelId: rmId } = useParams();
+  
+  const labelSelectors = React.useMemo(() => {
+    if (!mvId || !rmId) return undefined;
+    return {
+      [KnownLabels.MODEL_VERSION_ID]: mvId,
+      [KnownLabels.REGISTERED_MODEL_ID]: rmId,
+    };
+  }, [mvId, rmId]);
+  
+  return (
+    <MRDeploymentsContextProvider labelSelectors={labelSelectors} mrName={preferredModelRegistry?.name}>
+      <ModelVersionsDetailsContent {...props} />
+    </MRDeploymentsContextProvider>
   );
 };
 
