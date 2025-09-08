@@ -121,8 +121,15 @@ if ! command -v go >/dev/null 2>&1; then
 fi
 log_success "Go found: $(go version)"
 
-log_info "Starting Mock BFF server..."
+log_info "Building Mock BFF server..."
 pushd "$BFF_DIR" >/dev/null
+
+# Build the BFF binary (downloads dependencies once during build)
+if ! go build -o bff-mock ./cmd; then
+  log_error "Failed to build BFF server"
+  exit 1
+fi
+log_success "BFF server built successfully"
 
 # Provision envtest assets if setup helper missing
 if [[ -z "${KUBEBUILDER_ASSETS:-}" ]]; then
@@ -149,7 +156,7 @@ if [[ -z "${KUBEBUILDER_ASSETS:-}" ]]; then
   fi
 fi
 
-BFF_LOG_FILE="$RESULTS_DIR/bff.log"
+BFF_LOG_FILE="$RESULTS_DIR/bff-mock.log"
 # Use dynamic port to avoid conflicts in parallel execution
 if [[ -z "$PORT" ]]; then
   # Find an available port starting from 8080
@@ -160,7 +167,7 @@ if [[ -z "$PORT" ]]; then
 fi
 
 log_info "Starting Mock BFF server on port $PORT..."
-go run ./cmd --mock-k8s-client --mock-mr-client --port "$PORT" --allowed-origins="*" > "$BFF_LOG_FILE" 2>&1 &
+./bff-mock --mock-k8s-client --mock-mr-client --port "$PORT" --allowed-origins="*" > "$BFF_LOG_FILE" 2>&1 &
 BFF_PID=$!
 echo "$BFF_PID" > "$RESULTS_DIR/bff.pid"
 log_info "Mock BFF started (PID: $BFF_PID)"
@@ -173,6 +180,10 @@ cleanup() {
     kill "$BFF_PID" 2>/dev/null || true
     sleep 2
     kill -9 "$BFF_PID" 2>/dev/null || true
+  fi
+  # Clean up the built binary
+  if [[ -f "$BFF_DIR/bff-mock" ]]; then
+    rm -f "$BFF_DIR/bff-mock"
   fi
 }
 trap cleanup EXIT INT TERM
