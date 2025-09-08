@@ -26,14 +26,8 @@ const getProxyHeaders = () => {
   }
   if (AUTH_METHOD === 'user_token') {
     try {
-      const token = execSync(
-        "kubectl config view --raw --minify --flatten -o jsonpath='{.users[].user.token}'",
-      )
-        .toString()
-        .trim();
-      const username = execSync("kubectl auth whoami -o jsonpath='{.status.userInfo.username}'")
-        .toString()
-        .trim();
+      const token = execSync('oc whoami --show-token').toString().trim();
+      const username = execSync('oc whoami').toString().trim();
       // eslint-disable-next-line no-console
       console.info('Logged in as user:', username);
       return {
