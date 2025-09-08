@@ -131,6 +131,8 @@ const extensions: (
       extractEnvironmentVariables: () =>
         import('./src/hardware').then((m) => m.extractEnvironmentVariables),
       extractAiAssetData: () => import('./src/aiAssets').then((m) => m.extractAiAssetData),
+      extractModelLocationData: () =>
+        import('./src/modelLocationData').then((m) => m.extractKServeModelLocationData),
     },
   },
   {

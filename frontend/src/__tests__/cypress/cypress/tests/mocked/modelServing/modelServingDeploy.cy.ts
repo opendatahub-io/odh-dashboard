@@ -760,8 +760,8 @@ describe('Model Serving Deploy Wizard', () => {
               memory: '16Gi',
             },
           },
+          storageUri: 'https://test',
         }),
-        mockInferenceServiceK8sResource({ storageUri: 'https://test' }),
       ]),
     );
     cy.interceptK8sList(

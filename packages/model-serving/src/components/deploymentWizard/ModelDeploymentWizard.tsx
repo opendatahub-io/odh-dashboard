@@ -4,6 +4,12 @@ import { Wizard, WizardStep } from '@patternfly/react-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
+import {
+  Connection,
+  ConnectionTypeConfigMapObj,
+} from '@odh-dashboard/internal/concepts/connectionTypes/types';
+import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
+import { getConnectionTypeRef } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { getDeploymentWizardExitRoute } from './utils';
 import { useModelDeploymentWizard, type ModelDeploymentWizardData } from './useDeploymentWizard';
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
@@ -11,6 +17,7 @@ import { ModelSourceStepContent } from './steps/ModelSourceStep';
 import { WizardFooterWithDisablingNext } from './WizardFooterWithDisablingNext';
 import { AdvancedSettingsStepContent } from './steps/AdvancedOptionsStep';
 import { ModelDeploymentStepContent } from './steps/ModelDeploymentStep';
+import { ModelLocationType } from './fields/modelLocationFields/types';
 import { isModelServingDeploy } from '../../../extension-points';
 import { useResolvedPlatformExtension } from '../../concepts/extensionUtils';
 import { ModelServingPlatform } from '../../concepts/useProjectServingPlatform';
@@ -22,6 +29,10 @@ type ModelDeploymentWizardProps = {
   existingData?: ModelDeploymentWizardData;
   project: ProjectKind;
   modelServingPlatform: ModelServingPlatform;
+  connections: Connection[];
+  selectedConnection: Connection | undefined;
+  connectionTypes: ConnectionTypeConfigMapObj[];
+  setSelectedConnection: (connection: Connection | undefined) => void;
 };
 
 const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
@@ -31,6 +42,10 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   existingData,
   project,
   modelServingPlatform,
+  connections,
+  selectedConnection,
+  connectionTypes,
+  setSelectedConnection,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -101,6 +116,25 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     validation.isModelDeploymentStepValid,
   ]);
 
+  const updateSelectedConnection = React.useCallback(
+    (connection: Connection | undefined) => {
+      const connectionTypeRef = getConnectionTypeRef(connection);
+      const selectedConnectionType = connectionTypes.find(
+        (ct) => ct.metadata.name === connectionTypeRef,
+      );
+      if (connection && selectedConnectionType) {
+        setSelectedConnection(connection);
+        wizardState.state.modelLocationData.setData({
+          type: ModelLocationType.EXISTING,
+          connectionTypeObject: selectedConnectionType,
+          connection: getResourceNameFromK8sResource(connection),
+          fieldValues: {},
+          additionalFields: {},
+        });
+      }
+    },
+    [wizardState.state.modelLocationData.setData, setSelectedConnection, connectionTypes],
+  );
   return (
     <ApplicationsPage title={title} description={description} loaded empty={false}>
       <Wizard onClose={exitWizard} onSave={onSave} footer={<WizardFooterWithDisablingNext />}>
@@ -108,7 +142,9 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           <ModelSourceStepContent
             wizardState={wizardState}
             validation={validation.modelSource}
-            connections={wizardState.state.modelLocationData.connections}
+            connections={connections}
+            selectedConnection={selectedConnection}
+            setSelectedConnection={updateSelectedConnection}
           />
         </WizardStep>
         <WizardStep

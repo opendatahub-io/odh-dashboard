@@ -19,12 +19,14 @@ import { NumReplicasFieldData } from '../../model-serving/src/components/deploym
 import { RuntimeArgsFieldData } from '../../model-serving/src/components/deploymentWizard/fields/RuntimeArgsField';
 import { EnvironmentVariablesFieldData } from '../../model-serving/src/components/deploymentWizard/fields/EnvironmentVariablesField';
 import { AvailableAiAssetsFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/AvailableAiAssetsFields';
+import { ModelLocationData } from '../../model-serving/src/components/deploymentWizard/fields/modelLocationFields/types';
 
 export type CreatingInferenceServiceObject = {
   project: string;
   name: string;
   k8sName: string;
   description: string;
+  modelLocationData?: ModelLocationData;
   modelType: ServingRuntimeModelType;
   hardwareProfile: HardwareProfileConfig;
   modelFormat: SupportedModelFormats;
@@ -57,6 +59,7 @@ export const deployKServeDeployment = async (
     name: wizardData.k8sNameDesc.data.name,
     k8sName: wizardData.k8sNameDesc.data.k8sName.value,
     description: wizardData.k8sNameDesc.data.description,
+    modelLocationData: wizardData.modelLocationData.data,
     modelType: wizardData.modelType.data,
     hardwareProfile: wizardData.hardwareProfileConfig.formData,
     modelFormat: wizardData.modelFormatState.modelFormat,

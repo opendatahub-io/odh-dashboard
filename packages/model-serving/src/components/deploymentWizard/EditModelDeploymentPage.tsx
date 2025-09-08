@@ -14,14 +14,17 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { setupDefaults } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import useServingConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections';
+import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
+import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
 import { ModelDeploymentWizardData } from './useDeploymentWizard';
 import {
   getModelTypeFromDeployment,
-  setupModelLocationData,
   getTokenAuthenticationFromDeployment,
   getExternalRouteFromDeployment,
 } from './utils';
+import { ModelLocationType } from './fields/modelLocationFields/types';
 import { Deployment, isModelServingDeploymentFormDataExtension } from '../../../extension-points';
 import {
   ModelDeploymentsContext,
@@ -146,18 +149,55 @@ const EditModelDeploymentContent: React.FC<{
     },
   });
 
-  const formData = React.useMemo(() => {
-    if (existingDeployment) {
-      return extractFormDataFromDeployment(existingDeployment);
+  React.useEffect(() => {
+    const loadData = async () => {
+      if (existingDeployment && formDataExtension) {
+        const modelLocationData = await formDataExtension.properties.extractModelLocationData(
+          existingDeployment,
+          connectionTypes,
+        );
+        setFormData({
+          modelTypeField: getModelTypeFromDeployment(existingDeployment),
+          k8sNameDesc: setupDefaults({ initialData: existingDeployment.model }),
+          hardwareProfile:
+            formDataExtension.properties.extractHardwareProfileConfig(existingDeployment) ??
+            undefined,
+          modelFormat:
+            formDataExtension.properties.extractModelFormat(existingDeployment) ?? undefined,
+          modelLocationData: modelLocationData ?? undefined,
+          externalRoute: getExternalRouteFromDeployment(existingDeployment),
+          tokenAuthentication: getTokenAuthenticationFromDeployment(existingDeployment),
+          AiAssetData:
+            formDataExtension.properties.extractAiAssetData(existingDeployment) ?? undefined,
+        });
+        setDataLoaded(true);
+      }
+    };
+    loadData();
+  }, [existingDeployment, formDataExtension]);
+
+  const initialConnection = React.useMemo(() => {
+    if (connectionsLoaded && formData?.modelLocationData?.type === ModelLocationType.EXISTING) {
+      return connections.find(
+        (c) => getResourceNameFromK8sResource(c) === formData.modelLocationData?.connection,
+      );
     }
     return undefined;
-  }, [existingDeployment, extractFormDataFromDeployment]);
+  }, [connections, connectionsLoaded, formData?.modelLocationData]);
+
+  // Keep track of selected connection separate from form data
+  const [selectedConnection, setSelectedConnection] = React.useState(initialConnection);
+
+  // Update selected connection when initial data changes
+  React.useEffect(() => {
+    setSelectedConnection(initialConnection);
+  }, [initialConnection]);
 
   if (formDataExtensionErrors.length > 0) {
     return <ErrorContent error={formDataExtensionErrors[0]} />;
   }
 
-  if (!deploymentsLoaded || !formDataExtensionLoaded) {
+  if (!deploymentsLoaded || !formDataExtensionLoaded || !connectionsLoaded || !dataLoaded) {
     return (
       <Bullseye>
         <Spinner />
@@ -173,6 +213,10 @@ const EditModelDeploymentContent: React.FC<{
       existingData={formData ? { ...formData, isEditing: true } : { isEditing: true }}
       project={project}
       modelServingPlatform={modelServingPlatform}
+      connections={connections}
+      selectedConnection={selectedConnection}
+      connectionTypes={connectionTypes}
+      setSelectedConnection={setSelectedConnection}
     />
   );
 };
