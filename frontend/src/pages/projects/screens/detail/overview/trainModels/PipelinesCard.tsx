@@ -74,7 +74,7 @@ const PipelinesCard: React.FC = () => {
     }
 
     return (
-      <EnsureAPIAvailability>
+      <EnsureAPIAvailability inTab>
         <EnsureCompatiblePipelineServer emptyStateVariant={EmptyStateVariant.xs}>
           <PipelinesCardMetrics />
         </EnsureCompatiblePipelineServer>

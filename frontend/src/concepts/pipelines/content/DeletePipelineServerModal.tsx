@@ -2,16 +2,20 @@ import * as React from 'react';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { deleteServer } from '#~/concepts/pipelines/utils';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
+import { getPipelineServerName } from '#~/concepts/pipelines/context/PipelinesContext';
 
 type DeletePipelineServerModalProps = {
   onClose: (deleted: boolean) => void;
+  removeConfirmation?: boolean;
 };
 
 const eventName = 'Pipeline Server Deleted';
-const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({ onClose }) => {
+const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({
+  onClose,
+  removeConfirmation = false,
+}) => {
   const [deleting, setDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const { project, namespace, pipelinesServer } = usePipelinesAPI();
@@ -20,12 +24,15 @@ const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({ o
     onClose(deleted);
   };
 
-  const deleteName = `${getDisplayNameFromK8sResource(project)} pipeline server`;
+  const deleteName = getPipelineServerName(project);
 
   return (
     <DeleteModal
+      removeConfirmation={removeConfirmation}
       title="Delete pipeline server?"
-      onClose={() => onBeforeClose(false)}
+      onClose={() => {
+        onBeforeClose(false);
+      }}
       deleting={deleting}
       error={error}
       onDelete={() => {
@@ -48,7 +55,7 @@ const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({ o
             });
           });
       }}
-      submitButtonLabel="Delete pipeline server"
+      submitButtonLabel="Delete"
       deleteName={deleteName}
     >
       The <b>{deleteName}</b> and all of its pipelines and runs will be deleted from{' '}
