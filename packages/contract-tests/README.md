@@ -6,6 +6,7 @@ API contract by checking real HTTP responses against OpenAPI/JSON Schemas.
 
 ## Quick Start
 
+### Option 1: All-in-one Script (Recommended for CI)
 Run contract tests with one command:
 
 ```bash
@@ -13,7 +14,31 @@ Run contract tests with one command:
 npm run test:contract
 
 # Add this script to your package.json
-# "test:contract": "npm exec -w @odh-dashboard/contract-tests odh-ct-bff-consumer -- --bff-dir $(pwd)/upstream/bff --consumer-dir $(pwd)/contract-tests --package-name <module>"
+# "test:contract": "odh-ct-bff-consumer --bff-dir upstream/bff"
+```
+
+### Option 2: Manual Setup (Recommended for Development)
+For more control during development, you can run the BFF and tests separately:
+
+```bash
+# Terminal 1: Start the Mock BFF manually
+cd packages/your-package/upstream/bff
+go run ./cmd --mock-k8s-client --mock-mr-client --port 8080 --allowed-origins="*"
+
+# Terminal 2: Run Jest contract tests directly
+cd packages/your-package
+CONTRACT_MOCK_BFF_URL=http://localhost:8080 npx jest contract-tests --config=contract-tests/jest.config.js --passWithNoTests
+```
+
+### Option 3: Turbo Orchestration (CI Optimized)
+Use Turbo for intelligent test execution across multiple packages:
+
+```bash
+# Run contract tests for all packages with contract tests
+npx turbo run test:contract
+
+# Run for specific package
+npx turbo run test:contract --filter=@odh-dashboard/model-registry
 ```
 
 ## What You Get
@@ -50,8 +75,7 @@ Add to your package.json:
     "@odh-dashboard/contract-tests": "workspace:*"
   },
   "scripts": {
-    "test:contract": "npm exec -w @odh-dashboard/contract-tests odh-ct-bff-consumer -- --bff-dir $(pwd)/upstream/bff --consumer-dir $(pwd)/contract-tests --package-name <module>",
-    "test:contract:watch": "npm run test:contract"
+    "test:contract": "odh-ct-bff-consumer --bff-dir upstream/bff"
   }
 }
 ```
@@ -127,10 +151,10 @@ describe('Your API Contract Tests', () => {
   const openApiDoc = yaml.load(fs.readFileSync(oasPath, 'utf8'));
 
   it('validates response against OpenAPI', async () => {
-    const res = await api.get('/api/v1/resources', 'list');
-    expect({ status: res.status, data: res.data }).toMatchContract(openApiDoc, {
+    const result = await api.get('/api/v1/resources');
+    expect(result).toMatchContract(openApiDoc, {
       ref: '#/components/responses/ListResponse/content/application/json/schema',
-      expectedStatus: 200,
+      status: 200,
     });
   });
 });
@@ -151,10 +175,10 @@ const oasPath = path.resolve(process.cwd(), 'upstream/api/openapi/openapi.yaml')
 const openApiDoc = yaml.load(fs.readFileSync(oasPath, 'utf8')) || {};
 
 it('validates response with OpenAPI ref', async () => {
-  const res = await api.get('/api/v1/resources', 'list');
-  expect({ status: res.status, data: res.data }).toMatchContract(openApiDoc, {
+  const result = await api.get('/api/v1/resources');
+  expect(result).toMatchContract(openApiDoc, {
     ref: '#/components/responses/ListResponse/content/application/json/schema',
-    expectedStatus: 200,
+    status: 200,
   });
 });
 ```
@@ -172,7 +196,7 @@ const testSchema = createTestSchema({
   200: { content: { 'application/json': { schema: extracted } } },
 }, 'ListResponse');
 
-expect({ status: res.status, data: res.data }).toMatchContract(testSchema.schema, { expectedStatus: 200 });
+expect(result).toMatchContract(testSchema.schema, { status: 200 });
 ```
 
 ### Option 3: Fetch Swagger/OpenAPI at runtime
@@ -181,9 +205,9 @@ const axios = require('axios');
 
 const openApiUrl = process.env.OPENAPI_URL || '';
 const { data: liveOpenApi } = await axios.get(openApiUrl);
-expect({ status: res.status, data: res.data }).toMatchContract(liveOpenApi, {
+expect(result).toMatchContract(liveOpenApi, {
   ref: '#/components/responses/ListResponse/content/application/json/schema',
-  expectedStatus: 200,
+  status: 200,
 });
 ```
 
@@ -252,7 +276,7 @@ describe('API Contract Tests', () => {
   it('should validate health response schema', () => {
     const mockResponse = {
       status: 'healthy',
-      timestamp: '2025-08-29T11:00:00Z',
+      timestamp: new Date().toISOString(),
     };
 
     const validation = schemaValidator.validateResponse(mockResponse, 'HealthResponse');
@@ -306,7 +330,7 @@ jest --config=../../contract-tests/jest.preset.js --testPathPattern=contract-tes
     "@odh-dashboard/contract-tests": "workspace:*"
   },
   "scripts": {
-    "test:contract": "npm exec -w @odh-dashboard/contract-tests odh-ct-bff-consumer -- --bff-dir $(pwd)/upstream/bff --consumer-dir $(pwd)/contract-tests --package-name <module>"
+    "test:contract": "odh-ct-bff-consumer --bff-dir upstream/bff"
   }
 }
 ```
@@ -350,8 +374,8 @@ const schema = {
   required: ['id', 'name', 'status']
 };
 
-expect({ status: result.status, data: result.data }).toMatchContract(schema, {
-  expectedStatus: 200,
+expect(result).toMatchContract(schema, {
+  status: 200,
 });
 ```
 
@@ -365,9 +389,9 @@ const yaml = require('js-yaml');
 const openApiPath = path.resolve(process.cwd(), 'upstream/api/openapi/spec.yaml');
 const openApiDoc = yaml.load(fs.readFileSync(openApiPath, 'utf8'));
 
-expect({ status: result.status, data: result.data }).toMatchContract(openApiDoc, {
+expect(result).toMatchContract(openApiDoc, {
   ref: '#/components/responses/ModelRegistryResponse/content/application/json/schema',
-  expectedStatus: 200,
+  status: 200,
 });
 ```
 

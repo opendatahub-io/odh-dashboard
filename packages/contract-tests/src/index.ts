@@ -1,5 +1,3 @@
-/* eslint-disable no-barrel-files/no-barrel-files */
-
 /// <reference types="jest" />
 
 // Import Jest types (this ensures they're available to consuming packages)
@@ -9,10 +7,10 @@ import './jest.d.ts';
 import { toMatchContract } from './matchers/toMatchContract';
 
 console.log('🔧 Setting up Jest matchers...');
-// eslint-disable-next-line no-undef
 expect.extend({ toMatchContract });
 console.log('✅ Jest matchers setup complete');
 
+/* eslint-disable no-barrel-files/no-barrel-files */
 export { ContractApiClient } from './api-client';
 export { ContractSchemaValidator } from './schema-validator';
 export { verifyBffHealth, waitForBffHealth } from './bff-health';
@@ -31,6 +29,7 @@ export {
   type ValidationResult,
 } from './openapi-validator';
 export { loadOpenAPISchema, createSchemaMatcher } from './schema-helpers';
+/* eslint-enable no-barrel-files/no-barrel-files */
 
 // Export types for TypeScript consumption
 export interface ContractTestMatcher {

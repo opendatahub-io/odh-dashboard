@@ -5,7 +5,6 @@ try {
 } catch (e) {
   // If JS config not found, try TS config
   try {
-    // eslint-disable-next-line import/no-extraneous-dependencies
     require('ts-node/register');
     baseConfig = require('./jest.config.base.ts').default;
   } catch (tsError) {

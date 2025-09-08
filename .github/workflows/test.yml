@@ -12,8 +12,6 @@ on: [push, pull_request]
 env:
   NODE_VERSION: 20.x
   DO_NOT_TRACK: 1
-  CACHE_VERSION: v1  # Increment this when cache structure changes
-  TURBO_VERSION: 1.10.3  # Pin turbo version for cache stability
 
 jobs:
   Setup:
@@ -34,7 +32,7 @@ jobs:
           lookup-only: true
           path: |
             ~/.cache/Cypress
-            **/node_modules
+            ~/.npm
           key: ${{ steps.key.outputs.modules-cache-key }}
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         if: steps.modules-cache.outputs.cache-hit != 'true'
@@ -49,7 +47,7 @@ jobs:
             echo "Error: package-lock.json not found. Please commit the lockfile for deterministic CI installs." >&2
             exit 1
           fi
-          npm ci
+          npm install
 
       - name: Check for uncommitted changes
         run: |
@@ -70,7 +68,7 @@ jobs:
         with:
           path: |
             ~/.cache/Cypress
-            **/node_modules
+            ~/.npm
           key: ${{ needs.Setup.outputs.modules-cache-key }}
       - name: Run type checks
         run: |
@@ -91,7 +89,7 @@ jobs:
         with:
           path: |
             ~/.cache/Cypress
-            **/node_modules
+            ~/.npm
           key: ${{ needs.Setup.outputs.modules-cache-key }}
       - name: Run linting and formatting checks
         run: |
@@ -112,7 +110,7 @@ jobs:
         with:
           path: |
             ~/.cache/Cypress
-            **/node_modules
+            ~/.npm
           key: ${{ needs.Setup.outputs.modules-cache-key }}
       - name: Unit tests with coverage
         run: |
@@ -141,60 +139,36 @@ jobs:
         with:
           path: |
             ~/.cache/Cypress
-            **/node_modules
+            ~/.npm
           key: ${{ needs.Setup.outputs.modules-cache-key }}
-      - name: Find modules with contract tests changed in this PR/commit
-        id: find-modules
+      - name: Run contract tests
         run: |
           set -euo pipefail
-          echo "🔍 Finding modules with contract tests that changed..."
+          echo "🧪 Running contract tests using turbo..."
 
-          # Determine changed files
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...${{ github.sha }})
-          else
-            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD || true)
-          fi
-
-          MODULES_WITH_CONTRACTS=""
-          for module in packages/*/; do
-            module_name=$(basename "$module")
-            # Skip if module didn't change
-            echo "$CHANGED_FILES" | grep -q "^packages/${module_name}/" || continue
-            if [ -d "${module}contract-tests" ] && [ -d "${module}upstream/bff" ]; then
-              echo "Found module with contract tests: $module_name"
-              MODULES_WITH_CONTRACTS="$MODULES_WITH_CONTRACTS $module_name"
+          # Find packages that have both contract-tests and upstream/bff directories
+          CONTRACT_PACKAGES=""
+          for package_dir in packages/*/; do
+            package_name=$(basename "$package_dir")
+            if [ -d "packages/$package_name/contract-tests" ] && [ -d "packages/$package_name/upstream/bff" ]; then
+              CONTRACT_PACKAGES="$CONTRACT_PACKAGES --filter=@odh-dashboard/$package_name"
             fi
           done
-          
-          if [ -n "$MODULES_WITH_CONTRACTS" ]; then
-            echo "modules=$MODULES_WITH_CONTRACTS" >> "$GITHUB_OUTPUT"
-            echo "Found modules: $MODULES_WITH_CONTRACTS"
-          else
-            echo "No modules with contract tests found"
-            echo "modules=" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Run contract tests for modules
-        if: steps.find-modules.outputs.modules != ''
-        run: |
-          set -euo pipefail
-          MODULES="${{ steps.find-modules.outputs.modules }}"
-          
-          for module in $MODULES; do
-            echo "🧪 Running contract tests for $module..."
-            cd "packages/$module"
-            
-            # Run contract tests using the working BFF setup script
-            echo "Running contract tests for $module..."
-            if ../contract-tests/scripts/run-go-bff-consumer.sh --bff-dir upstream/bff --consumer-dir contract-tests --package-name "$module"; then
-              echo "✅ Contract tests completed for $module"
+
+          if [ -n "$CONTRACT_PACKAGES" ]; then
+            echo "Found packages with contract tests: $CONTRACT_PACKAGES"
+            # Use turbo to run contract tests only for packages that have the setup
+            if npx turbo run test:contract $CONTRACT_PACKAGES; then
+              echo "✅ Contract tests completed successfully"
             else
-              echo "❌ Contract tests failed for $module"
+              echo "❌ Contract tests failed"
               exit 1
             fi
-          done
+          else
+            echo "ℹ️  No packages found with contract test setup"
+          fi
       - name: Upload contract test results
-        if: always() && steps.find-modules.outputs.modules != ''
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: contract-test-results
@@ -265,7 +239,7 @@ jobs:
         with:
           path: |
             ~/.cache/Cypress
-            **/node_modules
+            ~/.npm
           key: ${{ needs.Setup.outputs.modules-cache-key }}
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
@@ -296,7 +270,7 @@ jobs:
         with:
           path: |
             ~/.cache/Cypress
-            **/node_modules
+            ~/.npm
           key: ${{ needs.Setup.outputs.modules-cache-key }}
       - name: Restore Cypress build cache
         uses: actions/cache/restore@v4
@@ -352,9 +326,6 @@ jobs:
           if [ -f "${{ github.workspace }}/all-artifacts/unit-coverage/coverage-final.json" ]; then
             cp "${{ github.workspace }}/all-artifacts/unit-coverage/coverage-final.json" "${{ github.workspace }}/coverage/unit-coverage-final.json"
           fi
-          if [ -f "${{ github.workspace }}/all-artifacts/backend-coverage/coverage-final.json" ]; then
-            cp "${{ github.workspace }}/all-artifacts/backend-coverage/coverage-final.json" "${{ github.workspace }}/coverage/backend-coverage-final.json"
-          fi
           find ${{ github.workspace }}/all-artifacts -name "cypress-coverage-*" -type d -print0 | while IFS= read -r -d '' dir; do
             group_name=$(basename "$dir")
             if [ -f "$dir/coverage-final.json" ]; then
@@ -383,9 +354,6 @@ jobs:
           path: ${{ github.workspace }}/coverage/combined-coverage-final.json
       - name: Cleanup interim coverage files
         run: |
-          set -euo pipefail
-          rm -rf ${{ github.workspace }}/coverage/unit-coverage-final.json
-          rm -rf ${{ github.workspace }}/coverage/backend-coverage-final.json
           find ${{ github.workspace }}/coverage -name "*-coverage-final.json" -type f -delete
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4.6.0

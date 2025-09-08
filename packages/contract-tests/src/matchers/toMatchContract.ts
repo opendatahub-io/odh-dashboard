@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any, @typescript-eslint/dot-notation */
-// eslint-disable-next-line import/no-named-as-default
-import Ajv2020 from 'ajv/dist/2020';
+import { default as Ajv2020 } from 'ajv/dist/2020';
 import type { ErrorObject, ValidateFunction } from 'ajv';
 import addFormats from 'ajv-formats';
 

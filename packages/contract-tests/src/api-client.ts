@@ -22,7 +22,7 @@ export class ContractApiClient {
     };
   }
 
-  async get(path: string, testName?: string, config?: AxiosRequestConfig): Promise<ApiTestResult> {
+  async get(path: string, config?: AxiosRequestConfig): Promise<ApiTestResult> {
     const response = await axios.get(`${this.config.baseUrl}${path}`, {
       ...config,
       timeout: this.config.timeout,
@@ -39,12 +39,7 @@ export class ContractApiClient {
     };
   }
 
-  async post(
-    path: string,
-    data: unknown,
-    testName?: string,
-    config?: AxiosRequestConfig,
-  ): Promise<ApiTestResult> {
+  async post(path: string, data: unknown, config?: AxiosRequestConfig): Promise<ApiTestResult> {
     const response = await axios.post(`${this.config.baseUrl}${path}`, data, {
       ...config,
       timeout: this.config.timeout,
@@ -62,12 +57,7 @@ export class ContractApiClient {
     };
   }
 
-  async put(
-    path: string,
-    data: unknown,
-    testName: string,
-    config?: AxiosRequestConfig,
-  ): Promise<ApiTestResult> {
+  async put(path: string, data: unknown, config?: AxiosRequestConfig): Promise<ApiTestResult> {
     const response = await axios.put(`${this.config.baseUrl}${path}`, data, {
       ...config,
       timeout: this.config.timeout,
@@ -85,11 +75,7 @@ export class ContractApiClient {
     };
   }
 
-  async delete(
-    path: string,
-    testName: string,
-    config?: AxiosRequestConfig,
-  ): Promise<ApiTestResult> {
+  async delete(path: string, config?: AxiosRequestConfig): Promise<ApiTestResult> {
     const response = await axios.delete(`${this.config.baseUrl}${path}`, {
       ...config,
       timeout: this.config.timeout,

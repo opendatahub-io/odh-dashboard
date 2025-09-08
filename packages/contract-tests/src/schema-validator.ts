@@ -1,4 +1,3 @@
-/* eslint-disable import/no-extraneous-dependencies */
 import Ajv from 'ajv/dist/2020';
 import addFormats from 'ajv-formats';
 

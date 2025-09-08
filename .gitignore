@@ -30,5 +30,5 @@ jest-coverage
 # Build outputs
 dist
 
-# Contract test results (recursive)
-contract-test-results/
+# Contract test results 
+contract-test-results

@@ -4,14 +4,14 @@ set -euo pipefail
 
 print_help() {
   cat <<'EOF'
-Usage: run-go-bff-consumer.sh --bff-dir <path> --consumer-dir <path> [--package-name <name>]
+Usage: run-go-bff-consumer.sh --bff-dir <path> [--consumer-dir <path>] [--package-name <name>]
 
-Builds and starts a Go BFF in mock mode, waits for readiness, then runs contract
+Starts a Go BFF in mock mode, waits for readiness, then runs contract
 tests for the consumer directory using the shared Jest harness.
 
 Options:
   --bff-dir <path>         Path to the Go BFF project (with Makefile/setup-envtest)
-  --consumer-dir <path>    Path to the consumer contract-tests directory
+  --consumer-dir <path>    Path to the consumer contract-tests directory (defaults to 'contract-tests')
   --package-name <name>    Package label for reports (defaults to consumer dir name)
   -h, --help               Show this help
 EOF
@@ -56,6 +56,7 @@ fi
 BFF_DIR=""
 CONSUMER_DIR=""
 PACKAGE_NAME=""
+PORT=""
 
 require_arg() {
   if [[ $# -lt 2 || -z "$2" || "$2" == -* ]]; then
@@ -83,10 +84,15 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "$BFF_DIR" || -z "$CONSUMER_DIR" ]]; then
-  echo "--bff-dir and --consumer-dir are required"
+if [[ -z "$BFF_DIR" ]]; then
+  echo "--bff-dir is required"
   print_help
   exit 2
+fi
+
+# Set default consumer-dir if not provided
+if [[ -z "$CONSUMER_DIR" ]]; then
+  CONSUMER_DIR="contract-tests"
 fi
 
 BFF_DIR="$(cd "$BFF_DIR" && pwd)"
@@ -115,13 +121,8 @@ if ! command -v go >/dev/null 2>&1; then
 fi
 log_success "Go found: $(go version)"
 
-log_info "Building Mock BFF server..."
+log_info "Starting Mock BFF server..."
 pushd "$BFF_DIR" >/dev/null
-if ! go build -o bff-mock ./cmd; then
-  log_error "Failed to build BFF server"
-  exit 1
-fi
-log_success "BFF server built successfully"
 
 # Provision envtest assets if setup helper missing
 if [[ -z "${KUBEBUILDER_ASSETS:-}" ]]; then
@@ -148,9 +149,18 @@ if [[ -z "${KUBEBUILDER_ASSETS:-}" ]]; then
   fi
 fi
 
-BFF_LOG_FILE="$RESULTS_DIR/bff-mock.log"
-log_info "Starting Mock BFF server on port 8080..."
-./bff-mock --mock-k8s-client --mock-mr-client --port 8080 > "$BFF_LOG_FILE" 2>&1 &
+BFF_LOG_FILE="$RESULTS_DIR/bff.log"
+# Use dynamic port to avoid conflicts in parallel execution
+if [[ -z "$PORT" ]]; then
+  # Find an available port starting from 8080
+  PORT=8080
+  while lsof -i :$PORT >/dev/null 2>&1; do
+    PORT=$((PORT + 1))
+  done
+fi
+
+log_info "Starting Mock BFF server on port $PORT..."
+go run ./cmd --mock-k8s-client --mock-mr-client --port "$PORT" --allowed-origins="*" > "$BFF_LOG_FILE" 2>&1 &
 BFF_PID=$!
 echo "$BFF_PID" > "$RESULTS_DIR/bff.pid"
 log_info "Mock BFF started (PID: $BFF_PID)"
@@ -170,7 +180,7 @@ trap cleanup EXIT INT TERM
 # Wait for healthcheck
 log_info "Waiting for Mock BFF to be ready..."
 for i in $(seq 1 30); do
-  if curl -s -f "http://localhost:8080/healthcheck" >/dev/null 2>&1; then
+  if curl -s -f "http://localhost:$PORT/healthcheck" >/dev/null 2>&1; then
     log_success "Mock BFF is ready!"
     break
   fi
@@ -183,14 +193,14 @@ for i in $(seq 1 30); do
 done
 
 # If loop finished without success, fail explicitly
-if ! curl -s -f "http://localhost:8080/healthcheck" >/dev/null 2>&1; then
+if ! curl -s -f "http://localhost:$PORT/healthcheck" >/dev/null 2>&1; then
   log_error "Timed out waiting for Mock BFF to become ready"
   log_error "BFF logs (tail):"
   tail -n 200 "$BFF_LOG_FILE" || true
   exit 1
 fi
 
-export CONTRACT_MOCK_BFF_URL="http://localhost:8080"
+export CONTRACT_MOCK_BFF_URL="http://localhost:$PORT"
 
 # Use shared CLI to run consumer tests
 log_info "Running contract tests against Mock BFF..."

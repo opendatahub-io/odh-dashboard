@@ -7,8 +7,7 @@
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "update-subtree": "../../scripts/package-subtree.sh --package=@odh-dashboard/model-registry",
-    "test:contract": "npm exec -w @odh-dashboard/contract-tests odh-ct-bff-consumer -- --bff-dir $(pwd)/upstream/bff --consumer-dir $(pwd)/contract-tests --package-name model-registry",
-    "test:contract:watch": "npm run test:contract"
+    "test:contract": "odh-ct-bff-consumer --bff-dir upstream/bff"
   },
   "subtree": {
     "repo": "https://github.com/kubeflow/model-registry.git",
