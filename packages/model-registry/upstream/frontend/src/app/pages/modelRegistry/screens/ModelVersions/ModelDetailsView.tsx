@@ -37,7 +37,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
       <GridItem span={12} lg={4}>
         <Stack hasGutter>
           <ModelVersionsCard rm={rm} isArchiveModel={isArchiveModel} />
-          <>{deploymentCard}</>
+          {deploymentCard}
         </Stack>
       </GridItem>
     </Grid>
