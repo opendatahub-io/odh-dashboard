@@ -1,5 +1,5 @@
 import axios from '~/app/utilities/axios';
-import { getCurrentUser } from '../userService';
+import { getCurrentUser } from '~/app/services/userService';
 
 // Mock axios
 jest.mock('~/app/utilities/axios');
