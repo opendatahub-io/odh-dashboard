@@ -8,6 +8,7 @@ import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import { featureStoreRoute } from '../../FeatureStoreRoutes';
 import useFeatures from '../../apiHooks/useFeatures';
 import FeatureStoreProjectSelectorNavigator from '../components/FeatureStoreProjectSelectorNavigator';
+import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
 
 const title = 'Features';
 const description =
@@ -45,7 +46,7 @@ const Features = (): React.ReactElement => {
     <ApplicationsPage
       empty={features.features.length === 0}
       emptyStatePage={emptyState}
-      title={title}
+      title={<FeatureStorePageTitle title={title} currentProject={currentProject ?? undefined} />}
       description={description}
       loadError={featuresLoadError}
       loaded={featuresLoaded}

@@ -4,8 +4,8 @@ import { SearchIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import FeatureStoreDataSetsListView from './DataSetTable/FeatureStoreDatasetListView';
 import FeatureStoreProjectSelectorNavigator from '../components/FeatureStoreProjectSelectorNavigator';
+import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
-
 import { featureStoreRoute } from '../../routes';
 import useFeatureStoreDataSets from '../../apiHooks/useFeatureStoreDataSets';
 
@@ -40,7 +40,7 @@ const FeatureStoreDataSets = (): React.ReactElement => {
     <ApplicationsPage
       empty={dataSets.savedDatasets.length === 0}
       emptyStatePage={emptyState}
-      title={title}
+      title={<FeatureStorePageTitle title={title} currentProject={currentProject ?? undefined} />}
       description={description}
       loadError={dataSetsLoadError}
       loaded={dataSetsLoaded}
