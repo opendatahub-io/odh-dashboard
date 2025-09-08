@@ -70,6 +70,7 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
           onChange={(_, value) => setIdentifier('identifier', value)}
           validated={validated}
           data-testid="node-resource-identifier-input"
+          placeholder="Example, nvidia.com/gpu"
         />
         {!isUniqueIdentifier && (
           <FormHelperText>
