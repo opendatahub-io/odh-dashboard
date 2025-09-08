@@ -222,6 +222,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelTypeSelectOption('Generative AI model (e.g. LLM)').should('exist');
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
+    modelServingWizard.findModelLocationSelect().should('exist');
+    modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
+    modelServingWizard.findUrilocationInput().should('exist').type('https://test');
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment

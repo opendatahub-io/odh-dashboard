@@ -1,5 +1,5 @@
-import type { Deployment } from 'extension-points';
 import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
+import type { Deployment } from 'extension-points';
 import { isValidModelType, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
 import {
   ConnectionTypeRefs,
