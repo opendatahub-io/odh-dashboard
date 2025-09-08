@@ -70,6 +70,10 @@ jobs:
             ~/.cache/Cypress
             ~/.npm
           key: ${{ needs.Setup.outputs.modules-cache-key }}
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          npm install
       - name: Run type checks
         run: |
           set -euo pipefail
@@ -91,6 +95,10 @@ jobs:
             ~/.cache/Cypress
             ~/.npm
           key: ${{ needs.Setup.outputs.modules-cache-key }}
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          npm install
       - name: Run linting and formatting checks
         run: |
           set -euo pipefail
@@ -112,6 +120,10 @@ jobs:
             ~/.cache/Cypress
             ~/.npm
           key: ${{ needs.Setup.outputs.modules-cache-key }}
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          npm install
       - name: Unit tests with coverage
         run: |
           set -euo pipefail
@@ -141,6 +153,10 @@ jobs:
             ~/.cache/Cypress
             ~/.npm
           key: ${{ needs.Setup.outputs.modules-cache-key }}
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          npm install
       - name: Run contract tests
         run: |
           set -euo pipefail
@@ -246,6 +262,11 @@ jobs:
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
+      - name: Install dependencies
+        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          npm install
       - name: Build frontend for cypress
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
         run: |

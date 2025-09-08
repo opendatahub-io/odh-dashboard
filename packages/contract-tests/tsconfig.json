@@ -2,6 +2,10 @@
   "extends": "@odh-dashboard/tsconfig/tsconfig.json",
   "compilerOptions": {
     "outDir": "./dist",
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "allowImportingTsExtensions": false,
     "paths": {
       "@odh-dashboard/jest-config/hooks": ["../../../jest-config/src/hooks.ts"]
     }
