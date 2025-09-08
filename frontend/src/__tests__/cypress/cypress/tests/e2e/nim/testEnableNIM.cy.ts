@@ -149,7 +149,7 @@ function executeNIMTestSteps(): void {
   cy.step('Click Enable button in NIM card');
   nimCard.getEnableNIMButton().click();
 
-    // Test Personal API key (should NOT show warning)
+  // Test Personal API key (should NOT show warning)
   cy.step('Input Personal API key to verify no warning appears');
   nimCard.getNGCAPIKey().clear().type('nvapi-test-personal-key-123');
   cy.step('Wait for debounce period to ensure no warning appears');
@@ -159,7 +159,7 @@ function executeNIMTestSteps(): void {
   // eslint-disable-next-line cypress/no-unnecessary-waiting
   cy.wait(600);
   cy.step('Verify no warning message appears for Personal API key');
-  cy.get('[data-testid="warning-message-alert"]').should('not.exist');
+  nimCard.getWarningAlert().should('not.exist');
 
   // Test non-Personal API key warning
   cy.step('Clear Personal API key and input legacy key to test warning');
@@ -167,12 +167,9 @@ function executeNIMTestSteps(): void {
   nimCard.getNGCAPIKey().type(Cypress.env('NGC_API_KEY'));
   cy.step('Wait for debounce period before checking warning');
   cy.step('Verify non-Personal API key warning message appears');
-  cy.get('[data-testid="warning-message-alert"]', { timeout: 1000 }).should('be.visible');
-  cy.get('[data-testid="warning-message-alert"]').should(
-    'contain',
-    "Looks like you're not using a Personal API key",
-  );
-  
+  nimCard.getWarningAlert({ timeout: 1000 }).should('be.visible');
+  nimCard.getWarningAlert().should('contain', "Looks like you're not using a Personal API key");
+
   cy.step('Click submit to enable the NIM application');
   nimCard.getNIMSubmit().click();
   cy.step('Wait for validation to complete and verify the validation message');

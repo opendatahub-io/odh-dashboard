@@ -36,7 +36,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose, warning
   const [warning, setWarning] = React.useState('');
   const [validationInProgress, setValidationInProgress] = React.useState(false);
   const [enableValues, setEnableValues] = React.useState<{ [key: string]: string }>({});
-  const debounceTimeoutRef = React.useRef<NodeJS.Timeout>();
+  const debounceTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isEnableValuesHasEmptyValue = React.useMemo(
     () => isEmpty(enableValues) || values(enableValues).some((val) => isEmpty(val)),
@@ -57,28 +57,29 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose, warning
 
   const validateFieldOnChange = React.useCallback(
     (key: string, value: string) => {
-      // Use warning props if provided for validation
-      if (warningProps && key === warningProps.field) {
-        if (value && warningProps.validator(value)) {
-          setWarning(warningProps.message);
-        } else {
-          setWarning('');
-        }
-      }
-
-      // Use warning validation from app config if available
+      // Prioritize app-config validation if available
       if (
         selectedApp.spec.enable?.warningValidation &&
         key === selectedApp.spec.enable.warningValidation.field
       ) {
         const { validationRegex, message } = selectedApp.spec.enable.warningValidation;
-        if (value && validationRegex) {
+        // Always clear warning when value is falsy or when validationRegex is absent
+        if (!value || !validationRegex) {
+          setWarning('');
+        } else {
           const regex = new RegExp(validationRegex);
           if (!regex.test(value)) {
             setWarning(message);
           } else {
             setWarning('');
           }
+        }
+      } else if (warningProps && key === warningProps.field) {
+        // Fall back to warning props validation
+        if (value && warningProps.validator(value)) {
+          setWarning(warningProps.message);
+        } else {
+          setWarning('');
         }
       }
     },
