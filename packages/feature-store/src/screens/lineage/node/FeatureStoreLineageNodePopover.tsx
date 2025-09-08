@@ -19,7 +19,7 @@ import {
   featureEntityRoute,
   featureServiceRoute,
   featureViewRoute,
-} from 'src/routes.ts';
+} from '../../../routes.ts';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext.tsx';
 import { FsObjectType, getEntityTypeIcon } from '../../../utils/featureStoreObjects.tsx';
 
