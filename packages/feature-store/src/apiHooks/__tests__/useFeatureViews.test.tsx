@@ -65,6 +65,7 @@ describe('useFeatureViews', () => {
       undefined,
       undefined,
       undefined,
+      undefined,
     );
   });
 
@@ -97,6 +98,7 @@ describe('useFeatureViews', () => {
     expect(mockGetFeatureViews).toHaveBeenCalledWith(
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
       projectName,
+      undefined,
       undefined,
       undefined,
       undefined,
@@ -134,6 +136,7 @@ describe('useFeatureViews', () => {
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
       projectName,
       entityName,
+      undefined,
       undefined,
       undefined,
     );
@@ -240,6 +243,7 @@ describe('useFeatureViews', () => {
       undefined,
       undefined,
       undefined,
+      undefined,
     );
 
     renderResult.rerender({ project: 'project-2' });
@@ -249,6 +253,7 @@ describe('useFeatureViews', () => {
     expect(mockGetFeatureViews).toHaveBeenLastCalledWith(
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
       'project-2',
+      undefined,
       undefined,
       undefined,
       undefined,
@@ -276,6 +281,7 @@ describe('useFeatureViews', () => {
       'entity-1',
       undefined,
       undefined,
+      undefined,
     );
 
     renderResult.rerender({ project: 'project-1', entity: 'entity-2' });
@@ -286,6 +292,7 @@ describe('useFeatureViews', () => {
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
       'project-1',
       'entity-2',
+      undefined,
       undefined,
       undefined,
     );
