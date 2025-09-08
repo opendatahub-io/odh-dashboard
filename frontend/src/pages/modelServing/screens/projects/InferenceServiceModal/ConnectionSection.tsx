@@ -442,7 +442,7 @@ export const ConnectionSection: React.FC<Props> = ({
                     setData('storage', {
                       ...data.storage,
                       dataConnection: getResourceNameFromK8sResource(selection),
-                      // Only clear the URI if we're switching to a different connection
+                      // Clear the URI when switching connections
                       uri:
                         connection &&
                         getResourceNameFromK8sResource(selection) !==
