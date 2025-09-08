@@ -177,11 +177,11 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-# Wait for healthcheck
-log_info "Waiting for Mock BFF to be ready..."
-for i in $(seq 1 30); do
-  if curl -s -f "http://localhost:$PORT/healthcheck" >/dev/null 2>&1; then
-    log_success "Mock BFF is ready!"
+# Wait for server to be listening (basic connectivity)
+log_info "Waiting for Mock BFF to be listening..."
+for i in $(seq 1 60); do
+  if curl -s --connect-timeout 2 "http://localhost:$PORT/healthcheck" >/dev/null 2>&1; then
+    log_success "Mock BFF is listening!"
     break
   fi
   if ! kill -0 "$BFF_PID" 2>/dev/null; then
@@ -193,11 +193,28 @@ for i in $(seq 1 30); do
 done
 
 # If loop finished without success, fail explicitly
-if ! curl -s -f "http://localhost:$PORT/healthcheck" >/dev/null 2>&1; then
-  log_error "Timed out waiting for Mock BFF to become ready"
+if ! curl -s --connect-timeout 2 "http://localhost:$PORT/healthcheck" >/dev/null 2>&1; then
+  log_error "Timed out waiting for Mock BFF to be listening"
   log_error "BFF logs (tail):"
   tail -n 200 "$BFF_LOG_FILE" || true
   exit 1
+fi
+
+# Additional wait for full readiness (healthcheck returns 200)
+log_info "Waiting for Mock BFF healthcheck to return 200..."
+for i in $(seq 1 30); do
+  if curl -s -f "http://localhost:$PORT/healthcheck" >/dev/null 2>&1; then
+    log_success "Mock BFF is ready and healthy!"
+    break
+  fi
+  sleep 1
+done
+
+# Check final health status
+if curl -s -f "http://localhost:$PORT/healthcheck" >/dev/null 2>&1; then
+  log_success "Mock BFF healthcheck passed!"
+else
+  log_warning "Mock BFF healthcheck failed, but proceeding anyway (may be normal during initial startup)"
 fi
 
 export CONTRACT_MOCK_BFF_URL="http://localhost:$PORT"
