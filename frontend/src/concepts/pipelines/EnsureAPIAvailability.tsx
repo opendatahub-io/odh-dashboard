@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Bullseye, Spinner, Button, Flex, FlexItem } from '@patternfly/react-core';
+import { Bullseye, Spinner, Button, Flex, FlexItem, Title } from '@patternfly/react-core';
 import {
   usePipelinesAPI,
   PipelineServerTimedOut,
@@ -43,6 +43,11 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({
 
   const inProgressButtons = (
     <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }}>
+      <FlexItem>
+        <Title headingLevel="h2" size="lg">
+          Starting pipeline server
+        </Title>
+      </FlexItem>
       <FlexItem>The {pipelineServerName} is being initialized.</FlexItem>
       <FlexItem>The process should take less than five minutes. When the server is ready,</FlexItem>
       <Flex
@@ -54,7 +59,7 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({
         <FlexItem>
           <Button
             data-testid="open-pipeline-status-link"
-            variant="secondary"
+            variant="primary"
             onClick={() => {
               setShowModal(true);
             }}
@@ -82,7 +87,7 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({
     const contents = isStarting ? inProgressButtons : defaultConnectingText;
 
     const diameter = inTab ? '60px' : '80px';
-    const topMargin = inTab ? '-25px' : '25px';
+    const topMargin = inTab ? '-50px' : '25px';
     return (
       <div style={{ marginTop: topMargin }}>
         <Bullseye data-testid="pipelines-api-not-available">
