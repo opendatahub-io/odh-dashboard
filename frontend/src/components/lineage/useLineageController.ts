@@ -4,11 +4,11 @@ import {
   Visualization,
   ComponentFactory,
 } from '@patternfly/react-topology';
-import { lineageLayoutFactory, lineageComponentFactory } from './factories';
+import { lineageLayoutFactory } from './factories';
 
 const useLineageController = (
   graphId: string,
-  customComponentFactory?: ComponentFactory,
+  customComponentFactory: ComponentFactory,
 ): Visualization | null => {
   const [controller, setController] = React.useState<Visualization | null>(null);
 
@@ -16,9 +16,7 @@ const useLineageController = (
     const visualizationController = new Visualization();
     visualizationController.setFitToScreenOnLayout(true);
     visualizationController.registerLayoutFactory(lineageLayoutFactory);
-    visualizationController.registerComponentFactory(
-      customComponentFactory || lineageComponentFactory,
-    );
+    visualizationController.registerComponentFactory(customComponentFactory);
 
     visualizationController.fromModel(
       {

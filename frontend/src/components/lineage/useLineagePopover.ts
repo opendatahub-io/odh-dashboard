@@ -35,17 +35,24 @@ export const useLineagePopover = ({
   // Cache DOM elements and calculations for performance
   const domCacheRef = useRef<{
     svgElement: SVGSVGElement | null;
+    transformGroup: SVGGElement | null;
     lastNodeId: string | null;
     lastElement: Element | null;
   }>({
     svgElement: null,
+    transformGroup: null,
     lastNodeId: null,
     lastElement: null,
   });
 
   // Clear cache when data changes
   useEffect(() => {
-    domCacheRef.current = { svgElement: null, lastNodeId: null, lastElement: null };
+    domCacheRef.current = {
+      svgElement: null,
+      transformGroup: null,
+      lastNodeId: null,
+      lastElement: null,
+    };
   }, [data]);
 
   // Function to calculate screen position from a topology node
@@ -92,12 +99,21 @@ export const useLineagePopover = ({
           const bounds = controllerNode.getBounds();
 
           // Use cached SVG element or find it
-          let { svgElement } = cache;
+          let { svgElement, transformGroup } = cache;
           if (!svgElement) {
             const element = document.querySelector('.pf-topology__graph svg');
             if (element instanceof SVGSVGElement) {
               svgElement = element;
               cache.svgElement = svgElement;
+            }
+          }
+
+          // Find and cache the transform group that carries pan/zoom
+          if (!transformGroup && svgElement) {
+            const group = svgElement.querySelector('g[transform]');
+            if (group instanceof SVGGElement) {
+              transformGroup = group;
+              cache.transformGroup = transformGroup;
             }
           }
 
@@ -107,7 +123,7 @@ export const useLineagePopover = ({
             const nodeCenterY = bounds.y + bounds.height / 2;
 
             // Use the most efficient transformation method
-            const ctm = svgElement.getScreenCTM();
+            const ctm = (transformGroup ?? svgElement).getScreenCTM();
             if (ctm) {
               const screenX = ctm.a * nodeCenterX + ctm.c * nodeCenterY + ctm.e;
               const screenY = ctm.b * nodeCenterX + ctm.d * nodeCenterY + ctm.f;
@@ -123,7 +139,12 @@ export const useLineagePopover = ({
         return null;
       } catch (error) {
         // Clear cache on error
-        domCacheRef.current = { svgElement: null, lastNodeId: null, lastElement: null };
+        domCacheRef.current = {
+          svgElement: null,
+          transformGroup: null,
+          lastNodeId: null,
+          lastElement: null,
+        };
         console.warn('Failed to calculate node position:', error);
         return null;
       }
@@ -236,7 +257,12 @@ export const useLineagePopover = ({
     setPopoverPosition(null);
     setIsPopoverVisible(false);
     // Clear DOM cache when hiding popover
-    domCacheRef.current = { svgElement: null, lastNodeId: null, lastElement: null };
+    domCacheRef.current = {
+      svgElement: null,
+      transformGroup: null,
+      lastNodeId: null,
+      lastElement: null,
+    };
   }, []);
 
   // Handle clicks outside the popover to close it

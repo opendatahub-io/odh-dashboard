@@ -66,7 +66,7 @@ export interface LineageProps {
   className?: string;
   title?: string;
   showNodePopover?: boolean; // Enable/disable node popover functionality (default: true)
-  componentFactory?: ComponentFactory; // Optional custom component factory for nodes
+  componentFactory: ComponentFactory;
   popoverComponent?: PopoverComponent; // Optional custom popover component
 }
 

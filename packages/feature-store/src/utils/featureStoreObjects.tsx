@@ -20,22 +20,6 @@ export type LineageEntityType =
   | 'stream_feature_view'
   | 'feature_service';
 
-export const getObjectTypeColor = (
-  entityType: LineageEntityType,
-): 'blue' | 'green' | 'purple' | 'grey' => {
-  const typeColors: Record<LineageEntityType, 'blue' | 'green' | 'purple' | 'grey'> = {
-    entity: 'grey',
-    batch_data_source: 'blue',
-    push_data_source: 'blue',
-    request_data_source: 'blue',
-    batch_feature_view: 'green',
-    on_demand_feature_view: 'green',
-    stream_feature_view: 'green',
-    feature_service: 'purple',
-  };
-  return typeColors[entityType];
-};
-
 export const getEntityTypeIcon = (
   entityType: LineageEntityType,
   selected = false,

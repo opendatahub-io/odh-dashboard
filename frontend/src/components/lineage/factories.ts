@@ -34,7 +34,7 @@ export const lineageLayoutFactory: LayoutFactory = (
 type NodeComponentType = React.ComponentType<{ element: GraphElement } & WithSelectionProps>;
 
 export const createLineageComponentFactory =
-  (customNodeComponent?: NodeComponentType): ComponentFactory =>
+  (customNodeComponent: NodeComponentType): ComponentFactory =>
   (kind: ModelKind, type: string) => {
     switch (type) {
       case 'group':
@@ -42,13 +42,13 @@ export const createLineageComponentFactory =
       case 'curved-edge':
         return withSelection()(LineageEdge);
       case 'lineage-node':
-        return customNodeComponent ? withSelection()(customNodeComponent) : undefined;
+        return withSelection()(customNodeComponent);
       default:
         switch (kind) {
           case ModelKind.graph:
             return withPanZoom()(withSelection()(GraphComponent));
           case ModelKind.node:
-            return customNodeComponent ? withSelection()(customNodeComponent) : undefined;
+            return withSelection()(customNodeComponent);
           case ModelKind.edge:
             return withSelection()(LineageEdge);
           default:
@@ -56,6 +56,3 @@ export const createLineageComponentFactory =
         }
     }
   };
-
-// Default component factory for backward compatibility
-export const lineageComponentFactory: ComponentFactory = createLineageComponentFactory();

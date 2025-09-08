@@ -14,7 +14,7 @@ export interface EdgeStyleConfig {
   isConnectedToSelection?: boolean;
 }
 
-interface EdgeRenderConfig {
+export interface EdgeRenderConfig {
   edgeStyle?: EdgeStyle;
   animationDuration?: number;
   className?: string;

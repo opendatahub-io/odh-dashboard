@@ -164,7 +164,7 @@ const LineageEdgeInner: React.FunctionComponent<LineageEdgeInnerProps> = observe
               ...getEdgeBackgroundStyles(isPositioning),
               strokeWidth: '12',
               stroke: 'transparent',
-              opacity: 0.1,
+              opacity: isPositioning ? 0 : 0.1,
             }}
           />
 
