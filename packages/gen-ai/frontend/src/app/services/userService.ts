@@ -1,5 +1,5 @@
-import axios from '../utilities/axios';
-import { URL_PREFIX } from '../utilities/const';
+import axios from '~/app/utilities/axios';
+import { URL_PREFIX } from '~/app/utilities/const';
 
 export const getCurrentUser = (): Promise<{ userId: string }> => {
   const url = `${URL_PREFIX}/api/v1/user`;
