@@ -54,12 +54,12 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
 
   return (
     <Form>
-      <FormGroup isRequired label="Resource label" fieldId="resource-label">
+      <FormGroup isRequired label="Resource name" fieldId="resource-name">
         <TextInput
-          id="node-resource-label-input"
+          id="node-resource-name-input"
           value={identifier.displayName || ''}
           onChange={(_, value) => setIdentifier('displayName', value)}
-          data-testid="node-resource-label-input"
+          data-testid="node-resource-name-input"
         />
       </FormGroup>
 

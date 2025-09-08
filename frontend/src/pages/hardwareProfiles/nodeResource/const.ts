@@ -9,8 +9,8 @@ export const HARDWARE_PROFILE_COLUMN_HELP_TOOLTIP = {
 
 export const nodeResourceColumns: SortableData<Identifier>[] = [
   {
-    field: 'resourceLabel',
-    label: 'Resource label',
+    field: 'resourceName',
+    label: 'Resource name',
     sortable: false,
   },
   {
