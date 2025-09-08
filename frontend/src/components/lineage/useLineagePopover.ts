@@ -137,9 +137,9 @@ export const useLineagePopover = ({
 
     const newPosition = getNodeScreenPosition(activeNodeIdRef.current);
     if (newPosition) {
-      // Fast edge detection with minimal calculations
-      const popoverWidth = 400;
-      const popoverHeight = 300;
+      // Fast edge detection with minimal calculations - updated to match popover constraints
+      const popoverWidth = 480; // Updated to match maxWidth in popover component
+      const popoverHeight = 350; // Increased to account for header/footer content
       const margin = 20;
       const screenWidth = window.innerWidth;
       const screenHeight = window.innerHeight;
@@ -201,9 +201,9 @@ export const useLineagePopover = ({
         };
       }
 
-      // Adjust position to avoid screen edges
-      const popoverWidth = 400; // Approximate popover width
-      const popoverHeight = 300; // Approximate popover height
+      // Adjust position to avoid screen edges - updated to match popover constraints
+      const popoverWidth = 480; // Updated to match maxWidth in popover component
+      const popoverHeight = 350; // Increased to account for header/footer content
       const margin = 20; // Margin from screen edge
 
       // Create a working copy for adjustments

@@ -224,6 +224,17 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
 
     const scale = element.getGraph().getScale();
 
+    // Calculate scaling for hover effect like PatternFly TaskNode
+    const nodeScale = scaleNode && isHover ? 2.0 : 1.0;
+
+    // Calculate transform that scales from the center of the pill (only if dimensions are available)
+    const centerX = dimensions.offsetX + dimensions.pillWidth / 2;
+    const centerY = dimensions.height / 2;
+    const scaleTransform =
+      nodeScale !== 1.0 && dimensions.pillWidth > 0
+        ? `translate(${centerX}, ${centerY}) scale(${nodeScale}) translate(${-centerX}, ${-centerY})`
+        : '';
+
     const runStatusModifier = getRunStatusModifier(status);
     const pillClasses = css(
       styles.topologyPipelinesPill,
@@ -322,7 +333,7 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
     return (
       <g
         className={pillClasses}
-        transform={`translate(${x},${y})`}
+        transform={`translate(${x},${y}) ${scaleTransform}`}
         onClick={onSelect}
         onContextMenu={onContextMenu}
       >

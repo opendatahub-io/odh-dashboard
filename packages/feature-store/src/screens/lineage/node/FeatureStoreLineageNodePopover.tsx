@@ -78,14 +78,20 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
         left: position.x,
         top: position.y,
         zIndex: 1000,
-        pointerEvents: 'none', // Prevents blocking other elements
+        // Enable pointer events and set minimum size constraints like PatternFly TaskPill
+        pointerEvents: 'auto',
+        minWidth: '320px',
+        maxWidth: '480px',
       }}
     >
       <Popover
         isVisible={isVisible}
         shouldClose={() => onClose()}
+        // Set explicit size constraints to prevent the popover from being too small
+        minWidth="320px"
+        maxWidth="480px"
         bodyContent={
-          <Stack hasGutter>
+          <Stack hasGutter style={{ minWidth: '280px' }}>
             <StackItem>
               <Content>{node.description}</Content>
             </StackItem>
@@ -136,8 +142,11 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
         distance={20}
         enableFlip
         position="top"
+        // Add proper sizing attributes similar to PatternFly TaskPill
+        withFocusTrap={false}
+        hasNoPadding={false}
       >
-        <div style={{ width: '1px', height: '1px', pointerEvents: 'all' }} />
+        <div style={{ width: '20px', height: '20px', pointerEvents: 'all' }} />
       </Popover>
     </div>
   );
