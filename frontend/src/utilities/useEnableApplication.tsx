@@ -93,10 +93,7 @@ export const useEnableApplication = (
             })
             .catch((e) => {
               if (!cancelled) {
-                setEnableStatus({
-                  status: EnableApplicationStatus.FAILED,
-                  error: e.message,
-                });
+                setEnableStatus({ status: EnableApplicationStatus.FAILED, error: e.message });
               }
               dispatchResults(e.message);
             });
@@ -117,10 +114,7 @@ export const useEnableApplication = (
             })
             .catch((e) => {
               if (!cancelled) {
-                setEnableStatus({
-                  status: EnableApplicationStatus.FAILED,
-                  error: e.message,
-                });
+                setEnableStatus({ status: EnableApplicationStatus.FAILED, error: e.message });
               }
               dispatchResults(e.message);
             });
@@ -145,19 +139,13 @@ export const useEnableApplication = (
           .then((response) => {
             if (!closed) {
               if (response.isInstalled && response.canInstall) {
-                setEnableStatus({
-                  status: EnableApplicationStatus.INPROGRESS,
-                  error: '',
-                });
+                setEnableStatus({ status: EnableApplicationStatus.INPROGRESS, error: '' });
               }
             }
           })
           .catch((e) => {
             if (!closed) {
-              setEnableStatus({
-                status: EnableApplicationStatus.FAILED,
-                error: e.message,
-              });
+              setEnableStatus({ status: EnableApplicationStatus.FAILED, error: e.message });
             }
             dispatchResults(e.message);
           });
@@ -166,10 +154,7 @@ export const useEnableApplication = (
           .then((response) => {
             if (!closed) {
               if (!response.complete) {
-                setEnableStatus({
-                  status: EnableApplicationStatus.INPROGRESS,
-                  error: '',
-                });
+                setEnableStatus({ status: EnableApplicationStatus.INPROGRESS, error: '' });
                 return;
               }
 
@@ -184,10 +169,7 @@ export const useEnableApplication = (
           })
           .catch((e) => {
             if (!closed) {
-              setEnableStatus({
-                status: EnableApplicationStatus.FAILED,
-                error: e.message,
-              });
+              setEnableStatus({ status: EnableApplicationStatus.FAILED, error: e.message });
             }
             dispatchResults(e.message);
           });
