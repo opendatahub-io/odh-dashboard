@@ -5,6 +5,7 @@ import { useValidation } from '@odh-dashboard/internal/utilities/useValidation';
 import { hardwareProfileValidationSchema } from '@odh-dashboard/internal/concepts/hardwareProfiles/validationUtils';
 import type { UseModelDeploymentWizardState } from './useDeploymentWizard';
 import { modelSourceStepSchema, type ModelSourceStepData } from './steps/ModelSourceStep';
+import { modelFormatFieldSchema } from './fields/ModelFormatField';
 
 export type ModelDeploymentWizardValidation = {
   modelSource: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
@@ -34,13 +35,21 @@ export const useModelDeploymentWizardValidation = (
     state.hardwareProfileConfig.formData,
     hardwareProfileValidationSchema,
   );
+  const modelFormatValidation = useValidation(
+    {
+      type: state.modelType.data,
+      format: state.modelFormatState.modelFormat,
+    },
+    modelFormatFieldSchema,
+  );
 
   // Step validation
   const isModelSourceStepValid =
     modelSourceStepValidation.getFieldValidation(undefined, true).length === 0;
   const isModelDeploymentStepValid =
     isK8sNameDescriptionDataValid(state.k8sNameDesc.data) &&
-    Object.keys(hardwareProfileValidation.getAllValidationIssues()).length === 0;
+    Object.keys(hardwareProfileValidation.getAllValidationIssues()).length === 0 &&
+    Object.keys(modelFormatValidation.getAllValidationIssues()).length === 0;
 
   return {
     modelSource: modelSourceStepValidation,

@@ -4,17 +4,21 @@ import { z, type ZodIssue } from 'zod';
 import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
 import { FieldValidationProps } from '@odh-dashboard/internal/hooks/useZodFormValidation';
 import { ZodErrorHelperText } from '@odh-dashboard/internal/components/ZodErrorFormHelperText';
+import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 
 // Schema
 
-export const modelTypeSelectFieldSchema = z.enum(['predictive-model', 'generative-model'], {
-  // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
-  required_error: 'Select a model type.',
-});
+export const modelTypeSelectFieldSchema = z.enum(
+  [ServingRuntimeModelType.PREDICTIVE, ServingRuntimeModelType.GENERATIVE],
+  {
+    // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
+    required_error: 'Select a model type.',
+  },
+);
 
 export type ModelTypeFieldData = z.infer<typeof modelTypeSelectFieldSchema>;
 export const isValidModelType = (value: string): value is ModelTypeFieldData =>
-  value === 'predictive-model' || value === 'generative-model';
+  value === ServingRuntimeModelType.PREDICTIVE || value === ServingRuntimeModelType.GENERATIVE;
 
 // Hooks
 
@@ -49,11 +53,11 @@ export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
     <SimpleSelect
       options={[
         {
-          key: 'predictive-model',
+          key: ServingRuntimeModelType.PREDICTIVE,
           label: 'Predictive model',
         },
         {
-          key: 'generative-model',
+          key: ServingRuntimeModelType.GENERATIVE,
           label: 'Generative AI model (e.g. LLM)',
         },
       ]}

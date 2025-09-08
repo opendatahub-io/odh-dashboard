@@ -4,6 +4,7 @@ import K8sNameDescriptionField from '@odh-dashboard/internal/concepts/k8s/K8sNam
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import ProjectSection from '../fields/ProjectSection';
 import { ModelServingHardwareProfileSection } from '../fields/ModelServingHardwareProfileSection';
+import { ModelFormatField } from '../fields/ModelFormatField';
 
 type ModelDeploymentStepProps = {
   projectName: string;
@@ -31,6 +32,7 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
           hardwareProfileConfig={wizardState.state.hardwareProfileConfig}
           isEditing={false}
         />
+        <ModelFormatField modelFormatState={wizardState.state.modelFormatState} />
       </FormSection>
     </Form>
   );

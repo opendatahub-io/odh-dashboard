@@ -1,6 +1,6 @@
 import React from "react";
 import { ModelRegistryVersionDetailsTabExtension } from "./extension-points";
-import ModelVersionsDetails from "~/app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetails";
+import ModelVersionsDetails from "./components/OdhModelVersionDetails";
 import ModelVersionsArchiveDetails from "~/app/pages/modelRegistry/screens/ModelVersionsArchive/ModelVersionArchiveDetails";
 import ArchiveModelVersionDetails from "~/app/pages/modelRegistry/screens/ModelVersionsArchive/ArchiveModelVersionDetails";
 import { Route } from "react-router-dom";

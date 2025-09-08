@@ -22,7 +22,7 @@ import {
   ServingRuntimeModel,
   TemplateModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
-import { ServingRuntimePlatform } from '#~/types';
+import { ServingRuntimeModelType, ServingRuntimePlatform } from '#~/types';
 import { mockGlobalScopedHardwareProfiles } from '#~/__mocks__/mockHardwareProfile';
 
 const initIntercepts = () => {
@@ -59,16 +59,39 @@ const initIntercepts = () => {
           name: 'template-2',
           displayName: 'OpenVINO',
           platforms: [ServingRuntimePlatform.SINGLE],
+          modelTypes: [ServingRuntimeModelType.PREDICTIVE],
         }),
         mockServingRuntimeTemplateK8sResource({
           name: 'template-3',
           displayName: 'Caikit',
           platforms: [ServingRuntimePlatform.SINGLE],
+          modelTypes: [ServingRuntimeModelType.PREDICTIVE],
           supportedModelFormats: [
             {
-              autoSelect: true,
               name: 'openvino_ir',
               version: 'opset1',
+            },
+          ],
+        }),
+        mockServingRuntimeTemplateK8sResource({
+          name: 'template-4',
+          displayName: 'vLLM AMD',
+          platforms: [ServingRuntimePlatform.SINGLE],
+          modelTypes: [ServingRuntimeModelType.GENERATIVE],
+          supportedModelFormats: [
+            {
+              name: 'vLLM',
+            },
+          ],
+        }),
+        mockServingRuntimeTemplateK8sResource({
+          name: 'template-5',
+          displayName: 'vLLM NVIDIA',
+          platforms: [ServingRuntimePlatform.SINGLE],
+          modelTypes: [ServingRuntimeModelType.GENERATIVE],
+          supportedModelFormats: [
+            {
+              name: 'vLLM',
             },
           ],
         }),
@@ -112,7 +135,7 @@ describe('Model Serving Deploy Wizard', () => {
     cy.url().should('include', '/projects/test-project');
   });
 
-  it('Create a new deployment and submit', () => {
+  it('Create a new generative deployment and submit', () => {
     initIntercepts();
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
@@ -154,6 +177,53 @@ describe('Model Serving Deploy Wizard', () => {
       })
       .click();
     hardwareProfileSection.findGlobalScopedLabel().should('exist');
+    modelServingWizard.findModelFormatSelect().should('not.exist');
+    modelServingWizard.findNextButton().should('be.enabled').click();
+  });
+
+  it('Create a new predictive deployment and submit', () => {
+    initIntercepts();
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+    );
+
+    // TODO: visit directly when plugin is enabled
+    cy.visitWithLogin('/modelServing/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue');
+    modelServingGlobal.findDeployModelButton().click();
+
+    // Step 1: Model source
+    modelServingWizard.findModelSourceStep().should('be.enabled');
+    modelServingWizard.findModelDeploymentStep().should('be.disabled');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findModelTypeSelectOption('Generative AI model (e.g. LLM)').should('exist');
+    modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Step 2: Model deployment
+    modelServingWizard.findModelDeploymentStep().should('be.enabled');
+    modelServingWizard.findAdvancedOptionsStep().should('be.disabled');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findModelDeploymentNameInput().type('test-model');
+    modelServingWizard.findAdvancedOptionsStep().should('be.disabled');
+    hardwareProfileSection.findHardwareProfileSearchSelector().click();
+    const globalScopedHardwareProfile = hardwareProfileSection.getGlobalScopedHardwareProfile();
+    globalScopedHardwareProfile
+      .find()
+      .findByRole('menuitem', {
+        name: /Medium/,
+        hidden: true,
+      })
+      .click();
+    hardwareProfileSection.findGlobalScopedLabel().should('exist');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findModelFormatSelect().should('exist');
+    modelServingWizard.findModelFormatSelectOption('vLLM').should('not.exist');
+    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
   });
 
@@ -163,6 +233,7 @@ describe('Model Serving Deploy Wizard', () => {
       { model: InferenceServiceModel, ns: 'test-project' },
       mockK8sResourceList([
         mockInferenceServiceK8sResource({
+          modelType: ServingRuntimeModelType.PREDICTIVE,
           hardwareProfileName: 'large-profile',
           hardwareProfileNamespace: 'opendatahub',
           resources: {
@@ -189,14 +260,12 @@ describe('Model Serving Deploy Wizard', () => {
 
     // Step 1: Model source
     modelServingWizardEdit.findModelSourceStep().should('be.enabled');
-    modelServingWizardEdit.findNextButton().should('be.disabled');
+    modelServingWizardEdit.findNextButton().should('be.enabled');
 
     // Need to update this when you extract model type from deployment
-    modelServingWizardEdit.findModelTypeSelectOption('Predictive model').should('exist');
     modelServingWizardEdit
-      .findModelTypeSelectOption('Generative AI model (e.g. LLM)')
-      .should('exist')
-      .click();
+      .findModelTypeSelectOption('Predictive model')
+      .should('have.attr', 'aria-selected', 'true');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
