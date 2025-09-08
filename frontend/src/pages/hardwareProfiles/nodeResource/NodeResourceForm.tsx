@@ -54,7 +54,14 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
 
   return (
     <Form>
-      <FormGroup isRequired label="Resource name" fieldId="resource-name">
+      <FormGroup
+        isRequired
+        label="Resource name"
+        fieldId="resource-name"
+        labelHelp={
+          <DashboardHelpTooltip content={HARDWARE_PROFILE_COLUMN_HELP_TOOLTIP.resourceName} />
+        }
+      >
         <TextInput
           id="node-resource-name-input"
           value={identifier.displayName || ''}
@@ -63,7 +70,14 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
         />
       </FormGroup>
 
-      <FormGroup isRequired label="Resource identifier" fieldId="resource-identifier">
+      <FormGroup
+        isRequired
+        label="Resource identifier"
+        fieldId="resource-identifier"
+        labelHelp={
+          <DashboardHelpTooltip content={HARDWARE_PROFILE_COLUMN_HELP_TOOLTIP.resourceIdentifier} />
+        }
+      >
         <TextInput
           id="node-resource-identifier-input"
           value={identifier.identifier || ''}
@@ -83,7 +97,14 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
         )}
       </FormGroup>
 
-      <FormGroup isRequired label="Resource type" fieldId="resource-type">
+      <FormGroup
+        isRequired
+        label="Resource type"
+        fieldId="resource-type"
+        labelHelp={
+          <DashboardHelpTooltip content={HARDWARE_PROFILE_COLUMN_HELP_TOOLTIP.resourceType} />
+        }
+      >
         <SimpleSelect
           dataTestId="node-resource-type-select"
           isFullWidth
