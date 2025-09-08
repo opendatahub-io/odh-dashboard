@@ -267,6 +267,12 @@ jobs:
         run: |
           set -euo pipefail
           npm install
+      - name: Install frontend dependencies
+        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          cd ${{ github.workspace }}/frontend
+          npm install
       - name: Build frontend for cypress
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
         run: |
@@ -299,6 +305,11 @@ jobs:
           path: |
             ${{ github.workspace }}/frontend/public-cypress
           key: ${{ needs.Cypress-Setup.outputs.cypress-cache-key }}
+      - name: Install frontend dependencies
+        run: |
+          set -euo pipefail
+          cd ${{ github.workspace }}/frontend
+          npm install
       - name: Run Cypress Mock tests
         run: |
           set -euo pipefail
