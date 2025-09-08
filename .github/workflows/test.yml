@@ -165,6 +165,29 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('packages/*/upstream/bff/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
+      - name: Build and cache BFF binaries
+        run: |
+          set -euo pipefail
+          # Build BFF binaries for all modules that have them
+          for bff_dir in packages/*/upstream/bff; do
+            if [[ -d "$bff_dir" && -f "$bff_dir/go.mod" ]]; then
+              echo "Building BFF binary for $bff_dir"
+              cd "$bff_dir"
+              if ! go build -o bff-mock ./cmd; then
+                echo "Failed to build BFF for $bff_dir"
+                exit 1
+              fi
+              cd - >/dev/null
+            fi
+          done
+      - name: Cache BFF binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            packages/*/upstream/bff/bff-mock
+          key: ${{ runner.os }}-bff-binaries-${{ hashFiles('packages/*/upstream/bff/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-bff-binaries-
       - name: Install dependencies
         run: |
           set -euo pipefail
