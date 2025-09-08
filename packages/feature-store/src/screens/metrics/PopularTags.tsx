@@ -90,7 +90,10 @@ const PopularTagsSkeleton = () => {
         <Card>
           <CardHeader>
             <CardTitle>
-              <Skeleton width="100%" height="1.5rem" />
+              <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                <TagIcon />
+                <Skeleton width="88%" height="1.5rem" />
+              </Flex>
             </CardTitle>
           </CardHeader>
           <CardBody>
@@ -143,14 +146,13 @@ const PopularTags: React.FC<PopularTagsProps> = ({ project, limit = 4 }) => {
 
     if (!loaded) {
       return (
-        <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
-          <FlexItem>
-            <PopularTagsSkeleton />
-          </FlexItem>
-          <FlexItem>
-            <PopularTagsSkeleton />
-          </FlexItem>
-        </Flex>
+        <Gallery hasGutter>
+          {[1, 2, 3, 4].map((item: number) => (
+            <GalleryItem key={item}>
+              <PopularTagsSkeleton />
+            </GalleryItem>
+          ))}
+        </Gallery>
       );
     }
 

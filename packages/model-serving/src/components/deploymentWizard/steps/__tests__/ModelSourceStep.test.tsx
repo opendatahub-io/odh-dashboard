@@ -2,13 +2,13 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { useWizardContext, useWizardFooter, ValidatedOptions } from '@patternfly/react-core';
 import { z } from 'zod';
+import * as _ from 'lodash-es';
+import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/internal/__mocks__/mockK8sNameDescriptionFieldData';
+import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
+import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { ModelSourceStepContent } from '../ModelSourceStep';
 import { modelTypeSelectFieldSchema } from '../../fields/ModelTypeSelectField';
-import type {
-  ModelDeploymentWizardData,
-  ModelDeploymentWizardDataHandlers,
-  UseModelDeploymentWizardState,
-} from '../../useDeploymentWizard';
+import type { UseModelDeploymentWizardState } from '../../useDeploymentWizard';
 
 const modelSourceStepSchema = z.object({
   modelType: modelTypeSelectFieldSchema,
@@ -26,18 +26,47 @@ jest.mock('@patternfly/react-core', () => ({
 const mockUseWizardContext = useWizardContext as jest.MockedFunction<typeof useWizardContext>;
 const mockUseWizardFooter = useWizardFooter as jest.MockedFunction<typeof useWizardFooter>;
 
-describe('ModelSourceStep', () => {
-  const mockWizardData = {
-    modelTypeField: undefined,
-  } satisfies ModelDeploymentWizardData;
-  const mockWizardHandlers = {
-    setModelType: jest.fn(),
-  } satisfies ModelDeploymentWizardDataHandlers;
-  const mockWizardState = {
-    data: mockWizardData,
-    handlers: mockWizardHandlers,
-  } satisfies UseModelDeploymentWizardState;
+const mockDeploymentWizardState = (
+  overrides: RecursivePartial<UseModelDeploymentWizardState> = {},
+): UseModelDeploymentWizardState =>
+  _.merge(
+    {
+      initialData: undefined,
+      state: {
+        modelType: {
+          data: undefined,
+          setData: jest.fn(),
+        },
+        k8sNameDesc: {
+          data: mockK8sNameDescriptionFieldData(),
+          onDataChange: jest.fn(),
+        },
+        hardwareProfileConfig: {
+          formData: {
+            selectedProfile: undefined,
+            useExistingSettings: false,
+            resources: undefined,
+          },
+          initialHardwareProfile: undefined,
+          isFormDataValid: true,
+          setFormData: jest.fn(),
+          resetFormData: jest.fn(),
+          profilesLoaded: true,
+        },
+        modelFormatState: {
+          modelFormatOptions: [],
+          modelFormat: undefined,
+          setModelFormat: jest.fn(),
+          isVisible: false,
+          error: undefined,
+          loaded: true,
+        },
+      },
+    },
+    overrides,
+  );
 
+describe('ModelSourceStep', () => {
   const mockValidation = {
     markFieldTouched: jest.fn(),
     getFieldValidation: jest.fn(() => []),
@@ -75,7 +104,7 @@ describe('ModelSourceStep', () => {
   describe('Schema validation', () => {
     it('should validate complete data', () => {
       const validData: ModelSourceStepData = {
-        modelType: 'predictive-model',
+        modelType: ServingRuntimeModelType.PREDICTIVE,
       };
       const result = modelSourceStepSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -90,18 +119,23 @@ describe('ModelSourceStep', () => {
 
   describe('Component', () => {
     it('should render ModelTypeSelectField', () => {
-      render(<ModelSourceStepContent wizardState={mockWizardState} validation={mockValidation} />);
+      render(
+        <ModelSourceStepContent
+          wizardState={mockDeploymentWizardState()}
+          validation={mockValidation}
+        />,
+      );
       expect(screen.getByRole('button')).toBeInTheDocument();
     });
 
     it('should render with selected model type', () => {
-      const wizardDataWithSelection = {
-        data: {
-          ...mockWizardData,
-          modelTypeField: 'generative-model' as const,
+      const wizardDataWithSelection = mockDeploymentWizardState({
+        state: {
+          modelType: {
+            data: ServingRuntimeModelType.GENERATIVE,
+          },
         },
-        handlers: mockWizardHandlers,
-      };
+      });
       render(
         <ModelSourceStepContent
           wizardState={wizardDataWithSelection}

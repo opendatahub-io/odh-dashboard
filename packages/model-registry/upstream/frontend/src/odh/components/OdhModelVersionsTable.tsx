@@ -2,7 +2,7 @@ import * as React from 'react';
 import { DashboardEmptyTableView, SortableData, Table } from 'mod-arch-shared';
 import { ModelVersion, RegisteredModel } from '~/app/types';
 import { mvColumns } from '~/app/pages/modelRegistry/screens/ModelVersions/ModelVersionsTableColumns';
-import ModelVersionsTableRow from '~/app/pages/modelRegistry/screens/ModelVersions/ModelVersionsTableRow';
+import ModelVersionsTableRow from '../../app/pages/modelRegistry/screens/ModelVersions/ModelVersionsTableRow';
 import { useDeploymentsState } from '~/odh/hooks/useDeploymentsState';
 import { KnownLabels } from '~/odh/k8sTypes';
 import { MRDeploymentsContextProvider } from './MRDeploymentsContextProvider';

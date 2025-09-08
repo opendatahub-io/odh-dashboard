@@ -14,6 +14,7 @@ import {
   RecentlyVisitedResponse,
 } from '../types/metrics';
 import { DataSet, DataSetList } from '../types/dataSets';
+import { DataSource, DataSourceList } from '../types/dataSources';
 
 export const listFeatureStoreProject =
   (hostPath: string) =>
@@ -43,6 +44,8 @@ export const getFeatureViews =
     entity?: string,
     featureService?: string,
     feature?: string,
+    // eslint-disable-next-line camelcase
+    data_source?: string,
   ): Promise<FeatureViewsList> => {
     let endpoint = `/api/${FEATURE_STORE_API_VERSION}/feature_views`;
     const queryParams: string[] = [];
@@ -63,6 +66,10 @@ export const getFeatureViews =
 
     if (feature) {
       queryParams.push(`feature=${encodeURIComponent(feature)}`);
+    }
+    // eslint-disable-next-line camelcase
+    if (data_source) {
+      queryParams.push(`data_source=${encodeURIComponent(data_source)}`);
     }
 
     if (queryParams.length > 0) {
@@ -253,4 +260,26 @@ export const getDataSetByName =
     )}?project=${encodeURIComponent(project)}&include_relationships=true`;
 
     return handleFeatureStoreFailures<DataSet>(proxyGET(hostPath, endpoint, opts));
+  };
+
+export const getDataSources =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, project?: string): Promise<DataSourceList> => {
+    let endpoint = `/api/${FEATURE_STORE_API_VERSION}/data_sources/all?include_relationships=true`;
+    if (project) {
+      endpoint = `/api/${FEATURE_STORE_API_VERSION}/data_sources?project=${encodeURIComponent(
+        project,
+      )}&include_relationships=true`;
+    }
+    return handleFeatureStoreFailures<DataSourceList>(proxyGET(hostPath, endpoint, opts));
+  };
+
+export const getDataSourceByName =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, project: string, dataSourceName: string): Promise<DataSource> => {
+    const endpoint = `/api/${FEATURE_STORE_API_VERSION}/data_sources/${encodeURIComponent(
+      dataSourceName,
+    )}?project=${encodeURIComponent(project)}&include_relationships=true`;
+
+    return handleFeatureStoreFailures<DataSource>(proxyGET(hostPath, endpoint, opts));
   };

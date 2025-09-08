@@ -194,12 +194,12 @@ export const getAPIProtocolFromTemplate = (
 };
 
 export const getModelTypesFromTemplate = (template: TemplateKind): ServingRuntimeModelType[] => {
-  if (!template.metadata.annotations?.['opendatahub.io/modelServingType']) {
+  if (!template.metadata.annotations?.['opendatahub.io/model-type']) {
     return [];
   }
 
   try {
-    const modelTypes = JSON.parse(template.metadata.annotations['opendatahub.io/modelServingType']);
+    const modelTypes = JSON.parse(template.metadata.annotations['opendatahub.io/model-type']);
     if (!Array.isArray(modelTypes)) {
       return [];
     }

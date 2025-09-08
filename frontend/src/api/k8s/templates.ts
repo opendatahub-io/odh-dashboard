@@ -47,7 +47,7 @@ export const assembleServingRuntimeTemplate = (
       annotations: {
         'opendatahub.io/modelServingSupport': JSON.stringify(platforms),
         ...(modelTypes.length > 0 && {
-          'opendatahub.io/modelServingType': JSON.stringify(modelTypes),
+          'opendatahub.io/model-type': JSON.stringify(modelTypes),
         }),
         ...(apiProtocol && { 'opendatahub.io/apiProtocol': apiProtocol }),
       },

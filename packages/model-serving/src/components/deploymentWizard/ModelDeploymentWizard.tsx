@@ -34,7 +34,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   }, [navigate, location.pathname]);
 
   const wizardState = useModelDeploymentWizard(existingData);
-  const validation = useModelDeploymentWizardValidation(wizardState.data);
+  const validation = useModelDeploymentWizardValidation(wizardState.state);
 
   return (
     <ApplicationsPage title={title} description={description} loaded empty={false}>
