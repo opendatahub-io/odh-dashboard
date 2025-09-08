@@ -25,8 +25,8 @@ const useLineageController = (
         graph: {
           id: graphId,
           type: 'graph',
-          x: 25,
-          y: 25,
+          x: 0,
+          y: 0,
           layout: 'Dagre',
         },
       },
@@ -34,7 +34,8 @@ const useLineageController = (
     );
 
     visualizationController.addEventListener(GRAPH_LAYOUT_END_EVENT, () => {
-      visualizationController.getGraph().fit(75);
+      // Use a more aggressive fit operation for better centering
+      visualizationController.getGraph().fit(50);
     });
 
     setController(visualizationController);
