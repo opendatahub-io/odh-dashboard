@@ -1,0 +1,20 @@
+# https://docs.coderabbit.ai/getting-started/configure-coderabbit/?#configure-coderabbit-using-a-yaml-file
+---
+language: en-US
+early_access: false
+enable_free_tier: true
+reviews:
+  sequence_diagrams: false
+  poem: false
+  changed_files_summary: false
+  suggested_labels: false
+  collapse_walkthrough: true
+  related_issues: false
+  related_prs: false
+  suggested_reviewers: false
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+  

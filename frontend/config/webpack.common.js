@@ -1,10 +1,13 @@
 /* eslint-disable prefer-destructuring, @typescript-eslint/restrict-template-expressions */
 const path = require('path');
+const { execSync } = require('child_process');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
+const webpack = require('webpack');
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 const GenerateExtensionsPlugin = require('./generateExtensionsPlugin');
+const { moduleFederationConfig, moduleFederationPlugins } = require('./moduleFederation');
 
 const RELATIVE_DIRNAME = process.env._ODH_RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._ODH_IS_PROJECT_ROOT_DIR;
@@ -17,6 +20,15 @@ const OUTPUT_ONLY = process.env._ODH_OUTPUT_ONLY;
 const ODH_FAVICON = process.env.ODH_FAVICON;
 const ODH_PRODUCT_NAME = process.env.ODH_PRODUCT_NAME;
 const COVERAGE = process.env.COVERAGE;
+
+let COMMIT_HASH_DIRECT;
+
+try {
+  COMMIT_HASH_DIRECT = execSync('git rev-parse --short HEAD').toString().trim();
+} catch (error) {
+  console.warn('Unable to get git commit hash:', error.message);
+  COMMIT_HASH_DIRECT = 'unknown';
+}
 
 if (OUTPUT_ONLY !== 'true') {
   console.info(
@@ -36,7 +48,12 @@ module.exports = (env) => ({
       {
         test: /\.(tsx|ts|jsx|js)?$/,
         exclude: [/node_modules/, /__tests__/, /__mocks__/],
-        include: [SRC_DIR, COMMON_DIR],
+        include: [
+          SRC_DIR,
+          COMMON_DIR,
+          path.resolve(RELATIVE_DIRNAME, '../packages'),
+          path.resolve(RELATIVE_DIRNAME, '../plugins'),
+        ],
         use: [
           COVERAGE === 'true' && '@jsdevtools/coverage-istanbul-loader',
           env === 'development'
@@ -54,18 +71,18 @@ module.exports = (env) => ({
         // only process modules with this loader
         // if they live under a 'fonts' or 'pficon' directory
         include: [
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/patternfly/dist/fonts'),
+          path.resolve(RELATIVE_DIRNAME, '../node_modules/patternfly/dist/fonts'),
           path.resolve(
             RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-core/dist/styles/assets/fonts',
+            '../node_modules/@patternfly/react-core/dist/styles/assets/fonts',
           ),
           path.resolve(
             RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-core/dist/styles/assets/pficon',
+            '../node_modules/@patternfly/react-core/dist/styles/assets/pficon',
           ),
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/patternfly/assets/fonts'),
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/patternfly/assets/pficon'),
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/monaco-editor'),
+          path.resolve(RELATIVE_DIRNAME, '../node_modules/@patternfly/patternfly/assets/fonts'),
+          path.resolve(RELATIVE_DIRNAME, '../node_modules/@patternfly/patternfly/assets/pficon'),
+          path.resolve(RELATIVE_DIRNAME, '../node_modules/monaco-editor'),
         ],
         use: {
           loader: 'file-loader',
@@ -122,24 +139,27 @@ module.exports = (env) => ({
         include: [
           SRC_DIR,
           COMMON_DIR,
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/patternfly'),
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/patternfly/assets/images'),
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-styles/css/assets/images'),
+          path.resolve(RELATIVE_DIRNAME, '../node_modules/patternfly'),
+          path.resolve(RELATIVE_DIRNAME, '../node_modules/@patternfly/patternfly/assets/images'),
           path.resolve(
             RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-core/dist/styles/assets/images',
+            '../node_modules/@patternfly/react-styles/css/assets/images',
           ),
           path.resolve(
             RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-core/node_modules/@patternfly/react-styles/css/assets/images',
+            '../node_modules/@patternfly/react-core/dist/styles/assets/images',
           ),
           path.resolve(
             RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-table/node_modules/@patternfly/react-styles/css/assets/images',
+            '../node_modules/@patternfly/react-core/node_modules/@patternfly/react-styles/css/assets/images',
           ),
           path.resolve(
             RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-inline-edit-extension/node_modules/@patternfly/react-styles/css/assets/images',
+            '../node_modules/@patternfly/react-table/node_modules/@patternfly/react-styles/css/assets/images',
+          ),
+          path.resolve(
+            RELATIVE_DIRNAME,
+            '../node_modules/@patternfly/react-inline-edit-extension/node_modules/@patternfly/react-styles/css/assets/images',
           ),
         ],
         use: [
@@ -232,6 +252,13 @@ module.exports = (env) => ({
     new MonacoWebpackPlugin({
       languages: ['yaml'],
     }),
+    new webpack.EnvironmentPlugin({
+      MF_CONFIG: JSON.stringify(moduleFederationConfig),
+    }),
+    new webpack.DefinePlugin({
+      __COMMIT_HASH__: JSON.stringify(COMMIT_HASH_DIRECT),
+    }),
+    ...moduleFederationPlugins,
   ],
   resolve: {
     extensions: ['.js', '.ts', '.tsx', '.jsx'],

@@ -19,9 +19,7 @@ retryableBefore(() => {
   });
 
   cy.wrap(null)
-    .then(() => {
-      return getMultiModelServingRuntimeInfo();
-    })
+    .then(() => getMultiModelServingRuntimeInfo())
     .then((info) => {
       // Load Multi-Model serving runtime info before tests run
       modelServingName = info.multiModelServingName;
@@ -34,10 +32,10 @@ retryableBefore(() => {
     });
 });
 
-describe('Verify Admins Can Import and Delete a Custom Multi-Model Serving Runtime Template By Uploading A YAML file', () => {
+describe('[Product Bug: RHOAIENG-32764] Verify Admins Can Import and Delete a Custom Multi-Model Serving Runtime Template By Uploading A YAML file', () => {
   it(
     'Admin should access serving runtimes, import a yaml file and then delete',
-    { tags: ['@Smoke', '@SmokeSet2', '@ODS-2276', '@Dashboard', '@NonConcurrent'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-2276', '@Dashboard', '@NonConcurrent', '@Bug'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');

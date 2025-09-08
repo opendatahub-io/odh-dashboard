@@ -3,18 +3,26 @@ import type { CommandLineResult } from '#~/__tests__/cypress/cypress/types';
 /**
  * Run a command and return the result exitCode and output (including stderr).
  * @param command The command to run.
+ * @param timeout Timeout in seconds for the command execution (default: 60).
  * @returns A Cypress chainable that resolves to an object with `exitCode` and `output` properties.
  */
 export const execWithOutput = (
   command: string,
-): Cypress.Chainable<{ exitCode: number; output: string }> => {
-  cy.log(`Executing command: ${command}`);
-  return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    const stdout = result.stdout.trim();
-    const stderr = result.stderr.trim();
-    const output = stdout && stderr ? `${stdout}\n${stderr}` : stdout || stderr;
-    return { exitCode: result.code, output };
-  });
+  timeout = 60,
+): Cypress.Chainable<CommandLineResult> => {
+  // Convert seconds to milliseconds for Cypress
+  const timeoutMs = timeout * 1000;
+
+  return cy
+    .exec(command, { failOnNonZeroExit: false, timeout: timeoutMs })
+    .then((result: CommandLineResult | null) => {
+      if (!result) {
+        // Provide a default CommandLineResult shape using cy.wrap
+        return cy.wrap({ code: 0, stdout: '', stderr: '' });
+      }
+      cy.log(`Command exit code: ${result.code}`);
+      return cy.wrap(result);
+    });
 };
 
 /**
@@ -23,18 +31,17 @@ export const execWithOutput = (
  * @param yamlContent YAML content to be applied
  * @returns Cypress Chainable
  */
-export const applyOpenShiftYaml = (yamlContent: string): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc apply -f - <<EOF\n${yamlContent}\nEOF`;
-  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
-      // If there is an error, log the error and fail the test
-      cy.log(`ERROR applying YAML content
-              stdout: ${result.stdout}
-              stderr: ${result.stderr}`);
-      throw new Error(`Command failed with code ${result.code}`);
-    }
-    return result;
-  });
+export const applyOpenShiftYaml = (
+  yamlContent: string,
+  namespace?: string,
+): Cypress.Chainable<CommandLineResult> => {
+  const ns = namespace ? `-n ${namespace}` : '';
+  // Using printf is safer for handling multi-line strings and special characters than echo.
+  // It avoids issues with shell interpretation of the YAML content.
+  const ocCommand = `printf '%s' "${yamlContent.replace(/"/g, '\\"')}" | oc apply ${ns} -f -`;
+
+  // We return the result of execWithOutput to benefit from its logging and error handling
+  return execWithOutput(ocCommand);
 };
 
 /**
@@ -140,6 +147,86 @@ export const waitForPodReady = (
 };
 
 /**
+ * Wait for a specific pod to complete (succeed or fail) across all namespaces.
+ * Useful for job-like pods with restartPolicy: Never that exit after completing their task.
+ *
+ * @param podNameContains A substring to partially match against the pod name (e.g., "pvc-loader-pod").
+ * @param timeout The amount of time to wait for the pod to complete (default is 300 seconds, e.g., '300s', '10m').
+ * @param namespace The namespace to search for the pod. Defaults to `-A` for all namespaces, or can specify a specific namespace with `-n <namespace>`.
+ * @param waitTimeBeforeParsing Time to wait before parsing the result (default 10000ms).
+ * @returns A Cypress chainable that waits for the pod to complete.
+ */
+export const waitForPodCompletion = (
+  podNameContains: string,
+  timeout = '300s',
+  namespace?: string,
+  waitTimeBeforeParsing = 10000,
+): Cypress.Chainable<CommandLineResult> => {
+  const namespaceFlag = namespace ? `-n ${namespace}` : '-A';
+
+  // find pods
+  const findPodsCommand = `oc get pods ${namespaceFlag} -o custom-columns="NAMESPACE:.metadata.namespace,NAME:.metadata.name" --no-headers | grep ${podNameContains}`;
+  cy.log(`Finding pods with command: ${findPodsCommand}`);
+
+  // wait before parsing the result
+  cy.wait(waitTimeBeforeParsing);
+  return cy
+    .exec(findPodsCommand, { failOnNonZeroExit: false })
+    .then((result: CommandLineResult) => {
+      const pods = result.stdout
+        .trim()
+        .split('\n')
+        .map((line) => {
+          // parse the result
+          const parsedResult = line.trim().split(/\s+/);
+          if (parsedResult.length === 2) {
+            const [podNamespace, podName] = parsedResult;
+            cy.log(`Parsed: namespace = ${podNamespace}, podName = ${podName}`);
+            return { namespace: podNamespace, name: podName };
+          }
+
+          cy.log(`Error parsing line: "${line}"`);
+          return null;
+        })
+        .filter((pod): pod is { namespace: string; name: string } => pod !== null);
+
+      cy.log(`Found ${pods.length} matching pods`);
+
+      if (pods.length === 0) {
+        cy.log('No matching pods found');
+        return;
+      }
+
+      // loop through matching pods and wait for completion
+      pods.forEach((pod) => {
+        const { namespace: podNamespace, name: podName } = pod;
+
+        // wait for each pod to complete (either succeed or fail)
+        const waitForPodCommand = `oc wait --for=jsonpath='{.status.phase}'=Succeeded pod/${podName} -n ${podNamespace} --timeout=${timeout}`;
+        cy.log(`Executing command to wait for pod completion: ${waitForPodCommand}`);
+
+        cy.exec(waitForPodCommand, { failOnNonZeroExit: false, timeout: 300000 }).then(
+          (waitResult: CommandLineResult) => {
+            if (waitResult.code !== 0) {
+              cy.log(`Pod completion check failed: ${waitResult.stderr}`);
+              // Check if pod failed instead of succeeded
+              const checkFailedCommand = `oc get pod/${podName} -n ${podNamespace} -o jsonpath='{.status.phase}'`;
+              cy.exec(checkFailedCommand).then((statusResult: CommandLineResult) => {
+                cy.log(`Pod status: ${statusResult.stdout}`);
+                if (statusResult.stdout === 'Failed') {
+                  throw new Error(`Pod ${podName} failed to complete successfully`);
+                }
+              });
+            } else {
+              cy.log(`Pod completed successfully: ${waitResult.stdout}`);
+            }
+          },
+        );
+      });
+    });
+};
+
+/**
  * Deletes notebooks matching a given name pattern across all namespaces.
  *
  * @param notebookNameContains A substring to match against the notebook name (e.g., "jupyter-nb").
@@ -159,29 +246,6 @@ export const deleteNotebook = (
       cy.log('No notebooks found');
     } else {
       cy.log(`Notebook deletion: ${result.stdout}`);
-    }
-  });
-};
-
-/**
- * Deletes odh-nim-account in the APPLICATIONS_NAMESPACE.
- * @param namespace The namespace where account exist.
- * @returns A Cypress chainable that performs the account deletion process.
- */
-export const deleteNIMAccount = (
-  namespace: string = Cypress.env('APPLICATIONS_NAMESPACE'),
-): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc delete account odh-nim-account -n ${namespace}`;
-  cy.log(`Executing: ${ocCommand}`);
-
-  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
-      throw new Error(`Command failed with code ${result.stderr}`);
-    }
-    if (result.stdout.trim() === '') {
-      cy.log('No accounts found');
-    } else {
-      cy.log(`Account deletion: ${result.stdout}`);
     }
   });
 };

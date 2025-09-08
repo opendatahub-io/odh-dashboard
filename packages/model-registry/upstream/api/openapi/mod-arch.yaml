@@ -1,0 +1,2365 @@
+openapi: 3.0.3
+info:
+  title: Model Registry Mod Arch REST API
+  version: 1.0.0
+  description: REST API Model Registry BFF
+  license:
+    name: Apache 2.0
+    url: "https://www.apache.org/licenses/LICENSE-2.0"
+servers:
+  - url: "https://localhost:8080"
+  - url: "http://localhost:8080"
+paths:
+  /healthcheck:
+    summary: Path targeted for healthcheck purposes.
+    description: >-
+      The REST endpoint/path used to allow a healthcheck update.
+    get:
+      tags:
+        - K8SOperation
+      responses:
+        "200":
+          description: "Ok"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: healthcheck
+      summary: HealthCheck
+      description: HealthCheck endpoint.
+  /api/v1/namespaces:
+    summary: Path used to get available namespaces.
+    description: >-
+      The REST endpoint/path used to list available namespaces.
+    get:
+      tags:
+        - K8SOperation
+      responses:
+        "200":
+          description: "Ok"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  metadata:
+                    type: object
+                    description: Metadata about the response
+                  data:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        example: default-namespace
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getNamespaces
+      summary: Get Available Namespaces
+      description: Returns available namespaces in the cluster.
+  /api/v1/user:
+    summary: Path used to Retrieve a user based on the header.
+    description: >-
+      The REST endpoint/path used pass all the config information needed for the UI.
+    get:
+      tags:
+        - K8SOperation
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+      responses:
+        "200":
+          $ref: "#/components/responses/ConfigResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getConfig
+      summary: Get configuration info
+      description: Gets the configuration information needed for the UI [TBD]
+  /api/v1/model_registry:
+    summary: Path used to manage the list of Model Registry.
+    description: >-
+      The REST endpoint/path used to list `Model Registry` entities.  This path contains a `GET`  to perform the list of the resource.
+    get:
+      tags:
+        - K8SOperation
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+      responses:
+        "200":
+          $ref: "#/components/responses/ModelRegistryRespone"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getModelRegistries
+      summary: List All Model Registries
+      description: Gets a list of all `Model Registry` entities.
+  /api/v1/settings/model_registry:
+    summary: Path used to manage Model Registry resources.
+    description: >-
+      The REST endpoint/path used to list and create Model Registry resources.
+    get:
+      tags:
+        - K8SOperation
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+      responses:
+        "200":
+          $ref: "#/components/responses/ModelRegistryKindListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getModelRegistrySettings
+      summary: List All Model Registry Settings
+      description: Gets a list of all Model Registry settings.
+    post:
+      requestBody:
+        description: A new Model Registry settings to be created, potentially including credentials.
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModelRegistrySettingsPayload" # New schema for create payload
+        required: true
+      tags:
+        - K8SOperation
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+      responses:
+        "201":
+          $ref: "#/components/responses/ModelRegistryKindResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: createModelRegistrySettings
+      summary: Create Model Registry Settings
+      description: Creates a new instance of Model Registry settings.
+  /api/v1/settings/model_registry/{modelRegistryId}:
+    summary: Path used to manage Model Registry resources.
+    description: >-
+      The REST endpoint/path used to get, update and delete a single Model Registry resource.
+    # Add GET operation
+    get:
+      tags:
+        - K8SOperation
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/modelRegistryId" # Use the correct parameter name
+      responses:
+        "200":
+          # Define a response that might include credentials
+          $ref: "#/components/responses/ModelRegistryAndCredentialsResponse" 
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getModelRegistrySetting # Renamed for clarity
+      summary: Get Model Registry Settings
+      description: Gets the details of a single Model Registry settings, potentially including related credentials.
+    patch:
+      requestBody:
+        description: Updated Model Registry settings information.
+        content:
+          application/json:
+            schema:
+              # Use the new payload schema to allow optional credentials
+              $ref: "#/components/schemas/ModelRegistrySettingsPayload" # New schema for update payload
+        required: true
+      tags:
+        - K8SOperation
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/modelRegistryId"
+      responses:
+        "200":
+          $ref: "#/components/responses/ModelRegistryKindResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: updateModelRegistrySettings
+      summary: Update Model Registry Settings
+      description: Updates an existing Model Registry settings.
+    delete:
+      tags:
+        - K8SOperation
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/modelRegistryId"
+      responses:
+        "204":
+          description: Successfully deleted
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: deleteModelRegistrySettings
+      summary: Delete Model Registry Settings
+      description: Deletes an existing Model Registry settings.
+  # New path for certificates
+  /api/v1/settings/certificates:
+    summary: Path used to list available certificates (Secrets and ConfigMaps).
+    description: >-
+      The REST endpoint/path used to list Secrets and ConfigMaps that can be used for TLS/SSL configuration in Model Registries.
+    get:
+      tags:
+        - K8SOperation
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+      responses:
+        "200":
+          $ref: "#/components/responses/CertificateListResponse" # New response type needed
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getCertificates
+      summary: List Available Certificates
+      description: Gets lists of Secrets and ConfigMaps suitable for certificate usage.
+
+  # New path for role bindings
+  /api/v1/settings/role_bindings:
+    summary: Path used to manage Role Bindings for Model Registries.
+    description: >-
+      The REST endpoint/path used to list and create Role Bindings associated with Model Registries.
+    get:
+      tags:
+        - K8SOperation
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+      responses:
+        "200":
+          $ref: "#/components/responses/RoleBindingListResponse" # New response type needed
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getRoleBindings
+      summary: List Model Registry Role Bindings
+      description: Gets a list of Role Bindings associated with Model Registries.
+    post:
+      requestBody:
+        description: A new Role Binding to be created.
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoleBinding" # New schema needed
+        required: true
+      tags:
+        - K8SOperation
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+      responses:
+        "201":
+          $ref: "#/components/responses/RoleBindingResponse" # New response type needed
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/ConflictResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: createRoleBinding
+      summary: Create Model Registry Role Binding
+      description: Creates a new Role Binding associated with Model Registries.
+
+  # New path for specific role binding
+  /api/v1/settings/role_bindings/{roleBindingName}:
+    summary: Path used to manage a single Role Binding for Model Registries.
+    description: >-
+      The REST endpoint/path used to update or delete a specific Role Binding associated with Model Registries.
+    patch:
+      requestBody:
+        description: Updated Role Binding data.
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoleBinding"
+        required: true
+      tags:
+        - K8SOperation
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/roleBindingName"
+      responses:
+        "200":
+          $ref: "#/components/responses/RoleBindingResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: patchRoleBinding
+      summary: Update Model Registry Role Binding
+      description: Updates an existing Role Binding associated with Model Registries.
+    delete:
+      tags:
+        - K8SOperation
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/roleBindingName" # New parameter needed
+      responses:
+        "204":
+          description: Successfully deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: deleteRoleBinding
+      summary: Delete Model Registry Role Binding
+      description: Deletes an existing Role Binding associated with Model Registries.
+    parameters: # Add parameters at the path level
+      - $ref: "#/components/parameters/roleBindingName" # Ensure this path parameter is defined
+  /api/v1/settings/groups:
+    summary: Path used to get available groups.
+    description: >-
+      The REST endpoint/path used to get a list of all available OpenShift/Kubernetes groups in the cluster.
+    get:
+      tags:
+        - K8SOperation
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/namespace"
+      responses:
+        "200":
+          description: "Ok"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Group"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getGroups
+      summary: Get Available Groups
+      description: Returns available OpenShift/Kubernetes groups in the cluster.
+  /api/v1/model_registry/{modelRegistryName}/model_versions/{modelversionId}:
+    summary: Path used to manage a single ModelVersion.
+    description: >-
+      The REST endpoint/path used to get and update single instances of an `ModelVersion`. This path contains `GET` and `PATCH` operations used to perform the get and update tasks, respectively.
+    get:
+      tags:
+        - ModelRegistryService
+      parameters:
+        - $ref: "#/components/parameters/modelRegistryName"
+        - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/modelversionId"
+      responses:
+        "200":
+          $ref: "#/components/responses/ModelVersionResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getModelVersion
+      summary: Get a ModelVersion
+      description: Gets the details of a single instance of a `ModelVersion`.
+    patch:
+      requestBody:
+        description: Updated `ModelVersion` information.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                metadata:
+                  type: object
+                  description: Metadata about the response
+                data:
+                  $ref: "#/components/schemas/ModelVersionUpdate"
+        required: true
+      tags:
+        - ModelRegistryService
+      responses:
+        "200":
+          $ref: "#/components/responses/ModelVersionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: updateModelVersion
+      summary: Update a ModelVersion
+      description: Updates an existing `ModelVersion`.
+    parameters:
+      - $ref: "#/components/parameters/modelRegistryName"
+      - $ref: "#/components/parameters/kubeflowUserId"
+      - $ref: "#/components/parameters/modelversionId"
+  /api/v1/model_registry/{modelRegistryName}/registered_models:
+    summary: Path used to manage the list of registeredmodels.
+    description: >-
+      The REST endpoint/path used to list and create zero or more `RegisteredModel` entities.  This path contains a `GET` and `POST` operation to perform the list and create tasks, respectively.
+    get:
+      tags:
+        - ModelRegistryService
+      parameters:
+        - $ref: "#/components/parameters/modelRegistryName"
+        - $ref: "#/components/parameters/pageSize"
+        - $ref: "#/components/parameters/orderBy"
+        - $ref: "#/components/parameters/sortOrder"
+        - $ref: "#/components/parameters/nextPageToken"
+        - $ref: "#/components/parameters/kubeflowUserId"
+      responses:
+        "200":
+          $ref: "#/components/responses/RegisteredModelListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getRegisteredModels
+      summary: List All RegisteredModels
+      description: Gets a list of all `RegisteredModel` entities.
+    post:
+      requestBody:
+        description: A new `RegisteredModel` to be created.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                metadata:
+                  type: object
+                  description: Metadata about the response
+                data:
+                  $ref: "#/components/schemas/RegisteredModelCreate"
+        required: true
+      tags:
+        - ModelRegistryService
+      parameters:
+        - $ref: "#/components/parameters/modelRegistryName"
+        - $ref: "#/components/parameters/kubeflowUserId"
+      responses:
+        "201":
+          $ref: "#/components/responses/RegisteredModelResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: createRegisteredModel
+      summary: Create a RegisteredModel
+      description: Creates a new instance of a `RegisteredModel`.
+  /api/v1/model_registry/{modelRegistryName}/registered_models/{registeredmodelId}:
+    summary: Path used to manage a single RegisteredModel.
+    description: >-
+      The REST endpoint/path used to get and update single instances of an `RegisteredModel`. This path contains `GET` and `PATCH` operations used to perform the get and update tasks, respectively.
+    get:
+      tags:
+        - ModelRegistryService
+      parameters:
+        - $ref: "#/components/parameters/modelRegistryName"
+        - $ref: "#/components/parameters/kubeflowUserId"
+      responses:
+        "200":
+          $ref: "#/components/responses/RegisteredModelResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getRegisteredModel
+      summary: Get a RegisteredModel
+      description: Gets the details of a single instance of a `RegisteredModel`.
+    patch:
+      requestBody:
+        description: Updated `RegisteredModel` information.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                metadata:
+                  type: object
+                  description: Metadata about the response
+                data:
+                  $ref: "#/components/schemas/RegisteredModelUpdate"
+        required: true
+      tags:
+        - ModelRegistryService
+      responses:
+        "200":
+          $ref: "#/components/responses/RegisteredModelResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: updateRegisteredModel
+      summary: Update a RegisteredModel
+      description: Updates an existing `RegisteredModel`.
+    parameters:
+      - $ref: "#/components/parameters/modelRegistryName"
+      - $ref: "#/components/parameters/kubeflowUserId"
+      - $ref: "#/components/parameters/registeredmodelId"
+  /api/v1/model_registry/{modelRegistryName}/model_versions/{modelversionId}/artifacts:
+    summary: Path used to manage the list of artifacts for a modelversion.
+    description: >-
+      The REST endpoint/path used to list and create zero or more `Artifact` entities for a `ModelVersion`.  This path contains a `GET` and `POST` operation to perform the list and create tasks, respectively.
+    get:
+      tags:
+        - ModelRegistryService
+      parameters:
+        - $ref: "#/components/parameters/modelRegistryName"
+        - $ref: "#/components/parameters/name"
+        - $ref: "#/components/parameters/externalId"
+        - $ref: "#/components/parameters/pageSize"
+        - $ref: "#/components/parameters/orderBy"
+        - $ref: "#/components/parameters/sortOrder"
+        - $ref: "#/components/parameters/nextPageToken"
+        - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/modelversionId"
+      responses:
+        "200":
+          $ref: "#/components/responses/ArtifactListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getModelVersionArtifacts
+      summary: List all artifacts associated with the `ModelVersion`
+    post:
+      requestBody:
+        description: A new or existing `Artifact` to be associated with the `ModelVersion`.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                metadata:
+                  type: object
+                  description: Metadata about the response
+                data:
+                  $ref: "#/components/schemas/Artifact"
+        required: true
+      tags:
+        - ModelRegistryService
+      parameters:
+        - $ref: "#/components/parameters/modelRegistryName"
+        - $ref: "#/components/parameters/kubeflowUserId"
+      responses:
+        "200":
+          $ref: "#/components/responses/ArtifactResponse"
+        "201":
+          $ref: "#/components/responses/ArtifactResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: createModelVersionArtifact
+      summary: Create an Artifact in a ModelVersion
+      description: Creates a new instance of an Artifact if needed and associates it with `ModelVersion`.
+    parameters:
+      - $ref: "#/components/parameters/modelversionId"
+  "/api/v1/model_registry/{modelRegistryName}/registered_models/{registeredmodelId}/versions":
+    summary: Path used to manage the list of modelversions for a registeredmodel.
+    description: >-
+      The REST endpoint/path used to list and create zero or more `ModelVersion` entities for a `RegisteredModel`.  This path contains a `GET` and `POST` operation to perform the list and create tasks, respectively.
+    get:
+      tags:
+        - ModelRegistryService
+      parameters:
+        - $ref: "#/components/parameters/name"
+        - $ref: "#/components/parameters/externalId"
+        - $ref: "#/components/parameters/pageSize"
+        - $ref: "#/components/parameters/orderBy"
+        - $ref: "#/components/parameters/sortOrder"
+        - $ref: "#/components/parameters/nextPageToken"
+        - $ref: "#/components/parameters/kubeflowUserId"
+      responses:
+        "200":
+          $ref: "#/components/responses/ModelVersionListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getRegisteredModelVersions
+      summary: List All RegisteredModel's ModelVersions
+      description: Gets a list of all `ModelVersion` entities for the `RegisteredModel`.
+    post:
+      requestBody:
+        description: A new `ModelVersion` to be created.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                metadata:
+                  type: object
+                  description: Metadata about the response
+                data:
+                  $ref: "#/components/schemas/ModelVersion"
+        required: true
+      tags:
+        - ModelRegistryService
+      responses:
+        "201":
+          $ref: "#/components/responses/ModelVersionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: createRegisteredModelVersion
+      summary: Create a ModelVersion in RegisteredModel
+      description: Creates a new instance of a `ModelVersion`.
+    parameters:
+      - $ref: "#/components/parameters/modelRegistryName"
+      - $ref: "#/components/parameters/kubeflowUserId"
+      - $ref: "#/components/parameters/registeredmodelId"
+  /api/v1/model_registry/{modelRegistryName}/model_artifact/{modelArtifactId}:
+    summary: Path used to patch Model Artifacts
+    description: >-
+      The REST endpoint/path used patch single instances of an `ModelArtifact`. This path contains`PATCH` operation used to perform the patch tasks.
+    patch:
+      requestBody:
+        description: Updated `ModelArtifact` information.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                metadata:
+                  type: object
+                  description: Metadata about the response
+                data:
+                  $ref: "#/components/schemas/Artifact"
+        required: true
+      tags:
+        - ModelRegistryService
+      responses:
+        "200":
+          $ref: "#/components/responses/ArtifactResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: patchModelArtifact
+      summary: Patch a Model Artifact
+      description: Patch an existing `Model Artifact`.
+    parameters:
+      - $ref: "#/components/parameters/modelRegistryName"
+      - $ref: "#/components/parameters/kubeflowUserId"
+      - $ref: "#/components/parameters/modelArtifactId"
+  
+  # New Model catalog endpoints
+  /api/v1/model_catalog/models:
+    description: >-
+      The REST endpoint/path used to list zero or more `CatalogModel` entities from all `CatalogSources`.
+    get:
+      summary: Search catalog models across sources.
+      tags:
+        - ModelCatalogService
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+        - name: source
+          description: |-
+            Filter models by source. This parameter is currently required and
+            may only be specified once.
+          schema:
+            type: string
+          in: query
+          required: true
+        - name: q
+          description: Free-form keyword search used to filter the response.
+          schema:
+            type: string
+          in: query
+          required: false
+        - $ref: "#/components/parameters/pageSize"
+        - $ref: "#/components/parameters/orderBy"
+        - $ref: "#/components/parameters/sortOrder"
+        - $ref: "#/components/parameters/nextPageToken"
+      responses:
+        "200":
+          $ref: "#/components/responses/CatalogModelListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: findModels
+  /api/v1/model_catalog/sources:
+    summary: Path used to get the list of catalog sources.
+    description: >-
+      The REST endpoint/path used to list zero or more `CatalogSource` entities.
+    get:
+      summary: List All CatalogSources
+      tags:
+        - ModelCatalogService
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/name"
+        - $ref: "#/components/parameters/pageSize"
+        - $ref: "#/components/parameters/orderBy"
+        - $ref: "#/components/parameters/sortOrder"
+        - $ref: "#/components/parameters/nextPageToken"
+      responses:
+        "200":
+          $ref: "#/components/responses/CatalogSourceListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: findSources
+      description: Gets a list of all `CatalogSource` entities.
+  /api/v1/model_catalog/sources/{sourceId}/models/{CatalogModelName+}:
+    description: >-
+      The REST endpoint/path used to get a `CatalogModel`.
+    get:
+      summary: Get a `CatalogModel`.
+      tags:
+        - ModelCatalogService
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+        - name: sourceId
+          description: A unique identifier for a `CatalogSource`.
+          schema:
+            type: string
+          in: path
+          required: true
+        - name: CatalogModelName+
+          description: A unique identifier for the model.
+          schema:
+            type: string
+          in: path
+          required: true
+      responses:
+        "200":
+          $ref: "#/components/responses/CatalogModelResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getModel
+  /api/v1/model_catalog/sources/{sourceId}/models/{CatalogModelName}/artifacts:
+    description: >-
+      The REST endpoint/path used to list `CatalogModelArtifacts`.
+    get:
+      summary: List CatalogModelArtifacts.
+      tags:
+        - ModelCatalogService
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+        - name: sourceId
+          description: A unique identifier for a `CatalogSource`.
+          schema:
+            type: string
+          in: path
+          required: true
+        - name: CatalogModelName
+          description: A unique identifier for the model.
+          schema:
+            type: string
+          in: path
+          required: true
+      responses:
+        "200":
+          $ref: "#/components/responses/CatalogModelArtifactListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getAllModelArtifacts
+  # TODO: Admin endpoints for model catalog
+
+components:
+  schemas:
+    Config:
+      required:
+        - userId
+        - clusterAdmin
+      type: object
+      properties:
+        userId:
+          type: string
+          example: user@example.com
+        clusterAdmin:
+          type: boolean
+          example: true
+    ModelRegistry:
+      required:
+        - name
+      type: object
+      properties:
+        name:
+          type: string
+          example: my-model-registry
+        displayName:
+          type: string
+          example: My Model Registry
+        description:
+          type: string
+          example: This is the main model registry for the cluster and contains..
+        serverAddress:
+          type: string
+          example: http://example.com
+    ModelRegistryKind:
+      description: Kubernetes Custom Resource for Model Registry
+      type: object
+      properties:
+        apiVersion:
+          type: string
+          example: modelregistry.kubeflow.io/v1alpha1
+        kind:
+          type: string
+          example: ModelRegistry
+        metadata:
+          type: object
+          properties:
+            name:
+              type: string
+              example: modelregistry-sample
+            namespace:
+              type: string
+              example: odh-model-registries
+            creationTimestamp:
+              type: string
+              example: 2024-03-14T08:01:42Z
+        spec:
+          type: object
+          properties:
+            grpc:
+              type: object
+            rest:
+              type: object
+            istio:
+              type: object
+              properties:
+                gateway:
+                  type: object
+                  properties:
+                    grpc:
+                      type: object
+                      properties:
+                        tls:
+                          type: object
+                    rest:
+                      type: object
+                      properties:
+                        tls:
+                          type: object
+            mysql:
+              type: object
+              properties:
+                database:
+                  type: string
+                  example: model-registry
+                host:
+                  type: string
+                  example: model-registry-db
+                passwordSecret:
+                  type: object
+                  properties:
+                    key:
+                      type: string
+                      example: database-password
+                    name:
+                      type: string
+                      example: model-registry-db
+                port:
+                  type: integer
+                  example: 5432
+                skipDBCreation:
+                  type: boolean
+                  example: false
+                username:
+                  type: string
+                  example: mlmduser
+                sslRootCertificateConfigMap:
+                  type: string
+                  example: ssl-config-map
+                sslRootCertificateSecret:
+                  type: string
+                  example: ssl-secret
+        status:
+          type: object
+          properties:
+            conditions:
+              type: array
+              items:
+                type: object
+                properties:
+                  lastTransitionTime:
+                    type: string
+                    example: 2024-03-22T09:30:02Z
+                  message:
+                    type: string
+                    example: Deployment for custom resource modelregistry-sample was successfully created
+                  reason:
+                    type: string
+                    example: CreatedDeployment
+                  status:
+                    type: string
+                    example: "True"
+                  type:
+                    type: string
+                    example: "Progressing"
+    ModelRegistryKindList:
+      description: List of ModelRegistryKind entities.
+      type: object
+      allOf:
+        - type: object
+          properties:
+            items:
+              description: Array of `ModelRegistryKind` entities.
+              type: array
+              items:
+                $ref: "#/components/schemas/ModelRegistryKind"
+        - $ref: "#/components/schemas/BaseResourceList"
+    ArtifactState:
+      description: |2-
+         - PENDING: A state indicating that the artifact may exist.
+         - LIVE: A state indicating that the artifact should exist, unless something
+        external to the system deletes it.
+         - MARKED_FOR_DELETION: A state indicating that the artifact should be deleted.
+         - DELETED: A state indicating that the artifact has been deleted.
+         - ABANDONED: A state indicating that the artifact has been abandoned, which may be
+        due to a failed or cancelled execution.
+         - REFERENCE: A state indicating that the artifact is a reference artifact. At
+        execution start time, the orchestrator produces an output artifact for
+        each output key with state PENDING. However, for an intermediate
+        artifact, this first artifact's state will be REFERENCE. Intermediate
+        artifacts emitted during a component's execution will copy the REFERENCE
+        artifact's attributes. At the end of an execution, the artifact state
+        should remain REFERENCE instead of being changed to LIVE.
+
+        See also: ml-metadata Artifact.State
+      default: UNKNOWN
+      enum:
+        - UNKNOWN
+        - PENDING
+        - LIVE
+        - MARKED_FOR_DELETION
+        - DELETED
+        - ABANDONED
+        - REFERENCE
+      type: string
+    RegisteredModelState:
+      description: |-
+        - LIVE: A state indicating that the `RegisteredModel` exists
+        - ARCHIVED: A state indicating that the `RegisteredModel` has been archived.
+      default: LIVE
+      enum:
+        - LIVE
+        - ARCHIVED
+      type: string
+    ModelVersionState:
+      description: |-
+        - LIVE: A state indicating that the `ModelVersion` exists
+        - ARCHIVED: A state indicating that the `ModelVersion` has been archived.
+      default: LIVE
+      enum:
+        - LIVE
+        - ARCHIVED
+      type: string
+    InferenceServiceState:
+      description: |-
+        - DEPLOYED: A state indicating that the `InferenceService` should be deployed.
+        - UNDEPLOYED: A state indicating that the `InferenceService` should be un-deployed.
+        The state indicates the desired state of inference service.
+        See the associated `ServeModel` for the actual status of service deployment action.
+      default: DEPLOYED
+      enum:
+        - DEPLOYED
+        - UNDEPLOYED
+      type: string
+    ExecutionState:
+      description: |-
+        The state of the Execution. The state transitions are
+          NEW -> RUNNING -> COMPLETE | CACHED | FAILED | CANCELED
+        CACHED means the execution is skipped due to cached results.
+        CANCELED means the execution is skipped due to precondition not met. It is
+        different from CACHED in that a CANCELED execution will not have any event
+        associated with it. It is different from FAILED in that there is no
+        unexpected error happened and it is regarded as a normal state.
+
+        See also: ml-metadata Execution.State
+      default: UNKNOWN
+      enum:
+        - UNKNOWN
+        - NEW
+        - RUNNING
+        - COMPLETE
+        - FAILED
+        - CACHED
+        - CANCELED
+      type: string
+    ModelArtifact:
+      description: An ML model artifact.
+      type: object
+      required:
+        - artifactType
+      properties:
+        artifactType:
+          type: string
+          default: "model-artifact"
+      allOf:
+        - $ref: "#/components/schemas/BaseArtifact"
+        - $ref: "#/components/schemas/ModelArtifactCreate"
+    DocArtifact:
+      description: A document.
+      type: object
+      required:
+        - artifactType
+      properties:
+        artifactType:
+          type: string
+          default: "doc-artifact"
+      allOf:
+        - $ref: "#/components/schemas/BaseArtifact"
+    RegisteredModel:
+      description: A registered model in model registry. A registered model has ModelVersion children.
+      allOf:
+        - $ref: "#/components/schemas/BaseResource"
+        - type: object
+        - $ref: "#/components/schemas/RegisteredModelCreate"
+    ModelVersionList:
+      description: List of ModelVersion entities.
+      type: object
+      allOf:
+        - type: object
+          properties:
+            items:
+              description: Array of `ModelVersion` entities.
+              type: array
+              items:
+                $ref: "#/components/schemas/ModelVersion"
+        - $ref: "#/components/schemas/BaseResourceList"
+    ModelArtifactList:
+      description: List of ModelArtifact entities.
+      type: object
+      allOf:
+        - type: object
+          properties:
+            items:
+              description: Array of `ModelArtifact` entities.
+              type: array
+              items:
+                $ref: "#/components/schemas/ModelArtifact"
+        - $ref: "#/components/schemas/BaseResourceList"
+    RegisteredModelCreate:
+      description: A registered model in model registry. A registered model has ModelVersion children.
+      allOf:
+        - type: object
+        - $ref: "#/components/schemas/BaseResourceCreate"
+        - $ref: "#/components/schemas/RegisteredModelUpdate"
+    RegisteredModelUpdate:
+      description: A registered model in model registry. A registered model has ModelVersion children.
+      allOf:
+        - $ref: "#/components/schemas/BaseResourceUpdate"
+        - type: object
+          properties:
+            owner:
+              type: string
+            state:
+              $ref: "#/components/schemas/RegisteredModelState"
+    ModelVersion:
+      description: Represents a ModelVersion belonging to a RegisteredModel.
+      allOf:
+        - $ref: "#/components/schemas/ModelVersionCreate"
+        - $ref: "#/components/schemas/BaseResource"
+    ModelVersionCreate:
+      description: Represents a ModelVersion belonging to a RegisteredModel.
+      required:
+        - registeredModelId
+      allOf:
+        - $ref: "#/components/schemas/BaseResourceCreate"
+        - $ref: "#/components/schemas/ModelVersionUpdate"
+        - type: object
+          properties:
+            registeredModelId:
+              description: ID of the `RegisteredModel` to which this version belongs.
+              type: string
+    ModelVersionUpdate:
+      description: Represents a ModelVersion belonging to a RegisteredModel.
+      allOf:
+        - $ref: "#/components/schemas/BaseResourceUpdate"
+        - type: object
+          properties:
+            state:
+              $ref: "#/components/schemas/ModelVersionState"
+            author:
+              description: Name of the author.
+              type: string
+    BaseArtifactCreate:
+      allOf:
+        - $ref: "#/components/schemas/BaseArtifactUpdate"
+        - $ref: "#/components/schemas/BaseResourceCreate"
+    BaseArtifactUpdate:
+      allOf:
+        - $ref: "#/components/schemas/BaseResourceUpdate"
+        - type: object
+          properties:
+            uri:
+              description: |-
+                The uniform resource identifier of the physical artifact.
+                May be empty if there is no physical artifact.
+              type: string
+            state:
+              $ref: "#/components/schemas/ArtifactState"
+    BaseExecution:
+      allOf:
+        - $ref: "#/components/schemas/BaseExecutionCreate"
+        - type: object
+        - $ref: "#/components/schemas/BaseResource"
+    BaseExecutionCreate:
+      allOf:
+        - $ref: "#/components/schemas/BaseExecutionUpdate"
+        - type: object
+        - $ref: "#/components/schemas/BaseResourceCreate"
+    BaseExecutionUpdate:
+      type: object
+      allOf:
+        - type: object
+          properties:
+            lastKnownState:
+              $ref: "#/components/schemas/ExecutionState"
+        - $ref: "#/components/schemas/BaseResourceUpdate"
+    MetadataValue:
+      oneOf:
+        - $ref: "#/components/schemas/MetadataIntValue"
+        - $ref: "#/components/schemas/MetadataDoubleValue"
+        - $ref: "#/components/schemas/MetadataStringValue"
+        - $ref: "#/components/schemas/MetadataStructValue"
+        - $ref: "#/components/schemas/MetadataProtoValue"
+        - $ref: "#/components/schemas/MetadataBoolValue"
+      discriminator:
+        propertyName: metadataType
+        mapping:
+          MetadataBoolValue: "#/components/schemas/MetadataBoolValue"
+          MetadataDoubleValue: "#/components/schemas/MetadataDoubleValue"
+          MetadataIntValue: "#/components/schemas/MetadataIntValue"
+          MetadataProtoValue: "#/components/schemas/MetadataProtoValue"
+          MetadataStringValue: "#/components/schemas/MetadataStringValue"
+          MetadataStructValue: "#/components/schemas/MetadataStructValue"
+      description: A value in properties.
+    MetadataIntValue:
+      description: An integer (int64) property value.
+      type: object
+      required:
+        - metadataType
+        - int_value
+      properties:
+        int_value:
+          format: int64
+          type: string
+        metadataType:
+          type: string
+          example: MetadataIntValue
+          default: MetadataIntValue
+    MetadataDoubleValue:
+      description: A double property value.
+      type: object
+      required:
+        - metadataType
+        - double_value
+      properties:
+        double_value:
+          format: double
+          type: number
+        metadataType:
+          type: string
+          example: MetadataDoubleValue
+          default: MetadataDoubleValue
+    MetadataStringValue:
+      description: A string property value.
+      type: object
+      required:
+        - metadataType
+        - string_value
+      properties:
+        string_value:
+          type: string
+        metadataType:
+          type: string
+          example: MetadataStringValue
+          default: MetadataStringValue
+    MetadataStructValue:
+      description: A struct property value.
+      type: object
+      required:
+        - metadataType
+        - struct_value
+      properties:
+        struct_value:
+          description: Base64 encoded bytes for struct value
+          type: string
+        metadataType:
+          type: string
+          example: MetadataStructValue
+          default: MetadataStructValue
+    MetadataProtoValue:
+      description: A proto property value.
+      type: object
+      required:
+        - metadataType
+        - type
+        - proto_value
+      properties:
+        type:
+          description: url describing proto value
+          type: string
+        proto_value:
+          description: Base64 encoded bytes for proto value
+          type: string
+        metadataType:
+          type: string
+          example: MetadataProtoValue
+          default: MetadataProtoValue
+    MetadataBoolValue:
+      description: A bool property value.
+      type: object
+      required:
+        - metadataType
+        - bool_value
+      properties:
+        bool_value:
+          type: boolean
+        metadataType:
+          type: string
+          example: MetadataBoolValue
+          default: MetadataBoolValue
+    BaseResource:
+      allOf:
+        - $ref: "#/components/schemas/BaseResourceCreate"
+        - type: object
+          properties:
+            id:
+              format: int64
+              description: Output only. The unique server generated id of the resource.
+              type: string
+              readOnly: true
+            createTimeSinceEpoch:
+              format: int64
+              description: Output only. Create time of the resource in millisecond since epoch.
+              type: string
+              readOnly: true
+            lastUpdateTimeSinceEpoch:
+              format: int64
+              description: |-
+                Output only. Last update time of the resource since epoch in millisecond
+                since epoch.
+              type: string
+              readOnly: true
+    BaseResourceCreate:
+      allOf:
+        - $ref: "#/components/schemas/BaseResourceUpdate"
+        - type: object
+          properties:
+            name:
+              description: |-
+                The client provided name of the artifact. This field is optional. If set,
+                it must be unique among all the artifacts of the same artifact type within
+                a database instance and cannot be changed once set.
+              type: string
+    BaseResourceUpdate:
+      type: object
+      properties:
+        customProperties:
+          description: User provided custom properties which are not defined by its type.
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/MetadataValue"
+        description:
+          description: |-
+            An optional description about the resource.
+          type: string
+        externalId:
+          description: |-
+            The external id that come from the clients' system. This field is optional.
+            If set, it must be unique among all resources within a database instance.
+          type: string
+
+    ArtifactList:
+      description: A list of Artifact entities.
+      type: object
+      allOf:
+        - type: object
+          properties:
+            items:
+              description: Array of `Artifact` entities.
+              type: array
+              items:
+                $ref: "#/components/schemas/Artifact"
+        - $ref: "#/components/schemas/BaseResourceList"
+    ModelArtifactUpdate:
+      description: An ML model artifact.
+      allOf:
+        - $ref: "#/components/schemas/BaseArtifactUpdate"
+        - type: object
+          properties:
+            modelFormatName:
+              description: Name of the model format.
+              type: string
+            storageKey:
+              description: Storage secret name.
+              type: string
+            storagePath:
+              description: Path for model in storage provided by `storageKey`.
+              type: string
+            modelFormatVersion:
+              description: Version of the model format.
+              type: string
+            serviceAccountName:
+              description: Name of the service account with storage secret.
+              type: string
+    ModelArtifactCreate:
+      description: An ML model artifact.
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/BaseArtifactCreate"
+        - $ref: "#/components/schemas/ModelArtifactUpdate"
+    Error:
+      description: Error code and message.
+      required:
+        - code
+        - message
+      type: object
+      properties:
+        code:
+          description: Error code
+          type: string
+        message:
+          description: Error message
+          type: string
+    SortOrder:
+      description: Supported sort direction for ordering result entities.
+      enum:
+        - ASC
+        - DESC
+      type: string
+    OrderByField:
+      description: Supported fields for ordering result entities.
+      enum:
+        - CREATE_TIME
+        - LAST_UPDATE_TIME
+        - Id
+      type: string
+    Artifact:
+      oneOf:
+        - $ref: "#/components/schemas/ModelArtifact"
+        - $ref: "#/components/schemas/DocArtifact"
+      discriminator:
+        propertyName: artifactType
+        mapping:
+          model-artifact: "#/components/schemas/ModelArtifact"
+          doc-artifact: "#/components/schemas/DocArtifact"
+      description: A metadata Artifact Entity.
+    BaseArtifact:
+      allOf:
+        - $ref: "#/components/schemas/BaseArtifactCreate"
+        - $ref: "#/components/schemas/BaseResource"
+    ServingEnvironmentList:
+      description: List of ServingEnvironments.
+      type: object
+      allOf:
+        - type: object
+          properties:
+            items:
+              description: ""
+              type: array
+              items:
+                $ref: "#/components/schemas/ServingEnvironment"
+              readOnly: false
+        - $ref: "#/components/schemas/BaseResourceList"
+    RegisteredModelList:
+      description: List of RegisteredModels.
+      type: object
+      allOf:
+        - type: object
+          properties:
+            items:
+              description: ""
+              type: array
+              items:
+                $ref: "#/components/schemas/RegisteredModel"
+              readOnly: false
+        - $ref: "#/components/schemas/BaseResourceList"
+    ServingEnvironment:
+      description: A Model Serving environment for serving `RegisteredModels`.
+      allOf:
+        - $ref: "#/components/schemas/BaseResource"
+        - type: object
+        - $ref: "#/components/schemas/ServingEnvironmentCreate"
+    ServingEnvironmentUpdate:
+      description: A Model Serving environment for serving `RegisteredModels`.
+      allOf:
+        - $ref: "#/components/schemas/BaseResourceUpdate"
+    ServingEnvironmentCreate:
+      description: A Model Serving environment for serving `RegisteredModels`.
+      allOf:
+        - type: object
+        - $ref: "#/components/schemas/BaseResourceCreate"
+        - $ref: "#/components/schemas/ServingEnvironmentUpdate"
+    InferenceService:
+      description: >-
+        An `InferenceService` entity in a `ServingEnvironment` represents a deployed `ModelVersion` from a `RegisteredModel` created by Model Serving.
+      allOf:
+        - $ref: "#/components/schemas/BaseResource"
+        - $ref: "#/components/schemas/InferenceServiceCreate"
+    InferenceServiceList:
+      description: List of InferenceServices.
+      type: object
+      allOf:
+        - type: object
+          properties:
+            items:
+              description: ""
+              type: array
+              items:
+                $ref: "#/components/schemas/InferenceService"
+              readOnly: false
+        - $ref: "#/components/schemas/BaseResourceList"
+    ServeModelList:
+      description: List of ServeModel entities.
+      type: object
+      allOf:
+        - type: object
+          properties:
+            items:
+              description: Array of `ModelArtifact` entities.
+              type: array
+              items:
+                $ref: "#/components/schemas/ServeModel"
+        - $ref: "#/components/schemas/BaseResourceList"
+    ServeModel:
+      description: An ML model serving action.
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/BaseExecution"
+        - $ref: "#/components/schemas/ServeModelCreate"
+    ServeModelUpdate:
+      description: An ML model serving action.
+      allOf:
+        - $ref: "#/components/schemas/BaseExecutionUpdate"
+    ServeModelCreate:
+      description: An ML model serving action.
+      allOf:
+        - $ref: "#/components/schemas/BaseExecutionCreate"
+        - $ref: "#/components/schemas/ServeModelUpdate"
+        - required:
+            - modelVersionId
+          type: object
+          properties:
+            modelVersionId:
+              description: ID of the `ModelVersion` that was served in `InferenceService`.
+              type: string
+    InferenceServiceUpdate:
+      description: >-
+        An `InferenceService` entity in a `ServingEnvironment` represents a deployed `ModelVersion` from a `RegisteredModel` created by Model Serving.
+      allOf:
+        - $ref: "#/components/schemas/BaseResourceUpdate"
+        - type: object
+          properties:
+            modelVersionId:
+              description: >-
+                ID of the `ModelVersion` to serve. If it's unspecified, then the latest `ModelVersion` by creation order will be served.
+              type: string
+            runtime:
+              description: Model runtime.
+              type: string
+            desiredState:
+              $ref: "#/components/schemas/InferenceServiceState"
+    InferenceServiceCreate:
+      description: >-
+        An `InferenceService` entity in a `ServingEnvironment` represents a deployed `ModelVersion` from a `RegisteredModel` created by Model Serving.
+      allOf:
+        - $ref: "#/components/schemas/BaseResourceCreate"
+        - $ref: "#/components/schemas/InferenceServiceUpdate"
+        - required:
+            - registeredModelId
+            - servingEnvironmentId
+          type: object
+          properties:
+            registeredModelId:
+              description: ID of the `RegisteredModel` to serve.
+              type: string
+            servingEnvironmentId:
+              description: ID of the parent `ServingEnvironment` for this `InferenceService` entity.
+              type: string
+    # New schema for Certificate list item
+    CertificateItem:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the Secret or ConfigMap.
+        keys:
+          type: array
+          items:
+            type: string
+          description: List of keys within the Secret/ConfigMap containing certificate data.
+
+    # New schema for Certificate list response data
+    CertificateListData:
+      type: object
+      properties:
+        secrets:
+          type: array
+          items:
+            $ref: "#/components/schemas/CertificateItem"
+        configMaps:
+          type: array
+          items:
+            $ref: "#/components/schemas/CertificateItem"
+
+    # New schema for RoleBinding (simplified, based on k8s V1RoleBinding)
+    RoleBinding:
+      type: object
+      properties:
+        apiVersion:
+          type: string
+          example: rbac.authorization.k8s.io/v1
+        kind:
+          type: string
+          example: RoleBinding
+        metadata:
+          type: object
+          properties:
+            name:
+              type: string
+            # namespace might be omitted or added by backend
+            labels:
+              type: object
+              additionalProperties:
+                type: string
+        subjects:
+          type: array
+          items:
+            type: object # Define subject structure
+            properties:
+              kind:
+                type: string
+                example: User
+              name:
+                type: string
+              apiGroup:
+                type: string
+                example: rbac.authorization.k8s.io
+        roleRef:
+          type: object # Define roleRef structure
+          properties:
+            kind:
+              type: string
+              example: ClusterRole
+            name:
+              type: string
+            apiGroup:
+              type: string
+              example: rbac.authorization.k8s.io
+
+    # New schema for RoleBinding list
+    RoleBindingList:
+      description: List of RoleBinding entities.
+      type: object
+      properties:
+        items:
+          description: Array of `RoleBinding` entities.
+          type: array
+          items:
+            $ref: "#/components/schemas/RoleBinding"
+        # Consider adding pagination fields if needed
+
+    # New schema for Model Registry Settings Payload (POST/PATCH)
+    ModelRegistrySettingsPayload:
+      description: Payload for creating or updating Model Registry settings, potentially including credentials and certificates.
+      type: object
+      required:
+        - modelRegistry # The core ModelRegistryKind is required
+      properties:
+        modelRegistry:
+          $ref: "#/components/schemas/ModelRegistryKind"
+        databasePassword:
+          type: string
+          description: Optional new password for the database connection. If provided, it will update the associated secret.
+          nullable: true # Indicates it's optional
+          example: "new-secure-password"
+        newDatabaseCACertificate:
+          type: string
+          description: Optional new CA certificate content for the database connection (PEM format). If provided, it will update the associated ConfigMap or Secret.
+          nullable: true # Indicates it's optional
+          example: |
+            -----BEGIN CERTIFICATE-----
+            MIID...
+            -----END CERTIFICATE-----
+    Group:
+      description: OpenShift/Kubernetes Group object
+      type: object
+      required:
+        - metadata
+        - users
+      properties:
+        apiVersion:
+          type: string
+          example: "user.openshift.io/v1"
+        kind:
+          type: string
+          example: "Group"
+        metadata:
+          type: object
+          required:
+            - name
+          properties:
+            name:
+              type: string
+              example: "dora-group"
+            namespace:
+              type: string
+              nullable: true
+            annotations:
+              type: object
+              additionalProperties:
+                type: string
+              nullable: true
+            labels:
+              type: object
+              additionalProperties:
+                type: string
+              nullable: true
+            creationTimestamp:
+              type: string
+              format: date-time
+              nullable: true
+              example: "2023-01-15T10:30:00Z"
+            resourceVersion:
+              type: string
+              nullable: true
+            uid:
+              type: string
+              nullable: true
+        users:
+          type: array
+          items:
+            type: string
+          example: ["dora-user@example.com", "dora-admin@example.com"]
+
+    # Model Catalog schema
+    CatalogBaseModel:
+      type: object
+      properties:
+        description:
+          type: string
+          description: Human-readable description of the model.
+        readme:
+          type: string
+          description: Model documentation in Markdown.
+        maturity:
+          type: string
+          description: Maturity level of the model.
+          example: Generally Available
+        language:
+          type: array
+          description: List of supported languages (https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes).
+          items:
+            type: string
+          example:
+            - en
+            - es
+            - cz
+        tasks:
+          type: array
+          description: List of tasks the model is designed for.
+          items:
+            type: string
+          example:
+            - text-generation
+        provider:
+          type: string
+          description: Name of the organization or entity that provides the model.
+          example: IBM
+        logo:
+          type: string
+          format: uri
+          description: |-
+            URL to the model's logo. A [data
+            URL](https://developer.mozilla.org/en-US/docs/Web/URI/Schemes/data)
+            is recommended.
+        license:
+          type: string
+          description: Short name of the model's license.
+          example: apache-2.0
+        licenseLink:
+          type: string
+          format: uri
+          description: URL to the license text.
+        libraryName:
+          type: string
+          example: transformers
+        customProperties:
+          description: User provided custom properties which are not defined by its type.
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/MetadataValue"
+    BaseResourceDates:
+      description: Common timestamp fields for resources
+      type: object
+      properties:
+        createTimeSinceEpoch:
+          format: int64
+          description: Output only. Create time of the resource in millisecond since epoch.
+          type: string
+          readOnly: true
+        lastUpdateTimeSinceEpoch:
+          format: int64
+          description: Output only. Last update time of the resource since epoch in millisecond since epoch.
+          type: string
+          readOnly: true
+    BaseResourceList:
+      required:
+        - nextPageToken
+        - pageSize
+        - size
+      type: object
+      properties:
+        nextPageToken:
+          description: Token to use to retrieve next page of results.
+          type: string
+        pageSize:
+          format: int32
+          description: Maximum number of resources to return in the result.
+          type: integer
+        size:
+          format: int32
+          description: Number of items in result list.
+          type: integer
+    CatalogModel:
+      description: A model in the model catalog.
+      allOf:
+        - type: object
+          required:
+            - name
+          properties:
+            name:
+              type: string
+              description: Name of the model. Must be unique within a source.
+              example: ibm-granite/granite-3.1-8b-base
+            sourceId:
+              type: string
+              description: ID of the source this model belongs to.
+        - $ref: "#/components/schemas/BaseResourceDates"
+        - $ref: "#/components/schemas/CatalogBaseModel"
+    CatalogModelArtifact:
+      description: A single artifact for a catalog model.
+      allOf:
+        - type: object
+          required:
+            - uri
+          properties:
+            uri:
+              type: string
+              format: uri
+              description: URI where the artifact can be retrieved.
+            customProperties:
+              description: User provided custom properties which are not defined by its type.
+              type: object
+              additionalProperties:
+                $ref: "#/components/schemas/MetadataValue"
+        - $ref: "#/components/schemas/BaseResourceDates"
+    CatalogModelArtifactList:
+      description: List of CatalogModel entities.
+      allOf:
+        - type: object
+          properties:
+            items:
+              description: Array of `CatalogModelArtifact` entities.
+              type: array
+              items:
+                $ref: "#/components/schemas/CatalogModelArtifact"
+          required:
+            - items
+        - $ref: "#/components/schemas/BaseResourceList"
+    CatalogModelList:
+      description: List of CatalogModel entities.
+      allOf:
+        - type: object
+          properties:
+            items:
+              description: Array of `CatalogModel` entities.
+              type: array
+              items:
+                $ref: "#/components/schemas/CatalogModel"
+          required:
+            - items
+        - $ref: "#/components/schemas/BaseResourceList"
+    CatalogSource:
+      description: A catalog source. A catalog source has CatalogModel children.
+      required:
+        - id
+        - name
+      type: object
+      properties:
+        id:
+          description: A unique identifier for a `CatalogSource`.
+          type: string
+        name:
+          description: The name of the catalog source.
+          type: string
+    CatalogSourceList:
+      description: List of CatalogSource entities.
+      allOf:
+        - type: object
+          properties:
+            items:
+              description: Array of `CatalogSource` entities.
+              type: array
+              items:
+                $ref: "#/components/schemas/CatalogSource"
+        - $ref: "#/components/schemas/BaseResourceList"
+
+  responses:
+    NotFound:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+      description: The specified resource was not found
+    BadRequest:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+      description: Bad Request parameters
+    Unauthorized:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+      description: Unauthorized
+    InternalServerError:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+      description: Unexpected internal server error
+    ConfigResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/Config"
+      description: A response containing a list of ModelArtifact entities.
+    ConflictResponse:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+      description: Conflict - Role Binding with the same name already exists
+    ModelRegistryRespone:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ModelRegistry"
+      description: A response containing a list of ModelArtifact entities.
+    ModelArtifactListResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/ModelArtifactList"
+      description: A response containing a list of ModelArtifact entities.
+    ModelArtifactResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/ModelArtifact"
+      description: A response containing a `ModelArtifact` entity.
+    ModelVersionListResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/ModelVersionList"
+      description: A response containing a list of `ModelVersion` entities.
+    ModelVersionResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/ModelVersion"
+      description: A response containing a `ModelVersion` entity.
+    RegisteredModelListResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/RegisteredModelList"
+      description: A response containing a list of `RegisteredModel` entities.
+    RegisteredModelResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/RegisteredModel"
+      description: A response containing a `RegisteredModel` entity.
+    ArtifactResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/Artifact"
+      description: A response containing an `Artifact` entity.
+    ArtifactListResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/ArtifactList"
+      description: A response containing a list of `Artifact` entities.
+    ServingEnvironmentListResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/ServingEnvironmentList"
+      description: A response containing a list of `ServingEnvironment` entities.
+    ServingEnvironmentResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/ServingEnvironment"
+      description: A response containing a `ServingEnvironment` entity.
+    InferenceServiceListResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/InferenceServiceList"
+      description: A response containing a list of `InferenceService` entities.
+    InferenceServiceResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/InferenceService"
+      description: A response containing a `InferenceService` entity.
+    ServeModelListResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/ServeModelList"
+      description: A response containing a list of `ServeModel` entities.
+    ServeModelResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/ServeModel"
+      description: A response containing a `ServeModel` entity.
+    ModelRegistryKindListResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/ModelRegistryKindList"
+      description: A response containing a `ModelRegistryKindList` entity.
+    ModelRegistryKindResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/ModelRegistryKind"
+      description: A response containing a `ModelRegistryKind` entity.
+    ModelRegistryAndCredentialsResponse:
+      description: A response containing a `ModelRegistryKind` and `database password` entity.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/ModelRegistryKind"
+              databasePassword:
+                type: string
+                description: Optional new password for the database connection. If provided, it will update the associated secret.
+                nullable: true # Indicates it's optional
+                example: "new-secure-password"
+
+    # New response for Certificate List
+    CertificateListResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/CertificateListData"
+      description: A response containing a list of available certificates (Secrets and ConfigMaps).
+
+    # New response for RoleBinding List
+    RoleBindingListResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/RoleBindingList"
+      description: A response containing a list of `RoleBinding` entities.
+
+    # New response for a single RoleBinding
+    RoleBindingResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/RoleBinding"
+      description: A response containing a single `RoleBinding` entity.
+
+    # Model Catalog response
+    CatalogModelArtifactListResponse:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CatalogModelArtifactList"
+      description: A response containing a list of CatalogModelArtifact entities.
+    CatalogModelListResponse:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CatalogModelList"
+      description: A response containing a list of CatalogModel entities.
+    CatalogModelResponse:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CatalogModel"
+      description: A response containing a `CatalogModel` entity.
+    CatalogSourceListResponse:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CatalogSourceList"
+      description: A response containing a list of CatalogSource entities.
+    CatalogSourceResponse:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CatalogSource"
+      description: A response containing a `CatalogSource` entity.
+
+  parameters:
+    registeredmodelId:
+      name: registeredmodelId
+      description: A unique identifier for a `RegisteredModel`.
+      schema:
+        type: string
+      in: path
+      required: true
+    sourceId:
+      name: sourceId
+      description: A unique identifier for catalog source.
+      schema:
+        type: string
+      in: path
+      required: true
+    modelRegistryId:
+      name: modelRegistryId
+      description: A unique identifier for a `Model Registry`.
+      schema:
+        type: string
+      in: path
+      required: true
+    kubeflowUserId:
+      in: header
+      name: kubeflow-userid
+      schema:
+        type: string
+      required: true
+    modelArtifactId:
+      name: modelArtifactId
+      in: path
+      description: A unique identifier for a `ModelVersion`.
+      schema:
+        type: string
+      required: true
+    modelversionId:
+      name: modelversionId
+      in: path
+      description: A unique identifier for a `ModelVersion`.
+      schema:
+        type: string
+      required: true
+    modelRegistryName:
+      name: modelRegistryName
+      description: Name of the Model Registry selected.
+      schema:
+        type: string
+      in: path
+      required: true
+    id:
+      name: id
+      description: The ID of resource.
+      schema:
+        type: string
+      in: path
+      required: true
+    name:
+      examples:
+        name:
+          value: entity-name
+      name: name
+      description: Name of entity to search.
+      schema:
+        type: string
+      in: query
+      required: false
+    externalId:
+      examples:
+        externalId:
+          value: "10"
+      name: externalId
+      description: External ID of entity to search.
+      schema:
+        type: string
+      in: query
+      required: false
+    parentResourceId:
+      examples:
+        parentResourceId:
+          value: "10"
+      name: parentResourceId
+      description: ID of the parent resource to use for search.
+      schema:
+        type: string
+      in: query
+      required: false
+    pageSize:
+      examples:
+        pageSize:
+          value: "100"
+      name: pageSize
+      description: Number of entities in each page.
+      schema:
+        type: string
+      in: query
+      required: false
+    nextPageToken:
+      name: nextPageToken
+      description: Token to use to retrieve next page of results.
+      schema:
+        type: string
+      in: query
+      required: false
+    orderBy:
+      style: form
+      explode: true
+      examples:
+        orderBy:
+          value: Id
+      name: orderBy
+      description: Specifies the order by criteria for listing entities.
+      schema:
+        $ref: "#/components/schemas/OrderByField"
+      in: query
+      required: false
+    sortOrder:
+      style: form
+      explode: true
+      examples:
+        sortOrder:
+          value: DESC
+      name: sortOrder
+      description: "Specifies the sort order for listing entities, defaults to ASC."
+      schema:
+        $ref: "#/components/schemas/SortOrder"
+      in: query
+      required: false
+    roleBindingName:
+      name: roleBindingName
+      description: The name of the Role Binding resource.
+      schema:
+        type: string
+      in: path
+      required: true
+    namespace:
+      name: namespace
+      description: The namespace to filter resources by.
+      schema:
+        type: string
+      in: query
+      required: false
+
+  securitySchemes:
+    Bearer:
+      scheme: bearer
+      bearerFormat: JWT
+      type: http
+      description: Bearer JWT scheme
+security:
+  - Bearer: []
+tags:
+  - name: ModelRegistryService
+    description: Model Registry Service REST API
+  - name: K8SOperation
+    description: Operation performed in Kubernetes
+  - name: ModelCatalogService
+    description: Model Catalog REST API

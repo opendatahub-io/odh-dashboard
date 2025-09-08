@@ -17,6 +17,7 @@ import { patchInferenceServiceStoppedStatus } from '#~/api/k8s/inferenceServices
 import useStopModalPreference from '#~/pages/modelServing/useStopModalPreference.ts';
 import ModelServingStopModal from '#~/pages/modelServing/ModelServingStopModal';
 import { useInferenceServiceStatus } from '#~/pages/modelServing/useInferenceServiceStatus.ts';
+import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
@@ -51,7 +52,6 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   const isKServeNIMEnabled = project ? isProjectNIMSupported(project) : false;
   const servingPlatformStatuses = useServingPlatformStatuses();
   const isNIMAvailable = servingPlatformStatuses.kServeNIM.enabled;
-  const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
 
   const [modelMetricsEnabled] = useModelMetricsEnabled();
 
@@ -64,12 +64,21 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   const { isStarting, isStopping, isStopped, isRunning, isFailed, setIsStarting, setIsStopping } =
     useInferenceServiceStatus(inferenceService, refresh);
 
+  const { watchDeployment } = useModelDeploymentNotification(
+    inferenceService.metadata.namespace,
+    inferenceService.metadata.name,
+    !modelMesh, // isKserve
+  );
+
   const onStart = React.useCallback(() => {
     setIsStarting(true);
     patchInferenceServiceStoppedStatus(inferenceService, 'false')
-      .then(refresh)
+      .then(() => {
+        refresh();
+        watchDeployment();
+      })
       .catch(() => setIsStarting(false));
-  }, [inferenceService, refresh, setIsStarting]);
+  }, [inferenceService, refresh, setIsStarting, watchDeployment]);
 
   const onStop = React.useCallback(() => {
     if (dontShowModalValue) {
@@ -110,14 +119,11 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
 
       {columnNames.includes(ColumnField.ServingRuntime) && (
         <Td dataLabel="Serving Runtime">
-          <InferenceServiceServingRuntime
-            servingRuntime={servingRuntime}
-            isProjectScoped={isProjectScoped}
-          />
+          <InferenceServiceServingRuntime servingRuntime={servingRuntime} />
         </Td>
       )}
 
-      <Td dataLabel="Inference endpoint">
+      <Td dataLabel="Inference endpoints">
         <InferenceServiceEndpoint
           inferenceService={inferenceService}
           servingRuntime={servingRuntime}
@@ -151,9 +157,12 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
         <InferenceServiceStatus
           inferenceService={inferenceService}
           isKserve={!modelMesh}
-          isStarting={isStarting}
-          isStopping={isStopping}
-          isStopped={isStopped}
+          stoppedStates={{
+            isStarting,
+            isStopping,
+            isStopped,
+            isRunning,
+          }}
         />
       </Td>
       <Td>
@@ -182,7 +191,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
                 onClick: () => {
                   onEditInferenceService(inferenceService);
                 },
-                isDisabled: !isNIMAvailable && isKServeNIMEnabled,
+                isDisabled: (!isNIMAvailable && isKServeNIMEnabled) || isStarting || isStopping,
               },
               { isSeparator: true },
               {
@@ -190,6 +199,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
                 onClick: () => {
                   onDeleteInferenceService(inferenceService);
                 },
+                isDisabled: isStarting || isStopping,
               },
             ]}
           />

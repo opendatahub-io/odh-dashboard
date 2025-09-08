@@ -1,0 +1,70 @@
+name: 'Gen AI - Frontend - Test and Build'
+on:
+  push:
+    paths:
+      - 'packages/gen-ai/**'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
+
+  pull_request:
+    paths:
+      - 'packages/gen-ai/**'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
+env:
+  NODE_VERSION: 20
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            **/node_modules
+            ~/.npm
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-npm-${{ hashFiles('package-lock.json', 'packages/gen-ai/frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-npm-
+
+      - name: Install root level dependencies
+        run: npm install
+
+      - name: Install dependencies
+        working-directory: packages/gen-ai/frontend
+        run: npm install
+
+      - name: Run tests
+        working-directory: packages/gen-ai/frontend
+        run: npm run test:standalone
+
+      - name: Run clean
+        working-directory: packages/gen-ai/frontend
+        run: npm run clean
+
+      - name: Run build
+        working-directory: packages/gen-ai/frontend
+        run: npm run build:standalone
+
+      - name: Check if there are uncommitted file changes
+        working-directory: packages/gen-ai/frontend
+        run: |
+          clean=$(git status --porcelain)
+          if [[ -z "$clean" ]]; then
+              echo "Empty git status --porcelain: $clean"
+          else
+              echo "Uncommitted file changes detected: $clean"
+              git diff
+              exit 1
+          fi

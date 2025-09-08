@@ -4,6 +4,7 @@ import { TableRow } from '#~/__tests__/cypress/cypress/pages/components/table';
 import { mixin } from '#~/__tests__/cypress/cypress/utils/mixin';
 import { K8sNameDescriptionField } from '#~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
 import { Contextual } from './components/Contextual';
+import { Wizard } from './components/Wizard';
 
 class ModelServingToolbar extends Contextual<HTMLElement> {
   findToggleButton(id: string) {
@@ -56,6 +57,17 @@ class ModelServingGlobal {
     return cy.findByTestId('deploy-button');
   }
 
+  clickDeployModelButtonWithRetry() {
+    this.findDeployModelButton().click();
+    // If modal doesn't appear, retry once
+    cy.get('body').then(($body) => {
+      if ($body.find('[role="dialog"]:visible').length === 0) {
+        this.findDeployModelButton().click();
+      }
+    });
+    return this;
+  }
+
   findNoProjectSelectedTooltip() {
     return cy.findByTestId('deploy-model-tooltip');
   }
@@ -65,11 +77,11 @@ class ModelServingGlobal {
   }
 
   findSingleServingModelButton() {
-    return cy.findByTestId('single-serving-select-button');
+    return cy.findByTestId('kserve-select-button');
   }
 
   findMultiModelButton() {
-    return cy.findByTestId('multi-serving-select-button');
+    return cy.findByTestId('model-mesh-select-button');
   }
 
   private findModelsTable() {
@@ -107,6 +119,13 @@ class ModelServingGlobal {
 
   findServingRuntime(name: string) {
     return this.findModelsTable().find(`[data-label=Serving Runtime]`).contains(name);
+  }
+
+  findTokenCopyButton(index: number) {
+    if (index === 0) {
+      return cy.findAllByTestId('token-secret').findAllByRole('button').eq(0);
+    }
+    return cy.findAllByTestId('token-secret').eq(index).findAllByRole('button').eq(0);
   }
 }
 
@@ -227,6 +246,10 @@ class InferenceServiceModal extends ServingModal {
     return this.find().findByTestId('new-connection-radio');
   }
 
+  findExistingPVCConnectionOption() {
+    return this.find().findByTestId('pvc-serving-radio');
+  }
+
   findExistingConnectionOption() {
     return this.find().findByTestId('existing-connection-radio');
   }
@@ -237,6 +260,14 @@ class InferenceServiceModal extends ServingModal {
 
   findServiceAccountNameInput() {
     return this.find().findByTestId('service-account-form-name');
+  }
+
+  findServiceAccountIndex(index: number) {
+    return this.find().findAllByTestId('service-account-form-name').eq(index);
+  }
+
+  findAddServiceAccountButton() {
+    return this.find().findByTestId('add-service-account-button');
   }
 
   findExistingConnectionSelect() {
@@ -344,6 +375,10 @@ class InferenceServiceModal extends ServingModal {
 
   findLocationPathInput() {
     return this.find().findByTestId('folder-path');
+  }
+
+  findUriLocationPathInput() {
+    return this.find().findByTestId('field URI');
   }
 
   findLocationPathInputError() {
@@ -509,6 +544,16 @@ class KServeModal extends InferenceServiceModal {
     return this.find().findByTestId('max-replicas').findByRole('button', { name: 'Minus' });
   }
 
+  findMaxReplicasErrorMessage() {
+    return this.find().contains(
+      'Maximum replicas must be greater than or equal to minimum replicas',
+    );
+  }
+
+  findMinReplicasErrorMessage() {
+    return this.find().contains('Minimum replicas must be less than or equal to maximum replicas');
+  }
+
   findCPURequestedCheckbox() {
     return this.find().findByTestId('cpu-requested-checkbox');
   }
@@ -633,11 +678,13 @@ class KServeRow extends ModelMeshRow {
     return this.find().findByTestId('state-action-toggle');
   }
 
-  findStatusLabel(label?: string) {
+  findStatusLabel(label?: string, timeout?: number) {
     if (label) {
-      return this.find().findByTestId('model-status-text').should('include.text', label);
+      return this.find()
+        .findByTestId('model-status-text', { timeout })
+        .should('include.text', label);
     }
-    return this.find().findByTestId('model-status-text');
+    return this.find().findByTestId('model-status-text', { timeout });
   }
 }
 
@@ -670,6 +717,10 @@ class InferenceServiceRow extends TableRow {
 
   findLastDeployed() {
     return this.find().find(`[data-label="Last deployed"]`);
+  }
+
+  findLastDeployedTimestamp() {
+    return this.find().findByTestId('last-deployed-timestamp');
   }
 
   findAPIProtocol() {
@@ -800,6 +851,36 @@ class ModelServingSection {
   }
 }
 
+class ModelServingWizard extends Wizard {
+  constructor(private edit = false) {
+    super('Deploy a model');
+  }
+
+  findModelSourceStep() {
+    return this.findStep('source-model-step');
+  }
+
+  findModelDeploymentStep() {
+    return this.findStep('model-deployment-step');
+  }
+
+  findAdvancedOptionsStep() {
+    return this.findStep('advanced-options-step');
+  }
+
+  findModelTypeSelect() {
+    return cy.findByTestId('model-type-select');
+  }
+
+  findModelTypeSelectOption(name: string) {
+    return this.findModelTypeSelect().findSelectOption(name);
+  }
+
+  findModelDeploymentNameInput() {
+    return cy.findByTestId('model-deployment-name');
+  }
+}
+
 export const modelServingGlobal = new ModelServingGlobal();
 export const inferenceServiceModal = new InferenceServiceModal();
 export const inferenceServiceModalEdit = new InferenceServiceModal(true);
@@ -808,3 +889,5 @@ export const createServingRuntimeModal = new ServingRuntimeModal(false);
 export const editServingRuntimeModal = new ServingRuntimeModal(true);
 export const kserveModal = new KServeModal();
 export const kserveModalEdit = new KServeModal(true);
+export const modelServingWizard = new ModelServingWizard(false);
+export const modelServingWizardEdit = new ModelServingWizard(true);

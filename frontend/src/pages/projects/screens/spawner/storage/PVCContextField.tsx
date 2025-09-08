@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
-import { FormGroup, FormHelperText, FormSection, Radio, TextInput } from '@patternfly/react-core';
+import {
+  FormGroup,
+  FormHelperText,
+  FormSection,
+  HelperText,
+  HelperTextItem,
+  Radio,
+  TextInput,
+} from '@patternfly/react-core';
 import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon.tsx';
 
 type PVCContextFieldProps = {
@@ -40,7 +48,7 @@ const PVCContextField: React.FC<PVCContextFieldProps> = ({
           <FieldGroupHelpLabelIcon
             content={
               <p>
-                The storage context is optional and used to identify the purpose of the storage.
+                The context indicates the purpose of the storage: general purpose, or model storage.
               </p>
             }
           />
@@ -58,7 +66,7 @@ const PVCContextField: React.FC<PVCContextFieldProps> = ({
             setValid(true);
             removeModelAnnotations();
           }}
-          description="General storage for all use cases."
+          description="Appropriate for all use cases."
         />
         <br />
         <Radio
@@ -76,7 +84,7 @@ const PVCContextField: React.FC<PVCContextFieldProps> = ({
               validatePath(modelPath);
             }
           }}
-          description="Helps identify where a model is stored inside your storage."
+          description="Appropriate for model storage. Enables you to define the model name and path."
           body={
             !isGeneralPurpose && (
               <FormSection title="Model details">
@@ -84,6 +92,13 @@ const PVCContextField: React.FC<PVCContextFieldProps> = ({
                   label="Model path"
                   fieldId="storage-context-model-storage-model-path"
                   isRequired
+                  labelHelp={
+                    <FieldGroupHelpLabelIcon
+                      content={
+                        <p>Enter the path to the model location within the cluster storage.</p>
+                      }
+                    />
+                  }
                 >
                   <TextInput
                     id="storage-context-model-storage-model-path"
@@ -97,10 +112,21 @@ const PVCContextField: React.FC<PVCContextFieldProps> = ({
                     isRequired
                   />
                   <FormHelperText>
-                    Where in the cluster storage your model is located.
+                    <HelperText>
+                      <HelperTextItem>
+                        Enter a path to your model or a folder containing your model. The path
+                        cannot point to a root folder.
+                      </HelperTextItem>
+                    </HelperText>
                   </FormHelperText>
                 </FormGroup>
-                <FormGroup label="Model name" fieldId="storage-context-model-storage-model-name">
+                <FormGroup
+                  label="Model name"
+                  fieldId="storage-context-model-storage-model-name"
+                  labelHelp={
+                    <FieldGroupHelpLabelIcon content={<p>Enter the name of the model.</p>} />
+                  }
+                >
                   <TextInput
                     id="storage-context-model-storage-model-name"
                     aria-label="Model name"
@@ -108,9 +134,6 @@ const PVCContextField: React.FC<PVCContextFieldProps> = ({
                     value={modelName}
                     onChange={(_, value) => setModelName(value.trim())}
                   />
-                  <FormHelperText>
-                    Optionally, the name of the model to help identify it later.
-                  </FormHelperText>
                 </FormGroup>
               </FormSection>
             )

@@ -20,6 +20,7 @@ import '@cypress/code-coverage/support';
 import 'cypress-mochawesome-reporter/register';
 import 'cypress-plugin-steps';
 import './commands';
+import '#~/__tests__/cypress/cypress/utils/moduleFederationMock';
 import { asProjectAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
 import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
 import { addCommands as webSocketsAddCommands } from './websockets';
@@ -104,15 +105,21 @@ Cypress.Keyboard.defaults({
   keystrokeDelay: 0,
 });
 
-// Handle ChunkLoadError - ignore these errors as they are usually due to code splitting issues during development
+// Uncaught exceptions handler
 Cypress.on('uncaught:exception', (err) => {
-  // Returning false here prevents Cypress from failing the test
+  // Handle ChunkLoadError - ignore these errors as they are usually due to code splitting issues during development
   if (err.name === 'ChunkLoadError') {
     // eslint-disable-next-line no-console
     console.warn('ChunkLoadError caught and ignored:', err.message);
     return false;
   }
-  // Let other errors fail the test as expected
+
+  // Ignore 'Unexpected token <' errors from webpack-dev-server fallback in E2E tests
+  if (err.message.includes("Unexpected token '<'")) {
+    return false;
+  }
+
+  // Let all other errors (including timeout errors) fail the test as expected
   return true;
 });
 
@@ -251,7 +258,7 @@ before(function setupGlobalIntercepts() {
   }
 });
 
-// Root-level before hook to skip suite if no tests match grep tags
+// Root-level before hook to skip suite if no tests match grep tags or if all tests should be skipped
 before(function checkGrepTags() {
   if (grepTags.length > 0) {
     // Collect all test tags
@@ -261,6 +268,16 @@ before(function checkGrepTags() {
       return allTestTags.some((t: string) => t === tag || t === `@${plainTag}`);
     });
     if (!hasMatchingTest) {
+      this.skip();
+    }
+  }
+
+  // Check if all tests should be skipped based on skip tags
+  if (skipTags.length > 0 && Object.keys(Cypress.testTags).length > 0) {
+    const allTestsShouldBeSkipped = Object.values(Cypress.testTags).every((testTags) =>
+      skipTags.some((tag: string) => mapTestTags(testTags).includes(tag)),
+    );
+    if (allTestsShouldBeSkipped) {
       this.skip();
     }
   }
@@ -325,6 +342,10 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
   if (Cypress.env('MOCK')) {
     // Fallback: return 404 for all API requests.
     cy.intercept({ pathname: '/api/**' }, { statusCode: 404 });
+
+    // Return 404 for all module federation requests.
+    cy.intercept({ pathname: '/_mf/**' }, { statusCode: 404 });
+
     // Default intercepts.
     cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
     asProjectAdminUser();
@@ -333,7 +354,9 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
 
 // Handle skipped suites in afterEach hook
 afterEach(function afterEachHook(this: Mocha.Context) {
-  if (!this.currentTest) return;
+  if (!this.currentTest) {
+    return;
+  }
 
   const suiteTitle = this.currentTest.parent?.title;
   if (suiteTitle && Cypress.skippedSuites.has(suiteTitle)) {

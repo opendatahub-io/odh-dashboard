@@ -1,6 +1,7 @@
 # Testing
 
 Running all tests:
+
 ```bash
 npm run test
 ```
@@ -10,6 +11,7 @@ npm run test
 Jest is used as the unit test runner. Unit tests should be written for all utility and hook functions; React Components do not require unit tests.
 
 Running unit tests:
+
 ```bash
 npm run test:unit
 ```
@@ -61,10 +63,10 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
 }));
 
 const k8sListResourceMock = jest.mocked(k8sListResource<ProjectKind>);
-...
+
 k8sListResourceMock.mockResolvedValue(mockK8sResourceList([mockProjectK8sResource({})]));
-...
-expect(k8sListResourceMock).toHaveBeenCalledWith(...);
+
+expect(k8sListResourceMock).toHaveBeenCalledWith(/*...*/);
 ```
 
 Always create mock data within the individual tests. Do not create a single mock data instance that is mutated for each test.
@@ -96,13 +98,15 @@ expect(renderResult).hookToBe('Hello world!');
 ```
 
 To get direct access to the return value of hook:
+
 ```ts
-renderResult.current
+renderResult.current;
 ```
 
 To re-render the hook with new inputs:
+
 ```ts
-renderResult.rerender('new value')
+renderResult.rerender('new value');
 ```
 
 Sometimes it's necessary to wait for a hook to perform an async operation on its own. For example, if there is a timeout or network operation. The update count can be observed to have increased after waiting.
@@ -115,10 +119,10 @@ expect(renderResult).toHaveUpdateCount(2);
 
 Hook specific assertions:
 
-* `hookToBe(e: any)`: Assertion wrapper equivalent to `expect(renderResult.current).toBe(...)`.
-* `hookToStrictEqual(e: any)`: Assertion wrapper equivalent to `expect(renderResult.current).toStrictEqual(...)`.
-* `hookToHaveUpdateCount(e: number)`: Update count refers to the number of times the hook function has been executed. An update occurs whenever the hook function is first rendered, subsequently rerendered, and whenever internal state is set asynchronously.
-* `hookToBeStable(e: BooleanValues)`: Stability refers to whether or not the return value of the hook is identical to the previous return value. Stability should be asserted after each render. A hook should be stable when the same inputs are provided.
+- `hookToBe(e: any)`: Assertion wrapper equivalent to `expect(renderResult.current).toBe(...)`.
+- `hookToStrictEqual(e: any)`: Assertion wrapper equivalent to `expect(renderResult.current).toStrictEqual(...)`.
+- `hookToHaveUpdateCount(e: number)`: Update count refers to the number of times the hook function has been executed. An update occurs whenever the hook function is first rendered, subsequently rerendered, and whenever internal state is set asynchronously.
+- `hookToBeStable(e: BooleanValues)`: Stability refers to whether or not the return value of the hook is identical to the previous return value. Stability should be asserted after each render. A hook should be stable when the same inputs are provided.
 
 ## Cypress Tests
 
@@ -135,6 +139,7 @@ CY_TEST_CONFIG=./test-variables.yml
 ```
 
 Cypress e2e tests can make use of the `oc` command line tool. This is useful for test setup and tear down. When run in CI, the default user will be a cluster admin.
+
 ```ts
 cy.exec(`oc new-project test-project`);
 ```
@@ -142,6 +147,7 @@ cy.exec(`oc new-project test-project`);
 Prior to running the Cypress e2e tests, run `oc login` to login as a cluster admin to ensure the test env matches that of our CI and provides a default user for all `oc` commands executed in tests.
 
 To run all Cypress e2e tests, a specific test, or open the Cypress GUI:
+
 ```bash
 npm run cypress:run
 
@@ -157,6 +163,7 @@ Use the custom command `cy.visitWithLogin` to visit a page and perform the login
 Cypress mocked tests run against a standalone frontend while mocking all network requests.
 
 Single command to run all Cypress mock tests or a specific test (build frontend, start HTTP server, run Cypress):
+
 ```bash
 npm run test:cypress-ci
 
@@ -172,17 +179,20 @@ npm run cypress:server:dev
 ```
 
 To best match production, build the frontend and use a lightweight HTTP server to host the files. This method will require manual rebuilds when changes are made to the dashboard frontend code.
+
 ```bash
 npm run cypress:server:build
 npm run cypress:server
 ```
 
 There are two commands to run Cypress mock tests (always use the `:mock` variants).
+
 - `open`: Open the Cypress GUI
   ```bash
   npm run cypress:open:mock
   ```
 - `run`: Run all Cypress tests or a specific test headless
+
   ```bash
   npm run cypress:run:mock
 
@@ -190,11 +200,13 @@ There are two commands to run Cypress mock tests (always use the `:mock` variant
   ```
 
 Running out of memory using the GUI? Cypress keeps track of a lot of data while testing. If you experience memory issues or crashes, use the following command to adjust the number of tests kept in memory:
+
 ```bash
 npm run cypress:open:mock -- --config numTestsKeptInMemory=0
 ```
 
 ### Structure
+
 ```
 /frontend/src/__tests__/cypress
   /tests         - Tests
@@ -214,13 +226,89 @@ _Note that some files may use the `.scy.ts` file extension. This file extensions
 
 _This is an experimental feature._
 
-Snapshot testing involves running tests against a live cluster, recording network responses on the fly and saving them to disk in JSON format. The the same test can then run off cluster where the snapshot is used to respond to network requests.
+Snapshot testing involves running tests against a live cluster, recording network responses on the fly and saving them to disk in JSON format. The same test can then run off cluster where the snapshot is used to respond to network requests.
 
 Use one of the following commands to run Cypress in record mode:
+
 ```bash
 npm run cypress:open:record
 npm run cypress:run:record
 ```
+
+### Cypress Environment Variables
+
+Cypress uses several environment variables to control test behavior and configuration. These can be set in your shell or passed directly to the Cypress commands.
+
+#### CY_TEST_CONFIG
+
+- **Purpose**: Path to test configuration YAML file
+- **Values**: File path to YAML configuration (e.g., `./test-variables.yml`)
+- **Effect**: Loads test variables and configuration from a YAML file
+- **Usage**: `export CY_TEST_CONFIG='PATH_TO_YOUR_TEST_VARIABLES'`
+- **Required**: Yes, for e2e tests
+
+#### CY_MOCK
+
+- **Purpose**: Enables mocked test mode
+- **Values**: `1` (enabled) or `0`/unset (disabled)
+- **Effect**:
+  - Runs tests from `cypress/tests/mocked/` directory instead of `cypress/tests/e2e/`
+  - Changes results directory to `results/mocked/`
+  - Disables test retries by default
+  - Loads different environment files (`.env.cypress.mock`)
+- **Usage**: `CY_MOCK=1 npm run cypress:run`
+
+#### CY_RETRY
+
+- **Purpose**: Controls test retry behavior
+- **Values**: Number of retries (e.g., `0`, `1`, `2`)
+- **Default**: `2` retries for e2e tests, `0` for mocked tests
+- **Effect**: Sets the number of additional attempts a test will retry if it fails
+- **Usage**: `CY_RETRY=0 npm run cypress:run` (no retries)
+
+#### CY_RECORD
+
+- **Purpose**: Enables snapshot recording mode
+- **Values**: `1` (enabled) or `0`/unset (disabled)
+- **Effect**: Records network responses for snapshot testing
+- **Usage**: `CY_RECORD=1 npm run cypress:run`
+
+#### CY_WATCH
+
+- **Purpose**: Controls file watching behavior
+- **Values**: `false` to disable, any other value to enable
+- **Effect**: Enables/disables watching for file changes during test execution
+- **Usage**: `CY_WATCH=false npm run cypress:open`
+
+#### CY_WS_PORT
+
+- **Purpose**: Sets the WebSocket server port for mocked tests
+- **Values**: Port number (e.g., `9002`)
+- **Default**: Used in mocked test scripts
+- **Effect**: Configures the WebSocket server port for real-time communication in mocked tests
+- **Usage**: Set automatically in npm scripts like `cypress:run:mock`
+
+#### CY_COVERAGE
+
+- **Purpose**: Enables code coverage collection
+- **Values**: `true` (enabled) or `false`/unset (disabled)
+- **Effect**: Enables code coverage reporting during test execution
+- **Usage**: `CY_COVERAGE=true npm run cypress:run`
+
+#### CY_RESULTS_DIR
+
+- **Purpose**: Sets the directory for test results
+- **Values**: Directory path (e.g., `results`, `custom-results`)
+- **Default**: `results`
+- **Effect**: Changes where test results (screenshots, videos, reports) are stored
+- **Usage**: `CY_RESULTS_DIR=custom-results npm run cypress:run`
+
+#### CY_TEST_TIMEOUT_SECONDS
+
+- **Purpose**: Sets global test timeout
+- **Values**: Number of seconds
+- **Effect**: Configures the global timeout for all tests
+- **Usage**: `CY_TEST_TIMEOUT_SECONDS=300 npm run cypress:run`
 
 ### Page Objects
 
@@ -256,12 +344,12 @@ Append meaningful descriptive words to test IDs to help with discovery and under
 
 For example, if we had a gallery of cards where each card is populated from a k8s resource. We can select all cards, or select individual cards.
 
-```ts
-<Card data-testid={`card ${resource.metdata.name}`} ...>
+```tsx
+<Card data-testid={`card ${resource.metadata.name}`} />;
 
 // Use array matchers to invoke the equivalent of the `~=` CSS selector operator.
 cy.findByTestId(['card', resource.metadata.name]);
-cy.findAllByTestId(['card']).should('have.length', 5)
+cy.findAllByTestId(['card']).should('have.length', 5);
 ```
 
 When querying the DOM within a modal, all queries must be scoped to the modal to avoid assertions that may match the DOM underneath the modal.
@@ -281,25 +369,27 @@ While it is possible to use `cy.intercept` for all use cases, this command doesn
 When the frontend opens a websocket to watch Kubernetes resources, it will connect to a websocket server hosted by the cypress test infrastructure. This allows for a test to push updates through the websocket to be received by the frontend. Use the custom command `wsK8s` to simulate Kubernetes resource updates. The simplest form of this command accepts a Kubernetes model object. See the `wsK8s` API for more options.
 
 ```ts
-cy.wsK8s('ADDED', ProjectModel, <project resource>);
-cy.wsK8s('MODIFIED', ProjectModel, <project resource>);
-cy.wsK8s('DELETED', ProjectModel, <project resource>);
+cy.wsK8s('ADDED', ProjectModel, projectResource);
+cy.wsK8s('MODIFIED', ProjectModel, projectResource);
+cy.wsK8s('DELETED', ProjectModel, projectResource);
 ```
 
 ### Test Considerations
 
 Always start a new test with a `visit` to the page being tested.
 
-Use variants of `intercept` to mock network requests. 
+Use variants of `intercept` to mock network requests.
 
 When a UI action results in a network request, the test must wait to ensure the request was issued:
+
 ```ts
-cy.interceptOdh(...).as('some-request');
-...
+cy.interceptOdh(/*...*/).as('some-request');
+
 cy.wait('@some-request');
 ```
 
 When a payload is sent as part of the network request, the test should assert the payload is the expected value. For example after filling out and submitting a form, assert the form values are present in the network request:
+
 ```ts
 cy.wait('@create-project').then((interception) => {
   expect(interception.request.body).to.eql({
@@ -315,6 +405,7 @@ cy.wait('@create-project').then((interception) => {
 ```
 
 Use chai's [containSubset](https://www.chaijs.com/plugins/) command to perform object equality assertions on a subset of an object. The above example can be simplified if all we wanted to check was the `displayName` and `name`:
+
 ```ts
 cy.wait('@create-project').then((interception) => {
   expect(interception.request.body).to.containSubset({

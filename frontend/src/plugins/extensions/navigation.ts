@@ -38,6 +38,7 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'models',
       title: 'Models',
+      group: '3_models',
     },
   },
   {
@@ -111,6 +112,7 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'pipelines-and-runs',
       title: 'Data science pipelines',
+      group: '4_pipelines',
     },
   },
   {
@@ -147,6 +149,7 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'experiments',
       title: 'Experiments',
+      group: '5_experiments',
     },
   },
   {
@@ -189,107 +192,6 @@ const extensions: NavExtension[] = [
     },
   },
   {
-    type: 'app.navigation/section',
-    flags: {
-      required: [SupportedArea.FEATURE_STORE],
-    },
-    properties: {
-      id: 'feature-store',
-      title: 'Feature store',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.FEATURE_STORE],
-    },
-    properties: {
-      id: 'overview',
-      title: 'Overview',
-      href: '/featureStore/overview',
-      section: 'feature-store',
-      path: '/featureStore/overview/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.FEATURE_STORE],
-    },
-    properties: {
-      id: 'entities',
-      title: 'Entities',
-      href: '/featureStore/entities',
-      section: 'feature-store',
-      path: '/featureStore/entities/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.FEATURE_STORE],
-    },
-    properties: {
-      id: 'data-sources',
-      title: 'Data sources',
-      href: '/featureStore/data-sources',
-      section: 'feature-store',
-      path: '/featureStore/data-sources/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.FEATURE_STORE],
-    },
-    properties: {
-      id: 'data-sets',
-      title: 'Data sets',
-      href: '/featureStore/data-sets',
-      section: 'feature-store',
-      path: '/featureStore/data-sets/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.FEATURE_STORE],
-    },
-    properties: {
-      id: 'features',
-      title: 'Features',
-      href: '/featureStore/features',
-      section: 'feature-store',
-      path: '/featureStore/features/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.FEATURE_STORE],
-    },
-    properties: {
-      id: 'feature-views',
-      title: 'Feature views',
-      href: '/featureStore/feature-views',
-      section: 'feature-store',
-      path: '/featureStore/feature-views/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.FEATURE_STORE],
-    },
-    properties: {
-      id: 'feature-services',
-      title: 'Feature services',
-      href: '/featureStore/feature-services',
-      section: 'feature-store',
-      path: '/featureStore/feature-services/*',
-    },
-  },
-  {
     type: 'app.navigation/href',
     flags: {
       required: [SupportedArea.DISTRIBUTED_WORKLOADS],
@@ -299,6 +201,7 @@ const extensions: NavExtension[] = [
       title: 'Distributed workloads',
       href: '/distributedWorkloads',
       path: '/distributedWorkloads/*',
+      group: '6_distributed_workloads',
     },
   },
 
@@ -307,7 +210,7 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'applications',
       title: 'Applications',
-      group: '7_other',
+      group: '9_other',
     },
   },
   {
@@ -350,7 +253,7 @@ const extensions: NavExtension[] = [
       id: 'resources',
       title: 'Resources',
       href: '/resources',
-      group: '7_other',
+      group: '9_other',
     },
   },
 
@@ -359,7 +262,7 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'settings',
       title: 'Settings',
-      group: '9_settings',
+      group: '10_settings',
     },
   },
   {

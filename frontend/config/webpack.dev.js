@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
 const { execSync } = require('child_process');
 const path = require('path');
-const webpack = require('webpack');
 const { merge } = require('webpack-merge');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
@@ -12,7 +11,7 @@ const smp = new SpeedMeasurePlugin({ disable: !process.env.MEASURE });
 
 setupDotenvFilesForEnv({ env: 'development' });
 const webpackCommon = require('./webpack.common.js');
-const { moduleFederationConfig, moduleFederationPlugins } = require('./moduleFederation');
+const { moduleFederationConfig } = require('./moduleFederation');
 
 const RELATIVE_DIRNAME = process.env._ODH_RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._ODH_IS_PROJECT_ROOT_DIR;
@@ -54,6 +53,7 @@ module.exports = smp.wrap(
           '**/jest-coverage',
           '**/.nyc_output',
           '**/upstream',
+          '**/gen-ai',
         ],
       },
       devServer: {
@@ -156,8 +156,8 @@ module.exports = smp.wrap(
             include: [
               SRC_DIR,
               COMMON_DIR,
-              path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
-              path.resolve(RELATIVE_DIRNAME, 'node_modules/monaco-editor'),
+              path.resolve(RELATIVE_DIRNAME, '../node_modules/@patternfly'),
+              path.resolve(RELATIVE_DIRNAME, '../node_modules/monaco-editor'),
             ],
             use: ['style-loader', 'css-loader'],
           },
@@ -166,10 +166,6 @@ module.exports = smp.wrap(
       plugins: [
         new ForkTsCheckerWebpackPlugin(),
         new ReactRefreshWebpackPlugin({ overlay: false }),
-        new webpack.EnvironmentPlugin({
-          MF_CONFIG: JSON.stringify(moduleFederationConfig),
-        }),
-        ...moduleFederationPlugins,
       ],
     },
   ),

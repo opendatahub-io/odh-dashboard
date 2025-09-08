@@ -84,6 +84,9 @@ const extensions: RouteExtension[] = [
       path: '/modelServing/*',
       component: () => import('#~/pages/modelServing/ModelServingRoutes'),
     },
+    flags: {
+      disallowed: [SupportedArea.PLUGIN_MODEL_SERVING],
+    },
   },
   {
     type: 'app.route',
@@ -247,16 +250,6 @@ const extensions: RouteExtension[] = [
     properties: {
       path: '/modelEvaluations/*',
       component: () => import('#~/pages/lmEval/LMEvalRoutes'),
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [SupportedArea.FEATURE_STORE],
-    },
-    properties: {
-      path: '/featureStore/*',
-      component: () => import('#~/pages/featureStore/FeatureStoreRoutes'),
     },
   },
 ];

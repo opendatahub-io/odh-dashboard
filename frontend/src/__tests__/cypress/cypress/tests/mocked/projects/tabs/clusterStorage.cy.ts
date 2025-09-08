@@ -1,6 +1,7 @@
 import {
   buildMockStorageClass,
   mockDashboardConfig,
+  mockInferenceServiceK8sResource,
   mockK8sResourceList,
   mockNotebookK8sResource,
   mockProjectK8sResource,
@@ -24,6 +25,7 @@ import {
   PodModel,
   ProjectModel,
   StorageClassModel,
+  InferenceServiceModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { mock200Status } from '#~/__mocks__/mockK8sStatus';
 import { mockPrometheusQueryResponse } from '#~/__mocks__/mockPrometheusQueryResponse';
@@ -82,6 +84,7 @@ const initInterceptors = ({ isEmpty = false, storageClassName }: HandlersProps) 
             }),
             mockPVCK8sResource({
               displayName: 'Model Storage',
+              name: 'model-storage',
               storageClassName,
               storage: '5Gi',
               annotations: {
@@ -395,6 +398,14 @@ describe('ClusterStorage', () => {
   });
 
   it('Should list correct storage type', () => {
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockInferenceServiceK8sResource({
+          storageUri: 'pvc://model-storage/path',
+        }),
+      ]),
+    );
     initInterceptors({});
     storageClassesPage.mockGetStorageClasses([
       openshiftDefaultStorageClass,
@@ -403,8 +414,9 @@ describe('ClusterStorage', () => {
     clusterStorage.visit('test-project');
     const modelStorageRow = clusterStorage.getClusterStorageRow('Model Storage');
     modelStorageRow.findStorageTypeColumn().should('contain.text', 'Model storage');
+    modelStorageRow.findConnectedResources().should('have.text', 'Test Inference Service');
     const genericStorageRow = clusterStorage.getClusterStorageRow('Test Storage');
-    genericStorageRow.findStorageTypeColumn().should('contain.text', 'Generic persistent storage');
+    genericStorageRow.findStorageTypeColumn().should('contain.text', 'General purpose');
   });
 
   it('Should prefill model storage pvc with name and path on edit', () => {
@@ -432,7 +444,7 @@ describe('ClusterStorage', () => {
     clusterStorage.visit('test-project');
     const clusterStorageRow = clusterStorage.getClusterStorageRow('Test Storage');
     clusterStorageRow.findStorageClassColumn().should('not.exist');
-    clusterStorageRow.shouldHaveStorageTypeValue('Generic persistent storage');
+    clusterStorageRow.shouldHaveStorageTypeValue('General purpose');
     clusterStorageRow.findConnectedResources().should('have.text', '');
     clusterStorageRow.findSizeColumn().contains('5GiB');
 

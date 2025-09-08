@@ -4,17 +4,21 @@ import {
   registerModelPage,
 } from '#~/__tests__/cypress/cypress/pages/modelRegistry/registerModelPage';
 import { modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry';
+import { clickRegisterModelButton } from '#~/__tests__/cypress/cypress/utils/modelRegistryUtils';
 import { retryableBeforeEach } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import {
   checkModelRegistry,
   checkModelRegistryAvailable,
   cleanupRegisteredModelsFromDatabase,
+  createAndVerifyDatabase,
   createModelRegistryViaYAML,
   deleteModelRegistry,
+  deleteModelRegistryDatabase,
+  ensureOperatorMemoryLimit,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
-import { loadRegisterModelFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
+import { loadModelRegistryFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
-import type { RegisterModelTestData } from '#~/__tests__/cypress/cypress/types';
+import type { ModelRegistryTestData } from '#~/__tests__/cypress/cypress/types';
 import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
 import {
   archiveVersionModal,
@@ -32,16 +36,26 @@ import {
 } from '#~/__tests__/cypress/cypress/pages/modelRegistry/registerVersionPage';
 
 describe('Verify that models and versions can be archived and restored via model registry', () => {
-  let testData: RegisterModelTestData;
+  let testData: ModelRegistryTestData;
   let registryName: string;
+  let deploymentName: string;
   const uuid = generateTestUUID();
 
   before(() => {
     cy.step('Load test data from fixture');
-    return loadRegisterModelFixture('e2e/modelRegistry/testRegisterModel.yaml').then(
+    return loadModelRegistryFixture('e2e/modelRegistry/testModelRegistry.yaml').then(
       (fixtureData) => {
         testData = fixtureData;
         registryName = `${testData.registryNamePrefix}-${uuid}`;
+        deploymentName = testData.operatorDeploymentName;
+
+        // ensure operator has optimal memory
+        cy.step('Ensure operator has optimal memory for testing');
+        ensureOperatorMemoryLimit(deploymentName).should('be.true');
+
+        // Create and verify SQL database
+        cy.step('Create and verify SQL database for model registry');
+        createAndVerifyDatabase().should('be.true');
 
         // creates a model registry
         cy.step('Create a model registry using YAML');
@@ -63,7 +77,7 @@ describe('Verify that models and versions can be archived and restored via model
 
   it(
     'Registers model, adds versions, archives version, restores version, archives whole model, restores whole model',
-    { tags: ['@Maintain', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -72,11 +86,10 @@ describe('Verify that models and versions can be archived and restored via model
       appChrome.findNavItem('Model registry', 'Models').click();
 
       cy.step('Select the created model registry');
-      modelRegistry.findModelRegistry().click();
-      cy.findByTestId(registryName).click();
+      modelRegistry.findSelectModelRegistry(registryName);
 
       cy.step('Register a model using object storage');
-      modelRegistry.findRegisterModelButton().click();
+      clickRegisterModelButton(30000);
 
       // Fill in model details
       registerModelPage
@@ -103,7 +116,7 @@ describe('Verify that models and versions can be archived and restored via model
         .findFormField(FormFieldSelector.LOCATION_PATH)
         .type('models/test-model/v1.0');
 
-      registerModelPage.findSubmitButton().click();
+      registerModelPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify the model was registered');
       cy.url().should('include', '/modelRegistry');
@@ -144,7 +157,7 @@ describe('Verify that models and versions can be archived and restored via model
         .findFormField(VersionFormFieldSelector.LOCATION_PATH)
         .type('models/test-model/v2.0');
 
-      registerVersionPage.findSubmitButton().click();
+      registerVersionPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify v1.0 & v2.0 are registered');
       cy.contains(testData.version2Name, { timeout: 10000 }).should('be.visible');
@@ -206,9 +219,7 @@ describe('Verify that models and versions can be archived and restored via model
 
       cy.step('Verify the model is archived');
       // Navigate to archived models to verify
-      cy.findByTestId('registered-models-table-kebab-action')
-        .findDropdownItem('View archived models')
-        .click();
+      modelRegistry.findEmptyModelRegistrySecondaryButton().should('be.visible').click();
       registeredModelArchive
         .findArchiveModelTable()
         .contains('td', testData.objectStorageModelName, { timeout: 10000 })
@@ -244,5 +255,8 @@ describe('Verify that models and versions can be archived and restored via model
 
     cy.step('Verify model registry is removed from the backend');
     checkModelRegistry(registryName).should('be.false');
+
+    cy.step('Delete the SQL database');
+    deleteModelRegistryDatabase();
   });
 });

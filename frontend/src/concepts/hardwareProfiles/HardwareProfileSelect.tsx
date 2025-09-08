@@ -22,7 +22,7 @@ import {
   getProfileScore,
 } from '#~/concepts/hardwareProfiles/utils';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
-import { HardwareProfileKind, KnownLabels } from '#~/k8sTypes';
+import { HardwareProfileKind } from '#~/k8sTypes';
 import TruncatedText from '#~/components/TruncatedText';
 import ProjectScopedIcon from '#~/components/searchSelector/ProjectScopedIcon.tsx';
 import {
@@ -37,8 +37,11 @@ import {
   isHardwareProfileEnabled,
 } from '#~/pages/hardwareProfiles/utils.ts';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import { SchedulingType } from '#~/types';
+import { ProjectsContext, byName } from '#~/concepts/projects/ProjectsContext';
+import {
+  filterProfilesByKueue,
+  useKueueConfiguration,
+} from '#~/concepts/hardwareProfiles/kueueUtils';
 
 type HardwareProfileSelectProps = {
   initialHardwareProfile?: HardwareProfileKind;
@@ -61,6 +64,7 @@ type HardwareProfileSelectProps = {
 };
 
 const EXISTING_SETTINGS_KEY = '.existing';
+const TOOLTIP_MAX_LINES = 30;
 
 const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   initialHardwareProfile,
@@ -84,40 +88,39 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   ] = projectScopedHardwareProfiles;
 
   const { currentProject } = React.useContext(ProjectDetailsContext);
-  const isKueueEnabled = useIsAreaAvailable(SupportedArea.KUEUE).status;
-  const isProjectKueueEnabled =
-    currentProject.metadata.labels?.[KnownLabels.KUEUE_MANAGED] === 'true';
+  const { projects } = React.useContext(ProjectsContext);
 
-  const shouldFilterKueueProfiles = !isKueueEnabled || !isProjectKueueEnabled;
+  // Get the project for Kueue configuration:
+  // 1. If we have a project prop (namespace string), find the actual project object
+  // 2. Otherwise use currentProject from ProjectDetailsContext (works in project details pages)
+  const projectForKueue = React.useMemo(() => {
+    if (project) {
+      return projects.find(byName(project));
+    }
+    // Fallback to currentProject, but only if it has a real name (not empty default)
+    return currentProject.metadata.name ? currentProject : undefined;
+  }, [project, projects, currentProject]);
 
-  const maybeRemoveKueueProfiles = React.useCallback(
-    (hp: HardwareProfileKind) => {
-      if (shouldFilterKueueProfiles) {
-        return hp.spec.scheduling?.type !== SchedulingType.QUEUE;
-      }
-      return true;
-    },
-    [shouldFilterKueueProfiles],
-  );
+  const { kueueFilteringState } = useKueueConfiguration(projectForKueue);
 
   const options = React.useMemo(() => {
-    const enabledProfiles = hardwareProfiles
-      .filter((hp) => isHardwareProfileEnabled(hp))
-      .filter(maybeRemoveKueueProfiles)
-      .toSorted((a, b) => {
-        // First compare by whether they have extra resources
-        const aHasExtra = (a.spec.identifiers ?? []).length > 2;
-        const bHasExtra = (b.spec.identifiers ?? []).length > 2;
+    const enabledProfiles = filterProfilesByKueue(
+      hardwareProfiles.filter((hp) => isHardwareProfileEnabled(hp)),
+      kueueFilteringState,
+    ).toSorted((a, b) => {
+      // First compare by whether they have extra resources
+      const aHasExtra = (a.spec.identifiers ?? []).length > 2;
+      const bHasExtra = (b.spec.identifiers ?? []).length > 2;
 
-        // If one has extra resources and the other doesn't, sort the extra resources one later
-        if (aHasExtra !== bHasExtra) {
-          return aHasExtra ? 1 : -1;
-        }
+      // If one has extra resources and the other doesn't, sort the extra resources one later
+      if (aHasExtra !== bHasExtra) {
+        return aHasExtra ? 1 : -1;
+      }
 
-        // If they're the same (both have or both don't have extra resources),
-        // then sort by their score
-        return getProfileScore(a) - getProfileScore(b);
-      });
+      // If they're the same (both have or both don't have extra resources),
+      // then sort by their score
+      return getProfileScore(a) - getProfileScore(b);
+    });
 
     // allow continued use of already selected profile if it is disabled
     if (initialHardwareProfile && !isHardwareProfileEnabled(initialHardwareProfile)) {
@@ -137,7 +140,11 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
           <Stack>
             {description && (
               <StackItem>
-                <TruncatedText maxLines={1} content={description} />
+                <TruncatedText
+                  maxLines={1}
+                  tooltipMaxLines={TOOLTIP_MAX_LINES}
+                  content={description}
+                />
               </StackItem>
             )}
             {profile.spec.identifiers && (
@@ -171,7 +178,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
 
     // allow usage of existing settings if no hardware profile is found
     if (allowExistingSettings) {
-      formattedOptions.push({
+      formattedOptions.unshift({
         key: EXISTING_SETTINGS_KEY,
         label: 'Use existing settings',
         description: 'Use existing resource requests/limits, tolerations, and node selectors.',
@@ -184,7 +191,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     initialHardwareProfile,
     allowExistingSettings,
     isHardwareProfileSupported,
-    maybeRemoveKueueProfiles,
+    kueueFilteringState,
   ]);
 
   const renderMenuItem = (
@@ -253,13 +260,12 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     if (initialHardwareProfile && !isHardwareProfileEnabled(initialHardwareProfile)) {
       currentProjectEnabledProfiles.push(initialHardwareProfile);
     }
-    return currentProjectEnabledProfiles
-      .filter(maybeRemoveKueueProfiles)
-      .filter((profile) =>
+    return filterProfilesByKueue(currentProjectEnabledProfiles, kueueFilteringState).filter(
+      (profile) =>
         getHardwareProfileDisplayName(profile)
           .toLocaleLowerCase()
           .includes(searchHardwareProfile.toLocaleLowerCase()),
-      );
+    );
   };
 
   const getDashboardHardwareProfiles = () => {
@@ -276,7 +282,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     if (initialHardwareProfile && !isHardwareProfileEnabled(initialHardwareProfile)) {
       DashboardEnabledProfiles.push(initialHardwareProfile);
     }
-    return DashboardEnabledProfiles.filter(maybeRemoveKueueProfiles).filter((profile) =>
+    return filterProfilesByKueue(DashboardEnabledProfiles, kueueFilteringState).filter((profile) =>
       getHardwareProfileDisplayName(profile)
         .toLocaleLowerCase()
         .includes(searchHardwareProfile.toLocaleLowerCase()),
@@ -341,6 +347,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                     <HelperTextItem>
                       <TruncatedText
                         maxLines={2}
+                        tooltipMaxLines={TOOLTIP_MAX_LINES}
                         content={
                           getHardwareProfileDescription(hardwareProfileConfig.selectedProfile) ||
                           (hardwareProfileConfig.selectedProfile.spec.identifiers &&

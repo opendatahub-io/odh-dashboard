@@ -57,6 +57,7 @@ export const mockServingRuntimeTemplateK8sResource = ({
     annotations: {
       'opendatahub.io/modelServingSupport': JSON.stringify(platforms),
       'opendatahub.io/apiProtocol': apiProtocol,
+      'opendatahub.io/modelServingType': '["predictive","generative"]',
       ...annotations,
     },
   },

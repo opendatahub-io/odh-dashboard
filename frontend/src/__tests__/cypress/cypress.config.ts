@@ -19,6 +19,14 @@ import { extractHttpsUrlsWithLocation } from './cypress/utils/urlExtractor';
 import { validateHttpsUrls } from './cypress/utils/urlValidator';
 import { logToConsole, LogLevel } from './cypress/utils/logger';
 
+const getCyEnvVariables = (envVars: Record<string, string | undefined>) => {
+  return Object.fromEntries(
+    Object.keys(envVars)
+      .filter((key) => key.startsWith('CY_'))
+      .map((key) => [key, envVars[key]]),
+  );
+};
+
 const resultsDir = `${env.CY_RESULTS_DIR || 'results'}/${env.CY_MOCK ? 'mocked' : 'e2e'}`;
 
 export default defineConfig({
@@ -26,7 +34,7 @@ export default defineConfig({
   // Disable watching only if env variable `CY_WATCH=false`
   watchForFileChanges: env.CY_WATCH ? env.CY_WATCH !== 'false' : undefined,
   // Use relative path as a workaround to https://github.com/cypress-io/cypress/issues/6406
-  reporter: '../../../node_modules/cypress-multi-reporters',
+  reporter: '../../../../node_modules/cypress-multi-reporters',
   reporterOptions: {
     reporterEnabled: 'cypress-mochawesome-reporter, mocha-junit-reporter',
     mochaJunitReporterReporterOptions: {
@@ -49,10 +57,11 @@ export default defineConfig({
   screenshotsFolder: `${resultsDir}/screenshots`,
   videosFolder: `${resultsDir}/videos`,
   env: {
+    ...getCyEnvVariables(env),
     ...cypressEnv,
     MOCK: !!env.CY_MOCK,
     RECORD: !!env.CY_RECORD,
-    WS_PORT: env.CY_WS_PORT,
+    WS_PORT: env.CY_WS_PORT ?? '9002',
     coverage: !!env.CY_COVERAGE,
     codeCoverage: {
       exclude: [path.resolve(__dirname, '../../third_party/**')],
@@ -90,6 +99,7 @@ export default defineConfig({
 
           return Promise.resolve({});
         },
+
         extractHttpsUrls(directory: string) {
           return extractHttpsUrlsWithLocation(directory);
         },
@@ -107,7 +117,7 @@ export default defineConfig({
         },
       });
 
-      if (env.CY_RECORD) {
+      if (config.env.CY_RECORD) {
         on('before:spec', (spec) => {
           // delete previous snapshots for the spec
           try {
@@ -147,10 +157,18 @@ export default defineConfig({
         await mergeFiles(outputFile, inputFiles);
       });
 
-      // Apply retries only for tests in the "e2e" folder
+      // Apply retries only for tests in the "e2e" folder. 2 retries by default, after a test failure.
+      // Set CY_RETRY=N env var for the number of retries (CY_RETRY=0 means no retries).
+      const retryConfig =
+        config.env.CY_RETRY !== undefined
+          ? { runMode: Math.max(0, parseInt(config.env.CY_RETRY) || 0), openMode: 0 }
+          : !config.env.CY_MOCK && !config.env.CY_RECORD
+          ? { runMode: 2, openMode: 0 }
+          : config.retries;
+
       return {
         ...config,
-        retries: !env.CY_MOCK && !env.CY_RECORD ? { runMode: 2, openMode: 0 } : config.retries,
+        retries: retryConfig,
       };
     },
   },

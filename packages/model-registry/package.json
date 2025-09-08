@@ -1,0 +1,47 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/model-registry",
+  "description": "Model registry plugin.",
+  "version": "0.0.0",
+  "scripts": {
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit",
+    "update-subtree": "../../scripts/package-subtree.sh --package=@odh-dashboard/model-registry"
+  },
+  "subtree": {
+    "repo": "https://github.com/kubeflow/model-registry.git",
+    "src": "clients/ui",
+    "target": "upstream",
+    "commit": "7251769867eef1635efecfc0e01e80dfc7ead71f"
+  },
+  "module-federation": {
+    "name": "modelRegistry",
+    "remoteEntry": "/remoteEntry.js",
+    "authorize": true,
+    "tls": false,
+    "proxy": [
+      {
+        "path": "/model-registry/api",
+        "pathRewrite": "/api"
+      }
+    ],
+    "local": {
+      "host": "localhost",
+      "port": 9000
+    },
+    "service": {
+      "name": "odh-dashboard",
+      "port": 8043
+    }
+  },
+  "exports": {
+    "./extensions": "./extensions.ts"
+  },
+  "dependencies": {
+    "@odh-dashboard/internal": "*"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/tsconfig": "*"
+  }
+}

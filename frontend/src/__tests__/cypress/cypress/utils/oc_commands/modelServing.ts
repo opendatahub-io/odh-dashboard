@@ -59,6 +59,7 @@ type InferenceServiceState = {
         activeModelState?: string;
       };
     };
+    deploymentMode?: string;
   };
 };
 
@@ -99,13 +100,14 @@ export const checkInferenceServiceState = (
   serviceName: string,
   namespace: string,
   options: ConditionCheckOptions = {},
+  DeploymentMode?: 'RawDeployment' | 'Serverless',
 ): Cypress.Chainable<Cypress.Exec> => {
   const ocCommand = `oc get inferenceService ${serviceName} -n ${namespace} -o json`;
   const maxAttempts = 96; // 8 minutes / 5 seconds = 96 attempts
   let attempts = 0;
 
-  const checkState = (): Cypress.Chainable<Cypress.Exec> => {
-    return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+  const checkState = (): Cypress.Chainable<Cypress.Exec> =>
+    cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
       attempts++;
 
       // Log raw command output for debugging
@@ -147,10 +149,14 @@ export const checkInferenceServiceState = (
         serviceState.status?.modelStatus?.states?.activeModelState || 'EMPTY';
       const conditions = serviceState.status?.conditions || [];
 
+      // Check deployment mode
+      const actualDeploymentMode = serviceState.status?.deploymentMode || 'EMPTY';
+
       // Detailed initial logging
       cy.log(`🧐 Attempt ${attempts}: Checking InferenceService state
         Service Name: ${serviceName}
         Active Model State: ${activeModelState}
+        Deployment Mode: ${actualDeploymentMode}
         Total Conditions: ${conditions.length}`);
 
       // Prepare condition checks with logging
@@ -214,6 +220,24 @@ export const checkInferenceServiceState = (
       const isModelLoaded = activeModelState === 'Loaded';
       cy.log(`Active Model State Check: ${isModelLoaded ? '✅ Loaded' : '❌ Not Loaded'}`);
 
+      if (DeploymentMode) {
+        const expectedDeploymentMode = DeploymentMode;
+        cy.log(`🔍 InferenceService deployment mode check:
+        Service: ${serviceName}
+        Expected: ${expectedDeploymentMode}
+        Actual: ${actualDeploymentMode}
+        Match: ${actualDeploymentMode === expectedDeploymentMode ? '✅' : '❌'}`);
+
+        if (actualDeploymentMode !== expectedDeploymentMode) {
+          throw new Error(
+            `Deployment mode mismatch. Expected: ${expectedDeploymentMode}, Actual: ${actualDeploymentMode}`,
+          );
+        }
+
+        cy.log(
+          `✅ InferenceService ${serviceName} has correct deployment mode: ${expectedDeploymentMode}`,
+        );
+      }
       // Determine overall success
       // If no condition checks were specified, only check model state
       const allConditionsPassed =
@@ -262,7 +286,6 @@ export const checkInferenceServiceState = (
         return cy.wait(5000).then(() => checkState());
       }
     });
-  };
 
   return checkState();
 };
@@ -277,8 +300,9 @@ export const checkInferenceServiceState = (
 export const modelExternalTester = (
   modelName: string,
   namespace: string,
-): Cypress.Chainable<{ url: string; response: Cypress.Response<unknown> }> => {
-  return cy.exec(`oc get inferenceService ${modelName} -n ${namespace} -o json`).then((result) => {
+  token?: string,
+): Cypress.Chainable<{ url: string; response: Cypress.Response<unknown> }> =>
+  cy.exec(`oc get inferenceService ${modelName} -n ${namespace} -o json`).then((result) => {
     const inferenceService = JSON.parse(result.stdout);
     const { url } = inferenceService.status;
 
@@ -294,7 +318,12 @@ export const modelExternalTester = (
       cy.log(`Request attempt ${attemptNumber} of ${maxAttempts}`);
       cy.log(`Request URL: ${url}/v2/models/${modelName}/infer`);
       cy.log(`Request method: POST`);
-      cy.log(`Request headers: ${JSON.stringify({ 'Content-Type': 'application/json' })}`);
+      cy.log(
+        `Request headers: ${JSON.stringify({
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        })}`,
+      );
       cy.log(
         `Request body: ${JSON.stringify({
           inputs: [
@@ -314,6 +343,7 @@ export const modelExternalTester = (
           url: `${url}/v2/models/${modelName}/infer`,
           headers: {
             'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` }),
           },
           body: {
             inputs: [
@@ -350,16 +380,15 @@ export const modelExternalTester = (
           );
 
           // Use Cypress's wait command before making the next attempt
-          return cy.wait(waitTime).then(() => {
-            return makeRequest(attemptNumber + 1, maxAttempts, waitTime);
-          });
+          return cy
+            .wait(waitTime)
+            .then(() => makeRequest(attemptNumber + 1, maxAttempts, waitTime));
         });
     };
 
     // Start the request chain with the first attempt
     return makeRequest();
   });
-};
 
 /**
  * Validates tolerations in a workbench pod
@@ -439,3 +468,67 @@ export const validateInferenceServiceTolerations = (
     }
   });
 };
+
+export const verifyS3CopyCompleted = (
+  podName: string,
+  namespace: string,
+): Cypress.Chainable<Cypress.Exec> =>
+  cy.exec(`oc logs ${podName} -n ${namespace}`, { failOnNonZeroExit: false }).then((result) => {
+    if (!result.stdout.includes('S3 copy completed successfully')) {
+      throw new Error('S3 copy did not complete successfully');
+    }
+  });
+
+/**
+ * Retrieve the token for a given service account and model
+ *
+ * @param namespace The namespace where the InferenceService is deployed.
+ * @param serviceAccountName The name of the service account to get the token for.
+ * @param modelName The name of the model to get the token for.
+ * @returns Cypress.Chainable<string> that resolves after validation.
+ */
+export const getModelExternalToken = (
+  namespace: string,
+  serviceAccountName: string,
+  modelName: string,
+): Cypress.Chainable<string> =>
+  cy
+    .exec(
+      `oc get secret ${serviceAccountName}-${modelName}-sa -n ${namespace} -o jsonpath='{.data.token}' | base64 -d`,
+    )
+    .then((result) => result.stdout);
+
+/**
+ * Verify the model is accessible with a token
+ *
+ * @param modelName The name of the model to test.
+ * @param namespace The namespace where the model is deployed.
+ * @param token The (optional) token to use for the request.
+ * @returns Cypress.Chainable<Cypress.Response<unknown>> that resolves after validation.
+ */
+export const verifyModelExternalToken = (
+  modelName: string,
+  namespace: string,
+  token?: string,
+): Cypress.Chainable<Cypress.Response<unknown>> =>
+  cy.exec(`oc get inferenceService ${modelName} -n ${namespace} -o json`).then((result) => {
+    const inferenceService = JSON.parse(result.stdout);
+    const { url } = inferenceService.status;
+
+    if (!url) {
+      throw new Error('External URL not found in InferenceService');
+    }
+
+    return cy
+      .request({
+        method: 'GET',
+        url: `${url}/v2/models/${modelName}`,
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      })
+      .then((response) => {
+        cy.log('Model metadata:', JSON.stringify(response.body));
+        return cy.wrap(response);
+      });
+  });

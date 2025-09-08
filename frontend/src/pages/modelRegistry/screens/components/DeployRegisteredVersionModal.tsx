@@ -52,11 +52,6 @@ const DeployRegisteredVersionModal: React.FC<DeployRegisteredVersionModalProps> 
       modelDeployPrefillInfo={modelDeployPrefillInfo}
       prefillInfoLoaded={loaded}
       prefillInfoLoadError={loadError}
-      projectLinkExtraUrlParams={{
-        modelRegistryName: preferredModelRegistry?.metadata.name,
-        registeredModelId: modelVersion.registeredModelId,
-        modelVersionId: modelVersion.id,
-      }}
       onSubmit={handleSubmit}
       onCancel={onCancel}
     />

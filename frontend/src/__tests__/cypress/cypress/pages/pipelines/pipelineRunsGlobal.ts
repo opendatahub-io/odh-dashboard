@@ -53,6 +53,10 @@ class PipelineRunsGlobal {
     return cy.findByTestId('schedule-run-button');
   }
 
+  findAppPageTitle() {
+    return cy.findByTestId('app-page-title');
+  }
+
   findRestoreRunButton() {
     return cy.findByTestId('restore-button');
   }

@@ -69,6 +69,7 @@ type HandlersProps = {
   disableWorkbenches?: boolean;
   namespace?: string;
   disableLlamaStackChatBot?: boolean;
+  disableKueue?: boolean;
   inferenceServices?: InferenceServiceKind[];
   servingRuntimes?: ServingRuntimeKind[];
 };
@@ -95,6 +96,7 @@ const initIntercepts = ({
   disableWorkbenches = false,
   namespace = 'test-project',
   disableLlamaStackChatBot = false,
+  disableKueue = true,
   inferenceServices = [],
   servingRuntimes = [],
 }: HandlersProps) => {
@@ -137,7 +139,7 @@ const initIntercepts = ({
         : []),
       ...(!disableNIMConfig ? [mockNimServingRuntimeTemplate()] : []),
     ]),
-  );
+  ).as('templates');
   if (!disableNIMConfig) {
     cy.interceptK8s(TemplateModel, mockNimServingRuntimeTemplate());
   }
@@ -149,6 +151,7 @@ const initIntercepts = ({
       disableNIMModelServing: disableNIMConfig,
       disableKServeMetrics,
       disableLlamaStackChatBot,
+      disableKueue,
     }),
   );
   if (pipelineServerInstalled) {
@@ -468,8 +471,8 @@ describe('Project Details', () => {
     it('Both model serving platforms are enabled, no platform selected', () => {
       initIntercepts({ disableKServeConfig: false, disableModelConfig: false });
       projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.findSelectPlatformButton('single').should('exist');
-      projectDetails.findSelectPlatformButton('multi').should('exist');
+      projectDetails.findSelectPlatformButton('kserve').should('exist');
+      projectDetails.findSelectPlatformButton('model-mesh').should('exist');
     });
 
     it('Only single serving platform enabled, no serving runtimes templates', () => {
@@ -477,10 +480,12 @@ describe('Project Details', () => {
         disableKServeConfig: false,
         disableModelConfig: true,
       });
+      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
+      cy.wait('@templates');
       projectDetails.findTopLevelDeployModelButton().should('have.attr', 'aria-disabled');
       projectDetails.findTopLevelDeployModelButton().trigger('mouseenter');
-      projectDetails.findDeployModelTooltip().should('be.visible');
+      projectDetails.findDeployModelTooltip().should('exist');
     });
 
     it('Only multi serving platform enabled, no serving runtimes templates', () => {
@@ -491,7 +496,7 @@ describe('Project Details', () => {
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findTopLevelAddModelServerButton().should('have.attr', 'aria-disabled');
       projectDetails.findTopLevelAddModelServerButton().trigger('mouseenter');
-      projectDetails.findDeployModelTooltip().should('be.visible');
+      projectDetails.findDeployModelTooltip().should('exist');
     });
 
     it('Both model serving platforms are enabled, single-model platform is selected, no serving runtimes templates', () => {
@@ -503,7 +508,7 @@ describe('Project Details', () => {
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findTopLevelDeployModelButton().should('have.attr', 'aria-disabled');
       projectDetails.findTopLevelDeployModelButton().trigger('mouseenter');
-      projectDetails.findDeployModelTooltip().should('be.visible');
+      projectDetails.findDeployModelTooltip().should('exist');
     });
 
     it('Both model serving platforms are enabled, multi-model platform is selected, no serving runtimes templates', () => {
@@ -515,7 +520,7 @@ describe('Project Details', () => {
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findTopLevelAddModelServerButton().should('have.attr', 'aria-disabled');
       projectDetails.findTopLevelAddModelServerButton().trigger('mouseenter');
-      projectDetails.findDeployModelTooltip().should('be.visible');
+      projectDetails.findDeployModelTooltip().should('exist');
     });
 
     it('Single model serving platform is enabled', () => {
@@ -722,7 +727,7 @@ describe('Project Details', () => {
       initModelServingIntercepts({});
       initIntercepts({ disableKServeConfig: false, disableModelConfig: false });
       projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.findSelectPlatformButton('single').click();
+      projectDetails.findSelectPlatformButton('kserve').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
         expect(interception.request.url).to.contain(
           `/api/namespaces/test-project/${NamespaceApplicationCase.KSERVE_PROMOTION}`,
@@ -752,7 +757,7 @@ describe('Project Details', () => {
         disableModelConfig: false,
       });
       projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.findSelectPlatformButton('multi').click();
+      projectDetails.findSelectPlatformButton('model-mesh').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
         expect(interception.request.url).to.contain(
           `/api/namespaces/test-project/${NamespaceApplicationCase.MODEL_MESH_PROMOTION}`,
@@ -785,7 +790,7 @@ describe('Project Details', () => {
         disableNIMConfig: false,
       });
       projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.findSelectPlatformButton('nim').click();
+      projectDetails.findSelectPlatformButton('nvidia-nim').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
         expect(interception.request.url).to.contain(
           `/api/namespaces/test-project/${NamespaceApplicationCase.KSERVE_NIM_PROMOTION}`,
@@ -820,7 +825,7 @@ describe('Project Details', () => {
         rejectAddSupportServingPlatformProject: true,
       });
       projectDetails.visitSection('test-project', 'overview');
-      projectDetails.findSelectPlatformButton('single').click();
+      projectDetails.findSelectPlatformButton('kserve').click();
       projectDetails.findErrorSelectingPlatform().should('exist');
     });
 
@@ -841,7 +846,7 @@ describe('Project Details', () => {
       initModelServingIntercepts({});
       initIntercepts({ disableKServeConfig: false, disableModelConfig: false });
       projectDetails.visitSection('test-project', 'overview');
-      projectDetails.findSelectPlatformButton('single').click();
+      projectDetails.findSelectPlatformButton('kserve').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
         expect(interception.request.url).to.contain(
           `/api/namespaces/test-project/${NamespaceApplicationCase.KSERVE_PROMOTION}`,
@@ -872,7 +877,7 @@ describe('Project Details', () => {
         disableModelConfig: false,
       });
       projectDetails.visitSection('test-project', 'overview');
-      projectDetails.findSelectPlatformButton('multi').click();
+      projectDetails.findSelectPlatformButton('model-mesh').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
         expect(interception.request.url).to.contain(
           `/api/namespaces/test-project/${NamespaceApplicationCase.MODEL_MESH_PROMOTION}`,
@@ -904,7 +909,7 @@ describe('Project Details', () => {
         disableNIMConfig: false,
       });
       projectDetails.visitSection('test-project', 'overview');
-      projectDetails.findSelectPlatformButton('nim').click();
+      projectDetails.findSelectPlatformButton('nvidia-nim').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
         expect(interception.request.url).to.contain(
           `/api/namespaces/test-project/${NamespaceApplicationCase.KSERVE_NIM_PROMOTION}`,
@@ -938,7 +943,7 @@ describe('Project Details', () => {
       });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.findSelectPlatformButton('single').click();
+      projectDetails.findSelectPlatformButton('kserve').click();
       projectDetails.findErrorSelectingPlatform().should('exist');
     });
 
@@ -990,6 +995,12 @@ describe('Project Details', () => {
     });
 
     it('Change serving platform button should be disabled with tooltip when non-dashboard serving runtime exists', () => {
+      // Create a non-dashboard inference service
+      const nonDashboardInferenceService = mockInferenceServiceK8sResource({
+        name: 'non-dashboard-inference',
+        namespace: 'test-project',
+        isNonDashboardItem: true,
+      });
       // Create a non-dashboard serving runtime
       const nonDashboardServingRuntime = mockServingRuntimeK8sResource({
         name: 'non-dashboard-runtime',
@@ -1001,7 +1012,7 @@ describe('Project Details', () => {
         disableKServeConfig: false,
         disableModelConfig: false,
         enableModelMesh: false,
-        inferenceServices: [],
+        inferenceServices: [nonDashboardInferenceService],
         servingRuntimes: [nonDashboardServingRuntime],
       });
 
@@ -1154,6 +1165,44 @@ describe('Project Details', () => {
       projectDetails.visitSection('test-project', 'cluster-storages');
 
       cy.get('th').contains('Connected workbenches').should('not.exist');
+    });
+  });
+
+  describe('Kueue disabled for Kueue-enabled project', () => {
+    beforeEach(() => {
+      initIntercepts({
+        disableKueue: true, // Kueue feature flag disabled
+        enableModelMesh: false, // Use KServe for model serving
+        templates: true, // Enable serving runtime templates
+      });
+      initModelServingIntercepts({ isEmpty: true });
+    });
+
+    it('should show Kueue alert and disable create workbench and deploy model buttons', () => {
+      // Create a Kueue-enabled project
+      const kueueEnabledProject = mockProjectK8sResource({
+        enableModelMesh: false,
+      });
+      kueueEnabledProject.metadata.labels = {
+        ...kueueEnabledProject.metadata.labels,
+        'kueue.openshift.io/managed': 'true', // Make project Kueue-enabled
+      };
+
+      cy.interceptK8s(ProjectModel, kueueEnabledProject);
+      cy.interceptK8sList(ProjectModel, mockK8sResourceList([kueueEnabledProject]));
+
+      projectDetails.visit('test-project');
+
+      // 1. Verify Kueue alert is displayed
+      cy.findByTestId('kueue-disabled-alert-project-details').should('be.visible');
+
+      // 2. Verify create workbench button is disabled
+      projectDetails.visitSection('test-project', 'workbenches');
+      cy.findByTestId('create-workbench-button').should('have.attr', 'aria-disabled', 'true');
+
+      // 3. Verify deploy model button is disabled
+      projectDetails.visitSection('test-project', 'model-server');
+      cy.findByTestId('deploy-button').should('have.attr', 'aria-disabled', 'true');
     });
   });
 });

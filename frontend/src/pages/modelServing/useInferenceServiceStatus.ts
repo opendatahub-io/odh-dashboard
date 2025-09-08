@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { getInferenceServiceModelState } from '#~/concepts/modelServingKServe/kserveStatusUtils.ts';
-import { InferenceServiceModelState, ModelServingState } from '#~/pages/modelServing/screens/types';
+import { ModelDeploymentState, ModelServingState } from '#~/pages/modelServing/screens/types';
 import useModelPodStatus from '#~/pages/modelServing/useModelPodStatus';
 import { FAST_POLL_INTERVAL } from '#~/utilities/const.ts';
 import { InferenceServiceKind } from '#~/k8sTypes.ts';
@@ -61,17 +61,13 @@ export const useInferenceServiceStatus = (
     const currentState = getInferenceServiceModelState(inferenceService);
 
     if (
-      currentState === InferenceServiceModelState.LOADING ||
-      currentState === InferenceServiceModelState.PENDING
+      currentState === ModelDeploymentState.LOADING ||
+      currentState === ModelDeploymentState.PENDING
     ) {
       setIsStarting(true);
     }
 
-    if (
-      [InferenceServiceModelState.LOADED, InferenceServiceModelState.FAILED_TO_LOAD].includes(
-        currentState,
-      )
-    ) {
+    if ([ModelDeploymentState.LOADED, ModelDeploymentState.FAILED_TO_LOAD].includes(currentState)) {
       setIsStarting(false);
     }
   }, [isStarting, inferenceService]);
@@ -84,13 +80,13 @@ export const useInferenceServiceStatus = (
     () =>
       !inferenceService.status?.modelStatus?.states?.activeModelState &&
       inferenceService.status?.modelStatus?.states?.targetModelState !==
-        InferenceServiceModelState.FAILED_TO_LOAD &&
+        ModelDeploymentState.FAILED_TO_LOAD &&
       !isStopped &&
       !isStopping,
     [inferenceService.status?.modelStatus?.states, isStopped, isStopping],
   );
 
-  const inferenceServiceModelState = getInferenceServiceModelState(inferenceService);
+  const modelDeploymentState = getInferenceServiceModelState(inferenceService);
 
   return {
     ...baseStatus,
@@ -98,7 +94,7 @@ export const useInferenceServiceStatus = (
     isStopping,
     isStopped,
     isRunning,
-    isFailed: inferenceServiceModelState === InferenceServiceModelState.FAILED_TO_LOAD,
+    isFailed: modelDeploymentState === ModelDeploymentState.FAILED_TO_LOAD,
     setIsStarting,
     setIsStopping,
   };

@@ -1,20 +1,19 @@
 {
   "extends": "@odh-dashboard/tsconfig/tsconfig.json",
   "compilerOptions": {
-    "rootDir": ".",
-    "outDir": "public",
-    "baseUrl": "./src",
     "paths": {
-      "@mf/*": ["../@mf-types/@mf/*"]
+      "@mf/*": ["@mf-types/@mf/*"]
     }
   },
   "exclude": [
     "node_modules",
     "coverage",
     "jest-coverage",
+    "@mf-types",
     "public",
     "public-cypress",
     "src/__tests__/cypress",
+    "**/packages/gen-ai",
     "**/upstream"
   ]
 }

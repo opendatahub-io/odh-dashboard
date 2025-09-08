@@ -8,13 +8,8 @@ import {
   k8sUpdateResource,
   k8sPatchResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { InferenceServiceModel } from '#~/api/models';
-import {
-  InferenceServiceAnnotations,
-  InferenceServiceKind,
-  K8sAPIOptions,
-  KnownLabels,
-} from '#~/k8sTypes';
+import { InferenceServiceModel, PodModel } from '#~/api/models';
+import { InferenceServiceKind, K8sAPIOptions, KnownLabels, PodKind } from '#~/k8sTypes';
 import { CreatingInferenceServiceObject } from '#~/pages/modelServing/screens/types';
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import { getInferenceServiceDeploymentMode } from '#~/pages/modelServing/screens/projects/utils';
@@ -98,19 +93,37 @@ export const assembleInferenceService = (
   const splitArgs: string[] = nonEmptyArgs.flatMap(parseCommandLine);
   const nonEmptyEnvVars = servingRuntimeEnvVars?.filter((ev) => ev.name) || [];
 
-  const annotations: InferenceServiceAnnotations = {
-    'openshift.io/display-name': data.name.trim(),
-    'serving.kserve.io/deploymentMode': getInferenceServiceDeploymentMode(
-      !!isModelMesh,
-      !!data.isKServeRawDeployment,
-    ),
-    ...(!isModelMesh &&
-      !data.isKServeRawDeployment && {
-        'serving.knative.openshift.io/enablePassthrough': 'true',
-        'sidecar.istio.io/inject': 'true',
-        'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
-      }),
-  };
+  let updatedInferenceService: InferenceServiceKind = inferenceService
+    ? { ...inferenceService }
+    : {
+        apiVersion: 'serving.kserve.io/v1beta1',
+        kind: 'InferenceService',
+        metadata: {
+          name,
+          namespace: project,
+          annotations: {},
+          labels: {},
+        },
+        spec: {
+          predictor: {
+            model: {},
+          },
+        },
+      };
+
+  const annotations = { ...updatedInferenceService.metadata.annotations };
+
+  annotations['openshift.io/display-name'] = data.name.trim();
+  annotations['serving.kserve.io/deploymentMode'] = getInferenceServiceDeploymentMode(
+    !!isModelMesh,
+    !!data.isKServeRawDeployment,
+  );
+
+  if (!isModelMesh && !data.isKServeRawDeployment) {
+    annotations['serving.knative.openshift.io/enablePassthrough'] = 'true';
+    annotations['sidecar.istio.io/inject'] = 'true';
+    annotations['sidecar.istio.io/rewriteAppHTTPProbers'] = 'true';
+  }
 
   const dashboardNamespace = data.dashboardNamespace ?? '';
   if (!isModelMesh && podSpecOptions && podSpecOptions.selectedHardwareProfile) {
@@ -133,89 +146,55 @@ export const assembleInferenceService = (
     }
   }
 
-  let updateInferenceService: InferenceServiceKind = inferenceService
-    ? {
-        ...inferenceService,
-        metadata: {
-          ...inferenceService.metadata,
-          annotations: {
-            ...inferenceService.metadata.annotations,
-            ...annotations,
-          },
-          labels: {
-            ...inferenceService.metadata.labels,
-          },
-        },
-        spec: {
-          predictor: {
-            ...(!isModelMesh && { minReplicas }),
-            ...(!isModelMesh && { maxReplicas }),
-            ...(!isModelMesh && { imagePullSecrets }),
-            model: {
-              modelFormat: {
-                name: format.name,
-                ...(format.version && { version: format.version }),
-              },
-              runtime: servingRuntimeName,
-              ...(uri
-                ? { storageUri: uri }
-                : {
-                    storage: {
-                      key: dataConnectionKey,
-                      path,
-                    },
-                  }),
-              args: splitArgs,
-              env: nonEmptyEnvVars,
-            },
-          },
-        },
-      }
-    : {
-        apiVersion: 'serving.kserve.io/v1beta1',
-        kind: 'InferenceService',
-        metadata: {
-          annotations,
-          labels: {
-            [KnownLabels.DASHBOARD_RESOURCE]: 'true',
-            ...data.labels,
-          },
-          name,
-          namespace: project,
-        },
-        spec: {
-          predictor: {
-            ...(!isModelMesh && { minReplicas }),
-            ...(!isModelMesh && { maxReplicas }),
-            ...(!isModelMesh && { imagePullSecrets }),
-            model: {
-              modelFormat: {
-                name: format.name,
-                ...(format.version && { version: format.version }),
-              },
-              runtime: servingRuntimeName,
-              ...(uri
-                ? { storageUri: uri }
-                : {
-                    storage: {
-                      key: dataConnectionKey,
-                      path,
-                    },
-                  }),
-              args: splitArgs,
-              env: nonEmptyEnvVars,
-            },
-          },
-        },
-      };
+  const labels = { ...updatedInferenceService.metadata.labels, ...data.labels };
+  labels[KnownLabels.DASHBOARD_RESOURCE] = 'true';
 
-  updateInferenceService = applyAuthToInferenceService(
-    updateInferenceService,
+  updatedInferenceService.metadata.annotations = annotations;
+  updatedInferenceService.metadata.labels = labels;
+
+  const spec = { ...updatedInferenceService.spec };
+  const predictor = { ...spec.predictor };
+
+  if (!isModelMesh) {
+    predictor.minReplicas = minReplicas;
+    predictor.maxReplicas = maxReplicas;
+    predictor.imagePullSecrets = imagePullSecrets;
+  }
+
+  const model = { ...predictor.model };
+  model.modelFormat = {
+    name: format.name,
+    ...(format.version && { version: format.version }),
+  };
+  model.runtime = servingRuntimeName;
+
+  if (uri) {
+    model.storageUri = uri;
+    delete model.storage;
+  } else {
+    delete model.storageUri;
+    model.storage = {
+      key: dataConnectionKey,
+      path,
+    };
+  }
+
+  model.args = splitArgs;
+  model.env = nonEmptyEnvVars;
+
+  predictor.model = model;
+
+  spec.predictor = predictor;
+
+  updatedInferenceService.spec = spec;
+
+  updatedInferenceService = applyAuthToInferenceService(
+    updatedInferenceService,
     tokenAuth,
     isModelMesh,
   );
-  updateInferenceService = applyRoutingToInferenceService(
-    updateInferenceService,
+  updatedInferenceService = applyRoutingToInferenceService(
+    updatedInferenceService,
     externalRoute,
     isModelMesh,
     data.isKServeRawDeployment,
@@ -225,18 +204,21 @@ export const assembleInferenceService = (
   if (!isModelMesh && podSpecOptions) {
     const { resources } = podSpecOptions;
 
-    updateInferenceService.spec.predictor.model = {
-      ...updateInferenceService.spec.predictor.model,
-      resources,
+    updatedInferenceService.spec.predictor.model = {
+      ...updatedInferenceService.spec.predictor.model,
+      resources: {
+        ...updatedInferenceService.spec.predictor.model?.resources,
+        ...resources,
+      },
     };
   }
 
   // If storage is not needed, remove storage from the inference service
   if (isStorageNeeded !== undefined && !isStorageNeeded) {
-    delete updateInferenceService.spec.predictor.model?.storage;
+    delete updatedInferenceService.spec.predictor.model?.storage;
   }
 
-  return updateInferenceService;
+  return updatedInferenceService;
 };
 
 export const listInferenceService = (
@@ -300,6 +282,26 @@ export const getInferenceService = (
       opts,
     ),
   );
+
+export const getInferenceServicePods = (
+  name: string,
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<PodKind[]> =>
+  k8sListResource<PodKind>(
+    applyK8sAPIOptions(
+      {
+        model: PodModel,
+        queryOptions: {
+          ns: namespace,
+          queryParams: {
+            labelSelector: `serving.kserve.io/inferenceservice=${name}`,
+          },
+        },
+      },
+      opts,
+    ),
+  ).then((listResource) => listResource.items);
 
 export const createInferenceService = (
   data: CreatingInferenceServiceObject,

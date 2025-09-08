@@ -28,6 +28,7 @@ export const mockInferenceServiceModalData = ({
   tokens = [],
   isKServeRawDeployment,
   dashboardNamespace = 'opendatahub',
+  labels = undefined,
 }: MockResourceConfigType): CreatingInferenceServiceObject => ({
   name,
   k8sName,
@@ -43,4 +44,5 @@ export const mockInferenceServiceModalData = ({
   tokens,
   isKServeRawDeployment,
   dashboardNamespace,
+  labels,
 });

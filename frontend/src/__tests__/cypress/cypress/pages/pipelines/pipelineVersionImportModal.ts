@@ -2,6 +2,7 @@ import type { CreatePipelineVersionKFData, PipelineVersionKF } from '#~/concepts
 import { buildMockPipelineVersion } from '#~/__mocks__/mockPipelineVersionsProxy';
 import { Modal } from '#~/__tests__/cypress/cypress/pages/components/Modal';
 import { SearchSelector } from '#~/__tests__/cypress/cypress/pages/components/subComponents/SearchSelector';
+import { PIPELINE_IMPORT_BASE_TEST_ID } from '#~/concepts/pipelines/content/import/const';
 
 class PipelineImportModal extends Modal {
   pipelineSelector = new SearchSelector('pipeline-selector');
@@ -11,7 +12,7 @@ class PipelineImportModal extends Modal {
   }
 
   find() {
-    return cy.findByTestId('import-pipeline-modal');
+    return cy.findByTestId(PIPELINE_IMPORT_BASE_TEST_ID);
   }
 
   findSubmitButton() {
@@ -20,6 +21,14 @@ class PipelineImportModal extends Modal {
 
   findVersionNameInput() {
     return this.find().findByTestId('pipeline-name');
+  }
+
+  findVersionResourceNameInput() {
+    return this.find().findByTestId('pipeline-resourceName');
+  }
+
+  findVersionEditResourceNameButton() {
+    return this.find().findByTestId('pipeline-editResourceLink');
   }
 
   findVersionDescriptionInput() {
@@ -67,6 +76,10 @@ class PipelineImportModal extends Modal {
 
   fillVersionName(value: string) {
     this.findVersionNameInput().clear().type(value);
+  }
+
+  fillVersionResourceName(value: string) {
+    this.findVersionResourceNameInput().clear().type(value);
   }
 
   fillVersionDescription(value: string) {

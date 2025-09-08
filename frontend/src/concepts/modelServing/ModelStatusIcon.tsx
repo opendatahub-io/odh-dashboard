@@ -8,17 +8,16 @@ import {
   PlayIcon,
   SyncAltIcon,
 } from '@patternfly/react-icons';
-import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
+import { ModelDeploymentState } from '#~/pages/modelServing/screens/types';
+import { ToggleState } from '#~/components/StateActionToggle';
 
 type ModelStatusIconProps = {
-  state: InferenceServiceModelState;
+  state: ModelDeploymentState;
   defaultHeaderContent?: string;
   bodyContent?: string;
   isCompact?: boolean;
   onClick?: LabelProps['onClick'];
-  isStarting?: boolean;
-  isStopping?: boolean;
-  isStopped?: boolean;
+  stoppedStates?: ToggleState;
 };
 
 export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
@@ -27,9 +26,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
   bodyContent = '',
   isCompact,
   onClick,
-  isStarting,
-  isStopping,
-  isStopped,
+  stoppedStates,
 }) => {
   const statusSettings = React.useMemo((): {
     label: string;
@@ -39,59 +36,61 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
     message?: string;
   } => {
     // Highest-priority: service explicitly stopped
-    if (isStopped) {
+    if (stoppedStates?.isStopped) {
       return {
         label: 'Stopped',
         color: 'grey',
         icon: <OffIcon />,
-        message: 'Offline and not using resources. Restart to use model.',
+        message: 'Offline and not using resources. To use the model, restart it.',
       };
     }
 
-    if (isStopping) {
+    if (stoppedStates?.isStopping) {
       return {
         label: 'Stopping',
         color: 'grey',
         icon: <SyncAltIcon className="odh-u-spin" />,
+        message: 'Model deployment is stopping.',
       };
     }
     // Show 'Starting' for optimistic updates or for loading/pending states from the backend.
     if (
-      isStarting ||
-      state === InferenceServiceModelState.LOADING ||
-      state === InferenceServiceModelState.PENDING
+      stoppedStates?.isStarting ||
+      state === ModelDeploymentState.LOADING ||
+      state === ModelDeploymentState.PENDING
     ) {
       return {
         label: 'Starting',
         color: 'blue',
         icon: <InProgressIcon className="odh-u-spin" />,
+        message: 'Model deployment is starting.',
       };
     }
 
     // Only check the state if not stopped
     switch (state) {
-      case InferenceServiceModelState.LOADED:
-      case InferenceServiceModelState.STANDBY:
+      case ModelDeploymentState.LOADED:
+      case ModelDeploymentState.STANDBY:
         return {
           label: 'Started',
           status: 'success',
           icon: <PlayIcon />,
-          message: 'Model is deployed.',
+          message: 'Model deployment is active.',
         };
-      case InferenceServiceModelState.FAILED_TO_LOAD:
+      case ModelDeploymentState.FAILED_TO_LOAD:
         return {
           label: 'Failed',
           status: 'danger',
           icon: <ExclamationCircleIcon />,
         };
-      case InferenceServiceModelState.UNKNOWN:
+      case ModelDeploymentState.UNKNOWN:
         return {
           label: defaultHeaderContent || 'Status',
           color: 'grey',
           icon: <OutlinedQuestionCircleIcon />,
         };
     }
-  }, [state, defaultHeaderContent, isStarting, isStopping, isStopped]);
+  }, [state, defaultHeaderContent, stoppedStates]);
 
   return (
     <Popover

@@ -8,21 +8,25 @@ import {
   ProjectDetailsContext,
   ProjectDetailsContextType,
 } from '#~/pages/projects/ProjectDetailsContext';
-import { useIsAreaAvailable } from '#~/concepts/areas';
-import { HardwareProfileKind, KnownLabels, ProjectKind } from '#~/k8sTypes';
+import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import { HardwareProfileKind, ProjectKind, KnownLabels } from '#~/k8sTypes';
 import { SchedulingType } from '#~/types';
 import { useHardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import HardwareProfileSelect from '#~/concepts/hardwareProfiles/HardwareProfileSelect';
-
-jest.mock('#~/concepts/areas', () => ({
-  ...jest.requireActual('#~/concepts/areas'),
-  useIsAreaAvailable: jest.fn(),
-}));
+import {
+  useKueueConfiguration,
+  KueueFilteringState,
+} from '#~/concepts/hardwareProfiles/kueueUtils';
 
 jest.mock('#~/concepts/hardwareProfiles/useHardwareProfileConfig');
 
-const useIsAreaAvailableMock = jest.mocked(useIsAreaAvailable);
+jest.mock('#~/concepts/hardwareProfiles/kueueUtils', () => ({
+  ...jest.requireActual('#~/concepts/hardwareProfiles/kueueUtils'),
+  useKueueConfiguration: jest.fn(),
+}));
+
 const useHardwareProfileConfigMock = jest.mocked(useHardwareProfileConfig);
+const useKueueConfigurationMock = jest.mocked(useKueueConfiguration);
 
 const kueueHardwareProfile = mockHardwareProfile({
   name: 'kueue-profile',
@@ -68,16 +72,17 @@ const mockProfiles = [
 const renderComponent = (
   hardwareProfiles: HardwareProfileKind[],
   currentProject: ProjectKind,
-  isKueueEnabled: boolean,
+  kueueFilteringState: KueueFilteringState,
+  projects: ProjectKind[] = [],
+  projectProp?: string,
+  allowExistingSettings = false,
 ) => {
-  useIsAreaAvailableMock.mockReturnValue({
-    status: isKueueEnabled,
-    devFlags: {},
-    featureFlags: {},
-    reliantAreas: {},
-    requiredComponents: {},
-    requiredCapabilities: {},
-    customCondition: () => false,
+  // Mock useKueueConfiguration to return the specified filtering state
+  useKueueConfigurationMock.mockReturnValue({
+    isKueueDisabled: false,
+    isKueueFeatureEnabled: true,
+    isProjectKueueEnabled: false,
+    kueueFilteringState,
   });
 
   const hardwareProfileConfig = {
@@ -95,69 +100,261 @@ const renderComponent = (
 
   useHardwareProfileConfigMock.mockReturnValue(hardwareProfileConfig);
 
+  // Use the same default shape as the real ProjectsContext to prevent runtime crashes
+  const defaultProjectsContextValue = {
+    projects: [],
+    modelServingProjects: [],
+    nonActiveProjects: [],
+    preferredProject: null,
+    updatePreferredProject: () => undefined,
+    loaded: false,
+    loadError: new Error('Not in project provider'),
+    waitForProject: () => Promise.resolve(),
+  };
+
   return render(
-    <ProjectDetailsContext.Provider
-      value={
-        {
-          currentProject,
-          refresh: jest.fn(),
-        } as unknown as ProjectDetailsContextType
-      }
+    <ProjectsContext.Provider
+      value={{
+        ...defaultProjectsContextValue,
+        projects,
+        loaded: true,
+        loadError: undefined,
+      }}
     >
-      <HardwareProfileSelect
-        initialHardwareProfile={undefined}
-        previewDescription={false}
-        hardwareProfiles={hardwareProfiles}
-        isProjectScoped={false}
-        hardwareProfilesLoaded
-        hardwareProfilesError={undefined}
-        projectScopedHardwareProfiles={[[], true, undefined, () => Promise.resolve()]}
-        allowExistingSettings={false}
-        hardwareProfileConfig={hardwareProfileConfig}
-        isHardwareProfileSupported={() => true}
-        onChange={() => null}
-        project="test-project"
-      />
-    </ProjectDetailsContext.Provider>,
+      <ProjectDetailsContext.Provider
+        value={
+          {
+            currentProject,
+            refresh: jest.fn(),
+          } as unknown as ProjectDetailsContextType
+        }
+      >
+        <HardwareProfileSelect
+          initialHardwareProfile={undefined}
+          previewDescription={false}
+          hardwareProfiles={hardwareProfiles}
+          isProjectScoped={false}
+          hardwareProfilesLoaded
+          hardwareProfilesError={undefined}
+          projectScopedHardwareProfiles={[[], true, undefined, () => Promise.resolve()]}
+          allowExistingSettings={allowExistingSettings}
+          hardwareProfileConfig={hardwareProfileConfig}
+          isHardwareProfileSupported={() => true}
+          onChange={() => null}
+          project={projectProp}
+        />
+      </ProjectDetailsContext.Provider>
+    </ProjectsContext.Provider>,
   );
 };
 
-describe('HardwareProfileSelect filtering', () => {
-  it('should filter out kueue profiles when kueue is disabled cluster-wide', async () => {
+describe('HardwareProfileSelect', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('Filtering', () => {
+    it('should show only Kueue profiles when state is ONLY_KUEUE_PROFILES', async () => {
+      const project = mockProjectK8sResource({});
+      renderComponent(mockProfiles, project, KueueFilteringState.ONLY_KUEUE_PROFILES);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+      // Should show Kueue profiles
+      expect(screen.getByText('Kueue Profile')).toBeInTheDocument();
+      expect(screen.getByText('Kueue Profile 2')).toBeInTheDocument();
+
+      // Should hide non-Kueue profiles
+      expect(screen.queryByText('Node Profile')).not.toBeInTheDocument();
+      expect(screen.queryByText('Node Profile 2')).not.toBeInTheDocument();
+    });
+
+    it('should show only non-Kueue profiles when state is ONLY_NON_KUEUE_PROFILES', async () => {
+      const project = mockProjectK8sResource({});
+      renderComponent(mockProfiles, project, KueueFilteringState.ONLY_NON_KUEUE_PROFILES);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+      // Should hide Kueue profiles
+      expect(screen.queryByText('Kueue Profile')).not.toBeInTheDocument();
+      expect(screen.queryByText('Kueue Profile 2')).not.toBeInTheDocument();
+
+      // Should show non-Kueue profiles
+      expect(screen.getByText('Node Profile')).toBeInTheDocument();
+      expect(screen.getByText('Node Profile 2')).toBeInTheDocument();
+    });
+
+    it('should show no profiles when state is NO_PROFILES', async () => {
+      const project = mockProjectK8sResource({});
+      renderComponent(mockProfiles, project, KueueFilteringState.NO_PROFILES);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+      // Should hide all profiles
+      expect(screen.queryByText('Kueue Profile')).not.toBeInTheDocument();
+      expect(screen.queryByText('Kueue Profile 2')).not.toBeInTheDocument();
+      expect(screen.queryByText('Node Profile')).not.toBeInTheDocument();
+      expect(screen.queryByText('Node Profile 2')).not.toBeInTheDocument();
+    });
+
+    it('should show only Kueue profiles when Kueue is globally enabled and project is Kueue-enabled', async () => {
+      const project = mockProjectK8sResource({});
+      renderComponent(mockProfiles, project, KueueFilteringState.ONLY_KUEUE_PROFILES);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+      expect(screen.getByText('Kueue Profile')).toBeInTheDocument();
+      expect(screen.getByText('Kueue Profile 2')).toBeInTheDocument();
+      expect(screen.queryByText('Node Profile')).not.toBeInTheDocument();
+      expect(screen.queryByText('Node Profile 2')).not.toBeInTheDocument();
+    });
+
+    it('should show only non-Kueue profiles when Kueue is globally disabled and project is non-Kueue', async () => {
+      const project = mockProjectK8sResource({});
+      renderComponent(mockProfiles, project, KueueFilteringState.ONLY_NON_KUEUE_PROFILES);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+      expect(screen.queryByText('Kueue Profile')).not.toBeInTheDocument();
+      expect(screen.queryByText('Kueue Profile 2')).not.toBeInTheDocument();
+      expect(screen.getByText('Node Profile')).toBeInTheDocument();
+      expect(screen.getByText('Node Profile 2')).toBeInTheDocument();
+    });
+
+    it('should show only non-Kueue profiles when Kueue is globally enabled and project is non-Kueue', async () => {
+      const project = mockProjectK8sResource({});
+      renderComponent(mockProfiles, project, KueueFilteringState.ONLY_NON_KUEUE_PROFILES);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+      expect(screen.queryByText('Kueue Profile')).not.toBeInTheDocument();
+      expect(screen.queryByText('Kueue Profile 2')).not.toBeInTheDocument();
+      expect(screen.getByText('Node Profile')).toBeInTheDocument();
+      expect(screen.getByText('Node Profile 2')).toBeInTheDocument();
+    });
+
+    it('should show no profiles when Kueue is globally disabled and project is Kueue-enabled', async () => {
+      const project = mockProjectK8sResource({});
+      renderComponent(mockProfiles, project, KueueFilteringState.NO_PROFILES);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+      expect(screen.queryByText('Kueue Profile')).not.toBeInTheDocument();
+      expect(screen.queryByText('Kueue Profile 2')).not.toBeInTheDocument();
+      expect(screen.queryByText('Node Profile')).not.toBeInTheDocument();
+      expect(screen.queryByText('Node Profile 2')).not.toBeInTheDocument();
+    });
+
+    it('should handle only Kueue profiles when filtering for non-Kueue', async () => {
+      const kueueOnlyProfiles = [kueueHardwareProfile, kueueHardwareProfile2];
+      const project = mockProjectK8sResource({});
+      renderComponent(kueueOnlyProfiles, project, KueueFilteringState.ONLY_NON_KUEUE_PROFILES);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+      // Should show no profiles since all are Kueue profiles
+      expect(screen.queryByText('Kueue Profile')).not.toBeInTheDocument();
+      expect(screen.queryByText('Kueue Profile 2')).not.toBeInTheDocument();
+    });
+
+    it('should handle only non-Kueue profiles when filtering for Kueue', async () => {
+      const nonKueueOnlyProfiles = [nodeHardwareProfile, nodeHardwareProfile2];
+      const project = mockProjectK8sResource({});
+      renderComponent(nonKueueOnlyProfiles, project, KueueFilteringState.ONLY_KUEUE_PROFILES);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+      // Should show no profiles since all are non-Kueue profiles
+      expect(screen.queryByText('Node Profile')).not.toBeInTheDocument();
+      expect(screen.queryByText('Node Profile 2')).not.toBeInTheDocument();
+    });
+
+    it('should show appropriate message when no Kueue profiles are available', () => {
+      const nonKueueOnlyProfiles = [nodeHardwareProfile, nodeHardwareProfile2];
+      const project = mockProjectK8sResource({});
+      renderComponent(nonKueueOnlyProfiles, project, KueueFilteringState.ONLY_KUEUE_PROFILES);
+
+      // Should show generic message
+      expect(screen.getByRole('button')).toHaveTextContent(
+        'No enabled or valid hardware profiles are available. Contact your administrator.',
+      );
+    });
+
+    it('should show appropriate message when Kueue is disabled for Kueue-enabled project', () => {
+      const project = mockProjectK8sResource({});
+      renderComponent(mockProfiles, project, KueueFilteringState.NO_PROFILES);
+
+      // Should show generic message
+      expect(screen.getByRole('button')).toHaveTextContent(
+        'No enabled or valid hardware profiles are available. Contact your administrator.',
+      );
+    });
+  });
+});
+
+describe('HardwareProfileSelect - Use existing settings', () => {
+  it('should not show "Use existing settings" as the first option when allowExistingSettings is false', async () => {
     const project = mockProjectK8sResource({});
-    renderComponent(mockProfiles, project, false);
+    renderComponent(
+      [nodeHardwareProfile, nodeHardwareProfile2],
+      project,
+      KueueFilteringState.ONLY_NON_KUEUE_PROFILES,
+      [],
+      undefined,
+      false,
+    );
 
     await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
 
-    expect(screen.queryByText('Kueue Profile')).not.toBeInTheDocument();
-    expect(screen.queryByText('Kueue Profile 2')).not.toBeInTheDocument();
-    expect(screen.getByText('Node Profile')).toBeInTheDocument();
-    expect(screen.getByText('Node Profile 2')).toBeInTheDocument();
+    const options = screen.getAllByRole('option');
+    expect(screen.queryByText('Use existing settings')).not.toBeInTheDocument();
+    expect(options[0]).toHaveTextContent('Node Profile');
+    expect(options[1]).toHaveTextContent('Node Profile 2');
   });
 
-  it('should filter out kueue profiles when project is not kueue-enabled', async () => {
-    const project = mockProjectK8sResource({});
-    renderComponent(mockProfiles, project, true);
-
-    await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
-
-    expect(screen.queryByText('Kueue Profile')).not.toBeInTheDocument();
-    expect(screen.queryByText('Kueue Profile 2')).not.toBeInTheDocument();
-    expect(screen.getByText('Node Profile')).toBeInTheDocument();
-    expect(screen.getByText('Node Profile 2')).toBeInTheDocument();
-  });
-
-  it('should show kueue profiles when kueue is enabled for cluster and project', async () => {
+  it('should show "Use existing settings" as the first option when allowExistingSettings is true', async () => {
     const project = mockProjectK8sResource({});
     project.metadata.labels ??= {};
     project.metadata.labels[KnownLabels.KUEUE_MANAGED] = 'true';
-    renderComponent(mockProfiles, project, true);
+
+    renderComponent(
+      [nodeHardwareProfile, nodeHardwareProfile2],
+      project,
+      KueueFilteringState.ONLY_NON_KUEUE_PROFILES,
+      [],
+      undefined,
+      true,
+    );
 
     await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
 
-    expect(screen.getByText('Kueue Profile')).toBeInTheDocument();
-    expect(screen.getByText('Kueue Profile 2')).toBeInTheDocument();
-    expect(screen.getByText('Node Profile')).toBeInTheDocument();
-    expect(screen.getByText('Node Profile 2')).toBeInTheDocument();
+    const options = screen.getAllByRole('option');
+    expect(options[0]).toHaveTextContent('Use existing settings');
+    expect(options[1]).toHaveTextContent('Node Profile');
+    expect(options[2]).toHaveTextContent('Node Profile 2');
+  });
+
+  it('should use SimpleSelect when disableProjectScoped=false but all profiles filtered by Kueue', () => {
+    const projectHardwareProfile = mockHardwareProfile({
+      name: 'project-profile',
+      displayName: 'Project Profile',
+      namespace: 'test-project',
+    });
+    const project = mockProjectK8sResource({ k8sName: 'test-project' });
+    const projects = [project];
+
+    renderComponent(
+      [projectHardwareProfile, nodeHardwareProfile], // Has project-scoped profiles
+      project,
+      KueueFilteringState.NO_PROFILES, // But Kueue filters them all out
+      projects,
+      'test-project', // Project prop passed
+      false, // allowExistingSettings = false, so disableProjectScoped = false
+    );
+
+    // Should fall back to SimpleSelect with generic message
+    expect(screen.getByRole('button')).toHaveTextContent(
+      'No enabled or valid hardware profiles are available. Contact your administrator.',
+    );
   });
 });

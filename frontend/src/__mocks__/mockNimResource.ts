@@ -85,7 +85,6 @@ export const mockNimInferenceService = ({
   delete inferenceService.spec.predictor.model?.modelFormat?.version;
   delete inferenceService.spec.predictor.model?.storage;
   delete inferenceService.spec.predictor.imagePullSecrets;
-  delete inferenceService.status;
 
   return inferenceService;
 };

@@ -20,8 +20,8 @@ describe('Workbenches - variable tests', () => {
   const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
-  retryableBeforeEach(() => {
-    return loadWBVariablesFixture('e2e/dataScienceProjects/testWorkbenchVariables.yaml')
+  retryableBeforeEach(() =>
+    loadWBVariablesFixture('e2e/dataScienceProjects/testWorkbenchVariables.yaml')
       .then((fixtureData: WBVariablesTestData) => {
         testData = fixtureData;
         projectName = `${fixtureData.wbVariablesTestNamespace}-${uuid}`;
@@ -35,8 +35,8 @@ describe('Workbenches - variable tests', () => {
       })
       .then(() => {
         cy.log(`Project ${projectName} confirmed to be created and verified successfully`);
-      });
-  });
+      }),
+  );
   after(() => {
     // Delete provisioned Project
     if (projectName) {
