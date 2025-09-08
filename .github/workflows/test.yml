@@ -283,7 +283,6 @@ jobs:
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
-          # Install root dependencies first to make husky available
           npm install --ignore-scripts
           cd ${{ github.workspace }}/frontend
           npm install
@@ -322,7 +321,6 @@ jobs:
       - name: Install frontend dependencies
         run: |
           set -euo pipefail
-          # Install root dependencies first to make husky available
           npm install --ignore-scripts
           cd ${{ github.workspace }}/frontend
           npm install
