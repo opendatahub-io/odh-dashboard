@@ -90,6 +90,9 @@ spec:
                         type: string
                       type: object
                     warningValidation:
+                      required:
+                        - field
+                        - message
                       properties:
                         field:
                           type: string
