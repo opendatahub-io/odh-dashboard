@@ -9,6 +9,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
 // GetCurrentUserHandler returns the current user information
@@ -16,7 +17,7 @@ func (app *App) GetCurrentUserHandler(w http.ResponseWriter, r *http.Request, _ 
 	ctx := r.Context()
 
 	// Default empty response; we always return 200
-	resp := map[string]string{"userId": ""}
+	resp := models.UserModel{UserID: ""}
 
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil {
@@ -49,10 +50,10 @@ func (app *App) GetCurrentUserHandler(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 
-	resp["userId"] = username
+	resp.UserID = username
 	if err := app.WriteJSON(w, http.StatusOK, resp, nil); err != nil {
 		// Best effort: still fall back to 200 with empty user if serialization fails
-		_ = app.WriteJSON(w, http.StatusOK, map[string]string{"userId": ""}, nil)
+		_ = app.WriteJSON(w, http.StatusOK, models.UserModel{UserID: ""}, nil)
 		return
 	}
 }
