@@ -13,6 +13,14 @@ import {
   ListItem,
 } from '@patternfly/react-core';
 import { LineageNode, PopoverPosition } from '@odh-dashboard/internal/components/lineage/types';
+import { useNavigate } from 'react-router-dom';
+import {
+  featureDataSourceRoute,
+  featureEntityRoute,
+  featureServiceRoute,
+  featureViewRoute,
+} from 'src/routes.ts';
+import { useFeatureStoreProject } from '../../../FeatureStoreContext.tsx';
 import { FsObjectType, getEntityTypeIcon } from '../../../utils/featureStoreObjects.tsx';
 
 export interface FeatureStoreLineageNodePopoverProps {
@@ -32,21 +40,21 @@ const getFsObjectTypeLabel = (fsObjectType: FsObjectType): string => {
   return typeLabels[fsObjectType] || fsObjectType;
 };
 
-// const goToDetailsPage = (node: LineageNode, project: string): string | undefined => {
-//   const { fsObjectTypes } = node;
-//   switch (fsObjectTypes) {
-//     case 'entity':
-//       return featureEntityRoute(node.name, project);
-//     case 'data_source':
-//       return featureDataSourceRoute(node.name, project);
-//     case 'feature_view':
-//       return featureViewRoute(node.name, project);
-//     case 'feature_service':
-//       return featureServiceRoute(node.name, project);
-//     default:
-//       return undefined;
-//   }
-// };
+const goToDetailsPage = (node: LineageNode, project: string): string | undefined => {
+  const { fsObjectTypes } = node;
+  switch (fsObjectTypes) {
+    case 'entity':
+      return featureEntityRoute(node.name, project);
+    case 'data_source':
+      return featureDataSourceRoute(node.name, project);
+    case 'feature_view':
+      return featureViewRoute(node.name, project);
+    case 'feature_service':
+      return featureServiceRoute(node.name, project);
+    default:
+      return undefined;
+  }
+};
 
 const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverProps> = ({
   node,
@@ -55,6 +63,8 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
   onClose,
 }) => {
   const popoverRef = React.useRef<HTMLDivElement>(null);
+  const { currentProject } = useFeatureStoreProject();
+  const navigate = useNavigate();
 
   React.useEffect(() => {
     if (popoverRef.current && position) {
@@ -66,7 +76,7 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
   }, [position]);
 
   // Conditional rendering after all hooks
-  if (!node || !position || !isVisible) {
+  if (!node || !position || !isVisible || !currentProject) {
     return null;
   }
 
@@ -78,7 +88,6 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
         left: position.x,
         top: position.y,
         zIndex: 1000,
-        // Enable pointer events and set minimum size constraints like PatternFly TaskPill
         pointerEvents: 'auto',
         minWidth: '320px',
         maxWidth: '480px',
@@ -87,7 +96,6 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
       <Popover
         isVisible={isVisible}
         shouldClose={() => onClose()}
-        // Set explicit size constraints to prevent the popover from being too small
         minWidth="320px"
         maxWidth="480px"
         bodyContent={
@@ -117,12 +125,12 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
             <FlexItem>
               <Button
                 variant="secondary"
-                // onClick={() => {
-                //   const route = goToDetailsPage(node, currentProject);
-                //   if (route) {
-                //     navigate(route);
-                //   }
-                // }}
+                onClick={() => {
+                  const route = goToDetailsPage(node, currentProject);
+                  if (route) {
+                    navigate(route);
+                  }
+                }}
               >
                 View {getFsObjectTypeLabel(node.fsObjectTypes)} details page
               </Button>
@@ -131,7 +139,11 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
               <FlexItem>
                 <Button
                   variant="link"
-                  // onClick={() => navigate(featureViewRoute(node.name, currentProject))}
+                  onClick={() => {
+                    const searchParams = new URLSearchParams();
+                    searchParams.set('featureView', node.name);
+                    navigate(`/featureStore/features/${currentProject}?${searchParams.toString()}`);
+                  }}
                 >
                   View all features
                 </Button>
@@ -142,7 +154,6 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
         distance={20}
         enableFlip
         position="top"
-        // Add proper sizing attributes similar to PatternFly TaskPill
         withFocusTrap={false}
         hasNoPadding={false}
       >
