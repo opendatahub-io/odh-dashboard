@@ -20,6 +20,7 @@ interface UseChatbotMessagesProps {
   selectedSourceSettings: ChatbotSourceSettings | null;
   systemInstruction: string;
   isRawUploaded: boolean;
+  username?: string;
 }
 
 const useChatbotMessages = ({
@@ -27,6 +28,7 @@ const useChatbotMessages = ({
   selectedSourceSettings,
   systemInstruction,
   isRawUploaded,
+  username,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<MessageProps[]>([initialBotMessage()]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
@@ -44,7 +46,7 @@ const useChatbotMessages = ({
       id: getId(),
       role: 'user',
       content: message,
-      name: 'User',
+      name: username ? username.charAt(0).toUpperCase() + username.slice(1) : 'User',
       avatar: userAvatar,
     };
 
