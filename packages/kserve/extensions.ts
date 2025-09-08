@@ -146,6 +146,8 @@ const extensions: (
       extractHardwareProfileConfig: () =>
         import('./src/useKServeResources').then((m) => m.extractHardwareProfileConfig),
       extractModelFormat: () => import('./src/modelFormat').then((m) => m.extractKServeModelFormat),
+      extractModelLocationData: () =>
+        import('./src/modelLocationData').then((m) => m.extractKServeModelLocationData),
     },
   },
   {

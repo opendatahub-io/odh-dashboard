@@ -11,6 +11,9 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import useServingConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections';
+import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
+import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
 import { useAvailableClusterPlatforms } from '../../concepts/useAvailableClusterPlatforms';
 import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
@@ -22,12 +25,19 @@ const CreateModelDeploymentPage: React.FC = () => {
 
   const { projects, loaded: projectsLoaded } = React.useContext(ProjectsContext);
   const currentProject = projects.find(byName(namespace));
+  const [connections, connectionsLoaded] = useServingConnections(
+    currentProject?.metadata.name ?? '',
+  );
+  const [connectionTypes] = useWatchConnectionTypes(true);
+  const [selectedConnection, setSelectedConnection] = React.useState<Connection | undefined>(
+    undefined,
+  );
 
   const { clusterPlatforms, clusterPlatformsLoaded, clusterPlatformsError } =
     useAvailableClusterPlatforms();
   const { activePlatform } = useProjectServingPlatform(currentProject, clusterPlatforms);
 
-  if (!projectsLoaded || !clusterPlatformsLoaded) {
+  if (!projectsLoaded || !clusterPlatformsLoaded || !connectionsLoaded) {
     return (
       <Bullseye>
         <Spinner />
@@ -64,6 +74,10 @@ const CreateModelDeploymentPage: React.FC = () => {
         primaryButtonText="Deploy model"
         project={currentProject}
         modelServingPlatform={activePlatform}
+        connections={connections}
+        selectedConnection={selectedConnection}
+        connectionTypes={connectionTypes}
+        setSelectedConnection={setSelectedConnection}
       />
     </ModelDeploymentsProvider>
   );

@@ -71,6 +71,7 @@ export enum MetadataAnnotation {
   K8sDescription = 'kubernetes.io/description',
   OdhStorageClassConfig = 'opendatahub.io/sc-config',
   Description = 'description',
+  ConnectionName = 'opendatahub.io/connections',
 }
 
 type StorageClassAnnotations = Partial<{

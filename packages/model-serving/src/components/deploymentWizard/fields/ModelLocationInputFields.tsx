@@ -1,6 +1,5 @@
 import React from 'react';
-import { PvcSelect } from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/PVCSelect';
-import type { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { Alert } from '@patternfly/react-core';
 import {
   Connection,
   ConnectionTypeConfigMapObj,
@@ -9,79 +8,37 @@ import {
 import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
-  getConnectionTypeRef,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { z } from 'zod';
 import { ConnectionOciAlert } from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciAlert';
-import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
-import useServingConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections';
-import useLabeledConnections from '@odh-dashboard/internal/pages/modelServing/screens/projects/useLabeledConnections';
-import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
+import { PersistentVolumeClaimKind, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import usePvcs from '@odh-dashboard/internal/pages/modelServing/usePvcs';
+import {
+  getPVCNameFromURI,
+  isPVCUri,
+} from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
 import { ExistingConnectionField } from './modelLocationFields/ExistingConnectionField';
 import { ModelLocationData, ModelLocationType } from './modelLocationFields/types';
 import NewConnectionField from './modelLocationFields/NewConnectionField';
-import { isExistingModelLocation } from '../utils';
+import { PvcSelectField } from './modelLocationFields/PVCSelectField';
 
 export type ModelLocationDataField = {
   data: ModelLocationData | undefined;
   setData: (data: ModelLocationData | undefined) => void;
-  connections: LabeledConnection[];
-  setSelectedConnection: (
-    connection: LabeledConnection | undefined,
-    connectionTypes: ConnectionTypeConfigMapObj[],
-  ) => void;
-  selectedConnection: LabeledConnection | undefined;
+  project: ProjectKind | null;
 };
 export const useModelLocationData = (
   project: ProjectKind | null,
   existingData?: ModelLocationData,
-  setModelLocationDataState?: (data: ModelLocationData | undefined) => void,
 ): ModelLocationDataField => {
   const [modelLocationData, setModelLocationData] = React.useState<ModelLocationData | undefined>(
     existingData,
   );
-  const [fetchedConnections] = useServingConnections(project?.metadata.name ?? '');
-  const { connections } = useLabeledConnections(undefined, fetchedConnections);
-  const selectedConnection = React.useMemo(() => {
-    if (
-      modelLocationData?.type === ModelLocationType.EXISTING &&
-      isExistingModelLocation(modelLocationData)
-    ) {
-      return connections.find(
-        (c) => getResourceNameFromK8sResource(c.connection) === modelLocationData.connection,
-      );
-    }
-    return undefined;
-  }, [connections, modelLocationData]);
-  const updateSelectedConnection = React.useCallback(
-    (connection: LabeledConnection | undefined, connectionTypes: ConnectionTypeConfigMapObj[]) => {
-      const connectionTypeRef = getConnectionTypeRef(connection?.connection);
-      const actualConnectionType = connectionTypes.find(
-        (ct) => ct.metadata.name === connectionTypeRef,
-      );
-      if (connection && setModelLocationDataState && actualConnectionType) {
-        setModelLocationData({
-          type: ModelLocationType.EXISTING,
-          connectionTypeObject: actualConnectionType,
-          connection: getResourceNameFromK8sResource(connection.connection),
-          fieldValues: {},
-          additionalFields: {},
-        });
-      }
-    },
-    [setModelLocationData],
-  );
+
   return {
     data: modelLocationData,
     setData: setModelLocationData,
-    connections,
-    setSelectedConnection: (
-      connection: LabeledConnection | undefined,
-      connectionTypes: ConnectionTypeConfigMapObj[],
-    ) => {
-      updateSelectedConnection(connection, connectionTypes);
-    },
-    selectedConnection,
+    project,
   };
 };
 
@@ -90,6 +47,9 @@ export const isValidModelLocationData = (
   modelLocationData?: ModelLocationData,
 ): boolean => {
   if (!modelLocationData) return false;
+  const isValidPvcUri = (uri: unknown): uri is string => {
+    return typeof uri === 'string' && isPVCUri(uri);
+  };
   switch (modelLocation) {
     case ModelLocationType.EXISTING:
       return (
@@ -100,7 +60,12 @@ export const isValidModelLocationData = (
     case ModelLocationType.PVC:
       return (
         modelLocationData.type === ModelLocationType.PVC &&
-        hasRequiredAdditionalFields(modelLocationData)
+        !!modelLocationData.additionalFields.pvcConnection &&
+        !!modelLocationData.fieldValues.URI &&
+        isValidPvcUri(modelLocationData.fieldValues.URI) &&
+        modelLocationData.fieldValues.URI.startsWith(
+          `pvc://${modelLocationData.additionalFields.pvcConnection}/`,
+        )
       );
     default:
       return (
@@ -113,7 +78,7 @@ export const isValidModelLocationData = (
 
 const hasRequiredConnectionTypeFields = (modelLocationData: ModelLocationData): boolean => {
   const dataFields =
-    modelLocationData.connectionTypeObject.data?.fields?.filter(
+    modelLocationData.connectionTypeObject?.data?.fields?.filter(
       (field): field is ConnectionTypeDataField => 'envVar' in field && 'required' in field,
     ) || [];
 
@@ -121,12 +86,19 @@ const hasRequiredConnectionTypeFields = (modelLocationData: ModelLocationData): 
 
   return requiredFields.every((fieldName) => {
     const value = modelLocationData.fieldValues[fieldName];
+    if (fieldName === 'URI') {
+      return value !== undefined && String(value).includes('://');
+    }
     return value !== undefined && String(value).trim() !== '';
   });
 };
 
-const hasRequiredAdditionalFields = (modelLocationData: ModelLocationData): boolean => {
+const hasRequiredAdditionalFields = (
+  modelLocationData: ModelLocationData,
+  modelLocationType?: ModelLocationType,
+): boolean => {
   if (
+    modelLocationData.connectionTypeObject &&
     isModelServingCompatible(
       modelLocationData.connectionTypeObject,
       ModelServingCompatibleTypes.S3ObjectStorage,
@@ -135,11 +107,15 @@ const hasRequiredAdditionalFields = (modelLocationData: ModelLocationData): bool
     return !!modelLocationData.additionalFields.modelPath;
   }
   if (
+    modelLocationData.connectionTypeObject &&
     isModelServingCompatible(
       modelLocationData.connectionTypeObject,
       ModelServingCompatibleTypes.OCI,
     )
   ) {
+    return !!modelLocationData.additionalFields.modelUri;
+  }
+  if (modelLocationType === ModelLocationType.PVC) {
     return !!modelLocationData.additionalFields.modelUri;
   }
   return true;
@@ -153,7 +129,7 @@ export const modelLocationDataSchema = z.object({
 
 type ModelLocationInputFieldsProps = {
   modelLocation: ModelLocationData['type'];
-  connections: LabeledConnection[];
+  connections: Connection[];
   connectionTypes: ConnectionTypeConfigMapObj[];
   selectedConnection: Connection | undefined;
   setSelectedConnection: (connection: Connection) => void;
@@ -161,6 +137,7 @@ type ModelLocationInputFieldsProps = {
   setModelLocationData: (data: ModelLocationData | undefined) => void;
   resetModelLocationData: () => void;
   modelLocationData?: ModelLocationData;
+  project: ProjectKind | null;
 };
 
 export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> = ({
@@ -173,7 +150,38 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
   setModelLocationData,
   resetModelLocationData,
   modelLocationData,
+  project,
 }) => {
+  const pvcs = usePvcs(project?.metadata.name ?? '');
+  const isValidPvcUri = (uri: unknown): uri is string => {
+    return typeof uri === 'string' && isPVCUri(uri);
+  };
+  const pvcNameFromUri: string | undefined = React.useMemo(() => {
+    // Get the PVC name from the URI if it's a PVC URI
+    if (modelLocationData?.fieldValues.URI && isValidPvcUri(modelLocationData.fieldValues.URI)) {
+      return getPVCNameFromURI(modelLocationData.fieldValues.URI);
+    }
+    return undefined;
+  }, [modelLocationData?.fieldValues.URI]);
+
+  const selectedPVC = React.useMemo(
+    () =>
+      pvcs.data.find((pvc) => {
+        // If user has selected a PVC connection, use that
+        if (modelLocationData?.additionalFields.pvcConnection) {
+          return pvc.metadata.name === modelLocationData.additionalFields.pvcConnection;
+        }
+        // Otherwise, if we have an existing URI, try to find the PVC from that
+        if (modelLocationData?.fieldValues.URI) {
+          return pvc.metadata.name === pvcNameFromUri;
+        }
+        // If there's no selected PVC and no URI, there is no selected PVC
+        return undefined;
+      }),
+    [pvcs, modelLocationData?.fieldValues.URI, pvcNameFromUri],
+  );
+  const [, setIsPvcValid] = React.useState(false);
+
   if (modelLocation === ModelLocationType.EXISTING) {
     return (
       <ExistingConnectionField
@@ -209,23 +217,39 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
 
   if (modelLocation === ModelLocationType.PVC) {
     return (
-      <div>
-        <PvcSelect
-          pvcs={[]}
-          selectedPVC={undefined}
-          onSelect={() => {
-            // TODO: Implement
+      <>
+        <PvcSelectField
+          pvcs={pvcs.data}
+          selectedPVC={selectedPVC}
+          pvcNameFromUri={pvcNameFromUri}
+          existingUriOption={modelLocationData?.fieldValues.URI?.toString()}
+          onSelect={(selection?: PersistentVolumeClaimKind | undefined) => {
+            setModelLocationData({
+              type: ModelLocationType.PVC,
+              fieldValues: {
+                URI: selection ? `pvc://${selection.metadata.name}/` : '',
+              },
+              additionalFields: {
+                pvcConnection: selection?.metadata.name ?? '',
+              },
+            });
           }}
-          setModelUri={() => {
-            // TODO: Implement
+          setModelUri={(uri: string) => {
+            setModelLocationData({
+              type: ModelLocationType.PVC,
+              fieldValues: {
+                URI: uri || '',
+              },
+              additionalFields: {
+                pvcConnection: modelLocationData?.additionalFields.pvcConnection ?? '',
+              },
+            });
           }}
-          setIsConnectionValid={() => {
-            // TODO: Implement
-          }}
+          setIsConnectionValid={setIsPvcValid}
         />
-      </div>
+      </>
     );
   }
 
-  return <div>Connection type not found</div>;
+  return <Alert variant="warning" title="There was a problem fetching connections" />;
 };
