@@ -5,6 +5,11 @@ export const HARDWARE_PROFILE_COLUMN_HELP_TOOLTIP = {
   minCount: 'The minimum number of resources that users can define for requests.',
   maxCount: 'The maximum resources that users can request.',
   defaultCount: 'The default request and limit presented to the user.',
+  resourceName: 'The resource name is the display name shown for this resource in the dashboard.',
+  resourceIdentifier:
+    'The resource identifier is the key that matches how this resource is defined on the cluster.',
+  resourceType:
+    'The resource type defines the category of this resource, such as CPU, Memory, Accelerator, and other.',
 };
 
 export const nodeResourceColumns: SortableData<Identifier>[] = [
@@ -12,16 +17,25 @@ export const nodeResourceColumns: SortableData<Identifier>[] = [
     field: 'resourceName',
     label: 'Resource name',
     sortable: false,
+    info: {
+      popover: HARDWARE_PROFILE_COLUMN_HELP_TOOLTIP.resourceName,
+    },
   },
   {
     field: 'identifier',
     label: 'Resource identifier',
     sortable: false,
+    info: {
+      popover: HARDWARE_PROFILE_COLUMN_HELP_TOOLTIP.resourceIdentifier,
+    },
   },
   {
     field: 'resourceType',
     label: 'Resource type',
     sortable: false,
+    info: {
+      popover: HARDWARE_PROFILE_COLUMN_HELP_TOOLTIP.resourceType,
+    },
   },
   {
     field: 'defaultCount',
