@@ -5,7 +5,8 @@
   "version": "0.0.0",
   "scripts": {
     "lint": "eslint .",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test:fix": "eslint --ext .js,.ts,.jsx,.tsx . --fix"
   },
   "exports": {
     "./extensions": "./extensions.ts"
