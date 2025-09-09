@@ -24,6 +24,7 @@ import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import { ChatbotMessages } from './ChatbotMessagesList';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
+import ChatbotHeader from './ChatbotHeader';
 import useChatbotMessages from './hooks/useChatbotMessages';
 import useSourceManagement from './hooks/useSourceManagement';
 import useAlertManagement from './hooks/useAlertManagement';
@@ -37,11 +38,23 @@ const ChatbotMain: React.FunctionComponent = () => {
   const displayMode = ChatbotDisplayMode.embedded;
   const { models, loading, error } = useFetchLlamaModels();
   const [selectedModel, setSelectedModel] = React.useState<string>('');
+  const [availableProjects, setAvailableProjects] = React.useState<string[]>([]);
+  const [selectedProject, setSelectedProject] = React.useState<string>('');
+
+  React.useEffect(() => {
+    if (!selectedProject && availableProjects.length > 0) {
+      setSelectedProject(availableProjects[0]);
+    }
+  }, [selectedProject, availableProjects]);
 
   const modelId = selectedModel || models[0]?.id;
   const [systemInstruction, setSystemInstruction] = React.useState<string>(
     DEFAULT_SYSTEM_INSTRUCTIONS,
   );
+
+  const handleProjectChange = (projectName: string) => {
+    setSelectedProject(projectName);
+  };
 
   React.useEffect(() => {
     if (!selectedModel) {
@@ -103,7 +116,19 @@ const ChatbotMain: React.FunctionComponent = () => {
   );
 
   const applicationsPage = (
-    <ApplicationsPage title="AI playground" loaded={!loading} empty={false} loadError={error}>
+    <ApplicationsPage
+      title={
+        <ChatbotHeader
+          selectedProject={selectedProject}
+          onProjectChange={handleProjectChange}
+          onProjectsLoaded={setAvailableProjects}
+          isLoading={loading}
+        />
+      }
+      loaded={!loading}
+      empty={false}
+      loadError={error}
+    >
       <ChatbotSourceSettingsModal
         isOpen={sourceManagement.isSourceSettingsOpen}
         onToggle={() =>

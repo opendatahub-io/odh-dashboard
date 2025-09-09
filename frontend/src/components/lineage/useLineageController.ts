@@ -1,23 +1,30 @@
 import * as React from 'react';
-import { GRAPH_LAYOUT_END_EVENT, Visualization } from '@patternfly/react-topology';
-import { lineageLayoutFactory, lineageComponentFactory } from './factories';
+import {
+  GRAPH_LAYOUT_END_EVENT,
+  Visualization,
+  ComponentFactory,
+} from '@patternfly/react-topology';
+import { lineageLayoutFactory } from './factories';
 
-const useLineageController = (graphId: string): Visualization | null => {
+const useLineageController = (
+  graphId: string,
+  customComponentFactory: ComponentFactory,
+): Visualization | null => {
   const [controller, setController] = React.useState<Visualization | null>(null);
 
   React.useEffect(() => {
     const visualizationController = new Visualization();
     visualizationController.setFitToScreenOnLayout(true);
     visualizationController.registerLayoutFactory(lineageLayoutFactory);
-    visualizationController.registerComponentFactory(lineageComponentFactory);
+    visualizationController.registerComponentFactory(customComponentFactory);
 
     visualizationController.fromModel(
       {
         graph: {
           id: graphId,
           type: 'graph',
-          x: 25,
-          y: 25,
+          x: 0,
+          y: 0,
           layout: 'Dagre',
         },
       },
@@ -25,11 +32,12 @@ const useLineageController = (graphId: string): Visualization | null => {
     );
 
     visualizationController.addEventListener(GRAPH_LAYOUT_END_EVENT, () => {
-      visualizationController.getGraph().fit(75);
+      // Use a more aggressive fit operation for better centering
+      visualizationController.getGraph().fit(50);
     });
 
     setController(visualizationController);
-  }, [graphId]);
+  }, [graphId, customComponentFactory]);
 
   return controller;
 };

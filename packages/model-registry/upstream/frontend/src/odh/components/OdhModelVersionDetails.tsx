@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -120,8 +120,6 @@ const ModelVersionsDetailsContent: React.FC<ModelVersionsDetailProps> = ({ tab, 
             <FlexItem>
               <ModelVersionsDetailsHeaderActions
                 mv={mv}
-                refresh={refresh}
-                modelArtifacts={modelArtifacts}
               />
             </FlexItem>
           </Flex>

@@ -34,6 +34,7 @@ jobs:
           path: |
             **/node_modules
             ~/.npm
+            ~/.cache/Cypress
           key: ${{ runner.os }}-${{ env.NODE_VERSION }}-npm-${{ hashFiles('package-lock.json', 'packages/gen-ai/frontend/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-npm-
