@@ -7,7 +7,8 @@ import {
   ModelLocationData,
 } from './fields/modelLocationFields/types';
 import type { Deployment } from '../../../extension-points';
-import type { AdvancedSettingsFieldData } from './fields/AdvancedSettingsSelectField';
+import { AdvancedSettingsFieldData } from './fields/AdvancedSettingsSelectField';
+import type { Deployment, DeploymentEndpoint } from '../../../extension-points';
 
 export const getDeploymentWizardRoute = (currentpath: string, deploymentName?: string): string => {
   if (deploymentName) {
@@ -66,7 +67,8 @@ export const getAdvancedSettingsFromDeployment = (
   deployment: Deployment,
 ): AdvancedSettingsFieldData => {
   const hasExternalEndpoints =
-    deployment.endpoints?.some((endpoint) => endpoint.type === 'external') ?? false;
+    deployment.endpoints?.some((endpoint: DeploymentEndpoint) => endpoint.type === 'external') ??
+    false;
   const isTokenAuthEnabled =
     deployment.model.metadata.annotations?.['security.opendatahub.io/enable-auth'] === 'true';
   const tokens = [];

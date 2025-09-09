@@ -15,7 +15,11 @@ import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { setupDefaults } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
 import { ModelDeploymentWizardData } from './useDeploymentWizard';
-import { getModelTypeFromDeployment, setupModelLocationData, getAdvancedSettingsFromDeployment } from './utils';
+import {
+  getModelTypeFromDeployment,
+  setupModelLocationData,
+  getAdvancedSettingsFromDeployment,
+} from './utils';
 import { Deployment, isModelServingDeploymentFormDataExtension } from '../../../extension-points';
 import {
   ModelDeploymentsContext,
