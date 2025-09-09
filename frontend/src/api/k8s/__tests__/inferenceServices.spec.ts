@@ -279,7 +279,9 @@ describe('assembleInferenceService', () => {
       mockInferenceServiceModalData({ imagePullSecrets: [imagePullSecret] }),
     );
 
-    expect(inferenceService.spec.predictor.imagePullSecrets).toContainEqual(imagePullSecret);
+    expect(inferenceService.metadata.annotations?.['opendatahub.io/connections']).toBe(
+      'aws-data-connection',
+    );
   });
 
   it('should omit imagePullSecrets for modelmesh', async () => {
@@ -1175,9 +1177,9 @@ describe('assembleInferenceService - Preservation Tests', () => {
     // Should update storage path and connection
     expect(result.spec.predictor.model?.storageUri).toBeUndefined();
     expect(result.spec.predictor.model?.storage).toEqual({
-      key: 'new-connection',
       path: '/new/path',
     });
+    expect(result.metadata.annotations?.['opendatahub.io/connections']).toBe('new-connection');
   });
 
   it('should preserve existing spec.predictor.model.resources.claims when updating with podSpecOptions', () => {
