@@ -5,6 +5,7 @@ import type {
   DisplayNameAnnotations,
   K8sAPIOptions,
   ProjectKind,
+  SupportedModelFormats,
 } from '@odh-dashboard/internal/k8sTypes';
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
 import type { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
@@ -13,6 +14,7 @@ import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { ToggleState } from '@odh-dashboard/internal/components/StateActionToggle';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
+import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 
 export type DeploymentStatus = {
   state: ModelDeploymentState;
@@ -45,7 +47,10 @@ export type ModelResourceType = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
-    annotations?: DisplayNameAnnotations;
+    annotations?: DisplayNameAnnotations &
+      Partial<{
+        'opendatahub.io/model-type': string;
+      }>;
   };
 };
 
@@ -139,6 +144,21 @@ export const isModelServingDeploymentResourcesExtension = <D extends Deployment 
   extension: Extension,
 ): extension is ModelServingDeploymentResourcesExtension<D> =>
   extension.type === 'model-serving.deployment/resources';
+
+export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deployment> = Extension<
+  'model-serving.deployment/form-data',
+  {
+    platform: D['modelServingPlatformId'];
+    extractHardwareProfileConfig: CodeRef<
+      (deployment: D) => Parameters<typeof useHardwareProfileConfig> | null
+    >;
+    extractModelFormat: CodeRef<(deployment: D) => SupportedModelFormats | null>;
+  }
+>;
+export const isModelServingDeploymentFormDataExtension = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingDeploymentFormDataExtension<D> =>
+  extension.type === 'model-serving.deployment/form-data';
 
 export type ModelServingAuthExtension<D extends Deployment = Deployment> = Extension<
   'model-serving.auth',

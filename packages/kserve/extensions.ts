@@ -13,6 +13,7 @@ import type {
   DeployedModelServingDetails,
   ModelServingStartStopAction,
   ModelServingPlatformFetchDeploymentStatus,
+  ModelServingDeploymentFormDataExtension,
 } from '@odh-dashboard/model-serving/extension-points';
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/index';
@@ -24,6 +25,7 @@ const extensions: (
   | ModelServingPlatformExtension<KServeDeployment>
   | ModelServingPlatformWatchDeploymentsExtension<KServeDeployment>
   | ModelServingDeploymentResourcesExtension<KServeDeployment>
+  | ModelServingDeploymentFormDataExtension<KServeDeployment>
   | ModelServingAuthExtension<KServeDeployment>
   | ModelServingDeploymentsExpandedInfo<KServeDeployment>
   | ModelServingDeleteModal<KServeDeployment>
@@ -133,6 +135,15 @@ const extensions: (
     properties: {
       platform: KSERVE_ID,
       fetch: () => import('./src/deployments').then((m) => m.fetchDeploymentStatus),
+    },
+  },
+  {
+    type: 'model-serving.deployment/form-data',
+    properties: {
+      platform: KSERVE_ID,
+      extractHardwareProfileConfig: () =>
+        import('./src/useKServeResources').then((m) => m.extractHardwareProfileConfig),
+      extractModelFormat: () => import('./src/modelFormat').then((m) => m.extractKServeModelFormat),
     },
   },
 ];

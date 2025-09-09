@@ -40,7 +40,7 @@ const initCommonIntercepts = () => {
 
   cy.intercept(
     'GET',
-    '/api/k8s/apis/feast.dev/v1alpha1/featurestores?labelSelector=feature-store-ui%3Denabled',
+    `/api/k8s/apis/feast.dev/v1alpha1/namespaces/${k8sNamespace}/featurestores?labelSelector=feature-store-ui%3Denabled`,
     {
       items: [mockFeatureStore({ name: fsName, namespace: k8sNamespace })],
     },

@@ -5,9 +5,9 @@ import {
   UseHardwareProfileConfigResult,
 } from './useHardwareProfileConfig';
 
-const useServingHardwareProfileConfig = (
+export const extractHardwareProfileConfigFromInferenceService = (
   inferenceService?: InferenceServiceKind | null,
-): UseHardwareProfileConfigResult => {
+): Parameters<typeof useHardwareProfileConfig> => {
   const legacyName =
     inferenceService?.metadata.annotations?.['opendatahub.io/legacy-hardware-profile-name'];
   const name =
@@ -16,16 +16,41 @@ const useServingHardwareProfileConfig = (
   const tolerations = inferenceService?.spec.predictor.tolerations;
   const nodeSelector = inferenceService?.spec.predictor.nodeSelector;
   const namespace = inferenceService?.metadata.namespace;
-  const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   const hardwareProfileNamespace =
     inferenceService?.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'];
+
+  return [
+    name,
+    resources,
+    tolerations,
+    nodeSelector,
+    [HardwareProfileFeatureVisibility.MODEL_SERVING],
+    namespace,
+    hardwareProfileNamespace,
+  ];
+};
+
+const useServingHardwareProfileConfig = (
+  inferenceService?: InferenceServiceKind | null,
+): UseHardwareProfileConfigResult => {
+  const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
+
+  const [
+    name,
+    resources,
+    tolerations,
+    nodeSelector,
+    visibility,
+    namespace,
+    hardwareProfileNamespace,
+  ] = extractHardwareProfileConfigFromInferenceService(inferenceService);
 
   return useHardwareProfileConfig(
     name,
     resources,
     tolerations,
     nodeSelector,
-    [HardwareProfileFeatureVisibility.MODEL_SERVING],
+    visibility,
     isProjectScoped ? namespace : undefined,
     hardwareProfileNamespace,
   );

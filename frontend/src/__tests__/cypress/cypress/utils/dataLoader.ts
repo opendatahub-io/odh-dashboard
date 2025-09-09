@@ -12,7 +12,6 @@ import type {
   WBImagesTestData,
   DeployOCIModelData,
   ModelTolerationsTestData,
-  RegisterModelTestData,
   ManageRegistryPermissionsTestData,
   FeatureStoreEntitiesTestData,
 } from '#~/__tests__/cypress/cypress/types';
@@ -110,20 +109,20 @@ export const loadModelTolerationsFixture = (
     return data;
   });
 
-export const loadRegisterModelFixture = (
-  fixturePath: string,
-): Cypress.Chainable<RegisterModelTestData> =>
-  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
-    const data = yaml.load(yamlContent) as RegisterModelTestData;
-
-    return data;
-  });
-
 export const loadManagePermissionsFixture = (
   fixturePath: string,
 ): Cypress.Chainable<ManageRegistryPermissionsTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as ManageRegistryPermissionsTestData;
+
+    return data;
+  });
+
+export const loadModelRegistryFixture = (
+  fixturePath: string,
+): Cypress.Chainable<ModelRegistryTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as ModelRegistryTestData;
 
     return data;
   });

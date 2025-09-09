@@ -13,6 +13,7 @@ import type { DataSetList, DataSet } from '@odh-dashboard/feature-store/types/da
 import type { FeatureViewsList } from '@odh-dashboard/feature-store/types/featureView';
 import type { EntityList } from '@odh-dashboard/feature-store/types/entities';
 import type { ProjectList } from '@odh-dashboard/feature-store/types/featureStoreProjects';
+import type { DataSource, DataSourceList } from '@odh-dashboard/feature-store/types/dataSources';
 import type { BaseMetricCreationResponse, BaseMetricListResponse } from '#~/api';
 import type {
   ModelArtifact,
@@ -807,7 +808,7 @@ declare global {
           response: OdhResponse<ProjectList>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/k8s/apis/feast.dev/v1alpha1/featurestores',
+          type: 'GET /api/k8s/apis/feast.dev/v1alpha1/namespaces/*/featurestores',
           options: {
             query?: { labelSelector: string };
           },
@@ -900,6 +901,25 @@ declare global {
             };
           },
           response: OdhResponse<DataSet>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/data_sources',
+          options: {
+            path: { namespace: string; serviceName: string; apiVersion: string };
+          },
+          response: OdhResponse<DataSourceList>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/data_sources/:dataSourceName',
+          options: {
+            path: {
+              namespace: string;
+              serviceName: string;
+              apiVersion: string;
+              dataSourceName: string;
+            };
+          },
+          response: OdhResponse<DataSource>,
         ) => Cypress.Chainable<null>);
     }
   }

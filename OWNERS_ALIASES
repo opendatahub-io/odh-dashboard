@@ -1,0 +1,119 @@
+aliases:
+  # General group of approvers if specifics areas are not preferred instead
+  general-approvers:
+    - andrewballantyne
+    - lucferbux
+    - christianvogt
+    - mturley
+    - Gkrumbach07
+    - emilys314
+    - DaoDaoNoCode
+    - antowaddle
+    - manosnoam
+    - FedeAlonso
+    - Griffin-Sullivan
+    - YuliaKrimerman
+    - manaswinidas
+    - jrenee42
+
+  # Backup alias for managers to help with unblocking during PTO
+  managers-backup-approvers:
+    - dgutride
+    - darachcawley
+    - adnankhan666
+    - bobbravo2
+    - jessiehuff
+
+  # AI Trusty
+  ai-trusty-approvers:
+    - andrewballantyne
+  ai-trusty-reviewers:
+    - agagancarczyk
+
+  # Connections & Connection Types
+  connections-approvers:
+    - emilys314
+    - Griffin-Sullivan
+    - andrewballantyne
+  connections-reviewers:
+    - andrewballantyne
+    - ashley-o0o
+    - emilys314
+    - Griffin-Sullivan
+    - katieperry4
+
+  # Hardware Profiles
+  hardware-profiles-approvers:
+    - Gkrumbach07
+    - DaoDaoNoCode
+  hardware-profiles-reviewers:
+    - srtanish1992
+    - d0w
+    - Gkrumbach07
+    - jrenee42
+    - DaoDaoNoCode
+    - nananosirova
+
+  # Model Registry & Model Catalog
+  model-registry-catalog-approvers:
+    - mturley
+    - YuliaKrimerman
+  model-registry-catalog-reviewers:
+    - manaswinidas
+    - mturley
+    - ppadti
+    - YuliaKrimerman
+    - rsun19
+
+  # Model Serving & Model Metrics
+  model-serving-metrics-approvers:
+    - emilys314
+    - Griffin-Sullivan
+    - andrewballantyne
+  model-serving-metrics-reviewers:
+    - andrewballantyne
+    - ashley-o0o
+    - emilys314
+    - Griffin-Sullivan
+    - katieperry4
+
+  # Pipelines team
+  pipelines-approvers:
+    - Gkrumbach07
+    - DaoDaoNoCode
+  pipelines-reviewers:
+    - srtanish1992
+    - d0w
+    - Gkrumbach07
+    - jrenee42
+
+  # General Dashboard infrastructure
+  platform-approvers:
+    - christianvogt
+    - lucferbux
+  platform-reviewers:
+    - christianvogt
+    - jenny-s51
+    - lucferbux
+
+  # Quality / E2E testing
+  quality-e2e-testing-approvers:
+    - antowaddle
+    - FedeAlonso
+    - manosnoam
+  quality-e2e-testing-reviewers:
+    - ConorOM1
+    - antowaddle
+    - FedeAlonso
+    - manosnoam
+    - sridarna
+
+  # Workbenches (formerly Notebooks)
+  workbenches-approvers:
+    - Gkrumbach07
+    - jrenee42
+  workbenches-reviewers:
+    - srtanish1992
+    - d0w
+    - Gkrumbach07
+    - jrenee42

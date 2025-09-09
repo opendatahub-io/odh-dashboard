@@ -35,6 +35,19 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       required: [PLUGIN_MODEL_REGISTRY],
     },
     properties: {
+      id: 'modelCatalog-kf',
+      title: 'Model catalog (KF)',
+      href: '/model-catalog',
+      section: 'models',
+      path: '/model-catalog/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [PLUGIN_MODEL_REGISTRY],
+    },
+    properties: {
       id: 'settings-model-registry',
       title: 'Model registry settings (KF)',
       href: '/model-registry-settings',
@@ -50,6 +63,16 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       path: '/model-registry/*',
       component: () => import('./ModelRegistryWrapper'),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [PLUGIN_MODEL_REGISTRY],
+    },
+    properties: {
+      path: '/model-catalog/*',
+      component: () => import('./ModelCatalogWrapper'),
     },
   },
   {

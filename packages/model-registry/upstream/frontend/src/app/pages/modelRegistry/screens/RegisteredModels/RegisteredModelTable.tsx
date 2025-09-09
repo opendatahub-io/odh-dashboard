@@ -4,6 +4,7 @@ import { ModelVersion, RegisteredModel } from '~/app/types';
 import { getLatestVersionForRegisteredModel } from '~/app/pages/modelRegistry/screens/utils';
 import { rmColumns } from './RegisteredModelsTableColumns';
 import RegisteredModelTableRow from './RegisteredModelTableRow';
+import { OdhRegisteredModelTableWrapper } from '~/odh/components/OdhRegisteredModelTable';
 
 type RegisteredModelTableProps = {
   clearFilters: () => void;
@@ -18,26 +19,29 @@ const RegisteredModelTable: React.FC<RegisteredModelTableProps> = ({
   modelVersions,
   toolbarContent,
   refresh,
-}) => (
-  <Table
-    data-testid="registered-model-table"
-    data={registeredModels}
-    columns={rmColumns}
-    toolbarContent={toolbarContent}
-    defaultSortColumn={2}
-    onClearFilters={clearFilters}
-    enablePagination
-    emptyTableView={<DashboardEmptyTableView onClearFilters={clearFilters} />}
-    rowRenderer={(rm: RegisteredModel) => (
-      <RegisteredModelTableRow
-        key={rm.name}
-        hasDeploys={false}
-        registeredModel={rm}
-        latestModelVersion={getLatestVersionForRegisteredModel(modelVersions, rm.id)}
-        refresh={refresh}
-      />
-    )}
-  />
-);
+}) => {
+  return (
+    <OdhRegisteredModelTableWrapper
+      clearFilters={clearFilters}
+      registeredModels={registeredModels}
+      modelVersions={modelVersions}
+      refresh={refresh}
+    >
+      {({ rowRenderer }) => (
+        <Table
+          data-testid="registered-model-table"
+          data={registeredModels}
+          columns={rmColumns}
+          toolbarContent={toolbarContent}
+          defaultSortColumn={2}
+          onClearFilters={clearFilters}
+          enablePagination
+          emptyTableView={<DashboardEmptyTableView onClearFilters={clearFilters} />}
+          rowRenderer={rowRenderer}
+        />
+      )}
+    </OdhRegisteredModelTableWrapper>
+  );
+};
 
 export default RegisteredModelTable;
