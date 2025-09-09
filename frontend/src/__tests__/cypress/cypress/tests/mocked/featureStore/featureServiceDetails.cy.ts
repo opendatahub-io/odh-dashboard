@@ -243,11 +243,11 @@ describe('Feature Service Details', () => {
     });
 
     it('should display created at timestamp', () => {
-      featureServiceDetailsPage.findCreatedAtLabel().should('contain.text', 'Created at');
+      featureServiceDetailsPage.findCreatedAtLabel().should('contain.text', 'Created');
     });
 
     it('should display updated at timestamp', () => {
-      featureServiceDetailsPage.findUpdatedAtLabel().should('contain.text', 'Updated at');
+      featureServiceDetailsPage.findUpdatedAtLabel().should('contain.text', 'Updated');
       featureServiceDetailsPage
         .findUpdatedAtValue()
         .should('contain.text', 'Jun 30, 2025, 7:46 AM UTC');

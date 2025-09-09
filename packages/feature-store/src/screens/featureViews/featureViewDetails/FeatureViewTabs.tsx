@@ -86,7 +86,7 @@ const FeatureViewTabs: React.FC<FeatureViewTabsProps> = ({ featureView }) => {
         eventKey={FeatureViewTab.MATERIALIZATION}
         title={getTabTitleWithTooltip(
           FeatureViewTab.MATERIALIZATION,
-          'Materialization is the process of loading feature data from the source into the online store so it can be used for real-time inference. Feature values are materialized at regular intervals.',
+          'Materialization is the process where the Feature Store loads the latest feature data into the online store for real-time use. This provides low-latency access for model inference and ensures RAG systems have ready-to-use features without needing to recompute them for every query. The Feature Store performs this process automatically at regular intervals.',
         )}
         aria-label="Feature view materialization tab"
         data-testid="feature-view-materialization-tab"
@@ -104,8 +104,8 @@ const FeatureViewTabs: React.FC<FeatureViewTabsProps> = ({ featureView }) => {
           eventKey={FeatureViewTab.TRANSFORMATIONS}
           title={getTabTitleWithTooltip(
             FeatureViewTab.TRANSFORMATIONS,
-            `A transformation defines how raw data from the source is converted into feature values—such as calculating aggregates or deriving timestamps.
-            Transformations can be defined using expressions, code, or SQL depending on the feature store backend.`,
+            `A transformation converts raw data from the source into feature values, such as by calculating aggregates or deriving timestamps.
+            You can define these transformations using expressions, code, or SQL, depending on the feature store backend.`,
           )}
           aria-label="Feature view transformations tab"
           data-testid="feature-view-transformations-tab"

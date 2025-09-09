@@ -26,6 +26,7 @@ const FeatureViewDetails = (): React.ReactElement => {
     error: featureViewError,
     loaded: featureViewLoaded,
   } = useFeatureViewsByName(currentProject, featureViewName);
+
   const emptyState = (
     <EmptyState
       headingLevel="h6"
@@ -39,6 +40,7 @@ const FeatureViewDetails = (): React.ReactElement => {
       </EmptyStateBody>
     </EmptyState>
   );
+
   return (
     <ApplicationsPage
       empty={!featureViewLoaded}
@@ -62,7 +64,7 @@ const FeatureViewDetails = (): React.ReactElement => {
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem
-            render={() => <Link to="/featureStore/featureViews">Feature Views</Link>}
+            render={() => <Link to="/featureStore/featureViews">Feature views</Link>}
           />
           <BreadcrumbItem
             data-testid="breadcrumb-version-name"

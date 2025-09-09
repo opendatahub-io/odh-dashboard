@@ -28,9 +28,6 @@ export const columns: SortableData<DataSet>[] = [
     info: {
       popover:
         'The feature service used to create this dataset. It defines which features were included and how they were retrieved at the time the dataset was generated.',
-      popoverProps: {
-        position: 'left',
-      },
     },
   },
   {
@@ -48,7 +45,7 @@ export const columns: SortableData<DataSet>[] = [
 ];
 
 export const dataSetTableFilterOptions: Record<string, string> = {
-  dataSet: 'Data sets',
+  dataSet: 'Datasets',
   project: 'Project',
   tag: 'Tags',
   featureServiceName: 'Feature service',

@@ -28,7 +28,7 @@ const DataSources: React.FC = () => {
       data-testid="empty-state-title"
     >
       <EmptyStateBody data-testid="empty-state-body">
-        No data sources have been found in this project.
+        Select a different feature store repository or create a data sources in a workbench.
       </EmptyStateBody>
     </EmptyState>
   );

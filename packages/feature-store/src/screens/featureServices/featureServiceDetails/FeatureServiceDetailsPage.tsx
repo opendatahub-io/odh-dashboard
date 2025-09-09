@@ -53,7 +53,7 @@ const FeatureServiceDetailsPage: React.FC<FeatureServiceDetailsPageProps> = ({
           </DescriptionListGroup>
           <DescriptionListGroup>
             <DescriptionListTerm data-testid="feature-created-at-label">
-              Created at
+              Created
             </DescriptionListTerm>
             <DescriptionListDescription data-testid="feature-created-at-value">
               <FeatureStoreTimestamp date={featureService.meta.createdTimestamp} />
@@ -61,7 +61,7 @@ const FeatureServiceDetailsPage: React.FC<FeatureServiceDetailsPageProps> = ({
           </DescriptionListGroup>
           <DescriptionListGroup>
             <DescriptionListTerm data-testid="feature-updated-at-label">
-              Updated at
+              Last modified
             </DescriptionListTerm>
             <DescriptionListDescription data-testid="feature-updated-at-value">
               <FeatureStoreTimestamp date={featureService.meta.lastUpdatedTimestamp} />
