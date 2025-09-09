@@ -98,8 +98,8 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
                   ref={toggleRef}
                   onClick={() => setOpen(!isOpen)}
                   isExpanded={isOpen}
-                  aria-label="Model action toggle"
-                  data-testid="model-action-toggle"
+                  aria-label="Model version action toggle"
+                  data-testid="model-version-action-toggle"
                 >
                   Actions
                 </MenuToggle>

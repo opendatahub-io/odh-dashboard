@@ -120,8 +120,6 @@ const ModelVersionsDetailsContent: React.FC<ModelVersionsDetailProps> = ({ tab, 
             <FlexItem>
               <ModelVersionsDetailsHeaderActions
                 mv={mv}
-                refresh={refresh}
-                modelArtifacts={modelArtifacts}
               />
             </FlexItem>
           </Flex>

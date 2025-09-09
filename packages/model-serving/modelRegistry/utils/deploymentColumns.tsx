@@ -39,8 +39,16 @@ const getVersionLink = (
     deployment.model.metadata.labels?.['modelregistry.opendatahub.io/model-version-id'];
 
   if (registeredModelId && versionId) {
-    const registryPath = preferredModelRegistryName || '';
-    return `/model-registry/${registryPath}/registeredModels/${registeredModelId}/versions/${versionId}`;
+    // Build URL with proper encoding and structure
+    const encodedRegisteredModelId = encodeURIComponent(registeredModelId);
+    const encodedVersionId = encodeURIComponent(versionId);
+
+    if (preferredModelRegistryName) {
+      // With registry name: /model-registry/encodedRegistryName/registeredModels/encodedId/versions/encodedVersionId/deployments
+      const encodedRegistryName = encodeURIComponent(preferredModelRegistryName);
+      return `/model-registry/${encodedRegistryName}/registeredModels/${encodedRegisteredModelId}/versions/${encodedVersionId}/deployments`;
+    } // Without registry name: /model-registry/registeredModels/encodedId/versions/encodedVersionId/deployments
+    return `/model-registry/registeredModels/${encodedRegisteredModelId}/versions/${encodedVersionId}/deployments`;
   }
 
   return null;
