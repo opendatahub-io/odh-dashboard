@@ -35,6 +35,27 @@ jobs:
         if: steps.modules-cache.outputs.cache-hit != 'true'
         run: npm install
 
+  Type-Check:
+    needs: Setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Restore cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cache/Cypress
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/backend/node_modules
+            ${{ github.workspace }}/frontend/node_modules
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: Run TypeScript type checking
+        run: npx turbo run type-check
+
   Lint:
     needs: Setup
     runs-on: ubuntu-latest
@@ -56,36 +77,8 @@ jobs:
       - name: Run linting and formatting checks
         run: npm run lint:frontend:backend
 
-  Type-Check:
-    needs: Setup
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4.3.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - name: Restore cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/.cache/Cypress
-            ${{ github.workspace }}/node_modules
-            ${{ github.workspace }}/backend/node_modules
-            ${{ github.workspace }}/frontend/node_modules
-          key: ${{ needs.Setup.outputs.modules-cache-key }}
-      - name: Cache turbo build setup
-        uses: actions/cache@v4
-        with:
-          path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
-      - name: Run TypeScript type checking
-        run: npx turbo run type-check
-
   Unit-Tests:
-    needs: [Setup, Lint, Type-Check]
+    needs: [Setup, Lint]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -141,6 +134,82 @@ jobs:
           path: ./backend/coverage
           if-no-files-found: warn
 
+  Contract-Tests:
+    needs: [Setup, Lint, Type-Check]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      - name: Restore node modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cache/Cypress
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/backend/node_modules
+            ${{ github.workspace }}/frontend/node_modules
+          key: ${{ needs.Setup.outputs.modules-cache-key }}
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('packages/*/bff/go.sum', 'packages/*/upstream/bff/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Build and cache BFF binaries
+        run: |
+          set -euo pipefail
+          # Build BFF binaries for all modules that have them
+          for bff_dir in packages/*/bff packages/*/upstream/bff; do
+            if [[ -d "$bff_dir" && -f "$bff_dir/go.mod" ]]; then
+              echo "Building BFF binary for $bff_dir"
+              cd "$bff_dir"
+              if ! go build -o bff-mock ./cmd; then
+                echo "Failed to build BFF for $bff_dir"
+                exit 1
+              fi
+              cd - >/dev/null
+            fi
+          done
+      - name: Cache BFF binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            packages/*/bff/bff-mock
+            packages/*/upstream/bff/bff-mock
+          key: ${{ runner.os }}-bff-binaries-${{ hashFiles('packages/*/bff/go.sum', 'packages/*/upstream/bff/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-bff-binaries-
+      - name: Run contract tests
+        run: |
+          set -euo pipefail
+          echo "🧪 Running contract tests using turbo..."
+
+          if npx turbo run test:contract; then
+            echo "✅ Contract tests completed successfully"
+          else
+            echo "❌ Contract tests failed"
+            exit 1
+          fi
+      - name: Upload contract test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract-test-results
+          path: |
+            packages/*/contract-tests/contract-test-results/**/*
+          if-no-files-found: warn
+
   Get-Test-Groups:
     runs-on: ubuntu-latest
     outputs:
@@ -174,7 +243,7 @@ jobs:
           fi
 
   Cypress-Setup:
-    needs: [Setup]
+    needs: [Setup, Type-Check]
     runs-on: ubuntu-latest
     outputs:
       cypress-cache-key: ${{ steps.key.outputs.cypress-cache-key }}
@@ -263,59 +332,6 @@ jobs:
           name: cypress-coverage-${{ env.TEST_GROUP_NAME }}
           path: ./frontend/src/__tests__/cypress/coverage
 
-  Contract-Tests:
-    needs: [Setup, Lint, Type-Check]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4.3.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.21'
-      - name: Restore cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/.cache/Cypress
-            ${{ github.workspace }}/node_modules
-            ${{ github.workspace }}/backend/node_modules
-            ${{ github.workspace }}/frontend/node_modules
-          key: ${{ needs.Setup.outputs.modules-cache-key }}
-      - name: Cache Go modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('packages/*/bff/go.sum', 'packages/*/upstream/bff/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-      - name: Build BFF binaries
-        run: |
-          set -euo pipefail
-          for dir in packages/*/bff packages/*/upstream/bff; do
-            if [ -d "$dir" ]; then
-              echo "Building BFF in $dir"
-              cd "$dir"
-              go build -o ../../../bin/$(basename $(dirname $(pwd)))_bff .
-              cd -
-            fi
-          done
-      - name: Run contract tests
-        run: |
-          set -euo pipefail
-          npm run test:contract
-      - name: Upload contract test results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: contract-test-results
-          path: packages/*/contract-tests/contract-test-results/**/*
-
   Combine-Results-and-Upload:
     needs: [Unit-Tests, Cypress-Mock-Tests]
     runs-on: ubuntu-latest
@@ -377,10 +393,11 @@ jobs:
   Tests:
     runs-on: ubuntu-latest
     needs:
+      - Type-Check
       - Lint
       - Unit-Tests
-      - Cypress-Mock-Tests
       - Contract-Tests
+      - Cypress-Mock-Tests
       - Combine-Results-and-Upload
     steps:
       - name: Verify all jobs succeeded
