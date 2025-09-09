@@ -20,35 +20,27 @@ EOF
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PACKAGE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Load shell helpers from dist or src. If not found (e.g., script executed via temp symlink),
+# Load shell helpers from src. If not found (e.g., script executed via temp symlink),
 # try resolving from repository root via git and fallback to workspace path.
-HELPERS_DIST="$PACKAGE_ROOT/dist/helpers/shell-helpers.sh"
 HELPERS_SRC="$PACKAGE_ROOT/src/helpers/shell-helpers.sh"
-if [[ -f "$HELPERS_DIST" ]]; then
-  # shellcheck disable=SC1090
-  source "$HELPERS_DIST"
-elif [[ -f "$HELPERS_SRC" ]]; then
+if [[ -f "$HELPERS_SRC" ]]; then
   # shellcheck disable=SC1090
   source "$HELPERS_SRC"
 else
   # Attempt to resolve repo root and retry
   if REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null); then
     ALT_PACKAGE_ROOT="$REPO_ROOT/packages/contract-tests"
-    ALT_HELPERS_DIST="$ALT_PACKAGE_ROOT/dist/helpers/shell-helpers.sh"
     ALT_HELPERS_SRC="$ALT_PACKAGE_ROOT/src/helpers/shell-helpers.sh"
-    if [[ -f "$ALT_HELPERS_DIST" ]]; then
-      # shellcheck disable=SC1090
-      source "$ALT_HELPERS_DIST"
-    elif [[ -f "$ALT_HELPERS_SRC" ]]; then
+    if [[ -f "$ALT_HELPERS_SRC" ]]; then
       # shellcheck disable=SC1090
       source "$ALT_HELPERS_SRC"
     else
-      echo "❌ Could not find shell helpers in dist/ or src/"
+      echo "❌ Could not find shell helpers in src/"
       exit 1
     fi
     PACKAGE_ROOT="$ALT_PACKAGE_ROOT"
   else
-    echo "❌ Could not find shell helpers in dist/ or src/"
+    echo "❌ Could not find shell helpers in src/"
     exit 1
   fi
 fi

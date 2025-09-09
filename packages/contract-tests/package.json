@@ -2,14 +2,12 @@
   "name": "@odh-dashboard/contract-tests",
   "version": "1.0.0",
   "description": "Zero-config contract testing for ODH Dashboard packages",
-  "main": "./dist/contract-tests/src/index.js",
-  "types": "./dist/contract-tests/src/index.d.ts",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
     "type-check": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src",
-    "lint:fix": "eslint . --fix",
-    "clean": "rm -rf dist"
+    "lint:fix": "eslint . --fix"
   },
   "bin": {
     "odh-ct-run": "scripts/run-consumer-tests.sh",
@@ -36,8 +34,8 @@
   },
   "exports": {
     ".": {
-      "types": "./dist/contract-tests/src/index.d.ts",
-      "default": "./dist/contract-tests/src/index.js"
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
     }
   }
 }

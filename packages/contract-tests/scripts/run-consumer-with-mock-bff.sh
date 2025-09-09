@@ -28,18 +28,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PACKAGE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_ROOT="$(cd "$PACKAGE_ROOT/../.." && pwd)"
 
-# Load shell helpers from dist or src
-HELPERS_DIST="$PACKAGE_ROOT/dist/helpers/shell-helpers.sh"
+# Load shell helpers from src
 HELPERS_SRC="$PACKAGE_ROOT/src/helpers/shell-helpers.sh"
-if [[ -f "$HELPERS_DIST" ]]; then
-  # shellcheck disable=SC1090
-  source "$HELPERS_DIST"
-elif [[ -f "$HELPERS_SRC" ]]; then
+if [[ -f "$HELPERS_SRC" ]]; then
   # shellcheck disable=SC1090
   source "$HELPERS_SRC"
 else
-  echo "❌ Could not find shell helpers in dist/ or src/"
-  echo "💡 Try building the package first: npm -w packages/contract-tests run build"
+  echo "❌ Could not find shell helpers in src/"
   exit 1
 fi
 

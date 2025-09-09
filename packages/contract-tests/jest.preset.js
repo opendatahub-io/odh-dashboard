@@ -8,7 +8,7 @@ module.exports = {
     '**/contract-tests/**/__tests__/**/*.ts',
     '**/contract-tests/**/?(*.)+(spec|test).ts',
   ],
-  testPathIgnorePatterns: ['/node_modules/', '/upstream/', '/dist/'],
+  testPathIgnorePatterns: ['/node_modules/', '/upstream/'],
   transform: {
     '^.+\\.ts$': [
       'ts-jest',
@@ -19,7 +19,7 @@ module.exports = {
   },
   moduleDirectories: ['node_modules', path.resolve(__dirname, '../../node_modules')],
   moduleNameMapper: {
-    '^@odh-dashboard/contract-tests(.*)$': path.join(__dirname, 'dist/contract-tests/src$1'),
+    '^@odh-dashboard/contract-tests(.*)$': path.join(__dirname, 'src$1'),
     '^(\\.\\./)*src/(.*)$': path.join(__dirname, 'src/$2'),
     // Compatibility: legacy hooks import path maps to shared hooks
     '^@odh-dashboard/jest-config/hooks$': path.join(__dirname, 'jest-config/src/hooks.ts'),
