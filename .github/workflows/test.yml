@@ -190,7 +190,7 @@ jobs:
             if [ -d "$dir" ]; then
               echo "Building BFF in $dir"
               cd "$dir"
-              go build -o ../../../bin/$(basename $(dirname $(pwd)))_bff .
+              go build -o ../../../bin/$(basename $(dirname $(pwd)))_bff ./cmd
               cd -
             fi
           done
