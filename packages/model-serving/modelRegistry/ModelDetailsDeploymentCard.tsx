@@ -92,7 +92,10 @@ const DeploymentCardContent: React.FC<{ deployment: Deployment }> = ({ deploymen
   );
 };
 
-const DeploymentCard: React.FC = () => {
+const DeploymentCard: React.FC<{
+  rmId: string | undefined;
+  preferredModelRegistry: string | undefined;
+}> = ({ rmId = '', preferredModelRegistry = '' }) => {
   const { deployments, loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
   const latestDeployments = React.useMemo(() => {
     if (!deployments) return [];
@@ -125,8 +128,9 @@ const DeploymentCard: React.FC = () => {
           ))}
           {deployments && deployments.length > 0 && (
             <ListItem className="pf-v6-u-pt-md">
-              {/* TODO: update this Link with deployment tab once this PR https://github.com/opendatahub-io/odh-dashboard/pull/4765 is merged */}
-              <Link to="/">
+              <Link
+                to={`/model-registry/${preferredModelRegistry}/registeredModels/${rmId}/deployments`}
+              >
                 <Button isInline variant="link" icon={<ArrowRightIcon />} iconPosition="right">
                   {`View all ${deployments.length} deployments`}
                 </Button>
@@ -163,7 +167,7 @@ const ModelDetailsDeploymentCard: React.FC<{ rmId?: string; mrName?: string }> =
     >
       <Card>
         <CardTitle>Latest deployments</CardTitle>
-        <DeploymentCard />
+        <DeploymentCard rmId={rmId} preferredModelRegistry={mrName} />
       </Card>
     </ModelDeploymentsProvider>
   );
