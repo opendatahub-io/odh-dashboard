@@ -808,7 +808,7 @@ declare global {
           response: OdhResponse<ProjectList>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/k8s/apis/feast.dev/v1alpha1/featurestores',
+          type: 'GET /api/k8s/apis/feast.dev/v1alpha1/namespaces/*/featurestores',
           options: {
             query?: { labelSelector: string };
           },
