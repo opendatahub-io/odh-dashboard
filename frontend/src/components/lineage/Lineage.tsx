@@ -24,7 +24,7 @@ import useLineageController from './useLineageController';
 import { useLineageSelection } from './useLineageSelection';
 import { useLineagePopover } from './useLineagePopover';
 import { createLineageTopologyControls } from './topologyControls';
-import { LineageClickProvider, useLineageClick } from './LineageClickContext';
+import { LineageClickProvider } from './LineageClickContext';
 
 const LineageInner: React.FC<LineageProps> = ({
   data,
@@ -38,7 +38,6 @@ const LineageInner: React.FC<LineageProps> = ({
   componentFactory,
   popoverComponent: PopoverComponent,
 }) => {
-  const { getLastClickPosition } = useLineageClick();
   const controller = useLineageController('lineage-graph', componentFactory);
 
   // Convert generic lineage data to topology format
@@ -59,7 +58,6 @@ const LineageInner: React.FC<LineageProps> = ({
     hidePopover,
   } = useLineagePopover({
     data,
-    controller,
     enabled: showNodePopover && !!PopoverComponent,
   });
 
@@ -70,19 +68,10 @@ const LineageInner: React.FC<LineageProps> = ({
 
       // Show popover for selected node if enabled
       if (nodeId && showNodePopover && PopoverComponent) {
-        // Get the current click position using the ref (avoids React batching issues)
-        const currentClickPosition = getLastClickPosition();
-        if (currentClickPosition) {
-          // Create a mock MouseEvent object with the position
-          const mockEvent = {
-            clientX: currentClickPosition.x,
-            clientY: currentClickPosition.y,
-          };
-          showPopover(nodeId, mockEvent);
-        }
+        showPopover(nodeId);
       }
     },
-    [onNodeSelect, showNodePopover, PopoverComponent, showPopover, getLastClickPosition],
+    [onNodeSelect, showNodePopover, PopoverComponent, showPopover],
   );
 
   // Use selection management hook
@@ -200,7 +189,7 @@ const LineageInner: React.FC<LineageProps> = ({
 
   return (
     <div className={className} style={{ height, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ flex: 1, overflow: 'hidden' }}>
+      <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
         <TopologyView
           controlBar={
             <TopologyControlBar controlButtons={createLineageTopologyControls(controller)} />
@@ -210,17 +199,17 @@ const LineageInner: React.FC<LineageProps> = ({
             <VisualizationSurface state={{ selectedIds, highlightedIds }} />
           </VisualizationProvider>
         </TopologyView>
-      </div>
 
-      {/* Node popover */}
-      {PopoverComponent && (
-        <PopoverComponent
-          node={popoverNode}
-          position={popoverPosition}
-          isVisible={isPopoverVisible}
-          onClose={hidePopover}
-        />
-      )}
+        {/* Node popover - rendered directly with triggerRef positioning */}
+        {PopoverComponent && (
+          <PopoverComponent
+            node={popoverNode}
+            position={popoverPosition}
+            isVisible={isPopoverVisible}
+            onClose={hidePopover}
+          />
+        )}
+      </div>
     </div>
   );
 };

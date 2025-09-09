@@ -71,13 +71,38 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
       return undefined;
     })();
 
-    // Custom click handler that captures mouse position
     const handleNodeClick = React.useCallback(
       (e: React.MouseEvent) => {
-        // Store click position for popover positioning
+        let pillElement: Element | null = e.target instanceof Element ? e.target : null;
+
+        while (pillElement && pillElement !== e.currentTarget) {
+          if (pillElement.tagName === 'rect') {
+            const className = pillElement.getAttribute('class') || '';
+            if (
+              className.includes('pill') ||
+              className.includes('background') ||
+              className.includes('Background')
+            ) {
+              break;
+            }
+          }
+          pillElement = pillElement.parentElement;
+        }
+        if (!pillElement || pillElement.tagName !== 'rect') {
+          const { currentTarget } = e;
+          if (currentTarget instanceof Element) {
+            const anyRect = currentTarget.querySelector('rect');
+            if (anyRect) {
+              pillElement = anyRect;
+            }
+          }
+        }
+
+        // Store click position and pill element for popover positioning
         setClickPosition({
           x: e.clientX,
           y: e.clientY,
+          pillElement: pillElement?.tagName === 'rect' ? pillElement : null,
         });
 
         // Call original selection handler with proper signature
@@ -118,6 +143,7 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
           width={bounds.width}
           x={0} // Position relative to the group
           y={0}
+          disableTooltip // Disable small tooltip to avoid conflict with popover
         />
       </g>
     );

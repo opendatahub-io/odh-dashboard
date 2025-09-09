@@ -3,6 +3,7 @@ import React, { createContext, useContext, useRef, ReactNode } from 'react';
 export interface ClickPosition {
   x: number;
   y: number;
+  pillElement?: Element | null;
 }
 
 interface LineageClickContextType {

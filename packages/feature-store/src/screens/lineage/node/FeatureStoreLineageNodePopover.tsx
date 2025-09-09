@@ -1,18 +1,18 @@
 /* eslint-disable camelcase */
 import React from 'react';
-import ReactDOM from 'react-dom';
 import {
   Popover,
+  Button,
   Stack,
   StackItem,
-  Button,
   Content,
   Flex,
   FlexItem,
   List,
   ListItem,
 } from '@patternfly/react-core';
-import { LineageNode, PopoverPosition } from '@odh-dashboard/internal/components/lineage/types';
+import { LineageNode } from '@odh-dashboard/internal/components/lineage/types';
+import { useLineageClick } from '@odh-dashboard/internal/components/lineage/LineageClickContext';
 import { useNavigate } from 'react-router-dom';
 import {
   featureDataSourceRoute,
@@ -25,7 +25,6 @@ import { FsObjectType, getEntityTypeIcon } from '../../../utils/featureStoreObje
 
 export interface FeatureStoreLineageNodePopoverProps {
   node: LineageNode | null;
-  position: PopoverPosition | null;
   isVisible: boolean;
   onClose: () => void;
 }
@@ -58,112 +57,120 @@ const goToDetailsPage = (node: LineageNode, project: string): string | undefined
 
 const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverProps> = ({
   node,
-  position,
   isVisible,
   onClose,
 }) => {
-  const popoverRef = React.useRef<HTMLDivElement>(null);
   const { currentProject } = useFeatureStoreProject();
   const navigate = useNavigate();
 
-  React.useEffect(() => {
-    if (popoverRef.current && position) {
-      popoverRef.current.style.position = 'absolute';
-      popoverRef.current.style.left = `${position.x}px`;
-      popoverRef.current.style.top = `${position.y}px`;
-      popoverRef.current.style.zIndex = '1000';
-    }
-  }, [position]);
+  // Drag tracking is now handled in useLineagePopover hook
 
   // Conditional rendering after all hooks
-  if (!node || !position || !isVisible || !currentProject) {
+  if (!node || !isVisible || !currentProject) {
+    return null;
+  }
+
+  const { getLastClickPosition } = useLineageClick();
+  const clickPosition = getLastClickPosition();
+  const triggerElement = clickPosition?.pillElement;
+
+  if (!triggerElement) {
     return null;
   }
 
   const popoverContent = (
-    <div
-      ref={popoverRef}
-      style={{
-        position: 'absolute',
-        left: position.x,
-        top: position.y,
-        zIndex: 1000,
-        pointerEvents: 'auto',
-        minWidth: '320px',
-        maxWidth: '480px',
-      }}
-    >
-      <Popover
-        isVisible={isVisible}
-        shouldClose={() => onClose()}
-        minWidth="320px"
-        maxWidth="480px"
-        bodyContent={
-          <Stack hasGutter style={{ minWidth: '280px' }}>
+    <Popover
+      isVisible={isVisible}
+      shouldClose={() => onClose()}
+      minWidth="320px"
+      maxWidth="480px"
+      position="top"
+      enableFlip
+      triggerRef={{ current: triggerElement }}
+      bodyContent={
+        <Stack hasGutter style={{ minWidth: '280px' }}>
+          {node.description && (
             <StackItem>
               <Content>{node.description}</Content>
             </StackItem>
+          )}
+
+          {node.features && node.features.length > 0 && (
             <StackItem>
+              <Content>
+                <strong>Features ({node.features.length}):</strong>
+              </Content>
               <List>
-                {node.features?.map((feature, index) => (
+                {node.features.map((feature, index) => (
                   <ListItem key={index}>
-                    <strong>Feature:</strong> {feature.name}
+                    <strong>{feature.name}</strong>
+                    {feature.valueType && (
+                      <span style={{ color: '#6a6e73' }}> ({feature.valueType})</span>
+                    )}
+                    {feature.description && (
+                      <div
+                        style={{
+                          fontSize: '12px',
+                          color: '#6a6e73',
+                          marginTop: '2px',
+                          lineHeight: '1.3',
+                        }}
+                      >
+                        {feature.description}
+                      </div>
+                    )}
                   </ListItem>
                 ))}
               </List>
             </StackItem>
-          </Stack>
-        }
-        headerContent={
-          <Flex>
-            <FlexItem>{getEntityTypeIcon(node.entityType)}</FlexItem>
-            <FlexItem>{node.label}</FlexItem>
-          </Flex>
-        }
-        footerContent={
-          <Flex>
+          )}
+        </Stack>
+      }
+      headerContent={
+        <Flex>
+          <FlexItem>{getEntityTypeIcon(node.entityType)}</FlexItem>
+          <FlexItem>{node.label}</FlexItem>
+        </Flex>
+      }
+      footerContent={
+        <Flex>
+          <FlexItem>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                const route = goToDetailsPage(node, currentProject);
+                if (route) {
+                  navigate(route);
+                }
+              }}
+            >
+              View {getFsObjectTypeLabel(node.fsObjectTypes)} details page
+            </Button>
+          </FlexItem>
+          {node.fsObjectTypes === 'feature_view' && (
             <FlexItem>
               <Button
-                variant="secondary"
+                variant="link"
                 onClick={() => {
-                  const route = goToDetailsPage(node, currentProject);
-                  if (route) {
-                    navigate(route);
-                  }
+                  const searchParams = new URLSearchParams();
+                  searchParams.set('featureView', node.name);
+                  navigate(`/featureStore/features/${currentProject}?${searchParams.toString()}`);
                 }}
               >
-                View {getFsObjectTypeLabel(node.fsObjectTypes)} details page
+                View all features
               </Button>
             </FlexItem>
-            {node.fsObjectTypes === 'feature_view' && (
-              <FlexItem>
-                <Button
-                  variant="link"
-                  onClick={() => {
-                    const searchParams = new URLSearchParams();
-                    searchParams.set('featureView', node.name);
-                    navigate(`/featureStore/features/${currentProject}?${searchParams.toString()}`);
-                  }}
-                >
-                  View all features
-                </Button>
-              </FlexItem>
-            )}
-          </Flex>
-        }
-        distance={20}
-        enableFlip
-        position="top"
-        withFocusTrap={false}
-        hasNoPadding={false}
-      >
-        <div style={{ width: '20px', height: '20px', pointerEvents: 'all' }} />
-      </Popover>
-    </div>
+          )}
+        </Flex>
+      }
+    >
+      {/* Empty div since we're using triggerRef */}
+      <div />
+    </Popover>
   );
 
-  // Render the popover in a portal at the document root to avoid SVG constraints
-  return ReactDOM.createPortal(popoverContent, document.body);
+  // Render directly in the overlay container (no portal needed now)
+  return popoverContent;
 };
 
 export default FeatureStoreLineageNodePopover;
