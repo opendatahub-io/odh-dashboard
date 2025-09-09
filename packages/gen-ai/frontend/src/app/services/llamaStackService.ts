@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 /* eslint-disable no-relative-import-paths/no-relative-import-paths */
+import { isAxiosError } from 'axios';
 import {
   LlamaModelType,
   VectorStore,
@@ -10,6 +11,11 @@ import {
   NamespaceModel,
   FileUploadResult,
   LlamaStackDistributionModel,
+  MCPServersResponse,
+  MCPErrorResponse,
+  MCPConnectionStatus,
+  MCPToolsStatus,
+  MCPToolsResponse,
 } from '../types';
 import axios from '../utilities/axios';
 import { URL_PREFIX } from '../utilities/const';
@@ -172,5 +178,187 @@ export const getLSDstatus = (project: string): Promise<LlamaStackDistributionMod
       throw new Error(
         error.response?.data?.error?.message || error.message || 'Failed to fetch LSD status',
       );
+    });
+};
+
+/**
+ * Fetches MCP servers from the cluster ConfigMap for a specific namespace
+ * @param namespace - The namespace (project) to fetch MCP servers from
+ * @returns Promise<MCPServersResponse> - MCP servers data with ConfigMap metadata
+ * @throws Error - When the API request fails, ConfigMap doesn't exist, or insufficient permissions
+ */
+export const getMCPServers = (namespace: string): Promise<MCPServersResponse> => {
+  if (!namespace || namespace.trim() === '') {
+    throw new Error('Namespace parameter is required');
+  }
+
+  const url = `${URL_PREFIX}/api/v1/aa/mcps`;
+  return axios
+    .get<{ data: MCPServersResponse }>(url, {
+      params: { namespace: namespace.trim() },
+    })
+    .then((response) => response.data.data)
+    .catch((error) => {
+      // Handle specific error cases from the BFF
+      if (error.response?.status === 404) {
+        const errorData: MCPErrorResponse = error.response.data;
+        throw new Error(
+          errorData.error.message ||
+            `ConfigMap not found in namespace '${namespace}'. The MCP servers ConfigMap may not be deployed yet.`,
+        );
+      }
+
+      if (error.response?.status === 403) {
+        const errorData: MCPErrorResponse = error.response.data;
+        throw new Error(
+          errorData.error.message ||
+            `Access denied to ConfigMap in namespace '${namespace}'. Check your permissions.`,
+        );
+      }
+
+      if (error.response?.status === 400) {
+        throw new Error(`Invalid namespace parameter: ${namespace}`);
+      }
+
+      // Generic error handling
+      const message = error.response?.data?.error?.message || error.message;
+      throw new Error(`Failed to fetch MCP servers: ${message}`);
+    });
+};
+
+export const getMCPServerStatus = (
+  namespace: string,
+  serverUrl: string,
+  mcpBearerToken?: string,
+): Promise<MCPConnectionStatus> => {
+  if (!namespace || namespace.trim() === '') {
+    throw new Error('Namespace parameter is required');
+  }
+  if (!serverUrl || serverUrl.trim() === '') {
+    throw new Error('Server URL parameter is required');
+  }
+
+  const url = `${URL_PREFIX}/api/v1/mcp/status`;
+  const encodedServerUrl = encodeURIComponent(serverUrl.trim());
+
+  // Prepare headers
+  const headers: Record<string, string> = {};
+  if (mcpBearerToken) {
+    headers['X-MCP-Bearer'] = mcpBearerToken.startsWith('Bearer ')
+      ? mcpBearerToken
+      : `Bearer ${mcpBearerToken}`;
+  }
+
+  return axios
+    .get<{ data: MCPConnectionStatus }>(url, {
+      params: {
+        namespace: namespace.trim(),
+        server_url: encodedServerUrl,
+      },
+      headers,
+    })
+    .then((response) => response.data.data)
+    .catch((error) => {
+      // Handle BFF-level errors
+      if (error.response?.status === 404) {
+        const errorData: MCPErrorResponse = error.response.data;
+        throw new Error(errorData.error.message || `Server not found in ConfigMap: ${serverUrl}`);
+      }
+
+      if (error.response?.status === 401) {
+        throw new Error(`Authentication failed for namespace '${namespace}'`);
+      }
+
+      if (error.response?.status === 403) {
+        throw new Error(`Access denied to namespace '${namespace}'`);
+      }
+
+      if (error.response?.status === 400) {
+        const errorData: MCPErrorResponse = error.response.data;
+        throw new Error(
+          errorData.error.message ||
+            `Invalid parameters: namespace=${namespace}, server_url=${serverUrl}`,
+        );
+      }
+
+      // Generic error handling
+      const message = error.response?.data?.error?.message || error.message;
+      throw new Error(`Failed to check MCP server status: ${message}`);
+    });
+};
+
+export const getMCPServerTools = (
+  namespace: string,
+  serverUrl: string,
+  mcpBearerToken?: string,
+): Promise<MCPToolsStatus> => {
+  const encodedServerUrl = encodeURIComponent(serverUrl);
+  const url = `/gen-ai/api/v1/mcp/tools?namespace=${encodeURIComponent(namespace)}&server_url=${encodedServerUrl}`;
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  // Add MCP Bearer token if provided
+  if (mcpBearerToken && mcpBearerToken.trim() !== '') {
+    const token = mcpBearerToken.startsWith('Bearer ')
+      ? mcpBearerToken
+      : `Bearer ${mcpBearerToken}`;
+    headers['X-MCP-Bearer'] = token;
+  }
+
+  return axios
+    .get(url, { headers })
+    .then((response) => {
+      const responseData: MCPToolsResponse = response.data;
+      return responseData.data;
+    })
+    .catch((error) => {
+      if (isAxiosError(error) && error.response) {
+        const { status } = error.response;
+        const errorData: MCPErrorResponse = error.response.data;
+
+        // Create a structured error response that matches MCPToolsStatus
+        const errorResponse: MCPToolsStatus = {
+          server_url: serverUrl,
+          status: 'error',
+          message: errorData.error.message || `HTTP ${status}: Server error`,
+          last_checked: Date.now(),
+          server_info: {
+            name: 'unknown',
+            version: 'N/A',
+            protocol_version: '',
+          },
+          tools: [],
+          error_details: {
+            code: errorData.error.code || 'CONNECTION_FAILED',
+            status_code: status,
+            raw_error: errorData.error.message || `HTTP ${status}: Server error`,
+          },
+        };
+
+        return errorResponse;
+      }
+
+      // Network or other errors
+      const errorResponse: MCPToolsStatus = {
+        server_url: serverUrl,
+        status: 'error',
+        message: 'Connection failed',
+        last_checked: Date.now(),
+        server_info: {
+          name: 'unknown',
+          version: 'N/A',
+          protocol_version: '',
+        },
+        tools: [],
+        error_details: {
+          code: 'CONNECTION_FAILED',
+          status_code: 503,
+          raw_error: error instanceof Error ? error.message : 'Unknown connection error',
+        },
+      };
+
+      return errorResponse;
     });
 };

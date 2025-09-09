@@ -21,13 +21,13 @@ import {
 import { ApplicationsPage } from 'mod-arch-shared';
 import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
 import { useUserContext } from '~/app/context/UserContext';
+import { useGenAiProjects } from '~/app/context';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import { ChatbotMessages } from './ChatbotMessagesList';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
 import ChatbotHeader from './ChatbotHeader';
-import ChatbotEmptyState from './EmptyState';
 import useChatbotMessages from './hooks/useChatbotMessages';
 import useSourceManagement from './hooks/useSourceManagement';
 import useAlertManagement from './hooks/useAlertManagement';
@@ -41,15 +41,8 @@ const ChatbotMain: React.FunctionComponent = () => {
   const displayMode = ChatbotDisplayMode.embedded;
   const { models, loading, error } = useFetchLlamaModels();
   const [selectedModel, setSelectedModel] = React.useState<string>('');
-  const [availableProjects, setAvailableProjects] = React.useState<string[]>([]);
-  const [selectedProject, setSelectedProject] = React.useState<string>('');
   const { username } = useUserContext();
-
-  React.useEffect(() => {
-    if (!selectedProject && availableProjects.length > 0) {
-      setSelectedProject(availableProjects[0]);
-    }
-  }, [selectedProject, availableProjects]);
+  const { selectedProject, setSelectedProject, isLoading: namespacesLoading } = useGenAiProjects();
 
   const modelId = selectedModel || models[0]?.id;
   const [systemInstruction, setSystemInstruction] = React.useState<string>(
@@ -81,11 +74,9 @@ const ChatbotMain: React.FunctionComponent = () => {
     username,
   });
 
-  const {
-    data: lsdStatusData,
-    loaded: lsdStatusLoaded,
-    error: lsdStatusError,
-  } = useFetchLSDStatus(selectedProject);
+  const { loaded: lsdStatusLoaded, error: lsdStatusError } = useFetchLSDStatus(
+    selectedProject || '',
+  );
 
   // Create alert components
   const successAlert = (
@@ -128,14 +119,7 @@ const ChatbotMain: React.FunctionComponent = () => {
 
   const applicationsPage = (
     <ApplicationsPage
-      title={
-        <ChatbotHeader
-          selectedProject={selectedProject}
-          onProjectChange={handleProjectChange}
-          onProjectsLoaded={setAvailableProjects}
-          isLoading={loading}
-        />
-      }
+      title={<ChatbotHeader onProjectChange={handleProjectChange} isLoading={namespacesLoading} />}
       loaded={!loading}
       empty={false}
       loadError={error}
@@ -144,16 +128,17 @@ const ChatbotMain: React.FunctionComponent = () => {
         <Bullseye>
           <Spinner />
         </Bullseye>
-      ) : lsdStatusLoaded && !lsdStatusData ? (
-        <ChatbotEmptyState
-          title="Enable Playground"
-          description="Create a playground to chat with the generative models deployed in this project. Experiment with model output using a simple RAG simulation, custom prompt and MCP servers."
-          actionButtonText="Configure playground"
-          handleActionButtonClick={() => {
-            // TODO: Implement configuration logic
-          }}
-        />
       ) : (
+        // : lsdStatusLoaded && !lsdStatusData ? (
+        //   <ChatbotEmptyState
+        //     title="Enable Playground"
+        //     description="Create a playground to chat with the generative models deployed in this project. Experiment with model output using a simple RAG simulation, custom prompt and MCP servers."
+        //     actionButtonText="Configure playground"
+        //     handleActionButtonClick={() => {
+        //       // TODO: Implement configuration logic
+        //     }}
+        //   />
+        // )
         <>
           <ChatbotSourceSettingsModal
             isOpen={sourceManagement.isSourceSettingsOpen}

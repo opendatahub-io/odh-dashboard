@@ -13,10 +13,7 @@ export const ACCORDION_ITEMS = {
 } as const;
 
 // Default expanded accordion items
-export const DEFAULT_EXPANDED_ACCORDION_ITEMS = [
-  ACCORDION_ITEMS.MODEL_DETAILS,
-  ACCORDION_ITEMS.SOURCES,
-];
+export const DEFAULT_EXPANDED_ACCORDION_ITEMS = [ACCORDION_ITEMS.MCP_SERVERS];
 
 // Query configuration constants
 export const QUERY_CONFIG = {

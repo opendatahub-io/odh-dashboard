@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { ChatbotMain } from '~/app/Chatbot/ChatbotMain';
 import { AIAssetsPage } from '~/app/AIAssets/AIAssetsPage';
 import { NotFound } from '~/app/NotFound/NotFound';
@@ -32,6 +32,13 @@ const routes: AppRouteConfig[] = [
     title: 'Chatbot Main Page',
   },
   {
+    element: <ChatbotMain />,
+    exact: true,
+    label: 'Chat Playground',
+    path: '/chat-playground',
+    title: 'Chat Playground Page',
+  },
+  {
     element: <AIAssetsPage />,
     exact: true,
     label: 'AI Assets',
@@ -47,22 +54,23 @@ const flattenedRoutes: IAppRoute[] = routes.reduce<IAppRoute[]>(
 
 export const useNavData = (): NavDataItem[] => [
   {
-    label: 'Gen AI V3',
+    label: 'Gen AI Studio',
     children: [
       {
-        label: 'Chat playground',
-        path: '/',
+        label: 'Chat Playground',
+        path: '/chat-playground',
       },
       {
-        label: 'AI asset endpoints',
+        label: 'AI Asset Endpoints',
         path: '/ai-assets',
       },
     ],
   },
 ];
 
-const AppRoutes = (): React.ReactElement => (
+const AppRoutes: React.FC = () => (
   <Routes>
+    <Route path="/" element={<Navigate to="/chat-playground" replace />} />
     {flattenedRoutes.map(({ path, element }, idx) => (
       <Route path={path} element={element} key={idx} />
     ))}

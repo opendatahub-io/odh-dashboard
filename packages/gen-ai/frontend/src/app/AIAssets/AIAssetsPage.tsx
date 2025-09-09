@@ -7,12 +7,19 @@ import {
   TabContent,
   TabContentBody,
   TabTitleText,
+  FlexItem,
+  Flex,
 } from '@patternfly/react-core';
+import ProjectIcon from '@odh-dashboard/internal/images/icons/ProjectIcon';
+import ProjectDropdown from '~/app/Chatbot/components/ProjectDropdown';
+import { useProject } from '~/app/context';
 import AIAssetsEmptyState from './components/AIAssetsEmptyState';
 import AIAssetsToolbar from './components/AIAssetsToolbar';
+import MCPServersPage from './MCPServersPage';
 
 export const AIAssetsPage: React.FC = () => {
-  const [activeTabKey, setActiveTabKey] = React.useState<string>('models');
+  const { isLoading: projectLoading, setSelectedProject } = useProject();
+  const [activeTabKey, setActiveTabKey] = React.useState<string>('mcpservers');
 
   return (
     <ApplicationsPage
@@ -21,7 +28,31 @@ export const AIAssetsPage: React.FC = () => {
       loaded
       empty={false}
     >
-      <PageSection hasBodyWrapper={false} type="tabs">
+      <Flex
+        style={{ marginLeft: '10px' }}
+        component="span"
+        alignItems={{ default: 'alignItemsCenter' }}
+        gap={{ default: 'gapLg' }}
+      >
+        <FlexItem>
+          <Flex
+            spaceItems={{ default: 'spaceItemsXs' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+            style={{ display: 'inline-flex' }}
+          >
+            <FlexItem>
+              <ProjectIcon style={{ width: '20px', height: '20px', marginLeft: '10px' }} />
+            </FlexItem>
+            <FlexItem>
+              <span style={{ fontSize: '16px', marginRight: '10px' }}>Project</span>
+            </FlexItem>
+            <FlexItem>
+              <ProjectDropdown onProjectChange={setSelectedProject} isDisabled={projectLoading} />
+            </FlexItem>
+          </Flex>
+        </FlexItem>
+      </Flex>
+      <PageSection>
         <Tabs
           activeKey={activeTabKey}
           onSelect={(_, tabKey) => setActiveTabKey(String(tabKey))}
@@ -34,10 +65,15 @@ export const AIAssetsPage: React.FC = () => {
             aria-label="Models tab"
             tabContentId="models-tab-content"
           />
+          <Tab
+            eventKey="mcpservers"
+            title={<TabTitleText>MCP Servers</TabTitleText>}
+            aria-label="MCP Servers tab"
+            tabContentId="mcpservers-tab-content"
+          />
         </Tabs>
       </PageSection>
       <PageSection hasBodyWrapper={false} isFilled>
-        <AIAssetsToolbar />
         <TabContent
           id="models-tab-content"
           activeKey={activeTabKey}
@@ -45,7 +81,18 @@ export const AIAssetsPage: React.FC = () => {
           hidden={activeTabKey !== 'models'}
         >
           <TabContentBody>
+            <AIAssetsToolbar />
             <AIAssetsEmptyState message="No models available" />
+          </TabContentBody>
+        </TabContent>
+        <TabContent
+          id="mcpservers-tab-content"
+          activeKey={activeTabKey}
+          eventKey="mcpservers"
+          hidden={activeTabKey !== 'mcpservers'}
+        >
+          <TabContentBody>
+            <MCPServersPage />
           </TabContentBody>
         </TabContent>
       </PageSection>

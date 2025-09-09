@@ -21,7 +21,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     },
     properties: {
       id: 'gen-ai-v3',
-      title: 'GEN AI V3',
+      title: 'Gen AI Studio',
     },
   },
   {
@@ -47,7 +47,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       title: 'AI asset endpoints',
       href: '/ai-assets',
       section: 'gen-ai-v3',
-      path: '/ai-assets',
+      path: '/ai-assets/*',
     },
   },
   {
@@ -58,6 +58,16 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       path: '/chat-playground/*',
       component: () => import('./GenAiWrapper'),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [PLUGIN_GEN_AI],
+    },
+    properties: {
+      path: '/ai-assets/*',
+      component: () => import('./AIAssetsWrapper'),
     },
   },
 ];

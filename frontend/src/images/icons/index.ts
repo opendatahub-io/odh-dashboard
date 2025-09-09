@@ -30,6 +30,7 @@ export { default as ProjectIcon } from './ProjectIcon';
 export { default as RegisteredModelIcon } from './RegisteredModelIcon';
 export { default as ResourcesIcon } from './ResourcesIcon';
 export { default as RhUiTagIcon } from './RhUiTagIcon';
+export { default as ScrewWrenchIcon } from './ScrewWrenchIcon';
 export { default as ServingRuntimeIcon } from './ServingRuntimeIcon';
 export { default as SingleModelIcon } from './SingleModelIcon';
 export { default as StorageClassIcon } from './StorageClassIcon';

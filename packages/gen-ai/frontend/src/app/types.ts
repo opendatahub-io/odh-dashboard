@@ -173,3 +173,24 @@ export type LlamaStackDistributionModel = {
     availableDistributions: Record<string, string>;
   };
 };
+// Re-export MCP types for easy import
+export type {
+  MCPServerFromAPI,
+  MCPConfigMapInfo,
+  MCPServersResponse,
+  MCPErrorResponse,
+  TokenInfo,
+  MCPToolFromAPI,
+  MCPToolsStatus,
+  MCPToolsResponse,
+  MCPTool,
+  MCPServer,
+} from './types/mcp';
+export {
+  MCPTransportType,
+  MCPServerStatus,
+  MCPConnectionStatus,
+  MCPServerInfo,
+  MCPErrorDetails,
+  MCPServerUIStatus,
+} from './types/mcp';

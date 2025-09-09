@@ -4,6 +4,7 @@ import { ModularArchConfig, ModularArchContextProvider } from 'mod-arch-core';
 import { BrowserRouter as Router } from 'react-router-dom';
 import axe from 'react-axe';
 import { DEPLOYMENT_MODE, URL_PREFIX } from '~/app/utilities/const';
+import { GenAiContextProvider } from '~/app/context';
 import App from '~/app/App';
 
 const modularArchConfig: ModularArchConfig = {
@@ -31,7 +32,9 @@ root.render(
   <React.StrictMode>
     <Router>
       <ModularArchContextProvider config={modularArchConfig}>
-        <App />
+        <GenAiContextProvider>
+          <App />
+        </GenAiContextProvider>
       </ModularArchContextProvider>
     </Router>
   </React.StrictMode>,
