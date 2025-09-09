@@ -150,11 +150,7 @@ const ChatbotMain: React.FunctionComponent = () => {
               <ChatbotContent>
                 <MessageBox position="bottom">
                   <ChatbotWelcomePrompt
-                    title={
-                      username
-                        ? `Hello, ${username.charAt(0).toUpperCase() + username.slice(1)}`
-                        : 'Hello'
-                    }
+                    title={username ? `Hello, ${username}` : 'Hello'}
                     description="Welcome to the chat playground"
                   />
                   <ChatbotMessages

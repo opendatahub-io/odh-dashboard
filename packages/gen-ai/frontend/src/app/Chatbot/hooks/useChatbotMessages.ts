@@ -46,7 +46,7 @@ const useChatbotMessages = ({
       id: getId(),
       role: 'user',
       content: message,
-      name: username ? username.charAt(0).toUpperCase() + username.slice(1) : 'User',
+      name: username || 'User',
       avatar: userAvatar,
     };
 
