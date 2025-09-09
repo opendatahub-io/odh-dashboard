@@ -853,7 +853,7 @@ class ModelServingSection {
 
 class ModelServingWizard extends Wizard {
   constructor(private edit = false) {
-    super('Deploy a model');
+    super('Deploy a model', 'Deploy model');
   }
 
   findModelSourceStep() {
@@ -886,6 +886,18 @@ class ModelServingWizard extends Wizard {
 
   findModelFormatSelectOption(name: string) {
     return this.findModelFormatSelect().findSelectOption(name);
+  }
+
+  findModelLocationSelect() {
+    return cy.findByTestId('model-location-select');
+  }
+
+  findModelLocationSelectOption(name: string) {
+    return this.findModelLocationSelect().findSelectOption(name);
+  }
+
+  findUrilocationInput() {
+    return cy.findByTestId('field URI');
   }
 }
 
