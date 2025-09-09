@@ -292,6 +292,8 @@ describe('Feature Data Sources for all projects', () => {
     featureDataSourcesTable.findTable().should('be.visible');
     featureDataSourcesTable.findRow('loan_data').findDataSourceLink().click();
     cy.url().should('include', '/featureStore/dataSources/credit_scoring_local');
+    cy.wait('@getDataSourceDetails');
+
     featureDataSourceDetails
       .shouldHaveApplicationsPageDescription(
         'Loan application data including personal and loan characteristics',
@@ -311,6 +313,7 @@ describe('Feature Data Sources for all projects', () => {
     featureDataSourcesTable.findRow('loan_data').findDataSourceLink().click();
     cy.url().should('include', '/featureStore/dataSources/credit_scoring_local');
 
+    cy.wait('@getDataSourceDetails');
     featureDataSourceDetails
       .shouldHaveApplicationsPageDescription(
         'Loan application data including personal and loan characteristics',
