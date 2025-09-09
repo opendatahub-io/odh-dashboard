@@ -218,7 +218,7 @@ class HardwareProfile {
 
 class NodeResourceRow extends TableRow {
   shouldHaveResourceLabel(name: string) {
-    this.find().find(`[data-label="Resource label"]`).should('have.text', name);
+    this.find().find(`[data-label="Resource name"]`).should('have.text', name);
     return this;
   }
 
@@ -529,7 +529,7 @@ class NodeResourceModal extends Modal {
   }
 
   findNodeResourceLabelInput() {
-    return this.find().findByTestId('node-resource-label-input');
+    return this.find().findByTestId('node-resource-name-input');
   }
 
   findNodeResourceIdentifierInput() {
