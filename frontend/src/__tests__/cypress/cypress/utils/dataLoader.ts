@@ -13,6 +13,7 @@ import type {
   DeployOCIModelData,
   ModelTolerationsTestData,
   ManageRegistryPermissionsTestData,
+  ModelRegistryTestData,
   FeatureStoreEntitiesTestData,
 } from '#~/__tests__/cypress/cypress/types';
 
