@@ -34,7 +34,7 @@ spec:
       api_key: This key is given to you by NVIDIA
     warningValidation:
       field: api_key
-      validationRegex: '^nvapi-'
+      validationRegex: '^(?!nvapi-).*'
       message: |-
         Looks like you're not using a Personal API key. For the best experience and continued access, consider using a Personal API Key instead. You can generate one at https://org.ngc.nvidia.com/setup/api-keys.
   getStartedMarkDown: |-

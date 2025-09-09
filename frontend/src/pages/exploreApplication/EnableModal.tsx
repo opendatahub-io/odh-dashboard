@@ -68,7 +68,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose, warning
           setWarning('');
         } else {
           const regex = new RegExp(validationRegex);
-          if (!regex.test(value)) {
+          if (regex.test(value)) {
             setWarning(message);
           } else {
             setWarning('');
