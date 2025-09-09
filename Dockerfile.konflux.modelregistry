@@ -90,12 +90,12 @@ EXPOSE 8080
 
 ENTRYPOINT ["/bff"]
 
-LABEL com.redhat.component="odh-model-registry-mod-arch-container" \
-      name="managed-open-data-hub/odh-model-registry-mod-arch-rhel9" \
-      description="odh-model-registry-mod-arch" \
-      summary="odh-model-registry-mod-arch" \
+LABEL com.redhat.component="odh-mod-arch-model-registry-container" \
+      name="managed-open-data-hub/odh-mod-arch-model-registry-rhel9" \
+      description="odh-mod-arch-model-registry" \
+      summary="odh-mod-arch-model-registry" \
       maintainer="['managed-open-data-hub@redhat.com']" \
       io.openshift.expose-services="" \
-      io.k8s.display-name="odh-model-registry-mod-arch" \
-      io.k8s.description="odh-model-registry-mod-arch" \
+      io.k8s.display-name="odh-mod-arch-model-registry \
+      io.k8s.description="odh-mod-arch-model-registry" \
       com.redhat.license_terms="https://www.redhat.com/licenses/Red_Hat_Standard_EULA_20191108.pdf"
