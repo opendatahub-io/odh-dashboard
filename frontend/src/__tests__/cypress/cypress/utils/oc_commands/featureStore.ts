@@ -1,7 +1,7 @@
 import type { CommandLineResult } from '#~/__tests__/cypress/cypress/types';
 import { replacePlaceholdersInYaml } from '#~/__tests__/cypress/cypress/utils/yaml_files';
 import { AWS_BUCKETS } from '#~/__tests__/cypress/cypress/utils/s3Buckets';
-import { waitForPodReady, applyOpenShiftYaml } from './baseCommands';
+import { applyOpenShiftYaml } from './baseCommands';
 
 /**
  * Delete FeatureStore resources by name.
@@ -57,7 +57,6 @@ export const createFeatureStoreDeploymentViaYAML = (): Cypress.Chainable<boolean
 
   cy.log(`Creating FeatureStore deployment in namespace ${targetNamespace}`);
 
-  // Use AWS_BUCKETS.BUCKET_1 credentials from test-variables.yml (same as PR #4802)
   const s3Config = AWS_BUCKETS.BUCKET_1;
   const awsAccessKey = AWS_BUCKETS.AWS_ACCESS_KEY_ID;
   const awsSecretKey = AWS_BUCKETS.AWS_SECRET_ACCESS_KEY;
@@ -78,7 +77,6 @@ export const createFeatureStoreDeploymentViaYAML = (): Cypress.Chainable<boolean
         featureStoreYamlContent,
         featureStoreReplacements,
       );
-      // Apply the processed YAML using applyOpenShiftYaml
       return applyOpenShiftYaml(modifiedFeatureStoreYaml).then((result) => {
         if (result.code !== 0) {
           cy.log(`Error applying FeatureStore resources: ${result.stderr}`);
@@ -86,9 +84,15 @@ export const createFeatureStoreDeploymentViaYAML = (): Cypress.Chainable<boolean
         }
 
         cy.log('FeatureStore resources applied successfully, waiting for readiness');
-        return cy.wrap(null).then(() => {
-          waitForPodReady('feast-test-s3', '1000s', targetNamespace);
-          return cy.wrap(true);
+        const command = `oc wait --for=condition=Available deployment/feast-test-s3 -n ${targetNamespace} --timeout=1000s`;
+        return cy.exec(command, { failOnNonZeroExit: false, timeout: 1000 }).then((waitResult) => {
+          if (waitResult.stdout) {
+            cy.log(`FeatureStore wait result: ${waitResult.stdout}`);
+          }
+          if (waitResult.stderr) {
+            cy.log(`FeatureStore wait stderr: ${waitResult.stderr}`);
+          }
+          return cy.wrap(waitResult.code === 0);
         });
       });
     });

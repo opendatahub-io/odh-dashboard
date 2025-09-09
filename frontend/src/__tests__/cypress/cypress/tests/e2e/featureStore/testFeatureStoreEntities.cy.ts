@@ -16,7 +16,7 @@ describe('FeatureStore Entities E2E Tests', () => {
   let featureStoreNames: string[];
   let projectName: string;
 
-  before(() => {
+  retryableBefore(() => {
     cy.step('Load test data from fixture');
     loadFeatureStoreEntitiesFixture('e2e/featureStore/testFeatureStoreEntities.yaml').then(
       (fixtureData) => {
@@ -26,17 +26,12 @@ describe('FeatureStore Entities E2E Tests', () => {
         projectName = testData.projectName;
       },
     );
-  });
 
-  retryableBefore(() => {
     cy.step('Create FeatureStore deployment and verify readiness');
     createFeatureStoreDeploymentViaYAML().should('be.true');
   });
 
   after(() => {
-    cy.clearCookies();
-    cy.clearLocalStorage();
-
     cy.step('Clean up FeatureStore resources');
     deleteFeatureStoreResources(featureStoreNames, testNamespace, {
       wait: false,
@@ -74,6 +69,9 @@ describe('FeatureStore Entities E2E Tests', () => {
 
       cy.step('Verify Entities table is present');
       featureEntitiesTable.findTable().should('be.visible');
+
+      cy.step('Verify entities are displayed in the UI');
+      featureEntitiesTable.findRows().should('have.length.greaterThan', 0);
 
       cy.step('Verify all expected columns are present');
       featureEntitiesTable
