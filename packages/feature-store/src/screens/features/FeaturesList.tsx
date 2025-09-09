@@ -9,15 +9,18 @@ import { useFeatureStoreProject } from '../../FeatureStoreContext';
 type FeaturesListProps = {
   features: Features[];
   fsProject?: string;
+  initialFilter?: Record<string, string | { label: string; value: string } | undefined>;
 };
 
 const FeaturesList = ({
   features: unfilteredFeatures,
   fsProject,
+  initialFilter = {},
 }: FeaturesListProps): React.ReactElement => {
-  const [filterData, setFilterData] = React.useState<
-    Record<string, string | { label: string; value: string } | undefined>
-  >({});
+  const [filterData, setFilterData] =
+    React.useState<Record<string, string | { label: string; value: string } | undefined>>(
+      initialFilter,
+    );
   const { currentProject } = useFeatureStoreProject();
 
   const processedFeatures = React.useMemo(() => {
