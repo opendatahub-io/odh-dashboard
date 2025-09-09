@@ -52,7 +52,7 @@ jobs:
             ${{ github.workspace }}/node_modules
             ${{ github.workspace }}/backend/node_modules
             ${{ github.workspace }}/frontend/node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ needs.Setup.outputs.modules-cache-key }}
       - name: Run linting and formatting checks
         run: npm run lint:frontend:backend
 
@@ -85,7 +85,7 @@ jobs:
         run: npx turbo run type-check
 
   Unit-Tests:
-    needs: [Setup, Lint, Type-Check]
+    needs: [Setup, Lint]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -264,7 +264,7 @@ jobs:
           path: ./frontend/src/__tests__/cypress/coverage
 
   Contract-Tests:
-    needs: [Setup, Lint, Type-Check]
+    needs: [Setup, Lint]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
