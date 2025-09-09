@@ -28,7 +28,7 @@ const NodeResourceTableRow: React.FC<NodeResourceTableRowProps> = ({
   showActions,
 }) => (
   <Tr>
-    <Td dataLabel="Resource label">
+    <Td dataLabel="Resource name">
       <Flex>
         <FlexItem spacer={{ default: 'spacerSm' }}>
           <Truncate content={identifier.displayName} />

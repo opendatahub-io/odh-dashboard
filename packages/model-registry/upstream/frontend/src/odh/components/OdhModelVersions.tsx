@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
@@ -15,7 +15,7 @@ import { KnownLabels } from '../k8sTypes';
 import { MRDeploymentsContextProvider } from './MRDeploymentsContextProvider';
 
 type ModelVersionsProps = {
-  tab: ModelVersionsTab;
+  tab: ModelVersionsTab | string;
 } & Omit<
   React.ComponentProps<typeof ApplicationsPage>,
   'breadcrumb' | 'title' | 'description' | 'loadError' | 'loaded' | 'provideChildrenPadding'
@@ -31,6 +31,14 @@ const ModelVersionsContent: React.FC<ModelVersionsProps> = ({ tab, ...pageProps 
   const navigate = useNavigate();
   
 
+
+  // Find the latest model version (non-archived)
+  const latestModelVersion = React.useMemo(() => {
+    if (!modelVersions.items?.length) return undefined;
+    const liveVersions = modelVersions.items.filter(mv => mv.state !== ModelState.ARCHIVED);
+    return liveVersions
+      .toSorted((a, b) => Number(b.createTimeSinceEpoch) - Number(a.createTimeSinceEpoch))[0];
+  }, [modelVersions.items]);
 
   useEffect(() => {
     if (rm?.state === ModelState.ARCHIVED) {
@@ -54,7 +62,7 @@ const ModelVersionsContent: React.FC<ModelVersionsProps> = ({ tab, ...pageProps 
         </Breadcrumb>
       }
       title={rm?.name}
-      headerAction={rm && <ModelVersionsHeaderActions rm={rm} />}
+      headerAction={rm && <ModelVersionsHeaderActions rm={rm} latestModelVersion={latestModelVersion} />}
       loadError={loadError}
       loaded={loaded}
       provideChildrenPadding

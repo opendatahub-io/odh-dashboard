@@ -25,7 +25,7 @@ import {
 import { ServingRuntimeModelType, ServingRuntimePlatform } from '#~/types';
 import { mockGlobalScopedHardwareProfiles } from '#~/__mocks__/mockHardwareProfile';
 
-const initIntercepts = () => {
+const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
@@ -105,11 +105,23 @@ const initIntercepts = () => {
     ProjectModel,
     mockK8sResourceList([mockProjectK8sResource({ enableModelMesh: false })]),
   );
+
+  cy.interceptK8s(
+    'POST',
+    {
+      model: InferenceServiceModel,
+      ns: 'test-project',
+    },
+    {
+      statusCode: 200,
+      body: mockInferenceServiceK8sResource({ name: 'test-model', modelType }),
+    },
+  ).as('createInferenceService');
 };
 
 describe('Model Serving Deploy Wizard', () => {
   it('Navigate into and out of the wizard', () => {
-    initIntercepts();
+    initIntercepts({});
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
       mockK8sResourceList([mockInferenceServiceK8sResource({})]),
@@ -136,7 +148,7 @@ describe('Model Serving Deploy Wizard', () => {
   });
 
   it('Create a new generative deployment and submit', () => {
-    initIntercepts();
+    initIntercepts({ modelType: ServingRuntimeModelType.GENERATIVE });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
       mockK8sResourceList([mockInferenceServiceK8sResource({})]),
@@ -179,10 +191,63 @@ describe('Model Serving Deploy Wizard', () => {
     hardwareProfileSection.findGlobalScopedLabel().should('exist');
     modelServingWizard.findModelFormatSelect().should('not.exist');
     modelServingWizard.findNextButton().should('be.enabled').click();
+    modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Step 3: Advanced options
+
+    // Step 4: Summary
+    modelServingWizard.findSubmitButton().should('be.enabled').click();
+
+    // dry run request
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'test-model',
+          namespace: 'test-project',
+          labels: { 'opendatahub.io/dashboard': 'true' },
+          annotations: {
+            'openshift.io/display-name': 'test-model',
+            'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+            'opendatahub.io/legacy-hardware-profile-name': 'medium-serving-wz9u9',
+            'opendatahub.io/model-type': 'generative',
+          },
+        },
+        spec: {
+          predictor: {
+            model: {
+              modelFormat: {
+                name: 'vLLM',
+              },
+              resources: {
+                requests: {
+                  cpu: '4',
+                  memory: '8Gi',
+                },
+                limits: {
+                  cpu: '4',
+                  memory: '8Gi',
+                },
+              },
+            },
+          },
+        },
+      });
+    });
+
+    // Actual request
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    cy.get('@createInferenceService.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
   });
 
   it('Create a new predictive deployment and submit', () => {
-    initIntercepts();
+    initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
       mockK8sResourceList([mockInferenceServiceK8sResource({})]),
@@ -225,10 +290,64 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelFormatSelectOption('vLLM').should('not.exist');
     modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
+    modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Step 3: Advanced options
+
+    // Step 4: Summary
+    modelServingWizard.findSubmitButton().should('be.enabled').click();
+
+    // dry run request
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'test-model',
+          namespace: 'test-project',
+          labels: { 'opendatahub.io/dashboard': 'true' },
+          annotations: {
+            'openshift.io/display-name': 'test-model',
+            'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+            'opendatahub.io/legacy-hardware-profile-name': 'medium-serving-wz9u9',
+            'opendatahub.io/model-type': 'predictive',
+          },
+        },
+        spec: {
+          predictor: {
+            model: {
+              modelFormat: {
+                name: 'openvino_ir',
+                version: 'opset1',
+              },
+              resources: {
+                requests: {
+                  cpu: '4',
+                  memory: '8Gi',
+                },
+                limits: {
+                  cpu: '4',
+                  memory: '8Gi',
+                },
+              },
+            },
+          },
+        },
+      });
+    });
+
+    // Actual request
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    cy.get('@createInferenceService.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
   });
 
   it('Edit an existing deployment', () => {
-    initIntercepts();
+    initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
       mockK8sResourceList([
