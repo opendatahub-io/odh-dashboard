@@ -20,7 +20,7 @@ import {
 } from '@patternfly/chatbot';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
-import { getCurrentUser } from '~/app/services/userService';
+import { useProjectContext } from '~/app/context/ProjectContext';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import { ChatbotMessages } from './ChatbotMessagesList';
@@ -41,7 +41,7 @@ const ChatbotMain: React.FunctionComponent = () => {
   const [selectedModel, setSelectedModel] = React.useState<string>('');
   const [availableProjects, setAvailableProjects] = React.useState<string[]>([]);
   const [selectedProject, setSelectedProject] = React.useState<string>('');
-  const [username, setUsername] = React.useState<string | undefined>(undefined);
+  const { username } = useProjectContext();
 
   React.useEffect(() => {
     if (!selectedProject && availableProjects.length > 0) {
@@ -64,9 +64,7 @@ const ChatbotMain: React.FunctionComponent = () => {
     }
   }, [models, selectedModel]);
 
-  React.useEffect(() => {
-    getCurrentUser().then((res) => setUsername(res.userId));
-  }, []);
+  // Username is provided by ProjectContext
 
   // Custom hooks for managing different aspects of the chatbot
   const alertManagement = useAlertManagement();
