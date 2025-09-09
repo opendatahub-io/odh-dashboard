@@ -64,8 +64,6 @@ const ChatbotMain: React.FunctionComponent = () => {
     }
   }, [models, selectedModel]);
 
-  // Username is provided by ProjectContext
-
   // Custom hooks for managing different aspects of the chatbot
   const alertManagement = useAlertManagement();
   const sourceManagement = useSourceManagement({
