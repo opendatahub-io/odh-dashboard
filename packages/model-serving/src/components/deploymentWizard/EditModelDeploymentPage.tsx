@@ -21,7 +21,10 @@ import {
   ModelDeploymentsContext,
   ModelDeploymentsProvider,
 } from '../../concepts/ModelDeploymentsContext';
-import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
+import {
+  ModelServingPlatform,
+  useProjectServingPlatform,
+} from '../../concepts/useProjectServingPlatform';
 import { useAvailableClusterPlatforms } from '../../concepts/useAvailableClusterPlatforms';
 import { useResolvedDeploymentExtension } from '../../concepts/extensionUtils';
 
@@ -87,14 +90,17 @@ const EditModelDeploymentPage: React.FC = () => {
 
   return (
     <ModelDeploymentsProvider modelServingPlatforms={[activePlatform]} projects={[currentProject]}>
-      <EditModelDeploymentContent project={currentProject} />
+      <EditModelDeploymentContent project={currentProject} modelServingPlatform={activePlatform} />
     </ModelDeploymentsProvider>
   );
 };
 
 export default EditModelDeploymentPage;
 
-const EditModelDeploymentContent: React.FC<{ project: ProjectKind }> = ({ project }) => {
+const EditModelDeploymentContent: React.FC<{
+  project: ProjectKind;
+  modelServingPlatform: ModelServingPlatform;
+}> = ({ project, modelServingPlatform }) => {
   const { name: deploymentName } = useParams();
   const { deployments, loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
 
@@ -141,6 +147,7 @@ const EditModelDeploymentContent: React.FC<{ project: ProjectKind }> = ({ projec
       primaryButtonText="Update deployment"
       existingData={formData}
       project={project}
+      modelServingPlatform={modelServingPlatform}
     />
   );
 };

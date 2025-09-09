@@ -14,17 +14,19 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { PlusIcon } from '@patternfly/react-icons';
-import useLineageController from './useLineageController';
-import { useLineageSelection } from './useLineageSelection';
-import { createLineageTopologyControls } from './topologyControls';
 import {
   LineageProps,
   convertToLineageNodeModel,
   convertToLineageEdgeModel,
   TopologyEdgeModel,
 } from './types';
+import useLineageController from './useLineageController';
+import { useLineageSelection } from './useLineageSelection';
+import { useLineagePopover } from './useLineagePopover';
+import { createLineageTopologyControls } from './topologyControls';
+import { LineageClickProvider } from './LineageClickContext';
 
-export const Lineage: React.FC<LineageProps> = ({
+const LineageInner: React.FC<LineageProps> = ({
   data,
   height = '600px',
   loading = false,
@@ -32,8 +34,11 @@ export const Lineage: React.FC<LineageProps> = ({
   emptyStateMessage = 'No lineage data available',
   onNodeSelect,
   className,
+  showNodePopover = true,
+  componentFactory,
+  popoverComponent: PopoverComponent,
 }) => {
-  const controller = useLineageController('lineage-graph');
+  const controller = useLineageController('lineage-graph', componentFactory);
 
   // Convert generic lineage data to topology format
   const nodes = useMemo(() => {
@@ -44,11 +49,36 @@ export const Lineage: React.FC<LineageProps> = ({
     return data.edges.map(convertToLineageEdgeModel);
   }, [data.edges]);
 
+  // Initialize popover hook
+  const {
+    selectedNode: popoverNode,
+    popoverPosition,
+    isPopoverVisible,
+    showPopover,
+    hidePopover,
+  } = useLineagePopover({
+    data,
+    enabled: showNodePopover && !!PopoverComponent,
+  });
+
+  // Enhanced node selection handler that also shows popover
+  const handleNodeSelect = React.useCallback(
+    (nodeId: string | null) => {
+      onNodeSelect?.(nodeId);
+
+      // Show popover for selected node if enabled
+      if (nodeId && showNodePopover && PopoverComponent) {
+        showPopover(nodeId);
+      }
+    },
+    [onNodeSelect, showNodePopover, PopoverComponent, showPopover],
+  );
+
   // Use selection management hook
   const { selectedIds, highlightedIds } = useLineageSelection({
     controller,
     edges,
-    onNodeSelect,
+    onNodeSelect: handleNodeSelect,
   });
 
   // Load nodes and edges into controller when it's ready
@@ -159,7 +189,7 @@ export const Lineage: React.FC<LineageProps> = ({
 
   return (
     <div className={className} style={{ height, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ flex: 1, overflow: 'hidden' }}>
+      <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
         <TopologyView
           controlBar={
             <TopologyControlBar controlButtons={createLineageTopologyControls(controller)} />
@@ -169,7 +199,23 @@ export const Lineage: React.FC<LineageProps> = ({
             <VisualizationSurface state={{ selectedIds, highlightedIds }} />
           </VisualizationProvider>
         </TopologyView>
+
+        {/* Node popover - rendered directly with triggerRef positioning */}
+        {PopoverComponent && (
+          <PopoverComponent
+            node={popoverNode}
+            position={popoverPosition}
+            isVisible={isPopoverVisible}
+            onClose={hidePopover}
+          />
+        )}
       </div>
     </div>
   );
 };
+
+export const Lineage: React.FC<LineageProps> = (props) => (
+  <LineageClickProvider>
+    <LineageInner {...props} />
+  </LineageClickProvider>
+);
