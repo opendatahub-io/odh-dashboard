@@ -71,23 +71,18 @@ describe('userService', () => {
       expect(mockedAxios.get).toHaveBeenCalledWith('/api/v1/user');
     });
 
-    it('should use correct URL with URL_PREFIX', async () => {
-      const mockUserData = { userId: 'testuser' };
-      mockedAxios.get.mockResolvedValueOnce({ data: mockUserData });
+    it('uses URL_PREFIX when provided (e.g., "/gen-ai")', async () => {
+      jest.resetModules();
+      process.env.URL_PREFIX = '/gen-ai';
 
-      await getCurrentUser();
+      const axiosModule = await import('~/app/utilities/axios');
+      const localMockedAxios = axiosModule.default as unknown as { get: jest.Mock };
+      localMockedAxios.get.mockResolvedValueOnce({ data: { userId: 'testuser' } });
 
-      expect(mockedAxios.get).toHaveBeenCalledWith('/api/v1/user');
-    });
+      const { getCurrentUser: getWithPrefix } = await import('~/app/services/userService');
 
-    it('should construct URL correctly with URL_PREFIX from environment', async () => {
-      const mockUserData = { userId: 'testuser' };
-      mockedAxios.get.mockResolvedValueOnce({ data: mockUserData });
-
-      await getCurrentUser();
-
-      // In test environment, URL_PREFIX defaults to empty string
-      expect(mockedAxios.get).toHaveBeenCalledWith('/api/v1/user');
+      await getWithPrefix();
+      expect(localMockedAxios.get).toHaveBeenCalledWith('/gen-ai/api/v1/user');
     });
   });
 });
