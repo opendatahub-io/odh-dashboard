@@ -10,7 +10,7 @@ import {
   deleteFeatureStoreResources,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/featureStore';
 
-describe('FeatureStore Entities E2E Tests', () => {
+describe('Verify Feature Store Entities Page', () => {
   let testData: FeatureStoreEntitiesTestData;
   let testNamespace: string;
   let featureStoreNames: string[];
