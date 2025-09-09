@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import * as fs from 'fs';
 import * as path from 'path';
+import * as yaml from 'js-yaml';
 
 type HttpMethod = 'get' | 'post' | 'put' | 'patch' | 'delete' | 'options' | 'head';
 
@@ -82,7 +83,23 @@ export class OpenApiValidator {
 
   private async loadRawDocument(source: OpenApiSource): Promise<unknown> {
     if (source.url) {
-      const res = await fetch(source.url);
+      let res: Response;
+      try {
+        res = await fetch(source.url);
+      } catch (error) {
+        throw new Error(
+          `Failed to fetch OpenAPI from ${source.url}: ${
+            error instanceof Error ? error.message : 'Unknown network error'
+          }`,
+        );
+      }
+
+      if (!res.ok) {
+        throw new Error(
+          `Failed to fetch OpenAPI from ${source.url}: HTTP ${res.status} ${res.statusText}`,
+        );
+      }
+
       const text = await res.text();
       return this.parseMaybeYaml(text);
     }
@@ -96,21 +113,25 @@ export class OpenApiValidator {
 
   private parseMaybeYaml(text: string): unknown {
     const trimmed = text.trim();
-    if (trimmed.startsWith('{')) {
-      return JSON.parse(text) as unknown;
+
+    // Try JSON first
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+      try {
+        return JSON.parse(text);
+      } catch (error) {
+        throw new Error(
+          `Failed to parse as JSON: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
+      }
     }
-    // Lightweight YAML parser without external dependency
-    // Accepts simple YAML that is JSON-compatible to keep zero-config
+
+    // Try YAML parsing
     try {
-      // Attempt to eval as JSON5-like by quoting keys; fallback to undefined
-      const jsonLike = text
-        .split('\n')
-        .filter((l) => !/^\s*#/.test(l))
-        .join('\n');
-      return JSON.parse(jsonLike);
-    } catch {
-      // As a minimal fallback, return the raw text for downstream handling
-      return {} as unknown;
+      return yaml.load(text);
+    } catch (error) {
+      throw new Error(
+        `Failed to parse as YAML: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 

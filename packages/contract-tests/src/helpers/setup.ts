@@ -23,7 +23,11 @@ export async function setupContractTest({
   const validator = new ContractSchemaValidator();
   await validator.loadSchema(`${packageName}-schema`, schema);
 
-  await ensureBffHealthy({ ...createBffConfig({ url: baseUrl }), maxRetries: 20, retryDelay: 500 });
+  await ensureBffHealthy({
+    ...createBffConfig({ url: baseUrl, healthEndpoint: '/healthcheck' }),
+    maxRetries: 20,
+    retryDelay: 500,
+  });
 
   const apiClient = new ContractApiClient({ baseUrl, defaultHeaders });
   return { apiClient, validator };

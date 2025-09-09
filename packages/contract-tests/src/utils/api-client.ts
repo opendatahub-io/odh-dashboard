@@ -105,7 +105,7 @@ export class ContractApiClient {
     const httpsAgent = new (await import('https')).Agent({ keepAlive: false });
 
     try {
-      logApiCall('GET', url, headers);
+      logApiCall('GET', url, ContractApiClient.getCurrentTestName(testName || ''), headers);
 
       const response: AxiosResponse = await axios.get(url, {
         headers,
@@ -122,7 +122,7 @@ export class ContractApiClient {
         data: response.data,
       };
 
-      logApiResponse(ContractApiClient.getCurrentTestName(testName || ''), apiResponse);
+      logApiResponse(apiResponse, ContractApiClient.getCurrentTestName(testName || ''));
 
       return {
         success: true,
@@ -159,7 +159,7 @@ export class ContractApiClient {
     const controller = new AbortController();
 
     try {
-      logApiCall('POST', url, headers);
+      logApiCall('POST', url, ContractApiClient.getCurrentTestName(testName || ''), headers);
 
       const response: AxiosResponse = await axios.post(url, data, {
         headers,
@@ -173,7 +173,7 @@ export class ContractApiClient {
         data: response.data,
       };
 
-      logApiResponse(ContractApiClient.getCurrentTestName(testName || ''), apiResponse);
+      logApiResponse(apiResponse, ContractApiClient.getCurrentTestName(testName || ''));
 
       return {
         success: true,
@@ -210,7 +210,7 @@ export class ContractApiClient {
     const controller = new AbortController();
 
     try {
-      logApiCall('PUT', url, headers);
+      logApiCall('PUT', url, ContractApiClient.getCurrentTestName(testName || ''), headers);
 
       const response: AxiosResponse = await axios.put(url, data, {
         headers,
@@ -224,7 +224,7 @@ export class ContractApiClient {
         data: response.data,
       };
 
-      logApiResponse(ContractApiClient.getCurrentTestName(testName || ''), apiResponse);
+      logApiResponse(apiResponse, ContractApiClient.getCurrentTestName(testName || ''));
 
       return {
         success: true,
@@ -259,7 +259,7 @@ export class ContractApiClient {
     const controller = new AbortController();
 
     try {
-      logApiCall('DELETE', url, headers);
+      logApiCall('DELETE', url, ContractApiClient.getCurrentTestName(testName || ''), headers);
 
       const response: AxiosResponse = await axios.delete(url, {
         headers,
@@ -273,7 +273,7 @@ export class ContractApiClient {
         data: response.data,
       };
 
-      logApiResponse(ContractApiClient.getCurrentTestName(testName || ''), apiResponse);
+      logApiResponse(apiResponse, ContractApiClient.getCurrentTestName(testName || ''));
 
       return {
         success: true,
@@ -303,7 +303,7 @@ export class ContractApiClient {
         message: err.message,
       };
 
-      logApiError(ContractApiClient.getCurrentTestName(testName || ''), apiError);
+      logApiError(apiError, ContractApiClient.getCurrentTestName(testName || ''));
       return apiError;
     }
 
@@ -311,7 +311,7 @@ export class ContractApiClient {
       message: error instanceof Error ? error.message : 'Unknown error',
     };
 
-    logApiError(ContractApiClient.getCurrentTestName(testName || ''), genericError);
+    logApiError(genericError, ContractApiClient.getCurrentTestName(testName || ''));
     return genericError;
   }
 }

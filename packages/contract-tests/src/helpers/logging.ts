@@ -22,16 +22,23 @@ export interface ApiError {
 /**
  * Log an API call with redacted headers
  */
-export function logApiCall(method: string, url: string, headers: ApiCallHeaders): void {
-  const redactedHeaders = redactHeaders(headers);
-  console.log(`\n[Contract Test] API Call: ${method} ${url}`);
-  console.log('Headers:', redactedHeaders);
+export function logApiCall(
+  method: string,
+  url: string,
+  testName: string,
+  headers?: ApiCallHeaders,
+): void {
+  console.log(`\n[Contract Test] API Call: ${method} ${url} (${testName})`);
+  if (headers && Object.keys(headers).length > 0) {
+    const redactedHeaders = redactHeaders(headers);
+    console.log('Headers:', redactedHeaders);
+  }
 }
 
 /**
  * Log an API response with redacted headers
  */
-export function logApiResponse(testName: string, response: ApiResponse): void {
+export function logApiResponse(response: ApiResponse, testName: string): void {
   const redactedHeaders = redactHeaders(response.headers);
   console.log(`\n[Contract Test] ${testName} - Response:`);
   console.log('Status:', response.status);
@@ -43,22 +50,21 @@ export function logApiResponse(testName: string, response: ApiResponse): void {
 /**
  * Log an API error with redacted headers
  */
-export function logApiError(testName: string, error: ApiError): void {
-  const redactedHeaders = error.headers ? redactHeaders(error.headers) : {};
+export function logApiError(error: ApiError, testName: string): void {
   console.error(`\n[Contract Test] ${testName} - Error:`);
   console.error('Status:', error.status);
-  console.error('Headers:', redactedHeaders);
   console.error('Message:', error.message);
-  if (error.data) {
-    // Note: Error data should be sanitized before logging
-    console.error('Data:', error.data);
+  if (error.headers && Object.keys(error.headers).length > 0) {
+    const redactedHeaders = redactHeaders(error.headers);
+    console.error('Headers:', redactedHeaders);
   }
+  // Avoid logging raw error data to prevent PII leakage
 }
 
 /**
  * Log test setup information
  */
-export function logTestSetup(packageName: string, baseUrl: string, resultsDir: string): void {
+export function logTestSetup(packageName: string, baseUrl: string, resultsDir?: string): void {
   console.log('\n[Contract Test] Test Setup:');
   console.log('Package:', packageName);
   console.log('Base URL:', baseUrl);

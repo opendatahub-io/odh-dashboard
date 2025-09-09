@@ -1,5 +1,5 @@
-import { spawnSync } from 'child_process';
-import { resolve, join } from 'path';
+import { spawnSync, spawn } from 'child_process';
+import { resolve, join, parse } from 'path';
 import { existsSync } from 'fs';
 
 export interface ContractTestRunnerOptions {
@@ -13,13 +13,22 @@ export interface ContractTestRunnerOptions {
 function findBffDir(currentDir: string): string | null {
   // Look for upstream/bff in current directory or parent directories
   let dir = currentDir;
-  while (dir !== '/') {
+  const { root } = parse(dir);
+
+  while (dir !== root) {
     const bffPath = join(dir, 'upstream', 'bff');
     if (existsSync(bffPath)) {
       return bffPath;
     }
     dir = resolve(dir, '..');
   }
+
+  // Check the root directory itself
+  const bffPath = join(root, 'upstream', 'bff');
+  if (existsSync(bffPath)) {
+    return bffPath;
+  }
+
   return null;
 }
 
@@ -75,15 +84,16 @@ export function runContractTests(options: ContractTestRunnerOptions = {}): Promi
 
     // Start BFF in background
     console.log('🚀 Starting BFF server...');
-    const bffProcess = spawnSync('make', ['run'], {
+    const bffProcess = spawn('make', ['run'], {
       cwd: bffDir,
-      stdio: 'pipe',
+      stdio: 'inherit',
       shell: true,
+      detached: true,
     });
 
-    if (bffProcess.status !== 0) {
-      console.error('❌ Failed to start BFF');
-      res(bffProcess.status || 1);
+    if (!bffProcess.pid) {
+      console.error('❌ Failed to start BFF (no PID)');
+      res(1);
       return;
     }
 
@@ -105,7 +115,7 @@ export function runContractTests(options: ContractTestRunnerOptions = {}): Promi
       }
 
       if (options.report) {
-        jestArgs.push('--reporters', 'default', 'jest-html-reporter');
+        jestArgs.push('--reporters', 'default', 'jest-html-reporters');
       }
 
       const testResult = spawnSync('npx', ['jest', ...jestArgs], {
@@ -117,10 +127,17 @@ export function runContractTests(options: ContractTestRunnerOptions = {}): Promi
       // Clean up BFF process
       try {
         if (bffProcess.pid) {
-          process.kill(-bffProcess.pid, 'SIGTERM');
+          if (process.platform === 'win32') {
+            spawnSync('taskkill', ['/PID', String(bffProcess.pid), '/T', '/F'], {
+              stdio: 'inherit',
+            });
+          } else {
+            // Kill process group on Unix-like systems
+            process.kill(-bffProcess.pid, 'SIGTERM');
+          }
         }
-      } catch (e) {
-        // Ignore errors
+      } catch {
+        // Ignore cleanup errors
       }
 
       res(testResult.status || 0);

@@ -16,13 +16,30 @@ export interface OpenApiResponse {
 
 export interface OpenApiSchema {
   type?: string;
-  properties?: Record<string, unknown>;
+  properties?: Record<string, OpenApiSchema | boolean>;
   required?: string[];
-  items?: Record<string, unknown>;
+  items?: OpenApiSchema | OpenApiSchema[] | boolean;
   enum?: unknown[];
   format?: string;
   description?: string;
   $ref?: string;
+  nullable?: boolean;
+  additionalProperties?: OpenApiSchema | boolean;
+  patternProperties?: Record<string, OpenApiSchema | boolean>;
+  allOf?: OpenApiSchema[];
+  anyOf?: OpenApiSchema[];
+  oneOf?: OpenApiSchema[];
+  not?: OpenApiSchema;
+  minimum?: number;
+  maximum?: number;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  default?: unknown;
+  example?: unknown;
+  title?: string;
+  readOnly?: boolean;
+  writeOnly?: boolean;
 }
 
 /**

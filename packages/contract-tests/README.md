@@ -29,9 +29,6 @@ go run ./cmd --mock-k8s-client --mock-mr-client --port 8080 --allowed-origins="*
 cd packages/your-package
 CONTRACT_MOCK_BFF_URL=http://localhost:8080 npx jest contract-tests --config=contract-tests/jest.config.js --passWithNoTests
 
-# Open test report after running tests
-npm run test:contract:report
-
 # Run tests with automatic report opening
 npm run test:contract:with-report
 ```
@@ -49,8 +46,6 @@ npx turbo run test:contract --filter=@odh-dashboard/model-registry
 # Run with automatic report opening (opens browser for each package)
 npx turbo run test:contract:with-report
 
-# Open existing test reports in browser
-npm run test:contract:report
 ```
 
 ## What You Get
@@ -326,11 +321,8 @@ schemaValidator.loadSchema('SimpleResponse', simpleSchema);
 # Basic usage
 npm run test:contract
 
-# Watch mode
-npm run test:contract:watch
-
-# Direct Jest usage
-jest --config=../../contract-tests/jest.preset.js --testPathPattern=contract-tests
+# Direct Jest usage (from package root)
+npx jest --config=contract-tests/jest.config.js --testPathPattern=contract-tests
 ```
 
 ## Zero Configuration Required
@@ -440,8 +432,6 @@ npm run test:contract
 # Run tests with automatic report opening
 npm run test:contract:with-report
 
-# Open existing test reports manually
-npm run test:contract:report
 ```
 
 ## Troubleshooting

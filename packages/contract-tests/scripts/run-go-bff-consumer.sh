@@ -49,6 +49,7 @@ BFF_DIR=""
 CONSUMER_DIR=""
 PACKAGE_NAME=""
 PORT=""
+CONTRACT_MOCK_BFF_HEALTH_ENDPOINT="${CONTRACT_MOCK_BFF_HEALTH_ENDPOINT:-/healthcheck}"
 
 require_arg() {
   if [[ $# -lt 2 || -z "$2" || "$2" == -* ]]; then
@@ -141,7 +142,7 @@ if [[ -z "${KUBEBUILDER_ASSETS:-}" ]]; then
   fi
 fi
 
-BFF_LOG_FILE="$RESULTS_DIR/bff.log"
+BFF_LOG_FILE="$RESULTS_DIR/bff-mock.log"
 # Use dynamic port to avoid conflicts in parallel execution
 if [[ -z "$PORT" ]]; then
   # Find an available port starting from 8080
@@ -181,7 +182,7 @@ trap cleanup EXIT INT TERM
 # Wait for healthcheck
 log_info "Waiting for Mock BFF to be ready..."
 for i in $(seq 1 30); do
-  if curl -s -f "http://localhost:$PORT/healthcheck" >/dev/null 2>&1; then
+  if curl -s -f "http://localhost:$PORT$CONTRACT_MOCK_BFF_HEALTH_ENDPOINT" >/dev/null 2>&1; then
     log_success "Mock BFF is ready!"
     break
   fi
@@ -194,7 +195,7 @@ for i in $(seq 1 30); do
 done
 
 # If loop finished without success, fail explicitly
-if ! curl -s -f "http://localhost:$PORT/healthcheck" >/dev/null 2>&1; then
+if ! curl -s -f "http://localhost:$PORT$CONTRACT_MOCK_BFF_HEALTH_ENDPOINT" >/dev/null 2>&1; then
   log_error "Timed out waiting for Mock BFF to become ready"
   log_error "BFF logs (tail):"
   tail -n 200 "$BFF_LOG_FILE" || true

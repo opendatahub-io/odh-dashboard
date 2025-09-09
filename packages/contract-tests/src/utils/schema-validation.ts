@@ -8,7 +8,7 @@ export interface SchemaValidationConfig {
 }
 
 export interface ValidationResult {
-  isValid: boolean;
+  valid: boolean;
   errors?: string[];
 }
 
@@ -58,7 +58,7 @@ export class ContractSchemaValidator {
     const schema = this.schemas.get(schemaId);
     if (!schema) {
       return {
-        isValid: false,
+        valid: false,
         errors: [`Schema '${schemaId}' not found`],
       };
     }
@@ -67,7 +67,7 @@ export class ContractSchemaValidator {
     if (!isErrorResponse && hasDataProperty(response)) {
       dataToValidate = response.data;
     }
-    let isValid = false;
+    let valid = false;
 
     try {
       if (schemaPath) {
@@ -75,21 +75,21 @@ export class ContractSchemaValidator {
         const refSchema = {
           $ref: `${schemaId}${schemaPath.startsWith('#') ? schemaPath : `#${schemaPath}`}`,
         };
-        isValid = this.ajv.validate(refSchema, dataToValidate);
+        valid = this.ajv.validate(refSchema, dataToValidate);
       } else {
         // Validate against the whole schema
-        isValid = this.ajv.validate(schemaId, dataToValidate);
+        valid = this.ajv.validate(schemaId, dataToValidate);
       }
     } catch (error) {
       return {
-        isValid: false,
+        valid: false,
         errors: [
           `Schema validation error: ${error instanceof Error ? error.message : 'Unknown error'}`,
         ],
       };
     }
 
-    if (!isValid) {
+    if (!valid) {
       const errors = this.ajv.errors?.map((err) => {
         const path = err.instancePath || '/';
         const msg = err.message || 'Unknown error';
@@ -97,12 +97,12 @@ export class ContractSchemaValidator {
       });
 
       return {
-        isValid: false,
+        valid: false,
         errors: errors || ['Unknown validation error'],
       };
     }
 
-    return { isValid: true };
+    return { valid: true };
   }
 
   /**
@@ -112,7 +112,7 @@ export class ContractSchemaValidator {
     const schema = this.schemas.get(schemaId);
     if (!schema) {
       return {
-        isValid: false,
+        valid: false,
         errors: [`Schema '${schemaId}' not found`],
       };
     }
@@ -121,9 +121,9 @@ export class ContractSchemaValidator {
       const refSchema = {
         $ref: `${schemaId}#${propertyPath.startsWith('/') ? propertyPath : `/${propertyPath}`}`,
       };
-      const isValid = this.ajv.validate(refSchema, property);
+      const valid = this.ajv.validate(refSchema, property);
 
-      if (!isValid) {
+      if (!valid) {
         const errors = this.ajv.errors?.map((err) => {
           const path = err.instancePath || '/';
           const msg = err.message || 'Unknown error';
@@ -131,15 +131,15 @@ export class ContractSchemaValidator {
         });
 
         return {
-          isValid: false,
+          valid: false,
           errors: errors || ['Unknown validation error'],
         };
       }
 
-      return { isValid: true };
+      return { valid: true };
     } catch (error) {
       return {
-        isValid: false,
+        valid: false,
         errors: [
           `Schema validation error: ${error instanceof Error ? error.message : 'Unknown error'}`,
         ],

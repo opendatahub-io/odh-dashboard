@@ -199,8 +199,10 @@ function generateHtmlReport(
   ${apiCalls
     .map((c) => {
       const body = escapeHtml(JSON.stringify(c.error?.body ?? c.response?.body ?? {}, null, 2));
-      const label = c.testName ? `— ${c.testName}` : '';
-      return `<div><strong>${c.method}</strong> ${c.url} ${label}<pre>${body}</pre></div>`;
+      const method = escapeHtml(c.method);
+      const url = escapeHtml(c.url);
+      const label = c.testName ? `— ${escapeHtml(c.testName)}` : '';
+      return `<div><strong>${method}</strong> ${url} ${label}<pre>${body}</pre></div>`;
     })
     .join('')}
   <h2>Mock BFF Logs</h2>

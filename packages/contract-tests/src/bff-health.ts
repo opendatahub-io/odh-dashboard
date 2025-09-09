@@ -5,6 +5,7 @@ export interface BffConfig {
   timeout?: number;
   retries?: number;
   retryDelay?: number;
+  healthEndpoint?: string;
 }
 
 export interface BffHealthResult {
@@ -19,6 +20,7 @@ export const DEFAULT_BFF_CONFIG: BffConfig = {
   timeout: 10000,
   retries: 3,
   retryDelay: 1000,
+  healthEndpoint: '/health',
 };
 
 export function createBffConfig(config: Partial<BffConfig> = {}): BffConfig {
@@ -30,7 +32,8 @@ export async function verifyBffHealth(config: Partial<BffConfig> = {}): Promise<
 
   try {
     const startTime = Date.now();
-    const response = await axios.get(`${finalConfig.url}/health`, {
+    const healthEndpoint = finalConfig.healthEndpoint ?? '/health';
+    const response = await axios.get(`${finalConfig.url}${healthEndpoint}`, {
       timeout: finalConfig.timeout,
     });
     const responseTime = Date.now() - startTime;

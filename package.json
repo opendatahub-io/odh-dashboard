@@ -62,8 +62,7 @@
     "test-unit": "turbo run test-unit",
     "test-unit-coverage": "turbo run test-unit-coverage && node scripts/unit-test-coverage-aggregator.js",
     "test:contract": "turbo run test:contract",
-    "test:contract:with-report": "CONTRACT_TEST_OPEN_REPORT=true turbo run test:contract",
-    "test:contract:report": "find packages -name 'contract-test-report.html' -type f -print0 | xargs -0 ls -t | head -1 | xargs open"
+    "test:contract:with-report": "CONTRACT_TEST_OPEN_REPORT=true turbo run test:contract"
   },
   "dependencies": {
     "@kubernetes/client-node": "^0.12.2",

@@ -21,7 +21,7 @@ console.log('✅ Jest matchers setup complete');
 export { ContractApiClient } from './utils/api-client';
 export { ContractSchemaValidator } from './schema-validator';
 export { verifyBffHealth, waitForBffHealth } from './bff-health';
-export { logTestSetup, logApiCall, logApiResponse, logApiError } from './logging';
+export { logTestSetup, logApiCall, logApiResponse, logApiError } from './helpers/logging';
 export {
   createTestSchema,
   extractSchemaFromOpenApiResponse,
