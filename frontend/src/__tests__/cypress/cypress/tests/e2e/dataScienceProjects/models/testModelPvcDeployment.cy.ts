@@ -1,6 +1,7 @@
 import {
   inferenceServiceModal,
   modelServingGlobal,
+  modelServingSection,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import { AWS_BUCKETS } from '#~/__tests__/cypress/cypress/utils/s3Buckets';
 import {
@@ -24,6 +25,7 @@ import {
 } from '#~/__tests__/cypress/cypress/pages/clusterStorage';
 import { createS3LoaderPod } from '#~/__tests__/cypress/cypress/utils/oc_commands/pvcLoaderPod';
 import { waitForPodCompletion } from '#~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
+import { MODEL_STATUS_TIMEOUT } from '#~/__tests__/cypress/cypress/support/timeouts';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -141,10 +143,16 @@ describe('Verify a model can be deployed from a PVC', () => {
 
       //Verify the model created and is running
       cy.step('Verify that the Model is running');
+      const kServeRow = modelServingSection.getKServeRow(modelName);
       checkInferenceServiceState(testData.singleModelName, projectName, {
         checkReady: true,
         checkLatestDeploymentReady: true,
       });
+      cy.reload();
+      modelServingSection.findModelMetricsLink(modelName);
+      kServeRow.shouldHaveServingRuntime('OpenVINO Model Server');
+      kServeRow.findStatusLabel('Started', MODEL_STATUS_TIMEOUT).should('exist');
+      kServeRow.findStateActionToggle().should('have.text', 'Stop').should('be.enabled');
     },
   );
 });

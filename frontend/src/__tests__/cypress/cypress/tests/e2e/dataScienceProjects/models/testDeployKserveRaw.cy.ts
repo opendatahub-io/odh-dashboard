@@ -14,6 +14,7 @@ import {
 import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
+import { MODEL_STATUS_TIMEOUT } from '#~/__tests__/cypress/cypress/support/timeouts';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -102,6 +103,7 @@ describe('Verify a user can deploy KServe Raw Deployment Model', () => {
       modelServingSection.findModelServerDeployedName(modelName);
 
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
+      const kServeRow = modelServingSection.getKServeRow(modelName);
       // For KServe Raw deployments, we only need to check Ready condition
       // LatestDeploymentReady is specific to Serverless deployments
       // Validate DeploymentMode parameter in inferenceService is RawDeployment
@@ -113,6 +115,11 @@ describe('Verify a user can deploy KServe Raw Deployment Model', () => {
         },
         'RawDeployment',
       );
+      cy.reload();
+      modelServingSection.findModelMetricsLink(modelName);
+      kServeRow.shouldHaveServingRuntime('OpenVINO Model Server');
+      kServeRow.findStatusLabel('Started', MODEL_STATUS_TIMEOUT).should('exist');
+      kServeRow.findStateActionToggle().should('have.text', 'Stop').should('be.enabled');
     },
   );
 });
