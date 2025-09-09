@@ -14,7 +14,11 @@ import {
   RuntimeStateKF,
   runtimeStateLabels,
 } from '#~/concepts/pipelines/kfTypes';
-import { computeRunStatus, getStatusFromCondition } from '#~/concepts/pipelines/content/utils';
+import {
+  computeRunStatus,
+  getStatusFromCondition,
+  messageForCondition,
+} from '#~/concepts/pipelines/content/utils';
 import { K8sCondition } from '#~/k8sTypes';
 import { StatusType } from '#~/concepts/pipelines/content/PipelineComponentStatusIcon.tsx';
 
@@ -270,5 +274,62 @@ describe('getStatusFromCondition', () => {
     };
 
     expect(getStatusFromCondition(condition)).toBe(StatusType.ERROR);
+  });
+});
+
+describe('messageForCondition', () => {
+  it('should return predefined messages for known conditions', () => {
+    expect(messageForCondition('DatabaseAvailable')).toBe('Connect to database');
+    expect(messageForCondition('ObjectStoreAvailable')).toBe('Connect to storage');
+    expect(messageForCondition('PersistenceAgentReady')).toBe('Start Persistence Agent');
+    expect(messageForCondition('ApiServerReady')).toBe('Start API server');
+    expect(messageForCondition('ScheduledWorkflowReady')).toBe('Schedule workflow');
+    expect(messageForCondition('WorkflowControllerReady')).toBe('Start workflow controller');
+    expect(messageForCondition('MLMDProxyReady')).toBe('Start metadata proxy');
+    expect(messageForCondition('WebhookReady')).toBe('Start webhook');
+    expect(messageForCondition('Ready')).toBe('Start pipeline Server');
+  });
+
+  it('should handle fallback for unknown conditions with "Ready" suffix', () => {
+    expect(messageForCondition('CustomServiceReady')).toBe('Start custom service');
+    expect(messageForCondition('DeploymentReady')).toBe('Start deployment');
+    expect(messageForCondition('NetworkReady')).toBe('Start network');
+  });
+
+  it('should handle fallback for unknown conditions with "Available" suffix', () => {
+    expect(messageForCondition('CustomStorageAvailable')).toBe('Start custom storage');
+    expect(messageForCondition('CacheAvailable')).toBe('Start cache');
+  });
+
+  it('should handle fallback for PascalCase conditions', () => {
+    expect(messageForCondition('MyCustomService')).toBe('Start my custom service');
+    expect(messageForCondition('APIGateway')).toBe('Start API gateway');
+    expect(messageForCondition('HTTPSProxy')).toBe('Start HTTPS proxy');
+  });
+
+  it('should handle fallback for conditions with acronyms', () => {
+    expect(messageForCondition('MLMDServiceReady')).toBe('Start MLMD service');
+    expect(messageForCondition('HTTPServerAvailable')).toBe('Start HTTP server');
+    expect(messageForCondition('XMLParserReady')).toBe('Start XML parser');
+  });
+
+  it('should handle fallback for snake_case and kebab-case conditions', () => {
+    expect(messageForCondition('my_custom_service')).toBe('Start my custom service');
+    expect(messageForCondition('my-custom-service')).toBe('Start my custom service');
+    expect(messageForCondition('mixed_case-Service')).toBe('Start mixed case service');
+  });
+
+  it('should handle edge cases', () => {
+    expect(messageForCondition('')).toBe('Start ');
+    expect(messageForCondition('Ready')).toBe('Start pipeline Server'); // Known condition
+    expect(messageForCondition('Available')).toBe('Start ');
+    expect(messageForCondition('A')).toBe('Start A'); // Single uppercase letter preserved
+  });
+
+  it('should handle acronyms correctly', () => {
+    expect(messageForCondition('MLMDAPIReady')).toBe('Start MLMDAPI'); // Adjacent acronyms don't get spaced
+    expect(messageForCondition('HTTPSMLMDReady')).toBe('Start HTTPSMLMD'); // Adjacent acronyms don't get spaced
+    expect(messageForCondition('HTTPServerReady')).toBe('Start HTTP server'); // Acronym followed by word gets spaced
+    expect(messageForCondition('XMLParserServiceReady')).toBe('Start XML parser service'); // Multiple words with acronym
   });
 });

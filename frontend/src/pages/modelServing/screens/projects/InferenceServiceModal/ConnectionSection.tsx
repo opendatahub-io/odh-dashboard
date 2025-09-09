@@ -442,7 +442,12 @@ export const ConnectionSection: React.FC<Props> = ({
                     setData('storage', {
                       ...data.storage,
                       dataConnection: getResourceNameFromK8sResource(selection),
-                      uri: undefined, // Clear the URI when switching connections
+                      // Clear the URI when switching connections
+                      uri:
+                        data.storage.dataConnection &&
+                        getResourceNameFromK8sResource(selection) !== data.storage.dataConnection
+                          ? undefined
+                          : data.storage.uri,
                     });
                   }}
                   folderPath={data.storage.path}
