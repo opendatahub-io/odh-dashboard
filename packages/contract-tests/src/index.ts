@@ -1,5 +1,15 @@
 /// <reference types="jest" />
 
+// Type declarations for Jest matchers
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace jest {
+    interface Matchers<R> {
+      toMatchContract: (schema: Record<string, unknown>, options: ContractTestOptions) => R;
+    }
+  }
+}
+
 // Setup Jest matchers
 import { toMatchContract } from './matchers/toMatchContract';
 

@@ -1,5 +1,7 @@
 const { execSync } = require('child_process');
 
+/* eslint-disable no-undef */
+
 /**
  * Get all workspace packages using npm query
  * @returns {Array} Array of workspace package objects
