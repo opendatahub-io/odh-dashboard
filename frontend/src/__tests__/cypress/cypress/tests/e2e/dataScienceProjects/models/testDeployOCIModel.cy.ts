@@ -26,7 +26,7 @@ let modelDeploymentName: string;
 const uuid = generateTestUUID();
 
 describe(
-  '[Product Bug: RHOAIENG-31085] A user can create an OCI connection and deploy a model with it',
+  'A user can create an OCI connection and deploy a model with it',
   { testIsolation: false },
   () => {
     let testData: DeployOCIModelData;
@@ -58,7 +58,7 @@ describe(
     it(
       'Verify User Can Create an OCI Connection in DS Connections Page And Deploy the Model',
       {
-        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent', '@Bug'],
+        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent'],
       },
       () => {
         cy.step(`Navigate to DS Project ${projectName}`);
@@ -97,7 +97,7 @@ describe(
         cy.reload();
         modelServingSection.findModelMetricsLink(modelDeploymentName);
         modelServingSection.findStatusTooltip().click({ force: true });
-        cy.contains('Model is deployed', { timeout: 120000 }).should('be.visible');
+        cy.contains('Model Deployment is Active', { timeout: 120000 }).should('be.visible');
       },
     );
   },
