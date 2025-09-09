@@ -1,15 +1,5 @@
-import { EdgeStyle, NodeModel } from '@patternfly/react-topology';
-import { LineageEntityType } from './LineageNode';
-
-export interface LineageNode {
-  id: string;
-  label: string;
-  entityType: LineageEntityType;
-  features?: number;
-  description?: string;
-  truncateLength?: number;
-  layer?: number; // Optional layer for positioning (0=leftmost, higher=rightward)
-}
+import React from 'react';
+import { EdgeStyle, NodeModel, ComponentFactory } from '@patternfly/react-topology';
 
 export interface LineageEdge {
   id: string;
@@ -20,10 +10,51 @@ export interface LineageEdge {
   isPositioningEdge?: boolean; // Marks edges used only for layout positioning
 }
 
+export type LineageEntityType =
+  | 'entity'
+  | 'batch_data_source'
+  | 'push_data_source'
+  | 'request_data_source'
+  | 'batch_feature_view'
+  | 'on_demand_feature_view'
+  | 'stream_feature_view'
+  | 'feature_service';
+
+export interface LineageNode {
+  id: string;
+  label: string;
+  entityType: LineageEntityType;
+  fsObjectTypes: 'entity' | 'data_source' | 'feature_view' | 'feature_service';
+  features?: {
+    name: string;
+    valueType: string;
+    description?: string;
+    tags?: Record<string, string>;
+  }[];
+  name: string;
+  description?: string;
+  truncateLength?: number;
+  layer?: number; // Optional layer for positioning (0=leftmost, higher=rightward)
+}
+
 export interface LineageData {
   nodes: LineageNode[];
   edges: LineageEdge[];
 }
+
+export interface PopoverPosition {
+  x: number;
+  y: number;
+}
+
+export interface PopoverComponentProps {
+  node: LineageNode | null;
+  position: PopoverPosition | null;
+  isVisible: boolean;
+  onClose: () => void;
+}
+
+export type PopoverComponent = React.ComponentType<PopoverComponentProps>;
 
 export interface LineageProps {
   data: LineageData;
@@ -34,6 +65,9 @@ export interface LineageProps {
   onNodeSelect?: (nodeId: string | null) => void;
   className?: string;
   title?: string;
+  showNodePopover?: boolean; // Enable/disable node popover functionality (default: true)
+  componentFactory: ComponentFactory;
+  popoverComponent?: PopoverComponent; // Optional custom popover component
 }
 
 export const convertToLineageNodeModel = (node: LineageNode): NodeModel => {

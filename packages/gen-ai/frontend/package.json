@@ -21,7 +21,7 @@
     "test:type-check": "tsc --noEmit",
     "test:type-check:standalone": "tsc --noEmit -p tsconfig-standalone.json",
     "test:unit": "npm run test:jest -- --silent",
-    "lint": "npm run eslint",
+    "lint": "eslint --max-warnings 0 --ext .js,.ts,.jsx,.tsx ./src",
     "format": "prettier --check --write \"./src/**/*.{tsx,ts}\"",
     "ci-checks": "npm run test:type-check && npm run lint && npm run test:coverage",
     "build:bundle-profile": "webpack --config ./config/webpack.prod.js --profile --json > stats.json",

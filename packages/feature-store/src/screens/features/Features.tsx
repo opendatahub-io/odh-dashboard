@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { EmptyStateBody, EmptyStateVariant, EmptyState } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
@@ -13,11 +14,17 @@ const description =
   'Select a feature store to view its features. A feature is a schema containing a name and a type, and is used to represent the data stored in feature views for both training and serving purposes.';
 const Features = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
+  const [searchParams] = useSearchParams();
   const {
     data: features,
     loaded: featuresLoaded,
     error: featuresLoadError,
   } = useFeatures(currentProject);
+
+  const initialFilter = React.useMemo(() => {
+    const featureViewParam = searchParams.get('featureView');
+    return featureViewParam ? { featureView: featureViewParam } : {};
+  }, [searchParams]);
 
   const emptyState = (
     <EmptyState
@@ -50,7 +57,11 @@ const Features = (): React.ReactElement => {
       }
       provideChildrenPadding
     >
-      <FeaturesList features={features.features} fsProject={currentProject} />
+      <FeaturesList
+        features={features.features}
+        fsProject={currentProject}
+        initialFilter={initialFilter}
+      />
     </ApplicationsPage>
   );
 };
