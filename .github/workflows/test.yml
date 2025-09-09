@@ -165,15 +165,17 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.21'
+      - name: Generate modules cache key
+        id: key
+        run: |
+          echo "modules-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}" >> $GITHUB_OUTPUT
       - name: Restore cache
         uses: actions/cache/restore@v4
         with:
           path: |
             ~/.cache/Cypress
-            ${{ github.workspace }}/node_modules
-            ${{ github.workspace }}/backend/node_modules
-            ${{ github.workspace }}/frontend/node_modules
-          key: ${{ needs.Setup.outputs.modules-cache-key }}
+            **/node_modules
+          key: ${{ steps.key.outputs.modules-cache-key }}
       - name: Cache Go modules
         uses: actions/cache@v4
         with:
