@@ -220,7 +220,7 @@ exit_code=$?
 # Display test summary and open coverage report
 display_test_summary "$RESULTS_DIR"
 
-if [[ "${CI:-}" != "true" ]]; then
+if [[ "${CI:-}" != "true" && "${CONTRACT_TEST_OPEN_REPORT:-}" == "true" ]]; then
   if ! open_html_report "$RESULTS_DIR" 2>/dev/null; then
     log_warning "Could not open HTML coverage report in browser"
   fi

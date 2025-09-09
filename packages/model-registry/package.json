@@ -7,7 +7,9 @@
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "update-subtree": "../../scripts/package-subtree.sh --package=@odh-dashboard/model-registry",
-    "test:contract": "odh-ct-bff-consumer --bff-dir upstream/bff"
+    "test:contract": "odh-ct-bff-consumer --bff-dir upstream/bff",
+    "test:contract:report": "open \"$(find contract-tests/contract-test-results -name 'contract-test-report.html' -type f | head -1)\"",
+    "test:contract:with-report": "CONTRACT_TEST_OPEN_REPORT=true odh-ct-bff-consumer --bff-dir upstream/bff"
   },
   "subtree": {
     "repo": "https://github.com/kubeflow/model-registry.git",

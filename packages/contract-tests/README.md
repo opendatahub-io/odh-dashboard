@@ -28,6 +28,12 @@ go run ./cmd --mock-k8s-client --mock-mr-client --port 8080 --allowed-origins="*
 # Terminal 2: Run Jest contract tests directly
 cd packages/your-package
 CONTRACT_MOCK_BFF_URL=http://localhost:8080 npx jest contract-tests --config=contract-tests/jest.config.js --passWithNoTests
+
+# Open test report after running tests
+npm run test:contract:report
+
+# Run tests with automatic report opening
+npm run test:contract:with-report
 ```
 
 ### Option 3: Turbo Orchestration (CI Optimized)
@@ -39,6 +45,12 @@ npx turbo run test:contract
 
 # Run for specific package
 npx turbo run test:contract --filter=@odh-dashboard/model-registry
+
+# Run with automatic report opening (opens browser for each package)
+npx turbo run test:contract:with-report
+
+# Open existing test reports in browser
+npm run test:contract:report
 ```
 
 ## What You Get
@@ -407,6 +419,29 @@ const result = await apiClient.get('/api/v1/users/123', 'Get User');
 const validation = schemaValidator.validateResponse(result.data, 'UserResponse');
 
 expect(validation.valid).toBe(true);
+```
+
+## Environment Variables
+
+Control contract test behavior with these environment variables:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `CONTRACT_MOCK_BFF_URL` | URL of the Mock BFF server | `http://localhost:8080` |
+| `CONTRACT_TEST_OPEN_REPORT` | Automatically open HTML report in browser | `false` |
+| `CONTRACT_TEST_RESULTS_DIR` | Directory for test results and reports | `./contract-test-results` |
+
+### Report Management
+
+```bash
+# Run tests without opening reports (default behavior)
+npm run test:contract
+
+# Run tests with automatic report opening
+npm run test:contract:with-report
+
+# Open existing test reports manually
+npm run test:contract:report
 ```
 
 ## Troubleshooting

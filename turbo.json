@@ -20,19 +20,13 @@
       "dependsOn": ["^type-check"]
     },
     "test:contract": {
-      "dependsOn": ["^build"],
       "inputs": [
         "contract-tests/**",
-        "upstream/bff/**",
-        "jest.config.js",
-        "package.json"
+        "upstream/bff/**"
       ],
       "outputs": [
         "contract-tests/contract-test-results/**"
-      ],
-      "env": [
-        "CONTRACT_MOCK_BFF_URL"
       ]
-    },
+    }
   }
 }

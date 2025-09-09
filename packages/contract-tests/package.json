@@ -2,8 +2,8 @@
   "name": "@odh-dashboard/contract-tests",
   "version": "1.0.0",
   "description": "Zero-config contract testing for ODH Dashboard packages",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/contract-tests/src/index.js",
+  "types": "./dist/contract-tests/src/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "type-check": "tsc -p tsconfig.json --noEmit",
@@ -36,8 +36,8 @@
   },
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./dist/index.js"
+      "types": "./dist/contract-tests/src/index.d.ts",
+      "default": "./dist/contract-tests/src/index.js"
     }
   }
 }

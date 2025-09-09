@@ -1,11 +1,7 @@
-// Mock for ansi-regex to avoid ES6 module issues
-function ansiRegex(options = {}) {
-  const { onlyFirst = false } = options;
-  // Simple regex pattern for ANSI escape codes
-  // eslint-disable-next-line no-control-regex
-  const pattern = /\x1B\[[0-9;]*[a-zA-Z]/g;
-  return onlyFirst ? pattern : pattern;
-}
+// Mock for ansi-regex package to resolve Jest compatibility issues
+// This package is a transitive dependency that can cause ES6 module compatibility issues
 
-module.exports = ansiRegex;
-module.exports.default = ansiRegex;
+module.exports = function ansiRegex() {
+  // eslint-disable-next-line no-control-regex
+  return /[\u001B\u009B][[\]()#;?]*(?:(?:(?:(?:;[-a-zA-Z\d/#&.:=?%@~_]+)*|[a-zA-Z\d]+(?:;[-a-zA-Z\d/#&.:=?%@~_]*)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PR-TZcf-nq-uy=><~]))/g;
+};

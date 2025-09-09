@@ -1,15 +1,15 @@
 {
   "extends": "@odh-dashboard/tsconfig/tsconfig.json",
   "compilerOptions": {
-    "outDir": "./dist",
     "noEmit": false,
+    "allowImportingTsExtensions": false,
+    "outDir": "./dist",
     "declaration": true,
     "declarationMap": true,
-    "allowImportingTsExtensions": false,
-    "paths": {
-      "@odh-dashboard/jest-config/hooks": ["../../../jest-config/src/hooks.ts"]
-    }
+    "module": "commonjs",
+    "target": "es2021",
+    "moduleResolution": "node"
   },
-  "include": ["src/**/*", "setup.base.ts", "jest-config/**/*", "src/jest.d.ts"],
-  "exclude": ["dist", "node_modules"]
+  "include": ["src/**/*"],
+  "exclude": ["dist", "node_modules", "**/*.test.ts", "**/*.spec.ts"]
 }

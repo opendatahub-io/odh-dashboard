@@ -2,7 +2,7 @@ import { spawnSync } from 'child_process';
 import { resolve, join } from 'path';
 import { existsSync } from 'fs';
 
-export interface ContractTestOptions {
+export interface ContractTestRunnerOptions {
   bffDir?: string;
   consumerDir?: string;
   packageName?: string;
@@ -32,7 +32,7 @@ function findContractTestsDir(currentDir: string): string | null {
   return null;
 }
 
-export function runContractTests(options: ContractTestOptions = {}): Promise<number> {
+export function runContractTests(options: ContractTestRunnerOptions = {}): Promise<number> {
   return new Promise((res) => {
     const cwd = process.cwd();
 

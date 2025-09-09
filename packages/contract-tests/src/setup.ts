@@ -5,7 +5,7 @@ export const setupContractTests = (): void => {
 };
 
 // Export utilities that teams might need
-export * from './api-client';
+export * from './utils/api-client';
 export * from './schema-validator';
 export * from './bff-health';
 export * from './logging';

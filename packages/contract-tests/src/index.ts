@@ -1,8 +1,5 @@
 /// <reference types="jest" />
 
-// Import Jest types (this ensures they're available to consuming packages)
-import './jest.d.ts';
-
 // Setup Jest matchers
 import { toMatchContract } from './matchers/toMatchContract';
 
@@ -11,7 +8,7 @@ expect.extend({ toMatchContract });
 console.log('✅ Jest matchers setup complete');
 
 /* eslint-disable no-barrel-files/no-barrel-files */
-export { ContractApiClient } from './api-client';
+export { ContractApiClient } from './utils/api-client';
 export { ContractSchemaValidator } from './schema-validator';
 export { verifyBffHealth, waitForBffHealth } from './bff-health';
 export { logTestSetup, logApiCall, logApiResponse, logApiError } from './logging';
@@ -21,7 +18,7 @@ export {
   convertOpenApiToJsonSchema,
 } from './schema-converter';
 export {};
-export { runContractTests, type ContractTestOptions } from './runner';
+export { runContractTests, type ContractTestRunnerOptions } from './runner';
 export {
   OpenApiValidator,
   type OpenApiSource,
@@ -32,6 +29,12 @@ export { loadOpenAPISchema, createSchemaMatcher } from './schema-helpers';
 /* eslint-enable no-barrel-files/no-barrel-files */
 
 // Export types for TypeScript consumption
+export interface ContractTestOptions {
+  ref: string; // JSON pointer within schema (e.g., "#/definitions/ModelRegistry")
+  status?: number;
+  headers?: Record<string, string | RegExp>;
+}
+
 export interface ContractTestMatcher {
-  toMatchContract: (schema: Record<string, unknown>, options?: Record<string, unknown>) => void;
+  toMatchContract: (schema: Record<string, unknown>, options: ContractTestOptions) => void;
 }

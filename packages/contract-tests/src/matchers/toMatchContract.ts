@@ -6,9 +6,9 @@ import addFormats from 'ajv-formats';
 type Schema = Record<string, unknown>;
 
 type Options = {
-  ref?: string; // JSON pointer within schema (e.g., "#/definitions/ModelRegistry")
-  expectedStatus?: number;
-  expectedHeaders?: Record<string, string | RegExp>;
+  ref: string; // JSON pointer within schema (e.g., "#/definitions/ModelRegistry") - required for proper schema validation
+  status?: number;
+  headers?: Record<string, string | RegExp>;
 };
 
 // Note: AJV instance is created per assertion to avoid schema id collisions and
@@ -41,30 +41,48 @@ export function toMatchContract(
   this: jest.MatcherContext,
   received: { status?: number; headers?: Record<string, unknown>; data?: unknown } | unknown,
   schema: Schema,
-  options?: Options,
+  options: Options,
 ): { pass: boolean; message: () => string } {
-  const { ref, expectedStatus, expectedHeaders } = options || {};
+  const { ref, status, headers } = options;
 
-  let payload: unknown = received;
-  if (isHttpResponseLike(received)) {
-    payload = received.data;
+  // Handle new API client response format: { success: true, response: ApiResponse } or { success: false, error: ApiError }
+  let actualResponse: unknown = received;
+  if (isRecord(received) && 'success' in received) {
+    if (received.success === true && 'response' in received) {
+      actualResponse = received.response;
+    } else if (received.success === false && 'error' in received) {
+      const errorMessage =
+        received.error && typeof received.error === 'object' && 'message' in received.error
+          ? String(received.error.message)
+          : 'Unknown error';
+      return {
+        pass: false,
+        message: () => `API call failed: ${errorMessage}`,
+      };
+    }
+  }
+
+  let payload: unknown = actualResponse;
+  if (isHttpResponseLike(actualResponse)) {
+    payload = actualResponse.data;
   }
 
   // Optional status check
-  if (typeof expectedStatus === 'number') {
-    const actualStatus = isHttpResponseLike(received) ? received.status : undefined;
-    if (actualStatus !== expectedStatus) {
+  if (typeof status === 'number') {
+    const actualStatus = isHttpResponseLike(actualResponse) ? actualResponse.status : undefined;
+    if (actualStatus !== status) {
       return {
         pass: false,
-        message: () =>
-          `Expected status ${expectedStatus} but received ${actualStatus ?? 'undefined'}`,
+        message: () => `Expected status ${status} but received ${actualStatus ?? 'undefined'}`,
       };
     }
   }
 
   // Optional headers check (normalize keys to lower-case and support string|string[])
-  if (expectedHeaders && isHttpResponseLike(received)) {
-    const rawHeaders: Record<string, unknown> = isRecord(received.headers) ? received.headers : {};
+  if (headers && isHttpResponseLike(actualResponse)) {
+    const rawHeaders: Record<string, unknown> = isRecord(actualResponse.headers)
+      ? actualResponse.headers
+      : {};
     const normalizedHeaders: Record<string, string | string[] | undefined> = {};
     for (const [k, v] of Object.entries(rawHeaders)) {
       const keyLc = k.toLowerCase();
@@ -76,7 +94,7 @@ export function toMatchContract(
         normalizedHeaders[keyLc] = undefined;
       }
     }
-    for (const [key, expected] of Object.entries(expectedHeaders)) {
+    for (const [key, expected] of Object.entries(headers)) {
       const actual = normalizedHeaders[key.toLowerCase()];
       if (expected instanceof RegExp) {
         if (Array.isArray(actual)) {

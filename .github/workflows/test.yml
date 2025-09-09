@@ -1,18 +1,7 @@
-# ODH Dashboard Test Workflow
-# This workflow runs all tests including:
-# - Type checking
-# - Linting
-# - Unit tests
-# - Contract tests (for Model Registry)
-# - Cypress tests
 name: Test
-
 on: [push, pull_request]
-
 env:
   NODE_VERSION: 20.x
-  DO_NOT_TRACK: 1
-
 jobs:
   Setup:
     runs-on: ubuntu-latest
@@ -20,11 +9,12 @@ jobs:
       modules-cache-key: ${{ steps.key.outputs.modules-cache-key }}
     steps:
       - uses: actions/checkout@v4
+      - name: Check for uncomitted changes
+        run: git diff --exit-code
       - name: Generate modules cache key
         id: key
         run: |
-          set -euo pipefail
-          echo "modules-cache-key=${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}" >> "$GITHUB_OUTPUT"
+          echo "modules-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}" >> $GITHUB_OUTPUT
       - name: Node.js modules cache
         uses: actions/cache@v4
         id: modules-cache
@@ -32,27 +22,18 @@ jobs:
           lookup-only: true
           path: |
             ~/.cache/Cypress
-            ~/.npm
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/backend/node_modules
+            ${{ github.workspace }}/frontend/node_modules
           key: ${{ steps.key.outputs.modules-cache-key }}
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         if: steps.modules-cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Install dependencies (deterministic)
+      - name: Install dependencies
         if: steps.modules-cache.outputs.cache-hit != 'true'
-        run: |
-          set -euo pipefail
-          if [ ! -f package-lock.json ]; then
-            echo "Error: package-lock.json not found. Please commit the lockfile for deterministic CI installs." >&2
-            exit 1
-          fi
-          npm install
-
-      - name: Check for uncommitted changes
-        run: |
-          set -euo pipefail
-          git diff --exit-code
+        run: npm install
 
   Type-Check:
     needs: Setup
@@ -68,16 +49,12 @@ jobs:
         with:
           path: |
             ~/.cache/Cypress
-            ~/.npm
-          key: ${{ needs.Setup.outputs.modules-cache-key }}
-      - name: Install dependencies
-        run: |
-          set -euo pipefail
-          npm install
-      - name: Run type checks
-        run: |
-          set -euo pipefail
-          npm run type-check
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/backend/node_modules
+            ${{ github.workspace }}/frontend/node_modules
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: Run TypeScript type checking
+        run: npx turbo run type-check
 
   Lint:
     needs: Setup
@@ -93,19 +70,15 @@ jobs:
         with:
           path: |
             ~/.cache/Cypress
-            ~/.npm
-          key: ${{ needs.Setup.outputs.modules-cache-key }}
-      - name: Install dependencies
-        run: |
-          set -euo pipefail
-          npm install
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/backend/node_modules
+            ${{ github.workspace }}/frontend/node_modules
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
       - name: Run linting and formatting checks
-        run: |
-          set -euo pipefail
-          NODE_OPTIONS="--max-old-space-size=8192" npm run lint
+        run: npm run lint:frontend:backend
 
   Unit-Tests:
-    needs: [Setup, Lint, Type-Check]
+    needs: [Setup, Lint]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -118,22 +91,48 @@ jobs:
         with:
           path: |
             ~/.cache/Cypress
-            ~/.npm
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/backend/node_modules
+            ${{ github.workspace }}/frontend/node_modules
           key: ${{ needs.Setup.outputs.modules-cache-key }}
-      - name: Install dependencies
+      - name: Run backend unit tests with coverage
         run: |
-          set -euo pipefail
-          npm install
-      - name: Unit tests with coverage
+          npm run test:backend:unit-coverage
+          mkdir -p ./backend/coverage
+          if [ -d "./backend/jest-coverage" ]; then
+            cp -R ./backend/jest-coverage/* ./backend/coverage/
+          elif [ -d "./jest-coverage" ]; then
+            cp -R ./jest-coverage/* ./backend/coverage/
+          fi
+      - name: Cleanup backend interim artifacts
         run: |
-          set -euo pipefail
-          npm run test-unit-coverage
-      - name: Upload unit test coverage
+          rm -rf ./backend/jest-coverage
+          rm -rf ./jest-coverage
+      - name: Run frontend unit tests with coverage
+        run: |
+          npm run test:frontend:unit-coverage
+          mkdir -p ./frontend/coverage
+          if [ -d "./frontend/jest-coverage" ]; then
+            cp -R ./frontend/jest-coverage/* ./frontend/coverage/
+          elif [ -d "./jest-coverage" ]; then
+            cp -R ./jest-coverage/* ./frontend/coverage/
+          fi
+      - name: Cleanup frontend interim artifacts
+        run: |
+          rm -rf ./frontend/jest-coverage
+          rm -rf ./jest-coverage
+      - name: Upload frontend unit test coverage
         uses: actions/upload-artifact@v4
         with:
           name: unit-coverage
-          path: ${{ github.workspace }}/jest-coverage
+          path: ./frontend/coverage
           if-no-files-found: error
+      - name: Upload backend unit test coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: ./backend/coverage
+          if-no-files-found: warn
 
   Contract-Tests:
     needs: [Setup, Lint, Type-Check]
@@ -155,21 +154,23 @@ jobs:
         with:
           path: |
             ~/.cache/Cypress
-            ~/.npm
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/backend/node_modules
+            ${{ github.workspace }}/frontend/node_modules
           key: ${{ needs.Setup.outputs.modules-cache-key }}
       - name: Cache Go modules
         uses: actions/cache@v4
         with:
           path: |
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('packages/*/upstream/bff/go.sum') }}
+          key: ${{ runner.os }}-go-${{ hashFiles('packages/*/bff/go.sum', 'packages/*/upstream/bff/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
       - name: Build and cache BFF binaries
         run: |
           set -euo pipefail
           # Build BFF binaries for all modules that have them
-          for bff_dir in packages/*/upstream/bff; do
+          for bff_dir in packages/*/bff packages/*/upstream/bff; do
             if [[ -d "$bff_dir" && -f "$bff_dir/go.mod" ]]; then
               echo "Building BFF binary for $bff_dir"
               cd "$bff_dir"
@@ -184,39 +185,21 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
+            packages/*/bff/bff-mock
             packages/*/upstream/bff/bff-mock
-          key: ${{ runner.os }}-bff-binaries-${{ hashFiles('packages/*/upstream/bff/go.sum') }}
+          key: ${{ runner.os }}-bff-binaries-${{ hashFiles('packages/*/bff/go.sum', 'packages/*/upstream/bff/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-bff-binaries-
-      - name: Install dependencies
-        run: |
-          set -euo pipefail
-          npm install
       - name: Run contract tests
         run: |
           set -euo pipefail
           echo "🧪 Running contract tests using turbo..."
 
-          # Find packages that have both contract-tests and upstream/bff directories
-          CONTRACT_PACKAGES=""
-          for package_dir in packages/*/; do
-            package_name=$(basename "$package_dir")
-            if [ -d "packages/$package_name/contract-tests" ] && [ -d "packages/$package_name/upstream/bff" ]; then
-              CONTRACT_PACKAGES="$CONTRACT_PACKAGES --filter=@odh-dashboard/$package_name"
-            fi
-          done
-
-          if [ -n "$CONTRACT_PACKAGES" ]; then
-            echo "Found packages with contract tests: $CONTRACT_PACKAGES"
-            # Use turbo to run contract tests only for packages that have the setup
-            if npx turbo run test:contract $CONTRACT_PACKAGES; then
-              echo "✅ Contract tests completed successfully"
-            else
-              echo "❌ Contract tests failed"
-              exit 1
-            fi
+          if npx turbo run test:contract; then
+            echo "✅ Contract tests completed successfully"
           else
-            echo "ℹ️  No packages found with contract test setup"
+            echo "❌ Contract tests failed"
+            exit 1
           fi
       - name: Upload contract test results
         if: always()
@@ -224,10 +207,7 @@ jobs:
         with:
           name: contract-test-results
           path: |
-            packages/*/contract-tests/contract-test-results/*/contract-test-report.html
-            packages/*/contract-tests/contract-test-results/*/junit.xml
-            packages/*/contract-tests/contract-test-results/*/contract-test-output.log
-            packages/*/contract-tests/contract-test-results/*/bff-mock.log
+            packages/*/contract-tests/contract-test-results/**/*
           if-no-files-found: warn
 
   Get-Test-Groups:
@@ -239,24 +219,22 @@ jobs:
       - id: set-groups
         shell: bash
         run: |
-          set -euo pipefail
           set -x  # Enable debug mode to see each command
 
           echo "Checking directory structure..."
-          ls -la ${{ github.workspace }}/frontend/src/__tests__/cypress/cypress/tests/ || echo "Base test directory not found"
+          ls -la frontend/src/__tests__/cypress/cypress/tests/ || echo "Base test directory not found"
 
-          if [ -d "${{ github.workspace }}/frontend/src/__tests__/cypress/cypress/tests/mocked" ]; then
+          if [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked" ]; then
             echo "Found mocked tests directory"
-
+            
             # Get directories and create JSON array - force compact output with -c
-            # Replace forward slashes with hyphens for artifact names
-            DIRS=$(cd ${{ github.workspace }}/frontend/src/__tests__/cypress/cypress/tests/mocked && \
-                  find . -name "*.cy.*" -printf "%h\n" | sed 's|^\./||' | sed 's|/|-|g' | sort -u | \
+            DIRS=$(cd frontend/src/__tests__/cypress/cypress/tests/mocked && \
+                  find . -name "*.cy.*" -printf "%h\n" | sed 's|^\./||' | sort -u | \
                   jq -R . | jq -c -s .)
-
+            
             # Output in the correct format for GitHub Actions
             echo "test-groups=$DIRS" >> "$GITHUB_OUTPUT"
-
+            
             echo "Generated test groups:"
             cat "$GITHUB_OUTPUT"
           else
@@ -265,7 +243,7 @@ jobs:
           fi
 
   Cypress-Setup:
-    needs: [Setup]
+    needs: [Setup, Type-Check]
     runs-on: ubuntu-latest
     outputs:
       cypress-cache-key: ${{ steps.key.outputs.cypress-cache-key }}
@@ -274,8 +252,7 @@ jobs:
       - name: Generate cypress cache key
         id: key
         run: |
-          set -euo pipefail
-          echo "cypress-cache-key=${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-build-${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          echo "cypress-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-build-${{ github.sha }}" >> $GITHUB_OUTPUT
       - name: Cypress build cache
         uses: actions/cache@v4
         id: cypress-build-cache
@@ -290,36 +267,25 @@ jobs:
         with:
           path: |
             ~/.cache/Cypress
-            ~/.npm
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/backend/node_modules
+            ${{ github.workspace }}/frontend/node_modules
           key: ${{ needs.Setup.outputs.modules-cache-key }}
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Install dependencies
-        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
-        run: |
-          set -euo pipefail
-          npm install
-      - name: Install frontend dependencies
-        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
-        run: |
-          set -euo pipefail
-          npm install --ignore-scripts
-          cd ${{ github.workspace }}/frontend
-          npm install
       - name: Build frontend for cypress
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
-        run: |
-          set -euo pipefail
-          cd ${{ github.workspace }}/frontend && npm run cypress:server:build:coverage
+        run: npm run cypress:server:build:coverage
+        working-directory: ./frontend
 
   Cypress-Mock-Tests:
-    needs: [Setup, Lint, Type-Check, Cypress-Setup, Get-Test-Groups]
+    needs: [Setup, Lint, Cypress-Setup, Get-Test-Groups]
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false  # Continue other groups if one fails
+      fail-fast: false
       matrix:
         test-group: ${{ fromJson(needs.Get-Test-Groups.outputs.test-groups) }}
     steps:
@@ -333,7 +299,9 @@ jobs:
         with:
           path: |
             ~/.cache/Cypress
-            ~/.npm
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/backend/node_modules
+            ${{ github.workspace }}/frontend/node_modules
           key: ${{ needs.Setup.outputs.modules-cache-key }}
       - name: Restore Cypress build cache
         uses: actions/cache/restore@v4
@@ -341,35 +309,28 @@ jobs:
           path: |
             ${{ github.workspace }}/frontend/public-cypress
           key: ${{ needs.Cypress-Setup.outputs.cypress-cache-key }}
-      - name: Install frontend dependencies
-        run: |
-          set -euo pipefail
-          npm install --ignore-scripts
-          cd ${{ github.workspace }}/frontend
-          npm install
       - name: Run Cypress Mock tests
         run: |
-          set -euo pipefail
-          cd ${{ github.workspace }}/frontend
           if [ "${{ matrix.test-group }}" == "default" ]; then
             npm run test:cypress-ci:coverage:nobuild
           else
-            # Convert hyphenated test group back to directory path for test execution
-            TEST_PATH="${{ matrix.test-group }}"
-            TEST_PATH="${TEST_PATH//-//}"  # Replace hyphens back to slashes
-            npm run test:cypress-ci:coverage:nobuild -- --spec "src/__tests__/cypress/cypress/tests/mocked/$TEST_PATH/*"
+            npm run test:cypress-ci:coverage:nobuild -- --spec "src/__tests__/cypress/cypress/tests/mocked/${{ matrix.test-group }}/*"
           fi
+        working-directory: ./frontend
+      - name: Test group name
+        if: ${{ always() }}
+        run: echo "TEST_GROUP_NAME=$(echo ${{ matrix.test-group }} | tr '/' '_')" >> $GITHUB_ENV
       - name: Upload Cypress Mock results
-        if: always()  # Upload even if tests fail
         uses: actions/upload-artifact@v4
+        if: ${{ always() }}
         with:
-          name: cypress-results-${{ matrix.test-group }}
-          path: ${{ github.workspace }}/frontend/src/__tests__/cypress/results/mocked
+          name: cypress-results-${{ env.TEST_GROUP_NAME }}
+          path: ./frontend/src/__tests__/cypress/results/mocked
       - name: Upload Cypress coverage
         uses: actions/upload-artifact@v4
         with:
-          name: cypress-coverage-${{ matrix.test-group }}
-          path: ${{ github.workspace }}/frontend/src/__tests__/cypress/coverage
+          name: cypress-coverage-${{ env.TEST_GROUP_NAME }}
+          path: ./frontend/src/__tests__/cypress/coverage
 
   Combine-Results-and-Upload:
     needs: [Unit-Tests, Cypress-Mock-Tests]
@@ -383,69 +344,61 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          path: ${{ github.workspace }}/all-artifacts
+          path: all-artifacts
       - name: Install dependencies
-        run: |
-          set -euo pipefail
-          npm install nyc --no-save
+        run: npm install nyc --no-save
       - name: Combine coverage reports
         run: |
-          set -euo pipefail
-          mkdir -p ${{ github.workspace }}/coverage
-          if [ -f "${{ github.workspace }}/all-artifacts/unit-coverage/coverage-final.json" ]; then
-            cp "${{ github.workspace }}/all-artifacts/unit-coverage/coverage-final.json" "${{ github.workspace }}/coverage/unit-coverage-final.json"
-          fi
-          find ${{ github.workspace }}/all-artifacts -name "cypress-coverage-*" -type d -print0 | while IFS= read -r -d '' dir; do
-            group_name=$(basename "$dir")
-            if [ -f "$dir/coverage-final.json" ]; then
-              cp "$dir/coverage-final.json" "${{ github.workspace }}/coverage/${group_name}-coverage-final.json" || true
-            fi
+          mkdir -p ./coverage
+          cp all-artifacts/unit-coverage/coverage-final.json ./coverage/unit-coverage-final.json || true
+          [ -f all-artifacts/backend-coverage/coverage-final.json ] && cp all-artifacts/backend-coverage/coverage-final.json ./coverage/backend-coverage-final.json || true
+          find all-artifacts -name "cypress-coverage-*" -type d | while read dir; do
+          group_name=$(basename "$dir")
+          cp "$dir/coverage-final.json" "./coverage/${group_name}-coverage-final.json" || true
           done
           echo "Combined coverage files:"
-          ls -R "${{ github.workspace }}/coverage"
+          ls -R ./coverage
       - name: Merge coverage reports
         run: |
-          set -euo pipefail
-          npx nyc merge ${{ github.workspace }}/coverage ${{ github.workspace }}/coverage/merged-coverage.json
+          npx nyc merge ./coverage ./coverage/merged-coverage.json
           echo "Cleaning up merged coverage file..."
-          jq 'del(.[] | select(.statementMap == {}))' ${{ github.workspace }}/coverage/merged-coverage.json > ${{ github.workspace }}/coverage/cleaned-coverage.json
-          mv ${{ github.workspace }}/coverage/cleaned-coverage.json ${{ github.workspace }}/coverage/merged-coverage.json
+          jq 'del(.[] | select(.statementMap == {}))' ./coverage/merged-coverage.json > ./coverage/cleaned-coverage.json
+          mv ./coverage/cleaned-coverage.json ./coverage/merged-coverage.json
       - name: Generate coverage report
         run: |
-          set -euo pipefail
-          mkdir -p ${{ github.workspace }}/coverage/report
-          npx nyc report --reporter=html --reporter=text-summary --temp-directory ${{ github.workspace }}/coverage -t ${{ github.workspace }}/coverage --report-dir ${{ github.workspace }}/coverage/report
-          cp ${{ github.workspace }}/coverage/unit-coverage-final.json ${{ github.workspace }}/coverage/combined-coverage-final.json || true
+          mkdir -p ./coverage/report
+          npx nyc report --reporter=html --reporter=text-summary --temp-directory ./coverage -t ./coverage --report-dir ./coverage/report
+          cp ./coverage/unit-coverage-final.json ./coverage/combined-coverage-final.json || true
       - name: Upload combined results
         uses: actions/upload-artifact@v4
         with:
           name: combined-coverage-results
-          path: ${{ github.workspace }}/coverage/combined-coverage-final.json
+          path: ./coverage/combined-coverage-final.json
       - name: Cleanup interim coverage files
         run: |
-          find ${{ github.workspace }}/coverage -name "*-coverage-final.json" -type f -delete
+          rm -rf ./coverage/unit-coverage-final.json
+          rm -rf ./coverage/backend-coverage-final.json
+          find ./coverage -name "*-coverage-final.json" -type f -delete
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4.6.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
           name: frontend-and-backend
-          file: ${{ github.workspace }}/coverage/merged-coverage.json
+          file: ./coverage/merged-coverage.json
           disable_search: true
-          directory: ${{ github.workspace }}/coverage
+          directory: ./coverage
           verbose: true
 
   Tests:
     runs-on: ubuntu-latest
     needs:
-      - Lint
       - Type-Check
+      - Lint
       - Unit-Tests
       - Contract-Tests
       - Cypress-Mock-Tests
       - Combine-Results-and-Upload
     steps:
       - name: Verify all jobs succeeded
-        run: |
-          set -euo pipefail
-          echo "All required jobs have successfully completed for Node.js ${{ env.NODE_VERSION }}."
+        run: echo "All required jobs have successfully completed for Node.js ${{ env.NODE_VERSION }}."

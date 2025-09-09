@@ -19,17 +19,16 @@ module.exports = {
   },
   moduleDirectories: ['node_modules', path.resolve(__dirname, '../../node_modules')],
   moduleNameMapper: {
-    '^@odh-dashboard/contract-tests(.*)$': path.join(__dirname, 'src$1'),
+    '^@odh-dashboard/contract-tests(.*)$': path.join(__dirname, 'dist/contract-tests/src$1'),
     '^(\\.\\./)*src/(.*)$': path.join(__dirname, 'src/$2'),
     // Compatibility: legacy hooks import path maps to shared hooks
     '^@odh-dashboard/jest-config/hooks$': path.join(__dirname, 'jest-config/src/hooks.ts'),
     '^ansi-regex$': path.join(__dirname, 'src/mocks/ansi-regex.js'),
   },
-  setupFilesAfterEnv: [path.join(__dirname, 'src/setup/jest-matchers.ts')],
   collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts'],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  testTimeout: 30000,
+  testTimeout: 5000,
   verbose: true,
   // Ensure Jest runs from the consumer package directory
   rootDir: process.cwd(),
@@ -56,6 +55,7 @@ module.exports = {
         useCSSFile: true,
         styleOverridePath: path.resolve(__dirname, 'src/reporting/report-style.css'),
         json: String(process.env.JEST_HTML_REPORTERS_JSON) === 'true',
+        openReport: false, // Never auto-open reports - use test:contract:with-report script instead
       },
     ],
   ],
