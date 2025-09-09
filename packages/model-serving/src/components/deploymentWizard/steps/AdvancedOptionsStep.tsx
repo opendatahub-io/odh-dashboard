@@ -16,8 +16,8 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
     <>
       <Form>
         <AdvancedSettingsSelectField
-          data={wizardState.data.advancedSettingsField}
-          setData={wizardState.handlers.updateAdvancedSettingsField}
+          data={wizardState.state.advancedSettings.data}
+          setData={wizardState.state.advancedSettings.updateField}
           allowCreate
           tokenAuthAlert={tokenAuthAlert}
         />

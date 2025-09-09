@@ -1,6 +1,7 @@
 import React from 'react';
 import { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { useParams } from 'react-router-dom';
+import React from 'react';
 import { K8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/types';
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { extractK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
@@ -26,11 +27,16 @@ export type ModelDeploymentWizardData = {
   connections?: LabeledConnection[];
   initSelectedConnection?: LabeledConnection | undefined;
   // Add more field handlers as needed
+};
+
+export type ModelDeploymentWizardDataHandlers = {
   setAdvancedSettings: (data: AdvancedSettingsFieldData) => void;
   updateAdvancedSettingsField: (
     key: keyof AdvancedSettingsFieldData,
     value: AdvancedSettingsFieldData[keyof AdvancedSettingsFieldData],
   ) => void;
+  updateModelAccess: (externalRoute: boolean) => void;
+  updateTokenAuthentication: (tokenAuth: boolean) => void;
 };
 
 export type UseModelDeploymentWizardState = {
@@ -41,7 +47,12 @@ export type UseModelDeploymentWizardState = {
     hardwareProfileConfig: ReturnType<typeof useHardwareProfileConfig>;
     modelFormatState: ReturnType<typeof useModelFormatField>;
     modelLocationData: ReturnType<typeof useModelLocationData>;
+    advancedSettings: ReturnType<typeof useAdvancedSettingsField>;
   };
+  data: {
+    advancedSettingsField: AdvancedSettingsFieldData | undefined;
+  };
+  handlers: ModelDeploymentWizardDataHandlers;
 };
 
 export const useModelDeploymentWizard = (
@@ -65,22 +76,48 @@ export const useModelDeploymentWizard = (
   const modelFormatState = useModelFormatField(initialData?.modelFormat, modelType.data);
 
   // Step 3: Advanced Options
+  const advancedSettingsField = useAdvancedSettingsField(initialData?.advancedSettingsField);
+  const {
+    data: advancedSettings,
+    setData: setAdvancedSettings,
+    updateField: updateAdvancedSettingsField,
+  } = advancedSettingsField;
+
+  // Specialized handlers for better semantic API
+  const updateModelAccess = React.useCallback(
+    (externalRoute: boolean) => {
+      updateAdvancedSettingsField('externalRoute', externalRoute);
+    },
+    [updateAdvancedSettingsField],
+  );
+
+  const updateTokenAuthentication = React.useCallback(
+    (tokenAuth: boolean) => {
+      updateAdvancedSettingsField('tokenAuth', tokenAuth);
+    },
+    [updateAdvancedSettingsField],
+  );
 
   // Step 4: Summary
-  const [advancedSettings, setAdvancedSettings, updateAdvancedSettingsField] =
-    useAdvancedSettingsField(existingData?.advancedSettingsField);
 
   return {
     initialData,
     state: {
       modelType,
       k8sNameDesc,
-      advancedSettingsField: advancedSettings,
       hardwareProfileConfig,
       modelFormatState,
       modelLocationData,
+      advancedSettings: advancedSettingsField,
+    },
+    data: {
+      advancedSettingsField: advancedSettings,
+    },
+    handlers: {
       setAdvancedSettings,
       updateAdvancedSettingsField,
+      updateModelAccess,
+      updateTokenAuthentication,
     },
   };
 };

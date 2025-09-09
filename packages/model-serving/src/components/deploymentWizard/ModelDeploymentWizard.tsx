@@ -46,7 +46,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   }, [navigate, location.pathname]);
 
   const wizardState = useModelDeploymentWizard(existingData);
-  const validation = useModelDeploymentWizardValidation(wizardState.state);
+  const validation = useModelDeploymentWizardValidation(wizardState);
 
   const onSave = React.useCallback(() => {
     // Use existing validation to prevent submission with invalid data

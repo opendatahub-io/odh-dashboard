@@ -21,15 +21,16 @@ export type ModelDeploymentWizardValidation = {
 };
 
 export const useModelDeploymentWizardValidation = (
-  state: UseModelDeploymentWizardState['state'],
+  wizardState: UseModelDeploymentWizardState,
 ): ModelDeploymentWizardValidation => {
+  const { state } = wizardState;
   // Step 1: Model Source
   const modelSourceStepValidationData: Partial<ModelSourceStepData> = React.useMemo(
     () => ({
       modelType: state.modelType.data,
       modelLocationData: state.modelLocationData.data,
     }),
-    [state.modelType, state.modelLocationData],
+    [state.modelType, state.modelLocationData.data],
   );
 
   const modelSourceStepValidation = useZodFormValidation(
@@ -38,7 +39,7 @@ export const useModelDeploymentWizardValidation = (
   );
 
   const advancedSettingsValidation = useZodFormValidation(
-    data.advancedSettingsField,
+    wizardState.data.advancedSettingsField,
     advancedSettingsFieldSchema,
   );
 

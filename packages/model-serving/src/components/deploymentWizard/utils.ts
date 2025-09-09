@@ -1,4 +1,5 @@
 import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
+import { getTokenNames } from '@odh-dashboard/internal/pages/modelServing/utils';
 import { isValidModelType, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
 import {
   ConnectionTypeRefs,
@@ -6,6 +7,7 @@ import {
   ModelLocationData,
 } from './fields/modelLocationFields/types';
 import type { Deployment } from '../../../extension-points';
+import type { AdvancedSettingsFieldData } from './fields/AdvancedSettingsSelectField';
 
 export const getDeploymentWizardRoute = (currentpath: string, deploymentName?: string): string => {
   if (deploymentName) {
@@ -57,5 +59,33 @@ export const setupModelLocationData = (): ModelLocationData => {
       URI: 'https://test',
     },
     additionalFields: {},
+  };
+};
+
+export const getAdvancedSettingsFromDeployment = (
+  deployment: Deployment,
+): AdvancedSettingsFieldData => {
+  const hasExternalEndpoints =
+    deployment.endpoints?.some((endpoint) => endpoint.type === 'external') ?? false;
+  const isTokenAuthEnabled =
+    deployment.model.metadata.annotations?.['security.opendatahub.io/enable-auth'] === 'true';
+  const tokens = [];
+  if (isTokenAuthEnabled) {
+    const { serviceAccountName } = getTokenNames(
+      deployment.model.metadata.name,
+      deployment.model.metadata.namespace,
+    );
+    if (serviceAccountName) {
+      tokens.push({
+        uuid: `token-${Date.now()}`,
+        name: serviceAccountName,
+        error: '',
+      });
+    }
+  }
+  return {
+    externalRoute: hasExternalEndpoints,
+    tokenAuth: isTokenAuthEnabled,
+    tokens,
   };
 };

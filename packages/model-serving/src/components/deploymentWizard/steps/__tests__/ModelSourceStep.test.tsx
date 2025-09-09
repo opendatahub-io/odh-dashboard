@@ -68,28 +68,26 @@ const mockDeploymentWizardState = (
           error: undefined,
           loaded: true,
         },
+        advancedSettings: {
+          data: undefined,
+          setData: jest.fn(),
+          updateField: jest.fn(),
+        },
+      },
+      data: {
+        advancedSettingsField: undefined,
+      },
+      handlers: {
+        setAdvancedSettings: jest.fn(),
+        updateAdvancedSettingsField: jest.fn(),
+        updateModelAccess: jest.fn(),
+        updateTokenAuthentication: jest.fn(),
       },
     },
     overrides,
   );
 
 describe('ModelSourceStep', () => {
-  const mockWizardData = {
-    modelTypeField: undefined,
-    k8sNameDesc: undefined,
-    advancedSettingsField: undefined,
-  } satisfies ModelDeploymentWizardData;
-  const mockWizardHandlers = {
-    setModelType: jest.fn(),
-    setDeploymentName: jest.fn(),
-    setAdvancedSettings: jest.fn(),
-    updateAdvancedSettingsField: jest.fn(),
-  } satisfies ModelDeploymentWizardDataHandlers;
-  const mockWizardState = {
-    data: mockWizardData,
-    handlers: mockWizardHandlers,
-  } satisfies UseModelDeploymentWizardState;
-
   const mockValidation = {
     markFieldTouched: jest.fn(),
     getFieldValidation: jest.fn(() => []),
@@ -159,7 +157,7 @@ describe('ModelSourceStep', () => {
             data: ServingRuntimeModelType.GENERATIVE,
           },
         },
-      }) satisfies UseModelDeploymentWizardState;
+      });
       render(
         <ModelSourceStepContent
           wizardState={wizardDataWithSelection}

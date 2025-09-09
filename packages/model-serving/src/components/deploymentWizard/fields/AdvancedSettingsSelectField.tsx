@@ -33,14 +33,14 @@ export const isValidAdvancedSettings = (value: unknown): value is AdvancedSettin
 
 // Hooks
 
-export type AdvancedSettingsField = [
-  data: AdvancedSettingsFieldData | undefined,
-  setData: (data: AdvancedSettingsFieldData) => void,
+export type AdvancedSettingsField = {
+  data: AdvancedSettingsFieldData | undefined;
+  setData: (data: AdvancedSettingsFieldData) => void;
   updateField: (
     key: keyof AdvancedSettingsFieldData,
     value: AdvancedSettingsFieldData[keyof AdvancedSettingsFieldData],
-  ) => void,
-];
+  ) => void;
+};
 
 export const useAdvancedSettingsField = (
   existingData?: AdvancedSettingsFieldData,
@@ -65,7 +65,11 @@ export const useAdvancedSettingsField = (
     [],
   );
 
-  return [advancedSettings, setAdvancedSettings, updateField];
+  return {
+    data: advancedSettings,
+    setData: setAdvancedSettings,
+    updateField,
+  };
 };
 
 // Component

@@ -10,6 +10,7 @@ import { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardware
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { KServeDeployment } from './deployments';
 import { UseModelDeploymentWizardState } from '../../model-serving/src/components/deploymentWizard/useDeploymentWizard';
+import { AdvancedSettingsFieldData } from '../../model-serving/src/components/deploymentWizard/fields/AdvancedSettingsSelectField';
 
 type CreatingInferenceServiceObject = {
   project: string;
@@ -18,6 +19,7 @@ type CreatingInferenceServiceObject = {
   modelType: ServingRuntimeModelType;
   hardwareProfile: HardwareProfileConfig;
   modelFormat: SupportedModelFormats;
+  advancedSettings?: AdvancedSettingsFieldData;
 };
 
 export const deployKServeDeployment = async (
@@ -41,6 +43,7 @@ export const deployKServeDeployment = async (
     modelType: wizardData.modelType.data,
     hardwareProfile: wizardData.hardwareProfileConfig.formData,
     modelFormat: wizardData.modelFormatState.modelFormat,
+    advancedSettings: wizardData.advancedSettings.data,
   };
 
   const inferenceService = await createInferenceService(
@@ -59,7 +62,8 @@ const assembleInferenceService = (
   data: CreatingInferenceServiceObject,
   existingInferenceService?: InferenceServiceKind,
 ): InferenceServiceKind => {
-  const { project, name, k8sName, modelType, hardwareProfile, modelFormat } = data;
+  const { project, name, k8sName, modelType, hardwareProfile, modelFormat, advancedSettings } =
+    data;
   const inferenceService: InferenceServiceKind = existingInferenceService
     ? { ...existingInferenceService }
     : {
@@ -97,6 +101,11 @@ const assembleInferenceService = (
   }
   annotations['opendatahub.io/hardware-profile-namespace'] =
     hardwareProfile.selectedProfile?.metadata.namespace;
+
+  if (advancedSettings?.tokenAuth) {
+    annotations['security.opendatahub.io/enable-auth'] = 'true';
+  }
+
   inferenceService.metadata.annotations = annotations;
 
   const labels = { ...inferenceService.metadata.labels };

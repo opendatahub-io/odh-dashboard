@@ -211,10 +211,15 @@ describe('Model Serving Deploy Wizard', () => {
     hardwareProfileSection.findGlobalScopedLabel().should('exist');
     modelServingWizard.findModelFormatSelect().should('not.exist');
     modelServingWizard.findNextButton().should('be.enabled').click();
-    modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
-    modelServingWizard.findNextButton().should('be.enabled').click();
 
-    // Step 3: Advanced options
+    // Step 3: Advanced Options
+    // Model access & Token authentication
+    modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+    modelServingWizard.findExternalRouteCheckbox().click();
+    modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
+    modelServingWizard.findTokenAuthenticationCheckbox().click();
+
+    modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 4: Summary
     modelServingWizard.findSubmitButton().should('be.enabled').click();
@@ -264,27 +269,6 @@ describe('Model Serving Deploy Wizard', () => {
     cy.get('@createInferenceService.all').then((interceptions) => {
       expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
     });
-
-    // Step 3: Advanced Options
-    // Model access & Token authentication
-    modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
-    modelServingWizard.findExternalRouteCheckbox().click();
-    modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
-    modelServingWizard.findTokenAuthenticationCheckbox().click();
-    modelServingWizard.findTokenWarningAlert().should('exist');
-    modelServingWizard.findTokenAuthenticationCheckbox().click();
-    modelServingWizard.findServiceAccountByIndex(0).should('have.value', 'default-name');
-    modelServingWizard.findAddServiceAccountButton().click();
-    modelServingWizard.findServiceAccountByIndex(1).should('have.value', 'default-name');
-    modelServingWizard.findServiceNameAlert().should('exist');
-    modelServingWizard.findServiceAccountByIndex(1).clear().type('new-name');
-    modelServingWizard.findServiceNameAlert().should('not.exist');
-    modelServingWizard.findRemoveServiceAccountByIndex(1).click();
-    modelServingWizard.findRemoveServiceAccountByIndex(0).click();
-    modelServingWizard.findTokenWarningAlert().should('exist');
-    modelServingWizard.findTokenAuthenticationCheckbox().click();
-
-    modelServingWizard.findNextButton().should('be.enabled').click();
   });
 
   it('Create a new predictive deployment and submit', () => {
@@ -334,10 +318,27 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelFormatSelectOption('vLLM').should('not.exist');
     modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
-    modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
-    modelServingWizard.findNextButton().should('be.enabled').click();
 
-    // Step 3: Advanced options
+    // Step 3: Advanced Options
+    // Model access & Token authentication
+    modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+    modelServingWizard.findExternalRouteCheckbox().click();
+    modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
+    modelServingWizard.findTokenAuthenticationCheckbox().click();
+    modelServingWizard.findTokenWarningAlert().should('exist');
+    modelServingWizard.findTokenAuthenticationCheckbox().click();
+    modelServingWizard.findServiceAccountByIndex(0).should('have.value', 'default-name');
+    modelServingWizard.findAddServiceAccountButton().click();
+    modelServingWizard.findServiceAccountByIndex(1).should('have.value', 'default-name');
+    modelServingWizard.findServiceNameAlert().should('exist');
+    modelServingWizard.findServiceAccountByIndex(1).clear().type('new-name');
+    modelServingWizard.findServiceNameAlert().should('not.exist');
+    modelServingWizard.findRemoveServiceAccountByIndex(1).click();
+    modelServingWizard.findRemoveServiceAccountByIndex(0).click();
+    modelServingWizard.findTokenWarningAlert().should('exist');
+    modelServingWizard.findTokenAuthenticationCheckbox().click();
+
+    modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 4: Summary
     modelServingWizard.findSubmitButton().should('be.enabled').click();
@@ -450,6 +451,13 @@ describe('Model Serving Deploy Wizard', () => {
       .findHardwareProfileSearchSelector()
       .should('contain.text', 'Large Profile');
     hardwareProfileSection.findGlobalScopedLabel().should('exist');
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+    // Step 3: Advanced options
+    modelServingWizardEdit.findAdvancedOptionsStep().should('be.enabled');
+    modelServingWizardEdit.findExternalRouteCheckbox().should('be.checked');
+    modelServingWizardEdit.findTokenAuthenticationCheckbox().click();
+    modelServingWizardEdit.findServiceAccountByIndex(0).should('have.value', 'default-name');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
   });
 });
