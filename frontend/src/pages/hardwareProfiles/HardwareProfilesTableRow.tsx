@@ -9,15 +9,12 @@ import {
   Popover,
   Stack,
   StackItem,
-  Timestamp,
-  TimestampTooltipVariant,
   Truncate,
-  Tooltip,
 } from '@patternfly/react-core';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
-import { relativeTime } from '#~/utilities/time';
+
 import { TableRowTitleDescription } from '#~/components/table';
 import HardwareProfileEnableToggle from '#~/pages/hardwareProfiles/HardwareProfileEnableToggle';
 import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '#~/k8sTypes';
@@ -32,26 +29,19 @@ import {
   validateProfileWarning,
 } from '#~/pages/hardwareProfiles/utils';
 import { HardwareProfileModel } from '#~/api';
-import { MigrationAction } from './migration/types';
 import { HardwareProfileFeatureVisibilityTitles } from './manage/const';
-import { MIGRATION_SOURCE_TYPE_LABELS } from './migration/const';
 
 type HardwareProfilesTableRowProps = {
   rowIndex: number;
   hardwareProfile: HardwareProfileKind;
-  migrationAction?: MigrationAction;
   handleDelete: (cr: HardwareProfileKind) => void;
-  handleMigrate: (migrationAction: MigrationAction) => void;
 };
 
 const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
   hardwareProfile,
   rowIndex,
-  migrationAction,
   handleDelete,
-  handleMigrate,
 }) => {
-  const modifiedDate = hardwareProfile.metadata.annotations?.['opendatahub.io/modified-date'];
   const [isExpanded, setExpanded] = React.useState(false);
   const navigate = useNavigate();
 
@@ -91,7 +81,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
           <TableRowTitleDescription
             title={<Truncate content={getHardwareProfileDisplayName(hardwareProfile)} />}
             description={getHardwareProfileDescription(hardwareProfile)}
-            resource={migrationAction ? undefined : hardwareProfile}
+            resource={hardwareProfile}
             truncateDescriptionLines={2}
             wrapResourceTitle={false}
             titleIcon={
@@ -140,41 +130,8 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
           )}
         </Td>
         <Td dataLabel="Enabled">
-          {migrationAction ? (
-            <Tooltip content="This legacy profile requires migration before it can be modified.">
-              <HardwareProfileEnableToggle hardwareProfile={hardwareProfile} isDisabled />
-            </Tooltip>
-          ) : (
-            <HardwareProfileEnableToggle hardwareProfile={hardwareProfile} />
-          )}
+          <HardwareProfileEnableToggle hardwareProfile={hardwareProfile} />
         </Td>
-        {migrationAction && (
-          <Td dataLabel="Source">
-            <TableRowTitleDescription
-              title={
-                MIGRATION_SOURCE_TYPE_LABELS[migrationAction.source.type].charAt(0).toUpperCase() +
-                MIGRATION_SOURCE_TYPE_LABELS[migrationAction.source.type].slice(1)
-              }
-              resource={migrationAction.source.resource}
-            />
-          </Td>
-        )}
-        {!migrationAction && (
-          <Td dataLabel="Last modified">
-            {modifiedDate && !Number.isNaN(new Date(modifiedDate).getTime()) ? (
-              <Timestamp
-                date={new Date(modifiedDate)}
-                tooltip={{
-                  variant: TimestampTooltipVariant.default,
-                }}
-              >
-                {relativeTime(Date.now(), new Date(modifiedDate).getTime())}
-              </Timestamp>
-            ) : (
-              '--'
-            )}
-          </Td>
-        )}
         <Td isActionCell>
           <ActionsColumn
             items={[
@@ -196,12 +153,6 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
                       navigate(`/hardwareProfiles/duplicate/${hardwareProfile.metadata.name}`),
                   },
                 ],
-                verbModelAccess('create', HardwareProfileModel),
-              ),
-              ...useKebabAccessAllowed(
-                migrationAction
-                  ? [{ title: 'Migrate', onClick: () => handleMigrate(migrationAction) }]
-                  : [],
                 verbModelAccess('create', HardwareProfileModel),
               ),
               ...useKebabAccessAllowed(

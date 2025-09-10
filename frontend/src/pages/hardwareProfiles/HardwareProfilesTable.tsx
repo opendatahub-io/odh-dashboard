@@ -18,24 +18,13 @@ import { getHardwareProfileDisplayName, isHardwareProfileEnabled } from './utils
 
 type HardwareProfilesTableProps = {
   hardwareProfiles: HardwareProfileKind[];
-  getMigrationAction?: (name: string) => MigrationAction | undefined;
-  isMigratedTable?: boolean;
 };
 
-const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
-  hardwareProfiles,
-  getMigrationAction,
-  isMigratedTable = false,
-}) => {
-  if (isMigratedTable) {
-    console.log(' migrated here! hardwareProfiles 29a', hardwareProfiles);
-  }
+const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({ hardwareProfiles }) => {
   const [deleteHardwareProfile, setDeleteHardwareProfile] = React.useState<
     { hardwareProfile: HardwareProfileKind; migrationAction?: MigrationAction } | undefined
   >();
-  const [migrateModalMigrationAction, setMigrateModalMigrationAction] = React.useState<
-    MigrationAction | undefined
-  >();
+
   const [filterData, setFilterData] = React.useState<HardwareProfileFilterDataType>(
     initialHardwareProfileFilterData,
   );
@@ -109,7 +98,6 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
               handleDelete={(hardwareProfile) =>
                 setDeleteHardwareProfile({ hardwareProfile, migrationAction })
               }
-              handleMigrate={(ma) => setMigrateModalMigrationAction(ma)}
               migrationAction={migrationAction}
             />
           );
@@ -118,33 +106,10 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
           <HardwareProfilesToolbar
             onFilterUpdate={onFilterUpdate}
             filterData={filterData}
-            showCreateButton={!isMigratedTable}
+            showCreateButton={true}
           />
         }
       />
-      {migrateModalMigrationAction && (
-        <MigrationModal
-          migrationAction={migrateModalMigrationAction}
-          onClose={() => setMigrateModalMigrationAction(undefined)}
-          onMigrate={async () => {
-            const getMigrationPromises = (dryRun: boolean) => [
-              // delete source resource
-              migrateModalMigrationAction.deleteSourceResource({ dryRun }),
-              // create dependent profiles
-              ...migrateModalMigrationAction.dependentProfiles.map((profile) =>
-                createHardwareProfileFromResource(profile, { dryRun }),
-              ),
-              // create target profile
-              createHardwareProfileFromResource(migrateModalMigrationAction.targetProfile, {
-                dryRun,
-              }),
-            ];
-            return Promise.all(getMigrationPromises(true)).then(() =>
-              Promise.all(getMigrationPromises(false)),
-            );
-          }}
-        />
-      )}
       {deleteHardwareProfile ? (
         <DeleteHardwareProfileModal
           hardwareProfile={deleteHardwareProfile.hardwareProfile}
