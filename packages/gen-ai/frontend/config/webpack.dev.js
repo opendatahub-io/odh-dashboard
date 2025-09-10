@@ -19,11 +19,6 @@ const PUBLIC_PATH = process.env._PUBLIC_PATH;
 const AUTH_METHOD = process.env._AUTH_METHOD;
 
 const getProxyHeaders = () => {
-  if (AUTH_METHOD === 'internal') {
-    return {
-      'kubeflow-userid': 'user@example.com',
-    };
-  }
   if (AUTH_METHOD === 'user_token') {
     try {
       const token = execSync('oc whoami --show-token').toString().trim();
