@@ -5,8 +5,7 @@ name: Modular Architecture - Quality Gates
 'on':
   pull_request:
     paths:
-      - 'frontend/packages/**'
-      - 'packages/**'  # Future path support
+      - 'packages/**'
   workflow_dispatch:
     inputs:
       modules:
@@ -57,8 +56,8 @@ jobs:
               CHANGED_FILES="$CHANGED_FILES $PAGE_FILES"
               PAGE=$((PAGE+1))
             done
-            # Check both current and future package paths
-            CHANGED_FILES=$(echo "$CHANGED_FILES" | tr ' ' '\n' | grep -E "^(frontend/packages/|packages/)" | cut -d'/' -f3 | sort -u | tr '\n' ' ' | sed 's/ $//')
+            # Check package paths
+            CHANGED_FILES=$(echo "$CHANGED_FILES" | tr ' ' '\n' | grep -E "^packages/" | cut -d'/' -f2 | sort -u | tr '\n' ' ' | sed 's/ $//')
           else
             # workflow_dispatch path: allow manual override via input
             if [ -n "${{ github.event.inputs.modules }}" ]; then
@@ -74,8 +73,8 @@ jobs:
           # Include only structurally valid modules based on package.json analysis
           FILTERED_MODULES=""
           for mod in $CHANGED_FILES; do
-            # Check both current and future package paths
-            for base_path in frontend/packages packages; do
+            # Check package paths
+            for base_path in packages; do
               base="$base_path/$mod"
               if [ -d "$base" ]; then
                 # Check if this is a valid module by looking for either:
@@ -178,9 +177,9 @@ jobs:
       - name: Check for silent mode configuration
         id: check-config
         run: |
-          # Check both current and future package paths
+          # Check package paths
           CONFIG_FILE=""
-          for base_path in frontend/packages packages; do
+          for base_path in packages; do
             if [ -f "$base_path/${{ matrix.module }}/.quality-gates-config.yml" ]; then
               CONFIG_FILE="$base_path/${{ matrix.module }}/.quality-gates-config.yml"
               break
@@ -200,7 +199,7 @@ jobs:
           # yamllint disable rule:line-length
           # Find module path dynamically
           MODULE_PATH=""
-          for base_path in frontend/packages packages; do
+          for base_path in packages; do
             if [ -d "$base_path/${{ matrix.module }}" ]; then
               MODULE_PATH="$base_path/${{ matrix.module }}"
               break
