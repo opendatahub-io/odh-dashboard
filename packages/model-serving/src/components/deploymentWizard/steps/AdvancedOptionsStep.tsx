@@ -1,6 +1,6 @@
 import React from 'react';
 import { Form } from '@patternfly/react-core';
-import { AdvancedSettingsSelectField } from '../fields/AdvancedSettingsSelectField';
+import { AdvancedOptionsSection } from '../fields/AdvancedOptionsSection';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 
 type AdvancedSettingsStepContentProps = {
@@ -15,7 +15,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
   return (
     <>
       <Form>
-        <AdvancedSettingsSelectField
+        <AdvancedOptionsSection
           data={wizardState.state.advancedSettings.data}
           setData={wizardState.state.advancedSettings.updateField}
           allowCreate

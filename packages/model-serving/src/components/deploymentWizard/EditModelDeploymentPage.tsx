@@ -18,7 +18,8 @@ import { ModelDeploymentWizardData } from './useDeploymentWizard';
 import {
   getModelTypeFromDeployment,
   setupModelLocationData,
-  getAdvancedSettingsFromDeployment,
+  getModelAccessFromDeployment,
+  getTokenAuthenticationFromDeployment,
 } from './utils';
 import { Deployment, isModelServingDeploymentFormDataExtension } from '../../../extension-points';
 import {
@@ -124,7 +125,8 @@ const EditModelDeploymentContent: React.FC<{
       formDataExtension?.properties.extractHardwareProfileConfig(deployment) ?? undefined,
     modelFormat: formDataExtension?.properties.extractModelFormat(deployment) ?? undefined,
     modelLocationData: setupModelLocationData(), // TODO: Implement fully in next ticket RHOAIENG-32186
-    advancedSettingsField: getAdvancedSettingsFromDeployment(deployment),
+    modelAccessField: getModelAccessFromDeployment(deployment),
+    tokenAuthenticationField: getTokenAuthenticationFromDeployment(deployment),
   });
 
   const formData = React.useMemo(() => {

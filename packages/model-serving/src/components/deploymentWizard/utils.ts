@@ -6,7 +6,6 @@ import {
   ModelLocationType,
   ModelLocationData,
 } from './fields/modelLocationFields/types';
-import { AdvancedSettingsFieldData } from './fields/AdvancedSettingsSelectField';
 import type { Deployment, DeploymentEndpoint } from '../../../extension-points';
 
 export const getDeploymentWizardRoute = (currentpath: string, deploymentName?: string): string => {
@@ -62,14 +61,19 @@ export const setupModelLocationData = (): ModelLocationData => {
   };
 };
 
-export const getAdvancedSettingsFromDeployment = (
-  deployment: Deployment,
-): AdvancedSettingsFieldData => {
-  const hasExternalEndpoints =
+export const getModelAccessFromDeployment = (deployment: Deployment): boolean => {
+  return (
     deployment.endpoints?.some((endpoint: DeploymentEndpoint) => endpoint.type === 'external') ??
-    false;
+    false
+  );
+};
+
+export const getTokenAuthenticationFromDeployment = (
+  deployment: Deployment,
+): { tokenAuth: boolean; tokens: Array<{ uuid: string; name: string; error?: string }> } => {
   const isTokenAuthEnabled =
     deployment.model.metadata.annotations?.['security.opendatahub.io/enable-auth'] === 'true';
+
   const tokens = [];
   if (isTokenAuthEnabled) {
     const { serviceAccountName } = getTokenNames(
@@ -84,8 +88,8 @@ export const getAdvancedSettingsFromDeployment = (
       });
     }
   }
+
   return {
-    externalRoute: hasExternalEndpoints,
     tokenAuth: isTokenAuthEnabled,
     tokens,
   };

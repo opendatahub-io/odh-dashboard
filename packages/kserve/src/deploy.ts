@@ -10,7 +10,7 @@ import { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardware
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { KServeDeployment } from './deployments';
 import { UseModelDeploymentWizardState } from '../../model-serving/src/components/deploymentWizard/useDeploymentWizard';
-import { AdvancedSettingsFieldData } from '../../model-serving/src/components/deploymentWizard/fields/AdvancedSettingsSelectField';
+import { AdvancedSettingsFieldData } from '../../model-serving/src/components/deploymentWizard/fields/AdvancedOptionsSection';
 
 type CreatingInferenceServiceObject = {
   project: string;

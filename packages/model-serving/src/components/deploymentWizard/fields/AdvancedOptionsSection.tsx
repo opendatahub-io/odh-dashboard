@@ -74,7 +74,7 @@ export const useAdvancedSettingsField = (
 
 // Component
 
-type AdvancedSettingsSelectFieldProps = {
+type AdvancedOptionsSectionProps = {
   data?: AdvancedSettingsFieldData;
   setData?: (
     key: keyof AdvancedSettingsFieldData,
@@ -84,7 +84,7 @@ type AdvancedSettingsSelectFieldProps = {
   tokenAuthAlert?: boolean;
 };
 
-export const AdvancedSettingsSelectField: React.FC<AdvancedSettingsSelectFieldProps> = ({
+export const AdvancedOptionsSection: React.FC<AdvancedOptionsSectionProps> = ({
   data = { externalRoute: false, tokenAuth: false, tokens: [] },
   setData,
   allowCreate = true,

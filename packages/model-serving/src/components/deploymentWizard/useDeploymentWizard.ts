@@ -14,12 +14,16 @@ import { useModelLocationData } from './fields/ModelLocationInputFields';
 import {
   useAdvancedSettingsField,
   type AdvancedSettingsFieldData,
-} from './fields/AdvancedSettingsSelectField';
+} from './fields/AdvancedOptionsSection';
 
 export type ModelDeploymentWizardData = {
   modelTypeField?: ModelTypeFieldData;
   k8sNameDesc?: K8sNameDescriptionFieldData;
-  advancedSettingsField?: AdvancedSettingsFieldData;
+  modelAccessField?: boolean;
+  tokenAuthenticationField?: {
+    tokenAuth: boolean;
+    tokens: Array<{ uuid: string; name: string; error?: string }>;
+  };
   hardwareProfile?: Parameters<typeof useHardwareProfileConfig>;
   modelFormat?: SupportedModelFormats;
   modelLocationData?: ModelLocationData;
@@ -75,7 +79,19 @@ export const useModelDeploymentWizard = (
   const modelFormatState = useModelFormatField(initialData?.modelFormat, modelType.data);
 
   // Step 3: Advanced Options
-  const advancedSettingsField = useAdvancedSettingsField(initialData?.advancedSettingsField);
+  // Combine separate fields into advanced settings
+  const combinedAdvancedSettings = React.useMemo(() => {
+    if (!initialData?.modelAccessField && !initialData?.tokenAuthenticationField) {
+      return undefined;
+    }
+    return {
+      externalRoute: initialData.modelAccessField ?? false,
+      tokenAuth: initialData.tokenAuthenticationField?.tokenAuth ?? false,
+      tokens: initialData.tokenAuthenticationField?.tokens ?? [],
+    };
+  }, [initialData?.modelAccessField, initialData?.tokenAuthenticationField]);
+
+  const advancedSettingsField = useAdvancedSettingsField(combinedAdvancedSettings);
   const {
     data: advancedSettings,
     setData: setAdvancedSettings,

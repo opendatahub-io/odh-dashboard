@@ -9,7 +9,7 @@ import { modelFormatFieldSchema } from './fields/ModelFormatField';
 import {
   advancedSettingsFieldSchema,
   type AdvancedSettingsFieldData,
-} from './fields/AdvancedSettingsSelectField';
+} from './fields/AdvancedOptionsSection';
 
 export type ModelDeploymentWizardValidation = {
   modelSource: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
