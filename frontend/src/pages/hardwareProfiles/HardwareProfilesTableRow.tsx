@@ -79,7 +79,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
 
   return (
     <>
-      <Tr key={rowIndex} id={hardwareProfile.metadata.name} draggable {...props}>
+      <Tr id={hardwareProfile.metadata.name} draggable {...props}>
         <Td
           expand={{
             rowIndex,
