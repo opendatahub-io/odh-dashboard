@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { HookNotify, useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { isModelCatalogDeployModalExtension } from '~/odh/extension-points';
 import { ModelCatalogItem } from '~/app/modelCatalogTypes';
@@ -17,16 +18,8 @@ const ModelCatalogDeployModalExtension: React.FC<ModelCatalogDeployModalExtensio
   model, 
   render 
 }) => {
+  const navigate = useNavigate();
   const [extensions, extensionsLoaded] = useResolvedExtensions(isModelCatalogDeployModalExtension);
-  const hookStateActionProvider = React.useMemo(
-    () => extensionsLoaded && extensions?.[0]?.properties.useAvailablePlatformIds,
-    [extensionsLoaded, extensions],
-  );
-
-  const ModalComponent = React.useMemo(
-    () => extensionsLoaded && extensions?.[0]?.properties.modalComponent,
-    [extensionsLoaded, extensions],
-  );
 
   const [openModal, setOpenModal] = React.useState(false);
 
@@ -59,24 +52,31 @@ const ModelCatalogDeployModalExtension: React.FC<ModelCatalogDeployModalExtensio
 
   const handleSubmit = React.useCallback(() => {
     setOpenModal(false);
-  }, []);
+    navigate('/modelServing');
+  }, [navigate]);
 
   return (
     <>
-      {hookStateActionProvider ? (
-        <HookNotify
-          useHook={hookStateActionProvider}
-          onNotify={(value) => setAvailablePlatformIds(value ?? [])}
-        />
-      ) : null}
+      {extensions.map((extension) => {
+        return extension.properties.useAvailablePlatformIds && (
+          <HookNotify
+            key={extension.uid}
+            useHook={extension.properties.useAvailablePlatformIds}
+            onNotify={(value) => setAvailablePlatformIds(value ?? [])}
+          />
+        )
+      })}
       {render(buttonState, onOpenModal, isModalAvailable)}
-      {openModal && ModalComponent ? (
-        <ModalComponent
-          modelDeployPrefill={modelDeployPrefill}
-          onSubmit={handleSubmit}
-          onClose={() => setOpenModal(false)}
-        />
-      ) : null}
+      {openModal && extensions.map((extension) => {
+        return extension.properties.modalComponent && (
+          <extension.properties.modalComponent.default
+            key={extension.uid}
+            modelDeployPrefill={modelDeployPrefill}
+            onSubmit={handleSubmit}
+            onClose={() => setOpenModal(false)}
+          />
+        )
+      })}
     </>
   );
 };
