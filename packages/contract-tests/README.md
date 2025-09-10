@@ -125,6 +125,54 @@ Your TypeScript configuration should extend the base ODH config:
 - ✅ Contract-tests types for matchers (`toMatchContract`)
 - ✅ Standard ODH TypeScript configuration
 
+## Jest Configuration
+
+### jest.config.js (Required)
+
+Each package needs a `jest.config.js` file in the `contract-tests/` directory:
+
+```javascript
+const path = require('path');
+
+module.exports = {
+  preset: '../../../packages/contract-tests/jest.preset.js',
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  moduleDirectories: ['node_modules', path.resolve(__dirname, '../../../node_modules')],
+};
+```
+
+**Configuration breakdown:**
+- **`preset`** - Uses the shared contract-testing Jest configuration
+- **`setupFilesAfterEnv`** - Loads the setup file after the test environment is ready
+- **`moduleDirectories`** - Tells Jest where to find modules (handles monorepo structure)
+
+### jest.setup.js (Required)
+
+A setup file that initializes the contract testing framework:
+
+```javascript
+// Jest setup file for contract tests
+// This ensures Jest types are loaded properly for contract testing
+
+// Import the contract test setup to initialize Jest matchers
+// Replace with: require('@odh-dashboard/contract-tests');
+// (After adding @odh-dashboard/contract-tests to your devDependencies)
+```
+
+**Purpose:**
+- Loads the contract testing framework
+- Initializes custom Jest matchers (like `toMatchContract`)
+- Ensures proper Jest environment for contract tests
+
+### Why These Files Are Required
+
+Without proper Jest configuration, contract tests will fail because:
+
+1. **TypeScript Support** - The preset provides TypeScript compilation
+2. **Custom Matchers** - `jest.setup.js` loads the `toMatchContract` matcher
+3. **Module Resolution** - Handles the complex monorepo module structure
+4. **Test Environment** - Configures the proper Node.js test environment
+
 ## BFF Lifecycle Management
 
 The contract test runner automatically manages your Mock BFF lifecycle:
