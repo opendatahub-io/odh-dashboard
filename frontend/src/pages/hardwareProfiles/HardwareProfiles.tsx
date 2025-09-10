@@ -103,7 +103,7 @@ const HardwareProfiles: React.FC = () => {
       )}
     </PageSection>
   );
-
+ 
   return (
     <ApplicationsPage
       title={
@@ -140,6 +140,7 @@ const HardwareProfiles: React.FC = () => {
             noHardwareProfilePageSection
           )}
         </StackItem>
+
         {migratedHardwareProfiles.length > 0 && (
           <>
             <StackItem>

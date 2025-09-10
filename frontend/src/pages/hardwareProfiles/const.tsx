@@ -72,19 +72,6 @@ export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
     width: 15,
   },
   {
-    field: 'source',
-    label: 'Source',
-    sortable: false,
-    width: 20,
-    info: {
-      popover:
-        'This is the legacy resource type that this hardware profile was created from, such as an accelerator profile.',
-      popoverProps: {
-        showClose: false,
-      },
-    },
-  },
-  {
     field: 'last_modified',
     label: 'Last modified',
     sortable: (a: HardwareProfileKind, b: HardwareProfileKind): number => {
