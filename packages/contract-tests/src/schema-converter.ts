@@ -1,17 +1,18 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 /**
  * Utility to convert OpenAPI/Swagger schemas to JSON Schema for contract testing
  */
 
 export interface OpenApiResponse {
-  [statusCode: string]: {
-    description?: string;
-    content?: {
-      [contentType: string]: {
-        schema?: OpenApiSchema;
+  [statusCode: string]:
+    | undefined
+    | {
+        description?: string;
+        content?: {
+          [contentType: string]: {
+            schema?: OpenApiSchema;
+          };
+        };
       };
-    };
-  };
 }
 
 export interface OpenApiSchema {

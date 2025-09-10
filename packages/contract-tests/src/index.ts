@@ -17,7 +17,6 @@ console.log('🔧 Setting up Jest matchers...');
 expect.extend({ toMatchContract });
 console.log('✅ Jest matchers setup complete');
 
-/* eslint-disable no-barrel-files/no-barrel-files */
 export { ContractApiClient } from './utils/api-client';
 export { ContractSchemaValidator } from './schema-validator';
 export { verifyBffHealth, waitForBffHealth } from './bff-health';
@@ -36,7 +35,6 @@ export {
   type ValidationResult,
 } from './openapi-validator';
 export { loadOpenAPISchema, createSchemaMatcher } from './schema-helpers';
-/* eslint-enable no-barrel-files/no-barrel-files */
 
 // Export types for TypeScript consumption
 export interface ContractTestOptions {

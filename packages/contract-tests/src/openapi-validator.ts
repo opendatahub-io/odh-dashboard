@@ -1,3 +1,4 @@
+// Disabled due to AI Generated code
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import * as fs from 'fs';
 import * as path from 'path';

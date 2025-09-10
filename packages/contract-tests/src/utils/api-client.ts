@@ -1,3 +1,5 @@
+import { Agent as HttpAgent } from 'http';
+import { Agent as HttpsAgent } from 'https';
 import axios, { AxiosError, AxiosResponse, RawAxiosResponseHeaders } from 'axios';
 import { logApiCall, logApiResponse, logApiError, ApiResponse, ApiError } from '../helpers/logging';
 
@@ -101,8 +103,8 @@ export class ContractApiClient {
       ...(options.headers ?? {}),
     };
     const controller = new AbortController();
-    const httpAgent = new (await import('http')).Agent({ keepAlive: false });
-    const httpsAgent = new (await import('https')).Agent({ keepAlive: false });
+    const httpAgent = new HttpAgent({ keepAlive: false });
+    const httpsAgent = new HttpsAgent({ keepAlive: false });
 
     try {
       logApiCall('GET', url, ContractApiClient.getCurrentTestName(testName || ''), headers);

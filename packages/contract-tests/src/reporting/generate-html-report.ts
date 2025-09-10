@@ -1,3 +1,4 @@
+// Disabled due to AI Generated code
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import * as fs from 'fs';
 import * as path from 'path';

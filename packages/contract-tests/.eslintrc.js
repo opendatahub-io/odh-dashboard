@@ -1,3 +1,7 @@
-const { recommendedTypescript } = require('@odh-dashboard/eslint-config');
-
-module.exports = recommendedTypescript(__dirname);
+module.exports = require('@odh-dashboard/eslint-config')
+  .extend({
+    rules: {
+      'no-barrel-files/no-barrel-files': 'off',
+    },
+  })
+  .recommendedReactTypescript(__dirname);

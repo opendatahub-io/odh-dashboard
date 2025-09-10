@@ -1,6 +1,0 @@
-{
-  "extends": "@odh-dashboard/tsconfig/tsconfig.json",
-  "compilerOptions": {
-    "types": ["jest", "@types/node", "@odh-dashboard/contract-tests"]
-  }
-}

@@ -1,3 +1,6 @@
+/**
+ * @jest-environment node
+ */
 import { ContractApiClient, loadOpenAPISchema } from '@odh-dashboard/contract-tests';
 
 describe('Model Registry List Endpoint', () => {

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any, @typescript-eslint/dot-notation */
+/* eslint-disable @typescript-eslint/consistent-type-assertions */
 import { default as Ajv2020 } from 'ajv/dist/2020';
 import type { ErrorObject, ValidateFunction } from 'ajv';
 import addFormats from 'ajv-formats';
@@ -156,7 +156,7 @@ export function toMatchContract(
     if (!isRecord(node)) return node;
 
     const n: Record<string, unknown> = { ...node };
-    const refVal = n['$ref'];
+    const refVal = n['n.$ref'];
     if (typeof refVal === 'string' && componentsSchemas) {
       const refPath: string = refVal;
       if (refPath.startsWith('#/components/schemas/')) {
