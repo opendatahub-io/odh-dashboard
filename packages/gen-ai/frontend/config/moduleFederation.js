@@ -17,6 +17,8 @@ const moduleFederationConfig = {
       singleton: true,
       requiredVersion: '0.0.0',
     },
+    // Reuse host-provided context modules
+    '@odh-dashboard/internal/concepts/projects/ProjectsContext': { singleton: true },
   },
   exposes: {
     './extensions': './src/odh/extensions',

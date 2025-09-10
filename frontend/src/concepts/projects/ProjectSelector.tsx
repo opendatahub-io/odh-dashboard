@@ -20,6 +20,7 @@ type ProjectSelectorProps = {
   isFullWidth?: boolean;
   placeholder?: string;
   isLoading?: boolean;
+  projectsOverride?: ProjectKind[];
 };
 
 const ProjectSelector: React.FC<ProjectSelectorProps> = ({
@@ -34,8 +35,10 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   isFullWidth = false,
   placeholder = undefined,
   isLoading = false,
+  projectsOverride,
 }) => {
-  const { projects } = React.useContext(ProjectsContext);
+  const context = React.useContext(ProjectsContext);
+  const projects = projectsOverride ?? context.projects;
   const selection = projects.find(byName(namespace));
   const [searchText, setSearchText] = React.useState('');
   const bySearchText = React.useCallback(
