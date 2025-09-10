@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "@odh-dashboard/model-registry",
-  "description": "Model registry plugin - Manages model metadata and artifacts.",
+  "description": "Model registry plugin.",
   "version": "0.0.0",
   "scripts": {
     "lint": "eslint .",
