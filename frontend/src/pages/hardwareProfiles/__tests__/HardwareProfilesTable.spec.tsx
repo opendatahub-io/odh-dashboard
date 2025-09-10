@@ -271,7 +271,7 @@ describe('HardwareProfilesTable', () => {
     });
   });
 
-  describe('Column Filtering', () => {
+  describe('Column Checking (filtering removed)', () => {
     it('should show correct columns for regular table', () => {
       render(<HardwareProfilesTable {...defaultProps} />);
 

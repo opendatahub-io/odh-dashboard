@@ -34,7 +34,6 @@ const HardwareProfiles: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
   const {
     data: migratedHardwareProfiles,
-    loaded: loadedMigratedHardwareProfiles,
     loadError: loadErrorMigratedHardwareProfiles,
     getMigrationAction,
   } = useMigratedHardwareProfiles(dashboardNamespace);
@@ -46,7 +45,6 @@ const HardwareProfiles: React.FC = () => {
     [migratedHardwareProfiles, hardwareProfiles],
   );
 
-  const loaded = loadedMigratedHardwareProfiles && loadedHardwareProfiles;
   const loadError = loadErrorMigratedHardwareProfiles || loadErrorHardwareProfiles;
 
   const navigate = useNavigate();
@@ -103,7 +101,7 @@ const HardwareProfiles: React.FC = () => {
       )}
     </PageSection>
   );
- 
+
   return (
     <ApplicationsPage
       title={
@@ -113,7 +111,7 @@ const HardwareProfiles: React.FC = () => {
         />
       }
       description={description}
-      loaded={loaded && loadedAllowed}
+      loaded={loadedHardwareProfiles && loadedAllowed}
       empty={isEmpty}
       loadError={loadError}
       errorMessage="Unable to load hardware profiles."
