@@ -69,7 +69,7 @@ const ModelCatalogDeployModalExtension: React.FC<ModelCatalogDeployModalExtensio
       {render(buttonState, onOpenModal, isModalAvailable)}
       {openModal && extensions.map((extension) => {
         return extension.properties.modalComponent && (
-          <extension.properties.modalComponent.default
+          <extension.properties.modalComponent
             key={extension.uid}
             modelDeployPrefill={modelDeployPrefill}
             onSubmit={handleSubmit}
