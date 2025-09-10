@@ -6,7 +6,6 @@ import {
   ModelLocationType,
   ModelLocationData,
 } from './fields/modelLocationFields/types';
-import type { Deployment } from '../../../extension-points';
 import { AdvancedSettingsFieldData } from './fields/AdvancedSettingsSelectField';
 import type { Deployment, DeploymentEndpoint } from '../../../extension-points';
 
