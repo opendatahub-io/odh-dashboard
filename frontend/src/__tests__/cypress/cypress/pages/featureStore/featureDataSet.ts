@@ -62,7 +62,7 @@ class FeatureDataSetTableRow extends TableRow {
   }
 
   findSourceFeatureService() {
-    return this.find().find('[data-label="Source feature service"]');
+    return this.find().find('[data-label="Feature service"]');
   }
 
   findCreatedDate() {

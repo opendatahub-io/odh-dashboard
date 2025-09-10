@@ -4,7 +4,7 @@ import { Entity } from '../../types/entities';
 export const columns: SortableData<Entity>[] = [
   {
     field: 'spec.name',
-    label: 'Entities',
+    label: 'Entity name',
     width: 60,
     sortable: (a, b): number => a.spec.name.localeCompare(b.spec.name),
   },
@@ -50,7 +50,7 @@ export const columns: SortableData<Entity>[] = [
     sortable: false,
     info: {
       popover:
-        'The total number of feature views that are configured to pull features from data sources within this entity. A feature view defines a group of related features and how to retrieve them from a source. ',
+        'The total number of feature views that are configured to pull features from data sources within this entity. A feature view defines a group of related features and how to retrieve them from a source.',
       popoverProps: {
         position: 'left',
       },
@@ -76,7 +76,7 @@ export const columns: SortableData<Entity>[] = [
 ];
 
 export const entityTableFilterOptions: Record<string, string> = {
-  entity: 'Entities',
+  entity: 'Entity name',
   project: 'Project',
   tag: 'Tags',
   joinKey: 'Join key',
@@ -89,5 +89,5 @@ export const entityTableFilterOptions: Record<string, string> = {
 
 export enum EntityDetailsTab {
   DETAILS = 'Details',
-  FEATURE_VIEWS = 'Feature Views',
+  FEATURE_VIEWS = 'Feature views',
 }

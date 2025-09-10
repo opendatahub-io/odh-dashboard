@@ -11,11 +11,14 @@ import {
   Flex,
   FlexItem,
   PageSection,
+  Popover,
   Title,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import IndentSection from '@odh-dashboard/internal/pages/projects/components/IndentSection';
+import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
 import FeatureStoreTimestamp from '../../../components/FeatureStoreTimestamp';
 import { hasContent } from '../../../const';
 import { DataSet } from '../../../types/dataSets';
@@ -26,7 +29,7 @@ import { useFeatureStoreProject } from '../../../FeatureStoreContext';
 import FeatureStoreCodeBlock from '../../../components/FeatureStoreCodeBlock';
 
 type DetailsItemProps = {
-  label: string;
+  label: React.ReactNode;
   value: React.ReactNode;
   testId?: string;
   className?: string;
@@ -91,7 +94,14 @@ const DataSetDetailsView: React.FC<DataSetDetailsViewProps> = ({ dataSet }) => {
             horizontalTermWidthModifier={{ default: '15ch', lg: '18ch', xl: '22ch' }}
           >
             <DetailsItem
-              label="Source feature service"
+              label={
+                <Flex>
+                  <FlexItem>Feature service</FlexItem>
+                  <Popover bodyContent="The feature service used to create this dataset. It defines which features were included and how they were retrieved at the time the dataset was generated.">
+                    <DashboardPopupIconButton icon={<OutlinedQuestionCircleIcon />} />
+                  </Popover>
+                </Flex>
+              }
               value={featureServiceValue}
               testId="data-set-source-feature-service"
               className={getDisabledClassName(dataSet.spec.featureServiceName)}
@@ -114,7 +124,7 @@ const DataSetDetailsView: React.FC<DataSetDetailsViewProps> = ({ dataSet }) => {
                 )}
                 {typeof storageConfig.table === 'string' && storageConfig.table && (
                   <DetailsItem
-                    label="Table"
+                    label="Table identifier"
                     value={getContentValue(storageConfig.table, 'No table')}
                     testId="data-set-table"
                     className={getDisabledClassName(storageConfig.table)}
@@ -209,7 +219,7 @@ const DataSetDetailsView: React.FC<DataSetDetailsViewProps> = ({ dataSet }) => {
             data-testid="data-set-join-keys-title"
             style={{ margin: '1em 0' }}
           >
-            Join Keys
+            Join keys
           </Title>
 
           {dataSet.spec.joinKeys.length > 0 ? (

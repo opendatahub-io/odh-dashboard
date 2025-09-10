@@ -16,12 +16,12 @@ const FeatureStoreLineage: React.FC = () => {
     <EmptyState
       headingLevel="h6"
       icon={PlusCircleIcon}
-      titleText="No lineage available for 'All projects'"
+      titleText="Select a feature store repository"
       variant={EmptyStateVariant.lg}
       data-testid="empty-state-title"
     >
       <EmptyStateBody data-testid="empty-state-body">
-        Select a signal project to view it&apos;s lineage
+        Select a feature store repository to view its lineage.
       </EmptyStateBody>
     </EmptyState>
   );
@@ -80,7 +80,7 @@ const FeatureStoreLineage: React.FC = () => {
         error={
           error ? `Failed to load lineage data: ${String(error)}` : conversionError || undefined
         }
-        emptyStateMessage="No lineage data available for this feature store project"
+        emptyStateMessage="No lineage data available for this feature store repository"
         height="100%"
         componentFactory={componentFactory}
         popoverComponent={FeatureStoreLineageNodePopover}

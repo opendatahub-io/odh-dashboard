@@ -11,7 +11,8 @@ import FeatureStoreProjectSelectorNavigator from '../components/FeatureStoreProj
 
 const title = 'Features';
 const description =
-  'Select a feature store to view its features. A feature is a schema containing a name and a type, and is used to represent the data stored in feature views for both training and serving purposes.';
+  'Select a feature store repository to view its features. A feature is a schema containing a name and a type, and is used to represent the data stored in feature views for both training and serving purposes.';
+
 const Features = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
   const [searchParams] = useSearchParams();
@@ -35,7 +36,7 @@ const Features = (): React.ReactElement => {
       data-testid="empty-state-title"
     >
       <EmptyStateBody data-testid="empty-state-body">
-        No features have been found in this project.
+        Select a different feature store repository or create a features in a workbench.
       </EmptyStateBody>
     </EmptyState>
   );

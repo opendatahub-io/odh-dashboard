@@ -8,11 +8,14 @@ import {
   DescriptionListTerm,
   DescriptionListDescription,
   Content,
+  Popover,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
+import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
 import { FeatureView, OnDemandFeatureView } from '../../../types/featureView';
 import FeatureStoreCodeBlock from '../../../components/FeatureStoreCodeBlock';
 import { featureDataSourceRoute } from '../../../routes';
@@ -94,9 +97,20 @@ const FeatureViewTransformation: React.FC<FeatureViewTransformationProps> = ({ f
           )}
         </FlexItem>
         <FlexItem>
-          <Title headingLevel="h3" data-testid="feature-view-inputs" style={{ margin: '1em 0' }}>
-            Inputs
-          </Title>
+          <Flex>
+            <FlexItem>
+              <Title
+                headingLevel="h3"
+                data-testid="feature-view-inputs"
+                style={{ margin: '1em 0' }}
+              >
+                Inputs
+              </Title>
+            </FlexItem>
+            <Popover bodyContent="Inputs are data from data sources or existing feature views that are used in the transformation logic.">
+              <DashboardPopupIconButton icon={<OutlinedQuestionCircleIcon />} />
+            </Popover>
+          </Flex>
           {isOnDemandFeatureView(featureView) ? (
             <div>
               <DescriptionList

@@ -39,7 +39,7 @@ const FeatureStoreProjectSelector: React.FC<FeatureStoreProjectSelectorProps> = 
       isFullWidth
       minWidth="250px"
       searchFocusOnOpen
-      searchPlaceholder="Feature store project name"
+      searchPlaceholder="Feature store repository name"
       onSearchChange={(value) => setSearchText(value)}
       onSearchClear={() => setSearchText('')}
       searchValue={searchText}
@@ -75,7 +75,7 @@ const FeatureStoreProjectSelector: React.FC<FeatureStoreProjectSelectorProps> = 
   return (
     <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
       <FlexItem>
-        <Bullseye>Feature store projects</Bullseye>
+        <Bullseye>Feature store repository</Bullseye>
       </FlexItem>
       <FlexItem>{selector}</FlexItem>
     </Flex>

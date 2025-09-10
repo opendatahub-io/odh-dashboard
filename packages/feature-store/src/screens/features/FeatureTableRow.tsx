@@ -31,8 +31,8 @@ const FeatureTableRow: React.FC<FeatureTableRowType> = ({ features, fsProject })
       />
     </Td>
     <Td dataLabel="Project">{features.project ?? '-'}</Td>
-    <Td dataLabel="Value Type">{features.type ?? '-'}</Td>
-    <Td dataLabel="Feature View">
+    <Td dataLabel="Value type">{features.type ?? '-'}</Td>
+    <Td dataLabel="Feature view">
       <Link to={featureViewRoute(features.featureView, fsProject ?? features.project ?? '')}>
         {features.featureView}
       </Link>
