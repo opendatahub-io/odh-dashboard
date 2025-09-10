@@ -2,7 +2,7 @@ import { Button, Content, ContentVariants, FlexItem, Truncate } from '@patternfl
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useResolvedExtensions, LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
+import { useExtensions, LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
 import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { ArchiveRegisteredModelModal } from '~/app/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
@@ -42,9 +42,7 @@ const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowP
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
   const rmUrl = registeredModelUrl(rm.id, preferredModelRegistry?.name);
 
-  const [columnExtensions, columnExtensionsLoaded] = useResolvedExtensions(
-    isModelRegistryTableColumnExtension,
-  );
+  const columnExtensions = useExtensions(isModelRegistryTableColumnExtension);
 
   const actions: IAction[] = [
     {
@@ -105,14 +103,14 @@ const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowP
       : navigate(modelVersionUrl(mv.id, mv.registeredModelId, preferredModelRegistry?.name));
 
   const renderExtensionColumns = () => {
-    if (!columnExtensionsLoaded || columnExtensions.length === 0) {
+    if (columnExtensions.length === 0) {
       return null;
     }
 
     return columnExtensions.map((extension, index) => (
       <Td key={`extension-${index}`}>
         <LazyCodeRefComponent
-          component={extension.properties.column}
+          component={extension.properties.component}
           props={{ registeredModel: rm }}
         />
       </Td>

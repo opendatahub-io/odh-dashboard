@@ -37,7 +37,7 @@ const ExtendedRegisteredModelTable: React.FC<ExtendedRegisteredModelTableProps> 
       columnExtensions.forEach((extension, index) => {
         columns.splice(insertIndex + index, 0, {
           field: `extension-${index}`,
-          label: 'Extension',
+          label: 'Deployments',
           sortable: false,
         });
       });
