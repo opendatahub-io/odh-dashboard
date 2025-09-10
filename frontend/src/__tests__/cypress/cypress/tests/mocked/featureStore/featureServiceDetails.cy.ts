@@ -247,7 +247,7 @@ describe('Feature Service Details', () => {
     });
 
     it('should display updated at timestamp', () => {
-      featureServiceDetailsPage.findUpdatedAtLabel().should('contain.text', 'Updated');
+      featureServiceDetailsPage.findUpdatedAtLabel().should('contain.text', 'Last modified');
       featureServiceDetailsPage
         .findUpdatedAtValue()
         .should('contain.text', 'Jun 30, 2025, 7:46 AM UTC');
