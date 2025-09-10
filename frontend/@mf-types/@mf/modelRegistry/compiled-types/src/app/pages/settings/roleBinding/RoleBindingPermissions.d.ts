@@ -20,6 +20,7 @@ type RoleBindingPermissionsProps = {
     description: React.ReactElement | string;
     groups: GroupKind[];
     isGroupFirst?: boolean;
+    isProjectSubject?: boolean;
 };
 declare const RoleBindingPermissions: React.FC<RoleBindingPermissionsProps>;
 export default RoleBindingPermissions;
