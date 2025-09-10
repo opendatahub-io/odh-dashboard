@@ -83,13 +83,26 @@ const ManageTolerationModal: React.FC<ManageTolerationModalProps> = ({
               dataTestId="toleration-effect-select"
             />
           </FormGroup>
-          <FormGroup label="Key" isRequired fieldId="toleration-key">
+          <FormGroup
+            label="Key"
+            isRequired
+            fieldId="toleration-key"
+            labelHelp={
+              <Popover bodyContent="The taint key identifies the resource or condition on a node. For GPU scheduling, use keys like nvidia.com/gpu or amd.com/gpu.">
+                <DashboardPopupIconButton
+                  icon={<OutlinedQuestionCircleIcon />}
+                  aria-label="More info for key field"
+                />
+              </Popover>
+            }
+          >
             <TextInput
               id="toleration-key"
               value={toleration.key}
               onChange={(_, value) => setToleration('key', value)}
               aria-label="Toleration key field"
               data-testid="toleration-key-input"
+              placeholder="Example, nvidia.com/gpu"
             />
           </FormGroup>
           <FormGroup label="Value" fieldId="toleration-value">
@@ -101,6 +114,7 @@ const ManageTolerationModal: React.FC<ManageTolerationModalProps> = ({
                   onChange={(_, value) => setToleration('value', value)}
                   aria-label="Toleration value field"
                   data-testid="toleration-value-input"
+                  placeholder="Example, present"
                 />
               </StackItem>
               {showAlertForValue && (
