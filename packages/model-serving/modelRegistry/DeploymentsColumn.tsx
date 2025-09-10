@@ -2,9 +2,9 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, Tooltip } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
 import type { RegisteredModel } from '@mf/modelRegistry/compiled-types/src/app/types';
 
-import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
 import { ModelDeploymentsContext } from '../src/concepts/ModelDeploymentsContext';
 
 const DeploymentsColumn: React.FC<{ registeredModel: RegisteredModel }> = ({ registeredModel }) => {
