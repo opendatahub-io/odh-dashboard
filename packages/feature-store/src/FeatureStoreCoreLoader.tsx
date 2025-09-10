@@ -51,7 +51,7 @@ const FeatureStoreContent: React.FC<{
     return (
       <ApplicationsPage loaded loadError={featureStoreCRError} empty={false}>
         <RedirectErrorState
-          title="Feature Store project load error"
+          title="Feature Store repository load error"
           errorMessage={featureStoreCRError.message}
         />
       </ApplicationsPage>
@@ -59,7 +59,7 @@ const FeatureStoreContent: React.FC<{
   }
 
   if (!featureStoreCRLoaded || !isAdminLoaded) {
-    return <Bullseye>Loading feature store projects...</Bullseye>;
+    return <Bullseye>Loading feature store repositories...</Bullseye>;
   }
 
   if (!featureStoreCR) {
@@ -71,9 +71,9 @@ const FeatureStoreContent: React.FC<{
       </>
     );
 
-    const userTitle = 'Start by requesting a Feature Store project';
+    const userTitle = 'Request access to a feature store repository';
     const userDescription =
-      'Feature Store projects allow you and your team to organize and collaborate on resources within separate namespaces. To request a project, contact your administrator.';
+      'Feature store repositories allow teams to organize and collaborate on resources within separate namespaces. To request access to a new or existing repository, contact your administrator.';
 
     const renderStateProps: ApplicationPageRenderState = {
       empty: true,

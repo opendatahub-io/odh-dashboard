@@ -74,7 +74,7 @@ export const processMetricsData = (data: MetricsCountResponse): MetricCardItem[]
       title: 'Feature views',
       count: counts.featureViews,
       description:
-        'A feature view is a logical group of time-series feature data as it is found in a data source.',
+        'Feature views define groups of related features and how to retrieve them from a source.',
       route: '/featureStore/featureViews',
     },
     {

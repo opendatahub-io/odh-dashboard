@@ -16,7 +16,7 @@ export enum FeatureStoreSections {
   ENTITIES = 'Entities',
   SCHEMA = 'Schema',
   INPUTS = 'Inputs',
-  CONSUMING_FEATURE_VIEWS = 'Consuming Feature Views',
+  CONSUMING_FEATURE_VIEWS = 'Feature views',
 }
 
 export const hasContent = (value: string): boolean => !!value.trim().length;

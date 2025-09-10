@@ -10,7 +10,7 @@ import { featureStoreRoute } from '../../routes';
 
 const title = 'Entities';
 const description =
-  'Select a workspace to view and manage its entities. Entities are collections of related features and can be mapped to the domain of your use case.';
+  'Select a feature store repository to view and manage its entities. Entities are collections of related features and can be mapped to your use case (for example, customers, products, transactions).';
 
 const FeatureStoreEntities = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -28,7 +28,7 @@ const FeatureStoreEntities = (): React.ReactElement => {
       data-testid="empty-state-title"
     >
       <EmptyStateBody data-testid="empty-state-body">
-        No entities have been found in this project.
+        Select a different feature store repository or create a entities in a workbench.
       </EmptyStateBody>
     </EmptyState>
   );

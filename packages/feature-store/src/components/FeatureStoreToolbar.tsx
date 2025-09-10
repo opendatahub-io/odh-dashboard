@@ -93,7 +93,7 @@ export function createDefaultFilterOptionRenders(
           {...props}
           value={value || ''}
           onChange={(_event, v) => onChange(v)}
-          placeholder={`Filter by ${filterOptions[key]}`}
+          placeholder={`Filter by ${filterOptions[key].toLowerCase()}`}
         />
       );
     }

@@ -24,7 +24,7 @@ export const baseColumns: SortableData<Features>[] = [
   },
   {
     field: 'valueType',
-    label: 'Value Type',
+    label: 'Value type',
     width: 25,
     sortable: (a: Features, b: Features): number => a.type?.localeCompare(b.type ?? '') ?? 0,
     info: {
@@ -34,12 +34,12 @@ export const baseColumns: SortableData<Features>[] = [
   },
   {
     field: 'featureView',
-    label: 'Feature View',
+    label: 'Feature view',
     width: 25,
     sortable: (a: Features, b: Features): number => a.featureView.localeCompare(b.featureView),
     info: {
       popover:
-        "The feature views that include this feature. Feature views group related features and define how they're retrieved from a data source.",
+        'The feature views that include this feature. A feature view defines a group of related features and how to retrieve them from a data source over time.',
     },
   },
   {
