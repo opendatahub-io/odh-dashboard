@@ -21,8 +21,9 @@ export const useModelDeploymentWizardValidation = (
   const modelSourceStepValidationData: Partial<ModelSourceStepData> = React.useMemo(
     () => ({
       modelType: state.modelType.data,
+      modelLocationData: state.modelLocationData.data,
     }),
-    [state.modelType],
+    [state.modelType, state.modelLocationData],
   );
 
   const modelSourceStepValidation = useZodFormValidation(
