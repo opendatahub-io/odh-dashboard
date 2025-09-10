@@ -415,6 +415,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
           <FormGroup label="Number of accelerators" fieldId="number-of-accelerators">
             <InputGroup>
               <NumberInputWrapper
+                data-testid="number-of-accelerators"
                 inputAriaLabel="Number of accelerators"
                 id="number-of-accelerators"
                 name="number-of-accelerators"

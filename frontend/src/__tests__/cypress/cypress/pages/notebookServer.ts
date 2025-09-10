@@ -136,6 +136,10 @@ class NotebookServer {
   findNotebookVersion(version: string) {
     return cy.get(`[data-id="${version}"]`);
   }
+
+  findNumberOfAcceleratorsInput() {
+    return cy.findByTestId('number-of-accelerators').find('input');
+  }
 }
 
 export const notebookServer = new NotebookServer();

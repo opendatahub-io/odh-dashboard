@@ -153,11 +153,13 @@ const useAcceleratorProfileFormState = (
     useExistingSettings: false,
   });
 
+  const initializedRef = React.useRef(false);
   React.useEffect(() => {
-    if (loaded) {
+    if (loaded && !initializedRef.current) {
       setFormData('profile', initialState.acceleratorProfile);
       setFormData('count', initialState.count);
       setFormData('useExistingSettings', initialState.unknownProfileDetected);
+      initializedRef.current = true;
     }
   }, [loaded, initialState, setFormData]);
 

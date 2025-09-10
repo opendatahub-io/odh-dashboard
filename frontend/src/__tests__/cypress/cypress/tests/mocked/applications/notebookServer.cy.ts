@@ -245,14 +245,17 @@ describe('NotebookServer', () => {
     });
   });
 
-  it('should start a workbench with accelerator profile', () => {
+  it('should start a workbench with accelerator profile and preserve GPU count', () => {
     notebookServer.visit();
+    notebookServer.findNotebookImage('code-server-notebook').click();
     notebookServer.findAcceleratorProfileSelect().click();
     notebookServer.findAcceleratorProfileSelect().findSelectOption('Test GPU').click();
     notebookServer.findAcceleratorProfileSelect().should('contain', 'Test GPU');
-    notebookServer.findStartServerButton().should('be.visible');
+    notebookServer.findNumberOfAcceleratorsInput().should('have.value', '1');
+    notebookServer.findAcceleratorProfileSelect().should('contain', 'Test GPU');
+    notebookServer.findStartServerButton().should('not.be.disabled');
     notebookServer.findStartServerButton().click();
-
+    notebookServer.findNumberOfAcceleratorsInput().should('have.value', '1');
     cy.wait('@startNotebookServer').then((interception) => {
       expect(interception.request.body).to.eql({
         podSpecOptions: {
