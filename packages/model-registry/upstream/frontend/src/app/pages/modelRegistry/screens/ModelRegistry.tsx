@@ -4,7 +4,7 @@ import { ProjectObjectType, ApplicationsPage, TitleWithIcon } from 'mod-arch-sha
 import useRegisteredModels from '~/app/hooks/useRegisteredModels';
 import useModelVersions from '~/app/hooks/useModelVersions';
 import ModelRegistrySelectorNavigator from './ModelRegistrySelectorNavigator';
-import RegisteredModelListView from './RegisteredModels/RegisteredModelListView';
+import ExtendedRegisteredModelListView from '~/odh/components/ExtendedRegisteredModelListView';
 import { modelRegistryUrl } from './routeUtils';
 
 type ModelRegistryProps = Omit<
@@ -58,7 +58,7 @@ const ModelRegistry: React.FC<ModelRegistryProps> = ({ ...pageProps }) => {
       provideChildrenPadding
       removeChildrenTopPadding
     >
-      <RegisteredModelListView
+      <ExtendedRegisteredModelListView
         registeredModels={registeredModels.items}
         modelVersions={modelVersions.items}
         refresh={refresh}
