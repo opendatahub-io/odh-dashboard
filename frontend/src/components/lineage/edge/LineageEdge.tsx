@@ -7,13 +7,13 @@ import {
   isEdge,
   NodeStatus,
   observer,
+  Point,
 } from '@patternfly/react-topology';
 import { OnSelect } from '@patternfly/react-topology/dist/esm/behavior';
 import { Layer } from '@patternfly/react-topology/dist/esm/components/layers';
 import { css } from '@patternfly/react-styles';
 import styles from '@patternfly/react-topology/dist/esm/css/topology-components';
 import DefaultConnectorTerminal from '@patternfly/react-topology/dist/esm/components/edges/terminals/DefaultConnectorTerminal';
-import { getConnectorStartPoint } from '@patternfly/react-topology/dist/esm/components/edges/terminals/terminalUtils';
 import StraightEndTerminal from './StraightEndTerminal';
 import {
   useEdgeHighlighting,
@@ -22,9 +22,8 @@ import {
 } from './edgeStateUtils';
 import { getEdgeStyleConfig } from './edgeStyleUtils';
 import { getEdgeVisibilityConfig } from './edgeVisibilityUtils';
-import { calculateBackgroundPath, createCurvedPath } from './pathUtils';
 
-interface CurvedEdgeProps {
+interface LineageEdgeProps {
   children?: React.ReactNode;
   className?: string;
   element: GraphElement;
@@ -40,12 +39,52 @@ interface CurvedEdgeProps {
   endTerminalSize?: number;
   selected?: boolean;
   onSelect?: OnSelect;
-  curveOffset?: number;
+  curvature?: number;
 }
 
-type CurvedEdgeInnerProps = Omit<CurvedEdgeProps, 'element'> & { element: Edge };
+type LineageEdgeInnerProps = Omit<LineageEdgeProps, 'element'> & { element: Edge };
 
-const CurvedEdgeInner: React.FunctionComponent<CurvedEdgeInnerProps> = observer(
+/**
+ * Creates a smooth cubic Bézier curve path between two points
+ * Optimized for horizontal lineage layouts with proper anchor awareness
+ */
+const createLineageBezierPath = (startPoint: Point, endPoint: Point, curvature = 0.4): string => {
+  const dx = endPoint.x - startPoint.x;
+
+  // Calculate control points for a smooth horizontal curve
+  // The curvature determines how much the curve bends
+  const controlDistance = Math.abs(dx) * curvature;
+
+  const control1 = new Point(startPoint.x + controlDistance, startPoint.y);
+
+  const control2 = new Point(endPoint.x - controlDistance, endPoint.y);
+
+  return `M ${startPoint.x} ${startPoint.y} C ${control1.x} ${control1.y}, ${control2.x} ${control2.y}, ${endPoint.x} ${endPoint.y}`;
+};
+
+const createBackgroundPath = (
+  startPoint: Point,
+  endPoint: Point,
+  startTerminalType: EdgeTerminalType,
+  endTerminalType: EdgeTerminalType,
+  startTerminalSize: number,
+  endTerminalSize: number,
+  curvature: number,
+): string => {
+  const adjustedStart =
+    startTerminalType !== EdgeTerminalType.none
+      ? new Point(startPoint.x + startTerminalSize, startPoint.y)
+      : startPoint;
+
+  const adjustedEnd =
+    endTerminalType !== EdgeTerminalType.none
+      ? new Point(endPoint.x - endTerminalSize, endPoint.y)
+      : endPoint;
+
+  return createLineageBezierPath(adjustedStart, adjustedEnd, curvature);
+};
+
+const LineageEdgeInner: React.FunctionComponent<LineageEdgeInnerProps> = observer(
   ({
     element,
     edgeStyle,
@@ -62,7 +101,7 @@ const CurvedEdgeInner: React.FunctionComponent<CurvedEdgeInnerProps> = observer(
     className,
     selected,
     onSelect,
-    curveOffset = 80,
+    curvature = 0.4,
   }) => {
     const startPoint = element.getStartPoint();
     const endPoint = element.getEndPoint();
@@ -72,7 +111,6 @@ const CurvedEdgeInner: React.FunctionComponent<CurvedEdgeInnerProps> = observer(
       return null;
     }
 
-    // Hide terminal pointers for positioning edges
     const effectiveStartTerminalType = isPositioning ? EdgeTerminalType.none : startTerminalType;
     const effectiveEndTerminalType = isPositioning ? EdgeTerminalType.none : endTerminalType;
 
@@ -88,55 +126,87 @@ const CurvedEdgeInner: React.FunctionComponent<CurvedEdgeInnerProps> = observer(
       elementEdgeStyle: element.getEdgeStyle(),
     });
 
-    const bendpoints = element.getBendpoints();
+    const mainPath = createLineageBezierPath(startPoint, endPoint, curvature);
 
-    const d = createCurvedPath(startPoint, endPoint, bendpoints, curveOffset);
-
-    const backgroundPath = calculateBackgroundPath(
+    const backgroundPath = createBackgroundPath(
       startPoint,
       endPoint,
-      bendpoints,
       effectiveStartTerminalType,
       effectiveEndTerminalType,
       startTerminalSize,
       endTerminalSize,
-      curveOffset,
-      getConnectorStartPoint,
+      curvature,
     );
 
     return (
       <Layer>
-        <g data-test-id="edge-handler" className={groupClassName} onClick={onSelect}>
+        <style>
+          {`
+            .lineage-terminal-light svg {
+              fill: #A3A3A3 !important;
+              stroke: #A3A3A3 !important;
+              opacity: 0.8;
+            }
+            
+            .pf-m-highlighted .lineage-terminal-light svg,
+            .pf-m-selected .lineage-terminal-light svg {
+              fill: #007bff !important;
+              stroke: #007bff !important;
+              opacity: 1;
+            }
+          `}
+        </style>
+        <g data-test-id="lineage-edge-handler" className={groupClassName} onClick={onSelect}>
           <path
             className={css(styles.topologyEdgeBackground)}
             d={backgroundPath}
-            style={getEdgeBackgroundStyles(isPositioning)}
+            style={{
+              ...getEdgeBackgroundStyles(isPositioning),
+              strokeWidth: '12',
+              stroke: 'transparent',
+              opacity: isPositioning ? 0 : 0.1,
+            }}
           />
+
           <path
             className={linkClassName}
-            d={d}
-            style={getEdgeHighlightStyles(
-              isConnectedToSelection,
-              isPositioning,
-              edgeAnimationDuration,
-            )}
+            d={mainPath}
+            style={{
+              ...getEdgeHighlightStyles(
+                isConnectedToSelection,
+                isPositioning,
+                edgeAnimationDuration,
+                {
+                  strokeColor: '#007bff',
+                  strokeWidth: 2.5,
+                  dropShadow: 'drop-shadow(0 0 4px rgba(0, 123, 255, 0.4))',
+                },
+              ),
+              strokeWidth: '1.5',
+              stroke: isConnectedToSelection ? '#007bff' : '#A3A3A3',
+              fill: 'none',
+              opacity: isPositioning ? 0 : 0.8,
+            }}
           />
+
           <DefaultConnectorTerminal
-            className={startTerminalClass}
+            className={css(startTerminalClass, 'lineage-terminal-light')}
             isTarget={false}
             edge={element}
             size={startTerminalSize}
             terminalType={effectiveStartTerminalType}
             status={startTerminalStatus}
           />
+
           <StraightEndTerminal
-            className={endTerminalClass}
+            className={css(endTerminalClass, 'lineage-terminal-light')}
             isTarget
             edge={element}
             size={endTerminalSize}
             terminalType={effectiveEndTerminalType}
             status={endTerminalStatus}
           />
+
           {children}
         </g>
       </Layer>
@@ -144,29 +214,29 @@ const CurvedEdgeInner: React.FunctionComponent<CurvedEdgeInnerProps> = observer(
   },
 );
 
-const CurvedEdge: React.FunctionComponent<CurvedEdgeProps> = ({
+const LineageEdge: React.FunctionComponent<LineageEdgeProps> = ({
   element,
   startTerminalType = EdgeTerminalType.none,
   startTerminalSize = 14,
   endTerminalType = EdgeTerminalType.directional,
   endTerminalSize = 6,
-  curveOffset = 30,
+  curvature = 0.4,
   ...rest
-}: CurvedEdgeProps) => {
+}: LineageEdgeProps) => {
   if (!isEdge(element)) {
-    throw new Error('CurvedEdge must be used only on Edge elements');
+    throw new Error('LineageEdge must be used only on Edge elements');
   }
   return (
-    <CurvedEdgeInner
+    <LineageEdgeInner
       element={element}
       startTerminalType={startTerminalType}
       startTerminalSize={startTerminalSize}
       endTerminalType={endTerminalType}
       endTerminalSize={endTerminalSize}
-      curveOffset={curveOffset}
+      curvature={curvature}
       {...rest}
     />
   );
 };
 
-export default CurvedEdge;
+export default LineageEdge;
