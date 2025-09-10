@@ -1,6 +1,4 @@
 import {
-  Alert,
-  AlertActionCloseButton,
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
@@ -26,14 +24,14 @@ const MaterializationIntervalRow: React.FC<{
   index: number;
 }> = ({ interval, index }) => (
   <Tr key={index}>
-    <Td dataLabel="Materialization Interval">
+    <Td dataLabel="Materialization interval">
       {new Date(interval.startTime).toLocaleString()} to{' '}
       {new Date(interval.endTime).toLocaleString()}
     </Td>
     <Td dataLabel="Created">
       <FeatureStoreTimestamp date={new Date(interval.startTime)} />
     </Td>
-    <Td dataLabel="Updated">
+    <Td dataLabel="Last modified">
       <FeatureStoreTimestamp date={new Date(interval.endTime)} />
     </Td>
   </Tr>
@@ -41,7 +39,6 @@ const MaterializationIntervalRow: React.FC<{
 
 const FeatureViewMaterialization: React.FC<FeatureViewMaterializationProps> = ({ featureView }) => {
   const { materializationIntervals } = featureView.meta;
-  const [showAlert, setShowAlert] = React.useState(true);
 
   const hasMaterializationData = materializationIntervals && materializationIntervals.length > 0;
 
@@ -58,20 +55,6 @@ const FeatureViewMaterialization: React.FC<FeatureViewMaterializationProps> = ({
         spaceItems={{ default: 'spaceItems2xl' }}
         className="pf-v6-u-mt-xl"
       >
-        {hasMaterializationData && showAlert && (
-          <FlexItem>
-            <Alert
-              variant="info"
-              isInline
-              title=" Materialization is enabled to write offline features from offline store into online store."
-              actionClose={<AlertActionCloseButton onClose={() => setShowAlert(false)} />}
-              data-testid="materialization-info-alert"
-            >
-              Materialization is enabled to write offline features from offline store into online
-              store.
-            </Alert>
-          </FlexItem>
-        )}
         <FlexItem>
           {hasMaterializationData ? (
             <Table
@@ -96,7 +79,8 @@ const FeatureViewMaterialization: React.FC<FeatureViewMaterializationProps> = ({
               data-testid="no-materialization-jobs-empty-state"
             >
               <EmptyStateBody>
-                No materialization jobs are available. Schedule job crons in OpenShift Platform.
+                No materialization jobs are scheduled. To create and manage these jobs, schedule
+                corresponding cron jobs in OpenShift.
               </EmptyStateBody>
             </EmptyState>
           )}

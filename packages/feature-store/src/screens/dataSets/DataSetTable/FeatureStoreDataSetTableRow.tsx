@@ -66,7 +66,7 @@ const FeatureStoreDataSetsTableRow: React.FC<FeatureStoreDataSetsTableRowType> =
         />,
       )}
       {renderTableCell(
-        'Source feature service',
+        'Feature service',
         dataSet.spec.featureServiceName ? (
           <Link
             to={

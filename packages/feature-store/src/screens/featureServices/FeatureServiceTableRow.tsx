@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Button } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
@@ -46,7 +47,12 @@ const FeatureServiceTableRow: React.FC<FeatureServiceTableRowType> = ({
     </Td>
     <Td dataLabel="Feature views">
       <ScrollableLinksPopover
-        trigger={<span>{featureService.spec.features?.length ?? 0}</span>}
+        trigger={
+          <Button variant="link" isInline>
+            {featureService.spec.features?.length ?? 0}{' '}
+            {featureService.spec.features?.length === 1 ? 'feature view' : 'feature views'}
+          </Button>
+        }
         links={
           featureService.spec.features?.map((feature) => ({
             name: feature.featureViewName,
