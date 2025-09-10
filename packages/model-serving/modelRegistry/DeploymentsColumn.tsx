@@ -2,20 +2,8 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, Tooltip } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
-import { SortableData } from '@odh-dashboard/internal/components/table/types';
-// Define the RegisteredModel type locally since we can't import from @mf/modelRegistry
-type RegisteredModel = {
-  id: string;
-  name: string;
-  description?: string;
-  customProperties?: Record<string, unknown>;
-  owner?: string;
-  lastUpdateTimeSinceEpoch: string;
-};
+import type { RegisteredModel } from '@mf/modelRegistry/compiled-types/src/app/types';
 
-type ModelRegistryTableColumn<RM extends RegisteredModel = RegisteredModel> = SortableData<RM> & {
-  cellRenderer: (registeredModel: RM) => React.ReactNode;
-};
 import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
 import { ModelDeploymentsContext } from '../src/concepts/ModelDeploymentsContext';
 
@@ -41,13 +29,13 @@ const DeploymentsColumn: React.FC<{ registeredModel: RegisteredModel }> = ({ reg
     return <span>-</span>;
   }
   const handleDeploymentsClick = () => {
-    navigate(`/model-registry/${registeredModel.id}/deployments`);
+    navigate(`/modelServing?registeredModelId=${registeredModel.id}`);
   };
 
   return (
     <div>
       <Link
-        to={`/model-registry/${registeredModel.id}/deployments`}
+        to={`/modelServing?registeredModelId=${registeredModel.id}`}
         onClick={handleDeploymentsClick}
         style={{ textDecoration: 'none' }}
       >
@@ -65,21 +53,5 @@ const DeploymentsColumn: React.FC<{ registeredModel: RegisteredModel }> = ({ reg
     </div>
   );
 };
-
-export const createDeploymentsColumn = (): ModelRegistryTableColumn<RegisteredModel> => ({
-  field: 'deployments',
-  label: 'Deployments',
-  sortable: false,
-  info: {
-    popover:
-      'This is the total number of deployments that you have permission to access across all versions of the model.',
-    popoverProps: {
-      position: 'left',
-    },
-  },
-  cellRenderer: (registeredModel: RegisteredModel) => (
-    <DeploymentsColumn registeredModel={registeredModel} />
-  ),
-});
 
 export default DeploymentsColumn;

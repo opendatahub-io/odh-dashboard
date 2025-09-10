@@ -139,16 +139,21 @@ const ExtendedRegisteredModelListView: React.FC<ExtendedRegisteredModelListViewP
     />
   );
 
-  // Wrap with deployments context provider if available
+  // Wrap with deployments context providers if available
   if (deploymentsContextLoaded && deploymentsContextExtensions.length > 0) {
-    const DeploymentsProvider = deploymentsContextExtensions[0].properties.DeploymentsProvider;
-    return (
-      <DeploymentsProvider
-        labelSelectors={{}}
-        mrName={preferredModelRegistry?.name}
-      >
-        {({ deployments, loaded }) => tableContent}
-      </DeploymentsProvider>
+    return deploymentsContextExtensions.reduce(
+      (content, extension) => {
+        const DeploymentsProvider = extension.properties.DeploymentsProvider;
+        return (
+          <DeploymentsProvider
+            key={extension.properties.DeploymentsProvider.toString()}
+            mrName={preferredModelRegistry?.name}
+          >
+          {() => tableContent}
+          </DeploymentsProvider>
+        );
+      },
+      tableContent
     );
   }
 

@@ -2,7 +2,7 @@ import { Button, Content, ContentVariants, FlexItem, Truncate } from '@patternfl
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { useResolvedExtensions, LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
 import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { ArchiveRegisteredModelModal } from '~/app/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
@@ -109,14 +109,14 @@ const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowP
       return null;
     }
 
-    return columnExtensions.map((extension, index) => {
-      const column = extension.properties.column();
-      return (
-        <Td key={`extension-${index}`} dataLabel={column.label}>
-          {column.cellRenderer(rm)}
-        </Td>
-      );
-    });
+    return columnExtensions.map((extension, index) => (
+      <Td key={`extension-${index}`}>
+        <LazyCodeRefComponent
+          component={extension.properties.column}
+          props={{ registeredModel: rm }}
+        />
+      </Td>
+    ));
   };
 
   return (
