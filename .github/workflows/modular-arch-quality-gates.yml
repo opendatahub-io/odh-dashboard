@@ -19,8 +19,6 @@ permissions:
 
 env:
   NODE_VERSION: '20'
-  GO_VERSION: '1.24.3'
-  # Configurable paths for future flexibility
   PACKAGES_PATHS: packages
 
 jobs:
