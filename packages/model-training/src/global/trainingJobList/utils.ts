@@ -166,38 +166,38 @@ export const getTrainingJobStatus = async (
         return { status: PyTorchJobState.PAUSED, isLoading: false };
       }
 
-      // Priority 2: Check for preempted status - workload.spec.active = true AND job.spec.runPolicy.suspend = true
-      const isWorkloadActive = workload.spec.active === true;
-      const isJobSuspended = job.spec.runPolicy?.suspend === true;
+      // Use correct priority order for workload status determination
+      const conditions = workload.status?.conditions || [];
 
-      if (isWorkloadActive && isJobSuspended) {
+      // Priority 2: Check for preempted status - Evicted or Preempted conditions with status=True
+      const evictedCondition = conditions.find((c) => c.type === 'Evicted' && c.status === 'True');
+      const preemptedCondition = conditions.find(
+        (c) => c.type === 'Preempted' && c.status === 'True',
+      );
+
+      if (evictedCondition || preemptedCondition) {
         return { status: PyTorchJobState.PREEMPTED, isLoading: false };
       }
 
-      // Priority 3: Check for queued status - workload conditions indicate waiting for resources
-      const conditions = workload.status?.conditions || [];
-      const quotaReservedCondition = conditions.find((c) => c.type === 'QuotaReserved');
-      const podsReadyCondition = conditions.find((c) => c.type === 'PodsReady');
+      // Priority 3: Check for running status - PodsReady condition with status=True
+      const podsReadyCondition = conditions.find(
+        (c) => c.type === 'PodsReady' && c.status === 'True',
+      );
 
-      const isWaitingForQuota =
-        quotaReservedCondition &&
-        quotaReservedCondition.status === 'False' &&
-        quotaReservedCondition.reason === 'Pending';
-      const isWaitingForPods =
-        podsReadyCondition &&
-        podsReadyCondition.status === 'False' &&
-        podsReadyCondition.reason === 'WaitForStart';
-
-      if (isWaitingForQuota && isWaitingForPods) {
-        return { status: PyTorchJobState.QUEUED, isLoading: false };
+      if (podsReadyCondition) {
+        return { status: PyTorchJobState.RUNNING, isLoading: false };
       }
-    } else {
-      // Non-Kueue job: Check PyTorchJob runPolicy.suspend for hibernation
-      const isSuspendedByRunPolicy = job.spec.runPolicy?.suspend === true;
 
-      if (isSuspendedByRunPolicy) {
-        return { status: PyTorchJobState.PAUSED, isLoading: false };
-      }
+      // Priority 4: Check for queued status - Everything else is queued
+      // Also check if the workload conditions list contains type "Admitted"
+      // (if it doesn't, it means it was never in a running state)
+      return { status: PyTorchJobState.QUEUED, isLoading: false };
+    }
+    // Non-Kueue job: Check PyTorchJob runPolicy.suspend for hibernation
+    const isSuspendedByRunPolicy = job.spec.runPolicy?.suspend === true;
+
+    if (isSuspendedByRunPolicy) {
+      return { status: PyTorchJobState.PAUSED, isLoading: false };
     }
 
     // Return basic status if no special conditions are met

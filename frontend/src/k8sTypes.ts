@@ -1115,7 +1115,14 @@ export type WorkloadCondition = {
   observedGeneration?: number;
   reason: string;
   status: 'True' | 'False' | 'Unknown';
-  type: 'QuotaReserved' | 'Admitted' | 'PodsReady' | 'Finished' | 'Evicted' | 'Failed';
+  type:
+    | 'QuotaReserved'
+    | 'Admitted'
+    | 'PodsReady'
+    | 'Finished'
+    | 'Evicted'
+    | 'Preempted'
+    | 'Failed';
 };
 
 export type WorkloadPriorityClassKind = K8sResourceCommon & {
