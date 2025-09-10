@@ -22,6 +22,8 @@ const extensions: (
   | ModelRegistryDeployModalExtension
   | ModelRegistryVersionDetailsTabExtension
   | ModelRegistryVersionDeploymentsContextExtension
+  | ModelRegistryDetailsTabExtension
+  | ModelDetailsDeploymentCardExtension
   | ModelRegistryTableColumnExtension
 )[] = [
   {
@@ -59,7 +61,26 @@ const extensions: (
       required: [SupportedArea.MODEL_SERVING],
     },
   },
-
+  {
+    type: 'model-registry.details/tab',
+    properties: {
+      id: 'deployments',
+      title: 'Deployments',
+      component: () => import('../modelRegistry/ModelWideDeploymentsTab').then((m) => m.default),
+    },
+    flags: {
+      required: [SupportedArea.MODEL_SERVING],
+    },
+  },
+  {
+    type: 'model-registry.model-details/details-card',
+    properties: {
+      component: () => import('../modelRegistry/ModelDetailsDeploymentCard').then((m) => m.default),
+    },
+    flags: {
+      required: [SupportedArea.MODEL_SERVING],
+    },
+  },
   {
     type: 'model-registry.registered-models/table-column',
     properties: {
