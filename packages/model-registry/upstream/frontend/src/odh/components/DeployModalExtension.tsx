@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { HookNotify, useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { isModelRegistryDeployModalExtension } from '~/odh/extension-points';
 import MRDeployFormDataLoader from '~/odh/components/MRDeployFormDataLoader';
@@ -15,16 +16,8 @@ type DeployModalExtensionProps = {
 };
 
 const DeployModalExtension: React.FC<DeployModalExtensionProps> = ({ mv, render }) => {
+  const navigate = useNavigate();
   const [extensions, extensionsLoaded] = useResolvedExtensions(isModelRegistryDeployModalExtension);
-  const hookStateActionProvider = React.useMemo(
-    () => extensionsLoaded && extensions?.[0]?.properties.useAvailablePlatformIds,
-    [extensionsLoaded, extensions],
-  );
-
-  const ModalComponent = React.useMemo(
-    () => extensionsLoaded && extensions?.[0]?.properties.modalComponent,
-    [extensionsLoaded, extensions],
-  );
 
   const [openModal, setOpenModal] = React.useState(false);
 
@@ -40,27 +33,42 @@ const DeployModalExtension: React.FC<DeployModalExtensionProps> = ({ mv, render 
     [extensionsLoaded, extensions],
   );
 
+  const handleSubmit = React.useCallback(() => {
+    setOpenModal(false);
+    // Redirect to deployments page after successful deployment
+    navigate('/modelServing');
+  }, [navigate]);
+
   return (
     <>
-      {hookStateActionProvider ? (
-        <HookNotify
-          useHook={hookStateActionProvider}
-          onNotify={(value) => setAvailablePlatformIds(value ?? [])}
-        />
-      ) : null}
+      {extensions.map((extension) => {
+        return extension.properties.useAvailablePlatformIds && (
+          <HookNotify
+            key={extension.uid}
+            useHook={extension.properties.useAvailablePlatformIds}
+            onNotify={(value) => setAvailablePlatformIds(value ?? [])}
+          />
+        )
+      })}
       {render(buttonState, onOpenModal, isModalAvailable)}
-      {openModal && ModalComponent ? (
-        <MRDeployFormDataLoader
-          mv={mv}
-          renderData={(modelDeployPrefill, onSubmit) => (
-            <ModalComponent
-              modelDeployPrefill={modelDeployPrefill}
-              onSubmit={onSubmit}
-              onClose={() => setOpenModal(false)}
-            />
-          )}
-        />
-      ) : null}
+      {openModal && extensions.map((extension) => {
+        return extension.properties.modalComponent && (
+          <MRDeployFormDataLoader
+            key={extension.uid}
+            mv={mv}
+            renderData={(modelDeployPrefill, onSubmit) => (
+              <extension.properties.modalComponent.default
+                modelDeployPrefill={modelDeployPrefill}
+                onSubmit={() => {
+                  onSubmit();
+                  handleSubmit();
+                }}
+                onClose={() => setOpenModal(false)}
+              />
+            )}
+          />
+        )
+      })}
     </>
   );
 };

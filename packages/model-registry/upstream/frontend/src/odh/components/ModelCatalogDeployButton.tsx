@@ -12,7 +12,7 @@ export const ModelCatalogDeployButton = ({ model }: { model: ModelCatalogItem })
           id="deploy-button"
           aria-label="Deploy model"
           variant={ButtonVariant.primary}
-          onClick={onOpenModal}
+          onClick={buttonState?.enabled ? onOpenModal : undefined}
           isAriaDisabled={!buttonState?.enabled}
           data-testid="deploy-button"
         >
