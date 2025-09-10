@@ -22,6 +22,7 @@ const extensions: (
   | ModelRegistryDeployModalExtension
   | ModelRegistryVersionDetailsTabExtension
   | ModelRegistryVersionDeploymentsContextExtension
+  | ModelRegistryTableColumnExtension
 )[] = [
   {
     type: 'model-registry.model-version/deploy-modal',
@@ -53,6 +54,16 @@ const extensions: (
     properties: {
       DeploymentsProvider: () =>
         import('../modelRegistry/DeploymentsContextProvider').then((m) => m.default),
+    },
+    flags: {
+      required: [SupportedArea.MODEL_SERVING],
+    },
+  },
+
+  {
+    type: 'model-registry.registered-models/table-column',
+    properties: {
+      column: () => import('../modelRegistry/DeploymentsColumn'),
     },
     flags: {
       required: [SupportedArea.MODEL_SERVING],

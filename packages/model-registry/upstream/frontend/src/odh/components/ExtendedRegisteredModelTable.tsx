@@ -29,13 +29,17 @@ const ExtendedRegisteredModelTable: React.FC<ExtendedRegisteredModelTableProps> 
     const columns = [...rmColumns];
 
     if (columnExtensionsLoaded && columnExtensions.length > 0) {
-      // Insert Deployments column between "Latest version" and "Labels"
+      // Insert placeholder columns for extension components
+      // The actual rendering is handled in ExtendedRegisteredModelTableRow
       const labelsIndex = columns.findIndex((col) => col.field === 'labels');
       const insertIndex = labelsIndex >= 0 ? labelsIndex : 2; // Default to index 2 if labels not found
 
-      columnExtensions.forEach((extension) => {
-        const column = extension.properties.column();
-        columns.splice(insertIndex, 0, column);
+      columnExtensions.forEach((extension, index) => {
+        columns.splice(insertIndex + index, 0, {
+          field: `extension-${index}`,
+          label: 'Extension',
+          sortable: false,
+        });
       });
     }
 
