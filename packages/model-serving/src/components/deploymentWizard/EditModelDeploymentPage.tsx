@@ -15,7 +15,7 @@ import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { setupDefaults } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
 import { ModelDeploymentWizardData } from './useDeploymentWizard';
-import { getModelTypeFromDeployment } from './utils';
+import { getModelTypeFromDeployment, setupModelLocationData } from './utils';
 import { Deployment, isModelServingDeploymentFormDataExtension } from '../../../extension-points';
 import {
   ModelDeploymentsContext,
@@ -119,6 +119,7 @@ const EditModelDeploymentContent: React.FC<{
     hardwareProfile:
       formDataExtension?.properties.extractHardwareProfileConfig(deployment) ?? undefined,
     modelFormat: formDataExtension?.properties.extractModelFormat(deployment) ?? undefined,
+    modelLocationData: setupModelLocationData(), // TODO: Implement fully in next ticket RHOAIENG-32186
   });
 
   const formData = React.useMemo(() => {
