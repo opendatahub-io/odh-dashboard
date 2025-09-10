@@ -9,12 +9,14 @@ import {
   Popover,
   Stack,
   StackItem,
+  Timestamp,
+  TimestampTooltipVariant,
   Truncate,
 } from '@patternfly/react-core';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
-
+import { relativeTime } from '#~/utilities/time';
 import { TableRowTitleDescription } from '#~/components/table';
 import HardwareProfileEnableToggle from '#~/pages/hardwareProfiles/HardwareProfileEnableToggle';
 import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '#~/k8sTypes';
@@ -42,6 +44,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
   rowIndex,
   handleDelete,
 }) => {
+  const modifiedDate = hardwareProfile.metadata.annotations?.['opendatahub.io/modified-date'];
   const [isExpanded, setExpanded] = React.useState(false);
   const navigate = useNavigate();
 
@@ -131,6 +134,20 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
         </Td>
         <Td dataLabel="Enabled">
           <HardwareProfileEnableToggle hardwareProfile={hardwareProfile} />
+        </Td>
+        <Td dataLabel="Last modified">
+          {modifiedDate && !Number.isNaN(new Date(modifiedDate).getTime()) ? (
+            <Timestamp
+              date={new Date(modifiedDate)}
+              tooltip={{
+                variant: TimestampTooltipVariant.default,
+              }}
+            >
+              {relativeTime(Date.now(), new Date(modifiedDate).getTime())}
+            </Timestamp>
+          ) : (
+            '--'
+          )}
         </Td>
         <Td isActionCell>
           <ActionsColumn
