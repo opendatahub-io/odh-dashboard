@@ -6,15 +6,17 @@ import { hardwareProfileValidationSchema } from '@odh-dashboard/internal/concept
 import type { UseModelDeploymentWizardState } from './useDeploymentWizard';
 import { modelSourceStepSchema, type ModelSourceStepData } from './steps/ModelSourceStep';
 import { modelFormatFieldSchema } from './fields/ModelFormatField';
+import { externalRouteFieldSchema, type ExternalRouteFieldData } from './fields/ExternalRouteField';
 import {
-  advancedSettingsFieldSchema,
-  type AdvancedSettingsFieldData,
-} from './fields/AdvancedOptionsSection';
+  tokenAuthenticationFieldSchema,
+  type TokenAuthenticationFieldData,
+} from './fields/TokenAuthenticationField';
 
 export type ModelDeploymentWizardValidation = {
   modelSource: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
   hardwareProfile: ReturnType<typeof useValidation>;
-  advancedSettings: ReturnType<typeof useZodFormValidation<AdvancedSettingsFieldData>>;
+  externalRoute: ReturnType<typeof useZodFormValidation<ExternalRouteFieldData>>;
+  tokenAuthentication: ReturnType<typeof useZodFormValidation<TokenAuthenticationFieldData>>;
   isModelSourceStepValid: boolean;
   isModelDeploymentStepValid: boolean;
   isAdvancedSettingsStepValid: boolean;
@@ -38,9 +40,14 @@ export const useModelDeploymentWizardValidation = (
     modelSourceStepSchema,
   );
 
-  const advancedSettingsValidation = useZodFormValidation(
-    wizardState.data.advancedSettingsField,
-    advancedSettingsFieldSchema,
+  const externalRouteValidation = useZodFormValidation(
+    wizardState.data.externalRouteField,
+    externalRouteFieldSchema,
+  );
+
+  const tokenAuthenticationValidation = useZodFormValidation(
+    wizardState.data.tokenAuthenticationField,
+    tokenAuthenticationFieldSchema,
   );
 
   // Step 2: Model Deployment
@@ -67,10 +74,12 @@ export const useModelDeploymentWizardValidation = (
   return {
     modelSource: modelSourceStepValidation,
     hardwareProfile: hardwareProfileValidation,
-    advancedSettings: advancedSettingsValidation,
+    externalRoute: externalRouteValidation,
+    tokenAuthentication: tokenAuthenticationValidation,
     isModelSourceStepValid,
     isModelDeploymentStepValid,
     isAdvancedSettingsStepValid:
-      advancedSettingsValidation.getFieldValidation(undefined, true).length === 0,
+      externalRouteValidation.getFieldValidation(undefined, true).length === 0 &&
+      tokenAuthenticationValidation.getFieldValidation(undefined, true).length === 0,
   };
 };

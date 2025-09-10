@@ -11,19 +11,17 @@ import { useModelFormatField } from './fields/ModelFormatField';
 import { ModelLocationData } from './fields/modelLocationFields/types';
 import { useModelTypeField, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
 import { useModelLocationData } from './fields/ModelLocationInputFields';
+import { useExternalRouteField, type ExternalRouteFieldData } from './fields/ExternalRouteField';
 import {
-  useAdvancedSettingsField,
-  type AdvancedSettingsFieldData,
-} from './fields/AdvancedOptionsSection';
+  useTokenAuthenticationField,
+  type TokenAuthenticationFieldData,
+} from './fields/TokenAuthenticationField';
 
 export type ModelDeploymentWizardData = {
   modelTypeField?: ModelTypeFieldData;
   k8sNameDesc?: K8sNameDescriptionFieldData;
   modelAccessField?: boolean;
-  tokenAuthenticationField?: {
-    tokenAuth: boolean;
-    tokens: Array<{ uuid: string; name: string; error?: string }>;
-  };
+  tokenAuthenticationField?: TokenAuthenticationFieldData;
   hardwareProfile?: Parameters<typeof useHardwareProfileConfig>;
   modelFormat?: SupportedModelFormats;
   modelLocationData?: ModelLocationData;
@@ -33,13 +31,13 @@ export type ModelDeploymentWizardData = {
 };
 
 export type ModelDeploymentWizardDataHandlers = {
-  setAdvancedSettings: (data: AdvancedSettingsFieldData) => void;
-  updateAdvancedSettingsField: (
-    key: keyof AdvancedSettingsFieldData,
-    value: AdvancedSettingsFieldData[keyof AdvancedSettingsFieldData],
+  setExternalRoute: (data: ExternalRouteFieldData) => void;
+  updateExternalRoute: (checked: boolean) => void;
+  setTokenAuthentication: (data: TokenAuthenticationFieldData) => void;
+  updateTokenAuthentication: (
+    key: keyof TokenAuthenticationFieldData,
+    value: TokenAuthenticationFieldData[keyof TokenAuthenticationFieldData],
   ) => void;
-  updateModelAccess: (externalRoute: boolean) => void;
-  updateTokenAuthentication: (tokenAuth: boolean) => void;
 };
 
 export type UseModelDeploymentWizardState = {
@@ -50,10 +48,12 @@ export type UseModelDeploymentWizardState = {
     hardwareProfileConfig: ReturnType<typeof useHardwareProfileConfig>;
     modelFormatState: ReturnType<typeof useModelFormatField>;
     modelLocationData: ReturnType<typeof useModelLocationData>;
-    advancedSettings: ReturnType<typeof useAdvancedSettingsField>;
+    externalRoute: ReturnType<typeof useExternalRouteField>;
+    tokenAuthentication: ReturnType<typeof useTokenAuthenticationField>;
   };
   data: {
-    advancedSettingsField: AdvancedSettingsFieldData | undefined;
+    externalRouteField: ExternalRouteFieldData | undefined;
+    tokenAuthenticationField: TokenAuthenticationFieldData | undefined;
   };
   handlers: ModelDeploymentWizardDataHandlers;
 };
@@ -78,39 +78,30 @@ export const useModelDeploymentWizard = (
   const hardwareProfileConfig = useHardwareProfileConfig(...(initialData?.hardwareProfile ?? []));
   const modelFormatState = useModelFormatField(initialData?.modelFormat, modelType.data);
 
-  // Step 3: Advanced Options
-  // Combine separate fields into advanced settings
-  const combinedAdvancedSettings = React.useMemo(() => {
-    if (!initialData?.modelAccessField && !initialData?.tokenAuthenticationField) {
-      return undefined;
-    }
-    return {
-      externalRoute: initialData.modelAccessField ?? false,
-      tokenAuth: initialData.tokenAuthenticationField?.tokenAuth ?? false,
-      tokens: initialData.tokenAuthenticationField?.tokens ?? [],
-    };
-  }, [initialData?.modelAccessField, initialData?.tokenAuthenticationField]);
-
-  const advancedSettingsField = useAdvancedSettingsField(combinedAdvancedSettings);
-  const {
-    data: advancedSettings,
-    setData: setAdvancedSettings,
-    updateField: updateAdvancedSettingsField,
-  } = advancedSettingsField;
-
-  // Specialized handlers for better semantic API
-  const updateModelAccess = React.useCallback(
-    (externalRoute: boolean) => {
-      updateAdvancedSettingsField('externalRoute', externalRoute);
-    },
-    [updateAdvancedSettingsField],
+  // Step 3: Advanced Options - Individual Fields
+  const externalRouteField = useExternalRouteField(
+    initialData?.modelAccessField ? { externalRoute: initialData.modelAccessField } : undefined,
   );
+  const {
+    data: externalRouteData,
+    setData: setExternalRoute,
+    updateField: updateExternalRoute,
+  } = externalRouteField;
 
-  const updateTokenAuthentication = React.useCallback(
-    (tokenAuth: boolean) => {
-      updateAdvancedSettingsField('tokenAuth', tokenAuth);
+  const tokenAuthenticationField = useTokenAuthenticationField(
+    initialData?.tokenAuthenticationField,
+  );
+  const {
+    data: tokenAuthenticationData,
+    setData: setTokenAuthentication,
+    updateField: updateTokenAuthentication,
+  } = tokenAuthenticationField;
+
+  const handleExternalRouteUpdate = React.useCallback(
+    (checked: boolean) => {
+      updateExternalRoute(checked);
     },
-    [updateAdvancedSettingsField],
+    [updateExternalRoute],
   );
 
   // Step 4: Summary
@@ -123,15 +114,17 @@ export const useModelDeploymentWizard = (
       hardwareProfileConfig,
       modelFormatState,
       modelLocationData,
-      advancedSettings: advancedSettingsField,
+      externalRoute: externalRouteField,
+      tokenAuthentication: tokenAuthenticationField,
     },
     data: {
-      advancedSettingsField: advancedSettings,
+      externalRouteField: externalRouteData,
+      tokenAuthenticationField: tokenAuthenticationData,
     },
     handlers: {
-      setAdvancedSettings,
-      updateAdvancedSettingsField,
-      updateModelAccess,
+      setExternalRoute,
+      updateExternalRoute: handleExternalRouteUpdate,
+      setTokenAuthentication,
       updateTokenAuthentication,
     },
   };

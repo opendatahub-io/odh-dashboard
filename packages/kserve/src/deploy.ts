@@ -10,7 +10,8 @@ import { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardware
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { KServeDeployment } from './deployments';
 import { UseModelDeploymentWizardState } from '../../model-serving/src/components/deploymentWizard/useDeploymentWizard';
-import { AdvancedSettingsFieldData } from '../../model-serving/src/components/deploymentWizard/fields/AdvancedOptionsSection';
+import { ExternalRouteFieldData } from '../../model-serving/src/components/deploymentWizard/fields/ExternalRouteField';
+import { TokenAuthenticationFieldData } from '../../model-serving/src/components/deploymentWizard/fields/TokenAuthenticationField';
 
 type CreatingInferenceServiceObject = {
   project: string;
@@ -19,7 +20,8 @@ type CreatingInferenceServiceObject = {
   modelType: ServingRuntimeModelType;
   hardwareProfile: HardwareProfileConfig;
   modelFormat: SupportedModelFormats;
-  advancedSettings?: AdvancedSettingsFieldData;
+  externalRoute?: ExternalRouteFieldData;
+  tokenAuth?: TokenAuthenticationFieldData;
 };
 
 export const deployKServeDeployment = async (
@@ -43,7 +45,8 @@ export const deployKServeDeployment = async (
     modelType: wizardData.modelType.data,
     hardwareProfile: wizardData.hardwareProfileConfig.formData,
     modelFormat: wizardData.modelFormatState.modelFormat,
-    advancedSettings: wizardData.advancedSettings.data,
+    externalRoute: wizardData.externalRoute.data,
+    tokenAuth: wizardData.tokenAuthentication.data,
   };
 
   const inferenceService = await createInferenceService(
@@ -62,8 +65,7 @@ const assembleInferenceService = (
   data: CreatingInferenceServiceObject,
   existingInferenceService?: InferenceServiceKind,
 ): InferenceServiceKind => {
-  const { project, name, k8sName, modelType, hardwareProfile, modelFormat, advancedSettings } =
-    data;
+  const { project, name, k8sName, modelType, hardwareProfile, modelFormat, externalRoute } = data;
   const inferenceService: InferenceServiceKind = existingInferenceService
     ? { ...existingInferenceService }
     : {
@@ -102,7 +104,7 @@ const assembleInferenceService = (
   annotations['opendatahub.io/hardware-profile-namespace'] =
     hardwareProfile.selectedProfile?.metadata.namespace;
 
-  if (advancedSettings?.tokenAuth) {
+  if (externalRoute) {
     annotations['security.opendatahub.io/enable-auth'] = 'true';
   }
 

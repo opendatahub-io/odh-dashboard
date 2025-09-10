@@ -125,7 +125,7 @@ const EditModelDeploymentContent: React.FC<{
       formDataExtension?.properties.extractHardwareProfileConfig(deployment) ?? undefined,
     modelFormat: formDataExtension?.properties.extractModelFormat(deployment) ?? undefined,
     modelLocationData: setupModelLocationData(), // TODO: Implement fully in next ticket RHOAIENG-32186
-    modelAccessField: getModelAccessFromDeployment(deployment),
+    modelAccessField: getModelAccessFromDeployment(deployment).externalRoute,
     tokenAuthenticationField: getTokenAuthenticationFromDeployment(deployment),
   });
 

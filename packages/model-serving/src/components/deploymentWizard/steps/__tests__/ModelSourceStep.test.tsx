@@ -68,19 +68,25 @@ const mockDeploymentWizardState = (
           error: undefined,
           loaded: true,
         },
-        advancedSettings: {
+        externalRoute: {
+          data: undefined,
+          setData: jest.fn(),
+          updateField: jest.fn(),
+        },
+        tokenAuthentication: {
           data: undefined,
           setData: jest.fn(),
           updateField: jest.fn(),
         },
       },
       data: {
-        advancedSettingsField: undefined,
+        externalRouteField: undefined,
+        tokenAuthenticationField: undefined,
       },
       handlers: {
-        setAdvancedSettings: jest.fn(),
-        updateAdvancedSettingsField: jest.fn(),
-        updateModelAccess: jest.fn(),
+        setExternalRoute: jest.fn(),
+        updateExternalRoute: jest.fn(),
+        setTokenAuthentication: jest.fn(),
         updateTokenAuthentication: jest.fn(),
       },
     },

@@ -6,6 +6,8 @@ import {
   ModelLocationType,
   ModelLocationData,
 } from './fields/modelLocationFields/types';
+import { type TokenAuthenticationFieldData } from './fields/TokenAuthenticationField';
+import { type ExternalRouteFieldData } from './fields/ExternalRouteField';
 import type { Deployment, DeploymentEndpoint } from '../../../extension-points';
 
 export const getDeploymentWizardRoute = (currentpath: string, deploymentName?: string): string => {
@@ -61,16 +63,16 @@ export const setupModelLocationData = (): ModelLocationData => {
   };
 };
 
-export const getModelAccessFromDeployment = (deployment: Deployment): boolean => {
-  return (
+export const getModelAccessFromDeployment = (deployment: Deployment): ExternalRouteFieldData => {
+  const externalRoute =
     deployment.endpoints?.some((endpoint: DeploymentEndpoint) => endpoint.type === 'external') ??
-    false
-  );
+    false;
+  return { externalRoute };
 };
 
 export const getTokenAuthenticationFromDeployment = (
   deployment: Deployment,
-): { tokenAuth: boolean; tokens: Array<{ uuid: string; name: string; error?: string }> } => {
+): TokenAuthenticationFieldData => {
   const isTokenAuthEnabled =
     deployment.model.metadata.annotations?.['security.opendatahub.io/enable-auth'] === 'true';
 
