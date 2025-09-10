@@ -84,7 +84,7 @@ const extensions: (
   {
     type: 'model-registry.registered-models/table-column',
     properties: {
-      column: () => import('../modelRegistry/DeploymentsColumn'),
+      component: () => import('../modelRegistry/DeploymentsColumn'),
     },
     flags: {
       required: [SupportedArea.MODEL_SERVING],
