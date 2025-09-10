@@ -39,6 +39,7 @@ import {
   filterProfilesByKueue,
   useKueueConfiguration,
 } from '#~/concepts/hardwareProfiles/kueueUtils';
+import { useApplicationSettings } from '#~/app/useApplicationSettings';
 
 type HardwareProfileSelectProps = {
   initialHardwareProfile?: HardwareProfileKind;
@@ -58,7 +59,6 @@ type HardwareProfileSelectProps = {
   isHardwareProfileSupported: (profile: HardwareProfileKind) => boolean;
   onChange: (profile: HardwareProfileKind | undefined) => void;
   project?: string;
-  hardwareProfileOrder?: string[];
 };
 
 const EXISTING_SETTINGS_KEY = '.existing';
@@ -77,7 +77,6 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   isHardwareProfileSupported,
   onChange,
   project,
-  hardwareProfileOrder = [],
 }) => {
   const [searchHardwareProfile, setSearchHardwareProfile] = React.useState('');
   const [
@@ -88,6 +87,8 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
 
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const { projects } = React.useContext(ProjectsContext);
+  const { dashboardConfig } = useApplicationSettings();
+  const hardwareProfileOrder = dashboardConfig?.spec.hardwareProfileOrder || [];
 
   // Get the project for Kueue configuration:
   // 1. If we have a project prop (namespace string), find the actual project object

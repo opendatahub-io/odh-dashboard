@@ -42,6 +42,8 @@ type HardwareProfilesTableRowProps = {
   migrationAction?: MigrationAction;
   handleDelete: (cr: HardwareProfileKind) => void;
   handleMigrate: (migrationAction: MigrationAction) => void;
+  isExpanded: boolean;
+  onToggleExpansion: () => void;
 };
 
 const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
@@ -50,10 +52,11 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
   migrationAction,
   handleDelete,
   handleMigrate,
+  isExpanded,
+  onToggleExpansion,
   ...props
 }) => {
   const modifiedDate = hardwareProfile.metadata.annotations?.['opendatahub.io/modified-date'];
-  const [isExpanded, setExpanded] = React.useState(false);
   const navigate = useNavigate();
 
   const useCases: HardwareProfileFeatureVisibility[] = React.useMemo(() => {
@@ -79,13 +82,18 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
 
   return (
     <>
-      <Tr key={rowIndex} id={hardwareProfile.metadata.name} draggable {...props}>
+      <Tr
+        key={hardwareProfile.metadata.name}
+        id={hardwareProfile.metadata.name}
+        draggable
+        {...props}
+      >
         <Td
           expand={{
             rowIndex,
-            expandId: 'hardware-profile-table-row-item',
+            expandId: `hardware-profile-${hardwareProfile.metadata.name}`,
             isExpanded,
-            onToggle: () => setExpanded(!isExpanded),
+            onToggle: onToggleExpansion,
           }}
         />
         <Td
@@ -225,7 +233,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
         </Td>
       </Tr>
       {isExpanded && (
-        <Tr isExpanded={isExpanded}>
+        <Tr key={`${hardwareProfile.metadata.name}-expanded`} isExpanded={isExpanded}>
           <Td />
           <Td dataLabel="Other information" colSpan={4}>
             <ExpandableRowContent>

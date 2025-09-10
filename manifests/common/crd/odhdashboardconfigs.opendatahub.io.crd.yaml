@@ -204,6 +204,7 @@ spec:
                   type: array
                   items:
                     type: string
+                # Likely needs a better spot to exist -- hard to do granular permissions
                 hardwareProfileOrder:
                   type: array
                   items:

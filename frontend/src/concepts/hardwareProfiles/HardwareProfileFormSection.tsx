@@ -7,7 +7,6 @@ import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfile
 import { ZodErrorHelperText } from '#~/components/ZodErrorFormHelperText';
 import ProjectScopedPopover from '#~/components/ProjectScopedPopover';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import { useApplicationSettings } from '#~/app/useApplicationSettings';
 import { hardwareProfileValidationSchema } from './validationUtils';
 import HardwareProfileSelect from './HardwareProfileSelect';
 import HardwareProfileCustomize from './HardwareProfileCustomize';
@@ -38,8 +37,6 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
   const hasValidationErrors = Object.keys(validation.getAllValidationIssues()).length > 0;
   const [hardwareProfiles, loaded, error] = useHardwareProfilesByFeatureVisibility(visibleIn);
   const projectScopedHardwareProfiles = useHardwareProfilesByFeatureVisibility(visibleIn, project);
-  const { dashboardConfig } = useApplicationSettings();
-  const hardwareProfileOrder = dashboardConfig?.spec.hardwareProfileOrder || [];
 
   const [isExpanded, setIsExpanded] = React.useState(false);
 
@@ -95,7 +92,6 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
               onChange={onProfileSelect}
               allowExistingSettings={isEditing && !initialHardwareProfile}
               project={project}
-              hardwareProfileOrder={hardwareProfileOrder}
             />
             <ZodErrorHelperText zodIssue={validation.getAllValidationIssues()} showAllErrors />
           </FormGroup>

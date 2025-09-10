@@ -46,6 +46,19 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
   const [filterData, setFilterData] = React.useState<HardwareProfileFilterDataType>(
     initialHardwareProfileFilterData,
   );
+  const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
+  const toggleRowExpansion = React.useCallback((hardwareProfileName: string) => {
+    setExpandedRows((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(hardwareProfileName)) {
+        newSet.delete(hardwareProfileName);
+      } else {
+        newSet.add(hardwareProfileName);
+      }
+      return newSet;
+    });
+  }, []);
+
   const onClearFilters = React.useCallback(
     () => setFilterData(initialHardwareProfileFilterData),
     [setFilterData],
@@ -117,8 +130,10 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
   );
   const displayedHardwareProfiles = transformData(orderedHardwareProfiles);
   const currentOrder = displayedHardwareProfiles.map((profile) => profile.metadata.name);
-  //drag-and-drop for persisted ordering
-  const { tableProps, rowProps } = useDraggableTable(currentOrder, setHardwareProfileOrder);
+  //drag-and-drop for persisted ordering, close expanded rows when dragging
+  const { tableProps, rowProps } = useDraggableTable(currentOrder, setHardwareProfileOrder, {
+    onDragStart: () => setExpandedRows(new Set()),
+  });
 
   const conditionalTableProps = isCustomOrder ? tableProps : {};
   const conditionalRowProps = isCustomOrder ? rowProps : {};
@@ -148,6 +163,8 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
               }
               handleMigrate={(ma) => setMigrateModalMigrationAction(ma)}
               migrationAction={migrationAction}
+              isExpanded={expandedRows.has(cr.metadata.name)}
+              onToggleExpansion={() => toggleRowExpansion(cr.metadata.name)}
             />
           );
         }}

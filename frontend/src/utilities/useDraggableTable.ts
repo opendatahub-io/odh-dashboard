@@ -20,6 +20,7 @@ type UseDraggableTable = {
 const useDraggableTable = (
   itemOrder: string[],
   setItemOrder: (itemOrder: string[]) => void,
+  callbacks?: { onDragStart?: () => void },
 ): UseDraggableTable => {
   const [draggedItemId, setDraggedItemId] = React.useState('');
   const [draggingToItemIndex, setDraggingToItemIndex] = React.useState(-1);
@@ -38,8 +39,9 @@ const useDraggableTable = (
 
       setDraggedItemId(currentDraggedItemId);
       setIsDragging(true);
+      callbacks?.onDragStart?.();
     },
-    [],
+    [callbacks],
   );
 
   const moveItem = React.useCallback((arr: string[], i1: string, toIndex: number) => {

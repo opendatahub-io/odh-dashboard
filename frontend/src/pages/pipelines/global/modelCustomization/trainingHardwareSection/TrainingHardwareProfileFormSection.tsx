@@ -19,7 +19,6 @@ import { filterHardwareProfilesForTraining } from '#~/pages/pipelines/global/mod
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
 import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import { useApplicationSettings } from '#~/app/useApplicationSettings';
 
 type TrainingHardwareProfileFormSectionProps = {
   data: HardwareProfileConfig;
@@ -41,8 +40,6 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
     projectName,
   );
   const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
-  const { dashboardConfig } = useApplicationSettings();
-  const hardwareProfileOrder = dashboardConfig?.spec.hardwareProfileOrder || [];
 
   const onProfileSelect = (profile?: HardwareProfileKind) => {
     if (profile) {
@@ -122,7 +119,6 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
             onChange={onProfileSelect}
             projectScopedHardwareProfiles={projectScopedHardwareProfiles}
             project={projectName}
-            hardwareProfileOrder={hardwareProfileOrder}
           />
         </FormGroup>
       </StackItem>
