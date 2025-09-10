@@ -57,7 +57,7 @@ const DeployModalExtension: React.FC<DeployModalExtensionProps> = ({ mv, render 
             key={extension.uid}
             mv={mv}
             renderData={(modelDeployPrefill, onSubmit) => (
-              <extension.properties.modalComponent.default
+              <extension.properties.modalComponent
                 modelDeployPrefill={modelDeployPrefill}
                 onSubmit={() => {
                   onSubmit();
