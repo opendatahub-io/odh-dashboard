@@ -5,17 +5,20 @@ import type {
   DisplayNameAnnotations,
   K8sAPIOptions,
   ProjectKind,
+  SupportedModelFormats,
 } from '@odh-dashboard/internal/k8sTypes';
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
 import type { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import type { ModelServingPodSpecOptionsState } from '@odh-dashboard/internal/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import type { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import type { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { ToggleState } from '@odh-dashboard/internal/components/StateActionToggle';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
+import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import type { UseModelDeploymentWizardState } from '../src/components/deploymentWizard/useDeploymentWizard';
 
 export type DeploymentStatus = {
-  state: InferenceServiceModelState;
+  state: ModelDeploymentState;
   message?: string;
   stoppedStates?: ToggleState;
 };
@@ -45,7 +48,10 @@ export type ModelResourceType = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
-    annotations?: DisplayNameAnnotations;
+    annotations?: DisplayNameAnnotations &
+      Partial<{
+        'opendatahub.io/model-type': string;
+      }>;
   };
 };
 
@@ -139,6 +145,21 @@ export const isModelServingDeploymentResourcesExtension = <D extends Deployment 
   extension: Extension,
 ): extension is ModelServingDeploymentResourcesExtension<D> =>
   extension.type === 'model-serving.deployment/resources';
+
+export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deployment> = Extension<
+  'model-serving.deployment/form-data',
+  {
+    platform: D['modelServingPlatformId'];
+    extractHardwareProfileConfig: CodeRef<
+      (deployment: D) => Parameters<typeof useHardwareProfileConfig> | null
+    >;
+    extractModelFormat: CodeRef<(deployment: D) => SupportedModelFormats | null>;
+  }
+>;
+export const isModelServingDeploymentFormDataExtension = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingDeploymentFormDataExtension<D> =>
+  extension.type === 'model-serving.deployment/form-data';
 
 export type ModelServingAuthExtension<D extends Deployment = Deployment> = Extension<
   'model-serving.auth',
@@ -235,3 +256,36 @@ export const isModelServingStartStopAction = <D extends Deployment = Deployment>
   extension: Extension,
 ): extension is ModelServingStartStopAction<D> =>
   extension.type === 'model-serving.deployments-table/start-stop-action';
+
+export type ModelServingPlatformFetchDeploymentStatus<D extends Deployment = Deployment> =
+  Extension<
+    'model-serving.platform/fetch-deployment-status',
+    {
+      platform: D['modelServingPlatformId'];
+      fetch: CodeRef<(name: string, namespace: string) => Promise<D | null>>;
+    }
+  >;
+
+export const isModelServingPlatformFetchDeploymentStatus = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingPlatformFetchDeploymentStatus<D> =>
+  extension.type === 'model-serving.platform/fetch-deployment-status';
+
+export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
+  'model-serving.deployment/deploy',
+  {
+    platform: D['modelServingPlatformId'];
+    deploy: CodeRef<
+      (
+        wizardData: UseModelDeploymentWizardState['state'],
+        projectName: string,
+        existingDeployment?: D,
+        dryRun?: boolean,
+      ) => Promise<D>
+    >;
+  }
+>;
+
+export const isModelServingDeploy = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingDeploy<D> => extension.type === 'model-serving.deployment/deploy';

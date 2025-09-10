@@ -1,37 +1,41 @@
 import React from 'react';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
-import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
+import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
 import DetailsSection from '@odh-dashboard/internal/pages/projects/screens/detail/DetailsSection';
-import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import { ProjectSectionID } from '@odh-dashboard/internal/pages/projects/screens/detail/types';
 import { useProjectServingPlatform } from './concepts/useProjectServingPlatform';
 import { ModelDeploymentsProvider } from './concepts/ModelDeploymentsContext';
 import ModelsProjectDetailsView from './components/projectDetails/ModelsProjectDetailsView';
-import { isModelServingPlatformExtension } from '../extension-points';
+import { useAvailableClusterPlatforms } from './concepts/useAvailableClusterPlatforms';
+
+const LoadingSection: React.FC<{ error?: Error }> = ({ error }) => (
+  <DetailsSection
+    id={ProjectSectionID.MODEL_SERVER}
+    isLoading
+    isEmpty={false}
+    emptyState={null}
+    loadError={error}
+  >
+    {undefined}
+  </DetailsSection>
+);
 
 const ModelsProjectDetailsTab: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
 
-  const availablePlatforms = useExtensions(isModelServingPlatformExtension);
+  const { clusterPlatforms, clusterPlatformsLoaded, clusterPlatformsError } =
+    useAvailableClusterPlatforms();
+  const { activePlatform } = useProjectServingPlatform(currentProject, clusterPlatforms);
 
-  const { activePlatform } = useProjectServingPlatform(currentProject, availablePlatforms);
-
+  if (!clusterPlatformsLoaded || !currentProject.metadata.name) {
+    return <LoadingSection error={clusterPlatformsError} />;
+  }
   // TODO: remove this once modelmesh and nim are fully supported plugins
   if (activePlatform?.properties.backport?.ModelsProjectDetailsTab) {
     return (
       <LazyCodeRefComponent
         component={activePlatform.properties.backport.ModelsProjectDetailsTab}
-        fallback={
-          <DetailsSection
-            objectType={ProjectObjectType.model}
-            id={ProjectSectionID.MODEL_SERVER}
-            isLoading
-            isEmpty={false}
-            emptyState={null}
-          >
-            {undefined}
-          </DetailsSection>
-        }
+        fallback={<LoadingSection />}
       />
     );
   }
@@ -41,7 +45,7 @@ const ModelsProjectDetailsTab: React.FC = () => {
       modelServingPlatforms={activePlatform ? [activePlatform] : []}
       projects={[currentProject]}
     >
-      <ModelsProjectDetailsView project={currentProject} />
+      <ModelsProjectDetailsView project={currentProject} platforms={clusterPlatforms} />
     </ModelDeploymentsProvider>
   );
 };

@@ -4,6 +4,7 @@ import { TableRow } from '#~/__tests__/cypress/cypress/pages/components/table';
 import { mixin } from '#~/__tests__/cypress/cypress/utils/mixin';
 import { K8sNameDescriptionField } from '#~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
 import { Contextual } from './components/Contextual';
+import { Wizard } from './components/Wizard';
 
 class ModelServingToolbar extends Contextual<HTMLElement> {
   findToggleButton(id: string) {
@@ -677,11 +678,13 @@ class KServeRow extends ModelMeshRow {
     return this.find().findByTestId('state-action-toggle');
   }
 
-  findStatusLabel(label?: string) {
+  findStatusLabel(label?: string, timeout?: number) {
     if (label) {
-      return this.find().findByTestId('model-status-text').should('include.text', label);
+      return this.find()
+        .findByTestId('model-status-text', { timeout })
+        .should('include.text', label);
     }
-    return this.find().findByTestId('model-status-text');
+    return this.find().findByTestId('model-status-text', { timeout });
   }
 }
 
@@ -848,6 +851,56 @@ class ModelServingSection {
   }
 }
 
+class ModelServingWizard extends Wizard {
+  constructor(private edit = false) {
+    super('Deploy a model', 'Deploy model');
+  }
+
+  findModelSourceStep() {
+    return this.findStep('source-model-step');
+  }
+
+  findModelDeploymentStep() {
+    return this.findStep('model-deployment-step');
+  }
+
+  findAdvancedOptionsStep() {
+    return this.findStep('advanced-options-step');
+  }
+
+  findModelTypeSelect() {
+    return cy.findByTestId('model-type-select');
+  }
+
+  findModelTypeSelectOption(name: string) {
+    return this.findModelTypeSelect().findSelectOption(name);
+  }
+
+  findModelDeploymentNameInput() {
+    return cy.findByTestId('model-deployment-name');
+  }
+
+  findModelFormatSelect() {
+    return cy.findByTestId('model-framework-select');
+  }
+
+  findModelFormatSelectOption(name: string) {
+    return this.findModelFormatSelect().findSelectOption(name);
+  }
+
+  findModelLocationSelect() {
+    return cy.findByTestId('model-location-select');
+  }
+
+  findModelLocationSelectOption(name: string) {
+    return this.findModelLocationSelect().findSelectOption(name);
+  }
+
+  findUrilocationInput() {
+    return cy.findByTestId('field URI');
+  }
+}
+
 export const modelServingGlobal = new ModelServingGlobal();
 export const inferenceServiceModal = new InferenceServiceModal();
 export const inferenceServiceModalEdit = new InferenceServiceModal(true);
@@ -856,3 +909,5 @@ export const createServingRuntimeModal = new ServingRuntimeModal(false);
 export const editServingRuntimeModal = new ServingRuntimeModal(true);
 export const kserveModal = new KServeModal();
 export const kserveModalEdit = new KServeModal(true);
+export const modelServingWizard = new ModelServingWizard(false);
+export const modelServingWizardEdit = new ModelServingWizard(true);

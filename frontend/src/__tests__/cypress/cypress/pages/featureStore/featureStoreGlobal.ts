@@ -26,6 +26,15 @@ class FeatureStoreGlobal {
     this.waitForEntities();
   }
 
+  visitDataSources(project?: string) {
+    cy.visitWithLogin(
+      `/featureStore/dataSources${
+        project ? `/${project}` : ''
+      }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+    );
+    this.waitForDataSources();
+  }
+
   visitFeatures(project?: string) {
     const projectName = project;
     cy.visitWithLogin(
@@ -36,12 +45,37 @@ class FeatureStoreGlobal {
     this.waitForFeatures();
   }
 
+  visitDataSets(project?: string) {
+    cy.visitWithLogin(
+      `/featureStore/dataSets${
+        project ? `/${project}` : ''
+      }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+    );
+    this.waitForDataSets();
+  }
+
+  visitDataSetDetails(project: string, dataSetName: string) {
+    cy.visitWithLogin(
+      `/featureStore/dataSets/${project}/${dataSetName}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+    );
+    this.waitForDataSetDetails(dataSetName);
+  }
+
   visitFeatureServices(project: string) {
     const projectName = project;
     cy.visitWithLogin(
       `/featureStore/featureServices/${projectName}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     this.waitForFeatureServices();
+  }
+
+  visitOverview(project?: string) {
+    cy.visitWithLogin(
+      `/featureStore/overview${
+        project ? `/${project}` : ''
+      }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+    );
+    this.waitForOverview();
   }
 
   visitFeatureServiceDetails(project: string, featureService: string) {
@@ -96,13 +130,33 @@ class FeatureStoreGlobal {
     cy.testA11y();
   }
 
+  private waitForDataSets() {
+    cy.findByTestId('app-page-title').should('have.text', 'Datasets');
+    cy.testA11y();
+  }
+
+  private waitForDataSetDetails(dataSetName: string) {
+    cy.findByTestId('app-page-title').should('have.text', dataSetName);
+    cy.testA11y();
+  }
+
   private waitForFeatureServices() {
     cy.findByTestId('app-page-title').should('have.text', 'Feature services');
     cy.testA11y();
   }
 
+  private waitForOverview() {
+    cy.findByTestId('app-page-title').should('have.text', 'Feature store');
+    cy.testA11y();
+  }
+
   private waitForFeatureServiceDetails(serviceName: string) {
     cy.findByTestId('app-page-title').should('have.text', serviceName);
+    cy.testA11y();
+  }
+
+  private waitForDataSources() {
+    cy.findByTestId('app-page-title').should('have.text', 'Data Sources');
     cy.testA11y();
   }
 

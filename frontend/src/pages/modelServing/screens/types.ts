@@ -28,7 +28,7 @@ export enum ServingRuntimeTableTabs {
   TOKENS = 3,
 }
 
-export enum InferenceServiceModelState {
+export enum ModelDeploymentState {
   PENDING = 'Pending',
   STANDBY = 'Standby',
   FAILED_TO_LOAD = 'FailedToLoad',

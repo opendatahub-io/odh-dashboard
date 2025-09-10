@@ -75,8 +75,7 @@ export type FeatureTransformation = {
   userDefinedFunction: UserDefinedFunction;
 };
 
-export type StandardFeatureView = {
-  type: 'featureView';
+export type StandardFeatureViewSpec = {
   spec: {
     name: string;
     entities: string[];
@@ -92,14 +91,10 @@ export type StandardFeatureView = {
     streamSource?: StreamSource;
     mode?: string;
   };
-  featureDefinition?: string;
-  relationships: Relationship[];
   meta: FeatureStoreMeta;
-  project?: string;
 };
 
-export type OnDemandFeatureView = {
-  type: 'onDemandFeatureView';
+export type OnDemandFeatureViewSpec = {
   spec: {
     name: string;
     features: FeatureColumns[];
@@ -114,13 +109,51 @@ export type OnDemandFeatureView = {
     entities: string[];
     entityColumns: NameValueTypePair[];
   };
+  meta: FeatureStoreMeta;
+};
+
+export type StreamFeatureViewSpec = {
+  spec: {
+    name: string;
+    entities: string[];
+    features: FeatureColumns[];
+    entityColumns: NameValueTypePair[];
+    tags?: Record<string, string>;
+    description?: string;
+    owner?: string;
+    ttl: string;
+    batchSource: BatchSource;
+    streamSource: StreamSource;
+    userDefinedFunction: UserDefinedFunction;
+    mode: string;
+    timestampField?: string;
+    featureTransformation: FeatureTransformation;
+  };
+  meta: FeatureStoreMeta;
+};
+
+export type StandardFeatureView = StandardFeatureViewSpec & {
+  type: 'featureView';
   featureDefinition?: string;
   relationships: Relationship[];
-  meta: FeatureStoreMeta;
   project?: string;
 };
 
-export type FeatureView = StandardFeatureView | OnDemandFeatureView;
+export type OnDemandFeatureView = OnDemandFeatureViewSpec & {
+  type: 'onDemandFeatureView';
+  featureDefinition?: string;
+  relationships: Relationship[];
+  project?: string;
+};
+
+export type StreamFeatureView = StreamFeatureViewSpec & {
+  type: 'streamFeatureView';
+  featureDefinition?: string;
+  relationships: Relationship[];
+  project?: string;
+};
+
+export type FeatureView = StandardFeatureView | OnDemandFeatureView | StreamFeatureView;
 
 export type FeatureViewsList = {
   featureViews: FeatureView[];
@@ -134,6 +167,7 @@ export type GetFeatureViews = (
   entity?: string,
   featureService?: string,
   feature?: string,
+  data_source?: string,
 ) => Promise<FeatureViewsList>;
 
 export type GetFeatureViewsByName = (

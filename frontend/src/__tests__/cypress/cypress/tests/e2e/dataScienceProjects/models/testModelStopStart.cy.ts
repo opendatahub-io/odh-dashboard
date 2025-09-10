@@ -15,6 +15,7 @@ import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_co
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 import { STOP_MODAL_PREFERENCE_KEY } from '#~/pages/modelServing/useStopModalPreference';
+import { MODEL_STATUS_TIMEOUT } from '#~/__tests__/cypress/cypress/support/timeouts';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -23,7 +24,7 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('A model can be stopped and started', () => {
+describe('[Product Bug: RHOAIENG-32764] A model can be stopped and started', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
     return loadDSPFixture('e2e/dataScienceProjects/testModelStopStart.yaml').then(
@@ -56,7 +57,7 @@ describe('A model can be stopped and started', () => {
   it(
     'Verify that a model can be stopped and started',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent'],
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent', '@Bug'],
     },
     () => {
       cy.log('Model Name:', modelName);
@@ -120,7 +121,7 @@ describe('A model can be stopped and started', () => {
         checkStopped: true,
         requireLoadedState: false,
       });
-      kServeRow.findStatusLabel('Stopped').should('exist');
+      kServeRow.findStatusLabel('Stopped', MODEL_STATUS_TIMEOUT).should('exist');
 
       //Restart the model
       cy.step('Restart the model');

@@ -22,7 +22,7 @@ env:
   NODE_VERSION: '20'
   GO_VERSION: '1.24.3'
   # Configurable paths for future flexibility
-  PACKAGES_PATHS: 'frontend/packages,packages'
+  PACKAGES_PATHS: packages
 
 jobs:
   detect-changes:
@@ -316,7 +316,7 @@ jobs:
           # TODO: Enable once API functional testing is available as a common function for the Modular Architecture
           echo "# Check 5: API Functional Testing - DISABLED"
           DISABLED_CHECKS+=("API Functional Testing")
-          
+
           # Check 6: API Performance Testing (disabled for all modules)
           # TODO: This check will be enabled once API performance testing has been enabled as a common function for the Modular Architecture
           echo "# Check 6: API Performance Testing - DISABLED"

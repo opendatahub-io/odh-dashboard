@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, Navigate } from 'react-router-dom';
 import { FeatureStoreObject } from './const';
 import FeatureStore from './FeatureStore';
 import FeatureStoreCoreLoader from './FeatureStoreCoreLoader';
@@ -11,6 +11,10 @@ import Features from './screens/features/Features';
 import FeatureDetails from './screens/features/featureDetails/FeatureDetails';
 import FeatureServices from './screens/featureServices/FeatureServices';
 import FeatureServiceDetails from './screens/featureServices/featureServiceDetails/FeatureServiceDetails';
+import FeatureStoreDataSets from './screens/dataSets/FeatureStoreDataSets';
+import DataSetDetails from './screens/dataSets/DataSetDetails/DataSetDetails';
+import DataSources from './screens/dataSources/DataSources';
+import DataSourceDetailsPage from './screens/dataSources/dataSourceDetails/DataSourceDetailsPage';
 
 export const featureStoreRootRoute = (): string => `/featureStore`;
 
@@ -37,7 +41,8 @@ const FeatureStoreRoutes: React.FC = () => (
         />
       }
     >
-      <Route index element={<FeatureStore empty={false} />} />
+      <Route index element={<Navigate to="overview" replace />} />
+      <Route path="overview/:fsProjectName?/*" element={<FeatureStore empty={false} />} />
       <Route path="entities/:fsProjectName?/*" element={<FeatureStoreEntities />} />
       <Route path="featureViews/:fsProjectName?/*" element={<FeatureViews />} />
       <Route path="featureViews/:fsProjectName/:featureViewName" element={<FeatureViewDetails />} />
@@ -52,10 +57,13 @@ const FeatureStoreRoutes: React.FC = () => (
         path="featureServices/:fsProjectName/:featureServiceName"
         element={<FeatureServiceDetails />}
       />
+      <Route path="dataSources/:fsProjectName?/*" element={<DataSources />} />
       <Route
-        path="dataSources/:fsProjectName?/:dataSourceName"
-        element={<>Data source details page</>}
+        path="dataSources/:fsProjectName/:dataSourceName"
+        element={<DataSourceDetailsPage />}
       />
+      <Route path="dataSets/:fsProjectName?/*" element={<FeatureStoreDataSets />} />
+      <Route path="dataSets/:fsProjectName/:dataSetName" element={<DataSetDetails />} />
     </Route>
   </Routes>
 );

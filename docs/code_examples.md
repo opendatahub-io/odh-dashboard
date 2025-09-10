@@ -15,7 +15,7 @@ JavaScript Closures in React can be hard to understand, but this example should 
 
 Note: This is a hugely chopped down code example to only show what we are working with for the example.
 
-```typescript jsx
+```tsx
 // ...
 const DropdownWithSwitch: React.FC<DropdownWithSwitchProps> = (props) => {
   const [isOpen, setOpen] = React.useState(false);
@@ -33,7 +33,7 @@ const DropdownWithSwitch: React.FC<DropdownWithSwitchProps> = (props) => {
 };
 ```
 
-```typescript jsx
+```tsx
 // ...
 const DropdownWithSwitchToggle: React.FC<DropdownWithSwitchToggleProps> = ({
   // ...
@@ -71,7 +71,7 @@ So we can see by the example components -- we are crafting a `onToggle` callback
 
 Let us use some logs to help us see the underlying issue. Same component layout, just with some logs and additional `useEffect` calls to show how mounting works and what happens during the cycle of usage.
 
-```typescript jsx
+```tsx
 // ...
 const DropdownWithSwitch: React.FC<DropdownWithSwitchProps> = (props) => {
   const [isOpen, setOpen] = React.useState(false);
@@ -99,7 +99,7 @@ const DropdownWithSwitch: React.FC<DropdownWithSwitchProps> = (props) => {
 };
 ```
 
-```typescript jsx
+```tsx
 // ...
 const DropdownWithSwitchToggle: React.FC<DropdownWithSwitchToggleProps> = ({
   // ...
@@ -193,7 +193,7 @@ We can naturally get around this annoyance using `useCallback` instead of the an
 
 ## The Solution
 
-```typescript jsx
+```tsx
 // ...
 const DropdownWithSwitch: React.FC<DropdownWithSwitchProps> = (props) => {
   const [isOpen, setOpen] = React.useState(false);
@@ -213,7 +213,7 @@ const DropdownWithSwitch: React.FC<DropdownWithSwitchProps> = (props) => {
 };
 ```
 
-```typescript jsx
+```tsx
 // ...
 const DropdownWithSwitchToggle: React.FC<DropdownWithSwitchToggleProps> = ({
   // ...

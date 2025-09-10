@@ -150,6 +150,10 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
             (w) => w.properties.platform === platform?.properties.id,
           );
 
+          if (!deploymentWatchersLoaded) {
+            return null;
+          }
+
           if (!platform || !watcher) {
             // If the project doesn't have model serving, this will set the loaded state to true for it
             return (

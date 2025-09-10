@@ -1,7 +1,19 @@
 import React from 'react';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import {
+  Tab,
+  Tabs,
+  TabTitleText,
+  TabContent,
+  Flex,
+  FlexItem,
+  PageSection,
+} from '@patternfly/react-core';
 import FeatureStoreProjectSelectorNavigator from './screens/components/FeatureStoreProjectSelectorNavigator';
 import { featureStoreRoute } from './routes';
+import { FeatureStoreTabs } from './const';
+import Metrics from './screens/metrics/Metrics';
+import FeatureStoreLineage from './screens/lineage/FeatureStoreLineage';
 
 type FeatureStoreProps = Omit<
   React.ComponentProps<typeof ApplicationsPage>,
@@ -13,21 +25,81 @@ type FeatureStoreProps = Omit<
   | 'removeChildrenTopPadding'
   | 'headerContent'
 >;
-const FeatureStore: React.FC<FeatureStoreProps> = ({ ...pageProps }) => (
-  <ApplicationsPage
-    {...pageProps}
-    title="Feature Store"
-    description="A catalog of features, entities, feature views and datasets created by your own team"
-    headerContent={
-      <FeatureStoreProjectSelectorNavigator
-        getRedirectPath={(featureStoreObject, featureStoreProject) =>
-          `${featureStoreRoute(featureStoreObject, featureStoreProject)}`
-        }
-      />
-    }
-    loaded
-    provideChildrenPadding
-  />
-);
+const FeatureStore: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
+  const [activeTabKey, setActiveTabKey] = React.useState<string | number>(FeatureStoreTabs.METRICS);
+
+  return (
+    <ApplicationsPage
+      {...pageProps}
+      title="Feature store"
+      description="Description of feature store"
+      headerContent={
+        <FeatureStoreProjectSelectorNavigator
+          getRedirectPath={(featureStoreObject, featureStoreProject) =>
+            `${featureStoreRoute(featureStoreObject, featureStoreProject)}`
+          }
+        />
+      }
+      loaded
+    >
+      <PageSection
+        hasBodyWrapper={false}
+        isFilled
+        padding={{ default: 'noPadding' }}
+        style={{ height: '100%', minHeight: '600px' }}
+      >
+        <Flex direction={{ default: 'column' }} style={{ height: '100%' }}>
+          <FlexItem>
+            <Tabs
+              activeKey={activeTabKey}
+              onSelect={(e, tabIndex) => {
+                setActiveTabKey(tabIndex);
+              }}
+              aria-label="Overview page"
+              role="region"
+              data-testid="feature-store-page"
+            >
+              <Tab
+                eventKey={FeatureStoreTabs.METRICS}
+                title={<TabTitleText>Metrics</TabTitleText>}
+                aria-label="Metrics tab"
+                data-testid="metrics-tab"
+                tabContentId={`tabContent-${FeatureStoreTabs.METRICS}`}
+              >
+                <TabContent
+                  id={`tabContent-${FeatureStoreTabs.METRICS}`}
+                  eventKey={FeatureStoreTabs.METRICS}
+                  activeKey={activeTabKey}
+                  hidden={FeatureStoreTabs.METRICS !== activeTabKey}
+                  style={{ height: '100%' }}
+                >
+                  <Metrics />
+                </TabContent>
+              </Tab>
+              <Tab
+                eventKey={FeatureStoreTabs.LINEAGE}
+                title={<TabTitleText>Lineage</TabTitleText>}
+                aria-label="Lineage tab"
+                data-testid="lineage-tab"
+                tabContentId={`tabContent-${FeatureStoreTabs.LINEAGE}`}
+              />
+            </Tabs>
+          </FlexItem>
+          <FlexItem flex={{ default: 'flex_1' }} style={{ overflowY: 'hidden' }}>
+            <TabContent
+              id={`tabContent-${FeatureStoreTabs.LINEAGE}`}
+              eventKey={FeatureStoreTabs.LINEAGE}
+              activeKey={activeTabKey}
+              hidden={FeatureStoreTabs.LINEAGE !== activeTabKey}
+              style={{ height: '100%' }}
+            >
+              <FeatureStoreLineage />
+            </TabContent>
+          </FlexItem>
+        </Flex>
+      </PageSection>
+    </ApplicationsPage>
+  );
+};
 
 export default FeatureStore;

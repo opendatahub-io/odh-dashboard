@@ -11,6 +11,14 @@ import {
   getFeatureServices,
   getFeatureServiceByName,
   getFeatureViewByName,
+  getMetricsResourceCount,
+  getPopularTags,
+  getRecentlyVisitedResources,
+  getLineageData,
+  getSavedDatasets,
+  getDataSetByName,
+  getDataSources,
+  getDataSourceByName,
 } from '../api/custom';
 import { FeatureStoreAPIs } from '../types/global';
 
@@ -30,6 +38,14 @@ const useFeatureStoreAPIState = (
       getFeatureServices: getFeatureServices(path),
       getFeatureServiceByName: getFeatureServiceByName(path),
       getFeatureViewByName: getFeatureViewByName(path),
+      getMetricsResourceCount: getMetricsResourceCount(path),
+      getPopularTags: getPopularTags(path),
+      getRecentlyVisitedResources: getRecentlyVisitedResources(path),
+      getLineageData: getLineageData(path),
+      getSavedDatasets: getSavedDatasets(path),
+      getDataSetByName: getDataSetByName(path),
+      getDataSources: getDataSources(path),
+      getDataSourceByName: getDataSourceByName(path),
     }),
     [],
   );

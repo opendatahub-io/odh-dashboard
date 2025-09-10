@@ -1,5 +1,18 @@
 import * as React from 'react';
-import { Breadcrumb, BreadcrumbItem, Flex, FlexItem, Truncate } from '@patternfly/react-core';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  Flex,
+  FlexItem,
+  Truncate,
+  Alert,
+  AlertActionCloseButton,
+  Popover,
+  Button,
+  ListItem,
+  List,
+} from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useModelServingTab } from '#~/concepts/projects/projectDetails/useModelServingTab';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
@@ -17,6 +30,7 @@ import {
 import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { useProjectPermissionsTabVisible } from '#~/concepts/projects/accessChecks';
+import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
 import useCheckLogoutParams from './useCheckLogoutParams';
 import ProjectOverview from './overview/ProjectOverview';
 import NotebookList from './notebooks/NotebookList';
@@ -46,6 +60,14 @@ const ProjectDetails: React.FC = () => {
 
   useCheckLogoutParams();
 
+  const { isKueueDisabled } = useKueueConfiguration(currentProject);
+
+  const [isKueueAlertDismissed, setIsKueueAlertDismissed] = React.useState(false);
+
+  const handleKueueAlertClose = React.useCallback(() => {
+    setIsKueueAlertDismissed(true);
+  }, []);
+
   return (
     <ApplicationsPage
       title={
@@ -71,6 +93,47 @@ const ProjectDetails: React.FC = () => {
       empty={false}
       headerAction={<ProjectActions project={currentProject} />}
     >
+      {isKueueDisabled && !isKueueAlertDismissed && (
+        <Flex direction={{ default: 'column' }} className="pf-v6-u-px-lg">
+          <Alert
+            data-testid="kueue-disabled-alert-project-details"
+            variant="info"
+            isInline
+            title="Kueue is disabled in this cluster"
+            isExpandable
+            actionClose={<AlertActionCloseButton onClose={handleKueueAlertClose} />}
+          >
+            <p>
+              This project uses local queue for workload allocation, which relies on Kueue. To
+              deploy a model or create a workbench in this project, ask your administrator to enable
+              Kueue or change this project&apos;s workload allocation strategy.
+            </p>
+            <Popover
+              position="bottom"
+              headerContent="Who's my administrator?"
+              bodyContent={
+                <div>
+                  Your administrator might be:
+                  <List>
+                    <ListItem>
+                      The person who assigned you your username, or who helped you log in for the
+                      first time
+                    </ListItem>
+                    <ListItem>Someone in your IT department or help desk</ListItem>
+                    <ListItem>A project manager or developer</ListItem>
+                    <ListItem>Your professor (at a school)</ListItem>
+                  </List>
+                </div>
+              }
+            >
+              <Button variant="link" icon={<OutlinedQuestionCircleIcon />} aria-label="More info">
+                Who&apos;s my administrator?
+              </Button>
+            </Popover>
+          </Alert>
+        </Flex>
+      )}
+
       <GenericHorizontalBar
         activeKey={state}
         onSectionChange={React.useCallback(

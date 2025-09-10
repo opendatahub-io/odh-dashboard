@@ -20,3 +20,8 @@ export enum FeatureStoreSections {
 }
 
 export const hasContent = (value: string): boolean => !!value.trim().length;
+
+export enum FeatureStoreTabs {
+  METRICS = 'Metrics',
+  LINEAGE = 'Lineage',
+}

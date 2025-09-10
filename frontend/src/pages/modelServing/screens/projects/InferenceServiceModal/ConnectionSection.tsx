@@ -37,8 +37,8 @@ import {
   UseNewConnectionFieldData,
 } from '#~/concepts/connectionTypes/NewConnectionField';
 import {
-  getModelPathFromUri,
   getPVCFromURI,
+  getPVCNameFromURI,
   isModelPathValid,
   isPVCUri,
 } from '#~/pages/modelServing/screens/projects/utils';
@@ -277,16 +277,30 @@ export const ConnectionSection: React.FC<Props> = ({
     [modelServingConnectionTypes],
   );
   const hasImagePullSecret = React.useMemo(() => !!data.imagePullSecrets, [data.imagePullSecrets]);
-  const initialModelPath = React.useMemo(() => {
-    if (existingUriOption) {
-      return getModelPathFromUri(existingUriOption);
+
+  const pvcNameFromUri: string | undefined = React.useMemo(() => {
+    // Get the PVC name from the URI if it's a PVC URI
+    if (existingUriOption && isPVCUri(existingUriOption)) {
+      return getPVCNameFromURI(existingUriOption);
     }
     return undefined;
   }, [existingUriOption]);
 
   const selectedPVC = React.useMemo(
-    () => pvcs?.find((pvc) => pvc.metadata.name === data.storage.pvcConnection),
-    [pvcs, data.storage.pvcConnection],
+    () =>
+      pvcs?.find((pvc) => {
+        // If user has selected a PVC connection, use that
+        if (data.storage.pvcConnection) {
+          return pvc.metadata.name === data.storage.pvcConnection;
+        }
+        // Otherwise, if we have an existing URI, try to find the PVC from that
+        if (existingUriOption) {
+          return pvc.metadata.name === pvcNameFromUri;
+        }
+        // If there's no selected PVC and no URI, there is no selected PVC
+        return undefined;
+      }),
+    [pvcs, data.storage.pvcConnection, existingUriOption, pvcNameFromUri],
   );
 
   const selectedConnection = React.useMemo(
@@ -320,6 +334,12 @@ export const ConnectionSection: React.FC<Props> = ({
           uri: existingUriOption,
         });
         foundPVC.current = true;
+      } else if (pvcNameFromUri) {
+        setData('storage', {
+          ...data.storage,
+          type: InferenceServiceStorageType.PVC_STORAGE,
+          uri: existingUriOption,
+        });
       } else {
         setData('storage', {
           ...data.storage,
@@ -351,7 +371,7 @@ export const ConnectionSection: React.FC<Props> = ({
       }
 
       // Otherwise, handle PVC/URI prefill
-      if (existingUriOption !== undefined) {
+      if (existingUriOption !== undefined && pvcNameFromUri) {
         handlePVCPrefill(existingUriOption);
       }
 
@@ -374,7 +394,7 @@ export const ConnectionSection: React.FC<Props> = ({
   }
   return (
     <>
-      {existingUriOption && !hasImagePullSecret && !foundPVC.current && (
+      {existingUriOption && !hasImagePullSecret && !pvcNameFromUri && (
         <Radio
           id="existing-uri-radio"
           name="existing-uri-radio"
@@ -422,7 +442,12 @@ export const ConnectionSection: React.FC<Props> = ({
                     setData('storage', {
                       ...data.storage,
                       dataConnection: getResourceNameFromK8sResource(selection),
-                      uri: undefined, // Clear the URI when switching connections
+                      // Clear the URI when switching connections
+                      uri:
+                        data.storage.dataConnection &&
+                        getResourceNameFromK8sResource(selection) !== data.storage.dataConnection
+                          ? undefined
+                          : data.storage.uri,
                     });
                   }}
                   folderPath={data.storage.path}
@@ -480,7 +505,7 @@ export const ConnectionSection: React.FC<Props> = ({
               )
             }
           />
-          {pvcs && pvcs.length > 0 && (
+          {(pvcs && pvcs.length > 0) || pvcNameFromUri ? (
             <Radio
               label="Existing cluster storage"
               name="pvc-serving-radio"
@@ -501,21 +526,22 @@ export const ConnectionSection: React.FC<Props> = ({
                   <PvcSelect
                     pvcs={pvcs}
                     selectedPVC={selectedPVC}
-                    onSelect={(selection) => {
+                    onSelect={(selection?: PersistentVolumeClaimKind | undefined) => {
                       setData('storage', {
                         ...data.storage,
                         type: InferenceServiceStorageType.PVC_STORAGE,
-                        pvcConnection: selection.metadata.name,
+                        pvcConnection: selection?.metadata.name ?? '',
                       });
                     }}
                     setModelUri={(uri) => setData('storage', { ...data.storage, uri })}
                     setIsConnectionValid={setIsConnectionValid}
-                    initialModelPath={initialModelPath}
+                    existingUriOption={existingUriOption}
+                    pvcNameFromUri={pvcNameFromUri}
                   />
                 )
               }
             />
-          )}
+          ) : null}
         </>
       ) : pvcs && pvcs.length === 0 ? ( // No connections and no pvcs
         <FormGroup

@@ -67,12 +67,15 @@ export type StorageClassConfig = {
   isEnabled: boolean;
   displayName: string;
   description?: string;
+  accessModeSettings?: SCAccessMode;
 };
 
 export type SCReplacements = {
   SC_NAME: string;
   SC_IS_DEFAULT: string;
   SC_IS_ENABLED: string;
+  SC_ACCESS_MODE: string;
+  SC_PROVISIONER: string;
 };
 
 export type PVCReplacements = {
@@ -317,8 +320,11 @@ export type NotebookTolerationsTestData = {
   hardwareProfileDeploymentSize: string;
 };
 
-export type RegisterModelTestData = {
+export type ModelRegistryTestData = {
   registryNamePrefix: string;
+  createRegistryName: string;
+  // Model Registry Operator Configuration
+  operatorDeploymentName: string;
   // First model (Object Storage)
   objectStorageModelName: string;
   objectStorageModelDescription: string;
@@ -348,12 +354,19 @@ export type RegisterModelTestData = {
   newNameSuffix: string;
   newDescription: string;
   deployProjectNamePrefix: string;
+
+  // Permissions management configuration
+  permissionsRegistryNamePrefix: string;
+  testProjectNamePrefix: string;
+  rhodsUsersGroup: string;
 };
 
 export type ManageRegistryPermissionsTestData = {
   registryNamePrefix: string;
   testProjectNamePrefix: string;
   rhodsUsersGroup: string;
+  // Model Registry Operator Configuration
+  operatorDeploymentName: string;
 };
 
 export enum AccessMode {
@@ -362,3 +375,10 @@ export enum AccessMode {
   ROX = 'ReadOnlyMany',
   RWOP = 'ReadWriteOncePod',
 }
+
+export type SCAccessMode = {
+  ReadWriteOnce?: boolean;
+  ReadWriteMany?: boolean;
+  ReadOnlyMany?: boolean;
+  ReadWriteOncePod?: boolean;
+};
