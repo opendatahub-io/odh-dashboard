@@ -14,8 +14,6 @@ import HardwareProfilesToolbar from '#~/pages/hardwareProfiles/HardwareProfilesT
 import { createHardwareProfileFromResource } from '#~/api';
 import useDraggableTable from '#~/utilities/useDraggableTable';
 import useTableColumnSort from '#~/components/table/useTableColumnSort';
-import { MigrationAction } from './migration/types';
-import MigrationModal from './migration/MigrationModal';
 import {
   getHardwareProfileDisplayName,
   isHardwareProfileEnabled,
@@ -26,23 +24,17 @@ type HardwareProfilesTableProps = {
   hardwareProfiles: HardwareProfileKind[];
   hardwareProfileOrder: string[];
   setHardwareProfileOrder: (order: string[]) => void;
-  getMigrationAction?: (name: string) => MigrationAction | undefined;
-  isMigratedTable?: boolean;
 };
 
 const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
   hardwareProfiles,
   hardwareProfileOrder,
   setHardwareProfileOrder,
-  getMigrationAction,
-  isMigratedTable = false,
 }) => {
   const [deleteHardwareProfile, setDeleteHardwareProfile] = React.useState<
-    { hardwareProfile: HardwareProfileKind; migrationAction?: MigrationAction } | undefined
+    HardwareProfileKind | undefined
   >();
-  const [migrateModalMigrationAction, setMigrateModalMigrationAction] = React.useState<
-    MigrationAction | undefined
-  >();
+
   const [filterData, setFilterData] = React.useState<HardwareProfileFilterDataType>(
     initialHardwareProfileFilterData,
   );
@@ -106,24 +98,13 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
       setFilterData((prevValues) => ({ ...prevValues, [key]: value })),
     [setFilterData],
   );
-
-  const filteredColumns = React.useMemo(
-    () =>
-      hardwareProfileColumns.filter(
-        (column) =>
-          (isMigratedTable && column.field !== 'last_modified') ||
-          (!isMigratedTable && column.field !== 'source'),
-      ),
-    [isMigratedTable],
-  );
-
   const orderedHardwareProfiles = orderHardwareProfiles(
     filteredHardwareProfiles,
     hardwareProfileOrder,
   );
   //column sorting with the following cycle: custom → asc → desc → custom
   const { transformData, getColumnSort, isCustomOrder } = useTableColumnSort(
-    filteredColumns,
+    hardwareProfileColumns,
     [],
     undefined,
     true,
@@ -147,24 +128,17 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
         id="hardware-profile-table"
         enablePagination
         data={displayedHardwareProfiles}
-        columns={filteredColumns}
+        columns={hardwareProfileColumns}
         getColumnSort={getColumnSort}
         emptyTableView={<DashboardEmptyTableView onClearFilters={resetFilters} />}
         rowRenderer={(cr, index) => {
-          const migrationAction = getMigrationAction?.(cr.metadata.name);
           return (
             <HardwareProfilesTableRow
               {...conditionalRowProps}
               key={cr.metadata.name}
               rowIndex={index}
               hardwareProfile={cr}
-              handleDelete={(hardwareProfile) =>
-                setDeleteHardwareProfile({ hardwareProfile, migrationAction })
-              }
-              handleMigrate={(ma) => setMigrateModalMigrationAction(ma)}
-              migrationAction={migrationAction}
-              isExpanded={expandedRows.has(cr.metadata.name)}
-              onToggleExpansion={() => toggleRowExpansion(cr.metadata.name)}
+              handleDelete={setDeleteHardwareProfile}
             />
           );
         }}
@@ -172,37 +146,13 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
           <HardwareProfilesToolbar
             onFilterUpdate={onFilterUpdate}
             filterData={filterData}
-            showCreateButton={!isMigratedTable}
+            showCreateButton={true}
           />
         }
       />
-      {migrateModalMigrationAction && (
-        <MigrationModal
-          migrationAction={migrateModalMigrationAction}
-          onClose={() => setMigrateModalMigrationAction(undefined)}
-          onMigrate={async () => {
-            const getMigrationPromises = (dryRun: boolean) => [
-              // delete source resource
-              migrateModalMigrationAction.deleteSourceResource({ dryRun }),
-              // create dependent profiles
-              ...migrateModalMigrationAction.dependentProfiles.map((profile) =>
-                createHardwareProfileFromResource(profile, { dryRun }),
-              ),
-              // create target profile
-              createHardwareProfileFromResource(migrateModalMigrationAction.targetProfile, {
-                dryRun,
-              }),
-            ];
-            return Promise.all(getMigrationPromises(true)).then(() =>
-              Promise.all(getMigrationPromises(false)),
-            );
-          }}
-        />
-      )}
       {deleteHardwareProfile ? (
         <DeleteHardwareProfileModal
-          hardwareProfile={deleteHardwareProfile.hardwareProfile}
-          migrationAction={deleteHardwareProfile.migrationAction}
+          hardwareProfile={deleteHardwareProfile}
           onClose={() => {
             setDeleteHardwareProfile(undefined);
           }}

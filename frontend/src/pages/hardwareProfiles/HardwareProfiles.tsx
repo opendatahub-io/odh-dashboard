@@ -26,7 +26,6 @@ import { useDashboardNamespace } from '#~/redux/selectors';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { useApplicationSettings } from '#~/app/useApplicationSettings.tsx';
-import useMigratedHardwareProfiles from './migration/useMigratedHardwareProfiles';
 
 const description =
   'Manage hardware profiles for your organization. Administrators can use hardware profiles to determine resource allocation strategies for specific workloads or to explicitly define hardware configurations for users.';
@@ -34,30 +33,17 @@ const description =
 const HardwareProfiles: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
   const { dashboardConfig, refresh: refreshDashboardConfig } = useApplicationSettings();
-  const {
-    data: migratedHardwareProfiles,
-    loaded: loadedMigratedHardwareProfiles,
-    loadError: loadErrorMigratedHardwareProfiles,
-    getMigrationAction,
-  } = useMigratedHardwareProfiles(dashboardNamespace);
+
   const [hardwareProfiles, loadedHardwareProfiles, loadErrorHardwareProfiles] =
     useWatchHardwareProfiles(dashboardNamespace);
-
-  const allMigratedHardwareProfiles = React.useMemo(
-    () => [...migratedHardwareProfiles, ...hardwareProfiles],
-    [migratedHardwareProfiles, hardwareProfiles],
-  );
-
-  const loaded = loadedMigratedHardwareProfiles && loadedHardwareProfiles;
-  const loadError = loadErrorMigratedHardwareProfiles || loadErrorHardwareProfiles;
 
   const navigate = useNavigate();
   const [allowedToCreate, loadedAllowed] = useAccessAllowed(
     verbModelAccess('create', HardwareProfileModel),
   );
 
-  const isEmpty = allMigratedHardwareProfiles.length === 0;
-  const warningMessages = generateWarningForHardwareProfiles(allMigratedHardwareProfiles);
+  const isEmpty = hardwareProfiles.length === 0;
+  const warningMessages = generateWarningForHardwareProfiles(hardwareProfiles);
 
   const hardwareProfileOrder = dashboardConfig?.spec.hardwareProfileOrder || [];
   const setHardwareProfileOrder = (hwpNameOrder: string[]) =>
@@ -121,9 +107,9 @@ const HardwareProfiles: React.FC = () => {
         />
       }
       description={description}
-      loaded={loaded && loadedAllowed}
+      loaded={loadedHardwareProfiles && loadedAllowed}
       empty={isEmpty}
-      loadError={loadError}
+      loadError={loadErrorHardwareProfiles}
       errorMessage="Unable to load hardware profiles."
       emptyStatePage={noHardwareProfilePageSection}
       provideChildrenPadding
@@ -152,7 +138,8 @@ const HardwareProfiles: React.FC = () => {
             noHardwareProfilePageSection
           )}
         </StackItem>
-        {migratedHardwareProfiles.length > 0 && (
+
+        {/* {migratedHardwareProfiles.length > 0 && (
           <>
             <StackItem>
               <Title headingLevel="h2">Migrate your legacy profiles</Title>
@@ -173,13 +160,11 @@ const HardwareProfiles: React.FC = () => {
                   isMigratedTable
                   hardwareProfiles={migratedHardwareProfiles}
                   getMigrationAction={getMigrationAction}
-                  hardwareProfileOrder={hardwareProfileOrder}
-                  setHardwareProfileOrder={setHardwareProfileOrder}
                 />
               </ExpandableSection>
             </StackItem>
           </>
-        )}
+        )} */}
       </Stack>
     </ApplicationsPage>
   );
