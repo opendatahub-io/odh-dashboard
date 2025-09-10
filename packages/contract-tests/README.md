@@ -4,6 +4,39 @@ Consumer contract testing for ODH Dashboard packages. These tests validate that
 your frontend (consumer) and the Mock BFF (provider substitute) agree on the
 API contract by checking real HTTP responses against OpenAPI/JSON Schemas.
 
+## Getting Started
+
+### 1. Add to your package.json
+
+```json
+{
+  "devDependencies": {
+    "@odh-dashboard/contract-tests": "*"
+  },
+  "scripts": {
+    "test:contract": "odh-ct-bff-consumer --bff-dir upstream/bff",
+    "test:contract:with-report": "CONTRACT_TEST_OPEN_REPORT=true odh-ct-bff-consumer --bff-dir upstream/bff"
+  }
+}
+```
+
+### 2. Ensure your tsconfig.json extends the base config
+
+```json
+{
+  "extends": "@odh-dashboard/tsconfig/tsconfig.json",
+  "exclude": ["node_modules", "upstream"]
+}
+```
+
+### 3. Run your first test
+
+```bash
+npm run test:contract
+```
+
+That's it! The framework handles everything automatically.
+
 ## Quick Start
 
 ### Option 1: All-in-one Script (Recommended for CI)
@@ -63,54 +96,27 @@ Your package should have this structure:
 ```
 your-package/
 ├── contract-tests/           # Your contract tests
-│   └── __tests__/
-│       └── api.test.ts      # Your test files
+│   ├── __tests__/
+│   │   └── api.test.ts      # Your test files
+│   ├── jest.config.js       # Jest configuration
+│   └── jest.setup.js        # Jest setup file
 └── upstream/
     └── bff/                 # Mock BFF backend
         ├── Makefile         # build and run targets
         ├── go.mod           # Go module
-        └── cmd/bff-mock/    # BFF server code
-```
-
-## Package.json Setup
-
-Add to your package.json:
-
-```json
-{
-  "devDependencies": {
-    "@odh-dashboard/contract-tests": "workspace:*"
-  },
-  "scripts": {
-    "test:contract": "odh-ct-bff-consumer --bff-dir upstream/bff"
-  }
-}
+        └── cmd/             # BFF server code (main.go, etc.)
 ```
 
 ## TypeScript Configuration
 
-**Zero-Config Setup (Recommended)**
+**Configuration**
 
-No TypeScript configuration needed! Jest and contract-testing types are automatically available when you import `@odh-dashboard/contract-tests`.
+Your TypeScript configuration should extend the base ODH config:
 
 ```json
 {
   "extends": "@odh-dashboard/tsconfig/tsconfig.json",
   "exclude": ["node_modules", "upstream"]
-}
-```
-
-**Manual Configuration (Optional)**
-
-If you need to customize your TypeScript setup:
-
-```json
-{
-  "extends": "@odh-dashboard/tsconfig/tsconfig.json",
-  "exclude": ["node_modules", "upstream"],
-  "compilerOptions": {
-    "types": ["jest"]
-  }
 }
 ```
 
@@ -143,23 +149,25 @@ flag.IntVar(&cfg.Port, "port", 8080, "API server port")
 
 Create test files in `contract-tests/__tests__/`:
 
-```javascript
-/* eslint-disable import/no-extraneous-dependencies, import/newline-after-import */
-const fs = require('fs');
-const path = require('path');
-const yaml = require('js-yaml');
-const { ContractApiClient } = require('@odh-dashboard/contract-tests');
+```typescript
+import { ContractApiClient, loadOpenAPISchema } from '@odh-dashboard/contract-tests';
 
 describe('Your API Contract Tests', () => {
-  const api = new ContractApiClient({ baseUrl: 'http://localhost:8080' });
+  const baseUrl = process.env.CONTRACT_MOCK_BFF_URL || 'http://localhost:8080';
+  const api = new ContractApiClient({
+    baseUrl,
+    defaultHeaders: {
+      'kubeflow-userid': 'dev-user@example.com',
+      'kubeflow-groups': 'system:masters',
+    },
+  });
 
-  // Option A: Use checked-in OpenAPI directly
-  const oasPath = path.resolve(process.cwd(), 'upstream/api/openapi/openapi.yaml');
-  const openApiDoc = yaml.load(fs.readFileSync(oasPath, 'utf8'));
+  // Load OpenAPI schema (recommended approach)
+  const apiSchema = loadOpenAPISchema('upstream/api/openapi/spec.yaml');
 
   it('validates response against OpenAPI', async () => {
     const result = await api.get('/api/v1/resources');
-    expect(result).toMatchContract(openApiDoc, {
+    expect(result).toMatchContract(apiSchema, {
       ref: '#/components/responses/ListResponse/content/application/json/schema',
       status: 200,
     });
@@ -170,20 +178,24 @@ describe('Your API Contract Tests', () => {
 ## Schema Options (choose one)
 
 ### Option 1: Use checked-in OpenAPI (recommended)
-```javascript
-const fs = require('fs');
-const path = require('path');
-const yaml = require('js-yaml');
-// eslint-disable-next-line import/no-extraneous-dependencies
-const { ContractApiClient } = require('@odh-dashboard/contract-tests');
+```typescript
+import { ContractApiClient, loadOpenAPISchema } from '@odh-dashboard/contract-tests';
 
-const api = new ContractApiClient({ baseUrl: 'http://localhost:8080' });
-const oasPath = path.resolve(process.cwd(), 'upstream/api/openapi/openapi.yaml');
-const openApiDoc = yaml.load(fs.readFileSync(oasPath, 'utf8')) || {};
+const baseUrl = process.env.CONTRACT_MOCK_BFF_URL || 'http://localhost:8080';
+const api = new ContractApiClient({
+  baseUrl,
+  defaultHeaders: {
+    'kubeflow-userid': 'dev-user@example.com',
+    'kubeflow-groups': 'system:masters',
+  },
+});
+
+// Load OpenAPI schema using helper function
+const apiSchema = loadOpenAPISchema('upstream/api/openapi/spec.yaml');
 
 it('validates response with OpenAPI ref', async () => {
   const result = await api.get('/api/v1/resources');
-  expect(result).toMatchContract(openApiDoc, {
+  expect(result).toMatchContract(apiSchema, {
     ref: '#/components/responses/ListResponse/content/application/json/schema',
     status: 200,
   });
@@ -191,11 +203,14 @@ it('validates response with OpenAPI ref', async () => {
 ```
 
 ### Option 2: Convert OpenAPI → JSON Schema (helpers)
-```javascript
-// eslint-disable-next-line import/no-extraneous-dependencies
-const { createTestSchema, extractSchemaFromOpenApiResponse } = require('@odh-dashboard/contract-tests');
+```typescript
+import { createTestSchema, extractSchemaFromOpenApiResponse } from '@odh-dashboard/contract-tests';
 
-const listResp = ((openApiDoc && openApiDoc.components && openApiDoc.components.responses) || {}).ListResponse;
+// Load OpenAPI document first
+const apiSchema = loadOpenAPISchema('upstream/api/openapi/spec.yaml');
+const listResp = apiSchema.components?.responses?.ListResponse;
+
+// Extract and convert schema
 const extracted = extractSchemaFromOpenApiResponse({
   200: { content: { 'application/json': { schema: listResp } } },
 });
@@ -203,12 +218,12 @@ const testSchema = createTestSchema({
   200: { content: { 'application/json': { schema: extracted } } },
 }, 'ListResponse');
 
-expect(result).toMatchContract(testSchema.schema, { status: 200 });
+expect(result).toMatchContract(testSchema?.schema, { status: 200 });
 ```
 
 ### Option 3: Fetch Swagger/OpenAPI at runtime
-```javascript
-const axios = require('axios');
+```typescript
+import axios from 'axios';
 
 const openApiUrl = process.env.OPENAPI_URL || '';
 const { data: liveOpenApi } = await axios.get(openApiUrl);
@@ -226,7 +241,7 @@ Contract tests require a Mock BFF that can be built and run. Your BFF must have 
 .PHONY: build run clean
 
 build:
-	go build -o bff-mock ./cmd/bff-mock
+	go build -o bff-mock ./cmd
 
 run:
 	./bff-mock
@@ -401,13 +416,13 @@ expect(result).toMatchContract(openApiDoc, {
 
 ### Option 3: Custom Schema Loader (Advanced)
 ```typescript
-import { SchemaValidator } from '@odh-dashboard/contract-tests';
+import { ContractSchemaValidator } from '@odh-dashboard/contract-tests';
 
-const schemaValidator = new SchemaValidator();
+const schemaValidator = new ContractSchemaValidator();
 schemaValidator.loadSchema('UserResponse', schema);
 
 // Validate API response
-const result = await apiClient.get('/api/v1/users/123', 'Get User');
+const result = await api.get('/api/v1/users/123');
 const validation = schemaValidator.validateResponse(result.data, 'UserResponse');
 
 expect(validation.valid).toBe(true);
@@ -449,10 +464,25 @@ See the `packages/model-registry/contract-tests/` directory for working examples
 
 ## Available Utilities
 
-- **`ContractApiClient`** - HTTP client for API testing
-- **`ContractSchemaValidator`** - JSON Schema validation
-- **`verifyBffHealth`** - BFF health checks
-- **`logTestSetup`** - Test logging utilities
-- **`validateContract`** - Contract validation helpers
-- **`createTestSchema`** - Convert OpenAPI to JSON Schema
-- **`extractSchemaFromOpenApiResponse`** - Extract schemas from OpenAPI responses
+### Core Testing Classes
+- **`ContractApiClient`** - HTTP client for API testing with built-in logging
+- **`ContractSchemaValidator`** - JSON Schema validation with AJV
+- **`OpenApiValidator`** - OpenAPI/Swagger specification validation
+
+### BFF Management
+- **`verifyBffHealth`** - Check BFF health endpoint
+- **`waitForBffHealth`** - Wait for BFF to be ready
+- **`runContractTests`** - Run contract tests programmatically
+
+### Schema Management
+- **`createTestSchema`** - Convert OpenAPI responses to testable schemas
+- **`extractSchemaFromOpenApiResponse`** - Extract JSON schemas from OpenAPI specs
+- **`convertOpenApiToJsonSchema`** - Convert OpenAPI schemas to JSON Schema format
+- **`loadOpenAPISchema`** - Load OpenAPI specs from files
+- **`createSchemaMatcher`** - Create schema matchers for validation
+
+### Logging Utilities
+- **`logTestSetup`** - Log test setup information
+- **`logApiCall`** - Log API call details
+- **`logApiResponse`** - Log API response details
+- **`logApiError`** - Log API error details
