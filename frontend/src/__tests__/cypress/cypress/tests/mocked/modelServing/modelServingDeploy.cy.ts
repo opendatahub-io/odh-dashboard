@@ -218,6 +218,18 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findExternalRouteCheckbox().click();
     modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
     modelServingWizard.findTokenAuthenticationCheckbox().click();
+    modelServingWizard.findTokenWarningAlert().should('exist');
+    modelServingWizard.findTokenAuthenticationCheckbox().click();
+    modelServingWizard.findServiceAccountByIndex(0).should('have.value', 'default-name');
+    modelServingWizard.findAddServiceAccountButton().click();
+    modelServingWizard.findServiceAccountByIndex(1).should('have.value', 'default-name');
+    modelServingWizard.findServiceNameAlert().should('exist');
+    modelServingWizard.findServiceAccountByIndex(1).clear().type('new-name');
+    modelServingWizard.findServiceNameAlert().should('not.exist');
+    modelServingWizard.findRemoveServiceAccountByIndex(1).click();
+    modelServingWizard.findRemoveServiceAccountByIndex(0).click();
+    modelServingWizard.findTokenWarningAlert().should('exist');
+    modelServingWizard.findTokenAuthenticationCheckbox().click();
 
     modelServingWizard.findNextButton().should('be.enabled').click();
 
@@ -237,6 +249,7 @@ describe('Model Serving Deploy Wizard', () => {
             'opendatahub.io/hardware-profile-namespace': 'opendatahub',
             'opendatahub.io/legacy-hardware-profile-name': 'medium-serving-wz9u9',
             'opendatahub.io/model-type': 'generative',
+            'security.opendatahub.io/enable-auth': 'true',
           },
         },
         spec: {
@@ -326,17 +339,6 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
     modelServingWizard.findTokenAuthenticationCheckbox().click();
     modelServingWizard.findTokenWarningAlert().should('exist');
-    modelServingWizard.findTokenAuthenticationCheckbox().click();
-    modelServingWizard.findServiceAccountByIndex(0).should('have.value', 'default-name');
-    modelServingWizard.findAddServiceAccountButton().click();
-    modelServingWizard.findServiceAccountByIndex(1).should('have.value', 'default-name');
-    modelServingWizard.findServiceNameAlert().should('exist');
-    modelServingWizard.findServiceAccountByIndex(1).clear().type('new-name');
-    modelServingWizard.findServiceNameAlert().should('not.exist');
-    modelServingWizard.findRemoveServiceAccountByIndex(1).click();
-    modelServingWizard.findRemoveServiceAccountByIndex(0).click();
-    modelServingWizard.findTokenWarningAlert().should('exist');
-    modelServingWizard.findTokenAuthenticationCheckbox().click();
 
     modelServingWizard.findNextButton().should('be.enabled').click();
 

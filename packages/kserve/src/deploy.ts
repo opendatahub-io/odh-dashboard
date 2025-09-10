@@ -65,7 +65,7 @@ const assembleInferenceService = (
   data: CreatingInferenceServiceObject,
   existingInferenceService?: InferenceServiceKind,
 ): InferenceServiceKind => {
-  const { project, name, k8sName, modelType, hardwareProfile, modelFormat, externalRoute } = data;
+  const { project, name, k8sName, modelType, hardwareProfile, modelFormat, tokenAuth } = data;
   const inferenceService: InferenceServiceKind = existingInferenceService
     ? { ...existingInferenceService }
     : {
@@ -104,7 +104,7 @@ const assembleInferenceService = (
   annotations['opendatahub.io/hardware-profile-namespace'] =
     hardwareProfile.selectedProfile?.metadata.namespace;
 
-  if (externalRoute) {
+  if (tokenAuth?.tokenAuth) {
     annotations['security.opendatahub.io/enable-auth'] = 'true';
   }
 
