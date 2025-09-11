@@ -126,10 +126,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disableProjectSharing'],
     reliantAreas: [SupportedArea.DS_PROJECTS_VIEW],
   },
-  [SupportedArea.K_SERVE]: {
-    featureFlags: ['disableKServe'],
-    requiredComponents: [StackComponent.K_SERVE],
-  },
   [SupportedArea.K_SERVE_AUTH]: {
     featureFlags: ['disableKServeAuth'],
     reliantAreas: [SupportedArea.K_SERVE],
