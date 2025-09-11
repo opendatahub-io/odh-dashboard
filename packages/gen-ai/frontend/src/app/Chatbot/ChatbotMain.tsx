@@ -20,7 +20,7 @@ import {
 } from '@patternfly/chatbot';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
-import { useProjectContext } from '~/app/context/ProjectContext';
+import { useUserContext } from '~/app/context/UserContext';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import { ChatbotMessages } from './ChatbotMessagesList';
@@ -41,7 +41,7 @@ const ChatbotMain: React.FunctionComponent = () => {
   const [selectedModel, setSelectedModel] = React.useState<string>('');
   const [availableProjects, setAvailableProjects] = React.useState<string[]>([]);
   const [selectedProject, setSelectedProject] = React.useState<string>('');
-  const { username } = useProjectContext();
+  const { username } = useUserContext();
 
   React.useEffect(() => {
     if (!selectedProject && availableProjects.length > 0) {

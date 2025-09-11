@@ -1,14 +1,14 @@
 import * as React from 'react';
 import { waitFor } from '@testing-library/react';
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
-import { ProjectContextProvider, useProjectContext } from '~/app/context/ProjectContext';
+import { UserContextProvider, useUserContext } from '~/app/context/UserContext';
 import * as userService from '~/app/services/userService';
 
 jest.mock('~/app/services/userService', () => ({
   getCurrentUser: jest.fn(),
 }));
 
-describe('ProjectContextProvider', () => {
+describe('UserContextProvider', () => {
   afterEach(() => {
     jest.resetAllMocks();
   });
@@ -17,17 +17,17 @@ describe('ProjectContextProvider', () => {
     (userService.getCurrentUser as jest.Mock).mockResolvedValue({ userId: 'alice' });
 
     const wrapper: React.FunctionComponent<{ children: React.ReactNode }> = ({ children }) => (
-      <ProjectContextProvider>{children}</ProjectContextProvider>
+      <UserContextProvider>{children}</UserContextProvider>
     );
 
-    const { result } = renderHook(() => useProjectContext(), { wrapper });
+    const { result } = renderHook(() => useUserContext(), { wrapper });
 
     await waitFor(() => expect(result.current.username).toBe('alice'));
     expect(userService.getCurrentUser).toHaveBeenCalledTimes(1);
   });
 
   it('exposes safe defaults when used without provider', async () => {
-    const { result } = renderHook(() => useProjectContext());
+    const { result } = renderHook(() => useUserContext());
     expect(result.current.username).toBeUndefined();
     await expect(result.current.refreshUser()).resolves.toBeUndefined();
   });
