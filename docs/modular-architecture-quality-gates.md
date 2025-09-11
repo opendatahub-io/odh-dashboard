@@ -1,7 +1,14 @@
 # Modular Architecture Quality Gates
 
-This document explains the Quality Gates system for the ODH Dashboard's modular architecture. The system helps ensure consistent quality standards across all modules while remaining flexible enough to accommodate different module types and development stages. 
+This document explains the Quality Gates system for the ODH Dashboard's modular architecture. The system helps ensure consistent quality standards across all modules while remaining flexible enough to accommodate different module types and development stages.
 - Note the standards are modelled on the Modular Architecture Golden Paths (currently in draft).
+
+## Current Implementation Status
+
+**PR Commenting**: Disabled
+- Quality gates results are available in workflow artifacts and step summaries
+- No automated comments are posted on pull requests to reduce noise
+- Results can be manually reviewed in the Actions tab
 
 ## Overview
 
@@ -84,8 +91,8 @@ silent_notifications: true
 
 When silent mode is enabled:
 - The module is still assessed
-- Results are not included in PR comments
-- Results are still available in workflow artifacts
+- Results are available in workflow artifacts and step summaries
+- No PR comments are posted (comments are disabled entirely)
 
 ### Future Configuration Options
 
