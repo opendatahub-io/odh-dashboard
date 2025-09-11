@@ -10,11 +10,13 @@ import (
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/models/genaiassets"
+	authnv1 "k8s.io/api/authentication/v1"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -89,11 +91,9 @@ func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, identity *i
 	}
 
 	if !resp.Status.Allowed {
-		kc.Logger.Info("user is NOT cluster-admin")
 		return false, nil
 	}
 
-	kc.Logger.Info("user is cluster-admin")
 	return true, nil
 }
 
@@ -174,6 +174,54 @@ func (kc *TokenKubernetesClient) GetLlamaStackDistributions(ctx context.Context,
 
 func (kc *TokenKubernetesClient) BearerToken() (string, error) {
 	return kc.Token.Raw(), nil
+}
+
+// GetUser returns the username from a SelfSubjectReview request
+func (kc *TokenKubernetesClient) GetUser(ctx context.Context, identity *integrations.RequestIdentity) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	// Create a new config with the token from the request identity
+	config := rest.CopyConfig(kc.Config)
+	config.BearerToken = identity.Token
+	config.BearerTokenFile = ""
+
+	// Create a kubernetes clientset to use the authentication API
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		kc.Logger.Error("failed to create kubernetes clientset", "error", err)
+		return "", fmt.Errorf("failed to create kubernetes clientset: %w", err)
+	}
+
+	ssr := &authnv1.SelfSubjectReview{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "SelfSubjectReview",
+			APIVersion: "authentication.k8s.io/v1",
+		},
+	}
+
+	resp, err := clientset.AuthenticationV1().SelfSubjectReviews().Create(ctx, ssr, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to get user identity from token", "error", err)
+		return "", fmt.Errorf("failed to get user identity: %w", err)
+	}
+
+	username := resp.Status.UserInfo.Username
+	if username == "" {
+		kc.Logger.Error("user identity not found in token")
+		return "", fmt.Errorf("no username found in token")
+	}
+
+	const saPrefix = "system:serviceaccount:"
+	if strings.HasPrefix(username, saPrefix) {
+		parts := strings.SplitN(strings.TrimPrefix(username, saPrefix), ":", 2)
+		if len(parts) == 2 {
+			return parts[1], nil
+		}
+		kc.Logger.Warn("malformed service account username", "username", username)
+	}
+
+	return username, nil
 }
 
 func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]genaiassets.AAModel, error) {

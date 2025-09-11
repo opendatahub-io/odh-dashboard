@@ -20,6 +20,7 @@ import {
 } from '@patternfly/chatbot';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
+import { useUserContext } from '~/app/context/UserContext';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import { ChatbotMessages } from './ChatbotMessagesList';
@@ -40,6 +41,7 @@ const ChatbotMain: React.FunctionComponent = () => {
   const [selectedModel, setSelectedModel] = React.useState<string>('');
   const [availableProjects, setAvailableProjects] = React.useState<string[]>([]);
   const [selectedProject, setSelectedProject] = React.useState<string>('');
+  const { username } = useUserContext();
 
   React.useEffect(() => {
     if (!selectedProject && availableProjects.length > 0) {
@@ -74,6 +76,7 @@ const ChatbotMain: React.FunctionComponent = () => {
     selectedSourceSettings: sourceManagement.selectedSourceSettings,
     systemInstruction,
     isRawUploaded: sourceManagement.isRawUploaded,
+    username,
   });
 
   // Create alert components
@@ -143,7 +146,7 @@ const ChatbotMain: React.FunctionComponent = () => {
               <ChatbotContent>
                 <MessageBox position="bottom">
                   <ChatbotWelcomePrompt
-                    title="Hello"
+                    title={username ? `Hello, ${username}` : 'Hello'}
                     description="Welcome to the chat playground"
                   />
                   <ChatbotMessages

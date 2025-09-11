@@ -22,6 +22,9 @@ type KubernetesClientInterface interface {
 	IsClusterAdmin(ctx context.Context, identity *integrations.RequestIdentity) (bool, error)
 	BearerToken() (string, error)
 
+	// Identity
+	GetUser(ctx context.Context, identity *integrations.RequestIdentity) (string, error)
+
 	// LlamaStack Distribution
 	GetLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*lsdapi.LlamaStackDistributionList, error)
 }
