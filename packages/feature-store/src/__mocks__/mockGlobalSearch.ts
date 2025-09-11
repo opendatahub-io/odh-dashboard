@@ -90,7 +90,7 @@ export const createMockSearchResults = (
 export const transformToSearchItems = (
   results: GlobalSearchResult[],
 ): Array<{
-  id: number;
+  id: string;
   title: string;
   description: string;
   type: string;
@@ -98,7 +98,7 @@ export const transformToSearchItems = (
   project: string;
 }> =>
   results.map((result, index) => ({
-    id: index + 1,
+    id: `${result.project}-${result.type}-${result.name}-${index}`,
     title: result.name || 'Unknown',
     description: result.description || 'No description',
     type: result.type || 'unknown',

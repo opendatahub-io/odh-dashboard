@@ -61,7 +61,7 @@ describe('searchUtils', () => {
 
   describe('groupResultsByCategory test cases', () => {
     const createMockSearchItem = (
-      id: number,
+      id: string,
       category: string,
       title: string,
       type: string,
@@ -77,7 +77,7 @@ describe('searchUtils', () => {
 
     const createRealisticMockData = (): ISearchItem[] => [
       {
-        id: 1,
+        id: '1',
         category: FEATURE_STORE_TYPE_TO_CATEGORY.dataSource,
         title: 'Loan table',
         description: 'Loan application data including personal and loan characteristics',
@@ -85,7 +85,7 @@ describe('searchUtils', () => {
         project: TEST_PROJECTS.PRIMARY,
       },
       {
-        id: 2,
+        id: '2',
         category: FEATURE_STORE_TYPE_TO_CATEGORY.featureView,
         title: 'loan_features',
         description: 'Loan application characteristics and terms for risk evaluation',
@@ -93,7 +93,7 @@ describe('searchUtils', () => {
         project: TEST_PROJECTS.PRIMARY,
       },
       {
-        id: 3,
+        id: '3',
         category: FEATURE_STORE_TYPE_TO_CATEGORY.feature,
         title: 'credit_card_due',
         description: 'Outstanding credit card balance',
@@ -101,7 +101,7 @@ describe('searchUtils', () => {
         project: TEST_PROJECTS.PRIMARY,
       },
       {
-        id: 4,
+        id: '4',
         category: FEATURE_STORE_TYPE_TO_CATEGORY.featureService,
         title: 'driver_activity_v1',
         description: '',
@@ -109,7 +109,7 @@ describe('searchUtils', () => {
         project: TEST_PROJECTS.SECONDARY,
       },
       {
-        id: 5,
+        id: '5',
         category: FEATURE_STORE_TYPE_TO_CATEGORY.entity,
         title: 'loan_id',
         description: 'Unique identifier for each loan application',
@@ -125,7 +125,7 @@ describe('searchUtils', () => {
 
     it('should group single item correctly', () => {
       const items = [
-        createMockSearchItem(1, FEATURE_STORE_TYPE_TO_CATEGORY.entity, 'Entity 1', 'entity'),
+        createMockSearchItem('1', FEATURE_STORE_TYPE_TO_CATEGORY.entity, 'Entity 1', 'entity'),
       ];
 
       const result = groupResultsByCategory(items);
@@ -140,9 +140,9 @@ describe('searchUtils', () => {
 
     it('should group multiple items with same category', () => {
       const items = [
-        createMockSearchItem(1, FEATURE_STORE_TYPE_TO_CATEGORY.entity, 'Entity 1', 'entity'),
-        createMockSearchItem(2, FEATURE_STORE_TYPE_TO_CATEGORY.entity, 'Entity 2', 'entity'),
-        createMockSearchItem(3, FEATURE_STORE_TYPE_TO_CATEGORY.entity, 'Entity 3', 'entity'),
+        createMockSearchItem('1', FEATURE_STORE_TYPE_TO_CATEGORY.entity, 'Entity 1', 'entity'),
+        createMockSearchItem('2', FEATURE_STORE_TYPE_TO_CATEGORY.entity, 'Entity 2', 'entity'),
+        createMockSearchItem('3', FEATURE_STORE_TYPE_TO_CATEGORY.entity, 'Entity 3', 'entity'),
       ];
 
       const result = groupResultsByCategory(items);
@@ -157,15 +157,15 @@ describe('searchUtils', () => {
 
     it('should group items with different categories', () => {
       const items = [
-        createMockSearchItem(1, FEATURE_STORE_TYPE_TO_CATEGORY.entity, 'Entity 1', 'entity'),
+        createMockSearchItem('1', FEATURE_STORE_TYPE_TO_CATEGORY.entity, 'Entity 1', 'entity'),
         createMockSearchItem(
-          2,
+          '2',
           FEATURE_STORE_TYPE_TO_CATEGORY.featureView,
           'View 1',
           'featureView',
         ),
         createMockSearchItem(
-          3,
+          '3',
           FEATURE_STORE_TYPE_TO_CATEGORY.dataSource,
           'Source 1',
           'dataSource',
@@ -188,11 +188,11 @@ describe('searchUtils', () => {
 
     it('should group mixed categories with multiple items each', () => {
       const items = [
-        createMockSearchItem(1, 'Entities', 'Entity 1', 'entity'),
-        createMockSearchItem(2, 'Feature Views', 'View 1', 'featureView'),
-        createMockSearchItem(3, 'Entities', 'Entity 2', 'entity'),
-        createMockSearchItem(4, 'Feature Views', 'View 2', 'featureView'),
-        createMockSearchItem(5, 'Data Sources', 'Source 1', 'dataSource'),
+        createMockSearchItem('1', 'Entities', 'Entity 1', 'entity'),
+        createMockSearchItem('2', 'Feature Views', 'View 1', 'featureView'),
+        createMockSearchItem('3', 'Entities', 'Entity 2', 'entity'),
+        createMockSearchItem('4', 'Feature Views', 'View 2', 'featureView'),
+        createMockSearchItem('5', 'Data Sources', 'Source 1', 'dataSource'),
       ];
 
       const result = groupResultsByCategory(items);
@@ -211,9 +211,9 @@ describe('searchUtils', () => {
 
     it('should preserve item order within categories', () => {
       const items = [
-        createMockSearchItem(1, FEATURE_STORE_TYPE_TO_CATEGORY.entity, 'Entity A', 'entity'),
-        createMockSearchItem(2, FEATURE_STORE_TYPE_TO_CATEGORY.entity, 'Entity B', 'entity'),
-        createMockSearchItem(3, FEATURE_STORE_TYPE_TO_CATEGORY.entity, 'Entity C', 'entity'),
+        createMockSearchItem('1', FEATURE_STORE_TYPE_TO_CATEGORY.entity, 'Entity A', 'entity'),
+        createMockSearchItem('2', FEATURE_STORE_TYPE_TO_CATEGORY.entity, 'Entity B', 'entity'),
+        createMockSearchItem('3', FEATURE_STORE_TYPE_TO_CATEGORY.entity, 'Entity C', 'entity'),
       ];
 
       const result = groupResultsByCategory(items);
@@ -232,21 +232,21 @@ describe('searchUtils', () => {
     it('should handle items with same category but different projects', () => {
       const items = [
         createMockSearchItem(
-          1,
+          '1',
           FEATURE_STORE_TYPE_TO_CATEGORY.entity,
           'Entity 1',
           'entity',
           TEST_PROJECTS.PROJECT_A,
         ),
         createMockSearchItem(
-          2,
+          '2',
           FEATURE_STORE_TYPE_TO_CATEGORY.entity,
           'Entity 2',
           'entity',
           TEST_PROJECTS.PROJECT_B,
         ),
         createMockSearchItem(
-          3,
+          '3',
           FEATURE_STORE_TYPE_TO_CATEGORY.entity,
           'Entity 3',
           'entity',
@@ -273,9 +273,9 @@ describe('searchUtils', () => {
 
     it('should handle categories with special characters', () => {
       const items = [
-        createMockSearchItem(1, 'Category-with-dashes', 'Item 1', 'type1'),
-        createMockSearchItem(2, 'Category_with_underscores', 'Item 2', 'type2'),
-        createMockSearchItem(3, 'Category with spaces', 'Item 3', 'type3'),
+        createMockSearchItem('1', 'Category-with-dashes', 'Item 1', 'type1'),
+        createMockSearchItem('2', 'Category_with_underscores', 'Item 2', 'type2'),
+        createMockSearchItem('3', 'Category with spaces', 'Item 3', 'type3'),
       ];
 
       const result = groupResultsByCategory(items);
@@ -288,9 +288,9 @@ describe('searchUtils', () => {
 
     it('should handle empty category names', () => {
       const items = [
-        createMockSearchItem(1, '', 'Item 1', 'type1'),
-        createMockSearchItem(2, 'Normal Category', 'Item 2', 'type2'),
-        createMockSearchItem(3, '', 'Item 3', 'type3'),
+        createMockSearchItem('1', '', 'Item 1', 'type1'),
+        createMockSearchItem('2', 'Normal Category', 'Item 2', 'type2'),
+        createMockSearchItem('3', '', 'Item 3', 'type3'),
       ];
 
       const result = groupResultsByCategory(items);
@@ -309,10 +309,10 @@ describe('searchUtils', () => {
 
     it('should return categories in the order they first appear', () => {
       const items = [
-        createMockSearchItem(1, 'Category C', 'Item 1', 'type1'),
-        createMockSearchItem(2, 'Category A', 'Item 2', 'type2'),
-        createMockSearchItem(3, 'Category B', 'Item 3', 'type3'),
-        createMockSearchItem(4, 'Category A', 'Item 4', 'type2'),
+        createMockSearchItem('1', 'Category C', 'Item 1', 'type1'),
+        createMockSearchItem('2', 'Category A', 'Item 2', 'type2'),
+        createMockSearchItem('3', 'Category B', 'Item 3', 'type3'),
+        createMockSearchItem('4', 'Category A', 'Item 4', 'type2'),
       ];
 
       const result = groupResultsByCategory(items);
@@ -339,7 +339,7 @@ describe('searchUtils', () => {
         const categoryType = categoryTypes[i % 5];
         items.push(
           createMockSearchItem(
-            i,
+            i.toString(),
             categoryType.category,
             `${categoryType.type}_${Math.floor(i / 5) + 1}`,
             categoryType.type,

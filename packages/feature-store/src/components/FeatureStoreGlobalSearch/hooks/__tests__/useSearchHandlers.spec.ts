@@ -141,7 +141,7 @@ describe('useSearchHandlers', () => {
 
   describe('handleResultSelect test cases', () => {
     const mockSearchItem: ISearchItem = {
-      id: 1,
+      id: '1',
       title: 'Test Feature',
       description: 'Test description',
       category: 'Features',
