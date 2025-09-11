@@ -4,13 +4,7 @@ import useGlobalSearch from './useGlobalSearch';
 import { GlobalSearchResponse } from '../types/search';
 import { FEATURE_STORE_TYPE_TO_CATEGORY } from '../components/FeatureStoreGlobalSearch/const';
 
-interface UseFeatureStoreSearchProps {
-  currentProject?: string;
-}
-
-export const useFeatureStoreSearch = ({
-  currentProject,
-}: UseFeatureStoreSearchProps): {
+export const useFeatureStoreSearch = (): {
   convertedSearchData: Array<{
     id: number;
     title: string;
@@ -78,12 +72,7 @@ export const useFeatureStoreSearch = ({
       setIsSearching(true);
 
       try {
-        let projects: string[];
-        if (currentProject && currentProject.trim() !== '') {
-          projects = [currentProject];
-        } else {
-          projects = featureStoreProjects.projects.map((project) => project.spec.name);
-        }
+        const projects = featureStoreProjects.projects.map((project) => project.spec.name);
 
         if (projects.length === 0) {
           setIsSearching(false);
@@ -103,14 +92,7 @@ export const useFeatureStoreSearch = ({
         setIsSearching(false);
       }
     },
-    [
-      search,
-      apiAvailable,
-      currentProject,
-      featureStoreProjects.projects,
-      currentSearchQuery,
-      isSearching,
-    ],
+    [search, apiAvailable, featureStoreProjects.projects, currentSearchQuery, isSearching],
   );
 
   const loadMoreResults = useCallback(async () => {
@@ -120,12 +102,7 @@ export const useFeatureStoreSearch = ({
 
     setIsLoadingMore(true);
     try {
-      let projects: string[];
-      if (currentProject && currentProject.trim() !== '') {
-        projects = [currentProject];
-      } else {
-        projects = featureStoreProjects.projects.map((project) => project.spec.name);
-      }
+      const projects = featureStoreProjects.projects.map((project) => project.spec.name);
 
       if (projects.length === 0) {
         setIsLoadingMore(false);
@@ -153,7 +130,6 @@ export const useFeatureStoreSearch = ({
     isLoadingMore,
     currentSearchQuery,
     apiAvailable,
-    currentProject,
     featureStoreProjects.projects,
     currentPage,
     search,

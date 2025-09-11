@@ -4,6 +4,7 @@ export const FEATURE_STORE_TYPE_TO_CATEGORY: { [key: string]: string } = {
   featureView: 'Feature Views',
   feature: 'Features',
   featureService: 'Feature Services',
+  savedDataset: 'Datasets',
 } as const;
 
 export type FeatureStoreTypeToCategory = typeof FEATURE_STORE_TYPE_TO_CATEGORY;

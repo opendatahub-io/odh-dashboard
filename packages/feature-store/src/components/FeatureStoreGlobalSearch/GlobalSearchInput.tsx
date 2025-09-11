@@ -12,6 +12,9 @@ import {
   Bullseye,
   Content,
   Spinner,
+  Flex,
+  Stack,
+  StackItem,
 } from '@patternfly/react-core';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 import { useSearchState } from './hooks/useSearchState';
@@ -20,6 +23,7 @@ import { useResponsiveSearch } from './hooks/useResponsiveSearch';
 import LoadMoreFooter from './LoadMoreFooter';
 import { groupResultsByCategory } from './utils/searchUtils';
 import useFeatureStoreProjects from '../../apiHooks/useFeatureStoreProjects';
+import FeatureStoreLabels from '../FeatureStoreLabels';
 
 const highlightText = (textContent: string, searchTerm: string): React.ReactNode => {
   if (!searchTerm.trim()) return textContent;
@@ -32,8 +36,9 @@ const highlightText = (textContent: string, searchTerm: string): React.ReactNode
       <mark
         key={index}
         style={{
-          backgroundColor: 'var(--pf-t--global--color--status--warning--default)',
-          color: 'var(--pf-t--global--text--color--on-status--warning)',
+          backgroundColor:
+            'color-mix(in srgb, var(--pf-t--global--color--status--warning--default) 35%, var(--pf-t--global--background--color--primary--default))',
+          color: 'var(--pf-t--global--text--color--regular)',
           padding: '0',
           fontWeight: 'var(--pf-t--global--font--weight--bold)',
         }}
@@ -50,9 +55,8 @@ const renderNoResults = (
   isLoading: boolean,
   isSearching: boolean,
   searchValue: string,
-  project?: string,
 ): React.ReactElement => {
-  const projectName = project || 'All projects';
+  const projectName = 'All repositories';
   const showSearching = isLoading || isSearching;
 
   return (
@@ -82,7 +86,7 @@ interface ISearchInputProps {
   isLoadingMore?: boolean;
   hasMorePages?: boolean;
   totalCount?: number;
-  project?: string;
+  isDetailsPage?: boolean;
 }
 
 const GlobalSearchInput: React.FC<ISearchInputProps> = ({
@@ -97,7 +101,7 @@ const GlobalSearchInput: React.FC<ISearchInputProps> = ({
   isLoadingMore = false,
   hasMorePages = false,
   totalCount = 0,
-  project,
+  isDetailsPage = false,
 }) => {
   const { loaded: projectsLoaded } = useFeatureStoreProjects();
   const searchState = useSearchState({ isLoading });
@@ -105,12 +109,12 @@ const GlobalSearchInput: React.FC<ISearchInputProps> = ({
     onSearchChange,
     onClear,
     onSelect,
-    project,
   });
   const searchInputContainerRef = React.useRef<HTMLDivElement>(null);
   const { searchInputStyle, searchMenuStyle } = useResponsiveSearch(
     searchState.isSmallScreen,
     searchInputContainerRef,
+    isDetailsPage,
   );
 
   const renderSearchInput = (): React.ReactElement => (
@@ -152,8 +156,8 @@ const GlobalSearchInput: React.FC<ISearchInputProps> = ({
           <MenuSearch data-testid="global-search-results-header">
             <Bullseye>
               <Content className={text.textColorLink} data-testid="global-search-results-count">
-                {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} from{' '}
-                {project || 'All projects'}
+                {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} from All
+                repositories
               </Content>
             </Bullseye>
           </MenuSearch>
@@ -169,7 +173,7 @@ const GlobalSearchInput: React.FC<ISearchInputProps> = ({
           (searchResults.length === 0 &&
             searchState.searchValue.trim() !== '' &&
             searchState.isSearchOpen) ? (
-            renderNoResults(isLoading, searchState.isSearching, searchState.searchValue, project)
+            renderNoResults(isLoading, searchState.isSearching, searchState.searchValue)
           ) : (
             <>
               {groupResultsByCategory(searchResults).map((group, groupIndex, groups) => (
@@ -184,14 +188,39 @@ const GlobalSearchInput: React.FC<ISearchInputProps> = ({
                       <MenuItem
                         key={item.id}
                         itemId={item.id.toString()}
-                        description={highlightText(item.description, searchState.searchValue)}
                         data-testid={`global-search-item-${item.type || 'unknown'}-${(
                           item.title || 'unknown'
                         )
                           .toLowerCase()
                           .replace(/\s+/g, '-')}`}
                       >
-                        {highlightText(item.title, searchState.searchValue)}
+                        <Stack hasGutter={false}>
+                          <StackItem>
+                            <Flex
+                              direction={{ default: 'row' }}
+                              alignItems={{ default: 'alignItemsCenter' }}
+                              gap={{ default: 'gapMd' }}
+                            >
+                              <Content className={text.textColorRegular}>
+                                {highlightText(item.title, searchState.searchValue)}
+                              </Content>
+                              <FeatureStoreLabels color="blue" isCompact variant="outline">
+                                {item.project}
+                              </FeatureStoreLabels>
+                            </Flex>
+                          </StackItem>
+                          <StackItem>
+                            <Content
+                              className={`${text.fontSizeSm} ${text.textColorSubtle}`}
+                              style={{
+                                marginTop: '0.25rem',
+                                display: 'block',
+                              }}
+                            >
+                              {highlightText(item.description, searchState.searchValue)}
+                            </Content>
+                          </StackItem>
+                        </Stack>
                       </MenuItem>
                     ))}
                   </MenuGroup>

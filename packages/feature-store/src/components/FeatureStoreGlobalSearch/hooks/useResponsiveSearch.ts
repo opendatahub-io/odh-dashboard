@@ -8,15 +8,16 @@ export interface UseResponsiveSearchReturn {
 export const useResponsiveSearch = (
   isSmallScreen: boolean,
   containerRef: React.RefObject<HTMLDivElement>,
+  isDetailsPage?: boolean,
 ): UseResponsiveSearchReturn => {
   const [inputWidth, setInputWidth] = React.useState<number>(0);
 
   const searchInputStyle = React.useMemo(
     () => ({
-      width: isSmallScreen ? '100%' : '25ch',
-      maxWidth: isSmallScreen ? '100%' : '25ch',
+      width: isSmallScreen ? '100%' : isDetailsPage ? '35ch' : '25ch',
+      maxWidth: isSmallScreen ? '100%' : isDetailsPage ? '35ch' : '25ch',
     }),
-    [isSmallScreen],
+    [isSmallScreen, isDetailsPage],
   );
 
   React.useEffect(() => {
