@@ -54,7 +54,6 @@ type HardwareProfileSelectProps = {
     data: HardwareProfileKind[],
     loaded: boolean,
     loadError: Error | undefined,
-    refresh: () => Promise<void>,
   ];
   allowExistingSettings: boolean;
   hardwareProfileConfig: HardwareProfileConfig;

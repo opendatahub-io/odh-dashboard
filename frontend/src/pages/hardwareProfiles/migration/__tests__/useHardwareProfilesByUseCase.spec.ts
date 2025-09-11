@@ -41,6 +41,7 @@ describe('useHardwareProfilesByUseCase', () => {
       }),
     ];
 
+    // todo: delete this mock
     mockUseMigratedHardwareProfiles.mockReturnValue({
       data: profiles,
       loaded: true,
@@ -74,6 +75,7 @@ describe('useHardwareProfilesByUseCase', () => {
       },
     });
 
+    // todo: delete this mock
     mockUseMigratedHardwareProfiles.mockReturnValue({
       data: [notebookProfile, servingProfile],
       loaded: true,
