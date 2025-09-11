@@ -5,9 +5,12 @@ import { Lineage } from '@odh-dashboard/internal/components/lineage/Lineage';
 import { createLineageComponentFactory } from '@odh-dashboard/internal/components/lineage/factories';
 import FeatureStoreLineageNode from './node/FeatureStoreLineageNode';
 import FeatureStoreLineageNodePopover from './node/FeatureStoreLineageNodePopover';
+import { applyLineageFilters } from './utils';
+import FeatureStoreLineageToolbar from '../../components/FeatureStoreLineageToolbar';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import useFeatureStoreLineage from '../../apiHooks/useFeatureStoreLineage';
 import { convertFeatureStoreLineageToVisualizationData } from '../../utils/lineageDataConverter';
+import { FeatureStoreLineageSearchFilters } from '../../types/toolbarTypes';
 
 const FeatureStoreLineage: React.FC = () => {
   const { currentProject } = useFeatureStoreProject();
@@ -30,6 +33,9 @@ const FeatureStoreLineage: React.FC = () => {
     return emptyState;
   }
 
+  const [hideNodesWithoutRelationships, setHideNodesWithoutRelationships] = useState(false);
+  const [searchFilters, setSearchFilters] = useState<FeatureStoreLineageSearchFilters>({});
+
   // Create component factory with FeatureStoreLineageNode
   const componentFactory = useMemo(
     () => createLineageComponentFactory(FeatureStoreLineageNode),
@@ -44,7 +50,7 @@ const FeatureStoreLineage: React.FC = () => {
 
   const [conversionError, setConversionError] = useState<string | null>(null);
 
-  // Convert feature store lineage data to visualization format
+  // Convert feature store lineage data to visualization format with filtering
   const visualizationData = useMemo(() => {
     setConversionError(null); // Reset conversion error
 
@@ -59,13 +65,31 @@ const FeatureStoreLineage: React.FC = () => {
     }
 
     try {
-      const result = convertFeatureStoreLineageToVisualizationData(lineageData);
-      return result;
+      const baseResult = convertFeatureStoreLineageToVisualizationData(lineageData);
+
+      // Apply filters using utility function
+      const filteredResult = applyLineageFilters(baseResult, {
+        hideNodesWithoutRelationships,
+        searchFilters,
+      });
+
+      return filteredResult;
     } catch (err) {
       setConversionError(`Failed to process lineage data: ${String(err)}`);
       return { nodes: [], edges: [] };
     }
-  }, [lineageData, lineageDataLoaded, error]);
+  }, [lineageData, lineageDataLoaded, error, hideNodesWithoutRelationships, searchFilters]);
+
+  const ToolbarComponent = () => (
+    <FeatureStoreLineageToolbar
+      hideNodesWithoutRelationships={hideNodesWithoutRelationships}
+      onHideNodesWithoutRelationshipsChange={setHideNodesWithoutRelationships}
+      searchFilters={searchFilters}
+      onSearchFiltersChange={setSearchFilters}
+      lineageData={lineageData}
+      lineageDataLoaded={lineageDataLoaded}
+    />
+  );
 
   return (
     <PageSection
@@ -84,6 +108,8 @@ const FeatureStoreLineage: React.FC = () => {
         height="100%"
         componentFactory={componentFactory}
         popoverComponent={FeatureStoreLineageNodePopover}
+        toolbarComponent={ToolbarComponent}
+        autoResetOnDataChange // Auto-reset view when filters are applied
       />
     </PageSection>
   );
