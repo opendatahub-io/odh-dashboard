@@ -3,7 +3,7 @@
 name: Modular Architecture - Quality Gates
 
 'on':
-  pull_request:
+  pull_request_target:
     types: [opened]
     paths:
       - 'packages/**'
