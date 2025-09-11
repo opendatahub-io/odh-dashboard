@@ -30,18 +30,9 @@ const description =
 
 const HardwareProfiles: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
-  // const {
-  //   data: migratedHardwareProfiles,
-  //   loadError: loadErrorMigratedHardwareProfiles,
-  //   getMigrationAction,
-  // } = useMigratedHardwareProfiles(dashboardNamespace);
+ 
   const [hardwareProfiles, loadedHardwareProfiles, loadErrorHardwareProfiles] =
     useWatchHardwareProfiles(dashboardNamespace);
-
-  // const allMigratedHardwareProfiles = React.useMemo(
-  //   () => [...migratedHardwareProfiles, ...hardwareProfiles],
-  //   [migratedHardwareProfiles, hardwareProfiles],
-  // );
 
   const navigate = useNavigate();
   const [allowedToCreate, loadedAllowed] = useAccessAllowed(
