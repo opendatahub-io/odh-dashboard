@@ -18,7 +18,7 @@ export const DWStatusOverviewDonutChart: React.FC = () => {
   if (workloads.error) {
     return (
       <EmptyStateErrorMessage
-        title="Error loading distributed workloads"
+        title="Error loading workload metrics"
         bodyText={workloads.error.message}
       />
     );
@@ -76,7 +76,7 @@ export const DWStatusOverviewDonutChart: React.FC = () => {
           right: 280, // Adjusted to accommodate legend
           top: 0,
         }}
-        subTitle="Distributed Workloads"
+        subTitle="Workload metrics"
         title={String(workloads.data.length)}
         width={530}
         height={200}

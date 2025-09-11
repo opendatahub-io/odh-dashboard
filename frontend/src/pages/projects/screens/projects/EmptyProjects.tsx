@@ -14,7 +14,7 @@ const EmptyProjects: React.FC<EmptyProjectsProps> = ({ allowCreate }) => {
 
   return (
     <EmptyState
-      data-testid="no-data-science-project"
+      data-testid="no-project"
       headingLevel="h2"
       icon={() => <img style={{ height: 320 }} src={projectsEmptyStateImg} alt="no projects" />}
       titleText={allowCreate ? 'Start by creating your project' : 'Start by requesting a project'}

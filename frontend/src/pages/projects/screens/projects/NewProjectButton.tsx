@@ -12,11 +12,7 @@ const NewProjectButton: React.FC<NewProjectButtonProps> = ({ closeOnCreate, onPr
 
   return (
     <>
-      <Button
-        data-testid="create-data-science-project"
-        variant="primary"
-        onClick={() => setOpen(true)}
-      >
+      <Button data-testid="create-project" variant="primary" onClick={() => setOpen(true)}>
         Create project
       </Button>
       {open && (

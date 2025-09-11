@@ -57,9 +57,7 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
         )
       }
       description="Manage and view the health and performance of your deployed models."
-      title={
-        <TitleWithIcon title="Model deployments" objectType={ProjectObjectType.deployedModels} />
-      }
+      title={<TitleWithIcon title="Deployments" objectType={ProjectObjectType.deployedModels} />}
       headerContent={
         <ModelServingProjectSelection getRedirectPath={(ns: string) => `/modelServing/${ns}`} />
       }

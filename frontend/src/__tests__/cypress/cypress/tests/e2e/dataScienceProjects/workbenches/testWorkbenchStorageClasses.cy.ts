@@ -35,7 +35,7 @@ describe('Workbench Storage Classes Tests', () => {
     provisionStorageClass(scRWOName, StorageProvisioner.VSPHERE_VOLUME, scRWO);
     createdStorageClasses.push(scRWOName);
 
-    cy.step('Provisioning data science project');
+    cy.step('Provisioning project');
     provisionClusterStorageSCFeature(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
   });
 
@@ -44,7 +44,7 @@ describe('Workbench Storage Classes Tests', () => {
       cy.step('Cleaning up storage classes');
       tearDownStorageClassFeature(createdStorageClasses);
     }
-    cy.step('Cleaning up data science project');
+    cy.step('Cleaning up project');
     tearDownClusterStorageSCFeature(projectName);
   });
 

@@ -101,20 +101,20 @@ describe('Verify Workload Metrics Default page Contents', () => {
         .should('equal', `Total shared quota: ${testData.memoryQuota} GiB`);
       cy.findByTestId('dw-top-consuming-workloads')
         .should('be.visible')
-        .and('contain', 'Top 5 resource-consuming distributed workloads')
-        .and('contain', 'No distributed workloads')
+        .and('contain', 'Top 5 resource-consuming workload metrics')
+        .and('contain', 'No workload metrics')
         .and(
           'contain',
-          'No distributed workloads in the selected project are currently consuming resources.',
+          'No workload metrics in the selected project are currently consuming resources.',
         );
 
       cy.findByTestId('dw-workload-resource-metrics')
         .should('be.visible')
         .and('contain', 'Distributed workload resource metrics')
-        .and('contain', 'No distributed workloads')
+        .and('contain', 'No workload metrics')
         .and(
           'contain',
-          'No distributed workloads in the selected project are currently consuming resources.',
+          'No workload metrics in the selected project are currently consuming resources.',
         );
     },
   );
@@ -137,7 +137,7 @@ describe('Verify Workload Metrics Default page Contents', () => {
       cy.findByTestId('dw-status-overview-card')
         .should('be.visible')
         .and('contain', 'Status overview')
-        .and('contain', 'No distributed workloads')
+        .and('contain', 'No workload metrics')
         .and(
           'contain',
           'Select another project or create a distributed workload in the selected project.',
@@ -145,8 +145,8 @@ describe('Verify Workload Metrics Default page Contents', () => {
 
       cy.findByTestId('dw-workloads-table-card')
         .should('be.visible')
-        .and('contain', 'Distributed Workloads')
-        .and('contain', 'No distributed workloads')
+        .and('contain', 'Workload metrics')
+        .and('contain', 'No workload metrics')
         .and(
           'contain',
           'Select another project or create a distributed workload in the selected project.',

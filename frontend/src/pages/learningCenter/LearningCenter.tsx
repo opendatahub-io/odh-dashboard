@@ -127,7 +127,7 @@ const LearningCenter: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title={<TitleWithIcon title="Resources" objectType={ProjectObjectType.resources} />}
+      title={<TitleWithIcon title="Learning resources" objectType={ProjectObjectType.resources} />}
       description={
         <>
           {description}
