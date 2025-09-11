@@ -83,9 +83,7 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
               hardwareProfilesLoaded={loaded}
               hardwareProfilesError={error}
               projectScopedHardwareProfiles={
-                !project
-                  ? [[], true, undefined, () => Promise.resolve()]
-                  : projectScopedHardwareProfiles
+                !project ? [[], true, undefined] : projectScopedHardwareProfiles
               }
               isHardwareProfileSupported={isHardwareProfileSupported}
               initialHardwareProfile={initialHardwareProfile}
