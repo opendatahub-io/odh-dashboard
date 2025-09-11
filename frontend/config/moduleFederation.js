@@ -112,9 +112,6 @@ module.exports = {
                 singleton: true,
                 requiredVersion: deps['@openshift/dynamic-plugin-sdk'],
               },
-              '@odh-dashboard/internal/concepts/projects/ProjectsContext': {
-                singleton: true,
-              },
               ...workspacePackages
                 .filter((pkg) => !!pkg.exports)
                 .reduce((acc, pkg) => {
