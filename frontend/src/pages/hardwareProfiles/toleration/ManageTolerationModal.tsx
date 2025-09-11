@@ -88,7 +88,7 @@ const ManageTolerationModal: React.FC<ManageTolerationModalProps> = ({
             isRequired
             fieldId="toleration-key"
             labelHelp={
-              <Popover bodyContent="The taint key identifies the resource or condition on a node. For GPU scheduling, use keys like nvidia.com/gpu or amd.com/gpu.">
+              <Popover bodyContent="This key helps match your pod with a specific taint on a node, allowing the scheduler to place it there. For GPU-enabled nodes, examples include nvidia.com/gpu or amd.com/gpu.">
                 <DashboardPopupIconButton
                   icon={<OutlinedQuestionCircleIcon />}
                   aria-label="More info for key field"
@@ -114,7 +114,6 @@ const ManageTolerationModal: React.FC<ManageTolerationModalProps> = ({
                   onChange={(_, value) => setToleration('value', value)}
                   aria-label="Toleration value field"
                   data-testid="toleration-value-input"
-                  placeholder="Example, present"
                 />
               </StackItem>
               {showAlertForValue && (
