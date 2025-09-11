@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { HelperText, HelperTextItem, MenuItem } from '@patternfly/react-core';
 import SearchSelector from '@odh-dashboard/internal/components/searchSelector/SearchSelector';
-import { useGenaiNamespaces } from '~/app/hooks/useGenaiNamespaces';
+import { useNamespaceSelector } from 'mod-arch-core';
 
 interface ProjectDropdownProps {
   selectedProject?: string;
@@ -16,8 +16,8 @@ const ProjectDropdown: React.FC<ProjectDropdownProps> = ({
   onProjectsLoaded,
   isDisabled = false,
 }) => {
+  const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector();
   const [searchText, setSearchText] = React.useState('');
-  const { namespaces, namespacesLoaded, namespacesLoadError } = useGenaiNamespaces();
 
   // Extract namespace names and convert to project names
   const availableProjects = React.useMemo(() => {
