@@ -2,6 +2,8 @@
 
 This guide outlines how to run the upstream Model Registry and integrate it with a local Open Data Hub (ODH) development environment.
 
+<!-- Test comment to trigger quality gates workflow -->
+
 ## Prerequisites
 
 1. **Start the ODH Backend:**
