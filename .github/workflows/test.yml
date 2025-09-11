@@ -196,11 +196,10 @@ jobs:
                 package_dir=$(dirname "$dir")
               fi
 
-              # Only build BFF if package has contract tests
               if [ -d "$package_dir/contract-tests" ]; then
                 echo "Building BFF in $dir"
                 cd "$dir"
-                npx odh-ct-bff-consumer --bff-dir . --build-bff
+                bash ../../../packages/contract-tests/scripts/run-go-bff-consumer.sh --bff-dir . --build-bff
                 cd -
               else
                 echo "Skipping BFF build for $dir (no contract tests found in $package_dir)"
@@ -210,8 +209,21 @@ jobs:
       - name: Run contract tests
         run: |
           set -euo pipefail
-          echo "Running contract tests for packages with changes..."
-          npm run test:contract
+          # Find packages with contract tests and run only those
+          PACKAGES_WITH_CONTRACT_TESTS=""
+          for package_dir in packages/*/; do
+            package_name=$(basename "$package_dir")
+            if [ -d "packages/$package_name/contract-tests" ]; then
+              PACKAGES_WITH_CONTRACT_TESTS="$PACKAGES_WITH_CONTRACT_TESTS --filter=@odh-dashboard/$package_name"
+            fi
+          done
+
+          if [ -n "$PACKAGES_WITH_CONTRACT_TESTS" ]; then
+            echo "Running contract tests for packages with contract tests..."
+            npm run test:contract $PACKAGES_WITH_CONTRACT_TESTS
+          else
+            echo "No packages with contract tests found, skipping contract tests"
+          fi
       - name: Upload contract test results
         uses: actions/upload-artifact@v4
         if: always()
