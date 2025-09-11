@@ -143,9 +143,10 @@ const GlobalSearchInput: React.FC<ISearchInputProps> = ({
       style={searchMenuStyle}
       data-testid="global-search-menu"
       onSelect={(_, itemId) => {
-        const selectedItem = searchResults.find(
-          (item) => item.id === parseInt(String(itemId || '0')),
-        );
+        if (!itemId) {
+          return;
+        }
+        const selectedItem = searchResults.find((item) => item.id === itemId);
         if (selectedItem) {
           handlers.handleResultSelect(selectedItem);
         }
@@ -187,7 +188,7 @@ const GlobalSearchInput: React.FC<ISearchInputProps> = ({
                     {group.items.map((item) => (
                       <MenuItem
                         key={item.id}
-                        itemId={item.id.toString()}
+                        itemId={item.id}
                         data-testid={`global-search-item-${item.type || 'unknown'}-${(
                           item.title || 'unknown'
                         )
@@ -249,7 +250,7 @@ const GlobalSearchInput: React.FC<ISearchInputProps> = ({
 
   return (
     <Popper
-      test-id="global-search-input-popper"
+      data-testid="global-search-input-popper"
       trigger={renderSearchInput()}
       triggerRef={searchInputContainerRef}
       popper={searchMenu}

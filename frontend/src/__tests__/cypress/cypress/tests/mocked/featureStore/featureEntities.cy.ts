@@ -576,13 +576,13 @@ describe('Global Search in Feature Entities', () => {
     featureStoreGlobal.findGlobalSearchNoResults().should('be.visible');
     featureStoreGlobal
       .findGlobalSearchNoResultsText()
-      .should('contain.text', 'No results found for query "nonexistent" from All projects');
+      .should('contain.text', 'No results found for query "nonexistent" from All repositories');
   });
 
   it('should show loading spinner during search', () => {
     cy.intercept('GET', `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/search*`, {
       delay: 1000,
-      body: { results: [], pagination: { total_count: 0 } },
+      body: mockEmptySearchResponse('loading', fsProjectName),
     }).as('slowSearch');
 
     featureStoreGlobal.visitEntities();

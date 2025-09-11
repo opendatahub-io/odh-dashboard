@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import useFeatureStoreProjects from './useFeatureStoreProjects';
 import useGlobalSearch from './useGlobalSearch';
 import { GlobalSearchResponse } from '../types/search';
@@ -6,7 +6,7 @@ import { FEATURE_STORE_TYPE_TO_CATEGORY } from '../components/FeatureStoreGlobal
 
 export const useFeatureStoreSearch = (): {
   convertedSearchData: Array<{
-    id: number;
+    id: string;
     title: string;
     description: string;
     category: string;
@@ -21,8 +21,11 @@ export const useFeatureStoreSearch = (): {
   loadMoreResults: () => Promise<void>;
   clearSearch: () => void;
 } => {
-  const { data: featureStoreProjects } = useFeatureStoreProjects();
+  const { data: featureStoreProjects, loaded: projectsLoaded } = useFeatureStoreProjects();
   const { search, apiAvailable } = useGlobalSearch();
+
+  const hasAvailableProjects = projectsLoaded && featureStoreProjects.projects.length > 0;
+
   const [allResults, setAllResults] = useState<GlobalSearchResponse['results']>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -30,6 +33,10 @@ export const useFeatureStoreSearch = (): {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMorePages, setHasMorePages] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
+
+  const [currentAbortController, setCurrentAbortController] = useState<AbortController | null>(
+    null,
+  );
 
   const convertedSearchData = useMemo(() => {
     if (allResults.length === 0) {
@@ -41,7 +48,7 @@ export const useFeatureStoreSearch = (): {
     }
 
     const converted = allResults.map((result, index) => ({
-      id: index + 1,
+      id: `${result.project}-${result.type}-${result.name}-${index}`,
       title: result.name,
       description: result.description,
       category: FEATURE_STORE_TYPE_TO_CATEGORY[result.type] || result.type,
@@ -66,33 +73,62 @@ export const useFeatureStoreSearch = (): {
         return;
       }
 
+      // Cancel any existing search request
+      if (currentAbortController) {
+        currentAbortController.abort();
+      }
+
+      // Create new AbortController for this search
+      const abortController = new AbortController();
+      setCurrentAbortController(abortController);
+
       setCurrentSearchQuery(query);
       setCurrentPage(1);
       setAllResults([]);
       setIsSearching(true);
 
       try {
-        const projects = featureStoreProjects.projects.map((project) => project.spec.name);
-
-        if (projects.length === 0) {
+        if (!hasAvailableProjects) {
           setIsSearching(false);
+          setCurrentAbortController(null);
           return;
         }
 
-        const results = await search({ projects, query, page: 1, limit: 50 });
+        const projects = featureStoreProjects.projects.map((project) => project.spec.name);
+
+        const results = await search({
+          projects,
+          query,
+          page: 1,
+          limit: 50,
+          signal: abortController.signal,
+        });
 
         setAllResults(results.results);
         setHasMorePages(results.pagination.hasNext);
         setTotalCount(results.pagination.totalCount);
+        setCurrentAbortController(null);
       } catch (error) {
+        // Don't update state if the request was aborted
+        if (error instanceof Error && error.name === 'AbortError') {
+          return;
+        }
         setAllResults([]);
         setHasMorePages(false);
         setTotalCount(0);
+        setCurrentAbortController(null);
       } finally {
         setIsSearching(false);
       }
     },
-    [search, apiAvailable, featureStoreProjects.projects, currentSearchQuery, isSearching],
+    [
+      search,
+      apiAvailable,
+      hasAvailableProjects,
+      currentSearchQuery,
+      isSearching,
+      currentAbortController,
+    ],
   );
 
   const loadMoreResults = useCallback(async () => {
@@ -102,12 +138,12 @@ export const useFeatureStoreSearch = (): {
 
     setIsLoadingMore(true);
     try {
-      const projects = featureStoreProjects.projects.map((project) => project.spec.name);
-
-      if (projects.length === 0) {
+      if (!hasAvailableProjects) {
         setIsLoadingMore(false);
         return;
       }
+
+      const projects = featureStoreProjects.projects.map((project) => project.spec.name);
 
       const nextPage = currentPage + 1;
       const results = await search({
@@ -115,13 +151,17 @@ export const useFeatureStoreSearch = (): {
         query: currentSearchQuery,
         page: nextPage,
         limit: 50,
+        signal: currentAbortController?.signal,
       });
 
       setAllResults((prevResults) => [...prevResults, ...results.results]);
       setCurrentPage(nextPage);
       setHasMorePages(results.pagination.hasNext);
     } catch (error) {
-      console.error('Load more search results failed:', error);
+      // Don't log error if the request was aborted
+      if (!(error instanceof Error && error.name === 'AbortError')) {
+        console.error('Load more search results failed:', error);
+      }
     } finally {
       setIsLoadingMore(false);
     }
@@ -130,12 +170,18 @@ export const useFeatureStoreSearch = (): {
     isLoadingMore,
     currentSearchQuery,
     apiAvailable,
-    featureStoreProjects.projects,
+    hasAvailableProjects,
     currentPage,
     search,
   ]);
 
   const clearSearch = useCallback(() => {
+    // Cancel any in-flight request
+    if (currentAbortController) {
+      currentAbortController.abort();
+      setCurrentAbortController(null);
+    }
+
     setAllResults([]);
     setIsSearching(false);
     setIsLoadingMore(false);
@@ -143,7 +189,16 @@ export const useFeatureStoreSearch = (): {
     setCurrentPage(1);
     setHasMorePages(false);
     setTotalCount(0);
-  }, []);
+  }, [currentAbortController]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (currentAbortController) {
+        currentAbortController.abort();
+      }
+    };
+  }, [currentAbortController]);
 
   return {
     convertedSearchData,

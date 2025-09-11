@@ -314,5 +314,5 @@ export const getGlobalSearch =
 
     const endpoint = `/api/${FEATURE_STORE_API_VERSION}/search?${queryParams.join('&')}`;
 
-    return handleFeatureStoreFailures<GlobalSearchResponse>(proxyGET(hostPath, endpoint, opts));
+    return handleFeatureStoreFailures<GlobalSearchResponse>(proxyGET(hostPath, endpoint, {}, opts));
   };

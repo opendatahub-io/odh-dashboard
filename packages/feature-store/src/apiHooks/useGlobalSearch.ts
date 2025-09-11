@@ -7,6 +7,7 @@ interface UseGlobalSearchOptions {
   query: string;
   page?: number;
   limit?: number;
+  signal?: AbortSignal;
 }
 
 const useGlobalSearch = (): {
@@ -21,12 +22,13 @@ const useGlobalSearch = (): {
       query,
       page = 1,
       limit = 50,
+      signal,
     }: UseGlobalSearchOptions): Promise<GlobalSearchResponse> => {
       if (!apiAvailable) {
         throw new Error('Feature Store API is not available');
       }
 
-      return api.getGlobalSearch({}, projects, query, page, limit);
+      return api.getGlobalSearch({ signal }, projects, query, page, limit);
     },
     [api, apiAvailable],
   );

@@ -4,7 +4,7 @@ import { UseSearchStateReturn } from './useSearchState';
 import { getFeatureStoreRoute } from '../utils/searchUtils';
 
 export interface ISearchItem {
-  id: number;
+  id: string;
   title: string;
   description: string;
   category: string;
