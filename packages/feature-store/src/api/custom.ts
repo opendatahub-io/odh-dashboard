@@ -1,7 +1,7 @@
 import { proxyGET } from '@odh-dashboard/internal/api/proxyUtils';
 import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import { handleFeatureStoreFailures } from './errorUtils';
-import { FeatureStoreLineage } from '../types/lineage';
+import { FeatureStoreLineage, FeatureViewLineage } from '../types/lineage';
 import { FEATURE_STORE_API_VERSION } from '../const';
 import { Entity, EntityList } from '../types/entities';
 import { Features, FeaturesList } from '../types/features';
@@ -230,6 +230,16 @@ export const getLineageData =
     )}`;
 
     return handleFeatureStoreFailures<FeatureStoreLineage>(proxyGET(hostPath, endpoint, opts));
+  };
+
+export const getFeatureViewLineage =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, project: string, featureViewName: string): Promise<FeatureViewLineage> => {
+    const endpoint = `/api/${FEATURE_STORE_API_VERSION}/lineage/objects/featureView/${encodeURIComponent(
+      featureViewName,
+    )}?project=${encodeURIComponent(project)}`;
+
+    return handleFeatureStoreFailures<FeatureViewLineage>(proxyGET(hostPath, endpoint, opts));
   };
 
 export const getSavedDatasets =

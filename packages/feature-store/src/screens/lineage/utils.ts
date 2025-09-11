@@ -4,12 +4,21 @@ import {
   convertToLineageEdgeModel,
 } from '@odh-dashboard/internal/components/lineage/types';
 import { findConnectedElements } from '@odh-dashboard/internal/components/lineage/graphUtils';
-import { FeatureStoreLineage } from '../../types/lineage';
+import { FeatureStoreLineage, FeatureViewLineage } from '../../types/lineage';
 import { FeatureStoreLineageSearchFilters } from '../../types/toolbarTypes';
 
 export const extractFilterOptionsFromLineage = (
-  lineageData: FeatureStoreLineage,
+  lineageData: FeatureStoreLineage | FeatureViewLineage,
 ): Record<string, SelectionOptions[]> => {
+  // Type guard to ensure we have FeatureStoreLineage
+  if (!('objects' in lineageData)) {
+    return {
+      entity: [],
+      featureView: [],
+      dataSource: [],
+      featureService: [],
+    };
+  }
   return {
     entity: lineageData.objects.entities.map((entity) => ({
       id: `${lineageData.project || 'default'}-entity-${entity.spec.name}`,
@@ -48,6 +57,68 @@ export const extractFilterOptionsFromLineage = (
       description: featureService.spec.description,
     })),
   };
+};
+
+export const extractFilterOptionsFromFeatureViewLineage = (
+  featureViewLineage: FeatureViewLineage | FeatureStoreLineage,
+  project = 'default',
+): Record<string, SelectionOptions[]> => {
+  // Type guard to ensure we have FeatureViewLineage
+  if ('objects' in featureViewLineage) {
+    return {
+      entity: [],
+      featureView: [],
+      dataSource: [],
+      featureService: [],
+    };
+  }
+
+  const uniqueObjects = new Map<string, { type: string; name: string }>();
+
+  featureViewLineage.relationships.forEach((relationship) => {
+    const sourceKey = `${relationship.source.type}-${relationship.source.name}`;
+    const targetKey = `${relationship.target.type}-${relationship.target.name}`;
+
+    uniqueObjects.set(sourceKey, relationship.source);
+    uniqueObjects.set(targetKey, relationship.target);
+  });
+
+  const filterOptions: Record<string, SelectionOptions[]> = {
+    entity: [],
+    featureView: [],
+    dataSource: [],
+    featureService: [],
+  };
+
+  uniqueObjects.forEach((obj) => {
+    const option = {
+      id: `${project}-${obj.type.toLowerCase()}-${obj.name}`,
+      name: obj.name,
+      description: '', // Note: relationships don't include descriptions
+    };
+
+    switch (obj.type) {
+      case 'entity':
+        filterOptions.entity.push(option);
+        break;
+      case 'featureView':
+      case 'onDemandFeatureView':
+      case 'streamFeatureView':
+        filterOptions.featureView.push(option);
+        break;
+      case 'dataSource':
+      case 'batchDataSource':
+      case 'pushDataSource':
+      case 'requestDataSource':
+        filterOptions.dataSource.push(option);
+        break;
+      case 'featureService':
+        filterOptions.featureService.push(option);
+        break;
+    }
+  });
+
+  return filterOptions;
 };
 
 export interface LineageFilterOptions {
