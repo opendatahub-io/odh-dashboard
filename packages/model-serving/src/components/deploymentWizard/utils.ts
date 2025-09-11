@@ -92,7 +92,6 @@ export const getTokenAuthenticationFromDeployment = (
   }
 
   return {
-    tokenAuth: isTokenAuthEnabled,
     tokens,
   };
 };

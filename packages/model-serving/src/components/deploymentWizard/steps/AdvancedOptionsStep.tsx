@@ -1,10 +1,7 @@
 import React from 'react';
 import { Form, Title, Stack, StackItem, Alert } from '@patternfly/react-core';
 import { ExternalRouteField } from '../fields/ExternalRouteField';
-import {
-  TokenAuthenticationField,
-  type TokenAuthenticationFieldData,
-} from '../fields/TokenAuthenticationField';
+import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 
 type AdvancedSettingsStepContentProps = {
@@ -16,36 +13,8 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
   wizardState,
   tokenAuthAlert = false,
 }) => {
-  const externalRouteData = wizardState.state.externalRoute.data || { externalRoute: false };
-  const tokenAuthData = wizardState.state.tokenAuthentication.data || {
-    tokenAuth: false,
-    tokens: [],
-  };
-
-  const handleExternalRouteChange = (checked: boolean) => {
-    wizardState.state.externalRoute.updateField(checked);
-
-    // If enabling external route, also enable token auth and create a token if none exist
-    if (checked) {
-      wizardState.state.tokenAuthentication.updateField('tokenAuth', true);
-      if (tokenAuthData.tokens.length === 0) {
-        wizardState.state.tokenAuthentication.updateField('tokens', [
-          {
-            name: 'default-name',
-            uuid: `ml-${Date.now()}`,
-            error: '',
-          },
-        ]);
-      }
-    }
-  };
-
-  const handleTokenAuthChange = (
-    key: keyof TokenAuthenticationFieldData,
-    value: TokenAuthenticationFieldData[keyof TokenAuthenticationFieldData],
-  ) => {
-    wizardState.state.tokenAuthentication.updateField(key, value);
-  };
+  const externalRouteData = wizardState.state.externalRoute.data;
+  const tokenAuthData = wizardState.state.tokenAuthentication.data;
 
   return (
     <>
@@ -55,21 +24,16 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
           <StackItem>
             <ExternalRouteField
               data={externalRouteData}
-              onChange={handleExternalRouteChange}
               allowCreate
               tokenAuthAlert={tokenAuthAlert}
             />
           </StackItem>
 
           <StackItem>
-            <TokenAuthenticationField
-              data={tokenAuthData}
-              onChange={handleTokenAuthChange}
-              allowCreate
-            />
+            <TokenAuthenticationField data={tokenAuthData} allowCreate />
           </StackItem>
 
-          {externalRouteData.externalRoute && !tokenAuthData.tokenAuth && (
+          {externalRouteData?.externalRoute && (
             <StackItem>
               <Alert
                 id="external-route-no-token-alert"

@@ -17,7 +17,6 @@ export const isValidExternalRoute = (value: unknown): value is ExternalRouteFiel
 export type ExternalRouteFieldHook = {
   data: ExternalRouteFieldData | undefined;
   setData: (data: ExternalRouteFieldData) => void;
-  updateField: (checked: boolean) => void;
 };
 
 export const useExternalRouteField = (
@@ -27,15 +26,9 @@ export const useExternalRouteField = (
     ExternalRouteFieldData | undefined
   >(existingData || { externalRoute: false });
 
-  const updateField = React.useCallback((checked: boolean) => {
-    const newData = { externalRoute: checked };
-    setExternalRouteData(newData);
-  }, []);
-
   return {
     data: externalRouteData,
     setData: setExternalRouteData,
-    updateField,
   };
 };
 

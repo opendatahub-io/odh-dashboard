@@ -32,12 +32,7 @@ export type ModelDeploymentWizardData = {
 
 export type ModelDeploymentWizardDataHandlers = {
   setExternalRoute: (data: ExternalRouteFieldData) => void;
-  updateExternalRoute: (checked: boolean) => void;
   setTokenAuthentication: (data: TokenAuthenticationFieldData) => void;
-  updateTokenAuthentication: (
-    key: keyof TokenAuthenticationFieldData,
-    value: TokenAuthenticationFieldData[keyof TokenAuthenticationFieldData],
-  ) => void;
 };
 
 export type UseModelDeploymentWizardState = {
@@ -82,27 +77,13 @@ export const useModelDeploymentWizard = (
   const externalRouteField = useExternalRouteField(
     initialData?.modelAccessField ? { externalRoute: initialData.modelAccessField } : undefined,
   );
-  const {
-    data: externalRouteData,
-    setData: setExternalRoute,
-    updateField: updateExternalRoute,
-  } = externalRouteField;
+  const { data: externalRouteData, setData: setExternalRoute } = externalRouteField;
 
   const tokenAuthenticationField = useTokenAuthenticationField(
     initialData?.tokenAuthenticationField,
   );
-  const {
-    data: tokenAuthenticationData,
-    setData: setTokenAuthentication,
-    updateField: updateTokenAuthentication,
-  } = tokenAuthenticationField;
-
-  const handleExternalRouteUpdate = React.useCallback(
-    (checked: boolean) => {
-      updateExternalRoute(checked);
-    },
-    [updateExternalRoute],
-  );
+  const { data: tokenAuthenticationData, setData: setTokenAuthentication } =
+    tokenAuthenticationField;
 
   // Step 4: Summary
 
@@ -123,9 +104,7 @@ export const useModelDeploymentWizard = (
     },
     handlers: {
       setExternalRoute,
-      updateExternalRoute: handleExternalRouteUpdate,
       setTokenAuthentication,
-      updateTokenAuthentication,
     },
   };
 };

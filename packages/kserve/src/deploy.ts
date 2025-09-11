@@ -104,11 +104,21 @@ const assembleInferenceService = (
   annotations['opendatahub.io/hardware-profile-namespace'] =
     hardwareProfile.selectedProfile?.metadata.namespace;
 
-  if (tokenAuth?.tokenAuth) {
+  if (tokenAuth?.tokens && tokenAuth.tokens.length > 0) {
     annotations['security.opendatahub.io/enable-auth'] = 'true';
   }
 
   inferenceService.metadata.annotations = annotations;
+
+  if (data.externalRoute?.externalRoute) {
+    if (!inferenceService.metadata.labels) {
+      inferenceService.metadata.labels = {};
+    }
+    delete inferenceService.metadata.labels['networking.knative.dev/visibility'];
+    delete inferenceService.metadata.labels['networking.kserve.io/visibility'];
+
+    inferenceService.metadata.labels['networking.kserve.io/visibility'] = 'exposed';
+  }
 
   const labels = { ...inferenceService.metadata.labels };
   labels[KnownLabels.DASHBOARD_RESOURCE] = 'true';
