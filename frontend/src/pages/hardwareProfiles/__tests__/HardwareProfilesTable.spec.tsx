@@ -4,7 +4,8 @@ import '@testing-library/jest-dom';
 import { HardwareProfileKind } from '#~/k8sTypes';
 import HardwareProfilesTable from '#~/pages/hardwareProfiles/HardwareProfilesTable';
 import { createHardwareProfileFromResource } from '#~/api';
-import { MigrationAction } from '#~/pages/hardwareProfiles/migration/types';
+import { MigrationAction, MigrationSourceType } from '#~/pages/hardwareProfiles/migration/types';
+import { IdentifierResourceType } from '#~/types';
 
 // Mock the API call
 jest.mock('#~/api', () => ({
@@ -17,8 +18,8 @@ jest.mock('#~/pages/hardwareProfiles/HardwareProfilesTableRow', () => {
     hardwareProfile,
     handleDelete,
     handleMigrate,
-    migrationAction,
-    rowIndex,
+    migrationAction,865964
+    
   }: any) {
     return (
       <tr data-testid={`hardware-profile-row-${hardwareProfile.metadata.name}`}>
@@ -155,7 +156,7 @@ describe('HardwareProfilesTable', () => {
           {
             identifier: 'cpu',
             displayName: 'CPU',
-            resourceType: 'cpu',
+            resourceType: IdentifierResourceType.CPU,
             defaultCount: 2,
             minCount: 1,
             maxCount: 4,
@@ -180,7 +181,7 @@ describe('HardwareProfilesTable', () => {
           {
             identifier: 'memory',
             displayName: 'Memory',
-            resourceType: 'memory',
+            resourceType: IdentifierResourceType.MEMORY,
             defaultCount: '4Gi',
             minCount: '2Gi',
             maxCount: '8Gi',
@@ -206,6 +207,18 @@ describe('HardwareProfilesTable', () => {
   ];
 
   const mockMigrationAction: MigrationAction = {
+    source: {
+      type: MigrationSourceType.ACCELERATOR_PROFILE,
+      label: 'Test Source',
+      resource: {
+        apiVersion: 'v1',
+        kind: 'TestResource',
+        metadata: {
+          name: 'test-source',
+          namespace: 'test-namespace',
+        },
+      },
+    },
     targetProfile: mockHardwareProfiles[0],
     dependentProfiles: [],
     deleteSourceResource: jest.fn().mockResolvedValue(undefined),
