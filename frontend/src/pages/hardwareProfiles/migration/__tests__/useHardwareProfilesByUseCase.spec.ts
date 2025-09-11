@@ -1,22 +1,17 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
-import useMigratedHardwareProfiles from '#~/pages/hardwareProfiles/migration/useMigratedHardwareProfiles';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
 import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';
 import { useDashboardNamespace } from '#~/redux/selectors';
 
-jest.mock('../useMigratedHardwareProfiles');
 jest.mock('#~/utilities/useWatchHardwareProfiles');
 jest.mock('#~/redux/selectors');
 
-const mockUseMigratedHardwareProfiles = jest.mocked(useMigratedHardwareProfiles);
 const mockUseWatchHardwareProfiles = jest.mocked(useWatchHardwareProfiles);
 const mockUseDashboardNamespace = jest.mocked(useDashboardNamespace);
 
 describe('useHardwareProfilesByUseCase', () => {
-  const refresh = jest.fn();
-
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseWatchHardwareProfiles.mockReturnValue([[], true, undefined]);
@@ -41,14 +36,7 @@ describe('useHardwareProfilesByUseCase', () => {
       }),
     ];
 
-    // todo: delete this mock
-    mockUseMigratedHardwareProfiles.mockReturnValue({
-      data: profiles,
-      loaded: true,
-      loadError: undefined,
-      refresh,
-      getMigrationAction: jest.fn(),
-    });
+    mockUseWatchHardwareProfiles.mockReturnValue([profiles, true, undefined]);
 
     const renderResult = testHook(useHardwareProfilesByFeatureVisibility)();
     const [data, loaded, loadError] = renderResult.result.current;
@@ -75,14 +63,11 @@ describe('useHardwareProfilesByUseCase', () => {
       },
     });
 
-    // todo: delete this mock
-    mockUseMigratedHardwareProfiles.mockReturnValue({
-      data: [notebookProfile, servingProfile],
-      loaded: true,
-      loadError: undefined,
-      refresh,
-      getMigrationAction: jest.fn(),
-    });
+    mockUseWatchHardwareProfiles.mockReturnValue([
+      [notebookProfile, servingProfile],
+      true,
+      undefined,
+    ]);
 
     const renderResult = testHook(useHardwareProfilesByFeatureVisibility)([
       HardwareProfileFeatureVisibility.WORKBENCH,
@@ -100,13 +85,7 @@ describe('useHardwareProfilesByUseCase', () => {
       },
     });
 
-    mockUseMigratedHardwareProfiles.mockReturnValue({
-      data: [invalidProfile],
-      loaded: true,
-      loadError: undefined,
-      refresh,
-      getMigrationAction: jest.fn(),
-    });
+    mockUseWatchHardwareProfiles.mockReturnValue([[invalidProfile], true, undefined]);
 
     const renderResult = testHook(useHardwareProfilesByFeatureVisibility)([
       HardwareProfileFeatureVisibility.WORKBENCH,
@@ -120,13 +99,7 @@ describe('useHardwareProfilesByUseCase', () => {
   it('should include profiles without visible-in annotation', () => {
     const profileWithoutAnnotation = mockHardwareProfile({});
 
-    mockUseMigratedHardwareProfiles.mockReturnValue({
-      data: [profileWithoutAnnotation],
-      loaded: true,
-      loadError: undefined,
-      refresh,
-      getMigrationAction: jest.fn(),
-    });
+    mockUseWatchHardwareProfiles.mockReturnValue([[profileWithoutAnnotation], true, undefined]);
 
     const renderResult = testHook(useHardwareProfilesByFeatureVisibility)([
       HardwareProfileFeatureVisibility.WORKBENCH,
@@ -139,13 +112,7 @@ describe('useHardwareProfilesByUseCase', () => {
 
   it('should handle loading and error states', () => {
     const error = new Error('Test error');
-    mockUseMigratedHardwareProfiles.mockReturnValue({
-      data: [],
-      loaded: false,
-      loadError: error,
-      refresh,
-      getMigrationAction: jest.fn(),
-    });
+    mockUseWatchHardwareProfiles.mockReturnValue([[], false, error]);
 
     const renderResult = testHook(useHardwareProfilesByFeatureVisibility)();
     const [data, loaded, loadError] = renderResult.result.current;

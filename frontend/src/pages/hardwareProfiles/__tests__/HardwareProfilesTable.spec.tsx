@@ -18,8 +18,7 @@ jest.mock('#~/pages/hardwareProfiles/HardwareProfilesTableRow', () => {
     hardwareProfile,
     handleDelete,
     handleMigrate,
-    migrationAction,865964
-    
+    migrationAction,
   }: any) {
     return (
       <tr data-testid={`hardware-profile-row-${hardwareProfile.metadata.name}`}>
