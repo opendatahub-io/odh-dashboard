@@ -101,8 +101,25 @@ func TestModelsAAHandler(t *testing.T) {
 		endpoints, ok := firstModel["endpoints"].([]interface{})
 		assert.True(t, ok, "Endpoints should be an array")
 		assert.Len(t, endpoints, 2, "Should have 2 endpoints")
-		assert.Equal(t, "internal: http://mock-model-1.namespace.svc.cluster.local:8080", endpoints[0])
-		assert.Equal(t, "external: https://mock-model-1.example.com", endpoints[1])
+
+		// Check first endpoint (internal)
+		firstEndpoint, ok := endpoints[0].(map[string]interface{})
+		assert.True(t, ok, "First endpoint should be a map")
+		internal, ok := firstEndpoint["internal"].(map[string]interface{})
+		assert.True(t, ok, "First endpoint should have internal field")
+		assert.Equal(t, "http://mock-model-1.namespace.svc.cluster.local:8080", internal["url"])
+		assert.Nil(t, firstEndpoint["external"], "First endpoint should not have external field")
+
+		// Check second endpoint (external)
+		secondEndpoint, ok := endpoints[1].(map[string]interface{})
+		assert.True(t, ok, "Second endpoint should be a map")
+		external, ok := secondEndpoint["external"].(map[string]interface{})
+		assert.True(t, ok, "Second endpoint should have external field")
+		assert.Equal(t, "https://mock-model-1.example.com", external["url"])
+		assert.Equal(t, "mock-api-token-12345", external["api_token"])
+		assert.Equal(t, "mock-model-1-sa", external["service_account_name"])
+		assert.Equal(t, "Mock Model 1 Secret", external["secret_display_name"])
+		assert.Nil(t, secondEndpoint["internal"], "Second endpoint should not have internal field")
 
 		// Check second model
 		secondModel, ok := dataArray[1].(map[string]interface{})
@@ -118,7 +135,14 @@ func TestModelsAAHandler(t *testing.T) {
 		secondEndpoints, ok := secondModel["endpoints"].([]interface{})
 		assert.True(t, ok, "Second model endpoints should be an array")
 		assert.Len(t, secondEndpoints, 1, "Should have 1 endpoint")
-		assert.Equal(t, "internal: http://mock-model-2.namespace.svc.cluster.local:8080", secondEndpoints[0])
+
+		// Check second model endpoint (internal only)
+		secondModelEndpoint, ok := secondEndpoints[0].(map[string]interface{})
+		assert.True(t, ok, "Second model endpoint should be a map")
+		secondInternal, ok := secondModelEndpoint["internal"].(map[string]interface{})
+		assert.True(t, ok, "Second model endpoint should have internal field")
+		assert.Equal(t, "http://mock-model-2.namespace.svc.cluster.local:8080", secondInternal["url"])
+		assert.Nil(t, secondModelEndpoint["external"], "Second model endpoint should not have external field")
 	})
 
 	// Test error cases - simple parameter validation
