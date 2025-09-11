@@ -55,7 +55,7 @@ const PipelinesSdkRedirects: React.FC = () => {
           actions={
             <>
               <Button variant="link" onClick={() => navigate('/pipelines')}>
-                Go to Pipelines
+                Go to Pipeline definitions
               </Button>
               <Button variant="link" onClick={() => navigate('/experiments')}>
                 Go to Experiments

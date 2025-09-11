@@ -27,7 +27,7 @@ class ModelCatalog {
 
   private wait() {
     cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('Model catalog');
+    cy.findByTestId('app-page-title').contains('Catalog');
     cy.testA11y();
   }
 

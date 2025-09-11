@@ -65,7 +65,7 @@ const ModelCatalogSection: React.FC = conditionalArea(
       <EmptyState
         headingLevel="h3"
         icon={ExclamationCircleIcon}
-        titleText="Error loading model catalog"
+        titleText="Error loading AI hub catalog"
         variant={EmptyStateVariant.lg}
         data-testid="error-loading"
       >
@@ -83,7 +83,7 @@ const ModelCatalogSection: React.FC = conditionalArea(
   }
 
   return (
-    <PageSection variant="secondary" hasBodyWrapper={false} data-testid="homepage-model-catalog">
+    <PageSection variant="secondary" hasBodyWrapper={false} data-testid="homepage-ai-hub-catalog">
       <Stack hasGutter>
         <StackItem>
           <ModelCatalogSectionHeader />

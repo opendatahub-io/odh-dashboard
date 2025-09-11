@@ -43,7 +43,7 @@ const ExecutionsList: React.FC = () => {
       >
         <EmptyStateBody>
           No experiments have been executed within this project. Select a different project, or
-          execute an experiment from the <b>Experiments and runs</b> page.
+          execute an experiment from the <b>Experiments</b> page.
         </EmptyStateBody>
       </EmptyState>
     );

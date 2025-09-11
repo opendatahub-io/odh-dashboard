@@ -266,7 +266,7 @@ class SSHFileUpload extends Contextual<HTMLElement> {
 
 class DataScienceProjectSection {
   findProjectName() {
-    return cy.findByTestId('data-science-project-name');
+    return cy.findByTestId('project-name');
   }
 }
 

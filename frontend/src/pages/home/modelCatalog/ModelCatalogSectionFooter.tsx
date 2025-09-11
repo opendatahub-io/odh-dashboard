@@ -22,7 +22,7 @@ const ModelCatalogSectionFooter: React.FC<{
     </FlexItem>
     <FlexItem>
       <Link data-testid="goto-model-catalog-link" to="/modelCatalog">
-        Go to <b>Model catalog</b>
+        Go to <b>AI hub catalog</b>
       </Link>
     </FlexItem>
   </Flex>

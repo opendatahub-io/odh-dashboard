@@ -9,7 +9,7 @@ import {
   GridItem,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
-import modelCatalogImg from '#~/images/homepage-model-catalog.svg';
+import modelCatalogImg from '#~/images/homepage-ai-hub-catalog.svg';
 
 const ModelCatalogHint: React.FC<{ isHidden: boolean; setHidden: React.FC }> = ({
   isHidden,

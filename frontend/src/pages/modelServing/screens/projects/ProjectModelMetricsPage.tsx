@@ -14,7 +14,7 @@ const ProjectModelMetricsPage: React.FC = () => {
     <MetricsPage
       title={`${modelDisplayName} metrics`}
       breadcrumbItems={[
-        { label: 'Data science projects', link: '/projects' },
+        { label: 'Projects', link: '/projects' },
         {
           label: projectDisplayName,
           link: `/projects/${currentProject.metadata.name}`,

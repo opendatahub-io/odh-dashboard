@@ -117,7 +117,7 @@ describe('Home page Admin section', () => {
     verifyRelativeURL('/servingRuntimes');
     homePage.returnToHome();
     homeAdminSection.findClusterSettingButton().click();
-    homePage.findAppPageTitle().should('have.text', 'Cluster settings');
+    homePage.findAppPageTitle().should('have.text', 'General settings');
     homePage.returnToHome();
     homeAdminSection.findUserManagementButton().click();
     verifyRelativeURL('/groupSettings');
