@@ -18,6 +18,7 @@ import FeatureDetailsTabs from './FeatureDetailsTab';
 import useFeatureByName from '../../../apiHooks/useFeatureByName';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
 import { featureStoreRootRoute } from '../../../routes';
+import FeatureStorePageTitle from '../../../components/FeatureStorePageTitle';
 
 const FeatureDetails = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -80,22 +81,27 @@ const FeatureDetails = (): React.ReactElement => {
       loaded={featureLoaded}
       provideChildrenPadding
       breadcrumb={
-        <Breadcrumb>
-          <BreadcrumbItem
-            data-testid="feature-details-breadcrumb-link"
-            render={() => <Link to={`${featureStoreRootRoute()}/features`}>Features</Link>}
-          />
-          <BreadcrumbItem
-            data-testid="feature-details-breadcrumb-item"
-            isActive
-            style={{
-              textDecoration: 'underline',
-              textUnderlineOffset: ExtraSmallSpacerSize.var,
-            }}
-          >
-            {feature.name}
-          </BreadcrumbItem>
-        </Breadcrumb>
+        <FeatureStorePageTitle
+          isDetailsPage
+          breadcrumb={
+            <Breadcrumb>
+              <BreadcrumbItem
+                data-testid="feature-details-breadcrumb-link"
+                render={() => <Link to={`${featureStoreRootRoute()}/features`}>Features</Link>}
+              />
+              <BreadcrumbItem
+                data-testid="feature-details-breadcrumb-item"
+                isActive
+                style={{
+                  textDecoration: 'underline',
+                  textUnderlineOffset: ExtraSmallSpacerSize.var,
+                }}
+              >
+                {feature.name}
+              </BreadcrumbItem>
+            </Breadcrumb>
+          }
+        />
       }
     >
       <FeatureDetailsTabs feature={feature} />
