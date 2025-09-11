@@ -1,6 +1,6 @@
-name: E2E Direct Commit PR Tests
+name: E2E Direct Commit PR Tests - FIXED
 
-on: [push]
+on: [push, pull_request]
 
 permissions:
   contents: read
@@ -67,11 +67,11 @@ jobs:
               oc version --client
 
             elif [[ "$RUNNER_OS" == "macOS" ]]; then
-              echo "📦 Installing oc CLI for macOS..."
+              echo "🍎 macOS detected - installing Xvfb..."
               brew install openshift-cli
 
             elif [[ "$RUNNER_OS" == "Windows" ]]; then
-              echo "📦 Installing oc CLI for Windows..."
+              echo "🪟 Windows detected - installing Xvfb..."
               choco install openshift-cli
             else
               echo "❌ Unsupported OS: $RUNNER_OS"
@@ -309,20 +309,29 @@ jobs:
           # Run real E2E tests (not mock mode)
           echo "🚀 Running real E2E tests against live dashboard"
 
-          # Run tests with matrix tag
-          export CY_TEST_TAGS="${{ matrix.test-tag }}"
-          export CY_SKIP_TAGS="@Bug,@Maintain,@NonConcurrent"
+          # Run tests with matrix tag using Jenkins-style command format
           export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
+          export CY_RESULTS_DIR="${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}"
 
-          echo "🎯 Running tests with tags: $CY_TEST_TAGS"
-          echo "🚫 Skipping tags: $CY_SKIP_TAGS"
+          echo "🎯 Running tests with tags: ${{ matrix.test-tag }}"
+          echo "🚫 Skipping tags: @Bug,@Maintain,@NonConcurrent"
           echo "📋 Test group: ${{ matrix.test-tag }}"
 
-          # Use Electron browser since Chrome is not available on Fedora
+          # Use Jenkins-style command format for proper tag filtering
           echo "🔄 Using Electron browser (Chrome not available on Fedora)"
 
-          # Use existing test:cypress:e2e:ci script with browser override and correct baseUrl
-          CYPRESS_BROWSER=electron CYPRESS_BASE_URL=http://localhost:9001 npm run test:cypress:e2e:ci
+          # Create results directory
+          mkdir -p "$CY_RESULTS_DIR"
+
+          # Each matrix job uses a unique port to avoid conflicts when running in parallel
+          UNIQUE_PORT=$((9001 + ${{ strategy.job-index }}))
+          echo "🌐 Using unique port: $UNIQUE_PORT for matrix job ${{ strategy.job-index }}"
+
+          # Start server and run tests using concurrently (like Jenkins example)
+          npx concurrently -P -k -s first \
+            "npm run cypress:server" \
+            "npx wait-on tcp:127.0.0.1:$UNIQUE_PORT && CYPRESS_BROWSER=electron CYPRESS_BASE_URL=http://localhost:$UNIQUE_PORT CY_TEST_TAGS='${{ matrix.test-tag }}' CY_SKIP_TAGS='@Bug,@Maintain,@NonConcurrent' CY_RESULTS_DIR='$CY_RESULTS_DIR' npm run test:cypress:ci:matrix" \
+            --
 
       - name: Test tag name
         if: ${{ always() }}
