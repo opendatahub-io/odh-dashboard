@@ -198,9 +198,8 @@ jobs:
 
               if [ -d "$package_dir/contract-tests" ]; then
                 echo "Building BFF in $dir"
-                cd "$dir"
-                bash ../../../../packages/contract-tests/scripts/run-go-bff-consumer.sh --bff-dir . --build-bff
-                cd -
+                # Use npx to run the script from the contract-tests package
+                npx --package=@odh-dashboard/contract-tests odh-ct-bff-consumer --bff-dir "$dir" --build-bff
               else
                 echo "Skipping BFF build for $dir (no contract tests found in $package_dir)"
               fi
