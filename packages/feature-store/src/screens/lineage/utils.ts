@@ -116,13 +116,20 @@ export const filterNodesBySearch = (
 
   const matchingNodes = new Set<string>();
 
+  // Helper function to check if node name matches any of the selected values
+  const matchesFilterValues = (nodeName: string, filterValue: string): boolean => {
+    const selectedValues = filterValue.split(', ').map((value) => value.trim().toLowerCase());
+    const lowerNodeName = nodeName.toLowerCase();
+    return selectedValues.some((selectedValue) => lowerNodeName.includes(selectedValue));
+  };
+
   data.nodes.forEach((node) => {
     const { fsObjectTypes, name } = node;
 
     if (
       searchFilters.entity &&
       fsObjectTypes === 'entity' &&
-      name.toLowerCase().includes(searchFilters.entity.toLowerCase())
+      matchesFilterValues(name, searchFilters.entity)
     ) {
       matchingNodes.add(node.id);
     }
@@ -130,7 +137,7 @@ export const filterNodesBySearch = (
     if (
       searchFilters.featureView &&
       fsObjectTypes === 'feature_view' &&
-      name.toLowerCase().includes(searchFilters.featureView.toLowerCase())
+      matchesFilterValues(name, searchFilters.featureView)
     ) {
       matchingNodes.add(node.id);
     }
@@ -138,7 +145,7 @@ export const filterNodesBySearch = (
     if (
       searchFilters.dataSource &&
       fsObjectTypes === 'data_source' &&
-      name.toLowerCase().includes(searchFilters.dataSource.toLowerCase())
+      matchesFilterValues(name, searchFilters.dataSource)
     ) {
       matchingNodes.add(node.id);
     }
@@ -146,7 +153,7 @@ export const filterNodesBySearch = (
     if (
       searchFilters.featureService &&
       fsObjectTypes === 'feature_service' &&
-      name.toLowerCase().includes(searchFilters.featureService.toLowerCase())
+      matchesFilterValues(name, searchFilters.featureService)
     ) {
       matchingNodes.add(node.id);
     }
