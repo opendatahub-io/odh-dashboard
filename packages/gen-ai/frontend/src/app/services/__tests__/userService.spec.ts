@@ -26,7 +26,7 @@ describe('userService', () => {
       const result = await getCurrentUser();
 
       expect(result).toEqual(mockUserData);
-      expect(mockedAxios.get).toHaveBeenCalledWith('/api/v1/user');
+      expect(mockedAxios.get).toHaveBeenCalledWith('/gen-ai/api/v1/user');
     });
 
     it('should return empty userId when API call succeeds with empty response', async () => {
@@ -36,7 +36,7 @@ describe('userService', () => {
       const result = await getCurrentUser();
 
       expect(result).toEqual(mockUserData);
-      expect(mockedAxios.get).toHaveBeenCalledWith('/api/v1/user');
+      expect(mockedAxios.get).toHaveBeenCalledWith('/gen-ai/api/v1/user');
     });
 
     it('should throw error with API error message when API call fails with error response', async () => {
@@ -52,7 +52,7 @@ describe('userService', () => {
       mockedAxios.get.mockRejectedValueOnce(mockError);
 
       await expect(getCurrentUser()).rejects.toThrow('Authentication failed');
-      expect(mockedAxios.get).toHaveBeenCalledWith('/api/v1/user');
+      expect(mockedAxios.get).toHaveBeenCalledWith('/gen-ai/api/v1/user');
     });
 
     it('should throw error with generic message when API call fails without error response', async () => {
@@ -60,7 +60,7 @@ describe('userService', () => {
       mockedAxios.get.mockRejectedValueOnce(mockError);
 
       await expect(getCurrentUser()).rejects.toThrow('Network error');
-      expect(mockedAxios.get).toHaveBeenCalledWith('/api/v1/user');
+      expect(mockedAxios.get).toHaveBeenCalledWith('/gen-ai/api/v1/user');
     });
 
     it('should throw error with fallback message when API call fails with no message', async () => {
@@ -68,7 +68,7 @@ describe('userService', () => {
       mockedAxios.get.mockRejectedValueOnce(mockError);
 
       await expect(getCurrentUser()).rejects.toThrow('Failed to fetch user');
-      expect(mockedAxios.get).toHaveBeenCalledWith('/api/v1/user');
+      expect(mockedAxios.get).toHaveBeenCalledWith('/gen-ai/api/v1/user');
     });
 
     it('uses URL_PREFIX when provided (e.g., "/gen-ai")', async () => {
