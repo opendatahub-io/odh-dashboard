@@ -22,10 +22,12 @@ import { ApplicationsPage } from 'mod-arch-shared';
 import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
 import { useUserContext } from '~/app/context/UserContext';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
+import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import { ChatbotMessages } from './ChatbotMessagesList';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
 import ChatbotHeader from './ChatbotHeader';
+import ChatbotEmptyState from './EmptyState';
 import useChatbotMessages from './hooks/useChatbotMessages';
 import useSourceManagement from './hooks/useSourceManagement';
 import useAlertManagement from './hooks/useAlertManagement';
@@ -78,6 +80,12 @@ const ChatbotMain: React.FunctionComponent = () => {
     isRawUploaded: sourceManagement.isRawUploaded,
     username,
   });
+
+  const {
+    data: lsdStatusData,
+    loaded: lsdStatusLoaded,
+    error: lsdStatusError,
+  } = useFetchLSDStatus(selectedProject);
 
   // Create alert components
   const successAlert = (
@@ -132,46 +140,63 @@ const ChatbotMain: React.FunctionComponent = () => {
       empty={false}
       loadError={error}
     >
-      <ChatbotSourceSettingsModal
-        isOpen={sourceManagement.isSourceSettingsOpen}
-        onToggle={() =>
-          sourceManagement.setIsSourceSettingsOpen(!sourceManagement.isSourceSettingsOpen)
-        }
-        onSubmitSettings={sourceManagement.handleSourceSettingsSubmit}
-      />
-      <Drawer isExpanded isInline position="right">
-        <DrawerContent panelContent={settingsPanelContent}>
-          <DrawerContentBody>
-            <Chatbot displayMode={displayMode} data-testid="chatbot">
-              <ChatbotContent>
-                <MessageBox position="bottom">
-                  <ChatbotWelcomePrompt
-                    title={username ? `Hello, ${username}` : 'Hello'}
-                    description="Welcome to the chat playground"
-                  />
-                  <ChatbotMessages
-                    messageList={chatbotMessages.messages}
-                    scrollRef={chatbotMessages.scrollToBottomRef}
-                  />
-                </MessageBox>
-              </ChatbotContent>
-              <ChatbotFooter>
-                <MessageBar
-                  onSendMessage={(message) => {
-                    if (typeof message === 'string') {
-                      chatbotMessages.handleMessageSend(message);
-                    }
-                  }}
-                  hasAttachButton={false}
-                  isSendButtonDisabled={chatbotMessages.isMessageSendButtonDisabled}
-                  data-testid="chatbot-message-bar"
-                />
-                <ChatbotFootnote {...{ label: 'Bot uses AI. Check for mistakes.' }} />
-              </ChatbotFooter>
-            </Chatbot>
-          </DrawerContentBody>
-        </DrawerContent>
-      </Drawer>
+      {!lsdStatusLoaded && !lsdStatusError ? (
+        <Bullseye>
+          <Spinner />
+        </Bullseye>
+      ) : lsdStatusLoaded && !lsdStatusData ? (
+        <ChatbotEmptyState
+          title="Enable Playground"
+          description="Create a playground to chat with the generative models deployed in this project. Experiment with model output using a simple RAG simulation, custom prompt and MCP servers."
+          actionButtonText="Configure playground"
+          handleActionButtonClick={() => {
+            // TODO: Implement configuration logic
+          }}
+        />
+      ) : (
+        <>
+          <ChatbotSourceSettingsModal
+            isOpen={sourceManagement.isSourceSettingsOpen}
+            onToggle={() =>
+              sourceManagement.setIsSourceSettingsOpen(!sourceManagement.isSourceSettingsOpen)
+            }
+            onSubmitSettings={sourceManagement.handleSourceSettingsSubmit}
+          />
+          <Drawer isExpanded isInline position="right">
+            <DrawerContent panelContent={settingsPanelContent}>
+              <DrawerContentBody>
+                <Chatbot displayMode={displayMode} data-testid="chatbot">
+                  <ChatbotContent>
+                    <MessageBox position="bottom">
+                      <ChatbotWelcomePrompt
+                        title={username ? `Hello, ${username}` : 'Hello'}
+                        description="Welcome to the chat playground"
+                      />
+                      <ChatbotMessages
+                        messageList={chatbotMessages.messages}
+                        scrollRef={chatbotMessages.scrollToBottomRef}
+                      />
+                    </MessageBox>
+                  </ChatbotContent>
+                  <ChatbotFooter>
+                    <MessageBar
+                      onSendMessage={(message) => {
+                        if (typeof message === 'string') {
+                          chatbotMessages.handleMessageSend(message);
+                        }
+                      }}
+                      hasAttachButton={false}
+                      isSendButtonDisabled={chatbotMessages.isMessageSendButtonDisabled}
+                      data-testid="chatbot-message-bar"
+                    />
+                    <ChatbotFootnote {...{ label: 'Bot uses AI. Check for mistakes.' }} />
+                  </ChatbotFooter>
+                </Chatbot>
+              </DrawerContentBody>
+            </DrawerContent>
+          </Drawer>
+        </>
+      )}
     </ApplicationsPage>
   );
 
