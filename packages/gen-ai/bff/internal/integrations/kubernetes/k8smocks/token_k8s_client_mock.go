@@ -94,6 +94,11 @@ func (m *TokenKubernetesClientMock) IsClusterAdmin(ctx context.Context, identity
 	return false, nil
 }
 
+// GetUser returns mock username for testing
+func (m *TokenKubernetesClientMock) GetUser(ctx context.Context, identity *integrations.RequestIdentity) (string, error) {
+	return "mockUser", nil
+}
+
 // GetLlamaStackDistributions returns mock LSD list for testing
 func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*lsdapi.LlamaStackDistributionList, error) {
 	// Return mock LSD list for testing

@@ -273,6 +273,29 @@ paths:
       summary: Get LSD Status
       description: Gets the status of LlamaStack Distribution in the specified namespace.
 
+  /gen-ai/api/v1/user:
+    summary: Get current user information
+    description: >-
+      Retrieves the current authenticated user information from the Kubernetes cluster.
+      Returns the username associated with the provided authentication token.
+      Always returns HTTP 200 with user information or empty userId if user cannot be determined.
+      Requires valid Kubernetes authentication token.
+    get:
+      tags:
+        - Identity
+      security:
+        - Bearer: []
+      responses:
+        "200":
+          $ref: "#/components/responses/UserResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getCurrentUser
+      summary: Get Current User
+      description: Gets the current authenticated user information from the Kubernetes cluster.
+
 components:
   securitySchemes:
     Bearer:
@@ -666,7 +689,7 @@ components:
           example:
             - role: "user"
               content: "What is artificial intelligence?"
-            - role: "assistant" 
+            - role: "assistant"
               content: "Artificial intelligence (AI) is a branch of computer science that aims to create machines capable of intelligent behavior, learning, and decision-making."
             - role: "user"
               content: "Can you give me some examples?"
@@ -1068,6 +1091,17 @@ components:
           example: "Provider is responding normally"
           description: Additional health information
 
+    # User Schema
+    UserModel:
+      type: object
+      required:
+        - userId
+      properties:
+        userId:
+          type: string
+          example: "user@example.com"
+          description: Current authenticated user identifier from Kubernetes cluster
+
   responses:
     HealthCheckResponse:
       description: BFF service health status
@@ -1270,6 +1304,15 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorEnvelope"
 
+    UserResponse:
+      description: Current user information
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/UserModel"
+          example:
+            userId: "user@example.com"
+
 tags:
   - name: HealthCheck
     description: BFF service health check operations
@@ -1285,3 +1328,5 @@ tags:
     description: Code generation for Llama Stack integration
   - name: Kubernetes
     description: Kubernetes cluster operations and namespace management
+  - name: Identity
+    description: User identity and authentication operations
