@@ -4,7 +4,11 @@ name: Modular Architecture - Quality Gates
 
 'on':
   pull_request_target:
-    types: [opened, synchronize]
+    paths:
+      - 'packages/**'
+  push:
+    branches:
+      - qualityGatesCommentRework1
     paths:
       - 'packages/**'
   workflow_dispatch:
@@ -502,7 +506,40 @@ jobs:
                      '❌ Failed to load detailed summary. Check workflow logs.';
             }
 
-            const prNumber = context.payload.pull_request.number;
+            let prNumber;
+            const eventName = context.eventName;
+
+            if (eventName === 'pull_request_target' || eventName === 'pull_request') {
+              prNumber = context.payload.pull_request.number;
+            } else if (eventName === 'push') {
+              // For push events, find the PR for this branch
+              const branch = context.payload.ref.replace('refs/heads/', '');
+              console.log(`🔍 Finding PR for branch: ${branch}`);
+
+              try {
+                const { data: prs } = await github.rest.pulls.list({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  head: `${context.repo.owner}:${branch}`,
+                  state: 'open'
+                });
+
+                if (prs.length > 0) {
+                  prNumber = prs[0].number;
+                  console.log(`📋 Found PR #${prNumber} for branch ${branch}`);
+                } else {
+                  console.log(`❌ No open PR found for branch ${branch}`);
+                  return;
+                }
+              } catch (error) {
+                console.log('❌ Failed to find PR for branch:', error.message);
+                return;
+              }
+            } else {
+              console.log(`❌ Unsupported event: ${eventName}`);
+              return;
+            }
+
             console.log(`📋 Posting to PR #${prNumber}`);
             console.log(`📊 Summary length: ${body.length} characters`);
 
