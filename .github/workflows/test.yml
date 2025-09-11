@@ -199,7 +199,7 @@ jobs:
               if [ -d "$package_dir/contract-tests" ]; then
                 echo "Building BFF in $dir"
                 cd "$dir"
-                bash ../../../packages/contract-tests/scripts/run-go-bff-consumer.sh --bff-dir . --build-bff
+                bash ../../../../packages/contract-tests/scripts/run-go-bff-consumer.sh --bff-dir . --build-bff
                 cd -
               else
                 echo "Skipping BFF build for $dir (no contract tests found in $package_dir)"
