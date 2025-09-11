@@ -186,8 +186,20 @@ jobs:
           set -euo pipefail
           echo "Building BFF binaries for packages with changes and contract tests..."
 
-          # Get list of changed packages
-          CHANGED_PACKAGES=$(git diff --name-only HEAD~1 | grep '^packages/' | cut -d'/' -f2 | sort | uniq || echo "")
+          # Get list of changed packages (robust approach for CI)
+          if [[ "${GITHUB_EVENT_NAME:-}" == "pull_request" ]]; then
+            # For PRs, compare with the base branch
+            BASE_REF="${GITHUB_BASE_REF:-main}"
+            CHANGED_PACKAGES=$(git diff --name-only "origin/${BASE_REF}" | grep '^packages/' | cut -d'/' -f2 | sort | uniq || echo "")
+          else
+            # For other events (push, etc.), compare with HEAD~1 or fall back to all packages with contract tests
+            CHANGED_PACKAGES=$(git diff --name-only HEAD~1 2>/dev/null | grep '^packages/' | cut -d'/' -f2 | sort | uniq || echo "")
+            # If no changes detected and not in a PR, fall back to checking all packages with contract tests
+            if [[ -z "$CHANGED_PACKAGES" ]]; then
+              echo "No changes detected, falling back to checking all packages with contract tests..."
+              CHANGED_PACKAGES=$(find packages/* -name "contract-tests" -type d 2>/dev/null | xargs dirname | xargs basename -a | sort | uniq || echo "")
+            fi
+          fi
 
           # Build BFF binaries only for packages that have contract tests AND have changes
           echo "$CHANGED_PACKAGES" | while read -r package_name; do
