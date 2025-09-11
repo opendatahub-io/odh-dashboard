@@ -15,6 +15,7 @@ import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelecto
 import { ArchiveModelVersionModal } from '~/app/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
 import { modelVersionListUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
 import ArchiveButtonDropdownItem from '~/odh/components/ArchiveButtonDropdownItem';
+import { MRLabTuneButton } from '~/odh/components/MRLabTuneButton';
 
 interface ModelVersionsDetailsHeaderActionsProps {
   mv: ModelVersion;
@@ -36,6 +37,9 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
   return (
     <ActionList className="pf-v5-u-display-flex">
       <ActionListGroup className="pf-v5-u-flex-1">
+        <ActionListItem>
+          <MRLabTuneButton mv={mv} />
+        </ActionListItem>
         <ActionListItem>
           <Dropdown
             isOpen={isOpenActionDropdown}
