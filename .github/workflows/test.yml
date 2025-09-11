@@ -186,14 +186,39 @@ jobs:
           set -euo pipefail
           for dir in packages/*/bff packages/*/upstream/bff; do
             if [ -d "$dir" ]; then
-              echo "Building BFF in $dir"
-              ./packages/contract-tests/scripts/run-go-bff-consumer.sh --bff-dir "$dir" --build-bff
+              # Only build BFF binaries for packages that have contract tests
+              # For upstream/bff, check the parent package directory for contract-tests
+              if [[ "$dir" == */upstream/bff ]]; then
+                package_dir=$(dirname "$(dirname "$dir")")
+              else
+                package_dir=$(dirname "$dir")
+              fi
+              if [ -d "$package_dir/contract-tests" ]; then
+                echo "Building BFF in $dir"
+                ./packages/contract-tests/scripts/run-go-bff-consumer.sh --bff-dir "$dir" --build-bff
+              else
+                echo "Skipping BFF build for $dir (no contract tests found in $package_dir)"
+              fi
             fi
           done
       - name: Run contract tests
         run: |
           set -euo pipefail
-          npm run test:contract
+          # Find packages with contract tests and run only those
+          PACKAGES_WITH_CONTRACT_TESTS=""
+          for package_dir in packages/*/; do
+            package_name=$(basename "$package_dir")
+            if [ -d "packages/$package_name/contract-tests" ]; then
+              PACKAGES_WITH_CONTRACT_TESTS="$PACKAGES_WITH_CONTRACT_TESTS --filter=@odh-dashboard/$package_name"
+            fi
+          done
+
+          if [ -n "$PACKAGES_WITH_CONTRACT_TESTS" ]; then
+            echo "Running contract tests for packages with contract tests..."
+            npm run test:contract $PACKAGES_WITH_CONTRACT_TESTS
+          else
+            echo "No packages with contract tests found, skipping contract tests"
+          fi
       - name: Upload contract test results
         uses: actions/upload-artifact@v4
         if: always()
