@@ -15,7 +15,6 @@ import { featureStoreRoute } from './routes';
 import { FeatureStoreTabs } from './const';
 import Metrics from './screens/metrics/Metrics';
 import FeatureStoreLineage from './screens/lineage/FeatureStoreLineage';
-import { useFeatureStoreProject } from './FeatureStoreContext';
 
 type FeatureStoreProps = Omit<
   React.ComponentProps<typeof ApplicationsPage>,
@@ -29,14 +28,11 @@ type FeatureStoreProps = Omit<
 >;
 const FeatureStore: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(FeatureStoreTabs.METRICS);
-  const { currentProject } = useFeatureStoreProject();
 
   return (
     <ApplicationsPage
       {...pageProps}
-      title={
-        <FeatureStorePageTitle title="Feature store" currentProject={currentProject ?? undefined} />
-      }
+      title={<FeatureStorePageTitle title="Feature store" />}
       description="Description of feature store"
       headerContent={
         <FeatureStoreProjectSelectorNavigator

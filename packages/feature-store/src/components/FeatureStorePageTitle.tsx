@@ -4,11 +4,16 @@ import { GlobalSearchInput } from './FeatureStoreGlobalSearch/GlobalSearchInput'
 import { useFeatureStoreSearch } from '../apiHooks/useFeatureStoreSearch';
 
 interface FeatureStorePageTitleProps {
-  title: string;
-  currentProject?: string;
+  title?: string;
+  breadcrumb?: React.ReactNode;
+  isDetailsPage?: boolean;
 }
 
-const FeatureStorePageTitle: React.FC<FeatureStorePageTitleProps> = ({ title, currentProject }) => {
+const FeatureStorePageTitle: React.FC<FeatureStorePageTitleProps> = ({
+  title,
+  breadcrumb,
+  isDetailsPage,
+}) => {
   const {
     convertedSearchData,
     isSearching,
@@ -18,9 +23,7 @@ const FeatureStorePageTitle: React.FC<FeatureStorePageTitleProps> = ({ title, cu
     handleSearchChange,
     loadMoreResults,
     clearSearch,
-  } = useFeatureStoreSearch({
-    currentProject,
-  });
+  } = useFeatureStoreSearch();
 
   const searchComponent = React.useMemo(() => {
     return (
@@ -35,7 +38,7 @@ const FeatureStorePageTitle: React.FC<FeatureStorePageTitleProps> = ({ title, cu
         onSearchChange={handleSearchChange}
         onLoadMore={loadMoreResults}
         onClear={clearSearch}
-        project={currentProject}
+        isDetailsPage={isDetailsPage}
       />
     );
   }, [
@@ -47,21 +50,21 @@ const FeatureStorePageTitle: React.FC<FeatureStorePageTitleProps> = ({ title, cu
     handleSearchChange,
     loadMoreResults,
     clearSearch,
-    currentProject,
+    isDetailsPage,
   ]);
 
   return (
     <div style={{ width: '100%' }}>
       <Flex
         direction={{ default: 'column', md: 'row' }}
-        justifyContent={{
-          default: 'justifyContentFlexStart',
-          md: 'justifyContentSpaceBetween',
-        }}
+        justifyContent={{ default: 'justifyContentSpaceBetween' }}
         alignItems={{ default: 'alignItemsStretch', md: 'alignItemsCenter' }}
         rowGap={{ default: 'rowGapMd', md: 'rowGapNone' }}
       >
-        <FlexItem flex={{ default: 'flex_1', md: 'flexNone' }}>{title}</FlexItem>
+        {title && <FlexItem flex={{ default: 'flex_1', md: 'flexNone' }}>{title}</FlexItem>}
+        {breadcrumb && (
+          <FlexItem flex={{ default: 'flex_1', md: 'flexNone' }}>{breadcrumb}</FlexItem>
+        )}
         <FlexItem flex={{ default: 'flex_1', md: 'flexNone' }}>{searchComponent}</FlexItem>
       </Flex>
     </div>

@@ -46,7 +46,7 @@ const Features = (): React.ReactElement => {
     <ApplicationsPage
       empty={features.features.length === 0}
       emptyStatePage={emptyState}
-      title={<FeatureStorePageTitle title={title} currentProject={currentProject ?? undefined} />}
+      title={<FeatureStorePageTitle title={title} />}
       description={description}
       loadError={featuresLoadError}
       loaded={featuresLoaded}

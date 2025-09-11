@@ -39,7 +39,7 @@ const FeatureViews = (): React.ReactElement => {
     <ApplicationsPage
       empty={featureViews.featureViews.length === 0}
       emptyStatePage={emptyState}
-      title={<FeatureStorePageTitle title={title} currentProject={currentProject ?? undefined} />}
+      title={<FeatureStorePageTitle title={title} />}
       description={description}
       loadError={featureViewsLoadError}
       loaded={featureViewsLoaded}

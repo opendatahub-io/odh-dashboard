@@ -38,7 +38,7 @@ const FeatureStoreEntities = (): React.ReactElement => {
     <ApplicationsPage
       empty={entities.entities.length === 0}
       emptyStatePage={emptyState}
-      title={<FeatureStorePageTitle title={title} currentProject={currentProject ?? undefined} />}
+      title={<FeatureStorePageTitle title={title} />}
       description={description}
       loadError={entitiesLoadError}
       loaded={entitiesLoaded}
