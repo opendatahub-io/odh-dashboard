@@ -4,7 +4,7 @@ set -euo pipefail
 
 print_help() {
   cat <<'EOF'
-Usage: run-go-bff-consumer.sh --bff-dir <path> [--consumer-dir <path>] [--package-name <name>]
+Usage: run-go-bff-consumer.sh --bff-dir <path> [--consumer-dir <path>] [--package-name <name>] [--open] [--build-bff]
 
 Starts a Go BFF in mock mode, waits for readiness, then runs contract
 tests for the consumer directory using the shared Jest harness.
@@ -13,6 +13,8 @@ Options:
   --bff-dir <path>         Path to the Go BFF project (with Makefile/setup-envtest)
   --consumer-dir <path>    Path to the consumer contract-tests directory (defaults to 'contract-tests')
   --package-name <name>    Package label for reports (defaults to consumer dir name)
+  --open                   Open HTML report in browser after tests complete
+  --build-bff              Build the BFF binary before starting (for performance)
   -h, --help               Show this help
 EOF
 }
@@ -49,6 +51,8 @@ BFF_DIR=""
 CONSUMER_DIR=""
 PACKAGE_NAME=""
 PORT=""
+OPEN_REPORT=false
+BUILD_BFF=false
 CONTRACT_MOCK_BFF_HEALTH_ENDPOINT="${CONTRACT_MOCK_BFF_HEALTH_ENDPOINT:-/healthcheck}"
 
 require_arg() {
@@ -70,6 +74,10 @@ while [[ $# -gt 0 ]]; do
     --package-name)
       require_arg "$1" "${2:-}"
       PACKAGE_NAME="$2"; shift 2;;
+    --open)
+      OPEN_REPORT=true; shift;;
+    --build-bff)
+      BUILD_BFF=true; shift;;
     -h|--help)
       print_help; exit 0;;
     *)
@@ -116,6 +124,18 @@ log_success "Go found: $(go version)"
 
 log_info "Starting Mock BFF server..."
 pushd "$BFF_DIR" >/dev/null
+
+# Build BFF binary if requested
+if [[ "$BUILD_BFF" == "true" ]]; then
+  log_info "Building BFF binary..."
+  BINARY_NAME="../../../bin/$(basename $(dirname $(pwd)))_bff"
+  if go build -o "$BINARY_NAME" ./cmd; then
+    log_success "BFF binary built successfully: $BINARY_NAME"
+  else
+    log_error "Failed to build BFF binary"
+    exit 1
+  fi
+fi
 
 # Provision envtest assets if setup helper missing
 if [[ -z "${KUBEBUILDER_ASSETS:-}" ]]; then
@@ -207,13 +227,17 @@ export CONTRACT_MOCK_BFF_URL="http://localhost:$PORT"
 # Use shared CLI to run consumer tests
 log_info "Running contract tests against Mock BFF..."
 CONSUMER_RUNNER="$PACKAGE_ROOT/scripts/run-consumer-with-mock-bff.sh"
-"$CONSUMER_RUNNER" -c "$CONSUMER_DIR" -n "$PACKAGE_NAME" -r "$RESULTS_DIR" -j "$PACKAGE_ROOT/jest.preset.js"
+CMD=("$CONSUMER_RUNNER" -c "$CONSUMER_DIR" -n "$PACKAGE_NAME" -r "$RESULTS_DIR" -j "$PACKAGE_ROOT/jest.preset.js")
+if [[ "$OPEN_REPORT" == "true" ]]; then
+  CMD+=("--open")
+fi
+"${CMD[@]}"
 exit_code=$?
 
 # Display test summary and open coverage report
 display_test_summary "$RESULTS_DIR"
 
-if [[ "${CI:-}" != "true" && "${CONTRACT_TEST_OPEN_REPORT:-}" == "true" ]]; then
+if [[ "${CI:-}" != "true" && "$OPEN_REPORT" == "true" ]]; then
   if ! open_html_report "$RESULTS_DIR" 2>/dev/null; then
     log_warning "Could not open HTML coverage report in browser"
   fi

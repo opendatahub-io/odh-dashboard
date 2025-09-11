@@ -14,8 +14,7 @@ API contract by checking real HTTP responses against OpenAPI/JSON Schemas.
     "@odh-dashboard/contract-tests": "*"
   },
   "scripts": {
-    "test:contract": "odh-ct-bff-consumer --bff-dir upstream/bff",
-    "test:contract:with-report": "CONTRACT_TEST_OPEN_REPORT=true odh-ct-bff-consumer --bff-dir upstream/bff"
+    "test:contract": "odh-ct-bff-consumer --bff-dir upstream/bff"
   }
 }
 ```
@@ -46,24 +45,33 @@ Run contract tests with one command:
 # From any package directory (preferred via workspace)
 npm run test:contract
 
+# With HTML reports (opens browser automatically)
+npm run test:contract -- --open
+
+# With BFF building (for performance in CI)
+npm run test:contract -- --build-bff
+
+# Combine options
+npm run test:contract -- --open --build-bff
+
 # Add this script to your package.json
 # "test:contract": "odh-ct-bff-consumer --bff-dir upstream/bff"
 ```
 
-### Option 2: Manual Setup (Recommended for Development)
-For more control during development, you can run the BFF and tests separately:
+### Option 2: Manual Setup (For Advanced Development)
+For debugging or custom workflows, you can run components separately:
 
 ```bash
 # Terminal 1: Start the Mock BFF manually
 cd packages/your-package/upstream/bff
 go run ./cmd --mock-k8s-client --mock-mr-client --port 8080 --allowed-origins="*"
 
-# Terminal 2: Run Jest contract tests directly
+# Terminal 2: Run contract tests (auto-detects BFF URL)
 cd packages/your-package
-CONTRACT_MOCK_BFF_URL=http://localhost:8080 npx jest contract-tests --config=contract-tests/jest.config.js --passWithNoTests
+npm run test:contract
 
-# Run tests with automatic report opening
-npm run test:contract:with-report
+# Or run with custom BFF URL and report opening
+CONTRACT_MOCK_BFF_URL=http://localhost:8080 npm run test:contract -- --open
 ```
 
 ### Option 3: Turbo Orchestration (CI Optimized)
@@ -76,8 +84,14 @@ npx turbo run test:contract
 # Run for specific package
 npx turbo run test:contract --filter=@odh-dashboard/model-registry
 
+# Or use npm run (from root package.json)
+npm run test:contract -- --open
+
 # Run with automatic report opening (opens browser for each package)
-npx turbo run test:contract:with-report
+npx turbo run test:contract -- --open
+
+# Combine with package filtering
+npx turbo run test:contract --filter=@odh-dashboard/model-registry -- --open
 
 ```
 
@@ -88,6 +102,8 @@ npx turbo run test:contract:with-report
 - ✅ **Test utilities** - API client, schema validation, health checks
 - ✅ **Schema validation** - OpenAPI/JSON Schema validation for API contracts
 - ✅ **Schema conversion** - Convert OpenAPI/Swagger to JSON Schema
+- ✅ **Performance optimization** - Use `--build-bff` for faster CI builds
+- ✅ **Flexible reporting** - Use `--open` to automatically open HTML reports
 
 ## Directory Structure
 
@@ -476,15 +492,19 @@ const validation = schemaValidator.validateResponse(result.data, 'UserResponse')
 expect(validation.valid).toBe(true);
 ```
 
-## Environment Variables
+## Configuration
 
-Control contract test behavior with these environment variables:
-
+### Environment Variables
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `CONTRACT_MOCK_BFF_URL` | URL of the Mock BFF server | `http://localhost:8080` |
-| `CONTRACT_TEST_OPEN_REPORT` | Automatically open HTML report in browser | `false` |
+| `CONTRACT_MOCK_BFF_URL` | Override the Mock BFF server URL | `http://localhost:8080` |
 | `CONTRACT_TEST_RESULTS_DIR` | Directory for test results and reports | `./contract-test-results` |
+
+### Command Line Arguments
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `--open` | Open HTML report in browser after tests complete (disabled in CI) | `false` |
+| `--build-bff` | Build BFF binary before starting (for performance) | `false` |
 
 ### Report Management
 
@@ -493,7 +513,7 @@ Control contract test behavior with these environment variables:
 npm run test:contract
 
 # Run tests with automatic report opening
-npm run test:contract:with-report
+npm run test:contract -- --open
 
 ```
 

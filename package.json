@@ -61,8 +61,7 @@
     "type-check": "turbo run type-check",
     "test-unit": "turbo run test-unit",
     "test-unit-coverage": "turbo run test-unit-coverage && node scripts/unit-test-coverage-aggregator.js",
-    "test:contract": "turbo run test:contract",
-    "test:contract:with-report": "CONTRACT_TEST_OPEN_REPORT=true turbo run test:contract"
+    "test:contract": "turbo run test:contract"
   },
   "dependencies": {
     "@kubernetes/client-node": "^0.12.2",

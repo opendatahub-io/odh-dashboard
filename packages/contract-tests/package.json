@@ -8,7 +8,6 @@
     "lint:fix": "eslint . --fix"
   },
   "bin": {
-    "odh-ct-run": "scripts/run-consumer-tests.sh",
     "odh-ct-bff-consumer": "scripts/run-go-bff-consumer.sh"
   },
   "devDependencies": {

@@ -187,9 +187,7 @@ jobs:
           for dir in packages/*/bff packages/*/upstream/bff; do
             if [ -d "$dir" ]; then
               echo "Building BFF in $dir"
-              cd "$dir"
-              go build -o ../../../bin/$(basename $(dirname $(pwd)))_bff ./cmd
-              cd -
+              ./packages/contract-tests/scripts/run-go-bff-consumer.sh --bff-dir "$dir" --build-bff
             fi
           done
       - name: Run contract tests

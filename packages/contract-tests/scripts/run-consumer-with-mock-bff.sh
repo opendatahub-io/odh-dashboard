@@ -15,11 +15,13 @@ Options:
   -r, --results-dir <path>    Directory to write results (default: <consumer>/contract-test-results/<ts>)
   -n, --package-name <name>   Package name for report metadata (default: consumer dir name)
   -w, --watch                 Run in watch mode
+  -o, --open                  Open HTML report in browser after tests complete
   -h, --help                  Show this help
 
 Examples:
   odh-contract-tests -c packages/model-registry/contract-tests
   odh-contract-tests -c packages/model-registry/contract-tests -w
+  odh-contract-tests -c packages/model-registry/contract-tests --open
 EOF
 }
 
@@ -43,6 +45,7 @@ JEST_CONFIG=""
 RESULTS_DIR=""
 PACKAGE_NAME=""
 WATCH_MODE=false
+OPEN_REPORT=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -56,6 +59,8 @@ while [[ $# -gt 0 ]]; do
       PACKAGE_NAME="$2"; shift 2;;
     -w|--watch)
       WATCH_MODE=true; shift;;
+    -o|--open)
+      OPEN_REPORT=true; shift;;
     -h|--help)
       print_help; exit 0;;
     *)
@@ -129,11 +134,6 @@ set -e
 
 display_test_summary "$RESULTS_DIR"
 
-if [[ "${CI:-}" != "true" && "${CONTRACT_TEST_OPEN_REPORT:-}" == "true" ]]; then
-  if ! open_html_report "$RESULTS_DIR" 2>/dev/null; then
-    log_warning "Could not open HTML report in browser"
-  fi
-fi
 
 popd >/dev/null
 exit $EXIT_CODE
