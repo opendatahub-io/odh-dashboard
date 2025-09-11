@@ -164,7 +164,7 @@ export const createResponse = (request: CreateResponseRequest): Promise<Simplifi
 };
 
 export const getLSDstatus = (project: string): Promise<LlamaStackDistributionModel> => {
-  const url = `${URL_PREFIX}/genai/v1/llamastack-distribution/status?namespace=${project}`;
+  const url = `${URL_PREFIX}/api/v1/llamastack-distribution/status?namespace=${project}`;
   return axios
     .get(url)
     .then((response) => response.data.data)
