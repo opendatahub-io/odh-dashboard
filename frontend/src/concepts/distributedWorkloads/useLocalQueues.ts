@@ -9,7 +9,7 @@ const useLocalQueues = (namespace?: string, refreshRate = 0): FetchState<LocalQu
   return useFetchState<LocalQueueKind[]>(
     React.useCallback(() => {
       if (!dwEnabled) {
-        return Promise.reject(new NotReadyError('Distributed workloads is not enabled'));
+        return Promise.reject(new NotReadyError('Workload metrics is not enabled'));
       }
       if (!namespace) {
         return Promise.reject(new NotReadyError('No namespace'));

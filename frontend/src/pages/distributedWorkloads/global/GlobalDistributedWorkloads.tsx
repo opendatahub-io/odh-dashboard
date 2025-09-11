@@ -13,7 +13,7 @@ import ProjectSelectorNavigator from '#~/concepts/projects/ProjectSelectorNaviga
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 
-const title = 'Distributed workloads';
+const title = 'Workload metrics';
 const description = 'Monitor the metrics of your active resources.';
 
 type GlobalDistributedWorkloadsProps = {

@@ -25,7 +25,7 @@ const initIntercepts = () => {
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProject]));
 };
 
-describe('Data science projects details', () => {
+describe('Projects details', () => {
   it('should not have option to create new project', () => {
     asProjectAdminUser({ isSelfProvisioner: false });
     projectListPage.visit();

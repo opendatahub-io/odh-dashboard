@@ -45,11 +45,11 @@ const ModelsProjectDetailsView: React.FC<{
     <DetailsSection
       objectType={hasModels ? ProjectObjectType.model : undefined}
       id={ProjectSectionID.MODEL_SERVER}
-      title={hasModels ? 'Models and model servers' : undefined}
+      title={hasModels ? 'Deployments' : undefined}
       popover={
         hasModels ? (
           <Popover
-            headerContent="About models"
+            headerContent="About deployments"
             bodyContent="Deploy models to test them and integrate them into applications. Deploying a model makes it accessible via an API, enabling you to return predictions based on data inputs."
           >
             <DashboardPopupIconButton

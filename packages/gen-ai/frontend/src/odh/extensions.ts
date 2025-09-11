@@ -32,11 +32,12 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       required: [PLUGIN_GEN_AI],
     },
     properties: {
-      id: 'chat-playground',
-      title: 'Chat playground',
+      id: 'playground',
+      title: 'Playground',
       href: '/chat-playground',
       section: 'gen-ai-studio',
       path: '/chat-playground/*',
+      label: 'Tech Preview',
     },
   },
   {

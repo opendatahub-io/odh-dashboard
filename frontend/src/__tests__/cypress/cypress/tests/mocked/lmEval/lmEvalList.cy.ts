@@ -47,7 +47,7 @@ describe('LMEvalList', () => {
 
   it('list model evaluations and check table filtering and sorting', () => {
     lmEvalPage.visit('test-project');
-    lmEvalPage.findPageTitle().should('have.text', 'Model evaluation runs');
+    lmEvalPage.findPageTitle().should('have.text', 'Evaluations');
     lmEvalList.getRow('Evaluating granite model').findModel().should('have.text', 'granite');
 
     lmEvalList.getRow('Evaluating llama model').findModel().should('have.text', 'llama');

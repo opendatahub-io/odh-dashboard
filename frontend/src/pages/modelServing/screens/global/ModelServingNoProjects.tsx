@@ -8,8 +8,8 @@ const ModelServingNoProjects: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <EmptyState headingLevel="h4" icon={WrenchIcon} titleText="No data science projects">
-      <EmptyStateBody>To deploy a model, first create a data science project.</EmptyStateBody>
+    <EmptyState headingLevel="h4" icon={WrenchIcon} titleText="No projects">
+      <EmptyStateBody>To deploy a model, first create a project.</EmptyStateBody>
       <EmptyStateFooter>
         <NewProjectButton
           closeOnCreate

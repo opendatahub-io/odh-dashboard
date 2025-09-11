@@ -23,7 +23,7 @@ const ProjectServerMetricsWrapper: React.FC = () => (
             <MetricsPage
               title={`${serverName} metrics`}
               breadcrumbItems={[
-                { label: 'Data science projects', link: '/projects' },
+                { label: 'Projects', link: '/projects' },
                 {
                   label: projectDisplayName,
                   link: `/projects/${currentProject.metadata.name}`,

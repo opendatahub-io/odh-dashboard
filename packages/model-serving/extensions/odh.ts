@@ -30,7 +30,7 @@ const extensions: (
     type: 'app.project-details/tab',
     properties: {
       id: 'model-server', // same value as ProjectSectionID.MODEL_SERVER
-      title: 'Models',
+      title: 'Deployments',
       component: () => import('../src/ModelsProjectDetailsTab'),
     },
     flags: {

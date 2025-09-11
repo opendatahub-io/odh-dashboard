@@ -172,7 +172,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
         breadcrumb={
           <Breadcrumb>
             <BreadcrumbItem>
-              <Link to="/modelCatalog">Model catalog</Link>
+              <Link to="/modelCatalog">Catalog</Link>
             </BreadcrumbItem>
             <BreadcrumbItem isActive>{decodedParams.modelName}</BreadcrumbItem>
           </Breadcrumb>

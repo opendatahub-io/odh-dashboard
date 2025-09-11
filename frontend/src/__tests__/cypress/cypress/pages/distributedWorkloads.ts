@@ -26,7 +26,7 @@ class GlobalDistributedWorkloads {
   }
 
   shouldHavePageTitle() {
-    return cy.findByTestId('app-page-title').should('have.text', 'Distributed workloads');
+    return cy.findByTestId('app-page-title').should('have.text', 'Workload metrics');
   }
 
   findRefreshIntervalSelectToggle() {

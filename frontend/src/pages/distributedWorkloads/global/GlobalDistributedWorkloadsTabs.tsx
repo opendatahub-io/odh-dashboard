@@ -40,10 +40,7 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
 
   if (error) {
     return (
-      <EmptyStateErrorMessage
-        title="Error loading distributed workloads"
-        bodyText={error.message}
-      />
+      <EmptyStateErrorMessage title="Error loading workload metrics" bodyText={error.message} />
     );
   }
 
@@ -82,7 +79,7 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
               navigate(`/distributedWorkloads/${tab.path}${namespaceSuffix}`);
             }
           }}
-          aria-label="Distributed workloads page tabs"
+          aria-label="Workload metrics page tabs"
           role="region"
         >
           {tabs
