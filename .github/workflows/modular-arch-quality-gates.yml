@@ -4,11 +4,7 @@ name: Modular Architecture - Quality Gates
 
 'on':
   pull_request_target:
-    paths:
-      - 'packages/**'
-  push:
-    branches:
-      - qualityGatesCommentRework1
+    types: [opened]
     paths:
       - 'packages/**'
   workflow_dispatch:
@@ -21,7 +17,6 @@ name: Modular Architecture - Quality Gates
 permissions:
   contents: read
   actions: read
-  pull-requests: write
 
 env:
   NODE_VERSION: 20.x
@@ -480,94 +475,3 @@ jobs:
         with:
           name: quality-gates-summary
           path: quality-gates-summary.md
-
-  comment-pr:
-    name: Post Quality Gates Summary to PR
-    runs-on: ubuntu-latest
-    needs: [detect-changes, quality-gates-summary]
-    if: needs.detect-changes.outputs.has-changes == 'true'
-    steps:
-      - name: Download Quality Gates Summary
-        uses: actions/download-artifact@v4
-        with:
-          name: quality-gates-summary
-          path: .
-
-      - name: Post or update PR comment
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            let body;
-            try {
-              body = fs.readFileSync('quality-gates-summary.md', 'utf8');
-            } catch (e) {
-              body = '## 🚦 Modular Architecture Quality Gates Results\n\n' +
-                     '❌ Failed to load detailed summary. Check workflow logs.';
-            }
-
-            let prNumber;
-            const eventName = context.eventName;
-
-            if (eventName === 'pull_request_target' || eventName === 'pull_request') {
-              prNumber = context.payload.pull_request.number;
-            } else if (eventName === 'push') {
-              // For push events, find the PR for this branch
-              const branch = context.payload.ref.replace('refs/heads/', '');
-              console.log(`🔍 Finding PR for branch: ${branch}`);
-
-              try {
-                const { data: prs } = await github.rest.pulls.list({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  head: `${context.repo.owner}:${branch}`,
-                  state: 'open'
-                });
-
-                if (prs.length > 0) {
-                  prNumber = prs[0].number;
-                  console.log(`📋 Found PR #${prNumber} for branch ${branch}`);
-                } else {
-                  console.log(`❌ No open PR found for branch ${branch}`);
-                  return;
-                }
-              } catch (error) {
-                console.log('❌ Failed to find PR for branch:', error.message);
-                return;
-              }
-            } else {
-              console.log(`❌ Unsupported event: ${eventName}`);
-              return;
-            }
-
-            console.log(`📋 Posting to PR #${prNumber}`);
-            console.log(`📊 Summary length: ${body.length} characters`);
-
-            try {
-              const { data: comments } = await github.rest.issues.listComments({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: prNumber
-              });
-              const marker = '🚦 Modular Architecture Quality Gates Results';
-              const existing = comments.find(c => c.user.type === 'Bot' && c.body.includes(marker));
-              if (existing) {
-                await github.rest.issues.updateComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  comment_id: existing.id,
-                  body
-                });
-                console.log('✅ Updated existing quality gates comment');
-              } else {
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: prNumber,
-                  body
-                });
-                console.log('✅ Created new quality gates comment');
-              }
-            } catch (error) {
-              console.log('❌ Failed to post comment:', error.message);
-            }
