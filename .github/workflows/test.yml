@@ -184,41 +184,25 @@ jobs:
       - name: Build BFF binaries
         run: |
           set -euo pipefail
-          for dir in packages/*/bff packages/*/upstream/bff; do
-            if [ -d "$dir" ]; then
-              # Only build BFF binaries for packages that have contract tests
-              # For upstream/bff, check the parent package directory for contract-tests
-              if [[ "$dir" == */upstream/bff ]]; then
-                package_dir=$(dirname "$(dirname "$dir")")
-              else
-                package_dir=$(dirname "$dir")
-              fi
-              if [ -d "$package_dir/contract-tests" ]; then
-                echo "Building BFF in $dir"
-                ./packages/contract-tests/scripts/run-go-bff-consumer.sh --bff-dir "$dir" --build-bff
-              else
-                echo "Skipping BFF build for $dir (no contract tests found in $package_dir)"
-              fi
+          echo "Building BFF binaries for packages with changes and contract tests..."
+
+          # Get list of changed packages
+          CHANGED_PACKAGES=$(git diff --name-only HEAD~1 | grep '^packages/' | cut -d'/' -f2 | sort | uniq || echo "")
+
+          # Build BFF binaries only for packages that have contract tests AND have changes
+          echo "$CHANGED_PACKAGES" | while read -r package_name; do
+            if [ -n "$package_name" ] && [ -d "packages/$package_name/contract-tests" ] && [ -d "packages/$package_name/upstream/bff" ]; then
+              echo "Building BFF for changed package: $package_name"
+              cd "packages/$package_name"
+              odh-ct-bff-consumer --bff-dir upstream/bff --build-bff
+              cd ../..
             fi
           done
       - name: Run contract tests
         run: |
           set -euo pipefail
-          # Find packages with contract tests and run only those
-          PACKAGES_WITH_CONTRACT_TESTS=""
-          for package_dir in packages/*/; do
-            package_name=$(basename "$package_dir")
-            if [ -d "packages/$package_name/contract-tests" ]; then
-              PACKAGES_WITH_CONTRACT_TESTS="$PACKAGES_WITH_CONTRACT_TESTS --filter=@odh-dashboard/$package_name"
-            fi
-          done
-
-          if [ -n "$PACKAGES_WITH_CONTRACT_TESTS" ]; then
-            echo "Running contract tests for packages with contract tests..."
-            npm run test:contract $PACKAGES_WITH_CONTRACT_TESTS
-          else
-            echo "No packages with contract tests found, skipping contract tests"
-          fi
+          echo "Running contract tests for packages with changes..."
+          npm run test:contract
       - name: Upload contract test results
         uses: actions/upload-artifact@v4
         if: always()
