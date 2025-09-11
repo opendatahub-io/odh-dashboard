@@ -4,6 +4,9 @@ const deps = require('../package.json').dependencies;
 const moduleFederationConfig = {
   name: 'genAi',
   filename: 'remoteEntry.js',
+  remotes: {
+    '@mf/host': 'host@/_mf/host/remoteEntry.js',
+  },
   shared: {
     react: { singleton: true, requiredVersion: deps.react },
     'react-dom': { singleton: true, requiredVersion: deps['react-dom'] },

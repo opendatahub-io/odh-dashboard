@@ -122,7 +122,12 @@ module.exports = {
                   return acc;
                 }, {}),
             },
-            exposes: {},
+            exposes: {
+              './AppContext': './src/app/AppContext',
+              './ProjectsContext': './src/concepts/projects/ProjectsContext',
+              './ModelRegistriesContext':
+                './src/concepts/modelRegistry/context/ModelRegistriesContext',
+            },
             dts: updateTypes,
           }),
         ]
