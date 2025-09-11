@@ -3,41 +3,20 @@ import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '#~/k8sTyp
 import { isHardwareProfileValid } from '#~/pages/hardwareProfiles/utils';
 import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';
 import { useDashboardNamespace } from '#~/redux/selectors';
-import useMigratedHardwareProfiles from './useMigratedHardwareProfiles';
 
 export const useHardwareProfilesByFeatureVisibility = (
   visibility?: HardwareProfileFeatureVisibility[],
   namespace?: string,
-): [
-  data: HardwareProfileKind[],
-  loaded: boolean,
-  loadError: Error | undefined,
-  refresh: () => Promise<void>,
-] => {
+): [data: HardwareProfileKind[], loaded: boolean, loadError: Error | undefined] => {
   const { dashboardNamespace } = useDashboardNamespace();
-
-  const {
-    data: migratedHardwareProfiles,
-    loaded: loadedMigratedHardwareProfiles,
-    loadError: loadErrorMigratedHardwareProfiles,
-    refresh,
-  } = useMigratedHardwareProfiles(namespace ?? dashboardNamespace);
 
   const [hardwareProfiles, loadedHardwareProfiles, loadErrorHardwareProfiles] =
     useWatchHardwareProfiles(namespace ?? dashboardNamespace);
 
-  const loaded = loadedMigratedHardwareProfiles && loadedHardwareProfiles;
-  const loadError = loadErrorMigratedHardwareProfiles || loadErrorHardwareProfiles;
-
-  const allHardwareProfiles = React.useMemo(
-    () => [...migratedHardwareProfiles, ...hardwareProfiles],
-    [migratedHardwareProfiles, hardwareProfiles],
-  );
-
   // only show valid profiles
   const validHardwareProfiles = React.useMemo(
-    () => allHardwareProfiles.filter((profile) => isHardwareProfileValid(profile)),
-    [allHardwareProfiles],
+    () => hardwareProfiles.filter((profile) => isHardwareProfileValid(profile)),
+    [hardwareProfiles],
   );
 
   const filteredHardwareProfiles = React.useMemo(
@@ -64,5 +43,5 @@ export const useHardwareProfilesByFeatureVisibility = (
     [validHardwareProfiles, visibility],
   );
 
-  return [filteredHardwareProfiles, loaded, loadError, refresh];
+  return [filteredHardwareProfiles, loadedHardwareProfiles, loadErrorHardwareProfiles];
 };

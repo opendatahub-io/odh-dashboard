@@ -4,7 +4,7 @@ import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { useHardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import * as areasUtils from '#~/concepts/areas';
 import * as reduxSelectors from '#~/redux/selectors';
-import * as useHardwareProfilesModule from '#~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
+import * as useHardwareProfilesModule from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility.ts';
 
 jest.mock('#~/concepts/areas', () => ({
   ...jest.requireActual('#~/concepts/areas'),
@@ -25,7 +25,7 @@ const mockUseDashboardNamespace = jest.mocked(reduxSelectors.useDashboardNamespa
 
 describe('useHardwareProfileConfig', () => {
   beforeEach(() => {
-    mockUseHardwareProfiles.mockReturnValue([[], true, undefined, jest.fn()]);
+    mockUseHardwareProfiles.mockReturnValue([[], true, undefined]);
     mockUseDashboardNamespace.mockReturnValue({ dashboardNamespace: 'test-namespace' });
     mockUseIsAreaAvailable.mockReturnValue({
       status: true,
@@ -77,7 +77,7 @@ describe('useHardwareProfileConfig', () => {
       tolerations: [{ key: 'key1', value: 'value1' }],
       nodeSelector: { node: 'value1' },
     });
-    mockUseHardwareProfiles.mockReturnValue([[hardwareProfile], true, undefined, jest.fn()]);
+    mockUseHardwareProfiles.mockReturnValue([[hardwareProfile], true, undefined]);
 
     const resources = {
       requests: { cpu: '1', memory: '1Gi' },
@@ -113,7 +113,7 @@ describe('useHardwareProfileConfig', () => {
     const hardwareProfile = mockHardwareProfile({
       name: 'test-profile',
     });
-    mockUseHardwareProfiles.mockReturnValue([[hardwareProfile], true, undefined, jest.fn()]);
+    mockUseHardwareProfiles.mockReturnValue([[hardwareProfile], true, undefined]);
 
     const resources = {
       requests: { cpu: '1', memory: '1Gi' },

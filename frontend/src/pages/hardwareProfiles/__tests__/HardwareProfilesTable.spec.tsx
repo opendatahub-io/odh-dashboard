@@ -4,7 +4,7 @@ import '@testing-library/jest-dom';
 import { HardwareProfileKind } from '#~/k8sTypes';
 import HardwareProfilesTable from '#~/pages/hardwareProfiles/HardwareProfilesTable';
 import { createHardwareProfileFromResource } from '#~/api';
-import { MigrationAction } from '#~/pages/hardwareProfiles/migration/types';
+import { IdentifierResourceType } from '#~/types';
 
 // Mock the API call
 jest.mock('#~/api', () => ({
@@ -18,7 +18,6 @@ jest.mock('#~/pages/hardwareProfiles/HardwareProfilesTableRow', () => {
     handleDelete,
     handleMigrate,
     migrationAction,
-    rowIndex,
   }: any) {
     return (
       <tr data-testid={`hardware-profile-row-${hardwareProfile.metadata.name}`}>
@@ -51,22 +50,6 @@ jest.mock('#~/pages/hardwareProfiles/DeleteHardwareProfileModal', () => {
         <span>Delete {hardwareProfile.metadata.name}</span>
         <button onClick={onClose} data-testid="close-delete-modal">
           Close
-        </button>
-      </div>
-    );
-  };
-});
-
-jest.mock('#~/pages/hardwareProfiles/migration/MigrationModal', () => {
-  return function MockMigrationModal({ onClose, onMigrate, migrationAction }: any) {
-    return (
-      <div data-testid="migration-modal">
-        <span>Migrate {migrationAction.targetProfile.metadata.name}</span>
-        <button onClick={onClose} data-testid="close-migration-modal">
-          Close
-        </button>
-        <button onClick={onMigrate} data-testid="confirm-migration">
-          Confirm Migration
         </button>
       </div>
     );
@@ -171,7 +154,7 @@ describe('HardwareProfilesTable', () => {
           {
             identifier: 'cpu',
             displayName: 'CPU',
-            resourceType: 'cpu',
+            resourceType: IdentifierResourceType.CPU,
             defaultCount: 2,
             minCount: 1,
             maxCount: 4,
@@ -196,7 +179,7 @@ describe('HardwareProfilesTable', () => {
           {
             identifier: 'memory',
             displayName: 'Memory',
-            resourceType: 'memory',
+            resourceType: IdentifierResourceType.MEMORY,
             defaultCount: '4Gi',
             minCount: '2Gi',
             maxCount: '8Gi',
@@ -220,12 +203,6 @@ describe('HardwareProfilesTable', () => {
       },
     },
   ];
-
-  const mockMigrationAction: MigrationAction = {
-    targetProfile: mockHardwareProfiles[0],
-    dependentProfiles: [],
-    deleteSourceResource: jest.fn().mockResolvedValue(undefined),
-  };
 
   const defaultProps = {
     hardwareProfiles: mockHardwareProfiles,
@@ -262,12 +239,6 @@ describe('HardwareProfilesTable', () => {
       render(<HardwareProfilesTable {...defaultProps} />);
 
       expect(screen.getByTestId('create-button')).toBeInTheDocument();
-    });
-
-    it('should hide create button in toolbar when is migrated table', () => {
-      render(<HardwareProfilesTable {...defaultProps} isMigratedTable={true} />);
-
-      expect(screen.queryByTestId('create-button')).not.toBeInTheDocument();
     });
   });
 
@@ -365,86 +336,6 @@ describe('HardwareProfilesTable', () => {
     });
   });
 
-  describe('Migration Modal Functionality', () => {
-    const propsWithMigration = {
-      ...defaultProps,
-      getMigrationAction: jest.fn((name: string) =>
-        name === 'test-profile-1' ? mockMigrationAction : undefined,
-      ),
-    };
-
-    it('should show migrate button when migration action is available', () => {
-      render(<HardwareProfilesTable {...propsWithMigration} />);
-
-      expect(screen.getByTestId('migrate-test-profile-1')).toBeInTheDocument();
-      expect(screen.queryByTestId('migrate-test-profile-2')).not.toBeInTheDocument();
-    });
-
-    it('should open migration modal when migrate button is clicked', async () => {
-      render(<HardwareProfilesTable {...propsWithMigration} />);
-
-      const migrateButton = screen.getByTestId('migrate-test-profile-1');
-      fireEvent.click(migrateButton);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('migration-modal')).toBeInTheDocument();
-        expect(screen.getByText('Migrate test-profile-1')).toBeInTheDocument();
-      });
-    });
-
-    it('should close migration modal when close button is clicked', async () => {
-      render(<HardwareProfilesTable {...propsWithMigration} />);
-
-      // Open modal
-      const migrateButton = screen.getByTestId('migrate-test-profile-1');
-      fireEvent.click(migrateButton);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('migration-modal')).toBeInTheDocument();
-      });
-
-      // Close modal
-      const closeButton = screen.getByTestId('close-migration-modal');
-      fireEvent.click(closeButton);
-
-      await waitFor(() => {
-        expect(screen.queryByTestId('migration-modal')).not.toBeInTheDocument();
-      });
-    });
-
-    it('should perform migration when confirm is clicked', async () => {
-      mockCreateHardwareProfileFromResource.mockResolvedValue({} as any);
-      mockMigrationAction.deleteSourceResource.mockResolvedValue(undefined);
-
-      render(<HardwareProfilesTable {...propsWithMigration} />);
-
-      // Open modal
-      const migrateButton = screen.getByTestId('migrate-test-profile-1');
-      fireEvent.click(migrateButton);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('migration-modal')).toBeInTheDocument();
-      });
-
-      // Confirm migration
-      const confirmButton = screen.getByTestId('confirm-migration');
-      fireEvent.click(confirmButton);
-
-      await waitFor(() => {
-        expect(mockMigrationAction.deleteSourceResource).toHaveBeenCalledWith({ dryRun: true });
-        expect(mockMigrationAction.deleteSourceResource).toHaveBeenCalledWith({ dryRun: false });
-        expect(mockCreateHardwareProfileFromResource).toHaveBeenCalledWith(
-          mockMigrationAction.targetProfile,
-          { dryRun: true },
-        );
-        expect(mockCreateHardwareProfileFromResource).toHaveBeenCalledWith(
-          mockMigrationAction.targetProfile,
-          { dryRun: false },
-        );
-      });
-    });
-  });
-
   describe('Empty Table View', () => {
     it('should show empty table view and allow clearing filters', async () => {
       render(<HardwareProfilesTable {...defaultProps} hardwareProfiles={[]} />);
@@ -459,24 +350,11 @@ describe('HardwareProfilesTable', () => {
     });
   });
 
-  describe('Migration Debug Logging', () => {
-    it('should log when isMigratedTable is true', () => {
+  describe('Migration Debug Logging (making sure it is off)', () => {
+    it('should not log for the hardware profile table is false', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
-      render(<HardwareProfilesTable {...defaultProps} isMigratedTable={true} />);
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        ' migrated here! hardwareProfiles 29a',
-        mockHardwareProfiles,
-      );
-
-      consoleSpy.mockRestore();
-    });
-
-    it('should not log when isMigratedTable is false', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-
-      render(<HardwareProfilesTable {...defaultProps} isMigratedTable={false} />);
+      render(<HardwareProfilesTable {...defaultProps} />);
 
       expect(consoleSpy).not.toHaveBeenCalled();
 

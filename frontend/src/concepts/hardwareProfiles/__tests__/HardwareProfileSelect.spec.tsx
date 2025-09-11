@@ -136,7 +136,7 @@ const renderComponent = (
           isProjectScoped={false}
           hardwareProfilesLoaded
           hardwareProfilesError={undefined}
-          projectScopedHardwareProfiles={[[], true, undefined, () => Promise.resolve()]}
+          projectScopedHardwareProfiles={[[], true, undefined]}
           allowExistingSettings={allowExistingSettings}
           hardwareProfileConfig={hardwareProfileConfig}
           isHardwareProfileSupported={() => true}
