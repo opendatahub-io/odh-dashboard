@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -17,8 +18,12 @@ import (
 
 func main() {
 	var cfg config.EnvConfig
+	var certFile, keyFile string
+
 	// General BFF configuration
 	flag.IntVar(&cfg.Port, "port", getEnvAsInt("PORT", 8080), "API server port")
+	flag.StringVar(&certFile, "cert-file", "", "Path to TLS certificate file")
+	flag.StringVar(&keyFile, "key-file", "", "Path to TLS key file")
 	flag.StringVar(&cfg.StaticAssetsDir, "static-assets-dir", "./static", "Configure frontend static assets root directory")
 	flag.TextVar(&cfg.LogLevel, "log-level", parseLevel(getEnvAsString("LOG_LEVEL", "DEBUG")), "Sets server log level, possible values: error, warn, info, debug")
 	flag.Func("allowed-origins", "Sets allowed origins for CORS purposes, accepts a comma separated list of origins or * to allow all, default none", newOriginParser(&cfg.AllowedOrigins, getEnvAsString("ALLOWED_ORIGINS", "")))
@@ -59,8 +64,19 @@ func main() {
 
 	// Start the server in a goroutine
 	go func() {
-		logger.Info("starting server", "addr", srv.Addr)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", (certFile != "" && keyFile != ""))
+		var err error
+		if certFile != "" && keyFile != "" {
+			// Configure TLS if both cert and key files are provided
+			tlsConfig := &tls.Config{
+				MinVersion: tls.VersionTLS13,
+			}
+			srv.TLSConfig = tlsConfig
+			err = srv.ListenAndServeTLS(certFile, keyFile)
+		} else {
+			err = srv.ListenAndServe()
+		}
+		if err != nil && err != http.ErrServerClosed {
 			logger.Error("HTTP server ListenAndServe", "error", err)
 		}
 	}()

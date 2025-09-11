@@ -81,11 +81,11 @@ class FeatureTableRow extends TableRow {
   }
 
   findValueType() {
-    return this.find().find('[data-label="Value Type"]');
+    return this.find().find('[data-label="Value type"]');
   }
 
   findFeatureView() {
-    return this.find().find('[data-label="Feature View"]');
+    return this.find().find('[data-label="Feature view"]');
   }
 
   findFeatureViewLink() {

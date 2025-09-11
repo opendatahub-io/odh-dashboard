@@ -64,7 +64,7 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension | NavSe
       },
       properties: {
         id: 'featureStore-dataSets',
-        title: 'Data sets',
+        title: 'Datasets',
         href: '/featureStore/dataSets',
         section: 'feature-store',
         path: '/featureStore/dataSets/*',

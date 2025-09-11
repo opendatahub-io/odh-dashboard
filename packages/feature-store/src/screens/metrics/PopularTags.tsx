@@ -174,7 +174,7 @@ const PopularTags: React.FC<PopularTagsProps> = ({ project, limit = 4 }) => {
   return (
     <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsMd' }}>
       <Title headingLevel="h3" data-testid="popular-tags-title">
-        Discover feature views by popular tags
+        View most used feature view tags Feature views using popular tags?
       </Title>
       {renderContent()}
     </Flex>

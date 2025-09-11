@@ -65,9 +65,11 @@ export interface LineageProps {
   onNodeSelect?: (nodeId: string | null) => void;
   className?: string;
   title?: string;
-  showNodePopover?: boolean; // Enable/disable node popover functionality (default: true)
+  showNodePopover?: boolean;
   componentFactory: ComponentFactory;
-  popoverComponent?: PopoverComponent; // Optional custom popover component
+  popoverComponent?: PopoverComponent;
+  toolbarComponent?: React.ComponentType;
+  autoResetOnDataChange?: boolean;
 }
 
 export const convertToLineageNodeModel = (node: LineageNode): NodeModel => {

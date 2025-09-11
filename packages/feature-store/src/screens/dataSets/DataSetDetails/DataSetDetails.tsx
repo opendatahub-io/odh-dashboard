@@ -83,7 +83,7 @@ const DataSetDetails = (): React.ReactElement => {
         <Breadcrumb>
           <BreadcrumbItem
             data-testid="data-set-details-breadcrumb-link"
-            render={() => <Link to={`${featureStoreRootRoute()}/dataSets`}>Data Sets</Link>}
+            render={() => <Link to={`${featureStoreRootRoute()}/dataSets`}>Datasets</Link>}
           />
           <BreadcrumbItem
             data-testid="data-set-details-breadcrumb-item"

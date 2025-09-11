@@ -5,15 +5,7 @@ import {
   TopologyView,
   TopologyControlBar,
 } from '@patternfly/react-topology';
-import {
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateVariant,
-  Spinner,
-  Alert,
-  Title,
-} from '@patternfly/react-core';
-import { PlusIcon } from '@patternfly/react-icons';
+import { EmptyState, EmptyStateVariant, Spinner, Alert, Title } from '@patternfly/react-core';
 import {
   LineageProps,
   convertToLineageNodeModel,
@@ -31,12 +23,13 @@ const LineageInner: React.FC<LineageProps> = ({
   height = '600px',
   loading = false,
   error,
-  emptyStateMessage = 'No lineage data available',
   onNodeSelect,
   className,
   showNodePopover = true,
   componentFactory,
   popoverComponent: PopoverComponent,
+  toolbarComponent: ToolbarComponent,
+  autoResetOnDataChange = false,
 }) => {
   const controller = useLineageController('lineage-graph', componentFactory);
 
@@ -98,6 +91,25 @@ const LineageInner: React.FC<LineageProps> = ({
     }
   }, [controller, nodes, edges]);
 
+  // Auto-reset zoom and center when data changes after filtering
+  React.useEffect(() => {
+    if (controller && autoResetOnDataChange && nodes.length > 0) {
+      const resetTimeout = setTimeout(() => {
+        try {
+          controller.getGraph().reset();
+          controller.getGraph().layout();
+        } catch (e) {
+          console.warn('Failed to reset graph layout:', e);
+        }
+      }, 100); // Small delay to let the data load effect complete
+
+      return () => {
+        clearTimeout(resetTimeout);
+      };
+    }
+    return undefined;
+  }, [controller, autoResetOnDataChange, nodes, edges]);
+
   // Get the selected node for potential pan-into-view functionality
   const selectedNode = useMemo(() => {
     return selectedIds[0] && controller ? controller.getNodeById(selectedIds[0]) : null;
@@ -152,25 +164,6 @@ const LineageInner: React.FC<LineageProps> = ({
     );
   }
 
-  // Handle empty state
-  if (!data.nodes.length && !data.edges.length) {
-    return (
-      <div
-        className={className}
-        style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-      >
-        <EmptyState variant={EmptyStateVariant.lg}>
-          <PlusIcon />
-          <Title headingLevel="h4" size="lg">
-            {emptyStateMessage}
-          </Title>
-          <EmptyStateBody>Select a signal project to see its lineage.</EmptyStateBody>
-        </EmptyState>
-      </div>
-    );
-  }
-
-  // Handle controller not ready
   if (!controller) {
     return (
       <div
@@ -189,6 +182,7 @@ const LineageInner: React.FC<LineageProps> = ({
 
   return (
     <div className={className} style={{ height, display: 'flex', flexDirection: 'column' }}>
+      {ToolbarComponent && <ToolbarComponent />}
       <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
         <TopologyView
           controlBar={
@@ -200,7 +194,6 @@ const LineageInner: React.FC<LineageProps> = ({
           </VisualizationProvider>
         </TopologyView>
 
-        {/* Node popover - rendered directly with triggerRef positioning */}
         {PopoverComponent && (
           <PopoverComponent
             node={popoverNode}
