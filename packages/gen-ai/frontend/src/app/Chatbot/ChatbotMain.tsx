@@ -27,7 +27,7 @@ import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettings
 import { ChatbotMessages } from './ChatbotMessagesList';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
 import ChatbotHeader from './ChatbotHeader';
-import { ChatbotEmptyState } from './components/ChatbotEmptyState';
+import ChatbotEmptyState from './EmptyState';
 import useChatbotMessages from './hooks/useChatbotMessages';
 import useSourceManagement from './hooks/useSourceManagement';
 import useAlertManagement from './hooks/useAlertManagement';
@@ -81,7 +81,11 @@ const ChatbotMain: React.FunctionComponent = () => {
     username,
   });
 
-  const lsdStatus = useFetchLSDStatus(selectedProject);
+  const {
+    data: lsdStatusData,
+    loaded: lsdStatusLoaded,
+    error: lsdStatusError,
+  } = useFetchLSDStatus(selectedProject);
 
   // Create alert components
   const successAlert = (
@@ -136,8 +140,19 @@ const ChatbotMain: React.FunctionComponent = () => {
       empty={false}
       loadError={error}
     >
-      {lsdStatus.data === null ? (
-        <ChatbotEmptyState />
+      {!lsdStatusLoaded && !lsdStatusError ? (
+        <Bullseye>
+          <Spinner />
+        </Bullseye>
+      ) : lsdStatusLoaded && !lsdStatusData ? (
+        <ChatbotEmptyState
+          title="Enable Playground"
+          description="Create a playground to chat with the generative models deployed in this project. Experiment with model output using a simple RAG simulation, custom prompt and MCP servers."
+          actionButtonText="Configure playground"
+          handleActionButtonClick={() => {
+            // TODO: Implement configuration logic
+          }}
+        />
       ) : (
         <>
           <ChatbotSourceSettingsModal
