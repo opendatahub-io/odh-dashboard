@@ -184,13 +184,17 @@ func (app *App) Routes() http.Handler {
 		http.NotFound(w, r)
 	})
 
+	// Create a mux for the healthcheck endpoint
+	healthcheckMux := http.NewServeMux()
+	healthcheckRouter := httprouter.New()
+	healthcheckRouter.GET(constants.HealthCheckPath, app.HealthcheckHandler)
+	healthcheckMux.Handle(constants.HealthCheckPath, app.RecoverPanic(app.EnableTelemetry(healthcheckRouter)))
+
 	// Create main mux for all routes
 	combinedMux := http.NewServeMux()
 
-	// Health check endpoint (unprotected)
-	combinedMux.HandleFunc(constants.HealthCheckPath, func(w http.ResponseWriter, r *http.Request) {
-		app.HealthcheckHandler(w, r, nil)
-	})
+	// Health check endpoint (isolated with its own middleware)
+	combinedMux.Handle(constants.HealthCheckPath, healthcheckMux)
 
 	// OpenAPI routes (unprotected) - handle these before the main app routes
 	combinedMux.HandleFunc(constants.OpenAPIPath, app.openAPI.HandleOpenAPIRedirectWrapper)

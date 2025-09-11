@@ -7,7 +7,7 @@ const (
 	ApiPathPrefix = "/api/v1"
 
 	// API endpoint paths
-	HealthCheckPath                  = PathPrefix + "/healthcheck"
+	HealthCheckPath                  = "/healthcheck"
 	OpenAPIPath                      = PathPrefix + "/openapi"
 	OpenAPIJSONPath                  = PathPrefix + "/openapi.json"
 	OpenAPIYAMLPath                  = PathPrefix + "/openapi.yaml"
