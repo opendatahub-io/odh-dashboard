@@ -4,7 +4,6 @@ import '@testing-library/jest-dom';
 import { HardwareProfileKind } from '#~/k8sTypes';
 import HardwareProfilesTable from '#~/pages/hardwareProfiles/HardwareProfilesTable';
 import { createHardwareProfileFromResource } from '#~/api';
-import { MigrationAction, MigrationSourceType } from '#~/pages/hardwareProfiles/migration/types';
 import { IdentifierResourceType } from '#~/types';
 
 // Mock the API call
@@ -204,24 +203,6 @@ describe('HardwareProfilesTable', () => {
       },
     },
   ];
-
-  const mockMigrationAction: MigrationAction = {
-    source: {
-      type: MigrationSourceType.ACCELERATOR_PROFILE,
-      label: 'Test Source',
-      resource: {
-        apiVersion: 'v1',
-        kind: 'TestResource',
-        metadata: {
-          name: 'test-source',
-          namespace: 'test-namespace',
-        },
-      },
-    },
-    targetProfile: mockHardwareProfiles[0],
-    dependentProfiles: [],
-    deleteSourceResource: jest.fn().mockResolvedValue(undefined),
-  };
 
   const defaultProps = {
     hardwareProfiles: mockHardwareProfiles,

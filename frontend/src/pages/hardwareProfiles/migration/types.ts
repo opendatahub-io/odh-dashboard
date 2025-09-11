@@ -19,10 +19,3 @@ export type MigrationSource = {
   label: string;
   resource: K8sResourceCommon;
 };
-
-export type MigrationAction = {
-  source: MigrationSource;
-  targetProfile: HardwareProfileKind;
-  dependentProfiles: HardwareProfileKind[];
-  deleteSourceResource: (opts?: K8sAPIOptions) => Promise<void>;
-};
