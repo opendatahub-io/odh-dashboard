@@ -97,6 +97,23 @@ if [[ -z "$CONSUMER_DIR" ]]; then
 fi
 
 BFF_DIR="$(cd "$BFF_DIR" && pwd)"
+
+# Handle case where script is called from root directory (e.g., CI)
+# If CONSUMER_DIR is relative and doesn't exist, try to find it relative to the BFF package
+if [[ "$CONSUMER_DIR" != /* && ! -d "$CONSUMER_DIR" ]]; then
+  # Get the package directory from BFF_DIR
+  if [[ "$BFF_DIR" == */upstream/bff ]]; then
+    PACKAGE_DIR="$(dirname "$(dirname "$BFF_DIR")")"
+  else
+    PACKAGE_DIR="$(dirname "$BFF_DIR")"
+  fi
+
+  # Check if contract-tests exists in the package directory
+  if [[ -d "$PACKAGE_DIR/$CONSUMER_DIR" ]]; then
+    CONSUMER_DIR="$PACKAGE_DIR/$CONSUMER_DIR"
+  fi
+fi
+
 CONSUMER_DIR="$(cd "$CONSUMER_DIR" && pwd)"
 if [[ -z "$PACKAGE_NAME" ]]; then
   PACKAGE_NAME="$(basename "$CONSUMER_DIR")"
