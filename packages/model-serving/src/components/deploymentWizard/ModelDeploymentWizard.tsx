@@ -19,7 +19,6 @@ type ModelDeploymentWizardProps = {
   description?: string;
   primaryButtonText: string;
   existingData?: ModelDeploymentWizardData;
-  tokenAuthAlert?: boolean;
   project: ProjectKind;
   modelServingPlatform: ModelServingPlatform;
 };
@@ -29,7 +28,6 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   description,
   primaryButtonText,
   existingData,
-  tokenAuthAlert = false,
   project,
   modelServingPlatform,
 }) => {
@@ -107,7 +105,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           id="advanced-options-step"
           isDisabled={!validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid}
         >
-          <AdvancedSettingsStepContent wizardState={wizardState} tokenAuthAlert={tokenAuthAlert} />
+          <AdvancedSettingsStepContent wizardState={wizardState} project={project} />
         </WizardStep>
         <WizardStep
           name="Summary"

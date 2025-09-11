@@ -65,7 +65,16 @@ const assembleInferenceService = (
   data: CreatingInferenceServiceObject,
   existingInferenceService?: InferenceServiceKind,
 ): InferenceServiceKind => {
-  const { project, name, k8sName, modelType, hardwareProfile, modelFormat, tokenAuth } = data;
+  const {
+    project,
+    name,
+    k8sName,
+    modelType,
+    hardwareProfile,
+    modelFormat,
+    tokenAuth,
+    externalRoute,
+  } = data;
   const inferenceService: InferenceServiceKind = existingInferenceService
     ? { ...existingInferenceService }
     : {
@@ -110,11 +119,10 @@ const assembleInferenceService = (
 
   inferenceService.metadata.annotations = annotations;
 
-  if (data.externalRoute?.externalRoute) {
+  if (externalRoute?.externalRoute) {
     if (!inferenceService.metadata.labels) {
       inferenceService.metadata.labels = {};
     }
-    delete inferenceService.metadata.labels['networking.knative.dev/visibility'];
     delete inferenceService.metadata.labels['networking.kserve.io/visibility'];
 
     inferenceService.metadata.labels['networking.kserve.io/visibility'] = 'exposed';

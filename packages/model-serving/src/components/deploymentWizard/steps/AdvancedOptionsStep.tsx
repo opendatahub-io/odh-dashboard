@@ -1,20 +1,33 @@
 import React from 'react';
 import { Form, Title, Stack, StackItem, Alert } from '@patternfly/react-core';
+import { AccessReviewResourceAttributes, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import { useAccessReview } from '../../../../../../frontend/src/api';
 import { ExternalRouteField } from '../fields/ExternalRouteField';
 import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 
+const accessReviewResource: AccessReviewResourceAttributes = {
+  group: 'rbac.authorization.k8s.io',
+  resource: 'rolebindings',
+  verb: 'create',
+};
+
 type AdvancedSettingsStepContentProps = {
   wizardState: UseModelDeploymentWizardState;
-  tokenAuthAlert?: boolean;
+  project: ProjectKind;
 };
 
 export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentProps> = ({
   wizardState,
-  tokenAuthAlert = false,
+  project,
 }) => {
   const externalRouteData = wizardState.state.externalRoute.data;
   const tokenAuthData = wizardState.state.tokenAuthentication.data;
+
+  const [allowCreate] = useAccessReview({
+    ...accessReviewResource,
+    namespace: project.metadata.name,
+  });
 
   return (
     <>
@@ -22,15 +35,11 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
       <Form>
         <Stack hasGutter>
           <StackItem>
-            <ExternalRouteField
-              data={externalRouteData}
-              allowCreate
-              tokenAuthAlert={tokenAuthAlert}
-            />
+            <ExternalRouteField data={externalRouteData} allowCreate={allowCreate} />
           </StackItem>
 
           <StackItem>
-            <TokenAuthenticationField data={tokenAuthData} allowCreate />
+            <TokenAuthenticationField data={tokenAuthData} allowCreate={allowCreate} />
           </StackItem>
 
           {externalRouteData?.externalRoute && (

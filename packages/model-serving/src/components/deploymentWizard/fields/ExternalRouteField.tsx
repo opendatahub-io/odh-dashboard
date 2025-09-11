@@ -1,5 +1,5 @@
 import React from 'react';
-import { FormGroup, Checkbox, Alert, Stack, StackItem } from '@patternfly/react-core';
+import { FormGroup, Checkbox, Stack, StackItem } from '@patternfly/react-core';
 import { z } from 'zod';
 
 // Schema
@@ -37,14 +37,12 @@ type ExternalRouteFieldProps = {
   data?: ExternalRouteFieldData;
   onChange?: (checked: boolean) => void;
   allowCreate?: boolean;
-  tokenAuthAlert?: boolean;
 };
 
 export const ExternalRouteField: React.FC<ExternalRouteFieldProps> = ({
   data = { externalRoute: false },
   onChange,
   allowCreate = true,
-  tokenAuthAlert = false,
 }) => {
   const handleChange = (checked: boolean) => {
     onChange?.(checked);
@@ -64,24 +62,6 @@ export const ExternalRouteField: React.FC<ExternalRouteFieldProps> = ({
           />
         </FormGroup>
       </StackItem>
-
-      {data.externalRoute && tokenAuthAlert && (
-        <StackItem>
-          <Alert
-            isInline
-            variant="warning"
-            title="Token authentication prerequisite not installed"
-            data-testid="token-authentication-prerequisite-alert"
-          >
-            <p>
-              Making models available through external routes without requiring token authentication
-              can lead to unauthorized access of your model. To enable token authentication, you
-              must first request that your cluster administrator install the Authorino operator on
-              your cluster.
-            </p>
-          </Alert>
-        </StackItem>
-      )}
     </Stack>
   );
 };
