@@ -148,6 +148,8 @@ if [[ "$BUILD_BFF" == "true" ]]; then
   BINARY_NAME="../../../bin/$(basename $(dirname $(pwd)))_bff"
   if go build -o "$BINARY_NAME" ./cmd; then
     log_success "BFF binary built successfully: $BINARY_NAME"
+    # Exit early when only building (for CI build step)
+    exit 0
   else
     log_error "Failed to build BFF binary"
     exit 1
