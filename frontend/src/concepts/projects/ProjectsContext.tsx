@@ -10,7 +10,7 @@ const projectSorter = (projectA: ProjectKind, projectB: ProjectKind) =>
   getDisplayNameFromK8sResource(projectA).localeCompare(getDisplayNameFromK8sResource(projectB));
 
 type ProjectFetchState = FetchState<ProjectKind[]>;
-type ProjectsContextType = {
+export type ProjectsContextType = {
   projects: ProjectKind[];
   modelServingProjects: ProjectKind[];
   /** eg. Terminating state, etc */
