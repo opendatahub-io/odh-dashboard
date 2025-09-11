@@ -4,6 +4,7 @@ name: Modular Architecture - Quality Gates
 
 'on':
   pull_request:
+    types: [opened]
     paths:
       - 'packages/**'
   workflow_dispatch:
