@@ -33,12 +33,12 @@ const FeatureDetails = (): React.ReactElement => {
     <EmptyState
       headingLevel="h6"
       icon={SearchIcon}
-      titleText="No entities"
+      titleText="No feature details"
       variant={EmptyStateVariant.lg}
       data-testid="empty-state-title"
     >
       <EmptyStateBody data-testid="empty-state-body">
-        No entities have been found in this project.
+        No feature details have been found in this project.
       </EmptyStateBody>
     </EmptyState>
   );

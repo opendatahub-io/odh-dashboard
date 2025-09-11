@@ -8,7 +8,7 @@ import {
   FlexItem,
 } from '@patternfly/react-core';
 import React from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useParams } from 'react-router-dom';
 import { t_global_spacer_xs as ExtraSmallSpacerSize } from '@patternfly/react-tokens';
 import { SearchIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
