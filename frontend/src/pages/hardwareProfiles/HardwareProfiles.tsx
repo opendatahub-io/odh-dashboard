@@ -156,33 +156,6 @@ const HardwareProfiles: React.FC = () => {
             noHardwareProfilePageSection
           )}
         </StackItem>
-
-        {/* {migratedHardwareProfiles.length > 0 && (
-          <>
-            <StackItem>
-              <Title headingLevel="h2">Migrate your legacy profiles</Title>
-            </StackItem>
-            <StackItem>
-              Your accelerator profiles and existing custom workbench and model deployment container
-              sizes have been converted to legacy profiles. Migrate them to hardware profiles, which
-              offer more flexibility. Deployed workloads using legacy profiles will be unaffected by
-              the migration.
-            </StackItem>
-            <StackItem>
-              <
-                data-testid="migrated-hardware-profiles-section"
-                toggleTextExpanded={`Hide legacy profiles (${migratedHardwareProfiles.length})`}
-                toggleTextCollapsed={`Show legacy profiles (${migratedHardwareProfiles.length})`}
-              >
-                <HardwareProfilesTable
-                  isMigratedTable
-                  hardwareProfiles={migratedHardwareProfiles}
-                  getMigrationAction={getMigrationAction}
-                />
-              </ExpandableSection>
-            </StackItem>
-          </>
-        )} */}
       </Stack>
     </ApplicationsPage>
   );
