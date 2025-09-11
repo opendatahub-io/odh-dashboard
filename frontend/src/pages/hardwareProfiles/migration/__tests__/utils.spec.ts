@@ -3,9 +3,7 @@ import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import {
   getMinMaxResourceSize,
   createAcceleratorHardwareProfiles,
-  transformContainerSizeToHardwareProfile,
 } from '#~/pages/hardwareProfiles/migration/utils';
-import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
 
 describe('getMinMaxResourceSize', () => {
   it('should calculate min and max resources correctly', () => {
@@ -102,74 +100,6 @@ describe('transformContainerSizeToHardwareProfile', () => {
           }),
         ]),
       },
-    });
-  });
-});
-
-describe('createAcceleratorHardwareProfiles', () => {
-  it('should create notebook and serving profiles', () => {
-    const acceleratorProfile = mockAcceleratorProfile({
-      name: 'test-accelerator',
-      namespace: 'test-namespace',
-      displayName: 'Test Accelerator',
-      description: 'Test Description',
-      enabled: true,
-      tolerations: [],
-      identifier: 'test-gpu',
-    });
-
-    const notebookSizes = {
-      minMemory: '2Gi',
-      maxMemory: '8Gi',
-      minCpu: '1',
-      maxCpu: '4',
-    };
-
-    const servingSizes = {
-      minMemory: '4Gi',
-      maxMemory: '16Gi',
-      minCpu: '2',
-      maxCpu: '8',
-    };
-
-    const results = createAcceleratorHardwareProfiles(
-      acceleratorProfile,
-      'test-profile',
-      notebookSizes,
-      servingSizes,
-    );
-
-    expect(results).toHaveLength(2);
-
-    // Check notebook profile
-    expect(results[0]).toMatchObject({
-      metadata: {
-        name: 'test-profile-notebooks',
-        annotations: {
-          'opendatahub.io/display-name': 'Test Accelerator',
-          'opendatahub.io/disabled': 'false',
-          'opendatahub.io/dashboard-feature-visibility': JSON.stringify([
-            HardwareProfileFeatureVisibility.WORKBENCH,
-          ]),
-        },
-      },
-      spec: {},
-    });
-
-    // Check serving profile
-    expect(results[1]).toMatchObject({
-      metadata: {
-        name: 'test-profile-serving',
-        annotations: {
-          'opendatahub.io/display-name': 'Test Accelerator',
-          'opendatahub.io/disabled': 'false',
-          'opendatahub.io/dashboard-feature-visibility': JSON.stringify([
-            HardwareProfileFeatureVisibility.MODEL_SERVING,
-            HardwareProfileFeatureVisibility.PIPELINES,
-          ]),
-        },
-      },
-      spec: {},
     });
   });
 });

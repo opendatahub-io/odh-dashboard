@@ -7,7 +7,6 @@ import {
 } from '#~/k8sTypes';
 import {
   IdentifierResourceType,
-  Toleration,
   Identifier,
   NotebookSize,
   SchedulingType,
@@ -15,7 +14,7 @@ import {
 } from '#~/types';
 import { isCpuLarger, isMemoryLarger } from '#~/utilities/valueUnits';
 import { HardwareProfileModel } from '#~/api';
-import { kindApiVersion, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
+import { kindApiVersion } from '#~/concepts/k8s/utils';
 import { ContainerSizeLimits } from './types';
 
 export const getMinMaxResourceSize = (containerSizes: NotebookSize[]): ContainerSizeLimits => {
@@ -162,78 +161,6 @@ const transformAcceleratorProfileToHardwareProfile = (
           },
         },
       }),
-    },
-  };
-
-  if (!hardwareProfile) {
-    return baseProfile;
-  }
-
-  return _.mergeWith({}, baseProfile, hardwareProfile, (obj, src) =>
-    Array.isArray(obj) && Array.isArray(src) ? [...src, ...obj] : undefined,
-  );
-};
-
-export const createAcceleratorHardwareProfiles = (
-  acceleratorProfile: AcceleratorProfileKind,
-  name: string,
-  notebookMaxSizes: ContainerSizeLimits,
-  servingMaxSizes: ContainerSizeLimits,
-  notebooksOnlyToleration?: Toleration,
-): [HardwareProfileKind, HardwareProfileKind] => [
-  transformAcceleratorProfileToHardwareProfile(
-    acceleratorProfile,
-    {
-      metadata: { name: translateDisplayNameForK8s(`${name}-notebooks`) },
-      spec: {
-        identifiers: createCpuMemoryIdentifiers(notebookMaxSizes),
-        ...(notebooksOnlyToleration && {
-          scheduling: {
-            type: SchedulingType.NODE,
-            node: {
-              tolerations: [notebooksOnlyToleration],
-            },
-          },
-        }),
-      },
-    },
-    [HardwareProfileFeatureVisibility.WORKBENCH],
-  ),
-  transformAcceleratorProfileToHardwareProfile(
-    acceleratorProfile,
-    {
-      metadata: { name: translateDisplayNameForK8s(`${name}-serving`) },
-      spec: {
-        identifiers: createCpuMemoryIdentifiers(servingMaxSizes),
-      },
-    },
-    [HardwareProfileFeatureVisibility.MODEL_SERVING, HardwareProfileFeatureVisibility.PIPELINES],
-  ),
-];
-
-export const transformContainerSizeToHardwareProfile = (
-  containerSize: NotebookSize,
-  name: string,
-  namespace: string,
-  hardwareProfile?: DeepPartial<HardwareProfileKind>,
-  visibleIn: HardwareProfileFeatureVisibility[] = [],
-): HardwareProfileKind => {
-  const sizes = getMinMaxResourceSize([containerSize]);
-  const baseProfile = {
-    apiVersion: kindApiVersion(HardwareProfileModel),
-    kind: HardwareProfileModel.kind,
-    metadata: {
-      name: translateDisplayNameForK8s(name),
-      namespace,
-      annotations: {
-        [DisplayNameAnnotation.ODH_DISP_NAME]: containerSize.name,
-        'opendatahub.io/disabled': 'false',
-        'opendatahub.io/dashboard-feature-visibility': JSON.stringify(visibleIn),
-        'opendatahub.io/modified-date': new Date().toISOString(),
-      },
-    },
-    spec: {
-      identifiers: createCpuMemoryIdentifiers(sizes),
     },
   };
 
