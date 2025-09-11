@@ -186,13 +186,25 @@ jobs:
           set -euo pipefail
           echo "Building BFF binaries for packages with changes and contract tests..."
 
-          # Build BFF binaries
+          # Build BFF binaries only for packages with contract tests
           for dir in packages/*/bff packages/*/upstream/bff; do
             if [ -d "$dir" ]; then
-              echo "Building BFF in $dir"
-              cd "$dir"
-              odh-ct-bff-consumer --bff-dir . --build-bff
-              cd -
+              # Determine package directory based on BFF location
+              if [[ "$dir" == */upstream/bff ]]; then
+                package_dir=$(dirname "$(dirname "$dir")")
+              else
+                package_dir=$(dirname "$dir")
+              fi
+
+              # Only build BFF if package has contract tests
+              if [ -d "$package_dir/contract-tests" ]; then
+                echo "Building BFF in $dir"
+                cd "$dir"
+                npx odh-ct-bff-consumer --bff-dir . --build-bff
+                cd -
+              else
+                echo "Skipping BFF build for $dir (no contract tests found in $package_dir)"
+              fi
             fi
           done
       - name: Run contract tests
