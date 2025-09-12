@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ToolbarGroup } from '@patternfly/react-core';
-import { FeatureStoreLineage } from './lineage';
+import { FeatureStoreLineage, FeatureViewLineage } from './lineage';
 
 export type FeatureStoreFilterToolbarProps<T extends string> = React.ComponentProps<
   typeof ToolbarGroup
@@ -65,6 +65,7 @@ export interface FeatureStoreLineageToolbarProps {
   onHideNodesWithoutRelationshipsChange: (hide: boolean) => void;
   searchFilters?: FeatureStoreLineageSearchFilters;
   onSearchFiltersChange?: (filters: FeatureStoreLineageSearchFilters) => void;
-  lineageData?: FeatureStoreLineage;
+  lineageData?: FeatureStoreLineage | FeatureViewLineage;
   lineageDataLoaded?: boolean;
+  isFeatureViewToolbar?: boolean;
 }

@@ -78,7 +78,7 @@ class FeatureDataSourceDetails extends Contextual<HTMLElement> {
   }
 
   findFeatureViewLineage() {
-    return cy.findByTestId('feature-view-lineage');
+    return cy.findByTestId('feature-view-tab');
   }
 
   findLoadingSpinner() {

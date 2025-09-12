@@ -1,7 +1,10 @@
 import React, { useMemo, useCallback } from 'react';
 import { Toolbar, ToolbarContent, ToolbarItem, Switch } from '@patternfly/react-core';
 import FilterToolbar from '@odh-dashboard/internal/components/FilterToolbar';
-import { extractFilterOptionsFromLineage } from '../screens/lineage/utils';
+import {
+  extractFilterOptionsFromLineage,
+  extractFilterOptionsFromFeatureViewLineage,
+} from '../screens/lineage/utils';
 import {
   MultiSelection,
   type SelectionOptions,
@@ -31,6 +34,7 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
   onSearchFiltersChange,
   lineageData,
   lineageDataLoaded = false,
+  isFeatureViewToolbar = false,
 }) => {
   const availableOptions = useMemo(() => {
     if (!lineageData || !lineageDataLoaded) {
@@ -41,14 +45,21 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
         featureService: [],
       };
     }
+
+    if (isFeatureViewToolbar) {
+      return extractFilterOptionsFromFeatureViewLineage(lineageData);
+    }
+
     return extractFilterOptionsFromLineage(lineageData);
-  }, [lineageData, lineageDataLoaded]);
+  }, [lineageData, lineageDataLoaded, isFeatureViewToolbar]);
 
   const handleSelectionChange = useCallback(
     (filterType: keyof FeatureStoreLineageSearchFilters, selections: SelectionOptions[]) => {
       if (onSearchFiltersChange) {
         const newFilters = { ...searchFilters };
-        const selectedNames = selections.filter((s) => s.selected).map((s) => s.name);
+        const selectedNames = selections
+          .filter((s) => s.selected && !s.isAriaDisabled)
+          .map((s) => s.name);
         if (selectedNames.length > 0) {
           newFilters[filterType] = selectedNames.join(', ');
         } else {
@@ -63,6 +74,18 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
   const getEntityOptions = useMemo(() => {
     const items = availableOptions.entity;
     const selectedNames = searchFilters.entity?.split(', ') || [];
+
+    if (items.length === 0) {
+      return [
+        {
+          id: 'no-entities',
+          name: 'No entities available',
+          selected: false,
+          isAriaDisabled: true,
+        },
+      ];
+    }
+
     return items.map((item) => ({
       ...item,
       selected: selectedNames.includes(item.name),
@@ -72,6 +95,18 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
   const getFeatureViewOptions = useMemo(() => {
     const items = availableOptions.featureView;
     const selectedNames = searchFilters.featureView?.split(', ') || [];
+
+    if (items.length === 0) {
+      return [
+        {
+          id: 'no-feature-views',
+          name: 'No feature views available',
+          selected: false,
+          isAriaDisabled: true,
+        },
+      ];
+    }
+
     return items.map((item) => ({
       ...item,
       selected: selectedNames.includes(item.name),
@@ -81,6 +116,18 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
   const getDataSourceOptions = useMemo(() => {
     const items = availableOptions.dataSource;
     const selectedNames = searchFilters.dataSource?.split(', ') || [];
+
+    if (items.length === 0) {
+      return [
+        {
+          id: 'no-data-sources',
+          name: 'No data sources available',
+          selected: false,
+          isAriaDisabled: true,
+        },
+      ];
+    }
+
     return items.map((item) => ({
       ...item,
       selected: selectedNames.includes(item.name),
@@ -90,6 +137,18 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
   const getFeatureServiceOptions = useMemo(() => {
     const items = availableOptions.featureService;
     const selectedNames = searchFilters.featureService?.split(', ') || [];
+
+    if (items.length === 0) {
+      return [
+        {
+          id: 'no-feature-services',
+          name: 'No feature services available',
+          selected: false,
+          isAriaDisabled: true,
+        },
+      ];
+    }
+
     return items.map((item) => ({
       ...item,
       selected: selectedNames.includes(item.name),
@@ -105,7 +164,7 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
         <MultiSelection
           value={getEntityOptions}
           setValue={(selections: SelectionOptions[]) => handleSelectionChange('entity', selections)}
-          placeholder={lineageDataLoaded ? 'Search entities...' : 'Loading lineage...'}
+          placeholder={!lineageDataLoaded ? 'Loading lineage...' : 'Search entities...'}
           ariaLabel="Search entities"
           isDisabled={!lineageDataLoaded}
         />
@@ -116,7 +175,7 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
           setValue={(selections: SelectionOptions[]) =>
             handleSelectionChange('featureView', selections)
           }
-          placeholder={lineageDataLoaded ? 'Search feature views...' : 'Loading lineage...'}
+          placeholder={!lineageDataLoaded ? 'Loading lineage...' : 'Search feature views...'}
           ariaLabel="Search feature views"
           isDisabled={!lineageDataLoaded}
         />
@@ -127,7 +186,7 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
           setValue={(selections: SelectionOptions[]) =>
             handleSelectionChange('dataSource', selections)
           }
-          placeholder={lineageDataLoaded ? 'Search data sources...' : 'Loading lineage...'}
+          placeholder={!lineageDataLoaded ? 'Loading lineage...' : 'Search data sources...'}
           ariaLabel="Search data sources"
           isDisabled={!lineageDataLoaded}
         />
@@ -138,7 +197,7 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
           setValue={(selections: SelectionOptions[]) =>
             handleSelectionChange('featureService', selections)
           }
-          placeholder={lineageDataLoaded ? 'Search feature services...' : 'Loading lineage...'}
+          placeholder={!lineageDataLoaded ? 'Loading lineage...' : 'Search feature services...'}
           ariaLabel="Search feature services"
           isDisabled={!lineageDataLoaded}
         />
