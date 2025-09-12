@@ -95,13 +95,14 @@ const extensions: RouteExtension[] = [
       component: () => import('#~/pages/modelCatalog/ModelCatalogRoutes'),
     },
   },
-  {
-    type: 'app.route',
-    properties: {
-      path: '/modelRegistry/*',
-      component: () => import('#~/pages/modelRegistry/ModelRegistryRoutes'),
-    },
-  },
+  // // This is being replaced by the upstream extension for model registry and will be removed along with the old MR UI code as part of https://issues.redhat.com/browse/RHOAIENG-34088.
+  // {
+  //   type: 'app.route',
+  //   properties: {
+  //     path: '/modelRegistry/*',
+  //     component: () => import('#~/pages/modelRegistry/ModelRegistryRoutes'),
+  //   },
+  // },
   {
     type: 'app.route',
     properties: {

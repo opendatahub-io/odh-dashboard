@@ -3,6 +3,7 @@ import type {
   RouteExtension,
   AreaExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
+import { StackComponent, SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 
 const reliantAreas = ['model-registry'];
 const PLUGIN_MODEL_REGISTRY = 'model-registry-plugin';
@@ -19,11 +20,13 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [PLUGIN_MODEL_REGISTRY],
+      required: [SupportedArea.MODEL_REGISTRY],
     },
+    featureFlags: ['disableModelRegistry'],
+    requiredComponents: [StackComponent.MODEL_REGISTRY],
     properties: {
-      id: 'modelRegistry-kf',
-      title: 'Model registry (KF)',
+      id: 'modelRegistry',
+      title: 'Model registry',
       href: '/model-registry',
       section: 'models',
       path: '/model-registry/*',
@@ -58,8 +61,10 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.route',
     flags: {
-      required: [PLUGIN_MODEL_REGISTRY],
+      required: [SupportedArea.MODEL_REGISTRY],
     },
+    featureFlags: ['disableModelRegistry'],
+    requiredComponents: [StackComponent.MODEL_REGISTRY],
     properties: {
       path: '/model-registry/*',
       component: () => import('./ModelRegistryWrapper'),
