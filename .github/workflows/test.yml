@@ -152,6 +152,84 @@ jobs:
             echo "test-groups=[\"default\"]" >> "$GITHUB_OUTPUT"
           fi
 
+  Contract-Tests:
+    needs: [Setup, Lint, Type-Check]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      - name: Restore cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cache/Cypress
+            **/node_modules
+          key: ${{ needs.Setup.outputs.modules-cache-key }}
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('packages/*/bff/go.sum', 'packages/*/upstream/bff/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Build BFF binaries
+        run: |
+          set -euo pipefail
+          echo "Building BFF binaries for packages with changes and contract tests..."
+
+          # Build BFF binaries only for packages with contract tests
+          for dir in packages/*/bff packages/*/upstream/bff; do
+            if [ -d "$dir" ]; then
+              # Determine package directory based on BFF location
+              if [[ "$dir" == */upstream/bff ]]; then
+                package_dir=$(dirname "$(dirname "$dir")")
+              else
+                package_dir=$(dirname "$dir")
+              fi
+
+              if [ -d "$package_dir/contract-tests" ]; then
+                echo "Building BFF in $dir"
+                # Use npx to run the script from the contract-tests package
+                npx --package=@odh-dashboard/contract-tests odh-ct-bff-consumer --bff-dir "$dir" --build-bff
+              else
+                echo "Skipping BFF build for $dir (no contract tests found in $package_dir)"
+              fi
+            fi
+          done
+      - name: Run contract tests
+        run: |
+          set -euo pipefail
+          # Find packages with contract tests and run only those
+          PACKAGES_WITH_CONTRACT_TESTS=""
+          for package_dir in packages/*/; do
+            package_name=$(basename "$package_dir")
+            if [ -d "packages/$package_name/contract-tests" ]; then
+              PACKAGES_WITH_CONTRACT_TESTS="$PACKAGES_WITH_CONTRACT_TESTS --filter=@odh-dashboard/$package_name"
+            fi
+          done
+
+          if [ -n "$PACKAGES_WITH_CONTRACT_TESTS" ]; then
+            echo "Running contract tests for packages with contract tests..."
+            npm run test:contract $PACKAGES_WITH_CONTRACT_TESTS
+          else
+            echo "No packages with contract tests found, skipping contract tests"
+          fi
+      - name: Upload contract test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: contract-test-results
+          path: packages/*/contract-tests/contract-test-results/**/*
+
   Cypress-Setup:
     needs: [Setup]
     runs-on: ubuntu-latest
@@ -300,6 +378,7 @@ jobs:
       - Lint
       - Type-Check
       - Unit-Tests
+      - Contract-Tests
       - Cypress-Mock-Tests
       - Combine-Results-and-Upload
     steps:
