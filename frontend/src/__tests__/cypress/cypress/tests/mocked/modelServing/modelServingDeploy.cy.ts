@@ -252,7 +252,6 @@ describe('Model Serving Deploy Wizard', () => {
           annotations: {
             'openshift.io/display-name': 'test-model',
             'opendatahub.io/hardware-profile-namespace': 'opendatahub',
-            'opendatahub.io/legacy-hardware-profile-name': 'medium-serving-wz9u9',
             'opendatahub.io/model-type': 'generative',
             'security.opendatahub.io/enable-auth': 'true',
           },
@@ -364,7 +363,6 @@ describe('Model Serving Deploy Wizard', () => {
           annotations: {
             'openshift.io/display-name': 'test-model',
             'opendatahub.io/hardware-profile-namespace': 'opendatahub',
-            'opendatahub.io/legacy-hardware-profile-name': 'medium-serving-wz9u9',
             'opendatahub.io/model-type': 'predictive',
           },
         },

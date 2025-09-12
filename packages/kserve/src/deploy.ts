@@ -100,16 +100,10 @@ const assembleInferenceService = (
   const annotations = { ...inferenceService.metadata.annotations };
   annotations['openshift.io/display-name'] = name.trim();
   annotations['opendatahub.io/model-type'] = modelType;
-  const isLegacyHardwareProfile = !hardwareProfile.selectedProfile?.metadata.uid;
-  if (!isLegacyHardwareProfile) {
-    annotations['opendatahub.io/hardware-profile-name'] =
-      hardwareProfile.selectedProfile?.metadata.name;
-  } else {
-    const legacyName = hardwareProfile.selectedProfile?.metadata.name;
-    if (legacyName) {
-      annotations['opendatahub.io/legacy-hardware-profile-name'] = legacyName;
-    }
-  }
+
+  annotations['opendatahub.io/hardware-profile-name'] =
+    hardwareProfile.selectedProfile?.metadata.name;
+
   annotations['opendatahub.io/hardware-profile-namespace'] =
     hardwareProfile.selectedProfile?.metadata.namespace;
 

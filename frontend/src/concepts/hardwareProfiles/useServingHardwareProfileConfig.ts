@@ -8,10 +8,7 @@ import {
 export const extractHardwareProfileConfigFromInferenceService = (
   inferenceService?: InferenceServiceKind | null,
 ): Parameters<typeof useHardwareProfileConfig> => {
-  const legacyName =
-    inferenceService?.metadata.annotations?.['opendatahub.io/legacy-hardware-profile-name'];
-  const name =
-    legacyName || inferenceService?.metadata.annotations?.['opendatahub.io/hardware-profile-name'];
+  const name = inferenceService?.metadata.annotations?.['opendatahub.io/hardware-profile-name'];
   const resources = inferenceService?.spec.predictor.model?.resources;
   const tolerations = inferenceService?.spec.predictor.tolerations;
   const nodeSelector = inferenceService?.spec.predictor.nodeSelector;
