@@ -46,5 +46,4 @@ const ChatbotHeader: React.FunctionComponent<ChatbotHeaderProps> = ({
     </FlexItem>
   </Flex>
 );
-
 export default ChatbotHeader;
