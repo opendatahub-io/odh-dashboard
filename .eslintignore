@@ -1,4 +1,0 @@
-# Ignore model-registry upstream directory as it has its own ESLint configuration
-packages/model-registry/upstream/
-packages/model-registry/upstream/**
-packages/model-registry/upstream/**/*
