@@ -3,7 +3,13 @@ import { Button, ButtonVariant, Tooltip } from '@patternfly/react-core';
 import { ModelCatalogItem } from '~/app/modelCatalogTypes';
 import ModelCatalogDeployModalExtension from './ModelCatalogDeployModalExtension';
 
-export const ModelCatalogDeployButton = ({ model }: { model: ModelCatalogItem }) => (
+export const ModelCatalogDeployButton = ({ 
+  model, 
+  renderRegisterButton 
+}: { 
+  model: ModelCatalogItem;
+  renderRegisterButton?: (isDeployAvailable: boolean) => React.ReactNode;
+}) => (
   <ModelCatalogDeployModalExtension
     model={model}
     render={(buttonState, onOpenModal, isModalAvailable) => {
@@ -19,13 +25,21 @@ export const ModelCatalogDeployButton = ({ model }: { model: ModelCatalogItem })
           Deploy model
         </Button>
       );
-      return isModalAvailable ? (
+      
+      const wrappedDeployButton = isModalAvailable ? (
         buttonState.tooltip ? (
           <Tooltip content={buttonState.tooltip}>{deployButton}</Tooltip>
         ) : (
           deployButton
         )
       ) : null;
+
+      return (
+        <>
+          {wrappedDeployButton}
+          {renderRegisterButton?.(isModalAvailable)}
+        </>
+      );
     }}
   />
 );

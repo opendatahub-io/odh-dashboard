@@ -50,7 +50,7 @@ const ModelDetailsPage: React.FC = () => {
 
   const versionTag = extractVersionTag(model?.tags);
 
-  const registerModelButton = () => {
+  const registerModelButton = (variant: 'primary' | 'secondary' = 'primary') => {
     if (!modelRegistriesLoaded || modelRegistriesLoadError) {
       return null;
     }
@@ -67,14 +67,14 @@ const ModelDetailsPage: React.FC = () => {
           </div>
         }
       >
-        <Button variant="primary" isAriaDisabled data-testid="register-model-button">
+        <Button variant={variant} isAriaDisabled data-testid="register-model-button">
           Register model
         </Button>
       </Popover>
     ) : (
       <Button
         data-testid="register-model-button"
-        variant="primary"
+        variant={variant}
         onClick={() => {
           if (modelId) {
             navigate(getRegisterCatalogModelRoute(modelId));
@@ -149,12 +149,10 @@ const ModelDetailsPage: React.FC = () => {
         !loading &&
         !error &&
         model && (
-          <ActionList>
-            <ActionListGroup>
-              {registerModelButton()}
-              <ModelCatalogDeployButton model={model} />
-            </ActionListGroup>
-          </ActionList>
+          <ModelCatalogDeployButton 
+            model={model} 
+            renderRegisterButton={(isDeployAvailable) => registerModelButton(isDeployAvailable ? 'secondary' : 'primary')}
+          />
         )
       }
     >
