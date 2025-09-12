@@ -38,14 +38,25 @@ paths:
     description: >-
       Lists all available AI models from Llama Stack using OpenAI SDK.
       Returns models with their identifiers, creation timestamps, and ownership information.
+      Requires namespace parameter for proper multi-tenant isolation.
     get:
       tags:
         - Models
       security:
         - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace to query for AI models
+          required: true
+          schema:
+            type: string
+            example: "default"
       responses:
         '200':
           $ref: '#/components/responses/ModelsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
@@ -59,12 +70,20 @@ paths:
     description: >-
       Vector stores are used for Retrieval-Augmented Generation (RAG).
       They store document embeddings that can be searched during AI response generation.
+      Requires namespace parameter for proper multi-tenant isolation.
     get:
       tags:
         - VectorStores
       security:
         - Bearer: []
       parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace to query for vector stores
+          required: true
+          schema:
+            type: string
+            example: "default"
         - name: limit
           in: query
           description: Number of vector stores to return (1-100, default 20)
@@ -101,6 +120,14 @@ paths:
         - VectorStores
       security:
         - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace to create vector store in
+          required: true
+          schema:
+            type: string
+            example: "default"
       requestBody:
         description: Vector store creation request (only name is required, all other parameters are optional)
         content:
@@ -127,11 +154,20 @@ paths:
       Uploads a file and automatically adds it to the specified vector store.
       This is a combined operation that handles both file upload and vector store integration.
       Supports custom chunking strategies for optimal document processing and RAG performance.
+      Requires namespace parameter for proper multi-tenant isolation.
     post:
       tags:
         - Files
       security:
         - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace for file upload context
+          required: true
+          schema:
+            type: string
+            example: "default"
       requestBody:
         description: Multipart form with file and vector store information
         content:
@@ -159,11 +195,20 @@ paths:
       Supports RAG via vector stores, conversation context, and advanced generation parameters.
       Returns clean JSON responses preserving LlamaStack's output structure but filtering unnecessary metadata.
       Can return either complete JSON responses or real-time streaming responses based on the stream parameter.
+
     post:
       tags:
         - Responses
       security:
         - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace for AI response generation context
+          required: true
+          schema:
+            type: string
+            example: "default"
       requestBody:
         description: Response creation request with comprehensive parameter support
         content:
@@ -196,11 +241,20 @@ paths:
       Generates Python code templates for integrating with Llama Stack services.
       Supports custom configuration including model selection, instructions, streaming, and tool configurations.
       Returns executable Python code wrapped in a JSON envelope structure.
+      Requires namespace parameter for proper multi-tenant isolation.
     post:
       tags:
         - CodeExporter
       security:
         - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace for code generation context
+          required: true
+          schema:
+            type: string
+            example: "default"
       requestBody:
         description: Code generation request with configuration parameters
         content:
@@ -1427,15 +1481,33 @@ tags:
   - name: HealthCheck
     description: BFF service health check operations
   - name: Models
-    description: AI model discovery and management
+    description: |
+      AI model discovery and management
+      
+      **LlamaStack Models** (`/models`): Queries LlamaStack service for available models
+      **AI Assets Models** (`/aa/models`): Queries Kubernetes InferenceServices with GenAI labels
+      
+      Both endpoints require namespace parameter for proper multi-tenant isolation.
   - name: VectorStores
-    description: Vector store management for RAG functionality
+    description: |
+      Vector store management for RAG functionality
+      
+      Requires namespace parameter. Uses namespace-specific LlamaStack service discovery.
   - name: Files
-    description: File upload and vector store integration
+    description: |
+      File upload and vector store integration
+      
+      Requires namespace parameter. Uses namespace-specific LlamaStack service discovery.
   - name: Responses
-    description: AI response generation with comprehensive parameter support
+    description: |
+      AI response generation with comprehensive parameter support
+      
+      Requires namespace parameter. Uses namespace-specific LlamaStack service discovery.
   - name: CodeExporter
-    description: Code generation for Llama Stack integration
+    description: |
+      Code generation for Llama Stack integration
+      
+      Requires namespace parameter. Generates code templates for client configuration.
   - name: Kubernetes
     description: Kubernetes cluster operations and namespace management
   - name: Identity

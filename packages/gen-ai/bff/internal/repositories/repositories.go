@@ -1,9 +1,5 @@
 package repositories
 
-import (
-	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
-)
-
 // Repositories struct is a single convenient container to hold and represent all our repositories.
 type Repositories struct {
 	HealthCheck            *HealthCheckRepository
@@ -17,15 +13,15 @@ type Repositories struct {
 	LlamaStackDistribution *LlamaStackDistributionRepository
 }
 
-// NewRepositories creates domain-specific repositories with the specified client interface.
-func NewRepositories(client llamastack.LlamaStackClientInterface) *Repositories {
+// NewRepositories creates domain-specific repositories.
+func NewRepositories() *Repositories {
 	return &Repositories{
 		HealthCheck:            NewHealthCheckRepository(),
-		Models:                 NewModelsRepository(client),
+		Models:                 NewModelsRepository(),
 		AAModels:               NewAAModelsRepository(),
-		VectorStores:           NewVectorStoresRepository(client),
-		Files:                  NewFilesRepository(client),
-		Responses:              NewResponsesRepository(client),
+		VectorStores:           NewVectorStoresRepository(),
+		Files:                  NewFilesRepository(),
+		Responses:              NewResponsesRepository(),
 		Template:               NewTemplateRepository(),
 		Namespace:              NewNamespaceRepository(),
 		LlamaStackDistribution: NewLlamaStackDistributionRepository(),

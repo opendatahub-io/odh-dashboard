@@ -195,9 +195,11 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 	if err != nil {
 		// Check if this is a mock streaming error - delegate to mock client
 		if _, ok := err.(*lsmocks.MockStreamError); ok {
-			if mockClient, ok := app.repositories.Responses.Client().(*lsmocks.MockLlamaStackClient); ok {
-				mockClient.HandleMockStreaming(w, flusher, params)
-				return
+			if client, clientErr := app.repositories.Responses.GetClient(r.Context()); clientErr == nil {
+				if mockClient, ok := client.(*lsmocks.MockLlamaStackClient); ok {
+					mockClient.HandleMockStreaming(w, flusher, params)
+					return
+				}
 			}
 		}
 		app.serverErrorResponse(w, r, err)

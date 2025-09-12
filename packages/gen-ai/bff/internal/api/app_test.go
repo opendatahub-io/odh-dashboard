@@ -11,7 +11,6 @@ import (
 
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/stretchr/testify/assert"
@@ -362,7 +361,7 @@ func TestGetCurrentUserHandler(t *testing.T) {
 	app := &App{
 		config:       cfg,
 		logger:       slog.Default(),
-		repositories: repositories.NewRepositories(lsmocks.NewMockLlamaStackClient()),
+		repositories: repositories.NewRepositories(),
 	}
 
 	tests := []struct {

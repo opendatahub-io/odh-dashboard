@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/opendatahub-io/gen-ai/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,9 +51,9 @@ func TestGeneralBffConfiguration(t *testing.T) {
 			envVar:          "LLAMA_STACK_URL",
 			varType:         "string",
 			defaultValue:    "",
-			testValue:       "http://localhost:8321",
+			testValue:       testutil.TestLlamaStackURL,
 			expectedDefault: "",
-			expectedSet:     "http://localhost:8321",
+			expectedSet:     testutil.TestLlamaStackURL,
 		},
 		{
 			name:            "LOG_LEVEL environment variable",
