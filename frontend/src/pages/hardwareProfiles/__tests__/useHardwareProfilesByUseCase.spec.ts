@@ -1,7 +1,7 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
-import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility.ts';
+import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';
 import { useDashboardNamespace } from '#~/redux/selectors';
 

@@ -28,7 +28,10 @@ import {
   TemplateModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { ServingRuntimeModelType, ServingRuntimePlatform } from '#~/types';
-import { mockGlobalScopedHardwareProfiles } from '#~/__mocks__/mockHardwareProfile';
+import {
+  mockGlobalScopedHardwareProfiles,
+  mockNewHardwareProfiles,
+} from '#~/__mocks__/mockHardwareProfile';
 import { mockConnectionTypeConfigMap } from '../../../../../../__mocks__/mockConnectionType';
 
 const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) => {
@@ -70,7 +73,7 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
 
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'opendatahub' },
-    mockK8sResourceList(mockGlobalScopedHardwareProfiles),
+    mockK8sResourceList(mockNewHardwareProfiles),
   );
 
   cy.interceptK8sList(
@@ -307,6 +310,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+    debugger;
     hardwareProfileSection.findHardwareProfileSearchSelector().click();
     const globalScopedHardwareProfile = hardwareProfileSection.getGlobalScopedHardwareProfile();
     globalScopedHardwareProfile
@@ -367,7 +371,6 @@ describe('Model Serving Deploy Wizard', () => {
           annotations: {
             'openshift.io/display-name': 'test-model',
             'opendatahub.io/hardware-profile-namespace': 'opendatahub',
-            'opendatahub.io/legacy-hardware-profile-name': 'medium-serving-wz9u9',
             'opendatahub.io/model-type': 'generative',
             'security.opendatahub.io/enable-auth': 'true',
           },
@@ -582,7 +585,6 @@ describe('Model Serving Deploy Wizard', () => {
           annotations: {
             'openshift.io/display-name': 'test-model',
             'opendatahub.io/hardware-profile-namespace': 'opendatahub',
-            'opendatahub.io/legacy-hardware-profile-name': 'medium-serving-wz9u9',
             'opendatahub.io/model-type': 'predictive',
           },
         },

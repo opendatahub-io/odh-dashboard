@@ -9,10 +9,7 @@ import {
 const useNotebookHardwareProfileConfig = (
   notebook?: NotebookKind | Notebook | null,
 ): UseHardwareProfileConfigResult => {
-  const legacyName =
-    notebook?.metadata.annotations?.['opendatahub.io/legacy-hardware-profile-name'];
-  const name =
-    legacyName || notebook?.metadata.annotations?.['opendatahub.io/hardware-profile-name'];
+  const name = notebook?.metadata.annotations?.['opendatahub.io/hardware-profile-name'];
   const resources = notebook?.spec.template.spec.containers.find(
     (container) => container.name === notebook.metadata.name,
   )?.resources;
