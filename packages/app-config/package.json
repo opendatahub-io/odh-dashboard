@@ -1,0 +1,16 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/app-config",
+  "description": "Configuration and utilities for application",
+  "version": "0.0.0",
+  "bin": {
+    "package-subtree": "./scripts/package-subtree.sh"
+  },
+  "exports": {
+    "./node": "./src/node.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit"
+  }
+}

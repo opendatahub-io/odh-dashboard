@@ -19,6 +19,11 @@ import chaiSubset from 'chai-subset';
 import '@cypress/code-coverage/support';
 import 'cypress-mochawesome-reporter/register';
 import 'cypress-plugin-steps';
+import {
+  type ModuleFederationConfig,
+  MF_PATH_PREFIX,
+  getModuleFederationURL,
+} from '@odh-dashboard/app-config/node';
 import './commands';
 import '#~/__tests__/cypress/cypress/utils/moduleFederationMock';
 import { asProjectAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
@@ -345,6 +350,40 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
 
     // Return 404 for all module federation requests.
     cy.intercept({ pathname: '/_mf/**' }, { statusCode: 404 });
+
+    // For each module federation config, intercept the request and forward it to the module federation server.
+    Cypress.env('mfConfigs')?.forEach((mfConfig: ModuleFederationConfig) => {
+      const mfPathPrefix = `${MF_PATH_PREFIX}/${mfConfig.name}`;
+      cy.intercept(
+        {
+          pathname: `${mfPathPrefix}/**`,
+          method: 'GET',
+        },
+        async (req) => {
+          // Extract the remainder of the URL after the module federation prefix
+          const originalPath = req.url;
+          const remainder = originalPath.replace(new RegExp(`^.*${mfPathPrefix}`), '');
+
+          // Construct the forwarded URL
+          const baseUrl = getModuleFederationURL(mfConfig).local;
+          const forwardedUrl = `${baseUrl}${remainder}`;
+
+          try {
+            // Use fetch as oppose to req.continue or cy.request to ECONNREFUSED errors.
+            const response = await fetch(forwardedUrl);
+            req.reply({
+              statusCode: response.status,
+              body: await response.text(),
+            });
+          } catch (error) {
+            req.reply({
+              statusCode: 404,
+              statusText: 'Module federation request failed',
+            });
+          }
+        },
+      );
+    });
 
     // Default intercepts.
     cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
