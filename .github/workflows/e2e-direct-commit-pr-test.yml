@@ -1,4 +1,4 @@
-name: E2E Direct Commit PR Tests
+name: E2E Direct Commit PR Tests - FIXED
 
 on: [push]
 
@@ -50,8 +50,28 @@ jobs:
         run: |
           echo "📦 Installing system dependencies for E2E tests..."
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            sudo apt-get update
-            sudo apt-get install -y jq
+            # Try different package managers based on the Linux distribution
+            if command -v apt-get &> /dev/null; then
+              echo "📦 Using apt-get (Ubuntu/Debian)"
+              sudo apt-get update
+              sudo apt-get install -y jq
+            elif command -v dnf &> /dev/null; then
+              echo "📦 Using dnf (Fedora/RHEL/CentOS)"
+              sudo dnf install -y jq
+            elif command -v yum &> /dev/null; then
+              echo "📦 Using yum (older RHEL/CentOS)"
+              sudo yum install -y jq
+            elif command -v apk &> /dev/null; then
+              echo "📦 Using apk (Alpine)"
+              sudo apk add jq
+            else
+              echo "❌ No supported package manager found"
+              echo "📦 Trying to install jq from source or pre-built binary..."
+              # Fallback: try to download pre-built jq binary
+              curl -L -o jq https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64
+              chmod +x jq
+              sudo mv jq /usr/local/bin/
+            fi
             echo "✅ jq installed for JSON processing"
           fi
 
