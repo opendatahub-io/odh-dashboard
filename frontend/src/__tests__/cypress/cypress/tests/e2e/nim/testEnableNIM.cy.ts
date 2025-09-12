@@ -39,7 +39,6 @@ describe('Verify NIM enable flow', () => {
 
       cy.step('Navigate to the Explore page');
       explorePage.visit();
-
       cy.step('Check if NIM application exists on cluster');
       checkNIMApplicationExists().then((nimExists) => {
         if (nimExists) {
@@ -150,9 +149,26 @@ function executeNIMTestSteps(): void {
   cy.step('Click Enable button in NIM card');
   nimCard.getEnableNIMButton().click();
 
-  // Continue with enablement steps
-  cy.step('Input NGC API Key');
-  nimCard.getNGCAPIKey().clear().type(Cypress.env('NGC_API_KEY'));
+  // Test Personal API key (should NOT show warning)
+  cy.step('Input Personal API key to verify no warning appears');
+  cy.clock();
+  nimCard.getNGCAPIKey().clear().type('nvapi-test-personal-key-123');
+  cy.step('Wait for debounce period to ensure no warning appears');
+  cy.tick(600); // Advance timer past debounce timeout (500ms + margin)
+  cy.step('Verify no warning message appears for Personal API key');
+  nimCard.getWarningAlert().should('not.exist');
+
+  // Test non-Personal API key warning
+  cy.step('Clear Personal API key and input legacy key to test warning');
+  nimCard.getNGCAPIKey().clear();
+  nimCard.getNGCAPIKey().type(Cypress.env('NGC_API_KEY'));
+  cy.step('Wait for debounce period before checking warning');
+  cy.tick(600); // Advance timer past debounce timeout (500ms + margin)
+  cy.step('Verify non-Personal API key warning message appears');
+  nimCard.getWarningAlert({ timeout: 1000 }).should('be.visible');
+  nimCard.getWarningAlert().should('contain', "Looks like you're not using a Personal API key");
+  cy.clock().then((clock) => clock.restore());
+
   cy.step('Click submit to enable the NIM application');
   nimCard.getNIMSubmit().click();
   cy.step('Wait for validation to complete and verify the validation message');

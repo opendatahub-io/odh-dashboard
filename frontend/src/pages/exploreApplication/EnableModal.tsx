@@ -19,15 +19,25 @@ import { asEnumMember } from '#~/utilities/utils';
 import EnableVariable from './EnableVariable';
 import './EnableModal.scss';
 
+type WarningProps = {
+  field: string;
+  validator: (value: string) => boolean;
+  message: string;
+};
+
 type EnableModalProps = {
   selectedApp: OdhApplication;
   onClose: () => void;
+  warningProps?: WarningProps;
 };
 
-const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
+const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose, warningProps }) => {
   const [postError, setPostError] = React.useState('');
+  const [warning, setWarning] = React.useState('');
   const [validationInProgress, setValidationInProgress] = React.useState(false);
   const [enableValues, setEnableValues] = React.useState<{ [key: string]: string }>({});
+  const debounceTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const isEnableValuesHasEmptyValue = React.useMemo(
     () => isEmpty(enableValues) || values(enableValues).some((val) => isEmpty(val)),
     [enableValues],
@@ -45,12 +55,61 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
     }
   };
 
+  const validateFieldOnChange = React.useCallback(
+    (key: string, value: string) => {
+      // Prioritize app-config validation if available
+      if (
+        selectedApp.spec.enable?.warningValidation &&
+        key === selectedApp.spec.enable.warningValidation.field
+      ) {
+        const { validationRegex, message } = selectedApp.spec.enable.warningValidation;
+        // Always clear warning when value is falsy or when validationRegex is absent
+        if (!value || !validationRegex) {
+          setWarning('');
+        } else {
+          const regex = new RegExp(validationRegex);
+          if (regex.test(value)) {
+            setWarning(message);
+          } else {
+            setWarning('');
+          }
+        }
+      } else if (warningProps && key === warningProps.field) {
+        // Fall back to warning props validation
+        if (value && warningProps.validator(value)) {
+          setWarning(warningProps.message);
+        } else {
+          setWarning('');
+        }
+      }
+    },
+    [warningProps, selectedApp.spec.enable?.warningValidation],
+  );
+
+  const debouncedValidateField = React.useCallback(
+    (key: string, value: string) => {
+      // Clear existing timeout
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+
+      // Set new timeout for validation
+      debounceTimeoutRef.current = setTimeout(() => {
+        validateFieldOnChange(key, value);
+      }, 500); // Wait 500ms after user stops typing before showing warning
+    },
+    [validateFieldOnChange],
+  );
+
   const updateEnableValue = (key: string, value: string): void => {
     const updatedValues = {
       ...enableValues,
       [key]: value,
     };
     setEnableValues(updatedValues);
+
+    // Validate on change for warnings (debounced)
+    debouncedValidateField(key, value);
   };
 
   const onDoEnableApp = () => {
@@ -59,6 +118,11 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
   };
 
   const handleClose = React.useCallback(() => {
+    // Clear debounce timeout
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+
     // Clear only the values, keeping the keys intact
     const resetValues: { [key: string]: string } = {};
     Object.keys(enableValues).forEach((key) => {
@@ -66,6 +130,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
     });
     setEnableValues(resetValues);
     setPostError('');
+    setWarning('');
     onClose();
   }, [onClose, enableValues]);
 
@@ -91,6 +156,13 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
     validationInProgress,
     validationStatus,
   ]);
+
+  // Cleanup debounce timeout on unmount
+  React.useEffect(() => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+  }, []);
 
   if (!selectedApp.spec.enable) {
     return null;
@@ -129,6 +201,20 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
                   isInline
                 >
                   {postError}
+                </Alert>
+              </FormAlert>
+            ) : null}
+            {warning ? (
+              <FormAlert>
+                <Alert
+                  data-testid="warning-message-alert"
+                  variantLabel="warning"
+                  variant="warning"
+                  title="Deprecation warning"
+                  aria-live="polite"
+                  isInline
+                >
+                  {warning}
                 </Alert>
               </FormAlert>
             ) : null}
