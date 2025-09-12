@@ -6,7 +6,7 @@ import { useDashboardNamespace } from '#~/redux/selectors';
 import useAcceleratorProfiles from '#~/pages/notebookController/screens/server/useAcceleratorProfiles';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
-import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility.ts';
+import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import ManageBYONImageModal from './BYONImageModal/ManageBYONImageModal';
 import DeleteBYONImageModal from './BYONImageModal/DeleteBYONImageModal';
 import { columns } from './tableData';
