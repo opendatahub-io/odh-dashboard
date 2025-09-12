@@ -480,7 +480,7 @@ describe('Manage Hardware Profile', () => {
     createTolerationModal.findTolerationSubmitButton().click();
     createHardwareProfile
       .getTolerationTableRow('toleration-key')
-      .shouldHaveOperator('Equal')
+      .shouldHaveOperator('-')
       .shouldHaveEffect('-')
       .shouldHaveTolerationSeconds('-');
     // test edit toleration
@@ -989,7 +989,7 @@ describe('Manage Hardware Profile', () => {
       createHardwareProfile.findAddTolerationButton().click();
       createTolerationModal.findTolerationKeyInput().fill('test-key');
       createTolerationModal.findTolerationSubmitButton().click();
-      createHardwareProfile.getTolerationTableRow('test-key').shouldHaveOperator('Equal');
+      createHardwareProfile.getTolerationTableRow('test-key').shouldHaveOperator('-');
 
       // Switch back to local queue and set values
       createHardwareProfile.findLocalQueueRadio().click();

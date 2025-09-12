@@ -37,10 +37,14 @@ export const tolerationColumns: SortableData<Toleration>[] = [
 
 export const EMPTY_TOLERATION: Toleration = {
   key: '',
-  operator: TolerationOperator.EQUAL,
 };
 
 export const operatorDropdownOptions: SimpleSelectOption[] = [
+  {
+    key: '',
+    label: 'None',
+    isPlaceholder: true,
+  },
   {
     key: TolerationOperator.EQUAL,
     label: TolerationOperator.EQUAL,
