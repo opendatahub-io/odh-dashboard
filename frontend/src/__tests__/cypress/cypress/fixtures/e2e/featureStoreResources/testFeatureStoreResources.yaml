@@ -1,0 +1,4 @@
+# Feature Store test data
+projectName: "test-fs-ui-proj"
+feastCreditScoringProject: "credit_scoring_local"
+feastDriverRankingProject: "driver_ranking"
