@@ -149,10 +149,14 @@ const ModelDetailsPage: React.FC = () => {
         !loading &&
         !error &&
         model && (
-          <ModelCatalogDeployButton 
-            model={model} 
-            renderRegisterButton={(isDeployAvailable) => registerModelButton(isDeployAvailable ? 'secondary' : 'primary')}
-          />
+          <ActionList>
+            <ActionListGroup>
+              <ModelCatalogDeployButton 
+                model={model} 
+                renderRegisterButton={(isDeployAvailable) => registerModelButton(isDeployAvailable ? 'secondary' : 'primary')}
+              />
+            </ActionListGroup>
+          </ActionList>
         )
       }
     >
