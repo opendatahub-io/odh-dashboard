@@ -46,6 +46,15 @@ jobs:
           cd frontend
           npm run cypress:server:build
 
+      - name: Install System Dependencies
+        run: |
+          echo "📦 Installing system dependencies for E2E tests..."
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            sudo apt-get update
+            sudo apt-get install -y jq
+            echo "✅ jq installed for JSON processing"
+          fi
+
       - name: Check and Install OpenShift CLI
         run: |
           echo "🔍 Checking if OpenShift CLI (oc) is installed..."
@@ -337,7 +346,7 @@ jobs:
           mkdir -p "$CY_RESULTS_DIR"
 
           # Run tests directly against shared localhost server
-          cd src/__tests__/cypress && BASE_URL=http://localhost:9001 npx cypress run --env '{"grepTags":"${{ matrix.test-tag }}","skipTags":"@Bug,@Maintain,@NonConcurrent","grepFilterSpecs":true}' --browser electron --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+          cd src/__tests__/cypress && BASE_URL=http://localhost:9001 npx cypress run --env '{"grepTags":"${{ matrix.test-tag }}","skipTags":["@Bug","@Maintain","@NonConcurrent"],"grepFilterSpecs":true}' --browser electron --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Test tag name
         if: ${{ always() }}
