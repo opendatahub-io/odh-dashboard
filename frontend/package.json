@@ -260,6 +260,8 @@
     },
     "react-router": "^7.1.5",
     "ws": "^8.17.1",
-    "dompurify": "^3.2.4"
+    "dompurify": "^3.2.4",
+    "redux": "^4.2.0",
+    "form-data": "^4.0.4"
   }
 }
