@@ -89,6 +89,11 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 
 	llamaResponse, err := app.repositories.Responses.CreateResponse(ctx, params)
 	if err != nil {
+		// Check if this is a model not found error
+		if ModelNotFoundError(err) {
+			app.modelNotFoundResponse(w, r, createRequest.Model)
+			return
+		}
 		app.serverErrorResponse(w, r, err)
 		return
 	}
