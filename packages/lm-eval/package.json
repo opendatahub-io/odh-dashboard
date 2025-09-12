@@ -16,7 +16,7 @@
     ],
     "local": {
       "host": "localhost",
-      "port": 9001
+      "port": 9103
     },
     "service": {
       "name": "lm-eval-ui-service",
