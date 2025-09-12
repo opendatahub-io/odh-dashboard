@@ -1,4 +1,4 @@
-name: E2E Direct Commit PR Tests - FIXED
+name: E2E Direct Commit PR Tests
 
 on: [push]
 
@@ -22,8 +22,43 @@ jobs:
         run: |
           echo "test-tags=[\"@SmokeSet1\",\"@SmokeSet2\",\"@SmokeSet3\",\"@SanitySet1\",\"@SanitySet2\",\"@SanitySet3\"]" >> $GITHUB_OUTPUT
 
-  e2e-tests:
+  start-server:
     needs: get-test-tags
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend for E2E tests
+        run: |
+          cd frontend
+          npm run cypress:server:build
+
+      - name: Start Cypress Server
+        run: |
+          cd frontend
+          echo "🚀 Starting shared Cypress server for all E2E tests..."
+          npm run cypress:server &
+          SERVER_PID=$!
+          echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+          echo "SHARED_SERVER_STARTED=true" >> $GITHUB_ENV
+
+      - name: Wait for Server Ready
+        run: |
+          echo "⏳ Waiting for localhost:9001 to be ready..."
+          npx wait-on tcp:127.0.0.1:9001 --timeout 60000
+          echo "✅ Shared server is ready!"
+
+  e2e-tests:
+    needs: [get-test-tags, start-server]
     runs-on: self-hosted
     strategy:
       fail-fast: false
@@ -291,11 +326,11 @@ jobs:
 
           export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
 
-      - name: Build frontend for E2E tests
+      - name: Wait for Shared Server
         run: |
-          cd frontend
-          # Build frontend to public-cypress directory (same as mock tests)
-          npm run cypress:server:build
+          echo "⏳ Waiting for shared localhost:9001 to be ready..."
+          npx wait-on tcp:127.0.0.1:9001 --timeout 120000
+          echo "✅ Shared server is ready!"
 
       - name: Run E2E Tests
         run: |
@@ -323,15 +358,8 @@ jobs:
           # Create results directory
           mkdir -p "$CY_RESULTS_DIR"
 
-          # Each matrix job uses a unique port to avoid conflicts when running in parallel
-          UNIQUE_PORT=$((9001 + ${{ strategy.job-index }}))
-          echo "🌐 Using unique port: $UNIQUE_PORT for matrix job ${{ strategy.job-index }}"
-
-          # Start server and run tests using concurrently (like Jenkins example)
-          npx concurrently -P -k -s first \
-            "npm run cypress:server" \
-            "npx wait-on tcp:127.0.0.1:$UNIQUE_PORT && CYPRESS_BROWSER=electron CYPRESS_BASE_URL=http://localhost:$UNIQUE_PORT CY_TEST_TAGS='${{ matrix.test-tag }}' CY_SKIP_TAGS='@Bug,@Maintain,@NonConcurrent' CY_RESULTS_DIR='$CY_RESULTS_DIR' npm run test:cypress:ci:matrix" \
-            --
+          # Run tests directly against shared localhost server
+          CYPRESS_BROWSER=electron CYPRESS_BASE_URL=http://localhost:9001 CY_TEST_TAGS='${{ matrix.test-tag }}' CY_SKIP_TAGS='@Bug,@Maintain,@NonConcurrent' CY_RESULTS_DIR='$CY_RESULTS_DIR' npm run test:cypress:ci:matrix
 
       - name: Test tag name
         if: ${{ always() }}
@@ -362,3 +390,16 @@ jobs:
           echo ""
           echo "📊 Test artifacts uploaded to:"
           echo "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+  cleanup-server:
+    needs: [e2e-tests]
+    runs-on: self-hosted
+    if: always()
+    steps:
+      - name: Stop Shared Cypress Server
+        run: |
+          echo "🛑 Stopping shared Cypress server..."
+          # Kill any processes on port 9001
+          pkill -f "npm run cypress:server" || true
+          pkill -f "serve.*public-cypress" || true
+          echo "✅ Server cleanup completed"
