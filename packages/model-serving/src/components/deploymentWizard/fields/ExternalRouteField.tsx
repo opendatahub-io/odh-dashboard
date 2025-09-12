@@ -3,9 +3,7 @@ import { FormGroup, Checkbox, Stack, StackItem } from '@patternfly/react-core';
 import { z } from 'zod';
 
 // Schema
-export const externalRouteFieldSchema = z.object({
-  externalRoute: z.boolean(),
-});
+export const externalRouteFieldSchema = z.boolean();
 
 export type ExternalRouteFieldData = z.infer<typeof externalRouteFieldSchema>;
 
@@ -24,7 +22,7 @@ export const useExternalRouteField = (
 ): ExternalRouteFieldHook => {
   const [externalRouteData, setExternalRouteData] = React.useState<
     ExternalRouteFieldData | undefined
-  >(existingData || { externalRoute: false });
+  >(existingData || false);
 
   return {
     data: externalRouteData,
@@ -34,20 +32,16 @@ export const useExternalRouteField = (
 
 // Component
 type ExternalRouteFieldProps = {
-  data?: ExternalRouteFieldData;
+  isChecked?: ExternalRouteFieldData;
   onChange?: (checked: boolean) => void;
   allowCreate?: boolean;
 };
 
 export const ExternalRouteField: React.FC<ExternalRouteFieldProps> = ({
-  data = { externalRoute: false },
+  isChecked = false,
   onChange,
   allowCreate = false,
 }) => {
-  const handleChange = (checked: boolean) => {
-    onChange?.(checked);
-  };
-
   return (
     <Stack hasGutter>
       <StackItem>
@@ -56,9 +50,9 @@ export const ExternalRouteField: React.FC<ExternalRouteFieldProps> = ({
             id="alt-form-checkbox-route"
             data-testid="model-access-checkbox"
             label="Make model deployment available through an external route"
-            isChecked={data.externalRoute}
+            isChecked={isChecked}
             isDisabled={!allowCreate}
-            onChange={(e, check) => handleChange(check)}
+            onChange={(e, check) => onChange?.(check)}
           />
         </FormGroup>
       </StackItem>

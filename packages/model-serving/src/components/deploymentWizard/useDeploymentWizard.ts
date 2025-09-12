@@ -20,19 +20,14 @@ import {
 export type ModelDeploymentWizardData = {
   modelTypeField?: ModelTypeFieldData;
   k8sNameDesc?: K8sNameDescriptionFieldData;
-  modelAccessField?: boolean;
-  tokenAuthenticationField?: TokenAuthenticationFieldData;
+  externalRoute?: ExternalRouteFieldData;
+  tokenAuthentication?: TokenAuthenticationFieldData;
   hardwareProfile?: Parameters<typeof useHardwareProfileConfig>;
   modelFormat?: SupportedModelFormats;
   modelLocationData?: ModelLocationData;
   connections?: LabeledConnection[];
   initSelectedConnection?: LabeledConnection | undefined;
   // Add more field handlers as needed
-};
-
-export type ModelDeploymentWizardDataHandlers = {
-  setExternalRoute: (data: ExternalRouteFieldData) => void;
-  setTokenAuthentication: (data: TokenAuthenticationFieldData) => void;
 };
 
 export type UseModelDeploymentWizardState = {
@@ -46,11 +41,6 @@ export type UseModelDeploymentWizardState = {
     externalRoute: ReturnType<typeof useExternalRouteField>;
     tokenAuthentication: ReturnType<typeof useTokenAuthenticationField>;
   };
-  data: {
-    externalRouteField: ExternalRouteFieldData | undefined;
-    tokenAuthenticationField: TokenAuthenticationFieldData | undefined;
-  };
-  handlers: ModelDeploymentWizardDataHandlers;
 };
 
 export const useModelDeploymentWizard = (
@@ -74,16 +64,11 @@ export const useModelDeploymentWizard = (
   const modelFormatState = useModelFormatField(initialData?.modelFormat, modelType.data);
 
   // Step 3: Advanced Options - Individual Fields
-  const externalRouteField = useExternalRouteField(
-    initialData?.modelAccessField ? { externalRoute: initialData.modelAccessField } : undefined,
-  );
-  const { data: externalRouteData, setData: setExternalRoute } = externalRouteField;
+  const externalRoute = useExternalRouteField(initialData?.externalRoute ?? undefined);
 
-  const tokenAuthenticationField = useTokenAuthenticationField(
-    initialData?.tokenAuthenticationField,
+  const tokenAuthentication = useTokenAuthenticationField(
+    initialData?.tokenAuthentication ?? undefined,
   );
-  const { data: tokenAuthenticationData, setData: setTokenAuthentication } =
-    tokenAuthenticationField;
 
   // Step 4: Summary
 
@@ -95,16 +80,8 @@ export const useModelDeploymentWizard = (
       hardwareProfileConfig,
       modelFormatState,
       modelLocationData,
-      externalRoute: externalRouteField,
-      tokenAuthentication: tokenAuthenticationField,
-    },
-    data: {
-      externalRouteField: externalRouteData,
-      tokenAuthenticationField: tokenAuthenticationData,
-    },
-    handlers: {
-      setExternalRoute,
-      setTokenAuthentication,
+      externalRoute,
+      tokenAuthentication,
     },
   };
 };

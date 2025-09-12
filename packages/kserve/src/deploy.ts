@@ -113,13 +113,13 @@ const assembleInferenceService = (
   annotations['opendatahub.io/hardware-profile-namespace'] =
     hardwareProfile.selectedProfile?.metadata.namespace;
 
-  if (tokenAuth?.tokens && tokenAuth.tokens.length > 0) {
+  if (tokenAuth && tokenAuth.length > 0) {
     annotations['security.opendatahub.io/enable-auth'] = 'true';
   }
 
   inferenceService.metadata.annotations = annotations;
 
-  if (externalRoute?.externalRoute) {
+  if (externalRoute) {
     if (!inferenceService.metadata.labels) {
       inferenceService.metadata.labels = {};
     }

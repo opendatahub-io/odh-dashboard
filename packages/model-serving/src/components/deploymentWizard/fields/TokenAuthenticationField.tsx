@@ -19,16 +19,15 @@ import { ExclamationCircleIcon, MinusCircleIcon, PlusCircleIcon } from '@pattern
 import { z } from 'zod';
 
 // Schema
-const servingRuntimeTokenSchema = z.object({
+const tokenSchema = z.object({
   uuid: z.string(),
   name: z.string().min(1, 'Service account name is required'),
   error: z.string().optional(),
 });
 
-export const tokenAuthenticationFieldSchema = z.object({
-  tokens: z.array(servingRuntimeTokenSchema),
-});
+export const tokenAuthenticationFieldSchema = z.array(tokenSchema);
 
+type TokenSchemaType = z.infer<typeof tokenSchema>;
 export type TokenAuthenticationFieldData = z.infer<typeof tokenAuthenticationFieldSchema>;
 
 export const isValidTokenAuthentication = (
@@ -48,7 +47,7 @@ export const useTokenAuthenticationField = (
 ): TokenAuthenticationFieldHook => {
   const [tokenAuthData, setTokenAuthData] = React.useState<
     TokenAuthenticationFieldData | undefined
-  >(existingData || { tokens: [] });
+  >(existingData || []);
 
   return {
     data: tokenAuthData,
@@ -56,30 +55,21 @@ export const useTokenAuthenticationField = (
   };
 };
 
-// Local TokenInput component
-type ServingRuntimeToken = {
-  uuid: string;
-  name: string;
-  error?: string;
-};
-
-type TokenAuthData = {
-  tokenAuth: boolean;
-  tokens: ServingRuntimeToken[];
-};
-
-type TokenAuthValue = TokenAuthData[keyof TokenAuthData];
-
 type TokenInputProps = {
-  data: TokenAuthData;
-  setData?: (key: keyof TokenAuthData, value: TokenAuthValue) => void;
-  token: ServingRuntimeToken;
+  existingTokens: TokenAuthenticationFieldData;
+  setTokens?: TokenAuthenticationFieldHook['setData'];
+  newToken: TokenSchemaType;
   disabled?: boolean;
 };
 
-const TokenInput: React.FC<TokenInputProps> = ({ data, setData, token, disabled }) => {
+const TokenInput: React.FC<TokenInputProps> = ({
+  existingTokens,
+  setTokens,
+  newToken,
+  disabled,
+}) => {
   const checkDuplicates = (name: string): boolean => {
-    const duplicates = data.tokens.filter((currentToken) => currentToken.name === name);
+    const duplicates = existingTokens.filter((currentToken) => currentToken.name === name);
     return duplicates.length > 0;
   };
 
@@ -98,35 +88,35 @@ const TokenInput: React.FC<TokenInputProps> = ({ data, setData, token, disabled 
       <Split>
         <SplitItem isFilled>
           <TextInput
-            value={token.name}
+            value={newToken.name}
             isRequired
             type="text"
             id="service-account-form-name"
             data-testid="service-account-form-name"
             name="service-account-form-name"
             aria-describedby="service-account-form-name-helper"
-            validated={token.error ? ValidatedOptions.error : ValidatedOptions.default}
+            validated={newToken.error ? ValidatedOptions.error : ValidatedOptions.default}
             isDisabled={disabled}
             onChange={(e, value) => {
-              const tokens = data.tokens.map((item) =>
-                item.uuid === token.uuid
+              const tokens = existingTokens.map((item) =>
+                item.uuid === newToken.uuid
                   ? {
-                      uuid: token.uuid,
+                      uuid: newToken.uuid,
                       name: value,
                       error: checkValid(value),
                     }
                   : item,
               );
-              setData?.('tokens', tokens);
+              setTokens?.(tokens);
             }}
           />
           <FormHelperText>
             <HelperText>
               <HelperTextItem
-                {...(token.error && { icon: <ExclamationCircleIcon />, variant: 'error' })}
+                {...(newToken.error && { icon: <ExclamationCircleIcon />, variant: 'error' })}
               >
-                {token.error
-                  ? token.error
+                {newToken.error
+                  ? newToken.error
                   : 'Enter the service account name for which the token will be generated'}
               </HelperTextItem>
             </HelperText>
@@ -140,10 +130,10 @@ const TokenInput: React.FC<TokenInputProps> = ({ data, setData, token, disabled 
             icon={<MinusCircleIcon />}
             isDisabled={disabled}
             onClick={() => {
-              const newTokens = data.tokens.filter((item) => item.uuid !== token.uuid);
-              setData?.('tokens', newTokens);
+              const newTokens = existingTokens.filter((item) => item.uuid !== newToken.uuid);
+              setTokens?.(newTokens);
               if (newTokens.length === 0) {
-                setData?.('tokenAuth', false);
+                setTokens?.([]);
               }
             }}
           />
@@ -155,26 +145,23 @@ const TokenInput: React.FC<TokenInputProps> = ({ data, setData, token, disabled 
 
 // Component
 type TokenAuthenticationFieldProps = {
-  data?: TokenAuthenticationFieldData;
-  onChange?: (
-    key: keyof TokenAuthenticationFieldData,
-    value: TokenAuthenticationFieldData[keyof TokenAuthenticationFieldData],
-  ) => void;
+  tokens?: TokenAuthenticationFieldData;
+  onChange?: TokenAuthenticationFieldHook['setData'];
   allowCreate?: boolean;
 };
 
 export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> = ({
-  data = { tokens: [] },
+  tokens = [],
   onChange,
   allowCreate = false,
 }) => {
   const createNewToken = React.useCallback(() => {
     const name = 'default-name';
-    const duplicated = data.tokens.filter((token) => token.name === name);
+    const duplicated = tokens.filter((token) => token.name === name);
     const duplicatedError = duplicated.length > 0 ? 'Duplicates are invalid' : '';
 
     const newTokens = [
-      ...data.tokens,
+      ...tokens,
       {
         name,
         uuid: getUniqueId('ml'),
@@ -182,8 +169,8 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
       },
     ];
 
-    onChange?.('tokens', newTokens);
-  }, [data.tokens, onChange]);
+    onChange?.(newTokens);
+  }, [tokens, onChange]);
 
   return (
     <FormGroup
@@ -199,17 +186,17 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
             data-testid="token-authentication-checkbox"
             name="alt-form-checkbox-auth"
             isDisabled={!allowCreate}
-            isChecked={data.tokens.length > 0}
+            isChecked={tokens.length > 0}
             onChange={(e, check) => {
-              if (check && data.tokens.length === 0) {
+              if (check && tokens.length === 0) {
                 createNewToken();
               } else if (!check) {
-                onChange?.('tokens', []);
+                onChange?.([]);
               }
             }}
           />
         </StackItem>
-        {data.tokens.length > 0 && (
+        {tokens.length > 0 && (
           <StackItem>
             <div style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}>
               <Stack hasGutter>
@@ -222,16 +209,12 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
                     />
                   </StackItem>
                 )}
-                {data.tokens.map((token) => (
+                {tokens.map((token) => (
                   <StackItem key={token.uuid}>
                     <TokenInput
-                      token={token}
-                      data={{ ...data, tokenAuth: data.tokens.length > 0 }}
-                      setData={(key, value) => {
-                        if (key === 'tokens' && Array.isArray(value)) {
-                          onChange?.(key, value);
-                        }
-                      }}
+                      newToken={token}
+                      existingTokens={tokens}
+                      setTokens={onChange}
                       disabled={!allowCreate}
                     />
                   </StackItem>

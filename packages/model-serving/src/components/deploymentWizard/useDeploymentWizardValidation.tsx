@@ -23,9 +23,8 @@ export type ModelDeploymentWizardValidation = {
 };
 
 export const useModelDeploymentWizardValidation = (
-  wizardState: UseModelDeploymentWizardState,
+  state: UseModelDeploymentWizardState['state'],
 ): ModelDeploymentWizardValidation => {
-  const { state } = wizardState;
   // Step 1: Model Source
   const modelSourceStepValidationData: Partial<ModelSourceStepData> = React.useMemo(
     () => ({
@@ -38,16 +37,6 @@ export const useModelDeploymentWizardValidation = (
   const modelSourceStepValidation = useZodFormValidation(
     modelSourceStepValidationData,
     modelSourceStepSchema,
-  );
-
-  const externalRouteValidation = useZodFormValidation(
-    wizardState.data.externalRouteField,
-    externalRouteFieldSchema,
-  );
-
-  const tokenAuthenticationValidation = useZodFormValidation(
-    wizardState.data.tokenAuthenticationField,
-    tokenAuthenticationFieldSchema,
   );
 
   // Step 2: Model Deployment
@@ -63,6 +52,17 @@ export const useModelDeploymentWizardValidation = (
     modelFormatFieldSchema,
   );
 
+  // Step 3: Advanced Options
+  const externalRouteValidation = useZodFormValidation(
+    state.externalRoute.data,
+    externalRouteFieldSchema,
+  );
+
+  const tokenAuthenticationValidation = useZodFormValidation(
+    state.tokenAuthentication.data,
+    tokenAuthenticationFieldSchema,
+  );
+
   // Step validation
   const isModelSourceStepValid =
     modelSourceStepValidation.getFieldValidation(undefined, true).length === 0;
@@ -70,6 +70,9 @@ export const useModelDeploymentWizardValidation = (
     isK8sNameDescriptionDataValid(state.k8sNameDesc.data) &&
     Object.keys(hardwareProfileValidation.getAllValidationIssues()).length === 0 &&
     Object.keys(modelFormatValidation.getAllValidationIssues()).length === 0;
+  const isAdvancedSettingsStepValid =
+    externalRouteValidation.getFieldValidation(undefined, true).length === 0 &&
+    tokenAuthenticationValidation.getFieldValidation(undefined, true).length === 0;
 
   return {
     modelSource: modelSourceStepValidation,
@@ -78,8 +81,6 @@ export const useModelDeploymentWizardValidation = (
     tokenAuthentication: tokenAuthenticationValidation,
     isModelSourceStepValid,
     isModelDeploymentStepValid,
-    isAdvancedSettingsStepValid:
-      externalRouteValidation.getFieldValidation(undefined, true).length === 0 &&
-      tokenAuthenticationValidation.getFieldValidation(undefined, true).length === 0,
+    isAdvancedSettingsStepValid,
   };
 };
