@@ -337,7 +337,7 @@ jobs:
           mkdir -p "$CY_RESULTS_DIR"
 
           # Run tests directly against shared localhost server
-          CYPRESS_BROWSER=electron CYPRESS_BASE_URL=http://localhost:9001 CY_TEST_TAGS='${{ matrix.test-tag }}' CY_SKIP_TAGS='@Bug,@Maintain,@NonConcurrent' CY_RESULTS_DIR='$CY_RESULTS_DIR' npm run test:cypress:ci:matrix
+          cd frontend/src/__tests__/cypress && npx cypress run --env '{"grepTags":"${{ matrix.test-tag }}","skipTags":"@Bug,@Maintain,@NonConcurrent","grepFilterSpecs":true}' --browser electron --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Test tag name
         if: ${{ always() }}
