@@ -43,6 +43,7 @@ function discoverPluginPackages() {
       .map((name) => name.trim())
       .filter(Boolean);
 
+    // eslint-disable-next-line no-undef
     const availablePluginsSet = new Set(availablePluginNames);
     const validPackages = [];
     const invalidPackages = [];

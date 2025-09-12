@@ -24,6 +24,7 @@ import { extractVersionTag } from '~/app/pages/modelCatalog/utils/modelCatalogUt
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { getRegisterCatalogModelRoute } from '~/app/routes/modelCatalog/catalogModelRegister';
 import ModelDetailsView from './ModelDetailsView';
+import { ModelCatalogDeployButton } from '~/odh/components/ModelCatalogDeployButton';
 
 type RouteParams = {
   modelId: string;
@@ -149,7 +150,10 @@ const ModelDetailsPage: React.FC = () => {
         !error &&
         model && (
           <ActionList>
-            <ActionListGroup>{registerModelButton()}</ActionListGroup>
+            <ActionListGroup>
+              {registerModelButton()}
+              <ModelCatalogDeployButton model={model} />
+            </ActionListGroup>
           </ActionList>
         )
       }
