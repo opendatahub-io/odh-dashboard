@@ -2,8 +2,14 @@ package lsmocks
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strings"
+	"time"
 
 	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v2/packages/ssestream"
 	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 )
@@ -116,7 +122,67 @@ func (m *MockLlamaStackClient) UploadFile(ctx context.Context, params llamastack
 
 // CreateResponse returns a mock response with comprehensive parameter support
 func (m *MockLlamaStackClient) CreateResponse(ctx context.Context, params llamastack.CreateResponseParams) (*responses.Response, error) {
-	// Create a mock response with proper Output structure that the handler can extract content from
+	// Create base response text
+	responseText := "This is a mock response to your query: " + params.Input
+
+	// Create output items
+	var outputItems []responses.ResponseOutputItemUnion
+
+	// If vector stores are provided, simulate file search call
+	if len(params.VectorStoreIDs) > 0 {
+		// Add mock file search call result with search results
+		outputItems = append(outputItems, responses.ResponseOutputItemUnion{
+			ID:      "call_mock123",
+			Type:    "file_search_call",
+			Role:    "assistant",
+			Status:  "completed",
+			Queries: []string{params.Input},
+		})
+
+		// Manually set results using reflection since the exact type might not be exported
+		lastItem := &outputItems[len(outputItems)-1]
+		results := []map[string]interface{}{
+			{
+				"score":    0.8542,
+				"text":     "This is mock retrieved content that relates to your query: " + params.Input + ". This content comes from the vector store and provides context for the AI response.",
+				"filename": "mock_document.txt",
+			},
+		}
+
+		// Use JSON marshal/unmarshal to set the Results field correctly
+		if itemJSON, err := json.Marshal(map[string]interface{}{
+			"id":      lastItem.ID,
+			"type":    lastItem.Type,
+			"role":    lastItem.Role,
+			"status":  lastItem.Status,
+			"queries": lastItem.Queries,
+			"results": results,
+		}); err == nil {
+			var updatedItem responses.ResponseOutputItemUnion
+			if json.Unmarshal(itemJSON, &updatedItem) == nil {
+				outputItems[len(outputItems)-1] = updatedItem
+			}
+		}
+
+		// Update response text to indicate RAG usage
+		responseText = "Based on retrieved documents, this is a mock response to your query: " + params.Input
+	}
+
+	// Add message content
+	outputItems = append(outputItems, responses.ResponseOutputItemUnion{
+		ID:     "msg_mock123",
+		Type:   "message",
+		Role:   "assistant",
+		Status: "completed",
+		Content: []responses.ResponseOutputMessageContentUnion{
+			{
+				Type: "output_text",
+				Text: responseText,
+			},
+		},
+	})
+
+	// Create mock response with proper Output structure
 	mockResponse := &responses.Response{
 		ID:        "resp_mock123",
 		Object:    "response",
@@ -124,21 +190,193 @@ func (m *MockLlamaStackClient) CreateResponse(ctx context.Context, params llamas
 		Model:     params.Model,
 		Status:    "completed",
 		Metadata:  map[string]string{},
-		Output: []responses.ResponseOutputItemUnion{
-			{
-				ID:     "msg_mock123",
-				Type:   "message",
-				Role:   "assistant",
-				Status: "completed",
-				Content: []responses.ResponseOutputMessageContentUnion{
-					{
-						Type: "output_text",
-						Text: "This is a mock response to your query: " + params.Input,
-					},
-				},
-			},
-		},
+		Output:    outputItems,
 	}
 
 	return mockResponse, nil
+}
+
+// MockStreamError indicates mock streaming mode and provides response data
+type MockStreamError struct {
+	Message      string
+	ResponseText string
+	Params       llamastack.CreateResponseParams
+}
+
+func (e *MockStreamError) Error() string {
+	return e.Message
+}
+
+// HandleMockStreaming writes realistic streaming events to the response writer
+func (m *MockLlamaStackClient) HandleMockStreaming(w http.ResponseWriter, flusher http.Flusher, params llamastack.CreateResponseParams) {
+	// Set hardened headers for Server-Sent Events (same as real handler)
+	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache, no-transform")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no")
+	w.WriteHeader(http.StatusOK)
+
+	// Determine response text based on whether RAG is used
+	responseText := "This is a mock response to your query: " + params.Input
+	if len(params.VectorStoreIDs) > 0 {
+		responseText = "Based on retrieved documents, this is a mock response to your query: " + params.Input
+	}
+
+	// Mock identifiers
+	responseID := "resp_mock_stream123"
+	itemID := "msg_mock_stream123"
+
+	// Helper function to send SSE event
+	sendEvent := func(eventData interface{}) {
+		if data, err := json.Marshal(eventData); err == nil {
+			fmt.Fprintf(w, "data: %s\n\n", data)
+		}
+	}
+
+	// 1. Response created event
+	sendEvent(map[string]interface{}{
+		"type":            "response.created",
+		"sequence_number": 0,
+		"item_id":         "",
+		"output_index":    0,
+		"delta":           "",
+		"response": map[string]interface{}{
+			"id":         responseID,
+			"model":      params.Model,
+			"status":     "in_progress",
+			"created_at": 1234567890.0,
+		},
+	})
+
+	// Small delay after creation
+	time.Sleep(200 * time.Millisecond)
+	flusher.Flush()
+
+	// 2. If vector stores provided, simulate RAG processing (skip events 1-4 for RAG background processing)
+	if len(params.VectorStoreIDs) > 0 {
+		// RAG processing happens in background (sequence numbers 1-4 are skipped)
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	// 3. Content part added event
+	sequenceNum := 1
+	if len(params.VectorStoreIDs) > 0 {
+		sequenceNum = 5 // Skip sequence numbers 1-4 for RAG processing
+	}
+	sendEvent(map[string]interface{}{
+		"type":            "response.content_part.added",
+		"sequence_number": sequenceNum,
+		"item_id":         itemID,
+		"output_index":    0,
+		"delta":           "",
+	})
+
+	// Small delay before starting text generation
+	time.Sleep(150 * time.Millisecond)
+	flusher.Flush()
+
+	// 4. Split text into words and send as delta events (like real streaming)
+	words := strings.Fields(responseText)
+	for i, word := range words {
+		// Add space before each word except the first
+		chunk := word
+		if i > 0 {
+			chunk = " " + word
+		}
+
+		sendEvent(map[string]interface{}{
+			"type":            "response.output_text.delta",
+			"sequence_number": sequenceNum + 1 + i,
+			"item_id":         itemID,
+			"output_index":    0,
+			"delta":           chunk,
+		})
+
+		// Add realistic delay between chunks to simulate real streaming
+		time.Sleep(300 * time.Millisecond)
+		flusher.Flush()
+	}
+
+	// 5. Content part done event
+	sendEvent(map[string]interface{}{
+		"type":            "response.content_part.done",
+		"sequence_number": sequenceNum + 1 + len(words),
+		"item_id":         itemID,
+		"output_index":    0,
+		"delta":           "",
+	})
+
+	// Brief delay before completion
+	time.Sleep(100 * time.Millisecond)
+	if flusher, ok := w.(http.Flusher); ok {
+		flusher.Flush()
+	}
+
+	// 6. Response completed event
+	var outputItems []map[string]interface{}
+
+	// Add tool call to completed response if vector stores were used
+	if len(params.VectorStoreIDs) > 0 {
+		outputItems = append(outputItems, map[string]interface{}{
+			"id":      "call_mock123",
+			"type":    "file_search_call",
+			"role":    "assistant",
+			"status":  "completed",
+			"queries": []string{params.Input},
+			"results": []map[string]interface{}{
+				{
+					"filename": "mock_document.txt",
+					"score":    0.8542,
+					"text":     "This is mock retrieved content that relates to your query: " + params.Input + ". This content comes from the vector store and provides context for the AI response.",
+				},
+			},
+		})
+	}
+
+	// Add message content
+	outputItems = append(outputItems, map[string]interface{}{
+		"id":     itemID,
+		"type":   "message",
+		"role":   "assistant",
+		"status": "completed",
+		"content": []map[string]interface{}{
+			{
+				"type": "output_text",
+				"text": responseText,
+			},
+		},
+	})
+
+	sendEvent(map[string]interface{}{
+		"type":            "response.completed",
+		"sequence_number": 0,
+		"item_id":         "",
+		"output_index":    0,
+		"delta":           "",
+		"response": map[string]interface{}{
+			"id":         responseID,
+			"model":      params.Model,
+			"status":     "completed",
+			"created_at": 1234567890.0,
+			"output":     outputItems,
+		},
+	})
+}
+
+// CreateResponseStream returns an error that indicates mock streaming mode
+func (m *MockLlamaStackClient) CreateResponseStream(ctx context.Context, params llamastack.CreateResponseParams) (*ssestream.Stream[responses.ResponseStreamEventUnion], error) {
+	// Use the same response text logic as non-streaming mock
+	responseText := "This is a mock response to your query: " + params.Input
+	if len(params.VectorStoreIDs) > 0 {
+		responseText = "Based on retrieved documents, this is a mock response to your query: " + params.Input
+	}
+
+	// Return a special error that the handler can detect and delegate back to the mock
+	mockError := &MockStreamError{
+		Message:      "mock_streaming_mode",
+		ResponseText: responseText,
+		Params:       params,
+	}
+
+	return nil, mockError
 }

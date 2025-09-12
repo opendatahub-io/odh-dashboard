@@ -68,7 +68,17 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.Equal(t, "llama-3.1-8b", data["model"])
 		assert.Equal(t, "completed", data["status"])
 		assert.Contains(t, data, "created_at")
-		assert.Contains(t, data, "content")
+		assert.Contains(t, data, "output")
+
+		// Verify output structure
+		output := data["output"].([]interface{})
+		assert.Greater(t, len(output), 0)
+
+		// Check message output item
+		messageItem := output[len(output)-1].(map[string]interface{})
+		assert.Equal(t, "message", messageItem["type"])
+		assert.Equal(t, "assistant", messageItem["role"])
+		assert.Contains(t, messageItem, "content")
 	})
 
 	t.Run("should create response with all optional parameters", func(t *testing.T) {
@@ -248,14 +258,23 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 
 		data := response["data"].(map[string]interface{})
 
-		// Verify simplified response contains only essential fields
-		expectedFields := []string{"id", "model", "status", "created_at", "content"}
+		// Verify clean response contains only essential fields
+		expectedFields := []string{"id", "model", "status", "created_at", "output"}
 		for _, field := range expectedFields {
 			assert.Contains(t, data, field)
 		}
 
-		// Verify no complex nested structures from original response
-		assert.NotContains(t, data, "output")
+		// Verify clean output structure
+		output := data["output"].([]interface{})
+		assert.Greater(t, len(output), 0)
+
+		// Verify message output item structure
+		messageItem := output[len(output)-1].(map[string]interface{})
+		assert.Equal(t, "message", messageItem["type"])
+		assert.Equal(t, "assistant", messageItem["role"])
+		assert.Contains(t, messageItem, "content")
+
+		// Verify no complex nested structures from original response (these were filtered out)
 		assert.NotContains(t, data, "object")
 		assert.NotContains(t, data, "metadata")
 	})
