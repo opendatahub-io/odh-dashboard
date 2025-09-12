@@ -512,7 +512,6 @@ export type InferenceServiceAnnotations = DisplayNameAnnotations &
     'sidecar.istio.io/rewriteAppHTTPProbers': 'true';
     'opendatahub.io/hardware-profile-name': string;
     'opendatahub.io/hardware-profile-namespace': string;
-    'opendatahub.io/legacy-hardware-profile-name': string;
   }>;
 
 export type InferenceServiceLabels = Partial<{
