@@ -54,6 +54,7 @@
     "cypress:server:dev": "POLL_INTERVAL=9999999 FAST_POLL_INTERVAL=9999999 ODH_PORT=9001 WS_HOSTNAME=localhost:9002 CYPRESS_TESTS=true npm run start:dev",
     "cypress:format": "prettier --write src/__tests__/**/*.snap.json",
     "test:cypress:e2e": "cd src/__tests__/cypress && npx cypress run --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\" --browser chrome",
+    "test:cypress:ci:matrix": "cd src/__tests__/cypress && npx cypress run --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\" --browser electron --config video=true,screenshotsFolder=\"${CY_RESULTS_DIR}/screenshots\",videosFolder=\"${CY_RESULTS_DIR}/videos\"",
     "test:cypress:e2e:open": "cd src/__tests__/cypress && npx cypress open --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\""
   },
   "dependencies": {
