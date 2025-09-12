@@ -6,7 +6,6 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
-	// Import the typed LlamaStackDistribution types
 )
 
 type LlamaStackDistributionRepository struct{}
@@ -56,4 +55,27 @@ func (r *LlamaStackDistributionRepository) GetLlamaStackDistributionStatus(
 	}
 
 	return lsdModel, nil
+}
+
+// InstallLlamaStackDistribution installs a new LlamaStackDistribution with the specified models
+func (r *LlamaStackDistributionRepository) InstallLlamaStackDistribution(
+	client kubernetes.KubernetesClientInterface,
+	ctx context.Context,
+	identity *integrations.RequestIdentity,
+	namespace string,
+	installmodels []string,
+) (*models.LlamaStackDistributionInstallModel, error) {
+	// Call the Kubernetes client to install the LSD
+	lsd, err := client.InstallLlamaStackDistribution(ctx, identity, namespace, installmodels)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create the response model
+	installModel := &models.LlamaStackDistributionInstallModel{
+		Name:       lsd.Name,
+		HTTPStatus: "200",
+	}
+
+	return installModel, nil
 }

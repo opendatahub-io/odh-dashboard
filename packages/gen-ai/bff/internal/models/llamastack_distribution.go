@@ -14,6 +14,21 @@ type LlamaStackDistributionResponse struct {
 	Error *ErrorResponse               `json:"error,omitempty"`
 }
 
+// LlamaStackDistributionInstallRequest represents the request body for installing models
+type LlamaStackDistributionInstallRequest struct {
+	Models []string `json:"models"`
+}
+
+type LlamaStackDistributionInstallModel struct {
+	Name       string `json:"name"`
+	HTTPStatus string `json:"httpStatus"`
+}
+
+type LlamaStackDistributionInstallResponse struct {
+	Data  *LlamaStackDistributionInstallModel `json:"data,omitempty"`
+	Error *ErrorResponse                      `json:"error,omitempty"`
+}
+
 // ErrorResponse represents an error response
 type ErrorResponse struct {
 	Code    string `json:"code"`
