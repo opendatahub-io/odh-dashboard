@@ -35,6 +35,7 @@ export interface LineageNode {
   description?: string;
   truncateLength?: number;
   layer?: number; // Optional layer for positioning (0=leftmost, higher=rightward)
+  highlighted?: boolean;
 }
 
 export interface LineageData {
@@ -73,7 +74,7 @@ export interface LineageProps {
 }
 
 export const convertToLineageNodeModel = (node: LineageNode): NodeModel => {
-  const { id, label, entityType, features, description, truncateLength, layer } = node;
+  const { id, label, entityType, features, description, truncateLength, layer, highlighted } = node;
 
   return {
     id,
@@ -86,6 +87,7 @@ export const convertToLineageNodeModel = (node: LineageNode): NodeModel => {
       description,
       truncateLength,
       layer,
+      highlighted,
     },
   };
 };
