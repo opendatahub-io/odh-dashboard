@@ -1,4 +1,4 @@
-name: E2E Direct Commit PR Tests - FIXED
+name: E2E Direct Commit PR Tests
 
 on: [push]
 
@@ -366,7 +366,7 @@ jobs:
           mkdir -p "$CY_RESULTS_DIR"
 
           # Run tests directly against shared localhost server
-          cd src/__tests__/cypress && BASE_URL=http://localhost:9001 npx cypress run --env '{"grepTags":"${{ matrix.test-tag }}","skipTags":["@Bug","@Maintain","@NonConcurrent"],"grepFilterSpecs":true}' --browser electron --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+          BASE_URL=http://localhost:9001 npm run cypress:run:electron -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Test tag name
         if: ${{ always() }}
