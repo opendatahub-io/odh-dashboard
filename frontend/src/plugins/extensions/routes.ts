@@ -88,13 +88,14 @@ const extensions: RouteExtension[] = [
       disallowed: [SupportedArea.PLUGIN_MODEL_SERVING],
     },
   },
-  {
-    type: 'app.route',
-    properties: {
-      path: '/modelCatalog/*',
-      component: () => import('#~/pages/modelCatalog/ModelCatalogRoutes'),
-    },
-  },
+  // This is being replaced by the upstream extension for model catalog and will be removed along with the old MR UI code as part of https://issues.redhat.com/browse/RHOAIENG-34088
+  // {
+  //   type: 'app.route',
+  //   properties: {
+  //     path: '/modelCatalog/*',
+  //     component: () => import('#~/pages/modelCatalog/ModelCatalogRoutes'),
+  //   },
+  // },
   {
     type: 'app.route',
     properties: {
