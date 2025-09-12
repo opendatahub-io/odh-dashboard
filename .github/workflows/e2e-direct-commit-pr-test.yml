@@ -307,7 +307,7 @@ jobs:
       - name: Wait for Server Ready
         run: |
           echo "⏳ Waiting for localhost:9001 to be ready..."
-          npx wait-on tcp:127.0.0.1:9001 --timeout 60000
+          npx wait-on http://localhost:9001 --timeout 300000
           echo "✅ Server is ready!"
 
       - name: Run E2E Tests
@@ -337,7 +337,7 @@ jobs:
           mkdir -p "$CY_RESULTS_DIR"
 
           # Run tests directly against shared localhost server
-          cd frontend/src/__tests__/cypress && npx cypress run --env '{"grepTags":"${{ matrix.test-tag }}","skipTags":"@Bug,@Maintain,@NonConcurrent","grepFilterSpecs":true}' --browser electron --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+          cd src/__tests__/cypress && npx cypress run --env '{"grepTags":"${{ matrix.test-tag }}","skipTags":"@Bug,@Maintain,@NonConcurrent","grepFilterSpecs":true}' --browser electron --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Test tag name
         if: ${{ always() }}
