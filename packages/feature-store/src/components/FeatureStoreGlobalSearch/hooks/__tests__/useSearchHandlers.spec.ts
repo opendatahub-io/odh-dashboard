@@ -1,3 +1,4 @@
+import type React from 'react';
 import { renderHook } from '@testing-library/react';
 import { useNavigate } from 'react-router-dom';
 import { useSearchHandlers, type ISearchItem } from '../useSearchHandlers';

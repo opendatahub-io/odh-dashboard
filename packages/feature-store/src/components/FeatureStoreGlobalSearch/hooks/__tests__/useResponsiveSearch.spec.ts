@@ -1,3 +1,4 @@
+import type React from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useResponsiveSearch } from '../useResponsiveSearch';
 
