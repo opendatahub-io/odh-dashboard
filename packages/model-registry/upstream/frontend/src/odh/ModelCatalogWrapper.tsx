@@ -10,11 +10,13 @@ import { ThemeProvider, Theme } from 'mod-arch-kubeflow';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import { AppContext } from '~/app/context/AppContext';
 import ModelCatalogRoutes from '~/app/pages/modelCatalog/ModelCatalogRoutes';
+import { ModelRegistrySelectorContextProvider } from '~/app/context/ModelRegistrySelectorContext';
 
 const modularArchConfig: ModularArchConfig = {
   deploymentMode: DeploymentMode.Federated,
   URL_PREFIX,
   BFF_API_VERSION,
+  mandatoryNamespace: 'odh-model-registries',
 };
 
 const ModelCatalogWrapper: React.FC = () => {
@@ -30,7 +32,9 @@ const ModelCatalogWrapper: React.FC = () => {
         <ThemeProvider theme={Theme.Patternfly}>
           <BrowserStorageContextProvider>
             <NotificationContextProvider>
-              <ModelCatalogRoutes />
+              <ModelRegistrySelectorContextProvider>
+                <ModelCatalogRoutes />
+              </ModelRegistrySelectorContextProvider>
             </NotificationContextProvider>
           </BrowserStorageContextProvider>
         </ThemeProvider>
