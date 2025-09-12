@@ -110,6 +110,18 @@ func (app *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 	app.errorResponse(w, r, httpError)
 }
 
+func (app *App) modelNotFoundResponse(w http.ResponseWriter, r *http.Request, model string) {
+
+	httpError := &integrations.HTTPError{
+		StatusCode: http.StatusNotFound,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    strconv.Itoa(http.StatusNotFound),
+			Message: fmt.Sprintf("model '%s' not found or is not available", model),
+		},
+	}
+	app.errorResponse(w, r, httpError)
+}
+
 func (app *App) methodNotAllowedResponse(w http.ResponseWriter, r *http.Request) {
 
 	httpError := &integrations.HTTPError{
