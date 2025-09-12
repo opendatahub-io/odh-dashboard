@@ -6,6 +6,7 @@ import type {
   ModelRegistryDeployModalExtension,
   ModelRegistryVersionDeploymentsContextExtension,
   ModelRegistryVersionDetailsTabExtension,
+  ModelRegistryTableColumnExtension,
 } from '@mf/modelRegistry/extension-points';
 
 type ModelRegistryDetailsTabExtension = Extension<
@@ -23,6 +24,7 @@ const extensions: (
   | ModelRegistryVersionDeploymentsContextExtension
   | ModelRegistryDetailsTabExtension
   | ModelDetailsDeploymentCardExtension
+  | ModelRegistryTableColumnExtension
 )[] = [
   {
     type: 'model-registry.model-version/deploy-modal',
@@ -74,6 +76,15 @@ const extensions: (
     type: 'model-registry.model-details/details-card',
     properties: {
       component: () => import('../modelRegistry/ModelDetailsDeploymentCard').then((m) => m.default),
+    },
+    flags: {
+      required: [SupportedArea.MODEL_SERVING],
+    },
+  },
+  {
+    type: 'model-registry.registered-models/table-column',
+    properties: {
+      component: () => import('../modelRegistry/DeploymentsColumn'),
     },
     flags: {
       required: [SupportedArea.MODEL_SERVING],
