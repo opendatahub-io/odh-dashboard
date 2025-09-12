@@ -54,10 +54,13 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
   const localQueueName = job.metadata.labels?.['kueue.x-k8s.io/queue-name'];
 
   const status = jobStatus || getTrainingJobStatusSync(job);
+  console.log('status', job.metadata.name, status);
   const isPaused = status === PyTorchJobState.PAUSED;
   const isPreempted = status === PyTorchJobState.PREEMPTED;
   const isQueued = status === PyTorchJobState.QUEUED;
-  const canScaleWorkers = isPaused; // Only allow scaling when paused
+  const isRunning = status === PyTorchJobState.RUNNING;
+  const isPending = status === PyTorchJobState.PENDING;
+  const canScaleWorkers = isPaused || isRunning || isPreempted || isQueued || isPending; // Allow scaling for multiple states
 
   const handleHibernationToggle = async () => {
     setIsToggling(true);
@@ -107,7 +110,9 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
         'Workers scaled successfully',
         `${displayName} now has ${newWorkerCount} worker${
           newWorkerCount !== 1 ? 's' : ''
-        } (${totalNodes} total nodes). ${deltaText}. Job remains paused.`,
+        } (${totalNodes} total nodes). ${deltaText}. Job ${
+          isPaused ? 'remains paused' : 'has been paused'
+        }.`,
       );
     } catch (error) {
       console.error('Error scaling workers:', error);
@@ -169,8 +174,8 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
     const isTerminalState =
       status === PyTorchJobState.SUCCEEDED || status === PyTorchJobState.FAILED;
 
-    // Add scale workers action (only when paused)
-    if (isPaused) {
+    // Add scale workers action (available for multiple states)
+    if (canScaleWorkers) {
       items.push({
         title: (
           <Flex
@@ -204,7 +209,17 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
     });
 
     return items;
-  }, [status, isPaused, isPreempted, isQueued, job, onDelete]);
+  }, [
+    status,
+    isPaused,
+    isPreempted,
+    isQueued,
+    isRunning,
+    isPending,
+    canScaleWorkers,
+    job,
+    onDelete,
+  ]);
 
   return (
     <>
@@ -238,10 +253,10 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
               </Flex>
             </FlexItem>
 
-            {/* Show scaling hint when paused */}
+            {/* Show scaling hint when scaling is available */}
             {canScaleWorkers && (
               <FlexItem>
-                <Tooltip content="Job is paused - click to scale worker replicas">
+                <Tooltip content="Click to scale worker replicas">
                   <Button
                     variant="link"
                     isInline

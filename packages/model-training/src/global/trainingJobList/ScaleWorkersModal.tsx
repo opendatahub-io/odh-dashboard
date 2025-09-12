@@ -102,6 +102,7 @@ const ScaleWorkersModal: React.FC<ScaleWorkersModalProps> = ({
 
   const isTerminalState =
     jobStatus === PyTorchJobState.SUCCEEDED || jobStatus === PyTorchJobState.FAILED;
+  const isPaused = jobStatus === PyTorchJobState.PAUSED;
   const hasChanges = newWorkerCount !== currentWorkerReplicas;
 
   return (
@@ -127,11 +128,24 @@ const ScaleWorkersModal: React.FC<ScaleWorkersModalProps> = ({
             <StackItem>
               <Alert
                 variant="warning"
-                title="Job must be paused"
+                title="Cannot scale completed jobs"
                 className="pf-u-mb-md"
                 customIcon={<ExclamationTriangleIcon />}
               >
-                Worker replicas can only be modified when the training job is in a paused state.
+                Worker replicas cannot be modified for jobs that have succeeded or failed.
+              </Alert>
+            </StackItem>
+          )}
+
+          {!isPaused && !isTerminalState && (
+            <StackItem>
+              <Alert
+                variant="info"
+                title="Job will be paused during scaling"
+                className="pf-u-mb-md"
+              >
+                The training job is currently {jobStatus.toLowerCase()}. It will be paused to safely
+                scale the worker replicas, then you can choose to resume it.
               </Alert>
             </StackItem>
           )}
