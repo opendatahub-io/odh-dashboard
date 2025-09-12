@@ -14,7 +14,7 @@ security:
   - Bearer: []
 
 paths:
-  /gen-ai/healthcheck:
+  /healthcheck:
     summary: BFF service health check
     description: >-
       Health check endpoint to verify BFF service availability. This is a local service check
