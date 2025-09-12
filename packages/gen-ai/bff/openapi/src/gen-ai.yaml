@@ -336,6 +336,51 @@ paths:
       summary: Get LSD Status
       description: Gets the status of LlamaStack Distribution in the specified namespace.
 
+  /gen-ai/api/v1/llamastack-distribution/install:
+    summary: Install LlamaStack Distribution
+    description: >-
+      Installs a new LlamaStack Distribution (LSD) in the specified namespace with the provided models.
+      Creates both the LSD custom resource and a ConfigMap containing the run.yaml configuration.
+      The ConfigMap is configured with the specified models and their endpoints.
+      Requires valid Kubernetes authentication token and namespace parameter.
+      Returns 400 for missing parameters, invalid JSON, or empty models list.
+      Returns 401 for missing or invalid authentication tokens.
+      Returns 500 for internal server errors during resource creation.
+    post:
+      tags:
+        - Kubernetes
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace where the LSD will be installed
+          required: true
+          schema:
+            type: string
+            example: "default"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LlamaStackDistributionInstallRequest"
+            description: Installation request with list of models to include
+            example:
+              models: ["llama-3-2-3b-instruct", "granite-embedding-125m"]
+      responses:
+        "200":
+          $ref: "#/components/responses/LlamaStackDistributionInstallResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: installLlamaStackDistribution
+      summary: Install LSD
+      description: Installs a new LlamaStack Distribution with the specified models.
+
   /gen-ai/api/v1/user:
     summary: Get current user information
     description: >-
@@ -1173,6 +1218,34 @@ components:
         distributionConfig:
           $ref: '#/components/schemas/DistributionConfig'
 
+    LlamaStackDistributionInstallRequest:
+      type: object
+      required:
+        - models
+      properties:
+        models:
+          type: array
+          items:
+            type: string
+          description: List of model names to include in the LSD installation
+          example: ["llama-3-2-3b-instruct", "granite-embedding-125m"]
+          minItems: 1
+
+    LlamaStackDistributionInstallModel:
+      type: object
+      required:
+        - name
+        - httpStatus
+      properties:
+        name:
+          type: string
+          example: "lsd-genai-playground"
+          description: Name of installed LlamaStack Distribution
+        httpStatus:
+          type: string
+          example: "200"
+          description: HTTP status code of the installation operation
+
     DistributionConfig:
       type: object
       required:
@@ -1383,6 +1456,34 @@ components:
                       health:
                         status: 'healthy'
                         message: 'Provider is responding normally'
+
+    LlamaStackDistributionInstallResponse:
+      description: LlamaStack Distribution installation result
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/LlamaStackDistributionInstallModel"
+                nullable: true
+            example:
+              data:
+                name: "lsd-genai-playground"
+                httpStatus: "200"
+            examples:
+              installation_success:
+                summary: Successful installation
+                value:
+                  data:
+                    name: "lsd-genai-playground"
+                    httpStatus: "200"
+              installation_error:
+                summary: Installation failed
+                value:
+                  data: null
 
     CreateResponseResponse:
       description: Created AI response with clean LlamaStack structure

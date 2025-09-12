@@ -149,6 +149,9 @@ func (app *App) Routes() http.Handler {
 	// Llama Stack Distribution status endpoint
 	apiRouter.GET(constants.LlamaStackDistributionStatusPath, app.RequireAccessToService(app.AttachNamespace(app.LlamaStackDistributionStatusHandler)))
 
+	// Llama Stack Distribution install endpoint
+	apiRouter.POST(constants.LlamaStackDistributionInstallPath, app.RequireAccessToService(app.AttachNamespace(app.LlamaStackDistributionInstallHandler)))
+
 	// App Router
 	appMux := http.NewServeMux()
 

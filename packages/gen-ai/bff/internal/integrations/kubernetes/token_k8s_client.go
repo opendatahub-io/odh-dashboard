@@ -14,6 +14,7 @@ import (
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
@@ -39,6 +40,9 @@ const (
 	// InferenceService annotation keys
 	InferenceServiceDescriptionAnnotation = "openshift.io/description"
 	InferenceServiceUseCaseAnnotation     = "opendatahub.io/genai-use-case"
+
+	// Label for LSD identification
+	OpenDataHubDashboardLabelKey = "opendatahub.io/dashboard"
 )
 
 type TokenKubernetesClient struct {
@@ -163,6 +167,9 @@ func (kc *TokenKubernetesClient) GetLlamaStackDistributions(ctx context.Context,
 
 	listOptions := &client.ListOptions{
 		Namespace: namespace,
+		LabelSelector: labels.SelectorFromSet(map[string]string{
+			OpenDataHubDashboardLabelKey: "true",
+		}),
 	}
 	err := kc.Client.List(ctx, lsdList, listOptions)
 	if err != nil {
@@ -354,4 +361,361 @@ func (kc *TokenKubernetesClient) extractEndpoints(isvc *kservev1beta1.InferenceS
 	}
 
 	return endpoints
+}
+
+func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []string) (*lsdapi.LlamaStackDistribution, error) {
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
+	// Step 1: Create LlamaStackDistribution resource first
+	lsdName := "lsd-genai-playground"
+	configMapName := "llama-stack-config"
+	lsd := &lsdapi.LlamaStackDistribution{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      lsdName,
+			Namespace: namespace,
+			Labels: map[string]string{
+				OpenDataHubDashboardLabelKey: "true",
+			},
+		},
+		Spec: lsdapi.LlamaStackDistributionSpec{
+			Replicas: 1,
+			Server: lsdapi.ServerSpec{
+				ContainerSpec: lsdapi.ContainerSpec{
+					Command: []string{"/bin/sh", "-c", "llama stack run /etc/llama-stack/run.yaml"},
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceCPU:    resource.MustParse("250m"),
+							corev1.ResourceMemory: resource.MustParse("500Mi"),
+						},
+						Limits: corev1.ResourceList{
+							corev1.ResourceCPU:    resource.MustParse("2"),
+							corev1.ResourceMemory: resource.MustParse("12Gi"),
+						},
+					},
+					Env: []corev1.EnvVar{
+						{
+							Name:  "VLLM_TLS_VERIFY",
+							Value: "false",
+						},
+						{
+							Name:  "MILVUS_DB_PATH",
+							Value: "~/.llama/milvus.db",
+						},
+						{
+							Name:  "FMS_ORCHESTRATOR_URL",
+							Value: "http://localhost",
+						},
+						{
+							Name:  "VLLM_MAX_TOKENS",
+							Value: "4096",
+						},
+					},
+					Name: "llama-stack",
+					Port: 8321,
+				},
+				Distribution: lsdapi.DistributionType{
+					Name: "rh-dev",
+				},
+				UserConfig: &lsdapi.UserConfigSpec{
+					ConfigMapName: configMapName,
+				},
+			},
+		},
+	}
+
+	// Create the LlamaStackDistribution
+	if err := kc.Client.Create(ctx, lsd); err != nil {
+		kc.Logger.Error("failed to create LlamaStackDistribution", "error", err, "namespace", namespace, "lsdName", lsdName)
+		return nil, fmt.Errorf("failed to create LlamaStackDistribution: %w", err)
+	}
+
+	kc.Logger.Info("LlamaStackDistribution created successfully", "namespace", namespace, "lsdName", lsdName, "models", models)
+
+	// Step 2: Create ConfigMap with owner reference to the LSD
+	if err := kc.createConfigMapWithOwnerReference(ctx, namespace, configMapName, lsdName, models, lsd); err != nil {
+		// If ConfigMap creation fails, we should clean up the LSD
+		kc.Logger.Error("failed to create ConfigMap with owner reference", "error", err)
+		// Note: In a production environment, you might want to delete the LSD here
+		// For now, we'll return the error but keep the LSD
+		return nil, fmt.Errorf("failed to create ConfigMap: %w", err)
+	}
+
+	return lsd, nil
+}
+
+// createConfigMapWithOwnerReference creates a ConfigMap and sets up owner reference to LSD
+func (kc *TokenKubernetesClient) createConfigMapWithOwnerReference(ctx context.Context, namespace, configMapName, lsdName string, models []string, lsd *lsdapi.LlamaStackDistribution) error {
+	// Step 1: Create ConfigMap with models configuration
+	runYAML, err := kc.generateLlamaStackConfig(ctx, namespace, models)
+	if err != nil {
+		kc.Logger.Error("failed to generate Llama Stack configuration", "error", err, "namespace", namespace)
+		return fmt.Errorf("failed to generate Llama Stack configuration: %w", err)
+	}
+
+	configMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      configMapName,
+			Namespace: namespace,
+			Labels: map[string]string{
+				OpenDataHubDashboardLabelKey: "true",
+				"llamastack.io/distribution": lsdName,
+			},
+		},
+		Data: map[string]string{
+			"run.yaml": runYAML,
+		},
+	}
+
+	// Create the ConfigMap
+	if err := kc.Client.Create(ctx, configMap); err != nil {
+		kc.Logger.Error("failed to create ConfigMap", "error", err, "namespace", namespace, "configMapName", configMapName)
+		return fmt.Errorf("failed to create ConfigMap: %w", err)
+	}
+
+	kc.Logger.Info("ConfigMap created successfully", "namespace", namespace, "configMapName", configMapName)
+
+	// Step 2: Update ConfigMap with owner reference to the LSD
+	configMap.OwnerReferences = []metav1.OwnerReference{
+		{
+			APIVersion:         "llamastack.io/v1alpha1",
+			Kind:               "LlamaStackDistribution",
+			Name:               lsdName,
+			UID:                lsd.UID,
+			Controller:         &[]bool{true}[0],
+			BlockOwnerDeletion: &[]bool{true}[0],
+		},
+	}
+
+	if err := kc.Client.Update(ctx, configMap); err != nil {
+		kc.Logger.Error("failed to update ConfigMap with owner reference", "error", err, "namespace", namespace, "configMapName", configMapName)
+		// Don't fail the entire operation, just log the warning
+		kc.Logger.Warn("ConfigMap will not be automatically garbage collected when LSD is deleted")
+		return fmt.Errorf("failed to update ConfigMap with owner reference: %w", err)
+	}
+
+	kc.Logger.Info("ConfigMap updated with owner reference", "namespace", namespace, "configMapName", configMapName, "owner", lsdName)
+	return nil
+}
+
+// generateLlamaStackConfig generates the Llama Stack configuration YAML
+func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, namespace string, models []string) (string, error) {
+	// Generate models section and providers section dynamically from the provided models
+	modelsYAML := ""
+	providersYAML := ""
+
+	for i, model := range models {
+		// Query serving runtime and inference service to get actual model details
+		modelDetails, err := kc.getModelDetailsFromServingRuntime(ctx, namespace, model)
+		if err != nil {
+			kc.Logger.Error("failed to get model details from serving runtime", "model", model, "error", err)
+			return "", fmt.Errorf("cannot determine endpoint for model '%s': %w", model, err)
+		}
+
+		// Extract details from the model configuration
+		modelID := modelDetails["model_id"].(string)
+		providerID := fmt.Sprintf("vllm-inference-%d", i+1) // Create unique provider ID for each model
+		modelType := modelDetails["model_type"].(string)
+		endpointURL := modelDetails["endpoint_url"].(string)
+		metadata := modelDetails["metadata"].(map[string]interface{})
+
+		// Convert metadata to YAML format
+		metadataYAML := ""
+		if len(metadata) > 0 {
+			metadataYAML = "\n    metadata:\n"
+			for key, value := range metadata {
+				metadataYAML += fmt.Sprintf("      %s: %v\n", key, value)
+			}
+		} else {
+			metadataYAML = "\n    metadata: {}"
+		}
+
+		// Add model to models section
+		modelsYAML += fmt.Sprintf(`  -%s
+    model_id: %s
+    provider_id: %s
+    model_type: %s
+`, metadataYAML, modelID, providerID, modelType)
+
+		// Add provider to providers section
+		providersYAML += fmt.Sprintf(`  - provider_id: %s
+    provider_type: remote::vllm
+    config:
+      url: %s
+      max_tokens: ${env.VLLM_MAX_TOKENS:=4096}
+      api_token: ${env.VLLM_API_TOKEN:=fake}
+      tls_verify: ${env.VLLM_TLS_VERIFY:=true}
+`, providerID, endpointURL)
+	}
+
+	config := fmt.Sprintf(`# Llama Stack Configuration
+version: "2"
+image_name: rh
+apis:
+- datasetio
+- files
+- inference
+- scoring
+- telemetry
+- tool_runtime
+- vector_io
+providers:
+  inference:
+%s  - provider_id: sentence-transformers
+    provider_type: inline::sentence-transformers
+    config: {}
+  vector_io:
+  - provider_id: milvus
+    provider_type: inline::milvus
+    config:
+      db_path: /opt/app-root/src/.llama/distributions/rh/milvus.db
+      kvstore:
+        type: sqlite
+        namespace: null
+        db_path: /opt/app-root/src/.llama/distributions/rh/milvus_registry.db
+  safety: []
+  eval: []
+  files:
+  - provider_id: meta-reference-files
+    provider_type: inline::localfs
+    config:
+      storage_dir: /opt/app-root/src/.llama/distributions/rh/files
+      metadata_store:
+        type: sqlite
+        db_path: /opt/app-root/src/.llama/distributions/rh/files_metadata.db
+  datasetio:
+  - provider_id: huggingface
+    provider_type: remote::huggingface
+    config:
+      kvstore:
+        type: sqlite
+        namespace: null
+        db_path: /opt/app-root/src/.llama/distributions/rh/huggingface_datasetio.db
+  scoring:
+  - provider_id: basic
+    provider_type: inline::basic
+    config: {}
+  - provider_id: llm-as-judge
+    provider_type: inline::llm-as-judge
+    config: {}
+  - provider_id: braintrust
+    provider_type: inline::braintrust
+    config:
+      openai_api_key: ${env.OPENAI_API_KEY:=}
+  telemetry:
+  - provider_id: meta-reference
+    provider_type: inline::meta-reference
+    config:
+      service_name: "${env.OTEL_SERVICE_NAME:=\u200B}"
+      sinks: ${env.TELEMETRY_SINKS:=console,sqlite}
+      sqlite_db_path: /opt/app-root/src/.llama/distributions/rh/trace_store.db
+      otel_exporter_otlp_endpoint: ${env.OTEL_EXPORTER_OTLP_ENDPOINT:=}
+  tool_runtime:
+  - provider_id: rag-runtime
+    provider_type: inline::rag-runtime
+    config: {}
+  - provider_id: model-context-protocol
+    provider_type: remote::model-context-protocol
+    config: {}
+metadata_store:
+  type: sqlite
+  db_path: /opt/app-root/src/.llama/distributions/rh/registry.db
+  type: sqlite
+  db_path: /opt/app-root/src/.llama/distributions/rh/inference_store.db
+models:
+  - metadata:
+      embedding_dimension: 768
+    model_id: granite-embedding-125m
+    provider_id: sentence-transformers
+    provider_model_id: ibm-granite/granite-embedding-125m-english
+    model_type: embedding
+%s
+shields: []
+vector_dbs: []
+datasets: []
+scoring_fns: []
+benchmarks: []
+tool_groups:
+- toolgroup_id: builtin::rag
+  provider_id: rag-runtime
+server:
+  port: 8321`, providersYAML, modelsYAML)
+
+	return config, nil
+}
+
+// getModelDetailsFromServingRuntime queries the serving runtime and inference service
+// to get detailed model configuration information
+func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.Context, namespace string, modelID string) (map[string]interface{}, error) {
+	// Find InferenceService by display name
+	targetISVC, err := kc.findInferenceServiceByDisplayName(ctx, namespace, modelID)
+	if err != nil {
+		kc.Logger.Error("failed to find InferenceService for model", "modelID", modelID, "error", err)
+		return nil, fmt.Errorf("InferenceService for model '%s' not found: %w", modelID, err)
+	}
+
+	// Extract the internal URL from the InferenceService status
+	// Use Status.URL which is already the internal HTTP address
+	if targetISVC.Status.URL == nil {
+		kc.Logger.Error("InferenceService has no internal URL", "name", targetISVC.Name, "namespace", namespace)
+		return nil, fmt.Errorf("InferenceService '%s' has no internal URL - service may not be ready", targetISVC.Name)
+	}
+
+	// Convert URL pointer to string
+	internalURL := targetISVC.Status.URL.String()
+
+	// Check if port is already present (look for :port pattern after the hostname)
+	// We need to check for :port after the hostname, not just any colon (http:// has a colon)
+	if !strings.Contains(internalURL, ".svc.cluster.local:") {
+		internalURL = internalURL + ":8080"
+	}
+
+	// Add /v1 suffix if not present
+	if !strings.HasSuffix(internalURL, "/v1") {
+		internalURL = internalURL + "/v1"
+	}
+
+	// Extract additional metadata from the InferenceService
+	metadata := map[string]interface{}{}
+	if targetISVC.Annotations != nil {
+		if displayName, exists := targetISVC.Annotations["openshift.io/display-name"]; exists {
+			metadata["display_name"] = displayName
+		}
+		if description, exists := targetISVC.Annotations["openshift.io/description"]; exists {
+			metadata["description"] = description
+		}
+	}
+
+	// All models are LLM models using vllm-inference
+	providerID := "vllm-inference"
+	modelType := "llm"
+
+	return map[string]interface{}{
+		"model_id":     strings.ReplaceAll(modelID, ":", "-"),
+		"provider_id":  providerID,
+		"model_type":   modelType,
+		"metadata":     metadata,
+		"endpoint_url": internalURL,
+	}, nil
+}
+
+// findInferenceServiceByDisplayName finds an InferenceService by its display name annotation
+func (kc *TokenKubernetesClient) findInferenceServiceByDisplayName(ctx context.Context, namespace, modelName string) (*kservev1beta1.InferenceService, error) {
+	// List all InferenceServices in the namespace
+	var isvcList kservev1beta1.InferenceServiceList
+	err := kc.Client.List(ctx, &isvcList, client.InNamespace(namespace))
+	if err != nil {
+		kc.Logger.Error("failed to list InferenceServices", "error", err, "namespace", namespace)
+		return nil, fmt.Errorf("failed to list InferenceServices in namespace %s: %w", namespace, err)
+	}
+
+	// Find InferenceService with matching display name annotation
+	for _, isvc := range isvcList.Items {
+		if isvc.Annotations["openshift.io/display-name"] == modelName {
+			kc.Logger.Info("found InferenceService by display name", "modelName", modelName, "isvcName", isvc.Name, "namespace", namespace)
+			return &isvc, nil
+		}
+	}
+
+	return nil, fmt.Errorf("InferenceService with display name '%s' not found in namespace %s", modelName, namespace)
 }
