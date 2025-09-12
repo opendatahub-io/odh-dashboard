@@ -899,6 +899,48 @@ class ModelServingWizard extends Wizard {
   findUrilocationInput() {
     return cy.findByTestId('field URI');
   }
+
+  findExternalRouteCheckbox() {
+    return cy.findByTestId('model-access-checkbox');
+  }
+
+  findTokenAuthenticationCheckbox() {
+    return cy.findByTestId('token-authentication-checkbox');
+  }
+
+  findTokenWarningAlert() {
+    return cy.findByText(
+      'Making models available by external routes without requiring authorization can lead to security vulnerabilities.',
+    );
+  }
+
+  findServiceAccountNameInput() {
+    return cy.findByTestId('service-account-form-name');
+  }
+
+  findAddServiceAccountButton() {
+    return cy.findByTestId('add-service-account-button');
+  }
+
+  findAllServiceAccountInputs() {
+    return cy.findAllByTestId('service-account-form-name');
+  }
+
+  findServiceAccountByIndex(index: number) {
+    return this.findAllServiceAccountInputs().eq(index);
+  }
+
+  findServiceNameAlert() {
+    return cy.findByText('Duplicates are invalid');
+  }
+
+  findAllRemoveServiceAccountButtons() {
+    return cy.findAllByTestId('remove-service-account-button');
+  }
+
+  findRemoveServiceAccountByIndex(index: number) {
+    return this.findAllRemoveServiceAccountButtons().eq(index);
+  }
 }
 
 export const modelServingGlobal = new ModelServingGlobal();
