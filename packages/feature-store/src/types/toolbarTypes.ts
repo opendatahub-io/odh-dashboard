@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { ToolbarGroup } from '@patternfly/react-core';
+import { FeatureStoreLineage } from './lineage';
 
 export type FeatureStoreFilterToolbarProps<T extends string> = React.ComponentProps<
   typeof ToolbarGroup
@@ -50,3 +51,20 @@ export type OnFilterUpdate<T extends string> = (
 export type LabelToDelete = string | { key: string };
 
 export type MultipleLabelForType = Array<{ key: string; onRemove: () => void }>;
+
+// Feature Store Lineage toolbar specific types
+export interface FeatureStoreLineageSearchFilters {
+  entity?: string;
+  featureView?: string;
+  dataSource?: string;
+  featureService?: string;
+}
+
+export interface FeatureStoreLineageToolbarProps {
+  hideNodesWithoutRelationships: boolean;
+  onHideNodesWithoutRelationshipsChange: (hide: boolean) => void;
+  searchFilters?: FeatureStoreLineageSearchFilters;
+  onSearchFiltersChange?: (filters: FeatureStoreLineageSearchFilters) => void;
+  lineageData?: FeatureStoreLineage;
+  lineageDataLoaded?: boolean;
+}
