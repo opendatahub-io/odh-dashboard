@@ -4,6 +4,7 @@ import { SearchIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import FeatureViewsListView from './FeatureViewsListView';
 import FeatureStoreProjectSelectorNavigator from '../components/FeatureStoreProjectSelectorNavigator';
+import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import useFeatureViews from '../../apiHooks/useFeatureViews';
 import { featureStoreRoute } from '../../routes';
@@ -38,7 +39,7 @@ const FeatureViews = (): React.ReactElement => {
     <ApplicationsPage
       empty={featureViews.featureViews.length === 0}
       emptyStatePage={emptyState}
-      title={title}
+      title={<FeatureStorePageTitle title={title} />}
       description={description}
       loadError={featureViewsLoadError}
       loaded={featureViewsLoaded}

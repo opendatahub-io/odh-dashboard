@@ -16,6 +16,7 @@ import DataSourceDetailsTabs from './DataSourceTabs';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
 import useFeatureStoreDataSourceByName from '../../../apiHooks/useFeatureStoreDataSourceByName';
 import { featureStoreRootRoute } from '../../../routes';
+import FeatureStorePageTitle from '../../../components/FeatureStorePageTitle';
 
 const DataSourceDetailsPage = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -71,22 +72,29 @@ const DataSourceDetailsPage = (): React.ReactElement => {
       loaded={dataSourceLoaded}
       provideChildrenPadding
       breadcrumb={
-        <Breadcrumb>
-          <BreadcrumbItem
-            render={() => <Link to={`${featureStoreRootRoute()}/dataSources`}>Data Sources</Link>}
-            data-testid="data-source-details-breadcrumb-link"
-          />
-          <BreadcrumbItem
-            data-testid="data-source-details-breadcrumb-item"
-            isActive
-            style={{
-              textDecoration: 'underline',
-              textUnderlineOffset: ExtraSmallSpacerSize.var,
-            }}
-          >
-            {dataSourceName}
-          </BreadcrumbItem>
-        </Breadcrumb>
+        <FeatureStorePageTitle
+          isDetailsPage
+          breadcrumb={
+            <Breadcrumb>
+              <BreadcrumbItem
+                render={() => (
+                  <Link to={`${featureStoreRootRoute()}/dataSources`}>Data Sources</Link>
+                )}
+                data-testid="data-source-details-breadcrumb-link"
+              />
+              <BreadcrumbItem
+                data-testid="data-source-details-breadcrumb-item"
+                isActive
+                style={{
+                  textDecoration: 'underline',
+                  textUnderlineOffset: ExtraSmallSpacerSize.var,
+                }}
+              >
+                {dataSourceName}
+              </BreadcrumbItem>
+            </Breadcrumb>
+          }
+        />
       }
     >
       <DataSourceDetailsTabs dataSource={dataSource} />

@@ -16,6 +16,7 @@ import EntityDetailsTabs from './EntityDetailsTabs';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
 import useFeatureStoreEntityByName from '../../../apiHooks/useFeatureStoreEntityByName';
 import { featureStoreRootRoute } from '../../../routes';
+import FeatureStorePageTitle from '../../../components/FeatureStorePageTitle';
 
 const EntitiesDetailsPage = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -71,22 +72,27 @@ const EntitiesDetailsPage = (): React.ReactElement => {
       loaded={entityLoaded}
       provideChildrenPadding
       breadcrumb={
-        <Breadcrumb>
-          <BreadcrumbItem
-            render={() => <Link to={`${featureStoreRootRoute()}/entities`}>Entities</Link>}
-            data-testid="entity-details-breadcrumb-link"
-          />
-          <BreadcrumbItem
-            data-testid="entity-details-breadcrumb-item"
-            isActive
-            style={{
-              textDecoration: 'underline',
-              textUnderlineOffset: ExtraSmallSpacerSize.var,
-            }}
-          >
-            {entityName}
-          </BreadcrumbItem>
-        </Breadcrumb>
+        <FeatureStorePageTitle
+          isDetailsPage
+          breadcrumb={
+            <Breadcrumb>
+              <BreadcrumbItem
+                render={() => <Link to={`${featureStoreRootRoute()}/entities`}>Entities</Link>}
+                data-testid="entity-details-breadcrumb-link"
+              />
+              <BreadcrumbItem
+                data-testid="entity-details-breadcrumb-item"
+                isActive
+                style={{
+                  textDecoration: 'underline',
+                  textUnderlineOffset: ExtraSmallSpacerSize.var,
+                }}
+              >
+                {entityName}
+              </BreadcrumbItem>
+            </Breadcrumb>
+          }
+        />
       }
     >
       <EntityDetailsTabs entity={entity} />

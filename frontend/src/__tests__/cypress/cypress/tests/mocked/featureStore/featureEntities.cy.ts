@@ -5,6 +5,10 @@ import { mockFeatureStore } from '@odh-dashboard/feature-store/mocks/mockFeature
 import { mockFeatureStoreProject } from '@odh-dashboard/feature-store/mocks/mockFeatureStoreProject';
 import { mockFeatureView } from '@odh-dashboard/feature-store/mocks/mockFeatureViews';
 import { mockEntities, mockEntity } from '@odh-dashboard/feature-store/mocks/mockEntities';
+import {
+  mockComprehensiveSearchResponse,
+  mockEmptySearchResponse,
+} from '@odh-dashboard/feature-store/mocks/mockGlobalSearch';
 import { featureStoreGlobal } from '#~/__tests__/cypress/cypress/pages/featureStore/featureStoreGlobal';
 import { featureEntitiesTable } from '#~/__tests__/cypress/cypress/pages/featureStore/featureEntities';
 import { featureEntityDetails } from '#~/__tests__/cypress/cypress/pages/featureStore/featureEntityDetails';
@@ -492,5 +496,120 @@ describe('Entity Feature Views Tab', () => {
       featureViewsTable.findRow('zipcode_features').clickFeatureViewLink();
     });
     cy.url().should('include', `/featureStore/featureViews/${fsProjectName}/zipcode_features`);
+  });
+});
+
+describe('Global Search in Feature Entities', () => {
+  beforeEach(() => {
+    asClusterAdminUser();
+    initCommonIntercepts();
+    mockAllEntitiesIntercept();
+  });
+
+  it('should display global search input on entities page', () => {
+    featureStoreGlobal.visitEntities();
+
+    featureStoreGlobal.findGlobalSearchContainer().should('be.visible');
+    featureStoreGlobal.findGlobalSearchInput().should('be.visible');
+    featureStoreGlobal
+      .findGlobalSearchInput()
+      .should('have.attr', 'placeholder', 'Search resources by name or description.');
+  });
+
+  it('should perform global search and display results', () => {
+    const searchResponse = mockComprehensiveSearchResponse('user', fsProjectName);
+
+    cy.intercept(
+      'GET',
+      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/search*`,
+      searchResponse,
+    ).as('globalSearch');
+
+    featureStoreGlobal.visitEntities();
+    featureStoreGlobal.findGlobalSearchInput().clear().type('user');
+    cy.wait('@globalSearch');
+
+    featureStoreGlobal.findGlobalSearchMenu().should('be.visible');
+    featureStoreGlobal.findGlobalSearchResultsCount().should('be.visible');
+    featureStoreGlobal
+      .findGlobalSearchResultsCount()
+      .should('contain.text', `${searchResponse.results.length} result`);
+    featureStoreGlobal.findGlobalSearchItem('entity', 'user_id').should('be.visible');
+  });
+
+  it('should navigate to correct detail page when clicking search result', () => {
+    const searchResponse = mockComprehensiveSearchResponse('user', fsProjectName);
+
+    cy.intercept(
+      'GET',
+      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/search*`,
+      searchResponse,
+    ).as('globalSearch');
+
+    mockEntityDetailsIntercept();
+    featureStoreGlobal.visitEntities();
+
+    featureStoreGlobal.findGlobalSearchInput().clear().type('user');
+    cy.wait('@globalSearch');
+
+    featureStoreGlobal.findGlobalSearchMenu().should('be.visible');
+    featureStoreGlobal.findGlobalSearchResultsCount().should('be.visible');
+    featureStoreGlobal.findGlobalSearchItem('entity', 'user_id').click();
+
+    cy.url().should('include', `/featureStore/entities/${fsProjectName}/user_id`);
+  });
+
+  it('should display no results message for empty search', () => {
+    const emptySearchResponse = mockEmptySearchResponse('nonexistent', fsProjectName);
+
+    cy.intercept(
+      'GET',
+      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/search*`,
+      emptySearchResponse,
+    ).as('emptyGlobalSearch');
+
+    featureStoreGlobal.visitEntities();
+
+    featureStoreGlobal.findGlobalSearchInput().clear().type('nonexistent');
+    cy.wait('@emptyGlobalSearch');
+
+    featureStoreGlobal.findGlobalSearchNoResults().should('be.visible');
+    featureStoreGlobal
+      .findGlobalSearchNoResultsText()
+      .should('contain.text', 'No results found for query "nonexistent" from All repositories');
+  });
+
+  it('should show loading spinner during search', () => {
+    cy.intercept('GET', `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/search*`, {
+      delay: 1000,
+      body: mockEmptySearchResponse('loading', fsProjectName),
+    }).as('slowSearch');
+
+    featureStoreGlobal.visitEntities();
+    featureStoreGlobal.findGlobalSearchInput().clear().type('loading');
+    featureStoreGlobal.findGlobalSearchLoadingSpinner().should('be.visible');
+
+    cy.wait('@slowSearch');
+    featureStoreGlobal.findGlobalSearchNoResults().should('be.visible');
+  });
+
+  it('should clear search when clear button is clicked', () => {
+    const searchResponse = mockComprehensiveSearchResponse('user', fsProjectName);
+
+    cy.intercept(
+      'GET',
+      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/search*`,
+      searchResponse,
+    ).as('globalSearch');
+
+    featureStoreGlobal.visitEntities();
+
+    featureStoreGlobal.findGlobalSearchInput().clear().type('user');
+    cy.wait('@globalSearch');
+    featureStoreGlobal.findGlobalSearchMenu().should('be.visible');
+    featureStoreGlobal.findGlobalSearchResultsCount().should('be.visible');
+
+    featureStoreGlobal.findGlobalSearchInput().clear();
+    featureStoreGlobal.findGlobalSearchMenu().should('not.exist');
   });
 });

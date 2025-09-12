@@ -18,6 +18,7 @@ import DataSetDetailsTabs from './DataSetDetailsTabs';
 import useFeatureStoreDataSetByName from '../../../apiHooks/useFeatureStoreDataSetByName';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
 import { featureStoreRootRoute } from '../../../routes';
+import FeatureStorePageTitle from '../../../components/FeatureStorePageTitle';
 
 const DataSetDetails = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -80,22 +81,27 @@ const DataSetDetails = (): React.ReactElement => {
       loaded={dataSetLoaded}
       provideChildrenPadding
       breadcrumb={
-        <Breadcrumb>
-          <BreadcrumbItem
-            data-testid="data-set-details-breadcrumb-link"
-            render={() => <Link to={`${featureStoreRootRoute()}/dataSets`}>Datasets</Link>}
-          />
-          <BreadcrumbItem
-            data-testid="data-set-details-breadcrumb-item"
-            isActive
-            style={{
-              textDecoration: 'underline',
-              textUnderlineOffset: ExtraSmallSpacerSize.var,
-            }}
-          >
-            {dataSet.spec.name}
-          </BreadcrumbItem>
-        </Breadcrumb>
+        <FeatureStorePageTitle
+          isDetailsPage
+          breadcrumb={
+            <Breadcrumb>
+              <BreadcrumbItem
+                data-testid="data-set-details-breadcrumb-link"
+                render={() => <Link to={`${featureStoreRootRoute()}/dataSets`}>Datasets</Link>}
+              />
+              <BreadcrumbItem
+                data-testid="data-set-details-breadcrumb-item"
+                isActive
+                style={{
+                  textDecoration: 'underline',
+                  textUnderlineOffset: ExtraSmallSpacerSize.var,
+                }}
+              >
+                {dataSet.spec.name}
+              </BreadcrumbItem>
+            </Breadcrumb>
+          }
+        />
       }
     >
       <DataSetDetailsTabs dataSet={dataSet} />
