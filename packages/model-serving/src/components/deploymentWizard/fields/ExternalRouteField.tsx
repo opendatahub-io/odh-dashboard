@@ -42,7 +42,7 @@ type ExternalRouteFieldProps = {
 export const ExternalRouteField: React.FC<ExternalRouteFieldProps> = ({
   data = { externalRoute: false },
   onChange,
-  allowCreate = true,
+  allowCreate = false,
 }) => {
   const handleChange = (checked: boolean) => {
     onChange?.(checked);

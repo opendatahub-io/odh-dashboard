@@ -230,6 +230,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findRemoveServiceAccountByIndex(0).click();
     modelServingWizard.findTokenWarningAlert().should('exist');
     modelServingWizard.findTokenAuthenticationCheckbox().click();
+    modelServingWizard.findExternalRouteCheckbox().click();
 
     modelServingWizard.findNextButton().should('be.enabled').click();
 
@@ -352,7 +353,10 @@ describe('Model Serving Deploy Wizard', () => {
         metadata: {
           name: 'test-model',
           namespace: 'test-project',
-          labels: { 'opendatahub.io/dashboard': 'true' },
+          labels: {
+            'opendatahub.io/dashboard': 'true',
+            'networking.kserve.io/visibility': 'exposed',
+          },
           annotations: {
             'openshift.io/display-name': 'test-model',
             'opendatahub.io/hardware-profile-namespace': 'opendatahub',

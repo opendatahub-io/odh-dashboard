@@ -166,7 +166,7 @@ type TokenAuthenticationFieldProps = {
 export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> = ({
   data = { tokens: [] },
   onChange,
-  allowCreate = true,
+  allowCreate = false,
 }) => {
   const createNewToken = React.useCallback(() => {
     const name = 'default-name';
