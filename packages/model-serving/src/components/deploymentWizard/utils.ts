@@ -7,7 +7,6 @@ import {
   ModelLocationData,
 } from './fields/modelLocationFields/types';
 import { type TokenAuthenticationFieldData } from './fields/TokenAuthenticationField';
-import { type ExternalRouteFieldData } from './fields/ExternalRouteField';
 import type { Deployment, DeploymentEndpoint } from '../../../extension-points';
 
 export const getDeploymentWizardRoute = (currentpath: string, deploymentName?: string): string => {
@@ -63,11 +62,11 @@ export const setupModelLocationData = (): ModelLocationData => {
   };
 };
 
-export const getModelAccessFromDeployment = (deployment: Deployment): ExternalRouteFieldData => {
-  const externalRoute =
+export const getExternalRouteFromDeployment = (deployment: Deployment): boolean => {
+  return (
     deployment.endpoints?.some((endpoint: DeploymentEndpoint) => endpoint.type === 'external') ??
-    false;
-  return { externalRoute };
+    false
+  );
 };
 
 export const getTokenAuthenticationFromDeployment = (
@@ -91,7 +90,5 @@ export const getTokenAuthenticationFromDeployment = (
     }
   }
 
-  return {
-    tokens,
-  };
+  return tokens;
 };

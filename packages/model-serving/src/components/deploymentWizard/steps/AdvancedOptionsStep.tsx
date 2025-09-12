@@ -29,6 +29,20 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
     namespace: project.metadata.name,
   });
 
+  const handleExternalRouteChange = (checked: boolean) => {
+    wizardState.state.externalRoute.setData(checked);
+
+    // When external route is enabled, automatically enable token authentication for security
+    if (checked && (!tokenAuthData || tokenAuthData.length === 0)) {
+      const defaultToken = {
+        uuid: `ml-${Date.now()}`,
+        name: 'default-token',
+        error: '',
+      };
+      wizardState.state.tokenAuthentication.setData([defaultToken]);
+    }
+  };
+
   return (
     <>
       <Title headingLevel="h2">Advanced Settings</Title>
@@ -38,7 +52,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
             <ExternalRouteField
               isChecked={externalRouteData}
               allowCreate={allowCreate}
-              onChange={wizardState.state.externalRoute.setData}
+              onChange={handleExternalRouteChange}
             />
           </StackItem>
 

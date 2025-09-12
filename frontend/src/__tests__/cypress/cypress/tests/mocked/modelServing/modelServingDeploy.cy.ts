@@ -227,6 +227,10 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findServiceAccountByIndex(1).clear().type('new-name');
     modelServingWizard.findServiceNameAlert().should('not.exist');
     modelServingWizard.findRemoveServiceAccountByIndex(1).click();
+    modelServingWizard.findServiceAccountByIndex(0).clear();
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findServiceAccountByIndex(0).clear().type('new-name');
+    modelServingWizard.findNextButton().should('be.enabled');
     modelServingWizard.findRemoveServiceAccountByIndex(0).click();
     modelServingWizard.findTokenWarningAlert().should('exist');
     modelServingWizard.findTokenAuthenticationCheckbox().click();
