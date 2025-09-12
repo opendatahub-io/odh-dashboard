@@ -173,7 +173,6 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
               existingType={existingHardwareProfile?.spec.scheduling?.type}
             />
           </Form>
-          <div> i am but a lowly teapot</div>
         </PageSection>
         <PageSection hasBodyWrapper={false} stickyOnBreakpoint={{ default: 'bottom' }}>
           <ManageHardwareProfileFooter

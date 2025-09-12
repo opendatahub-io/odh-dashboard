@@ -3,13 +3,7 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import '@testing-library/jest-dom';
 import { HardwareProfileKind } from '#~/k8sTypes';
 import HardwareProfilesTable from '#~/pages/hardwareProfiles/HardwareProfilesTable';
-import { createHardwareProfileFromResource } from '#~/api';
 import { IdentifierResourceType } from '#~/types';
-
-// Mock the API call
-jest.mock('#~/api', () => ({
-  createHardwareProfileFromResource: jest.fn(),
-}));
 
 // Mock child components
 jest.mock('#~/pages/hardwareProfiles/HardwareProfilesTableRow', () => {
@@ -18,7 +12,12 @@ jest.mock('#~/pages/hardwareProfiles/HardwareProfilesTableRow', () => {
     handleDelete,
     handleMigrate,
     migrationAction,
-  }: any) {
+  }: {
+    hardwareProfile: HardwareProfileKind;
+    handleDelete: (cr: HardwareProfileKind) => void;
+    handleMigrate?: (action: React.ReactNode) => void;
+    migrationAction?: React.ReactNode;
+  }) {
     return (
       <tr data-testid={`hardware-profile-row-${hardwareProfile.metadata.name}`}>
         <td>{hardwareProfile.metadata.name}</td>
@@ -29,7 +28,7 @@ jest.mock('#~/pages/hardwareProfiles/HardwareProfilesTableRow', () => {
           >
             Delete
           </button>
-          {migrationAction && (
+          {migrationAction && handleMigrate && (
             <button
               onClick={() => handleMigrate(migrationAction)}
               data-testid={`migrate-${hardwareProfile.metadata.name}`}
@@ -44,11 +43,17 @@ jest.mock('#~/pages/hardwareProfiles/HardwareProfilesTableRow', () => {
 });
 
 jest.mock('#~/pages/hardwareProfiles/DeleteHardwareProfileModal', () => {
-  return function MockDeleteHardwareProfileModal({ onClose, hardwareProfile }: any) {
+  return function MockDeleteHardwareProfileModal({
+    onClose,
+    hardwareProfile,
+  }: {
+    onClose: (deleted: boolean) => void;
+    hardwareProfile: HardwareProfileKind;
+  }) {
     return (
       <div data-testid="delete-modal">
         <span>Delete {hardwareProfile.metadata.name}</span>
-        <button onClick={onClose} data-testid="close-delete-modal">
+        <button onClick={() => onClose(false)} data-testid="close-delete-modal">
           Close
         </button>
       </div>
@@ -61,7 +66,11 @@ jest.mock('#~/pages/hardwareProfiles/HardwareProfilesToolbar', () => {
     onFilterUpdate,
     filterData,
     showCreateButton,
-  }: any) {
+  }: {
+    onFilterUpdate: (key: string, value?: string | { label: string; value: string }) => void;
+    filterData: Record<string, string>;
+    showCreateButton?: boolean;
+  }) {
     return (
       <div data-testid="hardware-profiles-toolbar">
         <input
@@ -79,7 +88,7 @@ jest.mock('#~/pages/hardwareProfiles/HardwareProfilesToolbar', () => {
           <option value="Enabled">Enabled</option>
           <option value="Disabled">Disabled</option>
         </select>
-        {showCreateButton && <button data-testid="create-button">Create</button>}
+        {showCreateButton ? <button data-testid="create-button">Create</button> : null}
       </div>
     );
   };
@@ -92,9 +101,16 @@ jest.mock('#~/components/table', () => ({
     rowRenderer,
     toolbarContent,
     emptyTableView,
-    onClearFilters,
     ...props
-  }: any) => {
+  }: {
+    data: unknown[];
+    columns: Array<{ label: string; [key: string]: unknown }>;
+    rowRenderer: (item: unknown, index: number) => React.ReactNode;
+    toolbarContent?: React.ReactNode;
+    emptyTableView?: React.ReactNode;
+    onClearFilters?: () => void;
+    [key: string]: unknown;
+  }) => {
     return (
       <div data-testid="hardware-profile-table" {...props}>
         {toolbarContent}
@@ -104,12 +120,12 @@ jest.mock('#~/components/table', () => ({
           <table>
             <thead>
               <tr>
-                {columns.map((col: any, index: number) => (
+                {columns.map((col: { label: string; [key: string]: unknown }, index: number) => (
                   <th key={index}>{col.label}</th>
                 ))}
               </tr>
             </thead>
-            <tbody>{data.map((item: any, index: number) => rowRenderer(item, index))}</tbody>
+            <tbody>{data.map((item: unknown, index: number) => rowRenderer(item, index))}</tbody>
           </table>
         )}
       </div>
@@ -118,7 +134,11 @@ jest.mock('#~/components/table', () => ({
 }));
 
 jest.mock('#~/concepts/dashboard/DashboardEmptyTableView', () => {
-  return function MockDashboardEmptyTableView({ onClearFilters }: any) {
+  return function MockDashboardEmptyTableView({
+    onClearFilters,
+  }: {
+    onClearFilters: (event: React.SyntheticEvent<HTMLButtonElement, Event>) => void;
+  }) {
     return (
       <div data-testid="empty-table-view">
         <span>No data</span>
@@ -129,11 +149,6 @@ jest.mock('#~/concepts/dashboard/DashboardEmptyTableView', () => {
     );
   };
 });
-
-const mockCreateHardwareProfileFromResource =
-  createHardwareProfileFromResource as jest.MockedFunction<
-    typeof createHardwareProfileFromResource
-  >;
 
 describe('HardwareProfilesTable', () => {
   const mockHardwareProfiles: HardwareProfileKind[] = [
@@ -351,8 +366,10 @@ describe('HardwareProfilesTable', () => {
   });
 
   describe('Migration Debug Logging (making sure it is off)', () => {
-    it('should not log for the hardware profile table is false', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    it('should not log for the hardware profile table', () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {
+        // Mock implementation - do nothing
+      });
 
       render(<HardwareProfilesTable {...defaultProps} />);
 

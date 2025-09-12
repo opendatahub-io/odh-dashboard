@@ -12,7 +12,7 @@ import { PlusIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { BYONImage } from '#~/types';
 import { filterHardwareProfilesByRecommendedIdentifiers } from '#~/pages/BYONImages/utils';
-import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility.ts';
+import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import { getHardwareProfileDisplayName } from '#~/pages/hardwareProfiles/utils';
 
 type BYONImageHardwareProfilesProps = {

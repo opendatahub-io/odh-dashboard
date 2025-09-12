@@ -39,7 +39,6 @@ type MockResourceConfigType = {
   isNonDashboardItem?: boolean;
   hardwareProfileName?: string;
   hardwareProfileNamespace?: string;
-  useLegacyHardwareProfile?: boolean;
   creationTimestamp?: string;
   lastTransitionTime?: string;
   isReady?: boolean;
@@ -117,7 +116,6 @@ export const mockInferenceServiceK8sResource = ({
   isNonDashboardItem = false,
   hardwareProfileName = '',
   hardwareProfileNamespace = undefined,
-  useLegacyHardwareProfile = false,
   creationTimestamp = '2023-03-17T16:12:41Z',
   lastTransitionTime = '2023-03-17T16:12:41Z',
   isReady = false,
@@ -142,8 +140,7 @@ export const mockInferenceServiceK8sResource = ({
           'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
         }),
       ...(hardwareProfileName && {
-        [`opendatahub.io/${useLegacyHardwareProfile ? 'legacy-' : ''}hardware-profile-name`]:
-          hardwareProfileName,
+        [`opendatahub.io/hardware-profile-name`]: hardwareProfileName,
       }),
       ...(hardwareProfileNamespace && {
         'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
