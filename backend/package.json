@@ -42,6 +42,7 @@
     "test-unit-coverage": "jest --silent --coverage"
   },
   "dependencies": {
+    "@odh-dashboard/app-config": "*",
     "@fastify/accepts": "^4.3.0",
     "@fastify/autoload": "^5.7.1",
     "@fastify/http-proxy": "^9.5.0",

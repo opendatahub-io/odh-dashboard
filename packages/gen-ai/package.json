@@ -16,7 +16,7 @@
     ],
     "local": {
       "host": "localhost",
-      "port": 9002
+      "port": 9102
     },
     "service": {
       "name": "odh-dashboard",
