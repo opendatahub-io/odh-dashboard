@@ -23,7 +23,11 @@ class StorageClassesPage {
   }
 
   findNavItem() {
-    return appChrome.findNavItem('Storage classes', 'Settings');
+    return appChrome.findNavItem({
+      name: 'Storage classes',
+      rootSection: 'Settings',
+      subSection: 'Cluster settings',
+    });
   }
 
   findEmptyState() {

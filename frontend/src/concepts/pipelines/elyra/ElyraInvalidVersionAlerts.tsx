@@ -117,7 +117,7 @@ export const ElyraInvalidVersionAlerts: React.FC<ElyraInvalidVersionProps> = ({
                   )
                 }
               >
-                Go to Pipelines
+                Go to Pipeline definitions
               </AlertActionLink>
             }
             actionClose={

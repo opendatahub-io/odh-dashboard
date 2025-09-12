@@ -23,7 +23,7 @@ const ProjectView: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title={<TitleWithIcon title="Data science projects" objectType={ProjectObjectType.project} />}
+      title={<TitleWithIcon title="Projects" objectType={ProjectObjectType.project} />}
       headerAction={
         dashboardConfig.spec.notebookController?.enabled ? <LaunchJupyterButton /> : undefined
       }

@@ -76,7 +76,7 @@ class UserManagement {
   }
 
   findNavItem() {
-    return appChrome.findNavItem('User management', 'Settings');
+    return appChrome.findNavItem({ name: 'User management', rootSection: 'Settings' });
   }
 
   findSubmitButton() {

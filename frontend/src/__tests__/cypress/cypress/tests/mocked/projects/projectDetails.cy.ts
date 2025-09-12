@@ -527,7 +527,7 @@ describe('Project Details', () => {
       initIntercepts({ templates: true, disableKServeConfig: false, disableModelConfig: true });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visit('test-project');
-      projectDetails.shouldBeEmptyState('Models', 'model-server', true);
+      projectDetails.shouldBeEmptyState('Deployments', 'model-server', true);
       projectDetails.findServingPlatformLabel().should('have.text', 'Single-model serving enabled');
     });
 
@@ -559,7 +559,7 @@ describe('Project Details', () => {
       initIntercepts({ templates: true, disableKServeConfig: true, disableModelConfig: false });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visit('test-project');
-      projectDetails.shouldBeEmptyState('Models', 'model-server', true);
+      projectDetails.shouldBeEmptyState('Deployments', 'model-server', true);
 
       projectDetails.findServingPlatformLabel().should('have.text', 'Multi-model serving enabled');
     });

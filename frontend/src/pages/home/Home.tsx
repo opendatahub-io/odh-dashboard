@@ -6,26 +6,18 @@ import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
 import { SupportedArea } from '#~/concepts/areas';
 import ModelCatalogSection from '#~/pages/home/modelCatalog/ModelCatalogSection';
 import ProjectsSection from './projects/ProjectsSection';
-import { useAIFlows } from './aiFlows/useAIFlows';
 import { useResourcesSection } from './resources/useResourcesSection';
 import { useEnableTeamSection } from './useEnableTeamSection';
-import LandingPageHomeHint from './LandingPageHomeHint';
 
 const Home: React.FC = () => {
   const { status: projectsAvailable } = useIsAreaAvailable(SupportedArea.DS_PROJECTS_VIEW);
   const { status: modelCatalogAvailable } = useIsAreaAvailable(SupportedArea.MODEL_CATALOG);
-  const aiFlows = useAIFlows();
   const resourcesSection = useResourcesSection();
   const enableTeamSection = useEnableTeamSection();
 
   return (
     <div data-testid="home-page">
-      <LandingPageHomeHint />
-      {!projectsAvailable &&
-      !modelCatalogAvailable &&
-      !aiFlows &&
-      !resourcesSection &&
-      !enableTeamSection ? (
+      {!projectsAvailable && !modelCatalogAvailable && !resourcesSection && !enableTeamSection ? (
         <PageSection
           hasBodyWrapper={false}
           data-testid="home-page-empty"
@@ -44,7 +36,6 @@ const Home: React.FC = () => {
         <>
           <ProjectsSection />
           <ModelCatalogSection />
-          {aiFlows}
           {resourcesSection}
           {enableTeamSection}
         </>

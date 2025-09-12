@@ -20,8 +20,10 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       required: [PLUGIN_GEN_AI],
     },
     properties: {
-      id: 'gen-ai-v3',
-      title: 'GEN AI V3',
+      id: 'gen-ai-studio',
+      title: 'Gen AI studio',
+      group: '4_gen_ai_studio',
+      iconRef: () => import('./GenAiStudioIcon'),
     },
   },
   {
@@ -30,11 +32,12 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       required: [PLUGIN_GEN_AI],
     },
     properties: {
-      id: 'chat-playground',
-      title: 'Chat playground',
+      id: 'playground',
+      title: 'Playground',
       href: '/chat-playground',
-      section: 'gen-ai-v3',
+      section: 'gen-ai-studio',
       path: '/chat-playground/*',
+      label: 'Tech Preview',
     },
   },
   {

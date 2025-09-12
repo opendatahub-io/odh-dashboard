@@ -19,6 +19,7 @@ import {
 import { mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import type { ModelCatalogSource } from '#~/concepts/modelCatalog/types';
+import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
 
 type HandlersProps = {
   modelRegistries?: K8sResourceCommon[];
@@ -93,8 +94,7 @@ describe('Model Catalog core', () => {
       hasUnmanagedSourcesConfigMap: false,
     });
     modelCatalog.landingPage();
-    cy.findByRole('button', { name: 'Models' }).click();
-    cy.findByRole('link', { name: 'Model catalog' }).should('not.exist');
+    appChrome.findNavItem({ name: 'Catalog', rootSection: 'AI hub' }).should('not.exist');
 
     cy.visitWithLogin(`/modelCatalog`);
     modelCatalog.findModelCatalogNotFoundState().should('exist');
@@ -109,15 +109,14 @@ describe('Model Catalog core', () => {
 
     modelCatalog.landingPage();
 
-    cy.findByRole('button', { name: 'Models' }).click();
-    cy.findByRole('link', { name: 'Model catalog' }).should('exist');
+    appChrome.findNavItem({ name: 'Catalog', rootSection: 'AI hub' }).should('exist');
   });
 
   it('Navigates to Model Catalog', () => {
     initIntercepts({ disableModelCatalogFeature: false });
     modelCatalog.visit();
 
-    cy.findByRole('button', { name: 'Models' }).should('exist').click();
+    appChrome.findNavSection('AI hub').should('exist');
 
     modelCatalog.findModelCatalogCards().should('exist');
   });
@@ -125,7 +124,7 @@ describe('Model Catalog core', () => {
   it('Navigates to Model Detail page on link click', () => {
     initIntercepts({ disableModelCatalogFeature: false });
     modelCatalog.visit();
-    cy.findByRole('button', { name: 'Models' }).should('exist').click();
+    appChrome.findNavSection('AI hub').should('exist');
 
     modelCatalog.findModelCatalogCards().should('exist');
     modelCatalog.findModelCatalogModelDetailLink('granite-8b-code-instruct').click();

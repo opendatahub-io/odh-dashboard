@@ -727,8 +727,8 @@ describe('Model version details', () => {
         ProjectModel,
         mockK8sResourceList([
           mockProjectK8sResource({
-            k8sName: 'data-science-project',
-            displayName: 'Data Science Project',
+            k8sName: 'project',
+            displayName: 'Project',
             isDSProject: true,
           }),
         ]),

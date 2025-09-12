@@ -43,7 +43,11 @@ class NotebookImageSettings {
   }
 
   findNavItem() {
-    return appChrome.findNavItem('Workbench images', 'Settings');
+    return appChrome.findNavItem({
+      name: 'Workbench images',
+      rootSection: 'Settings',
+      subSection: 'Environment setup',
+    });
   }
 
   findErrorIcon() {

@@ -10,6 +10,7 @@ import {
 } from '@patternfly/react-core';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { isGroupEmpty } from '#~/utilities/utils';
+import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import SettingSection from '#~/components/SettingSection';
 import { MultiSelection, SelectionOptions } from '#~/components/MultiSelection';
 import { useWatchGroups } from '#~/concepts/userConfigs/useWatchGroups';
@@ -29,8 +30,8 @@ const GroupSettings: React.FC = () => {
     setIsGroupSettingsChanged,
   } = useWatchGroups();
 
-  const adminDesc = 'Select the OpenShift groups that contain all Data Science administrators.';
-  const userDesc = 'Select the OpenShift groups that contain all Data Science users.';
+  const adminDesc = `Select the OpenShift groups that contain all ${ODH_PRODUCT_NAME} administrators.`;
+  const userDesc = `Select the OpenShift groups that contain all ${ODH_PRODUCT_NAME} users.`;
 
   const handleSaveButtonClicked = async () => {
     if (isLoading) {
@@ -68,7 +69,7 @@ const GroupSettings: React.FC = () => {
   return (
     <ApplicationsPage
       title={<TitleWithIcon title="User management" objectType={ProjectObjectType.permissions} />}
-      description="Define OpenShift group membership for Data Science administrators and users."
+      description={`Define OpenShift group membership for ${ODH_PRODUCT_NAME} administrators and users.`}
       loaded={loaded}
       empty={false}
       loadError={loadError}
@@ -79,7 +80,7 @@ const GroupSettings: React.FC = () => {
       <Stack hasGutter>
         <StackItem>
           <SettingSection
-            title="Data Science administrator groups"
+            title={`${ODH_PRODUCT_NAME} administrator groups`}
             testId="data-science-administrator-groups"
             description={adminDesc}
             footer={
@@ -88,7 +89,7 @@ const GroupSettings: React.FC = () => {
                 variant="info"
                 isInline
                 isPlain
-                title="All cluster admins are automatically assigned as Data Science administrators."
+                title={`All cluster admins are automatically assigned as ${ODH_PRODUCT_NAME} administrators.`}
               />
             }
           >
@@ -129,7 +130,7 @@ const GroupSettings: React.FC = () => {
         </StackItem>
         <StackItem>
           <SettingSection
-            title="Data Science user groups"
+            title={`${ODH_PRODUCT_NAME} user groups`}
             description={userDesc}
             testId="data-science-user-groups"
           >

@@ -14,7 +14,7 @@ describe('LM Evaluation Home Page', () => {
   it('should show empty state when no evaluations exist', () => {
     lmEvalPage.visit('test-project');
 
-    lmEvalPage.findPageTitle().should('have.text', 'Model evaluation runs');
+    lmEvalPage.findPageTitle().should('have.text', 'Evaluations');
     lmEvalPage.findEmptyStateTitle().should('contain.text', 'No model evaluation runs');
     lmEvalPage
       .findEmptyStateBody()
@@ -30,10 +30,10 @@ describe('LM Evaluation Home Page', () => {
     cy.interceptK8sList(ProjectModel, mockK8sResourceList([]));
     lmEvalPage.visit();
 
-    lmEvalPage.findEmptyStateTitle().should('contain.text', 'No data science projects');
+    lmEvalPage.findEmptyStateTitle().should('contain.text', 'No projects');
     lmEvalPage
       .findEmptyStateBody()
-      .should('contain.text', 'To view model evaluations, first create a data science project.');
+      .should('contain.text', 'To view model evaluations, first create a project.');
 
     // Verify Create project button exists
     lmEvalPage.findCreateProjectButton().should('exist');

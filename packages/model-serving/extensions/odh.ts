@@ -30,7 +30,7 @@ const extensions: (
     type: 'app.project-details/tab',
     properties: {
       id: 'model-server', // same value as ProjectSectionID.MODEL_SERVER
-      title: 'Models',
+      title: 'Deployments',
       component: () => import('../src/ModelsProjectDetailsTab'),
     },
     flags: {
@@ -55,9 +55,9 @@ const extensions: (
     },
     properties: {
       id: 'modelServing',
-      title: 'Model deployments',
+      title: 'Deployments',
       href: '/modelServing',
-      section: 'models',
+      section: 'ai-hub',
       path: '/modelServing/:namespace?/*',
     },
   },

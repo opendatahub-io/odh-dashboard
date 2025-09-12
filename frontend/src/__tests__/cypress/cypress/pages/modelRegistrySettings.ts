@@ -59,7 +59,11 @@ class ModelRegistrySettings {
   }
 
   findNavItem() {
-    return appChrome.findNavItem('Model registry settings', 'Settings');
+    return appChrome.findNavItem({
+      name: 'Model registry settings',
+      rootSection: 'Settings',
+      subSection: 'Model resources and operations',
+    });
   }
 
   findEmptyState() {

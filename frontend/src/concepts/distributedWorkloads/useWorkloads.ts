@@ -9,7 +9,7 @@ const useWorkloads = (namespace?: string, refreshRate = 0): FetchState<WorkloadK
   return useFetchState<WorkloadKind[]>(
     React.useCallback(() => {
       if (!dwEnabled) {
-        return Promise.reject(new NotReadyError('Distributed workloads is not enabled'));
+        return Promise.reject(new NotReadyError('Workload metrics is not enabled'));
       }
       if (!namespace) {
         return Promise.reject(new NotReadyError('No namespace'));

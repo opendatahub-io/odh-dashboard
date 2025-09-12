@@ -86,23 +86,36 @@ class FeatureStoreGlobal {
     this.waitForFeatureServiceDetails(featureService);
   }
 
-  navigate() {
-    appChrome.findNavItem('Feature store').click();
-    this.wait();
-  }
-
   navigateToFeatureViews() {
-    appChrome.findNavItem('Feature views').click();
+    appChrome
+      .findNavItem({
+        name: 'Feature views',
+        rootSection: 'Develop & train',
+        subSection: 'Feature store',
+      })
+      .click();
     this.waitForFeatureViews();
   }
 
   navigateToEntities() {
-    appChrome.findNavItem('Entities').click();
+    appChrome
+      .findNavItem({
+        name: 'Entities',
+        rootSection: 'Develop & train',
+        subSection: 'Feature store',
+      })
+      .click();
     this.waitForEntities();
   }
 
   navigateToFeatures() {
-    appChrome.findNavItem('Features').click();
+    appChrome
+      .findNavItem({
+        name: 'Features',
+        rootSection: 'Develop & train',
+        subSection: 'Feature store',
+      })
+      .click();
     this.waitForFeatures();
   }
 

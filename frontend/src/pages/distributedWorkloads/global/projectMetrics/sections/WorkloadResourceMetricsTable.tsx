@@ -64,7 +64,7 @@ export const WorkloadResourceMetricsTable: React.FC = () => {
       enablePagination
       data={workloads.data}
       columns={columns}
-      emptyTableView={<>No distributed workloads match your filters</>}
+      emptyTableView={<>No workload metrics match your filters</>}
       data-testid="workload-resource-metrics-table"
       rowRenderer={(workload) => (
         <WorkloadResourceMetricsTableRow

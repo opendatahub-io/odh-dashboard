@@ -67,7 +67,7 @@ export const PipelineVersionCoreDetails: React.FC<
   Pick<GlobalPipelineCoreDetailsProps, 'BreadcrumbDetailsComponent'>
 > = ({ BreadcrumbDetailsComponent }) => (
   <GlobalPipelineCoreDetailsInner
-    pageName="Pipelines"
+    pageName="Pipeline definitions"
     redirectPath={pipelinesBaseRoute}
     BreadcrumbDetailsComponent={BreadcrumbDetailsComponent}
   />

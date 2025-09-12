@@ -14,7 +14,7 @@ import type { DataScienceProjectData } from '#~/__tests__/cypress/cypress/types'
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 
-describe('Verify Data Science Project - Creation and Deletion', () => {
+describe('Verify Project - Creation and Deletion', () => {
   let testData: DataScienceProjectData;
   let projectName: string;
   const uuid = generateTestUUID();
@@ -54,7 +54,7 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
   });
 
   it(
-    'Create and Delete a Data Science Project in RHOAI',
+    'Create and Delete a Project in RHOAI',
     { tags: ['@Smoke', '@SmokeSet2', '@ODS-1875', '@ODS-1783', '@ODS-1775', '@Dashboard'] },
     () => {
       // Authentication and navigation
@@ -63,7 +63,7 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
       projectListPage.navigate();
 
       // Initiate project creation
-      cy.step('Open Create Data Science Project modal');
+      cy.step('Open Create Project modal');
       createProjectModal.shouldBeOpen(false);
       projectListPage.findCreateProjectButton().click();
 
@@ -111,7 +111,7 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
       projectListPage.navigate();
 
       // Initiate project creation
-      cy.step('Open Create Data Science Project modal');
+      cy.step('Open Create Project modal');
       createProjectModal.shouldBeOpen(false);
       projectListPage.findCreateProjectButton().click();
 
@@ -136,7 +136,7 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
       projectListPage.navigate();
 
       // Initiate project creation
-      cy.step('Open Create Data Science Project modal');
+      cy.step('Open Create Project modal');
       createProjectModal.shouldBeOpen(false);
       projectListPage.findCreateProjectButton().click();
 
@@ -171,7 +171,7 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
     cy.step('Log into the application');
     cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
     projectListPage.navigate();
-    cy.step('Open Create Data Science Project modal');
+    cy.step('Open Create Project modal');
     createProjectModal.shouldBeOpen(false);
     projectListPage.findCreateProjectButton().click();
     // Test Name field character limit
