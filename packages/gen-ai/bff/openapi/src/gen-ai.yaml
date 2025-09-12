@@ -880,6 +880,48 @@ components:
           example: ["vs_abc123", "vs_def456"]
           description: Vector store IDs to use with the tool
 
+    VectorStoreConfig:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          example: "default_vector_store"
+          description: Name of the vector store
+        embedding_model:
+          type: string
+          example: "all-minilm:l6-v2"
+          description: Embedding model to use for the vector store
+        embedding_dimension:
+          type: integer
+          minimum: 1
+          example: 384
+          description: Dimension of the embedding vectors
+        provider_id:
+          type: string
+          example: "milvus"
+          description: Provider ID for the vector store backend
+
+    FileUpload:
+      type: object
+      required:
+        - file
+        - purpose
+      properties:
+        file:
+          type: string
+          example: "document.pdf"
+          description: Name of the file to upload
+        purpose:
+          type: string
+          enum: [assistants, batch, fine-tune, vision, user_data, evals]
+          default: "assistants"
+          example: "assistants"
+          description: Intended purpose of the file
+
     CodeExportRequest:
       type: object
       required:
@@ -920,6 +962,14 @@ components:
             - type: "file_search"
               vector_store_ids: ["vs_abc123"]
           description: Tools to include in the generated code
+        vector_store:
+          $ref: "#/components/schemas/VectorStoreConfig"
+          description: Vector store configuration for RAG functionality
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/FileUpload"
+          description: Files to upload and add to the vector store
 
     CodeExportData:
       type: object
@@ -933,7 +983,7 @@ components:
             # Llama Stack Quickstart Script
             #
             # README:
-            # This example shows how to configure a assistant using the Llama Stack client.
+            # This example shows how to configure an assistant using the Llama Stack client.
             # Before using this code, make sure of the following:
             #
             # 1. Llama Stack Server:
@@ -945,27 +995,48 @@ components:
             #
             # 3. Tools (MCP Integration):
             #    - Any tools used must be properly pre-configured in your Llama Stack setup.
-                    
-            # Configuration adjust as needed:
+
             LLAMA_STACK_URL = ""
+            FILES_BASE_PATH = ""
             input_text = "What is the capital of Ireland?"
             model_name = "ollama/llama3.2:3b"
+            vector_store_name = "default_vector_store"
             temperature = 0.7
             stream_enabled = False
             system_instructions = "You are a helpful assistant. Use the RAG tool to answer questions as needed."
-                    
-            # Tool configuration
+            files_to_upload = [
+                { "file": "document.pdf", "purpose": "assistants" },
+            ]
+
+            from llama_stack_client import LlamaStackClient
+            import os
+
+            client = LlamaStackClient(base_url=LLAMA_STACK_URL)
+
+            # Create vector store
+            vector_store = client.vector_stores.create(
+                name=vector_store_name,
+                embedding_model="text-embedding-3-small",
+                embedding_dimension=1536,
+                provider_id="milvus"
+            )
             tools = [
                 {
                     "type": "file_search",
-                    "vector_store_ids": ["vs_abc123", "vs_def456"]
-                }
+                    "vector_store_ids": [
+                        vector_store.id
+                    ]
+                },
             ]
-                    
-            from llama_stack_client import LlamaStackClient
-                    
-            client = LlamaStackClient(base_url=LLAMA_STACK_URL)
-                    
+
+            for file_info in files_to_upload:
+                with open(os.path.join(FILES_BASE_PATH, file_info["file"]), 'rb') as file:
+                    uploaded_file = client.files.create(file=file, purpose=file_info["purpose"])
+                    client.vector_stores.files.create(
+                        vector_store_id=vector_store.id, 
+                        file_id=uploaded_file.id
+                    )
+
             config = {
                 "input": input_text,
                 "model": model_name,
@@ -974,9 +1045,9 @@ components:
                 "instructions": system_instructions,
                 "tools": tools
             }
-                    
+
             response = client.responses.create(**config)
-                    
+
             print("agent>", response.output_text)
 
     # Kubernetes Namespace Schema
