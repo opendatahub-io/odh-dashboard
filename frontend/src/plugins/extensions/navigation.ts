@@ -70,20 +70,6 @@ const extensions: NavExtension[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.MODEL_SERVING],
-      disallowed: [SupportedArea.PLUGIN_MODEL_SERVING],
-    },
-    properties: {
-      id: 'modelServing',
-      title: 'Model deployments',
-      href: '/modelServing',
-      section: 'models',
-      path: '/modelServing/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
       required: [SupportedArea.FINE_TUNING],
     },
     properties: {
