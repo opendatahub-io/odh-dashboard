@@ -16,6 +16,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/rs/cors"
 )
 
@@ -67,33 +68,6 @@ func (app *App) EnableTelemetry(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
-}
-
-func (app *App) AttachRESTClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		// Set up a child logger for the rest client that automatically adds the request id to all statements for
-		// tracing.
-		restClientLogger := app.logger
-		if app.logger != nil {
-			traceId, ok := r.Context().Value(constants.TraceIdKey).(string)
-			if ok {
-				restClientLogger = app.logger.With(slog.String("trace_id", traceId))
-			} else {
-				app.logger.Warn("Failed to set trace_id for tracing")
-			}
-		}
-
-		baseUrl := app.config.LlamaStackURL
-
-		restHttpClient, err := integrations.NewHTTPClient(restClientLogger, baseUrl)
-
-		if err != nil {
-			app.serverErrorResponse(w, r, fmt.Errorf("failed to create http client: %v", err))
-			return
-		}
-		ctx := context.WithValue(r.Context(), constants.LlamaStackHttpClientKey, restHttpClient)
-		next(w, r.WithContext(ctx), ps)
-	}
 }
 
 func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
@@ -172,6 +146,60 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 		}
 
 		ctx := context.WithValue(r.Context(), constants.NamespaceQueryParameterKey, namespace)
+		r = r.WithContext(ctx)
+
+		next(w, r, ps)
+	}
+}
+
+// AttachLlamaStackClient middleware creates a LlamaStack client for the namespace and attaches it to context.
+// This middleware must be used after AttachNamespace middleware.
+//
+// DEVELOPMENT ONLY: Currently uses the global LlamaStack URL from app configuration for all namespaces.
+// TODO: Replace with proper namespace-specific service discovery for production.
+func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		ctx := r.Context()
+
+		// Get namespace from context (set by AttachNamespace middleware)
+		namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+		if !ok || namespace == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
+			return
+		}
+
+		// Use request-scoped logger to avoid nil-panic in tests/environments where app.logger is not set
+		logger := helper.GetContextLoggerFromReq(r)
+
+		var llamaStackClient llamastack.LlamaStackClientInterface
+
+		// Check if running in mock mode
+		if app.config.MockLSClient {
+			logger.Debug("MOCK MODE: creating mock LlamaStack client for namespace", "namespace", namespace)
+			// In mock mode, use empty URL since mock factory ignores it
+			llamaStackClient = app.llamaStackClientFactory.CreateClient("")
+		} else {
+			// DEVELOPMENT ONLY: Use global LlamaStack URL from app configuration
+			// TODO: Replace with proper namespace-specific service discovery:
+			// - Look for LlamaStack services in the namespace
+			// - Read namespace-specific ConfigMaps or annotations
+			// - Query LlamaStackDistribution CRDs for active instances
+			globalDevLlamastackURL := app.config.LlamaStackURL
+			if globalDevLlamastackURL == "" {
+				app.serverErrorResponse(w, r, fmt.Errorf("LlamaStack URL not configured - set LLAMA_STACK_URL environment variable"))
+				return
+			}
+
+			logger.Debug("DEVELOPMENT MODE: creating LlamaStack client for namespace",
+				"namespace", namespace,
+				"globalDevURL", globalDevLlamastackURL)
+
+			// Create LlamaStack client per-request using app factory (consistent with K8s pattern)
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(globalDevLlamastackURL)
+		}
+
+		// Attach ready-to-use client to context
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		r = r.WithContext(ctx)
 
 		next(w, r, ps)
