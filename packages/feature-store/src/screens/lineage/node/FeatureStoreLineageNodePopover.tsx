@@ -27,6 +27,7 @@ export interface FeatureStoreLineageNodePopoverProps {
   node: LineageNode | null;
   isVisible: boolean;
   onClose: () => void;
+  isOnFeatureViewDetailsPage?: boolean;
 }
 
 const getFsObjectTypeLabel = (fsObjectType: FsObjectType): string => {
@@ -59,6 +60,7 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
   node,
   isVisible,
   onClose,
+  isOnFeatureViewDetailsPage = false,
 }) => {
   const { currentProject } = useFeatureStoreProject();
   const navigate = useNavigate();
@@ -134,19 +136,21 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
       }
       footerContent={
         <Flex>
-          <FlexItem>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                const route = goToDetailsPage(node, currentProject);
-                if (route) {
-                  navigate(route);
-                }
-              }}
-            >
-              View {getFsObjectTypeLabel(node.fsObjectTypes)} details page
-            </Button>
-          </FlexItem>
+          {!isOnFeatureViewDetailsPage && (
+            <FlexItem>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  const route = goToDetailsPage(node, currentProject);
+                  if (route) {
+                    navigate(route);
+                  }
+                }}
+              >
+                View {getFsObjectTypeLabel(node.fsObjectTypes)} details page
+              </Button>
+            </FlexItem>
+          )}
           {node.fsObjectTypes === 'feature_view' && (
             <FlexItem>
               <Button

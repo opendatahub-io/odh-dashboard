@@ -132,6 +132,10 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
     />
   );
 
+  const PopoverComponent = (props: Parameters<typeof FeatureStoreLineageNodePopover>[0]) => (
+    <FeatureStoreLineageNodePopover {...props} isOnFeatureViewDetailsPage={!!featureViewName} />
+  );
+
   return (
     <PageSection
       hasBodyWrapper={false}
@@ -152,7 +156,7 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
         }
         height="100%"
         componentFactory={componentFactory}
-        popoverComponent={FeatureStoreLineageNodePopover}
+        popoverComponent={PopoverComponent}
         toolbarComponent={ToolbarComponent}
         autoResetOnDataChange
       />
