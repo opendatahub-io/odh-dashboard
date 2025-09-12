@@ -541,7 +541,7 @@ describe('assembleInferenceService', () => {
     ).toBeUndefined();
   });
 
-  it('should not set pod specs like tolerations and nodeSelector for hardware profiles', () => {
+  it('should not set pod specs like tolerations and nodeSelector for original hardware profiles', () => {
     const hardwareProfile = mockHardwareProfile({});
     hardwareProfile.metadata.uid = 'test-uid'; // not a legacy hardware profile
     const podSpecOptions = mockModelServingPodSpecOptions({
@@ -583,6 +583,48 @@ describe('assembleInferenceService', () => {
 
     expect(resultKServe.spec.predictor.tolerations).toBeUndefined();
     expect(resultKServe.spec.predictor.nodeSelector).toBeUndefined();
+  });
+
+  it('should apply tolerations to InferenceService predictor when using a legacy hardware profile', () => {
+    const gpuTolerations = [
+      {
+        key: 'nvidia.com/gpu',
+        operator: TolerationOperator.EXISTS,
+        effect: TolerationEffect.NO_SCHEDULE,
+      },
+    ];
+    const legacyHardwareProfile = mockHardwareProfile({
+      name: 'legacy-gpu-hardware',
+      tolerations: gpuTolerations,
+    });
+    legacyHardwareProfile.metadata.uid = undefined;
+
+    const podSpecOptions = mockModelServingPodSpecOptions({
+      selectedHardwareProfile: legacyHardwareProfile,
+      tolerations: gpuTolerations,
+      resources: {
+        requests: { 'nvidia.com/gpu': 1 },
+        limits: { 'nvidia.com/gpu': 1 },
+      },
+    });
+
+    const result = assembleInferenceService(
+      mockInferenceServiceModalData({
+        isKServeRawDeployment: true,
+      }),
+      undefined,
+      undefined,
+      false,
+      undefined,
+      undefined,
+      podSpecOptions,
+    );
+
+    expect(result.spec.predictor.tolerations).toEqual(gpuTolerations);
+    expect(result.spec.predictor.model?.resources?.requests?.['nvidia.com/gpu']).toBe(1);
+    expect(result.metadata.annotations?.['opendatahub.io/legacy-hardware-profile-name']).toBe(
+      'legacy-gpu-hardware',
+    );
   });
 });
 
