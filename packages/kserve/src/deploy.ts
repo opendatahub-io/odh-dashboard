@@ -10,6 +10,8 @@ import { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardware
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { KServeDeployment } from './deployments';
 import { UseModelDeploymentWizardState } from '../../model-serving/src/components/deploymentWizard/useDeploymentWizard';
+import { ExternalRouteFieldData } from '../../model-serving/src/components/deploymentWizard/fields/ExternalRouteField';
+import { TokenAuthenticationFieldData } from '../../model-serving/src/components/deploymentWizard/fields/TokenAuthenticationField';
 
 type CreatingInferenceServiceObject = {
   project: string;
@@ -18,6 +20,8 @@ type CreatingInferenceServiceObject = {
   modelType: ServingRuntimeModelType;
   hardwareProfile: HardwareProfileConfig;
   modelFormat: SupportedModelFormats;
+  externalRoute?: ExternalRouteFieldData;
+  tokenAuth?: TokenAuthenticationFieldData;
 };
 
 export const deployKServeDeployment = async (
@@ -41,6 +45,8 @@ export const deployKServeDeployment = async (
     modelType: wizardData.modelType.data,
     hardwareProfile: wizardData.hardwareProfileConfig.formData,
     modelFormat: wizardData.modelFormatState.modelFormat,
+    externalRoute: wizardData.externalRoute.data,
+    tokenAuth: wizardData.tokenAuthentication.data,
   };
 
   const inferenceService = await createInferenceService(
@@ -59,7 +65,16 @@ const assembleInferenceService = (
   data: CreatingInferenceServiceObject,
   existingInferenceService?: InferenceServiceKind,
 ): InferenceServiceKind => {
-  const { project, name, k8sName, modelType, hardwareProfile, modelFormat } = data;
+  const {
+    project,
+    name,
+    k8sName,
+    modelType,
+    hardwareProfile,
+    modelFormat,
+    tokenAuth,
+    externalRoute,
+  } = data;
   const inferenceService: InferenceServiceKind = existingInferenceService
     ? { ...existingInferenceService }
     : {
@@ -97,7 +112,21 @@ const assembleInferenceService = (
   }
   annotations['opendatahub.io/hardware-profile-namespace'] =
     hardwareProfile.selectedProfile?.metadata.namespace;
+
+  if (tokenAuth && tokenAuth.length > 0) {
+    annotations['security.opendatahub.io/enable-auth'] = 'true';
+  }
+
   inferenceService.metadata.annotations = annotations;
+
+  if (externalRoute) {
+    if (!inferenceService.metadata.labels) {
+      inferenceService.metadata.labels = {};
+    }
+    delete inferenceService.metadata.labels['networking.kserve.io/visibility'];
+
+    inferenceService.metadata.labels['networking.kserve.io/visibility'] = 'exposed';
+  }
 
   const labels = { ...inferenceService.metadata.labels };
   labels[KnownLabels.DASHBOARD_RESOURCE] = 'true';
