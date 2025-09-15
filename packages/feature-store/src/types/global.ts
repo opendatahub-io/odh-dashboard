@@ -2,7 +2,7 @@ import { GetEntities, GetEntityByName } from './entities';
 import { GetFeatureByName, GetFeatures } from './features';
 import { GetProjects } from './featureStoreProjects';
 import { GetFeatureViews, GetFeatureViewsByName } from './featureView';
-import { GetLineageData } from './lineage';
+import { GetFeatureViewLineage, GetLineageData } from './lineage';
 import { GetFeatureServiceByName, GetFeatureServices } from './featureServices';
 import { GetMetricsResourceCount, GetPopularTags, GetRecentlyVisitedResources } from './metrics';
 import { GetDataSetByName, GetSavedDatasets } from './dataSets';
@@ -85,6 +85,7 @@ export type FeatureStoreAPIs = {
   getPopularTags: GetPopularTags;
   getRecentlyVisitedResources: GetRecentlyVisitedResources;
   getLineageData: GetLineageData;
+  getFeatureViewLineage: GetFeatureViewLineage;
   getSavedDatasets: GetSavedDatasets;
   getDataSetByName: GetDataSetByName;
   getDataSources: GetDataSources;
