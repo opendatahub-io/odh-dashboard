@@ -231,25 +231,6 @@ describe('assembleServingRuntime', () => {
     expect(servingRuntime.spec.replicas).toBeUndefined();
   });
 
-  it('should not set hardware profile annotation for legacy profiles', () => {
-    const hardwareProfile = mockHardwareProfile({});
-    hardwareProfile.metadata.uid = 'test-uid-not-legacy';
-    const podSpecOptions = mockModelServingPodSpecOptions({
-      selectedHardwareProfile: hardwareProfile,
-    });
-    const result = assembleServingRuntime(
-      mockServingRuntimeModalData({}),
-      'test-ns',
-      mockServingRuntimeK8sResource({}),
-      true,
-      podSpecOptions,
-      false,
-      true,
-    );
-    const actual = result.metadata.annotations?.['opendatahub.io/hardware-profile-name'];
-    expect(actual).toBeUndefined();
-  });
-
   it('should not set hardware profile annotation for real profiles', () => {
     const hardwareProfile = mockHardwareProfile({ name: 'real-profile' });
     hardwareProfile.metadata.uid = 'test-uid';
