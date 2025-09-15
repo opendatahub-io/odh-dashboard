@@ -191,13 +191,10 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
                 <Checkbox
                   label={modeLabel}
                   description={accessModeDescriptions[modeName]}
-                  // RWO is not allowed to be disabled, and if it's not supported, it should be disabled
-                  isDisabled={modeName === AccessMode.RWO || !isSupported}
-                  // RWO is always enabled, and if it's supported, it should be checked
-                  isChecked={
-                    (isSupported && accessModeSettings?.[modeName] === true) ||
-                    modeName === AccessMode.RWO
-                  }
+                  // RWO is not allowed to be disabled
+                  isDisabled={modeName === AccessMode.RWO}
+                  // RWO is always enabled
+                  isChecked={accessModeSettings?.[modeName] === true || modeName === AccessMode.RWO}
                   aria-label={modeLabel}
                   key={modeName}
                   id={`edit-sc-access-mode-${modeName.toLowerCase()}`}
