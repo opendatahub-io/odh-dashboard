@@ -10,6 +10,7 @@ import {
   PageSection,
 } from '@patternfly/react-core';
 import FeatureStoreProjectSelectorNavigator from './screens/components/FeatureStoreProjectSelectorNavigator';
+import FeatureStorePageTitle from './components/FeatureStorePageTitle';
 import { featureStoreRoute } from './routes';
 import { FeatureStoreTabs } from './const';
 import Metrics from './screens/metrics/Metrics';
@@ -31,7 +32,7 @@ const FeatureStore: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
   return (
     <ApplicationsPage
       {...pageProps}
-      title="Feature store"
+      title={<FeatureStorePageTitle title="Feature store" />}
       description="Description of feature store"
       headerContent={
         <FeatureStoreProjectSelectorNavigator
