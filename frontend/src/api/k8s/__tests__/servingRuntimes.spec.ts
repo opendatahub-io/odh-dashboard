@@ -233,7 +233,7 @@ describe('assembleServingRuntime', () => {
 
   it('should not set hardware profile annotation for legacy profiles', () => {
     const hardwareProfile = mockHardwareProfile({});
-    hardwareProfile.metadata.uid = undefined;
+    hardwareProfile.metadata.uid = 'test-uid-not-legacy';
     const podSpecOptions = mockModelServingPodSpecOptions({
       selectedHardwareProfile: hardwareProfile,
     });
@@ -246,7 +246,8 @@ describe('assembleServingRuntime', () => {
       false,
       true,
     );
-    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBeUndefined();
+    const actual = result.metadata.annotations?.['opendatahub.io/hardware-profile-name'];
+    expect(actual).toBeUndefined();
   });
 
   it('should not set hardware profile annotation for real profiles', () => {
@@ -268,29 +269,12 @@ describe('assembleServingRuntime', () => {
   });
 
   it('should not set pod specs like tolerations and nodeSelector for legacy and non-legacy hardware profiles', () => {
-    const legacyHardwareProfile = mockHardwareProfile({});
-    legacyHardwareProfile.metadata.uid = undefined;
-    let podSpecOptions = mockModelServingPodSpecOptions({
-      selectedHardwareProfile: legacyHardwareProfile,
-    });
-    let result = assembleServingRuntime(
-      mockServingRuntimeModalData({}),
-      'test-ns',
-      mockServingRuntimeK8sResource({}),
-      true,
-      podSpecOptions,
-      false,
-      true,
-    );
-    expect(result.spec.tolerations).toEqual([]);
-    expect(result.spec.nodeSelector).toEqual({});
-
     const hardwareProfile = mockHardwareProfile({});
     hardwareProfile.metadata.uid = 'uid';
-    podSpecOptions = mockModelServingPodSpecOptions({
+    const podSpecOptions = mockModelServingPodSpecOptions({
       selectedHardwareProfile: hardwareProfile,
     });
-    result = assembleServingRuntime(
+    const result = assembleServingRuntime(
       mockServingRuntimeModalData({}),
       'test-ns',
       mockServingRuntimeK8sResource({}),

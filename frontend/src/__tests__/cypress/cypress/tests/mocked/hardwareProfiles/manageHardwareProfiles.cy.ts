@@ -7,13 +7,11 @@ import {
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import {
   HardwareProfileModel,
-  AcceleratorProfileModel,
   WorkloadPriorityClassModel,
   DataScienceClusterModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { asProductAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
-import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
 import {
   createHardwareProfile,
   createNodeResourceModal,
@@ -24,10 +22,9 @@ import {
   editNodeResourceModal,
   editNodeSelectorModal,
   editTolerationModal,
-  hardwareProfile,
 } from '#~/__tests__/cypress/cypress/pages/hardwareProfile';
 
-import {  mockDashboardConfig } from '#~/__mocks__';
+import { mockDashboardConfig } from '#~/__mocks__';
 import { mockWorkloadPriorityClassK8sResource as mockWorkloadPriorityClass } from '#~/__mocks__/mockWorkloadPriorityClassK8Resource';
 import { mockDsc } from '#~/__mocks__/mockDsc';
 
