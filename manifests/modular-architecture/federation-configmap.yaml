@@ -25,5 +25,26 @@ data:
           "namespace": "opendatahub",
           "port": 8043
         }
+      },
+      {
+          "name": "genAi",
+          "remoteEntry": "/remoteEntry.js",
+          "authorize": true,
+          "tls": true,
+          "proxy": [
+            {
+              "path": "/gen-ai/api",
+              "pathRewrite": "/api"
+            }
+          ],
+          "local": {
+            "host": "localhost",
+            "port": 8080
+          },
+          "service": {
+            "name": "odh-dashboard",
+            "namespace": "opendatahub",
+            "port": 8143
+        }
       }
     ]
