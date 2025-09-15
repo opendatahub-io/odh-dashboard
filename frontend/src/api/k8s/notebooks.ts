@@ -48,8 +48,6 @@ export const assembleNotebook = (
     volumeMounts: formVolumeMounts,
     podSpecOptions: {
       resources,
-      tolerations,
-      nodeSelector,
       lastSizeSelection,
       selectedAcceleratorProfile,
       selectedHardwareProfile,
@@ -200,8 +198,6 @@ export const assembleNotebook = (
             },
           ],
           volumes,
-          tolerations: undefined,
-          nodeSelector: undefined,
         },
       },
     },
