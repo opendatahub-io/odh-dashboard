@@ -73,11 +73,11 @@ jobs:
               oc version --client
 
             elif [[ "$RUNNER_OS" == "macOS" ]]; then
-              echo "🍎 macOS detected - installing Xvfb..."
+              echo "🍎 macOS detected - installing OpenShift CLI..."
               brew install openshift-cli
 
             elif [[ "$RUNNER_OS" == "Windows" ]]; then
-              echo "🪟 Windows detected - installing Xvfb..."
+              echo "🪟 Windows detected - installing OpenShift CLI..."
               choco install openshift-cli
             else
               echo "❌ Unsupported OS: $RUNNER_OS"
