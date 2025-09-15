@@ -101,7 +101,14 @@ func (m *TokenKubernetesClientMock) GetUser(ctx context.Context, identity *integ
 
 // GetLlamaStackDistributions returns mock LSD list for testing
 func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*lsdapi.LlamaStackDistributionList, error) {
-	// Return mock LSD list for testing
+	// Return empty list for mock-test-namespace-1 to test empty state
+	if namespace == "mock-test-namespace-1" {
+		return &lsdapi.LlamaStackDistributionList{
+			Items: []lsdapi.LlamaStackDistribution{},
+		}, nil
+	}
+
+	// For all other namespaces, return mock LSD data
 	return &lsdapi.LlamaStackDistributionList{
 		Items: []lsdapi.LlamaStackDistribution{
 			{

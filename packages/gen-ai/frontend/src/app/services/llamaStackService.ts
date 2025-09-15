@@ -9,6 +9,7 @@ import {
   LlamaModel,
   NamespaceModel,
   FileUploadResult,
+  LlamaStackDistributionModel,
 } from '../types';
 import axios from '../utilities/axios';
 import { URL_PREFIX } from '../utilities/const';
@@ -158,6 +159,18 @@ export const createResponse = (request: CreateResponseRequest): Promise<Simplifi
     .catch((error) => {
       throw new Error(
         error.response?.data?.error?.message || error.message || 'Failed to generate responses',
+      );
+    });
+};
+
+export const getLSDstatus = (project: string): Promise<LlamaStackDistributionModel> => {
+  const url = `${URL_PREFIX}/api/v1/llamastack-distribution/status?namespace=${project}`;
+  return axios
+    .get(url)
+    .then((response) => response.data.data)
+    .catch((error) => {
+      throw new Error(
+        error.response?.data?.error?.message || error.message || 'Failed to fetch LSD status',
       );
     });
 };
