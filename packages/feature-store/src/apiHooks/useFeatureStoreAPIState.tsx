@@ -20,6 +20,7 @@ import {
   getDataSources,
   getDataSourceByName,
   getFeatureViewLineage,
+  getGlobalSearch,
 } from '../api/custom';
 import { FeatureStoreAPIs } from '../types/global';
 
@@ -48,6 +49,7 @@ const useFeatureStoreAPIState = (
       getDataSetByName: getDataSetByName(path),
       getDataSources: getDataSources(path),
       getDataSourceByName: getDataSourceByName(path),
+      getGlobalSearch: getGlobalSearch(path),
     }),
     [],
   );

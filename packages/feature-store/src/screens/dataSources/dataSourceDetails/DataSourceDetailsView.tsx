@@ -71,7 +71,7 @@ const DataSourceDetailsView: React.FC<DataSourceDetailsViewProps> = ({ dataSourc
             <DetailsItem
               label="Data source connector"
               value={getContentValue(dataSource.type, 'No data source connector')}
-              testId="data-source-join-key"
+              testId="data-source-connector"
               className={getDisabledClassName(dataSource.type)}
             />
             {dataSource.fileOptions?.uri && (

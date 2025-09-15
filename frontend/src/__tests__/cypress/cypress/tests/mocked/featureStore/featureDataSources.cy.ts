@@ -422,7 +422,7 @@ describe('Feature Data Sources', () => {
 
     featureDataSourcesTable.findToolbar().findFilterDropdown().click();
     cy.findByRole('menuitem', { name: 'Data source connector' }).click();
-    cy.findByRole('textbox').type('File source');
+    featureDataSourcesTable.findToolbar().findSearchInput().type('File source');
 
     featureDataSourcesTable.shouldHaveDataSourceCount(1);
     featureDataSourcesTable.findRow('loan_data').findDataSourceName().should('be.visible');

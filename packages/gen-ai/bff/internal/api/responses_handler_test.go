@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -9,18 +10,22 @@ import (
 	"testing"
 
 	"github.com/opendatahub-io/gen-ai/internal/config"
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
+	"github.com/opendatahub-io/gen-ai/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestLlamaStackCreateResponseHandler(t *testing.T) {
 	// Create test app with mock client
+	llamaStackClientFactory := lsmocks.NewMockClientFactory()
 	app := App{
 		config: config.EnvConfig{
 			Port: 4000,
 		},
-		repositories: repositories.NewRepositories(lsmocks.NewMockLlamaStackClient()),
+		llamaStackClientFactory: llamaStackClientFactory,
+		repositories:            repositories.NewRepositories(),
 	}
 
 	// Helper function to create JSON request
@@ -30,7 +35,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 			return nil, err
 		}
 
-		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses", bytes.NewBuffer(jsonData))
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses?namespace="+testutil.TestNamespace, bytes.NewBuffer(jsonData))
 		if err != nil {
 			return nil, err
 		}
@@ -46,6 +51,11 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 
 		req, err := createJSONRequest(payload)
 		assert.NoError(t, err)
+
+		// Simulate AttachLlamaStackClient middleware: create client and add to context
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
 		app.LlamaStackCreateResponseHandler(rr, req, nil)
@@ -68,7 +78,17 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.Equal(t, "llama-3.1-8b", data["model"])
 		assert.Equal(t, "completed", data["status"])
 		assert.Contains(t, data, "created_at")
-		assert.Contains(t, data, "content")
+		assert.Contains(t, data, "output")
+
+		// Verify output structure
+		output := data["output"].([]interface{})
+		assert.Greater(t, len(output), 0)
+
+		// Check message output item
+		messageItem := output[len(output)-1].(map[string]interface{})
+		assert.Equal(t, "message", messageItem["type"])
+		assert.Equal(t, "assistant", messageItem["role"])
+		assert.Contains(t, messageItem, "content")
 	})
 
 	t.Run("should create response with all optional parameters", func(t *testing.T) {
@@ -90,6 +110,11 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 
 		req, err := createJSONRequest(payload)
 		assert.NoError(t, err)
+
+		// Simulate AttachLlamaStackClient middleware: create client and add to context
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
 		app.LlamaStackCreateResponseHandler(rr, req, nil)
@@ -174,6 +199,11 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		req, err := createJSONRequest(payload)
 		assert.NoError(t, err)
 
+		// Simulate AttachLlamaStackClient middleware: create client and add to context
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
 		rr := httptest.NewRecorder()
 		app.LlamaStackCreateResponseHandler(rr, req, nil)
 
@@ -201,6 +231,11 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 
 		req, err := createJSONRequest(payload)
 		assert.NoError(t, err)
+
+		// Simulate AttachLlamaStackClient middleware: create client and add to context
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
 		app.LlamaStackCreateResponseHandler(rr, req, nil)
@@ -232,6 +267,11 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		req, err := createJSONRequest(payload)
 		assert.NoError(t, err)
 
+		// Simulate AttachLlamaStackClient middleware: create client and add to context
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
 		rr := httptest.NewRecorder()
 		app.LlamaStackCreateResponseHandler(rr, req, nil)
 
@@ -248,20 +288,29 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 
 		data := response["data"].(map[string]interface{})
 
-		// Verify simplified response contains only essential fields
-		expectedFields := []string{"id", "model", "status", "created_at", "content"}
+		// Verify clean response contains only essential fields
+		expectedFields := []string{"id", "model", "status", "created_at", "output"}
 		for _, field := range expectedFields {
 			assert.Contains(t, data, field)
 		}
 
-		// Verify no complex nested structures from original response
-		assert.NotContains(t, data, "output")
+		// Verify clean output structure
+		output := data["output"].([]interface{})
+		assert.Greater(t, len(output), 0)
+
+		// Verify message output item structure
+		messageItem := output[len(output)-1].(map[string]interface{})
+		assert.Equal(t, "message", messageItem["type"])
+		assert.Equal(t, "assistant", messageItem["role"])
+		assert.Contains(t, messageItem, "content")
+
+		// Verify no complex nested structures from original response (these were filtered out)
 		assert.NotContains(t, data, "object")
 		assert.NotContains(t, data, "metadata")
 	})
 
 	t.Run("should return error for invalid JSON", func(t *testing.T) {
-		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses", bytes.NewBuffer([]byte("invalid json")))
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses?namespace="+testutil.TestNamespace, bytes.NewBuffer([]byte("invalid json")))
 		assert.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
 

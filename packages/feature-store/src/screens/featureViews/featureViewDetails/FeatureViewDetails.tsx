@@ -8,7 +8,7 @@ import {
   FlexItem,
 } from '@patternfly/react-core';
 import React from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useParams } from 'react-router-dom';
 import { t_global_spacer_xs as ExtraSmallSpacerSize } from '@patternfly/react-tokens';
 import { SearchIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
@@ -17,6 +17,8 @@ import { getFeatureViewType } from '../utils';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
 import useFeatureViewsByName from '../../../apiHooks/useFeatureViewsByName';
 import FeatureStoreLabels from '../../../components/FeatureStoreLabels';
+import { featureStoreRootRoute } from '../../../routes';
+import FeatureStorePageTitle from '../../../components/FeatureStorePageTitle';
 
 const FeatureViewDetails = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -62,21 +64,28 @@ const FeatureViewDetails = (): React.ReactElement => {
       loaded={featureViewLoaded}
       provideChildrenPadding
       breadcrumb={
-        <Breadcrumb>
-          <BreadcrumbItem
-            render={() => <Link to="/featureStore/featureViews">Feature views</Link>}
-          />
-          <BreadcrumbItem
-            data-testid="breadcrumb-version-name"
-            isActive
-            style={{
-              textDecoration: 'underline',
-              textUnderlineOffset: ExtraSmallSpacerSize.var,
-            }}
-          >
-            {featureViewName}
-          </BreadcrumbItem>
-        </Breadcrumb>
+        <FeatureStorePageTitle
+          isDetailsPage
+          breadcrumb={
+            <Breadcrumb>
+              <BreadcrumbItem
+                render={() => (
+                  <Link to={`${featureStoreRootRoute()}/featureViews`}>Feature views</Link>
+                )}
+              />
+              <BreadcrumbItem
+                data-testid="breadcrumb-version-name"
+                isActive
+                style={{
+                  textDecoration: 'underline',
+                  textUnderlineOffset: ExtraSmallSpacerSize.var,
+                }}
+              >
+                {featureViewName}
+              </BreadcrumbItem>
+            </Breadcrumb>
+          }
+        />
       }
     >
       <FeatureViewTabs featureView={featureView} />

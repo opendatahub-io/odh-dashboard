@@ -7,6 +7,7 @@ import { GetFeatureServiceByName, GetFeatureServices } from './featureServices';
 import { GetMetricsResourceCount, GetPopularTags, GetRecentlyVisitedResources } from './metrics';
 import { GetDataSetByName, GetSavedDatasets } from './dataSets';
 import { GetDataSources, GetDataSourceByName } from './dataSources';
+import { GetGlobalSearch } from './search';
 
 export type FeatureStorePagination = {
   page: number;
@@ -89,4 +90,5 @@ export type FeatureStoreAPIs = {
   getDataSetByName: GetDataSetByName;
   getDataSources: GetDataSources;
   getDataSourceByName: GetDataSourceByName;
+  getGlobalSearch: GetGlobalSearch;
 };

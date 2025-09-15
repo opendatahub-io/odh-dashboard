@@ -211,10 +211,32 @@ describe('Model Serving Deploy Wizard', () => {
     hardwareProfileSection.findGlobalScopedLabel().should('exist');
     modelServingWizard.findModelFormatSelect().should('not.exist');
     modelServingWizard.findNextButton().should('be.enabled').click();
-    modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
-    modelServingWizard.findNextButton().should('be.enabled').click();
 
-    // Step 3: Advanced options
+    // Step 3: Advanced Options
+    // Model access & Token authentication
+    modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+    modelServingWizard.findExternalRouteCheckbox().click();
+    modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
+    modelServingWizard.findTokenAuthenticationCheckbox().click();
+    modelServingWizard.findTokenWarningAlert().should('exist');
+    modelServingWizard.findTokenAuthenticationCheckbox().click();
+    modelServingWizard.findServiceAccountByIndex(0).should('have.value', 'default-name');
+    modelServingWizard.findAddServiceAccountButton().click();
+    modelServingWizard.findServiceAccountByIndex(1).should('have.value', 'default-name');
+    modelServingWizard.findServiceNameAlert().should('exist');
+    modelServingWizard.findServiceAccountByIndex(1).clear().type('new-name');
+    modelServingWizard.findServiceNameAlert().should('not.exist');
+    modelServingWizard.findRemoveServiceAccountByIndex(1).click();
+    modelServingWizard.findServiceAccountByIndex(0).clear();
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findServiceAccountByIndex(0).clear().type('new-name');
+    modelServingWizard.findNextButton().should('be.enabled');
+    modelServingWizard.findRemoveServiceAccountByIndex(0).click();
+    modelServingWizard.findTokenWarningAlert().should('exist');
+    modelServingWizard.findTokenAuthenticationCheckbox().click();
+    modelServingWizard.findExternalRouteCheckbox().click();
+
+    modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 4: Summary
     modelServingWizard.findSubmitButton().should('be.enabled').click();
@@ -232,6 +254,7 @@ describe('Model Serving Deploy Wizard', () => {
             'opendatahub.io/hardware-profile-namespace': 'opendatahub',
             'opendatahub.io/legacy-hardware-profile-name': 'medium-serving-wz9u9',
             'opendatahub.io/model-type': 'generative',
+            'security.opendatahub.io/enable-auth': 'true',
           },
         },
         spec: {
@@ -313,10 +336,16 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelFormatSelectOption('vLLM').should('not.exist');
     modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
-    modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
-    modelServingWizard.findNextButton().should('be.enabled').click();
 
-    // Step 3: Advanced options
+    // Step 3: Advanced Options
+    // Model access & Token authentication
+    modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+    modelServingWizard.findExternalRouteCheckbox().click();
+    modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
+    modelServingWizard.findTokenAuthenticationCheckbox().click();
+    modelServingWizard.findTokenWarningAlert().should('exist');
+
+    modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 4: Summary
     modelServingWizard.findSubmitButton().should('be.enabled').click();
@@ -328,7 +357,10 @@ describe('Model Serving Deploy Wizard', () => {
         metadata: {
           name: 'test-model',
           namespace: 'test-project',
-          labels: { 'opendatahub.io/dashboard': 'true' },
+          labels: {
+            'opendatahub.io/dashboard': 'true',
+            'networking.kserve.io/visibility': 'exposed',
+          },
           annotations: {
             'openshift.io/display-name': 'test-model',
             'opendatahub.io/hardware-profile-namespace': 'opendatahub',
@@ -429,6 +461,13 @@ describe('Model Serving Deploy Wizard', () => {
       .findHardwareProfileSearchSelector()
       .should('contain.text', 'Large Profile');
     hardwareProfileSection.findGlobalScopedLabel().should('exist');
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+    // Step 3: Advanced options
+    modelServingWizardEdit.findAdvancedOptionsStep().should('be.enabled');
+    modelServingWizardEdit.findExternalRouteCheckbox().should('be.checked');
+    modelServingWizardEdit.findTokenAuthenticationCheckbox().click();
+    modelServingWizardEdit.findServiceAccountByIndex(0).should('have.value', 'default-name');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
   });
 });

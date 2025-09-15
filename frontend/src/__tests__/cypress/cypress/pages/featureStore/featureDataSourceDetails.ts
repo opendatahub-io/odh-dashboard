@@ -14,7 +14,7 @@ class FeatureDataSourceDetails extends Contextual<HTMLElement> {
   }
 
   findDataSourceConnector() {
-    return cy.findByTestId('data-source-join-key-value');
+    return cy.findByTestId('data-source-connector-value');
   }
 
   findFileUrl() {
