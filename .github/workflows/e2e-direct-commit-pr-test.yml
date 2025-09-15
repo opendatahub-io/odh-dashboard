@@ -47,11 +47,6 @@ jobs:
           sudo dnf install -y git
           git --version
 
-      - name: Build frontend for E2E tests
-        run: |
-          cd frontend
-          npm run cypress:server:build
-
       - name: Check and Install OpenShift CLI
         run: |
           echo "🔍 Checking if OpenShift CLI (oc) is installed..."
@@ -254,8 +249,8 @@ jobs:
             echo ""
             echo "💡 POSSIBLE SOLUTIONS:"
             echo "1. Ensure secrets are configured in upstream repo (opendatahub-io/odh-dashboard)"
-            "2. For testing, secrets need to be available when PR is merged"
-            "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
+            echo "2. For testing, secrets need to be available when PR is merged"
+            echo "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
             exit 1
           fi
 
@@ -283,6 +278,7 @@ jobs:
           # Export OpenShift configuration for Cypress tests
           echo "🔧 Setting up OpenShift configuration for Cypress tests..."
           export KUBECONFIG="$HOME/.kube/config"
+          echo "KUBECONFIG=$KUBECONFIG" >> $GITHUB_ENV
 
       - name: Set test configuration
         run: |
@@ -309,40 +305,29 @@ jobs:
       - name: Start Cypress Server
         run: |
           echo "🧹 Cleaning up any existing processes on port 9001..."
-          lsof -ti:9001 | xargs kill -9 2>/dev/null || echo "No process found on port 9001"
-          echo "🚀 Starting Cypress server for E2E tests..."
-          cd frontend && EXT_CLUSTER=true CYPRESS_TESTS=true npm run start:dev &
+          # More thorough port cleanup for CI environment
+          pkill -f "webpack.*serve" || echo "No webpack processes found"
+          pkill -f "node.*401" || echo "No node processes on port 4010"
+          sleep 2
+          
+          echo "🚀 Starting webpack dev server with cluster proxy..."
+          cd frontend && npm run start:dev:ext &
+          
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+          echo "Started webpack dev server with PID: $SERVER_PID"
 
       - name: Wait for Server Ready
         run: |
-          echo "⏳ Giving server a moment to start..."
-          sleep 5
-          echo "⏳ Waiting for localhost:9001 to be ready..."
-          npx wait-on tcp:127.0.0.1:9001 --timeout 60000
+          echo "⏳ Waiting for localhost:4010 to be ready..."
+          npx wait-on tcp:127.0.0.1:4010 --timeout 60000
           echo "✅ Server port is open!"
           
           # Verify the application actually loads
-          echo "🔍 Verifying application loads properly..."
-          for i in {1..10}; do
-            if curl -s -f http://localhost:9001/ | grep -q "Data Science Projects\|ODH\|Open Data Hub"; then
-              echo "✅ Application loaded successfully - found dashboard content"
-              break
-            else
-              echo "⏳ Attempt $i/10: Application not ready yet, waiting..."
-              sleep 3
-            fi
-          done
-          
-          # Final verification
-          if curl -s -f http://localhost:9001/ | grep -q "Data Science Projects\|ODH\|Open Data Hub"; then
+          if curl -s -f http://localhost:4010/ | grep -q "Data Science Projects\|ODH\|Open Data Hub"; then
             echo "✅ Server is ready and application is loaded!"
           else
-            echo "❌ Server is running but application may not be loading properly"
-            echo "📄 First 500 characters of response:"
-            curl -s http://localhost:9001/ | head -c 500
-            echo ""
+            echo "❌ Server may not be loading properly"
             exit 1
           fi
 
@@ -381,8 +366,8 @@ jobs:
           # Create results directory
           mkdir -p "$CY_RESULTS_DIR"
 
-          # Run tests directly against shared localhost server
-          BASE_URL=http://localhost:9001 npm run cypress:run:electron -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+          # Run tests against port 4010
+          BASE_URL=http://localhost:4010 npm run cypress:run:electron -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Test tag name
         if: ${{ always() }}
@@ -423,9 +408,10 @@ jobs:
     steps:
       - name: Stop Cypress Servers
         run: |
-          echo "🛑 Stopping any remaining Cypress servers..."
-          # Kill any processes on port 9001
-          lsof -ti:9001 | xargs kill -9 2>/dev/null || echo "No process found on port 9001"
-          pkill -f "npm run cypress:server" || true
-          pkill -f "serve.*public-cypress" || true
+          echo "🛑 Stopping webpack dev server..."
+          if [ -n "$SERVER_PID" ]; then
+            kill $SERVER_PID || echo "Failed to kill SERVER_PID"
+          fi
+          pkill -f "webpack.*serve" || echo "No webpack processes found"
+          pkill -f "node.*9001" || echo "No node processes on port 9001"
           echo "✅ Server cleanup completed"
