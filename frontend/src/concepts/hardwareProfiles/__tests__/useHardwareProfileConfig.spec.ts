@@ -4,7 +4,7 @@ import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { useHardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import * as areasUtils from '#~/concepts/areas';
 import * as reduxSelectors from '#~/redux/selectors';
-import * as useHardwareProfilesModule from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility.ts';
+import * as useHardwareProfilesModule from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 
 jest.mock('#~/concepts/areas', () => ({
   ...jest.requireActual('#~/concepts/areas'),
