@@ -8,6 +8,7 @@ import { useModelDeploymentWizard, type ModelDeploymentWizardData } from './useD
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
 import { ModelSourceStepContent } from './steps/ModelSourceStep';
 import { WizardFooterWithDisablingNext } from './WizardFooterWithDisablingNext';
+import { AdvancedSettingsStepContent } from './steps/AdvancedOptionsStep';
 import { ModelDeploymentStepContent } from './steps/ModelDeploymentStep';
 import { isModelServingDeploy } from '../../../extension-points';
 import { useResolvedPlatformExtension } from '../../concepts/extensionUtils';
@@ -104,13 +105,17 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           id="advanced-options-step"
           isDisabled={!validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid}
         >
-          Step 3 content
+          <AdvancedSettingsStepContent wizardState={wizardState} project={project} />
         </WizardStep>
         <WizardStep
           name="Summary"
           id="summary-step"
           footer={{ nextButtonText: primaryButtonText }}
-          isDisabled={!validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid}
+          isDisabled={
+            !validation.isModelSourceStepValid ||
+            !validation.isModelDeploymentStepValid ||
+            !validation.isAdvancedSettingsStepValid
+          }
         >
           Review step content
         </WizardStep>

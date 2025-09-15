@@ -225,8 +225,8 @@ github.com/onsi/ginkgo/v2 v2.23.1 h1:Ox0cOPv/t8RzKJUfDo9ZKtRvBOJY369sFJnl00CjqwY
 github.com/onsi/ginkgo/v2 v2.23.1/go.mod h1:zXTP6xIp3U8aVuXN8ENK9IXRaTjFnpVB9mGmaSRvxnM=
 github.com/onsi/gomega v1.36.2 h1:koNYke6TVk6ZmnyHrCXba/T/MoLBXFjeC1PtvYgw0A8=
 github.com/onsi/gomega v1.36.2/go.mod h1:DdwyADRjrc825LhMEkD76cHR5+pUnjhUN8GlHlRPHzY=
-github.com/openai/openai-go/v2 v2.1.0 h1:DgxNaVouSn3ClzrtGozyqY6viYwxdjmWJ19liXCVcTU=
-github.com/openai/openai-go/v2 v2.1.0/go.mod h1:sIUkR+Cu/PMUVkSKhkk742PRURkQOCFhiwJ7eRSBqmk=
+github.com/openai/openai-go/v2 v2.4.0 h1:ufc/Qf6SEeRLn6xpxHy6hnK6Ip1xXmM4FOne4QnEzo4=
+github.com/openai/openai-go/v2 v2.4.0/go.mod h1:sIUkR+Cu/PMUVkSKhkk742PRURkQOCFhiwJ7eRSBqmk=
 github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
 github.com/opendatahub-io/llama-stack-k8s-operator v0.0.0-20250820163421-9debcf0f8241 h1:QNUUMKCaZDPIjNblcyai6EnQZd80JHR1tW04W/9bzIk=

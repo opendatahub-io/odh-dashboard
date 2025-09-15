@@ -1,20 +1,21 @@
-openapi: 3.0.3
+openapi: '3.0.3'
 info:
-  title: Gen AI REST API
-  version: 1.0.0
-  description: REST API for Gen AI Backend for Frontend (BFF) using OpenAI SDK v2.1.0
+  title: 'Gen AI REST API'
+  version: '1.0.0'
+  description: 'REST API for Gen AI Backend for Frontend (BFF) using OpenAI SDK v2.4.0'
   license:
-    name: Apache 2.0
-    url: "https://www.apache.org/licenses/LICENSE-2.0"
+    name: 'Apache 2.0'
+    url: 'https://www.apache.org/licenses/LICENSE-2.0'
 servers:
-  - url: "http://localhost:8080"
+  - url: 'http://localhost:8080'
+    description: 'Local development server'
 
 # Global security requirement - all endpoints require Bearer token by default
 security:
   - Bearer: []
 
 paths:
-  /gen-ai/healthcheck:
+  /healthcheck:
     summary: BFF service health check
     description: >-
       Health check endpoint to verify BFF service availability. This is a local service check
@@ -23,10 +24,10 @@ paths:
       tags:
         - HealthCheck
       responses:
-        "200":
-          $ref: "#/components/responses/HealthCheckResponse"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          $ref: '#/components/responses/HealthCheckResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: healthcheck
       summary: BFF Health Check
       description: Returns BFF service status and version information.
@@ -37,18 +38,29 @@ paths:
     description: >-
       Lists all available AI models from Llama Stack using OpenAI SDK.
       Returns models with their identifiers, creation timestamps, and ownership information.
+      Requires namespace parameter for proper multi-tenant isolation.
     get:
       tags:
         - Models
       security:
         - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace to query for AI models
+          required: true
+          schema:
+            type: string
+            example: "default"
       responses:
-        "200":
-          $ref: "#/components/responses/ModelsResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          $ref: '#/components/responses/ModelsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: listModels
       summary: List All Models
       description: Gets a list of all available AI models from Llama Stack.
@@ -58,12 +70,20 @@ paths:
     description: >-
       Vector stores are used for Retrieval-Augmented Generation (RAG).
       They store document embeddings that can be searched during AI response generation.
+      Requires namespace parameter for proper multi-tenant isolation.
     get:
       tags:
         - VectorStores
       security:
         - Bearer: []
       parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace to query for vector stores
+          required: true
+          schema:
+            type: string
+            example: "default"
         - name: limit
           in: query
           description: Number of vector stores to return (1-100, default 20)
@@ -84,14 +104,14 @@ paths:
             example: desc
 
       responses:
-        "200":
-          $ref: "#/components/responses/VectorStoresResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          $ref: '#/components/responses/VectorStoresResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: listVectorStores
       summary: List Vector Stores
       description: Gets a list of vector stores with optional pagination and sorting.
@@ -100,22 +120,30 @@ paths:
         - VectorStores
       security:
         - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace to create vector store in
+          required: true
+          schema:
+            type: string
+            example: "default"
       requestBody:
         description: Vector store creation request (only name is required, all other parameters are optional)
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateVectorStoreRequest"
+              $ref: '#/components/schemas/CreateVectorStoreRequest'
         required: true
       responses:
-        "201":
-          $ref: "#/components/responses/VectorStoreResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '201':
+          $ref: '#/components/responses/VectorStoreResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: createVectorStore
       summary: Create Vector Store
       description: Creates a new vector store for document storage and RAG. Only the name field is required.
@@ -126,60 +154,86 @@ paths:
       Uploads a file and automatically adds it to the specified vector store.
       This is a combined operation that handles both file upload and vector store integration.
       Supports custom chunking strategies for optimal document processing and RAG performance.
+      Requires namespace parameter for proper multi-tenant isolation.
     post:
       tags:
         - Files
       security:
         - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace for file upload context
+          required: true
+          schema:
+            type: string
+            example: "default"
       requestBody:
         description: Multipart form with file and vector store information
         content:
           multipart/form-data:
             schema:
-              $ref: "#/components/schemas/FileUploadRequest"
+              $ref: '#/components/schemas/FileUploadRequest'
         required: true
       responses:
-        "201":
-          $ref: "#/components/responses/FileUploadResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '201':
+          $ref: '#/components/responses/FileUploadResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: uploadFile
       summary: Upload File to Vector Store
       description: Uploads a file and adds it to the specified vector store for RAG functionality. Supports custom chunking strategies for optimal document processing.
 
   /gen-ai/api/v1/responses:
-    summary: Create AI responses with comprehensive parameters
+    summary: Create AI responses with clean LlamaStack structure
     description: >-
-      Creates AI responses using the OpenAI Responses API with full parameter support.
+      Creates AI responses using LlamaStack with comprehensive parameter support.
       Supports RAG via vector stores, conversation context, and advanced generation parameters.
+      Returns clean JSON responses preserving LlamaStack's output structure but filtering unnecessary metadata.
+      Can return either complete JSON responses or real-time streaming responses based on the stream parameter.
+
     post:
       tags:
         - Responses
       security:
         - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace for AI response generation context
+          required: true
+          schema:
+            type: string
+            example: "default"
       requestBody:
         description: Response creation request with comprehensive parameter support
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateResponseRequest"
+              $ref: '#/components/schemas/CreateResponseRequest'
         required: true
       responses:
-        "201":
-          $ref: "#/components/responses/CreateResponseResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '201':
+          $ref: '#/components/responses/CreateResponseResponse'
+        '200':
+          $ref: '#/components/responses/StreamingResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: createResponse
       summary: Create AI Response
-      description: Creates an AI response with full parameter control including RAG and conversation context. Returns a simplified response with only essential fields (id, model, status, created_at, content, usage).
+      description: >-
+        Creates an AI response with full parameter control including RAG and conversation context.
+        When stream=false: Returns a clean JSON response with essential fields (id, model, status, created_at, output).
+        When stream=true: Returns Server-Sent Events (SSE) stream with real-time token deltas and completion events.
+        The output array preserves LlamaStack's structure but filters out unnecessary metadata for optimal performance.
 
   /gen-ai/api/v1/code-exporter:
     summary: Generate Python code for Llama Stack integration
@@ -187,27 +241,36 @@ paths:
       Generates Python code templates for integrating with Llama Stack services.
       Supports custom configuration including model selection, instructions, streaming, and tool configurations.
       Returns executable Python code wrapped in a JSON envelope structure.
+      Requires namespace parameter for proper multi-tenant isolation.
     post:
       tags:
         - CodeExporter
       security:
         - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace for code generation context
+          required: true
+          schema:
+            type: string
+            example: "default"
       requestBody:
         description: Code generation request with configuration parameters
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CodeExportRequest"
+              $ref: '#/components/schemas/CodeExportRequest'
         required: true
       responses:
-        "200":
-          $ref: "#/components/responses/CodeExportResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          $ref: '#/components/responses/CodeExportResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: exportCode
       summary: Export Python Code
       description: Generates Python code based on provided configuration parameters.
@@ -224,14 +287,14 @@ paths:
       security:
         - Bearer: []
       responses:
-        "200":
-          $ref: "#/components/responses/NamespacesResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          $ref: '#/components/responses/NamespacesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: listNamespaces
       summary: List All Namespaces
       description: Gets a list of all namespaces in the Kubernetes cluster.
@@ -257,18 +320,18 @@ paths:
           required: true
           schema:
             type: string
-            example: "default"
+            example: 'default'
       responses:
-        "200":
-          $ref: "#/components/responses/LlamaStackDistributionStatusResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          $ref: '#/components/responses/LlamaStackDistributionStatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: getLlamaStackDistributionStatus
       summary: Get LSD Status
       description: Gets the status of LlamaStack Distribution in the specified namespace.
@@ -312,13 +375,13 @@ components:
       properties:
         status:
           type: string
-          example: "available"
+          example: 'available'
           description: BFF service availability status
         system_info:
-          $ref: "#/components/schemas/SystemInfo"
+          $ref: '#/components/schemas/SystemInfo'
         userId:
           type: string
-          example: "user@example.com"
+          example: 'user@example.com'
           description: User identifier (optional)
 
     SystemInfo:
@@ -328,7 +391,7 @@ components:
       properties:
         version:
           type: string
-          example: "1.0.0"
+          example: '1.0.0'
           description: BFF service version
 
     Error:
@@ -339,11 +402,11 @@ components:
       properties:
         code:
           type: string
-          example: "400"
+          example: '400'
           description: HTTP status code
         message:
           type: string
-          example: "Bad request"
+          example: 'Bad request'
           description: Human-readable error message
 
     ErrorEnvelope:
@@ -352,7 +415,7 @@ components:
         - error
       properties:
         error:
-          $ref: "#/components/schemas/Error"
+          $ref: '#/components/schemas/Error'
 
     # Models Schema
     Model:
@@ -365,11 +428,11 @@ components:
       properties:
         id:
           type: string
-          example: "ollama/llama3.2:3b"
+          example: 'ollama/llama3.2:3b'
           description: Unique model identifier
         object:
           type: string
-          example: "model"
+          example: 'model'
           description: Object type (always "model")
         created:
           type: integer
@@ -378,13 +441,13 @@ components:
           description: Unix timestamp when model was created
         owned_by:
           type: string
-          example: "llama_stack"
+          example: 'llama_stack'
           description: Model owner/provider
 
     ModelsData:
       type: array
       items:
-        $ref: "#/components/schemas/Model"
+        $ref: '#/components/schemas/Model'
       description: Array of available models
 
     # Vector Stores Schema
@@ -403,11 +466,11 @@ components:
       properties:
         id:
           type: string
-          example: "vs_abc123-def456"
+          example: 'vs_abc123-def456'
           description: Unique vector store identifier
         object:
           type: string
-          example: "vector_store"
+          example: 'vector_store'
           description: Object type (always "vector_store")
         created_at:
           type: integer
@@ -416,7 +479,7 @@ components:
           description: Unix timestamp when vector store was created
         name:
           type: string
-          example: "Support Documents"
+          example: 'Support Documents'
           description: Human-readable name (max 256 characters)
         usage_bytes:
           type: integer
@@ -424,11 +487,11 @@ components:
           example: 1024
           description: Storage usage in bytes
         file_counts:
-          $ref: "#/components/schemas/FileCounts"
+          $ref: '#/components/schemas/FileCounts'
         status:
           type: string
           enum: [pending, completed, failed]
-          example: "completed"
+          example: 'completed'
           description: Vector store processing status
         last_active_at:
           type: integer
@@ -440,9 +503,9 @@ components:
           additionalProperties:
             type: string
           example:
-            provider_id: "milvus"
-            provider_vector_db_id: "vs_abc123-def456"
-            description: "Customer support documents"
+            provider_id: 'milvus'
+            provider_vector_db_id: 'vs_abc123-def456'
+            description: 'Customer support documents'
           description: Key-value metadata (max 16 pairs, keys ≤64 chars, values ≤512 chars)
 
     FileCounts:
@@ -478,7 +541,7 @@ components:
     VectorStoresData:
       type: array
       items:
-        $ref: "#/components/schemas/VectorStore"
+        $ref: '#/components/schemas/VectorStore'
       description: Array of vector stores
 
     CreateVectorStoreRequest:
@@ -490,7 +553,7 @@ components:
           type: string
           minLength: 1
           maxLength: 256
-          example: "Customer Support FAQ"
+          example: 'Customer Support FAQ'
           description: Required name for the vector store (1-256 characters)
         metadata:
           type: object
@@ -498,11 +561,10 @@ components:
             type: string
           maxProperties: 16
           example:
-            department: "support"
-            category: "faq"
-            provider_id: "milvus"
+            department: 'support'
+            category: 'faq'
+            provider_id: 'milvus'
           description: Optional key-value metadata (max 16 pairs, keys ≤64 chars, values ≤512 chars)
-
 
     # File Upload Schema
     FileUploadRequest:
@@ -517,18 +579,18 @@ components:
           description: File to upload (max 512MB, supports PDF, TXT, DOC, etc.)
         vector_store_id:
           type: string
-          example: "vs_abc123-def456"
+          example: 'vs_abc123-def456'
           description: Vector store ID to add the file to (required)
         purpose:
           type: string
           enum: [assistants, batch, fine-tune, vision, user_data, evals]
-          default: "assistants"
-          example: "assistants"
+          default: 'assistants'
+          example: 'assistants'
           description: Intended file purpose (defaults to "assistants" for RAG)
         chunking_type:
           type: string
           enum: [auto, static]
-          example: "static"
+          example: 'static'
           description: Optional chunking strategy ("auto" uses defaults, "static" allows custom configuration)
         max_chunk_size_tokens:
           type: integer
@@ -551,7 +613,7 @@ components:
         type:
           type: string
           enum: [auto, static]
-          example: "static"
+          example: 'static'
           description: Type of chunking strategy applied
         static:
           type: object
@@ -571,11 +633,11 @@ components:
       properties:
         code:
           type: string
-          example: "server_error"
+          example: 'server_error'
           description: Error code if file processing failed
         message:
           type: string
-          example: "File processing failed"
+          example: 'File processing failed'
           description: Error message if file processing failed
 
     FileUploadResult:
@@ -585,10 +647,10 @@ components:
       properties:
         file_id:
           type: string
-          example: "file-abc123def456"
+          example: 'file-abc123def456'
           description: Unique identifier of uploaded file
         vector_store_file:
-          $ref: "#/components/schemas/VectorStoreFile"
+          $ref: '#/components/schemas/VectorStoreFile'
           description: Details about the file added to the vector store (only present if vector_store_id was provided)
 
     VectorStoreFile:
@@ -604,11 +666,11 @@ components:
       properties:
         id:
           type: string
-          example: "vsf-abc123"
+          example: 'vsf-abc123'
           description: Unique vector store file identifier
         object:
           type: string
-          example: "vector_store.file"
+          example: 'vector_store.file'
           description: Object type
         usage_bytes:
           type: integer
@@ -622,20 +684,20 @@ components:
           description: Unix timestamp when file was added
         vector_store_id:
           type: string
-          example: "vs_abc123"
+          example: 'vs_abc123'
           description: Parent vector store ID
         status:
           type: string
           enum: [pending, completed, failed]
-          example: "completed"
+          example: 'completed'
           description: File processing status
         chunking_strategy:
-          $ref: "#/components/schemas/ChunkingStrategyResult"
+          $ref: '#/components/schemas/ChunkingStrategyResult'
         attributes:
           type: object
           description: File attributes and metadata
         last_error:
-          $ref: "#/components/schemas/FileError"
+          $ref: '#/components/schemas/FileError'
 
     # Chat Context Schema
     ChatContextMessage:
@@ -647,14 +709,14 @@ components:
         role:
           type: string
           enum: [user, assistant]
-          example: "user"
+          example: 'user'
           description: Message role in conversation
         content:
           type: string
-          example: "Hello, how are you?"
+          example: 'Hello, how are you?'
           description: Message content
       example:
-        role: "assistant"
+        role: 'assistant'
         content: "Hello! I'm doing well, thank you for asking. How can I help you today?"
 
     # Response Creation Schema
@@ -668,11 +730,11 @@ components:
         input:
           type: string
           minLength: 1
-          example: "Tell me about artificial intelligence"
+          example: 'Tell me about artificial intelligence'
           description: Text input for AI response generation (required)
         model:
           type: string
-          example: "ollama/llama3.2:3b"
+          example: 'ollama/llama3.2:3b'
           description: Model ID to use for generation (required, see /gen-ai/api/v1/models)
 
         # === OPTIONAL PARAMETERS (TESTED & WORKING) ===
@@ -680,19 +742,19 @@ components:
           type: array
           items:
             type: string
-          example: ["vs_abc123", "vs_def456"]
+          example: ['vs_abc123', 'vs_def456']
           description: Vector store IDs for file search (RAG functionality)
         chat_context:
           type: array
           items:
-            $ref: "#/components/schemas/ChatContextMessage"
+            $ref: '#/components/schemas/ChatContextMessage'
           example:
-            - role: "user"
-              content: "What is artificial intelligence?"
-            - role: "assistant"
-              content: "Artificial intelligence (AI) is a branch of computer science that aims to create machines capable of intelligent behavior, learning, and decision-making."
-            - role: "user"
-              content: "Can you give me some examples?"
+            - role: 'user'
+              content: 'What is artificial intelligence?'
+            - role: 'assistant'
+              content: 'Artificial intelligence (AI) is a branch of computer science that aims to create machines capable of intelligent behavior, learning, and decision-making.'
+            - role: 'user'
+              content: 'Can you give me some examples?'
           description: Full conversation history for multi-turn conversations
 
         # === GENERATION PARAMETERS ===
@@ -712,65 +774,48 @@ components:
           description: Nucleus sampling parameter (alternative to temperature)
         instructions:
           type: string
-          example: "You are a helpful AI assistant that provides detailed explanations."
+          example: 'You are a helpful AI assistant that provides detailed explanations.'
           description: System instructions for response generation
+        stream:
+          type: boolean
+          default: false
+          example: true
+          description: Enable streaming response (SSE format) instead of complete JSON response
 
-    # Simplified Response Schema - Only Essential Fields
-    SimplifiedResponse:
+    # Clean Response Schema - Preserves LlamaStack Structure
+    ResponseData:
       type: object
       required:
         - id
         - model
         - status
         - created_at
-        - content
+        - output
       properties:
         id:
           type: string
-          example: "resp-abc123-def456"
+          example: 'resp-abc123-def456'
           description: Unique response identifier
         model:
           type: string
-          example: "ollama/llama3.2:3b"
+          example: 'ollama/llama3.2:3b'
           description: AI model used for generation
         status:
           type: string
-          example: "completed"
+          example: 'completed'
           description: Response completion status
         created_at:
-          type: number
-          format: float
-          example: 1755695135.0
-          description: Response creation timestamp
-        content:
-          type: string
-          example: "Hello! How can I help you today?"
-          description: The actual AI response text content
-        usage:
-          $ref: "#/components/schemas/SimplifiedUsage"
-          description: Token usage information (only if populated)
+          type: integer
+          format: int64
+          example: 1755695135
+          description: Response creation timestamp (Unix timestamp)
+        output:
+          type: array
+          items:
+            $ref: '#/components/schemas/OutputItem'
+          description: Array of output items (messages, tool calls, etc.)
 
-    # Simplified Usage Schema - Only Populated Fields
-    SimplifiedUsage:
-      type: object
-      properties:
-        input_tokens:
-          type: integer
-          format: int64
-          example: 150
-          description: Number of input tokens processed (omitted if 0)
-        output_tokens:
-          type: integer
-          format: int64
-          example: 75
-          description: Number of output tokens generated (omitted if 0)
-        total_tokens:
-          type: integer
-          format: int64
-          example: 225
-          description: Total tokens consumed (omitted if 0)
-
-    ResponseOutput:
+    OutputItem:
       type: object
       required:
         - id
@@ -779,41 +824,41 @@ components:
       properties:
         id:
           type: string
-          example: "msg_abc123"
+          example: 'msg_abc123'
           description: Output item identifier
         type:
           type: string
-          enum: [message, file_search_call, code_interpreter_call]
-          example: "message"
+          enum: [message, file_search_call]
+          example: 'message'
           description: Type of output item
+        role:
+          type: string
+          enum: [assistant]
+          example: 'assistant'
+          description: Role for message outputs
         status:
           type: string
-          enum: [pending, in_progress, completed, failed]
-          example: "completed"
+          enum: [completed]
+          example: 'completed'
           description: Output item status
         content:
           type: array
           items:
-            $ref: "#/components/schemas/ResponseContent"
+            $ref: '#/components/schemas/ContentItem'
           description: Content array for message outputs
-        role:
-          type: string
-          enum: [assistant]
-          example: "assistant"
-          description: Role for message outputs
         queries:
           type: array
           items:
             type: string
-          example: ["search query"]
+          example: ['search query']
           description: Search queries for file_search_call outputs
         results:
           type: array
           items:
-            $ref: "#/components/schemas/SearchResult"
+            $ref: '#/components/schemas/SearchResult'
           description: Search results for file_search_call outputs
 
-    ResponseContent:
+    ContentItem:
       type: object
       required:
         - type
@@ -821,34 +866,20 @@ components:
       properties:
         type:
           type: string
-          enum: [output_text, refusal]
-          example: "output_text"
+          enum: [output_text]
+          example: 'output_text'
           description: Content type
         text:
           type: string
-          example: "AI response text content"
+          example: 'Hello! How can I help you today?'
           description: Generated text content
-        annotations:
-          type: array
-          items:
-            type: object
-          description: Content annotations
-        logprobs:
-          type: object
-          nullable: true
-          description: Log probabilities (if requested)
-        refusal:
-          type: string
-          example: ""
-          description: Refusal message (if content was refused)
 
     SearchResult:
       type: object
+      required:
+        - score
+        - text
       properties:
-        filename:
-          type: string
-          example: "document.pdf"
-          description: Source filename
         score:
           type: number
           format: float
@@ -856,11 +887,57 @@ components:
           description: Relevance score (0.0-1.0)
         text:
           type: string
-          example: "Relevant document content"
+          example: 'Relevant document content'
           description: Retrieved text content
-        attributes:
-          type: object
-          description: File attributes and metadata
+        filename:
+          type: string
+          example: 'document.pdf'
+          description: Source filename (if available)
+
+    # Streaming Event Schema
+    StreamingEvent:
+      type: object
+      required:
+        - sequence_number
+        - type
+        - output_index
+      properties:
+        sequence_number:
+          type: integer
+          format: int64
+          example: 3
+          description: Strictly monotonic incrementing event number within the stream
+        type:
+          type: string
+          enum:
+            [
+              response.created,
+              response.content_part.added,
+              response.output_text.delta,
+              response.content_part.done,
+              response.completed,
+            ]
+          example: 'response.output_text.delta'
+          description: Event type
+        output_index:
+          type: integer
+          example: 0
+          description: Output index within the response
+        delta:
+          type: string
+          nullable: true
+          example: 'Hello'
+          description: Token delta (only present for response.output_text.delta events)
+        item_id:
+          type: string
+          nullable: true
+          example: 'msg_a32fd412-6efb-4621-a378-791b2a39ccc2'
+          description: Content part identifier (only present for content/item events)
+        response:
+          allOf:
+            - $ref: '#/components/schemas/ResponseData'
+          nullable: true
+          description: Response data (only present for response.created and response.completed events)
 
     # Code Exporter Schema
     Tool:
@@ -871,14 +948,56 @@ components:
         type:
           type: string
           enum: [file_search]
-          example: "file_search"
+          example: 'file_search'
           description: Type of tool to include in the generated code
         vector_store_ids:
           type: array
           items:
             type: string
-          example: ["vs_abc123", "vs_def456"]
+          example: ['vs_abc123', 'vs_def456']
           description: Vector store IDs to use with the tool
+
+    VectorStoreConfig:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          example: "default_vector_store"
+          description: Name of the vector store
+        embedding_model:
+          type: string
+          example: "all-minilm:l6-v2"
+          description: Embedding model to use for the vector store
+        embedding_dimension:
+          type: integer
+          minimum: 1
+          example: 384
+          description: Dimension of the embedding vectors
+        provider_id:
+          type: string
+          example: "milvus"
+          description: Provider ID for the vector store backend
+
+    FileUpload:
+      type: object
+      required:
+        - file
+        - purpose
+      properties:
+        file:
+          type: string
+          example: "document.pdf"
+          description: Name of the file to upload
+        purpose:
+          type: string
+          enum: [assistants, batch, fine-tune, vision, user_data, evals]
+          default: "assistants"
+          example: "assistants"
+          description: Intended purpose of the file
 
     CodeExportRequest:
       type: object
@@ -889,15 +1008,15 @@ components:
         input:
           type: string
           minLength: 1
-          example: "What is the capital of Ireland?"
+          example: 'What is the capital of Ireland?'
           description: User prompt
         model:
           type: string
-          example: "ollama/llama3.2:3b"
+          example: 'ollama/llama3.2:3b'
           description: Model ID to use in the generated code
         instructions:
           type: string
-          example: "You are a helpful assistant. Use the RAG tool to answer questions as needed."
+          example: 'You are a helpful assistant. Use the RAG tool to answer questions as needed.'
           description: System instructions for code generation
         stream:
           type: boolean
@@ -915,11 +1034,19 @@ components:
         tools:
           type: array
           items:
-            $ref: "#/components/schemas/Tool"
+            $ref: '#/components/schemas/Tool'
           example:
-            - type: "file_search"
-              vector_store_ids: ["vs_abc123"]
+            - type: 'file_search'
+              vector_store_ids: ['vs_abc123']
           description: Tools to include in the generated code
+        vector_store:
+          $ref: "#/components/schemas/VectorStoreConfig"
+          description: Vector store configuration for RAG functionality
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/FileUpload"
+          description: Files to upload and add to the vector store
 
     CodeExportData:
       type: object
@@ -933,7 +1060,7 @@ components:
             # Llama Stack Quickstart Script
             #
             # README:
-            # This example shows how to configure a assistant using the Llama Stack client.
+            # This example shows how to configure an assistant using the Llama Stack client.
             # Before using this code, make sure of the following:
             #
             # 1. Llama Stack Server:
@@ -945,27 +1072,48 @@ components:
             #
             # 3. Tools (MCP Integration):
             #    - Any tools used must be properly pre-configured in your Llama Stack setup.
-                    
-            # Configuration adjust as needed:
+
             LLAMA_STACK_URL = ""
+            FILES_BASE_PATH = ""
             input_text = "What is the capital of Ireland?"
             model_name = "ollama/llama3.2:3b"
+            vector_store_name = "default_vector_store"
             temperature = 0.7
             stream_enabled = False
             system_instructions = "You are a helpful assistant. Use the RAG tool to answer questions as needed."
-                    
-            # Tool configuration
+            files_to_upload = [
+                { "file": "document.pdf", "purpose": "assistants" },
+            ]
+
+            from llama_stack_client import LlamaStackClient
+            import os
+
+            client = LlamaStackClient(base_url=LLAMA_STACK_URL)
+
+            # Create vector store
+            vector_store = client.vector_stores.create(
+                name=vector_store_name,
+                embedding_model="text-embedding-3-small",
+                embedding_dimension=1536,
+                provider_id="milvus"
+            )
             tools = [
                 {
                     "type": "file_search",
-                    "vector_store_ids": ["vs_abc123", "vs_def456"]
-                }
+                    "vector_store_ids": [
+                        vector_store.id
+                    ]
+                },
             ]
-                    
-            from llama_stack_client import LlamaStackClient
-                    
-            client = LlamaStackClient(base_url=LLAMA_STACK_URL)
-                    
+
+            for file_info in files_to_upload:
+                with open(os.path.join(FILES_BASE_PATH, file_info["file"]), 'rb') as file:
+                    uploaded_file = client.files.create(file=file, purpose=file_info["purpose"])
+                    client.vector_stores.files.create(
+                        vector_store_id=vector_store.id, 
+                        file_id=uploaded_file.id
+                    )
+
             config = {
                 "input": input_text,
                 "model": model_name,
@@ -974,9 +1122,9 @@ components:
                 "instructions": system_instructions,
                 "tools": tools
             }
-                    
+
             response = client.responses.create(**config)
-                    
+
             print("agent>", response.output_text)
 
     # Kubernetes Namespace Schema
@@ -987,18 +1135,18 @@ components:
       properties:
         name:
           type: string
-          example: "default"
+          example: 'default'
           description: Kubernetes namespace name
         displayName:
           type: string
           nullable: true
-          example: "default"
+          example: 'default'
           description: Human-readable display name for the namespace (optional, defaults to name)
 
     NamespacesData:
       type: array
       items:
-        $ref: "#/components/schemas/NamespaceModel"
+        $ref: '#/components/schemas/NamespaceModel'
       description: Array of Kubernetes namespaces
 
     # LlamaStack Distribution Schema
@@ -1012,18 +1160,18 @@ components:
       properties:
         name:
           type: string
-          example: "test-lsd"
+          example: 'test-lsd'
           description: Name of the LlamaStack Distribution resource
         phase:
           type: string
-          example: "Ready"
+          example: 'Ready'
           description: Current phase of the LSD (e.g., Pending, Initializing, Ready, Failed, Terminating)
         version:
           type: string
-          example: "v0.2.0"
+          example: 'v0.2.0'
           description: Version of the LlamaStack server
         distributionConfig:
-          $ref: "#/components/schemas/DistributionConfig"
+          $ref: '#/components/schemas/DistributionConfig'
 
     DistributionConfig:
       type: object
@@ -1034,20 +1182,20 @@ components:
       properties:
         activeDistribution:
           type: string
-          example: "ollama"
+          example: 'ollama'
           description: Currently active distribution type
         availableDistributions:
           type: object
           additionalProperties:
             type: string
           example:
-            ollama: "docker.io/llamastack/distribution-ollama:latest"
-            bedrock: "docker.io/llamastack/distribution-bedrock:latest"
+            ollama: 'docker.io/llamastack/distribution-ollama:latest'
+            bedrock: 'docker.io/llamastack/distribution-bedrock:latest'
           description: Map of available distribution types to their image references
         providers:
           type: array
           items:
-            $ref: "#/components/schemas/ProviderInfo"
+            $ref: '#/components/schemas/ProviderInfo'
           description: List of provider information
 
     ProviderInfo:
@@ -1059,22 +1207,22 @@ components:
       properties:
         api:
           type: string
-          example: "mock-api"
+          example: 'mock-api'
           description: API endpoint for the provider
         provider_id:
           type: string
-          example: "mock-provider"
+          example: 'mock-provider'
           description: Unique identifier for the provider
         provider_type:
           type: string
-          example: "mock-type"
+          example: 'mock-type'
           description: Type of the provider
         config:
           type: object
           nullable: true
           description: Provider-specific configuration
         health:
-          $ref: "#/components/schemas/ProviderHealth"
+          $ref: '#/components/schemas/ProviderHealth'
 
     ProviderHealth:
       type: object
@@ -1084,11 +1232,11 @@ components:
       properties:
         status:
           type: string
-          example: "healthy"
+          example: 'healthy'
           description: Health status of the provider
         message:
           type: string
-          example: "Provider is responding normally"
+          example: 'Provider is responding normally'
           description: Additional health information
 
     # User Schema
@@ -1108,7 +1256,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/HealthCheckModel"
+            $ref: '#/components/schemas/HealthCheckModel'
 
     ModelsResponse:
       description: List of available AI models
@@ -1120,7 +1268,7 @@ components:
               - data
             properties:
               data:
-                $ref: "#/components/schemas/ModelsData"
+                $ref: '#/components/schemas/ModelsData'
 
     VectorStoresResponse:
       description: List of vector stores with pagination support
@@ -1132,7 +1280,7 @@ components:
               - data
             properties:
               data:
-                $ref: "#/components/schemas/VectorStoresData"
+                $ref: '#/components/schemas/VectorStoresData'
 
     VectorStoreResponse:
       description: Created vector store
@@ -1144,7 +1292,7 @@ components:
               - data
             properties:
               data:
-                $ref: "#/components/schemas/VectorStore"
+                $ref: '#/components/schemas/VectorStore'
 
     FileUploadResponse:
       description: File upload and vector store addition result
@@ -1156,14 +1304,14 @@ components:
               - data
             properties:
               data:
-                $ref: "#/components/schemas/FileUploadResult"
+                $ref: '#/components/schemas/FileUploadResult'
             example:
               data:
-                file_id: "file-abc123def456"
+                file_id: 'file-abc123def456'
                 vector_store_file:
-                  id: "vsf-def789ghi012"
-                  vector_store_id: "vs_abc123"
-                  status: "completed"
+                  id: 'vsf-def789ghi012'
+                  vector_store_id: 'vs_abc123'
+                  status: 'completed'
 
     CodeExportResponse:
       description: Generated Python code for Llama Stack integration
@@ -1175,7 +1323,7 @@ components:
               - data
             properties:
               data:
-                $ref: "#/components/schemas/CodeExportData"
+                $ref: '#/components/schemas/CodeExportData'
             example:
               data:
                 code: |
@@ -1193,16 +1341,16 @@ components:
               - data
             properties:
               data:
-                $ref: "#/components/schemas/NamespacesData"
+                $ref: '#/components/schemas/NamespacesData'
             example:
               data:
-                - name: "default"
-                  displayName: "default"
-                - name: "kube-system"
-                  displayName: "kube-system"
-                - name: "llama-stack"
-                  displayName: "llama-stack"
-                - name: "test-namespace"
+                - name: 'default'
+                  displayName: 'default'
+                - name: 'kube-system'
+                  displayName: 'kube-system'
+                - name: 'llama-stack'
+                  displayName: 'llama-stack'
+                - name: 'test-namespace'
                   displayName: null
 
     LlamaStackDistributionStatusResponse:
@@ -1215,46 +1363,29 @@ components:
               - data
             properties:
               data:
-                $ref: "#/components/schemas/LlamaStackDistributionModel"
+                $ref: '#/components/schemas/LlamaStackDistributionModel'
                 nullable: true
             example:
               data:
-                name: "test-lsd"
-                phase: "Ready"
-                version: "v0.2.0"
+                name: 'test-lsd'
+                phase: 'Ready'
+                version: 'v0.2.0'
                 distributionConfig:
-                  activeDistribution: "ollama"
+                  activeDistribution: 'ollama'
                   availableDistributions:
-                    ollama: "docker.io/llamastack/distribution-ollama:latest"
-                    bedrock: "docker.io/llamastack/distribution-bedrock:latest"
+                    ollama: 'docker.io/llamastack/distribution-ollama:latest'
+                    bedrock: 'docker.io/llamastack/distribution-bedrock:latest'
                   providers:
-                    - api: "mock-api"
-                      provider_id: "mock-provider"
-                      provider_type: "mock-type"
+                    - api: 'mock-api'
+                      provider_id: 'mock-provider'
+                      provider_type: 'mock-type'
                       config: null
                       health:
-                        status: "healthy"
-                        message: "Provider is responding normally"
-            examples:
-              lsd_found:
-                summary: LSD found
-                value:
-                  data:
-                    name: "test-lsd"
-                    phase: "Ready"
-                    version: "v0.2.0"
-                    distributionConfig:
-                      activeDistribution: "ollama"
-                      availableDistributions:
-                        ollama: "docker.io/llamastack/distribution-ollama:latest"
-                      providers: []
-              lsd_not_found:
-                summary: No LSD found
-                value:
-                  data: null
+                        status: 'healthy'
+                        message: 'Provider is responding normally'
 
     CreateResponseResponse:
-      description: Created AI response with essential information only
+      description: Created AI response with clean LlamaStack structure
       content:
         application/json:
           schema:
@@ -1263,46 +1394,79 @@ components:
               - data
             properties:
               data:
-                $ref: "#/components/schemas/SimplifiedResponse"
+                $ref: '#/components/schemas/ResponseData'
             example:
               data:
-                id: "resp-78d9c676-d1b0-4fed-b89a-9fd81a9d990c"
-                model: "ollama/llama3.2:3b"
-                status: "completed"
-                created_at: 1755721435.0
-                content: "This is a sample AI response. The content would contain the actual generated text from the AI model based on the input prompt and any retrieved context from vector stores."
-                usage:
-                  input_tokens: 15
-                  output_tokens: 45
-                  total_tokens: 60
+                id: 'resp-428905e3-56fb-4a9c-9bd6-ad920a8dade2'
+                model: 'ollama/llama3.2:3b'
+                status: 'completed'
+                created_at: 1757425282.0
+                output:
+                  - id: 'msg_a04d9524-4cea-4688-bc24-07a36d9339a2'
+                    type: 'message'
+                    role: 'assistant'
+                    status: 'completed'
+                    content:
+                      - type: 'output_text'
+                        text: "I'm just a language model, so I don't have feelings or emotions like humans do, but thank you for asking! How can I assist you today?"
+
+    StreamingResponse:
+      description: >-
+        Server-Sent Events (SSE) stream for real-time AI response generation.
+        Each event contains a JSON object with streaming data including token deltas, completion events, and metadata.
+        When RAG (vector stores) are used, file search tool calls appear as separate events in the stream.
+        Stream format follows LlamaStack SSE specification with 'data:' prefix for each event.
+      content:
+        text/event-stream:
+          schema:
+            type: string
+            format: binary
+            description: >-
+              SSE stream with clean events that match the non-streaming response format:
+              - response.created: Initial response with clean structure (id, model, status, created_at)
+              - response.content_part.added: New content part started
+              - response.output_text.delta: Individual token streaming with delta text
+              - response.content_part.done: Content part completion
+              - response.completed: Final clean response with complete output array (messages, file searches)
+              All events use the same ResponseData structure as non-streaming responses.
+          example: |
+            data: {"delta":"","sequence_number":0,"type":"response.created","item_id":"","output_index":0,"response":{"id":"resp-689b63a7-9cfa-418d-ace4-d9ed1dd2e27c","model":"ollama/llama3.2:3b","status":"in_progress","created_at":1757424451}}
+
+            data: {"delta":"","sequence_number":1,"type":"response.content_part.added","item_id":"msg_a32fd412-6efb-4621-a378-791b2a39ccc2","output_index":0}
+
+            data: {"delta":"Hello","sequence_number":2,"type":"response.output_text.delta","item_id":"msg_a32fd412-6efb-4621-a378-791b2a39ccc2","output_index":0}
+
+            data: {"delta":"","sequence_number":3,"type":"response.content_part.done","item_id":"msg_a32fd412-6efb-4621-a378-791b2a39ccc2","output_index":0}
+
+            data: {"delta":"","sequence_number":0,"type":"response.completed","item_id":"","output_index":0,"response":{"id":"resp-689b63a7-9cfa-418d-ace4-d9ed1dd2e27c","model":"ollama/llama3.2:3b","status":"completed","created_at":1757424451,"output":[{"id":"msg_bc738425-4c4b-4caf-86a7-c307765cecbd","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"Hello there"}]}]}}
 
     BadRequest:
       description: Bad Request - Invalid parameters or missing required fields
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorEnvelope"
+            $ref: '#/components/schemas/ErrorEnvelope'
 
     Unauthorized:
       description: Unauthorized - Invalid or missing authentication token
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorEnvelope"
+            $ref: '#/components/schemas/ErrorEnvelope'
 
     NotFound:
       description: Not Found - Requested resource does not exist
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorEnvelope"
+            $ref: '#/components/schemas/ErrorEnvelope'
 
     InternalServerError:
       description: Internal Server Error - Server encountered an unexpected condition
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorEnvelope"
+            $ref: '#/components/schemas/ErrorEnvelope'
 
     UserResponse:
       description: Current user information
@@ -1317,15 +1481,33 @@ tags:
   - name: HealthCheck
     description: BFF service health check operations
   - name: Models
-    description: AI model discovery and management
+    description: |
+      AI model discovery and management
+      
+      **LlamaStack Models** (`/models`): Queries LlamaStack service for available models
+      **AI Assets Models** (`/aa/models`): Queries Kubernetes InferenceServices with GenAI labels
+      
+      Both endpoints require namespace parameter for proper multi-tenant isolation.
   - name: VectorStores
-    description: Vector store management for RAG functionality
+    description: |
+      Vector store management for RAG functionality
+      
+      Requires namespace parameter. Uses namespace-specific LlamaStack service discovery.
   - name: Files
-    description: File upload and vector store integration
+    description: |
+      File upload and vector store integration
+      
+      Requires namespace parameter. Uses namespace-specific LlamaStack service discovery.
   - name: Responses
-    description: AI response generation with comprehensive parameter support
+    description: |
+      AI response generation with comprehensive parameter support
+      
+      Requires namespace parameter. Uses namespace-specific LlamaStack service discovery.
   - name: CodeExporter
-    description: Code generation for Llama Stack integration
+    description: |
+      Code generation for Llama Stack integration
+      
+      Requires namespace parameter. Generates code templates for client configuration.
   - name: Kubernetes
     description: Kubernetes cluster operations and namespace management
   - name: Identity
