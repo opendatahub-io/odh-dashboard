@@ -283,11 +283,6 @@ jobs:
           # Export OpenShift configuration for Cypress tests
           echo "🔧 Setting up OpenShift configuration for Cypress tests..."
           export KUBECONFIG="$HOME/.kube/config"
-          echo "KUBECONFIG=$KUBECONFIG" >> $GITHUB_ENV
-          
-          # Verify the login worked
-          oc whoami
-          oc projects
 
       - name: Set test configuration
         run: |
@@ -316,7 +311,7 @@ jobs:
           echo "🧹 Cleaning up any existing processes on port 9001..."
           lsof -ti:9001 | xargs kill -9 2>/dev/null || echo "No process found on port 9001"
           echo "🚀 Starting Cypress server for E2E tests..."
-          cd frontend && npm run cypress:server &
+          cd frontend && EXT_CLUSTER=true CYPRESS_TESTS=true npm run start:dev &
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
 
