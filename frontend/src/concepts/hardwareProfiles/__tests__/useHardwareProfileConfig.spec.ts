@@ -11,7 +11,7 @@ jest.mock('#~/concepts/areas', () => ({
   useIsAreaAvailable: jest.fn(),
 }));
 
-jest.mock('#~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility');
+jest.mock('#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility');
 
 jest.mock('#~/redux/selectors', () => ({
   useDashboardNamespace: jest.fn(),
