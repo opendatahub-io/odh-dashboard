@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/opendatahub-io/gen-ai/internal/config"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/stretchr/testify/assert"
@@ -15,11 +16,13 @@ import (
 
 func TestCodeExporterHandler(t *testing.T) {
 	// Create test app with real template repository
+	llamaStackClientFactory := lsmocks.NewMockClientFactory()
 	app := App{
 		config: config.EnvConfig{
 			Port: 4000,
 		},
-		repositories: repositories.NewRepositories(nil), // No LlamaStack client needed
+		llamaStackClientFactory: llamaStackClientFactory,
+		repositories:            repositories.NewRepositories(),
 	}
 
 	t.Run("should return error when input is missing", func(t *testing.T) {
@@ -82,8 +85,10 @@ func TestCodeExporterHandler(t *testing.T) {
 }
 
 func TestGeneratePythonCode(t *testing.T) {
+	llamaStackClientFactory := lsmocks.NewMockClientFactory()
 	app := App{
-		repositories: repositories.NewRepositories(nil),
+		llamaStackClientFactory: llamaStackClientFactory,
+		repositories:            repositories.NewRepositories(),
 	}
 
 	t.Run("should generate Python code with basic config", func(t *testing.T) {
