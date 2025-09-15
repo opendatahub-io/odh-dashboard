@@ -18,7 +18,9 @@
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
-    "@odh-dashboard/feature-store": "*",
-    "@odh-dashboard/app-config": "*"
+    "@odh-dashboard/feature-store": "*"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*"
   }
 }

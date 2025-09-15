@@ -1,23 +1,19 @@
+const globals = require('globals');
+
 module.exports = {
-  env: {
-    node: true,
-  },
   parserOptions: {
     ecmaVersion: 2022,
     sourceType: 'module',
     js: true,
   },
   globals: {
-    describe: 'readonly',
-    test: 'readonly',
-    expect: 'readonly',
-    it: 'readonly',
-    process: 'readonly',
+    ...globals.jest,
   },
   plugins: ['eslint-plugin-react-hooks', 'import', 'no-only-tests', 'no-relative-import-paths'],
   extends: ['eslint:recommended'],
   ignorePatterns: [
     '.nyc_output',
+    '.turbo',
     'coverage',
     'jest-coverage',
     'public',

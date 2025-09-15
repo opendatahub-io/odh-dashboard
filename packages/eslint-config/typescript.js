@@ -1,3 +1,4 @@
+const globals = require('globals');
 const { merge } = require('./utils');
 
 const typescriptBaseNoRestrictedSyntax = [
@@ -39,8 +40,7 @@ const typescriptBase = {
   plugins: ['@typescript-eslint'],
   extends: ['plugin:@typescript-eslint/recommended'],
   globals: {
-    window: 'readonly',
-    document: 'readonly',
+    ...globals.browser,
   },
   settings: {
     'import/parsers': {

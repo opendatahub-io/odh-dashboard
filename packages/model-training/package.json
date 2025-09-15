@@ -13,5 +13,8 @@
   "dependencies": {
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/plugin-core": "*"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*"
   }
 }
