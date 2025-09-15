@@ -43,22 +43,19 @@
     "cypress:open": "cypress open --project src/__tests__/cypress",
     "cypress:e2e": "npx cypress run --env grepTags=@Dashboard+-@Bug --browser=chrome --project src/__tests__/cypress",
     "cypress:run": "cypress run -b chrome --project src/__tests__/cypress",
-    "cypress:run:electron": "cypress run -b electron --project src/__tests__/cypress",
     "cypress:open:mock": "CY_MOCK=1 CY_WS_PORT=9002 npm run cypress:open -- ",
     "cypress:run:mock": "CY_MOCK=1 CY_WS_PORT=9002 npm run cypress:run -- ",
     "cypress:run:mock:coverage": "rimraf src/__tests__/cypress/coverage src/__tests__/cypress/.nyc_output && CY_COVERAGE=true npm run cypress:run:mock -- {@}",
-    "cypress:run:e2e": "CY_TEST_TAGS=\"${CY_TEST_TAGS}\" CY_SKIP_TAGS=\"${CY_SKIP_TAGS}\" npm run cypress:run:electron -- ",
     "cypress:open:record": "CY_RECORD=1 npm run cypress:open",
+    "cypress:run:electron": "cypress run -b electron --project src/__tests__/cypress",
     "cypress:run:record": "CY_RECORD=1 npm run cypress:run && npm run cypress:format",
     "cypress:server:build": "ODH_DIST_DIR=./public-cypress POLL_INTERVAL=9999999 FAST_POLL_INTERVAL=9999999 WS_HOSTNAME=localhost:9002 CYPRESS_TESTS=true npm run build",
     "cypress:server:build:coverage": "COVERAGE=true CYPRESS_TESTS=true npm run cypress:server:build",
     "cypress:server": "serve ./public-cypress -p 9001 -s -L",
     "cypress:server:dev": "POLL_INTERVAL=9999999 FAST_POLL_INTERVAL=9999999 ODH_PORT=9001 WS_HOSTNAME=localhost:9002 CYPRESS_TESTS=true npm run start:dev",
     "cypress:format": "prettier --write src/__tests__/**/*.snap.json",
-    "test:cypress:e2e": "cd src/__tests__/cypress && npx cypress run --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\" --browser electron --headless",
-    "test:cypress:e2e:open": "cd src/__tests__/cypress && npx cypress open --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\"",
-    "test:cypress:ci:matrix": "cd src/__tests__/cypress && npx cypress run --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\" --browser electron --config video=true,screenshotsFolder=\"${CY_RESULTS_DIR}/screenshots\",videosFolder=\"${CY_RESULTS_DIR}/videos\"",
-    "test:cypress:e2e:ci": "npx concurrently -P -k -s first \"npm run cypress:server\" \"npx wait-on tcp:127.0.0.1:9001 && npm run cypress:run:e2e -- {@}\" -- "
+    "test:cypress:e2e": "cd src/__tests__/cypress && npx cypress run --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\" --browser chrome",
+    "test:cypress:e2e:open": "cd src/__tests__/cypress && npx cypress open --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\""
   },
   "dependencies": {
     "@module-federation/runtime": "^0.15.0",
@@ -244,6 +241,7 @@
     "react-router": "^7.6.2",
     "ws": "^8.17.1",
     "dompurify": "^3.2.4",
-    "redux": "^4.2.0"
+    "redux": "^4.2.0",
+    "form-data": "^4.0.4"
   }
 }
