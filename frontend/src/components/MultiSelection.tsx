@@ -360,6 +360,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
                     ref={null}
                     isSelected={option.selected}
                     description={option.description}
+                    isAriaDisabled={option.isAriaDisabled}
                   >
                     {option.name}
                   </SelectOption>
@@ -384,6 +385,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
                 ref={null}
                 isSelected={option.selected}
                 description={option.description}
+                isAriaDisabled={option.isAriaDisabled}
               >
                 {option.name}
               </SelectOption>

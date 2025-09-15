@@ -200,7 +200,7 @@ const DataSourceDetailsTabs: React.FC<DataSourceDetailsTabsProps> = ({ dataSourc
           {featureViewsLoaded ? (
             featureViewsWithServices.length > 0 ? (
               <>
-                <Title headingLevel="h3" data-testid="feature-view-lineage">
+                <Title headingLevel="h3" data-testid="feature-view-tab">
                   Feature views
                 </Title>
                 <FeatureViewsTabContent
