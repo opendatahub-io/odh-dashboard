@@ -1,9 +1,15 @@
 import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
-import { StackCapability, StackComponent, SupportedArea } from '#~/concepts/areas/types';
+import {
+  StackCapability,
+  StackComponent,
+  SupportedArea,
+  SupportedComponentFlagValue,
+} from '#~/concepts/areas/types';
 import { SupportedAreasStateMap } from '#~/concepts/areas/const';
 import { mockDsciStatus } from '#~/__mocks__/mockDsciStatus';
 import { isAreaAvailable } from '#~/concepts/areas/utils';
+import { mockIsAreaAvailableOptions } from '#~/__mocks__/mockSupportedAreasData.ts';
 
 describe('isAreaAvailable', () => {
   describe('v1 Operator (deprecated)', () => {
@@ -189,6 +195,11 @@ describe('isAreaAvailable', () => {
       });
     });
 
+    const MOCK_KSERVE_CONFIG: SupportedComponentFlagValue = {
+      featureFlags: ['disableKServe'],
+      reliantAreas: [SupportedArea.MODEL_SERVING],
+    };
+
     describe('requiredCapabilities', () => {
       it('should enable area if both capabilities are enabled', () => {
         // Make sure this test is valid
@@ -211,6 +222,9 @@ describe('isAreaAvailable', () => {
               StackCapability.SERVICE_MESH,
               StackCapability.SERVICE_MESH_AUTHZ,
             ],
+          }),
+          mockIsAreaAvailableOptions({
+            stateMapOverrides: { [SupportedArea.K_SERVE]: MOCK_KSERVE_CONFIG },
           }),
         );
 
@@ -242,6 +256,9 @@ describe('isAreaAvailable', () => {
           }),
           mockDsciStatus({
             requiredCapabilities: [StackCapability.SERVICE_MESH],
+          }),
+          mockIsAreaAvailableOptions({
+            stateMapOverrides: { [SupportedArea.K_SERVE]: MOCK_KSERVE_CONFIG },
           }),
         );
 

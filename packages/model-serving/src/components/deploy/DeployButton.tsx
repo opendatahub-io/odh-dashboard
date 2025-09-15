@@ -11,7 +11,7 @@ import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { isProjectNIMSupported } from '@odh-dashboard/internal/pages/modelServing/screens/projects/nimUtils';
 import useIsAreaAvailable from '@odh-dashboard/internal/concepts/areas/useIsAreaAvailable';
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/index';
-import { useKueueConfiguration } from '@odh-dashboard/internal/concepts/hardwareProfiles/kueueUtils.ts';
+import { useKueueConfiguration } from '@odh-dashboard/internal/concepts/hardwareProfiles/kueueUtils';
 import { useServingRuntimeTemplates } from '../../concepts/servingRuntimeTemplates/useServingRuntimeTemplates';
 import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
 import { useAvailableClusterPlatforms } from '../../concepts/useAvailableClusterPlatforms';
