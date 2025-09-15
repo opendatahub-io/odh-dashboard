@@ -249,8 +249,8 @@ jobs:
             echo ""
             echo "💡 POSSIBLE SOLUTIONS:"
             echo "1. Ensure secrets are configured in upstream repo (opendatahub-io/odh-dashboard)"
-            "2. For testing, secrets need to be available when PR is merged"
-            "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
+            echo "2. For testing, secrets need to be available when PR is merged"
+            echo "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
             exit 1
           fi
 
@@ -323,36 +323,70 @@ jobs:
       - name: Wait for Server Ready
         run: |
           echo "⏳ Waiting for localhost:4010 to be ready..."
-          npx wait-on tcp:127.0.0.1:4010 --timeout 120000
-          echo "✅ Server port is open!"
+          # Use HTTP check instead of TCP since server is clearly running
+          npx wait-on http://localhost:4010 --timeout 120000
+          echo "✅ Server is responding to HTTP!"
           
-          # Verify the application actually loads
+          # Verify the application actually loads with more details
           echo "🔍 Verifying application loads properly..."
-          for i in {1..15}; do
-            if curl -s -f http://localhost:4010/ | grep -q "Data Science Projects\|ODH\|Open Data Hub"; then
-              echo "✅ Application loaded successfully - found dashboard content"
-              break
+          for i in {1..10}; do
+            echo "🔄 Attempt $i/10: Testing application..."
+            
+            # Check if basic page loads
+            if curl -s -f http://localhost:4010/ > /tmp/response.html 2>/dev/null; then
+              echo "✅ HTTP 200 response received"
+              
+              # Check for dashboard content
+              if grep -q "Data Science Projects\|ODH\|Open Data Hub\|Dashboard" /tmp/response.html; then
+                echo "✅ Found dashboard content!"
+                break
+              else
+                echo "⚠️  Page loads but no dashboard content yet..."
+                echo "📄 Response contains: $(head -c 200 /tmp/response.html | tr '\n' ' ')"
+              fi
             else
-              echo "⏳ Attempt $i/15: Application not ready yet, waiting..."
-              sleep 5
+              echo "❌ HTTP request failed"
+              curl_exit_code=$?
+              echo "Curl exit code: $curl_exit_code"
+            fi
+            
+            if [ $i -lt 10 ]; then
+              echo "⏳ Waiting 8 seconds before retry..."
+              sleep 8
             fi
           done
           
-          # Final verification
-          if curl -s -f http://localhost:4010/ | grep -q "Data Science Projects\|ODH\|Open Data Hub"; then
+          # Final verification with detailed debugging
+          echo "🔍 Final application verification..."
+          if curl -s -f http://localhost:4010/ | grep -q "Data Science Projects\|ODH\|Open Data Hub\|Dashboard"; then
             echo "✅ Server is ready and application is loaded!"
-          else
-            echo "❌ Server is running but application may not be loading properly"
-            echo "📄 Server output debug:"
-            echo "Checking if API proxy is working..."
-            curl -s http://localhost:4010/api/status || echo "API call failed"
-            echo "📄 First 500 characters of response:"
-            curl -s http://localhost:4010/ | head -c 500
-            echo ""
             
-            # Show webpack dev server logs if available
-            echo "📄 Checking for server process:"
-            ps aux | grep -E '(webpack|node.*4010)' | head -5
+            # Test API endpoint
+            echo "🔍 Testing API endpoint..."
+            if curl -s -f http://localhost:4010/api/status > /dev/null; then
+              echo "✅ API proxy is working!"
+            else
+              echo "⚠️  API endpoint test failed, but frontend is working"
+            fi
+          else
+            echo "❌ Application failed to load properly"
+            echo ""
+            echo "📊 Debugging information:"
+            echo "🔄 Server process status:"
+            ps aux | grep -E '(webpack|node.*4010)' | head -5 || echo "No matching processes found"
+            
+            echo ""
+            echo "🌐 Network connectivity test:"
+            curl -I http://localhost:4010/ 2>&1 || echo "Connection failed"
+            
+            echo ""
+            echo "📄 Raw response (first 1000 chars):"
+            curl -s http://localhost:4010/ 2>/dev/null | head -c 1000 || echo "Failed to get response"
+            
+            echo ""
+            echo "🔍 Looking for webpack output in background..."
+            # Check if there are any relevant log files or output
+            ls -la /tmp/ | grep -E "(webpack|error|log)" || echo "No relevant temp files found"
             
             exit 1
           fi
