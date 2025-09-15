@@ -31,8 +31,10 @@ type NamespaceModel struct {
 	DisplayName *string `json:"displayName,omitempty"`
 }
 
-func NewNamespaceModelFromNamespace(name string) NamespaceModel {
-	displayName := name // For now, use name as display name, but this can be customized later
+func NewNamespaceModelFromNamespace(name string, displayName string) NamespaceModel {
+	if displayName == "" {
+		displayName = name
+	}
 	return NamespaceModel{
 		Name:        name,
 		DisplayName: &displayName,

@@ -17,7 +17,7 @@ const NoData: React.FC<NoDataProps> = ({
 }) => (
   <EmptyState
     titleText={title}
-    icon={() => <img src={emptyStateImage} alt="AI Playground Infrastructure" />}
+    icon={() => <img src={emptyStateImage} alt="Chat Playground Infrastructure" />}
     variant="lg"
     isFullHeight
   >
