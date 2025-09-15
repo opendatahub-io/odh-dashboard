@@ -1,6 +1,6 @@
 import React from 'react';
 import { Namespace, useNamespaceSelector } from 'mod-arch-core';
-import useSyncPreferredNamespace from '../hooks/useSyncPreferredNamespace';
+import useSyncPreferredNamespace from '~/app/hooks/useSyncPreferredNamespace';
 
 type GenAiContextProps = {
   namespace: Namespace | undefined;
