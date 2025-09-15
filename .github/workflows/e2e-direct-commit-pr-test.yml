@@ -361,12 +361,12 @@ jobs:
           mkdir -p "$CY_RESULTS_DIR"
 
           # Run tests directly against shared localhost server
-          cd frontend/src/__tests__/cypress && npx cypress run --env '{"grepTags":"${{ matrix.test-tag }}","skipTags":"@Bug,@Maintain,@NonConcurrent","grepFilterSpecs":true}' --browser electron --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+          BASE_URL=http://localhost:9001 npm run cypress:run:electron -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Test tag name
         if: ${{ always() }}
         run: |
-          TEST_TAG_NAME=$(echo '${{ matrix.test-tag }}' | tr '/' '_' | tr '@' '')
+          TEST_TAG_NAME=$(echo '${{ matrix.test-tag }}' | tr '/' '_' | tr '@' '_')
           echo "TEST_TAG_NAME=$TEST_TAG_NAME" >> $GITHUB_ENV
 
       - name: Upload test results
