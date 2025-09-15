@@ -57,20 +57,17 @@ jobs:
             oc version --client
           else
             echo "❌ OpenShift CLI (oc) not found, installing..."
+            echo "📦 Installing oc CLI for Linux..."
 
-            # Install oc CLI for Linux
-            if [[ "$RUNNER_OS" == "Linux" ]]; then
-              echo "📦 Installing oc CLI for Linux..."
+            # Download and install oc
+            curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz
+            tar -xzf oc.tar.gz
+            sudo mv oc /usr/local/bin/
+            sudo chmod +x /usr/local/bin/oc
 
-              # Download and install oc
-              curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz
-              tar -xzf oc.tar.gz
-              sudo mv oc /usr/local/bin/
-              sudo chmod +x /usr/local/bin/oc
-
-              # Verify installation
-              echo "✅ OpenShift CLI installed successfully"
-              oc version --client
+            # Verify installation
+            echo "✅ OpenShift CLI installed successfully"
+            oc version --client
           fi
 
           # Final verification
@@ -125,6 +122,14 @@ jobs:
             fi
 
             echo "🎯 Cypress dependencies installation completed"
+
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            echo "🍎 macOS detected - installing Xvfb..."
+            brew install xorg-server || echo "Homebrew install failed, Xvfb may already be available"
+
+          elif [[ "$RUNNER_OS" == "Windows" ]]; then
+            echo "🪟 Windows detected - Cypress dependencies usually pre-installed"
+          fi
 
       - name: Debug available secrets
         run: |
@@ -229,8 +234,8 @@ jobs:
             echo ""
             echo "💡 POSSIBLE SOLUTIONS:"
             echo "1. Ensure secrets are configured in upstream repo (opendatahub-io/odh-dashboard)"
-            echo "2. For testing, secrets need to be available when PR is merged"
-            echo "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
+            "2. For testing, secrets need to be available when PR is merged"
+            "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
             exit 1
           fi
 
@@ -297,8 +302,8 @@ jobs:
           echo "Started webpack dev server with PID: $SERVER_PID"
           
           # Give the server extra time to start in CI
-          echo "⏳ Giving server 30 seconds to initialize..."
-          sleep 30
+          echo "⏳ Giving server 15 seconds to initialize..."
+          sleep 15
 
       - name: Wait for Server Ready
         run: |
@@ -381,7 +386,7 @@ jobs:
           echo "Commit: ${{ github.sha }}"
 
           # Run real E2E tests (not mock mode)
-          echo "🚀 Running E2E tests against live dashboard"
+          echo "🚀 Running real E2E tests against live dashboard"
 
           # Run tests with matrix tag using Jenkins-style command format
           export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
@@ -400,10 +405,13 @@ jobs:
           echo "🚫 Skipping tags: @Bug,@Maintain,@NonConcurrent"
           echo "📋 Test group: ${{ matrix.test-tag }}"
 
+          # Use Jenkins-style command format for proper tag filtering
+          echo "🔄 Using Electron browser (Chrome not available on Fedora)"
+
           # Create results directory
           mkdir -p "$CY_RESULTS_DIR"
 
-          # Run default CI Tests - skip Bug, Maintain and NonConcurrent tags
+          # Run tests against port 4010
           BASE_URL=http://localhost:4010 npm run cypress:run:electron -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Test tag name
