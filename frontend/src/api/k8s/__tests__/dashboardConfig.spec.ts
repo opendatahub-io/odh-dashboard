@@ -228,7 +228,7 @@ describe('patchDashboardConfigHardwareProfileOrder', () => {
       queryOptions: { name: DASHBOARD_CONFIG, ns: projectName, queryParams: {} },
       patches: [
         {
-          op: 'replace',
+          op: 'add',
           path: '/spec/hardwareProfileOrder',
           value: hardwareProfileOrder,
         },
@@ -264,7 +264,7 @@ describe('patchDashboardConfigHardwareProfileOrder', () => {
       queryOptions: { name: DASHBOARD_CONFIG, ns: projectName, queryParams: {} },
       patches: [
         {
-          op: 'replace',
+          op: 'add',
           path: '/spec/hardwareProfileOrder',
           value: reorderedOrder,
         },
@@ -296,7 +296,7 @@ describe('patchDashboardConfigHardwareProfileOrder', () => {
       queryOptions: { name: DASHBOARD_CONFIG, ns: projectName, queryParams: {} },
       patches: [
         {
-          op: 'replace',
+          op: 'add',
           path: '/spec/hardwareProfileOrder',
           value: hardwareProfileOrder,
         },

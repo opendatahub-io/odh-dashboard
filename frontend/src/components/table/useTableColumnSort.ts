@@ -87,6 +87,56 @@ const useTableColumnSort = <T>(
 
   const isCustomOrder = enableCustomOrder && activeSortDirection === 'custom';
 
+  const createCustomColumnSort = (): GetColumnSort => {
+    return (columnIndex: number) => {
+      const column =
+        columnIndex < columns.length
+          ? columns[columnIndex]
+          : subColumns[columnIndex - columns.length];
+
+      if (!column.sortable) {
+        return undefined;
+      }
+
+      return {
+        sortBy: {
+          index: activeSortIndex,
+          direction: activeSortDirection === 'custom' ? undefined : activeSortDirection,
+          defaultDirection: 'asc',
+        },
+        onSort: (_event, index) => {
+          // If user clicked a different column, start at asc for that column.
+          if (activeSortDirection !== 'custom' && index !== activeSortIndex) {
+            setActiveSortIndex(index);
+            setActiveSortDirection('asc');
+          } else if (activeSortDirection === 'custom') {
+            setActiveSortIndex(index);
+            setActiveSortDirection('asc');
+          } else if (activeSortDirection === 'asc') {
+            setActiveSortDirection('desc');
+          } else {
+            setActiveSortIndex(undefined);
+            setActiveSortDirection('custom');
+          }
+        },
+        columnIndex,
+      };
+    };
+  };
+
+  const createStandardColumnSort = (): GetColumnSort => {
+    return getTableColumnSortByIndex<T>({
+      columns,
+      subColumns,
+      sortDirection: activeSortDirection === 'custom' ? undefined : activeSortDirection,
+      setSortDirection: (dir: 'asc' | 'desc') => {
+        setActiveSortDirection(dir);
+      },
+      sortIndex: activeSortIndex,
+      setSortIndex: setActiveSortIndex,
+    });
+  };
+
   return {
     transformData: (data: T[]): T[] => {
       if (activeSortIndex === undefined || activeSortDirection === 'custom') {
@@ -125,51 +175,7 @@ const useTableColumnSort = <T>(
         return compute() * (activeSortDirection === 'desc' ? -1 : 1);
       });
     },
-    getColumnSort: enableCustomOrder
-      ? (columnIndex: number) => {
-          const column =
-            columnIndex < columns.length
-              ? columns[columnIndex]
-              : subColumns[columnIndex - columns.length];
-
-          if (!column.sortable) {
-            return undefined;
-          }
-
-          return {
-            sortBy: {
-              index: activeSortIndex,
-              direction: activeSortDirection === 'custom' ? undefined : activeSortDirection,
-              defaultDirection: 'asc',
-            },
-            onSort: (_event, index) => {
-              // If user clicked a different column, start at asc for that column.
-              if (activeSortDirection !== 'custom' && index !== activeSortIndex) {
-                setActiveSortIndex(index);
-                setActiveSortDirection('asc');
-              } else if (activeSortDirection === 'custom') {
-                setActiveSortIndex(index);
-                setActiveSortDirection('asc');
-              } else if (activeSortDirection === 'asc') {
-                setActiveSortDirection('desc');
-              } else {
-                setActiveSortIndex(undefined);
-                setActiveSortDirection('custom');
-              }
-            },
-            columnIndex,
-          };
-        }
-      : getTableColumnSortByIndex<T>({
-          columns,
-          subColumns,
-          sortDirection: activeSortDirection === 'custom' ? undefined : activeSortDirection,
-          setSortDirection: (dir: 'asc' | 'desc') => {
-            setActiveSortDirection(dir);
-          },
-          sortIndex: activeSortIndex,
-          setSortIndex: setActiveSortIndex,
-        }),
+    getColumnSort: enableCustomOrder ? createCustomColumnSort() : createStandardColumnSort(),
     isCustomOrder: isCustomOrder ?? false,
   };
 };
