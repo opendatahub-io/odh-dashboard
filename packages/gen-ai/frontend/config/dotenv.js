@@ -146,7 +146,7 @@ const setupDotenvFilesForEnv = ({ env }) => {
   setupDotenvFile(path.resolve(RELATIVE_DIRNAME, '.env'));
 
   const DEPLOYMENT_MODE = process.env.DEPLOYMENT_MODE || 'federated';
-  const AUTH_METHOD = process.env.AUTH_METHOD || 'internal';
+  const AUTH_METHOD = process.env.AUTH_METHOD || 'user_token';
   const IMAGES_DIRNAME = process.env.IMAGES_DIRNAME || 'images';
   const PUBLIC_PATH = process.env.PUBLIC_PATH || '/';
   const SRC_DIR = path.resolve(RELATIVE_DIRNAME, process.env.SRC_DIR || TS_BASE_URL || 'src');
