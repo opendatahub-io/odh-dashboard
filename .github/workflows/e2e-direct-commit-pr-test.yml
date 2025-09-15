@@ -1,4 +1,4 @@
-name: E2E Direct Commit PR Tests - FIXED
+name: E2E Direct Commit PR Tests
 
 on: [push]
 
@@ -313,17 +313,43 @@ jobs:
 
       - name: Start Cypress Server
         run: |
-          cd frontend
+          echo "🧹 Cleaning up any existing processes on port 9001..."
+          lsof -ti:9001 | xargs kill -9 2>/dev/null || echo "No process found on port 9001"
           echo "🚀 Starting Cypress server for E2E tests..."
-          npm run cypress:server &
+          cd frontend && npm run cypress:server &
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
 
       - name: Wait for Server Ready
         run: |
+          echo "⏳ Giving server a moment to start..."
+          sleep 5
           echo "⏳ Waiting for localhost:9001 to be ready..."
           npx wait-on tcp:127.0.0.1:9001 --timeout 60000
-          echo "✅ Server is ready!"
+          echo "✅ Server port is open!"
+          
+          # Verify the application actually loads
+          echo "🔍 Verifying application loads properly..."
+          for i in {1..10}; do
+            if curl -s -f http://localhost:9001/ | grep -q "Data Science Projects\|ODH\|Open Data Hub"; then
+              echo "✅ Application loaded successfully - found dashboard content"
+              break
+            else
+              echo "⏳ Attempt $i/10: Application not ready yet, waiting..."
+              sleep 3
+            fi
+          done
+          
+          # Final verification
+          if curl -s -f http://localhost:9001/ | grep -q "Data Science Projects\|ODH\|Open Data Hub"; then
+            echo "✅ Server is ready and application is loaded!"
+          else
+            echo "❌ Server is running but application may not be loading properly"
+            echo "📄 First 500 characters of response:"
+            curl -s http://localhost:9001/ | head -c 500
+            echo ""
+            exit 1
+          fi
 
       - name: Run E2E Tests
         run: |
@@ -404,6 +430,7 @@ jobs:
         run: |
           echo "🛑 Stopping any remaining Cypress servers..."
           # Kill any processes on port 9001
+          lsof -ti:9001 | xargs kill -9 2>/dev/null || echo "No process found on port 9001"
           pkill -f "npm run cypress:server" || true
           pkill -f "serve.*public-cypress" || true
           echo "✅ Server cleanup completed"
