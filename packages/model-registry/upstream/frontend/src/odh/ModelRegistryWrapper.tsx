@@ -13,7 +13,7 @@ import ModelRegistryRoutes from '~/app/pages/modelRegistry/ModelRegistryRoutes';
 import { ModelRegistrySelectorContextProvider } from '~/app/context/ModelRegistrySelectorContext';
 import { AppContext } from '~/app/context/AppContext';
 import { Bullseye } from '@patternfly/react-core';
-import { AreaContext } from '@odh-dashboard/internal/concepts/areas/AreaContext';
+import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDscStatus';
 
 const ModelRegistryWrapperContent: React.FC = () => {
   const {
@@ -49,12 +49,12 @@ const ModelRegistryWrapperContent: React.FC = () => {
 };
 
 const ModelRegistryWrapper: React.FC = () => {
-  // const { dscStatus } = React.useContext(AreaContext);
+  const [dscStatus] = useFetchDscStatus();
   const modularArchConfig: ModularArchConfig = {
     deploymentMode: DeploymentMode.Federated,
     URL_PREFIX,
     BFF_API_VERSION,
-    mandatoryNamespace: 'odh-model-registries',
+    mandatoryNamespace: dscStatus?.components?.modelregistry?.registriesNamespace,
   };
   return (
     <ModularArchContextProvider config={modularArchConfig}>
