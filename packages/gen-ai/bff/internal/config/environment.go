@@ -26,6 +26,7 @@ type EnvConfig struct {
 	AllowedOrigins  []string
 	MockLSClient    bool
 	MockK8sClient   bool
+	MockMCPClient   bool
 
 	// Llama Stack Configuration
 	LlamaStackURL string
