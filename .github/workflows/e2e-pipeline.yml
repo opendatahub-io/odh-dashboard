@@ -1,4 +1,4 @@
-name: E2E Direct Commit PR Tests - FIXED
+name: E2E Direct Commit PR Tests
 
 on: [push]
 
@@ -41,10 +41,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build frontend for E2E tests
+      - name: Install Git
         run: |
-          cd frontend
-          npm run cypress:server:build
+          echo "🔧 Installing Git for build process..."
+          sudo dnf install -y git
+          git --version
 
       - name: Check and Install OpenShift CLI
         run: |
@@ -274,6 +275,11 @@ jobs:
           echo "Logging in to OpenShift cluster..."
           oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="${{ secrets.OC_SERVER }}" --insecure-skip-tls-verify
 
+          # Export OpenShift configuration for Cypress tests
+          echo "🔧 Setting up OpenShift configuration for Cypress tests..."
+          export KUBECONFIG="$HOME/.kube/config"
+          echo "KUBECONFIG=$KUBECONFIG" >> $GITHUB_ENV
+
       - name: Set test configuration
         run: |
           # For forked PRs, use default URLs from local test-vars.yml
@@ -287,28 +293,103 @@ jobs:
           # For forked PRs, set default URLs if secrets are not available
           if [ -z "${{ secrets.OCP_CONSOLE_URL }}" ]; then
             echo "⚠️  OCP_CONSOLE_URL secret not available (forked PR) - using localhost"
-            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:9001|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:4010|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
           fi
           if [ -z "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
             echo "⚠️  ODH_DASHBOARD_URL secret not available (forked PR) - using localhost"
-            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:9001|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:4010|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
           fi
 
           export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
 
       - name: Start Cypress Server
         run: |
-          cd frontend
-          echo "🚀 Starting Cypress server for E2E tests..."
-          npm run cypress:server &
+          echo "🧹 Cleaning up any existing processes..."
+          pkill -f "webpack.*serve" || echo "No webpack processes found"
+          pkill -f "node.*4010" || echo "No node processes on port 4010"
+          sleep 2
+          
+          echo "🚀 Starting webpack dev server with cluster proxy..."
+          cd frontend && npm run start:dev:ext &
+          
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+          echo "Started webpack dev server with PID: $SERVER_PID"
+          
+          # Give the server extra time to start in CI
+          echo "⏳ Giving server 15 seconds to initialize..."
+          sleep 15
 
       - name: Wait for Server Ready
         run: |
-          echo "⏳ Waiting for localhost:9001 to be ready..."
-          npx wait-on tcp:127.0.0.1:9001 --timeout 60000
-          echo "✅ Server is ready!"
+          echo "⏳ Waiting for localhost:4010 to be ready..."
+          # Use HTTP check instead of TCP since server is clearly running
+          npx wait-on http://localhost:4010 --timeout 120000
+          echo "✅ Server is responding to HTTP!"
+          
+          # Verify the application actually loads with more details
+          echo "🔍 Verifying application loads properly..."
+          for i in {1..10}; do
+            echo "🔄 Attempt $i/10: Testing application..."
+            
+            # Check if basic page loads
+            if curl -s -f http://localhost:4010/ > /tmp/response.html 2>/dev/null; then
+              echo "✅ HTTP 200 response received"
+              
+              # Check for dashboard content
+              if grep -q "Data Science Projects\|ODH\|Open Data Hub\|Dashboard" /tmp/response.html; then
+                echo "✅ Found dashboard content!"
+                break
+              else
+                echo "⚠️  Page loads but no dashboard content yet..."
+                echo "📄 Response contains: $(head -c 200 /tmp/response.html | tr '\n' ' ')"
+              fi
+            else
+              echo "❌ HTTP request failed"
+              curl_exit_code=$?
+              echo "Curl exit code: $curl_exit_code"
+            fi
+            
+            if [ $i -lt 10 ]; then
+              echo "⏳ Waiting 8 seconds before retry..."
+              sleep 8
+            fi
+          done
+          
+          # Final verification with detailed debugging
+          echo "🔍 Final application verification..."
+          if curl -s -f http://localhost:4010/ | grep -q "Data Science Projects\|ODH\|Open Data Hub\|Dashboard"; then
+            echo "✅ Server is ready and application is loaded!"
+            
+            # Test API endpoint
+            echo "🔍 Testing API endpoint..."
+            if curl -s -f http://localhost:4010/api/status > /dev/null; then
+              echo "✅ API proxy is working!"
+            else
+              echo "⚠️  API endpoint test failed, but frontend is working"
+            fi
+          else
+            echo "❌ Application failed to load properly"
+            echo ""
+            echo "📊 Debugging information:"
+            echo "🔄 Server process status:"
+            ps aux | grep -E '(webpack|node.*4010)' | head -5 || echo "No matching processes found"
+            
+            echo ""
+            echo "🌐 Network connectivity test:"
+            curl -I http://localhost:4010/ 2>&1 || echo "Connection failed"
+            
+            echo ""
+            echo "📄 Raw response (first 1000 chars):"
+            curl -s http://localhost:4010/ 2>/dev/null | head -c 1000 || echo "Failed to get response"
+            
+            echo ""
+            echo "🔍 Looking for webpack output in background..."
+            # Check if there are any relevant log files or output
+            ls -la /tmp/ | grep -E "(webpack|error|log)" || echo "No relevant temp files found"
+            
+            exit 1
+          fi
 
       - name: Run E2E Tests
         run: |
@@ -326,6 +407,15 @@ jobs:
           export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
           export CY_RESULTS_DIR="${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}"
 
+          # Ensure OpenShift configuration is available to Cypress process
+          if [ -n "$KUBECONFIG" ]; then
+            echo "🔧 OpenShift configuration available: $KUBECONFIG"
+            # Verify oc command works in this context
+            oc whoami || echo "⚠️  oc whoami failed, but continuing with tests"
+          else
+            echo "⚠️  No KUBECONFIG set, OpenShift commands may fail"
+          fi
+
           echo "🎯 Running tests with tags: ${{ matrix.test-tag }}"
           echo "🚫 Skipping tags: @Bug,@Maintain,@NonConcurrent"
           echo "📋 Test group: ${{ matrix.test-tag }}"
@@ -336,18 +426,20 @@ jobs:
           # Create results directory
           mkdir -p "$CY_RESULTS_DIR"
 
-          # Run tests directly against shared localhost server
-          cd frontend/src/__tests__/cypress && npx cypress run --env '{"grepTags":"${{ matrix.test-tag }}","skipTags":"@Bug,@Maintain,@NonConcurrent","grepFilterSpecs":true}' --browser electron --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+          # Run tests against port 4010
+          BASE_URL=http://localhost:4010 npm run cypress:run:electron -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Test tag name
         if: ${{ always() }}
-        run: echo "TEST_TAG_NAME=$(echo ${{ matrix.test-tag }} | tr '/' '_' | tr '@' '')" >> $GITHUB_ENV
+        run: |
+          TEST_TAG_NAME=$(echo '${{ matrix.test-tag }}' | tr '/' '_' | tr '@' '_')
+          echo "TEST_TAG_NAME=$TEST_TAG_NAME" >> $GITHUB_ENV
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-test-results-${{ env.TEST_TAG_NAME }}
+          name: e2e-test-results-${{ matrix.test-tag }}
           path: |
             frontend/src/__tests__/cypress/results/
             frontend/src/__tests__/cypress/videos/
@@ -376,8 +468,10 @@ jobs:
     steps:
       - name: Stop Cypress Servers
         run: |
-          echo "🛑 Stopping any remaining Cypress servers..."
-          # Kill any processes on port 9001
-          pkill -f "npm run cypress:server" || true
-          pkill -f "serve.*public-cypress" || true
+          echo "🛑 Stopping webpack dev server..."
+          if [ -n "$SERVER_PID" ]; then
+            kill $SERVER_PID || echo "Failed to kill SERVER_PID"
+          fi
+          pkill -f "webpack.*serve" || echo "No webpack processes found"
+          pkill -f "node.*4010" || echo "No node processes on port 4010"
           echo "✅ Server cleanup completed"
