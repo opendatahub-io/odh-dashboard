@@ -1,13 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HookNotify, useResolvedExtensions } from '@odh-dashboard/plugin-core';
-import { isModelRegistryDeployModalExtension } from '~/odh/extension-points';
-import MRDeployFormDataLoader from '~/odh/components/MRDeployFormDataLoader';
-import { ModelVersion } from '~/app/types';
+import { isModelCatalogDeployModalExtension } from '~/odh/extension-points';
+import { ModelCatalogItem } from '~/app/modelCatalogTypes';
 import { getDeployButtonState } from '~/odh/utils';
 
-type DeployModalExtensionProps = {
-  mv: ModelVersion;
+type ModelCatalogDeployModalExtensionProps = {
+  model: ModelCatalogItem;
   render: (
     buttonState: { enabled?: boolean; tooltip?: string },
     onOpenModal: () => void,
@@ -15,9 +14,12 @@ type DeployModalExtensionProps = {
   ) => React.ReactNode;
 };
 
-const DeployModalExtension: React.FC<DeployModalExtensionProps> = ({ mv, render }) => {
+const ModelCatalogDeployModalExtension: React.FC<ModelCatalogDeployModalExtensionProps> = ({ 
+  model, 
+  render 
+}) => {
   const navigate = useNavigate();
-  const [extensions, extensionsLoaded] = useResolvedExtensions(isModelRegistryDeployModalExtension);
+  const [extensions, extensionsLoaded] = useResolvedExtensions(isModelCatalogDeployModalExtension);
 
   const [openModal, setOpenModal] = React.useState(false);
 
@@ -33,9 +35,23 @@ const DeployModalExtension: React.FC<DeployModalExtensionProps> = ({ mv, render 
     [extensionsLoaded, extensions],
   );
 
+  // Create model deploy prefill info for catalog model
+  const modelDeployPrefill = React.useMemo(() => {
+    // For catalog models, we need to create a ModelDeployPrefillInfo
+    // The model.url should contain the model artifact URI
+    return {
+      data: {
+        modelName: model.name,
+        modelArtifactUri: model.url,
+        connectionTypeName: model.url?.includes('oci://') ? 'oci' : 's3',
+      },
+      loaded: true,
+      error: undefined,
+    };
+  }, [model]);
+
   const handleSubmit = React.useCallback(() => {
     setOpenModal(false);
-    // Redirect to deployments page after successful deployment
     navigate('/modelServing');
   }, [navigate]);
 
@@ -53,19 +69,11 @@ const DeployModalExtension: React.FC<DeployModalExtensionProps> = ({ mv, render 
       {render(buttonState, onOpenModal, isModalAvailable)}
       {openModal && extensions.map((extension) => {
         return extension.properties.modalComponent && (
-          <MRDeployFormDataLoader
+          <extension.properties.modalComponent
             key={extension.uid}
-            mv={mv}
-            renderData={(modelDeployPrefill, onSubmit) => (
-              <extension.properties.modalComponent
-                modelDeployPrefill={modelDeployPrefill}
-                onSubmit={() => {
-                  onSubmit();
-                  handleSubmit();
-                }}
-                onClose={() => setOpenModal(false)}
-              />
-            )}
+            modelDeployPrefill={modelDeployPrefill}
+            onSubmit={handleSubmit}
+            onClose={() => setOpenModal(false)}
           />
         )
       })}
@@ -73,4 +81,4 @@ const DeployModalExtension: React.FC<DeployModalExtensionProps> = ({ mv, render 
   );
 };
 
-export default DeployModalExtension;
+export default ModelCatalogDeployModalExtension;
