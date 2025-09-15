@@ -12,8 +12,6 @@ import (
 const ComponenetLabelValue = "llama-stack"
 
 type KubernetesClientInterface interface {
-	// TODO: Add service discovery methods
-
 	// Namespace access
 	GetNamespaces(ctx context.Context, identity *integrations.RequestIdentity) ([]corev1.Namespace, error)
 	GetAAModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]genaiassets.AAModel, error)

@@ -14,6 +14,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -42,12 +43,14 @@ func TestLlamaStackDistributionStatusHandler(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create test app with real mock infrastructure
+	llamaStackClientFactory := lsmocks.NewMockClientFactory()
 	app := App{
 		config: config.EnvConfig{
 			Port: 4000,
 		},
 		kubernetesClientFactory: k8sFactory,
-		repositories:            repositories.NewRepositories(nil), // No LlamaStack client needed for this test
+		llamaStackClientFactory: llamaStackClientFactory,
+		repositories:            repositories.NewRepositories(),
 	}
 
 	// Test successful case - similar to TestHealthCheckHandler
