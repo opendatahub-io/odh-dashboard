@@ -8,7 +8,7 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 const AIAssetsModelsTab: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = React.useContext(GenAiContext);
-  const { data: models, loaded } = useFetchLlamaModels(namespace?.name ?? '');
+  const { data: models, loaded } = useFetchLlamaModels(namespace?.name);
 
   if (!loaded) {
     return (
