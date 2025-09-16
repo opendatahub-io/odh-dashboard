@@ -201,6 +201,35 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
             fieldId="edit-sc-access-mode"
             isStack
           >
+            {showAccessModeAlert && (
+              <Alert
+                variant="warning"
+                title="Disabling the RWX access mode will prevent new storage of this class from using
+                 this access mode. Existing storage will be unaffected."
+                isInline
+                data-testid="edit-sc-access-mode-alert"
+                className="pf-v6-u-mb-md"
+              />
+            )}
+            {accessModeMismatch && (
+              <Alert
+                className="pf-v6-u-mb-md"
+                variant="warning"
+                isInline
+                title="Unsupported access modes selected"
+                data-testid="edit-sc-access-mode-mismatch-alert"
+              >
+                <p>
+                  For the provisioner <strong>{storageClass.provisioner}</strong>, the recommended
+                  access modes are:{' '}
+                  {accessModeMismatch.recommended.map((m) => AccessModeLabelMap[m]).join(', ')}.
+                </p>
+                <p>
+                  You have selected unsupported modes:{' '}
+                  {accessModeMismatch.unsupported.map((m) => AccessModeLabelMap[m]).join(', ')}.
+                </p>
+              </Alert>
+            )}
             {Object.values(AccessMode).map((modeName) => {
               const modeLabel = toAccessModeFullName(modeName);
               const checkbox = (
@@ -234,34 +263,6 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
               return checkbox;
             })}
           </FormGroup>
-          {showAccessModeAlert && (
-            <Alert
-              variant="warning"
-              title="Disabling the RWX access mode will prevent new storage of this class from using
-               this access mode. Existing storage will be unaffected."
-              isInline
-              data-testid="edit-sc-access-mode-alert"
-            />
-          )}
-          {accessModeMismatch && (
-            <Alert
-              className="pf-v6-u-mt-md"
-              variant="warning"
-              isInline
-              title="Unsupported access modes selected"
-              data-testid="edit-sc-access-mode-mismatch-alert"
-            >
-              <p>
-                For the provisioner <strong>{storageClass.provisioner}</strong>, the recommended
-                access modes are:
-                {accessModeMismatch.recommended.map((m) => AccessModeLabelMap[m]).join(', ')}.
-              </p>
-              <p>
-                You have selected unsupported modes:
-                {accessModeMismatch.unsupported.map((m) => AccessModeLabelMap[m]).join(', ')}.
-              </p>
-            </Alert>
-          )}
         </Form>
       </ModalBody>
       <ModalFooter>
