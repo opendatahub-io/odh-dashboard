@@ -20,7 +20,7 @@ jobs:
       - name: Set default test tags
         id: set-tags
         run: |
-          echo "test-tags=[\"@SmokeSet1\",\"@SmokeSet2\",\"@SmokeSet3\",\"@SanitySet1\",\"@SanitySet2\",\"@SanitySet3\"]" >> $GITHUB_OUTPUT
+          echo "test-tags=[\"@SmokeSet1\",\"@SmokeSet2\",\"@SmokeSet3\",\"@SanitySet1\",\"@SanitySet2\",\"@SanitySet3\",\"@SmokeCISet1\",\"@SmokeCISet2\",\"@SmokeCISet3\",\"@SanityCISet1\",\"@SanityCISet2\",\"@SanityCISet3\"]" >> $GITHUB_OUTPUT
 
   e2e-tests:
     needs: [get-test-tags]
