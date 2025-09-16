@@ -9,6 +9,7 @@ import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { KServeDeployment } from './deployments';
+import { setUpTokenAuth } from './deployUtils';
 import { UseModelDeploymentWizardState } from '../../model-serving/src/components/deploymentWizard/useDeploymentWizard';
 import { ExternalRouteFieldData } from '../../model-serving/src/components/deploymentWizard/fields/ExternalRouteField';
 import { TokenAuthenticationFieldData } from '../../model-serving/src/components/deploymentWizard/fields/TokenAuthenticationField';
@@ -57,6 +58,23 @@ export const deployKServeDeployment = async (
     existingDeployment?.model,
     dryRun,
   );
+
+  if (wizardData.tokenAuthentication.data && wizardData.tokenAuthentication.data.length > 0) {
+    const inferenceServiceDataWithTokens = {
+      ...inferenceServiceData,
+      tokens: wizardData.tokenAuthentication.data,
+    };
+
+    await setUpTokenAuth(
+      inferenceServiceDataWithTokens,
+      inferenceServiceData.k8sName,
+      projectName,
+      true,
+      inferenceService,
+      undefined,
+      { dryRun: dryRun ?? false },
+    );
+  }
 
   return Promise.resolve({
     modelServingPlatformId: 'kserve',
