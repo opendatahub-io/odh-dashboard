@@ -23,10 +23,7 @@ import {
   TemplateModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { ServingRuntimeModelType, ServingRuntimePlatform } from '#~/types';
-import {
-  mockGlobalScopedHardwareProfiles,
-  mockNewHardwareProfiles,
-} from '#~/__mocks__/mockHardwareProfile';
+import { mockNewHardwareProfiles } from '#~/__mocks__/mockHardwareProfile';
 import { mockConnectionTypeConfigMap } from '../../../../../../__mocks__/mockConnectionType';
 
 const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) => {
@@ -46,6 +43,7 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
       disableNIMModelServing: true,
       disableKServe: false,
       disableDeploymentWizard: false,
+      disableHardwareProfiles: false,
     }),
   );
   cy.interceptOdh('GET /api/components', null, []);
