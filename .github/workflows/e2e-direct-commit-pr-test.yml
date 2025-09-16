@@ -13,7 +13,7 @@ env:
 
 jobs:
   get-test-tags:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     outputs:
       test-tags: ${{ steps.set-tags.outputs.test-tags }}
     steps:
@@ -24,7 +24,7 @@ jobs:
 
   e2e-tests:
     needs: [get-test-tags]
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -448,7 +448,7 @@ jobs:
 
   cleanup-server:
     needs: [e2e-tests]
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     if: always()
     steps:
       - name: Stop Cypress Servers
