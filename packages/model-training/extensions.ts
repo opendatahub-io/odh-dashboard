@@ -26,15 +26,15 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
     properties: {
       id: 'modelTraining',
       title: 'Training jobs',
-      href: '/modelTraining',
       section: 'observe-and-monitor',
-      path: '/modelTraining/*',
+      href: '/observe-monitor/training-jobs',
+      path: '/observe-monitor/training-jobs/*',
     },
   },
   {
     type: 'app.route',
     properties: {
-      path: '/modelTraining/*',
+      path: '/observe-monitor/training-jobs/*',
       component: () => import('./src/ModelTrainingRoutes'),
     },
     flags: {

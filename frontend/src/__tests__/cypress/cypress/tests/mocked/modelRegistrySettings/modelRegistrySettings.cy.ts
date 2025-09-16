@@ -1187,7 +1187,9 @@ describe('ManagePermissions', () => {
       .findModelRegistryRow('test-registry-1')
       .findByText('Manage permissions')
       .click();
-    verifyRelativeURL('/modelRegistrySettings/permissions/test-registry-1');
+    verifyRelativeURL(
+      '/settings/model-resources-operations/model-registry/permissions/test-registry-1',
+    );
   });
 
   it('Manage permission is disabled, when there is no rolebinding', () => {

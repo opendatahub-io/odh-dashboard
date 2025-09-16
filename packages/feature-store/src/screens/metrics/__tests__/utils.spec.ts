@@ -2,12 +2,18 @@ import { processMetricsData, formatResourceType, getResourceRoute } from '../uti
 import { MetricsCountResponse } from '../../../types/metrics';
 
 jest.mock('../../../routes', () => ({
-  featureEntityRoute: jest.fn((name, project) => `/featureStore/entities/${project}/${name}`),
-  featureRoute: jest.fn((name, project) => `/featureStore/features/${project}/${name}`),
-  featureServiceRoute: jest.fn(
-    (name, project) => `/featureStore/featureServices/${project}/${name}`,
+  featureEntityRoute: jest.fn(
+    (name, project) => `/develop-train/feature-store/entities/${project}/${name}`,
   ),
-  featureViewRoute: jest.fn((name, project) => `/featureStore/featureViews/${project}/${name}`),
+  featureRoute: jest.fn(
+    (name, project) => `/develop-train/feature-store/features/${project}/${name}`,
+  ),
+  featureServiceRoute: jest.fn(
+    (name, project) => `/develop-train/feature-store/feature-services/${project}/${name}`,
+  ),
+  featureViewRoute: jest.fn(
+    (name, project) => `/develop-train/feature-store/feature-views/${project}/${name}`,
+  ),
 }));
 
 describe('utils', () => {
@@ -33,41 +39,41 @@ describe('utils', () => {
         count: 5,
         description:
           'Entities are collections of related features and can be mapped to the domain of your use case.',
-        route: '/featureStore/entities',
+        route: '/develop-train/feature-store/entities',
       });
       expect(result[1]).toEqual({
         title: 'Data sources',
         count: 3,
         description:
           'Data sources such as tables or data warehouses contain the raw data from which features are extracted.',
-        route: '/featureStore/dataSources',
+        route: '/develop-train/feature-store/data-sources',
       });
       expect(result[2]).toEqual({
         title: 'Datasets',
         count: 2,
         description:
           'Datasets are point-in-time-correct snapshots of feature data used for training or validation.',
-        route: '/featureStore/dataSets',
+        route: '/develop-train/feature-store/datasets',
       });
       expect(result[3]).toEqual({
         title: 'Features',
         count: 10,
         description: 'A feature is a single data value used in model training or inference.',
-        route: '/featureStore/features',
+        route: '/develop-train/feature-store/features',
       });
       expect(result[4]).toEqual({
         title: 'Feature views',
         count: 4,
         description:
           'Feature views define groups of related features and how to retrieve them from a source.',
-        route: '/featureStore/featureViews',
+        route: '/develop-train/feature-store/feature-views',
       });
       expect(result[5]).toEqual({
         title: 'Feature services',
         count: 1,
         description:
           'A feature service is a logical group of features from one or more feature views.',
-        route: '/featureStore/featureServices',
+        route: '/develop-train/feature-store/feature-services',
       });
     });
 
@@ -185,32 +191,44 @@ describe('utils', () => {
 
     it('should return correct route for feature views', () => {
       const result = getResourceRoute('feature views', mockResourceName, mockProject);
-      expect(result).toBe(`/featureStore/featureViews/${mockProject}/${mockResourceName}`);
+      expect(result).toBe(
+        `/develop-train/feature-store/feature-views/${mockProject}/${mockResourceName}`,
+      );
     });
 
     it('should return correct route for entities', () => {
       const result = getResourceRoute('entity', mockResourceName, mockProject);
-      expect(result).toBe(`/featureStore/entities/${mockProject}/${mockResourceName}`);
+      expect(result).toBe(
+        `/develop-train/feature-store/entities/${mockProject}/${mockResourceName}`,
+      );
     });
 
     it('should return correct route for feature services', () => {
       const result = getResourceRoute('feature services', mockResourceName, mockProject);
-      expect(result).toBe(`/featureStore/featureServices/${mockProject}/${mockResourceName}`);
+      expect(result).toBe(
+        `/develop-train/feature-store/feature-services/${mockProject}/${mockResourceName}`,
+      );
     });
 
     it('should return correct route for saved datasets', () => {
       const result = getResourceRoute('saved datasets', mockResourceName, mockProject);
-      expect(result).toBe(`/featureStore/dataSets/${mockResourceName}?project=${mockProject}`);
+      expect(result).toBe(
+        `/develop-train/feature-store/datasets/${mockResourceName}?project=${mockProject}`,
+      );
     });
 
     it('should return correct route for data sources', () => {
       const result = getResourceRoute('data sources', mockResourceName, mockProject);
-      expect(result).toBe(`/featureStore/dataSources/${mockResourceName}?project=${mockProject}`);
+      expect(result).toBe(
+        `/develop-train/feature-store/data-sources/${mockResourceName}?project=${mockProject}`,
+      );
     });
 
     it('should return correct route for features', () => {
       const result = getResourceRoute('features', mockResourceName, mockProject);
-      expect(result).toBe(`/featureStore/features/${mockProject}/${mockResourceName}`);
+      expect(result).toBe(
+        `/develop-train/feature-store/features/${mockProject}/${mockResourceName}`,
+      );
     });
 
     it('should return default route for unknown resource types', () => {
@@ -220,7 +238,7 @@ describe('utils', () => {
 
     it('should handle empty resource name', () => {
       const result = getResourceRoute('entity', '', mockProject);
-      expect(result).toBe(`/featureStore/entities/${mockProject}/`);
+      expect(result).toBe(`/develop-train/feature-store/entities/${mockProject}/`);
     });
 
     it('should handle special characters in resource name and project', () => {
@@ -228,34 +246,36 @@ describe('utils', () => {
       const specialProject = 'test-project-with-special-chars_456';
 
       const result = getResourceRoute('entity', specialResourceName, specialProject);
-      expect(result).toBe(`/featureStore/entities/${specialProject}/${specialResourceName}`);
+      expect(result).toBe(
+        `/develop-train/feature-store/entities/${specialProject}/${specialResourceName}`,
+      );
     });
 
     it('should handle all resource type mappings', () => {
       const testCases = [
         {
           resourceType: 'entity',
-          expectedRoute: `/featureStore/entities/${mockProject}/${mockResourceName}`,
+          expectedRoute: `/develop-train/feature-store/entities/${mockProject}/${mockResourceName}`,
         },
         {
           resourceType: 'feature views',
-          expectedRoute: `/featureStore/featureViews/${mockProject}/${mockResourceName}`,
+          expectedRoute: `/develop-train/feature-store/feature-views/${mockProject}/${mockResourceName}`,
         },
         {
           resourceType: 'saved datasets',
-          expectedRoute: `/featureStore/dataSets/${mockResourceName}?project=${mockProject}`,
+          expectedRoute: `/develop-train/feature-store/datasets/${mockResourceName}?project=${mockProject}`,
         },
         {
           resourceType: 'data sources',
-          expectedRoute: `/featureStore/dataSources/${mockResourceName}?project=${mockProject}`,
+          expectedRoute: `/develop-train/feature-store/data-sources/${mockResourceName}?project=${mockProject}`,
         },
         {
           resourceType: 'feature services',
-          expectedRoute: `/featureStore/featureServices/${mockProject}/${mockResourceName}`,
+          expectedRoute: `/develop-train/feature-store/feature-services/${mockProject}/${mockResourceName}`,
         },
         {
           resourceType: 'features',
-          expectedRoute: `/featureStore/features/${mockProject}/${mockResourceName}`,
+          expectedRoute: `/develop-train/feature-store/features/${mockProject}/${mockResourceName}`,
         },
       ];
 

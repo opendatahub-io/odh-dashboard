@@ -411,7 +411,7 @@ export const navigateToLMEvalEvaluationForm = (projectName?: string): void => {
 
   // Add URL and form verifications in the test
   if (projectName) {
-    cy.url().should('include', `/modelEvaluations/${projectName}/evaluate`);
+    cy.url().should('include', `/evaluations/${projectName}/evaluate`);
   } else {
     cy.url().should('include', '/evaluate');
   }

@@ -15,7 +15,7 @@ describe('External Redirects', () => {
     it('should redirect run URLs correctly', () => {
       // Test run URL redirect
       externalRedirect.visit('/external/pipelinesSdk/test-namespace/#/runs/details/456');
-      cy.url().should('include', '/pipelineRuns/test-namespace/runs/456');
+      cy.url().should('include', '/pipelines/runs/test-namespace/runs/456');
     });
 
     it('should handle invalid URL format', () => {

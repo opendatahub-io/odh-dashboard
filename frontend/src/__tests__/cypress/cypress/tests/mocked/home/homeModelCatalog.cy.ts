@@ -271,7 +271,7 @@ describe('Homepage Model Catalog section', () => {
   //   );
   //   homePage.visit();
   //   homePage.getHomeModelCatalogSection().getModelCatalogFooterLink().click();
-  //   cy.url().should('include', '/modelCatalog');
+  //   cy.url().should('include', '/catalog');
   // });
 
   // it('should display error message when fails to load', () => {

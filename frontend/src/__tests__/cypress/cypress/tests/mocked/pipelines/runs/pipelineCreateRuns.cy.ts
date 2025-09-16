@@ -139,10 +139,10 @@ describe('Pipeline create runs', () => {
 
       // Navigate to the 'Create run' page
       pipelineRunsGlobal.findCreateRunButton().click();
-      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
+      verifyRelativeURL(`/develop-train/pipelines/runs/${projectName}/runs/create`);
       createRunPage.find();
       createRunPage.findRunTypeSwitchLink().click();
-      verifyRelativeURL(`/pipelineRuns/${projectName}/schedules/create`);
+      verifyRelativeURL(`/develop-train/pipelines/runs/${projectName}/schedules/create`);
     });
 
     it('Unsupported pipeline should not be displayed', () => {
@@ -159,7 +159,7 @@ describe('Pipeline create runs', () => {
 
       // Navigate to the 'Create run' page
       pipelineRunsGlobal.findCreateRunButton().click();
-      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
+      verifyRelativeURL(`/develop-train/pipelines/runs/${projectName}/runs/create`);
       createRunPage.find();
 
       createRunPage.pipelineSelect.findToggleButton().should('not.be.disabled').click();
@@ -195,7 +195,7 @@ describe('Pipeline create runs', () => {
 
       // Navigate to the 'Create run' page
       pipelineRunsGlobal.findCreateRunButton().click();
-      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
+      verifyRelativeURL(`/develop-train/pipelines/runs/${projectName}/runs/create`);
       createRunPage.find();
 
       const veryLongDesc = 'Test description'.repeat(30); // A string over 255 characters
@@ -240,7 +240,9 @@ describe('Pipeline create runs', () => {
       });
 
       // Should be redirected to the run details page
-      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/${createRunParams.run_id}`);
+      verifyRelativeURL(
+        `/develop-train/pipelines/runs/${projectName}/runs/${createRunParams.run_id}`,
+      );
     });
 
     it('duplicates an active run', () => {
@@ -269,11 +271,11 @@ describe('Pipeline create runs', () => {
       activeRunsTable.mockGetActiveRuns([...initialMockRuns, mockDuplicateRun], projectName);
 
       // Navigate to duplicate run page for a given active run
-      cy.visitWithLogin(`/experiments/${projectName}/experiment-1/runs`);
+      cy.visitWithLogin(`/develop-train/experiments/${projectName}/experiment-1/runs`);
       pipelineRunsGlobal.findActiveRunsTab().click();
       activeRunsTable.getRowByName(mockRun.display_name).findKebabAction('Duplicate').click();
       verifyRelativeURL(
-        `/experiments/${projectName}/experiment-1/runs/duplicate/${mockRun.run_id}`,
+        `/develop-train/experiments/${projectName}/experiment-1/runs/duplicate/${mockRun.run_id}`,
       );
 
       // Verify pre-populated values & submit
@@ -316,7 +318,9 @@ describe('Pipeline create runs', () => {
       });
 
       // Should redirect to the details of the newly duplicated active run
-      verifyRelativeURL(`/experiments/${projectName}/experiment-1/runs/${mockDuplicateRun.run_id}`);
+      verifyRelativeURL(
+        `/develop-train/experiments/${projectName}/experiment-1/runs/${mockDuplicateRun.run_id}`,
+      );
     });
 
     it('create run with default and optional parameters', () => {
@@ -399,7 +403,7 @@ describe('Pipeline create runs', () => {
 
       // Navigate to the 'Create run' page
       pipelineRunsGlobal.findCreateRunButton().click();
-      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
+      verifyRelativeURL(`/develop-train/pipelines/runs/${projectName}/runs/create`);
       createRunPage.find();
 
       // Fill required fields
@@ -446,7 +450,9 @@ describe('Pipeline create runs', () => {
       });
 
       // Should be redirected to the run details page
-      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/${createRunParams.run_id}`);
+      verifyRelativeURL(
+        `/develop-train/pipelines/runs/${projectName}/runs/${createRunParams.run_id}`,
+      );
     });
 
     it('create run with all parameter types', () => {
@@ -517,7 +523,7 @@ describe('Pipeline create runs', () => {
 
       // Navigate to the 'Create run' page
       pipelineRunsGlobal.findCreateRunButton().click();
-      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
+      verifyRelativeURL(`/develop-train/pipelines/runs/${projectName}/runs/create`);
       createRunPage.find();
 
       // Fill out the form with all input parameters
@@ -560,7 +566,9 @@ describe('Pipeline create runs', () => {
         });
       });
       // Should be redirected to the run details page
-      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/${createRunParams.run_id}`);
+      verifyRelativeURL(
+        `/develop-train/pipelines/runs/${projectName}/runs/${createRunParams.run_id}`,
+      );
     });
 
     it('should not redirect user after creating a new pipeline version', () => {
@@ -607,7 +615,7 @@ describe('Pipeline create runs', () => {
 
       // Navigate to the 'Create run' page
       pipelineRunsGlobal.findCreateRunButton().click();
-      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
+      verifyRelativeURL(`/develop-train/pipelines/runs/${projectName}/runs/create`);
       createRunPage.find();
 
       // Fill required fields
@@ -641,7 +649,7 @@ describe('Pipeline create runs', () => {
 
       // verify the modal is closed and we have not been redirected
       pipelineVersionImportModal.find().should('not.exist');
-      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
+      verifyRelativeURL(`/develop-train/pipelines/runs/${projectName}/runs/create`);
 
       // populate arbitrary parameters
       const runParameters = createRunParams.runtime_config.parameters;
@@ -661,7 +669,9 @@ describe('Pipeline create runs', () => {
 
       cy.wait('@createRuns');
 
-      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/${createRunParams.run_id}`);
+      verifyRelativeURL(
+        `/develop-train/pipelines/runs/${projectName}/runs/${createRunParams.run_id}`,
+      );
     });
 
     it('shows and opens the create new experiment button in the experiment dropdown', () => {
@@ -708,10 +718,10 @@ describe('Pipeline create runs', () => {
 
       // Navigate to the 'Create run' page
       pipelineRunsGlobal.findScheduleRunButton().click();
-      verifyRelativeURL(`/pipelineRuns/${projectName}/schedules/create`);
+      verifyRelativeURL(`/develop-train/pipelines/runs/${projectName}/schedules/create`);
       createSchedulePage.find();
       createSchedulePage.findRunTypeSwitchLink().click();
-      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
+      verifyRelativeURL(`/develop-train/pipelines/runs/${projectName}/runs/create`);
     });
 
     it('creates a schedule', () => {
@@ -750,7 +760,7 @@ describe('Pipeline create runs', () => {
       // Navigate to the 'Create run' page
 
       verifyRelativeURL(
-        `/pipelineRuns/${projectName}/schedules/${createRecurringRunParams.recurring_run_id}`,
+        `/develop-train/pipelines/runs/${projectName}/schedules/${createRecurringRunParams.recurring_run_id}`,
       );
     });
 
@@ -788,7 +798,7 @@ describe('Pipeline create runs', () => {
 
       // Should be redirected to the schedule details page
       verifyRelativeURL(
-        `/pipelineRuns/${projectName}/schedules/${createRecurringRunParams.recurring_run_id}`,
+        `/develop-train/pipelines/runs/${projectName}/schedules/${createRecurringRunParams.recurring_run_id}`,
       );
     });
 
@@ -854,7 +864,7 @@ describe('Pipeline create runs', () => {
         .findKebabAction('Duplicate')
         .click();
       verifyRelativeURL(
-        `/experiments/${projectName}/experiment-1/schedules/duplicate/${mockRecurringRun.recurring_run_id}`,
+        `/develop-train/experiments/${projectName}/experiment-1/schedules/duplicate/${mockRecurringRun.recurring_run_id}`,
       );
 
       // Verify pre-populated values & submit
@@ -904,7 +914,7 @@ describe('Pipeline create runs', () => {
 
       // Should be redirected to the schedule details page
       verifyRelativeURL(
-        `/experiments/${projectName}/experiment-1/schedules/${mockDuplicateRecurringRun.recurring_run_id}`,
+        `/develop-train/experiments/${projectName}/experiment-1/schedules/${mockDuplicateRecurringRun.recurring_run_id}`,
       );
     });
 
@@ -933,7 +943,7 @@ describe('Pipeline create runs', () => {
         .findKebabAction('Duplicate')
         .click();
       verifyRelativeURL(
-        `/experiments/${projectName}/experiment-1/schedules/duplicate/${mockRecurringRun.recurring_run_id}`,
+        `/develop-train/experiments/${projectName}/experiment-1/schedules/duplicate/${mockRecurringRun.recurring_run_id}`,
       );
 
       // Verify pre-populated values & submit
@@ -1300,7 +1310,7 @@ const createScheduleRunCommonTest = () => {
 
   // Navigate to the 'Create run' page
   pipelineRunsGlobal.findScheduleRunButton().click();
-  verifyRelativeURL(`/pipelineRuns/${projectName}/schedules/create`);
+  verifyRelativeURL(`/develop-train/pipelines/runs/${projectName}/schedules/create`);
   createSchedulePage.find();
   createRunPage.fillName(initialMockRecurringRuns[0].display_name);
   cy.findByTestId('duplicate-name-help-text').should('be.visible');

@@ -311,7 +311,7 @@ describe('Model Serving Global', () => {
     // Verify the empty state is visible
     modelServingGlobal.shouldBeEmpty();
 
-    cy.url().should('include', '/modelServing/test-project');
+    cy.url().should('include', '/deployments/test-project');
   });
 
   it('All projects with every type of serving listed', () => {

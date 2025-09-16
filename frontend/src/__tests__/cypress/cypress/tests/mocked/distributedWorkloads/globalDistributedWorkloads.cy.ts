@@ -208,7 +208,7 @@ describe('Distributed Workload Metrics root page', () => {
     initIntercepts({});
     globalDistributedWorkloads.visit();
 
-    cy.url().should('include', '/workloadStatus/test-project');
+    cy.url().should('include', '/workload-status/test-project');
     globalDistributedWorkloads.findStatusOverviewCard().should('exist');
   });
 
@@ -217,30 +217,30 @@ describe('Distributed Workload Metrics root page', () => {
     globalDistributedWorkloads.visit();
 
     cy.findByLabelText('Project metrics tab').click();
-    cy.url().should('include', '/projectMetrics/test-project');
+    cy.url().should('include', '/project-metrics/test-project');
     cy.findByText('Top 5 resource-consuming workload metrics').should('exist');
 
     cy.findByLabelText('Distributed workload status tab').click();
-    cy.url().should('include', '/workloadStatus/test-project');
+    cy.url().should('include', '/workload-status/test-project');
     globalDistributedWorkloads.findStatusOverviewCard().should('exist');
   });
 
   it('Changing the project and navigating between tabs or to the root of the page retains the new project', () => {
     initIntercepts({});
     globalDistributedWorkloads.visit();
-    cy.url().should('include', '/workloadStatus/test-project');
+    cy.url().should('include', '/workload-status/test-project');
 
     globalDistributedWorkloads.projectDropdown.openAndSelectItem('Test Project 2', true);
-    cy.url().should('include', '/workloadStatus/test-project-2');
+    cy.url().should('include', '/workload-status/test-project-2');
 
     cy.findByLabelText('Project metrics tab').click();
-    cy.url().should('include', '/projectMetrics/test-project-2');
+    cy.url().should('include', '/project-metrics/test-project-2');
 
     cy.findByLabelText('Distributed workload status tab').click();
-    cy.url().should('include', '/workloadStatus/test-project-2');
+    cy.url().should('include', '/workload-status/test-project-2');
 
     globalDistributedWorkloads.navigate();
-    cy.url().should('include', '/workloadStatus/test-project-2');
+    cy.url().should('include', '/workload-status/test-project-2');
   });
 
   it('Changing the refresh interval and reloading the page should retain the selection', () => {

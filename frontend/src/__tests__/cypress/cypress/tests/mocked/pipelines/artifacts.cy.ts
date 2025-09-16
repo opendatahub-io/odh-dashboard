@@ -215,7 +215,7 @@ describe('Artifacts', () => {
       artifactDetails.findPipelineLink('runs/details/test-run');
       artifactDetails.findExecutionLink('execution/211');
       artifactDetails.findExecutionLink('execution/211').click();
-      verifyRelativeURL('/executions/test-project-name/211');
+      verifyRelativeURL('/develop-train/pipelines/executions/test-project-name/211');
     });
 
     it('Registered models section', () => {

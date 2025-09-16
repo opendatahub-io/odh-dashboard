@@ -17,37 +17,39 @@ describe('searchUtils', () => {
 
     it('should return entity route for entity type', () => {
       const result = getFeatureStoreRoute('entity', testProject, testName);
-      expect(result).toBe(`/featureStore/entities/${testProject}/${testName}`);
+      expect(result).toBe(`/develop-train/feature-store/entities/${testProject}/${testName}`);
     });
 
     it('should return data source route for dataSource type', () => {
       const result = getFeatureStoreRoute('dataSource', testProject, testName);
-      expect(result).toBe(`/featureStore/dataSources/${testProject}/${testName}`);
+      expect(result).toBe(`/develop-train/feature-store/data-sources/${testProject}/${testName}`);
     });
 
     it('should return features route for feature type', () => {
       const result = getFeatureStoreRoute('feature', testProject, testName);
-      expect(result).toBe(`/featureStore/features/${testProject}`);
+      expect(result).toBe(`/develop-train/feature-store/features/${testProject}`);
     });
 
     it('should return feature view route for featureView type', () => {
       const result = getFeatureStoreRoute('featureView', testProject, testName);
-      expect(result).toBe(`/featureStore/featureViews/${testProject}/${testName}`);
+      expect(result).toBe(`/develop-train/feature-store/feature-views/${testProject}/${testName}`);
     });
 
     it('should return feature service route for featureService type', () => {
       const result = getFeatureStoreRoute('featureService', testProject, testName);
-      expect(result).toBe(`/featureStore/featureServices/${testProject}/${testName}`);
+      expect(result).toBe(
+        `/develop-train/feature-store/feature-services/${testProject}/${testName}`,
+      );
     });
 
     it('should return default route for unknown type', () => {
       const result = getFeatureStoreRoute('unknown', testProject, testName);
-      expect(result).toBe(`/featureStore/${testProject}`);
+      expect(result).toBe(`/develop-train/feature-store/${testProject}`);
     });
 
     it('should return default route for empty type', () => {
       const result = getFeatureStoreRoute('', testProject, testName);
-      expect(result).toBe(`/featureStore/${testProject}`);
+      expect(result).toBe(`/develop-train/feature-store/${testProject}`);
     });
 
     it('should handle special characters in project and name', () => {
@@ -55,7 +57,7 @@ describe('searchUtils', () => {
       const specialName = 'name-with-special_chars';
 
       const result = getFeatureStoreRoute('entity', specialProject, specialName);
-      expect(result).toBe(`/featureStore/entities/${specialProject}/${specialName}`);
+      expect(result).toBe(`/develop-train/feature-store/entities/${specialProject}/${specialName}`);
     });
   });
 

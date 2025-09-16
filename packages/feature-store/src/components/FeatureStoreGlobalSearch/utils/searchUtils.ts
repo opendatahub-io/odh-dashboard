@@ -20,7 +20,7 @@ export const getFeatureStoreRoute = (type: string, project: string, name: string
     case 'featureService':
       return featureServiceRoute(name, project);
     default:
-      return `/featureStore/${project}`;
+      return `/develop-train/feature-store/${project}`;
   }
 };
 

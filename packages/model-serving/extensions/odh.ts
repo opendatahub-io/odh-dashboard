@@ -57,15 +57,16 @@ const extensions: (
     properties: {
       id: 'modelServing',
       title: 'Deployments',
-      href: '/modelServing',
       section: 'ai-hub',
-      path: '/modelServing/:namespace?/*',
+      href: '/ai-hub/deployments',
+      path: '/ai-hub/deployments/:namespace?/*',
     },
   },
   {
     type: 'app.route',
     properties: {
-      path: '/modelServing/:namespace?/*',
+      path: '/ai-hub/deployments/:namespace?/*',
+      v2PathRedirect: '/modelServing/:namespace?/*',
       component: () => import('../src/GlobalModelsRoutes'),
     },
     flags: {

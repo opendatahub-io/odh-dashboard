@@ -131,7 +131,7 @@ describe.skip('Model Catalog core', () => {
     modelCatalog.findModelCatalogModelDetailLink('granite-8b-code-instruct').click();
     cy.location('pathname').should(
       'equal',
-      '/modelCatalog/Red%20Hat/rhelai1/granite-8b-code-instruct/1%252E3%252E0',
+      '/ai-hub/catalog/Red%20Hat/rhelai1/granite-8b-code-instruct/1.3.0',
     );
   });
 });

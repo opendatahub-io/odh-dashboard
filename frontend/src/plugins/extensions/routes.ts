@@ -22,8 +22,9 @@ const extensions: RouteExtension[] = [
       required: [SupportedArea.HOME],
     },
     properties: {
+      path: '/applications/enabled',
+      v2PathRedirect: '/enabled',
       component: () => import('#~/pages/enabledApplications/EnabledApplications'),
-      path: '/enabled',
     },
   },
   {
@@ -46,14 +47,16 @@ const extensions: RouteExtension[] = [
   {
     type: 'app.route',
     properties: {
-      path: '/explore',
+      path: '/applications/explore',
+      v2PathRedirect: '/explore',
       component: () => import('#~/pages/exploreApplication/ExploreApplications'),
     },
   },
   {
     type: 'app.route',
     properties: {
-      path: '/resources',
+      path: '/learning-resources',
+      v2PathRedirect: '/resources',
       component: () => import('#~/pages/learningCenter/LearningCenter'),
     },
   },
@@ -67,7 +70,8 @@ const extensions: RouteExtension[] = [
   {
     type: 'app.route',
     properties: {
-      path: '/notebookController/*',
+      path: '/notebook-controller/*',
+      v2PathRedirect: '/notebookController/*',
       component: () => import('#~/pages/notebookController/NotebookController'),
     },
   },
@@ -81,7 +85,8 @@ const extensions: RouteExtension[] = [
   {
     type: 'app.route',
     properties: {
-      path: '/modelServing/*',
+      path: '/ai-hub/deployments/*',
+      v2PathRedirect: '/modelServing/*',
       component: () => import('#~/pages/modelServing/ModelServingRoutes'),
     },
     flags: {
@@ -92,7 +97,8 @@ const extensions: RouteExtension[] = [
   // {
   //   type: 'app.route',
   //   properties: {
-  //     path: '/modelRegistry/*',
+  //     path: '/ai-hub/registry/*',
+  //     v2PathRedirect: '/modelRegistry/*',
   //     component: () => import('#~/pages/modelRegistry/ModelRegistryRoutes'),
   //   },
   // },
@@ -100,42 +106,48 @@ const extensions: RouteExtension[] = [
   // {
   //   type: 'app.route',
   //   properties: {
-  //     path: '/modelCatalog/*',
+  //     path: '/ai-hub/catalog/*',
+  //     v2PathRedirect: '/modelCatalog/*',
   //     component: () => import('#~/pages/modelCatalog/ModelCatalogRoutes'),
   //   },
   // },
   {
     type: 'app.route',
     properties: {
-      path: '/pipelines/*',
+      path: '/develop-train/pipelines/definitions/*',
+      v2PathRedirect: '/pipelines/*',
       component: () => import('#~/pages/pipelines/GlobalPipelinesRoutes'),
     },
   },
   {
     type: 'app.route',
     properties: {
-      path: '/pipelineRuns/*',
+      path: '/develop-train/pipelines/runs/*',
+      v2PathRedirect: '/pipelineRuns/*',
       component: () => import('#~/pages/pipelines/GlobalPipelineRunsRoutes'),
     },
   },
   {
     type: 'app.route',
     properties: {
-      path: '/experiments/*',
+      path: '/develop-train/experiments/*',
+      v2PathRedirect: '/experiments/*',
       component: () => import('#~/pages/pipelines/GlobalPipelineExperimentsRoutes'),
     },
   },
   {
     type: 'app.route',
     properties: {
-      path: '/artifacts/*',
+      path: '/develop-train/pipelines/artifacts/*',
+      v2PathRedirect: '/artifacts/*',
       component: () => import('#~/pages/pipelines/GlobalArtifactsRoutes'),
     },
   },
   {
     type: 'app.route',
     properties: {
-      path: '/executions/*',
+      path: '/develop-train/pipelines/executions/*',
+      v2PathRedirect: '/executions/*',
       component: () => import('#~/pages/pipelines/GlobalPipelineExecutionsRoutes'),
     },
   },
@@ -145,14 +157,16 @@ const extensions: RouteExtension[] = [
       required: [SupportedArea.FINE_TUNING],
     },
     properties: {
-      path: '/modelCustomization/*',
+      path: '/ai-hub/model-customization/*',
+      v2PathRedirect: '/modelCustomization/*',
       component: () => import('#~/pages/pipelines/GlobalModelCustomizationRoutes'),
     },
   },
   {
     type: 'app.route',
     properties: {
-      path: '/distributedWorkloads/*',
+      path: '/observe-monitor/workload-metrics/*',
+      v2PathRedirect: '/distributedWorkloads/*',
       component: () => import('#~/pages/distributedWorkloads/GlobalDistributedWorkloadsRoutes'),
     },
   },
@@ -162,7 +176,8 @@ const extensions: RouteExtension[] = [
       required: [ADMIN_USER],
     },
     properties: {
-      path: '/workbenchImages/*',
+      path: '/settings/environment-setup/workbench-images/*',
+      v2PathRedirect: '/workbenchImages/*',
       component: () => import('#~/pages/BYONImages/BYONImageRoutes'),
     },
   },
@@ -172,7 +187,8 @@ const extensions: RouteExtension[] = [
       required: [ADMIN_USER],
     },
     properties: {
-      path: '/clusterSettings',
+      path: '/settings/cluster/general',
+      v2PathRedirect: '/clusterSettings',
       component: () => import('#~/pages/clusterSettings/ClusterSettings'),
     },
   },
@@ -182,7 +198,8 @@ const extensions: RouteExtension[] = [
       required: [ADMIN_USER],
     },
     properties: {
-      path: '/acceleratorProfiles/*',
+      path: '/settings/environment-setup/accelerator-profiles/*',
+      v2PathRedirect: '/acceleratorProfiles/*',
       component: () => import('#~/pages/acceleratorProfiles/AcceleratorProfilesRoutes'),
     },
   },
@@ -192,7 +209,8 @@ const extensions: RouteExtension[] = [
       required: [ADMIN_USER],
     },
     properties: {
-      path: '/servingRuntimes/*',
+      path: '/settings/model-resources-operations/serving-runtimes/*',
+      v2PathRedirect: '/servingRuntimes/*',
       component: () =>
         import('#~/pages/modelServing/customServingRuntimes/CustomServingRuntimeRoutes'),
     },
@@ -203,7 +221,8 @@ const extensions: RouteExtension[] = [
       required: [ADMIN_USER],
     },
     properties: {
-      path: '/connectionTypes/*',
+      path: '/settings/environment-setup/connection-types/*',
+      v2PathRedirect: '/connectionTypes/*',
       component: () => import('#~/pages/connectionTypes/ConnectionTypeRoutes'),
     },
   },
@@ -213,7 +232,8 @@ const extensions: RouteExtension[] = [
       required: [ADMIN_USER],
     },
     properties: {
-      path: '/storageClasses/*',
+      path: '/settings/cluster/storage-classes/*',
+      v2PathRedirect: '/storageClasses/*',
       component: () => import('#~/pages/storageClasses/StorageClassesPage'),
     },
   },
@@ -223,7 +243,8 @@ const extensions: RouteExtension[] = [
       required: [ADMIN_USER],
     },
     properties: {
-      path: '/modelRegistrySettings/*',
+      path: '/settings/model-resources-operations/model-registry/*',
+      v2PathRedirect: '/modelRegistrySettings/*',
       component: () => import('#~/pages/modelRegistrySettings/ModelRegistrySettingsRoutes'),
     },
   },
@@ -233,14 +254,16 @@ const extensions: RouteExtension[] = [
       required: [ADMIN_USER],
     },
     properties: {
-      path: '/groupSettings',
+      path: '/settings/user-management',
+      v2PathRedirect: '/groupSettings',
       component: () => import('#~/pages/groupSettings/GroupSettings'),
     },
   },
   {
     type: 'app.route',
     properties: {
-      path: '/hardwareProfiles/*',
+      path: '/settings/environment-setup/hardware-profiles/*',
+      v2PathRedirect: '/hardwareProfiles/*',
       component: () => import('#~/pages/hardwareProfiles/HardwareProfilesRoutes'),
     },
   },
@@ -250,7 +273,8 @@ const extensions: RouteExtension[] = [
       required: [SupportedArea.LM_EVAL],
     },
     properties: {
-      path: '/modelEvaluations/*',
+      path: '/develop-train/evaluations/*',
+      v2PathRedirect: '/modelEvaluations/*',
       component: () => import('#~/pages/lmEval/LMEvalRoutes'),
     },
   },

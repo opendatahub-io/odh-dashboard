@@ -131,6 +131,8 @@ describe('Custom serving runtimes', () => {
       });
     });
 
+    servingRuntimes.findAppTitle().should('contain', 'Serving runtimes');
+
     cy.wsK8s(
       'ADDED',
       TemplateModel,
@@ -142,6 +144,7 @@ describe('Custom serving runtimes', () => {
       }),
     );
 
+    servingRuntimes.getRowById('template-new').find().should('exist');
     servingRuntimes.getRowById('template-new').shouldBeSingleModel(true);
   });
 
@@ -204,6 +207,8 @@ describe('Custom serving runtimes', () => {
       });
     });
 
+    servingRuntimes.findAppTitle().should('contain', 'Serving runtimes');
+
     cy.wsK8s(
       'ADDED',
       TemplateModel,
@@ -214,6 +219,7 @@ describe('Custom serving runtimes', () => {
       }),
     );
 
+    servingRuntimes.getRowById('template-new').find().should('exist');
     servingRuntimes.getRowById('template-new').shouldBeMultiModel(true);
   });
 
@@ -230,7 +236,7 @@ describe('Custom serving runtimes', () => {
 
     servingRuntimes.getRowById('template-1').find().findKebabAction('Duplicate').click();
     servingRuntimes.findAppTitle().should('have.text', 'Duplicate serving runtime');
-    cy.url().should('include', '/addServingRuntime');
+    cy.url().should('include', '/serving-runtimes/add');
 
     servingRuntimes.shouldDisplayAPIProtocolValues([
       ServingRuntimeAPIProtocol.REST,
@@ -267,6 +273,8 @@ describe('Custom serving runtimes', () => {
       });
     });
 
+    servingRuntimes.findAppTitle().should('contain', 'Serving runtimes');
+
     cy.wsK8s(
       'ADDED',
       TemplateModel,
@@ -278,6 +286,7 @@ describe('Custom serving runtimes', () => {
       }),
     );
 
+    servingRuntimes.getRowById('template-1-copy').find().should('exist');
     servingRuntimes
       .getRowById('template-1-copy')
       .shouldHaveAPIProtocol(ServingRuntimeAPIProtocol.GRPC);
@@ -297,7 +306,7 @@ describe('Custom serving runtimes', () => {
 
     servingRuntimes.getRowById('template-1').find().findKebabAction('Edit').click();
     servingRuntimes.findAppTitle().should('contain', 'Edit Multi Platform');
-    cy.url().should('include', '/editServingRuntime/template-1');
+    cy.url().should('include', '/serving-runtimes/edit/template-1');
     servingRuntimes.findSubmitButton().should('be.disabled');
     servingRuntimes.uploadYaml(editfilePath);
     servingRuntimes.findSubmitButton().click();

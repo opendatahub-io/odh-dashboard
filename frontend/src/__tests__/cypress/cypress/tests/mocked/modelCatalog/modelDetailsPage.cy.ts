@@ -84,7 +84,7 @@ describe.skip('Model details page', () => {
         'Granite-8B-Code-Instruct is a 8B parameter model fine tuned from\nGranite-8B-Code-Base on a combination of permissively licensed instruction\ndata to enhance instruction following capabilities including logical\nreasoning and problem-solving skills.',
       );
     cy.reload();
-    verifyRelativeURL('/modelCatalog/Red%20Hat/rhelai1/granite-8b-code-instruct/1%252E3%252E0');
+    verifyRelativeURL('/ai-hub/catalog/Red%20Hat/rhelai1/granite-8b-code-instruct/1.3.0');
     modelDetailsPage
       .findModelCardMarkdown()
       .should('include.text', 'ibm-granite/granite-3.1-8b-base');
@@ -129,9 +129,7 @@ describe.skip('Model details page', () => {
     modelDetailsPage.visit();
     modelDetailsPage.findRegisterModelButton().should('be.enabled');
     modelDetailsPage.findRegisterModelButton().click();
-    verifyRelativeURL(
-      '/modelCatalog/Red%20Hat/rhelai1/granite-8b-code-instruct/1%252E3%252E0/register',
-    );
+    verifyRelativeURL('/ai-hub/catalog/Red%20Hat/rhelai1/granite-8b-code-instruct/1.3.0/register');
   });
 });
 

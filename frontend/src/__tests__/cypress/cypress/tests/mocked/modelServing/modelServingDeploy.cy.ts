@@ -282,7 +282,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingGlobal.findDeployModelButton().click();
     cy.findByRole('heading', { name: 'Deploy a model' }).should('exist');
     cy.findByRole('button', { name: 'Cancel' }).click();
-    cy.url().should('include', '/modelServing/test-project');
+    cy.url().should('include', '/deployments/test-project');
 
     cy.visitWithLogin(
       '/projects/test-project?section=model-server&devFeatureFlags=Model+Serving+Plugin%3Dtrue',
