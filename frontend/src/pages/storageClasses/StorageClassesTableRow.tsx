@@ -38,7 +38,6 @@ import { StorageClassEnableSwitch } from './StorageClassEnableSwitch';
 import { useStorageClassContext } from './StorageClassesContext';
 import { StorageClassConfigValue } from './StorageClassConfigValue';
 import {
-  //getSupportedAccessModesForProvisioner,
   isOpenshiftDefaultStorageClass,
   isValidAccessModeSettings,
   isValidConfigValue,

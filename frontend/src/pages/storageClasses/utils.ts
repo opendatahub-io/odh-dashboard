@@ -96,33 +96,6 @@ export const getSupportedAccessModesForProvisioner = (
   return [AccessMode.RWO];
 };
 
-export const getAccessModeSettings = (
-  supportedAccessModes: AccessMode[],
-  accessModeSettings?: AccessModeSettings,
-): AccessMode[] => {
-  const accessModeSettingsArr = [];
-  for (const accessMode of supportedAccessModes) {
-    if (accessModeSettings?.[accessMode] === true) {
-      accessModeSettingsArr.push(accessMode);
-    }
-  }
-  return accessModeSettingsArr;
-};
-
-export const getAdminDefaultAccessModeSettings = (
-  supportedAccessModes: AccessMode[],
-): AccessModeSettings => {
-  const initialSettings: AccessModeSettings = {};
-  return supportedAccessModes.reduce((currentSettings, mode) => {
-    // AccessMode.RWO should be set to true, and all other supported access modes should be set to false
-    const newSetting = mode === AccessMode.RWO;
-    return {
-      ...currentSettings,
-      [mode]: newSetting,
-    };
-  }, initialSettings);
-};
-
 export const getStorageClassDefaultAccessModeSettings = (): AccessModeSettings => {
   return {
     [AccessMode.RWO]: true,
