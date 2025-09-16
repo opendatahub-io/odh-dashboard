@@ -27,7 +27,6 @@ const uuid = generateTestUUID();
 
 describe(
   '[Product Bug: RHOAIENG-31085] A user can create an OCI connection and deploy a model with it',
-  'A user can create an OCI connection and deploy a model with it',
   { testIsolation: false },
   () => {
     let testData: DeployOCIModelData;
@@ -60,7 +59,6 @@ describe(
       'Verify User Can Create an OCI Connection in DS Connections Page And Deploy the Model',
       {
         tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent', '@Bug'],
-        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent'],
       },
       () => {
         cy.step(`Navigate to DS Project ${projectName}`);
