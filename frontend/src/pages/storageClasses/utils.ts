@@ -71,24 +71,13 @@ export const isValidConfigValue = (
 };
 
 export const isValidAccessModeSettings = (
-  storageClass: StorageClassKind,
-  value: string | boolean | undefined | AccessModeSettings,
+  value: string | boolean | undefined | AccessModeSettings | null,
 ): boolean => {
-  if (typeof value !== 'object') {
+  if (typeof value !== 'object' || value === null) {
     return false;
   }
 
-  const supportedAccessModes = getSupportedAccessModesForProvisioner(storageClass.provisioner);
-
-  if (
-    !supportedAccessModes.every(
-      (mode) => value[mode] === undefined || typeof value[mode] === 'boolean',
-    )
-  ) {
-    return false;
-  }
-
-  return true;
+  return Object.values(value).every((v) => typeof v === 'boolean');
 };
 
 // Create a Set of StorageProvisioner values for efficient lookup in the type guard
@@ -143,11 +132,8 @@ export const getAdminDefaultAccessModeSettings = (
   }, initialSettings);
 };
 
-export const getStorageClassDefaultAccessModeSettings = (
-  storageClass: StorageClassKind,
-): AccessModeSettings => {
-  const supportedAccessModesForProvisioner = getSupportedAccessModesForProvisioner(
-    storageClass.provisioner,
-  );
-  return getAdminDefaultAccessModeSettings(supportedAccessModesForProvisioner);
+export const getStorageClassDefaultAccessModeSettings = (): AccessModeSettings => {
+  return {
+    [AccessMode.RWO]: true,
+  };
 };

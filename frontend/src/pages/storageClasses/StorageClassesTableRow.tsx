@@ -38,7 +38,7 @@ import { StorageClassEnableSwitch } from './StorageClassEnableSwitch';
 import { useStorageClassContext } from './StorageClassesContext';
 import { StorageClassConfigValue } from './StorageClassConfigValue';
 import {
-  getSupportedAccessModesForProvisioner,
+  //getSupportedAccessModesForProvisioner,
   isOpenshiftDefaultStorageClass,
   isValidAccessModeSettings,
   isValidConfigValue,
@@ -170,24 +170,21 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
                   title={
                     <Flex spaceItems={{ default: 'spaceItemsXs' }}>
                       <Truncate content={storageClassConfig.displayName} />
-                      {isValidAccessModeSettings(
-                        storageClass,
-                        storageClassConfig.accessModeSettings,
-                      ) ? (
+                      {isValidAccessModeSettings(storageClassConfig.accessModeSettings) ? (
                         <LabelGroup data-testid="access-mode-label-group">
-                          {getSupportedAccessModesForProvisioner(storageClass.provisioner)
+                          {Object.values(AccessMode)
                             .filter(
-                              (modeValue) =>
-                                storageClassConfig.accessModeSettings[modeValue] === true ||
-                                modeValue === AccessMode.RWO,
+                              (accessMode) =>
+                                storageClassConfig.accessModeSettings[accessMode] === true ||
+                                accessMode === AccessMode.RWO,
                             )
-                            .map((modeValue) => (
-                              <AccessModeLabel key={modeValue} accessMode={modeValue} />
+                            .map((accessMode) => (
+                              <AccessModeLabel key={accessMode} accessMode={accessMode} />
                             ))}
                         </LabelGroup>
                       ) : (
                         // only show tooltip if the access mode settings are not valid
-                        // which means that the supported access modes are not set to a boolean
+                        // which means that the access modes are not set to a boolean
                         <Tooltip content="Edit the access mode settings and save your changes to correct the corrupted metadata.">
                           <Icon status="warning">
                             <ExclamationTriangleIcon />

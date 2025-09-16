@@ -63,7 +63,7 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
       : '',
   );
 
-  const defaultAccessModeSettings = getStorageClassDefaultAccessModeSettings(storageClass);
+  const defaultAccessModeSettings = getStorageClassDefaultAccessModeSettings();
 
   const [accessModeSettings, setAccessModeSettings] = React.useState(
     isValidConfigValue('accessModeSettings', storageClassConfig?.accessModeSettings)
@@ -84,7 +84,7 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
         description,
         ...(storageClassConfig?.isDefault === undefined && { isDefault: false }),
         ...(storageClassConfig?.isEnabled === undefined && { isEnabled: false }),
-        accessModeSettings,
+        accessModeSettings: { ...accessModeSettings, [AccessMode.RWO]: true },
       });
       await onSuccess();
       onClose();
