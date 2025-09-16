@@ -183,30 +183,6 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('packages/*/bff/go.sum', 'packages/*/upstream/bff/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-      - name: Build BFF binaries
-        run: |
-          set -euo pipefail
-          echo "Building BFF binaries for packages with changes and contract tests..."
-
-          # Build BFF binaries only for packages with contract tests
-          for dir in packages/*/bff packages/*/upstream/bff; do
-            if [ -d "$dir" ]; then
-              # Determine package directory based on BFF location
-              if [[ "$dir" == */upstream/bff ]]; then
-                package_dir=$(dirname "$(dirname "$dir")")
-              else
-                package_dir=$(dirname "$dir")
-              fi
-
-              if [ -d "$package_dir/contract-tests" ]; then
-                echo "Building BFF in $dir"
-                # Use npx to run the script from the contract-tests package
-                npx --package=@odh-dashboard/contract-tests odh-ct-bff-consumer --bff-dir "$dir" --build-bff
-              else
-                echo "Skipping BFF build for $dir (no contract tests found in $package_dir)"
-              fi
-            fi
-          done
       - name: Run contract tests
         run: |
           echo "Running contract tests..."
