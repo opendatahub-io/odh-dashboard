@@ -1,12 +1,10 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import { ModularArchConfig, DeploymentMode, ModularArchContextProvider } from 'mod-arch-core';
 import { GenAiContextProvider } from '~/app/context';
-import { NotFound } from '~/app/NotFound/NotFound';
 import { URL_PREFIX } from '~/app/utilities/const';
-import { ChatbotMain } from '~/app/Chatbot/ChatbotMain';
-
-import '@patternfly/chatbot/dist/css/main.css';
+import { NotFound } from '~/app/NotFound/NotFound';
+import { AIAssetsPage } from '~/app/AIAssets/AIAssetsPage';
 
 const modularArchConfig: ModularArchConfig = {
   deploymentMode: DeploymentMode.Federated,
@@ -14,15 +12,15 @@ const modularArchConfig: ModularArchConfig = {
   BFF_API_VERSION: 'v1',
 };
 
-const GenAiWrapper: React.FC = () => (
+const AIAssetsWrapper: React.FC = () => (
   <ModularArchContextProvider config={modularArchConfig}>
     <GenAiContextProvider>
       <Routes>
-        <Route path="/*" element={<ChatbotMain />} />
+        <Route path="/" element={<AIAssetsPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </GenAiContextProvider>
   </ModularArchContextProvider>
 );
 
-export default GenAiWrapper;
+export default AIAssetsWrapper;

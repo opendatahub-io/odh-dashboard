@@ -4,16 +4,12 @@ import ProjectIcon from '@odh-dashboard/internal/images/icons/ProjectIcon';
 import ProjectDropdown from './components/ProjectDropdown';
 
 interface ChatbotHeaderProps {
-  selectedProject: string;
   onProjectChange: (projectName: string) => void;
-  onProjectsLoaded: (projects: string[]) => void;
   isLoading?: boolean;
 }
 
 const ChatbotHeader: React.FunctionComponent<ChatbotHeaderProps> = ({
-  selectedProject,
   onProjectChange,
-  onProjectsLoaded,
   isLoading = false,
 }) => (
   <Flex component="span" alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapLg' }}>
@@ -35,12 +31,7 @@ const ChatbotHeader: React.FunctionComponent<ChatbotHeaderProps> = ({
           <span style={{ fontSize: '16px', marginRight: '10px' }}>Project</span>
         </FlexItem>
         <FlexItem>
-          <ProjectDropdown
-            selectedProject={selectedProject}
-            onProjectChange={onProjectChange}
-            onProjectsLoaded={onProjectsLoaded}
-            isDisabled={isLoading}
-          />
+          <ProjectDropdown onProjectChange={onProjectChange} isDisabled={isLoading} />
         </FlexItem>
       </Flex>
     </FlexItem>

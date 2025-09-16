@@ -5,8 +5,8 @@ import emptyStateImage from '~/app/bgimages/empty-state.svg';
 type ChatbotEmptyStateProps = {
   title: string;
   description: string;
-  actionButtonText: string;
-  handleActionButtonClick: () => void;
+  actionButtonText?: string;
+  handleActionButtonClick?: () => void;
 };
 
 const ChatbotEmptyState: React.FC<ChatbotEmptyStateProps> = ({
@@ -14,11 +14,6 @@ const ChatbotEmptyState: React.FC<ChatbotEmptyStateProps> = ({
   description,
   actionButtonText,
   handleActionButtonClick,
-}: {
-  handleActionButtonClick: () => void;
-  title: string;
-  description: string;
-  actionButtonText: string;
 }) => (
   <EmptyState
     titleText={title}
@@ -28,11 +23,13 @@ const ChatbotEmptyState: React.FC<ChatbotEmptyStateProps> = ({
   >
     <EmptyStateBody>
       {description}
-      <EmptyStateFooter>
-        <Button variant="primary" onClick={handleActionButtonClick}>
-          {actionButtonText}
-        </Button>
-      </EmptyStateFooter>
+      {actionButtonText && handleActionButtonClick && (
+        <EmptyStateFooter>
+          <Button variant="primary" onClick={handleActionButtonClick}>
+            {actionButtonText}
+          </Button>
+        </EmptyStateFooter>
+      )}
     </EmptyStateBody>
   </EmptyState>
 );

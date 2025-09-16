@@ -1,43 +1,25 @@
 import * as React from 'react';
 import { HelperText, HelperTextItem, MenuItem } from '@patternfly/react-core';
 import SearchSelector from '@odh-dashboard/internal/components/searchSelector/SearchSelector';
-import { useGenaiNamespaces } from '~/app/hooks/useGenaiNamespaces';
+import { useGenAiProjects } from '~/app/context';
 
 interface ProjectDropdownProps {
-  selectedProject?: string;
   onProjectChange: (projectName: string) => void;
-  onProjectsLoaded: (projects: string[]) => void;
   isDisabled?: boolean;
 }
 
 const ProjectDropdown: React.FC<ProjectDropdownProps> = ({
-  selectedProject,
   onProjectChange,
-  onProjectsLoaded,
   isDisabled = false,
 }) => {
   const [searchText, setSearchText] = React.useState('');
-  const { namespaces, namespacesLoaded, namespacesLoadError } = useGenaiNamespaces();
+  const {
+    selectedProject,
+    availableProjects,
+    isLoading,
+    error: namespacesLoadError,
+  } = useGenAiProjects();
 
-  // Extract namespace names and convert to project names
-  const availableProjects = React.useMemo(() => {
-    if (namespaces.length === 0) {
-      return [];
-    }
-    return namespaces
-      .map((namespace) => namespace.name)
-      .filter((name): name is string => !!name)
-      .toSorted();
-  }, [namespaces]);
-
-  // Notify parent component when projects are loaded
-  React.useEffect(() => {
-    if (namespacesLoaded && availableProjects.length > 0) {
-      onProjectsLoaded(availableProjects);
-    }
-  }, [namespacesLoaded, availableProjects, onProjectsLoaded]);
-
-  // Filter projects based on search text
   const bySearchText = React.useCallback(
     (projectName: string) =>
       !searchText || projectName.toLowerCase().includes(searchText.toLowerCase()),
@@ -47,7 +29,7 @@ const ProjectDropdown: React.FC<ProjectDropdownProps> = ({
   const filteredProjects = availableProjects.filter(bySearchText);
 
   let toggleLabel = selectedProject || 'Select a project';
-  if (!namespacesLoaded) {
+  if (isLoading) {
     toggleLabel = 'Loading...';
   }
   if (namespacesLoadError) {
@@ -64,16 +46,16 @@ const ProjectDropdown: React.FC<ProjectDropdownProps> = ({
         searchFocusOnOpen
         searchPlaceholder="Search projects..."
         searchValue={searchText}
-        isLoading={!namespacesLoaded}
-        isDisabled={isDisabled || !namespacesLoaded}
+        isLoading={isLoading}
+        isDisabled={isDisabled || isLoading}
         toggleContent={toggleLabel}
       >
         <>
-          {!namespacesLoaded && <MenuItem isDisabled>Loading projects...</MenuItem>}
-          {namespacesLoaded && filteredProjects.length === 0 && (
+          {isLoading && <MenuItem isDisabled>Loading projects...</MenuItem>}
+          {!isLoading && filteredProjects.length === 0 && (
             <MenuItem isDisabled>No projects available</MenuItem>
           )}
-          {namespacesLoaded &&
+          {!isLoading &&
             filteredProjects.map((projectName) => (
               <MenuItem
                 key={projectName}
