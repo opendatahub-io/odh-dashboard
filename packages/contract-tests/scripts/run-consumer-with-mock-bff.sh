@@ -5,7 +5,7 @@ set -euo pipefail
 
 print_help() {
   cat <<'EOF'
-Usage: odh-contract-tests [options]
+Usage: odh-ct-bff-consumer [options]
 
 Run contract tests for a consumer package using the shared mock BFF harness.
 
@@ -18,10 +18,6 @@ Options:
   -o, --open                  Open HTML report in browser after tests complete
   -h, --help                  Show this help
 
-Examples:
-  odh-contract-tests -c packages/model-registry/contract-tests
-  odh-contract-tests -c packages/model-registry/contract-tests -w
-  odh-contract-tests -c packages/model-registry/contract-tests --open
 EOF
 }
 

@@ -22,8 +22,7 @@
     "test:contract": {
       "inputs": [
         "contract-tests/**",
-        "upstream/bff/**",
-        "^packages/contract-tests/**"
+        "upstream/bff/**"
       ],
       "outputs": [
         "contract-tests/contract-test-results/**"

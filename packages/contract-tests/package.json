@@ -4,7 +4,7 @@
   "description": "Zero-config contract testing for ODH Dashboard packages",
   "scripts": {
     "type-check": "tsc -p tsconfig.json --noEmit",
-    "lint": "eslint src",
+    "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
   "bin": {

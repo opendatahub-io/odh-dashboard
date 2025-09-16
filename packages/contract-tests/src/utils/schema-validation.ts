@@ -51,7 +51,6 @@ export class ContractSchemaValidator {
   validateResponse(
     response: unknown,
     schemaId: string,
-    _testName: string,
     schemaPath?: string,
     isErrorResponse = false,
   ): ValidationResult {

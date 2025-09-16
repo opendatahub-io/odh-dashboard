@@ -209,22 +209,8 @@ jobs:
           done
       - name: Run contract tests
         run: |
-          set -euo pipefail
-          # Find packages with contract tests and run only those
-          PACKAGES_WITH_CONTRACT_TESTS=""
-          for package_dir in packages/*/; do
-            package_name=$(basename "$package_dir")
-            if [ -d "packages/$package_name/contract-tests" ]; then
-              PACKAGES_WITH_CONTRACT_TESTS="$PACKAGES_WITH_CONTRACT_TESTS --filter=@odh-dashboard/$package_name"
-            fi
-          done
-
-          if [ -n "$PACKAGES_WITH_CONTRACT_TESTS" ]; then
-            echo "Running contract tests for packages with contract tests..."
-            npm run test:contract $PACKAGES_WITH_CONTRACT_TESTS
-          else
-            echo "No packages with contract tests found, skipping contract tests"
-          fi
+          echo "Running contract tests..."
+          npm run test:contract
       - name: Upload contract test results
         uses: actions/upload-artifact@v4
         if: always()

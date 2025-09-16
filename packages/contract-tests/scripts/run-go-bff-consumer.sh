@@ -4,7 +4,7 @@ set -euo pipefail
 
 print_help() {
   cat <<'EOF'
-Usage: run-go-bff-consumer.sh --bff-dir <path> [--consumer-dir <path>] [--package-name <name>] [--open] [--build-bff]
+Usage: odh-ct-bff-consumer --bff-dir <path> [--consumer-dir <path>] [--package-name <name>] [--open] [--build-bff]
 
 Starts a Go BFF in mock mode, waits for readiness, then runs contract
 tests for the consumer directory using the shared Jest harness.
@@ -16,6 +16,11 @@ Options:
   --open                   Open HTML report in browser after tests complete
   --build-bff              Build the BFF binary before starting (for performance)
   -h, --help               Show this help
+
+Examples:
+  odh-ct-bff-consumer --bff-dir upstream/bff
+  odh-ct-bff-consumer --bff-dir upstream/bff --open
+  odh-ct-bff-consumer --bff-dir upstream/bff --build-bff
 EOF
 }
 
