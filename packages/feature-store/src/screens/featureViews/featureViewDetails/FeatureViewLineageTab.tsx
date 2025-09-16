@@ -9,10 +9,20 @@ type FeatureViewLineageTabProps = {
 };
 
 const FeatureViewLineageTab: React.FC<FeatureViewLineageTabProps> = ({ featureView }) => (
-  <PageSection hasBodyWrapper={false} isFilled padding={{ default: 'noPadding' }} isWidthLimited>
+  <PageSection
+    hasBodyWrapper={false}
+    isFilled
+    padding={{ default: 'noPadding' }}
+    isWidthLimited
+    id="feature-view-lineage-tab"
+  >
     <Flex direction={{ default: 'column' }} spacer={{ default: 'spacer2xl' }}>
-      <FlexItem style={{ height: '65vh', minHeight: '400px', overflow: 'hidden' }}>
-        <Title headingLevel="h3" data-testid="feature-view-lineage" style={{ margin: '1rem 0' }}>
+      <FlexItem style={{ height: 'calc(65vh - 4rem)', minHeight: '400px', overflow: 'hidden' }}>
+        <Title
+          headingLevel="h3"
+          data-testid="feature-view-lineage"
+          style={{ marginBottom: '1rem' }}
+        >
           Lineage
         </Title>
         <div style={{ height: 'calc(100% - 3rem)', overflow: 'hidden' }}>
