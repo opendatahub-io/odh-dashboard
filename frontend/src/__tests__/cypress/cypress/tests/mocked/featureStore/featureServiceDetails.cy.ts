@@ -199,7 +199,7 @@ describe('Feature Service Details', () => {
     it('should navigate back to feature services when breadcrumb link is clicked', () => {
       featureServiceDetails.visit(fsProjectName, featureServiceName);
       featureServiceDetailsBreadcrumb.clickFeatureServicesLink();
-      cy.url().should('include', '/featureStore/featureServices');
+      cy.url().should('include', '/develop-train/feature-store/feature-services');
     });
   });
 

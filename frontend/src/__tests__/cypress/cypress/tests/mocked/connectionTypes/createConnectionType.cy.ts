@@ -210,7 +210,7 @@ describe('edit', () => {
     createConnectionTypePage.findConnectionTypeDesc().fill('new description');
     createConnectionTypePage.findDuplicateConnectionTypeButton().click();
 
-    cy.url().should('include', '/connectionTypes/duplicate/existing');
+    cy.url().should('include', '/connection-types/duplicate/existing');
 
     createConnectionTypePage.findConnectionTypeName().should('have.value', 'Copy of existing');
     createConnectionTypePage.findConnectionTypeDesc().should('have.value', 'new description');

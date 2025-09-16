@@ -261,7 +261,9 @@ describe('Experiments', () => {
     });
 
     it('navigates to the runs page when clicking an experiment name', () => {
-      verifyRelativeURL(`/experiments/${projectName}/${mockExperiment.experiment_id}/runs`);
+      verifyRelativeURL(
+        `/develop-train/experiments/${projectName}/${mockExperiment.experiment_id}/runs`,
+      );
       cy.findByLabelText('Breadcrumb').findByRole('link', {
         name: `Experiments in ${projectName}`,
       });
@@ -312,14 +314,16 @@ describe('Experiments', () => {
       cy.findByLabelText('Breadcrumb')
         .findByRole('link', { name: `Experiments in ${projectName}` })
         .click();
-      verifyRelativeURL(`/experiments/${projectName}`);
+      verifyRelativeURL(`/develop-train/experiments/${projectName}`);
       pipelineRunsGlobal.findProjectNavigatorLink().should('exist');
     });
 
     it('navigates back to experiment runs page from "Create run" page breadcrumb', () => {
       pipelineRunsGlobal.findCreateRunButton().click();
       cy.findByLabelText('Breadcrumb').findByText(mockExperiment.display_name).click();
-      verifyRelativeURL(`/experiments/${projectName}/${mockExperiment.experiment_id}/runs`);
+      verifyRelativeURL(
+        `/develop-train/experiments/${projectName}/${mockExperiment.experiment_id}/runs`,
+      );
     });
 
     it('has "Experiment" value pre-filled when on the "Schedule run" page', () => {
@@ -374,7 +378,7 @@ describe('Runs page for archived experiment', () => {
 
   it('navigates to the runs page when clicking an experiment name', () => {
     verifyRelativeURL(
-      `/experiments/${projectName}/${mockArchivedExperiment.experiment_id}/runs/archived`,
+      `/develop-train/experiments/${projectName}/${mockArchivedExperiment.experiment_id}/runs/archived`,
     );
     cy.findByLabelText('Breadcrumb').findByRole('link', { name: `Experiments in ${projectName}` });
   });

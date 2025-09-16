@@ -5,6 +5,8 @@ import ProjectsRoutes from '#~/concepts/projects/ProjectsRoutes';
 import { useDistributedWorkloadsTabs } from '#~/pages/distributedWorkloads/global/useDistributedWorkloadsTabs';
 import GlobalDistributedWorkloads from '#~/pages/distributedWorkloads/global/GlobalDistributedWorkloads';
 import NotFound from '#~/pages/NotFound';
+import { buildV2RedirectRoutes } from '#~/utilities/v2Redirect';
+import { v2RedirectMap } from './v2Redirects';
 
 const GlobalDistributedWorkloadsRoutes: React.FC = () => {
   const tabs = useDistributedWorkloadsTabs();
@@ -25,12 +27,13 @@ const GlobalDistributedWorkloadsRoutes: React.FC = () => {
               <GlobalDistributedWorkloads
                 activeTab={tab}
                 getInvalidRedirectPath={(namespace) =>
-                  `/distributedWorkloads/${tab.path}/${namespace}`
+                  `/observe-monitor/workload-metrics/${tab.path}/${namespace}`
                 }
               />
             }
           />
         ))}
+      {buildV2RedirectRoutes(v2RedirectMap)}
       <Route path="*" element={<NotFound />} />
     </ProjectsRoutes>
   );

@@ -340,7 +340,7 @@ describe('Feature Store Metrics Overview', () => {
     featureStoreGlobal.visitOverview(fsProjectName);
     cy.wait('@getRecentlyVisited');
     featureMetricsOverview.findRecentlyVisitedRow('driver_hourly_stats').findResourceLink().click();
-    cy.url().should('include', `/featureStore/featureViews/${fsProjectName}/driver_hourly_stats`);
+    cy.url().should('include', `/feature-store/feature-views/${fsProjectName}/driver_hourly_stats`);
   });
 
   it('should display correct metadata in popular tags section', () => {

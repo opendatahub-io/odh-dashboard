@@ -141,7 +141,7 @@ describe('Compare runs', () => {
     cy.wait('@validRun');
     compareRunsGlobal.findInvalidRunsError().should('not.exist');
     verifyRelativeURL(
-      `/experiments/${projectName}/${mockExperiment.experiment_id}/compareRuns?compareRuns=${mockRun.run_id}`,
+      `/develop-train/experiments/${projectName}/${mockExperiment.experiment_id}/compare-runs?compareRuns=${mockRun.run_id}`,
     );
   });
 
@@ -161,7 +161,7 @@ describe('Compare runs', () => {
     cy.wait('@validRun');
     compareRunsGlobal.findInvalidRunsError().should('not.exist');
     verifyRelativeURL(
-      `/experiments/${projectName}/${mockExperiment.experiment_id}/compareRuns?compareRuns=invalid_run_id,${mockRun.run_id}`,
+      `/develop-train/experiments/${projectName}/${mockExperiment.experiment_id}/compare-runs?compareRuns=invalid_run_id,${mockRun.run_id}`,
     );
   });
 

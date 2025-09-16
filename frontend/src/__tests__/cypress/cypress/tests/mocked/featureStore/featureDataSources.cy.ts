@@ -294,7 +294,7 @@ describe('Feature Data Sources for all projects', () => {
 
     featureDataSourcesTable.findTable().should('be.visible');
     featureDataSourcesTable.findRow('loan_data').findDataSourceLink().click();
-    cy.url().should('include', '/featureStore/dataSources/credit_scoring_local');
+    cy.url().should('include', '/feature-store/data-sources/credit_scoring_local');
     cy.wait('@getDataSourceDetails');
 
     featureDataSourceDetails
@@ -314,7 +314,7 @@ describe('Feature Data Sources for all projects', () => {
     featureDataSourcesTable.findTable().should('be.visible');
 
     featureDataSourcesTable.findRow('loan_data').findDataSourceLink().click();
-    cy.url().should('include', '/featureStore/dataSources/credit_scoring_local');
+    cy.url().should('include', '/feature-store/data-sources/credit_scoring_local');
 
     cy.wait('@getDataSourceDetails');
     featureDataSourceDetails
@@ -330,7 +330,7 @@ describe('Feature Data Sources for all projects', () => {
 
     featureDataSourceDetails.findBreadcrumbLink().click();
 
-    cy.url().should('include', '/featureStore/dataSources');
+    cy.url().should('include', '/feature-store/data-sources');
     featureStoreGlobal.findHeading().should('have.text', 'Data sources');
     featureDataSourcesTable.findTable().should('be.visible');
   });
@@ -412,7 +412,7 @@ describe('Feature Data Sources', () => {
     ).as('getDataSourceNotFound');
 
     cy.visit(
-      `/featureStore/dataSources/${fsProjectName}/nonexistent?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/data-sources/${fsProjectName}/nonexistent?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     cy.findByText(`Data source nonexistent does not exist in project ${fsProjectName}`).should(
       'be.visible',
@@ -446,7 +446,7 @@ describe('Data Source Feature Views Tab', () => {
 
   it('should display feature views for the data source', () => {
     cy.visit(
-      `/featureStore/dataSources/${fsProjectName}/loan_data?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/data-sources/${fsProjectName}/loan_data?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     cy.wait('@getDataSourceDetails');
 
@@ -473,7 +473,7 @@ describe('Data Source Feature Views Tab', () => {
     ).as('getEmptyDataSourceFeatureViews');
 
     cy.visit(
-      `/featureStore/dataSources/${fsProjectName}/loan_data?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/data-sources/${fsProjectName}/loan_data?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     cy.wait('@getDataSourceDetails');
     featureDataSourceDetails.clickFeatureViewsTab().click();
@@ -485,7 +485,7 @@ describe('Data Source Feature Views Tab', () => {
 
   it('should only call feature views API when tab is clicked', () => {
     cy.visit(
-      `/featureStore/dataSources/${fsProjectName}/loan_data?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/data-sources/${fsProjectName}/loan_data?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     cy.wait('@getDataSourceDetails');
 
@@ -500,7 +500,7 @@ describe('Data Source Feature Views Tab', () => {
 
   it('should navigate to feature view details when clicking on feature view name', () => {
     cy.visit(
-      `/featureStore/dataSources/${fsProjectName}/loan_data?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/data-sources/${fsProjectName}/loan_data?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     cy.wait('@getDataSourceDetails');
     featureDataSourceDetails.clickFeatureViewsTab().click();
@@ -521,7 +521,7 @@ describe('Data Source Details Tab', () => {
 
   it('should display data source details with correct information', () => {
     cy.visit(
-      `/featureStore/dataSources/${fsProjectName}/loan_data?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/data-sources/${fsProjectName}/loan_data?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     cy.wait('@getDataSourceDetails');
 
@@ -549,7 +549,7 @@ describe('Data Source Details Tab', () => {
     ).as('getDataSourceWithFileUrl');
 
     cy.visit(
-      `/featureStore/dataSources/${fsProjectName}/loan_data?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/data-sources/${fsProjectName}/loan_data?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     cy.wait('@getDataSourceWithFileUrl');
 
@@ -579,7 +579,7 @@ describe('Data Source Details Tab', () => {
     ).as('getStreamDataSource');
 
     cy.visit(
-      `/featureStore/dataSources/${fsProjectName}/stream_data?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/data-sources/${fsProjectName}/stream_data?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     cy.wait('@getStreamDataSource');
 
@@ -635,7 +635,7 @@ describe('Data Source Schema Tab', () => {
     ).as('getUserProfileFeatureViews');
 
     cy.visit(
-      `/featureStore/dataSources/${fsProjectName}/user_profile?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/data-sources/${fsProjectName}/user_profile?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     cy.wait('@getRequestDataSource');
     cy.wait('@getUserProfileFeatureViews');
@@ -653,7 +653,7 @@ describe('Data Source Schema Tab', () => {
   it('should not display schema tab for non-REQUEST_SOURCE data sources', () => {
     mockDataSourceDetailsIntercept();
     cy.visit(
-      `/featureStore/dataSources/${fsProjectName}/loan_data?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/data-sources/${fsProjectName}/loan_data?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     cy.wait('@getDataSourceDetails');
 

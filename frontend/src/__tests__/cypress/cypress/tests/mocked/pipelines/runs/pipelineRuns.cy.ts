@@ -203,7 +203,7 @@ describe('Pipeline runs', () => {
 
       it('navigate to create run page', () => {
         pipelineRunsGlobal.findCreateRunButton().click();
-        verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
+        verifyRelativeURL(`/develop-train/pipelines/runs/${projectName}/runs/create`);
       });
     });
 
@@ -363,7 +363,7 @@ describe('Pipeline runs', () => {
         it('navigate to create run page', () => {
           pipelineRunsGlobal.visit(projectName, 'active');
           pipelineRunsGlobal.findCreateRunButton().click();
-          verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
+          verifyRelativeURL(`/develop-train/pipelines/runs/${projectName}/runs/create`);
         });
 
         it('navigate to duplicate run page', () => {
@@ -377,18 +377,18 @@ describe('Pipeline runs', () => {
             .click();
 
           verifyRelativeURL(
-            `/experiments/${projectName}/test-experiment-1/runs/duplicate/${mockActiveRuns[0].run_id}`,
+            `/develop-train/experiments/${projectName}/test-experiment-1/runs/duplicate/${mockActiveRuns[0].run_id}`,
           );
         });
 
         it('navigate between tabs', () => {
           pipelineRunsGlobal.visit(projectName, 'active');
           pipelineRunsGlobal.findArchivedRunsTab().click();
-          verifyRelativeURL(`/pipelineRuns/${projectName}/runs/archived`);
+          verifyRelativeURL(`/develop-train/pipelines/runs/${projectName}/runs/archived`);
           pipelineRunsGlobal.findActiveRunsTab().click();
-          verifyRelativeURL(`/pipelineRuns/${projectName}/runs/active`);
+          verifyRelativeURL(`/develop-train/pipelines/runs/${projectName}/runs/active`);
           pipelineRunsGlobal.findSchedulesTab().click();
-          verifyRelativeURL(`/pipelineRuns/${projectName}/schedules`);
+          verifyRelativeURL(`/develop-train/pipelines/runs/${projectName}/schedules`);
         });
 
         it('navigate to run details page', () => {
@@ -398,7 +398,9 @@ describe('Pipeline runs', () => {
             .findColumnName(mockActiveRuns[0].display_name)
             .click();
 
-          verifyRelativeURL(`/pipelineRuns/${projectName}/runs/${mockActiveRuns[0].run_id}`);
+          verifyRelativeURL(
+            `/develop-train/pipelines/runs/${projectName}/runs/${mockActiveRuns[0].run_id}`,
+          );
         });
       });
 
@@ -873,7 +875,7 @@ describe('Pipeline runs', () => {
 
       it('navigate to create schedule page', () => {
         pipelineRunsGlobal.findScheduleRunButton().click();
-        verifyRelativeURL(`/pipelineRuns/${projectName}/schedules/create`);
+        verifyRelativeURL(`/develop-train/pipelines/runs/${projectName}/schedules/create`);
       });
     });
 
@@ -1069,7 +1071,7 @@ describe('Pipeline runs', () => {
         it('navigate to create scheduled run page', () => {
           pipelineRunsGlobal.visit(projectName, 'scheduled');
           pipelineRunsGlobal.findScheduleRunButton().click();
-          verifyRelativeURL(`/pipelineRuns/${projectName}/schedules/create`);
+          verifyRelativeURL(`/develop-train/pipelines/runs/${projectName}/schedules/create`);
         });
 
         it('navigate to duplicate scheduled run page', () => {
@@ -1084,7 +1086,7 @@ describe('Pipeline runs', () => {
             .click();
 
           verifyRelativeURL(
-            `/experiments/${projectName}/test-experiment-1/schedules/duplicate/${mockRecurringRuns[0].recurring_run_id}`,
+            `/develop-train/experiments/${projectName}/test-experiment-1/schedules/duplicate/${mockRecurringRuns[0].recurring_run_id}`,
           );
         });
 
@@ -1096,7 +1098,7 @@ describe('Pipeline runs', () => {
             .findColumnName(mockRecurringRuns[0].display_name)
             .click();
           verifyRelativeURL(
-            `/pipelineRuns/${projectName}/schedules/${mockRecurringRuns[0].recurring_run_id}`,
+            `/develop-train/pipelines/runs/${projectName}/schedules/${mockRecurringRuns[0].recurring_run_id}`,
           );
         });
       });

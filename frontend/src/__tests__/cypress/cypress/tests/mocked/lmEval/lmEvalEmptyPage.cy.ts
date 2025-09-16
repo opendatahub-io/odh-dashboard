@@ -59,13 +59,13 @@ describe('LM Evaluation Home Page', () => {
     lmEvalPage.visit('test-project');
 
     // Verify URL
-    verifyRelativeURL('/modelEvaluations/test-project');
+    verifyRelativeURL('/develop-train/evaluations/test-project');
 
     // Click Evaluate model button
     lmEvalPage.findEvaluateModelButton().click();
 
     // Verify URL changes to evaluate page
-    verifyRelativeURL('/modelEvaluations/test-project/evaluate');
+    verifyRelativeURL('/develop-train/evaluations/test-project/evaluate');
   });
 });
 

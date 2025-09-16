@@ -301,7 +301,7 @@ describe('Features for all projects', () => {
 
     cy.url().should(
       'include',
-      '/featureStore/features/credit_scoring_local/test-feature-view/test-feature',
+      '/feature-store/features/credit_scoring_local/test-feature-view/test-feature',
     );
     featureDetails
       .shouldHaveApplicationsPageDescription('A test feature for unit testing')
@@ -319,14 +319,14 @@ describe('Features for all projects', () => {
     featuresTable.findRow('test-feature').findFeatureLink().click();
     cy.url().should(
       'include',
-      '/featureStore/features/credit_scoring_local/test-feature-view/test-feature',
+      '/feature-store/features/credit_scoring_local/test-feature-view/test-feature',
     );
 
     featureDetails.findBreadcrumbLink().should('be.visible');
     featureDetails.findBreadcrumbItem().should('contain.text', 'test-feature');
     featureDetails.findBreadcrumbLink().click();
 
-    cy.url().should('include', '/featureStore/features');
+    cy.url().should('include', '/feature-store/features');
     featureStoreGlobal.findHeading().should('have.text', 'Features');
     featuresTable.findTable().should('be.visible');
   });
@@ -347,7 +347,7 @@ describe('Feature Details', () => {
     featuresTable.findRow('test-feature').findFeatureLink().click();
     cy.url().should(
       'include',
-      '/featureStore/features/credit_scoring_local/test-feature-view/test-feature',
+      '/feature-store/features/credit_scoring_local/test-feature-view/test-feature',
     );
     featureDetails
       .shouldHaveApplicationsPageDescription('A test feature for unit testing')
@@ -368,7 +368,7 @@ describe('Feature Details', () => {
   //     },
   //   ).as('getFeatureNotFound');
 
-  //   cy.visit(`/featureStore/features/${fsProjectName}/test-feature-view/nonexistent`);
+  //   cy.visit(`/develop-train/feature-store/features/${fsProjectName}/test-feature-view/nonexistent`);
   //   cy.findByText(`Feature nonexistent does not exist in project ${fsProjectName}`).should(
   //     'be.visible',
   //   );
@@ -380,7 +380,7 @@ describe('Feature Details', () => {
     featuresTable.findRow('test-feature').findFeatureLink().click();
     cy.url().should(
       'include',
-      '/featureStore/features/credit_scoring_local/test-feature-view/test-feature',
+      '/feature-store/features/credit_scoring_local/test-feature-view/test-feature',
     );
 
     featureDetails.findFeatureDetailsPage().should('be.visible');
