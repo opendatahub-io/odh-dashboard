@@ -13,6 +13,10 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
+
+	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp/mcpmocks"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
@@ -29,6 +33,7 @@ type App struct {
 	openAPI                 *OpenAPIHandler
 	kubernetesClientFactory k8s.KubernetesClientFactory
 	llamaStackClientFactory llamastack.LlamaStackClientFactory
+	mcpClientFactory        mcp.MCPClientFactory
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -75,13 +80,27 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		return nil, fmt.Errorf("failed to create Kubernetes client factory: %w", err)
 	}
 
+	// Initialize MCP client factory
+	var mcpFactory mcp.MCPClientFactory
+	if cfg.MockMCPClient {
+		logger.Info("Using mocked MCP client")
+		mcpFactory = mcpmocks.NewMockedMCPClientFactory(cfg, logger)
+	} else {
+		var err error
+		mcpFactory, err = mcp.NewMCPClientFactory(cfg, logger)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create MCP client factory: %w", err)
+		}
+	}
+
 	app := &App{
 		config:                  cfg,
 		logger:                  logger,
-		repositories:            repositories.NewRepositories(),
+		repositories:            repositories.NewRepositoriesWithMCP(mcpFactory, logger),
 		openAPI:                 openAPIHandler,
 		kubernetesClientFactory: k8sFactory,
 		llamaStackClientFactory: llamaStackClientFactory,
+		mcpClientFactory:        mcpFactory,
 	}
 	return app, nil
 }
@@ -148,6 +167,14 @@ func (app *App) Routes() http.Handler {
 
 	// Llama Stack Distribution status endpoint
 	apiRouter.GET(constants.LlamaStackDistributionStatusPath, app.RequireAccessToService(app.AttachNamespace(app.LlamaStackDistributionStatusHandler)))
+
+	// Llama Stack Distribution install endpoint
+	apiRouter.POST(constants.LlamaStackDistributionInstallPath, app.RequireAccessToService(app.AttachNamespace(app.LlamaStackDistributionInstallHandler)))
+
+	// MCP Client endpoints
+	apiRouter.GET(constants.MCPToolsPath, app.RequireAccessToService(app.MCPToolsHandler))
+	apiRouter.GET(constants.MCPStatusPath, app.RequireAccessToService(app.MCPStatusHandler))
+	apiRouter.GET(constants.MCPServersListPath, app.RequireAccessToService(app.MCPListHandler))
 
 	// App Router
 	appMux := http.NewServeMux()
