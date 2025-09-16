@@ -3,6 +3,7 @@ import type {
   RouteExtension,
   AreaExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
+import { chatPlaygroundRootPath, globChatPlaygroundAll } from '~/app/utilities/routes';
 
 const PLUGIN_GEN_AI = 'plugin-gen-ai';
 
@@ -32,9 +33,9 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       id: 'chat-playground',
       title: 'Chat playground',
-      href: '/chat-playground',
+      href: chatPlaygroundRootPath,
       section: 'gen-ai-v3',
-      path: '/chat-playground/*',
+      path: globChatPlaygroundAll,
     },
   },
   {
@@ -56,7 +57,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       required: [PLUGIN_GEN_AI],
     },
     properties: {
-      path: '/chat-playground/*',
+      path: '/gen-ai/*',
       component: () => import('./GenAiWrapper'),
     },
   },

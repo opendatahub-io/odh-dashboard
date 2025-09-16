@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
 import { IconSize } from '@odh-dashboard/internal/types';
 import GenAiCoreProjectSelector from '~/app/GenAiCoreProjectSelector';
+import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
 
 const ChatbotHeader: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -21,7 +22,7 @@ const ChatbotHeader: React.FC = () => {
           <FlexItem>
             <GenAiCoreProjectSelector
               namespace={namespace}
-              getRedirectPath={(n) => `/chat-playground/${n}`}
+              getRedirectPath={genAiChatPlaygroundRoute}
             />
           </FlexItem>
         </Flex>

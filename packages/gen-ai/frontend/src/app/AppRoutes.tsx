@@ -4,8 +4,9 @@ import { ChatbotMain } from '~/app/Chatbot/ChatbotMain';
 import { AIAssetsPage } from '~/app/AIAssets/AIAssetsPage';
 import { NotFound } from '~/app/EmptyStates/NotFound';
 import { NavDataItem } from '~/app/standalone/types';
-import GenAiCoreLoader from './GenAiCoreLoader';
-import ChatbotHeader from './Chatbot/ChatbotHeader';
+import GenAiCoreLoader from '~/app/GenAiCoreLoader';
+import ChatbotHeader from '~/app/Chatbot/ChatbotHeader';
+import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
 
 import '@patternfly/chatbot/dist/css/main.css';
 
@@ -48,7 +49,7 @@ const AppRoutes = (): React.ReactElement => (
       element={
         <GenAiCoreLoader
           title={<ChatbotHeader />}
-          getInvalidRedirectPath={(namespace) => `/chat-playground/${namespace}`}
+          getInvalidRedirectPath={genAiChatPlaygroundRoute}
         />
       }
     >
