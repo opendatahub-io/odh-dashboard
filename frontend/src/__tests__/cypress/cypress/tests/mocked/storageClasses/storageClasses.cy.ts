@@ -601,18 +601,18 @@ describe('Storage classes', () => {
 
       storageClassEditModal
         .findAccessModeCheckbox(AccessMode.RWX)
-        .should('be.disabled')
-        .and('not.be.checked');
+        .should('be.enabled')
+        .and('be.checked');
 
       storageClassEditModal
         .findAccessModeCheckbox(AccessMode.ROX)
-        .should('be.disabled')
-        .and('not.be.checked');
+        .should('be.enabled')
+        .and('be.checked');
 
       storageClassEditModal
         .findAccessModeCheckbox(AccessMode.RWOP)
-        .should('be.disabled')
-        .and('not.be.checked');
+        .should('be.enabled')
+        .and('be.checked');
     });
 
     it('should show access mode checkboxes with empty access mode settings', () => {
@@ -634,17 +634,17 @@ describe('Storage classes', () => {
 
       storageClassEditModal
         .findAccessModeCheckbox(AccessMode.RWX)
-        .should('be.disabled')
+        .should('be.enabled')
         .and('not.be.checked');
 
       storageClassEditModal
         .findAccessModeCheckbox(AccessMode.ROX)
-        .should('be.disabled')
+        .should('be.enabled')
         .and('not.be.checked');
 
       storageClassEditModal
         .findAccessModeCheckbox(AccessMode.RWOP)
-        .should('be.disabled')
+        .should('be.enabled')
         .and('not.be.checked');
     });
 
