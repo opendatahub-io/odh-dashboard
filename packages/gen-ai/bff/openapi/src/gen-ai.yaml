@@ -336,6 +336,51 @@ paths:
       summary: Get LSD Status
       description: Gets the status of LlamaStack Distribution in the specified namespace.
 
+  /gen-ai/api/v1/llamastack-distribution/install:
+    summary: Install LlamaStack Distribution
+    description: >-
+      Installs a new LlamaStack Distribution (LSD) in the specified namespace with the provided models.
+      Creates both the LSD custom resource and a ConfigMap containing the run.yaml configuration.
+      The ConfigMap is configured with the specified models and their endpoints.
+      Requires valid Kubernetes authentication token and namespace parameter.
+      Returns 400 for missing parameters, invalid JSON, or empty models list.
+      Returns 401 for missing or invalid authentication tokens.
+      Returns 500 for internal server errors during resource creation.
+    post:
+      tags:
+        - Kubernetes
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace where the LSD will be installed
+          required: true
+          schema:
+            type: string
+            example: "default"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LlamaStackDistributionInstallRequest"
+            description: Installation request with list of models to include
+            example:
+              models: ["llama-3-2-3b-instruct", "granite-embedding-125m"]
+      responses:
+        "200":
+          $ref: "#/components/responses/LlamaStackDistributionInstallResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: installLlamaStackDistribution
+      summary: Install LSD
+      description: Installs a new LlamaStack Distribution with the specified models.
+
   /gen-ai/api/v1/user:
     summary: Get current user information
     description: >-
@@ -1348,6 +1393,34 @@ components:
         distributionConfig:
           $ref: '#/components/schemas/DistributionConfig'
 
+    LlamaStackDistributionInstallRequest:
+      type: object
+      required:
+        - models
+      properties:
+        models:
+          type: array
+          items:
+            type: string
+          description: List of model names to include in the LSD installation
+          example: ["llama-3-2-3b-instruct", "granite-embedding-125m"]
+          minItems: 1
+
+    LlamaStackDistributionInstallModel:
+      type: object
+      required:
+        - name
+        - httpStatus
+      properties:
+        name:
+          type: string
+          example: "lsd-genai-playground"
+          description: Name of installed LlamaStack Distribution
+        httpStatus:
+          type: string
+          example: "200"
+          description: HTTP status code of the installation operation
+
     DistributionConfig:
       type: object
       required:
@@ -1979,6 +2052,227 @@ components:
                       health:
                         status: 'healthy'
                         message: 'Provider is responding normally'
+                        
+    LlamaStackDistributionInstallResponse:
+      description: LlamaStack Distribution installation result
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/LlamaStackDistributionInstallModel"
+                nullable: true
+            example:
+              data:
+                name: "lsd-genai-playground"
+                httpStatus: "200"
+            examples:
+              installation_success:
+                summary: Successful installation
+                value:
+                  data:
+                    name: "lsd-genai-playground"
+                    httpStatus: "200"
+              installation_error:
+                summary: Installation failed
+                value:
+                  data: null
+
+    MCPToolsResponse:
+      description: Comprehensive tools information from MCP server specified by URL
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/MCPToolsStatus'
+                description: Comprehensive status and tools information from the MCP server
+          examples:
+            success_response:
+              summary: Successful Tools Retrieval
+              value:
+                data:
+                  server_url: 'http://localhost:9090/sse'
+                  status: 'success'
+                  message: 'Successfully retrieved 2 tools'
+                  last_checked: 1755721435
+                  server_info:
+                    name: 'brave'
+                    version: '1.0.0'
+                    protocol_version: '2024-11-05'
+                  tools_count: 2
+                  tools:
+                    - name: 'brave_web_search'
+                      description: 'Search the web using Brave Search API'
+                      input_schema:
+                        type: 'object'
+                        properties:
+                          query:
+                            type: 'string'
+                            description: 'Search query string'
+                          count:
+                            type: 'integer'
+                            description: 'Number of results to return (1-20)'
+                            default: 10
+                        required: ['query']
+                    - name: 'brave_local_search'
+                      description: 'Search for local businesses using Brave Local Search API'
+                      input_schema:
+                        type: 'object'
+                        properties:
+                          query:
+                            type: 'string'
+                            description: "Local search query (e.g. 'pizza near Central Park')"
+                          count:
+                            type: 'integer'
+                            description: 'Number of results to return (1-20)'
+                            default: 5
+                        required: ['query']
+            connection_error:
+              summary: Connection Error
+              value:
+                data:
+                  server_url: 'http://localhost:9090/sse'
+                  status: 'error'
+                  message: 'Server is not reachable'
+                  last_checked: 1755721435
+                  server_info:
+                    name: 'brave'
+                    version: 'N/A'
+                    protocol_version: ''
+                  tools: []
+                  error_details:
+                    code: 'connection_error'
+                    status_code: 503
+                    raw_error: 'failed to create SSE transport: dial tcp: connection refused'
+            authentication_failure:
+              summary: Authentication Failed
+              value:
+                data:
+                  server_url: 'http://localhost:7008/api/mcp-actions/v1/sse'
+                  status: 'error'
+                  message: 'Authentication failed'
+                  last_checked: 1755721435
+                  server_info:
+                    name: 'brave'
+                    version: 'N/A'
+                    protocol_version: ''
+                  tools: []
+                  error_details:
+                    code: 'unauthorized'
+                    status_code: 401
+                    raw_error: 'failed to connect to MCP server: HTTP 401: invalid bearer token'
+
+    MCPStatusResponse:
+      description: Connection status from MCP server specified by URL
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/MCPConnectionStatus'
+                description: Connection status information for the MCP server
+          examples:
+            successful_connection:
+              summary: Successful Connection
+              value:
+                data:
+                  server_url: 'http://localhost:9090/sse'
+                  status: 'connected'
+                  message: 'Connection successful'
+                  last_checked: 1757090417
+                  server_info:
+                    name: 'example-servers/brave-search'
+                    version: '0.1.0'
+                    protocol_version: '2025-06-18'
+                  ping_response_time_ms: 2444
+            server_unavailable:
+              summary: Server Unavailable
+              value:
+                data:
+                  server_url: 'http://localhost:9090/sse'
+                  status: 'error'
+                  message: 'Server is not reachable'
+                  last_checked: 1757090515
+                  server_info:
+                    name: 'brave'
+                    version: 'N/A'
+                    protocol_version: ''
+                  error_details:
+                    code: 'CONNECTION_FAILED'
+                    status_code: 503
+                    raw_error: 'failed to connect to MCP server: Get "http://localhost:9090/sse": dial tcp [::1]:9090: connect: connection refused'
+            authentication_failure:
+              summary: Authentication Failed
+              value:
+                data:
+                  server_url: 'http://localhost:7008/api/mcp-actions/v1/sse'
+                  status: 'error'
+                  message: 'Authentication failed'
+                  last_checked: 1757090647
+                  server_info:
+                    name: 'brave'
+                    version: 'N/A'
+                    protocol_version: ''
+                  error_details:
+                    code: 'unauthorized'
+                    status_code: 401
+                    raw_error: "failed to connect to MCP server: Get \"http://localhost:7008/api/mcp-actions/v1/sse\": HTTP 401: {\n  \"error\": {\n    \"name\": \"AuthenticationError\",\n    \"message\": \"Illegal token\",\n    \"stack\": \"AuthenticationError: Illegal token\\n    at DefaultAuthService.authenticate (/Users/akundu/Desktop/DeveloperHub/learning-projects/my-portal/node_modules/@backstage/backend-defaults/src/entrypoints/auth/DefaultAuthService.ts:102:11)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\\n    at async DefaultHttpAuthService.#extractCredentialsFromRequest (/Users/akundu/Desktop/DeveloperHub/learning-projects/my-portal/node_modules/@backstage/backend-defaults/src/entrypoints/httpAuth/httpAuthServiceFactory.ts:124:12)\\n    at async DefaultHttpAuthService.credentials (/Users/akundu/Desktop/DeveloperHub/learning-projects/my-portal/node_modules/@backstage/backend-defaults/src/entrypoints/httpAuth/httpAuthServiceFactory.ts:167:9)\"\n  },\n  \"request\": {\n    \"method\": \"GET\",\n    \"url\": \"/v1/sse\"\n  },\n  \"response\": {\n    \"statusCode\": 401\n  }\n}"
+
+    MCPServersListResponse:
+      description: Enhanced list of available MCP servers from ConfigMap with metadata
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/MCPListData'
+                description: Enhanced MCP servers list with metadata
+          examples:
+            success_response:
+              summary: Successful MCP Servers List
+              value:
+                data:
+                  servers:
+                    - name: 'brave'
+                      url: 'http://localhost:9090/sse'
+                      transport: 'sse'
+                      description: 'Search the Internet.'
+                      logo: null
+                      status: 'healthy'
+                    - name: 'kubernetes'
+                      url: 'http://localhost:9091/mcp'
+                      transport: 'streamable-http'
+                      description: 'Manage resources in a Kubernetes cluster.'
+                      logo: 'https://kubernetes.io/_common-resources/images/flower.svg'
+                      status: 'healthy'
+                  total_count: 2
+                  config_map_info:
+                    name: 'gen-ai-aa-mcp-servers-e'
+                    namespace: 'mcp-servers'
+                    last_updated: '2024-01-15T10:30:00Z'
+            empty_response:
+              summary: Empty ConfigMap
+              value:
+                data:
+                  servers: []
+                  total_count: 0
+                  config_map_info:
+                    name: 'gen-ai-aa-mcp-servers-e'
+                    namespace: 'mcp-servers'
+                    last_updated: '2024-01-15T10:30:00Z'
 
     MCPToolsResponse:
       description: Comprehensive tools information from MCP server specified by URL
