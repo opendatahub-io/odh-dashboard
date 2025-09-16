@@ -4,7 +4,8 @@ This guide shows how to test the BFF (Backend for Frontend) that integrates Llam
 
 ## Prerequisites
 
-// TODO: Update example to use Openshift. 
+// TODO: Update example to use Openshift.
+
 - Kubernetes cluster running (this example uses Kind)
 - LlamaStack server running on `http://localhost:8321`
 - Go development environment
@@ -14,6 +15,7 @@ This guide shows how to test the BFF (Backend for Frontend) that integrates Llam
 ### 1. Get Authentication Token from Kind Cluster
 
 **Option A: Extract from kubeconfig (may not work with Kind clusters)**
+
 ```bash
 # Try to extract token from kubeconfig (often empty for Kind clusters)
 export TOKEN="$(kubectl config view --raw -o jsonpath='{.users[0].user.token}')"
@@ -26,6 +28,7 @@ fi
 ```
 
 **Option B: Create Service Account with Token (Recommended for dev)**
+
 ```bash
 # Create a service account for BFF testing
 kubectl -n default create sa bff-user --dry-run=client -o yaml | kubectl apply -f -
@@ -48,6 +51,7 @@ echo "Token: $TOKEN"
 ```
 
 **Option C: Cluster Admin Access (Dev only, use with caution)**
+
 ```bash
 # For testing cluster-admin flows, bind cluster-admin role (DEV ONLY)
 kubectl create clusterrolebinding bff-admin-binding \
@@ -73,6 +77,7 @@ make run STATIC_ASSETS_DIR=../frontend/dist
 ```
 
 **Environment Variables:**
+
 - `LLAMA_STACK_URL`: URL of your LlamaStack backend
 - `AUTH_METHOD=user_token`: Enables token-based authentication
 - `AUTH_TOKEN_HEADER=Authorization`: Header name for the bearer token
@@ -83,11 +88,13 @@ make run STATIC_ASSETS_DIR=../frontend/dist
 #### Test LlamaStack AI Endpoints
 
 **List Available AI Models:**
+
 ```bash
 curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/models"
 ```
 
 **List Vector Stores:**
+
 ```bash
 curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/vectorstores"
 ```
@@ -95,24 +102,62 @@ curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/v
 #### Test Kubernetes Endpoints
 
 **List Namespaces:**
+
 ```bash
 curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/namespaces"
 ```
 
 **Get LlamaStack Distribution Status:**
+
 ```bash
 curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/llamastack-distribution/status?namespace=default"
+```
+
+#### Test MCP (Model Context Protocol) Endpoints
+
+**List Available MCP Servers:**
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/aa/mcps?namespace=default"
+```
+
+**Get MCP Server Status:**
+
+```bash
+# URL-encode the server URL parameter
+SERVER_URL="http%3A%2F%2Flocalhost%3A9090%2Fsse"
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/mcp/status?namespace=default&server_url=$SERVER_URL"
+```
+
+**Get MCP Server Tools:**
+
+```bash
+# URL-encode the server URL parameter
+SERVER_URL="http%3A%2F%2Flocalhost%3A9090%2Fsse"
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/mcp/tools?namespace=default&server_url=$SERVER_URL"
+```
+
+**Optional: With MCP Server Authentication:**
+
+```bash
+# Include MCP server bearer token if the MCP server requires authentication
+SERVER_URL="http%3A%2F%2Flocalhost%3A9090%2Fsse"
+curl -i -H "Authorization: Bearer $TOKEN" \
+     -H "X-MCP-Bearer: Bearer mcp_server_token_123" \
+     "http://localhost:8080/gen-ai/api/v1/mcp/status?namespace=default&server_url=$SERVER_URL"
 ```
 
 #### Test Authentication (Should Fail)
 
 **Request without token:**
+
 ```bash
 curl -i "http://localhost:8080/gen-ai/api/v1/models"
 # Expected: 400 Bad Request - missing required Header: Authorization
 ```
 
 **Request without namespace parameter (LSD endpoint):**
+
 ```bash
 curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/llamastack-distribution/status"
 # Expected: 400 Bad Request - missing required query parameter: namespace
@@ -123,6 +168,7 @@ curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/l
 ### Successful Responses (200 OK)
 
 **Models Response:**
+
 ```json
 {
   "data": [
@@ -137,6 +183,7 @@ curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/l
 ```
 
 **Namespaces Response:**
+
 ```json
 {
   "data": [
@@ -153,6 +200,7 @@ curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/l
 ```
 
 **LlamaStack Distribution Status Response (LSD Found):**
+
 ```json
 {
   "data": {
@@ -183,15 +231,118 @@ curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/l
 ```
 
 **LlamaStack Distribution Status Response (No LSD Found):**
+
 ```json
 {
   "data": null
 }
 ```
 
+**MCP Servers List Response:**
+
+```json
+{
+  "data": {
+    "servers": [
+      {
+        "name": "brave",
+        "url": "http://localhost:9090/sse",
+        "transport": "sse",
+        "description": "Search the Internet.",
+        "logo": null,
+        "status": "healthy"
+      },
+      {
+        "name": "kubernetes",
+        "url": "http://localhost:9091/mcp",
+        "transport": "streamable-http",
+        "description": "Manage resources in a Kubernetes cluster.",
+        "logo": "https://kubernetes.io/_common-resources/images/flower.svg",
+        "status": "healthy"
+      }
+    ],
+    "total_count": 2,
+    "config_map_info": {
+      "name": "gen-ai-aa-mcp-servers",
+      "namespace": "mcp-servers",
+      "last_updated": "2025-01-21T10:30:00Z"
+    }
+  }
+}
+```
+
+**MCP Server Status Response:**
+
+```json
+{
+  "data": {
+    "server_url": "http://localhost:9090/sse",
+    "status": "connected",
+    "message": "Successfully connected to MCP server",
+    "last_checked": 1755721435,
+    "server_info": {
+      "name": "brave-search-server",
+      "version": "1.0.0",
+      "protocol_version": "2024-11-05"
+    },
+    "ping_response_time_ms": 45
+  }
+}
+```
+
+**MCP Server Tools Response:**
+
+```json
+{
+  "data": {
+    "server_url": "http://localhost:9090/sse",
+    "status": "success",
+    "message": "Successfully retrieved tools from MCP server",
+    "last_checked": 1755721435,
+    "server_info": {
+      "name": "brave-search-server",
+      "version": "1.0.0",
+      "protocol_version": "2024-11-05"
+    },
+    "tools_count": 2,
+    "tools": [
+      {
+        "name": "brave_web_search",
+        "description": "Search the web using Brave Search API",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Search query"
+            }
+          },
+          "required": ["query"]
+        }
+      },
+      {
+        "name": "brave_local_search",
+        "description": "Search for local businesses and places",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Local search query"
+            }
+          },
+          "required": ["query"]
+        }
+      }
+    ]
+  }
+}
+```
+
 ### Error Responses
 
 **Missing Authentication (400 Bad Request):**
+
 ```json
 {
   "error": {
@@ -210,6 +361,7 @@ The BFF supports mock clients for both Kubernetes and LlamaStack, allowing you t
 #### 1. Mock Kubernetes Client
 
 **Start BFF with Mock K8s Client:**
+
 ```bash
 LLAMA_STACK_URL=http://localhost:8321 \
 AUTH_METHOD=user_token \
@@ -220,12 +372,14 @@ make run STATIC_ASSETS_DIR=../frontend/dist
 ```
 
 **Environment Variables:**
+
 - `MOCK_K8S_CLIENT=true`: Enables mock Kubernetes client
 - `MOCK_K8S_CLIENT=false` (or not set): Uses real Kubernetes cluster
 
 #### 2. Mock LlamaStack Client
 
 **Start BFF with Mock LS Client:**
+
 ```bash
 LLAMA_STACK_URL=http://localhost:8321 \
 AUTH_METHOD=user_token \
@@ -236,12 +390,14 @@ make run STATIC_ASSETS_DIR=../frontend/dist
 ```
 
 **Environment Variables:**
+
 - `MOCK_LS_CLIENT=true`: Enables mock LlamaStack client
 - `MOCK_LS_CLIENT=false` (or not set): Uses real LlamaStack server
 
 #### 3. Combined Mock Mode
 
 **Start BFF with Both Mock Clients:**
+
 ```bash
 LLAMA_STACK_URL=http://localhost:8321 \
 AUTH_METHOD=user_token \
@@ -249,6 +405,39 @@ AUTH_TOKEN_HEADER=Authorization \
 AUTH_TOKEN_PREFIX="Bearer " \
 MOCK_K8S_CLIENT=true \
 MOCK_LS_CLIENT=true \
+make run STATIC_ASSETS_DIR=../frontend/dist
+```
+
+#### 4. Mock MCP Client
+
+**Start BFF with Mock MCP Client:**
+
+```bash
+LLAMA_STACK_URL=http://localhost:8321 \
+AUTH_METHOD=user_token \
+AUTH_TOKEN_HEADER=Authorization \
+AUTH_TOKEN_PREFIX="Bearer " \
+MOCK_MCP_CLIENT=true \
+make run STATIC_ASSETS_DIR=../frontend/dist
+```
+
+**Environment Variables:**
+
+- `MOCK_MCP_CLIENT=true`: Enables mock MCP client
+- `MOCK_MCP_CLIENT=false` (or not set): Uses real MCP servers
+
+#### 5. Combined Mock Mode (All Services)
+
+**Start BFF with All Mock Clients:**
+
+```bash
+LLAMA_STACK_URL=http://localhost:8321 \
+AUTH_METHOD=user_token \
+AUTH_TOKEN_HEADER=Authorization \
+AUTH_TOKEN_PREFIX="Bearer " \
+MOCK_K8S_CLIENT=true \
+MOCK_LS_CLIENT=true \
+MOCK_MCP_CLIENT=true \
 make run STATIC_ASSETS_DIR=../frontend/dist
 ```
 
@@ -257,9 +446,11 @@ make run STATIC_ASSETS_DIR=../frontend/dist
 When using mock clients, you must use predefined test tokens:
 
 **Valid Mock Tokens:**
-- `FAKE_BEARER_TOKEN` 
+
+- `FAKE_BEARER_TOKEN`
 
 **Invalid Tokens (will fail):**
+
 - `dummy-token` ❌ → `"unknown test token: dummy-token"`
 - `some-random-token` ❌ → `"unknown test token: some-random-token"`
 - Any other token ❌ → `"unknown test token: [token]"`
@@ -269,11 +460,13 @@ When using mock clients, you must use predefined test tokens:
 #### List Namespaces (Mock K8s)
 
 **Request:**
+
 ```bash
 curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/namespaces"
 ```
 
 **Expected Response (200 OK):**
+
 ```json
 {
   "data": [
@@ -298,11 +491,13 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-
 #### Get LlamaStack Distribution Status (Mock K8s)
 
 **Request:**
+
 ```bash
 curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/llamastack-distribution/status?namespace=test-namespace"
 ```
 
 **Expected Response (200 OK):**
+
 ```json
 {
   "data": {
@@ -338,11 +533,13 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-
 #### List Models (Mock LS)
 
 **Request:**
+
 ```bash
 curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/models"
 ```
 
 **Expected Response (200 OK):**
+
 ```json
 {
   "data": [
@@ -365,11 +562,13 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-
 #### List Vector Stores (Mock LS)
 
 **Request:**
+
 ```bash
 curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/vectorstores"
 ```
 
 **Expected Response (200 OK):**
+
 ```json
 {
   "data": [
@@ -400,6 +599,7 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-
 #### Create AI Response (Mock LS)
 
 **Request:**
+
 ```bash
 curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" \
   "http://localhost:8080/gen-ai/api/v1/responses" \
@@ -409,6 +609,7 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" \
 ```
 
 **Expected Response (201 Created):**
+
 ```json
 {
   "data": {
@@ -421,6 +622,137 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" \
 }
 ```
 
+### Testing Mock MCP Endpoints
+
+#### List MCP Servers (Mock MCP)
+
+**Request:**
+
+```bash
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/aa/mcps?namespace=default"
+```
+
+**Expected Response (200 OK):**
+
+```json
+{
+  "data": {
+    "servers": [
+      {
+        "name": "mock-brave-server",
+        "url": "http://localhost:9090/sse",
+        "transport": "sse",
+        "description": "Mock Brave Search MCP server",
+        "logo": null,
+        "status": "healthy"
+      },
+      {
+        "name": "mock-kubernetes-server",
+        "url": "http://localhost:9091/mcp",
+        "transport": "streamable-http",
+        "description": "Mock Kubernetes MCP server",
+        "logo": "https://kubernetes.io/images/flower.svg",
+        "status": "healthy"
+      }
+    ],
+    "total_count": 2,
+    "config_map_info": {
+      "name": "mock-mcp-config",
+      "namespace": "mock-namespace",
+      "last_updated": "2025-01-21T10:00:00Z"
+    }
+  }
+}
+```
+
+#### Get MCP Server Status (Mock MCP)
+
+**Request:**
+
+```bash
+SERVER_URL="http%3A%2F%2Flocalhost%3A9090%2Fsse"
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/mcp/status?namespace=default&server_url=$SERVER_URL"
+```
+
+**Expected Response (200 OK):**
+
+```json
+{
+  "data": {
+    "server_url": "http://localhost:9090/sse",
+    "status": "connected",
+    "message": "Mock: Successfully connected to MCP server",
+    "last_checked": 1755721435,
+    "server_info": {
+      "name": "mock-brave-server",
+      "version": "1.0.0-mock",
+      "protocol_version": "2024-11-05"
+    },
+    "ping_response_time_ms": 25
+  }
+}
+```
+
+#### Get MCP Server Tools (Mock MCP)
+
+**Request:**
+
+```bash
+SERVER_URL="http%3A%2F%2Flocalhost%3A9090%2Fsse"
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/mcp/tools?namespace=default&server_url=$SERVER_URL"
+```
+
+**Expected Response (200 OK):**
+
+```json
+{
+  "data": {
+    "server_url": "http://localhost:9090/sse",
+    "status": "success",
+    "message": "Mock: Successfully retrieved tools from MCP server",
+    "last_checked": 1755721435,
+    "server_info": {
+      "name": "mock-brave-server",
+      "version": "1.0.0-mock",
+      "protocol_version": "2024-11-05"
+    },
+    "tools_count": 2,
+    "tools": [
+      {
+        "name": "mock_web_search",
+        "description": "Mock web search tool",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Search query"
+            }
+          },
+          "required": ["query"]
+        }
+      },
+      {
+        "name": "mock_local_search", 
+        "description": "Mock local search tool",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Local search query"
+            }
+          },
+          "required": ["query"]
+        }
+      }
+    ]
+  }
+}
+```
+
+**Mock Data Source:** Hardcoded in `internal/integrations/mcp/mcpmocks/`
+
 ### Troubleshooting Mock Mode
 
 **Common Issues:**
@@ -431,13 +763,19 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" \
 
 2. **Still Getting Real Data:**
    - Verify environment variables are set correctly
-   - Check BFF startup logs for "Using mocked Kubernetes client" or "Using mock LlamaStack client"
+   - Check BFF startup logs for "Using mocked Kubernetes client", "Using mock LlamaStack client", or "Using mocked MCP client"
    - Restart BFF after changing mock settings
 
 3. **Mock Data Not Matching Expected:**
    - Check the mock client source files for current mock data
    - Mock data is hardcoded and may be updated in newer versions
 
+4. **MCP Server URL Encoding Issues:**
+   - Ensure server URLs are properly URL-encoded when testing MCP endpoints
+   - Use online URL encoder or shell command: `python3 -c "import urllib.parse; print(urllib.parse.quote('http://localhost:9090/sse', safe=''))"`
+
 **Mock Data Locations:**
+
 - **K8s Mock Data:** `internal/integrations/kubernetes/k8smocks/`
 - **LS Mock Data:** `internal/integrations/llamastack/lsmocks/`
+- **MCP Mock Data:** `internal/integrations/mcp/mcpmocks/`

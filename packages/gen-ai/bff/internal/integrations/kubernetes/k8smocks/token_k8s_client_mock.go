@@ -320,4 +320,48 @@ server:
 	}
 
 	return lsd, nil
+  
+func (m *TokenKubernetesClientMock) GetConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.ConfigMap, error) {
+	// Return mock ConfigMap for testing
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Data: map[string]string{
+			"brave": `{
+  "url": "http://localhost:9090/sse",
+  "transport": "sse",
+  "description": "Search the Internet using Brave Search."
+}`,
+			"kubernetes": `{
+  "url": "http://localhost:9091/mcp",
+  "description": "Manage resources in a Kubernetes cluster.",
+  "logo": "https://kubernetes.io/images/kubernetes-horizontal-color.png"
+}`,
+			"default-transport": `{
+  "url": "http://localhost:9092/default-transport",
+  "description": "Server with default transport (streamable-http)."
+}`,
+			"invalid-transport": `{
+  "url": "http://localhost:9093/invalid-transport",
+  "transport": "invalid-transport-type",
+  "description": "Server with invalid transport field."
+}`,
+			"unavailable-server": `{
+  "url": "https://mcp-unavailable:8080/sse",
+  "transport": "sse",
+  "description": "Server that is not reachable for testing error scenarios."
+}`,
+			"error-server": `{
+  "url": "https://mcp-error:8080/mcp",
+  "description": "Server that returns authentication errors for testing."
+}`,
+			"github-copilot": `{
+  "url": "https://api.githubcopilot.com/mcp",
+  "description": "GitHub Copilot MCP server with advanced kubectl tools.",
+  "logo": "https://github.com/images/modules/logos_page/GitHub-Mark.png"
+}`,
+		},
+	}, nil
 }
