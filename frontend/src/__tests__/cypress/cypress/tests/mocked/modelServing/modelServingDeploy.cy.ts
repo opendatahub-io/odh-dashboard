@@ -201,7 +201,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
     debugger;
-    hardwareProfileSection.findHardwareProfileSearchSelector().click();
+    hardwareProfileSection.findNewHardwareProfileSelector().click();
     const globalScopedHardwareProfile = hardwareProfileSection.getGlobalScopedHardwareProfile();
     globalScopedHardwareProfile
       .find()
