@@ -38,6 +38,19 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     },
   },
   {
+    type: 'app.navigation/href',
+    flags: {
+      required: [PLUGIN_GEN_AI],
+    },
+    properties: {
+      id: 'ai-assets',
+      title: 'AI asset endpoints',
+      href: '/ai-assets',
+      section: 'gen-ai-v3',
+      path: '/ai-assets/*',
+    },
+  },
+  {
     type: 'app.route',
     flags: {
       required: [PLUGIN_GEN_AI],
