@@ -23,7 +23,7 @@ import {
   type ModuleFederationConfig,
   MF_PATH_PREFIX,
   getModuleFederationURL,
-} from '@odh-dashboard/app-config/node';
+} from '@odh-dashboard/app-config';
 import './commands';
 import '#~/__tests__/cypress/cypress/utils/moduleFederationMock';
 import { asProjectAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';

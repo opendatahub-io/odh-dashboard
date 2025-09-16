@@ -7,7 +7,8 @@
     "package-subtree": "./scripts/package-subtree.sh"
   },
   "exports": {
-    "./node": "./src/node.ts"
+    ".": "./src/index.ts",
+    "./node": "./src/node/index.ts"
   },
   "scripts": {
     "lint": "eslint .",
