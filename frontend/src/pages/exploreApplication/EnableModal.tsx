@@ -19,19 +19,12 @@ import { asEnumMember } from '#~/utilities/utils';
 import EnableVariable from './EnableVariable';
 import './EnableModal.scss';
 
-type WarningProps = {
-  field: string;
-  validator: (value: string) => boolean;
-  message: string;
-};
-
 type EnableModalProps = {
   selectedApp: OdhApplication;
   onClose: () => void;
-  warningProps?: WarningProps;
 };
 
-const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose, warningProps }) => {
+const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
   const [postError, setPostError] = React.useState('');
   const [warning, setWarning] = React.useState('');
   const [validationInProgress, setValidationInProgress] = React.useState(false);
@@ -74,16 +67,9 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose, warning
             setWarning('');
           }
         }
-      } else if (warningProps && key === warningProps.field) {
-        // Fall back to warning props validation
-        if (value && warningProps.validator(value)) {
-          setWarning(warningProps.message);
-        } else {
-          setWarning('');
-        }
       }
     },
-    [warningProps, selectedApp.spec.enable?.warningValidation],
+    [selectedApp.spec.enable?.warningValidation],
   );
 
   const debouncedValidateField = React.useCallback(
