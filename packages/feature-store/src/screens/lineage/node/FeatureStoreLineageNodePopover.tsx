@@ -64,17 +64,14 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
 }) => {
   const { currentProject } = useFeatureStoreProject();
   const navigate = useNavigate();
-
-  // Drag tracking is now handled in useLineagePopover hook
+  const { getLastClickPosition } = useLineageClick();
+  const clickPosition = getLastClickPosition();
+  const triggerElement = clickPosition?.pillElement;
 
   // Conditional rendering after all hooks
   if (!node || !isVisible || !currentProject) {
     return null;
   }
-
-  const { getLastClickPosition } = useLineageClick();
-  const clickPosition = getLastClickPosition();
-  const triggerElement = clickPosition?.pillElement;
 
   if (!triggerElement) {
     return null;
@@ -129,7 +126,7 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
         </Stack>
       }
       headerContent={
-        <Flex>
+        <Flex alignItems={{ default: 'alignItemsCenter' }}>
           <FlexItem>{getEntityTypeIcon(node.entityType)}</FlexItem>
           <FlexItem>{node.label}</FlexItem>
         </Flex>

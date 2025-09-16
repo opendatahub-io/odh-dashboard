@@ -47,7 +47,7 @@ describe('utils', () => {
         count: 2,
         description:
           'Datasets are point-in-time-correct snapshots of feature data used for training or validation.',
-        route: '/featureStore/savedDatasets',
+        route: '/featureStore/dataSets',
       });
       expect(result[3]).toEqual({
         title: 'Features',
@@ -200,7 +200,7 @@ describe('utils', () => {
 
     it('should return correct route for saved datasets', () => {
       const result = getResourceRoute('saved datasets', mockResourceName, mockProject);
-      expect(result).toBe(`/featureStore/savedDatasets/${mockResourceName}?project=${mockProject}`);
+      expect(result).toBe(`/featureStore/dataSets/${mockResourceName}?project=${mockProject}`);
     });
 
     it('should return correct route for data sources', () => {
@@ -243,7 +243,7 @@ describe('utils', () => {
         },
         {
           resourceType: 'saved datasets',
-          expectedRoute: `/featureStore/savedDatasets/${mockResourceName}?project=${mockProject}`,
+          expectedRoute: `/featureStore/dataSets/${mockResourceName}?project=${mockProject}`,
         },
         {
           resourceType: 'data sources',
