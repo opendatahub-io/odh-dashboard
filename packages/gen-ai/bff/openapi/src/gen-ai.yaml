@@ -349,15 +349,181 @@ paths:
       security:
         - Bearer: []
       responses:
-        "200":
-          $ref: "#/components/responses/UserResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          $ref: '#/components/responses/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: getCurrentUser
       summary: Get Current User
       description: Gets the current authenticated user information from the Kubernetes cluster.
+
+  /gen-ai/api/v1/mcp/tools:
+    summary: Get tools from MCP server by URL
+    description: >-
+      Retrieves the available tools from a specific MCP (Model Context Protocol) server by its URL.
+      Uses the MCP client to connect to the server specified by the server_url parameter and fetch its tool definitions.
+      Returns tool information including names, descriptions, and input schemas.
+
+      The server_url parameter should be the full URL-encoded endpoint for the MCP server.
+
+      Requires valid authentication token for MCP client operations.
+      Optionally accepts MCP server authentication via X-MCP-Bearer header.
+    get:
+      tags:
+        - MCP Servers
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace
+          required: true
+          schema:
+            type: string
+            example: 'demo'
+        - name: server_url
+          in: query
+          description: Full URL-encoded endpoint for the MCP server
+          required: true
+          schema:
+            type: string
+            format: uri
+            example: 'http%3A%2F%2Flocalhost%3A9090%2Fsse'
+        - name: X-MCP-Bearer
+          in: header
+          description: Optional Bearer token for MCP server authentication. Must include 'Bearer ' prefix.
+          required: false
+          schema:
+            type: string
+            pattern: '^Bearer .+'
+            example: 'Bearer mcp_server_token_123'
+      responses:
+        '200':
+          $ref: '#/components/responses/MCPToolsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getMCPTools
+      summary: Get MCP Tools by URL
+      description: Gets the available tools from the MCP server specified by URL.
+
+  /gen-ai/api/v1/mcp/status:
+    summary: Get connection status from MCP server by URL
+    description: >-
+      Retrieves the connection status of a specific MCP (Model Context Protocol) server by its URL.
+      Uses the MCP client to connect to the server specified by the server_url parameter and check its availability.
+      Returns connection status information including connectivity state, response message, and last check timestamp.
+
+      The server_url parameter should be the full URL-encoded endpoint for the MCP server.
+
+      Requires valid authentication token for MCP client operations.
+      Optionally accepts MCP server authentication via X-MCP-Bearer header.
+    get:
+      tags:
+        - MCP Servers
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace
+          required: true
+          schema:
+            type: string
+            example: 'demo'
+        - name: server_url
+          in: query
+          description: Full URL-encoded endpoint for the MCP server
+          required: true
+          schema:
+            type: string
+            format: uri
+            example: 'http%3A%2F%2Flocalhost%3A9090%2Fsse'
+        - name: X-MCP-Bearer
+          in: header
+          description: Optional Bearer token for MCP server authentication. Must include 'Bearer ' prefix.
+          required: false
+          schema:
+            type: string
+            pattern: '^Bearer .+'
+            example: 'Bearer mcp_server_token_123'
+      responses:
+        '200':
+          $ref: '#/components/responses/MCPStatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getMCPStatus
+      summary: Get MCP Server Status by URL
+      description: Gets the connection status of the MCP server specified by URL.
+
+  /gen-ai/api/v1/aa/mcps:
+    get:
+      tags:
+        - MCP Servers
+      operationId: getMCPServersList
+      summary: Get Enhanced List of Available MCP Servers
+      description: >-
+        Retrieves an enhanced list of available MCP (Model Context Protocol) servers from the ConfigMap.
+        Returns a flattened server array with comprehensive metadata.
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+      responses:
+        '200':
+          description: Successfully retrieved enhanced list of MCP servers with metadata
+          $ref: '#/components/responses/MCPServersListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Access denied to ConfigMap
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                config_map_access_denied:
+                  summary: ConfigMap Access Denied
+                  value:
+                    error:
+                      code: '403'
+                      message: "Access denied to ConfigMap 'gen-ai-aa-mcp-servers-e' in namespace 'mcp-servers'"
+                      details:
+                        config_map_name: 'gen-ai-aa-mcp-servers-e'
+                        namespace: 'mcp-servers'
+                        reason: 'Insufficient permissions'
+        '404':
+          description: ConfigMap not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                config_map_not_found:
+                  summary: ConfigMap Not Found
+                  value:
+                    error:
+                      code: '404'
+                      message: "ConfigMap 'gen-ai-aa-mcp-servers-e' not found in namespace 'mcp-servers'"
+                      details:
+                        config_map_name: 'gen-ai-aa-mcp-servers-e'
+                        namespace: 'mcp-servers'
+                        reason: 'ConfigMap does not exist'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
 components:
   securitySchemes:
@@ -366,6 +532,15 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: Bearer token authentication using OAuth2 JWT tokens
+  parameters:
+    NamespaceParam:
+      name: namespace
+      in: query
+      description: Kubernetes namespace to operate in.
+      required: true
+      schema:
+        type: string
+        example: 'demo'
   schemas:
     HealthCheckModel:
       type: object
@@ -966,11 +1141,11 @@ components:
           type: string
           minLength: 1
           maxLength: 256
-          example: "default_vector_store"
+          example: 'default_vector_store'
           description: Name of the vector store
         embedding_model:
           type: string
-          example: "all-minilm:l6-v2"
+          example: 'all-minilm:l6-v2'
           description: Embedding model to use for the vector store
         embedding_dimension:
           type: integer
@@ -979,7 +1154,7 @@ components:
           description: Dimension of the embedding vectors
         provider_id:
           type: string
-          example: "milvus"
+          example: 'milvus'
           description: Provider ID for the vector store backend
 
     FileUpload:
@@ -990,13 +1165,13 @@ components:
       properties:
         file:
           type: string
-          example: "document.pdf"
+          example: 'document.pdf'
           description: Name of the file to upload
         purpose:
           type: string
           enum: [assistants, batch, fine-tune, vision, user_data, evals]
-          default: "assistants"
-          example: "assistants"
+          default: 'assistants'
+          example: 'assistants'
           description: Intended purpose of the file
 
     CodeExportRequest:
@@ -1040,12 +1215,12 @@ components:
               vector_store_ids: ['vs_abc123']
           description: Tools to include in the generated code
         vector_store:
-          $ref: "#/components/schemas/VectorStoreConfig"
+          $ref: '#/components/schemas/VectorStoreConfig'
           description: Vector store configuration for RAG functionality
         files:
           type: array
           items:
-            $ref: "#/components/schemas/FileUpload"
+            $ref: '#/components/schemas/FileUpload'
           description: Files to upload and add to the vector store
 
     CodeExportData:
@@ -1110,7 +1285,7 @@ components:
                 with open(os.path.join(FILES_BASE_PATH, file_info["file"]), 'rb') as file:
                     uploaded_file = client.files.create(file=file, purpose=file_info["purpose"])
                     client.vector_stores.files.create(
-                        vector_store_id=vector_store.id, 
+                        vector_store_id=vector_store.id,
                         file_id=uploaded_file.id
                     )
 
@@ -1247,8 +1422,429 @@ components:
       properties:
         userId:
           type: string
-          example: "user@example.com"
+          example: 'user@example.com'
           description: Current authenticated user identifier from Kubernetes cluster
+
+    # MCP Server Configuration Schema
+    MCPServerConfigMap:
+      type: object
+      required:
+        - metadata
+        - data
+      properties:
+        metadata:
+          $ref: '#/components/schemas/ConfigMapMetadata'
+        data:
+          type: object
+          additionalProperties:
+            type: string
+          description: Map of JSON configuration data for MCP servers
+          example:
+            dev-cluster: |
+              {
+                "url": "https://mcp-one:8080",
+                "description": "Manage resources in a Kubernetes cluster.",
+                "logo": "https://mysite.com/logo.png"
+              }
+            git-hub: |
+              {
+                "url": "https://mcp-two",
+                "description": "Manage a GitHub repository.",
+                "logo": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+              }
+
+    # MCP Server Status and Tools Schema
+    MCPServerConnectionStatus:
+      type: object
+      required:
+        - server_url
+        - status
+        - last_checked
+      properties:
+        server_url:
+          type: string
+          example: 'http://kubectl-mcp-server.mcp-servers.svc.cluster.local:8080'
+          description: URL of the MCP server
+        status:
+          type: string
+          enum: [connected, disconnected, error]
+          example: 'connected'
+          description: Connection status of the MCP server
+        message:
+          type: string
+          example: 'Successfully connected to MCP server'
+          description: Optional message providing additional status information
+        last_checked:
+          type: integer
+          format: int64
+          example: 1755721435
+          description: Unix timestamp when the status was last checked
+
+    MCPTool:
+      type: object
+      required:
+        - name
+        - description
+        - input_schema
+      properties:
+        name:
+          type: string
+          example: 'kubectl_get_pods'
+          description: Name of the MCP tool
+        description:
+          type: string
+          example: 'List pods in a Kubernetes namespace'
+          description: Human-readable description of what the tool does
+        input_schema:
+          type: object
+          example:
+            type: 'object'
+            properties:
+              namespace:
+                type: 'string'
+                description: 'Kubernetes namespace to list pods from'
+              label_selector:
+                type: 'string'
+                description: 'Optional label selector to filter pods'
+            required: ['namespace']
+          description: JSON schema defining the tool's input parameters
+
+    MCPServersMap:
+      type: object
+      description: MCP server information where each key is the server name and value contains server details
+      additionalProperties:
+        $ref: '#/components/schemas/MCPServerConfig'
+      example:
+        brave:
+          url: 'http://localhost:9090/sse'
+          transport: 'sse'
+          description: 'Search the Internet.'
+        kubernetes:
+          url: 'http://localhost:9091/mcp'
+          transport: 'streamable-http'
+          description: 'Manage resources in a Kubernetes cluster.'
+          logo: 'https://kubernetes.io/_common-resources/images/flower.svg'
+
+    MCPServerConfig:
+      type: object
+      required:
+        - url
+        - transport
+      properties:
+        url:
+          type: string
+          format: uri
+          example: 'http://localhost:9090/sse'
+          description: Full URL of the MCP server endpoint
+        transport:
+          type: string
+          enum: ['sse', 'streamable-http']
+          example: 'sse'
+          description: Transport type used by the MCP server
+        description:
+          type: string
+          example: 'Brave search MCP server'
+          description: Optional description of the MCP server functionality
+        logo:
+          type: string
+          format: uri
+          example: 'https://kubernetes.io/images/kubernetes-horizontal-color.png'
+          description: Optional logo URL for the MCP server
+
+    MCPErrorDetails:
+      type: object
+      required:
+        - code
+        - status_code
+        - raw_error
+      properties:
+        code:
+          type: string
+          enum:
+            [
+              'connection_error',
+              'CONNECTION_FAILED',
+              'unauthorized',
+              'timeout',
+              'bad_request',
+              'internal_error',
+            ]
+          example: 'unauthorized'
+          description: Error category for structured error handling
+        status_code:
+          type: integer
+          example: 401
+          description: HTTP-equivalent status code for the error
+        raw_error:
+          type: string
+          example: 'failed to connect to MCP server: HTTP 401: Missing credentials'
+          description: Original raw error message for debugging purposes
+
+    MCPServerInfo:
+      type: object
+      required:
+        - name
+        - version
+        - protocol_version
+      properties:
+        name:
+          type: string
+          example: 'brave'
+          description: MCP server name or ConfigMap key fallback
+        version:
+          type: string
+          example: '1.0.0'
+          description: MCP server version or 'N/A' if unavailable
+        protocol_version:
+          type: string
+          example: '2024-11-05'
+          description: MCP protocol version or empty string if unavailable
+
+    MCPConnectionStatus:
+      type: object
+      required:
+        - server_url
+        - status
+        - message
+        - last_checked
+        - server_info
+      properties:
+        server_url:
+          type: string
+          format: uri
+          example: 'http://localhost:9090/sse'
+          description: URL of the MCP server
+        status:
+          type: string
+          enum: ['connected', 'error']
+          example: 'connected'
+          description: Connection status of the MCP server
+        message:
+          type: string
+          example: 'Server is responding normally'
+          description: Detailed status message or error description
+        last_checked:
+          type: integer
+          format: int64
+          example: 1755721435
+          description: Unix timestamp when the status was last checked
+        server_info:
+          $ref: '#/components/schemas/MCPServerInfo'
+          description: Nested server information including name, version, and protocol version
+        ping_response_time_ms:
+          type: integer
+          format: int64
+          example: 45
+          description: Ping response time in milliseconds (only present on successful connection)
+        error_details:
+          $ref: '#/components/schemas/MCPErrorDetails'
+          description: Structured error information (only present when status is 'error')
+
+    MCPToolsStatus:
+      type: object
+      required:
+        - server_url
+        - status
+        - message
+        - last_checked
+        - server_info
+        - tools
+      properties:
+        server_url:
+          type: string
+          format: uri
+          example: 'http://localhost:9090/sse'
+          description: URL of the MCP server
+        status:
+          type: string
+          enum: ['success', 'error']
+          example: 'success'
+          description: Status of the tools retrieval operation
+        message:
+          type: string
+          example: 'Successfully retrieved 2 tools'
+          description: Success message or clean error message
+        last_checked:
+          type: integer
+          format: int64
+          example: 1755721435
+          description: Unix timestamp when the tools were last checked
+        server_info:
+          $ref: '#/components/schemas/MCPServerInfo'
+          description: Nested server information including name, version, and protocol version
+        tools_count:
+          type: integer
+          example: 2
+          description: Number of available tools (only present on successful connection)
+        tools:
+          type: array
+          items:
+            $ref: '#/components/schemas/MCPTool'
+          description: List of tools (empty array on error)
+        error_details:
+          $ref: '#/components/schemas/MCPErrorDetails'
+          description: Structured error information (only present when status is 'error')
+
+    MCPListData:
+      type: object
+      required:
+        - servers
+        - total_count
+        - config_map_info
+      properties:
+        servers:
+          type: array
+          items:
+            $ref: '#/components/schemas/MCPServerSummary'
+          description: Array of MCP server summaries for frontend table display
+        total_count:
+          type: integer
+          example: 2
+          description: Total number of MCP servers in the ConfigMap
+        config_map_info:
+          $ref: '#/components/schemas/MCPConfigMapInfo'
+          description: Metadata about the source ConfigMap
+
+    MCPServerSummary:
+      type: object
+      required:
+        - name
+        - url
+        - transport
+        - description
+        - status
+      properties:
+        name:
+          type: string
+          example: 'brave'
+          description: MCP server name (ConfigMap key)
+        url:
+          type: string
+          format: uri
+          example: 'http://localhost:9090/sse'
+          description: Full URL of the MCP server endpoint
+        transport:
+          type: string
+          enum: ['sse', 'streamable-http']
+          example: 'sse'
+          description: Transport type used by the MCP server
+        description:
+          type: string
+          example: 'Search the Internet.'
+          description: Description of the MCP server functionality
+        logo:
+          type: string
+          format: uri
+          nullable: true
+          example: 'https://kubernetes.io/images/kubernetes-horizontal-color.png'
+          description: Optional logo URL for the MCP server (null if not provided)
+        status:
+          type: string
+          enum: ['healthy', 'error', 'unknown']
+          example: 'healthy'
+          description: Server status based on ConfigMap data only (no MCP calls made)
+
+    MCPConfigMapInfo:
+      type: object
+      required:
+        - name
+        - namespace
+        - last_updated
+      properties:
+        name:
+          type: string
+          example: 'gen-ai-aa-mcp-servers-e'
+          description: Name of the ConfigMap containing MCP server configurations
+        namespace:
+          type: string
+          example: 'mcp-servers'
+          description: Kubernetes namespace containing the ConfigMap
+        last_updated:
+          type: string
+          format: date-time
+          example: '2024-01-15T10:30:00Z'
+          description: ISO 8601 timestamp when the ConfigMap was last updated
+
+    MCPServerStatus:
+      type: object
+      required:
+        - name
+        - config
+        - connection_status
+      properties:
+        name:
+          type: string
+          example: 'kubectl-server'
+          description: Name/identifier of the MCP server
+        config:
+          $ref: '#/components/schemas/MCPServerConfigLegacy'
+        connection_status:
+          $ref: '#/components/schemas/MCPConnectionStatus'
+        tools:
+          type: array
+          items:
+            $ref: '#/components/schemas/MCPTool'
+          description: Available tools from the MCP server (only present when include_tools=true)
+
+    MCPServerConfigLegacy:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          example: 'http://kubectl-mcp-server.mcp-servers.svc.cluster.local:8080'
+          description: URL endpoint for the MCP server
+        description:
+          type: string
+          example: 'Manage resources in a Kubernetes cluster'
+          description: Human-readable description of the MCP server's capabilities
+        logo:
+          type: string
+          example: 'https://kubernetes.io/images/kubernetes-horizontal-color.png'
+          description: Optional logo URL for the MCP server
+
+    MCPServersStatusData:
+      type: array
+      items:
+        $ref: '#/components/schemas/MCPServerStatus'
+      description: Array of MCP server status information
+
+    ConfigMapMetadata:
+      type: object
+      required:
+        - name
+        - namespace
+      properties:
+        name:
+          type: string
+          example: 'gen-ai-aa-mcp-servers'
+          description: Name of the ConfigMap
+        namespace:
+          type: string
+          example: 'mcp-servers'
+          description: Kubernetes namespace containing the ConfigMap
+        creationTimestamp:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2024-01-15T10:30:00Z'
+          description: Timestamp when the ConfigMap was created
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+          example:
+            app: 'mcp-server-registry'
+            version: 'v1.0.0'
+          description: Labels applied to the ConfigMap
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+          description: Annotations applied to the ConfigMap
 
   responses:
     HealthCheckResponse:
@@ -1384,6 +1980,199 @@ components:
                         status: 'healthy'
                         message: 'Provider is responding normally'
 
+    MCPToolsResponse:
+      description: Comprehensive tools information from MCP server specified by URL
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/MCPToolsStatus'
+                description: Comprehensive status and tools information from the MCP server
+          examples:
+            success_response:
+              summary: Successful Tools Retrieval
+              value:
+                data:
+                  server_url: 'http://localhost:9090/sse'
+                  status: 'success'
+                  message: 'Successfully retrieved 2 tools'
+                  last_checked: 1755721435
+                  server_info:
+                    name: 'brave'
+                    version: '1.0.0'
+                    protocol_version: '2024-11-05'
+                  tools_count: 2
+                  tools:
+                    - name: 'brave_web_search'
+                      description: 'Search the web using Brave Search API'
+                      input_schema:
+                        type: 'object'
+                        properties:
+                          query:
+                            type: 'string'
+                            description: 'Search query string'
+                          count:
+                            type: 'integer'
+                            description: 'Number of results to return (1-20)'
+                            default: 10
+                        required: ['query']
+                    - name: 'brave_local_search'
+                      description: 'Search for local businesses using Brave Local Search API'
+                      input_schema:
+                        type: 'object'
+                        properties:
+                          query:
+                            type: 'string'
+                            description: "Local search query (e.g. 'pizza near Central Park')"
+                          count:
+                            type: 'integer'
+                            description: 'Number of results to return (1-20)'
+                            default: 5
+                        required: ['query']
+            connection_error:
+              summary: Connection Error
+              value:
+                data:
+                  server_url: 'http://localhost:9090/sse'
+                  status: 'error'
+                  message: 'Server is not reachable'
+                  last_checked: 1755721435
+                  server_info:
+                    name: 'brave'
+                    version: 'N/A'
+                    protocol_version: ''
+                  tools: []
+                  error_details:
+                    code: 'connection_error'
+                    status_code: 503
+                    raw_error: 'failed to create SSE transport: dial tcp: connection refused'
+            authentication_failure:
+              summary: Authentication Failed
+              value:
+                data:
+                  server_url: 'http://localhost:7008/api/mcp-actions/v1/sse'
+                  status: 'error'
+                  message: 'Authentication failed'
+                  last_checked: 1755721435
+                  server_info:
+                    name: 'brave'
+                    version: 'N/A'
+                    protocol_version: ''
+                  tools: []
+                  error_details:
+                    code: 'unauthorized'
+                    status_code: 401
+                    raw_error: 'failed to connect to MCP server: HTTP 401: invalid bearer token'
+
+    MCPStatusResponse:
+      description: Connection status from MCP server specified by URL
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/MCPConnectionStatus'
+                description: Connection status information for the MCP server
+          examples:
+            successful_connection:
+              summary: Successful Connection
+              value:
+                data:
+                  server_url: 'http://localhost:9090/sse'
+                  status: 'connected'
+                  message: 'Connection successful'
+                  last_checked: 1757090417
+                  server_info:
+                    name: 'example-servers/brave-search'
+                    version: '0.1.0'
+                    protocol_version: '2025-06-18'
+                  ping_response_time_ms: 2444
+            server_unavailable:
+              summary: Server Unavailable
+              value:
+                data:
+                  server_url: 'http://localhost:9090/sse'
+                  status: 'error'
+                  message: 'Server is not reachable'
+                  last_checked: 1757090515
+                  server_info:
+                    name: 'brave'
+                    version: 'N/A'
+                    protocol_version: ''
+                  error_details:
+                    code: 'CONNECTION_FAILED'
+                    status_code: 503
+                    raw_error: 'failed to connect to MCP server: Get "http://localhost:9090/sse": dial tcp [::1]:9090: connect: connection refused'
+            authentication_failure:
+              summary: Authentication Failed
+              value:
+                data:
+                  server_url: 'http://localhost:7008/api/mcp-actions/v1/sse'
+                  status: 'error'
+                  message: 'Authentication failed'
+                  last_checked: 1757090647
+                  server_info:
+                    name: 'brave'
+                    version: 'N/A'
+                    protocol_version: ''
+                  error_details:
+                    code: 'unauthorized'
+                    status_code: 401
+                    raw_error: "failed to connect to MCP server: Get \"http://localhost:7008/api/mcp-actions/v1/sse\": HTTP 401: {\n  \"error\": {\n    \"name\": \"AuthenticationError\",\n    \"message\": \"Illegal token\",\n    \"stack\": \"AuthenticationError: Illegal token\\n    at DefaultAuthService.authenticate (/Users/akundu/Desktop/DeveloperHub/learning-projects/my-portal/node_modules/@backstage/backend-defaults/src/entrypoints/auth/DefaultAuthService.ts:102:11)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\\n    at async DefaultHttpAuthService.#extractCredentialsFromRequest (/Users/akundu/Desktop/DeveloperHub/learning-projects/my-portal/node_modules/@backstage/backend-defaults/src/entrypoints/httpAuth/httpAuthServiceFactory.ts:124:12)\\n    at async DefaultHttpAuthService.credentials (/Users/akundu/Desktop/DeveloperHub/learning-projects/my-portal/node_modules/@backstage/backend-defaults/src/entrypoints/httpAuth/httpAuthServiceFactory.ts:167:9)\"\n  },\n  \"request\": {\n    \"method\": \"GET\",\n    \"url\": \"/v1/sse\"\n  },\n  \"response\": {\n    \"statusCode\": 401\n  }\n}"
+
+    MCPServersListResponse:
+      description: Enhanced list of available MCP servers from ConfigMap with metadata
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/MCPListData'
+                description: Enhanced MCP servers list with metadata
+          examples:
+            success_response:
+              summary: Successful MCP Servers List
+              value:
+                data:
+                  servers:
+                    - name: 'brave'
+                      url: 'http://localhost:9090/sse'
+                      transport: 'sse'
+                      description: 'Search the Internet.'
+                      logo: null
+                      status: 'healthy'
+                    - name: 'kubernetes'
+                      url: 'http://localhost:9091/mcp'
+                      transport: 'streamable-http'
+                      description: 'Manage resources in a Kubernetes cluster.'
+                      logo: 'https://kubernetes.io/_common-resources/images/flower.svg'
+                      status: 'healthy'
+                  total_count: 2
+                  config_map_info:
+                    name: 'gen-ai-aa-mcp-servers-e'
+                    namespace: 'mcp-servers'
+                    last_updated: '2024-01-15T10:30:00Z'
+            empty_response:
+              summary: Empty ConfigMap
+              value:
+                data:
+                  servers: []
+                  total_count: 0
+                  config_map_info:
+                    name: 'gen-ai-aa-mcp-servers-e'
+                    namespace: 'mcp-servers'
+                    last_updated: '2024-01-15T10:30:00Z'
+
     CreateResponseResponse:
       description: Created AI response with clean LlamaStack structure
       content:
@@ -1441,11 +2230,24 @@ components:
             data: {"delta":"","sequence_number":0,"type":"response.completed","item_id":"","output_index":0,"response":{"id":"resp-689b63a7-9cfa-418d-ace4-d9ed1dd2e27c","model":"ollama/llama3.2:3b","status":"completed","created_at":1757424451,"output":[{"id":"msg_bc738425-4c4b-4caf-86a7-c307765cecbd","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"Hello there"}]}]}}
 
     BadRequest:
-      description: Bad Request - Invalid parameters or missing required fields
+      description: Bad Request - Invalid parameters, missing required fields, or malformed MCP Bearer token
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorEnvelope'
+          examples:
+            malformed_mcp_token:
+              summary: Malformed MCP Bearer Token
+              value:
+                error:
+                  code: '400'
+                  message: "malformed MCP token: expected X-MCP-Bearer header to start with 'Bearer '"
+            missing_parameter:
+              summary: Missing Required Parameter
+              value:
+                error:
+                  code: '400'
+                  message: 'missing required query parameter: namespace'
 
     Unauthorized:
       description: Unauthorized - Invalid or missing authentication token
@@ -1473,9 +2275,9 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/UserModel"
+            $ref: '#/components/schemas/UserModel'
           example:
-            userId: "user@example.com"
+            userId: 'user@example.com'
 
 tags:
   - name: HealthCheck
@@ -1512,3 +2314,5 @@ tags:
     description: Kubernetes cluster operations and namespace management
   - name: Identity
     description: User identity and authentication operations
+  - name: MCP Servers
+    description: Model Context Protocol (MCP) server management and tool discovery

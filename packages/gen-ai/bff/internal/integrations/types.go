@@ -1,7 +1,8 @@
 package integrations
 
 type RequestIdentity struct {
-	Token string `json:"token"`
+	Token    string `json:"token"`     // Kubernetes authentication token
+	MCPToken string `json:"mcp_token"` // MCP server authentication token (optional)
 }
 
 type BearerToken struct {
