@@ -18,8 +18,8 @@ import { URL_PREFIX } from '../utilities/const';
  * @returns Promise<LlamaModel[]> - Array of available models with their metadata
  * @throws Error - When the API request fails or returns an error response
  */
-export const getModels = (): Promise<LlamaModel[]> => {
-  const url = `${URL_PREFIX}/api/v1/models`;
+export const getModels = (namespace: string): Promise<LlamaModel[]> => {
+  const url = `${URL_PREFIX}/api/v1/models?namespace=${namespace}`;
   return axios
     .get(url)
     .then((response) => response.data.data)

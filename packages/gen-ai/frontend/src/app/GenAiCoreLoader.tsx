@@ -5,12 +5,14 @@ import { ApplicationsPage } from 'mod-arch-shared';
 import GenAiCoreNoProjects from './GenAiCoreNoProjects';
 import GenAiCoreInvalidProject from './GenAiCoreInvalidProject';
 import { GenAiContextProvider } from './context/GenAiContext';
+import GenAiCoreHeader from './GenAiCoreHeader';
 
 type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
 type EmptyStateProps = 'emptyStatePage' | 'empty';
 
 type GenAiCoreLoaderProps = {
   getInvalidRedirectPath: (namespace: string) => string;
+  title: string;
 } & Omit<
   ApplicationPageProps,
   'loaded' | 'headerContent' | 'provideChildrenPadding' | EmptyStateProps
@@ -20,6 +22,7 @@ type ApplicationPageRenderState = Pick<ApplicationPageProps, EmptyStateProps>;
 
 const GenAiCoreLoader: React.FC<GenAiCoreLoaderProps> = ({
   getInvalidRedirectPath,
+  title,
   ...applicationPageProps
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -58,6 +61,7 @@ const GenAiCoreLoader: React.FC<GenAiCoreLoaderProps> = ({
     <ApplicationsPage
       {...applicationPageProps}
       {...renderStateProps}
+      title={<GenAiCoreHeader title={title} getRedirectPath={getInvalidRedirectPath} />}
       loaded={namespacesLoaded}
       provideChildrenPadding
     />

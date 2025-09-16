@@ -1,12 +1,15 @@
 import * as React from 'react';
-import { Route, Routes } from 'react-router-dom';
-import { ChatbotMain } from '~/app/Chatbot/ChatbotMain';
+import { Navigate, Route, Routes } from 'react-router-dom';
+import ChatbotPage from '~/app/Chatbot/ChatbotPage';
 import { AIAssetsPage } from '~/app/AIAssets/AIAssetsPage';
 import { NotFound } from '~/app/EmptyStates/NotFound';
 import { NavDataItem } from '~/app/standalone/types';
 import GenAiCoreLoader from '~/app/GenAiCoreLoader';
-import ChatbotHeader from '~/app/Chatbot/ChatbotHeader';
-import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
+import {
+  chatPlaygroundRootPath,
+  genAiAiAssetsRoute,
+  genAiChatPlaygroundRoute,
+} from '~/app/utilities/routes';
 
 import '@patternfly/chatbot/dist/css/main.css';
 
@@ -32,11 +35,13 @@ export const useNavData = (): NavDataItem[] => [
     children: [
       {
         label: 'Chat playground',
-        path: '/playground',
+        path: '/gen-ai/playground/*',
+        href: '/gen-ai/playground',
       },
       {
         label: 'AI asset endpoints',
-        path: '/assets',
+        path: '/gen-ai/assets/*',
+        href: '/gen-ai/assets',
       },
     ],
   },
@@ -44,18 +49,26 @@ export const useNavData = (): NavDataItem[] => [
 
 const AppRoutes = (): React.ReactElement => (
   <Routes>
+    <Route path="/" element={<Navigate to={chatPlaygroundRootPath} replace />} />
     <Route
       path="/playground"
       element={
         <GenAiCoreLoader
-          title={<ChatbotHeader />}
+          title="Chat playground"
           getInvalidRedirectPath={genAiChatPlaygroundRoute}
         />
       }
     >
-      <Route path=":namespace" element={<ChatbotMain />} />
+      <Route path=":namespace" element={<ChatbotPage />} />
     </Route>
-    <Route path="/assets" element={<AIAssetsPage />} />
+    <Route
+      path="/assets"
+      element={
+        <GenAiCoreLoader title="AI asset endpoints" getInvalidRedirectPath={genAiAiAssetsRoute} />
+      }
+    >
+      <Route path=":namespace" element={<AIAssetsPage />} />
+    </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

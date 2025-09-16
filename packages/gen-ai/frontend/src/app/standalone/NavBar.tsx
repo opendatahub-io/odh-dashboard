@@ -15,9 +15,7 @@ import {
   ToolbarGroup,
   ToolbarItem,
 } from '@patternfly/react-core';
-import { SimpleSelect } from '@patternfly/react-templates';
 import { BarsIcon } from '@patternfly/react-icons';
-import { useNamespaceSelector, useModularArchContext } from 'mod-arch-core';
 
 interface NavBarProps {
   username?: string;
@@ -25,19 +23,7 @@ interface NavBarProps {
 }
 
 const NavBar: React.FC<NavBarProps> = ({ username, onLogout }) => {
-  const { namespaces, preferredNamespace, updatePreferredNamespace } = useNamespaceSelector();
-  const { config } = useModularArchContext();
-
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
-
-  // Check if mandatory namespace is configured
-  const isMandatoryNamespace = Boolean(config.mandatoryNamespace);
-
-  const options = namespaces.map((namespace) => ({
-    content: namespace.name,
-    value: namespace.name,
-    selected: namespace.name === preferredNamespace?.name,
-  }));
 
   const handleLogout = () => {
     setUserMenuOpen(false);
@@ -67,21 +53,6 @@ const NavBar: React.FC<NavBarProps> = ({ username, onLogout }) => {
       <MastheadContent>
         <Toolbar>
           <ToolbarContent>
-            <ToolbarGroup variant="action-group-plain" align={{ default: 'alignStart' }}>
-              <ToolbarItem className="kubeflow-u-namespace-select">
-                <SimpleSelect
-                  isScrollable
-                  initialOptions={options}
-                  isDisabled={isMandatoryNamespace} // Disable selection when mandatory namespace is set
-                  onSelect={(_ev, selection) => {
-                    // Only allow selection if not mandatory namespace
-                    if (!isMandatoryNamespace) {
-                      updatePreferredNamespace({ name: String(selection) });
-                    }
-                  }}
-                />
-              </ToolbarItem>
-            </ToolbarGroup>
             {username && (
               <ToolbarGroup variant="action-group-plain" align={{ default: 'alignEnd' }}>
                 <ToolbarItem>

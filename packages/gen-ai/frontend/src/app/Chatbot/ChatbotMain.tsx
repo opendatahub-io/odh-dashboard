@@ -1,12 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerContentBody,
-  Bullseye,
-  Spinner,
-} from '@patternfly/react-core';
+import { Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core';
 import {
   Chatbot,
   ChatbotContent,
@@ -17,8 +11,10 @@ import {
   MessageBar,
   MessageBox,
 } from '@patternfly/chatbot';
+import { ApplicationsPage } from 'mod-arch-shared';
 import { useUserContext } from '~/app/context/UserContext';
-import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
+import { ChatbotContext } from '~/app/context/ChatbotContext';
+import ChatbotEmptyState from '~/app/EmptyStates/NoData';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import { ChatbotMessages } from './ChatbotMessagesList';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
@@ -28,11 +24,12 @@ import useAlertManagement from './hooks/useAlertManagement';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from './const';
-import ChatbotCoreLoader from './ChatbotCoreLoader';
+import ChatbotHeader from './ChatbotHeader';
 
 const ChatbotMain: React.FunctionComponent = () => {
   const displayMode = ChatbotDisplayMode.embedded;
-  const { models, loading } = useFetchLlamaModels();
+  const { models, modelsLoaded, lsdStatus, lsdStatusLoaded, lsdStatusError, modelsError } =
+    React.useContext(ChatbotContext);
   const [selectedModel, setSelectedModel] = React.useState<string>('');
   const { username } = useUserContext();
   const modelId = selectedModel || models[0]?.id;
@@ -78,15 +75,6 @@ const ChatbotMain: React.FunctionComponent = () => {
     />
   );
 
-  // Loading and error states
-  if (loading) {
-    return (
-      <Bullseye>
-        <Spinner />
-      </Bullseye>
-    );
-  }
-
   // Settings panel content
   const settingsPanelContent = (
     <ChatbotSettingsPanel
@@ -101,7 +89,22 @@ const ChatbotMain: React.FunctionComponent = () => {
   );
 
   return (
-    <ChatbotCoreLoader>
+    <ApplicationsPage
+      title={<ChatbotHeader />}
+      loaded={lsdStatusLoaded && modelsLoaded}
+      empty={!lsdStatus}
+      emptyStatePage={
+        <ChatbotEmptyState
+          title="Enable Playground"
+          description="Create a playground to chat with the generative models deployed in this project. Experiment with model output using a simple RAG simulation, custom prompt and MCP servers."
+          actionButtonText="Configure playground"
+          handleActionButtonClick={() => {
+            // TODO: Implement
+          }}
+        />
+      }
+      loadError={lsdStatusError || modelsError}
+    >
       <ChatbotSourceSettingsModal
         isOpen={sourceManagement.isSourceSettingsOpen}
         onToggle={() =>
@@ -142,7 +145,7 @@ const ChatbotMain: React.FunctionComponent = () => {
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>
-    </ChatbotCoreLoader>
+    </ApplicationsPage>
   );
 };
 

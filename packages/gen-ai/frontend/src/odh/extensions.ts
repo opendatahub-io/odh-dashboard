@@ -3,7 +3,12 @@ import type {
   RouteExtension,
   AreaExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
-import { chatPlaygroundRootPath, globChatPlaygroundAll } from '~/app/utilities/routes';
+import {
+  aiAssetsRootPath,
+  chatPlaygroundRootPath,
+  globAiAssetsAll,
+  globChatPlaygroundAll,
+} from '~/app/utilities/routes';
 
 const PLUGIN_GEN_AI = 'plugin-gen-ai';
 
@@ -46,9 +51,9 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       id: 'ai-assets',
       title: 'AI asset endpoints',
-      href: '/ai-assets',
+      href: aiAssetsRootPath,
       section: 'gen-ai-v3',
-      path: '/ai-assets/*',
+      path: globAiAssetsAll,
     },
   },
   {
