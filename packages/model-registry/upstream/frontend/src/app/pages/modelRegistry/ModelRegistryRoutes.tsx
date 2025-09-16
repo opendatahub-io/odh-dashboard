@@ -5,9 +5,9 @@ import ModelRegistryCoreLoader from './ModelRegistryCoreLoader';
 import { modelRegistryUrl } from './screens/routeUtils';
 import RegisteredModelsArchive from './screens/RegisteredModelsArchive/RegisteredModelsArchive';
 import { ModelVersionsTab } from './screens/ModelVersions/const';
-import ModelVersions from './screens/ModelVersions/ModelVersions';
+import ModelVersions from '~/odh/components/OdhModelVersions';
 import { ModelVersionDetailsTab } from './screens/ModelVersionDetails/const';
-import ModelVersionsDetails from './screens/ModelVersionDetails/ModelVersionDetails';
+import ModelVersionsDetails from '~/odh/components/OdhModelVersionDetails';
 import ModelVersionsArchive from './screens/ModelVersionsArchive/ModelVersionsArchive';
 import ModelVersionsArchiveDetails from './screens/ModelVersionsArchive/ModelVersionArchiveDetails';
 import ArchiveModelVersionDetails from './screens/ModelVersionsArchive/ArchiveModelVersionDetails';
@@ -15,11 +15,13 @@ import RegisteredModelsArchiveDetails from './screens/RegisteredModelsArchive/Re
 import RegisterModel from './screens/RegisterModel/RegisterModel';
 import RegisterVersion from './screens/RegisterModel/RegisterVersion';
 import { generateVersionDetailsTabExtensionRoutes } from '~/odh/VersionDetailsTabExtensionRoutes';
+import { generateDetailsTabExtensionRoutes } from '~/odh/DetailsTabExtensionRoutes';
 import { useExtensions } from '@odh-dashboard/plugin-core';
-import { isModelRegistryVersionDetailsTabExtension } from '~/odh/extension-points';
+import { isModelRegistryVersionDetailsTabExtension, isModelRegistryDetailsTabExtension } from '~/odh/extension-points';
 
 const ModelRegistryRoutes: React.FC = () => {
   const tabExtensions = useExtensions(isModelRegistryVersionDetailsTabExtension);
+  const detailsTabExtensions = useExtensions(isModelRegistryDetailsTabExtension);
   return(
     <Routes>
       <Route
@@ -41,6 +43,7 @@ const ModelRegistryRoutes: React.FC = () => {
             path={ModelVersionsTab.OVERVIEW}
             element={<ModelVersions tab={ModelVersionsTab.OVERVIEW} empty={false} />}
           />
+          {generateDetailsTabExtensionRoutes({ tabExtensions: detailsTabExtensions })}
           <Route path="registerVersion" element={<RegisterVersion />} />
           <Route path="versions/:modelVersionId">
             <Route index element={<Navigate to={ModelVersionDetailsTab.DETAILS} replace />} />

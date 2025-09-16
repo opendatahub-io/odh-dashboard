@@ -2,8 +2,9 @@ import { TextEncoder } from 'util';
 import { JestAssertionError } from 'expect';
 import 'core-js/actual/array/to-sorted';
 import { BooleanValues, RenderHookResultExt, createComparativeValue } from './testUtils/hooks';
+import '@testing-library/jest-dom';
 
-global.TextEncoder = TextEncoder;
+global.TextEncoder = TextEncoder as typeof global.TextEncoder;
 
 const tryExpect = (expectFn: () => void) => {
   try {

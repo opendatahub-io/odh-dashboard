@@ -1,7 +1,7 @@
 import { proxyGET } from '@odh-dashboard/internal/api/proxyUtils';
 import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import { handleFeatureStoreFailures } from './errorUtils';
-import { FeatureStoreLineage } from '../types/lineage';
+import { FeatureStoreLineage, FeatureViewLineage } from '../types/lineage';
 import { FEATURE_STORE_API_VERSION } from '../const';
 import { Entity, EntityList } from '../types/entities';
 import { Features, FeaturesList } from '../types/features';
@@ -14,6 +14,8 @@ import {
   RecentlyVisitedResponse,
 } from '../types/metrics';
 import { DataSet, DataSetList } from '../types/dataSets';
+import { DataSource, DataSourceList } from '../types/dataSources';
+import { GlobalSearchResponse } from '../types/search';
 
 export const listFeatureStoreProject =
   (hostPath: string) =>
@@ -43,6 +45,8 @@ export const getFeatureViews =
     entity?: string,
     featureService?: string,
     feature?: string,
+    // eslint-disable-next-line camelcase
+    data_source?: string,
   ): Promise<FeatureViewsList> => {
     let endpoint = `/api/${FEATURE_STORE_API_VERSION}/feature_views`;
     const queryParams: string[] = [];
@@ -63,6 +67,10 @@ export const getFeatureViews =
 
     if (feature) {
       queryParams.push(`feature=${encodeURIComponent(feature)}`);
+    }
+    // eslint-disable-next-line camelcase
+    if (data_source) {
+      queryParams.push(`data_source=${encodeURIComponent(data_source)}`);
     }
 
     if (queryParams.length > 0) {
@@ -225,6 +233,16 @@ export const getLineageData =
     return handleFeatureStoreFailures<FeatureStoreLineage>(proxyGET(hostPath, endpoint, opts));
   };
 
+export const getFeatureViewLineage =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, project: string, featureViewName: string): Promise<FeatureViewLineage> => {
+    const endpoint = `/api/${FEATURE_STORE_API_VERSION}/lineage/objects/featureView/${encodeURIComponent(
+      featureViewName,
+    )}?project=${encodeURIComponent(project)}`;
+
+    return handleFeatureStoreFailures<FeatureViewLineage>(proxyGET(hostPath, endpoint, opts));
+  };
+
 export const getSavedDatasets =
   (hostPath: string) =>
   (opts: K8sAPIOptions, project?: string): Promise<DataSetList> => {
@@ -253,4 +271,58 @@ export const getDataSetByName =
     )}?project=${encodeURIComponent(project)}&include_relationships=true`;
 
     return handleFeatureStoreFailures<DataSet>(proxyGET(hostPath, endpoint, opts));
+  };
+
+export const getDataSources =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, project?: string): Promise<DataSourceList> => {
+    let endpoint = `/api/${FEATURE_STORE_API_VERSION}/data_sources/all?include_relationships=true`;
+    if (project) {
+      endpoint = `/api/${FEATURE_STORE_API_VERSION}/data_sources?project=${encodeURIComponent(
+        project,
+      )}&include_relationships=true`;
+    }
+    return handleFeatureStoreFailures<DataSourceList>(proxyGET(hostPath, endpoint, opts));
+  };
+
+export const getDataSourceByName =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, project: string, dataSourceName: string): Promise<DataSource> => {
+    const endpoint = `/api/${FEATURE_STORE_API_VERSION}/data_sources/${encodeURIComponent(
+      dataSourceName,
+    )}?project=${encodeURIComponent(project)}&include_relationships=true`;
+
+    return handleFeatureStoreFailures<DataSource>(proxyGET(hostPath, endpoint, opts));
+  };
+
+export const getGlobalSearch =
+  (hostPath: string) =>
+  (
+    opts: K8sAPIOptions,
+    projects: string[],
+    query: string,
+    page = 1,
+    limit = 50,
+  ): Promise<GlobalSearchResponse> => {
+    if (projects.length === 0) {
+      throw new Error('At least one project is required');
+    }
+    if (!query) {
+      throw new Error('Query is required');
+    }
+
+    const queryParams: string[] = [
+      `query=${encodeURIComponent(query)}`,
+      'allow_cache=true',
+      `page=${page}`,
+      `limit=${limit}`,
+    ];
+
+    projects.forEach((project) => {
+      queryParams.push(`projects=${encodeURIComponent(project)}`);
+    });
+
+    const endpoint = `/api/${FEATURE_STORE_API_VERSION}/search?${queryParams.join('&')}`;
+
+    return handleFeatureStoreFailures<GlobalSearchResponse>(proxyGET(hostPath, endpoint, {}, opts));
   };

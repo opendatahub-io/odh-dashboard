@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import * as React from 'react';
 import useFetch, {
   FetchStateCallbackPromise,
@@ -11,6 +12,7 @@ type UseFeatureViewsProps = {
   entity?: string;
   featureService?: string;
   feature?: string;
+  data_source?: string;
 };
 
 const useFeatureViews = ({
@@ -18,6 +20,7 @@ const useFeatureViews = ({
   entity,
   featureService,
   feature,
+  data_source,
 }: UseFeatureViewsProps): FetchStateObject<FeatureViewsList> => {
   const { api, apiAvailable } = useFeatureStoreAPI();
 
@@ -27,9 +30,9 @@ const useFeatureViews = ({
         return Promise.reject(new Error('API not yet available'));
       }
 
-      return api.getFeatureViews(opts, project, entity, featureService, feature);
+      return api.getFeatureViews(opts, project, entity, featureService, feature, data_source);
     },
-    [api, apiAvailable, project, entity, featureService, feature],
+    [api, apiAvailable, project, entity, featureService, feature, data_source],
   );
 
   return useFetch(

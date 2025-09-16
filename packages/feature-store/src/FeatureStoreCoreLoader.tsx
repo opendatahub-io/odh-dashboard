@@ -7,7 +7,6 @@ import { conditionalArea } from '@odh-dashboard/internal/concepts/areas/AreaComp
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import WhosMyAdministrator from '@odh-dashboard/internal/components/WhosMyAdministrator';
-import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
 import RedirectErrorState from '@odh-dashboard/internal/pages/external/RedirectErrorState';
 import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
 import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils';
@@ -16,6 +15,7 @@ import { FeatureStoreObject } from './const';
 import InvalidFeatureStoreProject from './screens/components/InvalidFeatureStoreProject';
 import { useFeatureStoreCR } from './apiHooks/useFeatureStoreCR';
 import { FeatureStoreContextProvider } from './FeatureStoreContext';
+import FeatureStoreCRContextProvider from './contexts/FeatureStoreContext';
 import { useFeatureStoreObject } from './apiHooks/useFeatureStoreObject';
 import useFeatureStoreProjects from './apiHooks/useFeatureStoreProjects';
 import { getFeatureStoreObjectDisplayName } from './utils';
@@ -33,15 +33,73 @@ type ApplicationPageRenderState = Pick<
   'emptyStatePage' | 'empty' | 'headerContent'
 >;
 
-// Inner component that uses the projects hook within the context
 const FeatureStoreContent: React.FC<{
   getInvalidRedirectPath: (featureStoreObject: FeatureStoreObject) => string;
 }> = ({ getInvalidRedirectPath }) => {
+  const [isAdmin, isAdminLoaded] = useAccessAllowed(verbModelAccess('create', FeatureStoreModel));
+  const {
+    data: featureStoreCR,
+    loaded: featureStoreCRLoaded,
+    error: featureStoreCRError,
+  } = useFeatureStoreCR();
+
   const { fsProjectName } = useParams<{ fsProjectName: string }>();
   const currentFeatureStoreObject = useFeatureStoreObject();
   const { data: featureStoreProjects, loaded: projectsLoaded } = useFeatureStoreProjects();
 
-  // If there's a project name in the URL, validate it
+  if (featureStoreCRError) {
+    return (
+      <ApplicationsPage loaded loadError={featureStoreCRError} empty={false}>
+        <RedirectErrorState
+          title="Feature Store repository load error"
+          errorMessage={featureStoreCRError.message}
+        />
+      </ApplicationsPage>
+    );
+  }
+
+  if (!featureStoreCRLoaded || !isAdminLoaded) {
+    return <Bullseye>Loading feature store repositories...</Bullseye>;
+  }
+
+  if (!featureStoreCR) {
+    const adminTitle = 'Create a Feature store service';
+    const adminDescription = (
+      <>
+        No feature store service is available to users in your organization. Create a Feature store
+        service from the <b>OpenShift platform</b>.
+      </>
+    );
+
+    const userTitle = 'Request access to a feature store repository';
+    const userDescription =
+      'Feature store repositories allow teams to organize and collaborate on resources within separate namespaces. To request access to a new or existing repository, contact your administrator.';
+
+    const renderStateProps: ApplicationPageRenderState = {
+      empty: true,
+      emptyStatePage: (
+        <EmptyStateFeatureStore
+          testid="empty-state-feature-store"
+          title={isAdmin ? adminTitle : userTitle}
+          description={isAdmin ? adminDescription : userDescription}
+          headerIcon={() => <CogIcon />}
+          customAction={!isAdmin && <WhosMyAdministrator />}
+        />
+      ),
+      headerContent: null,
+    };
+
+    return (
+      <ApplicationsPage
+        title="Feature Store"
+        description="A catalog of features, entities, feature views and datasets created by your own team"
+        {...renderStateProps}
+        loaded
+        provideChildrenPadding
+      />
+    );
+  }
+
   if (fsProjectName && projectsLoaded) {
     const projectExists = featureStoreProjects.projects.some(
       (project: FeatureStoreProject) => project.spec.name === fsProjectName,
@@ -81,78 +139,12 @@ const FeatureStoreCoreLoader: React.FC<FeatureStoreCoreLoaderProps> =
     SupportedArea.FEATURE_STORE,
     false,
   )(({ getInvalidRedirectPath }) => {
-    const [isAdmin, isAdminLoaded] = useAccessAllowed(verbModelAccess('create', FeatureStoreModel));
-    const {
-      data: featureStoreCR,
-      loaded: featureStoreCRLoaded,
-      error: featureStoreCRError,
-    } = useFeatureStoreCR();
-
-    if (featureStoreCRError) {
-      return (
-        <ApplicationsPage loaded loadError={featureStoreCRError} empty={false}>
-          <RedirectErrorState
-            title="Feature Store project load error"
-            errorMessage={featureStoreCRError.message}
-          />
-        </ApplicationsPage>
-      );
-    }
-
-    // Wait for both feature store CR and admin permissions to load
-    if (!featureStoreCRLoaded || !isAdminLoaded) {
-      return <Bullseye>Loading feature store projects...</Bullseye>;
-    }
-
-    if (!featureStoreCR) {
-      const adminTitle = 'Create a Feature store service';
-      const adminDescription = (
-        <>
-          No feature store service is available to users in your organization. Create a Feature
-          store service from the <b>OpenShift platform</b>.
-        </>
-      );
-
-      const userTitle = 'Start by requesting a Feature Store project';
-      const userDescription =
-        'Feature Store projects allow you and your team to organize and collaborate on resources within separate namespaces. To request a project, contact your administrator.';
-
-      const renderStateProps: ApplicationPageRenderState = {
-        empty: true,
-        emptyStatePage: (
-          <EmptyStateFeatureStore
-            testid="empty-state-feature-store"
-            title={isAdmin ? adminTitle : userTitle}
-            description={isAdmin ? adminDescription : userDescription}
-            headerIcon={() =>
-              isAdmin ? (
-                <CogIcon />
-              ) : (
-                // TODO: need to update with img from the design
-                <img src={typedEmptyImage(ProjectObjectType.registeredModels)} alt="" />
-              )
-            }
-            customAction={!isAdmin && <WhosMyAdministrator />}
-          />
-        ),
-        headerContent: null,
-      };
-
-      return (
-        <ApplicationsPage
-          title="Feature Store"
-          description="A catalog of features, entities, feature views and datasets created by your own team"
-          {...renderStateProps}
-          loaded
-          provideChildrenPadding
-        />
-      );
-    }
-
     return (
-      <FeatureStoreContextProvider>
-        <FeatureStoreContent getInvalidRedirectPath={getInvalidRedirectPath} />
-      </FeatureStoreContextProvider>
+      <FeatureStoreCRContextProvider>
+        <FeatureStoreContextProvider>
+          <FeatureStoreContent getInvalidRedirectPath={getInvalidRedirectPath} />
+        </FeatureStoreContextProvider>
+      </FeatureStoreCRContextProvider>
     );
   });
 

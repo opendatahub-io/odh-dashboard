@@ -21,7 +21,7 @@ export const createLineageTopologyControls = (
       controller.getGraph().scaleBy(0.75);
     }),
     fitToScreenCallback: action(() => {
-      controller.getGraph().fit(80);
+      controller.getGraph().fit(50);
     }),
     resetViewCallback: action(() => {
       controller.getGraph().reset();

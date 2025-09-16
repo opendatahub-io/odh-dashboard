@@ -15,12 +15,21 @@ import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { setupDefaults } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
 import { ModelDeploymentWizardData } from './useDeploymentWizard';
-import { Deployment, isModelServingDeploymentResourcesExtension } from '../../../extension-points';
+import {
+  getModelTypeFromDeployment,
+  setupModelLocationData,
+  getTokenAuthenticationFromDeployment,
+  getExternalRouteFromDeployment,
+} from './utils';
+import { Deployment, isModelServingDeploymentFormDataExtension } from '../../../extension-points';
 import {
   ModelDeploymentsContext,
   ModelDeploymentsProvider,
 } from '../../concepts/ModelDeploymentsContext';
-import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
+import {
+  ModelServingPlatform,
+  useProjectServingPlatform,
+} from '../../concepts/useProjectServingPlatform';
 import { useAvailableClusterPlatforms } from '../../concepts/useAvailableClusterPlatforms';
 import { useResolvedDeploymentExtension } from '../../concepts/extensionUtils';
 
@@ -86,14 +95,17 @@ const EditModelDeploymentPage: React.FC = () => {
 
   return (
     <ModelDeploymentsProvider modelServingPlatforms={[activePlatform]} projects={[currentProject]}>
-      <EditModelDeploymentContent project={currentProject} />
+      <EditModelDeploymentContent project={currentProject} modelServingPlatform={activePlatform} />
     </ModelDeploymentsProvider>
   );
 };
 
 export default EditModelDeploymentPage;
 
-const EditModelDeploymentContent: React.FC<{ project: ProjectKind }> = ({ project }) => {
+const EditModelDeploymentContent: React.FC<{
+  project: ProjectKind;
+  modelServingPlatform: ModelServingPlatform;
+}> = ({ project, modelServingPlatform }) => {
   const { name: deploymentName } = useParams();
   const { deployments, loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
 
@@ -101,21 +113,20 @@ const EditModelDeploymentContent: React.FC<{ project: ProjectKind }> = ({ projec
     return deployments?.find((d: Deployment) => d.model.metadata.name === deploymentName);
   }, [deployments, deploymentName]);
 
-  const [
-    extractHWProfileExtension,
-    extractHWProfileExtensionLoaded,
-    extractHWProfileExtensionErrors,
-  ] = useResolvedDeploymentExtension(
-    isModelServingDeploymentResourcesExtension,
-    existingDeployment,
-  );
+  const [formDataExtension, formDataExtensionLoaded, formDataExtensionErrors] =
+    useResolvedDeploymentExtension(isModelServingDeploymentFormDataExtension, existingDeployment);
 
   const extractFormDataFromDeployment: (deployment: Deployment) => ModelDeploymentWizardData = (
     deployment: Deployment,
   ) => ({
+    modelTypeField: getModelTypeFromDeployment(deployment),
     k8sNameDesc: setupDefaults({ initialData: deployment.model }),
     hardwareProfile:
-      extractHWProfileExtension?.properties.extractHardwareProfileConfig(deployment) ?? undefined,
+      formDataExtension?.properties.extractHardwareProfileConfig(deployment) ?? undefined,
+    modelFormat: formDataExtension?.properties.extractModelFormat(deployment) ?? undefined,
+    modelLocationData: setupModelLocationData(), // TODO: Implement fully in next ticket RHOAIENG-32186
+    externalRoute: getExternalRouteFromDeployment(deployment),
+    tokenAuthentication: getTokenAuthenticationFromDeployment(deployment),
   });
 
   const formData = React.useMemo(() => {
@@ -125,11 +136,11 @@ const EditModelDeploymentContent: React.FC<{ project: ProjectKind }> = ({ projec
     return undefined;
   }, [existingDeployment, extractFormDataFromDeployment]);
 
-  if (extractHWProfileExtensionErrors.length > 0) {
-    return <ErrorContent error={new Error('Unable to extract hardware profile config')} />;
+  if (formDataExtensionErrors.length > 0) {
+    return <ErrorContent error={formDataExtensionErrors[0]} />;
   }
 
-  if (!deploymentsLoaded || !extractHWProfileExtensionLoaded) {
+  if (!deploymentsLoaded || !formDataExtensionLoaded) {
     return (
       <Bullseye>
         <Spinner />
@@ -144,6 +155,7 @@ const EditModelDeploymentContent: React.FC<{ project: ProjectKind }> = ({ projec
       primaryButtonText="Update deployment"
       existingData={formData}
       project={project}
+      modelServingPlatform={modelServingPlatform}
     />
   );
 };

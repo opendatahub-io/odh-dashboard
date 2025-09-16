@@ -6,7 +6,8 @@ const { moduleFederationPlugins } = require('./moduleFederation');
 
 const BG_IMAGES_DIRNAME = 'bgimages';
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
-const { name } = require('../../package.json');
+
+const { name } = require('../package.json');
 
 const SRC_DIR = process.env._SRC_DIR;
 const DIST_DIR = process.env._DIST_DIR;
@@ -166,6 +167,7 @@ module.exports = (env) => ({
     extensions: ['.js', '.ts', '.tsx', '.jsx'],
     alias: {
       '~': path.resolve(SRC_DIR),
+      '@odh-dashboard/internal': path.resolve(RELATIVE_DIRNAME, '../../../frontend/src'),
     },
     symlinks: false,
     cacheWithContext: false,

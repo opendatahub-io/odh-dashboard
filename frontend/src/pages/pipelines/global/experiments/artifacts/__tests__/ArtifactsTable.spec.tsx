@@ -53,6 +53,7 @@ jest.mock('#~/concepts/pipelines/context/PipelinesContext', () => ({
       ),
     },
   })),
+  getPipelineServerName: jest.fn(() => 'Test namespace pipeline server'),
 }));
 
 describe('ArtifactsTable', () => {

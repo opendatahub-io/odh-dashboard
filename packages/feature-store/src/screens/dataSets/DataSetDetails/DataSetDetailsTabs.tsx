@@ -60,7 +60,14 @@ const DataSetDetailsTabs: React.FC<DataSetDetailsTabsProps> = ({ dataSet }) => {
             <Thead>
               <Tr>
                 <Th>Feature</Th>
-                <Th>Source Feature view</Th>
+                <Th
+                  info={{
+                    popover:
+                      "The feature view this feature was retrieved from when the dataset was created. Feature views group related features and define how they're fetched from the source data.",
+                  }}
+                >
+                  Feature view
+                </Th>
               </Tr>
             </Thead>
             <Tbody>

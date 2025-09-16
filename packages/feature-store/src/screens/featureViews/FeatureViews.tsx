@@ -4,13 +4,14 @@ import { SearchIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import FeatureViewsListView from './FeatureViewsListView';
 import FeatureStoreProjectSelectorNavigator from '../components/FeatureStoreProjectSelectorNavigator';
+import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import useFeatureViews from '../../apiHooks/useFeatureViews';
 import { featureStoreRoute } from '../../routes';
 
 const title = 'Feature views';
 const description =
-  'Select a feature store workspace to view and manage its feature views. A feature view defines a group of related features and how to retrieve them from a data source over time.';
+  'Select a feature store repository to view and manage its feature views. A feature view defines how to retrieve a logical group of features from a specific data source. It binds a data source to one or more entities and contains the logic for transforming the raw data into feature values.';
 
 const FeatureViews = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -29,7 +30,7 @@ const FeatureViews = (): React.ReactElement => {
       data-testid="empty-state-title"
     >
       <EmptyStateBody data-testid="empty-state-body">
-        No feature views have been found in this project.
+        Select a different feature store repository or create a feature views in a workbench.
       </EmptyStateBody>
     </EmptyState>
   );
@@ -38,7 +39,7 @@ const FeatureViews = (): React.ReactElement => {
     <ApplicationsPage
       empty={featureViews.featureViews.length === 0}
       emptyStatePage={emptyState}
-      title={title}
+      title={<FeatureStorePageTitle title={title} />}
       description={description}
       loadError={featureViewsLoadError}
       loaded={featureViewsLoaded}

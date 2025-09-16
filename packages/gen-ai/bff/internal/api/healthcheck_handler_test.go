@@ -16,11 +16,13 @@ import (
 )
 
 func TestHealthCheckHandler(t *testing.T) {
+	llamaStackClientFactory := lsmocks.NewMockClientFactory()
 	app := App{
 		config: config.EnvConfig{
 			Port: 4000,
 		},
-		repositories: repositories.NewRepositories(lsmocks.NewMockLlamaStackClient()),
+		llamaStackClientFactory: llamaStackClientFactory,
+		repositories:            repositories.NewRepositories(),
 	}
 
 	rr := httptest.NewRecorder()

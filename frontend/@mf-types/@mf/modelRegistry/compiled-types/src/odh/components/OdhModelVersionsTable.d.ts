@@ -1,9 +1,13 @@
 import * as React from 'react';
-import { Table } from 'mod-arch-shared';
+import { SortableData, Table } from 'mod-arch-shared';
 import { ModelVersion, RegisteredModel } from '~/app/types';
 type OdhModelVersionsTableProps = {
-    clearFilters: () => void;
-    modelVersions: ModelVersion[];
+    data: ModelVersion[];
+    columns: SortableData<ModelVersion>[];
+    defaultSortColumn: number;
+    enablePagination: boolean;
+    onClearFilters: () => void;
+    emptyTableView: React.ReactNode;
     isArchiveModel?: boolean;
     refresh: () => void;
     rm: RegisteredModel;

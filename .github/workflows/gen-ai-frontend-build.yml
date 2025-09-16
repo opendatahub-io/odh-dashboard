@@ -15,6 +15,8 @@ on:
       - '!DOCKERFILE*'
       - '!**.gitignore'
       - '!**.md'
+env:
+  NODE_VERSION: 20
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
@@ -24,7 +26,21 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            **/node_modules
+            ~/.npm
+            ~/.cache/Cypress
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-npm-${{ hashFiles('package-lock.json', 'packages/gen-ai/frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-npm-
+
+      - name: Install root level dependencies
+        run: npm install
 
       - name: Install dependencies
         working-directory: packages/gen-ai/frontend

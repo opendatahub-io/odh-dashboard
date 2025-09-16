@@ -26,6 +26,15 @@ class FeatureStoreGlobal {
     this.waitForEntities();
   }
 
+  visitDataSources(project?: string) {
+    cy.visitWithLogin(
+      `/featureStore/dataSources${
+        project ? `/${project}` : ''
+      }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+    );
+    this.waitForDataSources();
+  }
+
   visitFeatures(project?: string) {
     const projectName = project;
     cy.visitWithLogin(
@@ -146,6 +155,11 @@ class FeatureStoreGlobal {
     cy.testA11y();
   }
 
+  private waitForDataSources() {
+    cy.findByTestId('app-page-title').should('have.text', 'Data Sources');
+    cy.testA11y();
+  }
+
   shouldBeEmpty() {
     cy.findByTestId('empty-state-title').should('exist');
     return this;
@@ -168,6 +182,60 @@ class FeatureStoreGlobal {
     this.findProjectSelector().click();
     this.findProjectSelectorDropdown().should('contain.text', projectName);
     this.findProjectSelectorDropdown().findByRole('menuitem', { name: projectName }).click();
+  }
+
+  findGlobalSearchInput() {
+    return cy.findByTestId('global-search-input').find('input');
+  }
+
+  findGlobalSearchContainer() {
+    return cy.findByTestId('global-search-input-container');
+  }
+
+  findGlobalSearchMenu() {
+    return cy.findByTestId('global-search-menu');
+  }
+
+  findGlobalSearchResultsHeader() {
+    return cy.findByTestId('global-search-results-header');
+  }
+
+  findGlobalSearchResultsCount() {
+    return cy.findByTestId('global-search-results-count');
+  }
+
+  findGlobalSearchMenuContent() {
+    return cy.findByTestId('global-search-menu-content');
+  }
+
+  findGlobalSearchMenuList() {
+    return cy.findByTestId('global-search-menu-list');
+  }
+
+  findGlobalSearchNoResults() {
+    return cy.findByTestId('global-search-no-results');
+  }
+
+  findGlobalSearchLoadingSpinner() {
+    return cy.findByTestId('global-search-loading-spinner');
+  }
+
+  findGlobalSearchNoResultsText() {
+    return cy.findByTestId('global-search-no-results-text');
+  }
+
+  findGlobalSearchLoadMore() {
+    return cy.findByTestId('global-search-load-more');
+  }
+
+  findGlobalSearchGroup(categoryName: string) {
+    const testId = `global-search-group-${categoryName.toLowerCase().replace(/\s+/g, '-')}`;
+    return cy.findByTestId(testId);
+  }
+
+  findGlobalSearchItem(type: string, title: string) {
+    const testId = `global-search-item-${type}-${title.toLowerCase().replace(/\s+/g, '-')}`;
+    return cy.findByTestId(testId);
   }
 }
 

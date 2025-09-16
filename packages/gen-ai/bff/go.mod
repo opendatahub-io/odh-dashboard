@@ -12,7 +12,7 @@ require (
 	github.com/llamastack/llama-stack-k8s-operator v0.2.0
 	github.com/onsi/ginkgo/v2 v2.23.1
 	github.com/onsi/gomega v1.36.2
-	github.com/openai/openai-go/v2 v2.1.0
+	github.com/openai/openai-go/v2 v2.4.0
 	github.com/rs/cors v1.11.1
 	github.com/stretchr/testify v1.10.0
 	k8s.io/api v0.33.4

@@ -7,10 +7,29 @@ import {
   CreateResponseRequest,
   SimplifiedResponseData,
   LlamaModel,
+  NamespaceModel,
   FileUploadResult,
+  LlamaStackDistributionModel,
 } from '../types';
 import axios from '../utilities/axios';
 import { URL_PREFIX } from '../utilities/const';
+
+/**
+ * Fetches all available namespaces from the Llama Stack API
+ * @returns Promise<NamespaceModel[]> - Array of available namespaces with their metadata
+ * @throws Error - When the API request fails or returns an error response
+ */
+export const getNamespaces = (): Promise<NamespaceModel[]> => {
+  const url = `${URL_PREFIX}/api/v1/namespaces`;
+  return axios
+    .get<{ data: NamespaceModel[] }>(url)
+    .then((response) => response.data.data)
+    .catch((error) => {
+      throw new Error(
+        error.response?.data?.error?.message || error.message || 'Failed to fetch namespaces',
+      );
+    });
+};
 
 /**
  * Fetches all available models from the Llama Stack API
@@ -140,6 +159,18 @@ export const createResponse = (request: CreateResponseRequest): Promise<Simplifi
     .catch((error) => {
       throw new Error(
         error.response?.data?.error?.message || error.message || 'Failed to generate responses',
+      );
+    });
+};
+
+export const getLSDstatus = (project: string): Promise<LlamaStackDistributionModel> => {
+  const url = `${URL_PREFIX}/api/v1/llamastack-distribution/status?namespace=${project}`;
+  return axios
+    .get(url)
+    .then((response) => response.data.data)
+    .catch((error) => {
+      throw new Error(
+        error.response?.data?.error?.message || error.message || 'Failed to fetch LSD status',
       );
     });
 };

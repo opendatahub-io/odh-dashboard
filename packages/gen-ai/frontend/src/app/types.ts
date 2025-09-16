@@ -7,6 +7,10 @@ export type LlamaModel = {
   owned_by: string;
 };
 
+export type NamespaceModel = {
+  name: string;
+};
+
 export type FileCounts = {
   /** Number of cancelled file operations */
   cancelled: number;
@@ -148,4 +152,24 @@ export type CompletionMessage = {
   content: string;
   stop_reason: string;
   tool_calls?: unknown[];
+};
+
+export type LlamaStackDistributionModel = {
+  name: string;
+  phase: string;
+  version: string;
+  distributionConfig: {
+    activeDistribution: string;
+    providers: Array<{
+      providerID: string;
+      providerType: string;
+      api: string;
+      config?: Record<string, unknown> | null;
+      health: {
+        status: string;
+        message: string;
+      };
+    }>;
+    availableDistributions: Record<string, string>;
+  };
 };

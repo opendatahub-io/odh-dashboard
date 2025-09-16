@@ -1,11 +1,18 @@
 package api
 
 import (
+	"context"
+	"encoding/json"
+	"io"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/models"
+	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -345,4 +352,58 @@ func TestIsAPIRoutePerformance(t *testing.T) {
 	longNonAPIPath := "/dashboard/" + string(make([]byte, 1000))
 	result = app.isAPIRoute(longNonAPIPath)
 	assert.False(t, result, "Long non-API path should not be recognized as API route")
+}
+
+// TestGetCurrentUserHandler tests the GetCurrentUserHandler endpoint
+func TestGetCurrentUserHandler(t *testing.T) {
+	// Create a test app
+	cfg := config.EnvConfig{}
+	app := &App{
+		config:       cfg,
+		logger:       slog.Default(),
+		repositories: repositories.NewRepositories(),
+	}
+
+	tests := []struct {
+		name           string
+		requestContext func() context.Context
+		expectedUser   string
+	}{
+		{
+			name: "no identity in context",
+			requestContext: func() context.Context {
+				return context.Background()
+			},
+			expectedUser: "",
+		},
+		{
+			name: "nil identity in context",
+			requestContext: func() context.Context {
+				return context.WithValue(context.Background(), constants.RequestIdentityKey, nil)
+			},
+			expectedUser: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req, err := http.NewRequestWithContext(tt.requestContext(), http.MethodGet, constants.UserPath, nil)
+			assert.NoError(t, err)
+
+			rr := httptest.NewRecorder()
+			app.GetCurrentUserHandler(rr, req, nil)
+
+			assert.Equal(t, http.StatusOK, rr.Code)
+
+			body, err := io.ReadAll(rr.Result().Body)
+			assert.NoError(t, err)
+			defer rr.Result().Body.Close()
+
+			var userResponse models.UserModel
+			err = json.Unmarshal(body, &userResponse)
+			assert.NoError(t, err)
+
+			assert.Equal(t, tt.expectedUser, userResponse.UserID)
+		})
+	}
 }

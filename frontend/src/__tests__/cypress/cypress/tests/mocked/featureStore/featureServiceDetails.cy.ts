@@ -42,7 +42,7 @@ const initIntercept = () => {
 
   cy.intercept(
     'GET',
-    '/api/k8s/apis/feast.dev/v1alpha1/featurestores?labelSelector=feature-store-ui%3Denabled',
+    `/api/k8s/apis/feast.dev/v1alpha1/namespaces/${k8sNamespace}/featurestores?labelSelector=feature-store-ui%3Denabled`,
     {
       items: [mockFeatureStore({ name: fsName, namespace: k8sNamespace })],
     },
@@ -243,11 +243,11 @@ describe('Feature Service Details', () => {
     });
 
     it('should display created at timestamp', () => {
-      featureServiceDetailsPage.findCreatedAtLabel().should('contain.text', 'Created at');
+      featureServiceDetailsPage.findCreatedAtLabel().should('contain.text', 'Created');
     });
 
     it('should display updated at timestamp', () => {
-      featureServiceDetailsPage.findUpdatedAtLabel().should('contain.text', 'Updated at');
+      featureServiceDetailsPage.findUpdatedAtLabel().should('contain.text', 'Last modified');
       featureServiceDetailsPage
         .findUpdatedAtValue()
         .should('contain.text', 'Jun 30, 2025, 7:46 AM UTC');

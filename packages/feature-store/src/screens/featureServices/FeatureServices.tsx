@@ -4,13 +4,14 @@ import { SearchIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import FeatureServicesListView from './FeatureServicesListView';
 import FeatureStoreProjectSelectorNavigator from '../components/FeatureStoreProjectSelectorNavigator';
+import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import useFeatureServices from '../../apiHooks/useFeatureServices';
 import { featureStoreRoute } from '../../routes';
 
 const title = 'Feature services';
 const description =
-  'Select a workspace to view and manage its feature services. Feature services are curated groups of related features designed to be retrieved together for model training or online inference.';
+  "Select a feature store repository to view and manage its feature services. Feature services groups features from across one or more Feature Views to serve a specific model's needs for training, inference, or GenAI applications like RAG. Feature service acts as a managed API for a model, ensuring features are served consistently.";
 
 const FeatureServices = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -29,7 +30,7 @@ const FeatureServices = (): React.ReactElement => {
       data-testid="empty-state-title"
     >
       <EmptyStateBody data-testid="empty-state-body">
-        No feature services have been found in this project.
+        Select a different feature store repository or create a feature services in a workbench.
       </EmptyStateBody>
     </EmptyState>
   );
@@ -38,7 +39,7 @@ const FeatureServices = (): React.ReactElement => {
     <ApplicationsPage
       empty={featureServices.featureServices.length === 0}
       emptyStatePage={emptyState}
-      title={title}
+      title={<FeatureStorePageTitle title={title} />}
       description={description}
       loadError={featureServicesLoadError}
       loaded={featureServicesLoaded}

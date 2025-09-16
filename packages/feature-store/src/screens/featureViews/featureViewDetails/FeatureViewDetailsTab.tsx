@@ -58,8 +58,8 @@ const DataSourcesTable: React.FC<DataSourcesTableProps> = ({ dataSources, curren
     >
       <Thead>
         <Tr>
-          <Th width={20}>Source Type</Th>
-          <Th width={20}>Data Source</Th>
+          <Th width={20}>Source type</Th>
+          <Th width={20}>Data source</Th>
           <Th>File URL</Th>
           <Th>Created Date</Th>
           <Th>Last Modified Date</Th>
@@ -130,7 +130,9 @@ const FeatureViewDetailsView: React.FC<FeatureViewDetailsViewProps> = ({ feature
     'featureView',
     'featureService',
   ]);
+
   const { currentProject } = useFeatureStoreProject();
+
   return (
     <PageSection
       hasBodyWrapper={false}
@@ -169,14 +171,14 @@ const FeatureViewDetailsView: React.FC<FeatureViewDetailsViewProps> = ({ feature
               testId="overview-feature-view"
             />
             <DetailsItem
-              label="Created at"
+              label="Created"
               className={getDisabledClassName(featureView.meta.createdTimestamp)}
               value={
                 featureView.meta.createdTimestamp &&
                 hasContent(featureView.meta.createdTimestamp) ? (
                   <FeatureStoreTimestamp date={featureView.meta.createdTimestamp} />
                 ) : (
-                  'No created at'
+                  '-'
                 )
               }
               testId="feature-view-created-at"

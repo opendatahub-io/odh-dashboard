@@ -5,6 +5,7 @@ import { z } from 'zod';
 import * as _ from 'lodash-es';
 import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/internal/__mocks__/mockK8sNameDescriptionFieldData';
 import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
+import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { ModelSourceStepContent } from '../ModelSourceStep';
 import { modelTypeSelectFieldSchema } from '../../fields/ModelTypeSelectField';
 import type { UseModelDeploymentWizardState } from '../../useDeploymentWizard';
@@ -36,6 +37,13 @@ const mockDeploymentWizardState = (
           data: undefined,
           setData: jest.fn(),
         },
+        modelLocationData: {
+          data: undefined,
+          setData: jest.fn(),
+          connections: [],
+          setSelectedConnection: jest.fn(),
+          selectedConnection: undefined,
+        },
         k8sNameDesc: {
           data: mockK8sNameDescriptionFieldData(),
           onDataChange: jest.fn(),
@@ -52,6 +60,34 @@ const mockDeploymentWizardState = (
           resetFormData: jest.fn(),
           profilesLoaded: true,
         },
+        modelFormatState: {
+          modelFormatOptions: [],
+          modelFormat: undefined,
+          setModelFormat: jest.fn(),
+          isVisible: false,
+          error: undefined,
+          loaded: true,
+        },
+        externalRoute: {
+          data: undefined,
+          setData: jest.fn(),
+          updateField: jest.fn(),
+        },
+        tokenAuthentication: {
+          data: undefined,
+          setData: jest.fn(),
+          updateField: jest.fn(),
+        },
+      },
+      data: {
+        externalRouteField: undefined,
+        tokenAuthenticationField: undefined,
+      },
+      handlers: {
+        setExternalRoute: jest.fn(),
+        updateExternalRoute: jest.fn(),
+        setTokenAuthentication: jest.fn(),
+        updateTokenAuthentication: jest.fn(),
       },
     },
     overrides,
@@ -95,7 +131,7 @@ describe('ModelSourceStep', () => {
   describe('Schema validation', () => {
     it('should validate complete data', () => {
       const validData: ModelSourceStepData = {
-        modelType: 'predictive-model',
+        modelType: ServingRuntimeModelType.PREDICTIVE,
       };
       const result = modelSourceStepSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -114,16 +150,17 @@ describe('ModelSourceStep', () => {
         <ModelSourceStepContent
           wizardState={mockDeploymentWizardState()}
           validation={mockValidation}
+          connections={[]}
         />,
       );
-      expect(screen.getByRole('button')).toBeInTheDocument();
+      expect(screen.getByTestId('model-type-select')).toBeInTheDocument();
     });
 
     it('should render with selected model type', () => {
       const wizardDataWithSelection = mockDeploymentWizardState({
         state: {
           modelType: {
-            data: 'generative-model',
+            data: ServingRuntimeModelType.GENERATIVE,
           },
         },
       });
@@ -131,6 +168,7 @@ describe('ModelSourceStep', () => {
         <ModelSourceStepContent
           wizardState={wizardDataWithSelection}
           validation={mockValidation}
+          connections={[]}
         />,
       );
       expect(screen.getByText('Generative AI model (e.g. LLM)')).toBeInTheDocument();
