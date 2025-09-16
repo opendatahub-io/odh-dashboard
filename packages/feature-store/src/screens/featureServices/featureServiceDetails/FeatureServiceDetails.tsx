@@ -14,6 +14,8 @@ import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import FeatureServiceDetailsTabs from './FeatureServiceDetailsTabs';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
 import useFeatureServiceByName from '../../../apiHooks/useFeatureServiceByName';
+import { featureStoreRootRoute } from '../../../routes';
+import FeatureStorePageTitle from '../../../components/FeatureStorePageTitle';
 
 const FeatureServiceDetails = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -56,14 +58,21 @@ const FeatureServiceDetails = (): React.ReactElement => {
       loaded={featureServiceLoaded}
       provideChildrenPadding
       breadcrumb={
-        <Breadcrumb>
-          <BreadcrumbItem
-            render={() => <Link to="/featureStore/featureServices">Feature services</Link>}
-          />
-          <BreadcrumbItem data-testid="breadcrumb-feature-service-name" isActive>
-            {featureService.spec.name}
-          </BreadcrumbItem>
-        </Breadcrumb>
+        <FeatureStorePageTitle
+          isDetailsPage
+          breadcrumb={
+            <Breadcrumb>
+              <BreadcrumbItem
+                render={() => (
+                  <Link to={`${featureStoreRootRoute()}/featureServices`}>Feature services</Link>
+                )}
+              />
+              <BreadcrumbItem data-testid="breadcrumb-feature-service-name" isActive>
+                {featureService.spec.name}
+              </BreadcrumbItem>
+            </Breadcrumb>
+          }
+        />
       }
     >
       <FeatureServiceDetailsTabs featureService={featureService} fsProject={currentProject} />

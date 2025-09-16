@@ -64,6 +64,11 @@ export interface FeatureStoreLineage {
   pagination: LineagePagination;
 }
 
+export interface FeatureViewLineage {
+  relationships: LineageRelationship[];
+  pagination: PaginationInfo;
+}
+
 // Type guards for discriminated unions
 export function isStandardFeatureView(fv: FeatureView): fv is StandardFeatureView {
   return fv.type === 'featureView';
@@ -86,3 +91,9 @@ export type LineageNodeByType<T extends NodeType> = LineageNodeTypes[T];
 
 // API function type
 export type GetLineageData = (opts: K8sAPIOptions, project: string) => Promise<FeatureStoreLineage>;
+
+export type GetFeatureViewLineage = (
+  opts: K8sAPIOptions,
+  project: string,
+  featureViewName: string,
+) => Promise<FeatureViewLineage>;

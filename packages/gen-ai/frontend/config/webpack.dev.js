@@ -1,3 +1,4 @@
+const { execSync } = require('child_process');
 const { merge } = require('webpack-merge');
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
 
@@ -15,6 +16,27 @@ const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR;
 const DIST_DIR = process.env._DIST_DIR;
 const PUBLIC_PATH = process.env._PUBLIC_PATH;
+const AUTH_METHOD = process.env._AUTH_METHOD;
+
+const getProxyHeaders = () => {
+  if (AUTH_METHOD === 'user_token') {
+    try {
+      const token = execSync('oc whoami --show-token').toString().trim();
+      const username = execSync('oc whoami').toString().trim();
+      // eslint-disable-next-line no-console
+      console.info('Logged in as user:', username);
+      return {
+        Authorization: `Bearer ${token}`,
+        'x-forwarded-access-token': token,
+      };
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to get Kubernetes token:', error.message);
+      return {};
+    }
+  }
+  return {};
+};
 
 module.exports = merge(
   {
@@ -60,6 +82,7 @@ module.exports = merge(
             protocol: PROXY_PROTOCOL,
           },
           changeOrigin: true,
+          headers: getProxyHeaders(),
         },
       ],
     },

@@ -24,6 +24,7 @@ import { extractVersionTag } from '~/app/pages/modelCatalog/utils/modelCatalogUt
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { getRegisterCatalogModelRoute } from '~/app/routes/modelCatalog/catalogModelRegister';
 import ModelDetailsView from './ModelDetailsView';
+import { ModelCatalogDeployButton } from '~/odh/components/ModelCatalogDeployButton';
 
 type RouteParams = {
   modelId: string;
@@ -49,7 +50,7 @@ const ModelDetailsPage: React.FC = () => {
 
   const versionTag = extractVersionTag(model?.tags);
 
-  const registerModelButton = () => {
+  const registerModelButton = (variant: 'primary' | 'secondary' = 'primary') => {
     if (!modelRegistriesLoaded || modelRegistriesLoadError) {
       return null;
     }
@@ -66,14 +67,14 @@ const ModelDetailsPage: React.FC = () => {
           </div>
         }
       >
-        <Button variant="primary" isAriaDisabled data-testid="register-model-button">
+        <Button variant={variant} isAriaDisabled data-testid="register-model-button">
           Register model
         </Button>
       </Popover>
     ) : (
       <Button
         data-testid="register-model-button"
-        variant="primary"
+        variant={variant}
         onClick={() => {
           if (modelId) {
             navigate(getRegisterCatalogModelRoute(modelId));
@@ -149,7 +150,12 @@ const ModelDetailsPage: React.FC = () => {
         !error &&
         model && (
           <ActionList>
-            <ActionListGroup>{registerModelButton()}</ActionListGroup>
+            <ActionListGroup>
+              <ModelCatalogDeployButton 
+                model={model} 
+                renderRegisterButton={(isDeployAvailable) => registerModelButton(isDeployAvailable ? 'secondary' : 'primary')}
+              />
+            </ActionListGroup>
           </ActionList>
         )
       }

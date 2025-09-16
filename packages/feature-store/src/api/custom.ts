@@ -1,7 +1,7 @@
 import { proxyGET } from '@odh-dashboard/internal/api/proxyUtils';
 import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import { handleFeatureStoreFailures } from './errorUtils';
-import { FeatureStoreLineage } from '../types/lineage';
+import { FeatureStoreLineage, FeatureViewLineage } from '../types/lineage';
 import { FEATURE_STORE_API_VERSION } from '../const';
 import { Entity, EntityList } from '../types/entities';
 import { Features, FeaturesList } from '../types/features';
@@ -15,6 +15,7 @@ import {
 } from '../types/metrics';
 import { DataSet, DataSetList } from '../types/dataSets';
 import { DataSource, DataSourceList } from '../types/dataSources';
+import { GlobalSearchResponse } from '../types/search';
 
 export const listFeatureStoreProject =
   (hostPath: string) =>
@@ -232,6 +233,16 @@ export const getLineageData =
     return handleFeatureStoreFailures<FeatureStoreLineage>(proxyGET(hostPath, endpoint, opts));
   };
 
+export const getFeatureViewLineage =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, project: string, featureViewName: string): Promise<FeatureViewLineage> => {
+    const endpoint = `/api/${FEATURE_STORE_API_VERSION}/lineage/objects/featureView/${encodeURIComponent(
+      featureViewName,
+    )}?project=${encodeURIComponent(project)}`;
+
+    return handleFeatureStoreFailures<FeatureViewLineage>(proxyGET(hostPath, endpoint, opts));
+  };
+
 export const getSavedDatasets =
   (hostPath: string) =>
   (opts: K8sAPIOptions, project?: string): Promise<DataSetList> => {
@@ -282,4 +293,36 @@ export const getDataSourceByName =
     )}?project=${encodeURIComponent(project)}&include_relationships=true`;
 
     return handleFeatureStoreFailures<DataSource>(proxyGET(hostPath, endpoint, opts));
+  };
+
+export const getGlobalSearch =
+  (hostPath: string) =>
+  (
+    opts: K8sAPIOptions,
+    projects: string[],
+    query: string,
+    page = 1,
+    limit = 50,
+  ): Promise<GlobalSearchResponse> => {
+    if (projects.length === 0) {
+      throw new Error('At least one project is required');
+    }
+    if (!query) {
+      throw new Error('Query is required');
+    }
+
+    const queryParams: string[] = [
+      `query=${encodeURIComponent(query)}`,
+      'allow_cache=true',
+      `page=${page}`,
+      `limit=${limit}`,
+    ];
+
+    projects.forEach((project) => {
+      queryParams.push(`projects=${encodeURIComponent(project)}`);
+    });
+
+    const endpoint = `/api/${FEATURE_STORE_API_VERSION}/search?${queryParams.join('&')}`;
+
+    return handleFeatureStoreFailures<GlobalSearchResponse>(proxyGET(hostPath, endpoint, {}, opts));
   };
