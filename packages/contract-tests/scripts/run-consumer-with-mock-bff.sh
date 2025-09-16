@@ -1,25 +1,6 @@
 #!/bin/bash
 
-# Strict mode for safety
-set -euo pipefail
-
-print_help() {
-  cat <<'EOF'
-Usage: odh-ct-bff-consumer [options]
-
-Run contract tests for a consumer package using the shared mock BFF harness.
-
-Options:
-  -c, --consumer-dir <path>   Consumer contract-tests directory (default: CWD)
-  -j, --jest-config <path>    Path to consumer jest.contract.config.js (optional)
-  -r, --results-dir <path>    Directory to write results (default: <consumer>/contract-test-results/<ts>)
-  -n, --package-name <name>   Package name for report metadata (default: consumer dir name)
-  -w, --watch                 Run in watch mode
-  -o, --open                  Open HTML report in browser after tests complete
-  -h, --help                  Show this help
-
-EOF
-}
+#Run contract tests for a consumer package using the shared mock BFF harness.
 
 # Resolve package root (this script lives in packages/contract-tests/scripts)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

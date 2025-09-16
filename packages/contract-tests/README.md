@@ -39,11 +39,8 @@ npm run test:contract
 # With HTML reports (opens browser automatically)
 npm run test:contract -- --open
 
-# With BFF building (for performance in CI)
-npm run test:contract -- --build-bff
-
 # Combine options
-npm run test:contract -- --open --build-bff
+npm run test:contract -- --open
 
 ```
 
@@ -91,7 +88,6 @@ npx turbo run test:contract --filter=@odh-dashboard/model-registry -- --open
 - ✅ **Test utilities** - API client, schema validation, health checks
 - ✅ **Schema validation** - OpenAPI/JSON Schema validation for API contracts
 - ✅ **Schema conversion** - Convert OpenAPI/Swagger to JSON Schema
-- ✅ **Performance optimization** - Use `--build-bff` for faster CI builds
 - ✅ **Flexible reporting** - Use `--open` to automatically open HTML reports
 
 ## Directory Structure
@@ -128,10 +124,10 @@ The contract test runner automatically manages your Mock BFF lifecycle:
 5. **Cleans up** BFF process when tests complete
 
 ### CI/CD Pipeline (Production Mode)
-1. **Builds** your BFF binary using `go build -o bff-mock ./cmd`
-2. **Starts** the built BFF binary in mock mode
-3. **Waits** for BFF to be healthy
-4. **Runs** your contract tests
+1. **Runs** your BFF using `go run ./cmd` (development/production parity)
+2. **Starts** your BFF server in mock mode with `--mock-k8s-client --mock-mr-client --port 8108`
+3. **Waits** for BFF to be healthy (checks health endpoint)
+4. **Runs** your contract tests using the shared Jest harness
 5. **Cleans up** BFF process when tests complete
 
 Your BFF must have a `cmd/` directory with a main.go file that accepts these flags:

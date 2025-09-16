@@ -4,7 +4,7 @@ set -euo pipefail
 
 print_help() {
   cat <<'EOF'
-Usage: odh-ct-bff-consumer --bff-dir <path> [--consumer-dir <path>] [--package-name <name>] [--open] [--build-bff]
+Usage: odh-ct-bff-consumer --bff-dir <path> [--consumer-dir <path>] [--package-name <name>] [--open]
 
 Starts a Go BFF in mock mode, waits for readiness, then runs contract
 tests for the consumer directory using the shared Jest harness.
@@ -14,13 +14,11 @@ Options:
   --consumer-dir <path>    Path to the consumer contract-tests directory (defaults to 'contract-tests')
   --package-name <name>    Package label for reports (defaults to consumer dir name)
   --open                   Open HTML report in browser after tests complete
-  --build-bff              Build the BFF binary before starting (for performance)
   -h, --help               Show this help
 
 Examples:
   odh-ct-bff-consumer --bff-dir upstream/bff
   odh-ct-bff-consumer --bff-dir upstream/bff --open
-  odh-ct-bff-consumer --bff-dir upstream/bff --build-bff
 EOF
 }
 
@@ -57,7 +55,6 @@ CONSUMER_DIR=""
 PACKAGE_NAME=""
 PORT=""
 OPEN_REPORT=false
-BUILD_BFF=false
 CONTRACT_MOCK_BFF_HEALTH_ENDPOINT="${CONTRACT_MOCK_BFF_HEALTH_ENDPOINT:-/healthcheck}"
 
 require_arg() {
@@ -81,8 +78,6 @@ while [[ $# -gt 0 ]]; do
       PACKAGE_NAME="$2"; shift 2;;
     --open)
       OPEN_REPORT=true; shift;;
-    --build-bff)
-      BUILD_BFF=true; shift;;
     -h|--help)
       print_help; exit 0;;
     *)
@@ -146,20 +141,6 @@ log_success "Go found: $(go version)"
 
 log_info "Starting Mock BFF server..."
 pushd "$BFF_DIR" >/dev/null
-
-# Build BFF binary if requested
-if [[ "$BUILD_BFF" == "true" ]]; then
-  log_info "Building BFF binary..."
-  BINARY_NAME="../../../bin/$(basename $(dirname $(pwd)))_bff"
-  if go build -o "$BINARY_NAME" ./cmd; then
-    log_success "BFF binary built successfully: $BINARY_NAME"
-    # Exit early when only building (for CI build step)
-    exit 0
-  else
-    log_error "Failed to build BFF binary"
-    exit 1
-  fi
-fi
 
 # Provision envtest assets if setup helper missing
 if [[ -z "${KUBEBUILDER_ASSETS:-}" ]]; then
