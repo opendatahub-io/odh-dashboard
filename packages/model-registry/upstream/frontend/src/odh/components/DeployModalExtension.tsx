@@ -6,6 +6,7 @@ import MRDeployFormDataLoader from '~/odh/components/MRDeployFormDataLoader';
 import { ModelVersion } from '~/app/types';
 import { getDeployButtonState } from '~/odh/utils';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
+import { modelVersionDeploymentsUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
 
 type DeployModalExtensionProps = {
   mv: ModelVersion;
@@ -42,7 +43,7 @@ const DeployModalExtension: React.FC<DeployModalExtensionProps> = ({ mv, render 
     const registeredModelId = mv.registeredModelId;
     const modelRegistryName = preferredModelRegistry?.name;
     
-    navigate(`/model-registry/${modelRegistryName}/registeredModels/${registeredModelId}/versions/${modelVersionId}/deployments`);
+    navigate(modelVersionDeploymentsUrl(modelVersionId, registeredModelId, modelRegistryName));
   }, [navigate, mv, preferredModelRegistry]);
 
   return (
