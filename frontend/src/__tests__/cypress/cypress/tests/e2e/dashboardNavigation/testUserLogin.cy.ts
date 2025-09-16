@@ -7,7 +7,7 @@ import { header } from '#~/__tests__/cypress/cypress/pages/components/Header';
 describe('Verify that logged in users display on the Dashboard', () => {
   it(
     'Verify that Admin Users can login and that login information displays on the dashboard',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-354', '@Dashboard'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-354', '@Dashboard', '@SmokeCISet1', '@SmokeCISet2', '@SmokeCISet3', '@SanityCISet1', '@SanityCISet2', '@SanityCISet3'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
