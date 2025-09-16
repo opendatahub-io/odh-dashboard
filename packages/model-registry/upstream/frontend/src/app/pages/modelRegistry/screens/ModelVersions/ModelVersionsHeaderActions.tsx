@@ -60,7 +60,7 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
                   )}
                 >
                   <DropdownList>
-                    {isModalAvailable && (
+                  {isModalAvailable && (<DropdownGroup label="Latest version actions">
                       <DropdownItem
                         onClick={() => {
                           setOpen(false);
@@ -71,8 +71,8 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
                       >
                         Deploy <strong>{latestModelVersion.name}</strong>
                       </DropdownItem>
-                    )}
                     {isModalAvailable && <Divider />}
+                    </DropdownGroup>)}
                     <DropdownItem onClick={() => setIsArchiveModalOpen(true)}>Archive model</DropdownItem>
                   </DropdownList>
                 </Dropdown>
