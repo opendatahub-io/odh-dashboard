@@ -18,7 +18,6 @@ import {
   Stack,
   StackItem,
   TextArea,
-  Tooltip,
 } from '@patternfly/react-core';
 
 import React from 'react';
@@ -30,7 +29,7 @@ import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import { updateStorageClassConfig } from '#~/api';
 import { toAccessModeFullName } from '#~/pages/projects/screens/detail/storage/AccessModeFullName.tsx';
 import {
-  getSupportedAccessModesForProvisioner,
+  //getSupportedAccessModesForProvisioner,
   getStorageClassConfig,
   getStorageClassDefaultAccessModeSettings,
   isOpenshiftDefaultStorageClass,
@@ -182,10 +181,10 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
             {Object.values(AccessMode).map((modeName) => {
               const modeLabel = toAccessModeFullName(modeName);
 
-              const supportedAccessModes = getSupportedAccessModesForProvisioner(
-                storageClass.provisioner,
-              );
-              const isSupported = supportedAccessModes.includes(modeName);
+              // const supportedAccessModes = getSupportedAccessModesForProvisioner(
+              //   storageClass.provisioner,
+              // );
+              // const isSupported = supportedAccessModes.includes(modeName);
 
               const checkbox = (
                 <Checkbox
@@ -214,19 +213,6 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
                   }}
                 />
               );
-
-              if (!isSupported) {
-                return (
-                  <Tooltip
-                    data-testid="sc-access-mode-unsupported-tooltip"
-                    content="This access mode is not supported by the selected storage class."
-                    key={`${modeName}-tooltip`}
-                    position="top-start"
-                  >
-                    {checkbox}
-                  </Tooltip>
-                );
-              }
 
               return checkbox;
             })}

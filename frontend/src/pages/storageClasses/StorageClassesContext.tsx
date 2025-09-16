@@ -92,6 +92,8 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
 
         const accessModeSettings = getStorageClassDefaultAccessModeSettings(storageClass);
 
+        console.log('accessModeSettings', accessModeSettings);
+
         // Add a default config annotation when one doesn't exist
         if (!config) {
           let isDefault = isOpenshiftDefault;
