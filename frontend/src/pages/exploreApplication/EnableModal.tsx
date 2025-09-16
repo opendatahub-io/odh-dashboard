@@ -48,6 +48,22 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
     }
   };
 
+  // Memoize compiled regex to avoid recompilation on each validation
+  const compiledRegex = React.useMemo(() => {
+    const validationRegex = selectedApp.spec.enable?.warningValidation?.validationRegex;
+    if (!validationRegex) {
+      return null;
+    }
+
+    try {
+      return new RegExp(validationRegex);
+    } catch (error) {
+      // Log invalid regex pattern but don't crash the component
+      console.warn('Invalid regex pattern in CRD validation:', validationRegex, error);
+      return null;
+    }
+  }, [selectedApp.spec.enable?.warningValidation?.validationRegex]);
+
   const validateFieldOnChange = React.useCallback(
     (key: string, value: string) => {
       // Prioritize app-config validation if available
@@ -59,17 +75,26 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
         // Always clear warning when value is falsy or when validationRegex is absent
         if (!value || !validationRegex) {
           setWarning('');
-        } else {
-          const regex = new RegExp(validationRegex);
-          if (regex.test(value)) {
-            setWarning(message);
-          } else {
+        } else if (compiledRegex) {
+          // Only test if we have a valid compiled regex
+          try {
+            if (compiledRegex.test(value)) {
+              setWarning(message);
+            } else {
+              setWarning('');
+            }
+          } catch (error) {
+            // Clear warning if regex test fails unexpectedly
+            console.warn('Error testing regex pattern:', error);
             setWarning('');
           }
+        } else {
+          // Clear warning if regex compilation failed
+          setWarning('');
         }
       }
     },
-    [selectedApp.spec.enable?.warningValidation],
+    [selectedApp.spec.enable?.warningValidation, compiledRegex],
   );
 
   const debouncedValidateField = React.useCallback(
@@ -107,6 +132,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
     // Clear debounce timeout
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
+      debounceTimeoutRef.current = null;
     }
 
     // Clear only the values, keeping the keys intact
@@ -147,6 +173,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
   React.useEffect(() => {
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
+      debounceTimeoutRef.current = null;
     }
   }, []);
 
@@ -196,7 +223,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
                   data-testid="warning-message-alert"
                   variantLabel="warning"
                   variant="warning"
-                  title="Deprecation warning"
+                  title="Warning"
                   aria-live="polite"
                   isInline
                 >
