@@ -52,7 +52,7 @@ export const isOpenshiftDefaultStorageClass = (
 
 export const isValidConfigValue = (
   configKey: keyof StorageClassConfig,
-  value: string | boolean | undefined | AccessModeSettings,
+  value: string | boolean | undefined | AccessModeSettings | null,
 ): boolean => {
   switch (configKey) {
     case 'displayName':
@@ -64,7 +64,7 @@ export const isValidConfigValue = (
     case 'lastModified':
       return typeof value === 'string' && isValidDate(new Date(value));
     case 'accessModeSettings':
-      return typeof value === 'object';
+      return typeof value === 'object' && value !== null;
     default:
       return false;
   }

@@ -21,7 +21,7 @@ import {
 } from '@patternfly/react-core';
 
 import React from 'react';
-import { AccessMode } from '#~/pages/storageClasses/storageEnums';
+import { AccessMode, AccessModeLabelMap } from '#~/pages/storageClasses/storageEnums';
 import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon';
 import { accessModeDescriptions } from '#~/pages/storageClasses/constants';
 import { StorageClassKind } from '#~/k8sTypes';
@@ -29,10 +29,11 @@ import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import { updateStorageClassConfig } from '#~/api';
 import { toAccessModeFullName } from '#~/pages/projects/screens/detail/storage/AccessModeFullName.tsx';
 import {
-  //getSupportedAccessModesForProvisioner,
+  getSupportedAccessModesForProvisioner,
   getStorageClassConfig,
   getStorageClassDefaultAccessModeSettings,
   isOpenshiftDefaultStorageClass,
+  isValidAccessModeSettings,
   isValidConfigValue,
 } from './utils';
 import { OpenshiftDefaultLabel } from './OpenshiftDefaultLabel';
@@ -65,15 +66,37 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
 
   const defaultAccessModeSettings = getStorageClassDefaultAccessModeSettings();
 
-  const [accessModeSettings, setAccessModeSettings] = React.useState(
-    isValidConfigValue('accessModeSettings', storageClassConfig?.accessModeSettings)
-      ? storageClassConfig?.accessModeSettings
-      : defaultAccessModeSettings,
-  );
+  const [accessModeSettings, setAccessModeSettings] = React.useState(() => {
+    const settings = storageClassConfig?.accessModeSettings;
+    if (settings && isValidAccessModeSettings(settings)) {
+      return settings;
+    }
+    return defaultAccessModeSettings;
+  });
   const [showAccessModeAlert, setShowAccessModeAlert] = React.useState(false);
+  const [accessModeMismatch, setAccessModeMismatch] = React.useState<{
+    recommended: AccessMode[];
+    unsupported: AccessMode[];
+  } | null>(null);
 
   const [updateError, setUpdateError] = React.useState<Error>();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  React.useEffect(() => {
+    const recommended = getSupportedAccessModesForProvisioner(storageClass.provisioner);
+
+    const selectedModes = Object.values(AccessMode).filter(
+      (mode) => accessModeSettings[mode] === true || mode === AccessMode.RWO,
+    );
+
+    const unsupported = selectedModes.filter((mode) => !recommended.includes(mode));
+
+    if (unsupported.length > 0) {
+      setAccessModeMismatch({ recommended, unsupported });
+    } else {
+      setAccessModeMismatch(null);
+    }
+  }, [accessModeSettings, storageClass.provisioner]);
 
   const onSave = async () => {
     setIsSubmitting(true);
@@ -180,12 +203,6 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
           >
             {Object.values(AccessMode).map((modeName) => {
               const modeLabel = toAccessModeFullName(modeName);
-
-              // const supportedAccessModes = getSupportedAccessModesForProvisioner(
-              //   storageClass.provisioner,
-              // );
-              // const isSupported = supportedAccessModes.includes(modeName);
-
               const checkbox = (
                 <Checkbox
                   label={modeLabel}
@@ -193,7 +210,7 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
                   // RWO is not allowed to be disabled
                   isDisabled={modeName === AccessMode.RWO}
                   // RWO is always enabled
-                  isChecked={accessModeSettings?.[modeName] === true || modeName === AccessMode.RWO}
+                  isChecked={accessModeSettings[modeName] === true || modeName === AccessMode.RWO}
                   aria-label={modeLabel}
                   key={modeName}
                   id={`edit-sc-access-mode-${modeName.toLowerCase()}`}
@@ -225,6 +242,25 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
               isInline
               data-testid="edit-sc-access-mode-alert"
             />
+          )}
+          {accessModeMismatch && (
+            <Alert
+              className="pf-v6-u-mt-md"
+              variant="warning"
+              isInline
+              title="Unsupported access modes selected"
+              data-testid="edit-sc-access-mode-mismatch-alert"
+            >
+              <p>
+                For the provisioner <strong>{storageClass.provisioner}</strong>, the recommended
+                access modes are:
+                {accessModeMismatch.recommended.map((m) => AccessModeLabelMap[m]).join(', ')}.
+              </p>
+              <p>
+                You have selected unsupported modes:
+                {accessModeMismatch.unsupported.map((m) => AccessModeLabelMap[m]).join(', ')}.
+              </p>
+            </Alert>
           )}
         </Form>
       </ModalBody>
