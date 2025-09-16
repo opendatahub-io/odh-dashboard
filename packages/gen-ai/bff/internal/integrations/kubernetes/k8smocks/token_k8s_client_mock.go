@@ -28,7 +28,7 @@ func newMockedTokenKubernetesClientFromClientset(ctrlClient client.Client, confi
 		TokenKubernetesClient: &k8s.TokenKubernetesClient{
 			Client: ctrlClient,
 			Logger: logger,
-			Token:  integrations.NewBearerToken(""), // Unused because impersonation is already handled in the client config
+			Token: integrations.NewBearerToken(""), // Unused because impersonation is already handled in the client config
 			Config: config,
 		},
 	}
@@ -66,24 +66,24 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 	// Return mock AA models for testing
 	return []genaiassets.AAModel{
 		{
-			ModelName:      "mock-model-1",
+			ModelName: "mock-model-1",
 			ServingRuntime: "OpenVINO Model Server",
-			APIProtocol:    "v2",
-			Version:        "v2025.1",
-			Description:    "A high-performance computer vision model for object detection and classification",
-			Usecase:        "Computer Vision",
+			APIProtocol: "v2",
+			Version: "v2025.1",
+			Description: "A high-performance computer vision model for object detection and classification",
+			Usecase: "Computer Vision",
 			Endpoints: []string{
 				"internal: http://mock-model-1.namespace.svc.cluster.local:8080",
 				"external: https://mock-model-1.example.com",
 			},
 		},
 		{
-			ModelName:      "mock-model-2",
+			ModelName: "mock-model-2",
 			ServingRuntime: "TorchServe",
-			APIProtocol:    "v1",
-			Version:        "v2025.1",
-			Description:    "A natural language processing model for text generation and completion",
-			Usecase:        "Natural Language Processing",
+			APIProtocol: "v1",
+			Version: "v2025.1",
+			Description: "A natural language processing model for text generation and completion",
+			Usecase: "Natural Language Processing",
 			Endpoints: []string{
 				"internal: http://mock-model-2.namespace.svc.cluster.local:8080",
 			},
@@ -127,9 +127,9 @@ func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Conte
 						ActiveDistribution: "mock-distribution",
 						Providers: []lsdapi.ProviderInfo{
 							{
-								ProviderID:   "mock-provider",
+								ProviderID: "mock-provider",
 								ProviderType: "mock-type",
-								API:          "mock-api",
+								API: "mock-api",
 							},
 						},
 						AvailableDistributions: map[string]string{
@@ -157,7 +157,7 @@ func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Co
 	// Then create the ConfigMap that the LSD will reference
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "llama-stack-config",
+			Name: "llama-stack-config",
 			Namespace: namespace,
 		},
 		Data: map[string]string{
@@ -275,7 +275,7 @@ server:
 	// Create a real LSD resource in the envtest cluster
 	lsd := &lsdapi.LlamaStackDistribution{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "lsd-genai-playground",
+			Name: "lsd-genai-playground",
 			Namespace: namespace,
 			Labels: map[string]string{
 				"opendatahub.io/dashboard": "true",
@@ -288,11 +288,11 @@ server:
 					Command: []string{"/bin/sh", "-c", "llama stack run /etc/llama-stack/run.yaml"},
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
-							corev1.ResourceCPU:    resource.MustParse("250m"),
+							corev1.ResourceCPU: resource.MustParse("250m"),
 							corev1.ResourceMemory: resource.MustParse("500Mi"),
 						},
 						Limits: corev1.ResourceList{
-							corev1.ResourceCPU:    resource.MustParse("2"),
+							corev1.ResourceCPU: resource.MustParse("2"),
 							corev1.ResourceMemory: resource.MustParse("12Gi"),
 						},
 					},
@@ -320,12 +320,13 @@ server:
 	}
 
 	return lsd, nil
-  
+}
+
 func (m *TokenKubernetesClientMock) GetConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.ConfigMap, error) {
 	// Return mock ConfigMap for testing
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
+			Name: name,
 			Namespace: namespace,
 		},
 		Data: map[string]string{
