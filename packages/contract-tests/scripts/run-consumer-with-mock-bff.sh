@@ -38,10 +38,11 @@ while [[ $# -gt 0 ]]; do
       WATCH_MODE=true; shift;;
     -o|--open)
       OPEN_REPORT=true; shift;;
-    -h|--help)
-      print_help; exit 0;;
     *)
-      echo "Unknown option: $1"; print_help; exit 2;;
+      echo "Unknown option: $1"
+      echo "Usage: $0 [options]"
+      echo "This is an internal script - use odh-ct-bff-consumer instead"
+      exit 2;;
   esac
 done
 

@@ -179,14 +179,8 @@ fi
 
 log_info "Starting Mock BFF server on port $PORT..."
 
-# Check if pre-built binary exists (from CI cache), otherwise use go run
-if [[ -f "./bff-mock" && -x "./bff-mock" ]]; then
-  log_info "Using cached BFF binary"
-  ./bff-mock --mock-k8s-client --mock-mr-client --port "$PORT" --allowed-origins="*" > "$BFF_LOG_FILE" 2>&1 &
-else
-  log_info "No cached binary found, using go run"
-  go run ./cmd --mock-k8s-client --mock-mr-client --port "$PORT" --allowed-origins="*" > "$BFF_LOG_FILE" 2>&1 &
-fi
+log_info "Starting Mock BFF server with go run"
+go run ./cmd --mock-k8s-client --mock-mr-client --port "$PORT" --allowed-origins="*" > "$BFF_LOG_FILE" 2>&1 &
 
 BFF_PID=$!
 echo "$BFF_PID" > "$RESULTS_DIR/bff.pid"
