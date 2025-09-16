@@ -8,6 +8,7 @@ import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import { featureStoreRoute } from '../../routes';
 import useFeatureStoreDataSets from '../../apiHooks/useFeatureStoreDataSets';
+import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
 
 const title = 'Datasets';
 const description =
@@ -40,7 +41,18 @@ const FeatureStoreDataSets = (): React.ReactElement => {
     <ApplicationsPage
       empty={dataSets.savedDatasets.length === 0}
       emptyStatePage={emptyState}
-      title={<FeatureStorePageTitle title={title} />}
+      title={
+        <FeatureStorePageTitle
+          title={
+            <FeatureStoreObjectIcon
+              objectType="data_set"
+              title={title}
+              showBackground
+              useTypedColors
+            />
+          }
+        />
+      }
       description={description}
       loadError={dataSetsLoadError}
       loaded={dataSetsLoaded}

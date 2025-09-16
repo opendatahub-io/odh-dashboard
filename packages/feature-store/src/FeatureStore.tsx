@@ -1,20 +1,13 @@
 import React from 'react';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import {
-  Tab,
-  Tabs,
-  TabTitleText,
-  TabContent,
-  Flex,
-  FlexItem,
-  PageSection,
-} from '@patternfly/react-core';
+import { Tab, Tabs, TabTitleText, TabContent, PageSection } from '@patternfly/react-core';
 import FeatureStoreProjectSelectorNavigator from './screens/components/FeatureStoreProjectSelectorNavigator';
 import FeatureStorePageTitle from './components/FeatureStorePageTitle';
 import { featureStoreRoute } from './routes';
 import { FeatureStoreTabs } from './const';
 import Metrics from './screens/metrics/Metrics';
 import FeatureStoreLineage from './screens/lineage/FeatureStoreLineage';
+import FeatureStoreObjectIcon from './components/FeatureStoreObjectIcon';
 
 type FeatureStoreProps = Omit<
   React.ComponentProps<typeof ApplicationsPage>,
@@ -32,8 +25,18 @@ const FeatureStore: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
   return (
     <ApplicationsPage
       {...pageProps}
-      title={<FeatureStorePageTitle title="Feature store" />}
-      description="Description of feature store"
+      title={
+        <FeatureStorePageTitle
+          title={
+            <FeatureStoreObjectIcon
+              objectType="feature_store"
+              title="Overview"
+              showBackground
+              useTypedColors
+            />
+          }
+        />
+      }
       headerContent={
         <FeatureStoreProjectSelectorNavigator
           getRedirectPath={(featureStoreObject, featureStoreProject) =>
@@ -45,59 +48,52 @@ const FeatureStore: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
     >
       <PageSection
         hasBodyWrapper={false}
-        isFilled
-        padding={{ default: 'noPadding' }}
         style={{ height: '100%', minHeight: '600px' }}
+        padding={{ default: 'noPadding' }}
       >
-        <Flex direction={{ default: 'column' }} style={{ height: '100%' }}>
-          <FlexItem>
-            <Tabs
-              activeKey={activeTabKey}
-              onSelect={(e, tabIndex) => {
-                setActiveTabKey(tabIndex);
-              }}
-              aria-label="Overview page"
-              role="region"
-              data-testid="feature-store-page"
-            >
-              <Tab
-                eventKey={FeatureStoreTabs.METRICS}
-                title={<TabTitleText>Metrics</TabTitleText>}
-                aria-label="Metrics tab"
-                data-testid="metrics-tab"
-                tabContentId={`tabContent-${FeatureStoreTabs.METRICS}`}
-              >
-                <TabContent
-                  id={`tabContent-${FeatureStoreTabs.METRICS}`}
-                  eventKey={FeatureStoreTabs.METRICS}
-                  activeKey={activeTabKey}
-                  hidden={FeatureStoreTabs.METRICS !== activeTabKey}
-                  style={{ height: '100%' }}
-                >
-                  <Metrics />
-                </TabContent>
-              </Tab>
-              <Tab
-                eventKey={FeatureStoreTabs.LINEAGE}
-                title={<TabTitleText>Lineage</TabTitleText>}
-                aria-label="Lineage tab"
-                data-testid="lineage-tab"
-                tabContentId={`tabContent-${FeatureStoreTabs.LINEAGE}`}
-              />
-            </Tabs>
-          </FlexItem>
-          <FlexItem flex={{ default: 'flex_1' }} style={{ overflowY: 'hidden' }}>
+        <Tabs
+          activeKey={activeTabKey}
+          onSelect={(e, tabIndex) => {
+            setActiveTabKey(tabIndex);
+          }}
+          aria-label="Overview page"
+          role="region"
+          data-testid="feature-store-page"
+        >
+          <Tab
+            eventKey={FeatureStoreTabs.METRICS}
+            title={<TabTitleText>Metrics</TabTitleText>}
+            aria-label="Metrics tab"
+            data-testid="metrics-tab"
+            tabContentId={`tabContent-${FeatureStoreTabs.METRICS}`}
+          >
             <TabContent
-              id={`tabContent-${FeatureStoreTabs.LINEAGE}`}
-              eventKey={FeatureStoreTabs.LINEAGE}
+              id={`tabContent-${FeatureStoreTabs.METRICS}`}
+              eventKey={FeatureStoreTabs.METRICS}
               activeKey={activeTabKey}
-              hidden={FeatureStoreTabs.LINEAGE !== activeTabKey}
+              hidden={FeatureStoreTabs.METRICS !== activeTabKey}
               style={{ height: '100%' }}
             >
-              <FeatureStoreLineage />
+              <Metrics />
             </TabContent>
-          </FlexItem>
-        </Flex>
+          </Tab>
+          <Tab
+            eventKey={FeatureStoreTabs.LINEAGE}
+            title={<TabTitleText>Lineage</TabTitleText>}
+            aria-label="Lineage tab"
+            data-testid="lineage-tab"
+            tabContentId={`tabContent-${FeatureStoreTabs.LINEAGE}`}
+          />
+        </Tabs>
+        <TabContent
+          id={`tabContent-${FeatureStoreTabs.LINEAGE}`}
+          eventKey={FeatureStoreTabs.LINEAGE}
+          activeKey={activeTabKey}
+          hidden={FeatureStoreTabs.LINEAGE !== activeTabKey}
+          style={{ height: '100%' }}
+        >
+          <FeatureStoreLineage />
+        </TabContent>
       </PageSection>
     </ApplicationsPage>
   );
