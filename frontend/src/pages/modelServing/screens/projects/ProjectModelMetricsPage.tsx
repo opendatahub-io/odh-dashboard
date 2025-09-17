@@ -20,7 +20,7 @@ const ProjectModelMetricsPage: React.FC = () => {
           link: `/projects/${currentProject.metadata.name}`,
         },
         {
-          label: 'Models',
+          label: 'Deployments',
           link: `/projects/${currentProject.metadata.name}/?section=model-server`,
         },
         {

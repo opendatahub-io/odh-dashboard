@@ -95,7 +95,7 @@ export const useWatchBuildStatus = (): BuildStatus[] => {
       dispatch(
         addNotification({
           status: AlertVariant.info,
-          title: 'Notebook images are building.',
+          title: 'Workbench images are building.',
           timestamp: new Date(),
         }),
       );

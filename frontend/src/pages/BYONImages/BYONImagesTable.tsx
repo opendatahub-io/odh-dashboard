@@ -63,7 +63,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
   return (
     <>
       <Table
-        aria-label="Notebook images table"
+        aria-label="Workbench images table"
         data-testid="notebook-images-table"
         enablePagination
         data={filteredImages}
