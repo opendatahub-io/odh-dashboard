@@ -109,6 +109,7 @@ describe('Homepage Model Catalog section', () => {
     homePage.visit();
     homePage.getHomeModelCatalogSection().find().should('not.exist');
   });
+  // TODO: Temporarily disabled model catalog section - to be re-enabled in future -->  https://issues.redhat.com/browse/RHOAIENG-34405
 
   // it('should show the model catalog section when enabled and models exist', () => {
   //   cy.interceptK8s(
