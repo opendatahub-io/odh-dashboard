@@ -2,15 +2,38 @@ import * as React from 'react';
 import { Bullseye, Content, ContentVariants, Spinner } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import ModelsEmptyState from '~/app/EmptyStates/NoData';
-import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import { GenAiContext } from '~/app/context/GenAiContext';
+import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
+import { LlamaModel } from '~/app/types';
+import AIModelsTable from './components/AIModelsTable';
+import { AIModel } from './types';
+import useFetchAIModels from './hooks/useFetchAIModels';
 
 const AIAssetsModelsTab: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = React.useContext(GenAiContext);
-  const { data: models, loaded } = useFetchLlamaModels(namespace?.name);
+  const { data: models, loaded, error } = useFetchAIModels(namespace?.name);
+  const { data: playgroundModels, loaded: playgroundModelsLoaded } = useFetchLlamaModels(
+    namespace?.name,
+  );
 
-  if (!loaded) {
+  // Determine which AI Assets models are available in the playground
+  const modelsWithPlaygroundStatus = React.useMemo(() => {
+    const playgroundModelIds = new Set(playgroundModels.map((model: LlamaModel) => model.id));
+
+    return models.map((model: AIModel) => ({
+      ...model,
+      playgroundStatus: playgroundModelIds.has(model.model_name) ? 'available' : 'not-available',
+    }));
+  }, [models, playgroundModels]);
+
+  const handleTryInPlayground = (model: AIModel) => {
+    // Navigate to playground with the selected model
+    const playgroundUrl = `/gen-ai/playground/${namespace?.name}?model=${encodeURIComponent(model.model_name)}`;
+    navigate(playgroundUrl);
+  };
+
+  if (!loaded || !playgroundModelsLoaded) {
     return (
       <Bullseye>
         <Spinner />
@@ -18,7 +41,7 @@ const AIAssetsModelsTab: React.FC = () => {
     );
   }
 
-  if (models.length === 0) {
+  if (error || modelsWithPlaygroundStatus.length === 0) {
     return (
       <ModelsEmptyState
         title="To begin you must deploy a model"
@@ -47,16 +70,14 @@ const AIAssetsModelsTab: React.FC = () => {
         }
         actionButtonText="Go to Model Deployments"
         handleActionButtonClick={() => {
-          navigate('/modelServing');
+          navigate(`/modelServing/${namespace?.name}`);
         }}
       />
     );
   }
+
   return (
-    <>
-      {/* TODO: Add list of models */}
-      List goes here
-    </>
+    <AIModelsTable models={modelsWithPlaygroundStatus} onTryInPlayground={handleTryInPlayground} />
   );
 };
 
