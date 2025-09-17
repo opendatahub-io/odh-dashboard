@@ -263,9 +263,6 @@ describe('Model Serving Deploy Wizard', () => {
 
       // Validate spec separately to avoid containSubset issues with complex nested objects
       const requestBody = interception.request.body;
-      expect(requestBody.spec).to.exist;
-      expect(requestBody.spec.predictor).to.exist;
-      expect(requestBody.spec.predictor.model).to.exist;
 
       // Validate model format (generative uses vLLM)
       expect(requestBody.spec.predictor.model.modelFormat).to.deep.equal({
@@ -372,9 +369,6 @@ describe('Model Serving Deploy Wizard', () => {
 
       // Validate spec separately to avoid containSubset issues with complex nested objects
       const requestBody = interception.request.body;
-      expect(requestBody.spec).to.exist;
-      expect(requestBody.spec.predictor).to.exist;
-      expect(requestBody.spec.predictor.model).to.exist;
 
       // Validate model format
       expect(requestBody.spec.predictor.model.modelFormat).to.deep.equal({
