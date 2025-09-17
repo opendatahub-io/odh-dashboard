@@ -76,7 +76,7 @@ export default defineConfig({
   e2e: {
     // TODO: Add back cross testing with fine tune when test environment is available.
     excludeSpecPattern: [
-      '**/tests/mocked/modelRegistry/**/*.cy.ts',
+      // '**/tests/mocked/modelRegistry/**/*.cy.ts',
       '**/tests/mocked/pipelines/modelCustomizationForm.cy.ts',
     ],
     baseUrl: BASE_URL,

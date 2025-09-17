@@ -1,4 +1,4 @@
-import { ServiceKind } from '#~/k8sTypes';
+import { ModelRegistry, ServiceKind } from '#~/k8sTypes';
 
 type MockServiceType = {
   name?: string;
@@ -6,6 +6,22 @@ type MockServiceType = {
   description?: string;
   serverUrl?: string;
 };
+
+type MockModelRegistry = {
+  name?: string;
+  description?: string;
+  displayName?: string;
+};
+
+export const mockModelRegistry = ({
+  name = 'modelregistry-sample',
+  description = 'Model registry description',
+  displayName = 'Model Registry Sample',
+}: MockModelRegistry): ModelRegistry => ({
+  name,
+  description,
+  displayName,
+});
 
 export const mockModelRegistryService = ({
   name = 'modelregistry-sample',
