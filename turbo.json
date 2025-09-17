@@ -18,6 +18,15 @@
     },
     "type-check": {
       "dependsOn": ["^type-check"]
+    },
+    "test:contract": {
+      "inputs": [
+        "contract-tests/**",
+        "upstream/bff/**"
+      ],
+      "outputs": [
+        "contract-tests/contract-test-results/**"
+      ]
     }
   }
 }

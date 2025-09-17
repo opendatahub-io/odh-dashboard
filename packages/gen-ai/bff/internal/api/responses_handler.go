@@ -202,6 +202,11 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 				}
 			}
 		}
+		// Check if this is a model not found error
+		if ModelNotFoundError(err) {
+			app.modelNotFoundResponse(w, r, params.Model)
+			return
+		}
 		app.serverErrorResponse(w, r, err)
 		return
 	}
@@ -265,6 +270,11 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Request, ctx context.Context, params llamastack.CreateResponseParams) {
 	llamaResponse, err := app.repositories.Responses.CreateResponse(ctx, params)
 	if err != nil {
+		// Check if this is a model not found error
+		if ModelNotFoundError(err) {
+			app.modelNotFoundResponse(w, r, params.Model)
+			return
+		}
 		app.serverErrorResponse(w, r, err)
 		return
 	}
