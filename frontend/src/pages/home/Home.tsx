@@ -4,7 +4,7 @@ import { HomeIcon } from '@patternfly/react-icons';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
 import { SupportedArea } from '#~/concepts/areas';
-import ModelCatalogSection from '#~/pages/home/modelCatalog/ModelCatalogSection';
+//import ModelCatalogSection from '#~/pages/home/modelCatalog/ModelCatalogSection';
 import ProjectsSection from './projects/ProjectsSection';
 import { useAIFlows } from './aiFlows/useAIFlows';
 import { useResourcesSection } from './resources/useResourcesSection';
