@@ -370,6 +370,31 @@ describe('Model Serving Deploy Wizard', () => {
           },
         },
       });
+
+      // Validate spec separately to avoid containSubset issues with complex nested objects
+      const requestBody = interception.request.body;
+      expect(requestBody.spec).to.exist;
+      expect(requestBody.spec.predictor).to.exist;
+      expect(requestBody.spec.predictor.model).to.exist;
+
+      // Validate model format
+      expect(requestBody.spec.predictor.model.modelFormat).to.deep.equal({
+        name: 'openvino_ir',
+        version: 'opset1',
+      });
+
+      // Validate resources (from gamma hardware profile)
+      const { resources } = requestBody.spec.predictor.model;
+      expect(resources.requests).to.deep.equal({
+        cpu: 8,
+        memory: '16Gi',
+        'nvidia.com/gpu': 1,
+      });
+      expect(resources.limits).to.deep.equal({
+        cpu: 8,
+        memory: '16Gi',
+        'nvidia.com/gpu': 1,
+      });
     });
 
     // Actual request
