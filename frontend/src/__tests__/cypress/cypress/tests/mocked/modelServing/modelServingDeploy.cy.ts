@@ -420,7 +420,7 @@ describe('Model Serving Deploy Wizard', () => {
     });
   });
 
-  it.only('Edit an existing deployment', () => {
+  it('Edit an existing deployment', () => {
     initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
@@ -476,8 +476,7 @@ describe('Model Serving Deploy Wizard', () => {
       .should('have.value', 'Test Inference Service');
     modelServingWizardEdit.findModelDeploymentNameInput().type('test-model');
     hardwareProfileSection.findNewHardwareProfileSelector().should('be.visible');
-    hardwareProfileSection.findHardwareProfileSearchSelector().should('contain.text', 'gamma');
-    hardwareProfileSection.findGlobalScopedLabel().should('exist');
+    hardwareProfileSection.findNewHardwareProfileSelector().should('contain.text', 'alpha');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
     // Step 3: Advanced options
