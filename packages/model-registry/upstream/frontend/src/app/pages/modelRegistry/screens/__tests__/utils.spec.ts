@@ -201,16 +201,12 @@ describe('getCatalogModelDetailsProps', () => {
     const modelArtifact = mockModelArtifact({
       modelSourceKind: ModelSourceKind.CATALOG,
       modelSourceClass: 'sourceClass',
-      modelSourceGroup: 'sourceGroup',
       modelSourceName: 'sourceName',
-      modelSourceId: 'sourceId',
     });
     const result = modelSourcePropertiesToCatalogParams(modelArtifact);
     expect(result).toEqual({
-      sourceName: 'sourceClass',
-      repositoryName: 'sourceGroup',
+      sourceId: 'sourceClass',
       modelName: 'sourceName',
-      tag: 'sourceId',
     });
   });
 });
