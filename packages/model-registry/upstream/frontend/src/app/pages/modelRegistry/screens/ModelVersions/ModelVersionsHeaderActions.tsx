@@ -60,28 +60,20 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
                   )}
                 >
                   <DropdownList>
-                    <DropdownGroup label="Latest version actions">
-                      {isModalAvailable ? (
-                        <DropdownItem
-                          onClick={() => {
-                            setOpen(false);
-                            onOpenModal();
-                          }}
-                          isAriaDisabled={!buttonState?.enabled}
-                          tooltipProps={buttonState?.tooltip ? { content: buttonState.tooltip } : undefined}
-                        >
-                          Deploy <strong>{latestModelVersion.name}</strong>
-                        </DropdownItem>
-                      ) : (
-                        <DropdownItem isDisabled>Deploy unavailable</DropdownItem>
-                      )}
-                    </DropdownGroup>
-
-                    <Divider />
-
-                    <DropdownGroup>
-                      <DropdownItem onClick={() => setIsArchiveModalOpen(true)}>Archive model</DropdownItem>
-                    </DropdownGroup>
+                  {isModalAvailable && (<DropdownGroup label="Latest version actions">
+                      <DropdownItem
+                        onClick={() => {
+                          setOpen(false);
+                          onOpenModal();
+                        }}
+                        isAriaDisabled={!buttonState?.enabled}
+                        tooltipProps={buttonState?.tooltip ? { content: buttonState.tooltip } : undefined}
+                      >
+                        Deploy <strong>{latestModelVersion.name}</strong>
+                      </DropdownItem>
+                    {isModalAvailable && <Divider />}
+                    </DropdownGroup>)}
+                    <DropdownItem onClick={() => setIsArchiveModalOpen(true)}>Archive model</DropdownItem>
                   </DropdownList>
                 </Dropdown>
               )}

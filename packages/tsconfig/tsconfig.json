@@ -32,6 +32,6 @@
     "${configDir}/**/**.js",
     "${configDir}/**/**.cjs"
   ],
-  "exclude": ["node_modules"],
+  "exclude": ["node_modules", "dist"],
   "files": ["./typings.d.ts", "../jest-config/typings.d.ts"]
 }
