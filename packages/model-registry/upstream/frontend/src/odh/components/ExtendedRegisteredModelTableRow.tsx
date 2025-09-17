@@ -2,6 +2,7 @@ import { Button, Content, ContentVariants, FlexItem, Truncate } from '@patternfl
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useExtensions, LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
 import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { ArchiveRegisteredModelModal } from '~/app/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
@@ -17,23 +18,21 @@ import {
   registeredModelUrl,
 } from '~/app/pages/modelRegistry/screens/routeUtils';
 import { ModelState, ModelVersion, RegisteredModel } from '~/app/types';
-import DeployModalExtension from '~/odh/components/DeployModalExtension';
+import { isModelRegistryTableColumnExtension } from '~/odh/extension-points/table';
 
-type RegisteredModelTableRowProps = {
+type ExtendedRegisteredModelTableRowProps = {
   registeredModel: RegisteredModel;
   latestModelVersion: ModelVersion | undefined;
   isArchiveRow?: boolean;
   hasDeploys?: boolean;
-  loaded?: boolean;
   refresh: () => void;
 };
 
-const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
+const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowProps> = ({
   registeredModel: rm,
   latestModelVersion,
   isArchiveRow,
   hasDeploys = false,
-  loaded = true,
   refresh,
 }) => {
   const { apiState } = React.useContext(ModelRegistryContext);
@@ -43,12 +42,9 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
   const rmUrl = registeredModelUrl(rm.id, preferredModelRegistry?.name);
 
-  const baseActions: IAction[] = [
-    {
-      title: 'View model information',
-      isDisabled: true,
-      className: 'pf-v6-u-font-size-sm pf-v6-u-color-200 pf-v6-u-text-transform-uppercase pf-v6-u-p-xs',
-    },
+  const columnExtensions = useExtensions(isModelRegistryTableColumnExtension);
+
+  const actions: IAction[] = [
     {
       title: 'Overview',
       onClick: () => {
@@ -69,24 +65,7 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
         );
       },
     },
-    {
-      title: 'Deployments',
-      onClick: () => {
-        navigate(`${rmUrl}/deployments`);
-      },
-    },
-  ];
 
-  const latestVersionActionsHeader: IAction[] = [
-    { isSeparator: true },
-    {
-      title: 'Latest version actions',
-      isDisabled: true,
-      className: 'pf-v6-u-font-size-sm pf-v6-u-color-200 pf-v6-u-text-transform-uppercase pf-v6-u-p-xs',
-    },
-  ];
-
-  const archiveRestoreActions: IAction[] = [
     { isSeparator: true },
     ...(isArchiveRow
       ? [
@@ -98,9 +77,13 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
       : [
           {
             title: 'Archive model',
-            onClick: () => setIsArchiveModalOpen(true),
-            isAriaDisabled: !loaded || hasDeploys,
-            tooltipProps: loaded && hasDeploys
+            onClick: () => {
+                            if (!hasDeploys) {
+                              setIsArchiveModalOpen(true);
+                            }
+                          },
+            isAriaDisabled: hasDeploys,
+            tooltipProps: hasDeploys
               ? { content: 'Models with deployed versions cannot be archived.' }
               : undefined,
           },
@@ -118,6 +101,21 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
           archiveModelVersionDetailsUrl(mv.id, mv.registeredModelId, preferredModelRegistry?.name),
         )
       : navigate(modelVersionUrl(mv.id, mv.registeredModelId, preferredModelRegistry?.name));
+
+  const renderExtensionColumns = () => {
+    if (columnExtensions.length === 0) {
+      return null;
+    }
+
+    return columnExtensions.map((extension, index) => (
+      <Td key={`extension-${index}`}>
+        <LazyCodeRefComponent
+          component={extension.properties.component}
+          props={{ registeredModel: rm }}
+        />
+      </Td>
+    ));
+  };
 
   return (
     <Tr>
@@ -152,6 +150,7 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
           '-'
         )}
       </Td>
+      {renderExtensionColumns()}
       <Td dataLabel="Labels">
         <ModelLabels customProperties={rm.customProperties} name={rm.name} />
       </Td>
@@ -164,36 +163,7 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
         </Content>
       </Td>
       <Td isActionCell>
-        {latestModelVersion && !isArchiveRow ? (
-          <DeployModalExtension
-            mv={latestModelVersion}
-            render={(buttonState, onOpenModal, isModalAvailable) =>
-              isModalAvailable ? (
-                <ActionsColumn
-                  items={[
-                    ...baseActions,
-                    ...latestVersionActionsHeader,
-                    {
-                      title: (
-                        <>
-                          Deploy <strong>{latestModelVersion.name}</strong>
-                        </>
-                      ),
-                      onClick: onOpenModal,
-                      isAriaDisabled: !buttonState.enabled,
-                      tooltipProps: buttonState.tooltip ? { content: buttonState.tooltip } : undefined,
-                    },
-                    ...archiveRestoreActions,
-                  ]}
-                />
-              ) : (
-                <ActionsColumn items={[...baseActions, ...archiveRestoreActions]} />
-              )
-            }
-          />
-        ) : (
-          <ActionsColumn items={[...baseActions, ...archiveRestoreActions]} />
-        )}
+        <ActionsColumn items={actions} />
         {isArchiveModalOpen ? (
           <ArchiveRegisteredModelModal
             onCancel={() => setIsArchiveModalOpen(false)}
@@ -233,4 +203,4 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
   );
 };
 
-export default RegisteredModelTableRow;
+export default ExtendedRegisteredModelTableRow;
