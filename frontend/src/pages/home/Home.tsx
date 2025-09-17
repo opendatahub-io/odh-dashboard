@@ -13,7 +13,8 @@ import LandingPageHomeHint from './LandingPageHomeHint';
 
 const Home: React.FC = () => {
   const { status: projectsAvailable } = useIsAreaAvailable(SupportedArea.DS_PROJECTS_VIEW);
-  const { status: modelCatalogAvailable } = useIsAreaAvailable(SupportedArea.MODEL_CATALOG);
+  // TODO: Temporarily disabled model catalog section - to be re-enabled in future
+  // const { status: modelCatalogAvailable } = useIsAreaAvailable(SupportedArea.MODEL_CATALOG);
   const aiFlows = useAIFlows();
   const resourcesSection = useResourcesSection();
   const enableTeamSection = useEnableTeamSection();
@@ -22,7 +23,7 @@ const Home: React.FC = () => {
     <div data-testid="home-page">
       <LandingPageHomeHint />
       {!projectsAvailable &&
-      !modelCatalogAvailable &&
+      // !modelCatalogAvailable &&
       !aiFlows &&
       !resourcesSection &&
       !enableTeamSection ? (
@@ -43,7 +44,8 @@ const Home: React.FC = () => {
       ) : (
         <>
           <ProjectsSection />
-          <ModelCatalogSection />
+          {/* TODO: Temporarily disabled model catalog section  */}
+          {/* <ModelCatalogSection /> */}
           {aiFlows}
           {resourcesSection}
           {enableTeamSection}
