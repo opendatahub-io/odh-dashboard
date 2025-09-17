@@ -82,7 +82,7 @@ export const mockHardwareProfile = ({
     uid,
     annotations: {
       ...annotations,
-      'openshift.io/display-name': displayName,
+      'opendatahub.io/display-name': displayName,
       'opendatahub.io/description': description,
     },
     labels,
