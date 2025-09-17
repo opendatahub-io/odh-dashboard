@@ -3,3 +3,4 @@ export * from './connection';
 export * from './model-catalog-deploy';
 export * from './details';
 export * from './detailsCard';
+export * from './table';
