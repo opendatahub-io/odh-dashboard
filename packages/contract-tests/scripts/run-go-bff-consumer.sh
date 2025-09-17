@@ -200,7 +200,7 @@ trap cleanup EXIT INT TERM
 
 # Wait for healthcheck
 log_info "Waiting for Mock BFF to be ready..."
-for i in $(seq 1 30); do
+for i in $(seq 1 120); do
   if curl -s -f "http://localhost:$PORT$CONTRACT_MOCK_BFF_HEALTH_ENDPOINT" >/dev/null 2>&1; then
     log_success "Mock BFF is ready!"
     break
@@ -215,7 +215,7 @@ done
 
 # If loop finished without success, fail explicitly
 if ! curl -s -f "http://localhost:$PORT$CONTRACT_MOCK_BFF_HEALTH_ENDPOINT" >/dev/null 2>&1; then
-  log_error "Timed out waiting for Mock BFF to become ready"
+  log_error "Timed out waiting for Mock BFF to become ready (120 seconds)"
   log_error "BFF logs (tail):"
   tail -n 200 "$BFF_LOG_FILE" || true
   exit 1
@@ -232,9 +232,6 @@ if [[ "$OPEN_REPORT" == "true" ]]; then
 fi
 "${CMD[@]}"
 exit_code=$?
-
-# Display test summary and open coverage report
-display_test_summary "$RESULTS_DIR"
 
 if [[ "${CI:-}" != "true" && "$OPEN_REPORT" == "true" ]]; then
   if ! open_html_report "$RESULTS_DIR" 2>/dev/null; then
