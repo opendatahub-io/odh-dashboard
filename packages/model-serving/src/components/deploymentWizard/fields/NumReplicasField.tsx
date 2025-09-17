@@ -16,7 +16,6 @@ export const isValidNumReplicas = (value: unknown): value is NumReplicasFieldDat
 // Hook
 export type NumReplicasFieldHook = {
   data: NumReplicasFieldData | undefined;
-  setData: (data: NumReplicasFieldData) => void;
   setReplicas: (replicas: number) => void;
 };
 
@@ -25,17 +24,12 @@ export const useNumReplicasField = (existingData?: NumReplicasFieldData): NumRep
     existingData || 1,
   );
 
-  const setData = React.useCallback((data: NumReplicasFieldData) => {
-    setReplicaData(data);
-  }, []);
-
   const setReplicas = React.useCallback((replicas: number) => {
     setReplicaData(replicas);
   }, []);
 
   return {
     data: replicaData,
-    setData,
     setReplicas,
   };
 };

@@ -80,7 +80,6 @@ const mockDeploymentWizardState = (
         },
         numReplicas: {
           data: undefined,
-          setData: jest.fn(),
           setReplicas: jest.fn(),
         },
       },
