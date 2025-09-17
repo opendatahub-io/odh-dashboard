@@ -1,13 +1,48 @@
 import * as React from 'react';
-import { Breadcrumb, BreadcrumbItem, Spinner, Bullseye } from '@patternfly/react-core';
-import { Link, useParams } from 'react-router-dom';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  Spinner,
+  Bullseye,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateFooter,
+  EmptyStateActions,
+  Button,
+} from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import TrainingJobDetailsTabs from './TrainingJobDetailsTabs';
 import { useModelTrainingContext } from '../ModelTrainingContext';
 import { PyTorchJobKind } from '../../k8sTypes';
 
+const ErrorContent: React.FC<{ error: Error }> = ({ error }) => {
+  const navigate = useNavigate();
+  const { namespace } = useParams<{ namespace: string }>();
+  return (
+    <Bullseye>
+      <EmptyState
+        headingLevel="h4"
+        icon={ExclamationCircleIcon}
+        titleText="Unable to load training job details"
+      >
+        <EmptyStateBody>{error.message}</EmptyStateBody>
+        <EmptyStateFooter>
+          <EmptyStateActions>
+            <Button variant="primary" onClick={() => navigate(`/modelTraining/${namespace ?? ''}`)}>
+              Return to model training
+            </Button>
+          </EmptyStateActions>
+        </EmptyStateFooter>
+      </EmptyState>
+    </Bullseye>
+  );
+};
+
 const TrainingJobDetails: React.FC = () => {
   const { namespace, jobName } = useParams<{ namespace: string; jobName: string }>();
+  const navigate = useNavigate();
   const { pytorchJobs } = useModelTrainingContext();
   const [pytorchJobData, pytorchJobLoaded, pytorchJobLoadError] = pytorchJobs;
 
@@ -17,6 +52,11 @@ const TrainingJobDetails: React.FC = () => {
     [pytorchJobData, jobName],
   );
 
+  // Handle load errors
+  if (pytorchJobLoadError) {
+    return <ErrorContent error={pytorchJobLoadError} />;
+  }
+
   if (!pytorchJobLoaded) {
     return (
       <Bullseye>
@@ -25,22 +65,11 @@ const TrainingJobDetails: React.FC = () => {
     );
   }
 
+  // Handle job not found
   if (!job) {
     return (
-      <ApplicationsPage
-        empty
-        emptyStatePage={
-          <div>
-            <h1>Training job not found</h1>
-            <p>
-              The training job &quot;{jobName}&quot; was not found in namespace &quot;{namespace}
-              &quot;.
-            </p>
-          </div>
-        }
-        title="Training job not found"
-        loaded={pytorchJobLoaded}
-        loadError={pytorchJobLoadError}
+      <ErrorContent
+        error={new Error(`Training job "${jobName}" not found in namespace "${namespace}".`)}
       />
     );
   }
@@ -53,7 +82,6 @@ const TrainingJobDetails: React.FC = () => {
       empty={false}
       title={displayName}
       description={`PyTorch training job in ${namespace ?? ''}`}
-      loadError={pytorchJobLoadError}
       loaded={pytorchJobLoaded}
       provideChildrenPadding
       breadcrumb={
