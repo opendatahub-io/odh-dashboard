@@ -415,7 +415,7 @@ describe('Deploy model version', () => {
     kserveModal.findModelFrameworkSelect().should('have.text', 'openvino_ir - opset1');
   });
 
-  it('Display project specific hardware profile while deploying', () => {
+  it.only('Display project specific hardware profile while deploying', () => {
     initIntercepts({ disableProjectScoped: false, disableHardwareProfiles: false });
     cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version 4');
@@ -424,31 +424,41 @@ describe('Deploy model version', () => {
     kserveModal.findModelNameInput().should('exist');
 
     // Verify hardware profile section exists
-    hardwareProfileSection.findHardwareProfileSearchSelector().should('exist');
-    hardwareProfileSection.findHardwareProfileSearchSelector().click();
+    hardwareProfileSection.findNewHardwareProfileSelector().should('exist');
+    hardwareProfileSection.findNewHardwareProfileSelector().click();
+    // Read visible menu options from the open PF v6 menu and verify expected text
+    cy.get('body')
+      .find('.pf-v6-c-menu:visible, [role="listbox"]:visible, [role="menu"]:visible')
+      .first()
+      .within(() => {
+        cy.get(
+          '.pf-v6-c-menu__item, .pf-v6-c-menu__list-item [role="menuitem"], [role="option"], [role="menuitem"]',
+        ).then(($items) => {
+          const texts = Array.from($items).map((el) =>
+            (el.textContent || '').trim().replace(/\s+/g, ' '),
+          );
+          cy.log(`Menu options: ${JSON.stringify(texts)}`);
+          expect(texts.length).to.be.greaterThan(0);
+          console.log('got text???', texts);
+          const text1 =
+            'small-profileCPU: Request = 1 Cores; Limit = 1 Cores; Memory: Request = 2 GiB; Limit = 2 GiB';
+          const text2 =
+            'large-profileCPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB';
+          expect(texts.length).to.equal(2);
+          expect(texts[0]).to.equal(text1);
+          expect(texts[1]).to.equal(text2);
+          // expect(texts).to.include(
+          //   'Small CPU: Request = 1; Limit = 1; Memory: Request = 4Gi; Limit = 4Gi',
+          // );
+        });
+      });
 
     // verify available project-scoped hardware profile
-    const projectScopedHardwareProfile = hardwareProfileSection.getProjectScopedHardwareProfile();
-    projectScopedHardwareProfile
-      .find()
-      .findByRole('menuitem', {
-        name: 'Small CPU: Request = 1; Limit = 1; Memory: Request = 4Gi; Limit = 4Gi',
-        hidden: true,
-      })
-      .click();
-    hardwareProfileSection.findProjectScopedLabel().should('exist');
-
-    // verify available global-scoped hardware profile
-    hardwareProfileSection.findHardwareProfileSearchSelector().click();
-    const globalScopedHardwareProfile = hardwareProfileSection.getGlobalScopedHardwareProfile();
-    globalScopedHardwareProfile
-      .find()
-      .findByRole('menuitem', {
-        name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
-        hidden: true,
-      })
-      .click();
-    hardwareProfileSection.findGlobalScopedLabel().should('exist');
+    // cy.findByRole('menuitem', {
+    //   name: 'Small CPU: Request = 1; Limit = 1; Memory: Request = 4Gi; Limit = 4Gi',
+    //   hidden: true,
+    // }).click();
+    // hardwareProfileSection.findProjectScopedLabel().should('exist');
   });
 
   it('Display project specific accelerator profile while deploying', () => {

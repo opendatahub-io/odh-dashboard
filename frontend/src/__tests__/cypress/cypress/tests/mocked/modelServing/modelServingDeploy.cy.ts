@@ -200,18 +200,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
-    console.log('hi there 77ab');
 
     // Open the dropdown and debug what options are available
     hardwareProfileSection.findNewHardwareProfileSelector().click();
-
-    // Debug what's actually in the dropdown
-    cy.get('[role="option"]').then(($options) => {
-      console.log('Available options count:', $options.length);
-      $options.each((index, option) => {
-        console.log(`Option ${index}:`, option.textContent);
-      });
-    });
 
     // Try to click on the alpha option - try multiple variations
     cy.get('[role="option"]').contains('alpha', { matchCase: false }).click();
@@ -252,10 +243,6 @@ describe('Model Serving Deploy Wizard', () => {
     // // dry run request
     cy.wait('@createInferenceService').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
-
-      const bodyActual = interception.request.body;
-      console.log('got bodyActual:', bodyActual);
-      console.log('spec???', bodyActual.spec);
 
       expect(interception.request.body).to.containSubset({
         apiVersion: 'serving.kserve.io/v1beta1',
@@ -364,7 +351,6 @@ describe('Model Serving Deploy Wizard', () => {
     // dry run request
     cy.wait('@createInferenceService').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
-      console.log('actual:  ack ack 44', interception.request.body);
       expect(interception.request.body).to.containSubset({
         apiVersion: 'serving.kserve.io/v1beta1',
         kind: 'InferenceService',
