@@ -2,6 +2,7 @@ import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import PipelinesSdkRedirect from './redirectComponents/PipelinesSdkRedirects';
 import ExternalRedirectNotFound from './redirectComponents/ExternalRedirectNotFound';
+import ElyraRedirects from './redirectComponents/ElyraRedirects';
 
 /**
  * Be sure to keep this file in sync with the documentation in `docs/external-redirects.md`.
@@ -9,6 +10,7 @@ import ExternalRedirectNotFound from './redirectComponents/ExternalRedirectNotFo
 const ExternalRoutes: React.FC = () => (
   <Routes>
     <Route path="/pipelinesSdk/:namespace/*" element={<PipelinesSdkRedirect />} />
+    <Route path="/elyra/:namespace/*" element={<ElyraRedirects />} />
     <Route path="*" element={<ExternalRedirectNotFound />} />
   </Routes>
 );
