@@ -226,16 +226,16 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findServiceAccountByIndex(1).clear().type('new-name');
     modelServingWizard.findServiceNameAlert().should('not.exist');
     modelServingWizard.findRemoveServiceAccountByIndex(1).click();
-    // modelServingWizard.findServiceAccountByIndex(0).clear();
-    // modelServingWizard.findNextButton().should('be.disabled');
-    // modelServingWizard.findServiceAccountByIndex(0).clear().type('new-name');
-    // modelServingWizard.findNextButton().should('be.enabled');
-    // modelServingWizard.findRemoveServiceAccountByIndex(0).click();
-    // modelServingWizard.findTokenWarningAlert().should('exist');
-    // modelServingWizard.findTokenAuthenticationCheckbox().click();
-    // modelServingWizard.findExternalRouteCheckbox().click();
+    modelServingWizard.findServiceAccountByIndex(0).clear();
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findServiceAccountByIndex(0).clear().type('new-name');
+    modelServingWizard.findNextButton().should('be.enabled');
+    modelServingWizard.findRemoveServiceAccountByIndex(0).click();
+    modelServingWizard.findTokenWarningAlert().should('exist');
+    modelServingWizard.findTokenAuthenticationCheckbox().click();
+    modelServingWizard.findExternalRouteCheckbox().click();
 
-    // modelServingWizard.findNextButton().should('be.enabled').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
 
     // // Step 4: Summary
     // modelServingWizard.findSubmitButton().should('be.enabled').click();
