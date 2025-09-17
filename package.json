@@ -61,7 +61,12 @@
     "type-check": "turbo run type-check",
     "test-unit": "turbo run test-unit",
     "test-unit-coverage": "turbo run test-unit-coverage && node scripts/unit-test-coverage-aggregator.js",
-    "test:contract": "turbo run test:contract"
+    "test:contract": "turbo run test:contract",
+    "cypress:server": "turbo run cypress:server",
+    "cypress:server:dev": "turbo run cypress:server:dev",
+    "cypress:server:build": "turbo run cypress:server:build",
+    "cypress:server:build:coverage": "turbo run cypress:server:build:coverage",
+    "postinstall": "turbo run install:module --ui=stream"
   },
   "dependencies": {
     "@kubernetes/client-node": "^0.12.2",

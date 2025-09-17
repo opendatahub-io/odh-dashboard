@@ -11,6 +11,11 @@ export const isDefinedFeatureFlag = (key: string): key is FeatureFlag =>
 
 export type FlagState = { [flag in string]?: boolean };
 
+export type IsAreaAvailableOptions = {
+  internalStateMap: typeof SupportedAreasStateMap;
+  flagState: FlagState;
+};
+
 // TODO: support this better; improve types
 // notebookController: dashboardConfigSpec.notebookController?.enabled ?? false,
 export const getFlags = (dashboardConfigSpec: DashboardConfigKind['spec']): FlagState =>
@@ -29,7 +34,7 @@ export const isAreaAvailable = (
   dashboardConfigSpec: DashboardConfigKind['spec'],
   dscStatus: DataScienceClusterKindStatus | null,
   dsciStatus: DataScienceClusterInitializationKindStatus | null,
-  options = {
+  options: IsAreaAvailableOptions = {
     internalStateMap: SupportedAreasStateMap,
     flagState: getFlags(dashboardConfigSpec),
   },
