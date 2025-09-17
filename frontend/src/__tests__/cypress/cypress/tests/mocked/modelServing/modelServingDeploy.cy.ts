@@ -238,44 +238,52 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // // Step 4: Summary
-    // modelServingWizard.findSubmitButton().should('be.enabled').click();
+    modelServingWizard.findSubmitButton().should('be.enabled').click();
 
     // // dry run request
-    // cy.wait('@createInferenceService').then((interception) => {
-    //   expect(interception.request.url).to.include('?dryRun=All');
-    //   expect(interception.request.body).to.containSubset({
-    //     metadata: {
-    //       name: 'test-model',
-    //       namespace: 'test-project',
-    //       labels: { 'opendatahub.io/dashboard': 'true' },
-    //       annotations: {
-    //         'openshift.io/display-name': 'test-model',
-    //         'opendatahub.io/hardware-profile-namespace': 'opendatahub',
-    //         'opendatahub.io/model-type': 'generative',
-    //         'security.opendatahub.io/enable-auth': 'true',
-    //       },
-    //     },
-    //     spec: {
-    //       predictor: {
-    //         model: {
-    //           modelFormat: {
-    //             name: 'vLLM',
-    //           },
-    //           resources: {
-    //             requests: {
-    //               cpu: '4',
-    //               memory: '8Gi',
-    //             },
-    //             limits: {
-    //               cpu: '4',
-    //               memory: '8Gi',
-    //             },
-    //           },
-    //         },
-    //       },
-    //     },
-    //   });
-    // });
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+
+      const bodyActual = interception.request.body;
+      console.log('got bodyActual:', bodyActual);
+      console.log('spec???', bodyActual.spec);
+
+      expect(interception.request.body).to.containSubset({
+        apiVersion: 'serving.kserve.io/v1beta1',
+        kind: 'InferenceService',
+        metadata: {
+          name: 'test-model',
+          namespace: 'test-project',
+          labels: { 'opendatahub.io/dashboard': 'true' },
+          annotations: {
+            'opendatahub.io/hardware-profile-name': 'alpha',
+            'openshift.io/display-name': 'test-model',
+            'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+            'opendatahub.io/model-type': 'generative',
+            'security.opendatahub.io/enable-auth': 'true',
+          },
+        },
+        spec: {
+          predictor: {
+            model: {
+              modelFormat: {
+                name: 'vLLM',
+              },
+              resources: {
+                requests: {
+                  cpu: '2',
+                  memory: '4Gi',
+                },
+                limits: {
+                  cpu: '2',
+                  memory: '4Gi',
+                },
+              },
+            },
+          },
+        },
+      });
+    });
 
     // // Actual request
     // cy.wait('@createInferenceService').then((interception) => {
