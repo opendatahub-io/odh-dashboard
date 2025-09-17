@@ -2,23 +2,18 @@ import React from 'react';
 import { Button, EmptyState, EmptyStateBody, EmptyStateFooter } from '@patternfly/react-core';
 import emptyStateImage from '~/app/bgimages/empty-state.svg';
 
-type ChatbotEmptyStateProps = {
+type NoDataProps = {
   title: string;
-  description: string;
+  description: React.ReactNode;
   actionButtonText: string;
   handleActionButtonClick: () => void;
 };
 
-const ChatbotEmptyState: React.FC<ChatbotEmptyStateProps> = ({
+const NoData: React.FC<NoDataProps> = ({
   title,
   description,
   actionButtonText,
   handleActionButtonClick,
-}: {
-  handleActionButtonClick: () => void;
-  title: string;
-  description: string;
-  actionButtonText: string;
 }) => (
   <EmptyState
     titleText={title}
@@ -37,4 +32,4 @@ const ChatbotEmptyState: React.FC<ChatbotEmptyStateProps> = ({
   </EmptyState>
 );
 
-export default ChatbotEmptyState;
+export default NoData;
