@@ -195,9 +195,8 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
                       with the volume.
                     </StackItem>
                     <StackItem>
-                      Users can create storage using enabled access modes. The OpenShift storage
-                      class determines which access modes (RWO, RWX, ROX and RWOP) are supported by
-                      default.
+                      Enabled access modes are available to users when they create new storage.
+                      ReadWriteOnce (RWO) is always enabled and cannot be disabled.
                     </StackItem>
                   </Stack>
                 }
