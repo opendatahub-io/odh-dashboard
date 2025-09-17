@@ -273,6 +273,28 @@ describe('Model Serving Deploy Wizard', () => {
           labels: { 'opendatahub.io/dashboard': 'true' },
         },
       });
+
+      // Validate spec separately to avoid containSubset issues with complex nested objects
+      const requestBody = interception.request.body;
+      expect(requestBody.spec).to.exist;
+      expect(requestBody.spec.predictor).to.exist;
+      expect(requestBody.spec.predictor.model).to.exist;
+
+      // Validate model format (generative uses vLLM)
+      expect(requestBody.spec.predictor.model.modelFormat).to.deep.equal({
+        name: 'vLLM',
+      });
+
+      // Validate resources (from alpha hardware profile)
+      const { resources } = requestBody.spec.predictor.model;
+      expect(resources.requests).to.deep.equal({
+        cpu: 2,
+        memory: '4Gi',
+      });
+      expect(resources.limits).to.deep.equal({
+        cpu: 2,
+        memory: '4Gi',
+      });
     });
 
     // // Actual request
@@ -285,7 +307,7 @@ describe('Model Serving Deploy Wizard', () => {
     });
   });
 
-  it.only('Create a new predictive deployment and submit', () => {
+  it('Create a new predictive deployment and submit', () => {
     initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
@@ -318,15 +340,6 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findAdvancedOptionsStep().should('be.disabled');
     hardwareProfileSection.findNewHardwareProfileSelector().click();
-    // const globalScopedHardwareProfile = hardwareProfileSection.getGlobalScopedHardwareProfile();
-    // globalScopedHardwareProfile
-    //   .find()
-    //   .findByRole('menuitem', {
-    //     name: /Medium/,
-    //     hidden: true,
-    //   })
-    //   .click();
-    // hardwareProfileSection.findGlobalScopedLabel().should('exist');
     cy.get('[role="option"]').contains('gamma', { matchCase: false }).click();
 
     modelServingWizard.findNextButton().should('be.disabled');
