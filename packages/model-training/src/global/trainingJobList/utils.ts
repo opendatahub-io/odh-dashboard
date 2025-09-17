@@ -5,8 +5,8 @@ import {
   PendingIcon,
   PlayIcon,
   PauseIcon,
-  ExclamationTriangleIcon,
-  ClockIcon,
+  OutlinedClockIcon,
+  PauseCircleIcon,
 } from '@patternfly/react-icons';
 import { LabelProps } from '@patternfly/react-core';
 import { PyTorchJobKind } from '../../k8sTypes';
@@ -55,8 +55,8 @@ export const getStatusInfo = (
     case PyTorchJobState.QUEUED:
       return {
         label: 'Queued',
-        color: 'grey',
-        IconComponent: ClockIcon,
+        color: 'teal',
+        IconComponent: OutlinedClockIcon,
       };
     case PyTorchJobState.CREATED:
       return {
@@ -68,7 +68,7 @@ export const getStatusInfo = (
       return {
         label: 'Paused',
         color: 'grey',
-        IconComponent: PauseIcon,
+        IconComponent: PauseCircleIcon,
       };
     case PyTorchJobState.SUSPENDED:
       return {
@@ -79,8 +79,8 @@ export const getStatusInfo = (
     case PyTorchJobState.PREEMPTED:
       return {
         label: 'Preempted',
-        color: 'orangered',
-        IconComponent: ExclamationTriangleIcon,
+        color: 'grey',
+        IconComponent: PendingIcon,
       };
     default:
       return {
