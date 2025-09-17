@@ -75,9 +75,10 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
         navigate(`${rmUrl}/deployments`);
       },
     },
+  ];
 
+  const latestVersionActionsHeader: IAction[] = [
     { isSeparator: true },
-
     {
       title: 'Latest version actions',
       isDisabled: true,
@@ -171,6 +172,7 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
                 <ActionsColumn
                   items={[
                     ...baseActions,
+                    ...latestVersionActionsHeader,
                     {
                       title: (
                         <>
