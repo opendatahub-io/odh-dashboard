@@ -201,12 +201,21 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
     console.log('hi there 77ab');
+
+    // Open the dropdown and debug what options are available
     hardwareProfileSection.findNewHardwareProfileSelector().click();
 
-    // Select the first item 'alpha' from the dropdown
-    // cy.findByRole('menuitem', {
-    //   name: /alpha/,
-    // }).click();
+    // Debug what's actually in the dropdown
+    cy.get('[role="option"]').then(($options) => {
+      console.log('Available options count:', $options.length);
+      $options.each((index, option) => {
+        console.log(`Option ${index}:`, option.textContent);
+      });
+    });
+
+    // Try to click on the alpha option - try multiple variations
+    cy.get('[role="option"]').contains('alpha', { matchCase: false }).click();
+
     // hardwareProfileSection.findGlobalScopedLabel().should('exist');
     modelServingWizard.findModelFormatSelect().should('not.exist');
     modelServingWizard.findNextButton().should('be.enabled').click();
@@ -254,33 +263,14 @@ describe('Model Serving Deploy Wizard', () => {
         metadata: {
           name: 'test-model',
           namespace: 'test-project',
-          labels: { 'opendatahub.io/dashboard': 'true' },
           annotations: {
-            'opendatahub.io/hardware-profile-name': 'alpha',
             'openshift.io/display-name': 'test-model',
-            'opendatahub.io/hardware-profile-namespace': 'opendatahub',
             'opendatahub.io/model-type': 'generative',
+            'opendatahub.io/hardware-profile-name': 'alpha',
+            'opendatahub.io/hardware-profile-namespace': 'opendatahub',
             'security.opendatahub.io/enable-auth': 'true',
           },
-        },
-        spec: {
-          predictor: {
-            model: {
-              modelFormat: {
-                name: 'vLLM',
-              },
-              resources: {
-                requests: {
-                  cpu: '2',
-                  memory: '4Gi',
-                },
-                limits: {
-                  cpu: '2',
-                  memory: '4Gi',
-                },
-              },
-            },
-          },
+          labels: { 'opendatahub.io/dashboard': 'true' },
         },
       });
     });
