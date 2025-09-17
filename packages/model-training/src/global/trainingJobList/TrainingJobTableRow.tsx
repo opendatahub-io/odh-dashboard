@@ -21,6 +21,7 @@ import TrainingJobClusterQueue from './TrainingJobClusterQueue';
 import HibernationToggleModal from './HibernationToggleModal';
 import TrainingJobStatus from './components/TrainingJobStatus';
 import ScaleWorkersModal from './ScaleWorkersModal';
+import StateActionToggle from './StateActionToggle';
 import { PyTorchJobKind } from '../../k8sTypes';
 import { PyTorchJobState } from '../../types';
 import { togglePyTorchJobHibernation } from '../../api';
@@ -73,11 +74,19 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
         onStatusUpdate?.(jobId, newStatus);
       } else {
         console.error('Failed to toggle hibernation:', result.error);
-        // TODO: Show error notification
+        //Show error notification
+        notification.error(
+          'Failed to toggle hibernation',
+          result.error || 'Unknown error occurred',
+        );
       }
     } catch (error) {
       console.error('Error toggling hibernation:', error);
-      // TODO: Show error notification
+      //Show error notification
+      notification.error(
+        'Failed to toggle hibernation',
+        error instanceof Error ? error.message : 'Unknown error occurred',
+      );
     } finally {
       setIsToggling(false);
       setHibernationModalOpen(false);
@@ -171,8 +180,6 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
   // Build kebab menu actions with enhanced scaling option
   const actions = React.useMemo(() => {
     const items = [];
-    const isTerminalState =
-      status === PyTorchJobState.SUCCEEDED || status === PyTorchJobState.FAILED;
 
     // Add scale workers action (available for multiple states)
     if (canScaleWorkers) {
@@ -191,14 +198,6 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
           </Flex>
         ),
         onClick: () => setScaleWorkersModalOpen(true),
-      });
-    }
-
-    // Add hibernation toggle action (but not for preempted or queued jobs)
-    if (!isTerminalState && !isPreempted && !isQueued) {
-      items.push({
-        title: isPaused ? 'Resume' : 'Pause',
-        onClick: () => setHibernationModalOpen(true),
       });
     }
 
@@ -295,6 +294,16 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
         </Td>
         <Td dataLabel="Status">
           <TrainingJobStatus job={job} jobStatus={jobStatus} />
+        </Td>
+        <Td>
+          {(isRunning || isPaused) && (
+            <StateActionToggle
+              isPaused={isPaused}
+              onPause={() => setHibernationModalOpen(true)}
+              onResume={() => setHibernationModalOpen(true)}
+              isLoading={isToggling}
+            />
+          )}
         </Td>
         <Td isActionCell>
           <ActionsColumn items={actions} />
