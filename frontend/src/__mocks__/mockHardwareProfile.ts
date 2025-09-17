@@ -169,6 +169,68 @@ export const mockNewHardwareProfile = (
   };
 };
 
+export const mockNewHardwareProfilesGreek = [
+  mockNewHardwareProfile({
+    name: 'alpha',
+    displayName: 'Alpha Profile',
+    description: 'Basic development profile',
+  }),
+  mockNewHardwareProfile({
+    name: 'beta',
+    displayName: 'Beta Profile',
+    description: 'Enhanced profile with more resources',
+    identifiers: [
+      {
+        displayName: 'CPU',
+        identifier: 'cpu',
+        minCount: 2,
+        maxCount: 8,
+        defaultCount: 4,
+        resourceType: IdentifierResourceType.CPU,
+      },
+      {
+        displayName: 'Memory',
+        identifier: 'memory',
+        minCount: '4Gi',
+        maxCount: '16Gi',
+        defaultCount: '8Gi',
+        resourceType: IdentifierResourceType.MEMORY,
+      },
+    ],
+  }),
+  mockNewHardwareProfile({
+    name: 'gamma',
+    displayName: 'Gamma Profile',
+    description: 'High-performance profile with GPU',
+    identifiers: [
+      {
+        displayName: 'CPU',
+        identifier: 'cpu',
+        minCount: 4,
+        maxCount: 16,
+        defaultCount: 8,
+        resourceType: IdentifierResourceType.CPU,
+      },
+      {
+        displayName: 'Memory',
+        identifier: 'memory',
+        minCount: '8Gi',
+        maxCount: '32Gi',
+        defaultCount: '16Gi',
+        resourceType: IdentifierResourceType.MEMORY,
+      },
+      {
+        displayName: 'GPU',
+        identifier: 'nvidia.com/gpu',
+        minCount: 1,
+        maxCount: 4,
+        defaultCount: 1,
+        resourceType: IdentifierResourceType.ACCELERATOR,
+      },
+    ],
+  }),
+];
+
 export const mockGlobalScopedHardwareProfiles = [
   mockHardwareProfile({
     name: 'small-profile',

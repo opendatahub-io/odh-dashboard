@@ -24,6 +24,10 @@ export class HardwareProfileSection {
     return cy.get('body').contains('Global hardware profiles');
   }
 
+  getHardwareProfileLabelSelection(labelName: string): Cypress.Chainable<JQuery<HTMLBodyElement>> {
+    return cy.get('body').contains(labelName);
+  }
+
   getProjectScopedHardwareProfileLabel(): Cypress.Chainable<JQuery<HTMLBodyElement>> {
     return cy.get('body').contains('Project-scoped hardware profiles');
   }
