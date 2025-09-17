@@ -195,8 +195,8 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
                       with the volume.
                     </StackItem>
                     <StackItem>
-                      Enabled access modes are available to users when they create new storage.
-                      ReadWriteOnce (RWO) is always enabled and cannot be disabled.
+                      Enabled access modes are available for new storage. ReadWriteOnce (RWO) is
+                      always enabled and cannot be disabled.
                     </StackItem>
                   </Stack>
                 }
