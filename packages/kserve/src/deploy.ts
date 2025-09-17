@@ -15,7 +15,7 @@ import { ExternalRouteFieldData } from '../../model-serving/src/components/deplo
 import { TokenAuthenticationFieldData } from '../../model-serving/src/components/deploymentWizard/fields/TokenAuthenticationField';
 import { NumReplicasFieldData } from '../../model-serving/src/components/deploymentWizard/fields/NumReplicasField';
 
-type CreatingInferenceServiceObject = {
+export type CreatingInferenceServiceObject = {
   project: string;
   name: string;
   k8sName: string;
@@ -25,6 +25,7 @@ type CreatingInferenceServiceObject = {
   externalRoute?: ExternalRouteFieldData;
   tokenAuth?: TokenAuthenticationFieldData;
   numReplicas?: NumReplicasFieldData;
+  tokens?: TokenAuthenticationFieldData;
 };
 
 export const deployKServeDeployment = async (
@@ -51,6 +52,7 @@ export const deployKServeDeployment = async (
     externalRoute: wizardData.externalRoute.data,
     tokenAuth: wizardData.tokenAuthentication.data,
     numReplicas: wizardData.numReplicas.data,
+    tokens: wizardData.tokenAuthentication.data,
   };
 
   const inferenceService = await createInferenceService(
@@ -59,14 +61,9 @@ export const deployKServeDeployment = async (
     dryRun,
   );
 
-  if (wizardData.tokenAuthentication.data && wizardData.tokenAuthentication.data.length > 0) {
-    const inferenceServiceDataWithTokens = {
-      ...inferenceServiceData,
-      tokens: wizardData.tokenAuthentication.data,
-    };
-
+  if (inferenceServiceData.tokens) {
     await setUpTokenAuth(
-      inferenceServiceDataWithTokens,
+      inferenceServiceData,
       inferenceServiceData.k8sName,
       projectName,
       true,

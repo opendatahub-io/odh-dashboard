@@ -29,31 +29,8 @@ import {
   RoleKind,
 } from '@odh-dashboard/internal/k8sTypes';
 import { translateDisplayNameForK8s } from '@odh-dashboard/internal/concepts/k8s/utils';
-import { type TokenAuthenticationFieldData } from '../../model-serving/src/components/deploymentWizard/fields/TokenAuthenticationField';
-
-type CreatingInferenceServiceObject = {
-  project: string;
-  name: string;
-  k8sName: string;
-  modelType: string;
-  hardwareProfile: Record<string, unknown>;
-  modelFormat: Record<string, unknown>;
-  externalRoute?: boolean;
-  tokenAuth?: TokenAuthenticationFieldData;
-  tokens?: TokenAuthenticationFieldData;
-};
-
-type TokenNames = {
-  serviceAccountName: string;
-  roleName: string;
-  roleBindingName: string;
-};
-
-type TokenData = {
-  uuid: string;
-  name: string;
-  error?: string;
-};
+import { getTokenNames } from '@odh-dashboard/internal/pages/modelServing/utils';
+import { type CreatingInferenceServiceObject } from './deploy';
 
 export const getModelServingRuntimeName = (namespace: string): string =>
   `model-server-${namespace}`;
@@ -62,17 +39,6 @@ export const getModelServiceAccountName = (name: string): string => `${name}-sa`
 
 export const getModelRole = (name: string): string => `${name}-view-role`;
 export const getModelRoleBinding = (name: string): string => `${name}-view`;
-
-export const getTokenNames = (servingRuntimeName: string, namespace: string): TokenNames => {
-  const name =
-    servingRuntimeName !== '' ? servingRuntimeName : getModelServingRuntimeName(namespace);
-
-  const serviceAccountName = getModelServiceAccountName(name);
-  const roleName = getModelRole(name);
-  const roleBindingName = getModelRoleBinding(name);
-
-  return { serviceAccountName, roleName, roleBindingName };
-};
 
 export const createServiceAccountIfMissing = async (
   serviceAccount: ServiceAccountKind,
@@ -161,15 +127,13 @@ export const createSecrets = async (
   const deletedSecrets =
     existingSecrets
       ?.map((secret) => secret.metadata.name)
-      .filter(
-        (token: string) =>
-          !fillData.tokens?.some((tokenEdit: TokenData) => tokenEdit.name === token),
-      ) || [];
+      .filter((token: string) => !fillData.tokens?.some((tokenEdit) => tokenEdit.name === token)) ||
+    [];
 
   return Promise.all<K8sStatus | SecretKind>([
     ...(fillData.tokens || [])
-      .filter((token: TokenData) => translateDisplayNameForK8s(token.name) !== token.name)
-      .map((token: TokenData) => {
+      .filter((token) => translateDisplayNameForK8s(token.name) !== token.name)
+      .map((token) => {
         const secretToken = assembleSecretSA(token.name, serviceAccountName, namespace);
         return createSecret(secretToken, opts);
       }),
@@ -227,9 +191,4 @@ export const setUpTokenAuth = async (
   )
     .then(() => createSecrets(fillData, deployedModelName, namespace, existingSecrets, opts))
     .catch((error) => Promise.reject(error));
-};
-
-// Helper function to convert TokenAuthenticationFieldData to the format expected by CreatingInferenceServiceObject
-export const convertTokenAuthData = (tokenAuthData: TokenAuthenticationFieldData): string[] => {
-  return tokenAuthData.map((token: TokenData) => token.name).filter(Boolean);
 };
