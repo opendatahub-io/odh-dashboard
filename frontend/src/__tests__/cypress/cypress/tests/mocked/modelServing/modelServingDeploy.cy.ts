@@ -210,6 +210,17 @@ describe('Model Serving Deploy Wizard', () => {
       .click();
     hardwareProfileSection.findGlobalScopedLabel().should('exist');
     modelServingWizard.findModelFormatSelect().should('not.exist');
+
+    modelServingWizard.findNumReplicasInput().should('exist');
+    modelServingWizard.findNumReplicasInputField().should('have.value', '1');
+    modelServingWizard.findNumReplicasMinusButton().should('be.disabled');
+    modelServingWizard.findNumReplicasPlusButton().click();
+    modelServingWizard.findNumReplicasInputField().should('have.value', '2');
+    modelServingWizard.findNumReplicasMinusButton().should('be.enabled');
+    modelServingWizard.findNumReplicasInputField().clear().type('99');
+    modelServingWizard.findNumReplicasInputField().should('have.value', '99');
+    modelServingWizard.findNumReplicasPlusButton().should('be.disabled');
+
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 3: Advanced Options

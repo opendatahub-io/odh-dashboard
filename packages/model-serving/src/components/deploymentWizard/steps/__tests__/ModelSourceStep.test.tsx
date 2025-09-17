@@ -78,6 +78,11 @@ const mockDeploymentWizardState = (
           setData: jest.fn(),
           updateField: jest.fn(),
         },
+        numReplicas: {
+          data: undefined,
+          setData: jest.fn(),
+          setReplicas: jest.fn(),
+        },
       },
       data: {
         externalRouteField: undefined,

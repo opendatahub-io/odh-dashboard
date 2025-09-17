@@ -22,6 +22,10 @@ export const extractHardwareProfileConfig = (
   return extractHardwareProfileConfigFromInferenceService(kserveDeployment.model);
 };
 
+export const extractReplicas = (kserveDeployment: KServeDeployment): number | null => {
+  return kserveDeployment.model.spec.predictor.minReplicas ?? null;
+};
+
 export const applyHardwareProfileToDeployment = (
   kserveDeployment: KServeDeployment,
   // TODO: use parameters to assemble hardware profile config for the deployment action
