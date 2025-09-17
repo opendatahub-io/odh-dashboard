@@ -26,10 +26,7 @@ const testPipelineIrisName = 'test-iris-pipeline';
 const testRunName = 'test-pipelines-run';
 const awsBucket = 'BUCKET_2' as const;
 
-describe(
-  '[Product Bug: RHOAIENG-33241] An admin user can import and run a pipeline',
-  { testIsolation: false },
-  () => {
+describe('An admin user can import and run a pipeline', { testIsolation: false }, () => {
     retryableBefore(() => {
       provisionProjectForPipelines(projectName, dspaSecretName, awsBucket);
       //Create Pipelines ConfigMap With Custom Pip Index Url And Trusted Host
@@ -49,7 +46,7 @@ describe(
 
     it(
       'Verify User Can Create, Run and Delete A DS Pipeline From DS Project Details Page Using Custom Pip Mirror',
-      { tags: ['@Smoke', '@SmokeSet1', '@ODS-2206', '@Pipelines', '@Dashboard', '@Bug'] },
+      { tags: ['@Smoke', '@SmokeSet1', '@ODS-2206', '@Pipelines', '@Dashboard'] },
       () => {
         cy.step(`Navigate to DSP ${projectName}`);
         cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);

@@ -18,10 +18,7 @@ const testPipelineName = 'test-pipelines-pipeline';
 const testRunName = 'test-pipelines-run';
 const awsBucket = 'BUCKET_3' as const;
 
-describe(
-  '[Product Bug: RHOAIENG-33241] An admin user can import and run a pipeline',
-  { testIsolation: false },
-  () => {
+describe('An admin user can import and run a pipeline', { testIsolation: false }, () => {
     retryableBefore(() => {
       // Create a Project for pipelines
       provisionProjectForPipelines(projectName, dspaSecretName, awsBucket);
@@ -34,7 +31,7 @@ describe(
 
     it(
       'An admin User can Import and Run a Pipeline',
-      { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@Pipelines', '@Bug'] },
+      { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@Pipelines'] },
       () => {
         cy.step('Navigate to DSP ${projectName}');
         cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
