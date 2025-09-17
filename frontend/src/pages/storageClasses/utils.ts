@@ -80,7 +80,7 @@ const isStorageProvisioner = (value: string): value is StorageProvisioner =>
 
 export const getSupportedAccessModesForProvisioner = (
   provisionerParameter?: StorageProvisioner | string,
-): AccessMode[] => {
+): AccessMode[] | null => {
   if (!provisionerParameter) {
     return [];
   }
@@ -92,8 +92,8 @@ export const getSupportedAccessModesForProvisioner = (
     return provisionerAccessModes[provisionerString];
   }
 
-  // If it's a provisioner not in the StorageProvisioner enum then return RWO
-  return [AccessMode.RWO];
+  // If it's a provisioner not in the StorageProvisioner enum then we cannot recommend
+  return null;
 };
 
 export const getStorageClassDefaultAccessModeSettings = (): AccessModeSettings => {

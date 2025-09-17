@@ -85,6 +85,11 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
   React.useEffect(() => {
     const recommended = getSupportedAccessModesForProvisioner(storageClass.provisioner);
 
+    if (recommended === null) {
+      setAccessModeMismatch(null);
+      return;
+    }
+
     const selectedModes = Object.values(AccessMode).filter(
       (mode) => accessModeSettings[mode] === true || mode === AccessMode.RWO,
     );
