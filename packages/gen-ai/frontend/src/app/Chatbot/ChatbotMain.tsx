@@ -1,13 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerContentBody,
-  Bullseye,
-  Spinner,
-  Flex,
-} from '@patternfly/react-core';
+import { Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core';
 import {
   Chatbot,
   ChatbotContent,
@@ -19,46 +12,30 @@ import {
   MessageBox,
 } from '@patternfly/chatbot';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
 import { useUserContext } from '~/app/context/UserContext';
-import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
-import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
+import { ChatbotContext } from '~/app/context/ChatbotContext';
 import ChatbotEmptyState from '~/app/EmptyStates/NoData';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import { ChatbotMessages } from './ChatbotMessagesList';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
-import ChatbotHeader from './ChatbotHeader';
 import useChatbotMessages from './hooks/useChatbotMessages';
 import useSourceManagement from './hooks/useSourceManagement';
 import useAlertManagement from './hooks/useAlertManagement';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from './const';
+import ChatbotHeader from './ChatbotHeader';
 
 const ChatbotMain: React.FunctionComponent = () => {
-  const { config } = useModularArchContext();
-  const isStandalone = config.deploymentMode === DeploymentMode.Standalone;
   const displayMode = ChatbotDisplayMode.embedded;
-  const { models, loading, error } = useFetchLlamaModels();
+  const { models, modelsLoaded, lsdStatus, lsdStatusLoaded, lsdStatusError, modelsError } =
+    React.useContext(ChatbotContext);
   const [selectedModel, setSelectedModel] = React.useState<string>('');
-  const [availableProjects, setAvailableProjects] = React.useState<string[]>([]);
-  const [selectedProject, setSelectedProject] = React.useState<string>('');
   const { username } = useUserContext();
-
-  React.useEffect(() => {
-    if (!selectedProject && availableProjects.length > 0) {
-      setSelectedProject(availableProjects[0]);
-    }
-  }, [selectedProject, availableProjects]);
-
   const modelId = selectedModel || models[0]?.id;
   const [systemInstruction, setSystemInstruction] = React.useState<string>(
     DEFAULT_SYSTEM_INSTRUCTIONS,
   );
-
-  const handleProjectChange = (projectName: string) => {
-    setSelectedProject(projectName);
-  };
 
   React.useEffect(() => {
     if (!selectedModel) {
@@ -81,12 +58,6 @@ const ChatbotMain: React.FunctionComponent = () => {
     username,
   });
 
-  const {
-    data: lsdStatusData,
-    loaded: lsdStatusLoaded,
-    error: lsdStatusError,
-  } = useFetchLSDStatus(selectedProject);
-
   // Create alert components
   const successAlert = (
     <SourceUploadSuccessAlert
@@ -104,15 +75,6 @@ const ChatbotMain: React.FunctionComponent = () => {
     />
   );
 
-  // Loading and error states
-  if (loading) {
-    return (
-      <Bullseye>
-        <Spinner />
-      </Bullseye>
-    );
-  }
-
   // Settings panel content
   const settingsPanelContent = (
     <ChatbotSettingsPanel
@@ -126,92 +88,64 @@ const ChatbotMain: React.FunctionComponent = () => {
     />
   );
 
-  const applicationsPage = (
+  return (
     <ApplicationsPage
-      title={
-        <ChatbotHeader
-          selectedProject={selectedProject}
-          onProjectChange={handleProjectChange}
-          onProjectsLoaded={setAvailableProjects}
-          isLoading={loading}
-        />
-      }
-      loaded={!loading}
-      empty={false}
-      loadError={error}
-    >
-      {!lsdStatusLoaded && !lsdStatusError ? (
-        <Bullseye>
-          <Spinner />
-        </Bullseye>
-      ) : lsdStatusLoaded && !lsdStatusData ? (
+      title={<ChatbotHeader />}
+      loaded={lsdStatusLoaded && modelsLoaded}
+      empty={!lsdStatus}
+      emptyStatePage={
         <ChatbotEmptyState
           title="Enable Playground"
           description="Create a playground to chat with the generative models deployed in this project. Experiment with model output using a simple RAG simulation, custom prompt and MCP servers."
           actionButtonText="Configure playground"
           handleActionButtonClick={() => {
-            // TODO: Implement configuration logic
+            // TODO: Implement
           }}
         />
-      ) : (
-        <>
-          <ChatbotSourceSettingsModal
-            isOpen={sourceManagement.isSourceSettingsOpen}
-            onToggle={() =>
-              sourceManagement.setIsSourceSettingsOpen(!sourceManagement.isSourceSettingsOpen)
-            }
-            onSubmitSettings={sourceManagement.handleSourceSettingsSubmit}
-          />
-          <Drawer isExpanded isInline position="right">
-            <DrawerContent panelContent={settingsPanelContent}>
-              <DrawerContentBody>
-                <Chatbot displayMode={displayMode} data-testid="chatbot">
-                  <ChatbotContent>
-                    <MessageBox position="bottom">
-                      <ChatbotWelcomePrompt
-                        title={username ? `Hello, ${username}` : 'Hello'}
-                        description="Welcome to the chat playground"
-                      />
-                      <ChatbotMessages
-                        messageList={chatbotMessages.messages}
-                        scrollRef={chatbotMessages.scrollToBottomRef}
-                      />
-                    </MessageBox>
-                  </ChatbotContent>
-                  <ChatbotFooter>
-                    <MessageBar
-                      onSendMessage={(message) => {
-                        if (typeof message === 'string') {
-                          chatbotMessages.handleMessageSend(message);
-                        }
-                      }}
-                      hasAttachButton={false}
-                      isSendButtonDisabled={chatbotMessages.isMessageSendButtonDisabled}
-                      data-testid="chatbot-message-bar"
-                    />
-                    <ChatbotFootnote {...{ label: 'Bot uses AI. Check for mistakes.' }} />
-                  </ChatbotFooter>
-                </Chatbot>
-              </DrawerContentBody>
-            </DrawerContent>
-          </Drawer>
-        </>
-      )}
-    </ApplicationsPage>
-  );
-
-  return isStandalone ? (
-    applicationsPage
-  ) : (
-    // In federated mode, DrawerBody is not flex which the Page items expect the parent to be.
-    // This is a workaround to make the drawer body flex.
-    <Flex
-      direction={{ default: 'column' }}
-      flexWrap={{ default: 'nowrap' }}
-      style={{ height: '100%' }}
+      }
+      loadError={lsdStatusError || modelsError}
     >
-      {applicationsPage}
-    </Flex>
+      <ChatbotSourceSettingsModal
+        isOpen={sourceManagement.isSourceSettingsOpen}
+        onToggle={() =>
+          sourceManagement.setIsSourceSettingsOpen(!sourceManagement.isSourceSettingsOpen)
+        }
+        onSubmitSettings={sourceManagement.handleSourceSettingsSubmit}
+      />
+      <Drawer isExpanded isInline position="right">
+        <DrawerContent panelContent={settingsPanelContent}>
+          <DrawerContentBody>
+            <Chatbot displayMode={displayMode} data-testid="chatbot">
+              <ChatbotContent>
+                <MessageBox position="bottom">
+                  <ChatbotWelcomePrompt
+                    title={username ? `Hello, ${username}` : 'Hello'}
+                    description="Welcome to the chat playground"
+                  />
+                  <ChatbotMessages
+                    messageList={chatbotMessages.messages}
+                    scrollRef={chatbotMessages.scrollToBottomRef}
+                  />
+                </MessageBox>
+              </ChatbotContent>
+              <ChatbotFooter>
+                <MessageBar
+                  onSendMessage={(message) => {
+                    if (typeof message === 'string') {
+                      chatbotMessages.handleMessageSend(message);
+                    }
+                  }}
+                  hasAttachButton={false}
+                  isSendButtonDisabled={chatbotMessages.isMessageSendButtonDisabled}
+                  data-testid="chatbot-message-bar"
+                />
+                <ChatbotFootnote {...{ label: 'Bot uses AI. Check for mistakes.' }} />
+              </ChatbotFooter>
+            </Chatbot>
+          </DrawerContentBody>
+        </DrawerContent>
+      </Drawer>
+    </ApplicationsPage>
   );
 };
 
