@@ -773,8 +773,6 @@ describe('Model Serving Global', () => {
       .click();
     hardwareProfileSection.findProjectScopedLabel().should('exist');
 
-    // const ack = 'CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi';
-
     // verify available global-scoped hardware profile
     hardwareProfileSection.findHardwareProfileSearchSelector().click();
     const globalScopedHardwareProfile = hardwareProfileSection.getGlobalScopedHardwareProfile();
