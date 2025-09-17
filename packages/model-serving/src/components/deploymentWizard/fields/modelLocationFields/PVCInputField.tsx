@@ -23,7 +23,6 @@ type PVCInputFieldProps = {
   selectedPVCName: string;
   setModelUri: (uri: string) => void;
   existingUriOption?: string;
-  setIsConnectionValid: (isValid: boolean) => void;
 };
 
 export const PVCInputField: React.FC<PVCInputFieldProps> = ({
@@ -31,7 +30,6 @@ export const PVCInputField: React.FC<PVCInputFieldProps> = ({
   selectedPVCName,
   setModelUri,
   existingUriOption,
-  setIsConnectionValid,
 }) => {
   // Get the model path from the existing URI, if it's a PVC URI
   const initialModelPath = React.useMemo(() => {
@@ -112,10 +110,8 @@ export const PVCInputField: React.FC<PVCInputFieldProps> = ({
     setUserHasEdited(true);
     if (trimmedPath && validateModelPath(trimmedPath)) {
       setModelUri(generateModelUri(selectedPVCName, trimmedPath));
-      setIsConnectionValid(true);
     } else {
       setModelUri('');
-      setIsConnectionValid(false);
     }
   };
 
