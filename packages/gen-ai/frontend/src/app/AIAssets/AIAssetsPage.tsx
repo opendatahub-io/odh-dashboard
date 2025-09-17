@@ -10,7 +10,10 @@ import {
 } from '@patternfly/react-core';
 import GenAiCoreHeader from '~/app/GenAiCoreHeader';
 import { genAiAiAssetsRoute } from '~/app/utilities/routes';
+import { GenAiContext } from '~/app/context/GenAiContext';
+import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import AIAssetsModelsTab from './AIAssetsModelsTab';
+import useFetchAIModels from './hooks/useFetchAIModels';
 
 enum AIAssetsPageTabKey {
   MODELS = 'models',
@@ -18,6 +21,10 @@ enum AIAssetsPageTabKey {
 
 export const AIAssetsPage: React.FC = () => {
   const [activeTabKey, setActiveTabKey] = React.useState<string>(AIAssetsPageTabKey.MODELS);
+  const { namespace } = React.useContext(GenAiContext);
+  const { data: playgroundModels } = useFetchLlamaModels(namespace?.name);
+  const { data: models, loaded, error } = useFetchAIModels(namespace?.name);
+  const modelsCount = models.length;
 
   return (
     <ApplicationsPage
@@ -35,7 +42,7 @@ export const AIAssetsPage: React.FC = () => {
         >
           <Tab
             eventKey={AIAssetsPageTabKey.MODELS}
-            title={<TabTitleText>Models</TabTitleText>}
+            title={<TabTitleText>Models {loaded && `(${modelsCount})`}</TabTitleText>}
             aria-label="Models tab"
             tabContentId="models-tab-content"
           />
@@ -49,7 +56,13 @@ export const AIAssetsPage: React.FC = () => {
           hidden={activeTabKey !== AIAssetsPageTabKey.MODELS}
         >
           <TabContentBody>
-            <AIAssetsModelsTab />
+            <AIAssetsModelsTab
+              models={models}
+              playgroundModels={playgroundModels}
+              namespace={namespace}
+              loaded={loaded}
+              error={error}
+            />
           </TabContentBody>
         </TabContent>
       </PageSection>
