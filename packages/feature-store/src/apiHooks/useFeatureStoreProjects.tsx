@@ -1,41 +1,37 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import useFetch, {
-  FetchStateCallbackPromise,
-  FetchStateObject,
-} from '@odh-dashboard/internal/utilities/useFetch';
-import { useFeatureStoreAPI } from '../FeatureStoreContext';
+import { FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
+import { FeatureStoreContext } from '../FeatureStoreContext';
 import { ProjectList } from '../types/featureStoreProjects';
 
 const useFeatureStoreProjects = (): FetchStateObject<ProjectList> => {
-  const { api, apiAvailable } = useFeatureStoreAPI();
+  const {
+    featureStoreProjects,
+    featureStoreProjectsLoaded,
+    featureStoreProjectsError,
+    refreshFeatureStoreProjects,
+  } = React.useContext(FeatureStoreContext);
 
-  const call = React.useCallback<FetchStateCallbackPromise<ProjectList>>(
-    (opts) => {
-      if (!apiAvailable) {
-        return Promise.reject(new Error('API not yet available'));
-      }
+  const refreshCallback = React.useCallback(async (): Promise<ProjectList | undefined> => {
+    try {
+      await refreshFeatureStoreProjects();
+      return featureStoreProjects;
+    } catch (error) {
+      return undefined;
+    }
+  }, [refreshFeatureStoreProjects, featureStoreProjects]);
 
-      return api.listFeatureStoreProject(opts);
-    },
-    [api, apiAvailable],
+  const result = React.useMemo(
+    () => ({
+      data: featureStoreProjects,
+      loaded: featureStoreProjectsLoaded,
+      error: featureStoreProjectsError,
+      refresh: refreshCallback,
+    }),
+    [featureStoreProjects, featureStoreProjectsLoaded, featureStoreProjectsError, refreshCallback],
   );
 
-  return useFetch(
-    call,
-    {
-      projects: [],
-      pagination: {
-        page: 0,
-        limit: 0,
-        total_count: 0,
-        total_pages: 0,
-        has_next: false,
-        has_previous: false,
-      },
-    },
-    { initialPromisePurity: true },
-  );
+  return result;
 };
 
 export default useFeatureStoreProjects;
