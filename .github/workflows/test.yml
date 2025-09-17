@@ -167,6 +167,9 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.21'
+          cache-dependency-path: |
+            packages/*/upstream/bff/go.sum
+            packages/*/bff/go.sum
       - name: Restore cache
         uses: actions/cache/restore@v4
         with:
@@ -174,15 +177,6 @@ jobs:
             ~/.cache/Cypress
             **/node_modules
           key: ${{ needs.Setup.outputs.modules-cache-key }}
-      - name: Cache Go modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('packages/*/upstream/bff/go.sum', 'packages/*/bff/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
       - name: Run contract tests
         run: |
           echo "Running contract tests..."
