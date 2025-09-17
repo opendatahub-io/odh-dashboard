@@ -24,7 +24,7 @@ const ModelCatalogDeployModalExtension: React.FC<ModelCatalogDeployModalExtensio
   const [openModal, setOpenModal] = React.useState(false);
 
   const [availablePlatformIds, setAvailablePlatformIds] = React.useState<string[]>([]);
-  const buttonState = getDeployButtonState(availablePlatformIds);
+  const buttonState = getDeployButtonState(availablePlatformIds, true);
 
   const onOpenModal = React.useCallback(() => {
     setOpenModal(true);

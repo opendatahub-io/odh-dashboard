@@ -5,6 +5,8 @@ import { isModelRegistryDeployModalExtension } from '~/odh/extension-points';
 import MRDeployFormDataLoader from '~/odh/components/MRDeployFormDataLoader';
 import { ModelVersion } from '~/app/types';
 import { getDeployButtonState } from '~/odh/utils';
+import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
+import { modelVersionDeploymentsUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
 
 type DeployModalExtensionProps = {
   mv: ModelVersion;
@@ -18,6 +20,7 @@ type DeployModalExtensionProps = {
 const DeployModalExtension: React.FC<DeployModalExtensionProps> = ({ mv, render }) => {
   const navigate = useNavigate();
   const [extensions, extensionsLoaded] = useResolvedExtensions(isModelRegistryDeployModalExtension);
+  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
 
   const [openModal, setOpenModal] = React.useState(false);
 
@@ -35,9 +38,13 @@ const DeployModalExtension: React.FC<DeployModalExtensionProps> = ({ mv, render 
 
   const handleSubmit = React.useCallback(() => {
     setOpenModal(false);
-    // Redirect to deployments page after successful deployment
-    navigate('/modelServing');
-  }, [navigate]);
+    // Redirect to deployments tab of the model version page after successful deployment
+    const modelVersionId = mv.id;
+    const registeredModelId = mv.registeredModelId;
+    const modelRegistryName = preferredModelRegistry?.name;
+    
+    navigate(modelVersionDeploymentsUrl(modelVersionId, registeredModelId, modelRegistryName));
+  }, [navigate, mv, preferredModelRegistry]);
 
   return (
     <>
