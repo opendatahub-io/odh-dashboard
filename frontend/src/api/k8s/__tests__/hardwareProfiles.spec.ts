@@ -84,7 +84,7 @@ const data: HardwareProfileKind['spec'] & {
 };
 
 const assembleHardwareProfileResult: HardwareProfileKind = {
-  apiVersion: 'ai.opendatahub.io/v1alpha1',
+  apiVersion: 'infrastructure.opendatahub.io/v1alpha1',
   kind: 'HardwareProfile',
   metadata: {
     name: 'test-1',
@@ -93,7 +93,7 @@ const assembleHardwareProfileResult: HardwareProfileKind = {
       [DisplayNameAnnotation.ODH_DISP_NAME]: data.displayName,
       [DisplayNameAnnotation.ODH_DESC]: data.description,
       'opendatahub.io/disabled': JSON.stringify(!data.enabled),
-      'opendatahub.io/dashboard-feature-visibility': expect.anything(),
+      'opendatahub.io/dashboard-feature-visibility': '[]',
       'opendatahub.io/modified-date': expect.any(String),
     },
   },
@@ -199,7 +199,7 @@ describe('createHardwareProfiles', () => {
             'opendatahub.io/display-name': 'test',
             'opendatahub.io/description': 'test description',
             'opendatahub.io/disabled': 'false',
-            'opendatahub.io/modified-date': expect.anything(),
+            'opendatahub.io/modified-date': expect.any(String),
             'opendatahub.io/dashboard-feature-visibility': '["workbench"]',
           },
         },
