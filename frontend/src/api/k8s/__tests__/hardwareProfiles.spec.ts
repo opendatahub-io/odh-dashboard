@@ -84,7 +84,7 @@ const data: HardwareProfileKind['spec'] & {
 };
 
 const assembleHardwareProfileResult: HardwareProfileKind = {
-  apiVersion: 'infrastructure.opendatahub.io/v1alpha1',
+  apiVersion: 'ai.opendatahub.io/v1alpha1',
   kind: 'HardwareProfile',
   metadata: {
     name: 'test-1',
@@ -267,7 +267,7 @@ describe('updateHardwareProfile', () => {
           'opendatahub.io/description': 'test description',
           'opendatahub.io/disabled': 'false',
           'opendatahub.io/modified-date': expect.any(String),
-          'opendatahub.io/dashboard-feature-visibility': expect.anything(),
+          'opendatahub.io/dashboard-feature-visibility': '[]',
         },
       }),
     });

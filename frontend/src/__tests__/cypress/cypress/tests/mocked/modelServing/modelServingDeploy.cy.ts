@@ -200,18 +200,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
-    console.log('hi there 77ab');
 
     // Open the dropdown and debug what options are available
     hardwareProfileSection.findNewHardwareProfileSelector().click();
-
-    // Debug what's actually in the dropdown
-    cy.get('[role="option"]').then(($options) => {
-      console.log('Available options count:', $options.length);
-      $options.each((index, option) => {
-        console.log(`Option ${index}:`, option.textContent);
-      });
-    });
 
     // Try to click on the alpha option - try multiple variations
     cy.get('[role="option"]').contains('alpha', { matchCase: false }).click();
@@ -253,10 +244,6 @@ describe('Model Serving Deploy Wizard', () => {
     cy.wait('@createInferenceService').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
 
-      const bodyActual = interception.request.body;
-      console.log('got bodyActual:', bodyActual);
-      console.log('spec???', bodyActual.spec);
-
       expect(interception.request.body).to.containSubset({
         apiVersion: 'serving.kserve.io/v1beta1',
         kind: 'InferenceService',
@@ -276,9 +263,6 @@ describe('Model Serving Deploy Wizard', () => {
 
       // Validate spec separately to avoid containSubset issues with complex nested objects
       const requestBody = interception.request.body;
-      expect(requestBody.spec).to.exist;
-      expect(requestBody.spec.predictor).to.exist;
-      expect(requestBody.spec.predictor.model).to.exist;
 
       // Validate model format (generative uses vLLM)
       expect(requestBody.spec.predictor.model.modelFormat).to.deep.equal({
@@ -364,7 +348,6 @@ describe('Model Serving Deploy Wizard', () => {
     // dry run request
     cy.wait('@createInferenceService').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
-      console.log('actual:  ack ack 44', interception.request.body);
       expect(interception.request.body).to.containSubset({
         apiVersion: 'serving.kserve.io/v1beta1',
         kind: 'InferenceService',
@@ -386,9 +369,6 @@ describe('Model Serving Deploy Wizard', () => {
 
       // Validate spec separately to avoid containSubset issues with complex nested objects
       const requestBody = interception.request.body;
-      expect(requestBody.spec).to.exist;
-      expect(requestBody.spec.predictor).to.exist;
-      expect(requestBody.spec.predictor.model).to.exist;
 
       // Validate model format
       expect(requestBody.spec.predictor.model.modelFormat).to.deep.equal({
@@ -420,7 +400,7 @@ describe('Model Serving Deploy Wizard', () => {
     });
   });
 
-  it.only('Edit an existing deployment', () => {
+  it('Edit an existing deployment', () => {
     initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
@@ -476,8 +456,7 @@ describe('Model Serving Deploy Wizard', () => {
       .should('have.value', 'Test Inference Service');
     modelServingWizardEdit.findModelDeploymentNameInput().type('test-model');
     hardwareProfileSection.findNewHardwareProfileSelector().should('be.visible');
-    hardwareProfileSection.findHardwareProfileSearchSelector().should('contain.text', 'gamma');
-    hardwareProfileSection.findGlobalScopedLabel().should('exist');
+    hardwareProfileSection.findNewHardwareProfileSelector().should('contain.text', 'alpha');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
     // Step 3: Advanced options

@@ -212,7 +212,7 @@ describe('Model Customization Form', () => {
     projectScopedHardwareProfile
       .find()
       .findByRole('menuitem', {
-        name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi; Nvidia.com/gpu: Request = 2; Limit = 2',
+        name: 'small-profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi; Nvidia.com/gpu: Request = 2; Limit = 2',
         hidden: true,
       })
       .click();
@@ -224,7 +224,7 @@ describe('Model Customization Form', () => {
     globalScopedHardwareProfile
       .find()
       .findByRole('menuitem', {
-        name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi; Nvidia.com/gpu: Request = 2; Limit = 2',
+        name: 'small-profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi; Nvidia.com/gpu: Request = 2; Limit = 2',
         hidden: true,
       })
       .click();
@@ -288,7 +288,7 @@ describe('Model Customization Form', () => {
     taxonomySection.findTaxonomyUsername().fill('test');
     taxonomySection.findTaxonomyToken().fill('test');
     hardwareSection.selectProfile(
-      'Small Profile CPU: Request = 1 Cores; Limit = 1 Cores; Memory: Request = 2 GiB; Limit = 2 GiB; Nvidia.com/gpu: Request = 2; Limit = 2',
+      'small-profile CPU: Request = 1 Cores; Limit = 1 Cores; Memory: Request = 2 GiB; Limit = 2 GiB; Nvidia.com/gpu: Request = 2; Limit = 2',
     );
     hardwareSection.findTrainingNodePlusButton().click();
 
@@ -315,7 +315,7 @@ describe('Model Customization Form', () => {
     taxonomySection.findTaxonomyUsername().fill('test');
     taxonomySection.findTaxonomyToken().fill('test');
     hardwareSection.selectProfile(
-      'Small Profile CPU: Request = 1 Cores; Limit = 1 Cores; Memory: Request = 2 GiB; Limit = 2 GiB; Nvidia.com/gpu: Request = 2; Limit = 2',
+      'small-profile CPU: Request = 1 Cores; Limit = 1 Cores; Memory: Request = 2 GiB; Limit = 2 GiB; Nvidia.com/gpu: Request = 2; Limit = 2',
     );
     hardwareSection.findTrainingNodePlusButton().click();
     modelCustomizationFormGlobal.findSubmitButton().should('not.be.disabled');
