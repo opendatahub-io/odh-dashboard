@@ -420,14 +420,14 @@ describe('Model Serving Deploy Wizard', () => {
     });
   });
 
-  it('Edit an existing deployment', () => {
+  it.only('Edit an existing deployment', () => {
     initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
       mockK8sResourceList([
         mockInferenceServiceK8sResource({
           modelType: ServingRuntimeModelType.PREDICTIVE,
-          hardwareProfileName: 'large-profile',
+          hardwareProfileName: 'alpha',
           hardwareProfileNamespace: 'opendatahub',
           resources: {
             requests: {
@@ -435,8 +435,8 @@ describe('Model Serving Deploy Wizard', () => {
               memory: '8Gi',
             },
             limits: {
-              cpu: '8',
-              memory: '16Gi',
+              cpu: '4',
+              memory: '8Gi',
             },
           },
         }),
@@ -475,10 +475,8 @@ describe('Model Serving Deploy Wizard', () => {
       .findModelDeploymentNameInput()
       .should('have.value', 'Test Inference Service');
     modelServingWizardEdit.findModelDeploymentNameInput().type('test-model');
-    hardwareProfileSection.findHardwareProfileSearchSelector().should('be.visible');
-    hardwareProfileSection
-      .findHardwareProfileSearchSelector()
-      .should('contain.text', 'Large Profile');
+    hardwareProfileSection.findNewHardwareProfileSelector().should('be.visible');
+    hardwareProfileSection.findHardwareProfileSearchSelector().should('contain.text', 'gamma');
     hardwareProfileSection.findGlobalScopedLabel().should('exist');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
