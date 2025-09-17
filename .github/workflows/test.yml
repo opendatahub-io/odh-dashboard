@@ -154,45 +154,45 @@ jobs:
             echo "test-groups=[\"default\"]" >> "$GITHUB_OUTPUT"
           fi
 
-  # Contract-Tests:
-  #   needs: [Setup, Lint, Type-Check]
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Setup Node.js ${{ env.NODE_VERSION }}
-  #       uses: actions/setup-node@v4.3.0
-  #       with:
-  #         node-version: ${{ env.NODE_VERSION }}
-  #     - name: Setup Go
-  #       uses: actions/setup-go@v5
-  #       with:
-  #         go-version: '1.21'
-  #     - name: Restore cache
-  #       uses: actions/cache/restore@v4
-  #       with:
-  #         path: |
-  #           ~/.cache/Cypress
-  #           **/node_modules
-  #         key: ${{ needs.Setup.outputs.modules-cache-key }}
-  #     - name: Cache Go modules
-  #       uses: actions/cache@v4
-  #       with:
-  #         path: |
-  #           ~/.cache/go-build
-  #           ~/go/pkg/mod
-  #         key: ${{ runner.os }}-go-${{ hashFiles('packages/*/bff/go.sum', 'packages/*/upstream/bff/go.sum') }}
-  #         restore-keys: |
-  #           ${{ runner.os }}-go-
-  #     - name: Run contract tests
-  #       run: |
-  #         echo "Running contract tests..."
-  #         npm run test:contract
-  #     - name: Upload contract test results
-  #       uses: actions/upload-artifact@v4
-  #       if: always()
-  #       with:
-  #         name: contract-test-results
-  #         path: packages/*/contract-tests/contract-test-results/**/*
+  Contract-Tests:
+    needs: [Setup, Lint, Type-Check]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      - name: Restore cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cache/Cypress
+            **/node_modules
+          key: ${{ needs.Setup.outputs.modules-cache-key }}
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('packages/*/bff/go.sum', 'packages/*/upstream/bff/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Run contract tests
+        run: |
+          echo "Running contract tests..."
+          npm run test:contract
+      - name: Upload contract test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: contract-test-results
+          path: packages/*/contract-tests/contract-test-results/**/*
 
   Cypress-Setup:
     needs: [Setup]
@@ -342,7 +342,7 @@ jobs:
       - Lint
       - Type-Check
       - Unit-Tests
-      # - Contract-Tests
+      - Contract-Tests
       - Cypress-Mock-Tests
       - Combine-Results-and-Upload
     steps:
