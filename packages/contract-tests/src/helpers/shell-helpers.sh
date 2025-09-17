@@ -68,19 +68,9 @@ display_test_summary() {
     log_info "Test Results Summary:"
     log_info "📂 Test Results Directory: $TEST_RUN_DIR"
 
-    # Create artifacts directory
-    mkdir -p "$TEST_RUN_DIR/artifacts"
-
-    # Copy test artifacts
-    cp -f "$TEST_RUN_DIR/contract-test-report.html" "$TEST_RUN_DIR/artifacts/" 2>/dev/null || true
-    cp -f "$TEST_RUN_DIR/junit.xml" "$TEST_RUN_DIR/artifacts/" 2>/dev/null || true
-    cp -f "$TEST_RUN_DIR/bff-mock.log" "$TEST_RUN_DIR/artifacts/" 2>/dev/null || true
-
     # Show test artifacts
-    if [ -d "$TEST_RUN_DIR/artifacts" ] && [ "$(ls -A "$TEST_RUN_DIR/artifacts")" ]; then
-        log_info "📋 Generated test artifacts:"
-        ls -la "$TEST_RUN_DIR/artifacts"
-    fi
+    log_info "📋 Available test artifacts:"
+    ls -la "$TEST_RUN_DIR" | grep -E "\.(html|log|xml)$" || echo "No artifacts found"
 
     # Show available logs
     log_info "📋 Available logs:"
