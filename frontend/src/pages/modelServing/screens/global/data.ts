@@ -9,6 +9,7 @@ export enum ColumnField {
   Project = 'project',
   Endpoint = 'endpoint',
   ServingRuntime = 'servingRuntime',
+  HardwareProfile = 'hardwareProfile',
   ApiProtocol = 'apiProtocol',
   LastDeployed = 'lastDeployed',
   Status = 'status',
@@ -70,6 +71,13 @@ const COL_API_PROTOCOL: SortableData<InferenceServiceKind> = {
   field: ColumnField.ApiProtocol,
   label: 'API protocol',
   width: 10,
+  sortable: false,
+};
+
+const COL_HARDWARE_PROFILE: SortableData<InferenceServiceKind> = {
+  field: ColumnField.HardwareProfile,
+  label: 'Hardware profile',
+  width: 20,
   sortable: false,
 };
 
@@ -142,13 +150,18 @@ export const getProjectInferenceServiceColumns = (): SortableData<InferenceServi
   COL_STATUS,
   COL_KEBAB,
 ];
-export const getKServeInferenceServiceColumns = (): SortableData<InferenceServiceKind>[] => [
-  COL_EXPAND,
-  COL_NAME,
-  COL_SERVING_RUNTIME,
-  COL_ENDPOINT,
-  COL_API_PROTOCOL,
-  COL_LAST_DEPLOYED,
-  COL_STATUS,
-  COL_KEBAB,
-];
+export const getKServeInferenceServiceColumns = (
+  isHardwareProfilesAvailable?: boolean,
+): SortableData<InferenceServiceKind>[] => {
+  return [
+    COL_EXPAND,
+    COL_NAME,
+    COL_SERVING_RUNTIME,
+    COL_ENDPOINT,
+    COL_API_PROTOCOL,
+    ...(isHardwareProfilesAvailable ? [COL_HARDWARE_PROFILE] : []),
+    COL_LAST_DEPLOYED,
+    COL_STATUS,
+    COL_KEBAB,
+  ];
+};

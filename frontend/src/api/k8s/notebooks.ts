@@ -33,6 +33,7 @@ import { NodeSelector, Volume, VolumeMount } from '#~/types';
 import { getImageStreamDisplayName } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { k8sMergePatchResource } from '#~/api/k8sUtils';
 import { getshmVolume, getshmVolumeMount } from '#~/api/k8s/utils';
+import { createHardwareProfileSpecSnapshot } from '#~/concepts/hardwareProfiles/utils';
 
 export const assembleNotebook = (
   data: StartNotebookData,
@@ -142,6 +143,9 @@ export const assembleNotebook = (
           isLegacyHardwareProfile && selectedHardwareProfile
             ? selectedHardwareProfile.metadata.name || ''
             : '',
+        'opendatahub.io/hardware-profile-spec-snapshot': selectedHardwareProfile
+          ? createHardwareProfileSpecSnapshot(selectedHardwareProfile)
+          : '',
         'notebooks.opendatahub.io/last-image-version-git-commit-selection':
           image.imageVersion?.annotations?.['opendatahub.io/notebook-build-commit'] ?? '',
       },

@@ -1,6 +1,13 @@
-import { AcceleratorProfileKind, HardwareProfileKind } from '#~/k8sTypes';
+import { AlertProps } from '@patternfly/react-core';
+import {
+  AcceleratorProfileKind,
+  HardwareProfileKind,
+  InferenceServiceKind,
+  NotebookKind,
+} from '#~/k8sTypes';
 import { ContainerResources, Toleration, NodeSelector } from '#~/types';
 import useAcceleratorProfileFormState from '#~/utilities/useAcceleratorProfileFormState';
+import { HardwareProfileBindingState } from '#~/concepts/hardwareProfiles/const.ts';
 import { useHardwareProfileConfig } from './useHardwareProfileConfig';
 
 export type WarningNotification = {
@@ -31,4 +38,25 @@ export type PodSpecOptionsState<T extends PodSpecOptions> = {
   acceleratorProfile: ReturnType<typeof useAcceleratorProfileFormState>;
   hardwareProfile: ReturnType<typeof useHardwareProfileConfig>;
   podSpecOptions: T;
+};
+
+export type SupportedResource = NotebookKind | InferenceServiceKind;
+export type ResourceType = 'workbench' | 'deployment';
+
+export type HardwareProfileBindingStateInfo = {
+  state?: HardwareProfileBindingState;
+  profile?: HardwareProfileKind;
+};
+
+export type HardwareProfileBindingConfig = {
+  labelText: string;
+  labelColor: 'red' | 'yellow' | 'green';
+  alertVariant: AlertProps['variant'];
+  testId: string;
+  title: string;
+  getBodyText: (params: {
+    resourceType: ResourceType;
+    isRunning: boolean;
+    name?: string;
+  }) => string;
 };

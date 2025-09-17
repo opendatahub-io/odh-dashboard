@@ -12,6 +12,7 @@ import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingPropertie
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
 import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 
 const KServeInferenceServiceTable: React.FC = () => {
   const { projects } = React.useContext(ProjectsContext);
@@ -43,7 +44,9 @@ const KServeInferenceServiceTable: React.FC = () => {
     serverSecrets: { refresh: refreshServerSecrets },
     filterTokens,
   } = React.useContext(ProjectDetailsContext);
-  const columns = getKServeInferenceServiceColumns();
+
+  const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
+  const columns = getKServeInferenceServiceColumns(isHardwareProfilesAvailable);
 
   const KServeManageModalComponent = isKServeNIMEnabled ? ManageNIMServingModal : ManageKServeModal;
 
@@ -58,7 +61,7 @@ const KServeInferenceServiceTable: React.FC = () => {
         rowRenderer={(modelServer, rowIndex) => (
           <KServeInferenceServiceTableRow
             project={project?.metadata.name}
-            key={modelServer.metadata.uid}
+            key={modelServer.metadata.resourceVersion}
             obj={modelServer}
             columnNames={columns.map((column) => column.field)}
             onEditKServe={(obj) => setEditKServeResources(obj)}
