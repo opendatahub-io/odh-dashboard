@@ -45,7 +45,11 @@ const HardwareProfileTableColumn: React.FC<HardwareProfileTableColumnProps> = ({
   const resourceType = resourceTypeOf(resource);
   return (
     <>
-      <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+      <Flex
+        spaceItems={{ default: 'spaceItemsSm' }}
+        alignItems={{ default: 'alignItemsCenter' }}
+        data-testid="hardware-profile-table-column"
+      >
         <FlexItem>
           <HardwareProfileDetailsPopover
             hardwareProfile={hardwareProfile}

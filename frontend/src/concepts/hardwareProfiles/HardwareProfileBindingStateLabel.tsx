@@ -35,8 +35,16 @@ const HardwareProfileBindingStateLabel: React.FC<HardwareProfileBindingStateLabe
   return (
     <Popover
       aria-label="Hardware profile state popover"
-      headerContent={<Alert variant={config.alertVariant} isInline isPlain title={config.title} />}
-      bodyContent={<p>{bodyText}</p>}
+      headerContent={
+        <Alert
+          variant={config.alertVariant}
+          isInline
+          isPlain
+          title={config.title}
+          data-testid={`${config.testId}-popover-title`}
+        />
+      }
+      bodyContent={<p data-testid={`${config.testId}-popover-body`}>{bodyText}</p>}
       shouldOpen={() => setIsPopoverVisible(true)}
       shouldClose={() => setIsPopoverVisible(false)}
       isVisible={isPopoverVisible}

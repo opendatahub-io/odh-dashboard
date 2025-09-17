@@ -118,12 +118,14 @@ const COL_KEBAB: SortableData<InferenceServiceKind> = {
 };
 export const getGlobalInferenceServiceColumns = (
   projects: ProjectKind[],
+  isHardwareProfilesAvailable?: boolean,
 ): SortableData<InferenceServiceKind>[] => [
   COL_NAME,
   buildProjectCol(projects),
   COL_SERVING_RUNTIME,
   COL_ENDPOINT,
   COL_API_PROTOCOL,
+  ...(isHardwareProfilesAvailable ? [COL_HARDWARE_PROFILE] : []),
   COL_LAST_DEPLOYED,
   COL_STATUS,
   COL_KEBAB,
@@ -142,10 +144,13 @@ export const getVersionDetailsInferenceServiceColumns = (
   COL_KEBAB,
 ];
 
-export const getProjectInferenceServiceColumns = (): SortableData<InferenceServiceKind>[] => [
+export const getProjectInferenceServiceColumns = (
+  isHardwareProfilesAvailable?: boolean,
+): SortableData<InferenceServiceKind>[] => [
   COL_NAME,
   COL_ENDPOINT,
   COL_API_PROTOCOL,
+  ...(isHardwareProfilesAvailable ? [COL_HARDWARE_PROFILE] : []),
   COL_LAST_DEPLOYED,
   COL_STATUS,
   COL_KEBAB,
