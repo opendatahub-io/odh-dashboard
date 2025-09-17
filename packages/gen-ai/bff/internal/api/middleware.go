@@ -155,7 +155,7 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 // AttachLlamaStackClient middleware creates a LlamaStack client for the namespace and attaches it to context.
 // This middleware must be used after AttachNamespace middleware.
 //
-// Gets the LlamaStack URL from the namespace-specific LlamaStackDistribution resource's status.serviceEndpoint field.
+// Gets the LlamaStack URL from the namespace-specific LlamaStackDistribution resource's status.serviceURL field.
 func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		ctx := r.Context()
@@ -178,13 +178,13 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 			// In mock mode, use empty URL since mock factory ignores it
 			llamaStackClient = app.llamaStackClientFactory.CreateClient("")
 		} else {
-			var serviceEndpoint string
+			var serviceURL string
 			// Use environment variable if explicitly set (developer override)
 			if app.config.LlamaStackURL != "" {
-				serviceEndpoint = app.config.LlamaStackURL
+				serviceURL = app.config.LlamaStackURL
 				logger.Debug("Using LLAMA_STACK_URL environment variable (developer override)",
 					"namespace", namespace,
-					"serviceEndpoint", serviceEndpoint)
+					"serviceURL", serviceURL)
 			} else {
 				identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 				if !ok || identity == nil {
@@ -214,25 +214,25 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 				}
 
 				lsd := lsdList.Items[0]
-				serviceEndpoint = lsd.Status.ServiceEndpoint
-				
-				if serviceEndpoint == "" {
-					app.serverErrorResponse(w, r, fmt.Errorf("LlamaStackDistribution %s has no service endpoint", lsd.Name))
+				serviceURL = lsd.Status.ServiceURL
+
+				if serviceURL == "" {
+					app.serverErrorResponse(w, r, fmt.Errorf("LlamaStackDistribution %s has no service url", lsd.Name))
 					return
 				}
 
-				logger.Debug("Using ServiceEndpoint from LlamaStackDistribution",
+				logger.Debug("Using ServiceURL from LlamaStackDistribution",
 					"namespace", namespace,
 					"lsdName", lsd.Name,
-					"serviceEndpoint", serviceEndpoint)
+					"serviceURL", serviceURL)
 			}
 
 			logger.Debug("Creating LlamaStack client for namespace",
 				"namespace", namespace,
-				"serviceEndpoint", serviceEndpoint)
+				"serviceURL", serviceURL)
 
 			// Create LlamaStack client per-request using app factory (consistent with K8s pattern)
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(serviceEndpoint)
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(serviceURL)
 		}
 
 		// Attach ready-to-use client to context

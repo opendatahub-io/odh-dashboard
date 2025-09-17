@@ -123,6 +123,7 @@ func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Conte
 					Version: lsdapi.VersionInfo{
 						LlamaStackServerVersion: "v0.2.0",
 					},
+					ServiceURL: "http://mock-lsd.test-namespace.svc.cluster.local:8321",
 					DistributionConfig: lsdapi.DistributionConfig{
 						ActiveDistribution: "mock-distribution",
 						Providers: []lsdapi.ProviderInfo{
