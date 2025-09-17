@@ -276,13 +276,13 @@ describe('Model Serving Deploy Wizard', () => {
     });
 
     // // Actual request
-    // cy.wait('@createInferenceService').then((interception) => {
-    //   expect(interception.request.url).not.to.include('?dryRun=All');
-    // });
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
 
-    // cy.get('@createInferenceService.all').then((interceptions) => {
-    //   expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
-    // });
+    cy.get('@createInferenceService.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
   });
 
   it('Create a new predictive deployment and submit', () => {
