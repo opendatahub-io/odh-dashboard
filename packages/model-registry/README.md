@@ -5,20 +5,34 @@ This guide outlines how to run the upstream Model Registry and integrate it with
 ## Prerequisites
 
 1. **Start the ODH Backend:**
-    Ensure your ODH backend server is running. Navigate to the `backend` directory within your main Open Data Hub dashboard project and run:
+    Ensure your ODH backend server is running. Run in the root of the ODH project:
 
     ```bash
-    npm run start:dev
+    npm run dev:backend
     ```
 
 2. **Start the ODH Frontend:**
-    The main ODH dashboard frontend application must also be running. Navigate to the main Open Data Hub dashboard project root and run:
+    The main ODH dashboard frontend application must also be running. Run in the root of the ODH project:
 
     ```bash
-    npm run start:dev
+    npm run dev:frontend
     ```
 
     **Important:** Do not use `npm run start:dev:ext` for the ODH frontend when testing this upstream integration.
+
+3. **Model Registry UI Requirements:**
+    Ensure you have met the [frontend requirements] and [BFF requirements] for the Model Registry UI. You can run Model Registry in either **mocked mode** or **federated mode**. For testing ODH integration, use **federated mode**.
+
+    ```bash
+    cd packages/model-registry/upstream
+    make dev-start-federated
+    ```
+
+    Now you need to port forward the Model Catalog service to allow the Model Registry to communicate with it. In a separate terminal, run:
+
+    ```bash
+    kubectl port-forward svc/model-catalog 8086:8443 -n <model-catalog-namespace>
+    ```
 
 ## Model Registry Setup
 
