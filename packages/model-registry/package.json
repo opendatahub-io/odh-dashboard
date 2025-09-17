@@ -7,7 +7,7 @@
     "install:module": "npm install --prefix upstream/frontend",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
-    "update-subtree": "package-subtree --package=@odh-dashboard/model-registry",
+    "update-subtree": "../app-config/scripts/package-subtree.sh --package=@odh-dashboard/model-registry",
     "test:contract": "odh-ct-bff-consumer --bff-dir upstream/bff",
     "cypress:server:build": "cd upstream/frontend && DIST_DIR=./public-cypress POLL_INTERVAL=9999999 DEPLOYMENT_MODE=federated npm run build",
     "cypress:server:build:coverage": "COVERAGE=true npm run cypress:server:build",
@@ -19,7 +19,7 @@
     "repo": "https://github.com/kubeflow/model-registry.git",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "be9b4db01a1f5e4c6291e42eb62f738aea1f73da"
+    "commit": "e440068360df90e070971570203d9c07261e319a"
   },
   "module-federation": {
     "name": "modelRegistry",
