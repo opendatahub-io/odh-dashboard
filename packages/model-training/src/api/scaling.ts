@@ -193,3 +193,24 @@ export const scaleWorkersAndResume = async (
     hibernationResult,
   };
 };
+
+/**
+ * Scale worker replicas and resume the job in one operation
+ * @param job - The PyTorchJob to update
+ * @param newWorkerCount - The new number of worker replicas
+ * @param opts - Optional K8s API options
+ * @returns Promise with the updated job and hibernation result
+ */
+export const scaleWorkers = async (
+  job: PyTorchJobKind,
+  newWorkerCount: number,
+  opts?: K8sAPIOptions,
+): Promise<{
+  updatedJob: PyTorchJobKind;
+}> => {
+  // Just scale the workers
+  const updatedJob = await updatePyTorchJobWorkerReplicas(job, newWorkerCount, opts);
+  return {
+    updatedJob,
+  };
+};

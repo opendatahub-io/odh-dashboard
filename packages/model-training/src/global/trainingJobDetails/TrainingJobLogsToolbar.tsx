@@ -182,6 +182,11 @@ const TrainingJobLogsToolbar: React.FC<TrainingJobLogsToolbarProps> = ({
                 onClick={() => {
                   window.open(rawLogsLink, '_blank');
                 }}
+                icon={
+                  <Icon>
+                    <OutlinedWindowRestoreIcon />
+                  </Icon>
+                }
               >
                 View raw logs
               </DropdownItem>
@@ -193,15 +198,7 @@ const TrainingJobLogsToolbar: React.FC<TrainingJobLogsToolbarProps> = ({
               >
                 {isFullScreen ? 'Collapse' : 'Expand'}
               </DropdownItem>
-              <DropdownItem
-                key="wrap"
-                onClick={() => setIsTextWrapped(!isTextWrapped)}
-                icon={
-                  <Icon>
-                    <OutlinedWindowRestoreIcon />
-                  </Icon>
-                }
-              >
+              <DropdownItem key="wrap" onClick={() => setIsTextWrapped(!isTextWrapped)}>
                 <Checkbox
                   id="wrapTextCheckbox"
                   isChecked={isTextWrapped}

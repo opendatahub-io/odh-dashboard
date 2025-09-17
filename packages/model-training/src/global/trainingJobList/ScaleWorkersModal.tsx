@@ -25,8 +25,10 @@ interface ScaleWorkersModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (newWorkerCount: number) => Promise<void>;
+  onConfirmOnly: (newWorkerCount: number) => Promise<void>;
   onConfirmAndResume: (newWorkerCount: number) => Promise<void>;
   isLoading?: boolean;
+  isNotPaused: boolean;
 }
 
 const ScaleWorkersModal: React.FC<ScaleWorkersModalProps> = ({
@@ -36,7 +38,9 @@ const ScaleWorkersModal: React.FC<ScaleWorkersModalProps> = ({
   onClose,
   onConfirm,
   onConfirmAndResume,
+  onConfirmOnly,
   isLoading = false,
+  isNotPaused,
 }) => {
   const currentWorkerReplicas = job.spec.pytorchReplicaSpecs.Worker?.replicas || 0;
   const [newWorkerCount, setNewWorkerCount] = React.useState(currentWorkerReplicas);
@@ -92,6 +96,18 @@ const ScaleWorkersModal: React.FC<ScaleWorkersModalProps> = ({
     if (validateWorkerCount(newWorkerCount)) {
       try {
         await onConfirmAndResume(newWorkerCount);
+        onClose();
+      } catch (error) {
+        console.error('Failed to scale workers and resume:', error);
+        setValidationError('Failed to update worker replicas and resume job. Please try again.');
+      }
+    }
+  };
+
+  const handleConfirmOnly = async () => {
+    if (validateWorkerCount(newWorkerCount)) {
+      try {
+        await onConfirmOnly(newWorkerCount);
         onClose();
       } catch (error) {
         console.error('Failed to scale workers and resume:', error);
@@ -172,23 +188,38 @@ const ScaleWorkersModal: React.FC<ScaleWorkersModalProps> = ({
       </ModalBody>
 
       <ModalFooter>
-        <Button
-          variant="primary"
-          onClick={handleConfirmAndResume}
-          isDisabled={isTerminalState || !hasChanges || !!validationError || isLoading}
-          isLoading={isLoading}
-          icon={<PlayIcon />}
-        >
-          {isLoading ? 'Scaling and resuming...' : 'Confirm and Resume'}
-        </Button>
-        <Button
-          variant="secondary"
-          onClick={handleConfirm}
-          isDisabled={isTerminalState || !hasChanges || !!validationError || isLoading}
-          icon={<SaveIcon />}
-        >
-          Confirm (Stay Paused)
-        </Button>
+        {isNotPaused && (
+          <Button
+            variant="primary"
+            onClick={handleConfirmOnly}
+            isDisabled={isTerminalState || !hasChanges || !!validationError || isLoading}
+            isLoading={isLoading}
+            icon={<PlayIcon />}
+          >
+            {isLoading ? 'Scaling and resuming...' : 'Confirm'}
+          </Button>
+        )}
+        {!isNotPaused && (
+          <Button
+            variant="primary"
+            onClick={handleConfirmAndResume}
+            isDisabled={isTerminalState || !hasChanges || !!validationError || isLoading}
+            isLoading={isLoading}
+            icon={<PlayIcon />}
+          >
+            {isLoading ? 'Scaling and resuming...' : 'Confirm and Resume'}
+          </Button>
+        )}
+        {!isNotPaused && (
+          <Button
+            variant="secondary"
+            onClick={handleConfirm}
+            isDisabled={isTerminalState || !hasChanges || !!validationError || isLoading}
+            icon={<SaveIcon />}
+          >
+            Confirm (Stay Paused)
+          </Button>
+        )}
         <Button variant="link" onClick={onClose} isDisabled={isLoading}>
           Cancel
         </Button>

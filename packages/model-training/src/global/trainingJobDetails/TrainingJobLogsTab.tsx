@@ -128,7 +128,6 @@ const TrainingJobLogsTab: React.FC<TrainingJobLogsTabProps> = ({ job }) => {
             loaded={loaded}
             isFailedJob={isFailedJob}
             isLogsAvailable={hasLogs}
-            onDownload={onDownload}
             onDownloadAll={onDownloadAll}
             rawLogsLink={rawLogsLink}
           />

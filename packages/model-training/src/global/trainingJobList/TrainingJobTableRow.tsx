@@ -25,7 +25,7 @@ import StateActionToggle from './StateActionToggle';
 import { PyTorchJobKind } from '../../k8sTypes';
 import { PyTorchJobState } from '../../types';
 import { togglePyTorchJobHibernation } from '../../api';
-import { scaleWorkersAndStayPaused, scaleWorkersAndResume } from '../../api/scaling';
+import { scaleWorkersAndStayPaused, scaleWorkersAndResume, scaleWorkers } from '../../api/scaling';
 
 type PyTorchJobTableRowProps = {
   job: PyTorchJobKind;
@@ -61,7 +61,8 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
   const isQueued = status === PyTorchJobState.QUEUED;
   const isRunning = status === PyTorchJobState.RUNNING;
   const isPending = status === PyTorchJobState.PENDING;
-  const canScaleWorkers = isPaused || isRunning || isPreempted || isQueued || isPending; // Allow scaling for multiple states
+  const canScaleWorkers = isPaused;
+  const isNotPaused = isRunning || isPreempted || isQueued || isPending; // Allow scaling for multiple states
 
   const handleHibernationToggle = async () => {
     setIsToggling(true);
@@ -177,6 +178,44 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
     }
   };
 
+  const handleScaleWorkersOnly = async (newWorkerCount: number) => {
+    setIsScaling(true);
+    const previousWorkerCount = workerReplicas;
+    try {
+      // Scale workers and resume in one operation
+      const { updatedJob } = await scaleWorkers(job, newWorkerCount);
+
+      // Update both job and status
+      const jobId = job.metadata.uid || job.metadata.name;
+      onJobUpdate?.(jobId, updatedJob);
+      onStatusUpdate?.(jobId, PyTorchJobState.RUNNING);
+
+      // Show success notification
+      const resourceDelta = newWorkerCount - previousWorkerCount;
+      const totalNodes = newWorkerCount + masterReplicas;
+      const deltaText =
+        resourceDelta > 0
+          ? `Scaled up by +${resourceDelta} worker${resourceDelta !== 1 ? 's' : ''}`
+          : `Scaled down by ${resourceDelta} worker${Math.abs(resourceDelta) !== 1 ? 's' : ''}`;
+
+      notification.success(
+        'Workers scaled and job resumed',
+        `${displayName} now has ${newWorkerCount} worker${
+          newWorkerCount !== 1 ? 's' : ''
+        } (${totalNodes} total nodes). ${deltaText} and training has resumed.`,
+      );
+    } catch (error) {
+      console.error('Error scaling workers and resuming:', error);
+      notification.error(
+        'Failed to scale workers and resume',
+        error instanceof Error ? error.message : 'Unknown error occurred',
+      );
+      throw error; // Re-throw to let modal handle the error
+    } finally {
+      setIsScaling(false);
+    }
+  };
+
   // Build kebab menu actions with enhanced scaling option
   const actions = React.useMemo(() => {
     const items = [];
@@ -253,7 +292,7 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
             </FlexItem>
 
             {/* Show scaling hint when scaling is available */}
-            {canScaleWorkers && (
+            {(isNotPaused || canScaleWorkers) && (
               <FlexItem>
                 <Tooltip content="Click to scale worker replicas">
                   <Button
@@ -322,9 +361,11 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
         <ScaleWorkersModal
           job={job}
           jobStatus={status}
+          isNotPaused={isNotPaused}
           isOpen
           onClose={() => setScaleWorkersModalOpen(false)}
           onConfirm={handleScaleWorkers}
+          onConfirmOnly={handleScaleWorkersOnly}
           onConfirmAndResume={handleScaleWorkersAndResume}
           isLoading={isScaling}
         />

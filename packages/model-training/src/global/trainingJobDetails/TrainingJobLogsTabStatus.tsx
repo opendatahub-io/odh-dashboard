@@ -12,7 +12,6 @@ interface TrainingJobLogsTabStatusProps {
   loaded: boolean;
   isFailedJob: boolean;
   isLogsAvailable: boolean;
-  onDownload: () => void;
   onDownloadAll: () => void;
   rawLogsLink: string;
 }
@@ -25,7 +24,6 @@ const TrainingJobLogsTabStatus: React.FC<TrainingJobLogsTabStatusProps> = ({
   loaded,
   isFailedJob,
   isLogsAvailable,
-  onDownload,
   onDownloadAll,
   rawLogsLink,
 }) => {
@@ -84,12 +82,8 @@ const TrainingJobLogsTabStatus: React.FC<TrainingJobLogsTabStatusProps> = ({
           view raw logs
         </Button>{' '}
         or{' '}
-        <Button isDisabled={!isLogsAvailable} variant="link" isInline onClick={onDownload}>
-          download current container log
-        </Button>
-        {'. '}
         <Button isDisabled={!isLogsAvailable} variant="link" isInline onClick={onDownloadAll}>
-          Download all container logs
+          download all logs
         </Button>
         .
       </p>
