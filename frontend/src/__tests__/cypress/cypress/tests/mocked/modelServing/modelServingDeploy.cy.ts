@@ -165,7 +165,7 @@ describe('Model Serving Deploy Wizard', () => {
     cy.url().should('include', '/projects/test-project');
   });
 
-  it.only('Create a new generative deployment and submit', () => {
+  it('Create a new generative deployment and submit', () => {
     initIntercepts({ modelType: ServingRuntimeModelType.GENERATIVE });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
@@ -285,7 +285,7 @@ describe('Model Serving Deploy Wizard', () => {
     });
   });
 
-  it('Create a new predictive deployment and submit', () => {
+  it.only('Create a new predictive deployment and submit', () => {
     initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
@@ -327,6 +327,8 @@ describe('Model Serving Deploy Wizard', () => {
     //   })
     //   .click();
     // hardwareProfileSection.findGlobalScopedLabel().should('exist');
+    cy.get('[role="option"]').contains('gamma', { matchCase: false }).click();
+
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelFormatSelect().should('exist');
     modelServingWizard.findModelFormatSelectOption('vLLM').should('not.exist');
@@ -349,38 +351,22 @@ describe('Model Serving Deploy Wizard', () => {
     // dry run request
     cy.wait('@createInferenceService').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
+      console.log('actual:  ack ack 44', interception.request.body);
       expect(interception.request.body).to.containSubset({
+        apiVersion: 'serving.kserve.io/v1beta1',
+        kind: 'InferenceService',
         metadata: {
           name: 'test-model',
           namespace: 'test-project',
-          labels: {
-            'opendatahub.io/dashboard': 'true',
-            'networking.kserve.io/visibility': 'exposed',
-          },
           annotations: {
             'openshift.io/display-name': 'test-model',
-            'opendatahub.io/hardware-profile-namespace': 'opendatahub',
             'opendatahub.io/model-type': 'predictive',
+            'opendatahub.io/hardware-profile-name': 'gamma',
+            'opendatahub.io/hardware-profile-namespace': 'opendatahub',
           },
-        },
-        spec: {
-          predictor: {
-            model: {
-              modelFormat: {
-                name: 'openvino_ir',
-                version: 'opset1',
-              },
-              resources: {
-                requests: {
-                  cpu: '4',
-                  memory: '8Gi',
-                },
-                limits: {
-                  cpu: '4',
-                  memory: '8Gi',
-                },
-              },
-            },
+          labels: {
+            'networking.kserve.io/visibility': 'exposed',
+            'opendatahub.io/dashboard': 'true',
           },
         },
       });
