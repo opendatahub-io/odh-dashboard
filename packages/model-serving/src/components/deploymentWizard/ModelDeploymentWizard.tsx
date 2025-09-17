@@ -118,11 +118,15 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
 
   const updateSelectedConnection = React.useCallback(
     (connection: Connection | undefined) => {
+      if (!connection) {
+        setSelectedConnection(undefined);
+        return;
+      }
       const connectionTypeRef = getConnectionTypeRef(connection);
       const selectedConnectionType = connectionTypes.find(
         (ct) => ct.metadata.name === connectionTypeRef,
       );
-      if (connection && selectedConnectionType) {
+      if (selectedConnectionType) {
         setSelectedConnection(connection);
         wizardState.state.modelLocationData.setData({
           type: ModelLocationType.EXISTING,

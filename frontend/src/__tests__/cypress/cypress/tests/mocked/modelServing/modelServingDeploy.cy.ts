@@ -66,6 +66,48 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
         },
       ],
     }),
+    mockConnectionTypeConfigMap({
+      displayName: 'S3',
+      name: 's3',
+      category: ['existing-category'],
+      fields: [
+        {
+          type: 'short-text',
+          name: 'AWS_ACCESS_KEY_ID',
+          envVar: 'AWS_ACCESS_KEY_ID',
+          required: true,
+          properties: {},
+        },
+        {
+          type: 'short-text',
+          name: 'AWS_SECRET_ACCESS_KEY',
+          envVar: 'AWS_SECRET_ACCESS_KEY',
+          required: true,
+          properties: {},
+        },
+        {
+          type: 'short-text',
+          name: 'AWS_S3_ENDPOINT',
+          envVar: 'AWS_S3_ENDPOINT',
+          required: true,
+          properties: {},
+        },
+        {
+          type: 'short-text',
+          name: 'AWS_S3_BUCKET',
+          envVar: 'AWS_S3_BUCKET',
+          required: true,
+          properties: {},
+        },
+        {
+          type: 'short-text',
+          name: 'AWS_DEFAULT_REGION',
+          envVar: 'AWS_DEFAULT_REGION',
+          required: false,
+          properties: {},
+        },
+      ],
+    }),
   ]).as('getConnectionTypes');
 
   cy.interceptK8sList(
@@ -774,6 +816,8 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
 
     // Step 1: Model source
+    modelServingWizardEdit.findModelLocationSelect().should('exist');
+    modelServingWizardEdit.findUrilocationInput().should('have.value', 'https://test');
     modelServingWizardEdit.findModelSourceStep().should('be.enabled');
     modelServingWizardEdit.findNextButton().should('be.enabled');
 
@@ -781,9 +825,6 @@ describe('Model Serving Deploy Wizard', () => {
       .findModelTypeSelect()
       .should('have.text', 'Predictive model')
       .should('be.disabled');
-
-    modelServingWizardEdit.findModelLocationSelect().should('exist');
-    modelServingWizardEdit.findUrilocationInput().should('have.value', 'https://test');
 
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 

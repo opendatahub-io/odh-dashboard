@@ -174,7 +174,7 @@ const EditModelDeploymentContent: React.FC<{
       }
     };
     loadData();
-  }, [existingDeployment, formDataExtension]);
+  }, [existingDeployment, formDataExtension, connectionTypes]);
 
   const initialConnection = React.useMemo(() => {
     if (connectionsLoaded && formData?.modelLocationData?.type === ModelLocationType.EXISTING) {

@@ -18,7 +18,8 @@ import {
 import { getConnectionTypeRef } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
-import { KnownLabels, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import usePvcs from '@odh-dashboard/internal/pages/modelServing/usePvcs';
 import { ModelLocationInputFields } from './ModelLocationInputFields';
 import { ModelLocationData, ModelLocationType } from './modelLocationFields/types';
 
@@ -75,6 +76,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
   setSelectedConnection,
 }) => {
   const [modelServingConnectionTypes] = useWatchConnectionTypes(true);
+  const pvcs = usePvcs(project?.metadata.name ?? '');
   const selectedConnectionType = React.useMemo(() => {
     if (modelLocationData?.type === ModelLocationType.NEW) {
       return modelLocationData.connectionTypeObject;
@@ -97,8 +99,12 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
             <SimpleSelect
               dataTestId="model-location-select"
               options={[
-                { key: ModelLocationType.EXISTING, label: 'Existing connection' },
-                { key: ModelLocationType.PVC, label: 'Cluster storage' },
+                ...(connections.length > 0
+                  ? [{ key: ModelLocationType.EXISTING, label: 'Existing connection' }]
+                  : []),
+                ...(pvcs.data.length > 0
+                  ? [{ key: ModelLocationType.PVC, label: 'Cluster storage' }]
+                  : []),
                 ...modelServingConnectionTypes.map((ct) => ({
                   key: ct.metadata.name,
                   label: ct.metadata.annotations?.['openshift.io/display-name'] || ct.metadata.name,
@@ -106,30 +112,18 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
                 })),
               ]}
               onChange={(key) => {
+                setSelectedConnection(undefined);
+                resetModelLocationData();
                 if (isValidModelLocation(key)) {
                   setModelLocationData({
                     type: key,
-                    connectionTypeObject: {
-                      apiVersion: 'v1',
-                      kind: 'ConfigMap',
-                      metadata: {
-                        name: '',
-                        labels: {
-                          [KnownLabels.DASHBOARD_RESOURCE]: 'true',
-                          'opendatahub.io/connection-type': 'true',
-                        },
-                      },
-                      data: { fields: [] },
-                    },
                     fieldValues: {},
                     additionalFields: {},
                   });
-                  setSelectedConnection(undefined);
                 } else {
                   const foundConnectionType = modelServingConnectionTypes.find(
                     (ct) => ct.metadata.name === key,
                   );
-
                   if (foundConnectionType) {
                     setModelLocationData({
                       type: ModelLocationType.NEW,
@@ -163,7 +157,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
                 setModelLocationData={setModelLocationData}
                 resetModelLocationData={resetModelLocationData}
                 modelLocationData={modelLocationData}
-                project={project}
+                pvcs={pvcs.data}
               />
             </StackItem>
           )}

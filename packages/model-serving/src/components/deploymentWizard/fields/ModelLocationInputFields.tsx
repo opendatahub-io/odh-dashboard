@@ -12,7 +12,6 @@ import {
 import { z } from 'zod';
 import { ConnectionOciAlert } from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciAlert';
 import { PersistentVolumeClaimKind, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
-import usePvcs from '@odh-dashboard/internal/pages/modelServing/usePvcs';
 import {
   getPVCNameFromURI,
   isPVCUri,
@@ -137,7 +136,7 @@ type ModelLocationInputFieldsProps = {
   setModelLocationData: (data: ModelLocationData | undefined) => void;
   resetModelLocationData: () => void;
   modelLocationData?: ModelLocationData;
-  project: ProjectKind | null;
+  pvcs: PersistentVolumeClaimKind[];
 };
 
 export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> = ({
@@ -150,9 +149,8 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
   setModelLocationData,
   resetModelLocationData,
   modelLocationData,
-  project,
+  pvcs,
 }) => {
-  const pvcs = usePvcs(project?.metadata.name ?? '');
   const isValidPvcUri = (uri: unknown): uri is string => {
     return typeof uri === 'string' && isPVCUri(uri);
   };
@@ -166,7 +164,7 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
 
   const selectedPVC = React.useMemo(
     () =>
-      pvcs.data.find((pvc) => {
+      pvcs.find((pvc) => {
         // If user has selected a PVC connection, use that
         if (modelLocationData?.additionalFields.pvcConnection) {
           return pvc.metadata.name === modelLocationData.additionalFields.pvcConnection;
@@ -178,9 +176,13 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
         // If there's no selected PVC and no URI, there is no selected PVC
         return undefined;
       }),
-    [pvcs, modelLocationData?.fieldValues.URI, pvcNameFromUri],
+    [
+      pvcs,
+      modelLocationData?.fieldValues.URI,
+      pvcNameFromUri,
+      modelLocationData?.additionalFields.pvcConnection,
+    ],
   );
-  const [, setIsPvcValid] = React.useState(false);
 
   if (modelLocation === ModelLocationType.EXISTING) {
     return (
@@ -219,7 +221,7 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
     return (
       <>
         <PvcSelectField
-          pvcs={pvcs.data}
+          pvcs={pvcs}
           selectedPVC={selectedPVC}
           pvcNameFromUri={pvcNameFromUri}
           existingUriOption={modelLocationData?.fieldValues.URI?.toString()}
@@ -245,7 +247,6 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
               },
             });
           }}
-          setIsConnectionValid={setIsPvcValid}
         />
       </>
     );

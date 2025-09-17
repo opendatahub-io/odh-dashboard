@@ -15,7 +15,6 @@ type PvcSelectProps = {
   selectedPVC?: PersistentVolumeClaimKind;
   onSelect: (selection?: PersistentVolumeClaimKind | undefined) => void;
   setModelUri: (uri: string) => void;
-  setIsConnectionValid: (isValid: boolean) => void;
   pvcNameFromUri?: string;
   existingUriOption?: string;
 };
@@ -25,7 +24,6 @@ export const PvcSelectField: React.FC<PvcSelectProps> = ({
   selectedPVC,
   onSelect,
   setModelUri,
-  setIsConnectionValid,
   pvcNameFromUri,
   existingUriOption,
 }) => {
@@ -120,7 +118,6 @@ export const PvcSelectField: React.FC<PvcSelectProps> = ({
               selectedPVCName={selectedPVC?.metadata.name || pvcNameFromUri || ''}
               existingUriOption={existingUriOption}
               setModelUri={setModelUri}
-              setIsConnectionValid={setIsConnectionValid}
             />
           </StackItem>
         )}

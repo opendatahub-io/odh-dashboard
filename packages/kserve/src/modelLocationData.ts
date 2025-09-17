@@ -3,7 +3,10 @@ import {
   ModelResourceType,
   ServerResourceType,
 } from '@odh-dashboard/model-serving/extension-points';
-import { isPVCUri } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
+import {
+  getPVCNameFromURI,
+  isPVCUri,
+} from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
 import { KnownLabels, MetadataAnnotation } from '@odh-dashboard/internal/k8sTypes';
 import { ConnectionTypeConfigMapObj } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import { ModelServingCompatibleTypes } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
@@ -166,7 +169,9 @@ export const extractKServeModelLocationData = async (
     return {
       type: ModelLocationType.PVC,
       fieldValues: { URI: uri },
-      additionalFields: {},
+      additionalFields: {
+        pvcConnection: getPVCNameFromURI(uri),
+      },
     };
   }
 
