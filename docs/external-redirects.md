@@ -25,3 +25,15 @@ Redirecting from Pipeline SDK output URLs to internal dashboard routes.
    /external/pipelinesSdk/{namespace}/#/runs/details/{runId}
    ```
    Redirects to the internal pipeline run details route for the specified run.
+
+### Elyra Redirects
+
+Redirecting from Elyra URLs to internal dashboard routes.
+
+#### Supported URL Patterns
+
+1. **Run Details**
+   ```
+   /external/elyra/{namespace}/runs/{runId}
+   ```
+   Redirects to the internal pipeline run details route for the specified run.
