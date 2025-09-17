@@ -104,7 +104,11 @@ const RecentlyVisitedResources: React.FC<RecentlyVisitedResourcesProps> = ({
 
   return (
     <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
-      <Title headingLevel="h3" data-testid="recently-visited-resources-title">
+      <Title
+        headingLevel="h3"
+        data-testid="recently-visited-resources-title"
+        style={{ marginBottom: '2rem' }}
+      >
         Recently viewed resources
       </Title>
       {renderContent()}

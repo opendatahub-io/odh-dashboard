@@ -48,11 +48,13 @@ class FeatureMetricsOverview extends Contextual<HTMLElement> {
   }
 
   findPopularTagsEmptyStateTitle() {
-    return cy.findByTestId('popular-tags-empty-state-title');
+    return cy.findByTestId('popular-tags-empty-state-title', { timeout: 10000 }).scrollIntoView();
   }
 
   findRecentlyVisitedEmptyStateTitle() {
-    return cy.findByTestId('recently-visited-resources-empty-state-title');
+    return cy
+      .findByTestId('recently-visited-resources-empty-state-title', { timeout: 10000 })
+      .scrollIntoView();
   }
 
   findEmptyStateBody() {

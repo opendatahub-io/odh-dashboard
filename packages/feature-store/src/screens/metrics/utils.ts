@@ -62,7 +62,7 @@ export const processMetricsData = (data: MetricsCountResponse): MetricCardItem[]
       count: counts.savedDatasets,
       description:
         'Datasets are point-in-time-correct snapshots of feature data used for training or validation.',
-      route: '/featureStore/savedDatasets',
+      route: '/featureStore/dataSets',
     },
     {
       title: 'Features',
@@ -104,7 +104,7 @@ export const getResourceRoute = (
     case resourceTypeMap.feature_services:
       return featureServiceRoute(resourceName, project);
     case resourceTypeMap.saved_datasets:
-      return `/featureStore/savedDatasets/${resourceName}?project=${project}`;
+      return `/featureStore/dataSets/${resourceName}?project=${project}`;
     case resourceTypeMap.data_sources:
       return `/featureStore/dataSources/${resourceName}?project=${project}`;
     case resourceTypeMap.features:

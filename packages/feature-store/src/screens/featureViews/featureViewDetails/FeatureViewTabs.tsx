@@ -51,6 +51,7 @@ const FeatureViewTabs: React.FC<FeatureViewTabsProps> = ({ featureView }) => {
         </PageSection>
       </Tab>
       <Tab
+        id="feature-view-page-tabs"
         eventKey={FeatureViewTab.LINEAGE}
         title={<TabTitleText>{FeatureViewTab.LINEAGE}</TabTitleText>}
         aria-label="Lineage feature views tab"

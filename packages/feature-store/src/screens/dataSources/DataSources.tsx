@@ -8,6 +8,7 @@ import { featureStoreRoute } from '../../routes';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import useFeatureStoreDataSources from '../../apiHooks/useFeatureStoreDataSources';
 import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
+import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
 
 const title = 'Data Sources';
 const description =
@@ -38,7 +39,18 @@ const DataSources: React.FC = () => {
     <ApplicationsPage
       empty={dataSources.dataSources.length === 0}
       emptyStatePage={emptyState}
-      title={<FeatureStorePageTitle title={title} />}
+      title={
+        <FeatureStorePageTitle
+          title={
+            <FeatureStoreObjectIcon
+              objectType="data_source"
+              title={title}
+              showBackground
+              useTypedColors
+            />
+          }
+        />
+      }
       description={description}
       loadError={dataSourcesLoadError}
       loaded={dataSourcesLoaded}
