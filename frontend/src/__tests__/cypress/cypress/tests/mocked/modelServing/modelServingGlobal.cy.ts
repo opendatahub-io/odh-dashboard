@@ -767,11 +767,13 @@ describe('Model Serving Global', () => {
     projectScopedHardwareProfile
       .find()
       .findByRole('menuitem', {
-        name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
+        name: 'small-profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
         hidden: true,
       })
       .click();
     hardwareProfileSection.findProjectScopedLabel().should('exist');
+
+    // const ack = 'CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi';
 
     // verify available global-scoped hardware profile
     hardwareProfileSection.findHardwareProfileSearchSelector().click();
@@ -779,7 +781,7 @@ describe('Model Serving Global', () => {
     globalScopedHardwareProfile
       .find()
       .findByRole('menuitem', {
-        name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
+        name: 'small-profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
         hidden: true,
       })
       .click();
@@ -818,7 +820,7 @@ describe('Model Serving Global', () => {
     hardwareProfileSection.findHardwareProfileSearchSelector().should('be.visible');
     hardwareProfileSection
       .findHardwareProfileSearchSelector()
-      .should('contain.text', 'Large Profile-1');
+      .should('contain.text', 'large-profile-1');
     hardwareProfileSection.findProjectScopedLabel().should('exist');
   });
 
@@ -827,6 +829,7 @@ describe('Model Serving Global', () => {
       projectEnableModelMesh: false,
       disableServingRuntimeParamsConfig: false,
       disableProjectScoped: false,
+      disableHardwareProfiles: true,
     });
     modelServingGlobal.visit('test-project');
     modelServingGlobal.clickDeployModelButtonWithRetry();
