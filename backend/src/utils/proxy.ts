@@ -196,24 +196,39 @@ export const registerProxy = async (
   {
     prefix,
     rewritePrefix,
-    url,
+    service,
+    local,
     authorize,
+    tls,
     onError,
   }: {
     prefix: string;
     rewritePrefix: string;
     authorize?: boolean;
-    url: string;
+    tls?: boolean;
+    service: {
+      name: string;
+      namespace: string;
+      port: number | string;
+    };
+    local?: {
+      host?: string;
+      port?: number | string;
+    };
     onError?: FastifyReplyFromHooks['onError'];
   },
 ): Promise<void> => {
-  fastify.log.info(`Proxy setup for: ${prefix} -> ${url}`);
+  const scheme = tls ? 'https' : 'http';
+  const upstream = DEV_MODE
+    ? `${scheme}://${local?.host || 'localhost'}:${local?.port ?? service.port}`
+    : `${scheme}://${service.name}.${service.namespace}.svc.cluster.local:${service.port}`;
+  fastify.log.info(`Proxy setup for: ${prefix} -> ${upstream}`);
   return fastify.register(httpProxy, {
     prefix,
     rewritePrefix,
-    upstream: url,
+    upstream,
     replyOptions: {
-      getUpstream: () => url,
+      getUpstream: () => upstream,
       onError,
     },
     preHandler: async (request, reply) => {
@@ -223,7 +238,7 @@ export const registerProxy = async (
       if (authorize) {
         await setAuthorizationHeader(request, fastify);
       }
-      fastify.log.info(`Proxy ${request.method} request ${request.url} to ${url}`);
+      fastify.log.info(`Proxy ${request.method} request ${request.url} to ${upstream}`);
     },
   });
 };
