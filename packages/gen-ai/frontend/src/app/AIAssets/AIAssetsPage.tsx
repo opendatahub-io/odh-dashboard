@@ -21,8 +21,13 @@ export const AIAssetsPage: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title={<GenAiCoreHeader title="AI asset endpoints" getRedirectPath={genAiAiAssetsRoute} />}
-      description="Browse endpoints for available models and MCP servers."
+      title={
+        <GenAiCoreHeader
+          title="AI asset endpoints"
+          getRedirectPath={genAiAiAssetsRoute}
+          description="Browse endpoints for available models and MCP servers."
+        />
+      }
       loaded
       empty={false}
     >

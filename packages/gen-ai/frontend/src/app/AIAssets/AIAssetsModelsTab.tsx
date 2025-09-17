@@ -2,19 +2,62 @@ import * as React from 'react';
 import { Bullseye, Content, ContentVariants, Spinner } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import ModelsEmptyState from '~/app/EmptyStates/NoData';
-import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import { GenAiContext } from '~/app/context/GenAiContext';
+import AIModelsTable from './components/AIModelsTable';
+import { AIModel } from './types';
+import useFetchAIModels from './hooks/useFetchAIModels';
 
 const AIAssetsModelsTab: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = React.useContext(GenAiContext);
-  const { data: models, loaded } = useFetchLlamaModels(namespace?.name);
+  const { data: models, loaded, error } = useFetchAIModels(namespace?.name);
+
+  const handleViewInternalEndpoint = (model: AIModel) => {
+    // TODO: Implement navigation to internal endpoint details
+    // eslint-disable-next-line no-console
+    console.log('View internal endpoint for:', model.name);
+  };
+
+  const handleCreateExternalEndpoint = (model: AIModel) => {
+    // TODO: Implement external endpoint creation
+    // eslint-disable-next-line no-console
+    console.log('Create external endpoint for:', model.name);
+  };
+
+  const handleViewExternalEndpoint = (model: AIModel) => {
+    // TODO: Implement navigation to external endpoint details
+    // eslint-disable-next-line no-console
+    console.log('View external endpoint for:', model.name);
+  };
+
+  const handleAddToPlayground = (model: AIModel) => {
+    // TODO: Implement add to playground functionality
+    // eslint-disable-next-line no-console
+    console.log('Add to playground:', model.name);
+  };
+
+  const handleTryInPlayground = (model: AIModel) => {
+    // TODO: Implement try in playground functionality
+    // eslint-disable-next-line no-console
+    console.log('Try in playground:', model.name);
+  };
 
   if (!loaded) {
     return (
       <Bullseye>
         <Spinner />
       </Bullseye>
+    );
+  }
+
+  if (error) {
+    return (
+      <ModelsEmptyState
+        title="Error loading models"
+        description={`Failed to load models: ${error.message}`}
+        actionButtonText="Retry"
+        handleActionButtonClick={() => window.location.reload()}
+      />
     );
   }
 
@@ -52,11 +95,16 @@ const AIAssetsModelsTab: React.FC = () => {
       />
     );
   }
+
   return (
-    <>
-      {/* TODO: Add list of models */}
-      List goes here
-    </>
+    <AIModelsTable
+      models={models}
+      onViewInternalEndpoint={handleViewInternalEndpoint}
+      onCreateExternalEndpoint={handleCreateExternalEndpoint}
+      onViewExternalEndpoint={handleViewExternalEndpoint}
+      onAddToPlayground={handleAddToPlayground}
+      onTryInPlayground={handleTryInPlayground}
+    />
   );
 };
 

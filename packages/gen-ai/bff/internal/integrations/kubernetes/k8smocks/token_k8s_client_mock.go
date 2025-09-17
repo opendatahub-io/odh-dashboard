@@ -61,34 +61,52 @@ func (m *TokenKubernetesClientMock) GetNamespaces(ctx context.Context, identity 
 	}, nil
 }
 
-// GetAAModels returns mock AA models for testing
+// GetAAModels returns mock AA models for testing, namespace-scoped
 func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]genaiassets.AAModel, error) {
-	// Return mock AA models for testing
-	return []genaiassets.AAModel{
-		{
-			ModelName:      "mock-model-1",
-			ServingRuntime: "OpenVINO Model Server",
-			APIProtocol:    "v2",
-			Version:        "v2025.1",
-			Description:    "A high-performance computer vision model for object detection and classification",
-			Usecase:        "Computer Vision",
-			Endpoints: []string{
-				"internal: http://mock-model-1.namespace.svc.cluster.local:8080",
-				"external: https://mock-model-1.example.com",
+	// Return different mock AA models based on namespace
+	switch namespace {
+	case "mock-test-namespace-1":
+		return []genaiassets.AAModel{
+			{
+				ModelName:      "granite-7b-code",
+				ServingRuntime: "OpenVINO Model Server",
+				APIProtocol:    "v2",
+				Version:        "v2025.1",
+				Description:    "IBM Granite 7B model specialized for code generation tasks",
+				Usecase:        "Code generation",
+				Endpoints: []string{
+					fmt.Sprintf("internal: http://granite-7b-code.%s.svc.cluster.local:8080", namespace),
+					fmt.Sprintf("external: https://granite-7b-code-%s.example.com", namespace),
+				},
 			},
-		},
-		{
-			ModelName:      "mock-model-2",
-			ServingRuntime: "TorchServe",
-			APIProtocol:    "v1",
-			Version:        "v2025.1",
-			Description:    "A natural language processing model for text generation and completion",
-			Usecase:        "Natural Language Processing",
-			Endpoints: []string{
-				"internal: http://mock-model-2.namespace.svc.cluster.local:8080",
+			{
+				ModelName:      "llama-3.1-8b-instruct",
+				ServingRuntime: "TorchServe",
+				APIProtocol:    "v1",
+				Version:        "v2025.1",
+				Description:    "Meta Llama 3.1 8B parameter model optimized for instruction following",
+				Usecase:        "General chat",
+				Endpoints: []string{
+					fmt.Sprintf("internal: http://llama-3.1-8b-instruct.%s.svc.cluster.local:8080", namespace),
+					fmt.Sprintf("external: https://llama-3.1-8b-instruct-%s.example.com", namespace),
+				},
 			},
-		},
-	}, nil
+			{
+				ModelName:      "mistral-7b-instruct",
+				ServingRuntime: "TorchServe",
+				APIProtocol:    "v1",
+				Version:        "v2025.1",
+				Description:    "Mistral 7B instruction-tuned model for general purpose tasks",
+				Usecase:        "Multilingual, Reasoning",
+				Endpoints: []string{
+					fmt.Sprintf("internal: http://mistral-7b-instruct.%s.svc.cluster.local:8080", namespace),
+				},
+			},
+		}, nil
+	default:
+		// Return empty array for unknown namespaces
+		return []genaiassets.AAModel{}, nil
+	}
 }
 
 // IsClusterAdmin returns mock admin status for testing

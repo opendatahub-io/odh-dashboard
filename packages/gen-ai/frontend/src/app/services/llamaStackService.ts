@@ -10,8 +10,20 @@ import {
   FileUploadResult,
   LlamaStackDistributionModel,
 } from '../types';
+import { AIModel } from '../AIAssets/types';
 import axios from '../utilities/axios';
 import { URL_PREFIX } from '../utilities/const';
+
+// Interface for the raw API response from BFF
+interface AAModelResponse {
+  model_name: string;
+  serving_runtime: string;
+  api_protocol: string;
+  version: string;
+  usecase: string;
+  description: string;
+  endpoints: string[];
+}
 
 /**
  * Fetches all available models from the Llama Stack API
@@ -153,6 +165,53 @@ export const getLSDstatus = (project: string): Promise<LlamaStackDistributionMod
     .catch((error) => {
       throw new Error(
         error.response?.data?.error?.message || error.message || 'Failed to fetch LSD status',
+      );
+    });
+};
+
+/**
+ * Fetches all available AI models from the AI Assets API
+ * @param namespace - The namespace to fetch models for
+ * @returns Promise<AIModel[]> - Array of available AI models with their metadata
+ * @throws Error - When the API request fails or returns an error response
+ */
+export const getAIModels = (namespace: string): Promise<AIModel[]> => {
+  const url = `${URL_PREFIX}/api/v1/aa/models?namespace=${namespace}`;
+  return axios
+    .get(url)
+    .then((response) => {
+      // Transform the API response to match our AIModel interface
+      const data = response.data.data || response.data;
+      return data.map((item: AAModelResponse, index: number) => {
+        // Parse endpoints to extract internal and external endpoints
+        const internalEndpoint =
+          item.endpoints.find((ep) => ep.startsWith('internal:'))?.replace('internal: ', '') ||
+          null;
+        const externalEndpoint =
+          item.endpoints.find((ep) => ep.startsWith('external:'))?.replace('external: ', '') ||
+          null;
+
+        return {
+          id: `model-${index}`,
+          name: item.model_name,
+          description: item.description || 'No description available',
+          internalEndpoint,
+          externalEndpoint,
+          useCase: item.usecase || 'General purpose',
+          playgroundStatus: 'available', // All models are available for playground
+          deploymentName: item.model_name,
+          // Fields from BFF API response
+          modelName: item.model_name,
+          apiProtocol: item.api_protocol,
+          version: item.version,
+          servingRuntime: item.serving_runtime,
+          endpoints: item.endpoints,
+        };
+      });
+    })
+    .catch((error) => {
+      throw new Error(
+        error.response?.data?.error?.message || error.message || 'Failed to fetch AI models',
       );
     });
 };
