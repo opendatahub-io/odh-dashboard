@@ -13,7 +13,7 @@ export class HardwareProfileSection {
   }
 
   findNewHardwareProfileSelector(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('hardware-profile-selection');
+    return cy.findByTestId('hardware-profile-select');
   }
 
   findHardwareProfileSearchInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {

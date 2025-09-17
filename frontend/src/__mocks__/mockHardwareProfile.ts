@@ -108,60 +108,66 @@ export const mockHardwareProfile = ({
   },
 });
 
-export const mockNewHardwareProfiles = [
-  mockHardwareProfile({
-    name: 'small-profile',
-    displayName: 'Small Profile',
-    identifiers: [
+// New method for creating non-migrated hardware profiles (native new profiles)
+export const mockNewHardwareProfile = (
+  config: Partial<MockResourceConfigType> = {},
+): HardwareProfileKind => {
+  const {
+    name = 'new-hardware-profile',
+    namespace = 'opendatahub',
+    uid = genUID('service'),
+    displayName = 'New Hardware Profile',
+    description = '',
+    enabled = true,
+    identifiers = [
       {
         displayName: 'CPU',
         identifier: 'cpu',
-        minCount: '1',
-        maxCount: '2',
-        defaultCount: '1',
+        minCount: 1,
+        maxCount: 4,
+        defaultCount: 2,
         resourceType: IdentifierResourceType.CPU,
       },
       {
         displayName: 'Memory',
         identifier: 'memory',
         minCount: '2Gi',
-        maxCount: '4Gi',
-        defaultCount: '2Gi',
+        maxCount: '8Gi',
+        defaultCount: '4Gi',
         resourceType: IdentifierResourceType.MEMORY,
       },
     ],
-    tolerations: [
-      {
-        effect: TolerationEffect.NO_SCHEDULE,
-        key: 'NotebooksOnlyChange',
-        operator: TolerationOperator.EXISTS,
+    annotations,
+    labels,
+  } = config;
+
+  return {
+    apiVersion: 'ai.opendatahub.io/v1alpha1',
+    kind: 'HardwareProfile',
+    metadata: {
+      creationTimestamp: new Date().toISOString(),
+      generation: 1,
+      name,
+      namespace,
+      resourceVersion: '1000000',
+      uid,
+      annotations: {
+        ...annotations,
+        'openshift.io/display-name': displayName,
+        'opendatahub.io/description': description,
+        'opendatahub.io/dashboard-feature-visibility': '[]',
+        'opendatahub.io/disabled': 'false',
+        'opendatahub.io/modified-date': new Date().toISOString(),
+        // Explicitly NO 'opendatahub.io/migrated-from' annotation
       },
-    ],
-    nodeSelector: {},
-  }),
-  mockHardwareProfile({
-    name: 'large-profile',
-    displayName: 'Large Profile',
-    identifiers: [
-      {
-        displayName: 'CPU',
-        identifier: 'cpu',
-        minCount: '4',
-        maxCount: '8',
-        defaultCount: '4',
-        resourceType: IdentifierResourceType.CPU,
-      },
-      {
-        displayName: 'Memory',
-        identifier: 'memory',
-        minCount: '8Gi',
-        maxCount: '16Gi',
-        defaultCount: '8Gi',
-        resourceType: IdentifierResourceType.MEMORY,
-      },
-    ],
-  }),
-];
+      labels,
+    },
+    spec: {
+      enabled,
+      identifiers,
+    },
+  };
+};
 
 export const mockGlobalScopedHardwareProfiles = [
   mockHardwareProfile({

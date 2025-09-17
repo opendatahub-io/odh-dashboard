@@ -87,7 +87,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     currentProjectHardwareProfilesError,
   ] = projectScopedHardwareProfiles;
 
-  console.log('argh; currentProjectHardwareProfiles', currentProjectHardwareProfiles);
+  console.log('77abc argh; currentProjectHardwareProfiles', currentProjectHardwareProfiles);
 
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const { projects } = React.useContext(ProjectsContext);
@@ -413,8 +413,11 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
 
   const makeMainContent = () => {
     if (isProjectScoped && currentProjectHardwareProfiles.length > 0) {
+      console.log('making project scoped dropdown');
+      // is this *ever* used anymore???? CHECK ME TODO
       return makeProjectScopedDropdown();
     }
+    console.log('making simpler dropdown. options:', options);
     return makeSimplerDropdown();
   };
 
