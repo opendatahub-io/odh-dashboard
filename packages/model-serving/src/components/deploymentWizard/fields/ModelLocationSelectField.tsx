@@ -88,6 +88,38 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     }
     return undefined;
   }, [modelLocationData, modelServingConnectionTypes, selectedConnection]);
+
+  const baseOptions = React.useMemo(
+    () => [
+      ...(connections.length > 0
+        ? [{ key: ModelLocationType.EXISTING, label: 'Existing connection' }]
+        : []),
+      ...(pvcs.data.length > 0 ? [{ key: ModelLocationType.PVC, label: 'Cluster storage' }] : []),
+      ...modelServingConnectionTypes.map((ct) => ({
+        key: ct.metadata.name,
+        label: ct.metadata.annotations?.['openshift.io/display-name'] || ct.metadata.name,
+        value: ModelLocationType.NEW,
+      })),
+    ],
+    [connections.length, pvcs.data.length, modelServingConnectionTypes],
+  );
+
+  const selectOptions = React.useMemo(() => {
+    if (baseOptions.length <= 1) {
+      // Placeholder to avoid auto selecting as different options load in (doesn't actually show in the dropdown)
+      return [
+        {
+          key: '__placeholder__',
+          label: 'Select model location',
+          isPlaceholder: true,
+          isDisabled: true,
+          optionKey: '__placeholder__',
+        },
+        ...baseOptions,
+      ];
+    }
+    return baseOptions;
+  }, [baseOptions]);
   return (
     <Form maxWidth="450px">
       <FormGroup fieldId="model-location-select" label="Model location" isRequired>
@@ -98,20 +130,11 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
           <StackItem>
             <SimpleSelect
               dataTestId="model-location-select"
-              options={[
-                ...(connections.length > 0
-                  ? [{ key: ModelLocationType.EXISTING, label: 'Existing connection' }]
-                  : []),
-                ...(pvcs.data.length > 0
-                  ? [{ key: ModelLocationType.PVC, label: 'Cluster storage' }]
-                  : []),
-                ...modelServingConnectionTypes.map((ct) => ({
-                  key: ct.metadata.name,
-                  label: ct.metadata.annotations?.['openshift.io/display-name'] || ct.metadata.name,
-                  value: ModelLocationType.NEW,
-                })),
-              ]}
+              options={selectOptions}
               onChange={(key) => {
+                if (key === '__placeholder__') {
+                  return;
+                }
                 setSelectedConnection(undefined);
                 resetModelLocationData();
                 if (isValidModelLocation(key)) {
