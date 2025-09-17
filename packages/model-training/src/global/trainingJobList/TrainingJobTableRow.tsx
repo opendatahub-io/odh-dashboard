@@ -74,11 +74,19 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
         onStatusUpdate?.(jobId, newStatus);
       } else {
         console.error('Failed to toggle hibernation:', result.error);
-        // TODO: Show error notification
+        //Show error notification
+        notification.error(
+          'Failed to toggle hibernation',
+          result.error || 'Unknown error occurred',
+        );
       }
     } catch (error) {
       console.error('Error toggling hibernation:', error);
-      // TODO: Show error notification
+      //Show error notification
+      notification.error(
+        'Failed to toggle hibernation',
+        error instanceof Error ? error.message : 'Unknown error occurred',
+      );
     } finally {
       setIsToggling(false);
       setHibernationModalOpen(false);
