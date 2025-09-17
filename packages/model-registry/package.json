@@ -7,7 +7,7 @@
     "install:module": "npm install --prefix upstream/frontend",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
-    "update-subtree": "../app-config/scripts/package-subtree.sh --package=@odh-dashboard/model-registry",
+    "update-subtree": "package-subtree --package=@odh-dashboard/model-registry",
     "test:contract": "odh-ct-bff-consumer --bff-dir upstream/bff",
     "cypress:server:build": "cd upstream/frontend && DIST_DIR=./public-cypress POLL_INTERVAL=9999999 DEPLOYMENT_MODE=federated npm run build",
     "cypress:server:build:coverage": "COVERAGE=true npm run cypress:server:build",
