@@ -31,7 +31,7 @@ const FeatureStore: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
           title={
             <FeatureStoreObjectIcon
               objectType="feature_store"
-              title="Overview"
+              title="Feature store overview"
               showBackground
               useTypedColors
             />
