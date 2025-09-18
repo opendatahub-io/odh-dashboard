@@ -184,11 +184,24 @@ jobs:
           GITHUB_RUN_ID: ${{ github.run_id }}
           CI: true
       - name: Upload contract test results
+        run: |
+          # Find the most recently created contract test results directory
+          LATEST_DIR=$(find packages/*/contract-tests/contract-test-results -name "ci-*" -type d -print0 2>/dev/null | xargs -0 ls -td 2>/dev/null | head -1)
+          if [ -n "$LATEST_DIR" ]; then
+            echo "Found contract test results directory: $LATEST_DIR"
+            echo "Uploading from: $LATEST_DIR"
+            echo "results-dir=$LATEST_DIR" >> $GITHUB_OUTPUT
+          else
+            echo "No contract test results directory found"
+            exit 1
+          fi
+        id: find-results
+      - name: Upload contract test results
         uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && steps.find-results.outputs.results-dir
         with:
           name: contract-test-results
-          path: packages/*/contract-tests/contract-test-results/ci-${{ github.run_id }}/
+          path: ${{ steps.find-results.outputs.results-dir }}
 
   Cypress-Setup:
     needs: [Setup]
