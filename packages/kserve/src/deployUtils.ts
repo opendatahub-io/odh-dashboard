@@ -28,7 +28,6 @@ import {
   ServiceAccountKind,
   RoleKind,
 } from '@odh-dashboard/internal/k8sTypes';
-import { translateDisplayNameForK8s } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { getTokenNames } from '@odh-dashboard/internal/pages/modelServing/utils';
 import { type CreatingInferenceServiceObject } from './deploy';
 
@@ -120,6 +119,7 @@ export const createSecrets = async (
   fillData: CreatingInferenceServiceObject,
   deployedModelName: string,
   namespace: string,
+  owner: InferenceServiceKind,
   existingSecrets?: SecretKind[],
   opts?: K8sAPIOptions,
 ): Promise<void> => {
@@ -129,14 +129,16 @@ export const createSecrets = async (
       ?.map((secret) => secret.metadata.name)
       .filter((token: string) => !fillData.tokens?.some((tokenEdit) => tokenEdit.name === token)) ||
     [];
+  const tokensToProcess = fillData.tokens || [];
 
   return Promise.all<K8sStatus | SecretKind>([
-    ...(fillData.tokens || [])
-      .filter((token) => translateDisplayNameForK8s(token.name) !== token.name)
-      .map((token) => {
-        const secretToken = assembleSecretSA(token.name, serviceAccountName, namespace);
-        return createSecret(secretToken, opts);
-      }),
+    ...tokensToProcess.map((token) => {
+      const secretToken = addOwnerReference(
+        assembleSecretSA(token.name, serviceAccountName, namespace, undefined),
+        owner,
+      );
+      return createSecret(secretToken, opts);
+    }),
     ...deletedSecrets.map((secret) => deleteSecret(namespace, secret, opts)),
   ])
     .then(() => Promise.resolve())
@@ -189,6 +191,6 @@ export const setUpTokenAuth = async (
         ]).then(() => createRoleBindingIfMissing(roleBinding, namespace, opts))
       : Promise.resolve()
   )
-    .then(() => createSecrets(fillData, deployedModelName, namespace, existingSecrets, opts))
+    .then(() => createSecrets(fillData, deployedModelName, namespace, owner, existingSecrets, opts))
     .catch((error) => Promise.reject(error));
 };
