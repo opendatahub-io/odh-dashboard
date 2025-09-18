@@ -200,7 +200,7 @@ class ProjectDetails {
   }
 
   private wait(section = 'overview') {
-    cy.findByTestId(`section-${section}`);
+    cy.findByTestId(`section-${section}`, { timeout: 30000 }).should('exist');
     cy.testA11y();
   }
 
