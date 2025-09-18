@@ -293,6 +293,15 @@ class InferenceServiceModal extends ServingModal {
     cy.findByRole('option', { name }).click();
   }
 
+  findAcceleratorProfileSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('accelerator-profile-select');
+  }
+
+  selectAcceleratorProfileOption(name: string): void {
+    this.findAcceleratorProfileSelect().click();
+    cy.contains(name).click();
+  }
+
   selectPotentiallyDisabledProfile(profileDisplayName: string, profileName?: string): void {
     const dropdown = this.findHardProfileSelection();
 
