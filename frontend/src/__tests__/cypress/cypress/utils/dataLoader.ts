@@ -12,6 +12,7 @@ import type {
   WBImagesTestData,
   DeployOCIModelData,
   ModelTolerationsTestData,
+  AcceleratorProfilesModelTolerationsTestData,
   ManageRegistryPermissionsTestData,
   ModelRegistryTestData,
 } from '#~/__tests__/cypress/cypress/types';
@@ -106,6 +107,14 @@ export const loadModelTolerationsFixture = (
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as ModelTolerationsTestData;
 
+    return data;
+  });
+
+export const loadAcceleratorProfileModelTolerationsFixture = (
+  fixturePath: string,
+): Cypress.Chainable<AcceleratorProfilesModelTolerationsTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as AcceleratorProfilesModelTolerationsTestData;
     return data;
   });
 
