@@ -10,13 +10,9 @@ jest.mock('#~/pages/hardwareProfiles/HardwareProfilesTableRow', () => {
   return function MockHardwareProfilesTableRow({
     hardwareProfile,
     handleDelete,
-    handleMigrate,
-    migrationAction,
   }: {
     hardwareProfile: HardwareProfileKind;
     handleDelete: (cr: HardwareProfileKind) => void;
-    handleMigrate?: (action: React.ReactNode) => void;
-    migrationAction?: React.ReactNode;
   }) {
     return (
       <tr data-testid={`hardware-profile-row-${hardwareProfile.metadata.name}`}>
@@ -28,14 +24,6 @@ jest.mock('#~/pages/hardwareProfiles/HardwareProfilesTableRow', () => {
           >
             Delete
           </button>
-          {migrationAction && handleMigrate && (
-            <button
-              onClick={() => handleMigrate(migrationAction)}
-              data-testid={`migrate-${hardwareProfile.metadata.name}`}
-            >
-              Migrate
-            </button>
-          )}
         </td>
       </tr>
     );
@@ -221,7 +209,8 @@ describe('HardwareProfilesTable', () => {
 
   const defaultProps = {
     hardwareProfiles: mockHardwareProfiles,
-    isMigratedTable: false,
+    hardwareProfileOrder: [],
+    setHardwareProfileOrder: jest.fn(),
   };
 
   beforeEach(() => {
