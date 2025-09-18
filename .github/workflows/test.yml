@@ -176,7 +176,6 @@ jobs:
           key: ${{ needs.Setup.outputs.modules-cache-key }}
       - name: Run contract tests
         run: |
-          echo "Running contract tests..."
           export GITHUB_RUN_ID="$GITHUB_RUN_ID"
           export CI="true"
           npm run test:contract
@@ -186,22 +185,20 @@ jobs:
       - name: Upload contract test results
         if: always()
         run: |
-          # Find the most recently created contract test results directory
-          LATEST_DIR=$(find packages/*/contract-tests/contract-test-results -name "ci-*" -type d -print0 2>/dev/null | xargs -0 ls -td 2>/dev/null | head -1)
+          # Find and upload the most recent contract test results
+          LATEST_DIR=$(find packages/*/contract-tests/contract-test-results -name "ci-*" -type d 2>/dev/null | head -1)
           if [ -n "$LATEST_DIR" ] && [ -d "$LATEST_DIR" ]; then
-            echo "Found results: $LATEST_DIR"
-            echo "results-dir=$LATEST_DIR" >> $GITHUB_OUTPUT
+            echo "Uploading from: $LATEST_DIR" && echo "results-dir=$LATEST_DIR" >> $GITHUB_OUTPUT
           else
-            echo "No results found"
-            exit 1
+            echo "No results found" && echo "results-dir=" >> $GITHUB_OUTPUT
           fi
-        id: find-results
+        id: upload-results
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
-        if: always() && steps.find-results.outputs.results-dir
+        if: steps.upload-results.outputs.results-dir != ''
         with:
           name: contract-test-results
-          path: ${{ steps.find-results.outputs.results-dir }}
+          path: ${{ steps.upload-results.outputs.results-dir }}
 
   Cypress-Setup:
     needs: [Setup]
