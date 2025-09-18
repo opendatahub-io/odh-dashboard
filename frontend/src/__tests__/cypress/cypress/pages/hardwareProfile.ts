@@ -580,6 +580,13 @@ class NodeResourceModal extends Modal {
 }
 
 class LegacyHardwareProfile extends HardwareProfile {
+  visit() {
+    cy.visitWithLogin('/hardwareProfiles');
+    // Wait for the page title to be available
+    cy.findByTestId('app-page-title', { timeout: 30000 }).should('exist');
+    cy.testA11y();
+  }
+
   findSection() {
     return cy.findByTestId('migrated-hardware-profiles-section');
   }
