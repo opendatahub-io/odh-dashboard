@@ -85,10 +85,17 @@ const EntityDetailsView: React.FC<EntityDetailsViewProps> = ({ entity }) => (
           <Table aria-label="Properties table" data-testid="properties-table" variant="compact">
             <Thead>
               <Tr>
-                <Th>Source Type</Th>
-                <Th>File Url</Th>
-                <Th>Created date</Th>
-                <Th>Last modified date</Th>
+                <Th
+                  info={{
+                    popover: 'The type of data source: batch, stream, or request.',
+                  }}
+                  width={20}
+                >
+                  <span style={{ minWidth: undefined }}>Data source type</span>
+                </Th>
+                <Th width={40}>File URL</Th>
+                <Th>Created</Th>
+                <Th>Last modified</Th>
               </Tr>
             </Thead>
             <Tbody>

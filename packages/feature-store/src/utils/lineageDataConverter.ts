@@ -1,13 +1,15 @@
 import { EdgeStyle } from '@patternfly/react-topology';
 import {
   LineageData,
-  LineageNode,
   LineageEdge,
-} from '@odh-dashboard/internal/components/lineage/types';
-import { FeatureStoreLineage, LineageFeatureView } from '../types/lineage';
+  LineageNode,
+} from '@odh-dashboard/internal/components/lineage/types.js';
+import { LineageEntityType } from './featureStoreObjects';
+import { FeatureStoreLineage, LineageFeatureView, FeatureViewLineage } from '../types/lineage';
 import { Entity } from '../types/entities';
 import { DataSource } from '../types/dataSources';
 import { FeatureService } from '../types/featureServices';
+import { FeatureStoreRelationship } from '../types/global';
 
 /**
  * Converts Feature Store lineage data to generic lineage visualization format
@@ -22,7 +24,9 @@ export const convertFeatureStoreLineageToVisualizationData = (
     nodes.push({
       id: `entity-${entity.spec.name}`,
       label: `Entity: ${entity.spec.name}`,
+      fsObjectTypes: 'entity',
       entityType: 'entity',
+      name: entity.spec.name,
       description: entity.spec.description,
       truncateLength: 30,
       layer: 0, // Position entities in layer 0 (leftmost)
@@ -39,7 +43,9 @@ export const convertFeatureStoreLineageToVisualizationData = (
           ? 'Push'
           : 'Request'
       } Data Source: ${dataSource.name}`,
+      fsObjectTypes: 'data_source',
       entityType: 'batch_data_source',
+      name: dataSource.name,
       description: dataSource.description,
       truncateLength: 30,
       layer: 1, // Position data sources in layer 1 (second from left)
@@ -74,8 +80,10 @@ export const convertFeatureStoreLineageToVisualizationData = (
           ? 'On demand'
           : 'Stream'
       } Feature View: ${name}`,
+      fsObjectTypes: 'feature_view',
       entityType: type,
-      features: features.length,
+      features,
+      name,
       description,
       truncateLength: 40,
       layer: 2, // Position feature views in layer 2 (third from left)
@@ -86,7 +94,9 @@ export const convertFeatureStoreLineageToVisualizationData = (
     nodes.push({
       id: `featureservice-${featureService.spec.name}`,
       label: `FeatureService: ${featureService.spec.name}`,
+      fsObjectTypes: 'feature_service',
       entityType: 'feature_service',
+      name: featureService.spec.name,
       description: featureService.spec.description,
       truncateLength: 40,
       layer: 3, // Position feature services in layer 3 (rightmost)
@@ -173,6 +183,199 @@ export const convertFeatureStoreLineageToVisualizationData = (
   return { nodes, edges };
 };
 
+export const convertFeatureViewLineageToVisualizationData = (
+  featureViewLineage: FeatureViewLineage,
+  featureViewName: string,
+): LineageData => {
+  const nodes: LineageNode[] = [];
+  const edges: LineageEdge[] = [];
+
+  // Extract unique objects from relationships
+  const uniqueObjects = new Map<string, { type: string; name: string }>();
+
+  featureViewLineage.relationships.forEach((relationship: FeatureStoreRelationship) => {
+    const sourceKey = `${relationship.source.type}-${relationship.source.name}`;
+    const targetKey = `${relationship.target.type}-${relationship.target.name}`;
+
+    uniqueObjects.set(sourceKey, relationship.source);
+    uniqueObjects.set(targetKey, relationship.target);
+  });
+
+  // Create nodes for each unique object
+  uniqueObjects.forEach((obj, key) => {
+    const isCurrentFeatureView = obj.type.includes('featureView') && obj.name === featureViewName;
+    const layer = getObjectLayer(obj.type, isCurrentFeatureView);
+
+    nodes.push({
+      id: mapObjectToNodeId(obj) || key,
+      label: getObjectLabel(obj.type, obj.name),
+      fsObjectTypes: mapTypeToFsObjectType(obj.type),
+      entityType: mapTypeToEntityType(obj.type),
+      name: obj.name,
+      truncateLength: 30,
+      layer,
+      // Highlight the current feature view
+      ...(isCurrentFeatureView && { highlighted: true }),
+    });
+  });
+
+  // Create edges from relationships
+  featureViewLineage.relationships.forEach(
+    (relationship: FeatureStoreRelationship, index: number) => {
+      const sourceId = mapObjectToNodeId(relationship.source);
+      const targetId = mapObjectToNodeId(relationship.target);
+
+      if (sourceId && targetId) {
+        edges.push({
+          id: `fv-edge-${index}`,
+          source: sourceId,
+          target: targetId,
+          edgeStyle: EdgeStyle.default,
+          type: 'curved-edge',
+        });
+      }
+    },
+  );
+
+  return { nodes, edges };
+};
+
+/**
+ * Unified configuration for object type mappings
+ */
+const OBJECT_TYPE_CONFIG = {
+  entity: {
+    layer: 0,
+    labelPrefix: 'Entity',
+    fsObjectType: 'entity' as const,
+    entityType: 'entity' as const,
+    nodeIdPrefix: 'entity',
+  },
+  dataSource: {
+    layer: 1,
+    labelPrefix: 'Data Source',
+    fsObjectType: 'data_source' as const,
+    entityType: 'batch_data_source' as const,
+    nodeIdPrefix: 'datasource',
+  },
+  batchDataSource: {
+    layer: 1,
+    labelPrefix: 'Batch Data Source',
+    fsObjectType: 'data_source' as const,
+    entityType: 'batch_data_source' as const,
+    nodeIdPrefix: 'datasource',
+  },
+  pushDataSource: {
+    layer: 1,
+    labelPrefix: 'Push Data Source',
+    fsObjectType: 'data_source' as const,
+    entityType: 'push_data_source' as const,
+    nodeIdPrefix: 'datasource',
+  },
+  requestDataSource: {
+    layer: 1,
+    labelPrefix: 'Request Data Source',
+    fsObjectType: 'data_source' as const,
+    entityType: 'request_data_source' as const,
+    nodeIdPrefix: 'datasource',
+  },
+  featureView: {
+    layer: 2,
+    labelPrefix: 'Batch Feature View',
+    fsObjectType: 'feature_view' as const,
+    entityType: 'batch_feature_view' as const,
+    nodeIdPrefix: 'featureview',
+  },
+  onDemandFeatureView: {
+    layer: 2,
+    labelPrefix: 'On Demand Feature View',
+    fsObjectType: 'feature_view' as const,
+    entityType: 'on_demand_feature_view' as const,
+    nodeIdPrefix: 'featureview',
+  },
+  streamFeatureView: {
+    layer: 2,
+    labelPrefix: 'Stream Feature View',
+    fsObjectType: 'feature_view' as const,
+    entityType: 'stream_feature_view' as const,
+    nodeIdPrefix: 'featureview',
+  },
+  featureService: {
+    layer: 3,
+    labelPrefix: 'Feature Service',
+    fsObjectType: 'feature_service' as const,
+    entityType: 'feature_service' as const,
+    nodeIdPrefix: 'featureservice',
+  },
+} as const;
+
+/**
+ * Helper function to safely get object configuration
+ */
+const getObjectTypeConfig = (objectType: string) => {
+  switch (objectType) {
+    case 'entity':
+      return OBJECT_TYPE_CONFIG.entity;
+    case 'dataSource':
+      return OBJECT_TYPE_CONFIG.dataSource;
+    case 'batchDataSource':
+      return OBJECT_TYPE_CONFIG.batchDataSource;
+    case 'pushDataSource':
+      return OBJECT_TYPE_CONFIG.pushDataSource;
+    case 'requestDataSource':
+      return OBJECT_TYPE_CONFIG.requestDataSource;
+    case 'featureView':
+      return OBJECT_TYPE_CONFIG.featureView;
+    case 'onDemandFeatureView':
+      return OBJECT_TYPE_CONFIG.onDemandFeatureView;
+    case 'streamFeatureView':
+      return OBJECT_TYPE_CONFIG.streamFeatureView;
+    case 'featureService':
+      return OBJECT_TYPE_CONFIG.featureService;
+    default:
+      return null;
+  }
+};
+
+/**
+ * Determines the layer for an object in feature view lineage
+ */
+const getObjectLayer = (objectType: string, isCurrentFeatureView: boolean): number => {
+  if (isCurrentFeatureView) {
+    return 2; // Center the current feature view
+  }
+
+  const config = getObjectTypeConfig(objectType);
+  return config ? config.layer : 1; // Default fallback
+};
+
+/**
+ * Maps object type to human-readable label
+ */
+const getObjectLabel = (objectType: string, objectName: string): string => {
+  const config = getObjectTypeConfig(objectType);
+  const prefix = config ? config.labelPrefix : objectType;
+  return `${prefix}: ${objectName}`;
+};
+
+/**
+ * Maps object type to fsObjectTypes for feature store
+ */
+const mapTypeToFsObjectType = (
+  objectType: string,
+): 'entity' | 'data_source' | 'feature_view' | 'feature_service' => {
+  const config = getObjectTypeConfig(objectType);
+  return config ? config.fsObjectType : 'data_source'; // Default fallback to a valid type
+};
+
+/**
+ * Maps object type to entityType for visualization
+ */
+const mapTypeToEntityType = (objectType: string): LineageEntityType => {
+  const config = getObjectTypeConfig(objectType);
+  return config ? config.entityType : 'batch_data_source'; // Default fallback to a valid type
+};
+
 /**
  * Maps a feature store object reference to a lineage node ID
  */
@@ -181,22 +384,11 @@ const mapObjectToNodeId = (objectRef: { name?: string; type?: string }): string 
     return null;
   }
 
-  switch (objectRef.type) {
-    case 'entity':
-      return `entity-${objectRef.name}`;
-    case 'dataSource':
-    case 'batchDataSource':
-    case 'pushDataSource':
-    case 'requestDataSource':
-      return `datasource-${objectRef.name}`;
-    case 'featureView':
-    case 'onDemandFeatureView':
-    case 'streamFeatureView':
-      return `featureview-${objectRef.name}`;
-    case 'featureService':
-      return `featureservice-${objectRef.name}`;
-    default:
-      console.warn(`Unknown object type for lineage mapping: ${objectRef.type}`);
-      return null;
+  const config = getObjectTypeConfig(objectRef.type);
+  if (config) {
+    return `${config.nodeIdPrefix}-${objectRef.name}`;
   }
+
+  console.warn(`Unknown object type for lineage mapping: ${objectRef.type}`);
+  return null;
 };

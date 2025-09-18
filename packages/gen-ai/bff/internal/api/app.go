@@ -13,6 +13,10 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
+
+	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp/mcpmocks"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
@@ -28,24 +32,22 @@ type App struct {
 	repositories            *repositories.Repositories
 	openAPI                 *OpenAPIHandler
 	kubernetesClientFactory k8s.KubernetesClientFactory
-	llamaStackClient        llamastack.LlamaStackClientInterface
+	llamaStackClientFactory llamastack.LlamaStackClientFactory
+	mcpClientFactory        mcp.MCPClientFactory
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
-	var llamaStackClient llamastack.LlamaStackClientInterface
-
 	logger.Info("Initializing app with config", slog.Any("config", cfg))
 
-	// Initialize LlamaStack client using factory pattern
-	var factory llamastack.LlamaStackClientFactory
+	// Initialize LlamaStack client factory - clients will be created per request
+	var llamaStackClientFactory llamastack.LlamaStackClientFactory
 	if cfg.MockLSClient {
-		logger.Info("Using mock LlamaStack client")
-		factory = lsmocks.NewMockClientFactory()
+		logger.Info("Using mock LlamaStack client factory")
+		llamaStackClientFactory = lsmocks.NewMockClientFactory()
 	} else {
-		logger.Info("Using real LlamaStack client", "url", cfg.LlamaStackURL)
-		factory = llamastack.NewRealClientFactory()
+		logger.Info("Using real LlamaStack client factory", "url", cfg.LlamaStackURL)
+		llamaStackClientFactory = llamastack.NewRealClientFactory()
 	}
-	llamaStackClient = factory.CreateClient(cfg.LlamaStackURL)
 
 	// Initialize OpenAPI handler
 	openAPIHandler, err := NewOpenAPIHandler(logger)
@@ -78,13 +80,27 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		return nil, fmt.Errorf("failed to create Kubernetes client factory: %w", err)
 	}
 
+	// Initialize MCP client factory
+	var mcpFactory mcp.MCPClientFactory
+	if cfg.MockMCPClient {
+		logger.Info("Using mocked MCP client")
+		mcpFactory = mcpmocks.NewMockedMCPClientFactory(cfg, logger)
+	} else {
+		var err error
+		mcpFactory, err = mcp.NewMCPClientFactory(cfg, logger)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create MCP client factory: %w", err)
+		}
+	}
+
 	app := &App{
 		config:                  cfg,
 		logger:                  logger,
-		repositories:            repositories.NewRepositories(llamaStackClient),
+		repositories:            repositories.NewRepositoriesWithMCP(mcpFactory, logger),
 		openAPI:                 openAPIHandler,
 		kubernetesClientFactory: k8sFactory,
-		llamaStackClient:        llamaStackClient,
+		llamaStackClientFactory: llamaStackClientFactory,
+		mcpClientFactory:        mcpFactory,
 	}
 	return app, nil
 }
@@ -120,30 +136,45 @@ func (app *App) Routes() http.Handler {
 	apiRouter.NotFound = http.HandlerFunc(app.notFoundResponse)
 	apiRouter.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
-	// LlamaStack API routes (require service access)
-	// Models
-	apiRouter.GET(constants.ModelsListPath, app.RequireAccessToService(app.AttachRESTClient(app.LlamaStackModelsHandler)))
-	apiRouter.GET(constants.ModelsAAPath, app.RequireAccessToService(app.AttachNamespace(app.ModelsAAHandler)))
+	// LlamaStack API routes
 
-	// Responses (OpenAI Responses API)
-	apiRouter.POST(constants.ResponsesPath, app.RequireAccessToService(app.AttachRESTClient(app.LlamaStackCreateResponseHandler)))
+	// Models (LlamaStack)
+	apiRouter.GET(constants.ModelsListPath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackModelsHandler))))
 
-	// Vector Stores
-	apiRouter.GET(constants.VectorStoresListPath, app.RequireAccessToService(app.AttachRESTClient(app.LlamaStackListVectorStoresHandler)))
-	apiRouter.POST(constants.VectorStoresListPath, app.RequireAccessToService(app.AttachRESTClient(app.LlamaStackCreateVectorStoreHandler)))
+	// Responses (LlamaStack)
+	apiRouter.POST(constants.ResponsesPath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackCreateResponseHandler))))
 
-	// Files Upload
-	apiRouter.POST(constants.FilesUploadPath, app.RequireAccessToService(app.AttachRESTClient(app.LlamaStackUploadFileHandler)))
+	// Vector Stores (LlamaStack)
+	apiRouter.GET(constants.VectorStoresListPath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackListVectorStoresHandler))))
+	apiRouter.POST(constants.VectorStoresListPath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackCreateVectorStoreHandler))))
 
-	// Code Exporter
-	apiRouter.POST(constants.CodeExporterPath, app.RequireAccessToService(app.AttachRESTClient(app.CodeExporterHandler)))
+	// Files Upload (LlamaStack)
+	apiRouter.POST(constants.FilesUploadPath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackUploadFileHandler))))
+
+	// Code Exporter (Template-only)
+	apiRouter.POST(constants.CodeExporterPath, app.RequireAccessToService(app.AttachNamespace(app.CodeExporterHandler)))
 
 	// Kubernetes routes
+
+	// AI Assets Models (Kubernetes)
+	apiRouter.GET(constants.ModelsAAPath, app.RequireAccessToService(app.AttachNamespace(app.ModelsAAHandler)))
+
 	// Settings path namespace endpoints. This endpoint will get all the namespaces
 	apiRouter.GET(constants.NamespacesPath, app.RequireAccessToService(app.GetNamespaceHandler))
 
+	// Identity
+	apiRouter.GET(constants.UserPath, app.RequireAccessToService(app.GetCurrentUserHandler))
+
 	// Llama Stack Distribution status endpoint
 	apiRouter.GET(constants.LlamaStackDistributionStatusPath, app.RequireAccessToService(app.AttachNamespace(app.LlamaStackDistributionStatusHandler)))
+
+	// Llama Stack Distribution install endpoint
+	apiRouter.POST(constants.LlamaStackDistributionInstallPath, app.RequireAccessToService(app.AttachNamespace(app.LlamaStackDistributionInstallHandler)))
+
+	// MCP Client endpoints
+	apiRouter.GET(constants.MCPToolsPath, app.RequireAccessToService(app.MCPToolsHandler))
+	apiRouter.GET(constants.MCPStatusPath, app.RequireAccessToService(app.MCPStatusHandler))
+	apiRouter.GET(constants.MCPServersListPath, app.RequireAccessToService(app.MCPListHandler))
 
 	// App Router
 	appMux := http.NewServeMux()
@@ -184,13 +215,17 @@ func (app *App) Routes() http.Handler {
 		http.NotFound(w, r)
 	})
 
+	// Create a mux for the healthcheck endpoint
+	healthcheckMux := http.NewServeMux()
+	healthcheckRouter := httprouter.New()
+	healthcheckRouter.GET(constants.HealthCheckPath, app.HealthcheckHandler)
+	healthcheckMux.Handle(constants.HealthCheckPath, app.RecoverPanic(app.EnableTelemetry(healthcheckRouter)))
+
 	// Create main mux for all routes
 	combinedMux := http.NewServeMux()
 
-	// Health check endpoint (unprotected)
-	combinedMux.HandleFunc(constants.HealthCheckPath, func(w http.ResponseWriter, r *http.Request) {
-		app.HealthcheckHandler(w, r, nil)
-	})
+	// Health check endpoint (isolated with its own middleware)
+	combinedMux.Handle(constants.HealthCheckPath, healthcheckMux)
 
 	// OpenAPI routes (unprotected) - handle these before the main app routes
 	combinedMux.HandleFunc(constants.OpenAPIPath, app.openAPI.HandleOpenAPIRedirectWrapper)

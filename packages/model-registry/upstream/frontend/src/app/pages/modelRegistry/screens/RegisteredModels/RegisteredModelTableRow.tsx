@@ -17,6 +17,7 @@ import {
   registeredModelUrl,
 } from '~/app/pages/modelRegistry/screens/routeUtils';
 import { ModelState, ModelVersion, RegisteredModel } from '~/app/types';
+import DeployModalExtension from '~/odh/components/DeployModalExtension';
 
 type RegisteredModelTableRowProps = {
   registeredModel: RegisteredModel;
@@ -42,7 +43,12 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
   const rmUrl = registeredModelUrl(rm.id, preferredModelRegistry?.name);
 
-  const actions: IAction[] = [
+  const baseActions: IAction[] = [
+    {
+      title: 'View model information',
+      isDisabled: true,
+      className: 'pf-v6-u-font-size-sm pf-v6-u-color-200 pf-v6-u-text-transform-uppercase pf-v6-u-p-xs',
+    },
     {
       title: 'Overview',
       onClick: () => {
@@ -63,7 +69,24 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
         );
       },
     },
+    {
+      title: 'Deployments',
+      onClick: () => {
+        navigate(`${rmUrl}/deployments`);
+      },
+    },
+  ];
 
+  const latestVersionActionsHeader: IAction[] = [
+    { isSeparator: true },
+    {
+      title: 'Latest version actions',
+      isDisabled: true,
+      className: 'pf-v6-u-font-size-sm pf-v6-u-color-200 pf-v6-u-text-transform-uppercase pf-v6-u-p-xs',
+    },
+  ];
+
+  const archiveRestoreActions: IAction[] = [
     { isSeparator: true },
     ...(isArchiveRow
       ? [
@@ -141,7 +164,36 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
         </Content>
       </Td>
       <Td isActionCell>
-        <ActionsColumn items={actions} />
+        {latestModelVersion && !isArchiveRow ? (
+          <DeployModalExtension
+            mv={latestModelVersion}
+            render={(buttonState, onOpenModal, isModalAvailable) =>
+              isModalAvailable ? (
+                <ActionsColumn
+                  items={[
+                    ...baseActions,
+                    ...latestVersionActionsHeader,
+                    {
+                      title: (
+                        <>
+                          Deploy <strong>{latestModelVersion.name}</strong>
+                        </>
+                      ),
+                      onClick: onOpenModal,
+                      isAriaDisabled: !buttonState.enabled,
+                      tooltipProps: buttonState.tooltip ? { content: buttonState.tooltip } : undefined,
+                    },
+                    ...archiveRestoreActions,
+                  ]}
+                />
+              ) : (
+                <ActionsColumn items={[...baseActions, ...archiveRestoreActions]} />
+              )
+            }
+          />
+        ) : (
+          <ActionsColumn items={[...baseActions, ...archiveRestoreActions]} />
+        )}
         {isArchiveModalOpen ? (
           <ArchiveRegisteredModelModal
             onCancel={() => setIsArchiveModalOpen(false)}

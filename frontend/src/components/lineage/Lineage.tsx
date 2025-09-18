@@ -5,35 +5,33 @@ import {
   TopologyView,
   TopologyControlBar,
 } from '@patternfly/react-topology';
-import {
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateVariant,
-  Spinner,
-  Alert,
-  Title,
-} from '@patternfly/react-core';
-import { PlusIcon } from '@patternfly/react-icons';
-import useLineageController from './useLineageController';
-import { useLineageSelection } from './useLineageSelection';
-import { createLineageTopologyControls } from './topologyControls';
+import { EmptyState, EmptyStateVariant, Spinner, Alert, Title } from '@patternfly/react-core';
 import {
   LineageProps,
   convertToLineageNodeModel,
   convertToLineageEdgeModel,
   TopologyEdgeModel,
 } from './types';
+import useLineageController from './useLineageController';
+import { useLineageSelection } from './useLineageSelection';
+import { useLineagePopover } from './useLineagePopover';
+import { createLineageTopologyControls } from './topologyControls';
+import { LineageClickProvider } from './LineageClickContext';
 
-export const Lineage: React.FC<LineageProps> = ({
+const LineageInner: React.FC<LineageProps> = ({
   data,
   height = '600px',
   loading = false,
   error,
-  emptyStateMessage = 'No lineage data available',
   onNodeSelect,
   className,
+  showNodePopover = true,
+  componentFactory,
+  popoverComponent: PopoverComponent,
+  toolbarComponent: ToolbarComponent,
+  autoResetOnDataChange = false,
 }) => {
-  const controller = useLineageController('lineage-graph');
+  const controller = useLineageController('lineage-graph', componentFactory);
 
   // Convert generic lineage data to topology format
   const nodes = useMemo(() => {
@@ -44,11 +42,36 @@ export const Lineage: React.FC<LineageProps> = ({
     return data.edges.map(convertToLineageEdgeModel);
   }, [data.edges]);
 
+  // Initialize popover hook
+  const {
+    selectedNode: popoverNode,
+    popoverPosition,
+    isPopoverVisible,
+    showPopover,
+    hidePopover,
+  } = useLineagePopover({
+    data,
+    enabled: showNodePopover && !!PopoverComponent,
+  });
+
+  // Enhanced node selection handler that also shows popover
+  const handleNodeSelect = React.useCallback(
+    (nodeId: string | null) => {
+      onNodeSelect?.(nodeId);
+
+      // Show popover for selected node if enabled
+      if (nodeId && showNodePopover && PopoverComponent) {
+        showPopover(nodeId);
+      }
+    },
+    [onNodeSelect, showNodePopover, PopoverComponent, showPopover],
+  );
+
   // Use selection management hook
   const { selectedIds, highlightedIds } = useLineageSelection({
     controller,
     edges,
-    onNodeSelect,
+    onNodeSelect: handleNodeSelect,
   });
 
   // Load nodes and edges into controller when it's ready
@@ -67,6 +90,25 @@ export const Lineage: React.FC<LineageProps> = ({
       }
     }
   }, [controller, nodes, edges]);
+
+  // Auto-reset zoom and center when data changes after filtering
+  React.useEffect(() => {
+    if (controller && autoResetOnDataChange && nodes.length > 0) {
+      const resetTimeout = setTimeout(() => {
+        try {
+          controller.getGraph().reset();
+          controller.getGraph().layout();
+        } catch (e) {
+          console.warn('Failed to reset graph layout:', e);
+        }
+      }, 100); // Small delay to let the data load effect complete
+
+      return () => {
+        clearTimeout(resetTimeout);
+      };
+    }
+    return undefined;
+  }, [controller, autoResetOnDataChange, nodes, edges]);
 
   // Get the selected node for potential pan-into-view functionality
   const selectedNode = useMemo(() => {
@@ -122,25 +164,6 @@ export const Lineage: React.FC<LineageProps> = ({
     );
   }
 
-  // Handle empty state
-  if (!data.nodes.length && !data.edges.length) {
-    return (
-      <div
-        className={className}
-        style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-      >
-        <EmptyState variant={EmptyStateVariant.lg}>
-          <PlusIcon />
-          <Title headingLevel="h4" size="lg">
-            {emptyStateMessage}
-          </Title>
-          <EmptyStateBody>Select a signal project to see its lineage.</EmptyStateBody>
-        </EmptyState>
-      </div>
-    );
-  }
-
-  // Handle controller not ready
   if (!controller) {
     return (
       <div
@@ -158,8 +181,18 @@ export const Lineage: React.FC<LineageProps> = ({
   }
 
   return (
-    <div className={className} style={{ height, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ flex: 1, overflow: 'hidden' }}>
+    <div
+      className={className}
+      style={{
+        height,
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'var(--pf-t--color--gray--10)',
+        borderRadius: 16,
+      }}
+    >
+      {ToolbarComponent && <ToolbarComponent />}
+      <div style={{ flex: 1, overflow: 'hidden', position: 'relative', borderRadius: 16 }}>
         <TopologyView
           controlBar={
             <TopologyControlBar controlButtons={createLineageTopologyControls(controller)} />
@@ -169,7 +202,22 @@ export const Lineage: React.FC<LineageProps> = ({
             <VisualizationSurface state={{ selectedIds, highlightedIds }} />
           </VisualizationProvider>
         </TopologyView>
+
+        {PopoverComponent && (
+          <PopoverComponent
+            node={popoverNode}
+            position={popoverPosition}
+            isVisible={isPopoverVisible}
+            onClose={hidePopover}
+          />
+        )}
       </div>
     </div>
   );
 };
+
+export const Lineage: React.FC<LineageProps> = (props) => (
+  <LineageClickProvider>
+    <LineageInner {...props} />
+  </LineageClickProvider>
+);

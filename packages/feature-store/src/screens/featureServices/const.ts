@@ -29,6 +29,10 @@ export const columns: SortableData<FeatureService>[] = [
     field: 'feature_views',
     label: 'Feature views',
     width: 25,
+    info: {
+      popover:
+        'The feature views included in this feature service. Feature services retrieve features from one or more feature views to support training and inference workflows.',
+    },
     sortable: (a: FeatureService, b: FeatureService): number => {
       const aFeatureViews = a.spec.features?.length ?? 0;
       const bFeatureViews = b.spec.features?.length ?? 0;

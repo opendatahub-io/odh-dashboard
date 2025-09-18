@@ -7,8 +7,14 @@ import (
 	"os"
 	"path/filepath"
 
+	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
+	kservev1beta1 "github.com/kserve/kserve/pkg/apis/serving/v1beta1"
+	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
@@ -50,6 +56,9 @@ func SetupEnvTest(input TestEnvInput) (*envtest.Environment, client.Client, erro
 
 	testEnv := &envtest.Environment{
 		BinaryAssetsDirectory: binaryAssetsDir,
+		CRDs: []*apiextensionsv1.CustomResourceDefinition{
+			createLlamaStackDistributionCRD(),
+		},
 	}
 
 	cfg, err := testEnv.Start()
@@ -59,7 +68,37 @@ func SetupEnvTest(input TestEnvInput) (*envtest.Environment, client.Client, erro
 		os.Exit(1)
 	}
 
-	ctrlClient, err := client.New(cfg, client.Options{})
+	// Create scheme and add core Kubernetes types
+	scheme := runtime.NewScheme()
+	err = clientgoscheme.AddToScheme(scheme)
+	if err != nil {
+		input.Logger.Error("failed to add Kubernetes types to scheme", slog.String("error", err.Error()))
+		input.Cancel()
+		os.Exit(1)
+	}
+
+	err = lsdapi.AddToScheme(scheme)
+	if err != nil {
+		input.Logger.Error("failed to add LlamaStackDistribution types to scheme", slog.String("error", err.Error()))
+		input.Cancel()
+		os.Exit(1)
+	}
+
+	err = kservev1alpha1.AddToScheme(scheme)
+	if err != nil {
+		input.Logger.Error("failed to add KServe v1alpha1 types to scheme", slog.String("error", err.Error()))
+		input.Cancel()
+		os.Exit(1)
+	}
+
+	err = kservev1beta1.AddToScheme(scheme)
+	if err != nil {
+		input.Logger.Error("failed to add KServe v1beta1 types to scheme", slog.String("error", err.Error()))
+		input.Cancel()
+		os.Exit(1)
+	}
+
+	ctrlClient, err := client.New(cfg, client.Options{Scheme: scheme})
 	if err != nil {
 		input.Logger.Error("failed to create controller-runtime client", slog.String("error", err.Error()))
 		input.Cancel()
@@ -136,4 +175,107 @@ func createNamespace(k8sClient client.Client, ctx context.Context, namespace str
 	}
 
 	return nil
+}
+
+// createLlamaStackDistributionCRD creates the CRD for LlamaStackDistribution
+// Based on the official CRD from https://github.com/llamastack/llama-stack-k8s-operator/blob/main/config/crd/bases/llamastack.io_llamastackdistributions.yaml
+// A better approach to replicate real CRD install would be to download the CRD and place it in the CRDDirectoryPaths, given
+// pointing to a remote location is not supported yet by envtest: https://github.com/kubernetes-sigs/controller-runtime/issues/1558
+func createLlamaStackDistributionCRD() *apiextensionsv1.CustomResourceDefinition {
+	return &apiextensionsv1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "llamastackdistributions.llamastack.io",
+		},
+		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+			Group: "llamastack.io",
+			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+				{
+					Name:    "v1alpha1",
+					Served:  true,
+					Storage: true,
+					Schema: &apiextensionsv1.CustomResourceValidation{
+						OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]apiextensionsv1.JSONSchemaProps{
+								"spec": {
+									Type: "object",
+									Properties: map[string]apiextensionsv1.JSONSchemaProps{
+										"replicas": {
+											Type: "integer",
+										},
+										"server": {
+											Type: "object",
+											Properties: map[string]apiextensionsv1.JSONSchemaProps{
+												"containerSpec": {
+													Type: "object",
+													Properties: map[string]apiextensionsv1.JSONSchemaProps{
+														"command": {
+															Type: "array",
+															Items: &apiextensionsv1.JSONSchemaPropsOrArray{
+																Schema: &apiextensionsv1.JSONSchemaProps{
+																	Type: "string",
+																},
+															},
+														},
+														"resources": {
+															Type: "object",
+														},
+														"env": {
+															Type: "array",
+															Items: &apiextensionsv1.JSONSchemaPropsOrArray{
+																Schema: &apiextensionsv1.JSONSchemaProps{
+																	Type: "object",
+																},
+															},
+														},
+														"name": {
+															Type: "string",
+														},
+														"port": {
+															Type: "integer",
+														},
+													},
+												},
+												"distribution": {
+													Type: "object",
+													Properties: map[string]apiextensionsv1.JSONSchemaProps{
+														"name": {
+															Type: "string",
+														},
+													},
+												},
+												"userConfig": {
+													Type: "object",
+													Properties: map[string]apiextensionsv1.JSONSchemaProps{
+														"configMapName": {
+															Type: "string",
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+								"status": {
+									Type: "object",
+									Properties: map[string]apiextensionsv1.JSONSchemaProps{
+										"phase": {
+											Type: "string",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			Scope: apiextensionsv1.NamespaceScoped,
+			Names: apiextensionsv1.CustomResourceDefinitionNames{
+				Plural:     "llamastackdistributions",
+				Singular:   "llamastackdistribution",
+				Kind:       "LlamaStackDistribution",
+				ShortNames: []string{"lsd"},
+			},
+		},
+	}
 }

@@ -6,12 +6,20 @@ import { hardwareProfileValidationSchema } from '@odh-dashboard/internal/concept
 import type { UseModelDeploymentWizardState } from './useDeploymentWizard';
 import { modelSourceStepSchema, type ModelSourceStepData } from './steps/ModelSourceStep';
 import { modelFormatFieldSchema } from './fields/ModelFormatField';
+import { externalRouteFieldSchema, type ExternalRouteFieldData } from './fields/ExternalRouteField';
+import {
+  tokenAuthenticationFieldSchema,
+  type TokenAuthenticationFieldData,
+} from './fields/TokenAuthenticationField';
 
 export type ModelDeploymentWizardValidation = {
   modelSource: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
   hardwareProfile: ReturnType<typeof useValidation>;
+  externalRoute: ReturnType<typeof useZodFormValidation<ExternalRouteFieldData>>;
+  tokenAuthentication: ReturnType<typeof useZodFormValidation<TokenAuthenticationFieldData>>;
   isModelSourceStepValid: boolean;
   isModelDeploymentStepValid: boolean;
+  isAdvancedSettingsStepValid: boolean;
 };
 
 export const useModelDeploymentWizardValidation = (
@@ -21,8 +29,9 @@ export const useModelDeploymentWizardValidation = (
   const modelSourceStepValidationData: Partial<ModelSourceStepData> = React.useMemo(
     () => ({
       modelType: state.modelType.data,
+      modelLocationData: state.modelLocationData.data,
     }),
-    [state.modelType],
+    [state.modelType, state.modelLocationData.data],
   );
 
   const modelSourceStepValidation = useZodFormValidation(
@@ -43,6 +52,17 @@ export const useModelDeploymentWizardValidation = (
     modelFormatFieldSchema,
   );
 
+  // Step 3: Advanced Options
+  const externalRouteValidation = useZodFormValidation(
+    state.externalRoute.data,
+    externalRouteFieldSchema,
+  );
+
+  const tokenAuthenticationValidation = useZodFormValidation(
+    state.tokenAuthentication.data,
+    tokenAuthenticationFieldSchema,
+  );
+
   // Step validation
   const isModelSourceStepValid =
     modelSourceStepValidation.getFieldValidation(undefined, true).length === 0;
@@ -50,11 +70,17 @@ export const useModelDeploymentWizardValidation = (
     isK8sNameDescriptionDataValid(state.k8sNameDesc.data) &&
     Object.keys(hardwareProfileValidation.getAllValidationIssues()).length === 0 &&
     Object.keys(modelFormatValidation.getAllValidationIssues()).length === 0;
+  const isAdvancedSettingsStepValid =
+    externalRouteValidation.getFieldValidation(undefined, true).length === 0 &&
+    tokenAuthenticationValidation.getFieldValidation(undefined, true).length === 0;
 
   return {
     modelSource: modelSourceStepValidation,
     hardwareProfile: hardwareProfileValidation,
+    externalRoute: externalRouteValidation,
+    tokenAuthentication: tokenAuthenticationValidation,
     isModelSourceStepValid,
     isModelDeploymentStepValid,
+    isAdvancedSettingsStepValid,
   };
 };

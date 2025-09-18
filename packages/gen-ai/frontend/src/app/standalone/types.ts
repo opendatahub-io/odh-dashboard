@@ -7,6 +7,7 @@ type NavDataCommon = {
 
 export type NavDataHref = NavDataCommon & {
   path: string;
+  href: string;
 };
 
 export type NavDataGroup = NavDataCommon & {

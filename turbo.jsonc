@@ -1,0 +1,70 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "tasks": {
+    "includeDependenciesAsInputs": {},
+    "build": {
+      "cache": false
+    },
+    "lint": {
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/packages/eslint-config/**/*"]
+    },
+    "test-unit": {
+      "dependsOn": ["^test-unit"]
+    },
+    "test-unit-coverage": {
+      "dependsOn": ["^test-unit-coverage"],
+      "outputs": ["jest-coverage/**"]
+    },
+    "type-check": {
+      "dependsOn": ["^type-check"]
+    },
+    "test:contract": {
+      "inputs": [
+        "contract-tests/**",
+        "upstream/bff/**"
+      ],
+      "outputs": [
+        "contract-tests/contract-test-results/**"
+      ]
+    },
+
+    // Prepares modules for testing by installing dependencies
+    "install:module": {
+      "cache": false
+    },
+
+    // Cypress tasks
+    "cypress:server:build": {
+      // no caching until we can optimize the dependency graph
+      "cache": false
+    },
+    "cypress:server:build:coverage": {
+      // no caching until we can optimize the dependency graph
+      "cache": false
+    },
+    "cypress:server": {
+      // TODO depend on build once caching is enabled
+      // "dependsOn": ["cypress:server:build"],
+      "cache": false,
+      "persistent": true
+    },
+    "cypress:server:dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "cypress:server:wait": {
+      "cache": false
+    }
+
+    /*
+     * TODO waiting for feature https://github.com/vercel/turborepo/discussions/10495
+     * Workaround: use `concurrently` through package.json. See "test-mocked" script.
+     */
+    // "cypress:run:mock": {
+    //   "dependsOn": ["cypress:server:wait"],
+    //   "with": ["cypress:server"],
+    //   "cache": false
+    // },
+  }
+}

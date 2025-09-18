@@ -1,8 +1,15 @@
 import * as React from 'react';
-import { Route, Routes } from 'react-router-dom';
-import { ChatbotMain } from '~/app/Chatbot/ChatbotMain';
-import { NotFound } from '~/app/NotFound/NotFound';
+import { Navigate, Route, Routes } from 'react-router-dom';
+import ChatbotPage from '~/app/Chatbot/ChatbotPage';
+import { AIAssetsPage } from '~/app/AIAssets/AIAssetsPage';
+import { NotFound } from '~/app/EmptyStates/NotFound';
 import { NavDataItem } from '~/app/standalone/types';
+import GenAiCoreLoader from '~/app/GenAiCoreLoader';
+import {
+  chatPlaygroundRootPath,
+  genAiAiAssetsRoute,
+  genAiChatPlaygroundRoute,
+} from '~/app/utilities/routes';
 
 import '@patternfly/chatbot/dist/css/main.css';
 
@@ -22,28 +29,19 @@ export interface IAppRouteGroup {
 
 export type AppRouteConfig = IAppRoute | IAppRouteGroup;
 
-const routes: AppRouteConfig[] = [
-  {
-    element: <ChatbotMain />,
-    exact: true,
-    label: 'Chatbot',
-    path: '/',
-    title: 'Chatbot Main Page',
-  },
-];
-
-const flattenedRoutes: IAppRoute[] = routes.reduce<IAppRoute[]>(
-  (flattened, route) => [...flattened, ...(route.routes ? route.routes : [route])],
-  [],
-);
-
 export const useNavData = (): NavDataItem[] => [
   {
     label: 'Gen AI V3',
     children: [
       {
         label: 'Chat playground',
-        path: '/',
+        path: '/gen-ai/playground/*',
+        href: '/gen-ai/playground',
+      },
+      {
+        label: 'AI asset endpoints',
+        path: '/gen-ai/assets/*',
+        href: '/gen-ai/assets',
       },
     ],
   },
@@ -51,11 +49,28 @@ export const useNavData = (): NavDataItem[] => [
 
 const AppRoutes = (): React.ReactElement => (
   <Routes>
-    {flattenedRoutes.map(({ path, element }, idx) => (
-      <Route path={path} element={element} key={idx} />
-    ))}
+    <Route path="/" element={<Navigate to={chatPlaygroundRootPath} replace />} />
+    <Route
+      path="/playground"
+      element={
+        <GenAiCoreLoader
+          title="Chat playground"
+          getInvalidRedirectPath={genAiChatPlaygroundRoute}
+        />
+      }
+    >
+      <Route path=":namespace" element={<ChatbotPage />} />
+    </Route>
+    <Route
+      path="/assets"
+      element={
+        <GenAiCoreLoader title="AI asset endpoints" getInvalidRedirectPath={genAiAiAssetsRoute} />
+      }
+    >
+      <Route path=":namespace" element={<AIAssetsPage />} />
+    </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
 
-export { AppRoutes, routes };
+export { AppRoutes };

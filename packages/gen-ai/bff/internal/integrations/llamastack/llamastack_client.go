@@ -9,6 +9,7 @@ import (
 
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/option"
+	"github.com/openai/openai-go/v2/packages/ssestream"
 	"github.com/openai/openai-go/v2/responses"
 )
 
@@ -252,6 +253,16 @@ type ChatContextMessage struct {
 	Content string `json:"content"`
 }
 
+// MCPServerParam represents MCP server configuration for LlamaStack
+type MCPServerParam struct {
+	// ServerLabel is the label identifier for the MCP server
+	ServerLabel string
+	// ServerURL is the URL endpoint for the MCP server
+	ServerURL string
+	// Headers contains custom headers for MCP server authentication
+	Headers map[string]string
+}
+
 // CreateResponseParams contains parameters for creating AI responses.
 type CreateResponseParams struct {
 	// Input is the text input for response generation (required).
@@ -268,10 +279,12 @@ type CreateResponseParams struct {
 	TopP *float64
 	// Instructions provides system-level guidance for AI behavior.
 	Instructions string
+	// Tools contains MCP server configurations for tool-enabled responses.
+	Tools []MCPServerParam
 }
 
-// CreateResponse creates an AI response using the specified parameters.
-func (c *LlamaStackClient) CreateResponse(ctx context.Context, params CreateResponseParams) (*responses.Response, error) {
+// prepareResponseParams validates input parameters and prepares the API parameters for response creation.
+func (c *LlamaStackClient) prepareResponseParams(params CreateResponseParams) (*responses.ResponseNewParams, error) {
 	if params.Input == "" {
 		return nil, fmt.Errorf("input is required")
 	}
@@ -279,8 +292,9 @@ func (c *LlamaStackClient) CreateResponse(ctx context.Context, params CreateResp
 		return nil, fmt.Errorf("model is required")
 	}
 
-	apiParams := responses.ResponseNewParams{
+	apiParams := &responses.ResponseNewParams{
 		Model: responses.ResponsesModel(params.Model),
+		Store: openai.Bool(true),
 	}
 
 	if len(params.ChatContext) > 0 {
@@ -332,8 +346,6 @@ func (c *LlamaStackClient) CreateResponse(ctx context.Context, params CreateResp
 		}
 	}
 
-	apiParams.Store = openai.Bool(true)
-
 	if params.Temperature != nil {
 		if *params.Temperature < 0 || *params.Temperature > 2 {
 			return nil, fmt.Errorf("temperature must be between 0 and 2, got: %.2f", *params.Temperature)
@@ -348,15 +360,68 @@ func (c *LlamaStackClient) CreateResponse(ctx context.Context, params CreateResp
 		apiParams.TopP = openai.Float(*params.TopP)
 	}
 
+	// Handle tools (both file search and MCP tools)
+	var tools []responses.ToolUnionParam
+
+	// Add file search tools if vector store IDs are provided
 	if len(params.VectorStoreIDs) > 0 {
 		fileSearchTool := responses.ToolParamOfFileSearch(params.VectorStoreIDs)
-		apiParams.Tools = []responses.ToolUnionParam{fileSearchTool}
+		tools = append(tools, fileSearchTool)
 	}
 
-	response, err := c.client.Responses.New(ctx, apiParams)
+	// Add MCP servers if provided
+	if len(params.Tools) > 0 {
+		for _, mcpServer := range params.Tools {
+			// Validate MCP server parameters
+			if mcpServer.ServerLabel == "" {
+				return nil, fmt.Errorf("server_label is required for MCP server")
+			}
+			if mcpServer.ServerURL == "" {
+				return nil, fmt.Errorf("server_url is required for MCP server")
+			}
+
+			// Create MCP tool parameter for OpenAI client
+			mcpServerToolParam := responses.ToolUnionParam{
+				OfMcp: &responses.ToolMcpParam{
+					ServerLabel: mcpServer.ServerLabel,
+					ServerURL:   openai.String(mcpServer.ServerURL),
+					Headers:     mcpServer.Headers,
+				},
+			}
+			tools = append(tools, mcpServerToolParam)
+		}
+	}
+
+	// Set tools if any are configured
+	if len(tools) > 0 {
+		apiParams.Tools = tools
+	}
+
+	return apiParams, nil
+}
+
+// CreateResponse creates an AI response using the specified parameters.
+func (c *LlamaStackClient) CreateResponse(ctx context.Context, params CreateResponseParams) (*responses.Response, error) {
+	apiParams, err := c.prepareResponseParams(params)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := c.client.Responses.New(ctx, *apiParams)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create response: %w", err)
 	}
 
 	return response, nil
+}
+
+// CreateResponseStream creates an AI response stream using the specified parameters.
+func (c *LlamaStackClient) CreateResponseStream(ctx context.Context, params CreateResponseParams) (*ssestream.Stream[responses.ResponseStreamEventUnion], error) {
+	apiParams, err := c.prepareResponseParams(params)
+	if err != nil {
+		return nil, err
+	}
+
+	stream := c.client.Responses.NewStreaming(ctx, *apiParams)
+	return stream, nil
 }

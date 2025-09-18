@@ -7,10 +7,12 @@ import FeatureStoreProjectSelectorNavigator from '../components/FeatureStoreProj
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import useFeatureStoreEntities from '../../apiHooks/useFeatureStoreEnitites';
 import { featureStoreRoute } from '../../routes';
+import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
+import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
 
 const title = 'Entities';
 const description =
-  'Select a workspace to view and manage its entities. Entities are collections of related features and can be mapped to the domain of your use case.';
+  'Select a feature store repository to view and manage its entities. Entities are collections of related features and can be mapped to your use case (for example, customers, products, transactions).';
 
 const FeatureStoreEntities = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -28,7 +30,7 @@ const FeatureStoreEntities = (): React.ReactElement => {
       data-testid="empty-state-title"
     >
       <EmptyStateBody data-testid="empty-state-body">
-        No entities have been found in this project.
+        Select a different feature store repository or create a entities in a workbench.
       </EmptyStateBody>
     </EmptyState>
   );
@@ -37,7 +39,18 @@ const FeatureStoreEntities = (): React.ReactElement => {
     <ApplicationsPage
       empty={entities.entities.length === 0}
       emptyStatePage={emptyState}
-      title={title}
+      title={
+        <FeatureStorePageTitle
+          title={
+            <FeatureStoreObjectIcon
+              objectType="entity"
+              title={title}
+              showBackground
+              useTypedColors
+            />
+          }
+        />
+      }
       description={description}
       loadError={entitiesLoadError}
       loaded={entitiesLoaded}

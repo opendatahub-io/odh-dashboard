@@ -22,7 +22,7 @@ const FeatureStoreProjectSelector: React.FC<FeatureStoreProjectSelectorProps> = 
     (project) => project.spec.name === featureStoreProject,
   );
 
-  const selectionName = featureStoreProject || 'All projects';
+  const selectionName = featureStoreProject || 'All repositories';
   const bySearchText = React.useCallback(
     (project: FeatureStoreProject) =>
       !searchText || project.spec.name.toLowerCase().includes(searchText.toLowerCase()),
@@ -39,7 +39,7 @@ const FeatureStoreProjectSelector: React.FC<FeatureStoreProjectSelectorProps> = 
       isFullWidth
       minWidth="250px"
       searchFocusOnOpen
-      searchPlaceholder="Feature store project name"
+      searchPlaceholder="Feature store repository name"
       onSearchChange={(value) => setSearchText(value)}
       onSearchClear={() => setSearchText('')}
       searchValue={searchText}
@@ -53,7 +53,7 @@ const FeatureStoreProjectSelector: React.FC<FeatureStoreProjectSelectorProps> = 
             onSelection(featureStoreObject);
           }}
         >
-          All projects
+          All repositories
         </MenuItem>
         <Divider component="li" />
         {filteredProjects.length === 0 && <MenuItem isDisabled>No matching results</MenuItem>}
@@ -75,7 +75,7 @@ const FeatureStoreProjectSelector: React.FC<FeatureStoreProjectSelectorProps> = 
   return (
     <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
       <FlexItem>
-        <Bullseye>Feature store projects</Bullseye>
+        <Bullseye>Feature store repository</Bullseye>
       </FlexItem>
       <FlexItem>{selector}</FlexItem>
     </Flex>

@@ -6,7 +6,6 @@ commonLabels:
 resources:
   - ../common
   - ../modular-architecture
-# - ../core-bases/base
   - ../core-bases/consolelink
 configMapGenerator:
   - name: odh-dashboard-params

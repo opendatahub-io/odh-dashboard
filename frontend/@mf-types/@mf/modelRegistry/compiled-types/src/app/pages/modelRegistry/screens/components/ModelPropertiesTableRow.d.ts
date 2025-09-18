@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { KeyValuePair, EitherNotBoth } from 'mod-arch-shared';
+import { KeyValuePair, EitherNotBoth } from 'mod-arch-core';
 type ModelPropertiesTableRowProps = {
     allExistingKeys: string[];
     setIsEditing: (isEditing: boolean) => void;

@@ -10,16 +10,25 @@ help: ## Display this help message
 dev-install-dependencies: ## Install dependencies for frontend
 	cd frontend && npm install
 
+.PHONY: dev-bff-mock
+dev-bff-mock: ## Run only the bff in development mode
+	cd bff && make run MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true AUTH_TOKEN=FAKE_BEARER_TOKEN
+
 .PHONY: dev-bff
-dev-bff: ## Run only the bff in development mode
-	cd bff && make run MOCK_LS_CLIENT=true PATH_PREFIX="/gen-ai"
+dev-bff:
+	cd bff && make run MOCK_LS_CLIENT=true
+
 
 .PHONY: dev-frontend
 dev-frontend: ## Run only the frontend in development mode
-	cd frontend && URL_PREFIX='/gen-ai' PORT=9002 npm run start:dev
+	cd frontend && npm run start:dev
+
+.PHONY: dev-start-mock
+dev-start-mock: ## Run both frontend and bff in development mode
+	make -j 2 dev-bff-mock dev-frontend
 
 .PHONY: dev-start
-dev-start: ## Run both frontend and bff in development mode
+dev-start:
 	make -j 2 dev-bff dev-frontend
 
 clean: ## Clean build artifacts and node_modules

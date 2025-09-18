@@ -37,6 +37,13 @@ const mockDeploymentWizardState = (
           data: undefined,
           setData: jest.fn(),
         },
+        modelLocationData: {
+          data: undefined,
+          setData: jest.fn(),
+          connections: [],
+          setSelectedConnection: jest.fn(),
+          selectedConnection: undefined,
+        },
         k8sNameDesc: {
           data: mockK8sNameDescriptionFieldData(),
           onDataChange: jest.fn(),
@@ -61,6 +68,26 @@ const mockDeploymentWizardState = (
           error: undefined,
           loaded: true,
         },
+        externalRoute: {
+          data: undefined,
+          setData: jest.fn(),
+          updateField: jest.fn(),
+        },
+        tokenAuthentication: {
+          data: undefined,
+          setData: jest.fn(),
+          updateField: jest.fn(),
+        },
+      },
+      data: {
+        externalRouteField: undefined,
+        tokenAuthenticationField: undefined,
+      },
+      handlers: {
+        setExternalRoute: jest.fn(),
+        updateExternalRoute: jest.fn(),
+        setTokenAuthentication: jest.fn(),
+        updateTokenAuthentication: jest.fn(),
       },
     },
     overrides,
@@ -123,9 +150,10 @@ describe('ModelSourceStep', () => {
         <ModelSourceStepContent
           wizardState={mockDeploymentWizardState()}
           validation={mockValidation}
+          connections={[]}
         />,
       );
-      expect(screen.getByRole('button')).toBeInTheDocument();
+      expect(screen.getByTestId('model-type-select')).toBeInTheDocument();
     });
 
     it('should render with selected model type', () => {
@@ -140,6 +168,7 @@ describe('ModelSourceStep', () => {
         <ModelSourceStepContent
           wizardState={wizardDataWithSelection}
           validation={mockValidation}
+          connections={[]}
         />,
       );
       expect(screen.getByText('Generative AI model (e.g. LLM)')).toBeInTheDocument();

@@ -98,6 +98,7 @@ export const uriToConnectionTypeName = (uri?: string): string => {
 
 export const getDeployButtonState = (
   availablePlatformIds: string[],
+  requireKserve: boolean = false,
 ): { enabled?: boolean; tooltip?: string } => {
   if (availablePlatformIds.length === 0) {
     return {
@@ -107,7 +108,7 @@ export const getDeployButtonState = (
   }
 
   // TODO: add OCI check when OCI model serving is supported
-  if (!availablePlatformIds.includes('kserve')) {
+  if (requireKserve && !availablePlatformIds.includes('kserve')) {
     return {
       enabled: false,
       tooltip: DEPLOY_BUTTON_TOOLTIP.ENABLE_SINGLE_MODEL_SERVING,

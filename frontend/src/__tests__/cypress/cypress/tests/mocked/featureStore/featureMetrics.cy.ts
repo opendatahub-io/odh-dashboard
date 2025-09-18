@@ -41,7 +41,7 @@ const initCommonIntercepts = () => {
 
   cy.intercept(
     'GET',
-    '/api/k8s/apis/feast.dev/v1alpha1/featurestores?labelSelector=feature-store-ui%3Denabled',
+    `/api/k8s/apis/feast.dev/v1alpha1/namespaces/${k8sNamespace}/featurestores?labelSelector=feature-store-ui%3Denabled`,
     {
       items: [mockFeatureStore({ name: fsName, namespace: k8sNamespace })],
     },
@@ -243,7 +243,7 @@ describe('Feature Store Metrics Overview', () => {
 
   it('should display metrics overview page with correct title and content', () => {
     featureStoreGlobal.visitOverview(fsProjectName);
-    featureStoreGlobal.findHeading().should('have.text', 'Feature store');
+    featureStoreGlobal.findHeading().should('have.text', 'Feature store overview');
     featureStoreGlobal.findProjectSelector().should('exist');
     featureStoreGlobal.findProjectSelector().click();
     featureStoreGlobal.findProjectSelectorDropdown().should('contain.text', fsProjectName);
