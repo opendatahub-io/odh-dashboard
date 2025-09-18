@@ -130,7 +130,7 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
       >
         <LineageTaskPill
           element={element}
-          onSelect={() => undefined} // Disable default selection
+          onSelect={undefined}
           selected={selected}
           scaleNode={hover && detailsLevel !== ScaleDetailsLevel.high}
           status={RunStatus.Idle}
