@@ -10,6 +10,7 @@ import {
 import {
   AcceleratorProfileModel,
   ConfigMapModel,
+  HardwareProfileModel,
   InferenceServiceModel,
   NIMAccountModel,
   ProjectModel,
@@ -30,6 +31,7 @@ import {
   mockNvidiaNimImagePullSecret,
 } from '#~/__mocks__/mockNimResource';
 import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
+import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import type { InferenceServiceKind } from '#~/k8sTypes';
 import { mockNimAccount } from '#~/__mocks__/mockNimAccount';
 import { mockOdhApplication } from '#~/__mocks__/mockOdhApplication';
@@ -86,6 +88,18 @@ export const initInterceptsToEnableNim = ({ hasAllModels = false }: EnableNimCon
   cy.interceptK8sList(
     AcceleratorProfileModel,
     mockK8sResourceList([mockAcceleratorProfile({ namespace: 'opendatahub' })]),
+  );
+
+  // Mock hardware profiles
+  cy.interceptK8sList(
+    { model: HardwareProfileModel, ns: 'opendatahub' },
+    mockK8sResourceList([
+      mockHardwareProfile({
+        name: 'migrated-gpu-mglzi-serving',
+        displayName: 'Migrated GPU',
+        namespace: 'opendatahub',
+      }),
+    ]),
   );
 
   cy.interceptOdh('GET /api/accelerators', {
