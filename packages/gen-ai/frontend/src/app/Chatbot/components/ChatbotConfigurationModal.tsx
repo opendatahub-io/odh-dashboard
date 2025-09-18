@@ -19,18 +19,19 @@ type ChatbotConfigurationModalProps = {
 
 const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({ onClose }) => {
   const { namespace } = React.useContext(GenAiContext);
-  const [isRunning, setIsRunning] = React.useState(true);
-  const { data: lsdStatus } = useFetchLSDStatus(namespace?.name, !isRunning);
+  const [activelyRefreshing, setActivelyRefreshing] = React.useState(true);
+  const { data: lsdStatus } = useFetchLSDStatus(namespace?.name, activelyRefreshing);
 
   React.useEffect(() => {
-    setIsRunning(lsdStatus?.phase === 'Running');
+    setActivelyRefreshing(lsdStatus?.phase === 'Initializing');
   }, [lsdStatus]);
 
+  // TODO: Add Failed status
   return (
     <Modal isOpen onClose={onClose} variant="medium" style={{ textAlign: 'center' }}>
       <ModalBody>
         <Stack hasGutter>
-          {isRunning ? (
+          {lsdStatus?.phase === 'Ready' ? (
             <>
               <StackItem>
                 <Icon iconSize="2xl" size="2xl" status="success">
