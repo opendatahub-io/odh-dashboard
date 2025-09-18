@@ -733,6 +733,7 @@ describe('Deploy model version', () => {
           annotations: {
             'opendatahub.io/connection-type': 'oci-v1',
             'openshift.io/display-name': 'Test Secret',
+            'opendatahub.io/connections': 'test-secret',
           },
           data: {
             '.dockerconfigjson': 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw',
