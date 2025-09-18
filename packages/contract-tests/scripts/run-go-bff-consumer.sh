@@ -136,6 +136,10 @@ fi
 
 mkdir -p "$RESULTS_DIR"
 
+# Create a symlink for CI to easily find current results
+CURRENT_LINK="$CONSUMER_DIR/contract-tests/contract-test-results/current"
+ln -sf "$RESULTS_DIR" "$CURRENT_LINK" 2>/dev/null || true
+
 export JEST_HTML_REPORTERS_PUBLIC_PATH="$RESULTS_DIR"
 export JEST_HTML_REPORTERS_FILE_NAME="contract-test-report.html"
 export JEST_HTML_REPORTERS_EXPAND=true
@@ -144,9 +148,6 @@ export JEST_HTML_REPORTERS_JSON=true
 export PACKAGE_NAME="$PACKAGE_NAME"
 export CONTRACT_TEST_RESULTS_DIR="$RESULTS_DIR"
 export CONTRACT_TEST_MODULE="$PACKAGE_NAME"
-
-# Export for CI artifact upload - only current run's directory
-export CONTRACT_TEST_CURRENT_RESULTS_DIR="$RESULTS_DIR"
 
 # Ensure Go is present
 if ! command -v go >/dev/null 2>&1; then
