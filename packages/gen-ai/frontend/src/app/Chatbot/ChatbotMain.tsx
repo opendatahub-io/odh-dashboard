@@ -125,7 +125,8 @@ const ChatbotMain: React.FunctionComponent = () => {
       }
       loadError={lsdStatusError || modelsError}
       headerAction={
-        isViewCodeDisabled ? (
+        lsdStatus &&
+        (isViewCodeDisabled ? (
           <Tooltip content={getDisabledReason()}>
             <Button
               variant="secondary"
@@ -140,12 +141,12 @@ const ChatbotMain: React.FunctionComponent = () => {
           <Button
             variant="secondary"
             aria-label="View generated code"
-            onClick={() => setIsViewCodeModalOpen(true)}
             icon={<CodeIcon />}
+            onClick={() => setIsViewCodeModalOpen(true)}
           >
             View Code
           </Button>
-        )
+        ))
       }
     >
       <ChatbotSourceSettingsModal

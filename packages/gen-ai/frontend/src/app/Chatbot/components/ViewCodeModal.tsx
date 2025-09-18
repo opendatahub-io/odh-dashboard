@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 import * as React from 'react';
 import {
   Modal,
@@ -11,9 +10,9 @@ import {
   Bullseye,
 } from '@patternfly/react-core';
 import { CodeEditor, Language } from '@patternfly/react-code-editor';
-import { useParams } from 'react-router-dom';
 import { exportCode } from '~/app/services/llamaStackService';
 import { CodeExportRequest } from '~/app/types';
+import { GenAiContext } from '~/app/context/GenAiContext';
 
 interface ViewCodeModalProps {
   isOpen: boolean;
@@ -33,15 +32,16 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
   const [code, setCode] = React.useState<string>('');
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string>('');
-  const { namespace } = useParams();
+  const { namespace } = React.useContext(GenAiContext);
 
   const handleExportCode = React.useCallback(async () => {
     setIsLoading(true);
     setError('');
     setCode('');
 
-    if (!namespace) {
+    if (!namespace?.name) {
       setError('Namespace is required');
+      setIsLoading(false);
       return;
     }
 
@@ -53,14 +53,14 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
         stream: false,
       };
 
-      const response = await exportCode(request, namespace);
+      const response = await exportCode(request, namespace.name);
       setCode(response.data.code);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to export code');
     } finally {
       setIsLoading(false);
     }
-  }, [input, model, namespace, systemInstruction]);
+  }, [input, model, namespace?.name, systemInstruction]);
 
   React.useEffect(() => {
     if (isOpen) {
