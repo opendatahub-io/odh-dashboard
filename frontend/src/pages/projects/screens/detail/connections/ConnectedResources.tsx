@@ -10,7 +10,6 @@ import ResourceLabel from '#~/pages/projects/screens/detail/connections/Resource
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { useInferenceServicesForConnection } from '#~/pages/projects/useInferenceServicesForConnection';
 import { PersistentVolumeClaimKind } from '#~/k8sTypes';
-import { isModelStorage } from '#~/pages/projects/screens/detail/storage/utils';
 import { EitherNotBoth } from '#~/typeHelpers';
 
 export type ConnectedResourcesProps = EitherNotBoth<
@@ -25,19 +24,14 @@ const ConnectedResources: React.FC<ConnectedResourcesProps> = ({ connection, pvc
       : ConnectedNotebookContext.EXISTING_PVC,
     connection ? connection.metadata.name : pvc.metadata.name,
   );
-  const modelName = React.useMemo(
-    () => pvc?.metadata.annotations?.['dashboard.opendatahub.io/model-name'],
-    [pvc],
-  );
-  const modelStorage = React.useMemo(() => (pvc ? isModelStorage(pvc) : false), [pvc]);
-  const connectedModels = useInferenceServicesForConnection(connection);
+  const connectedModels = useInferenceServicesForConnection(connection ?? pvc);
 
   if (!notebooksLoaded) {
     return <Spinner size="sm" />;
   }
 
-  if (!connectedNotebooks.length && !connectedModels.length && !modelStorage) {
-    return '-';
+  if (!connectedNotebooks.length && !connectedModels.length) {
+    return '--';
   }
 
   const renderNotebookLabels = () =>
@@ -46,6 +40,7 @@ const ConnectedResources: React.FC<ConnectedResourcesProps> = ({ connection, pvc
         key={notebook.metadata.name}
         resourceType={ProjectObjectType.build}
         title={getDisplayNameFromK8sResource(notebook)}
+        outlineColor="teal"
       />
     ));
 
@@ -53,25 +48,16 @@ const ConnectedResources: React.FC<ConnectedResourcesProps> = ({ connection, pvc
     connectedModels.map((model) => (
       <ResourceLabel
         key={model.metadata.name}
-        resourceType={ProjectObjectType.deployedModelsList}
+        resourceType={ProjectObjectType.connectedModels}
         title={getDisplayNameFromK8sResource(model)}
+        outlineColor="purple"
       />
     ));
-
-  const renderPVCModelLabel = () =>
-    modelStorage ? (
-      <ResourceLabel
-        key={modelName ?? 'Unknown model name'}
-        resourceType={ProjectObjectType.deployedModelsList}
-        title={modelName ?? 'Unknown model name'}
-      />
-    ) : null;
 
   return (
     <LabelGroup>
       {renderNotebookLabels()}
       {renderModelLabels()}
-      {renderPVCModelLabel()}
     </LabelGroup>
   );
 };

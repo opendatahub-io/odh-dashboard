@@ -3,7 +3,11 @@ import YAML from 'yaml';
 import axios from '#~/utilities/axios';
 import { assembleServingRuntimeTemplate } from '#~/api';
 import { ServingRuntimeKind, TemplateKind } from '#~/k8sTypes';
-import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '#~/types';
+import {
+  ServingRuntimeAPIProtocol,
+  ServingRuntimePlatform,
+  ServingRuntimeModelType,
+} from '#~/types';
 import { addTypesToK8sListedResources } from '#~/utilities/addTypesToK8sListedResources';
 
 export const listTemplatesBackend = async (
@@ -33,9 +37,16 @@ export const createServingRuntimeTemplateBackend = async (
   namespace: string,
   platforms: ServingRuntimePlatform[],
   apiProtocol: ServingRuntimeAPIProtocol | undefined,
+  modelTypes: ServingRuntimeModelType[],
 ): Promise<TemplateKind> => {
   try {
-    const template = assembleServingRuntimeTemplate(body, namespace, platforms, apiProtocol);
+    const template = assembleServingRuntimeTemplate(
+      body,
+      namespace,
+      platforms,
+      apiProtocol,
+      modelTypes,
+    );
     const servingRuntime = template.objects[0];
     const servingRuntimeName = servingRuntime.metadata.name;
 
@@ -64,6 +75,7 @@ export const updateServingRuntimeTemplateBackend = (
   namespace: string,
   platforms: ServingRuntimePlatform[],
   apiProtocol: ServingRuntimeAPIProtocol | undefined,
+  modelTypes: ServingRuntimeModelType[],
 ): Promise<TemplateKind> => {
   try {
     const { name } = existingTemplate.metadata;
@@ -77,6 +89,9 @@ export const updateServingRuntimeTemplateBackend = (
         `Cannot change serving runtime name (original: "${servingRuntimeName}", updated: "${servingRuntime.metadata.name}").`,
       );
     }
+
+    const runtimeModelTypeValue = modelTypes.length > 0 ? JSON.stringify(modelTypes) : null;
+
     return dryRunServingRuntimeForTemplateCreationBackend(servingRuntime, namespace).then(() =>
       axios
         .patch<TemplateKind>(`/api/templates/${namespace}/${name}`, [
@@ -98,6 +113,28 @@ export const updateServingRuntimeTemplateBackend = (
                   'opendatahub.io/modelServingSupport': JSON.stringify(platforms),
                 },
               },
+          ...(existingTemplate.metadata.annotations?.['opendatahub.io/model-type']
+            ? [
+                runtimeModelTypeValue
+                  ? {
+                      op: 'replace',
+                      path: '/metadata/annotations/opendatahub.io~1model-type',
+                      value: runtimeModelTypeValue,
+                    }
+                  : {
+                      op: 'remove',
+                      path: '/metadata/annotations/opendatahub.io~1model-type',
+                    },
+              ]
+            : runtimeModelTypeValue
+            ? [
+                {
+                  op: 'add',
+                  path: '/metadata/annotations/opendatahub.io~1modelServingType',
+                  value: runtimeModelTypeValue,
+                },
+              ]
+            : []),
           existingTemplate.metadata.annotations?.['opendatahub.io/apiProtocol']
             ? {
                 op: 'replace',

@@ -19,6 +19,11 @@ import chaiSubset from 'chai-subset';
 import '@cypress/code-coverage/support';
 import 'cypress-mochawesome-reporter/register';
 import 'cypress-plugin-steps';
+import {
+  type ModuleFederationConfig,
+  MF_PATH_PREFIX,
+  getModuleFederationURL,
+} from '@odh-dashboard/app-config';
 import './commands';
 import '#~/__tests__/cypress/cypress/utils/moduleFederationMock';
 import { asProjectAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
@@ -105,23 +110,21 @@ Cypress.Keyboard.defaults({
   keystrokeDelay: 0,
 });
 
-// Handle ChunkLoadError - ignore these errors as they are usually due to code splitting issues during development
+// Uncaught exceptions handler
 Cypress.on('uncaught:exception', (err) => {
-  // Returning false here prevents Cypress from failing the test
+  // Handle ChunkLoadError - ignore these errors as they are usually due to code splitting issues during development
   if (err.name === 'ChunkLoadError') {
     // eslint-disable-next-line no-console
     console.warn('ChunkLoadError caught and ignored:', err.message);
     return false;
   }
-  // Let other errors fail the test as expected
-  return true;
-});
 
-// Ignore 'Unexpected token <' errors from webpack-dev-server fallback in E2E tests
-Cypress.on('uncaught:exception', (err) => {
+  // Ignore 'Unexpected token <' errors from webpack-dev-server fallback in E2E tests
   if (err.message.includes("Unexpected token '<'")) {
     return false;
   }
+
+  // Let all other errors (including timeout errors) fail the test as expected
   return true;
 });
 
@@ -260,7 +263,7 @@ before(function setupGlobalIntercepts() {
   }
 });
 
-// Root-level before hook to skip suite if no tests match grep tags
+// Root-level before hook to skip suite if no tests match grep tags or if all tests should be skipped
 before(function checkGrepTags() {
   if (grepTags.length > 0) {
     // Collect all test tags
@@ -270,6 +273,16 @@ before(function checkGrepTags() {
       return allTestTags.some((t: string) => t === tag || t === `@${plainTag}`);
     });
     if (!hasMatchingTest) {
+      this.skip();
+    }
+  }
+
+  // Check if all tests should be skipped based on skip tags
+  if (skipTags.length > 0 && Object.keys(Cypress.testTags).length > 0) {
+    const allTestsShouldBeSkipped = Object.values(Cypress.testTags).every((testTags) =>
+      skipTags.some((tag: string) => mapTestTags(testTags).includes(tag)),
+    );
+    if (allTestsShouldBeSkipped) {
       this.skip();
     }
   }
@@ -338,6 +351,40 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
     // Return 404 for all module federation requests.
     cy.intercept({ pathname: '/_mf/**' }, { statusCode: 404 });
 
+    // For each module federation config, intercept the request and forward it to the module federation server.
+    Cypress.env('mfConfigs')?.forEach((mfConfig: ModuleFederationConfig) => {
+      const mfPathPrefix = `${MF_PATH_PREFIX}/${mfConfig.name}`;
+      cy.intercept(
+        {
+          pathname: `${mfPathPrefix}/**`,
+          method: 'GET',
+        },
+        async (req) => {
+          // Extract the remainder of the URL after the module federation prefix
+          const originalPath = req.url;
+          const remainder = originalPath.replace(new RegExp(`^.*${mfPathPrefix}`), '');
+
+          // Construct the forwarded URL
+          const baseUrl = getModuleFederationURL(mfConfig).local;
+          const forwardedUrl = `${baseUrl}${remainder}`;
+
+          try {
+            // Use fetch as oppose to req.continue or cy.request to ECONNREFUSED errors.
+            const response = await fetch(forwardedUrl);
+            req.reply({
+              statusCode: response.status,
+              body: await response.text(),
+            });
+          } catch (error) {
+            req.reply({
+              statusCode: 404,
+              statusText: 'Module federation request failed',
+            });
+          }
+        },
+      );
+    });
+
     // Default intercepts.
     cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
     asProjectAdminUser();
@@ -346,7 +393,9 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
 
 // Handle skipped suites in afterEach hook
 afterEach(function afterEachHook(this: Mocha.Context) {
-  if (!this.currentTest) return;
+  if (!this.currentTest) {
+    return;
+  }
 
   const suiteTitle = this.currentTest.parent?.title;
   if (suiteTitle && Cypress.skippedSuites.has(suiteTitle)) {

@@ -19,7 +19,7 @@ const SelectMultiModelCard: React.FC<SelectMultiModelCardProps> = ({
       objectType={ProjectObjectType.multiModel}
       sectionType={SectionType.serving}
       title="Multi-model serving platform"
-      data-testid="multi-serving-platform-card"
+      data-testid="model-mesh-platform-card"
     >
       <CardBody>
         <Content component="small">
@@ -35,7 +35,7 @@ const SelectMultiModelCard: React.FC<SelectMultiModelCardProps> = ({
           setError={setErrorSelectingPlatform}
           variant="link"
           isInline
-          data-testid="multi-serving-select-button"
+          data-testid="model-mesh-select-button"
         />
       </CardFooter>
     </OverviewCard>

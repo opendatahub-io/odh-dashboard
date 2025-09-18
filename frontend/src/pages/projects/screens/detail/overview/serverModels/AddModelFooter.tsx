@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Button, CardFooter, Flex } from '@patternfly/react-core';
+import { CardFooter, Flex } from '@patternfly/react-core';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import ModelServingPlatformButtonAction from '#~/pages/modelServing/screens/projects/ModelServingPlatformButtonAction';
 import { ServingRuntimePlatform } from '#~/types';
@@ -13,8 +12,8 @@ import { getProjectModelServingPlatform } from '#~/pages/modelServing/screens/pr
 import ManageServingRuntimeModal from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/ManageServingRuntimeModal';
 import ManageKServeModal from '#~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
-import { modelVersionRoute } from '#~/routes/modelRegistry/modelVersions';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
+import { NavigateBackToRegistryButton } from '#~/concepts/modelServing/NavigateBackToRegistryButton.tsx';
 
 type AddModelFooterProps = {
   selectedPlatform?: ServingRuntimePlatform;
@@ -22,8 +21,6 @@ type AddModelFooterProps = {
 };
 
 const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform, isNIM }) => {
-  const navigate = useNavigate();
-
   const [modalShown, setModalShown] = React.useState<boolean>(false);
   const servingPlatformStatuses = useServingPlatformStatuses();
 
@@ -62,13 +59,6 @@ const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform, isNIM
     }
   };
 
-  const [queryParams] = useSearchParams();
-  const modelRegistryName = queryParams.get('modelRegistryName');
-  const registeredModelId = queryParams.get('registeredModelId');
-  const modelVersionId = queryParams.get('modelVersionId');
-  // deployingFromRegistry = User came from the Model Registry page because this project didn't have a serving platform selected
-  const deployingFromRegistry = modelRegistryName && registeredModelId && modelVersionId;
-
   return (
     <CardFooter>
       <Flex gap={{ default: 'gapMd' }}>
@@ -80,19 +70,7 @@ const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform, isNIM
           isInline
           testId="model-serving-platform-button"
         />
-        {deployingFromRegistry &&
-          !isProjectModelMesh && ( // For modelmesh we don't want to offer this until there is a model server
-            <Button
-              variant="link"
-              isInline
-              onClick={() => {
-                navigate(modelVersionRoute(modelVersionId, registeredModelId, modelRegistryName));
-              }}
-              data-testid="deploy-from-registry"
-            >
-              Deploy model from model registry
-            </Button>
-          )}
+        {!isProjectModelMesh && <NavigateBackToRegistryButton />}
       </Flex>
       {modalShown && isProjectModelMesh && !isNIM ? (
         <ManageServingRuntimeModal

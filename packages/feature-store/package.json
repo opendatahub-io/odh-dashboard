@@ -1,0 +1,40 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/feature-store",
+  "description": "Feature store plugin for managing feature engineering and data pipelines.",
+  "version": "0.0.0",
+  "scripts": {
+    "lint": "eslint .",
+    "test-unit": "jest --silent",
+    "test-unit-coverage": "jest --silent --coverage",
+    "type-check": "tsc --noEmit"
+  },
+  "exports": {
+    "./extensions": "./extensions.ts",
+    "./mocks/*": [
+      "./src/__mocks__/*",
+      "./src/__mocks__/*.ts"
+    ],
+    "./types/*": [
+      "./src/types/*",
+      "./src/types/*.ts"
+    ],
+    "./screens/lineage/*": [
+      "./src/screens/lineage/*",
+      "./src/screens/lineage/*.ts",
+      "./src/screens/lineage/*.tsx"
+    ],
+    "./routes": [
+      "./src/routes.ts"
+    ]
+  },
+  "dependencies": {
+    "@odh-dashboard/internal": "*",
+    "@odh-dashboard/plugin-core": "*"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
+    "@odh-dashboard/tsconfig": "*"
+  }
+}

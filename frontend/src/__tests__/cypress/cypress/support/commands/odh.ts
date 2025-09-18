@@ -1,5 +1,20 @@
 import type { K8sResourceListResult, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import type { GenericStaticResponse, RouteHandlerController } from 'cypress/types/net-stubbing';
+import type {
+  FeatureService,
+  FeatureServicesList,
+} from '@odh-dashboard/feature-store/types/featureServices';
+import type {
+  MetricsCountResponse,
+  PopularTagsResponse,
+  RecentlyVisitedResponse,
+} from '@odh-dashboard/feature-store/types/metrics';
+import type { DataSetList, DataSet } from '@odh-dashboard/feature-store/types/dataSets';
+import type { GlobalSearchResponse } from '@odh-dashboard/feature-store/types/search';
+import type { FeatureViewsList } from '@odh-dashboard/feature-store/types/featureView';
+import type { EntityList } from '@odh-dashboard/feature-store/types/entities';
+import type { ProjectList } from '@odh-dashboard/feature-store/types/featureStoreProjects';
+import type { DataSource, DataSourceList } from '@odh-dashboard/feature-store/types/dataSources';
 import type { BaseMetricCreationResponse, BaseMetricListResponse } from '#~/api';
 import type {
   ModelArtifact,
@@ -25,7 +40,6 @@ import type {
   ServingRuntimeKind,
   TemplateKind,
 } from '#~/k8sTypes';
-
 import type { StartNotebookData } from '#~/pages/projects/types';
 import type { AllowedUser } from '#~/pages/notebookController/screens/admin/types';
 import type { StatusResponse } from '#~/redux/types';
@@ -60,8 +74,6 @@ import type { NimServingResponse } from '#~/__mocks__/mockNimResource';
 import type { BuildMockPipelinveVersionsType } from '#~/__mocks__';
 import type { ArtifactStorage } from '#~/concepts/pipelines/types';
 import type { ConnectionTypeConfigMap } from '#~/concepts/connectionTypes/types';
-import type { ProjectList } from '#~/pages/featureStore/types/featureStoreProjects';
-import type { FeatureViewsList } from '#~/pages/featureStore/types/featureView';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -796,7 +808,7 @@ declare global {
           response: OdhResponse<ProjectList>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/k8s/apis/feast.dev/v1alpha1/featurestores',
+          type: 'GET /api/k8s/apis/feast.dev/v1alpha1/namespaces/*/featurestores',
           options: {
             query?: { labelSelector: string };
           },
@@ -807,11 +819,112 @@ declare global {
           response: OdhResponse<ProjectList>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/feature_views',
+          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/features',
           options: {
             path: { namespace: string; serviceName: string; apiVersion: string };
           },
           response: OdhResponse<FeatureViewsList>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/entities',
+          options: {
+            path: { namespace: string; serviceName: string; apiVersion: string };
+          },
+          response: OdhResponse<EntityList>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/feature_views',
+          options: { path: { namespace: string; serviceName: string; apiVersion: string } },
+          response: OdhResponse<FeatureViewsList>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/feature_services',
+          options: {
+            path: { namespace: string; serviceName: string; apiVersion: string };
+          },
+          response: OdhResponse<FeatureServicesList>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/feature_services/:featureServiceName',
+          options: {
+            path: {
+              namespace: string;
+              serviceName: string;
+              apiVersion: string;
+              featureServiceName: string;
+            };
+          },
+          response: OdhResponse<FeatureService>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/metrics/recently_visited',
+          options: {
+            path: { namespace: string; serviceName: string; apiVersion: string };
+            query?: { project?: string; limit?: string };
+          },
+          response: OdhResponse<RecentlyVisitedResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/metrics/popular_tags',
+          options: {
+            path: { namespace: string; serviceName: string; apiVersion: string };
+            query?: { project?: string; limit?: string };
+          },
+          response: OdhResponse<PopularTagsResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/metrics/resource_counts',
+          options: {
+            path: { namespace: string; serviceName: string; apiVersion: string };
+            query?: { project?: string };
+          },
+          response: OdhResponse<MetricsCountResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/data_sets',
+          options: { path: { namespace: string; serviceName: string; apiVersion: string } },
+          response: OdhResponse<DataSetList>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/saved_datasets',
+          options: { path: { namespace: string; serviceName: string; apiVersion: string } },
+          response: OdhResponse<DataSetList>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/saved_datasets/:dataSetName',
+          options: {
+            path: {
+              namespace: string;
+              serviceName: string;
+              apiVersion: string;
+              dataSetName: string;
+            };
+          },
+          response: OdhResponse<DataSet>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/data_sources',
+          options: {
+            path: { namespace: string; serviceName: string; apiVersion: string };
+          },
+          response: OdhResponse<DataSourceList>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/data_sources/:dataSourceName',
+          options: {
+            path: {
+              namespace: string;
+              serviceName: string;
+              apiVersion: string;
+              dataSourceName: string;
+            };
+          },
+          response: OdhResponse<DataSource>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/search',
+          options: { path: { namespace: string; serviceName: string; apiVersion: string } },
+          response: OdhResponse<GlobalSearchResponse>,
         ) => Cypress.Chainable<null>);
     }
   }

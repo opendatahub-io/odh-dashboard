@@ -70,9 +70,9 @@ const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = 
 
   return (
     <DeleteModal
-      title="Delete deployed model?"
+      title="Delete model deployment?"
       onClose={() => onBeforeClose(false)}
-      submitButtonLabel="Delete deployed model"
+      submitButtonLabel="Delete model deployment"
       onDelete={onDelete}
       deleting={isDeleting}
       error={error}

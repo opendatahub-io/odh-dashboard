@@ -4,6 +4,10 @@ metadata:
   name: {{POD_NAME}}
   namespace: {{NAMESPACE}}
 spec:
+  securityContext:
+    runAsUser: 1001
+    runAsGroup: 1001
+    fsGroup: 1001
   containers:
     - name: s3-downloader
       image: amazon/aws-cli
@@ -12,7 +16,11 @@ spec:
         - |
           set -e
           echo "Starting S3 copy from s3://{{AWS_S3_BUCKET}}/{{MODEL_PATH}} to /mnt/models/"
-
+          
+          # Fix permissions on the mount point
+          echo "Setting permissions on /mnt/models"
+          chmod 777 /mnt/models || echo "chmod failed, continuing anyway"
+          
           MAX_RETRIES=3
           COUNT=0
 

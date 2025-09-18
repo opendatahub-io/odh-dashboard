@@ -17,6 +17,7 @@ import {
   getSubmitServingRuntimeResourcesFn,
   useCreateInferenceServiceObject,
   useCreateServingRuntimeObject,
+  validateEnvVarName,
 } from '#~/pages/modelServing/screens/projects/utils';
 import {
   AccessReviewResourceAttributes,
@@ -63,11 +64,12 @@ import { KServeDeploymentModeDropdown } from '#~/pages/modelServing/screens/proj
 import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import { useKServeDeploymentMode } from '#~/pages/modelServing/useKServeDeploymentMode';
 import StorageClassSelect from '#~/pages/projects/screens/spawner/storage/StorageClassSelect';
-import useAdminDefaultStorageClass from '#~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
-import useOpenshiftDefaultStorageClass from '#~/pages/projects/screens/spawner/storage/useOpenshiftDefaultStorageClass';
+import { useDefaultStorageClass } from '#~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import { useGetStorageClassConfig } from '#~/pages/projects/screens/spawner/storage/useGetStorageClassConfig';
 import useModelServerSizeValidation from '#~/pages/modelServing/screens/projects/useModelServerSizeValidation.ts';
+import { getKServeContainerEnvVarStrs } from '#~/pages/modelServing/utils';
+import EnvironmentVariablesSection from '#~/pages/modelServing/screens/projects/kServeModal/EnvironmentVariablesSection';
 import { NoAuthAlert } from './NoAuthAlert';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
@@ -133,6 +135,10 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status ||
     createDataInferenceService.isKServeRawDeployment;
 
+  const servingRuntimeParamsEnabled = useIsAreaAvailable(
+    SupportedArea.SERVING_RUNTIME_PARAMS,
+  ).status;
+
   const [translatedName] = translateDisplayNameForK8sAndReport(createDataInferenceService.name, {
     maxLength: 253,
   });
@@ -156,10 +162,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   );
 
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
-  const odhDefaultScResult = useAdminDefaultStorageClass();
-  const openshiftDefaultSc = useOpenshiftDefaultStorageClass();
-  const odhDefaultSc = odhDefaultScResult[0];
-  const defaultSc = odhDefaultSc || openshiftDefaultSc;
+  const [defaultSc] = useDefaultStorageClass();
   const defaultStorageClassName = defaultSc?.metadata.name ?? '';
   const deployedStorageClassName = pvc?.spec.storageClassName || '';
   const [storageClassName, setStorageClassName] = React.useState(
@@ -232,7 +235,10 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     !translatedName ||
     !baseInputValueValid ||
     !podSpecOptionsState.hardwareProfile.isFormDataValid ||
-    !isExistingPvcValid; // new validation
+    !isExistingPvcValid ||
+    createDataInferenceService.servingRuntimeEnvVars?.some(
+      (envVar) => !envVar.name || !!validateEnvVarName(envVar.name),
+    );
 
   const { dashboardNamespace } = useDashboardNamespace();
   const templateName = useNIMTemplateName();
@@ -490,6 +496,13 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
               publicRoute
               showModelRoute={isAuthAvailable}
             />
+            {servingRuntimeParamsEnabled && (
+              <EnvironmentVariablesSection
+                predefinedVars={getKServeContainerEnvVarStrs(servingRuntimeSelected)}
+                data={createDataInferenceService}
+                setData={setCreateDataInferenceService}
+              />
+            )}
           </Stack>
         </Form>
       </ModalBody>

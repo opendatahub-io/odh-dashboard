@@ -106,6 +106,7 @@ type ImageStreamSpecTagAnnotations = Partial<{
   'opendatahub.io/default-image': string;
   'opendatahub.io/image-tag-outdated': string;
   'opendatahub.io/notebook-build-commit': string;
+  'openshift.io/imported-from': string;
 }>;
 
 export type NotebookAnnotations = Partial<{
@@ -148,6 +149,7 @@ export enum K8sDspaConditionReason {
   ComponentDeploymentNotFound = 'ComponentDeploymentNotFound',
   UnsupportedVersion = 'UnsupportedVersion',
   Deploying = 'Deploying',
+  NotApplicable = 'NotApplicable',
 }
 
 export type ServingRuntimeAnnotations = Partial<{
@@ -524,6 +526,7 @@ export type InferenceServiceKind = K8sResourceCommon & {
   };
   spec: {
     predictor: {
+      annotations?: Record<string, string>;
       tolerations?: Toleration[];
       nodeSelector?: NodeSelector;
       model?: {
@@ -708,6 +711,11 @@ export type DSPipelineManagedPipelinesKind = {
   };
 };
 
+export enum DSPipelineAPIServerStore {
+  KUBERNETES = 'kubernetes',
+  DATABASE = 'database',
+}
+
 export type DSPipelineKind = K8sResourceCommon & {
   metadata: {
     name: string;
@@ -723,7 +731,9 @@ export type DSPipelineKind = K8sResourceCommon & {
         name: string;
       }>;
       enableSamplePipeline: boolean;
+      cacheEnabled: boolean;
       managedPipelines?: DSPipelineManagedPipelinesKind;
+      pipelineStore?: DSPipelineAPIServerStore;
     }>;
     database?: Partial<{
       externalDB: Partial<{
@@ -1218,6 +1228,7 @@ export type TemplateKind = K8sResourceCommon & {
       'opendatahub.io/template-enabled': string;
       'opendatahub.io/modelServingSupport': string;
       'opendatahub.io/apiProtocol': string;
+      'opendatahub.io/model-type': string;
     }>;
     name: string;
     namespace: string;
@@ -1272,6 +1283,8 @@ export type DashboardCommonConfig = {
   disableLlamaStackChatBot: boolean;
   disableLMEval: boolean;
   disableKueue: boolean;
+  disableModelTraining: boolean;
+  disableDeploymentWizard: boolean;
   disableFeatureStore?: boolean;
 };
 
@@ -1294,6 +1307,7 @@ export type DashboardConfigKind = K8sResourceCommon & {
     };
     templateOrder?: string[];
     templateDisablement?: string[];
+    hardwareProfileOrder?: string[];
   };
 };
 

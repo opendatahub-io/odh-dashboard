@@ -24,10 +24,10 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('[Product Bug: RHOAIENG-30799] Verify Admin Single Model Creation and Validation using the UI', () => {
-  retryableBefore(() => {
+describe('[Product Bug: RHOAIENG-32764] Verify Admin Single Model Creation and Validation using the UI', () => {
+  retryableBefore(() =>
     // Setup: Load test data and ensure clean state
-    return loadDSPFixture('e2e/dataScienceProjects/testSingleModelAdminCreation.yaml').then(
+    loadDSPFixture('e2e/dataScienceProjects/testSingleModelAdminCreation.yaml').then(
       (fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
         projectName = `${testData.projectSingleModelAdminResourceName}-${uuid}`;
@@ -45,8 +45,8 @@ describe('[Product Bug: RHOAIENG-30799] Verify Admin Single Model Creation and V
           'resources/yaml/data_connection_model_serving.yaml',
         );
       },
-    );
-  });
+    ),
+  );
   after(() => {
     // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
     // TODO: Review this timeout once RHOAIENG-19969 is resolved

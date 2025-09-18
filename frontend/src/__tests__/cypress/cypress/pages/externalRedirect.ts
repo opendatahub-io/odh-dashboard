@@ -28,5 +28,12 @@ class PipelinesSdkRedirect {
   }
 }
 
+class ElyraRedirect {
+  findPipelinesButton() {
+    return cy.findByRole('button', { name: 'Go to Pipelines' });
+  }
+}
+
 export const externalRedirect = new ExternalRedirect();
 export const pipelinesSdkRedirect = new PipelinesSdkRedirect();
+export const elyraRedirect = new ElyraRedirect();

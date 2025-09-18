@@ -33,7 +33,7 @@ const SelectNIMCard: React.FC<SelectNIMCardProps> = ({ setErrorSelectingPlatform
           setError={setErrorSelectingPlatform}
           variant="link"
           isInline
-          data-testid="nim-serving-select-button"
+          data-testid="nvidia-nim-select-button"
         />
       </CardFooter>
     </OverviewCard>

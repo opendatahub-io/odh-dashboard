@@ -1,0 +1,477 @@
+---
+# yamllint disable rule:line-length
+name: Modular Architecture - Quality Gates
+
+'on':
+  pull_request:
+    types: [opened]
+    paths:
+      - 'packages/**'
+  workflow_dispatch:
+    inputs:
+      modules:
+        description: 'Space-separated module names to run (optional)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  NODE_VERSION: 20.x
+  PACKAGES_PATHS: packages
+
+jobs:
+  detect-changes:
+    name: Detect Module Changes
+    runs-on: ubuntu-latest
+    outputs:
+      has-changes: ${{ steps.check-changes.outputs.has-changes }}
+      changed-modules: ${{ steps.check-changes.outputs.changed-modules }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed modules
+        id: check-changes
+        run: |
+          # yamllint disable rule:line-length
+          set -euo pipefail
+          CHANGED_FILES=""
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+            echo "Fetching files changed in PR #$PR_NUMBER"
+            # Paginate through changed files (in case > 100)
+            PAGE=1
+            while : ; do
+              RESP=$(curl -sS -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/files?per_page=100&page=$PAGE")
+              PAGE_FILES=$(echo "$RESP" | jq -r '.[].filename')
+              [ -z "$PAGE_FILES" ] && break
+              CHANGED_FILES="$CHANGED_FILES $PAGE_FILES"
+              PAGE=$((PAGE+1))
+            done
+            # Check package paths
+            CHANGED_FILES=$(echo "$CHANGED_FILES" | tr ' ' '\n' | grep -E "^packages/" | cut -d'/' -f2 | sort -u | tr '\n' ' ' | sed 's/ $//')
+          else
+            # workflow_dispatch path: allow manual override via input
+            if [ -n "${{ github.event.inputs.modules }}" ]; then
+              CHANGED_FILES="${{ github.event.inputs.modules }}"
+            else
+              echo "No PR context and no modules input; nothing to do"
+            fi
+          fi
+
+          echo "Changed modules: '$CHANGED_FILES'"
+          # yamllint enable rule:line-length
+
+          # Include only structurally valid modules based on package.json analysis
+          FILTERED_MODULES=""
+          for mod in $CHANGED_FILES; do
+            # Check package paths
+            for base_path in packages; do
+              base="$base_path/$mod"
+              if [ -d "$base" ]; then
+                # Check if this is a valid module by looking for either:
+                # 1. module-federation in package.json (confirms BFF usage)
+                # 2. exports of ./extensions (confirms Mod Arch usage)
+                if [ -f "$base/package.json" ]; then
+                  HAS_MODULE_FEDERATION=false
+                  HAS_EXTENSIONS_EXPORT=false
+
+                  if jq -e 'has("module-federation")' "$base/package.json" >/dev/null 2>&1; then
+                    HAS_MODULE_FEDERATION=true
+                  fi
+
+                  if jq -e '.exports | type == "object" and has("./extensions")' "$base/package.json" >/dev/null 2>&1; then
+                    HAS_EXTENSIONS_EXPORT=true
+                  fi
+
+                  if [ "$HAS_MODULE_FEDERATION" = true ] || [ "$HAS_EXTENSIONS_EXPORT" = true ]; then
+                    if [ -z "$FILTERED_MODULES" ]; then
+                      FILTERED_MODULES="$mod"
+                    else
+                      FILTERED_MODULES="$FILTERED_MODULES $mod"
+                    fi
+                    echo "Including module (valid structure): $mod"
+                    echo "  - Has module-federation: $HAS_MODULE_FEDERATION"
+                    echo "  - Has extensions export: $HAS_EXTENSIONS_EXPORT"
+                    break
+                  else
+                    echo "Skipping non-module structure: $mod (no module-federation or extensions export)"
+                  fi
+                else
+                  echo "Skipping non-module structure: $mod (no package.json)"
+                fi
+              fi
+            done
+          done
+
+          if [ -n "$FILTERED_MODULES" ]; then
+            echo "has-changes=true" >> $GITHUB_OUTPUT
+            echo "changed-modules=$FILTERED_MODULES" >> $GITHUB_OUTPUT
+          else
+            echo "has-changes=false" >> $GITHUB_OUTPUT
+          fi
+
+  generate-matrix:
+    name: Generate Test Matrix
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has-changes == 'true'
+    outputs:
+      matrix: ${{ steps.generate-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate test matrix
+        id: generate-matrix
+        run: |
+          # yamllint disable rule:line-length
+          # Use the detected modules from previous job output
+          CHANGED_MODULES="${{ needs.detect-changes.outputs.changed-modules }}"
+
+          echo "Generating matrix for modules: '$CHANGED_MODULES'"
+
+          # Build JSON array from space-separated string
+          JSON_ARRAY="["
+          FIRST=true
+          for module in $CHANGED_MODULES; do
+            if [ "$FIRST" = true ]; then
+              FIRST=false
+            else
+              JSON_ARRAY="$JSON_ARRAY,"
+            fi
+            JSON_ARRAY="$JSON_ARRAY\"$module\""
+          done
+          JSON_ARRAY="$JSON_ARRAY]"
+
+          echo "Generated matrix: $JSON_ARRAY"
+          echo "matrix=$JSON_ARRAY" >> $GITHUB_OUTPUT
+          # yamllint enable rule:line-length
+
+  # Quality Gate 2: Application Quality Gate
+  application-quality-gate:
+    name: Application Quality Gate
+    runs-on: ubuntu-latest
+    needs: [detect-changes, generate-matrix]
+    if: needs.detect-changes.outputs.has-changes == 'true'
+    strategy:
+      matrix:
+        module: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Check for silent mode configuration
+        id: check-config
+        run: |
+          # Check package paths
+          CONFIG_FILE=""
+          for base_path in packages; do
+            if [ -f "$base_path/${{ matrix.module }}/.quality-gates-config.yml" ]; then
+              CONFIG_FILE="$base_path/${{ matrix.module }}/.quality-gates-config.yml"
+              break
+            fi
+          done
+
+          if [ -n "$CONFIG_FILE" ] && grep -q "silent_notifications: true" "$CONFIG_FILE"; then
+            echo "🔕 Silent mode enabled for ${{ matrix.module }}"
+            echo "silent_mode=true" >> $GITHUB_OUTPUT
+          else
+            echo "🔔 Silent mode disabled for ${{ matrix.module }}"
+            echo "silent_mode=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Assess Testing Maturity
+        run: |
+          # yamllint disable rule:line-length
+          # Find module path dynamically
+          MODULE_PATH=""
+          for base_path in packages; do
+            if [ -d "$base_path/${{ matrix.module }}" ]; then
+              MODULE_PATH="$base_path/${{ matrix.module }}"
+              break
+            fi
+          done
+
+          if [ -z "$MODULE_PATH" ]; then
+            echo "❌ Error: Could not find module path for ${{ matrix.module }}"
+            exit 1
+          fi
+
+          FRONTEND_PATH="$MODULE_PATH/upstream/frontend"
+
+          # Check if module has BFF (API) capabilities
+          HAS_BFF=false
+          if [ -f "$MODULE_PATH/package.json" ] && jq -e 'has("module-federation")' "$MODULE_PATH/package.json" >/dev/null 2>&1; then
+            HAS_BFF=true
+          fi
+
+          echo "🎯 Assessing testing maturity for ${{ matrix.module }}"
+          echo "   Module path: $MODULE_PATH"
+          echo "   Has BFF (API): $HAS_BFF"
+
+          # Initialize check tracking
+          IMPLEMENTED_CHECKS=0
+          MISSING_CHECKS=()
+          ENABLED_CHECKS=()
+          DISABLED_CHECKS=()
+
+          # Check 1: Unit Tests - Look in __tests__ directories (immediate children or nested)
+          UNIT_TESTS_FOUND=false
+          UNIT_FOUND_PATH=""
+
+          # Check for unit tests in module's own structure
+          if [ -n "$(find "$MODULE_PATH" -path "*/__tests__/*" -name "*.test.*" -o -path "*/__tests__/*" -name "*.spec.*" 2>/dev/null | head -1)" ]; then
+            UNIT_TESTS_FOUND=true
+            UNIT_FOUND_PATH="$MODULE_PATH"
+          fi
+
+          # Check module's upstream frontend for tests (excluding e2e/mocked)
+          if [ "$UNIT_TESTS_FOUND" = false ] && [ -d "$FRONTEND_PATH" ]; then
+            # Find __tests__ directories that are NOT e2e or mocked
+            TEST_DIRS=$(find "$FRONTEND_PATH" -name "*__tests__*" -type d 2>/dev/null | grep -v "/e2e" | grep -v "/mocked")
+            for test_dir in $TEST_DIRS; do
+              UNIT_TEST_FILES=$(find "$test_dir" -type f \( -name "*.test.*" -o -name "*.spec.*" \) 2>/dev/null)
+              if [ -n "$UNIT_TEST_FILES" ]; then
+                UNIT_TESTS_FOUND=true
+                UNIT_FOUND_PATH="$test_dir"
+                break
+              fi
+            done
+          fi
+
+          if [ "$UNIT_TESTS_FOUND" = true ]; then
+            echo "✅ Unit Tests - PRESENT"
+            if [ -n "$UNIT_FOUND_PATH" ]; then
+              echo "   📁 Found unit tests in: $UNIT_FOUND_PATH"
+            fi
+            IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
+            ENABLED_CHECKS+=("Unit Tests")
+          else
+            echo "❌ Unit Tests - MISSING"
+            MISSING_CHECKS+=("Unit tests")
+            ENABLED_CHECKS+=("Unit Tests")
+          fi
+
+          # Check 2: E2E Tests - Look for module-specific e2e directories
+          E2E_TESTS_FOUND=false
+          E2E_BASE_DIR="frontend/src/__tests__/cypress/cypress/tests/e2e"
+
+          # Build module name patterns dynamically
+          RAW_MODULE="${{ matrix.module }}"
+          MODULE_NO_HYPHENS=$(echo "$RAW_MODULE" | sed 's/-//g')
+          # module to camelCase (best-effort: split on '-')
+          MODULE_CAMEL=$(echo "$RAW_MODULE" | awk -F'-' '{for(i=1;i<=NF;i++){if(i==1){printf $i}else{printf toupper(substr($i,1,1)) substr($i,2)}}}')
+          MODULE_PATTERNS=("$RAW_MODULE" "$MODULE_NO_HYPHENS" "$MODULE_CAMEL")
+
+          E2E_FOUND_PATH=""
+          for pattern in "${MODULE_PATTERNS[@]}"; do
+            if [ -d "$E2E_BASE_DIR/$pattern" ] && [ -n "$(find "$E2E_BASE_DIR/$pattern" -type f -name "*.cy.ts" 2>/dev/null | head -1)" ]; then
+              E2E_TESTS_FOUND=true
+              E2E_FOUND_PATH="$E2E_BASE_DIR/$pattern"
+              break
+            fi
+          done
+
+          if [ "$E2E_TESTS_FOUND" = true ]; then
+            echo "✅ E2E Tests - PRESENT"
+            if [ -n "$E2E_FOUND_PATH" ]; then
+              echo "   📁 Found E2E tests in: $E2E_FOUND_PATH"
+            fi
+            IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
+            ENABLED_CHECKS+=("E2E Tests")
+          else
+            echo "❌ E2E Tests - MISSING"
+            MISSING_CHECKS+=("End-to-end tests")
+            ENABLED_CHECKS+=("E2E Tests")
+          fi
+
+          # Commented out checks (not yet implemented)
+          echo ""
+          echo "🔧 Additional checks (not yet implemented):"
+
+          # Check 3: Mock Tests (commented out)
+          echo "# Check 3: Mock Tests - DISABLED"
+          DISABLED_CHECKS+=("Mock Tests")
+
+          # Check 4: Contract Testing (commented out)
+          echo "# Check 4: Contract Testing - DISABLED"
+          DISABLED_CHECKS+=("Contract Testing")
+
+          # Check 5: API Functional Testing (disabled for all modules)
+          # TODO: Enable once API functional testing is available as a common function for the Modular Architecture
+          echo "# Check 5: API Functional Testing - DISABLED"
+          DISABLED_CHECKS+=("API Functional Testing")
+
+          # Check 6: API Performance Testing (disabled for all modules)
+          # TODO: This check will be enabled once API performance testing has been enabled as a common function for the Modular Architecture
+          echo "# Check 6: API Performance Testing - DISABLED"
+          DISABLED_CHECKS+=("API Performance Testing")
+
+          # Check 7: Bundle Size Monitoring (commented out)
+          echo "# Check 7: Bundle Size Monitoring - DISABLED"
+          DISABLED_CHECKS+=("Bundle Size Monitoring")
+
+          # Calculate percentage based on enabled checks only
+          TOTAL_ENABLED_CHECKS=${#ENABLED_CHECKS[@]}
+          PERCENTAGE=$((IMPLEMENTED_CHECKS * 100 / TOTAL_ENABLED_CHECKS))
+
+          echo ""
+          echo "📊 Testing Maturity Assessment:"
+          echo "   Implemented: $IMPLEMENTED_CHECKS/$TOTAL_ENABLED_CHECKS ($PERCENTAGE%)"
+
+          # RHOAI Quality Thresholds
+          if [ $PERCENTAGE -ge 75 ]; then
+            echo "   🎯 RHOAI Quality Threshold: ✅ PASSED ($PERCENTAGE% >= 75%)"
+          else
+            echo "   🎯 RHOAI Quality Threshold: ❌ NEEDS IMPROVEMENT ($PERCENTAGE% < 75%)"
+            echo ""
+            echo "📋 Recommendations for RHOAI readiness:"
+            for check in "${MISSING_CHECKS[@]}"; do
+              echo "   • Implement $check"
+            done
+          fi
+
+          if [ $IMPLEMENTED_CHECKS -ge 2 ]; then
+            echo "   📈 Good foundation: Multiple test categories implemented"
+          fi
+
+          # Write a per-module detailed block to include in the final summary
+          OUT_DIR="$GITHUB_WORKSPACE/app-gate"
+          mkdir -p "$OUT_DIR"
+          OUT_FILE="$OUT_DIR/${{ matrix.module }}.md"
+
+          echo "Run MODULE_PATH=\"$MODULE_PATH\"" > "$OUT_FILE"
+          echo "🎯 Assessing testing maturity for ${{ matrix.module }}" >> "$OUT_FILE"
+          echo "   Module path: $MODULE_PATH" >> "$OUT_FILE"
+          echo "   Has BFF (API): $HAS_BFF" >> "$OUT_FILE"
+
+          # Unit
+          if [ "$UNIT_TESTS_FOUND" = true ]; then
+            echo "✅ Unit Tests - PRESENT" >> "$OUT_FILE"
+            if [ -n "$UNIT_FOUND_PATH" ]; then
+              echo "   📁 Found unit tests in: $UNIT_FOUND_PATH" >> "$OUT_FILE"
+            fi
+          else
+            echo "❌ Unit Tests - MISSING" >> "$OUT_FILE"
+          fi
+
+          # E2E
+          if [ "$E2E_TESTS_FOUND" = true ]; then
+            echo "✅ E2E Tests - PRESENT" >> "$OUT_FILE"
+            if [ -n "$E2E_FOUND_PATH" ]; then
+              echo "   📁 Found E2E tests in: $E2E_FOUND_PATH" >> "$OUT_FILE"
+            fi
+          else
+            echo "❌ E2E Tests - MISSING" >> "$OUT_FILE"
+          fi
+
+          # Commented out checks
+          echo "" >> "$OUT_FILE"
+          echo "🔧 Additional checks (not yet implemented):" >> "$OUT_FILE"
+          for check in "${DISABLED_CHECKS[@]}"; do
+            echo "# $check - DISABLED" >> "$OUT_FILE"
+          done
+
+          echo "" >> "$OUT_FILE"
+          echo "📊 Testing Maturity Assessment:" >> "$OUT_FILE"
+          echo "   Implemented: $IMPLEMENTED_CHECKS/$TOTAL_ENABLED_CHECKS ($PERCENTAGE%)" >> "$OUT_FILE"
+          if [ $PERCENTAGE -ge 75 ]; then
+            echo "   🎯 RHOAI Quality Threshold: ✅ PASSED ($PERCENTAGE% >= 75%)" >> "$OUT_FILE"
+          else
+            echo "   🎯 RHOAI Quality Threshold: ❌ NEEDS IMPROVEMENT ($PERCENTAGE% < 75%)" >> "$OUT_FILE"
+          fi
+          echo "" >> "$OUT_FILE"
+          echo "📋 Recommendations for RHOAI readiness:" >> "$OUT_FILE"
+          for check in "${MISSING_CHECKS[@]}"; do
+            echo "   • Implement $check" >> "$OUT_FILE"
+          done
+          if [ $IMPLEMENTED_CHECKS -ge 2 ]; then
+            echo "   📈 Good foundation: Multiple test categories implemented" >> "$OUT_FILE"
+          fi
+          # yamllint enable rule:line-length
+
+      - name: Upload per-module assessment
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-gate-${{ matrix.module }}
+          path: ${{ github.workspace }}/app-gate/*.md
+          if-no-files-found: ignore
+
+  quality-gates-summary:
+    name: Quality Gates Summary
+    runs-on: ubuntu-latest
+    needs: [detect-changes, application-quality-gate]
+    if: always() && needs.detect-changes.outputs.has-changes == 'true'
+    steps:
+      - name: Download per-module assessments
+        uses: actions/download-artifact@v4
+        with:
+          pattern: app-gate-*
+          merge-multiple: true
+          path: ${{ github.workspace }}/app-gate
+
+      - name: Generate Quality Gates Summary
+        run: |
+          # yamllint disable rule:line-length
+          echo "📊 Generating Quality Gates Summary..."
+
+          # Build comprehensive quality gates summary
+          SUMMARY_FILE="quality-gates-summary.md"
+
+          echo "## 🚦 Modular Architecture Quality Gates Results" > $SUMMARY_FILE
+          echo "" >> $SUMMARY_FILE
+
+          echo "### 🎯 Changed Modules" >> $SUMMARY_FILE
+          echo "" >> $SUMMARY_FILE
+          for mod in ${{ needs.detect-changes.outputs.changed-modules }}; do
+            echo "- $mod" >> $SUMMARY_FILE
+          done
+          echo "" >> $SUMMARY_FILE
+
+          echo "### 🧪 Assess Testing Maturity (details)" >> $SUMMARY_FILE
+          echo "" >> $SUMMARY_FILE
+          if [ -d "$GITHUB_WORKSPACE/app-gate" ]; then
+            for f in "$GITHUB_WORKSPACE"/app-gate/*.md; do
+              [ -f "$f" ] || continue
+              echo '```' >> $SUMMARY_FILE
+              cat "$f" >> $SUMMARY_FILE
+              echo '```' >> $SUMMARY_FILE
+              echo "" >> $SUMMARY_FILE
+            done
+          else
+            echo "(no assessments found)" >> $SUMMARY_FILE
+          fi
+
+          echo "### 📚 Resources" >> $SUMMARY_FILE
+          echo "" >> $SUMMARY_FILE
+          echo "- [Modular Architecture Guide](https://github.com/opendatahub-io/odh-dashboard/blob/main/docs/modular-architecture.md)" >> $SUMMARY_FILE
+          echo "- [Quality Gates Documentation](https://github.com/opendatahub-io/odh-dashboard/blob/main/docs/modular-architecture-quality-gates.md)" >> $SUMMARY_FILE
+          echo "" >> $SUMMARY_FILE
+          echo "---" >> $SUMMARY_FILE
+          echo "*Generated by ODH Dashboard Modular Architecture Quality Gates*" >> $SUMMARY_FILE
+
+          # Log to step summary
+          cat $SUMMARY_FILE >> $GITHUB_STEP_SUMMARY
+
+          echo "✅ Summary generated and logged to step summary"
+          # yamllint enable rule:line-length
+
+      - name: Upload summary as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-gates-summary
+          path: quality-gates-summary.md

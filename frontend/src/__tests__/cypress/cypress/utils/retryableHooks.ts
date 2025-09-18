@@ -11,7 +11,9 @@ export const retryableBefore = <T>(fn: () => void | Promise<void> | Cypress.Chai
   let shouldRun = true;
 
   beforeEach(function retryableBeforeEach() {
-    if (this.currentTest?.isPending() || !shouldRun) return;
+    if (this.currentTest?.isPending() || !shouldRun) {
+      return;
+    }
     shouldRun = false;
     setupPerformed = true;
     cy.wrap(null).then(fn);
@@ -30,7 +32,9 @@ export const retryableBeforeEach = <T>(
   let shouldRun = true;
 
   beforeEach(function retryableBeforeEachHook() {
-    if (this.currentTest?.isPending() || !shouldRun) return;
+    if (this.currentTest?.isPending() || !shouldRun) {
+      return;
+    }
     shouldRun = true;
     setupPerformed = true;
     cy.wrap(null).then(fn);

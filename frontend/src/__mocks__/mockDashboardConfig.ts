@@ -43,6 +43,9 @@ export type MockDashboardConfigType = {
   disableLMEval?: boolean;
   disableKueue?: boolean;
   disableFeatureStore?: boolean;
+  disableModelTraining?: boolean;
+  disableDeploymentWizard?: boolean;
+  hardwareProfileOrder?: string[];
 };
 
 export const mockDashboardConfig = ({
@@ -81,6 +84,9 @@ export const mockDashboardConfig = ({
   disableLMEval = true,
   disableKueue = true,
   disableFeatureStore = true,
+  disableModelTraining = true,
+  disableDeploymentWizard = true,
+  hardwareProfileOrder = ['test-hardware-profile'],
   modelServerSizes = [
     {
       name: 'Small',
@@ -240,6 +246,8 @@ export const mockDashboardConfig = ({
       disableLMEval,
       disableKueue,
       disableFeatureStore,
+      disableModelTraining,
+      disableDeploymentWizard,
     },
     notebookController: {
       enabled: !disableNotebookController,
@@ -257,5 +265,6 @@ export const mockDashboardConfig = ({
     notebookSizes,
     templateOrder: ['test-model'],
     templateDisablement: ['test-model'],
+    hardwareProfileOrder,
   },
 });

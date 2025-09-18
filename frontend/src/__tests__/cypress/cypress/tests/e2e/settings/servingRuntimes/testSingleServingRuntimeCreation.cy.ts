@@ -21,9 +21,7 @@ retryableBefore(() => {
     return true;
   });
   cy.wrap(null)
-    .then(() => {
-      return getSingleModelServingRuntimeInfo();
-    })
+    .then(() => getSingleModelServingRuntimeInfo())
     .then((info) => {
       // Load Single-Model serving runtime info before tests run
       modelServingSingleName = info.singleModelServingName;
@@ -35,10 +33,10 @@ retryableBefore(() => {
       return cleanupTemplates(metadataSingleDisplayName);
     });
 });
-describe('[Product Bug: RHOAIENG-30799] Verify Admins Can Import and Delete a Custom Single-Model Serving Runtime Template By Uploading A YAML file', () => {
+describe('Verify Admins Can Import and Delete a Custom Single-Model Serving Runtime Template By Uploading A YAML file', () => {
   it(
     'Admin should access serving runtimes, import a yaml file and then delete',
-    { tags: ['@Smoke', '@SmokeSet2', '@ODS-2276', '@Dashboard', '@NonConcurrent', '@Bug'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-2276', '@Dashboard', '@NonConcurrent'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');

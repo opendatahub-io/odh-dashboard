@@ -8,7 +8,12 @@ import {
 import { KnownLabels, ServingRuntimeKind, TemplateKind } from '#~/k8sTypes';
 import { TemplateModel } from '#~/api/models';
 import { genRandomChars } from '#~/utilities/string';
-import { CustomWatchK8sResult, ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '#~/types';
+import {
+  CustomWatchK8sResult,
+  ServingRuntimeAPIProtocol,
+  ServingRuntimePlatform,
+  ServingRuntimeModelType,
+} from '#~/types';
 import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { groupVersionKind } from '#~/api/k8sUtils';
@@ -19,6 +24,7 @@ export const assembleServingRuntimeTemplate = (
   namespace: string,
   platforms: ServingRuntimePlatform[],
   apiProtocol: ServingRuntimeAPIProtocol | undefined,
+  modelTypes: ServingRuntimeModelType[],
   templateName?: string,
 ): TemplateKind & { objects: ServingRuntimeKind[] } => {
   const servingRuntime: ServingRuntimeKind = YAML.parse(body);
@@ -40,6 +46,9 @@ export const assembleServingRuntimeTemplate = (
       },
       annotations: {
         'opendatahub.io/modelServingSupport': JSON.stringify(platforms),
+        ...(modelTypes.length > 0 && {
+          'opendatahub.io/model-type': JSON.stringify(modelTypes),
+        }),
         ...(apiProtocol && { 'opendatahub.io/apiProtocol': apiProtocol }),
       },
     },

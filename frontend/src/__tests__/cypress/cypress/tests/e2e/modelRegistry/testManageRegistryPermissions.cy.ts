@@ -7,31 +7,44 @@ import { retryableBeforeEach } from '#~/__tests__/cypress/cypress/utils/retryabl
 import {
   checkModelRegistry,
   checkModelRegistryAvailable,
+  createAndVerifyDatabase,
   createModelRegistryViaYAML,
   deleteModelRegistry,
+  deleteModelRegistryDatabase,
+  ensureOperatorMemoryLimit,
   getModelRegistryNamespace,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
-import { loadManagePermissionsFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
+import { loadModelRegistryFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
-import type { ManageRegistryPermissionsTestData } from '#~/__tests__/cypress/cypress/types';
+import type { ModelRegistryTestData } from '#~/__tests__/cypress/cypress/types';
 import { modelRegistrySettings } from '#~/__tests__/cypress/cypress/pages/modelRegistrySettings';
 import { createCleanProject } from '#~/__tests__/cypress/cypress/utils/projectChecker';
 import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { checkModelRegistryRoleBindings } from '#~/__tests__/cypress/cypress/utils/oc_commands/roleBindings';
 
 describe('Verify model registry permissions can be managed', () => {
-  let testData: ManageRegistryPermissionsTestData;
+  let testData: ModelRegistryTestData;
   let registryName: string;
   let testProjectName: string;
+  let deploymentName: string;
   const uuid = generateTestUUID();
 
   before(() => {
     cy.step('Load test data from fixture');
-    loadManagePermissionsFixture('e2e/modelRegistry/testManageRegistryPermissions.yaml').then(
-      (fixtureData: ManageRegistryPermissionsTestData) => {
+    loadModelRegistryFixture('e2e/modelRegistry/testModelRegistry.yaml').then(
+      (fixtureData: ModelRegistryTestData) => {
         testData = fixtureData;
-        registryName = `${testData.registryNamePrefix}-${uuid}`;
+        registryName = `${testData.permissionsRegistryNamePrefix}-${uuid}`;
         testProjectName = `${testData.testProjectNamePrefix}-${uuid}`;
+        deploymentName = testData.operatorDeploymentName;
+
+        // ensure operator has optimal memory
+        cy.step('Ensure operator has optimal memory for testing');
+        ensureOperatorMemoryLimit(deploymentName).should('be.true');
+
+        // Create and verify SQL database
+        cy.step('Create and verify SQL database for model registry');
+        createAndVerifyDatabase().should('be.true');
 
         // creates a model registry
         cy.step('Create a model registry using YAML');
@@ -57,7 +70,7 @@ describe('Verify model registry permissions can be managed', () => {
 
   it(
     'Admin can add user permissions to model registry',
-    { tags: ['@Maintain', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -91,7 +104,7 @@ describe('Verify model registry permissions can be managed', () => {
 
   it(
     'Contributor user can access model registry after being added',
-    { tags: ['@Maintain', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
     () => {
       cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
       cy.visitWithLogin(`/modelRegistry/${registryName}`, LDAP_CONTRIBUTOR_USER);
@@ -104,7 +117,7 @@ describe('Verify model registry permissions can be managed', () => {
 
   it(
     'Admin can remove user permissions from model registry',
-    { tags: ['@Maintain', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -130,7 +143,7 @@ describe('Verify model registry permissions can be managed', () => {
 
   it(
     'Contributor user cannot access model registry after being removed',
-    { tags: ['@Maintain', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
     () => {
       cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
       cy.visitWithLogin(`/modelRegistry/${registryName}`, LDAP_CONTRIBUTOR_USER);
@@ -142,7 +155,7 @@ describe('Verify model registry permissions can be managed', () => {
 
   it(
     'Admin can add group permissions to model registry',
-    { tags: ['@Maintain', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -177,7 +190,7 @@ describe('Verify model registry permissions can be managed', () => {
 
   it(
     'User can access model registry through group membership',
-    { tags: ['@Maintain', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
     () => {
       cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
       cy.visitWithLogin(`/modelRegistry/${registryName}`, LDAP_CONTRIBUTOR_USER);
@@ -190,7 +203,7 @@ describe('Verify model registry permissions can be managed', () => {
 
   it(
     'Admin can remove group permissions from model registry',
-    { tags: ['@Maintain', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -216,7 +229,7 @@ describe('Verify model registry permissions can be managed', () => {
 
   it(
     'User cannot access model registry after group is removed',
-    { tags: ['@Maintain', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
     () => {
       cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
       cy.visitWithLogin(`/modelRegistry/${registryName}`, LDAP_CONTRIBUTOR_USER);
@@ -228,7 +241,7 @@ describe('Verify model registry permissions can be managed', () => {
 
   it(
     'Admin can add project permissions to model registry',
-    { tags: ['@Maintain', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -287,5 +300,8 @@ describe('Verify model registry permissions can be managed', () => {
 
     cy.step('Verify model registry is removed from the backend');
     checkModelRegistry(registryName).should('be.false');
+
+    cy.step('Delete the SQL database');
+    deleteModelRegistryDatabase();
   });
 });

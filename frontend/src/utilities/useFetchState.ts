@@ -7,9 +7,7 @@ import useFetch, {
 } from './useFetch';
 
 // This file is a deprecated wrapper and needs to export everything the useFetchState file used to.
-// We need to disable the barrel file lint rule until all imports move to the new file.
 // See deprecation comments on useFetchState below.
-/* eslint-disable no-barrel-files/no-barrel-files */
 export {
   NotReadyError,
   isCommonStateError,

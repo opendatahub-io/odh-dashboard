@@ -143,6 +143,10 @@ npm run cypress:run \
 - `@Maintain`: Skip tests that require maintenance
 - `@NonConcurrent`: Skip tests that cannot run concurrently (to prevent resource conflicts)
 
+## Environment Variables
+
+For comprehensive documentation of all Cypress environment variables, see the [Cypress Environment Variables section in the main testing documentation](/docs/testing.md#cypress-environment-variables).
+
 ## Writing Tests
 
 e2e tests should focus on user journeys through the application, validating that features work as intended from the user's perspective.
@@ -181,7 +185,7 @@ Test Data should be referenced from fixture files and loaded into the test in th
 It's recommended to use `testIDs` when referencing page objects. If an element does not have a `testID`, please add one:
 
 ```javascript
-findActions() {
+function findActions() {
   return cy.findByTestId('project-actions');
 }
 ```
@@ -198,12 +202,12 @@ Tests are parameterized using tags and applied to the 'it' block:
 * `Workbenches/Pipelines etc.`: Functional Area
 * `Destructive`: Tests that have the potential to break other tests (changing configuration etc.) 
 * `Bug`: Tests that are currently failing due to a Product Bug
-* `Maintain`: Tests that are currently failing and require maintenance 
+* `Maintain`: Tests that are currently failing and require maintenance
 * `NonConcurrent`: Tests that cannot run concurrently (to prevent resource conflicts)
 
 **Usage in tests:**
 ```javascript
-{ tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard', '@Workbenches'] },
+it('test name', { tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard', '@Workbenches'] }, () => {})
 ```
 
 ### Test Contents
@@ -271,4 +275,3 @@ unset CY_TEST_CONFIG
 [Dashboard documentation]: docs/README.md
 [contributing guidelines]: CONTRIBUTING.md
 [issue]: https://github.com/opendatahub-io/odh-dashboard/issues/new/choose
-[definition of ready]: docs/definition-of-ready.md

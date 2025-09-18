@@ -8,7 +8,6 @@ function getWorkspacePackages() {
   try {
     const stdout = execSync('npm query .workspace --json', {
       encoding: 'utf8',
-      cwd: process.cwd(),
     });
     return JSON.parse(stdout);
   } catch (error) {
@@ -44,6 +43,7 @@ function discoverPluginPackages() {
       .map((name) => name.trim())
       .filter(Boolean);
 
+    // eslint-disable-next-line no-undef
     const availablePluginsSet = new Set(availablePluginNames);
     const validPackages = [];
     const invalidPackages = [];

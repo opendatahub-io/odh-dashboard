@@ -20,6 +20,7 @@ export const LastDeployed: React.FC<LastDeployedProps> = ({ resource }) => {
   return (
     <span style={{ whiteSpace: 'nowrap' }}>
       <Timestamp
+        data-testid="last-deployed-timestamp"
         date={new Date(transitionTimestamp)}
         tooltip={{
           variant: TimestampTooltipVariant.default,

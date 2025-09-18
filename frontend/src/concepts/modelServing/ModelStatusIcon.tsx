@@ -1,5 +1,5 @@
 import React from 'react';
-import { Label, LabelProps, Popover } from '@patternfly/react-core';
+import { Icon, Label, LabelProps, Popover } from '@patternfly/react-core';
 import {
   ExclamationCircleIcon,
   InProgressIcon,
@@ -8,16 +8,17 @@ import {
   PlayIcon,
   SyncAltIcon,
 } from '@patternfly/react-icons';
-import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
+import { ModelDeploymentState } from '#~/pages/modelServing/screens/types';
 import { ToggleState } from '#~/components/StateActionToggle';
 
 type ModelStatusIconProps = {
-  state: InferenceServiceModelState;
+  state: ModelDeploymentState;
   defaultHeaderContent?: string;
   bodyContent?: string;
   isCompact?: boolean;
   onClick?: LabelProps['onClick'];
   stoppedStates?: ToggleState;
+  hideLabel?: boolean;
 };
 
 export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
@@ -27,6 +28,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
   isCompact,
   onClick,
   stoppedStates,
+  hideLabel,
 }) => {
   const statusSettings = React.useMemo((): {
     label: string;
@@ -41,7 +43,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
         label: 'Stopped',
         color: 'grey',
         icon: <OffIcon />,
-        message: 'Offline and not using resources. Restart to use model.',
+        message: 'Offline and not using resources. To use the model, restart it.',
       };
     }
 
@@ -50,38 +52,40 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
         label: 'Stopping',
         color: 'grey',
         icon: <SyncAltIcon className="odh-u-spin" />,
+        message: 'Model deployment is stopping.',
       };
     }
     // Show 'Starting' for optimistic updates or for loading/pending states from the backend.
     if (
       stoppedStates?.isStarting ||
-      state === InferenceServiceModelState.LOADING ||
-      state === InferenceServiceModelState.PENDING
+      state === ModelDeploymentState.LOADING ||
+      state === ModelDeploymentState.PENDING
     ) {
       return {
         label: 'Starting',
         color: 'blue',
         icon: <InProgressIcon className="odh-u-spin" />,
+        message: 'Model deployment is starting.',
       };
     }
 
     // Only check the state if not stopped
     switch (state) {
-      case InferenceServiceModelState.LOADED:
-      case InferenceServiceModelState.STANDBY:
+      case ModelDeploymentState.LOADED:
+      case ModelDeploymentState.STANDBY:
         return {
           label: 'Started',
           status: 'success',
           icon: <PlayIcon />,
-          message: 'Model is deployed.',
+          message: 'Model deployment is active.',
         };
-      case InferenceServiceModelState.FAILED_TO_LOAD:
+      case ModelDeploymentState.FAILED_TO_LOAD:
         return {
           label: 'Failed',
           status: 'danger',
           icon: <ExclamationCircleIcon />,
         };
-      case InferenceServiceModelState.UNKNOWN:
+      case ModelDeploymentState.UNKNOWN:
         return {
           label: defaultHeaderContent || 'Status',
           color: 'grey',
@@ -99,17 +103,29 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
       bodyContent={statusSettings.message || bodyContent}
       isVisible={bodyContent ? undefined : false}
     >
-      <Label
-        isCompact={isCompact}
-        color={statusSettings.color}
-        status={statusSettings.status}
-        icon={statusSettings.icon}
-        data-testid="model-status-text"
-        style={{ width: 'fit-content', cursor: 'pointer' }}
-        onClick={onClick}
-      >
-        {statusSettings.label}
-      </Label>
+      {hideLabel ? (
+        <Icon
+          style={{ cursor: 'pointer' }}
+          status={statusSettings.status}
+          aria-label={statusSettings.label}
+          color={statusSettings.color}
+          onClick={onClick}
+        >
+          {statusSettings.icon}
+        </Icon>
+      ) : (
+        <Label
+          isCompact={isCompact}
+          color={statusSettings.color}
+          status={statusSettings.status}
+          icon={statusSettings.icon}
+          data-testid="model-status-text"
+          style={{ width: 'fit-content', cursor: 'pointer' }}
+          onClick={onClick}
+        >
+          {statusSettings.label}
+        </Label>
+      )}
     </Popover>
   );
 };

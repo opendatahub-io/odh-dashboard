@@ -1,5 +1,5 @@
 import { DEFAULT_TASK_NODE_TYPE } from '@patternfly/react-topology';
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { usePipelineTaskTopology } from '#~/concepts/pipelines/topology';
 import { mockLargePipelineSpec } from '#~/concepts/pipelines/topology/__tests__/mockPipelineSpec';
 import { ICON_TASK_NODE_TYPE } from '#~/concepts/topology/utils';

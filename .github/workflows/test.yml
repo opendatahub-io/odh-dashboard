@@ -10,10 +10,12 @@ jobs:
       modules-cache-key: ${{ steps.key.outputs.modules-cache-key }}
     steps:
       - uses: actions/checkout@v4
+      - name: Validate all package-lock.json files
+        run: ./scripts/check-package-lock.sh --all
       - name: Generate modules cache key
         id: key
         run: |
-          echo "modules-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}" >> $GITHUB_OUTPUT
+          echo "modules-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-${{ hashFiles('**/package-lock.json') }}" >> $GITHUB_OUTPUT
       - name: Node.js modules cache
         uses: actions/cache@v4
         id: modules-cache
@@ -21,9 +23,7 @@ jobs:
           lookup-only: true
           path: |
             ~/.cache/Cypress
-            ${{ github.workspace }}/node_modules
-            ${{ github.workspace }}/backend/node_modules
-            ${{ github.workspace }}/frontend/node_modules
+            **/node_modules
           key: ${{ steps.key.outputs.modules-cache-key }}
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         if: steps.modules-cache.outputs.cache-hit != 'true'
@@ -51,21 +51,17 @@ jobs:
         with:
           path: |
             ~/.cache/Cypress
-            ${{ github.workspace }}/node_modules
-            ${{ github.workspace }}/backend/node_modules
-            ${{ github.workspace }}/frontend/node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
+            **/node_modules
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-${{ hashFiles('**/package-lock.json') }}
       - name: Cache turbo
         uses: actions/cache@v4
         with:
-          path: |
-            ${{ github.workspace }}/backend/.turbo
-            ${{ github.workspace }}/frontend/.turbo
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}
+          path: ${{ github.workspace }}/.turbo
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-type-check
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
       - name: Run type checks
-        run: npm run test:type-check
+        run: npm run type-check
 
   Lint:
     needs: Setup
@@ -81,12 +77,17 @@ jobs:
         with:
           path: |
             ~/.cache/Cypress
-            ${{ github.workspace }}/node_modules
-            ${{ github.workspace }}/backend/node_modules
-            ${{ github.workspace }}/frontend/node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
+            **/node_modules
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: Cache turbo
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.turbo
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-lint
+          restore-keys: |
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
       - name: Run linting and formatting checks
-        run: npm run lint:frontend:backend
+        run: NODE_OPTIONS="--max-old-space-size=8192" npm run lint
 
   Unit-Tests:
     needs: [Setup, Lint, Type-Check]
@@ -102,48 +103,24 @@ jobs:
         with:
           path: |
             ~/.cache/Cypress
-            ${{ github.workspace }}/node_modules
-            ${{ github.workspace }}/backend/node_modules
-            ${{ github.workspace }}/frontend/node_modules
+            **/node_modules
           key: ${{ needs.Setup.outputs.modules-cache-key }}
-      - name: Run backend unit tests with coverage
+      - name: Cache turbo
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.turbo
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-unit-tests
+          restore-keys: |
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
+      - name: Unit tests with coverage
         run: |
-          npm run test:backend:unit-coverage
-          mkdir -p ./backend/coverage
-          if [ -d "./backend/jest-coverage" ]; then
-            cp -R ./backend/jest-coverage/* ./backend/coverage/
-          elif [ -d "./jest-coverage" ]; then
-            cp -R ./jest-coverage/* ./backend/coverage/
-          fi
-      - name: Cleanup backend interim artifacts
-        run: |
-          rm -rf ./backend/jest-coverage
-          rm -rf ./jest-coverage
-      - name: Run frontend unit tests with coverage
-        run: |
-          npm run test:frontend:unit-coverage
-          mkdir -p ./frontend/coverage
-          if [ -d "./frontend/jest-coverage" ]; then
-            cp -R ./frontend/jest-coverage/* ./frontend/coverage/
-          elif [ -d "./jest-coverage" ]; then
-            cp -R ./jest-coverage/* ./frontend/coverage/
-          fi
-      - name: Cleanup frontend interim artifacts
-        run: |
-          rm -rf ./frontend/jest-coverage
-          rm -rf ./jest-coverage
-      - name: Upload frontend unit test coverage
+          npm run test-unit-coverage
+      - name: Upload unit test coverage
         uses: actions/upload-artifact@v4
         with:
           name: unit-coverage
-          path: ./frontend/coverage
+          path: ./jest-coverage
           if-no-files-found: error
-      - name: Upload backend unit test coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-coverage
-          path: ./backend/coverage
-          if-no-files-found: warn
 
   Get-Test-Groups:
     runs-on: ubuntu-latest
@@ -177,6 +154,46 @@ jobs:
             echo "test-groups=[\"default\"]" >> "$GITHUB_OUTPUT"
           fi
 
+  # Contract-Tests:
+  #   needs: [Setup, Lint, Type-Check]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Setup Node.js ${{ env.NODE_VERSION }}
+  #       uses: actions/setup-node@v4.3.0
+  #       with:
+  #         node-version: ${{ env.NODE_VERSION }}
+  #     - name: Setup Go
+  #       uses: actions/setup-go@v5
+  #       with:
+  #         go-version: '1.21'
+  #     - name: Restore cache
+  #       uses: actions/cache/restore@v4
+  #       with:
+  #         path: |
+  #           ~/.cache/Cypress
+  #           **/node_modules
+  #         key: ${{ needs.Setup.outputs.modules-cache-key }}
+  #     - name: Cache Go modules
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: |
+  #           ~/.cache/go-build
+  #           ~/go/pkg/mod
+  #         key: ${{ runner.os }}-go-${{ hashFiles('packages/*/bff/go.sum', 'packages/*/upstream/bff/go.sum') }}
+  #         restore-keys: |
+  #           ${{ runner.os }}-go-
+  #     - name: Run contract tests
+  #       run: |
+  #         echo "Running contract tests..."
+  #         npm run test:contract
+  #     - name: Upload contract test results
+  #       uses: actions/upload-artifact@v4
+  #       if: always()
+  #       with:
+  #         name: contract-test-results
+  #         path: packages/*/contract-tests/contract-test-results/**/*
+
   Cypress-Setup:
     needs: [Setup]
     runs-on: ubuntu-latest
@@ -194,7 +211,7 @@ jobs:
         with:
           lookup-only: true
           path: |
-            ${{ github.workspace }}/frontend/public-cypress
+            **/public-cypress
           key: ${{ steps.key.outputs.cypress-cache-key }}
       - name: Restore cache
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
@@ -202,19 +219,16 @@ jobs:
         with:
           path: |
             ~/.cache/Cypress
-            ${{ github.workspace }}/node_modules
-            ${{ github.workspace }}/backend/node_modules
-            ${{ github.workspace }}/frontend/node_modules
+            **/node_modules
           key: ${{ needs.Setup.outputs.modules-cache-key }}
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Build frontend for cypress
+      - name: Build for cypress
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
         run: npm run cypress:server:build:coverage
-        working-directory: ./frontend
 
   Cypress-Mock-Tests:
     needs: [Setup, Lint, Type-Check, Cypress-Setup, Get-Test-Groups]
@@ -234,15 +248,13 @@ jobs:
         with:
           path: |
             ~/.cache/Cypress
-            ${{ github.workspace }}/node_modules
-            ${{ github.workspace }}/backend/node_modules
-            ${{ github.workspace }}/frontend/node_modules
+            **/node_modules
           key: ${{ needs.Setup.outputs.modules-cache-key }}
       - name: Restore Cypress build cache
         uses: actions/cache/restore@v4
         with:
           path: |
-            ${{ github.workspace }}/frontend/public-cypress
+            **/public-cypress
           key: ${{ needs.Cypress-Setup.outputs.cypress-cache-key }}
       - name: Run Cypress Mock tests
         run: |
@@ -286,7 +298,6 @@ jobs:
         run: |
           mkdir -p ./coverage
           cp all-artifacts/unit-coverage/coverage-final.json ./coverage/unit-coverage-final.json || true
-          [ -f all-artifacts/backend-coverage/coverage-final.json ] && cp all-artifacts/backend-coverage/coverage-final.json ./coverage/backend-coverage-final.json || true
           find all-artifacts -name "cypress-coverage-*" -type d | while read dir; do
           group_name=$(basename "$dir")
           cp "$dir/coverage-final.json" "./coverage/${group_name}-coverage-final.json" || true
@@ -312,7 +323,6 @@ jobs:
       - name: Cleanup interim coverage files
         run: |
           rm -rf ./coverage/unit-coverage-final.json
-          rm -rf ./coverage/backend-coverage-final.json
           find ./coverage -name "*-coverage-final.json" -type f -delete
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4.6.0
@@ -331,6 +341,7 @@ jobs:
       - Lint
       - Type-Check
       - Unit-Tests
+      # - Contract-Tests
       - Cypress-Mock-Tests
       - Combine-Results-and-Upload
     steps:

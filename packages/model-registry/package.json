@@ -1,0 +1,55 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/model-registry",
+  "description": "Model registry plugin.",
+  "version": "0.0.0",
+  "scripts": {
+    "install:module": "npm install --prefix upstream/frontend",
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit",
+    "update-subtree": "package-subtree --package=@odh-dashboard/model-registry",
+    "test:contract": "odh-ct-bff-consumer --bff-dir upstream/bff",
+    "cypress:server:build": "cd upstream/frontend && DIST_DIR=./public-cypress POLL_INTERVAL=9999999 DEPLOYMENT_MODE=federated npm run build",
+    "cypress:server:build:coverage": "COVERAGE=true npm run cypress:server:build",
+    "cypress:server": "cd upstream/frontend && serve ./public-cypress -p 9100 -s -L",
+    "cypress:server:dev": "cd upstream/frontend && DEPLOYMENT_MODE=federated PORT=9100 npm run start:dev",
+    "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9100"
+  },
+  "subtree": {
+    "repo": "https://github.com/kubeflow/model-registry.git",
+    "src": "clients/ui",
+    "target": "upstream",
+    "commit": "cf8b04ab761d7ea535241042e4db604a054a71a3"
+  },
+  "module-federation": {
+    "name": "modelRegistry",
+    "remoteEntry": "/remoteEntry.js",
+    "authorize": true,
+    "tls": false,
+    "proxy": [
+      {
+        "path": "/model-registry/api",
+        "pathRewrite": "/api"
+      }
+    ],
+    "local": {
+      "host": "localhost",
+      "port": 9100
+    },
+    "service": {
+      "name": "odh-dashboard",
+      "port": 8043
+    }
+  },
+  "exports": {
+    "./extensions": "./extensions.ts"
+  },
+  "dependencies": {
+    "@odh-dashboard/internal": "*"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/tsconfig": "*",
+    "@odh-dashboard/contract-tests": "*"
+  }
+}

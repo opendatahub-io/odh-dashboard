@@ -53,6 +53,7 @@ module.exports = smp.wrap(
           '**/jest-coverage',
           '**/.nyc_output',
           '**/upstream',
+          '**/__tests__',
         ],
       },
       devServer: {
@@ -155,8 +156,8 @@ module.exports = smp.wrap(
             include: [
               SRC_DIR,
               COMMON_DIR,
-              path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
-              path.resolve(RELATIVE_DIRNAME, 'node_modules/monaco-editor'),
+              path.resolve(RELATIVE_DIRNAME, '../node_modules/@patternfly'),
+              path.resolve(RELATIVE_DIRNAME, '../node_modules/monaco-editor'),
             ],
             use: ['style-loader', 'css-loader'],
           },

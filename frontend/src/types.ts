@@ -270,6 +270,10 @@ declare global {
     analytics?: any;
     clusterID?: string;
   }
+
+  // Webpack injected global variables
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const __COMMIT_HASH__: string | undefined;
 }
 
 export type ApplicationAction = {
@@ -589,6 +593,7 @@ export enum ImageStreamAnnotation {
 
 export enum ImageStreamLabel {
   NOTEBOOK = 'opendatahub.io/notebook-image',
+  IMAGE_TYPE = 'app.kubernetes.io/created-by',
 }
 
 export enum ImageStreamSpecTagAnnotation {
@@ -597,6 +602,7 @@ export enum ImageStreamSpecTagAnnotation {
   OUTDATED = 'opendatahub.io/image-tag-outdated',
   RECOMMENDED = 'opendatahub.io/workbench-image-recommended',
   DEFAULT = 'opendatahub.io/default-image',
+  IMPORT_URL = 'openshift.io/imported-from',
 }
 
 export enum DisplayNameAnnotation {
@@ -784,6 +790,11 @@ export enum ServingRuntimeAPIProtocol {
   GRPC = 'gRPC',
 }
 
+export enum ServingRuntimeModelType {
+  PREDICTIVE = 'predictive',
+  GENERATIVE = 'generative',
+}
+
 export type KeyValuePair = {
   key: string;
   value: string;
@@ -820,3 +831,8 @@ export enum IconSize {
   XL = 'xl',
   XXL = 'xxl',
 }
+
+export type Namespace = {
+  name: string;
+  displayName?: string;
+};

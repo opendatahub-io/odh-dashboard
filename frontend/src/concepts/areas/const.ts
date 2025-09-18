@@ -17,6 +17,7 @@ export const devTemporaryFeatureFlags = {
   disableFeatureStore: true,
   disableLlamaStackChatBot: true, // internal dev only
   disableProjectScoped: true,
+  disableDeploymentWizard: true,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -65,6 +66,7 @@ export const advancedAIMLFlags = {
   disableModelRegistrySecureDB: false,
   disableFineTuning: true,
   disableLMEval: true,
+  disableModelTraining: true,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Combined feature flags object
@@ -109,6 +111,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.DS_PROJECTS_VIEW]: {
     featureFlags: ['disableProjects'],
   },
+  [SupportedArea.DEPLOYMENT_WIZARD]: {
+    featureFlags: ['disableDeploymentWizard'],
+  },
   [SupportedArea.DS_PROJECT_SCOPED]: {
     featureFlags: ['disableProjectScoped'],
     reliantAreas: [
@@ -120,10 +125,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.DS_PROJECTS_PERMISSIONS]: {
     featureFlags: ['disableProjectSharing'],
     reliantAreas: [SupportedArea.DS_PROJECTS_VIEW],
-  },
-  [SupportedArea.K_SERVE]: {
-    featureFlags: ['disableKServe'],
-    requiredComponents: [StackComponent.K_SERVE],
   },
   [SupportedArea.K_SERVE_AUTH]: {
     featureFlags: ['disableKServeAuth'],
@@ -216,7 +217,11 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.FEATURE_STORE]: {
     featureFlags: ['disableFeatureStore'],
-    // requiredComponents: [StackComponent.FEAST_OPERATOR], // TODO: Enable this once latest Feast operator is released .
+    requiredComponents: [StackComponent.FEAST_OPERATOR],
+  },
+  [SupportedArea.MODEL_TRAINING]: {
+    featureFlags: ['disableModelTraining'],
+    requiredComponents: [StackComponent.TRAINING_OPERATOR, StackComponent.KUEUE],
   },
 };
 

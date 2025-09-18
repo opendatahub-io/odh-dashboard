@@ -1,5 +1,9 @@
 /* eslint-disable camelcase */
 
+import { mockFeatureStoreService } from '@odh-dashboard/feature-store/mocks/mockFeatureStoreService';
+import { mockFeatureStore } from '@odh-dashboard/feature-store/mocks/mockFeatureStore';
+import { mockFeatureStoreProject } from '@odh-dashboard/feature-store/mocks/mockFeatureStoreProject';
+import { mockFeatureView } from '@odh-dashboard/feature-store/mocks/mockFeatureViews';
 import { featureViewsTable } from '#~/__tests__/cypress/cypress/pages/featureStore/featureView';
 import { featureStoreGlobal } from '#~/__tests__/cypress/cypress/pages/featureStore/featureStoreGlobal';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
@@ -8,10 +12,6 @@ import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { ProjectModel, ServiceModel } from '#~/__tests__/cypress/cypress/utils/models';
 import { asClusterAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
-import { mockFeatureStoreService } from '#~/__mocks__/mockFeatureStoreService';
-import { mockFeatureStore } from '#~/__mocks__/mockFeatureStore';
-import { mockFeatureStoreProject } from '#~/__mocks__/mockFeatureStoreProject';
-import { mockFeatureView } from '#~/__mocks__/mockFeatureViews';
 
 const k8sNamespace = 'default';
 const fsName = 'demo';
@@ -36,7 +36,7 @@ const initIntercept = () => {
 
   cy.intercept(
     'GET',
-    '/api/k8s/apis/feast.dev/v1alpha1/featurestores?labelSelector=feature-store-ui%3Denabled',
+    `/api/k8s/apis/feast.dev/v1alpha1/namespaces/${k8sNamespace}/featurestores?labelSelector=feature-store-ui%3Denabled`,
     {
       items: [mockFeatureStore({ name: fsName, namespace: k8sNamespace })],
     },
@@ -80,7 +80,43 @@ const initIntercept = () => {
       path: { namespace: k8sNamespace, serviceName: fsName, apiVersion: 'v1' },
     },
     {
-      featureViews: [mockFeatureView()],
+      featureViews: [
+        mockFeatureView({
+          spec: {
+            ...mockFeatureView().spec,
+            name: 'zipcode_features',
+            entities: ['user_id'],
+          },
+        }),
+      ],
+      relationships: {
+        zipcode_features: [
+          {
+            source: { type: 'feature', name: 'city' },
+            target: { type: 'featureView', name: 'zipcode_features' },
+          },
+          {
+            source: { type: 'feature', name: 'state' },
+            target: { type: 'featureView', name: 'zipcode_features' },
+          },
+          {
+            source: { type: 'feature', name: 'location_type' },
+            target: { type: 'featureView', name: 'zipcode_features' },
+          },
+          {
+            source: { type: 'feature', name: 'tax_returns_filed' },
+            target: { type: 'featureView', name: 'zipcode_features' },
+          },
+          {
+            source: { type: 'feature', name: 'population' },
+            target: { type: 'featureView', name: 'zipcode_features' },
+          },
+          {
+            source: { type: 'feature', name: 'total_wages' },
+            target: { type: 'featureView', name: 'zipcode_features' },
+          },
+        ],
+      },
       pagination: {
         totalCount: 1,
         totalPages: 1,
@@ -119,9 +155,11 @@ describe('Feature Views', () => {
     featureViewRow.shouldHaveFeaturesCount(6); // Based on m  ock data
     featureViewRow.shouldHaveOwner('risk-team@company.com');
 
-    featureViewRow.shouldHaveTag('pii = false');
-    featureViewRow.shouldHaveTag('team = risk');
-    featureViewRow.shouldHaveTag('domain = demographics');
+    featureViewRow.findTags().within(() => {
+      cy.contains('pii=false');
+      cy.contains('team=risk');
+      cy.contains('domain=demographics');
+    });
   });
 
   it('should allow filtering by feature view name', () => {
@@ -143,7 +181,7 @@ describe('Feature Views', () => {
     const toolbar = featureViewsTable.findToolbar();
 
     toolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Tags').click();
-    toolbar.findSearchInput().type('team=risk');
+    toolbar.findSearchInput().type('pii');
     featureViewsTable.shouldHaveFeatureViewCount(1);
 
     toolbar.findSearchInput().clear().type('nonexistent=tag');
@@ -159,6 +197,7 @@ describe('Feature Views', () => {
       },
       {
         featureViews: [],
+        relationships: {},
         pagination: {
           totalCount: 0,
           totalPages: 0,

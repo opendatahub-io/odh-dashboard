@@ -1,0 +1,26 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/lm-eval",
+  "description": "Language Model Evaluation plugin.",
+  "version": "0.0.0",
+  "module-federation": {
+    "name": "lmEval",
+    "remoteEntry": "/remoteEntry.js",
+    "authorize": true,
+    "tls": false,
+    "proxy": [
+      {
+        "path": "/lm-eval-api",
+        "pathRewrite": "/api"
+      }
+    ],
+    "local": {
+      "host": "localhost",
+      "port": 9103
+    },
+    "service": {
+      "name": "lm-eval-ui-service",
+      "port": 8048
+    }
+  }
+}

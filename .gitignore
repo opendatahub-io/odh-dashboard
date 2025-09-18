@@ -4,6 +4,7 @@
 
 # misc
 .DS_Store
+Thumbs.db
 
 .env*.local
 
@@ -23,3 +24,11 @@ yarn.lock
 .dccache
 
 .turbo
+
+jest-coverage
+
+# Build outputs
+dist
+
+# Contract test results 
+contract-test-results

@@ -10,8 +10,7 @@ import * as useNIMPVCModule from '#~/pages/modelServing/screens/projects/NIMServ
 import * as podSpecOptionsModule from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import * as storageConfigModule from '#~/pages/projects/screens/spawner/storage/useGetStorageClassConfig';
 import * as StorageClassSelectModule from '#~/pages/projects/screens/spawner/storage/StorageClassSelect';
-import * as useAdminDefaultStorageClassModule from '#~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
-import * as useOpenshiftDefaultStorageClassModule from '#~/pages/projects/screens/spawner/storage/useOpenshiftDefaultStorageClass.ts';
+import * as useDefaultStorageClassModule from '#~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 
 // Mock dependencies
 jest.mock('#~/pages/modelServing/screens/projects/utils', () => ({
@@ -32,6 +31,7 @@ jest.mock('#~/concepts/areas', () => ({
   SupportedArea: {
     K_SERVE_AUTH: 'k-serve-auth',
     STORAGE_CLASSES: 'storage-classes',
+    SERVING_RUNTIME_PARAMS: 'serving-runtime-params',
   },
   useIsAreaAvailable: jest.fn(() => ({ status: true })),
 }));
@@ -104,14 +104,9 @@ jest.mock('#~/pages/projects/screens/spawner/storage/StorageClassSelect', () => 
   }),
 }));
 
-jest.mock('#~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass', () => ({
+jest.mock('#~/pages/projects/screens/spawner/storage/useDefaultStorageClass', () => ({
   __esModule: true,
-  default: jest.fn(() => [mockStorageClasses[0]]),
-}));
-
-jest.mock('#~/pages/projects/screens/spawner/storage/useOpenshiftDefaultStorageClass.ts', () => ({
-  __esModule: true,
-  default: jest.fn(() => mockStorageClasses[0]),
+  useDefaultStorageClass: jest.fn(() => [mockStorageClasses[0]]),
 }));
 
 jest.mock('#~/pages/modelServing/screens/projects/useModelDeploymentNotification', () => ({
@@ -177,6 +172,71 @@ jest.mock('#~/concepts/dashboard/DashboardModalFooter', () => ({
   default: jest.fn(() => <div data-testid="modal-footer">Modal Footer</div>),
 }));
 
+jest.mock('../../kServeModal/EnvironmentVariablesSection', () => ({
+  __esModule: true,
+  default: jest.fn(
+    (props: { data: Record<string, unknown>; setData: (key: string, value: unknown) => void }) => {
+      // eslint-disable-next-line @typescript-eslint/no-shadow
+      const React = require('react');
+      const { data, setData } = props;
+      const [localEnvVars, setLocalEnvVars] = React.useState(data.servingRuntimeEnvVars || []);
+
+      const addEnvVar = () => {
+        const newVars = [...localEnvVars, { name: '', value: '' }];
+        setLocalEnvVars(newVars);
+        setData('servingRuntimeEnvVars', newVars);
+      };
+
+      const updateEnvVar = (index: number, field: string, value: string) => {
+        const newVars = [...localEnvVars];
+        newVars[index] = { ...newVars[index], [field]: value };
+        setLocalEnvVars(newVars);
+        setData('servingRuntimeEnvVars', newVars);
+      };
+
+      return React.createElement('div', { 'data-testid': 'environment-variables-section' }, [
+        React.createElement('div', { key: 'title' }, 'Additional environment variables'),
+        React.createElement(
+          'button',
+          {
+            key: 'add-button',
+            onClick: addEnvVar,
+            'aria-label': 'Add environment variable',
+          },
+          'Add environment variable',
+        ),
+        ...localEnvVars.map((envVar: { name: string; value: string }, index: number) =>
+          React.createElement('div', { key: index }, [
+            React.createElement('input', {
+              key: 'name',
+              'aria-label': 'Environment variable name',
+              value: envVar.name,
+              onChange: (e: { target: { value: string } }) =>
+                updateEnvVar(index, 'name', e.target.value),
+              onBlur: (e: { target: { value: string } }) => {
+                const { value } = e.target;
+                if (value && /^\d/.test(value)) {
+                  // This would trigger validation error display in real component
+                }
+              },
+            }),
+            React.createElement('input', {
+              key: 'value',
+              'aria-label': 'Environment variable value',
+              value: envVar.value,
+              onChange: (e: { target: { value: string } }) =>
+                updateEnvVar(index, 'value', e.target.value),
+            }),
+            envVar.name &&
+              /^\d/.test(envVar.name) &&
+              React.createElement('div', { key: 'error' }, 'Must not start with a digit.'),
+          ]),
+        ),
+      ]);
+    },
+  ),
+}));
+
 const mockUseCreateInferenceServiceObject = utils.useCreateInferenceServiceObject as jest.Mock;
 const mockUseCreateServingRuntimeObject = utils.useCreateServingRuntimeObject as jest.Mock;
 const mockUseNIMPVC = useNIMPVCModule.useNIMPVC as jest.Mock;
@@ -184,9 +244,7 @@ const mockUseModelServingPodSpecOptionsState =
   podSpecOptionsModule.useModelServingPodSpecOptionsState as jest.Mock;
 const mockUseGetStorageClassConfig = storageConfigModule.useGetStorageClassConfig as jest.Mock;
 const mockStorageClassSelect = StorageClassSelectModule.default as jest.Mock;
-const mockUseAdminDefaultStorageClass = useAdminDefaultStorageClassModule.default as jest.Mock;
-const mockUseOpenshiftDefaultStorageClass =
-  useOpenshiftDefaultStorageClassModule.default as jest.Mock;
+const mockUseDefaultStorageClass = useDefaultStorageClassModule.useDefaultStorageClass as jest.Mock;
 
 describe('ManageNIMServingModal', () => {
   const mockOnClose = jest.fn();
@@ -307,8 +365,7 @@ describe('ManageNIMServingModal', () => {
     mockUseModelServingPodSpecOptionsState.mockReturnValue(defaultMockPodSpecOptionsState);
 
     // Setup default storage class mocks with correct FetchState format
-    mockUseAdminDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
-    mockUseOpenshiftDefaultStorageClass.mockReturnValue(mockStorageClasses[0]);
+    mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
     mockUseGetStorageClassConfig.mockReturnValue({
       storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
       storageClassesLoaded: true,
@@ -513,6 +570,101 @@ describe('ManageNIMServingModal', () => {
       expect(screen.getByTestId('deployment-mode-dropdown')).toBeInTheDocument();
     });
   });
+
+  describe('Environment Variables', () => {
+    it('allows adding environment variables when serving runtime params are enabled', async () => {
+      // Mock serving runtime params as enabled
+      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      useIsAreaAvailable.mockImplementation((area: string) => {
+        if (area === 'serving-runtime-params') {
+          return { status: true };
+        }
+        return { status: true };
+      });
+
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+
+      // Find the environment variables section
+      const envVarsSection = screen.getByText('Additional environment variables');
+      expect(envVarsSection).toBeInTheDocument();
+
+      // Find the add button for environment variables
+      const addButton = screen.getByRole('button', { name: /add environment variable/i });
+      expect(addButton).toBeInTheDocument();
+
+      // Click to add an environment variable
+      fireEvent.click(addButton);
+
+      // Wait for the inputs to appear after clicking add
+      await waitFor(() => {
+        expect(screen.getByLabelText(/environment variable name/i)).toBeInTheDocument();
+      });
+
+      // Find the name and value inputs
+      const nameInput = screen.getByLabelText(/environment variable name/i);
+      const valueInput = screen.getByLabelText(/environment variable value/i);
+
+      fireEvent.change(nameInput, { target: { value: 'LOG_LEVEL' } });
+      fireEvent.change(valueInput, { target: { value: 'DEBUG' } });
+
+      expect(nameInput).toHaveValue('LOG_LEVEL');
+      expect(valueInput).toHaveValue('DEBUG');
+    });
+
+    it('validates environment variable names correctly', async () => {
+      // Mock serving runtime params as enabled
+      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      useIsAreaAvailable.mockImplementation((area: string) => {
+        if (area === 'serving-runtime-params') {
+          return { status: true };
+        }
+        return { status: true };
+      });
+
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+
+      // Add an environment variable
+      const addButton = screen.getByRole('button', { name: /add environment variable/i });
+      fireEvent.click(addButton);
+
+      // Wait for the inputs to appear after clicking add
+      await waitFor(() => {
+        expect(screen.getByLabelText(/environment variable name/i)).toBeInTheDocument();
+      });
+
+      const nameInput = screen.getByLabelText(/environment variable name/i);
+
+      // Test invalid name starting with digit
+      fireEvent.change(nameInput, { target: { value: '1INVALID' } });
+      fireEvent.blur(nameInput);
+
+      // Check for validation error
+      expect(screen.getByText('Must not start with a digit.')).toBeInTheDocument();
+
+      // Test valid name
+      fireEvent.change(nameInput, { target: { value: 'LOG_LEVEL' } });
+      fireEvent.blur(nameInput);
+
+      // Validation error should be gone
+      expect(screen.queryByText('Must not start with a digit.')).not.toBeInTheDocument();
+    });
+
+    it('does not show environment variables section when serving runtime params are disabled', () => {
+      // Mock serving runtime params as disabled
+      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      useIsAreaAvailable.mockImplementation((area: string) => {
+        if (area === 'serving-runtime-params') {
+          return { status: false };
+        }
+        return { status: true };
+      });
+
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+
+      // Environment variables section should not be present
+      expect(screen.queryByText('Additional environment variables')).not.toBeInTheDocument();
+    });
+  });
 });
 
 describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
@@ -628,8 +780,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
     mockUseModelServingPodSpecOptionsState.mockReturnValue(defaultMockPodSpecOptionsState);
 
     // Setup default storage class mocks with correct FetchState format
-    mockUseAdminDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
-    mockUseOpenshiftDefaultStorageClass.mockReturnValue(mockStorageClasses[0]);
+    mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
     mockUseGetStorageClassConfig.mockReturnValue({
       storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
       storageClassesLoaded: true,
@@ -640,13 +791,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
   describe('Storage Class Default Selection Logic', () => {
     it('prefers ODH default over OpenShift default', () => {
       // Mock ODH default available
-      mockUseAdminDefaultStorageClass.mockReturnValue([
-        mockStorageClasses[0],
-        true,
-        null,
-        jest.fn(),
-      ]);
-      mockUseOpenshiftDefaultStorageClass.mockReturnValue(mockStorageClasses[0]);
+      mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
 
       mockUseGetStorageClassConfig.mockReturnValue({
         storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
@@ -666,8 +811,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
 
     it('falls back to OpenShift default when no ODH default is available', () => {
       // Mock no ODH default, but OpenShift default available
-      mockUseAdminDefaultStorageClass.mockReturnValue([null, true, null, jest.fn()]);
-      mockUseOpenshiftDefaultStorageClass.mockReturnValue(mockStorageClasses[0]);
+      mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
 
       mockUseGetStorageClassConfig.mockReturnValue({
         storageClasses: [mockStorageClasses[0]],
@@ -691,8 +835,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
       const { useIsAreaAvailable } = require('#~/concepts/areas');
       useIsAreaAvailable.mockReturnValue({ status: true });
       // Mock no ODH configs but OpenShift default available
-      mockUseAdminDefaultStorageClass.mockReturnValue([null, true, null, jest.fn()]);
-      mockUseOpenshiftDefaultStorageClass.mockReturnValue(mockStorageClasses[0]);
+      mockUseDefaultStorageClass.mockReturnValue([null, true, null, jest.fn()]);
 
       // Create a storage class with no ODH config annotation
       const noConfigStorageClass = {
@@ -720,13 +863,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
 
     it('shows enabled select when ODH storage class configs exist', () => {
       // Mock ODH configs available
-      mockUseAdminDefaultStorageClass.mockReturnValue([
-        mockStorageClasses[0],
-        true,
-        null,
-        jest.fn(),
-      ]);
-      mockUseOpenshiftDefaultStorageClass.mockReturnValue(mockStorageClasses[0]);
+      mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
 
       mockUseGetStorageClassConfig.mockReturnValue({
         storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
@@ -763,13 +900,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
       });
 
       // Mock defaults available
-      mockUseAdminDefaultStorageClass.mockReturnValue([
-        mockStorageClasses[0],
-        true,
-        null,
-        jest.fn(),
-      ]);
-      mockUseOpenshiftDefaultStorageClass.mockReturnValue(mockStorageClasses[0]);
+      mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
 
       mockUseGetStorageClassConfig.mockReturnValue({
         storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
@@ -804,13 +935,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
       });
 
       // Mock defaults available
-      mockUseAdminDefaultStorageClass.mockReturnValue([
-        mockStorageClasses[0],
-        true,
-        null,
-        jest.fn(),
-      ]);
-      mockUseOpenshiftDefaultStorageClass.mockReturnValue(mockStorageClasses[0]);
+      mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
 
       mockUseGetStorageClassConfig.mockReturnValue({
         storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
@@ -849,13 +974,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
       const { useIsAreaAvailable } = require('#~/concepts/areas');
       useIsAreaAvailable.mockReturnValue({ status: true }); // Storage classes available
 
-      mockUseAdminDefaultStorageClass.mockReturnValue([
-        mockStorageClasses[0],
-        true,
-        null,
-        jest.fn(),
-      ]);
-      mockUseOpenshiftDefaultStorageClass.mockReturnValue(mockStorageClasses[0]);
+      mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
 
       mockUseGetStorageClassConfig.mockReturnValue({
         storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
@@ -872,13 +991,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
       const { useIsAreaAvailable } = require('#~/concepts/areas');
       useIsAreaAvailable.mockReturnValue({ status: true }); // Storage classes available
 
-      mockUseAdminDefaultStorageClass.mockReturnValue([
-        mockStorageClasses[0],
-        true,
-        null,
-        jest.fn(),
-      ]);
-      mockUseOpenshiftDefaultStorageClass.mockReturnValue(mockStorageClasses[0]);
+      mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
 
       mockUseGetStorageClassConfig.mockReturnValue({
         storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],

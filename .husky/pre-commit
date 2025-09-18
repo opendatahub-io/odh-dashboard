@@ -1,0 +1,47 @@
+#!/usr/bin/env sh
+
+# Check for force override first (takes precedence over skip)
+if [ "$FORCE_LINT_HOOK" = "true" ]; then
+    echo "🔒 Forcing lint checks (FORCE_LINT_HOOK=true overrides SKIP_LINT_HOOK)"
+elif [ "$SKIP_LINT_HOOK" = "true" ]; then
+    echo "⏭️  Skipping lint checks (SKIP_LINT_HOOK=true)"
+    echo "💡 To force linting anyway: FORCE_LINT_HOOK=true git commit -m \"message\""
+    exit 0
+fi
+
+echo "🔍 Running lint-staged to check staged files..."
+
+# Run lint-staged and if it fails, show helpful instructions
+if ! npx lint-staged; then
+    echo ""
+    echo "💥 Lint checks failed! Here's how to fix the issues:"
+    echo ""
+    echo "🔧 Auto-fix many issues:"
+    echo "   Frontend: cd frontend && npm run test:fix"
+    echo "   Backend:  cd backend && npm run test:fix"
+    echo ""
+    echo "🔍 Manual review of errors:"
+    echo "   Frontend: cd frontend && npm run test:lint"
+    echo "   Backend:  cd backend && npm run test:lint"
+    echo ""
+    echo "💡 After fixing, stage your changes and commit again:"
+    echo "   git add ."
+    echo "   git commit -m \"Your commit message\""
+    echo ""
+    echo "⚠️  To bypass this check:"
+    echo "   One-time: npm run commit:skip-lint-hook -- -m \"Your message\""
+    echo "   One-time: SKIP_LINT_HOOK=true git commit -m \"Your message\""
+    echo "   One-time: git commit --no-verify -m \"Your message\""
+    echo ""
+    echo "⚠️  To disable for entire session:"
+    echo "   export SKIP_LINT_HOOK=true"
+    echo ""
+    echo "🔒 To force linting even when SKIP_LINT_HOOK=true:"
+    echo "   npm run commit:force-lint-hook -- -m \"Your message\""
+    echo "   FORCE_LINT_HOOK=true git commit -m \"Your message\""
+    echo ""
+    exit 1
+fi
+
+echo "🎉 All lint checks passed!"
+exit 0 

@@ -29,8 +29,3 @@ export * from './mockInferenceServiceK8sResource';
 export * from './mockStorageClasses';
 export * from './mockConfigMapSecrets';
 export * from './mockLMEvaluation';
-export * from './mockFeatureStore';
-export * from './mockFeatureViews';
-export * from './mockEntities';
-export * from './mockFeatureStoreProject';
-export * from './mockFeatureStoreService';

@@ -23,7 +23,7 @@ import {
   addClusterStorageModal,
 } from '#~/__tests__/cypress/cypress/pages/clusterStorage';
 import { createS3LoaderPod } from '#~/__tests__/cypress/cypress/utils/oc_commands/pvcLoaderPod';
-import { waitForPodReady } from '#~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
+import { waitForPodCompletion } from '#~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -39,7 +39,7 @@ const awsBucketRegion = AWS_BUCKETS.BUCKET_1.REGION;
 const podName = 'pvc-loader-pod';
 const uuid = generateTestUUID();
 
-describe('[Product Bug: RHOAIENG-30799] Verify a model can be deployed from a PVC', () => {
+describe('[Product Bug: RHOAIENG-32763] Verify a model can be deployed from a PVC', () => {
   retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
       if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
@@ -100,8 +100,6 @@ describe('[Product Bug: RHOAIENG-30799] Verify a model can be deployed from a PV
       pvcRow.find().should('exist');
       pvcRow.findStorageTypeColumn().should('contain', 'Model storage');
 
-      pvcRow.findConnectedResources().should('contain', modelName);
-
       const pvcReplacements: PVCLoaderPodReplacements = {
         NAMESPACE: projectName,
         PVC_NAME: pvStorageName,
@@ -118,9 +116,9 @@ describe('[Product Bug: RHOAIENG-30799] Verify a model can be deployed from a PV
       cy.step('Create pod to mount the PVC');
       createS3LoaderPod(pvcReplacements);
 
-      // Verify the pod is ready
-      cy.step('Verify the pod is ready');
-      waitForPodReady(podName, projectName);
+      // Verify the pod completes successfully
+      cy.step('Verify the pod completes successfully');
+      waitForPodCompletion(podName, '300s', projectName);
 
       // Verify the S3 copy completed successfully
       cy.step('Verify S3 copy completed');
