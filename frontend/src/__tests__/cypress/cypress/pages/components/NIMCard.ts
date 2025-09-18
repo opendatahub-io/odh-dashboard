@@ -116,10 +116,6 @@ export class NIMCard extends Card {
   findEnableButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.get('[data-testid="enable-app"]', { timeout: 10000 });
   }
-
-  getWarningAlert(options?: Partial<Cypress.Timeoutable>): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.get('[data-testid="warning-message-alert"]', options);
-  }
 }
 
 export const nimCard = new NIMCard();
