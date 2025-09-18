@@ -17,6 +17,7 @@ import {
   getSubmitServingRuntimeResourcesFn,
   useCreateInferenceServiceObject,
   useCreateServingRuntimeObject,
+  validateEnvVarName,
 } from '#~/pages/modelServing/screens/projects/utils';
 import {
   AccessReviewResourceAttributes,
@@ -234,7 +235,10 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     !translatedName ||
     !baseInputValueValid ||
     !podSpecOptionsState.hardwareProfile.isFormDataValid ||
-    !isExistingPvcValid; // new validation
+    !isExistingPvcValid ||
+    createDataInferenceService.servingRuntimeEnvVars?.some(
+      (envVar) => !envVar.name || !!validateEnvVarName(envVar.name),
+    );
 
   const { dashboardNamespace } = useDashboardNamespace();
   const templateName = useNIMTemplateName();
