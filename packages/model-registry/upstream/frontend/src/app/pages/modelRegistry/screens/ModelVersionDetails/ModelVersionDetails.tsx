@@ -10,23 +10,23 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { ModelRegistrySelectorContext } from '../../app/context/ModelRegistrySelectorContext';
-import { KnownLabels } from '../k8sTypes';
-import useRegisteredModelById from '../../app/hooks/useRegisteredModelById';
-import useModelVersionById from '../../app/hooks/useModelVersionById';
-import useModelArtifactsByVersionId from '../../app/hooks/useModelArtifactsByVersionId';
-import { ModelState } from '../../app/types';
+import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
+import { KnownLabels } from '~/odh/k8sTypes';
+import useRegisteredModelById from '~/app/hooks/useRegisteredModelById';
+import useModelVersionById from '~/app/hooks/useModelVersionById';
+import useModelArtifactsByVersionId from '~/app/hooks/useModelArtifactsByVersionId';
+import { ModelState } from '~/app/types';
 import {
   archiveModelVersionDetailsUrl,
   modelVersionArchiveDetailsUrl,
   modelVersionUrl,
   registeredModelUrl,
-} from '../../app/pages/modelRegistry/screens/routeUtils';
-import ModelVersionSelector from '../../app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionSelector';
-import ModelVersionDetailsTabs from '../../app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
-import ModelVersionsDetailsHeaderActions from '../../app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsHeaderActions';
-import { MRDeployButton } from './MRDeployButton';
-import { MRDeploymentsContextProvider } from './MRDeploymentsContextProvider';
+} from '~/app/pages/modelRegistry/screens/routeUtils';
+import ModelVersionSelector from '~/app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionSelector';
+import ModelVersionDetailsTabs from '~/app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
+import ModelVersionsDetailsHeaderActions from '~/app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsHeaderActions';
+import { MRDeployButton } from '~/odh/components/MRDeployButton';
+import { MRDeploymentsContextProvider } from '~/odh/components/MRDeploymentsContextProvider';
 
 type ModelVersionsDetailProps = {
   tab: string;
