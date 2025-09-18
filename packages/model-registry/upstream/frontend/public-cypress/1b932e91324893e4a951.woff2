@@ -1,0 +1,1 @@
+export default __webpack_public_path__ + "fonts/pf-v6-pficon.woff2";

@@ -1,0 +1,249 @@
+{
+  "id": "modelRegistry",
+  "name": "modelRegistry",
+  "metaData": {
+    "name": "modelRegistry",
+    "type": "app",
+    "buildInfo": {
+      "buildVersion": "1.0.0",
+      "buildName": "model-registry-ui"
+    },
+    "remoteEntry": {
+      "name": "remoteEntry.js",
+      "path": "",
+      "type": "global"
+    },
+    "types": {
+      "path": "",
+      "name": "",
+      "zip": "@mf-types.zip",
+      "api": "@mf-types.d.ts"
+    },
+    "globalName": "modelRegistry",
+    "pluginVersion": "0.18.4",
+    "prefetchInterface": false,
+    "publicPath": "auto"
+  },
+  "shared": [
+    {
+      "singleton": true,
+      "requiredVersion": "0.0.0",
+      "shareScope": "default",
+      "name": "@odh-dashboard/plugin-core",
+      "version": "0.0.0",
+      "eager": false,
+      "id": "modelRegistry:@odh-dashboard/plugin-core",
+      "assets": {
+        "js": {
+          "async": [],
+          "sync": [
+            "674.bundle.js"
+          ]
+        },
+        "css": {
+          "async": [],
+          "sync": []
+        }
+      },
+      "usedIn": []
+    },
+    {
+      "singleton": true,
+      "requiredVersion": "*",
+      "shareScope": "default",
+      "name": "@openshift/dynamic-plugin-sdk",
+      "version": "5.0.1",
+      "eager": false,
+      "id": "modelRegistry:@openshift/dynamic-plugin-sdk",
+      "assets": {
+        "js": {
+          "async": [],
+          "sync": [
+            "435.bundle.js"
+          ]
+        },
+        "css": {
+          "async": [],
+          "sync": []
+        }
+      },
+      "usedIn": []
+    },
+    {
+      "singleton": true,
+      "requiredVersion": "^6.3.1",
+      "shareScope": "default",
+      "name": "@patternfly/react-core",
+      "version": "6.3.1",
+      "eager": false,
+      "id": "modelRegistry:@patternfly/react-core",
+      "assets": {
+        "js": {
+          "async": [],
+          "sync": [
+            "581.bundle.js"
+          ]
+        },
+        "css": {
+          "async": [],
+          "sync": [
+            "581.bundle.css"
+          ]
+        }
+      },
+      "usedIn": []
+    },
+    {
+      "singleton": true,
+      "requiredVersion": "^18",
+      "shareScope": "default",
+      "name": "react-dom",
+      "version": "18.3.1",
+      "eager": false,
+      "id": "modelRegistry:react-dom",
+      "assets": {
+        "js": {
+          "async": [],
+          "sync": [
+            "961.bundle.js"
+          ]
+        },
+        "css": {
+          "async": [],
+          "sync": []
+        }
+      },
+      "usedIn": []
+    },
+    {
+      "singleton": true,
+      "requiredVersion": "^7.6.1",
+      "shareScope": "default",
+      "name": "react-router-dom",
+      "version": "7.8.2",
+      "eager": false,
+      "id": "modelRegistry:react-router-dom",
+      "assets": {
+        "js": {
+          "async": [],
+          "sync": [
+            "118.bundle.js",
+            "737.bundle.js"
+          ]
+        },
+        "css": {
+          "async": [],
+          "sync": []
+        }
+      },
+      "usedIn": []
+    },
+    {
+      "singleton": true,
+      "requiredVersion": "^7.5.2",
+      "shareScope": "default",
+      "name": "react-router",
+      "version": "7.8.2",
+      "eager": false,
+      "id": "modelRegistry:react-router",
+      "assets": {
+        "js": {
+          "async": [],
+          "sync": [
+            "330.bundle.js",
+            "949.bundle.js"
+          ]
+        },
+        "css": {
+          "async": [],
+          "sync": []
+        }
+      },
+      "usedIn": []
+    },
+    {
+      "singleton": true,
+      "requiredVersion": "^18",
+      "shareScope": "default",
+      "name": "react",
+      "version": "18.3.1",
+      "eager": false,
+      "id": "modelRegistry:react",
+      "assets": {
+        "js": {
+          "async": [],
+          "sync": [
+            "431.bundle.js",
+            "540.bundle.js"
+          ]
+        },
+        "css": {
+          "async": [],
+          "sync": []
+        }
+      },
+      "usedIn": []
+    }
+  ],
+  "remotes": [],
+  "exposes": [
+    {
+      "path": "./extensions",
+      "id": "modelRegistry:extensions",
+      "name": "extensions",
+      "requires": [],
+      "file": "src/odh/extensions",
+      "assets": {
+        "js": {
+          "sync": [
+            "__federation_expose_extensions.bundle.js"
+          ],
+          "async": [
+            "351.bundle.js",
+            "613.bundle.js",
+            "269.bundle.js",
+            "715.bundle.js",
+            "350.bundle.js",
+            "608.bundle.js",
+            "425.bundle.js",
+            "186.bundle.js",
+            "232.bundle.js",
+            "180.bundle.js",
+            "143.bundle.js",
+            "859.bundle.js",
+            "735.bundle.js",
+            "743.bundle.js"
+          ]
+        },
+        "css": {
+          "sync": [],
+          "async": [
+            "351.bundle.css",
+            "613.bundle.css",
+            "269.bundle.css",
+            "581.bundle.css"
+          ]
+        }
+      }
+    },
+    {
+      "path": "./extension-points",
+      "id": "modelRegistry:extension-points",
+      "name": "extension-points",
+      "requires": [],
+      "file": "src/odh/extension-points",
+      "assets": {
+        "js": {
+          "sync": [
+            "__federation_expose_extension_points.bundle.js"
+          ],
+          "async": []
+        },
+        "css": {
+          "sync": [],
+          "async": []
+        }
+      }
+    }
+  ]
+}

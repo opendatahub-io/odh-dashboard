@@ -1,0 +1,15 @@
+import { APIOptions } from 'mod-arch-core';
+import { CreateModelArtifactData, CreateModelVersionData, CreateRegisteredModelData, ModelArtifact, ModelArtifactList, ModelVersionList, ModelVersion, RegisteredModelList, RegisteredModel } from '~/app/types';
+export declare const createRegisteredModel: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, data: CreateRegisteredModelData) => Promise<RegisteredModel>;
+export declare const createModelVersionForRegisteredModel: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, registeredModelId: string, data: CreateModelVersionData, registeredModel: RegisteredModel, isFirstVersion?: boolean) => Promise<ModelVersion>;
+export declare const createModelArtifactForModelVersion: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, modelVersionId: string, data: CreateModelArtifactData) => Promise<ModelArtifact>;
+export declare const getRegisteredModel: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, registeredModelId: string) => Promise<RegisteredModel>;
+export declare const getModelVersion: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, modelVersionId: string) => Promise<ModelVersion>;
+export declare const getListModelArtifacts: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions) => Promise<ModelArtifactList>;
+export declare const getListModelVersions: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions) => Promise<ModelVersionList>;
+export declare const getListRegisteredModels: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions) => Promise<RegisteredModelList>;
+export declare const getModelVersionsByRegisteredModel: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, registeredmodelId: string) => Promise<ModelVersionList>;
+export declare const getModelArtifactsByModelVersion: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, modelVersionId: string) => Promise<ModelArtifactList>;
+export declare const patchRegisteredModel: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, data: Partial<RegisteredModel>, registeredModelId: string) => Promise<RegisteredModel>;
+export declare const patchModelVersion: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, data: Partial<ModelVersion>, modelVersionId: string) => Promise<ModelVersion>;
+export declare const patchModelArtifact: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, data: Partial<ModelArtifact>, modelartifactId: string) => Promise<ModelArtifact>;
