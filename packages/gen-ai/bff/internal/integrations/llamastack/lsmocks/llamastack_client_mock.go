@@ -128,6 +128,33 @@ func (m *MockLlamaStackClient) CreateResponse(ctx context.Context, params llamas
 	// Create output items
 	var outputItems []responses.ResponseOutputItemUnion
 
+	// If MCP tools are provided, simulate MCP tool interactions
+	if len(params.Tools) > 0 {
+		// Add mock MCP list tools output
+		outputItems = append(outputItems, responses.ResponseOutputItemUnion{
+			ID:          "mcp_list_mock123",
+			Type:        "mcp_list_tools",
+			Role:        "assistant",
+			ServerLabel: params.Tools[0].ServerLabel,
+		})
+
+		// Add mock MCP tool call with realistic GitHub API output
+		mcpOutput := `{"tag_name":"v1.95.0","name":"Mock Release","body":"This is a mock GitHub release with realistic data structure","published_at":"2025-09-17T15:00:00Z","author":{"login":"mock-user","id":12345}}`
+
+		outputItems = append(outputItems, responses.ResponseOutputItemUnion{
+			ID:          "call_mock456",
+			Type:        "mcp_call",
+			Role:        "assistant",
+			ServerLabel: params.Tools[0].ServerLabel,
+			Name:        "get_latest_release",
+			Arguments:   `{"owner":"llamastack","repo":"llama-stack"}`,
+			Output:      mcpOutput,
+		})
+
+		// Update response text to reflect MCP tool usage
+		responseText = "Based on the GitHub MCP tool results, the latest release is v1.95.0. " + responseText
+	}
+
 	// If vector stores are provided, simulate file search call
 	if len(params.VectorStoreIDs) > 0 {
 		// Add mock file search call result with search results
@@ -252,17 +279,51 @@ func (m *MockLlamaStackClient) HandleMockStreaming(w http.ResponseWriter, flushe
 	time.Sleep(200 * time.Millisecond)
 	flusher.Flush()
 
-	// 2. If vector stores provided, simulate RAG processing (skip events 1-4 for RAG background processing)
+	// 2. If MCP tools provided, simulate MCP tool processing
+	sequenceNum := 1
+	if len(params.Tools) > 0 {
+		// Simulate MCP list tools event
+		sendEvent(map[string]interface{}{
+			"type":            "mcp_list_tools",
+			"sequence_number": sequenceNum,
+			"item_id":         "mcp_list_mock123",
+			"output_index":    0,
+			"delta":           "",
+			"server_label":    params.Tools[0].ServerLabel,
+		})
+		sequenceNum++
+		time.Sleep(300 * time.Millisecond)
+		flusher.Flush()
+
+		// Simulate MCP tool call event
+		mcpOutput := `{"tag_name":"v1.95.0","name":"Mock Release","body":"This is a mock GitHub release","published_at":"2025-09-17T15:00:00Z","author":{"login":"mock-user","id":12345}}`
+		sendEvent(map[string]interface{}{
+			"type":            "mcp_call",
+			"sequence_number": sequenceNum,
+			"item_id":         "call_mock456",
+			"output_index":    0,
+			"delta":           "",
+			"server_label":    params.Tools[0].ServerLabel,
+			"name":            "get_latest_release",
+			"arguments":       `{"owner":"llamastack","repo":"llama-stack"}`,
+			"output":          mcpOutput,
+		})
+		sequenceNum++
+		time.Sleep(500 * time.Millisecond)
+		flusher.Flush()
+
+		// Update response text to reflect MCP tool usage
+		responseText = "Based on the GitHub MCP tool results, the latest release is v1.95.0. " + responseText
+	}
+
+	// 3. If vector stores provided, simulate RAG processing
 	if len(params.VectorStoreIDs) > 0 {
-		// RAG processing happens in background (sequence numbers 1-4 are skipped)
+		// RAG processing happens in background (skip some sequence numbers)
+		sequenceNum += 3 // Skip some numbers for RAG background processing
 		time.Sleep(500 * time.Millisecond)
 	}
 
-	// 3. Content part added event
-	sequenceNum := 1
-	if len(params.VectorStoreIDs) > 0 {
-		sequenceNum = 5 // Skip sequence numbers 1-4 for RAG processing
-	}
+	// 4. Content part added event
 	sendEvent(map[string]interface{}{
 		"type":            "response.content_part.added",
 		"sequence_number": sequenceNum,
@@ -314,6 +375,30 @@ func (m *MockLlamaStackClient) HandleMockStreaming(w http.ResponseWriter, flushe
 
 	// 6. Response completed event
 	var outputItems []map[string]interface{}
+
+	// Add MCP tool outputs to completed response if MCP tools were used
+	if len(params.Tools) > 0 {
+		// Add MCP list tools output
+		outputItems = append(outputItems, map[string]interface{}{
+			"id":           "mcp_list_mock123",
+			"type":         "mcp_list_tools",
+			"role":         "assistant",
+			"server_label": params.Tools[0].ServerLabel,
+			"output":       "",
+		})
+
+		// Add MCP tool call output
+		mcpOutput := `{"tag_name":"v1.95.0","name":"Mock Release","body":"This is a mock GitHub release","published_at":"2025-09-17T15:00:00Z","author":{"login":"mock-user","id":12345}}`
+		outputItems = append(outputItems, map[string]interface{}{
+			"id":           "call_mock456",
+			"type":         "mcp_call",
+			"role":         "assistant",
+			"server_label": params.Tools[0].ServerLabel,
+			"name":         "get_latest_release",
+			"arguments":    `{"owner":"llamastack","repo":"llama-stack"}`,
+			"output":       mcpOutput,
+		})
+	}
 
 	// Add tool call to completed response if vector stores were used
 	if len(params.VectorStoreIDs) > 0 {

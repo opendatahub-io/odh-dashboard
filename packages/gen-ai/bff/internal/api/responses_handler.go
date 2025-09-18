@@ -63,12 +63,20 @@ type OutputItem struct {
 	Content []ContentItem  `json:"content,omitempty"`
 	Queries []string       `json:"queries,omitempty"`
 	Results []SearchResult `json:"results,omitempty"`
+
+	// MCP-specific fields
+	ServerLabel string      `json:"server_label,omitempty"`
+	Arguments   string      `json:"arguments,omitempty"`
+	Name        string      `json:"name,omitempty"`
+	Error       string      `json:"error,omitempty"`
+	Output      interface{} `json:"output,omitempty"`
 }
 
 // ContentItem represents content with essential fields
 type ContentItem struct {
-	Type string `json:"type"`
-	Text string `json:"text"`
+	Type        string        `json:"type"`
+	Text        string        `json:"text"`
+	Annotations []interface{} `json:"annotations,omitempty"` // For content annotations
 }
 
 // SearchResult represents search results with essential fields
@@ -76,6 +84,13 @@ type SearchResult struct {
 	Score    float64 `json:"score"`
 	Text     string  `json:"text"`
 	Filename string  `json:"filename,omitempty"`
+}
+
+// MCPServer represents MCP server configuration for responses
+type MCPServer struct {
+	ServerLabel string            `json:"server_label"` // Label identifier for the MCP server
+	ServerURL   string            `json:"server_url"`   // URL endpoint for the MCP server
+	Headers     map[string]string `json:"headers"`      // Custom headers for MCP server authentication
 }
 
 // CreateResponseRequest represents the request body for creating a response
@@ -89,6 +104,7 @@ type CreateResponseRequest struct {
 	TopP           *float64             `json:"top_p,omitempty"`            // Controls randomness (0.0-1.0)
 	Instructions   string               `json:"instructions,omitempty"`     // System message/behavior
 	Stream         bool                 `json:"stream,omitempty"`           // Enable streaming response
+	MCPServers     []MCPServer          `json:"mcp_servers,omitempty"`      // MCP server configurations
 }
 
 // convertToStreamingEvent converts a LlamaStack event to our clean StreamingEvent schema
@@ -162,6 +178,38 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		})
 	}
 
+	// Convert MCP servers to LlamaStack tool parameters
+	var mcpServerParams []llamastack.MCPServerParam
+	if len(createRequest.MCPServers) > 0 {
+		for _, server := range createRequest.MCPServers {
+			// Validate MCP server parameters
+			if server.ServerLabel == "" {
+				app.badRequestResponse(w, r, errors.New("server_label is required for MCP server"))
+				return
+			}
+			if server.ServerURL == "" {
+				app.badRequestResponse(w, r, errors.New("server_url is required for MCP server"))
+				return
+			}
+
+			// Create MCP server parameter for LlamaStack
+			mcpServerParam := llamastack.MCPServerParam{
+				ServerLabel: server.ServerLabel,
+				ServerURL:   server.ServerURL,
+				Headers:     make(map[string]string),
+			}
+
+			// Copy provided headers
+			if server.Headers != nil {
+				for k, v := range server.Headers {
+					mcpServerParam.Headers[k] = v
+				}
+			}
+
+			mcpServerParams = append(mcpServerParams, mcpServerParam)
+		}
+	}
+
 	// Convert to client params (only working parameters)
 	params := llamastack.CreateResponseParams{
 		Input:          createRequest.Input,
@@ -171,6 +219,7 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		Temperature:    createRequest.Temperature,
 		TopP:           createRequest.TopP,
 		Instructions:   createRequest.Instructions,
+		Tools:          mcpServerParams,
 	}
 
 	// Handle streaming vs non-streaming responses
