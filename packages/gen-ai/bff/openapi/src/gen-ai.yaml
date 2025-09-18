@@ -192,9 +192,10 @@ paths:
     summary: Create AI responses with clean LlamaStack structure
     description: >-
       Creates AI responses using LlamaStack with comprehensive parameter support.
-      Supports RAG via vector stores, conversation context, and advanced generation parameters.
+      Supports RAG via vector stores, conversation context, MCP tools, and advanced generation parameters.
       Returns clean JSON responses preserving LlamaStack's output structure but filtering unnecessary metadata.
       Can return either complete JSON responses or real-time streaming responses based on the stream parameter.
+      MCP tools can be configured with individual authentication headers in the request body.
 
     post:
       tags:
@@ -230,10 +231,11 @@ paths:
       operationId: createResponse
       summary: Create AI Response
       description: >-
-        Creates an AI response with full parameter control including RAG and conversation context.
+        Creates an AI response with full parameter control including RAG, conversation context, and MCP tools.
         When stream=false: Returns a clean JSON response with essential fields (id, model, status, created_at, output).
         When stream=true: Returns Server-Sent Events (SSE) stream with real-time token deltas and completion events.
         The output array preserves LlamaStack's structure but filters out unnecessary metadata for optimal performance.
+        MCP tools support multiple tools per request with individual authentication tokens provided in each tool's headers.
 
   /gen-ai/api/v1/code-exporter:
     summary: Generate Python code for Llama Stack integration
@@ -939,6 +941,34 @@ components:
         role: 'assistant'
         content: "Hello! I'm doing well, thank you for asking. How can I help you today?"
 
+    MCPServerRequestConfig:
+      type: object
+      required:
+        - server_label
+        - server_url
+      properties:
+        server_label:
+          type: string
+          example: 'slack'
+          description: Label identifier for the MCP server
+        server_url:
+          type: string
+          format: uri
+          example: 'http://127.0.0.1:13080/sse'
+          description: URL endpoint for the MCP server
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            Authorization: 'Bearer slack_token_123'
+          description: Custom headers for MCP server authentication
+      example:
+        server_label: 'slack'
+        server_url: 'http://127.0.0.1:13080/sse'
+        headers:
+          Authorization: 'Bearer slack_token_123'
+
     # Response Creation Schema
     CreateResponseRequest:
       type: object
@@ -1001,6 +1031,21 @@ components:
           default: false
           example: true
           description: Enable streaming response (SSE format) instead of complete JSON response
+        mcp_servers:
+          type: array
+          items:
+            $ref: '#/components/schemas/MCPServerRequestConfig'
+          example:
+            - server_label: 'slack'
+              server_url: 'http://127.0.0.1:13080/sse'
+              headers:
+                Authorization: 'Bearer slack_token_123'
+            - server_label: 'github'
+              server_url: 'http://127.0.0.1:14080/sse'
+              headers:
+                Authorization: 'Bearer github_token_456'
+                X-API-Version: 'v1'
+          description: MCP server configurations for external tool access. Each server can have its own authentication headers and provides multiple tools.
 
     # Clean Response Schema - Preserves LlamaStack Structure
     ResponseData:
@@ -1048,7 +1093,7 @@ components:
           description: Output item identifier
         type:
           type: string
-          enum: [message, file_search_call]
+          enum: [message, file_search_call, mcp_list_tools, mcp_call]
           example: 'message'
           description: Type of output item
         role:
@@ -1077,6 +1122,28 @@ components:
           items:
             $ref: '#/components/schemas/SearchResult'
           description: Search results for file_search_call outputs
+        
+        # MCP-specific fields
+        server_label:
+          type: string
+          example: 'github'
+          description: Label identifier for the MCP server (for mcp_list_tools and mcp_call types)
+        arguments:
+          type: string
+          example: '{"owner":"llamastack","repo":"llama-stack"}'
+          description: JSON string of arguments passed to the MCP tool (for mcp_call type)
+        name:
+          type: string
+          example: 'get_latest_release'
+          description: Name of the MCP tool that was called (for mcp_call type)
+        error:
+          type: string
+          example: 'Error (code 1): Repository not found'
+          description: Error message from MCP tool execution (for mcp_call type when errors occur)
+        output:
+          type: string
+          example: '{"tag_name":"v1.95.0","name":"Latest Release","published_at":"2025-09-17T15:00:00Z"}'
+          description: JSON string output from MCP tool execution (for mcp_call and mcp_list_tools types)
 
     ContentItem:
       type: object
@@ -1093,6 +1160,12 @@ components:
           type: string
           example: 'Hello! How can I help you today?'
           description: Generated text content
+        annotations:
+          type: array
+          items:
+            type: object
+          example: []
+          description: Content annotations and metadata (optional)
 
     SearchResult:
       type: object
@@ -2287,24 +2360,37 @@ components:
                 $ref: '#/components/schemas/ResponseData'
             example:
               data:
-                id: 'resp-428905e3-56fb-4a9c-9bd6-ad920a8dade2'
-                model: 'ollama/llama3.2:3b'
+                id: 'resp-635179f7-9f1a-4c58-8196-5ee4c41d00da'
+                model: 'ollama/llama3.2:latest'
                 status: 'completed'
-                created_at: 1757425282.0
+                created_at: 1758128692
                 output:
-                  - id: 'msg_a04d9524-4cea-4688-bc24-07a36d9339a2'
+                  - id: 'mcp_list_76f81e82-3142-41af-8462-8d7ef3975517'
+                    type: 'mcp_list_tools'
+                    role: 'assistant'
+                    server_label: 'github'
+                    output: ''
+                  - id: 'call_stl5xt0s'
+                    type: 'mcp_call'
+                    role: 'assistant'
+                    server_label: 'github'
+                    arguments: '{"owner":"llamastack","repo":"llama-stack"}'
+                    name: 'get_latest_release'
+                    output: '{"tag_name":"1.104.0","target_commitish":"main","name":"August 2025","published_at":"2025-09-11T13:37:43Z","author":{"login":"sandy081","id":10746682}}'
+                  - id: 'msg_6cb0269f-0cec-405d-af61-4e5ac01ea2b5'
                     type: 'message'
                     role: 'assistant'
                     status: 'completed'
                     content:
                       - type: 'output_text'
-                        text: "I'm just a language model, so I don't have feelings or emotions like humans do, but thank you for asking! How can I assist you today?"
+                        text: 'The latest release of Visual Studio Code is version 1.104.0, which was released on August 2025. Some of the key highlights include improvements to model flexibility, security, and productivity features.'
 
     StreamingResponse:
       description: >-
         Server-Sent Events (SSE) stream for real-time AI response generation.
         Each event contains a JSON object with streaming data including token deltas, completion events, and metadata.
         When RAG (vector stores) are used, file search tool calls appear as separate events in the stream.
+        When MCP tools are configured, mcp_list_tools and mcp_call events appear in the stream showing real-time tool execution.
         Stream format follows LlamaStack SSE specification with 'data:' prefix for each event.
       content:
         text/event-stream:
@@ -2314,21 +2400,29 @@ components:
             description: >-
               SSE stream with clean events that match the non-streaming response format:
               - response.created: Initial response with clean structure (id, model, status, created_at)
+              - mcp_list_tools: MCP server tool discovery (when MCP tools are configured)
+              - mcp_call: MCP tool execution with arguments and output (when MCP tools are used)
               - response.content_part.added: New content part started
               - response.output_text.delta: Individual token streaming with delta text
               - response.content_part.done: Content part completion
-              - response.completed: Final clean response with complete output array (messages, file searches)
+              - response.completed: Final clean response with complete output array (messages, tool calls, MCP interactions)
               All events use the same ResponseData structure as non-streaming responses.
           example: |
-            data: {"delta":"","sequence_number":0,"type":"response.created","item_id":"","output_index":0,"response":{"id":"resp-689b63a7-9cfa-418d-ace4-d9ed1dd2e27c","model":"ollama/llama3.2:3b","status":"in_progress","created_at":1757424451}}
+            data: {"delta":"","sequence_number":0,"type":"response.created","item_id":"","output_index":0,"response":{"id":"resp-635179f7-9f1a-4c58-8196-5ee4c41d00da","model":"ollama/llama3.2:latest","status":"in_progress","created_at":1758128692}}
 
-            data: {"delta":"","sequence_number":1,"type":"response.content_part.added","item_id":"msg_a32fd412-6efb-4621-a378-791b2a39ccc2","output_index":0}
+            data: {"delta":"","sequence_number":1,"type":"mcp_list_tools","item_id":"mcp_list_mock123","output_index":0,"server_label":"github"}
 
-            data: {"delta":"Hello","sequence_number":2,"type":"response.output_text.delta","item_id":"msg_a32fd412-6efb-4621-a378-791b2a39ccc2","output_index":0}
+            data: {"delta":"","sequence_number":2,"type":"mcp_call","item_id":"call_mock456","output_index":0,"server_label":"github","name":"get_latest_release","arguments":"{\"owner\":\"llamastack\",\"repo\":\"llama-stack\"}","output":"{\"tag_name\":\"1.104.0\",\"name\":\"August 2025\",\"published_at\":\"2025-09-11T13:37:43Z\"}"}
 
-            data: {"delta":"","sequence_number":3,"type":"response.content_part.done","item_id":"msg_a32fd412-6efb-4621-a378-791b2a39ccc2","output_index":0}
+            data: {"delta":"","sequence_number":3,"type":"response.content_part.added","item_id":"msg_23003d3c-bff4-4f47-a06e-befb4d95b7d4","output_index":0}
 
-            data: {"delta":"","sequence_number":0,"type":"response.completed","item_id":"","output_index":0,"response":{"id":"resp-689b63a7-9cfa-418d-ace4-d9ed1dd2e27c","model":"ollama/llama3.2:3b","status":"completed","created_at":1757424451,"output":[{"id":"msg_bc738425-4c4b-4caf-86a7-c307765cecbd","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"Hello there"}]}]}}
+            data: {"delta":"The","sequence_number":4,"type":"response.output_text.delta","item_id":"msg_23003d3c-bff4-4f47-a06e-befb4d95b7d4","output_index":0}
+
+            data: {"delta":" latest","sequence_number":5,"type":"response.output_text.delta","item_id":"msg_23003d3c-bff4-4f47-a06e-befb4d95b7d4","output_index":0}
+
+            data: {"delta":"","sequence_number":6,"type":"response.content_part.done","item_id":"msg_23003d3c-bff4-4f47-a06e-befb4d95b7d4","output_index":0}
+
+            data: {"delta":"","sequence_number":0,"type":"response.completed","item_id":"","output_index":0,"response":{"id":"resp-635179f7-9f1a-4c58-8196-5ee4c41d00da","model":"ollama/llama3.2:latest","status":"completed","created_at":1758128692,"output":[{"id":"mcp_list_76f81e82-3142-41af-8462-8d7ef3975517","type":"mcp_list_tools","role":"assistant","server_label":"github","output":""},{"id":"call_stl5xt0s","type":"mcp_call","role":"assistant","server_label":"github","arguments":"{\"owner\":\"llamastack\",\"repo\":\"llama-stack\"}","name":"get_latest_release","output":"{\"tag_name\":\"1.104.0\"}"},{"id":"msg_6cb0269f-0cec-405d-af61-4e5ac01ea2b5","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"The latest release is version 1.104.0"}]}]}}
 
     BadRequest:
       description: Bad Request - Invalid parameters, missing required fields, or malformed MCP Bearer token

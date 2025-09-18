@@ -319,4 +319,177 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
+
+	t.Run("should create response with MCP servers and include MCP fields", func(t *testing.T) {
+		payload := CreateResponseRequest{
+			Input: "Test MCP server integration",
+			Model: "mock-model-for-testing",
+			MCPServers: []MCPServer{
+				{
+					ServerLabel: "github",
+					ServerURL:   "https://api.githubcopilot.com/mcp/x/repos/readonly",
+					Headers: map[string]string{
+						"Authorization": "Bearer test-token",
+					},
+				},
+			},
+		}
+
+		req, err := createJSONRequest(payload)
+		assert.NoError(t, err)
+
+		// Simulate AttachLlamaStackClient middleware: create client and add to context
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackCreateResponseHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusCreated, rr.Code)
+
+		body, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response map[string]interface{}
+		err = json.Unmarshal(body, &response)
+		assert.NoError(t, err)
+
+		// Verify response structure
+		assert.Contains(t, response, "data")
+		data := response["data"].(map[string]interface{})
+		assert.Contains(t, data, "output")
+
+		// Verify output contains MCP tool interactions
+		output := data["output"].([]interface{})
+		assert.Greater(t, len(output), 2) // Should have mcp_list_tools, mcp_call, and message
+
+		// Find and verify MCP tool output items
+		var mcpListItem map[string]interface{}
+		var mcpCallItem map[string]interface{}
+		var messageItem map[string]interface{}
+
+		for _, item := range output {
+			itemMap := item.(map[string]interface{})
+			switch itemMap["type"] {
+			case "mcp_list_tools":
+				mcpListItem = itemMap
+			case "mcp_call":
+				mcpCallItem = itemMap
+			case "message":
+				messageItem = itemMap
+			}
+		}
+
+		// Verify MCP list tools item with new fields
+		assert.NotNil(t, mcpListItem, "Should have mcp_list_tools output item")
+		assert.Equal(t, "mcp_list_tools", mcpListItem["type"])
+		assert.Equal(t, "assistant", mcpListItem["role"])
+		assert.Equal(t, "github", mcpListItem["server_label"])
+		assert.Contains(t, mcpListItem, "output")
+
+		// Verify MCP call item with all new MCP fields
+		assert.NotNil(t, mcpCallItem, "Should have mcp_call output item")
+		assert.Equal(t, "mcp_call", mcpCallItem["type"])
+		assert.Equal(t, "assistant", mcpCallItem["role"])
+		assert.Equal(t, "github", mcpCallItem["server_label"])
+		assert.Equal(t, "get_latest_release", mcpCallItem["name"])
+		assert.Contains(t, mcpCallItem, "arguments")
+		assert.Contains(t, mcpCallItem, "output")
+
+		// Verify arguments is valid JSON string
+		arguments := mcpCallItem["arguments"].(string)
+		var argMap map[string]interface{}
+		err = json.Unmarshal([]byte(arguments), &argMap)
+		assert.NoError(t, err, "Arguments should be valid JSON")
+		assert.Contains(t, argMap, "owner")
+		assert.Contains(t, argMap, "repo")
+
+		// Verify output contains mock GitHub API response
+		mcpOutput := mcpCallItem["output"].(string)
+		var outputMap map[string]interface{}
+		err = json.Unmarshal([]byte(mcpOutput), &outputMap)
+		assert.NoError(t, err, "Output should be valid JSON")
+		assert.Contains(t, outputMap, "tag_name")
+		assert.Equal(t, "v1.95.0", outputMap["tag_name"])
+
+		// Verify message item reflects MCP tool usage
+		assert.NotNil(t, messageItem, "Should have message output item")
+		assert.Equal(t, "message", messageItem["type"])
+		content := messageItem["content"].([]interface{})
+		assert.Greater(t, len(content), 0)
+		textContent := content[0].(map[string]interface{})
+		assert.Contains(t, textContent["text"], "GitHub MCP tool results")
+	})
+
+	t.Run("should handle MCP server validation errors", func(t *testing.T) {
+		payload := CreateResponseRequest{
+			Input: "Test MCP validation",
+			Model: "llama-3.1-8b",
+			MCPServers: []MCPServer{
+				{
+					// Missing ServerLabel - should cause validation error
+					ServerURL: "https://api.githubcopilot.com/mcp/x/repos/readonly",
+					Headers: map[string]string{
+						"Authorization": "Bearer test-token",
+					},
+				},
+			},
+		}
+
+		req, err := createJSONRequest(payload)
+		assert.NoError(t, err)
+
+		// Simulate AttachLlamaStackClient middleware
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackCreateResponseHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+		body, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		assert.Contains(t, string(body), "server_label is required")
+	})
+
+	t.Run("should handle missing MCP server URL validation", func(t *testing.T) {
+		payload := CreateResponseRequest{
+			Input: "Test MCP validation",
+			Model: "llama-3.1-8b",
+			MCPServers: []MCPServer{
+				{
+					ServerLabel: "github",
+					// Missing ServerURL - should cause validation error
+					Headers: map[string]string{
+						"Authorization": "Bearer test-token",
+					},
+				},
+			},
+		}
+
+		req, err := createJSONRequest(payload)
+		assert.NoError(t, err)
+
+		// Simulate AttachLlamaStackClient middleware
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackCreateResponseHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+		body, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		assert.Contains(t, string(body), "server_url is required")
+	})
 }
