@@ -111,7 +111,7 @@ class FeatureStoreGlobal {
   }
 
   private wait() {
-    cy.findByTestId('app-page-title').should('have.text', 'Overview');
+    cy.findByTestId('app-page-title').should('have.text', 'Feature store overview');
     cy.testA11y();
   }
 
@@ -146,7 +146,7 @@ class FeatureStoreGlobal {
   }
 
   private waitForOverview() {
-    cy.findByTestId('app-page-title').should('have.text', 'Overview');
+    cy.findByTestId('app-page-title').should('have.text', 'Feature store overview');
     cy.testA11y();
   }
 
