@@ -84,11 +84,11 @@ export const mockHardwareProfile = ({
       ...annotations,
       'opendatahub.io/display-name': displayName,
       'opendatahub.io/description': description,
+      'opendatahub.io/disabled': enabled ? 'false' : 'true',
     },
     labels,
   },
   spec: {
-    enabled,
     identifiers,
     scheduling: {
       type: schedulingType,
@@ -118,7 +118,6 @@ export const mockNewHardwareProfile = (
     uid = genUID('service'),
     displayName = 'New Hardware Profile',
     description = '',
-    enabled = true,
     identifiers = [
       {
         displayName: 'CPU',
@@ -163,7 +162,6 @@ export const mockNewHardwareProfile = (
       labels,
     },
     spec: {
-      enabled,
       identifiers,
     },
   };

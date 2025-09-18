@@ -6,11 +6,12 @@ import { TableRow } from './components/table';
 
 class HardwareProfileTableToolbar extends Contextual<HTMLElement> {
   findToggleButton(id: string) {
-    return this.find().pfSwitch(id).click();
+    return this.find().findByTestId(id);
   }
 
   findFilterMenuOption(id: string, name: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findToggleButton(id).parents().findByRole('menuitem', { name });
+    this.findToggleButton(id).click();
+    return cy.findByRole('menuitem', { name });
   }
 
   findFilterInput(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -18,14 +19,12 @@ class HardwareProfileTableToolbar extends Contextual<HTMLElement> {
   }
 
   findSearchInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('filter-toolbar-text-field');
+    return this.find().find('input[placeholder="Filter by name"]');
   }
 
   selectEnableFilter(name: string) {
-    this.find()
-      .findByTestId('hardware-profile-filter-enable-select')
-      .findSelectOption(name)
-      .click();
+    this.find().findByTestId('hardware-profile-filter-enable-select').click();
+    cy.findByRole('option', { name }).click();
   }
 }
 
@@ -45,10 +44,12 @@ class HardwareProfileRow extends TableRow {
   }
 
   findEnabled() {
+    // PatternFly v6 switches - use pfSwitchValue to get the checkbox input element
     return this.find().pfSwitchValue('enable-switch');
   }
 
   findEnableSwitch() {
+    // PatternFly v6 switches - use pfSwitch to get the clickable switch element
     return this.find().pfSwitch('enable-switch');
   }
 
@@ -192,7 +193,8 @@ class HardwareProfile {
   }
 
   findClearFiltersButton() {
-    return cy.findByTestId('clear-filters-button');
+    // Clear all filters button - try both empty state and toolbar locations
+    return cy.findByTestId('clear-filters-button').should('exist');
   }
 
   findRestoreDefaultHardwareProfileButton() {

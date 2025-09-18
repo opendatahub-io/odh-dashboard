@@ -18,16 +18,26 @@ const initIntercepts = () => {
     mockDashboardConfig({
       modelServerSizes: [],
       notebookSizes: [],
+      disableHardwareProfiles: false,
     }),
   );
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'opendatahub' },
     mockK8sResourceList([
-      mockHardwareProfile({ name: 'Test Hardware Profile', displayName: 'Test Hardware Profile' }),
+      mockHardwareProfile({
+        name: 'Test Hardware Profile',
+        displayName: 'Test Hardware Profile',
+        annotations: {
+          'opendatahub.io/disabled': 'false',
+        },
+      }),
       mockHardwareProfile({
         name: 'test-hardware-profile-delete',
         displayName: 'Test Hardware Profile Delete',
         enabled: false,
+        annotations: {
+          'opendatahub.io/disabled': 'true',
+        },
       }),
     ]),
   );
@@ -544,6 +554,7 @@ describe('hardware profiles - empty state', () => {
       mockDashboardConfig({
         modelServerSizes: [],
         notebookSizes: [],
+        disableHardwareProfiles: false,
       }),
     );
     cy.interceptK8sList(
