@@ -8,6 +8,7 @@ import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import useFeatureStoreEntities from '../../apiHooks/useFeatureStoreEnitites';
 import { featureStoreRoute } from '../../routes';
 import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
+import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
 
 const title = 'Entities';
 const description =
@@ -38,7 +39,18 @@ const FeatureStoreEntities = (): React.ReactElement => {
     <ApplicationsPage
       empty={entities.entities.length === 0}
       emptyStatePage={emptyState}
-      title={<FeatureStorePageTitle title={title} />}
+      title={
+        <FeatureStorePageTitle
+          title={
+            <FeatureStoreObjectIcon
+              objectType="entity"
+              title={title}
+              showBackground
+              useTypedColors
+            />
+          }
+        />
+      }
       description={description}
       loadError={entitiesLoadError}
       loaded={entitiesLoaded}

@@ -16,6 +16,11 @@ export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
     sortable: false,
   },
   {
+    field: 'drag-drop-handle',
+    label: '',
+    sortable: false,
+  },
+  {
     field: 'name',
     label: 'Name',
     sortable: (a, b) =>

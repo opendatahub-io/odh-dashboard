@@ -15,7 +15,7 @@ jobs:
       - name: Generate modules cache key
         id: key
         run: |
-          echo "modules-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}" >> $GITHUB_OUTPUT
+          echo "modules-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-${{ hashFiles('**/package-lock.json') }}" >> $GITHUB_OUTPUT
       - name: Node.js modules cache
         uses: actions/cache@v4
         id: modules-cache
@@ -52,7 +52,7 @@ jobs:
           path: |
             ~/.cache/Cypress
             **/node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-${{ hashFiles('**/package-lock.json') }}
       - name: Cache turbo
         uses: actions/cache@v4
         with:
@@ -78,7 +78,7 @@ jobs:
           path: |
             ~/.cache/Cypress
             **/node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-${{ hashFiles('**/package-lock.json') }}
       - name: Cache turbo
         uses: actions/cache@v4
         with:
@@ -211,7 +211,7 @@ jobs:
         with:
           lookup-only: true
           path: |
-            ${{ github.workspace }}/frontend/public-cypress
+            **/public-cypress
           key: ${{ steps.key.outputs.cypress-cache-key }}
       - name: Restore cache
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
@@ -226,10 +226,9 @@ jobs:
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Build frontend for cypress
+      - name: Build for cypress
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
         run: npm run cypress:server:build:coverage
-        working-directory: ./frontend
 
   Cypress-Mock-Tests:
     needs: [Setup, Lint, Type-Check, Cypress-Setup, Get-Test-Groups]
@@ -255,7 +254,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: |
-            ${{ github.workspace }}/frontend/public-cypress
+            **/public-cypress
           key: ${{ needs.Cypress-Setup.outputs.cypress-cache-key }}
       - name: Run Cypress Mock tests
         run: |

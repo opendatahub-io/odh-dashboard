@@ -11,6 +11,7 @@ import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { isProjectNIMSupported } from '@odh-dashboard/internal/pages/modelServing/screens/projects/nimUtils';
 import useIsAreaAvailable from '@odh-dashboard/internal/concepts/areas/useIsAreaAvailable';
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/index';
+import { useKueueConfiguration } from '@odh-dashboard/internal/concepts/hardwareProfiles/kueueUtils';
 import { useServingRuntimeTemplates } from '../../concepts/servingRuntimeTemplates/useServingRuntimeTemplates';
 import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
 import { useAvailableClusterPlatforms } from '../../concepts/useAvailableClusterPlatforms';
@@ -85,10 +86,11 @@ export const DeployButton: React.FC<{
     }
   };
 
+  const { isKueueDisabled } = useKueueConfiguration(project ?? undefined);
   const [globalTemplates, globalTemplatesLoaded] = useServingRuntimeTemplates();
   const isMissingTemplates = globalTemplates.length === 0 && globalTemplatesLoaded;
 
-  const disableButton = !project || isMissingTemplates;
+  const disableButton = !project || isMissingTemplates || isKueueDisabled;
   const disabledReason = isMissingTemplates
     ? 'At least one serving runtime must be enabled to deploy a model. Contact your administrator.'
     : 'To deploy a model, select a project.';

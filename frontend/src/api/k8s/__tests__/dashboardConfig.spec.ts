@@ -6,6 +6,7 @@ import {
   getDashboardConfigTemplateOrder,
   patchDashboardConfigTemplateDisablement,
   patchDashboardConfigTemplateOrder,
+  patchDashboardConfigHardwareProfileOrder,
 } from '#~/api/k8s/dashboardConfig';
 import { ODHDashboardConfigModel } from '#~/api/models';
 import { DashboardConfigKind } from '#~/k8sTypes';
@@ -203,6 +204,101 @@ describe('patchDashboardConfigTemplateDisablement', () => {
           op: 'replace',
           path: '/spec/templateDisablement',
           value: templateDisablement,
+        },
+      ],
+    });
+  });
+});
+
+describe('patchDashboardConfigHardwareProfileOrder', () => {
+  it('should patch dashboard config hardware profile order successfully', async () => {
+    const dashboardConfigurationMock = mockDashboardConfig({});
+    const hardwareProfileOrder = ['profile-1', 'profile-2', 'profile-3'];
+    dashboardConfigurationMock.spec.hardwareProfileOrder = hardwareProfileOrder;
+    k8sPatchResourceMock.mockResolvedValue(dashboardConfigurationMock);
+
+    const result = await patchDashboardConfigHardwareProfileOrder(
+      hardwareProfileOrder,
+      projectName,
+    );
+    expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
+    expect(k8sPatchResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: ODHDashboardConfigModel,
+      queryOptions: { name: DASHBOARD_CONFIG, ns: projectName, queryParams: {} },
+      patches: [
+        {
+          op: 'add',
+          path: '/spec/hardwareProfileOrder',
+          value: hardwareProfileOrder,
+        },
+      ],
+    });
+    expect(result).toStrictEqual(dashboardConfigurationMock);
+  });
+
+  it('should handle empty hardware profile order', async () => {
+    const dashboardConfigurationMock = mockDashboardConfig({});
+    const hardwareProfileOrder: string[] = [];
+    dashboardConfigurationMock.spec.hardwareProfileOrder = hardwareProfileOrder;
+    k8sPatchResourceMock.mockResolvedValue(dashboardConfigurationMock);
+
+    const result = await patchDashboardConfigHardwareProfileOrder(
+      hardwareProfileOrder,
+      projectName,
+    );
+    expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
+    expect(result).toStrictEqual(dashboardConfigurationMock);
+  });
+
+  it('should handle reordered hardware profile list', async () => {
+    const dashboardConfigurationMock = mockDashboardConfig({});
+    const reorderedOrder = ['profile-c', 'profile-a', 'profile-b'];
+    dashboardConfigurationMock.spec.hardwareProfileOrder = reorderedOrder;
+    k8sPatchResourceMock.mockResolvedValue(dashboardConfigurationMock);
+
+    const result = await patchDashboardConfigHardwareProfileOrder(reorderedOrder, projectName);
+    expect(k8sPatchResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: ODHDashboardConfigModel,
+      queryOptions: { name: DASHBOARD_CONFIG, ns: projectName, queryParams: {} },
+      patches: [
+        {
+          op: 'add',
+          path: '/spec/hardwareProfileOrder',
+          value: reorderedOrder,
+        },
+      ],
+    });
+    expect(result).toStrictEqual(dashboardConfigurationMock);
+  });
+
+  it('should handle errors and rethrow', async () => {
+    k8sPatchResourceMock.mockRejectedValue(new Error('patch failed'));
+
+    await expect(
+      patchDashboardConfigHardwareProfileOrder(['profile-1'], projectName),
+    ).rejects.toThrow('patch failed');
+    expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should support K8sAPIOptions parameter', async () => {
+    const dashboardConfigurationMock = mockDashboardConfig({});
+    const hardwareProfileOrder = ['profile-1'];
+    const opts = { signal: new AbortController().signal };
+    dashboardConfigurationMock.spec.hardwareProfileOrder = hardwareProfileOrder;
+    k8sPatchResourceMock.mockResolvedValue(dashboardConfigurationMock);
+
+    await patchDashboardConfigHardwareProfileOrder(hardwareProfileOrder, projectName, opts);
+    expect(k8sPatchResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: { signal: opts.signal } },
+      model: ODHDashboardConfigModel,
+      queryOptions: { name: DASHBOARD_CONFIG, ns: projectName, queryParams: {} },
+      patches: [
+        {
+          op: 'add',
+          path: '/spec/hardwareProfileOrder',
+          value: hardwareProfileOrder,
         },
       ],
     });

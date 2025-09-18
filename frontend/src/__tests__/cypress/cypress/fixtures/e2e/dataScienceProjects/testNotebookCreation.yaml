@@ -1,2 +1,2 @@
-# testLaunchStandaloneNotebook.cy.ts Test Data #
-codeserverImageName: "code-server-notebook:2024.2" 
+# testLaunchStandaloneNotebook.cy.ts Test Data
+codeserverImageName: "code-server-notebook:2025.2" 
