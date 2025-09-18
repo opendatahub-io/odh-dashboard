@@ -125,9 +125,9 @@ RESULTS_DIR="$CONSUMER_DIR/contract-test-results/$TIMESTAMP"
 # Clean up old result directories (age-based pruning)
 if [[ -d "$CONSUMER_DIR/contract-test-results" ]]; then
   if cd "$CONSUMER_DIR/contract-test-results" 2>/dev/null; then
-    # Remove directories older than 1 day, but exclude current run
-    # Use find with -exec to safely remove old directories
-    find . -mindepth 1 -maxdepth 1 -type d -mtime +1 ! -name "$TIMESTAMP" -exec rm -rf {} + 2>/dev/null || true
+    # Remove directories older than 2 hours to prevent accumulation
+    # Each run gets its own timestamp directory, no conflicts
+    find . -mindepth 1 -maxdepth 1 -type d -mmin +120 -exec rm -rf {} + 2>/dev/null || true
     cd - >/dev/null 2>&1 || true
   else
     log_warning "Could not access results directory for cleanup: $CONSUMER_DIR/contract-test-results"
@@ -144,6 +144,9 @@ export JEST_HTML_REPORTERS_JSON=true
 export PACKAGE_NAME="$PACKAGE_NAME"
 export CONTRACT_TEST_RESULTS_DIR="$RESULTS_DIR"
 export CONTRACT_TEST_MODULE="$PACKAGE_NAME"
+
+# Export for CI artifact upload - only current run's directory
+export CONTRACT_TEST_CURRENT_RESULTS_DIR="$RESULTS_DIR"
 
 # Ensure Go is present
 if ! command -v go >/dev/null 2>&1; then

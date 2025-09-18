@@ -185,8 +185,9 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: contract-test-results
-          path: packages/*/contract-tests/contract-test-results/**/*
+          name: contract-test-results-${{ github.event.pull_request.number || github.run_id }}
+          path: ${{ env.CONTRACT_TEST_CURRENT_RESULTS_DIR }}
+          if-no-files-found: warn
 
   Cypress-Setup:
     needs: [Setup]
