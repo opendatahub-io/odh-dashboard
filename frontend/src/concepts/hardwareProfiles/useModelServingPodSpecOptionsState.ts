@@ -78,12 +78,10 @@ export const useModelServingPodSpecOptionsState = (
   const existingNodeSelector =
     inferenceService?.spec.predictor.nodeSelector || servingRuntime?.spec.nodeSelector;
 
-  const annotationData = {
-    selectedAcceleratorProfile: acceleratorProfile.formData.profile,
-    selectedHardwareProfile: hardwareProfile.formData.selectedProfile,
-  };
-
   if (isHardwareProfilesAvailable && !isModelMesh) {
+    const annotationData = {
+      selectedHardwareProfile: hardwareProfile.formData.selectedProfile,
+    };
     if (hardwareProfile.formData.useExistingSettings) {
       podSpecOptions = {
         resources: existingResources,
@@ -125,7 +123,7 @@ export const useModelServingPodSpecOptionsState = (
       resources: newResources,
       tolerations: newTolerations,
       nodeSelector: existingNodeSelector,
-      ...annotationData,
+      selectedAcceleratorProfile: acceleratorProfile.formData.profile,
     };
   }
 
