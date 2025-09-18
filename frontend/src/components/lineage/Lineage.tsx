@@ -73,8 +73,8 @@ const LineageInner: React.FC<LineageProps> = ({
     onNodeSelect: handleNodeSelect,
   });
 
-  // Track timeout to prevent multiple simultaneous resets
-  const layoutTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  // Track if we've done initial fit to avoid conflicts with controller's fit
+  const hasInitialFitted = React.useRef(false);
 
   // Load nodes and edges into controller when it's ready
   React.useEffect(() => {
@@ -88,29 +88,19 @@ const LineageInner: React.FC<LineageProps> = ({
           true, // Update existing model
         );
 
-        // Clear any existing timeout
-        if (layoutTimeoutRef.current) {
-          clearTimeout(layoutTimeoutRef.current);
+        // Only fit on initial data load, let controller handle subsequent layouts
+        if (!hasInitialFitted.current) {
+          const initialFitTimeout = setTimeout(() => {
+            try {
+              controller.getGraph().fit(50);
+              hasInitialFitted.current = true;
+            } catch (e) {
+              console.warn('Failed to fit graph on initial load:', e);
+            }
+          }, 200); // Longer delay for initial load
+
+          return () => clearTimeout(initialFitTimeout);
         }
-
-        // Reset and center the layout after data load, handles both initial load and data changes
-        layoutTimeoutRef.current = setTimeout(() => {
-          try {
-            controller.getGraph().reset();
-            controller.getGraph().layout();
-          } catch (e) {
-            console.warn('Failed to reset graph layout:', e);
-          } finally {
-            layoutTimeoutRef.current = null;
-          }
-        }, 100);
-
-        return () => {
-          if (layoutTimeoutRef.current) {
-            clearTimeout(layoutTimeoutRef.current);
-            layoutTimeoutRef.current = null;
-          }
-        };
       } catch (e) {
         console.error('Error loading lineage nodes and edges:', e);
         return undefined;
