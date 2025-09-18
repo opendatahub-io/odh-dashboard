@@ -70,6 +70,7 @@ const ChatbotMain: React.FunctionComponent = () => {
         }
         loadError={lsdStatusError || aiModelsError}
         headerAction={
+          // TODO: Check if the LSD is running instead of just checking if it exists
           lsdStatus &&
           (isViewCodeDisabled ? (
             <Tooltip content={getDisabledReason()}>
@@ -94,6 +95,7 @@ const ChatbotMain: React.FunctionComponent = () => {
           ))
         }
       >
+        {/* TODO: Add a loading state here if the LSD is not running */}
         <ChatbotPlayground
           isViewCodeModalOpen={isViewCodeModalOpen}
           setIsViewCodeModalOpen={setIsViewCodeModalOpen}
