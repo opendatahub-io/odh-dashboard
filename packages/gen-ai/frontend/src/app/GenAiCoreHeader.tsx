@@ -8,26 +8,38 @@ import GenAiCoreProjectSelector from '~/app/GenAiCoreProjectSelector';
 type GenAiCoreHeaderProps = {
   title: string;
   getRedirectPath: (namespace: string) => string;
+  description?: string;
 };
 
-const GenAiCoreHeader: React.FC<GenAiCoreHeaderProps> = ({ title, getRedirectPath }) => {
+const GenAiCoreHeader: React.FC<GenAiCoreHeaderProps> = ({
+  title,
+  getRedirectPath,
+  description,
+}) => {
   const { namespace } = useParams<{ namespace: string }>();
   return (
-    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapLg' }}>
-      <FlexItem>
-        <Title headingLevel="h1">{title}</Title>
-      </FlexItem>
-      <FlexItem>
-        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-          <ProjectIconWithSize size={IconSize.LG} />
-          <FlexItem>
-            <Content component="p">Project</Content>
-          </FlexItem>
-          <FlexItem>
-            <GenAiCoreProjectSelector namespace={namespace} getRedirectPath={getRedirectPath} />
-          </FlexItem>
-        </Flex>
-      </FlexItem>
+    <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
+      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapLg' }}>
+        <FlexItem>
+          <Title headingLevel="h1">{title}</Title>
+        </FlexItem>
+        <FlexItem>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+            <ProjectIconWithSize size={IconSize.LG} />
+            <FlexItem>
+              <Content component="p">Project</Content>
+            </FlexItem>
+            <FlexItem>
+              <GenAiCoreProjectSelector namespace={namespace} getRedirectPath={getRedirectPath} />
+            </FlexItem>
+          </Flex>
+        </FlexItem>
+      </Flex>
+      {description && (
+        <FlexItem>
+          <Content component="p">{description}</Content>
+        </FlexItem>
+      )}
     </Flex>
   );
 };

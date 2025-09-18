@@ -12,6 +12,7 @@ import {
   MessageBox,
 } from '@patternfly/chatbot';
 import { ApplicationsPage } from 'mod-arch-shared';
+import { useSearchParams } from 'react-router-dom';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import ChatbotEmptyState from '~/app/EmptyStates/NoData';
@@ -30,18 +31,35 @@ const ChatbotMain: React.FunctionComponent = () => {
   const displayMode = ChatbotDisplayMode.embedded;
   const { models, modelsLoaded, lsdStatus, lsdStatusLoaded, lsdStatusError, modelsError } =
     React.useContext(ChatbotContext);
-  const [selectedModel, setSelectedModel] = React.useState<string>('');
   const { username } = useUserContext();
-  const modelId = selectedModel || models[0]?.id;
+  const [searchParams, setSearchParams] = useSearchParams();
   const [systemInstruction, setSystemInstruction] = React.useState<string>(
     DEFAULT_SYSTEM_INSTRUCTIONS,
   );
 
-  React.useEffect(() => {
-    if (!selectedModel) {
-      setSelectedModel(models[0]?.id);
+  // Get selected model from URL, fallback to first available model
+  const selectedModel = React.useMemo(() => {
+    const modelFromUrl = searchParams.get('model');
+    if (modelFromUrl && models.length > 0) {
+      const modelExists = models.some((model) => model.id === modelFromUrl);
+      if (modelExists) {
+        return modelFromUrl;
+      }
     }
-  }, [models, selectedModel]);
+    return models[0]?.id || '';
+  }, [searchParams, models]);
+
+  const modelId = selectedModel;
+
+  // Update URL when model changes
+  const handleModelChange = React.useCallback(
+    (newModel: string) => {
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.set('model', newModel);
+      setSearchParams(newSearchParams);
+    },
+    [searchParams, setSearchParams],
+  );
 
   // Custom hooks for managing different aspects of the chatbot
   const alertManagement = useAlertManagement();
@@ -80,7 +98,7 @@ const ChatbotMain: React.FunctionComponent = () => {
     <ChatbotSettingsPanel
       models={models}
       selectedModel={selectedModel}
-      onModelChange={setSelectedModel}
+      onModelChange={handleModelChange}
       alerts={{ successAlert, errorAlert }}
       sourceManagement={sourceManagement}
       systemInstruction={systemInstruction}
