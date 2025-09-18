@@ -253,6 +253,16 @@ type ChatContextMessage struct {
 	Content string `json:"content"`
 }
 
+// MCPServerParam represents MCP server configuration for LlamaStack
+type MCPServerParam struct {
+	// ServerLabel is the label identifier for the MCP server
+	ServerLabel string
+	// ServerURL is the URL endpoint for the MCP server
+	ServerURL string
+	// Headers contains custom headers for MCP server authentication
+	Headers map[string]string
+}
+
 // CreateResponseParams contains parameters for creating AI responses.
 type CreateResponseParams struct {
 	// Input is the text input for response generation (required).
@@ -269,6 +279,8 @@ type CreateResponseParams struct {
 	TopP *float64
 	// Instructions provides system-level guidance for AI behavior.
 	Instructions string
+	// Tools contains MCP server configurations for tool-enabled responses.
+	Tools []MCPServerParam
 }
 
 // prepareResponseParams validates input parameters and prepares the API parameters for response creation.
@@ -348,9 +360,41 @@ func (c *LlamaStackClient) prepareResponseParams(params CreateResponseParams) (*
 		apiParams.TopP = openai.Float(*params.TopP)
 	}
 
+	// Handle tools (both file search and MCP tools)
+	var tools []responses.ToolUnionParam
+
+	// Add file search tools if vector store IDs are provided
 	if len(params.VectorStoreIDs) > 0 {
 		fileSearchTool := responses.ToolParamOfFileSearch(params.VectorStoreIDs)
-		apiParams.Tools = []responses.ToolUnionParam{fileSearchTool}
+		tools = append(tools, fileSearchTool)
+	}
+
+	// Add MCP servers if provided
+	if len(params.Tools) > 0 {
+		for _, mcpServer := range params.Tools {
+			// Validate MCP server parameters
+			if mcpServer.ServerLabel == "" {
+				return nil, fmt.Errorf("server_label is required for MCP server")
+			}
+			if mcpServer.ServerURL == "" {
+				return nil, fmt.Errorf("server_url is required for MCP server")
+			}
+
+			// Create MCP tool parameter for OpenAI client
+			mcpServerToolParam := responses.ToolUnionParam{
+				OfMcp: &responses.ToolMcpParam{
+					ServerLabel: mcpServer.ServerLabel,
+					ServerURL:   openai.String(mcpServer.ServerURL),
+					Headers:     mcpServer.Headers,
+				},
+			}
+			tools = append(tools, mcpServerToolParam)
+		}
+	}
+
+	// Set tools if any are configured
+	if len(tools) > 0 {
+		apiParams.Tools = tools
 	}
 
 	return apiParams, nil
