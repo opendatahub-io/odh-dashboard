@@ -21,6 +21,7 @@ interface UseChatbotMessagesProps {
   systemInstruction: string;
   isRawUploaded: boolean;
   username?: string;
+  namespace?: string;
 }
 
 const useChatbotMessages = ({
@@ -29,6 +30,7 @@ const useChatbotMessages = ({
   systemInstruction,
   isRawUploaded,
   username,
+  namespace,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<MessageProps[]>([initialBotMessage()]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
@@ -75,7 +77,10 @@ const useChatbotMessages = ({
         instructions: systemInstruction,
       };
 
-      const response = await createResponse(responsesPayload);
+      if (!namespace) {
+        throw new Error('Namespace is required for generating responses');
+      }
+      const response = await createResponse(responsesPayload, namespace);
 
       const botMessage: MessageProps = {
         id: getId(),

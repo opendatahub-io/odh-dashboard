@@ -53,11 +53,12 @@ export const getModelsByType = (modelType: LlamaModelType): Promise<LlamaModel[]
 
 /**
  * Fetches all available vector stores from the Llama Stack API
+ * @param namespace - The namespace to fetch vector stores from
  * @returns Promise<VectorStore[]> - Array of available vector stores with their metadata
  * @throws Error - When the API request fails or returns an error response
  */
-export const getVectorStores = (): Promise<VectorStore[]> => {
-  const url = `${URL_PREFIX}/api/v1/vectorstores`;
+export const getVectorStores = (namespace: string): Promise<VectorStore[]> => {
+  const url = `${URL_PREFIX}/api/v1/vectorstores?namespace=${namespace}`;
   return axios
     .get(url)
     .then((response) => response.data.data)
@@ -70,13 +71,13 @@ export const getVectorStores = (): Promise<VectorStore[]> => {
 
 /**
  * Creates a vector store with the Llama Stack API
- * @param vectorStoreId - The vector store identifier
- * @param embeddingModel - The embedding model to use
+ * @param vectorName - The name of the vector store to create
+ * @param namespace - The namespace to create the vector store in
  * @returns Promise<VectorStore> - A promise that resolves with the created vector store
  * @throws Error - When the API request fails or returns an error response
  */
-export const createVectorStore = (vectorName: string): Promise<VectorStore> => {
-  const url = `${URL_PREFIX}/api/v1/vectorstores`;
+export const createVectorStore = (vectorName: string, namespace: string): Promise<VectorStore> => {
+  const url = `${URL_PREFIX}/api/v1/vectorstores?namespace=${namespace}`;
   return axios
     .post(url, {
       name: vectorName,
@@ -91,16 +92,18 @@ export const createVectorStore = (vectorName: string): Promise<VectorStore> => {
 
 /**
  * Uploads a source to the Llama Stack API
- * @param source - The source to upload
+ * @param file - The file to upload
  * @param settings - The settings for the source
- * @returns Promise<void> - A promise that resolves when the source is uploaded
+ * @param namespace - The namespace to upload the source to
+ * @returns Promise<FileUploadResult> - A promise that resolves when the source is uploaded
  * @throws Error - When the API request fails or returns an error response
  */
 export const uploadSource = (
   file: File,
   settings: ChatbotSourceSettings,
+  namespace: string,
 ): Promise<FileUploadResult> => {
-  const url = `${URL_PREFIX}/api/v1/files/upload`;
+  const url = `${URL_PREFIX}/api/v1/files/upload?namespace=${namespace}`;
 
   // Create FormData for multipart/form-data upload
   const formData = new FormData();
@@ -130,11 +133,15 @@ export const uploadSource = (
 /**
  * Request to generate AI responses with RAG and conversation context.
  * @param request - CreateResponseRequest payload for /gen-ai/api/v1/responses.
+ * @param namespace - The namespace to generate responses in
  * @returns Promise<SimplifiedResponseData> - The generated response object.
  * @throws Error - When the API request fails or returns an error response.
  */
-export const createResponse = (request: CreateResponseRequest): Promise<SimplifiedResponseData> => {
-  const url = `${URL_PREFIX}/api/v1/responses`;
+export const createResponse = (
+  request: CreateResponseRequest,
+  namespace: string,
+): Promise<SimplifiedResponseData> => {
+  const url = `${URL_PREFIX}/api/v1/responses?namespace=${namespace}`;
   return axios
     .post(url, request)
     .then((response) => response.data.data)

@@ -32,6 +32,7 @@ type ChatbotSourceSettingsModalProps = {
   isOpen: boolean;
   onToggle: () => void;
   onSubmitSettings: (settings: ChatbotSourceSettings | null) => void;
+  namespace?: string;
 };
 
 const DEFAULT_SOURCE_SETTINGS: ChatbotSourceSettings = {
@@ -46,6 +47,7 @@ const DEFAULT_VECTOR_STORE_FORM = {
 
 const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
   isOpen,
+  namespace,
   onToggle,
   onSubmitSettings,
 }) => {
@@ -55,7 +57,7 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
   const maxChunkLengthLabelHelpRef = React.useRef(null);
   const sourceSettingsHelpRef = React.useRef(null);
   const [vectorStores, vectorStoresLoaded, vectorStoresError, refreshVectorStores] =
-    useFetchVectorStores();
+    useFetchVectorStores(namespace);
 
   // Vector store creation state
   const [vectorStoreForm, setVectorStoreForm] = React.useState(DEFAULT_VECTOR_STORE_FORM);
@@ -100,13 +102,13 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
   };
 
   const onSubmitVectorStoreCreation = async () => {
-    if (!vectorStoreForm.vectorName.trim()) {
+    if (!vectorStoreForm.vectorName.trim() || !namespace) {
       return;
     }
 
     try {
       setIsCreatingVectorStore(true);
-      const newVectorStore = await createVectorStore(vectorStoreForm.vectorName);
+      const newVectorStore = await createVectorStore(vectorStoreForm.vectorName, namespace);
 
       // Refresh the vector stores list to include the newly created one
       await refreshVectorStores();

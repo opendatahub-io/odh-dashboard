@@ -21,11 +21,13 @@ export interface UseSourceManagementReturn {
 interface UseSourceManagementProps {
   onShowSuccessAlert: () => void;
   onShowErrorAlert: () => void;
+  namespace?: string;
 }
 
 const useSourceManagement = ({
   onShowSuccessAlert,
   onShowErrorAlert,
+  namespace,
 }: UseSourceManagementProps): UseSourceManagementReturn => {
   const [selectedSource, setSelectedSource] = React.useState<File[]>([]);
 
@@ -65,7 +67,10 @@ const useSourceManagement = ({
 
       if (settings) {
         try {
-          await uploadSource(selectedSource[0], settings);
+          if (!namespace) {
+            throw new Error('Namespace is required for file upload');
+          }
+          await uploadSource(selectedSource[0], settings, namespace);
           onShowSuccessAlert();
         } catch {
           onShowErrorAlert();
@@ -75,7 +80,7 @@ const useSourceManagement = ({
         setExtractedText('');
       }
     },
-    [selectedSource, onShowSuccessAlert, onShowErrorAlert],
+    [selectedSource, onShowSuccessAlert, onShowErrorAlert, namespace],
   );
 
   return {
