@@ -6,12 +6,12 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
-  issues: write
+  pull-requests: read
 
 env:
   NODE_VERSION: 20.x
   DO_NOT_TRACK: 1
+  ALLOW_INSECURE_SSL: false
 
 jobs:
   get-test-tags:
@@ -179,19 +179,19 @@ jobs:
           # Try to download test-variables.yml from GitLab securely
           if [ -n "${{ secrets.GITLAB_TOKEN }}" ] && [ -n "${{ secrets.GITLAB_TEST_VARS_URL }}" ]; then
             echo "🔄 Both secrets are available, attempting download..."
-            echo "Token length: ${#GITLAB_TOKEN}"
-            echo "URL length: ${#GITLAB_TEST_VARS_URL}"
 
-            # Debug: Show first few characters of secrets (safely)
-            if [ -n "${{ secrets.GITLAB_TOKEN }}" ]; then
-              echo "Token starts with: ${{ secrets.GITLAB_TOKEN }}" | cut -c1-10
-            fi
-            if [ -n "${{ secrets.GITLAB_TEST_VARS_URL }}" ]; then
-              echo "URL starts with: ${{ secrets.GITLAB_TEST_VARS_URL }}" | cut -c1-20
+            # Mask secrets for security
+            echo "::add-mask::${{ secrets.GITLAB_TOKEN }}"
+
+            # Set up TLS options based on environment variable
+            CURL_EXTRA_OPTS=""
+            if [ "${ALLOW_INSECURE_SSL}" = "true" ]; then
+              echo "⚠️  WARNING: Using insecure SSL (--insecure/-k flag enabled)"
+              CURL_EXTRA_OPTS="-k"
             fi
 
-            # Try with SSL verification disabled (for self-signed certs)
-            if curl -f -k -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
+            # Try with SSL verification (or insecure if explicitly enabled)
+            if curl -f $CURL_EXTRA_OPTS -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
                         "${{ secrets.GITLAB_TEST_VARS_URL }}" \
                         -o ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml; then
               echo "✅ Successfully downloaded test configuration from GitLab"
@@ -200,16 +200,10 @@ jobs:
               echo "❌ Failed to download from GitLab"
               echo "Curl exit code: $?"
 
-              # Try to get more details about the failure
-              echo "Trying without -f to see error details..."
-              curl -k -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
-                  "${{ secrets.GITLAB_TEST_VARS_URL }}" \
-                  -o /tmp/test-response 2>&1 || echo "Curl failed with: $?"
-
-              if [ -f /tmp/test-response ]; then
-                echo "GitLab API Response:"
-                head -10 /tmp/test-response
-              fi
+              # Try to get more details about the failure (headers only, no auth)
+              echo "Trying to fetch error details (headers only)..."
+              curl -I $CURL_EXTRA_OPTS -H "Authorization: Bearer ***REDACTED***" \
+                  "${{ secrets.GITLAB_TEST_VARS_URL }}" 2>&1 || true
 
               exit 1
             fi
@@ -240,17 +234,34 @@ jobs:
             exit 0
           fi
 
-          # Read credentials from downloaded test-variables.yml
-          TEST_VARS_FILE="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
+          # Try to use OAuth token first (preferred method)
+          if [ -n "${{ secrets.OC_TOKEN }}" ]; then
+            echo "🔐 Using OAuth token for OpenShift login..."
+            echo "::add-mask::${{ secrets.OC_TOKEN }}"
+            oc login --token="${{ secrets.OC_TOKEN }}" --server="${{ secrets.OC_SERVER }}" --insecure-skip-tls-verify
+          else
+            echo "⚠️  No OAuth token available, falling back to username/password from test variables..."
 
-          # Extract OC_USERNAME from OCP_ADMIN_USER section
-          OC_USERNAME=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
+            # Read credentials from downloaded test-variables.yml
+            TEST_VARS_FILE="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
 
-          # Extract OC_PASSWORD from OCP_ADMIN_USER section
-          OC_PASSWORD=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
+            # Extract OC_USERNAME from OCP_ADMIN_USER section
+            OC_USERNAME=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
 
-          echo "Logging in to OpenShift cluster..."
-          oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="${{ secrets.OC_SERVER }}" --insecure-skip-tls-verify
+            # Extract OC_PASSWORD from OCP_ADMIN_USER section
+            OC_PASSWORD=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
+
+            # Mask credentials immediately after extraction
+            if [ -n "$OC_USERNAME" ]; then
+              echo "::add-mask::$OC_USERNAME"
+            fi
+            if [ -n "$OC_PASSWORD" ]; then
+              echo "::add-mask::$OC_PASSWORD"
+            fi
+
+            echo "🔐 Logging in to OpenShift cluster with username/password..."
+            oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="${{ secrets.OC_SERVER }}" --insecure-skip-tls-verify
+          fi
 
           # Export OpenShift configuration for Cypress tests
           echo "🔧 Setting up OpenShift configuration for Cypress tests..."
@@ -431,7 +442,7 @@ jobs:
           echo "Status: ${{ job.status }}"
           echo "Event: ${{ github.event_name }}"
           echo "Branch: ${{ github.ref_name }}"
-          echo "Test Tag: ${{ matrix.test-tag }}”
+          echo "Test Tag: ${{ matrix.test-tag }}"
           echo "Commit: ${{ github.sha }}"
           echo "Run ID: ${{ github.run_id }}"
           echo ""
