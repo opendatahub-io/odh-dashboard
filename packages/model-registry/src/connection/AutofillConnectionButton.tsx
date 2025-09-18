@@ -51,7 +51,16 @@ const AutofillConnectionButton: React.FC<{
 
   return (
     <>
-      <Button variant="link" icon={<OptimizeIcon />} onClick={() => setIsModalOpen(true)}>
+      <Button
+        variant="link"
+        data-testid={
+          modelLocationType === ModelLocationType.ObjectStorage
+            ? 'object-storage-autofill-button'
+            : 'uri-autofill-button'
+        }
+        icon={<OptimizeIcon />}
+        onClick={() => setIsModalOpen(true)}
+      >
         Autofill connection
       </Button>
       {isModalOpen && (

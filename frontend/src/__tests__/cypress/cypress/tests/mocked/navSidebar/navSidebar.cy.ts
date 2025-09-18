@@ -34,8 +34,7 @@ describe('Nav Sidebar model section', () => {
     navSidebar.visit();
     navSidebar.findNavSection('Models').should('exist');
     navSidebar.findNavItem('Model catalog', 'Models').should('exist');
-    //TODO: Add back model registry assertion when test environment is available.
-    // navSidebar.findNavItem('Model registry', 'Models').should('exist');
+    navSidebar.findNavItem('Model registry', 'Models').should('exist');
     navSidebar.findNavItem('Model deployments', 'Models').should('not.exist');
     navSidebar.findNavItem('Model customization', 'Models').should('not.exist');
   });

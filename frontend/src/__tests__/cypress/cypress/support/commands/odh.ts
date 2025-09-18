@@ -131,6 +131,74 @@ declare global {
           response: { data: OdhResponse<RegisteredModelList> },
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'POST /model-registry/api/:apiVersion/model_registry/:modelRegistryName/registered_models',
+          options: { path: { modelRegistryName: string; apiVersion: string } },
+          response: { data: OdhResponse<RegisteredModelList> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId/versions',
+          options: {
+            path: { modelRegistryName: string; apiVersion: string; registeredModelId: number };
+          },
+          response: { data: OdhResponse<ModelVersionList> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /model-registry/api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId/versions',
+          options: {
+            path: { modelRegistryName: string; apiVersion: string; registeredModelId: number };
+          },
+          response: { data: OdhResponse<ModelVersionList> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId',
+          options: {
+            path: { modelRegistryName: string; apiVersion: string; modelVersionId: number };
+          },
+          response: { data: OdhResponse<ModelVersion> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'PATCH /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId',
+          options: {
+            path: { modelRegistryName: string; apiVersion: string; modelVersionId: number };
+          },
+          response: { data: OdhResponse<ModelVersion> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'PATCH /model-registry/api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId',
+          options: {
+            path: { modelRegistryName: string; apiVersion: string; registeredModelId: number };
+          },
+          response: { data: OdhResponse<RegisteredModel> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId/versions',
+          options: {
+            path: { modelRegistryName: string; apiVersion: string; registeredModelId: number };
+          },
+          response: { data: OdhResponse<ModelVersionList> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/registered_models',
+          options: {
+            path: { modelRegistryName: string; apiVersion: string };
+          },
+          response: { data: OdhResponse<RegisteredModelList> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId/artifacts',
+          options: {
+            path: { modelRegistryName: string; apiVersion: string; modelVersionId: number };
+          },
+          response: { data: OdhResponse<ModelArtifactList> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId',
+          options: {
+            path: { modelRegistryName: string; apiVersion: string; registeredModelId: number };
+          },
+          response: { data: OdhResponse<RegisteredModel> },
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId/versions',
           options: {
             path: { modelRegistryName: string; apiVersion: string; registeredModelId: number };

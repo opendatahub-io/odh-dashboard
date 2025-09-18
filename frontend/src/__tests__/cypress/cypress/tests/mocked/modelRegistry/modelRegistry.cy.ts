@@ -272,7 +272,7 @@ describe('Model Registry core', () => {
     cy.findByRole('link', { name: 'Model registry' }).should('exist');
   });
 
-  // does not work because of ModelRegistryCoreLoader line 66
+  // does not work because of ModelRegistryCoreLoader line 66. TODO: Fix this test and investigate this line.
   it.skip('Shows admin empty state for users with model registry creation permissions', () => {
     asProductAdminUser();
     initIntercepts({
@@ -282,6 +282,7 @@ describe('Model Registry core', () => {
       allowed: true,
     });
 
+    // TODO: Fix this function
     // modelRegistry.visit();
     cy.interceptOdh(
       `GET /model-registry/api/:apiVersion/user`,
@@ -317,6 +318,7 @@ describe('Model Registry core', () => {
       allowed: false,
     });
 
+    // TODO: Fix this function
     // modelRegistry.visit();
     cy.interceptOdh(
       `GET /model-registry/api/:apiVersion/user`,
@@ -350,6 +352,7 @@ describe.skip('Register Model button', () => {
       allowed: false,
     });
 
+    // TODO: Fix this function
     // modelRegistry.visit();
     cy.visitWithLogin('/model-registry/modelregistry-sample');
     cy.findByRole('button', { name: 'Models' }).should('exist').click();
