@@ -1,13 +1,8 @@
 import {
-  Deployment,
-  ModelResourceType,
-  ServerResourceType,
-} from '@odh-dashboard/model-serving/extension-points';
-import {
   getPVCNameFromURI,
   isPVCUri,
 } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
-import { KnownLabels, MetadataAnnotation } from '@odh-dashboard/internal/k8sTypes';
+import { MetadataAnnotation, InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
 import { ConnectionTypeConfigMapObj } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import { ModelServingCompatibleTypes } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { getSecret } from '@odh-dashboard/internal/api/k8s/secrets';
@@ -17,11 +12,11 @@ import {
   ConnectionTypeRefs,
 } from '../../model-serving/src/components/deploymentWizard/fields/modelLocationFields/types';
 
-interface SecretData {
+type SecretData = {
   hasOwnerRef: boolean;
   connectionTypeRef: string;
   data: Record<string, string>;
-}
+};
 
 const getSecretData = async (
   secretName: string,
@@ -60,60 +55,30 @@ const getSecretData = async (
   }
 };
 
-export const getModelLocationUri = (deployment: KServeDeployment): string | undefined => {
-  const {
-    model: {
-      spec: { predictor },
-    },
-  } = deployment;
-  return predictor.model?.storageUri;
+export const getModelLocationUri = (deployment: InferenceServiceKind): string | undefined => {
+  return deployment.spec.predictor.model?.storageUri;
 };
+
 const getConnectionTypeObject = (
   connectionTypeRef: string,
   connectionTypes: ConnectionTypeConfigMapObj[],
-): ConnectionTypeConfigMapObj => {
+): ConnectionTypeConfigMapObj | undefined => {
   // Try to find the full connection type object first
   const foundType = connectionTypes.find((ct) => ct.metadata.name === connectionTypeRef);
   if (foundType) {
     return foundType;
   }
-
-  // Fall back to basic object for custom types
-  return {
-    apiVersion: 'v1',
-    kind: 'ConfigMap',
-    metadata: {
-      name: connectionTypeRef,
-      labels: {
-        [KnownLabels.DASHBOARD_RESOURCE]: 'true',
-        'opendatahub.io/connection-type': 'true',
-      },
-      annotations: {
-        'opendatahub.io/connection-type': connectionTypeRef,
-      },
-    },
-    data: {
-      fields: [],
-    },
-  };
+  return undefined;
 };
 
-const hasConnectionAnnotation = (deployment: KServeDeployment): string | undefined => {
-  const {
-    model: {
-      metadata: { annotations },
-    },
-  } = deployment;
+const hasConnectionAnnotation = (deployment: InferenceServiceKind): string | undefined => {
+  const { annotations } = deployment.metadata;
   return annotations?.[MetadataAnnotation.ConnectionName];
 };
 
-const extractAdditionalFields = (deployment: KServeDeployment): Record<string, string> => {
+const extractAdditionalFields = (deployment: InferenceServiceKind): Record<string, string> => {
   const additionalFields: Record<string, string> = {};
-  const {
-    model: {
-      spec: { predictor },
-    },
-  } = deployment;
+  const { predictor } = deployment.spec;
   const connectionType = predictor.model?.storage?.key
     ? ModelServingCompatibleTypes.S3ObjectStorage
     : predictor.imagePullSecrets?.length
@@ -133,38 +98,14 @@ const extractAdditionalFields = (deployment: KServeDeployment): Record<string, s
   return additionalFields;
 };
 
-type KServeModelResource = ModelResourceType & {
-  spec: {
-    predictor: {
-      model?: {
-        storageUri?: string;
-        storage?: {
-          path?: string;
-          key?: string;
-        };
-      };
-      imagePullSecrets?: { name: string }[];
-    };
-  };
-  metadata: {
-    annotations?: {
-      [MetadataAnnotation.ConnectionName]?: string;
-    };
-  };
-};
-
-type KServeDeployment = Deployment<KServeModelResource, ServerResourceType> & {
-  connectionType?: ConnectionTypeConfigMapObj;
-};
-
 export const extractKServeModelLocationData = async (
-  deployment: KServeDeployment,
+  deployment: { model: InferenceServiceKind },
   connectionTypes: ConnectionTypeConfigMapObj[],
 ): Promise<ModelLocationData> => {
   // Check for connection annotation first
-  const connectionAnnotation = hasConnectionAnnotation(deployment);
+  const connectionAnnotation = hasConnectionAnnotation(deployment.model);
   // Handle PVC/URI cases first (no connection needed)
-  const uri = getModelLocationUri(deployment);
+  const uri = getModelLocationUri(deployment.model);
   if (uri && isPVCUri(uri)) {
     return {
       type: ModelLocationType.PVC,
@@ -177,7 +118,7 @@ export const extractKServeModelLocationData = async (
 
   // If we have a connection annotation, use that
   if (connectionAnnotation) {
-    const additionalFields = extractAdditionalFields(deployment);
+    const additionalFields = extractAdditionalFields(deployment.model);
     const secretData = await getSecretData(
       connectionAnnotation,
       deployment.model.metadata.namespace,
@@ -204,15 +145,11 @@ export const extractKServeModelLocationData = async (
   }
 
   // Check for legacy connection methods in predictor
-  const {
-    model: {
-      spec: { predictor },
-    },
-  } = deployment;
+  const { predictor } = deployment.model.spec;
   const secretName = predictor.model?.storage?.key || predictor.imagePullSecrets?.[0]?.name;
 
   if (secretName) {
-    const additionalFields = extractAdditionalFields(deployment);
+    const additionalFields = extractAdditionalFields(deployment.model);
     return {
       type: ModelLocationType.EXISTING,
       connection: secretName,
@@ -222,20 +159,11 @@ export const extractKServeModelLocationData = async (
   }
 
   // No connection - default to URI
-  if (uri) {
-    return {
-      type: ModelLocationType.NEW,
-      fieldValues: { URI: uri },
-      // Add connection type object for URI to preselect on edit
-      connectionTypeObject: getConnectionTypeObject(ConnectionTypeRefs.URI, connectionTypes),
-      additionalFields: {},
-    };
-  }
-
-  // Fallback
   return {
     type: ModelLocationType.NEW,
-    fieldValues: { URI: 'https://test' },
+    fieldValues: { URI: uri },
+    // Add connection type object for URI to preselect on edit
+    connectionTypeObject: getConnectionTypeObject(ConnectionTypeRefs.URI, connectionTypes),
     additionalFields: {},
   };
 };

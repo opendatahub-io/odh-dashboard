@@ -112,11 +112,11 @@ const assembleInferenceService = (
   if (modelLocationData?.connection) {
     annotations['opendatahub.io/connections'] = modelLocationData.connection;
   }
+  if (!inferenceService.spec.predictor.model) {
+    inferenceService.spec.predictor.model = {};
+  }
   // Adds storage URI for PVC
   if (isPVCUri(String(modelLocationData?.fieldValues.URI))) {
-    if (!inferenceService.spec.predictor.model) {
-      inferenceService.spec.predictor.model = {};
-    }
     inferenceService.spec.predictor.model.storageUri = String(modelLocationData?.fieldValues.URI);
   }
   // Handle additional fields based on connection type
@@ -128,9 +128,6 @@ const assembleInferenceService = (
       )
     ) {
       // For S3, add storage path
-      if (!inferenceService.spec.predictor.model) {
-        inferenceService.spec.predictor.model = {};
-      }
       inferenceService.spec.predictor.model.storage = {
         path: modelLocationData.additionalFields.modelPath,
       };
@@ -138,16 +135,9 @@ const assembleInferenceService = (
       isModelServingCompatible(
         modelLocationData.connectionTypeObject,
         ModelServingCompatibleTypes.OCI,
-      ) ||
-      isModelServingCompatible(
-        modelLocationData.connectionTypeObject,
-        ModelServingCompatibleTypes.URI,
       )
     ) {
       // For OCI and URI, add storage URI
-      if (!inferenceService.spec.predictor.model) {
-        inferenceService.spec.predictor.model = {};
-      }
       inferenceService.spec.predictor.model.storageUri =
         modelLocationData.additionalFields.modelUri ?? String(modelLocationData.fieldValues.URI);
     }

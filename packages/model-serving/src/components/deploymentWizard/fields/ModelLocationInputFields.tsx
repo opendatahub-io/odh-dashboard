@@ -46,9 +46,6 @@ export const isValidModelLocationData = (
   modelLocationData?: ModelLocationData,
 ): boolean => {
   if (!modelLocationData) return false;
-  const isValidPvcUri = (uri: unknown): uri is string => {
-    return typeof uri === 'string' && isPVCUri(uri);
-  };
   switch (modelLocation) {
     case ModelLocationType.EXISTING:
       return (
@@ -61,8 +58,8 @@ export const isValidModelLocationData = (
         modelLocationData.type === ModelLocationType.PVC &&
         !!modelLocationData.additionalFields.pvcConnection &&
         !!modelLocationData.fieldValues.URI &&
-        isValidPvcUri(modelLocationData.fieldValues.URI) &&
-        modelLocationData.fieldValues.URI.startsWith(
+        isPVCUri(String(modelLocationData.fieldValues.URI)) &&
+        String(modelLocationData.fieldValues.URI).startsWith(
           `pvc://${modelLocationData.additionalFields.pvcConnection}/`,
         )
       );
@@ -151,13 +148,10 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
   modelLocationData,
   pvcs,
 }) => {
-  const isValidPvcUri = (uri: unknown): uri is string => {
-    return typeof uri === 'string' && isPVCUri(uri);
-  };
   const pvcNameFromUri: string | undefined = React.useMemo(() => {
     // Get the PVC name from the URI if it's a PVC URI
-    if (modelLocationData?.fieldValues.URI && isValidPvcUri(modelLocationData.fieldValues.URI)) {
-      return getPVCNameFromURI(modelLocationData.fieldValues.URI);
+    if (modelLocationData?.fieldValues.URI && isPVCUri(String(modelLocationData.fieldValues.URI))) {
+      return getPVCNameFromURI(String(modelLocationData.fieldValues.URI));
     }
     return undefined;
   }, [modelLocationData?.fieldValues.URI]);
