@@ -748,9 +748,12 @@ describe('Deploy model version', () => {
     modelVersionRow.findKebabAction('Deploy').click();
     modelVersionDeployModal.selectProjectByName('KServe project');
 
+    // Wait for connection data to be loaded after project selection
+    cy.findByText('test.io/test').should('exist');
+
     // Validate connection section
     kserveModal.findExistingConnectionOption().should('be.checked');
-    cy.findByText('test.io/test').should('exist');
+    // Wait for the model URI to be populated with the expected value
     kserveModal.findModelURITextBox().should('have.value', 'test.io/test/private:test');
   });
 
