@@ -119,8 +119,21 @@ if [[ -z "$PACKAGE_NAME" ]]; then
   PACKAGE_NAME="$(basename "$CONSUMER_DIR")"
 fi
 
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-RESULTS_DIR="$CONSUMER_DIR/contract-test-results/$TIMESTAMP"
+# Create CI-specific or local-specific results directory
+if [[ -n "${GITHUB_RUN_ID:-}" ]] || [[ -n "${CI:-}" ]]; then
+  # CI environment: use run ID for uniqueness across parallel PRs
+  if [[ -n "${GITHUB_RUN_ID:-}" ]]; then
+    RESULTS_DIR="$CONSUMER_DIR/contract-test-results/ci-${GITHUB_RUN_ID}"
+  else
+    # Fallback: use run number or timestamp if run ID not available
+    RUN_ID="${GITHUB_RUN_NUMBER:-${GITHUB_RUN_ID:-CI-$(date +%Y%m%d_%H%M%S)}}"
+    RESULTS_DIR="$CONSUMER_DIR/contract-test-results/ci-${RUN_ID}"
+  fi
+else
+  # Local environment: use timestamp for development
+  TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+  RESULTS_DIR="$CONSUMER_DIR/contract-test-results/$TIMESTAMP"
+fi
 
 
 mkdir -p "$RESULTS_DIR"
