@@ -15,7 +15,7 @@ env:
 
 jobs:
   get-test-tags:
-    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-e2e-tests-gh') }}
+    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-e2e-tests-gh') && (github.event.comment.author_association == 'OWNER' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'COLLABORATOR' || github.event.pull_request.head.repo.fork == false) }}
     runs-on: self-hosted
     outputs:
       test-tags: ${{ steps.set-tags.outputs.test-tags }}
@@ -63,11 +63,44 @@ jobs:
             echo "❌ OpenShift CLI (oc) not found, installing..."
             echo "📦 Installing oc CLI for Linux..."
 
-            # Download and install oc
-            curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz
-            tar -xzf oc.tar.gz
+            # Use pinned version for security
+            OC_VERSION="4.15.0"
+            OC_TARBALL="oc.tar.gz"
+            OC_CHECKSUM="${OC_TARBALL}.sha256"
+
+            echo "📥 Downloading OpenShift CLI version ${OC_VERSION}..."
+
+            # Download OC CLI with integrity verification
+            OC_URL="https://mirror.openshift.com/pub/openshift-v4/clients/oc/${OC_VERSION}/linux/oc.tar.gz"
+            CHECKSUM_URL="${OC_URL}.sha256"
+
+            # Download tarball and checksum
+            if ! curl -fL -o "${OC_TARBALL}" "${OC_URL}"; then
+              echo "❌ Failed to download OC CLI tarball"
+              exit 1
+            fi
+
+            if ! curl -fL -o "${OC_CHECKSUM}" "${CHECKSUM_URL}"; then
+              echo "❌ Failed to download OC CLI checksum"
+              exit 1
+            fi
+
+            # Verify integrity
+            echo "🔐 Verifying OC CLI integrity..."
+            if ! sha256sum -c "${OC_CHECKSUM}"; then
+              echo "❌ OC CLI checksum verification failed!"
+              exit 1
+            fi
+
+            echo "✅ OC CLI integrity verified successfully"
+
+            # Extract and install
+            tar -xzf "${OC_TARBALL}"
             sudo mv oc /usr/local/bin/
-            sudo chmod +x /usr/local/bin/oc
+            sudo chmod +x /usr/local/bin/
+
+            # Cleanup
+            rm -f "${OC_TARBALL}" "${OC_CHECKSUM}"
 
             # Verify installation
             echo "✅ OpenShift CLI installed successfully"
@@ -135,51 +168,6 @@ jobs:
             echo "🪟 Windows detected - Cypress dependencies usually pre-installed"
           fi
 
-      - name: Debug available secrets
-        run: |
-          echo "🔍 DEBUG: Checking available secrets..."
-          echo "Event name: ${{ github.event_name }}"
-          echo "Repository: ${{ github.repository }}"
-          echo "Repository owner: ${{ github.repository_owner }}"
-          echo "Ref: ${{ github.ref }}"
-          echo "Base ref: ${{ github.base_ref }}"
-          echo "Head ref: ${{ github.head_ref }}"
-
-          # Check for specific secrets without revealing values
-          if [ -n "${{ secrets.GITLAB_TOKEN }}" ]; then
-            echo "✅ GITLAB_TOKEN: Available (length: ${#GITLAB_TOKEN})"
-          else
-            echo "❌ GITLAB_TOKEN: Not available or empty"
-          fi
-
-          if [ -n "${{ secrets.GITLAB_TEST_VARS_URL }}" ]; then
-            echo "✅ GITLAB_TEST_VARS_URL: Available (length: ${#GITLAB_TEST_VARS_URL})"
-          else
-            echo "❌ GITLAB_TEST_VARS_URL: Not available or empty"
-          fi
-
-          # Check other potentially relevant secrets
-          if [ -n "${{ secrets.OC_SERVER }}" ]; then
-            echo "✅ OC_SERVER: Available"
-          else
-            echo "❌ OC_SERVER: Not available"
-          fi
-
-          if [ -n "${{ secrets.OCP_CONSOLE_URL }}" ]; then
-            echo "✅ OCP_CONSOLE_URL: Available"
-          else
-            echo "❌ OCP_CONSOLE_URL: Not available"
-          fi
-
-          if [ -n "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
-            echo "✅ ODH_DASHBOARD_URL: Available"
-          else
-            echo "❌ ODH_DASHBOARD_URL: Not available"
-          fi
-
-          # List all available secrets (names only)
-          echo "📋 Available secrets in this environment:"
-          env | grep -E '^[^=]+=' | sed 's/=.*//' | grep -i secret || echo "No SECRET variables found"
 
       - name: Download test configuration
         run: |
