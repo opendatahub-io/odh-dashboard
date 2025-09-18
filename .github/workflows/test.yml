@@ -189,12 +189,10 @@ jobs:
           # Find the most recently created contract test results directory
           LATEST_DIR=$(find packages/*/contract-tests/contract-test-results -name "ci-*" -type d -print0 2>/dev/null | xargs -0 ls -td 2>/dev/null | head -1)
           if [ -n "$LATEST_DIR" ] && [ -d "$LATEST_DIR" ]; then
-            echo "Found contract test results directory: $LATEST_DIR"
-            echo "Contents:"
-            ls -la "$LATEST_DIR"
+            echo "Found results: $LATEST_DIR"
             echo "results-dir=$LATEST_DIR" >> $GITHUB_OUTPUT
           else
-            echo "No contract test results directory found"
+            echo "No results found"
             exit 1
           fi
         id: find-results
