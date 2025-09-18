@@ -11,7 +11,6 @@ import {
 import HardwareProfilesTableRow from '#~/pages/hardwareProfiles/HardwareProfilesTableRow';
 import DeleteHardwareProfileModal from '#~/pages/hardwareProfiles/DeleteHardwareProfileModal';
 import HardwareProfilesToolbar from '#~/pages/hardwareProfiles/HardwareProfilesToolbar';
-import { createHardwareProfileFromResource } from '#~/api';
 import useDraggableTable from '#~/utilities/useDraggableTable';
 import useTableColumnSort from '#~/components/table/useTableColumnSort';
 import {
@@ -139,6 +138,8 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
               rowIndex={index}
               hardwareProfile={cr}
               handleDelete={setDeleteHardwareProfile}
+              isExpanded={expandedRows.has(cr.metadata.name)}
+              onToggleExpansion={() => toggleRowExpansion(cr.metadata.name)}
             />
           );
         }}
