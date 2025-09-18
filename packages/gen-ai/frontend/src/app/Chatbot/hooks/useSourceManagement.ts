@@ -3,6 +3,7 @@ import * as React from 'react';
 import { DropEvent } from '@patternfly/react-core';
 import { uploadSource } from '~/app/services/llamaStackService';
 import { ChatbotSourceSettings } from '~/app/types';
+import { GenAiContext } from '~/app/context/GenAiContext';
 
 export interface UseSourceManagementReturn {
   selectedSource: File[];
@@ -21,16 +22,14 @@ export interface UseSourceManagementReturn {
 interface UseSourceManagementProps {
   onShowSuccessAlert: () => void;
   onShowErrorAlert: () => void;
-  namespace?: string;
 }
 
 const useSourceManagement = ({
   onShowSuccessAlert,
   onShowErrorAlert,
-  namespace,
 }: UseSourceManagementProps): UseSourceManagementReturn => {
   const [selectedSource, setSelectedSource] = React.useState<File[]>([]);
-
+  const { namespace } = React.useContext(GenAiContext);
   const [selectedSourceSettings, setSelectedSourceSettings] =
     React.useState<ChatbotSourceSettings | null>(null);
   const [isRawUploaded, setIsRawUploaded] = React.useState(false);
@@ -67,10 +66,10 @@ const useSourceManagement = ({
 
       if (settings) {
         try {
-          if (!namespace) {
+          if (!namespace?.name) {
             throw new Error('Namespace is required for file upload');
           }
-          await uploadSource(selectedSource[0], settings, namespace);
+          await uploadSource(selectedSource[0], settings, namespace.name);
           onShowSuccessAlert();
         } catch {
           onShowErrorAlert();
@@ -80,7 +79,7 @@ const useSourceManagement = ({
         setExtractedText('');
       }
     },
-    [selectedSource, onShowSuccessAlert, onShowErrorAlert, namespace],
+    [selectedSource, onShowSuccessAlert, onShowErrorAlert, namespace?.name],
   );
 
   return {

@@ -14,7 +14,6 @@ import {
 import { ApplicationsPage } from 'mod-arch-shared';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
-import { GenAiContext } from '~/app/context/GenAiContext';
 import ChatbotEmptyState from '~/app/EmptyStates/NoData';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import { ChatbotMessages } from './ChatbotMessagesList';
@@ -31,7 +30,6 @@ const ChatbotMain: React.FunctionComponent = () => {
   const displayMode = ChatbotDisplayMode.embedded;
   const { models, modelsLoaded, lsdStatus, lsdStatusLoaded, lsdStatusError, modelsError } =
     React.useContext(ChatbotContext);
-  const { namespace } = React.useContext(GenAiContext);
   const [selectedModel, setSelectedModel] = React.useState<string>('');
   const { username } = useUserContext();
   const modelId = selectedModel || models[0]?.id;
@@ -50,7 +48,6 @@ const ChatbotMain: React.FunctionComponent = () => {
   const sourceManagement = useSourceManagement({
     onShowSuccessAlert: alertManagement.onShowSuccessAlert,
     onShowErrorAlert: alertManagement.onShowErrorAlert,
-    namespace: namespace?.name,
   });
 
   const chatbotMessages = useChatbotMessages({
@@ -59,7 +56,6 @@ const ChatbotMain: React.FunctionComponent = () => {
     systemInstruction,
     isRawUploaded: sourceManagement.isRawUploaded,
     username,
-    namespace: namespace?.name,
   });
 
   // Create alert components
@@ -110,7 +106,6 @@ const ChatbotMain: React.FunctionComponent = () => {
       loadError={lsdStatusError || modelsError}
     >
       <ChatbotSourceSettingsModal
-        namespace={namespace?.name}
         isOpen={sourceManagement.isSourceSettingsOpen}
         onToggle={() =>
           sourceManagement.setIsSourceSettingsOpen(!sourceManagement.isSourceSettingsOpen)
