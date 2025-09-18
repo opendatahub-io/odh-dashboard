@@ -11,11 +11,17 @@ class ModelVersionDeployModal extends Modal {
 
   selectProjectByName(name: string) {
     this.findProjectSelector().click();
+    // Wait for the project selector menu to be visible and populated
+    cy.findByTestId('deploy-model-project-selector-menuList').should('be.visible');
     cy.findByTestId('deploy-model-project-selector-search').fill(name);
-    cy.findByTestId('deploy-model-project-selector-menuList')
-      .contains('button', name)
-      .should('be.visible')
-      .click();
+    // Wait for the specific project option to be available before clicking
+    // Try both button and option selectors to handle different UI implementations
+    cy.findByTestId('deploy-model-project-selector-menuList').within(() => {
+      cy.get('button, [role="option"]')
+        .contains(name)
+        .should('be.visible')
+        .click();
+    });
   }
 }
 
