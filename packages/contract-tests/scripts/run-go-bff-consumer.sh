@@ -120,9 +120,15 @@ if [[ -z "$PACKAGE_NAME" ]]; then
 fi
 
 # Create CI-specific or local-specific results directory
-if [[ -n "${GITHUB_RUN_ID:-}" ]]; then
+if [[ -n "${GITHUB_RUN_ID:-}" ]] || [[ -n "${CI:-}" ]]; then
   # CI environment: use run ID for uniqueness across parallel PRs
-  RESULTS_DIR="$CONSUMER_DIR/contract-test-results/ci-${GITHUB_RUN_ID}"
+  if [[ -n "${GITHUB_RUN_ID:-}" ]]; then
+    RESULTS_DIR="$CONSUMER_DIR/contract-test-results/ci-${GITHUB_RUN_ID}"
+  else
+    # Fallback: use run number or timestamp if run ID not available
+    RUN_ID="${GITHUB_RUN_NUMBER:-${GITHUB_RUN_ID:-CI-$(date +%Y%m%d_%H%M%S)}}"
+    RESULTS_DIR="$CONSUMER_DIR/contract-test-results/ci-${RUN_ID}"
+  fi
 else
   # Local environment: use timestamp for development
   TIMESTAMP=$(date +%Y%m%d_%H%M%S)
