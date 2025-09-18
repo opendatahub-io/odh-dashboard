@@ -13,7 +13,7 @@ import {
   TimestampTooltipVariant,
   Truncate,
 } from '@patternfly/react-core';
-import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
+import { ActionsColumn, ExpandableRowContent, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { relativeTime } from '#~/utilities/time';
@@ -37,15 +37,19 @@ type HardwareProfilesTableRowProps = {
   rowIndex: number;
   hardwareProfile: HardwareProfileKind;
   handleDelete: (cr: HardwareProfileKind) => void;
+  isExpanded: boolean;
+  onToggleExpansion: () => void;
 };
 
 const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
   hardwareProfile,
   rowIndex,
   handleDelete,
+  isExpanded,
+  onToggleExpansion,
+  ...props
 }) => {
   const modifiedDate = hardwareProfile.metadata.annotations?.['opendatahub.io/modified-date'];
-  const [isExpanded, setExpanded] = React.useState(false);
   const navigate = useNavigate();
 
   const useCases: HardwareProfileFeatureVisibility[] = React.useMemo(() => {
@@ -70,14 +74,24 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
   const tolerations = node?.tolerations;
 
   return (
-    <Tbody isExpanded={isExpanded}>
-      <Tr>
+    <>
+      <Tr
+        key={hardwareProfile.metadata.name}
+        id={hardwareProfile.metadata.name}
+        draggable
+        {...props}
+      >
         <Td
           expand={{
             rowIndex,
-            expandId: 'hardware-profile-table-row-item',
+            expandId: `hardware-profile-${hardwareProfile.metadata.name}`,
             isExpanded,
-            onToggle: () => setExpanded(!isExpanded),
+            onToggle: onToggleExpansion,
+          }}
+        />
+        <Td
+          draggableRow={{
+            id: `draggable-row-${hardwareProfile.metadata.name}`,
           }}
         />
         <Td dataLabel="Name">
@@ -186,50 +200,52 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
           />
         </Td>
       </Tr>
-      <Tr isExpanded={isExpanded}>
-        <Td />
-        <Td dataLabel="Other information" colSpan={4}>
-          <ExpandableRowContent>
-            <Stack hasGutter>
-              {hardwareProfile.spec.identifiers &&
-                hardwareProfile.spec.identifiers.length !== 0 && (
+      {isExpanded && (
+        <Tr key={`${hardwareProfile.metadata.name}-expanded`} isExpanded={isExpanded}>
+          <Td />
+          <Td dataLabel="Other information" colSpan={4}>
+            <ExpandableRowContent>
+              <Stack hasGutter>
+                {hardwareProfile.spec.identifiers &&
+                  hardwareProfile.spec.identifiers.length !== 0 && (
+                    <StackItem>
+                      <p className="pf-v6-u-font-weight-bold">Node resources</p>
+                      <NodeResourceTable nodeResources={hardwareProfile.spec.identifiers} />
+                      <Divider />
+                    </StackItem>
+                  )}
+                {localQueueName && (
                   <StackItem>
-                    <p className="pf-v6-u-font-weight-bold">Node resources</p>
-                    <NodeResourceTable nodeResources={hardwareProfile.spec.identifiers} />
+                    <p className="pf-v6-u-font-weight-bold">Local queue</p>
+                    {localQueueName}
+                  </StackItem>
+                )}
+                {priorityClass && (
+                  <StackItem>
+                    <p className="pf-v6-u-font-weight-bold">Workload priority</p>
+                    {priorityClass}
+                  </StackItem>
+                )}
+                {nodeSelector && Object.keys(nodeSelector).length !== 0 && (
+                  <StackItem>
+                    <p className="pf-v6-u-font-weight-bold">Node selectors</p>
+                    <NodeSelectorTable nodeSelector={nodeSelector} />
                     <Divider />
                   </StackItem>
                 )}
-              {localQueueName && (
-                <StackItem>
-                  <p className="pf-v6-u-font-weight-bold">Local queue</p>
-                  {localQueueName}
-                </StackItem>
-              )}
-              {priorityClass && (
-                <StackItem>
-                  <p className="pf-v6-u-font-weight-bold">Workload priority</p>
-                  {priorityClass}
-                </StackItem>
-              )}
-              {nodeSelector && Object.keys(nodeSelector).length !== 0 && (
-                <StackItem>
-                  <p className="pf-v6-u-font-weight-bold">Node selectors</p>
-                  <NodeSelectorTable nodeSelector={nodeSelector} />
-                  <Divider />
-                </StackItem>
-              )}
-              {tolerations && tolerations.length !== 0 && (
-                <StackItem>
-                  <p className="pf-v6-u-font-weight-bold">Tolerations</p>
-                  <TolerationTable tolerations={tolerations} />
-                  <Divider />
-                </StackItem>
-              )}
-            </Stack>
-          </ExpandableRowContent>
-        </Td>
-      </Tr>
-    </Tbody>
+                {tolerations && tolerations.length !== 0 && (
+                  <StackItem>
+                    <p className="pf-v6-u-font-weight-bold">Tolerations</p>
+                    <TolerationTable tolerations={tolerations} />
+                    <Divider />
+                  </StackItem>
+                )}
+              </Stack>
+            </ExpandableRowContent>
+          </Td>
+        </Tr>
+      )}
+    </>
   );
 };
 

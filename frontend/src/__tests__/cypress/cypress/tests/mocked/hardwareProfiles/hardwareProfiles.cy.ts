@@ -84,9 +84,9 @@ describe('Hardware Profile', () => {
 
       //sort by Name
       hardwareProfile.findTableHeaderButton('Name').click();
-      hardwareProfile.findTableHeaderButton('Name').should(be.sortDescending);
-      hardwareProfile.findTableHeaderButton('Name').click();
       hardwareProfile.findTableHeaderButton('Name').should(be.sortAscending);
+      hardwareProfile.findTableHeaderButton('Name').click();
+      hardwareProfile.findTableHeaderButton('Name').should(be.sortDescending);
 
       // sort by last modified
       hardwareProfile.findTableHeaderButton('Last modified').click();
@@ -471,9 +471,10 @@ describe('Hardware Profile', () => {
           mockHardwareProfile({
             name: 'Test Hardware Profile Empty',
             displayName: 'Test Hardware Profile Empty',
-            nodeSelector: {},
             identifiers: [],
             tolerations: [],
+            nodeSelector: {},
+            schedulingType: SchedulingType.NODE,
           }),
         ]),
       );
@@ -483,6 +484,7 @@ describe('Hardware Profile', () => {
       row1.findNodeSelectorTable().should('exist');
       row1.findNodeResourceTable().should('exist');
       row1.findTolerationTable().should('exist');
+      row1.findExpandButton().click();
       const row2 = hardwareProfile.getRow('Test Hardware Profile Empty');
       row2.findExpandButton().click();
       row2.findNodeSelectorTable().should('not.exist');
@@ -581,5 +583,170 @@ describe('hardware profiles - empty state', () => {
     ).as('selfSubjectAccessReviewsCall');
     hardwareProfile.visit();
     hardwareProfile.findHardwareProfilesCreateButton().should('not.exist');
+  });
+});
+
+describe('hardware profiles - ordering', () => {
+  beforeEach(() => {
+    asProductAdminUser();
+  });
+
+  it('should display hardware profiles in alphabetical order when no persistent order is configured', () => {
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        modelServerSizes: [],
+        notebookSizes: [],
+        hardwareProfileOrder: [],
+      }),
+    );
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList([
+        mockHardwareProfile({ name: 'zebra-profile', displayName: 'Zebra Profile' }),
+        mockHardwareProfile({ name: 'alpha-profile', displayName: 'Alpha Profile' }),
+        mockHardwareProfile({ name: 'beta-profile', displayName: 'Beta Profile' }),
+      ]),
+    );
+
+    hardwareProfile.visit();
+
+    // Should be in alphabetical order
+    hardwareProfile.findRows().should('have.length', 3);
+    hardwareProfile.findRows().eq(0).should('contain', 'Alpha Profile');
+    hardwareProfile.findRows().eq(1).should('contain', 'Beta Profile');
+    hardwareProfile.findRows().eq(2).should('contain', 'Zebra Profile');
+  });
+
+  it('should display hardware profiles in persistent order when configured', () => {
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        modelServerSizes: [],
+        notebookSizes: [],
+        hardwareProfileOrder: ['zebra-profile', 'alpha-profile', 'beta-profile'], // Custom order
+      }),
+    );
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList([
+        mockHardwareProfile({ name: 'alpha-profile', displayName: 'Alpha Profile' }),
+        mockHardwareProfile({ name: 'beta-profile', displayName: 'Beta Profile' }),
+        mockHardwareProfile({ name: 'zebra-profile', displayName: 'Zebra Profile' }),
+      ]),
+    );
+
+    hardwareProfile.visit();
+
+    // Should be in persistent order (zebra, alpha, beta)
+    hardwareProfile.findRows().should('have.length', 3);
+    hardwareProfile.findRows().eq(0).should('contain', 'Zebra Profile');
+    hardwareProfile.findRows().eq(1).should('contain', 'Alpha Profile');
+    hardwareProfile.findRows().eq(2).should('contain', 'Beta Profile');
+  });
+
+  it('should handle partial persistent order by appending new profiles alphabetically', () => {
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        modelServerSizes: [],
+        notebookSizes: [],
+        hardwareProfileOrder: ['beta-profile'], // Only beta in persistent order
+      }),
+    );
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList([
+        mockHardwareProfile({ name: 'alpha-profile', displayName: 'Alpha Profile' }),
+        mockHardwareProfile({ name: 'beta-profile', displayName: 'Beta Profile' }),
+        mockHardwareProfile({ name: 'zebra-profile', displayName: 'Zebra Profile' }),
+      ]),
+    );
+
+    hardwareProfile.visit();
+
+    // Should show beta first (from persistent order), then alpha and zebra alphabetically
+    hardwareProfile.findRows().should('have.length', 3);
+    hardwareProfile.findRows().eq(0).should('contain', 'Beta Profile');
+    hardwareProfile.findRows().eq(1).should('contain', 'Alpha Profile');
+    hardwareProfile.findRows().eq(2).should('contain', 'Zebra Profile');
+  });
+
+  it('should ignore deleted profiles in persistent order', () => {
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        modelServerSizes: [],
+        notebookSizes: [],
+        hardwareProfileOrder: ['deleted-profile', 'beta-profile', 'alpha-profile'], // includes deleted profile
+      }),
+    );
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList([
+        mockHardwareProfile({ name: 'alpha-profile', displayName: 'Alpha Profile' }),
+        mockHardwareProfile({ name: 'beta-profile', displayName: 'Beta Profile' }),
+        // deleted-profile not present
+      ]),
+    );
+
+    hardwareProfile.visit();
+
+    // Should show only existing profiles in persistent order (beta, alpha)
+    hardwareProfile.findRows().should('have.length', 2);
+    hardwareProfile.findRows().eq(0).should('contain', 'Beta Profile');
+    hardwareProfile.findRows().eq(1).should('contain', 'Alpha Profile');
+  });
+
+  it('should maintain order consistency after filtering', () => {
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        modelServerSizes: [],
+        notebookSizes: [],
+        hardwareProfileOrder: [
+          'gamma-profile',
+          'alpha-two-profile',
+          'beta-profile',
+          'alpha-one-profile',
+        ],
+      }),
+    );
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList([
+        mockHardwareProfile({ name: 'alpha-one-profile', displayName: 'Alpha One Profile' }),
+        mockHardwareProfile({ name: 'alpha-two-profile', displayName: 'Alpha Two Profile' }),
+        mockHardwareProfile({ name: 'beta-profile', displayName: 'Beta Profile' }),
+        mockHardwareProfile({ name: 'gamma-profile', displayName: 'Gamma Profile' }),
+      ]),
+    );
+
+    hardwareProfile.visit();
+
+    // Verify custom order initially (all 4 profiles)
+    hardwareProfile.findRows().should('have.length', 4);
+    hardwareProfile.findRows().eq(0).should('contain', 'Gamma Profile');
+    hardwareProfile.findRows().eq(1).should('contain', 'Alpha Two Profile');
+    hardwareProfile.findRows().eq(2).should('contain', 'Beta Profile');
+    hardwareProfile.findRows().eq(3).should('contain', 'Alpha One Profile');
+
+    // Apply filter for "alpha"
+    const toolbar = hardwareProfile.getTableToolbar();
+    toolbar.findSearchInput().type('alpha');
+
+    // Should show both Alpha profiles in the configured order
+    hardwareProfile.findRows().should('have.length', 2);
+    hardwareProfile.findRows().eq(0).should('contain', 'Alpha Two Profile');
+    hardwareProfile.findRows().eq(1).should('contain', 'Alpha One Profile');
+
+    toolbar.findFilterInput('name').clear();
+
+    // Should return to full custom order
+    hardwareProfile.findRows().should('have.length', 4);
+    hardwareProfile.findRows().eq(0).should('contain', 'Gamma Profile');
+    hardwareProfile.findRows().eq(1).should('contain', 'Alpha Two Profile');
+    hardwareProfile.findRows().eq(2).should('contain', 'Beta Profile');
+    hardwareProfile.findRows().eq(3).should('contain', 'Alpha One Profile');
   });
 });

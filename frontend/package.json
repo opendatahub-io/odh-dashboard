@@ -206,7 +206,7 @@
     "cypress": "^13.14.2",
     "cypress-axe": "^1.5.0",
     "cypress-high-resolution": "^1.0.0",
-    "cypress-mochawesome-reporter": "^3.8.2",
+    "cypress-mochawesome-reporter": "3.8.2",
     "cypress-multi-reporters": "^1.6.4",
     "cypress-plugin-steps": "^1.1.1",
     "expect": "^29.7.0",

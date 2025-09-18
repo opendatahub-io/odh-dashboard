@@ -45,6 +45,7 @@ export type MockDashboardConfigType = {
   disableFeatureStore?: boolean;
   disableModelTraining?: boolean;
   disableDeploymentWizard?: boolean;
+  hardwareProfileOrder?: string[];
 };
 
 export const mockDashboardConfig = ({
@@ -85,6 +86,7 @@ export const mockDashboardConfig = ({
   disableFeatureStore = true,
   disableModelTraining = true,
   disableDeploymentWizard = true,
+  hardwareProfileOrder = ['test-hardware-profile'],
   modelServerSizes = [
     {
       name: 'Small',
@@ -263,5 +265,6 @@ export const mockDashboardConfig = ({
     notebookSizes,
     templateOrder: ['test-model'],
     templateDisablement: ['test-model'],
+    hardwareProfileOrder,
   },
 });

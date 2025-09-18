@@ -239,7 +239,7 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
   }, [onSearchFiltersChange]);
 
   return (
-    <Toolbar style={{ padding: '0.5rem' }} clearAllFilters={onClearAllFilters}>
+    <Toolbar style={{ padding: '1rem 1.5rem 1rem' }} clearAllFilters={onClearAllFilters}>
       <ToolbarContent>
         <ToolbarItem>
           <FilterToolbar

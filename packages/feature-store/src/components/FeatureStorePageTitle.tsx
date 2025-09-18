@@ -4,7 +4,7 @@ import { GlobalSearchInput } from './FeatureStoreGlobalSearch/GlobalSearchInput'
 import { useFeatureStoreSearch } from '../apiHooks/useFeatureStoreSearch';
 
 interface FeatureStorePageTitleProps {
-  title?: string;
+  title?: React.ReactNode;
   breadcrumb?: React.ReactNode;
   isDetailsPage?: boolean;
 }

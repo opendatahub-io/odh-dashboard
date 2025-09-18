@@ -11,13 +11,26 @@ import {
 import HardwareProfilesTableRow from '#~/pages/hardwareProfiles/HardwareProfilesTableRow';
 import DeleteHardwareProfileModal from '#~/pages/hardwareProfiles/DeleteHardwareProfileModal';
 import HardwareProfilesToolbar from '#~/pages/hardwareProfiles/HardwareProfilesToolbar';
-import { getHardwareProfileDisplayName, isHardwareProfileEnabled } from './utils';
+import { patchDashboardConfigHardwareProfileOrder } from '#~/api';
+import useDraggableTable from '#~/utilities/useDraggableTable';
+import useTableColumnSort from '#~/components/table/useTableColumnSort';
+import {
+  getHardwareProfileDisplayName,
+  isHardwareProfileEnabled,
+  orderHardwareProfiles,
+} from './utils';
 
 type HardwareProfilesTableProps = {
   hardwareProfiles: HardwareProfileKind[];
+  hardwareProfileOrder: string[];
+  setHardwareProfileOrder: (order: string[]) => void;
 };
 
-const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({ hardwareProfiles }) => {
+const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
+  hardwareProfiles,
+  hardwareProfileOrder,
+  setHardwareProfileOrder,
+}) => {
   const [deleteHardwareProfile, setDeleteHardwareProfile] = React.useState<
     HardwareProfileKind | undefined
   >();
@@ -25,6 +38,19 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({ hardwareP
   const [filterData, setFilterData] = React.useState<HardwareProfileFilterDataType>(
     initialHardwareProfileFilterData,
   );
+  const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
+  const toggleRowExpansion = React.useCallback((hardwareProfileName: string) => {
+    setExpandedRows((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(hardwareProfileName)) {
+        newSet.delete(hardwareProfileName);
+      } else {
+        newSet.add(hardwareProfileName);
+      }
+      return newSet;
+    });
+  }, []);
+
   const onClearFilters = React.useCallback(
     () => setFilterData(initialHardwareProfileFilterData),
     [setFilterData],
@@ -73,25 +99,49 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({ hardwareP
     [setFilterData],
   );
 
+  const orderedHardwareProfiles = orderHardwareProfiles(
+    filteredHardwareProfiles,
+    hardwareProfileOrder,
+  );
+  //column sorting with the following cycle: custom → asc → desc → custom
+  const { transformData, getColumnSort, isCustomOrder } = useTableColumnSort(
+    hardwareProfileColumns,
+    [],
+    undefined,
+    true,
+  );
+  const displayedHardwareProfiles = transformData(orderedHardwareProfiles);
+  const currentOrder = displayedHardwareProfiles.map((profile) => profile.metadata.name);
+  //drag-and-drop for persisted ordering, close expanded rows when dragging
+  const { tableProps, rowProps } = useDraggableTable(currentOrder, setHardwareProfileOrder, {
+    onDragStart: () => setExpandedRows(new Set()),
+  });
+
+  const conditionalTableProps = isCustomOrder ? tableProps : {};
+  const conditionalRowProps = isCustomOrder ? rowProps : {};
+
   return (
     <>
       <Table
+        {...conditionalTableProps}
         onClearFilters={onClearFilters}
         data-testid="hardware-profile-table"
         id="hardware-profile-table"
         enablePagination
-        data={filteredHardwareProfiles}
+        data={displayedHardwareProfiles}
         columns={hardwareProfileColumns}
-        defaultSortColumn={1}
+        getColumnSort={getColumnSort}
         emptyTableView={<DashboardEmptyTableView onClearFilters={resetFilters} />}
-        disableRowRenderSupport
         rowRenderer={(cr, index) => {
           return (
             <HardwareProfilesTableRow
+              {...conditionalRowProps}
               key={cr.metadata.name}
               rowIndex={index}
               hardwareProfile={cr}
               handleDelete={setDeleteHardwareProfile}
+              isExpanded={expandedRows.has(cr.metadata.name)}
+              onToggleExpansion={() => toggleRowExpansion(cr.metadata.name)}
             />
           );
         }}

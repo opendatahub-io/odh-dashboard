@@ -8,6 +8,7 @@ import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import useFeatureServices from '../../apiHooks/useFeatureServices';
 import { featureStoreRoute } from '../../routes';
+import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
 
 const title = 'Feature services';
 const description =
@@ -39,7 +40,18 @@ const FeatureServices = (): React.ReactElement => {
     <ApplicationsPage
       empty={featureServices.featureServices.length === 0}
       emptyStatePage={emptyState}
-      title={<FeatureStorePageTitle title={title} />}
+      title={
+        <FeatureStorePageTitle
+          title={
+            <FeatureStoreObjectIcon
+              objectType="feature_service"
+              title={title}
+              showBackground
+              useTypedColors
+            />
+          }
+        />
+      }
       description={description}
       loadError={featureServicesLoadError}
       loaded={featureServicesLoaded}
