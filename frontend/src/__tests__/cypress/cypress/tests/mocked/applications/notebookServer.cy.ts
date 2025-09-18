@@ -21,10 +21,15 @@ import {
 import { homePage } from '#~/__tests__/cypress/cypress/pages/home/home';
 import {
   AcceleratorProfileModel,
+  HardwareProfileModel,
   ImageStreamModel,
   StorageClassModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
+import {
+  mockGlobalScopedHardwareProfiles,
+  mockProjectScopedHardwareProfiles,
+} from '#~/__mocks__/mockHardwareProfile';
 import type { EnvironmentVariable, NotebookData } from '#~/types';
 import { mockConfigMap } from '#~/__mocks__/mockConfigMap';
 import { mockImageStreamK8sResourceList } from '#~/__mocks__/mockImageStreamK8sResource';
@@ -199,6 +204,17 @@ describe('NotebookServer', () => {
       }),
     );
 
+    // Mock hardware profiles
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList(mockGlobalScopedHardwareProfiles),
+    ).as('hardwareProfiles');
+
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'test-project' },
+      mockK8sResourceList(mockProjectScopedHardwareProfiles),
+    ).as('hardwareProfiles');
+
     notebookServer.visit();
     notebookServer.findHardwareProfileSelect().click();
     notebookServer
@@ -207,7 +223,7 @@ describe('NotebookServer', () => {
     notebookServer
       .findHardwareProfileSelect()
       .findSelectOption(
-        'Large CPU: Request = 7 Cores; Limit = 7 Cores; Memory: Request = 56 GiB; Limit = 56 GiB',
+        'Large Profile CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
       )
       .click();
     notebookServer.findHardwareProfileSelect().should('contain', 'Large');
@@ -223,23 +239,23 @@ describe('NotebookServer', () => {
         podSpecOptions.selectedHardwareProfile?.metadata.annotations?.[
           'opendatahub.io/display-name'
         ],
-      ).to.eq('Large');
+      ).to.eq('Large Profile');
       expect(podSpecOptions.selectedHardwareProfile?.spec.identifiers).to.eql([
         {
           displayName: 'CPU',
           resourceType: 'CPU',
           identifier: 'cpu',
-          minCount: '7',
-          maxCount: '14',
-          defaultCount: '7',
+          minCount: '4',
+          maxCount: '8',
+          defaultCount: '4',
         },
         {
           displayName: 'Memory',
           resourceType: 'Memory',
           identifier: 'memory',
-          minCount: '56Gi',
-          maxCount: '56Gi',
-          defaultCount: '56Gi',
+          minCount: '8Gi',
+          maxCount: '16Gi',
+          defaultCount: '8Gi',
         },
       ]);
     });
