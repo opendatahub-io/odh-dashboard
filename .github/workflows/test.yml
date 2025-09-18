@@ -183,7 +183,7 @@ jobs:
         if: always()
         with:
           name: contract-test-results
-          path: packages/*/contract-tests/contract-test-results/
+          path: packages/*/contract-tests/contract-test-results/ci-${{ github.run_id }}/
 
   Cypress-Setup:
     needs: [Setup]
