@@ -22,7 +22,7 @@ const FeatureStoreProjectSelector: React.FC<FeatureStoreProjectSelectorProps> = 
     (project) => project.spec.name === featureStoreProject,
   );
 
-  const selectionName = featureStoreProject || 'All projects';
+  const selectionName = featureStoreProject || 'All repositories';
   const bySearchText = React.useCallback(
     (project: FeatureStoreProject) =>
       !searchText || project.spec.name.toLowerCase().includes(searchText.toLowerCase()),
@@ -53,7 +53,7 @@ const FeatureStoreProjectSelector: React.FC<FeatureStoreProjectSelectorProps> = 
             onSelection(featureStoreObject);
           }}
         >
-          All projects
+          All repositories
         </MenuItem>
         <Divider component="li" />
         {filteredProjects.length === 0 && <MenuItem isDisabled>No matching results</MenuItem>}

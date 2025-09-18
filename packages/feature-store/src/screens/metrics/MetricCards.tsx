@@ -17,10 +17,10 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import TruncatedText from '@odh-dashboard/internal/components/TruncatedText';
-import HeaderIcon from '@odh-dashboard/internal/concepts/design/HeaderIcon';
-import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import { MetricCardItem, processMetricsData } from './utils';
 import { MetricsCountResponse } from '../../types/metrics';
+import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
+import { getFeatureStoreObjectTypeFromTitle } from '../../utils';
 
 type MetricCardsProps = {
   metricsData?: MetricsCountResponse;
@@ -34,11 +34,15 @@ const MetricCard = ({ item, loaded }: { item: MetricCardItem; loaded: boolean })
       <CardHeader>
         <CardTitle>
           <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-            <HeaderIcon type={ProjectObjectType.project} />
+            <FeatureStoreObjectIcon
+              objectType={getFeatureStoreObjectTypeFromTitle(item.title)}
+              size={40}
+              useTypedColors
+            />
             <Truncate content={item.title} />
           </Flex>
         </CardTitle>
-        <Content component={ContentVariants.small}>
+        <Content component={ContentVariants.small} style={{ marginTop: '5px' }}>
           <TruncatedText maxLines={3} content={item.description} />
         </Content>
       </CardHeader>

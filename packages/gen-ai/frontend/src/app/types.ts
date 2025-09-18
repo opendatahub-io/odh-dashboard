@@ -7,10 +7,6 @@ export type LlamaModel = {
   owned_by: string;
 };
 
-export type NamespaceModel = {
-  name: string;
-};
-
 export type FileCounts = {
   /** Number of cancelled file operations */
   cancelled: number;

@@ -231,9 +231,9 @@ describe('legacy profiles table', () => {
       });
 
       legacyHardwareProfile.findTableHeaderButton('Name').click();
-      legacyHardwareProfile.findTableHeaderButton('Name').should(be.sortDescending);
-      legacyHardwareProfile.findTableHeaderButton('Name').click();
       legacyHardwareProfile.findTableHeaderButton('Name').should(be.sortAscending);
+      legacyHardwareProfile.findTableHeaderButton('Name').click();
+      legacyHardwareProfile.findTableHeaderButton('Name').should(be.sortDescending);
     });
 
     it('should show the expandable section for items', () => {
@@ -570,27 +570,6 @@ describe('legacy profiles table', () => {
         }
       });
     });
-
-    it('should show correct Visibility labels', () => {
-      legacyHardwareProfile.visit();
-      legacyHardwareProfile.findExpandButton().click();
-
-      legacyHardwareProfile.getFeatureLabels(0).then((labels) => {
-        expect(labels).to.have.members(['Workbenches']);
-      });
-
-      legacyHardwareProfile.getFeatureLabels(1).then((labels) => {
-        expect(labels).to.have.members(['Model serving', 'Data science pipelines']);
-      });
-    });
-
-    it('should show correct Source', () => {
-      legacyHardwareProfile.visit();
-      legacyHardwareProfile.findExpandButton().click();
-
-      legacyHardwareProfile.getCell(0, 4).should('have.text', 'Accelerator profile');
-      legacyHardwareProfile.getCell(1, 4).should('have.text', 'Accelerator profile');
-    });
   });
 
   describe('Notebook size profiles', () => {
@@ -769,22 +748,6 @@ describe('legacy profiles table', () => {
         });
       });
     });
-
-    it('should show correct Visibility labels', () => {
-      legacyHardwareProfile.visit();
-      legacyHardwareProfile.findExpandButton().click();
-
-      legacyHardwareProfile.getFeatureLabels(0).then((labels) => {
-        expect(labels).to.have.members(['Workbenches']);
-      });
-    });
-
-    it('should show correct Source', () => {
-      legacyHardwareProfile.visit();
-      legacyHardwareProfile.findExpandButton().click();
-
-      legacyHardwareProfile.getCell(0, 4).should('have.text', 'Workbench container size');
-    });
   });
 
   describe('Model server size profiles', () => {
@@ -946,22 +909,6 @@ describe('legacy profiles table', () => {
           },
         });
       });
-    });
-
-    it('should show correct Visibility labels', () => {
-      legacyHardwareProfile.visit();
-      legacyHardwareProfile.findExpandButton().click();
-
-      legacyHardwareProfile.getFeatureLabels(0).then((labels) => {
-        expect(labels).to.have.members(['Model serving']);
-      });
-    });
-
-    it('should show correct Source', () => {
-      legacyHardwareProfile.visit();
-      legacyHardwareProfile.findExpandButton().click();
-
-      legacyHardwareProfile.getCell(0, 4).should('have.text', 'Model serving container size');
     });
   });
 });

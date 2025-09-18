@@ -16,7 +16,6 @@ import { env, BASE_URL } from '~/__tests__/cypress/cypress/utils/testConfig';
 import webpackConfig from './webpack.config';
 
 const resultsDir = `${env.CY_RESULTS_DIR || 'results'}/${env.CY_MOCK ? 'mocked' : 'e2e'}`;
-const testPath = env.CY_MOCK ? 'cypress/tests/mocked' : 'cypress/tests/e2e';
 
 export default defineConfig({
   experimentalMemoryManagement: true,
@@ -34,7 +33,6 @@ export default defineConfig({
       inlineAssets: true,
       reportDir: resultsDir,
       videoOnFailOnly: true,
-      videoPath: `videos/${testPath}`,
     },
   },
   chromeWebSecurity: false,
@@ -43,7 +41,7 @@ export default defineConfig({
   numTestsKeptInMemory: 1,
   video: true,
   screenshotsFolder: `${resultsDir}/screenshots`,
-  videosFolder: `${resultsDir}/videos/${testPath}`,
+  videosFolder: `${resultsDir}/videos`,
   env: {
     MOCK: !!env.CY_MOCK,
     coverage: !!env.CY_COVERAGE,

@@ -181,9 +181,18 @@ const LineageInner: React.FC<LineageProps> = ({
   }
 
   return (
-    <div className={className} style={{ height, display: 'flex', flexDirection: 'column' }}>
+    <div
+      className={className}
+      style={{
+        height,
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'var(--pf-t--color--gray--10)',
+        borderRadius: 16,
+      }}
+    >
       {ToolbarComponent && <ToolbarComponent />}
-      <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+      <div style={{ flex: 1, overflow: 'hidden', position: 'relative', borderRadius: 16 }}>
         <TopologyView
           controlBar={
             <TopologyControlBar controlButtons={createLineageTopologyControls(controller)} />

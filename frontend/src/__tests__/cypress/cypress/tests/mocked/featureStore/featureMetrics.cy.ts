@@ -243,7 +243,7 @@ describe('Feature Store Metrics Overview', () => {
 
   it('should display metrics overview page with correct title and content', () => {
     featureStoreGlobal.visitOverview(fsProjectName);
-    featureStoreGlobal.findHeading().should('have.text', 'Feature store');
+    featureStoreGlobal.findHeading().should('have.text', 'Overview');
     featureStoreGlobal.findProjectSelector().should('exist');
     featureStoreGlobal.findProjectSelector().click();
     featureStoreGlobal.findProjectSelectorDropdown().should('contain.text', fsProjectName);

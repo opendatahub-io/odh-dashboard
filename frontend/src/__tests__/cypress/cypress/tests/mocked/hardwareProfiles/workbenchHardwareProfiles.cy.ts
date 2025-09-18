@@ -551,4 +551,240 @@ describe('Workbench Hardware Profiles', () => {
       hardwareProfileSection.findSelect().should('contain.text', 'Use existing settings');
     });
   });
+
+  describe('Hardware Profile Dropdown Ordering', () => {
+    beforeEach(() => {
+      initIntercepts({ disableHardwareProfiles: false });
+
+      // Common config for all dropdown ordering tests - remove notebook sizes
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableHardwareProfiles: false,
+          disableProjectScoped: true,
+          notebookSizes: [], // Remove notebook sizes to test only hardware profiles
+          hardwareProfileOrder: [], // Will be overridden by individual tests if needed
+        }),
+      );
+    });
+
+    it('should display dropdown options in alphabetical order when no hardwareProfileOrder is configured', () => {
+      // Set hardware profiles for this test
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          ...mockGlobalScopedHardwareProfiles,
+          mockHardwareProfile({ name: 'zebra-profile', displayName: 'Zebra Profile' }),
+          mockHardwareProfile({ name: 'alpha-profile', displayName: 'Alpha Profile' }),
+          mockHardwareProfile({ name: 'beta-profile', displayName: 'Beta Profile' }),
+        ]),
+      );
+
+      // Navigate to workbench creation
+      projectDetails.visit(projectName);
+      projectDetails.findSectionTab('workbenches').click();
+      workbenchPage.findCreateButton().click();
+      cy.wait('@hardwareProfiles');
+
+      // Debug: Check if hardware profile section exists
+      hardwareProfileSection
+        .findSelect()
+        .should('exist')
+        .then(($el) => {
+          cy.log('Hardware profile dropdown exists:', $el.length > 0);
+        });
+
+      hardwareProfileSection.findSelect().click();
+
+      // Debug: Log all profile names to see what's actually in the dropdown
+      cy.findAllByRole('option').then(($options) => {
+        const profileNames = [...$options].map((el) => el.textContent);
+        cy.log('Actual profiles in dropdown:', profileNames.join(', '));
+      });
+
+      // Verify alphabetical order with only hardware profiles (notebook sizes disabled)
+      const expectedOrder = [
+        'Alpha Profile',
+        'Beta Profile',
+        'Large Profile',
+        'Small Profile',
+        'Zebra Profile',
+      ];
+
+      // Verify total count first
+      cy.findAllByRole('option').should('have.length', expectedOrder.length);
+
+      // Then verify each position contains expected text
+      expectedOrder.forEach((profileName, index) => {
+        cy.findAllByRole('option').eq(index).should('contain', profileName);
+      });
+    });
+
+    it('should display dropdown options in custom order when hardwareProfileOrder is configured', () => {
+      // Override with custom hardware profile order
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableHardwareProfiles: false,
+          disableProjectScoped: true,
+          hardwareProfileOrder: ['zebra-profile', 'alpha-profile', 'beta-profile'],
+          notebookSizes: [],
+        }),
+      );
+
+      // Override with just the profiles needed for this test
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          mockHardwareProfile({ name: 'alpha-profile', displayName: 'Alpha Profile' }),
+          mockHardwareProfile({ name: 'beta-profile', displayName: 'Beta Profile' }),
+          mockHardwareProfile({ name: 'zebra-profile', displayName: 'Zebra Profile' }),
+        ]),
+      );
+
+      // Navigate to workbench creation
+      projectDetails.visit(projectName);
+      projectDetails.findSectionTab('workbenches').click();
+      workbenchPage.findCreateButton().click();
+      cy.wait('@hardwareProfiles');
+
+      hardwareProfileSection.findSelect().click();
+
+      // Verify custom order
+      const expectedOrder = ['Zebra Profile', 'Alpha Profile', 'Beta Profile'];
+      expectedOrder.forEach((profileName, index) => {
+        cy.findAllByRole('option').eq(index).should('contain', profileName);
+      });
+    });
+
+    it('should handle partial ordering by appending unlisted profiles alphabetically', () => {
+      // Override with partial ordering
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableHardwareProfiles: false,
+          disableProjectScoped: true,
+          hardwareProfileOrder: ['beta-profile'], // Only beta specified
+          notebookSizes: [],
+        }),
+      );
+
+      // Override with additional profiles for this test
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          ...mockGlobalScopedHardwareProfiles,
+          mockHardwareProfile({ name: 'alpha-profile', displayName: 'Alpha Profile' }),
+          mockHardwareProfile({ name: 'beta-profile', displayName: 'Beta Profile' }),
+          mockHardwareProfile({ name: 'zebra-profile', displayName: 'Zebra Profile' }),
+          mockHardwareProfile({ name: 'delta-profile', displayName: 'Delta Profile' }),
+        ]),
+      );
+
+      // Navigate to workbench creation
+      projectDetails.visit(projectName);
+      projectDetails.findSectionTab('workbenches').click();
+      workbenchPage.findCreateButton().click();
+      cy.wait('@hardwareProfiles');
+
+      hardwareProfileSection.findSelect().click();
+
+      // Verify beta comes first (from order), then others alphabetically
+      const expectedOrder = [
+        'Beta Profile', // From hardwareProfileOrder
+        'Alpha Profile', // Alphabetical
+        'Delta Profile', // Alphabetical
+        'Large Profile', // Alphabetical
+        'Small Profile', // Alphabetical
+        'Zebra Profile', // Alphabetical
+      ];
+      expectedOrder.forEach((profileName, index) => {
+        cy.findAllByRole('option').eq(index).should('contain', profileName);
+      });
+    });
+
+    it('should maintain custom order consistency during search filtering', () => {
+      // Override with specific order for alpha profiles - enable project-scoped for search functionality
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableHardwareProfiles: false,
+          disableProjectScoped: false, // Enable to get search input
+          hardwareProfileOrder: [
+            'gamma-profile',
+            'alpha-two-profile',
+            'beta-profile',
+            'alpha-one-profile',
+          ],
+          notebookSizes: [],
+        }),
+      );
+
+      // Override with specific profiles for this test
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          mockHardwareProfile({ name: 'alpha-one-profile', displayName: 'Alpha One Profile' }),
+          mockHardwareProfile({ name: 'alpha-two-profile', displayName: 'Alpha Two Profile' }),
+          mockHardwareProfile({ name: 'beta-profile', displayName: 'Beta Profile' }),
+          mockHardwareProfile({ name: 'gamma-profile', displayName: 'Gamma Profile' }),
+        ]),
+      );
+
+      // Navigate to workbench creation
+      projectDetails.visit(projectName);
+      projectDetails.findSectionTab('workbenches').click();
+      workbenchPage.findCreateButton().click();
+      cy.wait('@hardwareProfiles');
+
+      // Open the searchable dropdown (used when project-scoped is enabled)
+      hardwareProfileSection.findHardwareProfileSearchSelector().click();
+
+      // Type search filter using helper function
+      hardwareProfileSection.findHardwareProfileSearchInput().type('alpha');
+
+      // Verify alpha profiles maintain custom order (Alpha Two before Alpha One)
+      // After filtering, options are within menuitem roles in the dropdown
+      cy.findAllByRole('menuitem').should('have.length', 2);
+      cy.findAllByRole('menuitem').eq(0).should('contain', 'Alpha Two Profile');
+      cy.findAllByRole('menuitem').eq(1).should('contain', 'Alpha One Profile');
+    });
+
+    it('should ignore deleted profiles in hardwareProfileOrder configuration', () => {
+      // Override with deleted profile in order
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableHardwareProfiles: false,
+          disableProjectScoped: true,
+          hardwareProfileOrder: ['gamma-profile', 'deleted-profile', 'alpha-profile'],
+          notebookSizes: [],
+        }),
+      );
+
+      // Override with limited profiles (deleted-profile not included)
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          mockHardwareProfile({ name: 'alpha-profile', displayName: 'Alpha Profile' }),
+          mockHardwareProfile({ name: 'gamma-profile', displayName: 'Gamma Profile' }),
+          // Note: deleted-profile is not included
+        ]),
+      );
+
+      // Navigate to workbench creation
+      projectDetails.visit(projectName);
+      projectDetails.findSectionTab('workbenches').click();
+      workbenchPage.findCreateButton().click();
+      cy.wait('@hardwareProfiles');
+
+      hardwareProfileSection.findSelect().click();
+
+      // Verify only existing profiles are shown in correct order
+      const expectedOrder = ['Gamma Profile', 'Alpha Profile'];
+      expectedOrder.forEach((profileName, index) => {
+        cy.findAllByRole('option').eq(index).should('contain', profileName);
+      });
+    });
+  });
 });

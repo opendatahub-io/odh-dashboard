@@ -409,9 +409,9 @@ func createModelCatalogService(k8sClient kubernetes.Interface, ctx context.Conte
 			Name:      name,
 			Namespace: namespace,
 			Labels: map[string]string{
-				"app":                         "model-catalog",
+				"app":                         "model-catalog-service",
 				"app.kubernetes.io/component": "model-catalog",
-				"app.kubernetes.io/instance":  "model-catalog",
+				"app.kubernetes.io/instance":  "model-catalog-service",
 				"app.kubernetes.io/name":      "model-catalog",
 				"app.kubernetes.io/part-of":   "model-catalog",
 				"component":                   "model-catalog",

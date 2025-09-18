@@ -831,3 +831,8 @@ export enum IconSize {
   XL = 'xl',
   XXL = 'xxl',
 }
+
+export type Namespace = {
+  name: string;
+  displayName?: string;
+};

@@ -7,7 +7,6 @@ import {
   CreateResponseRequest,
   SimplifiedResponseData,
   LlamaModel,
-  NamespaceModel,
   FileUploadResult,
   LlamaStackDistributionModel,
 } from '../types';
@@ -15,29 +14,12 @@ import axios from '../utilities/axios';
 import { URL_PREFIX } from '../utilities/const';
 
 /**
- * Fetches all available namespaces from the Llama Stack API
- * @returns Promise<NamespaceModel[]> - Array of available namespaces with their metadata
- * @throws Error - When the API request fails or returns an error response
- */
-export const getNamespaces = (): Promise<NamespaceModel[]> => {
-  const url = `${URL_PREFIX}/api/v1/namespaces`;
-  return axios
-    .get<{ data: NamespaceModel[] }>(url)
-    .then((response) => response.data.data)
-    .catch((error) => {
-      throw new Error(
-        error.response?.data?.error?.message || error.message || 'Failed to fetch namespaces',
-      );
-    });
-};
-
-/**
  * Fetches all available models from the Llama Stack API
  * @returns Promise<LlamaModel[]> - Array of available models with their metadata
  * @throws Error - When the API request fails or returns an error response
  */
-export const getModels = (): Promise<LlamaModel[]> => {
-  const url = `${URL_PREFIX}/api/v1/models`;
+export const getModels = (namespace: string): Promise<LlamaModel[]> => {
+  const url = `${URL_PREFIX}/api/v1/models?namespace=${namespace}`;
   return axios
     .get(url)
     .then((response) => response.data.data)

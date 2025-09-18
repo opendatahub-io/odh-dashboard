@@ -1,10 +1,17 @@
 {
   "extends": "@odh-dashboard/tsconfig/tsconfig.json",
   "compilerOptions": {
+    "baseUrl": ".",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "paths": {
+      "*": ["node_modules/*"]
+    },
     "noImplicitAny": false,
     "noImplicitReturns": false,
     "strictNullChecks": false,
     "strictFunctionTypes": false,
     "useUnknownInCatchVariables": false
-  }
+  },
+  "exclude": ["node_modules", "dist"]
 }
