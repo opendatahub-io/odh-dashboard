@@ -23,7 +23,9 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({ o
   const { data: lsdStatus } = useFetchLSDStatus(namespace?.name, activelyRefreshing);
 
   React.useEffect(() => {
-    setActivelyRefreshing(lsdStatus?.phase === 'Initializing');
+    if (lsdStatus?.phase && lsdStatus.phase !== 'Initializing') {
+      setActivelyRefreshing(false);
+    }
   }, [lsdStatus]);
 
   // TODO: Add Failed status
