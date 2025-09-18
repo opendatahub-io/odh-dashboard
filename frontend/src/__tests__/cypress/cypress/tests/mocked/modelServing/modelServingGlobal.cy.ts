@@ -767,7 +767,7 @@ describe('Model Serving Global', () => {
     projectScopedHardwareProfile
       .find()
       .findByRole('menuitem', {
-        name: 'small-profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
+        name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
         hidden: true,
       })
       .click();
@@ -779,7 +779,7 @@ describe('Model Serving Global', () => {
     globalScopedHardwareProfile
       .find()
       .findByRole('menuitem', {
-        name: 'small-profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
+        name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
         hidden: true,
       })
       .click();
@@ -816,9 +816,10 @@ describe('Model Serving Global', () => {
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
 
     hardwareProfileSection.findHardwareProfileSearchSelector().should('be.visible');
+
     hardwareProfileSection
       .findHardwareProfileSearchSelector()
-      .should('contain.text', 'large-profile-1');
+      .should('contain.text', 'Large Profile-1');
     hardwareProfileSection.findProjectScopedLabel().should('exist');
   });
 
