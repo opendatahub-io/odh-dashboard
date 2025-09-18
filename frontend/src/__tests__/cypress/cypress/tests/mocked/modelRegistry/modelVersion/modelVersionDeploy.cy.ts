@@ -441,10 +441,10 @@ describe.skip('Deploy model version', () => {
           cy.log(`Menu options: ${JSON.stringify(texts)}`);
           expect(texts.length).to.be.greaterThan(0);
 
-          const text1 =
-            'small-profile CPU: Request = 1 Cores; Limit = 1 Cores; Memory: Request = 2 GiB; Limit = 2 GiB';
           const text2 =
-            'large-profile CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB';
+            'Small Profile CPU: Request = 1 Cores; Limit = 1 Cores; Memory: Request = 2 GiB; Limit = 2 GiB';
+          const text1 =
+            'Large Profile CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB';
           expect(texts.length).to.equal(2);
           expect(texts[0]).to.equal(text1);
           expect(texts[1]).to.equal(text2);
