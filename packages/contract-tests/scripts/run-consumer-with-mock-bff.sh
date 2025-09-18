@@ -69,6 +69,17 @@ if [[ -z "${RESULTS_DIR:-}" ]]; then
 fi
 if [[ -z "${RESULTS_DIR:-}" ]]; then
   RESULTS_DIR="$CONSUMER_DIR/contract-test-results/$TIMESTAMP"
+
+  # Clean up old result directories (keep only current)
+  if [[ -d "$CONSUMER_DIR/contract-test-results" ]]; then
+    if cd "$CONSUMER_DIR/contract-test-results" 2>/dev/null; then
+      # Remove all directories except the current one
+      find . -mindepth 1 -maxdepth 1 -type d ! -name "$TIMESTAMP" -exec rm -rf {} + 2>/dev/null || true
+      cd - >/dev/null 2>&1 || true
+    else
+      log_warning "Could not access results directory for cleanup: $CONSUMER_DIR/contract-test-results"
+    fi
+  fi
 fi
 mkdir -p "$RESULTS_DIR"
 RESULTS_DIR="$(cd "$RESULTS_DIR" && pwd)"
