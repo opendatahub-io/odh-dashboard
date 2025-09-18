@@ -6,6 +6,10 @@ export enum FeatureStoreObject {
   ENTITIES = 'entities',
   FEATURE_VIEWS = 'featureViews',
   FEATURE_SERVICES = 'featureServices',
+  DATA_SETS = 'dataSets',
+  DATA_SOURCES = 'dataSources',
+  OVERVIEW = 'overview',
+  FEATURES = 'features',
 }
 
 export enum FeatureStoreSections {

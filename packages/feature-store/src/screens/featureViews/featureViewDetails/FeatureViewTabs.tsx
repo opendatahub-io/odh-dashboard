@@ -100,26 +100,25 @@ const FeatureViewTabs: React.FC<FeatureViewTabsProps> = ({ featureView }) => {
           <FeatureViewMaterialization featureView={featureView} />
         </PageSection>
       </Tab>
-      {featureView.type === 'onDemandFeatureView' && (
-        <Tab
-          eventKey={FeatureViewTab.TRANSFORMATIONS}
-          title={getTabTitleWithTooltip(
-            FeatureViewTab.TRANSFORMATIONS,
-            `A transformation converts raw data from the source into feature values, such as by calculating aggregates or deriving timestamps.
+
+      <Tab
+        eventKey={FeatureViewTab.TRANSFORMATIONS}
+        title={getTabTitleWithTooltip(
+          FeatureViewTab.TRANSFORMATIONS,
+          `A transformation converts raw data from the source into feature values, such as by calculating aggregates or deriving timestamps.
             You can define these transformations using expressions, code, or SQL, depending on the feature store backend.`,
-          )}
-          aria-label="Feature view transformations tab"
-          data-testid="feature-view-transformations-tab"
+        )}
+        aria-label="Feature view transformations tab"
+        data-testid="feature-view-transformations-tab"
+      >
+        <PageSection
+          hasBodyWrapper={false}
+          isFilled
+          data-testid="feature-view-transformations-tab-content"
         >
-          <PageSection
-            hasBodyWrapper={false}
-            isFilled
-            data-testid="feature-view-transformations-tab-content"
-          >
-            <FeatureViewTransformation featureView={featureView} />
-          </PageSection>
-        </Tab>
-      )}
+          <FeatureViewTransformation featureView={featureView} />
+        </PageSection>
+      </Tab>
     </Tabs>
   );
 };

@@ -17,7 +17,7 @@ const FeatureViewLineageTab: React.FC<FeatureViewLineageTabProps> = ({ featureVi
     id="feature-view-lineage-tab"
   >
     <Flex direction={{ default: 'column' }} spacer={{ default: 'spacer2xl' }}>
-      <FlexItem style={{ height: 'calc(65vh - 4rem)', minHeight: '400px', overflow: 'hidden' }}>
+      <FlexItem style={{ height: '65vh', minHeight: '400px', overflow: 'hidden' }}>
         <Title
           headingLevel="h3"
           data-testid="feature-view-lineage"
