@@ -136,10 +136,6 @@ fi
 
 mkdir -p "$RESULTS_DIR"
 
-# Create a symlink for CI to easily find current results
-CURRENT_LINK="$CONSUMER_DIR/contract-tests/contract-test-results/current"
-ln -sf "$RESULTS_DIR" "$CURRENT_LINK" 2>/dev/null || true
-
 export JEST_HTML_REPORTERS_PUBLIC_PATH="$RESULTS_DIR"
 export JEST_HTML_REPORTERS_FILE_NAME="contract-test-report.html"
 export JEST_HTML_REPORTERS_EXPAND=true

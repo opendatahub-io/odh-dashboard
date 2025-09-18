@@ -186,7 +186,7 @@ jobs:
         if: always()
         with:
           name: contract-test-results-${{ github.event.pull_request.number || github.run_id }}
-          path: packages/*/contract-tests/contract-test-results/current/
+          path: packages/*/contract-tests/contract-test-results/
           if-no-files-found: warn
 
   Cypress-Setup:
