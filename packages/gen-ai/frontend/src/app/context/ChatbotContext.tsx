@@ -11,6 +11,10 @@ type ChatbotContextProps = {
   lsdStatusLoaded: boolean;
   modelsError: Error | undefined;
   lsdStatusError: Error | undefined;
+  selectedModel: string;
+  setSelectedModel: (model: string) => void;
+  lastInput: string;
+  setLastInput: (input: string) => void;
 };
 
 type ChatbotContextProviderProps = {
@@ -25,12 +29,18 @@ export const ChatbotContext = React.createContext<ChatbotContextProps>({
   lsdStatusLoaded: false,
   modelsError: undefined,
   lsdStatusError: undefined,
+  selectedModel: '',
+  setSelectedModel: () => undefined,
+  lastInput: '',
+  setLastInput: () => undefined,
 });
 
 export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
   children,
   namespace,
 }) => {
+  const [selectedModel, setSelectedModel] = React.useState('');
+  const [lastInput, setLastInput] = React.useState('');
   const {
     data: models,
     loaded: modelsLoaded,
@@ -43,8 +53,29 @@ export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
   } = useFetchLSDStatus(namespace?.name);
 
   const contextValue = React.useMemo(
-    () => ({ models, lsdStatus, modelsLoaded, lsdStatusLoaded, modelsError, lsdStatusError }),
-    [models, lsdStatus, modelsLoaded, lsdStatusLoaded, modelsError, lsdStatusError],
+    () => ({
+      models,
+      lsdStatus,
+      modelsLoaded,
+      lsdStatusLoaded,
+      modelsError,
+      lsdStatusError,
+      selectedModel,
+      setSelectedModel,
+      lastInput,
+      setLastInput,
+    }),
+    [
+      models,
+      lsdStatus,
+      modelsLoaded,
+      lsdStatusLoaded,
+      modelsError,
+      lsdStatusError,
+      selectedModel,
+      lastInput,
+      setLastInput,
+    ],
   );
 
   return <ChatbotContext.Provider value={contextValue}>{children}</ChatbotContext.Provider>;

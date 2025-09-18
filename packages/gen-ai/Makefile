@@ -16,7 +16,7 @@ dev-bff-mock: ## Run only the bff in development mode
 
 .PHONY: dev-bff
 dev-bff:
-	cd bff && make run MOCK_LS_CLIENT=true
+	cd bff && make run
 
 
 .PHONY: dev-frontend
