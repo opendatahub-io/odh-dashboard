@@ -186,7 +186,7 @@ jobs:
         if: always()
         with:
           name: contract-test-results
-          path: packages/*/contract-tests/contract-test-results/**/*
+          path: packages/*/contract-tests/contract-test-results/
 
   Cypress-Setup:
     needs: [Setup]
