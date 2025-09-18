@@ -34,6 +34,7 @@ type HandlersProps = {
 };
 
 const initIntercepts = ({ isPresent = true }: HandlersProps) => {
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableHardwareProfiles: false }));
   cy.interceptK8s(
     { model: HardwareProfileModel, ns: 'opendatahub', name: 'test-hardware-profile' },
     isPresent
@@ -103,7 +104,10 @@ function makeProfile({ withLocalQueue = false } = {}) {
 }
 
 function setupIntercepts({ disableKueue = false, isPresent = true, withLocalQueue = false } = {}) {
-  cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableKueue }));
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({ disableKueue, disableHardwareProfiles: false }),
+  );
 
   cy.interceptK8sList(
     { model: WorkloadPriorityClassModel },
