@@ -122,11 +122,12 @@ fi
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 RESULTS_DIR="$CONSUMER_DIR/contract-test-results/$TIMESTAMP"
 
-# Clean up old result directories (keep only current)
+# Clean up old result directories (age-based pruning)
 if [[ -d "$CONSUMER_DIR/contract-test-results" ]]; then
   if cd "$CONSUMER_DIR/contract-test-results" 2>/dev/null; then
-    # Remove all directories except the current one
-    find . -mindepth 1 -maxdepth 1 -type d ! -name "$TIMESTAMP" -exec rm -rf {} + 2>/dev/null || true
+    # Remove directories older than 1 day, but exclude current run
+    # Use find with -exec to safely remove old directories
+    find . -mindepth 1 -maxdepth 1 -type d -mtime +1 ! -name "$TIMESTAMP" -exec rm -rf {} + 2>/dev/null || true
     cd - >/dev/null 2>&1 || true
   else
     log_warning "Could not access results directory for cleanup: $CONSUMER_DIR/contract-test-results"
