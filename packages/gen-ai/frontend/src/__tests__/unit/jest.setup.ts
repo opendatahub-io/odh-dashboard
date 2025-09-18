@@ -4,9 +4,7 @@ import 'core-js/actual/array/to-sorted';
 import { BooleanValues, RenderHookResultExt, createComparativeValue } from './testUtils/hooks';
 import '@testing-library/jest-dom';
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-global.TextEncoder = TextEncoder;
+global.TextEncoder = TextEncoder as typeof global.TextEncoder;
 
 const tryExpect = (expectFn: () => void) => {
   try {

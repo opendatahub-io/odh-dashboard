@@ -1,19 +1,17 @@
 import React from 'react';
 import { Button, Flex, FlexItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
-import { ProjectKind } from '#~/k8sTypes';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { ProjectIconWithSize } from '#~/concepts/projects/ProjectIconWithSize';
-import { IconSize } from '#~/types';
+import { IconSize, Namespace } from '#~/types';
 
 type ProjectNavigatorLinkProps = {
-  project?: ProjectKind;
+  namespace?: Namespace;
 };
 
-const ProjectNavigatorLink: React.FC<ProjectNavigatorLinkProps> = ({ project }) => {
+const ProjectNavigatorLink: React.FC<ProjectNavigatorLinkProps> = ({ namespace }) => {
   const navigate = useNavigate();
 
-  if (!project) {
+  if (!namespace) {
     return null;
   }
 
@@ -22,7 +20,7 @@ const ProjectNavigatorLink: React.FC<ProjectNavigatorLinkProps> = ({ project }) 
       variant="link"
       component="a"
       onClick={() => {
-        navigate(`/projects/${project.metadata.name}`);
+        navigate(`/projects/${namespace.name}`);
       }}
       data-testid="project-navigator-link"
     >
@@ -30,7 +28,7 @@ const ProjectNavigatorLink: React.FC<ProjectNavigatorLinkProps> = ({ project }) 
         <FlexItem>Go to</FlexItem>
         <ProjectIconWithSize size={IconSize.LG} />
         <FlexItem>
-          <strong>{getDisplayNameFromK8sResource(project)}</strong>
+          <strong>{namespace.displayName}</strong>
         </FlexItem>
       </Flex>
     </Button>

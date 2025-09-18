@@ -73,15 +73,22 @@ func (d DeploymentMode) IsFederatedMode() bool {
 }
 
 type EnvConfig struct {
-	Port            int
-	MockK8Client    bool
-	MockMRClient    bool
-	DevMode         bool
-	DeploymentMode  DeploymentMode
-	DevModePort     int
-	StaticAssetsDir string
-	LogLevel        slog.Level
-	AllowedOrigins  []string
+	Port                     int
+	MockK8Client             bool
+	MockMRClient             bool
+	MockMRCatalogClient      bool
+	DevMode                  bool
+	DeploymentMode           DeploymentMode
+	DevModeModelRegistryPort int
+	DevModeCatalogPort       int
+	StaticAssetsDir          string
+	LogLevel                 slog.Level
+	AllowedOrigins           []string
+	// BundlePaths is a list of filesystem paths to PEM-encoded CA bundle files.
+	// If provided, the application will attempt to load these files and add the
+	// certificates to the HTTP client's Root CAs for outbound TLS connections.
+	// Missing or unreadable files are ignored.
+	BundlePaths []string
 
 	// ─── AUTH ───────────────────────────────────────────────────
 	// Specifies the authentication method used by the server.

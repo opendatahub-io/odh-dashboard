@@ -1,5 +1,5 @@
 import React from 'react';
-import { PageSection } from '@patternfly/react-core';
+import { Stack, StackItem, PageSection } from '@patternfly/react-core';
 import MetricCards from './MetricCards';
 import PopularTags from './PopularTags';
 import RecentlyVisitedResources from './RecentlyVisitedResources';
@@ -12,10 +12,23 @@ const Metrics: React.FC = () => {
     useMetricsResourceCount(currentProject ? { project: currentProject } : {});
 
   return (
-    <PageSection hasBodyWrapper={false} isFilled>
-      <MetricCards metricsData={metricsResourceCount} loaded={metricsResourceCountLoaded} />
-      <PopularTags project={currentProject} limit={4} />
-      <RecentlyVisitedResources project={currentProject} />
+    <PageSection
+      hasBodyWrapper={false}
+      isFilled
+      padding={{ default: 'padding' }}
+      style={{ paddingTop: '0px' }}
+    >
+      <Stack hasGutter>
+        <StackItem>
+          <MetricCards metricsData={metricsResourceCount} loaded={metricsResourceCountLoaded} />
+        </StackItem>
+        <StackItem style={{ paddingTop: '2rem' }}>
+          <PopularTags project={currentProject} limit={4} />
+        </StackItem>
+        <StackItem style={{ paddingTop: '2rem' }}>
+          <RecentlyVisitedResources project={currentProject} />
+        </StackItem>
+      </Stack>
     </PageSection>
   );
 };

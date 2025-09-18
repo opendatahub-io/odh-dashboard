@@ -4,6 +4,7 @@
 
 # misc
 .DS_Store
+Thumbs.db
 
 .env*.local
 
@@ -25,3 +26,9 @@ yarn.lock
 .turbo
 
 jest-coverage
+
+# Build outputs
+dist
+
+# Contract test results 
+contract-test-results

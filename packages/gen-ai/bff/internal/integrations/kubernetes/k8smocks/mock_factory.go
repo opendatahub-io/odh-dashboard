@@ -7,10 +7,15 @@ import (
 	"net/http"
 	"sync"
 
+	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
+	kservev1beta1 "github.com/kserve/kserve/pkg/apis/serving/v1beta1"
+	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -70,7 +75,15 @@ func NewTokenClientFactory(ctrlClient client.Client, restConfig *rest.Config, lo
 }
 
 func (f *MockedTokenClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*integrations.RequestIdentity, error) {
-	return f.realK8sFactory.ExtractRequestIdentity(httpHeader)
+	id, err := f.realK8sFactory.ExtractRequestIdentity(httpHeader)
+	if err != nil {
+		token := "FAKE_BEARER_TOKEN"
+		if len(DefaultTestUsers) > 0 {
+			token = DefaultTestUsers[0].Token
+		}
+		return &integrations.RequestIdentity{Token: token}, nil
+	}
+	return id, nil
 }
 
 func (f *MockedTokenClientFactory) ValidateRequestIdentity(identity *integrations.RequestIdentity) error {
@@ -97,18 +110,26 @@ func (f *MockedTokenClientFactory) GetClient(ctx context.Context) (k8s.Kubernete
 		return client, nil
 	}
 
-	// Map token to test user identity
-	user := findTestUserByToken(identity.Token)
-	if user == nil {
-		return nil, fmt.Errorf("unknown test token: %s", identity.Token)
-	}
-
-	// Create a new rest.Config that impersonates the user.
-	// This bypasses the lack of real authentication in envtest and allows RBAC to work properly.
+	// Accept any token in mock mode; no user mapping required
 	impersonatedCfg := rest.CopyConfig(f.restConfig)
 	impersonatedCfg.Impersonate = rest.ImpersonationConfig{}
 
-	ctrlClient, err := client.New(impersonatedCfg, client.Options{})
+	// Create a scheme with LSD types for the new client
+	scheme := runtime.NewScheme()
+	if err := clientgoscheme.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
+	if err := lsdapi.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
+	if err := kservev1alpha1.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
+	if err := kservev1beta1.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
+
+	ctrlClient, err := client.New(impersonatedCfg, client.Options{Scheme: scheme})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create impersonated client: %w", err)
 	}
@@ -116,13 +137,4 @@ func (f *MockedTokenClientFactory) GetClient(ctx context.Context) (k8s.Kubernete
 	client := newMockedTokenKubernetesClientFromClientset(ctrlClient, impersonatedCfg, f.logger)
 	f.clients[identity.Token] = client
 	return client, nil
-}
-
-func findTestUserByToken(token string) *TestUser {
-	for _, u := range DefaultTestUsers {
-		if u.Token == token {
-			return &u
-		}
-	}
-	return nil
 }

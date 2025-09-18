@@ -96,7 +96,7 @@ export enum FeatureViewTab {
   DETAILS = 'Details',
   LINEAGE = 'Lineage',
   FEATURES = 'Features',
-  CONSUMING_SERVICES = 'Consuming Feature Services',
+  CONSUMING_SERVICES = 'Feature services',
   MATERIALIZATION = 'Materialization',
   TRANSFORMATIONS = 'Transformations',
 }
@@ -152,8 +152,8 @@ export const materializationColumns: SortableData<MaterializationInterval>[] = [
       new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
   },
   {
-    field: 'updated',
-    label: 'Updated',
+    field: 'last_modified',
+    label: 'Last modified',
     width: 30,
     sortable: (a: MaterializationInterval, b: MaterializationInterval): number =>
       new Date(b.endTime).getTime() - new Date(a.endTime).getTime(),

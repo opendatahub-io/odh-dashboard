@@ -7,6 +7,8 @@ import FeatureStoreProjectSelectorNavigator from '../components/FeatureStoreProj
 import { featureStoreRoute } from '../../routes';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import useFeatureStoreDataSources from '../../apiHooks/useFeatureStoreDataSources';
+import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
+import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
 
 const title = 'Data Sources';
 const description =
@@ -28,7 +30,7 @@ const DataSources: React.FC = () => {
       data-testid="empty-state-title"
     >
       <EmptyStateBody data-testid="empty-state-body">
-        No data sources have been found in this project.
+        Select a different feature store repository or create a data sources in a workbench.
       </EmptyStateBody>
     </EmptyState>
   );
@@ -37,7 +39,18 @@ const DataSources: React.FC = () => {
     <ApplicationsPage
       empty={dataSources.dataSources.length === 0}
       emptyStatePage={emptyState}
-      title={title}
+      title={
+        <FeatureStorePageTitle
+          title={
+            <FeatureStoreObjectIcon
+              objectType="data_source"
+              title={title}
+              showBackground
+              useTypedColors
+            />
+          }
+        />
+      }
       description={description}
       loadError={dataSourcesLoadError}
       loaded={dataSourcesLoaded}

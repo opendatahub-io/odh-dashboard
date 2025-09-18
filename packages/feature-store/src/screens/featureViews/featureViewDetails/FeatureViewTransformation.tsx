@@ -8,11 +8,17 @@ import {
   DescriptionListTerm,
   DescriptionListDescription,
   Content,
+  Popover,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
+import { OutlinedQuestionCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
+import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
 import { FeatureView, OnDemandFeatureView } from '../../../types/featureView';
 import FeatureStoreCodeBlock from '../../../components/FeatureStoreCodeBlock';
 import { featureDataSourceRoute } from '../../../routes';
@@ -54,6 +60,30 @@ const FeatureViewTransformation: React.FC<FeatureViewTransformationProps> = ({ f
     featureView.spec.featureTransformation.userDefinedFunction;
   const { currentProject } = useFeatureStoreProject();
 
+  const emptyState = (
+    <Flex justifyContent={{ default: 'justifyContentCenter' }} style={{ padding: '1rem' }}>
+      <EmptyState
+        width="100%"
+        height="100%"
+        icon={PlusCircleIcon}
+        title="No transformation data"
+        titleText="No transformation data"
+        headingLevel="h1"
+        variant={EmptyStateVariant.sm}
+        data-testid="no-transformation-empty-state"
+      >
+        <EmptyStateBody>
+          Check if the transformation is enabled in feature definition. Modify feature definition to
+          enable transformation
+        </EmptyStateBody>
+      </EmptyState>
+    </Flex>
+  );
+
+  if (!isOnDemandFeatureView(featureView)) {
+    return emptyState;
+  }
+
   return (
     <PageSection
       hasBodyWrapper={false}
@@ -82,21 +112,24 @@ const FeatureViewTransformation: React.FC<FeatureViewTransformationProps> = ({ f
               id={featureView.spec.name}
             />
           ) : (
-            <Flex justifyContent={{ default: 'justifyContentCenter' }} style={{ padding: '1rem' }}>
-              <FlexItem>
-                <Content className={text.textColorDisabled}>
-                  {!isOnDemandFeatureView(featureView)
-                    ? 'No transformation available for this feature view type'
-                    : 'No transformation data available'}
-                </Content>
-              </FlexItem>
-            </Flex>
+            emptyState
           )}
         </FlexItem>
         <FlexItem>
-          <Title headingLevel="h3" data-testid="feature-view-inputs" style={{ margin: '1em 0' }}>
-            Inputs
-          </Title>
+          <Flex>
+            <FlexItem>
+              <Title
+                headingLevel="h3"
+                data-testid="feature-view-inputs"
+                style={{ margin: '1em 0' }}
+              >
+                Inputs
+              </Title>
+            </FlexItem>
+            <Popover bodyContent="Inputs are data from data sources or existing feature views that are used in the transformation logic.">
+              <DashboardPopupIconButton icon={<OutlinedQuestionCircleIcon />} />
+            </Popover>
+          </Flex>
           {isOnDemandFeatureView(featureView) ? (
             <div>
               <DescriptionList

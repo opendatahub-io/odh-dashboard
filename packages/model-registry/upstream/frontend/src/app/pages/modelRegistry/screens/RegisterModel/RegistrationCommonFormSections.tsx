@@ -149,6 +149,7 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
       name="location-uri"
       value={modelLocationURI}
       onChange={(_e, value) => setData('modelLocationURI', value)}
+      isDisabled={isCatalogModel}
     />
   );
 

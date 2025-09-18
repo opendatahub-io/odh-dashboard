@@ -156,7 +156,7 @@ const setupDotenvFilesForEnv = ({ env }) => {
   const PORT = process.env.PORT || '9000';
   const PROXY_PROTOCOL = process.env.PROXY_PROTOCOL || 'http';
   const PROXY_HOST = process.env.PROXY_HOST || 'localhost';
-  const PROXY_PORT = process.env.PROXY_PORT || process.env.PORT || 4000;
+  const PROXY_PORT = process.env.PROXY_PORT || 4000;
   const DEV_MODE = process.env.DEV_MODE || undefined;
   const OUTPUT_ONLY = process.env._OUTPUT_ONLY === 'true';
 

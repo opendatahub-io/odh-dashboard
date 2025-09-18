@@ -1,39 +1,20 @@
-/* eslint-disable no-relative-import-paths/no-relative-import-paths */
 import * as React from 'react';
-import { getModels } from '../services/llamaStackService';
-import { LlamaModel } from '../types';
+import { FetchStateCallbackPromise, FetchStateObject, useFetchState } from 'mod-arch-core';
+import { getModels } from '~/app/services/llamaStackService';
+import { LlamaModel } from '~/app/types';
 
-const useFetchLlamaModels = (): {
-  models: LlamaModel[];
-  loading: boolean;
-  error: Error | undefined;
-  fetchLlamaModels: () => Promise<void>;
-} => {
-  const [models, setModels] = React.useState<LlamaModel[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<Error | undefined>(undefined);
-
-  const fetchLlamaModels = React.useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(undefined);
-
-      const modelList: LlamaModel[] = await getModels();
-
-      setModels(modelList);
-    } catch (err) {
-      setError(new Error(`Failed to fetch models; ${err}`));
-    } finally {
-      setLoading(false);
+const useFetchLlamaModels = (selectedProject?: string): FetchStateObject<LlamaModel[]> => {
+  const fetchLlamaModels = React.useCallback<FetchStateCallbackPromise<LlamaModel[]>>(async () => {
+    if (!selectedProject) {
+      return Promise.reject(new Error('No project selected'));
     }
-  }, []);
+    return getModels(selectedProject);
+  }, [selectedProject]);
 
-  // Automatically fetch models on hook initialization
-  React.useEffect(() => {
-    fetchLlamaModels();
-  }, [fetchLlamaModels]);
-
-  return { models, loading, error, fetchLlamaModels };
+  const [data, loaded, error, refresh] = useFetchState(fetchLlamaModels, [], {
+    initialPromisePurity: true,
+  });
+  return { data, loaded, error, refresh };
 };
 
 export default useFetchLlamaModels;

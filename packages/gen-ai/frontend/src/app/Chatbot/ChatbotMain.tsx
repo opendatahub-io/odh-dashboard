@@ -1,13 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerContentBody,
-  Bullseye,
-  Spinner,
-  Flex,
-} from '@patternfly/react-core';
+import { Button, Drawer, DrawerContent, DrawerContentBody, Tooltip } from '@patternfly/react-core';
 import {
   Chatbot,
   ChatbotContent,
@@ -19,8 +12,10 @@ import {
   MessageBox,
 } from '@patternfly/chatbot';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
-import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
+import { CodeIcon } from '@patternfly/react-icons';
+import { useUserContext } from '~/app/context/UserContext';
+import { ChatbotContext } from '~/app/context/ChatbotContext';
+import ChatbotEmptyState from '~/app/EmptyStates/NoData';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import { ChatbotMessages } from './ChatbotMessagesList';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
@@ -30,18 +25,21 @@ import useAlertManagement from './hooks/useAlertManagement';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from './const';
+import ChatbotHeader from './ChatbotHeader';
+import { ViewCodeModal } from './components/ViewCodeModal';
 
 const ChatbotMain: React.FunctionComponent = () => {
-  const { config } = useModularArchContext();
-  const isStandalone = config.deploymentMode === DeploymentMode.Standalone;
   const displayMode = ChatbotDisplayMode.embedded;
-  const { models, loading, error } = useFetchLlamaModels();
+  const { models, modelsLoaded, lsdStatus, lsdStatusLoaded, lsdStatusError, modelsError } =
+    React.useContext(ChatbotContext);
   const [selectedModel, setSelectedModel] = React.useState<string>('');
-
+  const { username } = useUserContext();
   const modelId = selectedModel || models[0]?.id;
   const [systemInstruction, setSystemInstruction] = React.useState<string>(
     DEFAULT_SYSTEM_INSTRUCTIONS,
   );
+  const [isViewCodeModalOpen, setIsViewCodeModalOpen] = React.useState(false);
+  const [input, setInput] = React.useState<string>('');
 
   React.useEffect(() => {
     if (!selectedModel) {
@@ -56,11 +54,28 @@ const ChatbotMain: React.FunctionComponent = () => {
     onShowErrorAlert: alertManagement.onShowErrorAlert,
   });
 
+  const isViewCodeDisabled = !input || !modelId;
+
+  // Get disabled reason for popover
+  const getDisabledReason = () => {
+    if (!input && !modelId) {
+      return 'Please input a message and select a model to generate code';
+    }
+    if (!input) {
+      return 'Please input a message to generate code';
+    }
+    if (!modelId) {
+      return 'Please select a model to generate code';
+    }
+    return '';
+  };
+
   const chatbotMessages = useChatbotMessages({
     modelId,
     selectedSourceSettings: sourceManagement.selectedSourceSettings,
     systemInstruction,
     isRawUploaded: sourceManagement.isRawUploaded,
+    username,
   });
 
   // Create alert components
@@ -80,15 +95,6 @@ const ChatbotMain: React.FunctionComponent = () => {
     />
   );
 
-  // Loading and error states
-  if (loading) {
-    return (
-      <Bullseye>
-        <Spinner />
-      </Bullseye>
-    );
-  }
-
   // Settings panel content
   const settingsPanelContent = (
     <ChatbotSettingsPanel
@@ -102,14 +108,60 @@ const ChatbotMain: React.FunctionComponent = () => {
     />
   );
 
-  const applicationsPage = (
-    <ApplicationsPage title="AI playground" loaded={!loading} empty={false} loadError={error}>
+  return (
+    <ApplicationsPage
+      title={<ChatbotHeader />}
+      loaded={lsdStatusLoaded && modelsLoaded}
+      empty={!lsdStatus}
+      emptyStatePage={
+        <ChatbotEmptyState
+          title="Enable Playground"
+          description="Create a playground to chat with the generative models deployed in this project. Experiment with model output using a simple RAG simulation, custom prompt and MCP servers."
+          actionButtonText="Configure playground"
+          handleActionButtonClick={() => {
+            // TODO: Implement
+          }}
+        />
+      }
+      loadError={lsdStatusError || modelsError}
+      headerAction={
+        lsdStatus &&
+        (isViewCodeDisabled ? (
+          <Tooltip content={getDisabledReason()}>
+            <Button
+              variant="secondary"
+              aria-label="View generated code (disabled)"
+              icon={<CodeIcon />}
+              isAriaDisabled={isViewCodeDisabled}
+            >
+              View Code
+            </Button>
+          </Tooltip>
+        ) : (
+          <Button
+            variant="secondary"
+            aria-label="View generated code"
+            icon={<CodeIcon />}
+            onClick={() => setIsViewCodeModalOpen(true)}
+          >
+            View Code
+          </Button>
+        ))
+      }
+    >
       <ChatbotSourceSettingsModal
         isOpen={sourceManagement.isSourceSettingsOpen}
         onToggle={() =>
           sourceManagement.setIsSourceSettingsOpen(!sourceManagement.isSourceSettingsOpen)
         }
         onSubmitSettings={sourceManagement.handleSourceSettingsSubmit}
+      />
+      <ViewCodeModal
+        isOpen={isViewCodeModalOpen}
+        onToggle={() => setIsViewCodeModalOpen(!isViewCodeModalOpen)}
+        input={input}
+        model={modelId}
+        systemInstruction={systemInstruction}
       />
       <Drawer isExpanded isInline position="right">
         <DrawerContent panelContent={settingsPanelContent}>
@@ -118,7 +170,7 @@ const ChatbotMain: React.FunctionComponent = () => {
               <ChatbotContent>
                 <MessageBox position="bottom">
                   <ChatbotWelcomePrompt
-                    title="Hello"
+                    title={username ? `Hello, ${username}` : 'Hello'}
                     description="Welcome to the chat playground"
                   />
                   <ChatbotMessages
@@ -132,6 +184,7 @@ const ChatbotMain: React.FunctionComponent = () => {
                   onSendMessage={(message) => {
                     if (typeof message === 'string') {
                       chatbotMessages.handleMessageSend(message);
+                      setInput(message);
                     }
                   }}
                   hasAttachButton={false}
@@ -145,20 +198,6 @@ const ChatbotMain: React.FunctionComponent = () => {
         </DrawerContent>
       </Drawer>
     </ApplicationsPage>
-  );
-
-  return isStandalone ? (
-    applicationsPage
-  ) : (
-    // In federated mode, DrawerBody is not flex which the Page items expect the parent to be.
-    // This is a workaround to make the drawer body flex.
-    <Flex
-      direction={{ default: 'column' }}
-      flexWrap={{ default: 'nowrap' }}
-      style={{ height: '100%' }}
-    >
-      {applicationsPage}
-    </Flex>
   );
 };
 

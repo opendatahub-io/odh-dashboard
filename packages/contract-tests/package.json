@@ -1,0 +1,31 @@
+{
+  "name": "@odh-dashboard/contract-tests",
+  "version": "0.0.0",
+  "description": "Zero-config contract testing for ODH Dashboard packages",
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "bin": {
+    "odh-ct-bff-consumer": "scripts/run-go-bff-consumer.sh"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
+    "@odh-dashboard/tsconfig": "*",
+    "@types/node": "^20.0.0",
+    "ts-jest": "^29.0.0",
+    "@types/js-yaml": "^4.0.9",
+    "axios": "^1.6.0",
+    "jest-html-reporters": "^3.1.5",
+    "@apidevtools/json-schema-ref-parser": "^11.0.0",
+    "openapi-response-validator": "^12.1.3",
+    "ajv": "^8.12.0",
+    "ajv-formats": "^2.1.1",
+    "js-yaml": "^4.1.0"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

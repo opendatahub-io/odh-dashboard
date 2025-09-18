@@ -53,7 +53,7 @@ module.exports = smp.wrap(
           '**/jest-coverage',
           '**/.nyc_output',
           '**/upstream',
-          '**/gen-ai',
+          '**/__tests__',
         ],
       },
       devServer: {

@@ -1,0 +1,109 @@
+watchman warning:  Recrawled this watch 47 times, most recently because:
+MustScanSubDirs UserDroppedTo resolve, please review the information on
+https://facebook.github.io/watchman/docs/troubleshooting.html#recrawl
+To clear this warning, run:
+`watchman watch-del '/Users/cvogt/dev/odh-dashboard' ; watchman watch-project '/Users/cvogt/dev/odh-dashboard'`
+
+  console.log
+    🔧 Setting up Jest matchers...
+
+      at Object.<anonymous> (../contract-tests/src/index.ts:16:9)
+
+  console.log
+    ✅ Jest matchers setup complete
+
+      at Object.<anonymous> (../contract-tests/src/index.ts:18:9)
+
+  console.log
+    
+    [Contract Test] API Call: GET http://localhost:8094/api/v1/model_registry?namespace=default (Model Registry List Endpoint should successfully retrieve model registries list)
+
+      at logApiCall (../contract-tests/src/helpers/logging.ts:31:11)
+
+  console.log
+    Headers: {
+      'kubeflow-userid': 'dev-user@example.com',
+      'kubeflow-groups': 'system:masters'
+    }
+
+      at logApiCall (../contract-tests/src/helpers/logging.ts:34:13)
+
+  console.log
+    
+    [Contract Test] Model Registry List Endpoint should successfully retrieve model registries list - Response:
+
+      at logApiResponse (../contract-tests/src/helpers/logging.ts:43:11)
+
+  console.log
+    Status: 200
+
+      at logApiResponse (../contract-tests/src/helpers/logging.ts:44:11)
+
+  console.log
+    Headers: {
+      'content-type': 'application/json',
+      vary: 'Origin',
+      date: 'Tue, 16 Sep 2025 16:22:35 GMT',
+      'content-length': '16',
+      connection: 'close'
+    }
+
+      at logApiResponse (../contract-tests/src/helpers/logging.ts:45:11)
+
+  console.log
+    Data: { data: [] }
+
+      at logApiResponse (../contract-tests/src/helpers/logging.ts:47:11)
+
+  console.log
+    
+    [Contract Test] API Call: GET http://localhost:8094/api/v1/model_registry?namespace=nonexistent (Model Registry List Endpoint should handle empty registry list)
+
+      at logApiCall (../contract-tests/src/helpers/logging.ts:31:11)
+
+  console.log
+    Headers: {
+      'kubeflow-userid': 'dev-user@example.com',
+      'kubeflow-groups': 'system:masters'
+    }
+
+      at logApiCall (../contract-tests/src/helpers/logging.ts:34:13)
+
+  console.log
+    
+    [Contract Test] Model Registry List Endpoint should handle empty registry list - Response:
+
+      at logApiResponse (../contract-tests/src/helpers/logging.ts:43:11)
+
+  console.log
+    Status: 200
+
+      at logApiResponse (../contract-tests/src/helpers/logging.ts:44:11)
+
+  console.log
+    Headers: {
+      'content-type': 'application/json',
+      vary: 'Origin',
+      date: 'Tue, 16 Sep 2025 16:22:35 GMT',
+      'content-length': '16',
+      connection: 'close'
+    }
+
+      at logApiResponse (../contract-tests/src/helpers/logging.ts:45:11)
+
+  console.log
+    Data: { data: [] }
+
+      at logApiResponse (../contract-tests/src/helpers/logging.ts:47:11)
+
+PASS contract-tests/__tests__/testModelRegistryContract.test.ts (5.665 s)
+  Model Registry List Endpoint
+    ✓ should successfully retrieve model registries list (103 ms)
+    ✓ should handle empty registry list (30 ms)
+
+📦 report is created on: /Users/cvogt/dev/odh-dashboard/packages/model-registry/contract-tests/contract-test-results/20250916_122213/contract-test-report.html
+Test Suites: 1 passed, 1 total
+Tests:       2 passed, 2 total
+Snapshots:   0 total
+Time:        5.827 s
+Ran all test suites.

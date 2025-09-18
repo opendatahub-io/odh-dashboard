@@ -70,6 +70,7 @@ export type DashboardConfig = K8sResourceCommon & {
     };
     templateOrder?: string[];
     templateDisablement?: string[];
+    hardwareProfileOrder?: string[];
   };
 };
 

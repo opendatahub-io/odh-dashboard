@@ -7,6 +7,7 @@ import { getId } from '~/app/utilities/utils';
 import { createResponse } from '~/app/services/llamaStackService';
 import { ChatbotSourceSettings, ChatMessageRole, CreateResponseRequest } from '~/app/types';
 import { ERROR_MESSAGES, initialBotMessage } from '~/app/Chatbot/const';
+import { GenAiContext } from '~/app/context/GenAiContext';
 
 export interface UseChatbotMessagesReturn {
   messages: MessageProps[];
@@ -20,6 +21,7 @@ interface UseChatbotMessagesProps {
   selectedSourceSettings: ChatbotSourceSettings | null;
   systemInstruction: string;
   isRawUploaded: boolean;
+  username?: string;
 }
 
 const useChatbotMessages = ({
@@ -27,10 +29,12 @@ const useChatbotMessages = ({
   selectedSourceSettings,
   systemInstruction,
   isRawUploaded,
+  username,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<MessageProps[]>([initialBotMessage()]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
   const scrollToBottomRef = React.useRef<HTMLDivElement>(null);
+  const { namespace } = React.useContext(GenAiContext);
 
   // Auto-scroll to bottom when messages change
   React.useEffect(() => {
@@ -44,7 +48,7 @@ const useChatbotMessages = ({
       id: getId(),
       role: 'user',
       content: message,
-      name: 'User',
+      name: username || 'User',
       avatar: userAvatar,
     };
 
@@ -73,7 +77,10 @@ const useChatbotMessages = ({
         instructions: systemInstruction,
       };
 
-      const response = await createResponse(responsesPayload);
+      if (!namespace?.name) {
+        throw new Error('Namespace is required for generating responses');
+      }
+      const response = await createResponse(responsesPayload, namespace.name);
 
       const botMessage: MessageProps = {
         id: getId(),

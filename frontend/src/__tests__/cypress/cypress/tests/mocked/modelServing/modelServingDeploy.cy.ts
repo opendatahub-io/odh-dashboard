@@ -24,8 +24,9 @@ import {
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { ServingRuntimeModelType, ServingRuntimePlatform } from '#~/types';
 import { mockGlobalScopedHardwareProfiles } from '#~/__mocks__/mockHardwareProfile';
+import { mockConnectionTypeConfigMap } from '../../../../../../__mocks__/mockConnectionType';
 
-const initIntercepts = () => {
+const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
@@ -45,6 +46,22 @@ const initIntercepts = () => {
     }),
   );
   cy.interceptOdh('GET /api/components', null, []);
+  cy.interceptOdh('GET /api/connection-types', [
+    mockConnectionTypeConfigMap({
+      displayName: 'URI - v1',
+      name: 'uri-v1',
+      category: ['existing-category'],
+      fields: [
+        {
+          type: 'uri',
+          name: 'URI',
+          envVar: 'URI',
+          required: true,
+          properties: {},
+        },
+      ],
+    }),
+  ]).as('getConnectionTypes');
 
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'opendatahub' },
@@ -105,11 +122,23 @@ const initIntercepts = () => {
     ProjectModel,
     mockK8sResourceList([mockProjectK8sResource({ enableModelMesh: false })]),
   );
+
+  cy.interceptK8s(
+    'POST',
+    {
+      model: InferenceServiceModel,
+      ns: 'test-project',
+    },
+    {
+      statusCode: 200,
+      body: mockInferenceServiceK8sResource({ name: 'test-model', modelType }),
+    },
+  ).as('createInferenceService');
 };
 
 describe('Model Serving Deploy Wizard', () => {
   it('Navigate into and out of the wizard', () => {
-    initIntercepts();
+    initIntercepts({});
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
       mockK8sResourceList([mockInferenceServiceK8sResource({})]),
@@ -136,7 +165,7 @@ describe('Model Serving Deploy Wizard', () => {
   });
 
   it('Create a new generative deployment and submit', () => {
-    initIntercepts();
+    initIntercepts({ modelType: ServingRuntimeModelType.GENERATIVE });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
       mockK8sResourceList([mockInferenceServiceK8sResource({})]),
@@ -159,6 +188,9 @@ describe('Model Serving Deploy Wizard', () => {
       .findModelTypeSelectOption('Generative AI model (e.g. LLM)')
       .should('exist')
       .click();
+    modelServingWizard.findModelLocationSelect().should('exist');
+    modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
+    modelServingWizard.findUrilocationInput().should('exist').type('https://test');
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
@@ -179,10 +211,86 @@ describe('Model Serving Deploy Wizard', () => {
     hardwareProfileSection.findGlobalScopedLabel().should('exist');
     modelServingWizard.findModelFormatSelect().should('not.exist');
     modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Step 3: Advanced Options
+    // Model access & Token authentication
+    modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+    modelServingWizard.findExternalRouteCheckbox().click();
+    modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
+    modelServingWizard.findTokenAuthenticationCheckbox().click();
+    modelServingWizard.findTokenWarningAlert().should('exist');
+    modelServingWizard.findTokenAuthenticationCheckbox().click();
+    modelServingWizard.findServiceAccountByIndex(0).should('have.value', 'default-name');
+    modelServingWizard.findAddServiceAccountButton().click();
+    modelServingWizard.findServiceAccountByIndex(1).should('have.value', 'default-name');
+    modelServingWizard.findServiceNameAlert().should('exist');
+    modelServingWizard.findServiceAccountByIndex(1).clear().type('new-name');
+    modelServingWizard.findServiceNameAlert().should('not.exist');
+    modelServingWizard.findRemoveServiceAccountByIndex(1).click();
+    modelServingWizard.findServiceAccountByIndex(0).clear();
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findServiceAccountByIndex(0).clear().type('new-name');
+    modelServingWizard.findNextButton().should('be.enabled');
+    modelServingWizard.findRemoveServiceAccountByIndex(0).click();
+    modelServingWizard.findTokenWarningAlert().should('exist');
+    modelServingWizard.findTokenAuthenticationCheckbox().click();
+    modelServingWizard.findExternalRouteCheckbox().click();
+
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Step 4: Summary
+    modelServingWizard.findSubmitButton().should('be.enabled').click();
+
+    // dry run request
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'test-model',
+          namespace: 'test-project',
+          labels: { 'opendatahub.io/dashboard': 'true' },
+          annotations: {
+            'openshift.io/display-name': 'test-model',
+            'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+            'opendatahub.io/legacy-hardware-profile-name': 'medium-serving-wz9u9',
+            'opendatahub.io/model-type': 'generative',
+            'security.opendatahub.io/enable-auth': 'true',
+          },
+        },
+        spec: {
+          predictor: {
+            model: {
+              modelFormat: {
+                name: 'vLLM',
+              },
+              resources: {
+                requests: {
+                  cpu: '4',
+                  memory: '8Gi',
+                },
+                limits: {
+                  cpu: '4',
+                  memory: '8Gi',
+                },
+              },
+            },
+          },
+        },
+      });
+    });
+
+    // Actual request
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    cy.get('@createInferenceService.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
   });
 
   it('Create a new predictive deployment and submit', () => {
-    initIntercepts();
+    initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
       mockK8sResourceList([mockInferenceServiceK8sResource({})]),
@@ -202,6 +310,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelTypeSelectOption('Generative AI model (e.g. LLM)').should('exist');
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
+    modelServingWizard.findModelLocationSelect().should('exist');
+    modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
+    modelServingWizard.findUrilocationInput().should('exist').type('https://test');
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
@@ -225,10 +336,73 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelFormatSelectOption('vLLM').should('not.exist');
     modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Step 3: Advanced Options
+    // Model access & Token authentication
+    modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+    modelServingWizard.findExternalRouteCheckbox().click();
+    modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
+    modelServingWizard.findTokenAuthenticationCheckbox().click();
+    modelServingWizard.findTokenWarningAlert().should('exist');
+
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Step 4: Summary
+    modelServingWizard.findSubmitButton().should('be.enabled').click();
+
+    // dry run request
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'test-model',
+          namespace: 'test-project',
+          labels: {
+            'opendatahub.io/dashboard': 'true',
+            'networking.kserve.io/visibility': 'exposed',
+          },
+          annotations: {
+            'openshift.io/display-name': 'test-model',
+            'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+            'opendatahub.io/legacy-hardware-profile-name': 'medium-serving-wz9u9',
+            'opendatahub.io/model-type': 'predictive',
+          },
+        },
+        spec: {
+          predictor: {
+            model: {
+              modelFormat: {
+                name: 'openvino_ir',
+                version: 'opset1',
+              },
+              resources: {
+                requests: {
+                  cpu: '4',
+                  memory: '8Gi',
+                },
+                limits: {
+                  cpu: '4',
+                  memory: '8Gi',
+                },
+              },
+            },
+          },
+        },
+      });
+    });
+
+    // Actual request
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    cy.get('@createInferenceService.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
   });
 
   it('Edit an existing deployment', () => {
-    initIntercepts();
+    initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
       mockK8sResourceList([
@@ -247,6 +421,7 @@ describe('Model Serving Deploy Wizard', () => {
             },
           },
         }),
+        mockInferenceServiceK8sResource({ storageUri: 'https://test' }),
       ]),
     );
     cy.interceptK8sList(
@@ -266,6 +441,10 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit
       .findModelTypeSelectOption('Predictive model')
       .should('have.attr', 'aria-selected', 'true');
+
+    modelServingWizardEdit.findModelLocationSelect().should('exist');
+    modelServingWizardEdit.findUrilocationInput().should('have.value', 'https://test');
+
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
@@ -282,6 +461,13 @@ describe('Model Serving Deploy Wizard', () => {
       .findHardwareProfileSearchSelector()
       .should('contain.text', 'Large Profile');
     hardwareProfileSection.findGlobalScopedLabel().should('exist');
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+    // Step 3: Advanced options
+    modelServingWizardEdit.findAdvancedOptionsStep().should('be.enabled');
+    modelServingWizardEdit.findExternalRouteCheckbox().should('be.checked');
+    modelServingWizardEdit.findTokenAuthenticationCheckbox().click();
+    modelServingWizardEdit.findServiceAccountByIndex(0).should('have.value', 'default-name');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
   });
 });

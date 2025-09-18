@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v2/packages/ssestream"
 	"github.com/openai/openai-go/v2/responses"
 )
 
@@ -14,6 +15,7 @@ type LlamaStackClientInterface interface {
 	CreateVectorStore(ctx context.Context, params CreateVectorStoreParams) (*openai.VectorStore, error)
 	UploadFile(ctx context.Context, params UploadFileParams) (*FileUploadResult, error)
 	CreateResponse(ctx context.Context, params CreateResponseParams) (*responses.Response, error)
+	CreateResponseStream(ctx context.Context, params CreateResponseParams) (*ssestream.Stream[responses.ResponseStreamEventUnion], error)
 }
 
 // LlamaStackClientFactory interface for creating LlamaStack clients
