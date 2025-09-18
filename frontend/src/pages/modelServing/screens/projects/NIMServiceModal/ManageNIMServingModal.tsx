@@ -17,6 +17,7 @@ import {
   getSubmitServingRuntimeResourcesFn,
   useCreateInferenceServiceObject,
   useCreateServingRuntimeObject,
+  validateEnvVarName,
 } from '#~/pages/modelServing/screens/projects/utils';
 import {
   AccessReviewResourceAttributes,
@@ -67,6 +68,8 @@ import { useDefaultStorageClass } from '#~/pages/projects/screens/spawner/storag
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import { useGetStorageClassConfig } from '#~/pages/projects/screens/spawner/storage/useGetStorageClassConfig';
 import useModelServerSizeValidation from '#~/pages/modelServing/screens/projects/useModelServerSizeValidation.ts';
+import { getKServeContainerEnvVarStrs } from '#~/pages/modelServing/utils';
+import EnvironmentVariablesSection from '#~/pages/modelServing/screens/projects/kServeModal/EnvironmentVariablesSection';
 import { NoAuthAlert } from './NoAuthAlert';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
@@ -131,6 +134,10 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   const isAuthAvailable =
     useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status ||
     createDataInferenceService.isKServeRawDeployment;
+
+  const servingRuntimeParamsEnabled = useIsAreaAvailable(
+    SupportedArea.SERVING_RUNTIME_PARAMS,
+  ).status;
 
   const [translatedName] = translateDisplayNameForK8sAndReport(createDataInferenceService.name, {
     maxLength: 253,
@@ -228,7 +235,10 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     !translatedName ||
     !baseInputValueValid ||
     !podSpecOptionsState.hardwareProfile.isFormDataValid ||
-    !isExistingPvcValid; // new validation
+    !isExistingPvcValid ||
+    createDataInferenceService.servingRuntimeEnvVars?.some(
+      (envVar) => !envVar.name || !!validateEnvVarName(envVar.name),
+    );
 
   const { dashboardNamespace } = useDashboardNamespace();
   const templateName = useNIMTemplateName();
@@ -486,6 +496,13 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
               publicRoute
               showModelRoute={isAuthAvailable}
             />
+            {servingRuntimeParamsEnabled && (
+              <EnvironmentVariablesSection
+                predefinedVars={getKServeContainerEnvVarStrs(servingRuntimeSelected)}
+                data={createDataInferenceService}
+                setData={setCreateDataInferenceService}
+              />
+            )}
           </Stack>
         </Form>
       </ModalBody>

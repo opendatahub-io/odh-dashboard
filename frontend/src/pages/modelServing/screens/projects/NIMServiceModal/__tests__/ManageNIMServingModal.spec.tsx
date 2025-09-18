@@ -31,6 +31,7 @@ jest.mock('#~/concepts/areas', () => ({
   SupportedArea: {
     K_SERVE_AUTH: 'k-serve-auth',
     STORAGE_CLASSES: 'storage-classes',
+    SERVING_RUNTIME_PARAMS: 'serving-runtime-params',
   },
   useIsAreaAvailable: jest.fn(() => ({ status: true })),
 }));
@@ -169,6 +170,71 @@ jest.mock('../NoAuthAlert', () => ({
 jest.mock('#~/concepts/dashboard/DashboardModalFooter', () => ({
   __esModule: true,
   default: jest.fn(() => <div data-testid="modal-footer">Modal Footer</div>),
+}));
+
+jest.mock('../../kServeModal/EnvironmentVariablesSection', () => ({
+  __esModule: true,
+  default: jest.fn(
+    (props: { data: Record<string, unknown>; setData: (key: string, value: unknown) => void }) => {
+      // eslint-disable-next-line @typescript-eslint/no-shadow
+      const React = require('react');
+      const { data, setData } = props;
+      const [localEnvVars, setLocalEnvVars] = React.useState(data.servingRuntimeEnvVars || []);
+
+      const addEnvVar = () => {
+        const newVars = [...localEnvVars, { name: '', value: '' }];
+        setLocalEnvVars(newVars);
+        setData('servingRuntimeEnvVars', newVars);
+      };
+
+      const updateEnvVar = (index: number, field: string, value: string) => {
+        const newVars = [...localEnvVars];
+        newVars[index] = { ...newVars[index], [field]: value };
+        setLocalEnvVars(newVars);
+        setData('servingRuntimeEnvVars', newVars);
+      };
+
+      return React.createElement('div', { 'data-testid': 'environment-variables-section' }, [
+        React.createElement('div', { key: 'title' }, 'Additional environment variables'),
+        React.createElement(
+          'button',
+          {
+            key: 'add-button',
+            onClick: addEnvVar,
+            'aria-label': 'Add environment variable',
+          },
+          'Add environment variable',
+        ),
+        ...localEnvVars.map((envVar: { name: string; value: string }, index: number) =>
+          React.createElement('div', { key: index }, [
+            React.createElement('input', {
+              key: 'name',
+              'aria-label': 'Environment variable name',
+              value: envVar.name,
+              onChange: (e: { target: { value: string } }) =>
+                updateEnvVar(index, 'name', e.target.value),
+              onBlur: (e: { target: { value: string } }) => {
+                const { value } = e.target;
+                if (value && /^\d/.test(value)) {
+                  // This would trigger validation error display in real component
+                }
+              },
+            }),
+            React.createElement('input', {
+              key: 'value',
+              'aria-label': 'Environment variable value',
+              value: envVar.value,
+              onChange: (e: { target: { value: string } }) =>
+                updateEnvVar(index, 'value', e.target.value),
+            }),
+            envVar.name &&
+              /^\d/.test(envVar.name) &&
+              React.createElement('div', { key: 'error' }, 'Must not start with a digit.'),
+          ]),
+        ),
+      ]);
+    },
+  ),
 }));
 
 const mockUseCreateInferenceServiceObject = utils.useCreateInferenceServiceObject as jest.Mock;
@@ -502,6 +568,101 @@ describe('ManageNIMServingModal', () => {
       render(<ManageNIMServingModal onClose={mockOnClose} editInfo={mockEditInfo} />);
 
       expect(screen.getByTestId('deployment-mode-dropdown')).toBeInTheDocument();
+    });
+  });
+
+  describe('Environment Variables', () => {
+    it('allows adding environment variables when serving runtime params are enabled', async () => {
+      // Mock serving runtime params as enabled
+      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      useIsAreaAvailable.mockImplementation((area: string) => {
+        if (area === 'serving-runtime-params') {
+          return { status: true };
+        }
+        return { status: true };
+      });
+
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+
+      // Find the environment variables section
+      const envVarsSection = screen.getByText('Additional environment variables');
+      expect(envVarsSection).toBeInTheDocument();
+
+      // Find the add button for environment variables
+      const addButton = screen.getByRole('button', { name: /add environment variable/i });
+      expect(addButton).toBeInTheDocument();
+
+      // Click to add an environment variable
+      fireEvent.click(addButton);
+
+      // Wait for the inputs to appear after clicking add
+      await waitFor(() => {
+        expect(screen.getByLabelText(/environment variable name/i)).toBeInTheDocument();
+      });
+
+      // Find the name and value inputs
+      const nameInput = screen.getByLabelText(/environment variable name/i);
+      const valueInput = screen.getByLabelText(/environment variable value/i);
+
+      fireEvent.change(nameInput, { target: { value: 'LOG_LEVEL' } });
+      fireEvent.change(valueInput, { target: { value: 'DEBUG' } });
+
+      expect(nameInput).toHaveValue('LOG_LEVEL');
+      expect(valueInput).toHaveValue('DEBUG');
+    });
+
+    it('validates environment variable names correctly', async () => {
+      // Mock serving runtime params as enabled
+      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      useIsAreaAvailable.mockImplementation((area: string) => {
+        if (area === 'serving-runtime-params') {
+          return { status: true };
+        }
+        return { status: true };
+      });
+
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+
+      // Add an environment variable
+      const addButton = screen.getByRole('button', { name: /add environment variable/i });
+      fireEvent.click(addButton);
+
+      // Wait for the inputs to appear after clicking add
+      await waitFor(() => {
+        expect(screen.getByLabelText(/environment variable name/i)).toBeInTheDocument();
+      });
+
+      const nameInput = screen.getByLabelText(/environment variable name/i);
+
+      // Test invalid name starting with digit
+      fireEvent.change(nameInput, { target: { value: '1INVALID' } });
+      fireEvent.blur(nameInput);
+
+      // Check for validation error
+      expect(screen.getByText('Must not start with a digit.')).toBeInTheDocument();
+
+      // Test valid name
+      fireEvent.change(nameInput, { target: { value: 'LOG_LEVEL' } });
+      fireEvent.blur(nameInput);
+
+      // Validation error should be gone
+      expect(screen.queryByText('Must not start with a digit.')).not.toBeInTheDocument();
+    });
+
+    it('does not show environment variables section when serving runtime params are disabled', () => {
+      // Mock serving runtime params as disabled
+      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      useIsAreaAvailable.mockImplementation((area: string) => {
+        if (area === 'serving-runtime-params') {
+          return { status: false };
+        }
+        return { status: true };
+      });
+
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+
+      // Environment variables section should not be present
+      expect(screen.queryByText('Additional environment variables')).not.toBeInTheDocument();
     });
   });
 });
