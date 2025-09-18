@@ -8,7 +8,6 @@ spec:
   enabled: true
   identifier: nvidia.com/gpu
   tolerations:
-  - key: nvidia.com/gpu
-    operator: Equal
-    value: cypress-test
-    effect: NoSchedule
+    - key: nvidia.com/gpu
+      operator: Equal
+      effect: NoSchedule
