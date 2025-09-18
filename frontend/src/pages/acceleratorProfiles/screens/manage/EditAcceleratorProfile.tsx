@@ -35,7 +35,7 @@ const EditAcceleratorProfile: React.FC = () => {
           <Button
             data-testid="view-all-accelerator-profiles"
             variant="primary"
-            onClick={() => navigate('/acceleratorProfiles')}
+            onClick={() => navigate('/settings/environment-setup/accelerator-profiles')}
           >
             View all accelerator profiles
           </Button>

@@ -1,4 +1,4 @@
-export const executionsRootPath = '/executions';
+export const executionsRootPath = '/develop-train/pipelines/executions';
 export const globExecutionsAll = `${executionsRootPath}/*`;
 
 export const executionsBaseRoute = (namespace: string | undefined): string =>

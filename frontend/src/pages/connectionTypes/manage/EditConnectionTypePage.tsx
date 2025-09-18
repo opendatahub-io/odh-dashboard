@@ -13,7 +13,7 @@ const EditConnectionTypePage: React.FC = () => {
   const [existingConnectionType, isLoaded, error] = useConnectionType(name);
 
   if (existingConnectionType && isOOTB(existingConnectionType)) {
-    navigate('/connectionTypes');
+    navigate('/settings/environment-setup/connection-types');
     return null;
   }
 

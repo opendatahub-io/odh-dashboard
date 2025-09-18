@@ -64,7 +64,7 @@ const ModelRegistriesManagePermissions: React.FC = () => {
     (roleBindings.loaded && filteredRoleBindings.length === 0) ||
     (crLoaded && !modelRegistryCR)
   ) {
-    return <Navigate to="/modelRegistrySettings" replace />;
+    return <Navigate to="/settings/model-resources-operations/model-registry" replace />;
   }
 
   return (
@@ -74,7 +74,11 @@ const ModelRegistriesManagePermissions: React.FC = () => {
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem
-            render={() => <Link to="/modelRegistrySettings">Model registry settings</Link>}
+            render={() => (
+              <Link to="/settings/model-resources-operations/model-registry">
+                Model registry settings
+              </Link>
+            )}
           />
           <BreadcrumbItem isActive>Manage Permissions</BreadcrumbItem>
         </Breadcrumb>

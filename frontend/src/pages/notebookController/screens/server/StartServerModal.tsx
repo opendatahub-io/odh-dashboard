@@ -47,7 +47,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ spawnInProgress, on
             window.location.href = notebookLink;
           } else {
             window.open(notebookLink, '_blank');
-            navigate('/notebookController');
+            navigate('/notebook-controller');
           }
         })
         .catch(() => {

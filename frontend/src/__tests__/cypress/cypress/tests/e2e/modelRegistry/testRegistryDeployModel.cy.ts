@@ -122,7 +122,7 @@ describe('Verify models can be deployed from model registry', () => {
       registerModelPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify the model was registered');
-      cy.url().should('include', '/modelRegistry');
+      cy.url().should('include', '/ai-hub/registry');
       cy.contains(modelName, { timeout: 10000 }).should('be.visible');
 
       cy.step('Verify the model exists in the database');

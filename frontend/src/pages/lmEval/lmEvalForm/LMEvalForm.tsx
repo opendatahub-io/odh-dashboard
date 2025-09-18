@@ -143,7 +143,7 @@ const LMEvalForm: React.FC = () => {
         <Breadcrumb>
           <BreadcrumbItem
             data-testid="breadcrumb-model-evaluation-runs"
-            render={() => <Link to="/modelEvaluations">Evaluations</Link>}
+            render={() => <Link to="/develop-train/evaluations">Evaluations</Link>}
           />
           <BreadcrumbItem isActive data-testid="breadcrumb-start-evaluation-run">
             Start an evaluation run

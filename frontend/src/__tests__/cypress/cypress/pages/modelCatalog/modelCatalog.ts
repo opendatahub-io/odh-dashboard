@@ -7,12 +7,12 @@ class ModelCatalog {
   }
 
   visit() {
-    cy.visitWithLogin(`/modelCatalog`);
+    cy.visitWithLogin(`/ai-hub/catalog`);
     this.wait();
   }
 
   visitTempDetails() {
-    cy.visitWithLogin(`/modelCatalog/tempDetails`);
+    cy.visitWithLogin(`/ai-hub/catalog/tempDetails`);
     this.wait();
   }
 

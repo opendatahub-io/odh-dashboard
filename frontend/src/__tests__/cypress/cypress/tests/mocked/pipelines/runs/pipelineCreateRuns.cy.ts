@@ -857,7 +857,7 @@ describe('Pipeline create runs', () => {
       duplicateSchedulePage.mockGetExperiment(projectName, mockExperiment);
 
       // Navigate to duplicate run page for a given schedule
-      cy.visitWithLogin(`/experiments/${projectName}/experiment-1/runs`);
+      cy.visitWithLogin(`/develop-train/experiments/${projectName}/experiment-1/runs`);
       pipelineRunsGlobal.findSchedulesTab().click();
       pipelineRecurringRunTable
         .getRowByName(mockRecurringRun.display_name)
@@ -936,7 +936,7 @@ describe('Pipeline create runs', () => {
       duplicateSchedulePage.mockGetExperiment(projectName, mockExperiment);
 
       // Navigate to duplicate run page for a given schedule
-      cy.visitWithLogin(`/experiments/${projectName}/experiment-1/runs`);
+      cy.visitWithLogin(`/develop-train/experiments/${projectName}/experiment-1/runs`);
       pipelineRunsGlobal.findSchedulesTab().click();
       pipelineRecurringRunTable
         .getRowByName(mockRecurringRun.display_name)

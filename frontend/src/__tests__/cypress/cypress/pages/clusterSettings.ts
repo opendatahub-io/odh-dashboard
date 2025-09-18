@@ -2,7 +2,7 @@ import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
 
 class ClusterSettings {
   visit(wait = true) {
-    cy.visitWithLogin('/clusterSettings');
+    cy.visitWithLogin('/settings/cluster/general');
     if (wait) {
       this.wait();
     }

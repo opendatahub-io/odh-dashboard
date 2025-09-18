@@ -257,7 +257,9 @@ describe('Model Serving Deploy Wizard', () => {
     );
 
     // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin('/modelServing/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue');
+    cy.visitWithLogin(
+      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
+    );
     modelServingGlobal.findDeployModelButton().click();
     cy.findByRole('heading', { name: 'Deploy a model' }).should('exist');
     cy.findByRole('button', { name: 'Cancel' }).click();
@@ -284,7 +286,9 @@ describe('Model Serving Deploy Wizard', () => {
     );
 
     // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin('/modelServing/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue');
+    cy.visitWithLogin(
+      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
+    );
     modelServingGlobal.findDeployModelButton().click();
 
     // Step 1: Model source
@@ -528,7 +532,9 @@ describe('Model Serving Deploy Wizard', () => {
     );
 
     // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin('/modelServing/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue');
+    cy.visitWithLogin(
+      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
+    );
     modelServingGlobal.findDeployModelButton().click();
 
     // Step 1: Model source
@@ -662,7 +668,9 @@ describe('Model Serving Deploy Wizard', () => {
     );
 
     // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin('/modelServing/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue');
+    cy.visitWithLogin(
+      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
+    );
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
 
     // Step 1: Model source

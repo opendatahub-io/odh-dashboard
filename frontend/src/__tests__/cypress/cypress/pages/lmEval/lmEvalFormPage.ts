@@ -1,6 +1,6 @@
 class LMEvalFormPage {
   visit(namespace: string, skipA11y = false) {
-    cy.visitWithLogin(`/modelEvaluations/${namespace}/evaluate`);
+    cy.visitWithLogin(`/develop-train/evaluations/${namespace}/evaluate`);
     this.wait(skipA11y);
   }
 

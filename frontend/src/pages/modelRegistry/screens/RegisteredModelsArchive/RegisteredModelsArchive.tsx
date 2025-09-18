@@ -33,7 +33,7 @@ const RegisteredModelsArchive: React.FC<RegisteredModelsArchiveProps> = ({ ...pa
         <Breadcrumb>
           <BreadcrumbItem
             render={() => (
-              <Link to="/modelRegistry">
+              <Link to="/ai-hub/registry">
                 Model registry - {preferredModelRegistry?.metadata.name}
               </Link>
             )}

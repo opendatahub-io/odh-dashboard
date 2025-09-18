@@ -1,7 +1,7 @@
 const globNamespace = ':namespace';
 export const globNamespaceAll = `/${globNamespace}?/*`;
 
-export const pipelinesRootPath = '/pipelines';
+export const pipelinesRootPath = '/develop-train/pipelines/definitions';
 export const globPipelinesAll = `${pipelinesRootPath}/*`;
 
 // pipelines and versions

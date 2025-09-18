@@ -90,7 +90,7 @@ describe('Artifacts', () => {
       artifactsGlobal.visit(projectName);
       artifactsTable.getRowByName('scalar metrics').findName().find('a').click();
 
-      cy.url().should('include', `/artifacts/${projectName}/1`);
+      cy.url().should('include', `/develop-train/pipelines/artifacts/${projectName}/1`);
     });
 
     it('it has label Registered for fine tune artifact', () => {
@@ -232,7 +232,7 @@ describe('Artifacts', () => {
         .should('have.text', 'model (1) in model-registry registry');
       artifactDetails
         .findModelVersionLink()
-        .should('eq', '/modelRegistry/model-registry/registeredModels/1/versions/1');
+        .should('eq', '/ai-hub/registry/model-registry/registered-models/1/versions/1');
     });
   });
 

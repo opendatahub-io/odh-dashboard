@@ -1,4 +1,4 @@
-export const modelCustomizationRootPath = '/modelCustomization';
+export const modelCustomizationRootPath = '/ai-hub/model-customization';
 export const globModelCustomizationAll = `${modelCustomizationRootPath}/*`;
 export const modelCustomizationFineTunePath = `${modelCustomizationRootPath}/fine-tune`;
 

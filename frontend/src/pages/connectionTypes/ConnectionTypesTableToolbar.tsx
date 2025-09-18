@@ -53,7 +53,9 @@ const ConnectionTypesTableToolbar: React.FC<Props> = ({ setFilterData, filterDat
         <Button
           data-testid="create-new-connection-type"
           variant="primary"
-          component={(props) => <Link {...props} to="/connectionTypes/create" />}
+          component={(props) => (
+            <Link {...props} to="/settings/environment-setup/connection-types/create" />
+          )}
         >
           Create connection type
         </Button>

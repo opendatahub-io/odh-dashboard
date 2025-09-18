@@ -305,7 +305,7 @@ describe('Model Registry core', () => {
       modelRegistry
         .findEmptyStateAdminButton()
         .should('exist')
-        .and('have.attr', 'href', '/modelRegistrySettings');
+        .and('have.attr', 'href', '/settings/model-resources-operations/model-registry');
     });
   });
 

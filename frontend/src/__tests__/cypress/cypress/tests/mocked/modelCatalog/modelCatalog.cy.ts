@@ -97,9 +97,9 @@ describe.skip('Model Catalog core', () => {
     modelCatalog.landingPage();
     appChrome.findNavItem({ name: 'Catalog', rootSection: 'AI hub' }).should('not.exist');
 
-    cy.visitWithLogin(`/modelCatalog`);
+    cy.visitWithLogin(`/ai-hub/catalog`);
     modelCatalog.findModelCatalogNotFoundState().should('exist');
-    cy.visitWithLogin(`/modelCatalog/tempDetails`);
+    cy.visitWithLogin(`/ai-hub/catalog/tempDetails`);
     modelCatalog.findModelCatalogNotFoundState().should('exist');
   });
 
@@ -131,7 +131,7 @@ describe.skip('Model Catalog core', () => {
     modelCatalog.findModelCatalogModelDetailLink('granite-8b-code-instruct').click();
     cy.location('pathname').should(
       'equal',
-      '/ai-hub/catalog/Red%20Hat/rhelai1/granite-8b-code-instruct/1.3.0',
+      '/ai-hub/catalog/Red%20Hat/rhelai1/granite-8b-code-instruct/1%252E3%252E0',
     );
   });
 });

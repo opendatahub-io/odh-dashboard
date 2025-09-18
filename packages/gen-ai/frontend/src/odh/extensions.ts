@@ -8,6 +8,7 @@ import {
   chatPlaygroundRootPath,
   globAiAssetsAll,
   globChatPlaygroundAll,
+  globGenAiAll,
 } from '~/app/utilities/routes';
 
 const PLUGIN_GEN_AI = 'plugin-gen-ai';
@@ -66,7 +67,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       required: [PLUGIN_GEN_AI],
     },
     properties: {
-      path: '/gen-ai/*',
+      path: globGenAiAll,
       component: () => import('./GenAiWrapper'),
     },
   },

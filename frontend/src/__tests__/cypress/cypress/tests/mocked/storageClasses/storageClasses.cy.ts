@@ -14,7 +14,7 @@ import {
 
 describe('Storage classes', () => {
   it('shows "page not found" and does not show nav item as a non-admin user', () => {
-    cy.visitWithLogin('/storageClasses');
+    cy.visitWithLogin('/settings/cluster/storage-classes');
     storageClassesPage.findNavItem().should('not.exist');
     pageNotfound.findPage().should('be.visible');
   });

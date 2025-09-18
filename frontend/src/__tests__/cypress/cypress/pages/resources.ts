@@ -3,7 +3,7 @@ import { appChrome } from './appChrome';
 
 class Resources {
   visit() {
-    cy.visitWithLogin('/resources');
+    cy.visitWithLogin('/learning-resources');
     this.wait();
   }
 

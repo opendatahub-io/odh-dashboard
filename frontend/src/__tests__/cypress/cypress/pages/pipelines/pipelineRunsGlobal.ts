@@ -4,7 +4,7 @@ import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
 class PipelineRunsGlobal {
   visit(projectName: string, runType?: 'active' | 'archived' | 'scheduled') {
     cy.visitWithLogin(
-      `/pipelineRuns/${projectName}${
+      `/develop-train/pipelines/runs/${projectName}${
         runType === 'scheduled' ? '/schedules' : `/runs${runType ? `/${runType}` : ''}`
       }`,
     );
