@@ -42,7 +42,7 @@ export const useModelDeploymentNotification = (
             [
               {
                 title: 'View deployment',
-                onClick: () => navigate(`/modelServing/${namespace}`),
+                onClick: () => navigate(`/ai-hub/deployments/${namespace}`),
               },
             ],
           );
@@ -84,7 +84,7 @@ export const useModelDeploymentNotification = (
               [
                 {
                   title: 'View deployment',
-                  onClick: () => navigate(`/modelServing/${namespace}`),
+                  onClick: () => navigate(`/ai-hub/deployments/${namespace}`),
                 },
               ],
             );

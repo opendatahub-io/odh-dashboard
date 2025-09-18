@@ -21,7 +21,7 @@ class ModelServingToolbar extends Contextual<HTMLElement> {
 }
 class ModelServingGlobal {
   visit(project?: string) {
-    cy.visitWithLogin(`/modelServing${project ? `/${project}` : ''}`);
+    cy.visitWithLogin(`/ai-hub/deployments${project ? `/${project}` : ''}`);
     this.wait();
   }
 

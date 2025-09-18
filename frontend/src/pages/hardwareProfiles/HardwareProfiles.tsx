@@ -94,7 +94,7 @@ const HardwareProfiles: React.FC = () => {
               <Button
                 data-testid="display-hardware-modal-button"
                 variant={ButtonVariant.primary}
-                onClick={() => navigate('/hardwareProfiles/create')}
+                onClick={() => navigate('/settings/environment-setup/hardware-profiles/create')}
               >
                 Add new hardware profile
               </Button>

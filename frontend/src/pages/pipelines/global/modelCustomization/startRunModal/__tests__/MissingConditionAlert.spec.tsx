@@ -96,6 +96,8 @@ describe('MissingConditionAlert', () => {
     const button = screen.getByTestId('go-to-pipelines');
     await userEvent.click(button);
 
-    expect(navigateMock).toHaveBeenCalledWith(`/pipelines/${TEST_PROJECT}`);
+    expect(navigateMock).toHaveBeenCalledWith(
+      `/develop-train/pipelines/definitions/${TEST_PROJECT}`,
+    );
   });
 });

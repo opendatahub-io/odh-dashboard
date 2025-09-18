@@ -26,7 +26,7 @@ const NotebookServer: React.FC = () => {
     notebooksToStop,
     refresh: () => {
       requestNotebookRefresh();
-      navigate(`/notebookController/spawner`);
+      navigate(`/notebook-controller/spawner`);
     },
   });
 
@@ -39,7 +39,7 @@ const NotebookServer: React.FC = () => {
         loaded
         provideChildrenPadding
         empty={!currentUserNotebookIsRunning}
-        emptyStatePage={<Navigate to="/notebookController/spawner" />}
+        emptyStatePage={<Navigate to="/notebook-controller/spawner" />}
       >
         {notebook && (
           <Stack hasGutter>

@@ -115,7 +115,7 @@ export const submitJobForm = (): void => {
 
   // Verify navigation to model evaluations page after submission
   cy.step('Verify navigation after form submission');
-  cy.url().should('include', '/modelEvaluations');
+  cy.url().should('include', '/develop-train/evaluations');
   cy.url().should('not.include', '/evaluate');
 };
 
@@ -274,7 +274,7 @@ const downloadEvaluationResults = (evaluationName: string, projectName = ''): vo
   // Verify navigation to the evaluation details page
   // Construct URL path based on whether projectName is provided
   const expectedUrlPath = projectName
-    ? `/modelEvaluations/${projectName}/${evaluationName}`
+    ? `/develop-train/evaluations/${projectName}/${evaluationName}`
     : `/${evaluationName}`;
   cy.url().should('include', expectedUrlPath);
   lmEvalPage.findEvaluationDetailsTitle().should('contain.text', evaluationName);

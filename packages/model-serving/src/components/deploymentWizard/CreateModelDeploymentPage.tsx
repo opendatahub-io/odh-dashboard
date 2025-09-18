@@ -50,7 +50,7 @@ const CreateModelDeploymentPage: React.FC = () => {
           <EmptyStateBody>{`Project ${namespace ?? ''} not found.`}</EmptyStateBody>
           <EmptyStateFooter>
             <EmptyStateActions>
-              <Button variant="primary" onClick={() => navigate(`/modelServing/`)}>
+              <Button variant="primary" onClick={() => navigate(`/ai-hub/deployments/`)}>
                 Return to model serving
               </Button>
             </EmptyStateActions>

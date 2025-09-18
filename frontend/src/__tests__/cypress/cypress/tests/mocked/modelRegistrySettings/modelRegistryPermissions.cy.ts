@@ -133,7 +133,7 @@ describe('MR Permissions', () => {
   it('redirect if no modelregistry', () => {
     initIntercepts({ isEmpty: true });
     modelRegistryPermissions.visit('example-mr');
-    cy.url().should('include', `/model-registry`);
+    cy.url().should('include', `/settings/model-resources-operations/model-registry`);
   });
 
   describe('Users table', () => {

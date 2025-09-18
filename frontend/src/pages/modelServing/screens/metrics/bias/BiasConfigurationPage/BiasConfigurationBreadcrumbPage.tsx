@@ -10,10 +10,10 @@ const BiasConfigurationBreadcrumbPage: React.FC = () => {
   return (
     <BiasConfigurationPage
       breadcrumbItems={[
-        { label: 'Deployments', link: '/modelServing' },
+        { label: 'Deployments', link: '/ai-hub/deployments' },
         {
           label: modelDisplayName,
-          link: `/modelServing/${projectName}/metrics/${model.metadata.name}`,
+          link: `/ai-hub/deployments/${projectName}/metrics/${model.metadata.name}`,
         },
         { label: 'Metric configuration', isActive: true },
       ]}

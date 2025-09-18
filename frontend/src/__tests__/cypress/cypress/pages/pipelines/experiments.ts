@@ -5,7 +5,9 @@ import { TableRow } from '#~/__tests__/cypress/cypress/pages/components/table';
 
 class ExperimentsTabs {
   visit(namespace?: string, tab?: string) {
-    cy.visitWithLogin(`/experiments${namespace ? `/${namespace}` : ''}${tab ? `/${tab}` : ''}`);
+    cy.visitWithLogin(
+      `/develop-train/experiments${namespace ? `/${namespace}` : ''}${tab ? `/${tab}` : ''}`,
+    );
     this.wait();
   }
 

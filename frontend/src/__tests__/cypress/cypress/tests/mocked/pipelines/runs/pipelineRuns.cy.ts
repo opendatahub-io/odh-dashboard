@@ -369,7 +369,7 @@ describe('Pipeline runs', () => {
         it('navigate to duplicate run page', () => {
           duplicateRunPage.mockGetExperiments(projectName, mockExperiments);
           duplicateRunPage.mockGetExperiment(projectName, mockExperiments[0]);
-          cy.visitWithLogin(`/experiments/${projectName}/test-experiment-1/runs`);
+          cy.visitWithLogin(`/develop-train/experiments/${projectName}/test-experiment-1/runs`);
 
           activeRunsTable
             .getRowByName(mockActiveRuns[0].display_name)
@@ -1077,7 +1077,7 @@ describe('Pipeline runs', () => {
         it('navigate to duplicate scheduled run page', () => {
           duplicateSchedulePage.mockGetExperiments(projectName, mockExperiments);
           duplicateSchedulePage.mockGetExperiment(projectName, mockExperiments[0]);
-          cy.visitWithLogin(`/experiments/${projectName}/test-experiment-1/runs`);
+          cy.visitWithLogin(`/develop-train/experiments/${projectName}/test-experiment-1/runs`);
 
           pipelineRunsGlobal.findSchedulesTab().click();
           pipelineRecurringRunTable

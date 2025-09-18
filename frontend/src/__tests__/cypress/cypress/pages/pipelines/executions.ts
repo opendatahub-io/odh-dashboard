@@ -2,7 +2,7 @@ import type { FilterArgs } from '#~/__tests__/cypress/cypress/tests/mocked/pipel
 
 class ExecutionPage {
   visit(namespace?: string) {
-    cy.visitWithLogin(`/executions${namespace ? `/${namespace}` : ''}`);
+    cy.visitWithLogin(`/develop-train/pipelines/executions${namespace ? `/${namespace}` : ''}`);
   }
 
   findEntryByLink(name: string) {

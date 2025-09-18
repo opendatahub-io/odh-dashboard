@@ -45,7 +45,7 @@ const ErrorContent: React.FC<{ error: Error }> = ({ error }) => {
         <EmptyStateBody>{error.message}</EmptyStateBody>
         <EmptyStateFooter>
           <EmptyStateActions>
-            <Button variant="primary" onClick={() => navigate(`/modelServing/`)}>
+            <Button variant="primary" onClick={() => navigate(`/ai-hub/deployments/`)}>
               Return to model serving
             </Button>
           </EmptyStateActions>

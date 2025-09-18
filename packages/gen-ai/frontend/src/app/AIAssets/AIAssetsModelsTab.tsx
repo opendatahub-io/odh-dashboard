@@ -72,7 +72,7 @@ const AIAssetsModelsTab: React.FC<AIAssetsModelsTabProps> = ({
         }
         actionButtonText="Go to Deployments"
         handleActionButtonClick={() => {
-          navigate(`/modelServing/${namespace?.name}`);
+          navigate(`/ai-hub/deployments/${namespace?.name}`);
         }}
       />
     );

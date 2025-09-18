@@ -9,13 +9,13 @@ describe('External Redirects', () => {
     it('should redirect experiment URLs correctly', () => {
       // Test experiment URL redirect
       externalRedirect.visit('/external/pipelinesSdk/test-namespace/#/experiments/details/123');
-      cy.url().should('include', '/experiments/test-namespace/123/runs');
+      cy.url().should('include', '/develop-train/experiments/test-namespace/123/runs');
     });
 
     it('should redirect run URLs correctly', () => {
       // Test run URL redirect
       externalRedirect.visit('/external/pipelinesSdk/test-namespace/#/runs/details/456');
-      cy.url().should('include', '/pipelines/runs/test-namespace/runs/456');
+      cy.url().should('include', '/develop-train/pipelines/runs/test-namespace/runs/456');
     });
 
     it('should handle invalid URL format', () => {
@@ -29,7 +29,7 @@ describe('External Redirects', () => {
   describe('Elyra Redirects', () => {
     it('should redirect run URLs correctly', () => {
       externalRedirect.visit('/external/elyra/test-namespace/runs/123');
-      cy.url().should('include', '/pipelineRuns/test-namespace/runs/123');
+      cy.url().should('include', '/develop-train/pipelines/runs/test-namespace/runs/123');
     });
 
     it('should handle invalid URL format', () => {

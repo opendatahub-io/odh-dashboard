@@ -4,7 +4,7 @@ class ModelDetailsPage {
     const repositoryName = 'rhelai1';
     const modelName = 'granite-8b-code-instruct';
     const tag = '1%252E3%252E0';
-    cy.visitWithLogin(`/modelCatalog/${sourceName}/${repositoryName}/${modelName}/${tag}`);
+    cy.visitWithLogin(`/ai-hub/catalog/${sourceName}/${repositoryName}/${modelName}/${tag}`);
     this.wait();
   }
 
