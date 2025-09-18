@@ -174,7 +174,7 @@ export type CodeExportResponse = {
 
 export type LlamaStackDistributionModel = {
   name: string;
-  phase: string;
+  phase: 'Initializing' | 'Ready' | 'Failed' | 'Terminating' | 'Pending';
   version: string;
   distributionConfig: {
     activeDistribution: string;
