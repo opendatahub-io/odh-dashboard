@@ -233,8 +233,8 @@ github.com/openai/openai-go/v2 v2.4.0 h1:ufc/Qf6SEeRLn6xpxHy6hnK6Ip1xXmM4FOne4Qn
 github.com/openai/openai-go/v2 v2.4.0/go.mod h1:sIUkR+Cu/PMUVkSKhkk742PRURkQOCFhiwJ7eRSBqmk=
 github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
-github.com/opendatahub-io/llama-stack-k8s-operator v0.0.0-20250820163421-9debcf0f8241 h1:QNUUMKCaZDPIjNblcyai6EnQZd80JHR1tW04W/9bzIk=
-github.com/opendatahub-io/llama-stack-k8s-operator v0.0.0-20250820163421-9debcf0f8241/go.mod h1:IwWHEMG9oJcshK6eCQ9jtDGp78W2ZFzHevumgn39BSw=
+github.com/opendatahub-io/llama-stack-k8s-operator v0.0.0-20250918140507-87021371d8f4 h1:Hfh08D7dCy0eDKDp6zkri+qjma4SJuzjQxCUyE5GsoU=
+github.com/opendatahub-io/llama-stack-k8s-operator v0.0.0-20250918140507-87021371d8f4/go.mod h1:/UDrRXfg7zYgKaVWR6kE0srtAwjoOkeWHJqGzhOH6Wg=
 github.com/perimeterx/marshmallow v1.1.5 h1:a2LALqQ1BlHM8PZblsDdidgv1mWi1DgC2UmX50IvK2s=
 github.com/perimeterx/marshmallow v1.1.5/go.mod h1:dsXbUu8CRzfYP5a87xpp0xq9S3u0Vchtcl8we9tYaXw=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=

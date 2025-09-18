@@ -20,7 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// CapturingMockClientFactory wraps the standard mock factory to capture URLs 
+// CapturingMockClientFactory wraps the standard mock factory to capture URLs
 // used when creating clients, for verification in tests.
 type CapturingMockClientFactory struct {
 	CapturedURL string
@@ -58,7 +58,7 @@ func TestAttachLlamaStackClient(t *testing.T) {
 
 	t.Run("should use LLAMA_STACK_URL environment override when set", func(t *testing.T) {
 		mockFactory := &CapturingMockClientFactory{}
-		
+
 		app := App{
 			config:                  config.EnvConfig{LlamaStackURL: testutil.TestLlamaStackURL},
 			llamaStackClientFactory: mockFactory,
@@ -88,11 +88,13 @@ func TestAttachLlamaStackClient(t *testing.T) {
 			Users: k8smocks.DefaultTestUsers, Logger: slog.Default(), Ctx: ctx, Cancel: cancel,
 		})
 		require.NoError(t, err)
-		defer testEnv.Stop()
+		defer func() {
+			_ = testEnv.Stop()
+		}()
 
 		k8sFactory, _ := k8smocks.NewTokenClientFactory(ctrlClient, testEnv.Config, slog.Default())
 		mockFactory := &CapturingMockClientFactory{}
-		
+
 		app := App{
 			kubernetesClientFactory: k8sFactory,
 			llamaStackClientFactory: mockFactory,
