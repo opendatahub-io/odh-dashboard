@@ -5,7 +5,6 @@ import {
   BreadcrumbItem,
   Flex,
   FlexItem,
-  Truncate,
   Title,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
@@ -41,18 +40,19 @@ const ModelVersionsDetailsContent: React.FC<ModelVersionsDetailProps> = ({ tab, 
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
 
   const { modelVersionId: mvId, registeredModelId: rmId } = useParams();
-  const [rm] = useRegisteredModelById(rmId);
+  const [rm, rmLoaded, rmLoadError, rmRefresh] = useRegisteredModelById(rmId);
   const [mv, mvLoaded, mvLoadError, refreshModelVersion] = useModelVersionById(mvId);
   const [modelArtifacts, modelArtifactsLoaded, modelArtifactsLoadError, refreshModelArtifacts] =
     useModelArtifactsByVersionId(mvId);
 
   const refresh = React.useCallback(() => {
+    rmRefresh();
     refreshModelVersion();
     refreshModelArtifacts();
-  }, [refreshModelVersion, refreshModelArtifacts]);
+  }, [refreshModelVersion, refreshModelArtifacts, rmRefresh]);
 
-  const loaded = mvLoaded && modelArtifactsLoaded;
-  const loadError = mvLoadError || modelArtifactsLoadError;
+  const loaded = mvLoaded && modelArtifactsLoaded && rmLoaded;
+  const loadError = mvLoadError || modelArtifactsLoadError || rmLoadError;
 
   useEffect(() => {
     if (rm?.state === ModelState.ARCHIVED && mv?.id) {
@@ -125,7 +125,6 @@ const ModelVersionsDetailsContent: React.FC<ModelVersionsDetailProps> = ({ tab, 
           </Flex>
         )
       }
-      description={<Truncate content={mv?.description || ''} />}
       loadError={loadError}
       loaded={loaded}
       provideChildrenPadding
@@ -133,9 +132,12 @@ const ModelVersionsDetailsContent: React.FC<ModelVersionsDetailProps> = ({ tab, 
       {mv !== null && (
         <ModelVersionDetailsTabs
           tab={tab}
+          registeredModel={rm}
           modelVersion={mv}
           refresh={refresh}
           modelArtifacts={modelArtifacts}
+          modelArtifactsLoaded={modelArtifactsLoaded}
+          modelArtifactsLoadError={modelArtifactsLoadError}
         />
       )}
     </ApplicationsPage>
