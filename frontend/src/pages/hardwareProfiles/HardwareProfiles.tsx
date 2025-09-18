@@ -12,7 +12,6 @@ import {
   Alert,
   Stack,
   StackItem,
-  ExpandableSection,
 } from '@patternfly/react-core';
 import { BanIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';

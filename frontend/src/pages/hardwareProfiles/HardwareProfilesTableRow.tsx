@@ -186,9 +186,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
                 ],
                 verbModelAccess('create', HardwareProfileModel),
               ),
-              ...useKebabAccessAllowed([],
-                verbModelAccess('create', HardwareProfileModel),
-              ),
+              ...useKebabAccessAllowed([], verbModelAccess('create', HardwareProfileModel)),
               ...useKebabAccessAllowed(
                 [
                   { isSeparator: true },
