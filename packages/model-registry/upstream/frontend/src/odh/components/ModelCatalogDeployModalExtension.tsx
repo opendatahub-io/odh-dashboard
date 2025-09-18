@@ -43,7 +43,7 @@ const ModelCatalogDeployModalExtension: React.FC<ModelCatalogDeployModalExtensio
     decodedParams.sourceId || '',
     encodeURIComponent(`${decodedParams.modelName}`),
   );
-  const uri = artifacts.items[0].uri;
+  const uri = artifacts.items.length > 0 ? artifacts.items[0].uri : '';
   const loaded = isModalAvailable && artifactLoaded && !artifactsLoadError;
 
 
