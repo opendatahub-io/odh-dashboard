@@ -39,6 +39,7 @@ describe('[Product Bug: RHOAIENG-34177] Verify NIM enable flow', () => {
 
       cy.step('Navigate to the Explore page');
       explorePage.visit();
+
       cy.step('Check if NIM application exists on cluster');
       checkNIMApplicationExists().then((nimExists) => {
         if (nimExists) {
@@ -149,7 +150,8 @@ function executeNIMTestSteps(): void {
   cy.step('Click Enable button in NIM card');
   nimCard.getEnableNIMButton().click();
 
-  cy.step('Input NGC API key');
+  // Continue with enablement steps
+  cy.step('Input NGC API Key');
   nimCard.getNGCAPIKey().clear().type(Cypress.env('NGC_API_KEY'));
   cy.step('Click submit to enable the NIM application');
   nimCard.getNIMSubmit().click();
