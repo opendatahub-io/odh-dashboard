@@ -76,7 +76,7 @@ const FeatureStoreContent: React.FC<{
         <br />
         {osConsoleAction && (
           <Link target="_blank" to={osConsoleAction.href || ''} style={{ textDecoration: 'none' }}>
-            Go to <b>OpenShift</b> {'   '}
+            Go to <b>OpenShift Platform</b> {'   '}
             <ExternalLinkAltIcon />
           </Link>
         )}

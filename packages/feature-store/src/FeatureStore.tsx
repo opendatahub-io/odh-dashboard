@@ -1,8 +1,9 @@
 import React from 'react';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import { Tab, Tabs, TabTitleText, TabContent, PageSection } from '@patternfly/react-core';
+import { Tab, Tabs, TabTitleText, TabContent, PageSection, Flex } from '@patternfly/react-core';
 import FeatureStoreProjectSelectorNavigator from './screens/components/FeatureStoreProjectSelectorNavigator';
 import FeatureStorePageTitle from './components/FeatureStorePageTitle';
+import FeatureStoreWarningAlert from './components/FeatureStoreWarningAlert';
 import { featureStoreRoute } from './routes';
 import { FeatureStoreTabs } from './const';
 import Metrics from './screens/metrics/Metrics';
@@ -38,11 +39,14 @@ const FeatureStore: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
         />
       }
       headerContent={
-        <FeatureStoreProjectSelectorNavigator
-          getRedirectPath={(featureStoreObject, featureStoreProject) =>
-            `${featureStoreRoute(featureStoreObject, featureStoreProject)}`
-          }
-        />
+        <Flex direction={{ default: 'column' }}>
+          <FeatureStoreWarningAlert />
+          <FeatureStoreProjectSelectorNavigator
+            getRedirectPath={(featureStoreObject, featureStoreProject) =>
+              `${featureStoreRoute(featureStoreObject, featureStoreProject)}`
+            }
+          />
+        </Flex>
       }
       loaded
     >
