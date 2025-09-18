@@ -12,6 +12,7 @@ import {
   CodeExportRequest,
   CodeExportResponse,
   LlamaStackDistributionModel,
+  AAModelResponse,
 } from '../types';
 import axios from '../utilities/axios';
 import { URL_PREFIX } from '../utilities/const';
@@ -65,7 +66,7 @@ export const getModels = (namespace: string): Promise<LlamaModel[]> => {
   const url = `${URL_PREFIX}/api/v1/models?namespace=${namespace}`;
   return axios
     .get(url)
-    .then((response) => response.data.data)
+    .then((response) => response.data.data ?? [])
     .catch((error) => {
       throw new Error(
         error.response?.data?.error?.message || error.message || 'Failed to fetch models',
@@ -300,6 +301,39 @@ export const getLSDstatus = (project: string): Promise<LlamaStackDistributionMod
     .catch((error) => {
       throw new Error(
         error.response?.data?.error?.message || error.message || 'Failed to fetch LSD status',
+      );
+    });
+};
+
+/**
+ * Fetches all available AI models from the AI Assets API
+ * @param namespace - The namespace to fetch models for
+ * @returns Promise<AAModelResponse[]> - Array of available AI models with their metadata
+ * @throws Error - When the API request fails or returns an error response
+ */
+export const getAAModels = (namespace: string): Promise<AAModelResponse[]> => {
+  const url = `${URL_PREFIX}/api/v1/aa/models?namespace=${namespace}`;
+  return axios
+    .get(url)
+    .then((response) => response.data.data ?? [])
+    .catch((error) => {
+      throw new Error(
+        error.response?.data?.error?.message || error.message || 'Failed to fetch AA models',
+      );
+    });
+};
+
+export const installLSD = (
+  project: string,
+  models: string[],
+): Promise<LlamaStackDistributionModel> => {
+  const url = `${URL_PREFIX}/api/v1/llamastack-distribution/install?namespace=${project}`;
+  return axios
+    .post(url, { models })
+    .then((response) => response.data.data)
+    .catch((error) => {
+      throw new Error(
+        error.response?.data?.error?.message || error.message || 'Failed to install LSD',
       );
     });
 };

@@ -1,207 +1,108 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { Button, Drawer, DrawerContent, DrawerContentBody, Tooltip } from '@patternfly/react-core';
-import {
-  Chatbot,
-  ChatbotContent,
-  ChatbotDisplayMode,
-  ChatbotFooter,
-  ChatbotFootnote,
-  ChatbotWelcomePrompt,
-  MessageBar,
-  MessageBox,
-} from '@patternfly/chatbot';
+import { Button, Tooltip } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { CodeIcon } from '@patternfly/react-icons';
-import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import ChatbotEmptyState from '~/app/EmptyStates/NoData';
-import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
-import { ChatbotMessages } from './ChatbotMessagesList';
-import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
-import useChatbotMessages from './hooks/useChatbotMessages';
-import useSourceManagement from './hooks/useSourceManagement';
-import useAlertManagement from './hooks/useAlertManagement';
-import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
-import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
-import { DEFAULT_SYSTEM_INSTRUCTIONS } from './const';
+import { installLSD } from '~/app/services/llamaStackService';
+import { GenAiContext } from '~/app/context/GenAiContext';
+import useFetchAIModels from '~/app/hooks/useFetchAIModels';
 import ChatbotHeader from './ChatbotHeader';
-import { ViewCodeModal } from './components/ViewCodeModal';
+import ChatbotPlayground from './ChatbotPlayground';
+import ChatbotConfigurationModal from './components/ChatbotConfigurationModal';
 
 const ChatbotMain: React.FunctionComponent = () => {
-  const displayMode = ChatbotDisplayMode.embedded;
-  const { models, modelsLoaded, lsdStatus, lsdStatusLoaded, lsdStatusError, modelsError } =
+  const { lsdStatus, lsdStatusLoaded, lsdStatusError, selectedModel, lastInput } =
     React.useContext(ChatbotContext);
-  const [selectedModel, setSelectedModel] = React.useState<string>('');
-  const { username } = useUserContext();
-  const modelId = selectedModel || models[0]?.id;
-  const [systemInstruction, setSystemInstruction] = React.useState<string>(
-    DEFAULT_SYSTEM_INSTRUCTIONS,
-  );
+  const { namespace } = React.useContext(GenAiContext);
+  const {
+    data: aiModels,
+    loaded: aiModelsLoaded,
+    error: aiModelsError,
+  } = useFetchAIModels(namespace?.name);
+
   const [isViewCodeModalOpen, setIsViewCodeModalOpen] = React.useState(false);
-  const [input, setInput] = React.useState<string>('');
-  const [isStreamingEnabled, setIsStreamingEnabled] = React.useState<boolean>(true);
+  const [configurationModalOpen, setConfigurationModalOpen] = React.useState(false);
 
-  React.useEffect(() => {
-    if (!selectedModel) {
-      setSelectedModel(models[0]?.id);
-    }
-  }, [models, selectedModel]);
-
-  // Custom hooks for managing different aspects of the chatbot
-  const alertManagement = useAlertManagement();
-  const sourceManagement = useSourceManagement({
-    onShowSuccessAlert: alertManagement.onShowSuccessAlert,
-    onShowErrorAlert: alertManagement.onShowErrorAlert,
-  });
-
-  const isViewCodeDisabled = !input || !modelId;
+  const isViewCodeDisabled = !lastInput || !selectedModel;
 
   // Get disabled reason for popover
   const getDisabledReason = () => {
-    if (!input && !modelId) {
+    if (!lastInput && !selectedModel) {
       return 'Please input a message and select a model to generate code';
     }
-    if (!input) {
+    if (!lastInput) {
       return 'Please input a message to generate code';
     }
-    if (!modelId) {
+    if (!selectedModel) {
       return 'Please select a model to generate code';
     }
     return '';
   };
 
-  const chatbotMessages = useChatbotMessages({
-    modelId,
-    selectedSourceSettings: sourceManagement.selectedSourceSettings,
-    systemInstruction,
-    isRawUploaded: sourceManagement.isRawUploaded,
-    username,
-    isStreamingEnabled,
-  });
-
-  // Create alert components
-  const successAlert = (
-    <SourceUploadSuccessAlert
-      isVisible={alertManagement.showSuccessAlert}
-      alertKey={alertManagement.alertKey}
-      onClose={alertManagement.onHideSuccessAlert}
-    />
-  );
-
-  const errorAlert = (
-    <SourceUploadErrorAlert
-      isVisible={alertManagement.showErrorAlert}
-      alertKey={alertManagement.alertKey}
-      onClose={alertManagement.onHideErrorAlert}
-    />
-  );
-
-  // Settings panel content
-  const settingsPanelContent = (
-    <ChatbotSettingsPanel
-      models={models}
-      selectedModel={selectedModel}
-      onModelChange={setSelectedModel}
-      alerts={{ successAlert, errorAlert }}
-      sourceManagement={sourceManagement}
-      systemInstruction={systemInstruction}
-      onSystemInstructionChange={setSystemInstruction}
-      isStreamingEnabled={isStreamingEnabled}
-      onStreamingToggle={setIsStreamingEnabled}
-    />
-  );
-
   return (
-    <ApplicationsPage
-      title={<ChatbotHeader />}
-      loaded={lsdStatusLoaded && modelsLoaded}
-      empty={!lsdStatus}
-      emptyStatePage={
-        <ChatbotEmptyState
-          title="Enable Playground"
-          description="Create a playground to chat with the generative models deployed in this project. Experiment with model output using a simple RAG simulation, custom prompt and MCP servers."
-          actionButtonText="Configure playground"
-          handleActionButtonClick={() => {
-            // TODO: Implement
-          }}
-        />
-      }
-      loadError={lsdStatusError || modelsError}
-      headerAction={
-        lsdStatus &&
-        (isViewCodeDisabled ? (
-          <Tooltip content={getDisabledReason()}>
+    <>
+      <ApplicationsPage
+        title={<ChatbotHeader />}
+        loaded={lsdStatusLoaded && aiModelsLoaded}
+        empty={!lsdStatus}
+        emptyStatePage={
+          <ChatbotEmptyState
+            title="Enable Playground"
+            description="Create a playground to chat with the generative models deployed in this project. Experiment with model output using a simple RAG simulation, custom prompt and MCP servers."
+            actionButtonText="Configure playground"
+            handleActionButtonClick={() => {
+              if (namespace?.name) {
+                installLSD(
+                  namespace.name,
+                  aiModels.map((model) => model.model_name),
+                )
+                  .then(() => {
+                    setConfigurationModalOpen(true);
+                  })
+                  .catch(() => {
+                    // TODO: Figure out how to handle errors here
+                  });
+              }
+            }}
+          />
+        }
+        loadError={lsdStatusError || aiModelsError}
+        headerAction={
+          lsdStatus &&
+          (isViewCodeDisabled ? (
+            <Tooltip content={getDisabledReason()}>
+              <Button
+                variant="secondary"
+                aria-label="View generated code (disabled)"
+                icon={<CodeIcon />}
+                isAriaDisabled={isViewCodeDisabled}
+              >
+                View Code
+              </Button>
+            </Tooltip>
+          ) : (
             <Button
               variant="secondary"
-              aria-label="View generated code (disabled)"
+              aria-label="View generated code"
               icon={<CodeIcon />}
-              isAriaDisabled={isViewCodeDisabled}
+              onClick={() => setIsViewCodeModalOpen(true)}
             >
               View Code
             </Button>
-          </Tooltip>
-        ) : (
-          <Button
-            variant="secondary"
-            aria-label="View generated code"
-            icon={<CodeIcon />}
-            onClick={() => setIsViewCodeModalOpen(true)}
-          >
-            View Code
-          </Button>
-        ))
-      }
-    >
-      <ChatbotSourceSettingsModal
-        isOpen={sourceManagement.isSourceSettingsOpen}
-        onToggle={() =>
-          sourceManagement.setIsSourceSettingsOpen(!sourceManagement.isSourceSettingsOpen)
+          ))
         }
-        onSubmitSettings={sourceManagement.handleSourceSettingsSubmit}
-      />
-      <ViewCodeModal
-        isOpen={isViewCodeModalOpen}
-        onToggle={() => setIsViewCodeModalOpen(!isViewCodeModalOpen)}
-        input={input}
-        model={modelId}
-        systemInstruction={systemInstruction}
-      />
-      <Drawer isExpanded isInline position="right">
-        <DrawerContent panelContent={settingsPanelContent}>
-          <DrawerContentBody>
-            <Chatbot displayMode={displayMode} data-testid="chatbot">
-              <ChatbotContent>
-                <MessageBox position="bottom">
-                  <ChatbotWelcomePrompt
-                    title={username ? `Hello, ${username}` : 'Hello'}
-                    description="Welcome to the chat playground"
-                  />
-                  <ChatbotMessages
-                    messageList={chatbotMessages.messages}
-                    scrollRef={chatbotMessages.scrollToBottomRef}
-                  />
-                </MessageBox>
-              </ChatbotContent>
-              <ChatbotFooter>
-                <MessageBar
-                  onSendMessage={(message) => {
-                    if (typeof message === 'string') {
-                      chatbotMessages.handleMessageSend(message);
-                      setInput(message);
-                    }
-                  }}
-                  hasAttachButton={false}
-                  isSendButtonDisabled={chatbotMessages.isMessageSendButtonDisabled}
-                  data-testid="chatbot-message-bar"
-                />
-                <ChatbotFootnote {...{ label: 'Bot uses AI. Check for mistakes.' }} />
-              </ChatbotFooter>
-            </Chatbot>
-          </DrawerContentBody>
-        </DrawerContent>
-      </Drawer>
-    </ApplicationsPage>
+      >
+        <ChatbotPlayground
+          isViewCodeModalOpen={isViewCodeModalOpen}
+          setIsViewCodeModalOpen={setIsViewCodeModalOpen}
+        />
+      </ApplicationsPage>
+      {configurationModalOpen && (
+        <ChatbotConfigurationModal onClose={() => setConfigurationModalOpen(false)} />
+      )}
+    </>
   );
 };
 
