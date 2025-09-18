@@ -33,7 +33,14 @@ const useLineageController = (
 
     visualizationController.addEventListener(GRAPH_LAYOUT_END_EVENT, () => {
       // Use a more aggressive fit operation for better centering
-      visualizationController.getGraph().fit(50);
+      // Add a small delay to ensure the container has its final dimensions
+      setTimeout(() => {
+        try {
+          visualizationController.getGraph().fit(50);
+        } catch (e) {
+          console.warn('Failed to fit graph to screen:', e);
+        }
+      }, 100);
     });
 
     setController(visualizationController);

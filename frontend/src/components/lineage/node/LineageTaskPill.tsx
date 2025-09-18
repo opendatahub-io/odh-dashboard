@@ -174,7 +174,7 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
 
       const actionStartX = badgeStartX + badgeSpace;
       const contextStartX = actionStartX; // No action icon space since we don't use it
-      const contextSpace = !hideContextMenuKebab && onContextMenu ? paddingX : 0;
+      const contextSpace = !hideContextMenuKebab && !!onContextMenu ? paddingX : 0;
 
       const pillWidth = contextStartX + contextSpace + paddingX / 2;
 
@@ -211,7 +211,6 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
       badgeSize,
       badge,
       hideContextMenuKebab,
-      onContextMenu,
       verticalLayout,
       width,
     ]);
@@ -219,8 +218,18 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
     // Store dimensions in element data so anchors can access them
     useEffect(() => {
       const elementData = element.getData();
-      element.setData({ ...elementData, pillDimensions: dimensions });
-    }, [element, dimensions]);
+      const currentPillDimensions = elementData?.pillDimensions;
+
+      // Only update if dimensions have actually changed to prevent infinite loops
+      if (
+        !currentPillDimensions ||
+        currentPillDimensions.pillWidth !== dimensions.pillWidth ||
+        currentPillDimensions.height !== dimensions.height ||
+        currentPillDimensions.offsetX !== dimensions.offsetX
+      ) {
+        element.setData({ ...elementData, pillDimensions: dimensions });
+      }
+    }, [element, dimensions.pillWidth, dimensions.height, dimensions.offsetX]);
 
     const scale = element.getGraph().getScale();
 
@@ -362,9 +371,7 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
             <Tooltip triggerRef={nameLabelTriggerRef} content={element.getLabel()}>
               <text
                 x={dimensions.offsetX}
-                ref={(el) => {
-                  nameLabelTriggerRef.current = el;
-                }}
+                ref={nameLabelTriggerRef}
                 className={css(nameLabelClass, styles.topologyPipelinesPillText)}
                 dominantBaseline="middle"
               >
@@ -420,7 +427,7 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
             taskIconComponent
           ))}
         {badge && (
-          <g ref={(el) => el && badgeRef(el)}>
+          <g ref={badgeRef}>
             <LabelBadge
               ref={badgeRectRef}
               innerRef={badgeLabelTriggerRef}
