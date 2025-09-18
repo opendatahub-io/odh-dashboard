@@ -17,6 +17,7 @@ import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/p
 import useServingConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections';
 import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
+import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types.js';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
 import { ModelDeploymentWizardData } from './useDeploymentWizard';
 import {
@@ -149,33 +150,29 @@ const EditModelDeploymentContent: React.FC<{
     },
   });
 
-  React.useEffect(() => {
-    const loadData = async () => {
-      if (existingDeployment && formDataExtension) {
-        const modelLocationData = await formDataExtension.properties.extractModelLocationData(
-          existingDeployment,
-          connectionTypes,
-        );
-        setFormData({
-          modelTypeField: getModelTypeFromDeployment(existingDeployment),
-          k8sNameDesc: setupDefaults({ initialData: existingDeployment.model }),
-          hardwareProfile:
-            formDataExtension.properties.extractHardwareProfileConfig(existingDeployment) ??
-            undefined,
-          modelFormat:
-            formDataExtension.properties.extractModelFormat(existingDeployment) ?? undefined,
-          modelLocationData: modelLocationData ?? undefined,
-          externalRoute: getExternalRouteFromDeployment(existingDeployment),
-          tokenAuthentication: getTokenAuthenticationFromDeployment(existingDeployment),
-          AiAssetData:
-            formDataExtension.properties.extractAiAssetData(existingDeployment) ?? undefined,
+  React.useMemo(() => {
+    if (existingDeployment && formDataExtension && !dataLoaded) {
+      formDataExtension.properties
+        .extractModelLocationData(existingDeployment, connectionTypes)
+        .then((modelLocationData) => {
+          setFormData({
+            modelTypeField: getModelTypeFromDeployment(existingDeployment),
+            k8sNameDesc: setupDefaults({ initialData: existingDeployment.model }),
+            hardwareProfile:
+              formDataExtension.properties.extractHardwareProfileConfig(existingDeployment) ??
+              undefined,
+            modelFormat:
+              formDataExtension.properties.extractModelFormat(existingDeployment) ?? undefined,
+            modelLocationData: modelLocationData ?? undefined,
+            externalRoute: getExternalRouteFromDeployment(existingDeployment),
+            tokenAuthentication: getTokenAuthenticationFromDeployment(existingDeployment),
+            AiAssetData:
+              formDataExtension.properties.extractAiAssetData(existingDeployment) ?? undefined,
+          });
+          setDataLoaded(true);
         });
-        setDataLoaded(true);
-      }
-    };
-    loadData();
-  }, [existingDeployment, formDataExtension, connectionTypes]);
-
+    }
+  }, [existingDeployment, formDataExtension, connectionTypes, dataLoaded]);
   const initialConnection = React.useMemo(() => {
     if (connectionsLoaded && formData?.modelLocationData?.type === ModelLocationType.EXISTING) {
       return connections.find(
@@ -185,13 +182,9 @@ const EditModelDeploymentContent: React.FC<{
     return undefined;
   }, [connections, connectionsLoaded, formData?.modelLocationData]);
 
-  // Keep track of selected connection separate from form data
-  const [selectedConnection, setSelectedConnection] = React.useState(initialConnection);
-
-  // Update selected connection when initial data changes
-  React.useEffect(() => {
-    setSelectedConnection(initialConnection);
-  }, [initialConnection]);
+  const [selectedConnection, setSelectedConnection] = React.useState<Connection | undefined>(
+    undefined,
+  );
 
   if (formDataExtensionErrors.length > 0) {
     return <ErrorContent error={formDataExtensionErrors[0]} />;
@@ -214,7 +207,7 @@ const EditModelDeploymentContent: React.FC<{
       project={project}
       modelServingPlatform={modelServingPlatform}
       connections={connections}
-      selectedConnection={selectedConnection}
+      selectedConnection={selectedConnection || initialConnection}
       connectionTypes={connectionTypes}
       setSelectedConnection={setSelectedConnection}
     />

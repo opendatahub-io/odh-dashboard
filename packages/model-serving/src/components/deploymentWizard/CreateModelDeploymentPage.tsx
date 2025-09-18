@@ -25,9 +25,7 @@ const CreateModelDeploymentPage: React.FC = () => {
 
   const { projects, loaded: projectsLoaded } = React.useContext(ProjectsContext);
   const currentProject = projects.find(byName(namespace));
-  const [connections, connectionsLoaded] = useServingConnections(
-    currentProject?.metadata.name ?? '',
-  );
+  const [connections, connectionsLoaded] = useServingConnections(currentProject?.metadata.name);
   const [connectionTypes] = useWatchConnectionTypes(true);
   const [selectedConnection, setSelectedConnection] = React.useState<Connection | undefined>(
     undefined,
