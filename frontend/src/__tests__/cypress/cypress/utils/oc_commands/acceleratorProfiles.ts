@@ -1,7 +1,7 @@
 import type { CommandLineResult } from '#~/__tests__/cypress/cypress/types';
 import { createCustomResource } from './customResources';
 
-const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE') || 'redhat-ods-applications';
+const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
 
 /**
  * `cleanupAcceleratorProfiles` searches for an AcceleratorProfile in the specified namespace that contains a provided name.
@@ -16,7 +16,7 @@ const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE') || 'redhat-od
 export const cleanupAcceleratorProfiles = (
   acceleratorProfile: string,
 ): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc get acceleratorprofiles -ojson -n ${applicationNamespace} | jq --arg profile "${acceleratorProfile}" '.items[] | select(.spec.displayName | contains($profile)) | .metadata.name' | tr -d '"'`;
+  const ocCommand = `oc get acceleratorprofiles -ojson -n ${applicationNamespace} | jq '.items[] | select(.spec.displayName | contains("${acceleratorProfile}")) | .metadata.name' | tr -d '"'`;
   cy.log(`Executing command: ${ocCommand}`);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
@@ -27,7 +27,7 @@ export const cleanupAcceleratorProfiles = (
       const deleteCommand = `oc delete acceleratorprofiles ${profileName} -n ${applicationNamespace}`;
       return cy.exec(deleteCommand, { failOnNonZeroExit: false });
     }
-
+    cy.log('No matching profile found, proceeding with the test.');
     return cy.wrap(result);
   });
 };
