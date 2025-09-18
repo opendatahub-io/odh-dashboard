@@ -348,12 +348,8 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findRemoveServiceAccountByIndex(1).click();
     modelServingWizard.findServiceAccountByIndex(0).clear();
     modelServingWizard.findNextButton().should('be.disabled');
-    modelServingWizard.findServiceAccountByIndex(0).clear().type('new-name');
+    modelServingWizard.findServiceAccountByIndex(0).clear().type('new name');
     modelServingWizard.findNextButton().should('be.enabled');
-    modelServingWizard.findRemoveServiceAccountByIndex(0).click();
-    modelServingWizard.findTokenWarningAlert().should('exist');
-    modelServingWizard.findTokenAuthenticationCheckbox().click();
-    modelServingWizard.findExternalRouteCheckbox().click();
 
     modelServingWizard.findNextButton().should('be.enabled').click();
 
@@ -410,13 +406,36 @@ describe('Model Serving Deploy Wizard', () => {
     });
 
     //dry run request
+    cy.wait('@createServiceAccount').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        apiVersion: 'v1',
+        kind: 'ServiceAccount',
+        metadata: {
+          name: 'test-model-sa',
+          namespace: 'test-project',
+          ownerReferences: [{ kind: 'InferenceService' }],
+        },
+      });
+    });
+
+    //Actual request
+    cy.wait('@createServiceAccount').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    cy.get('@createServiceAccount.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); //1 dry run request and 1 actual request
+    });
+
+    //dry run request
     cy.wait('@createRole').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
       expect(interception.request.body).to.containSubset({
         metadata: {
           name: 'test-model-view-role',
           namespace: 'test-project',
-          ownerReferences: [],
+          ownerReferences: [{ kind: 'InferenceService' }],
         },
         rules: [
           {
@@ -435,6 +454,55 @@ describe('Model Serving Deploy Wizard', () => {
     });
 
     cy.get('@createRole.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); //1 dry run request and 1 actual request
+    });
+
+    cy.wait('@createRoleBinding').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'test-model-view',
+          namespace: 'test-project',
+          ownerReferences: [{ kind: 'InferenceService' }],
+        },
+        roleRef: {
+          apiGroup: 'rbac.authorization.k8s.io',
+          kind: 'Role',
+          name: 'test-model-view-role',
+        },
+        subjects: [{ kind: 'ServiceAccount', name: 'test-model-sa' }],
+      });
+    });
+
+    //Actual request
+    cy.wait('@createRoleBinding').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    cy.get('@createRoleBinding.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); //1 dry run request and 1 actual request
+    });
+
+    //dry run request
+    cy.wait('@createSecret').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        apiVersion: 'v1',
+        kind: 'Secret',
+        metadata: {
+          name: 'new-name-test-model-sa',
+          namespace: 'test-project',
+          ownerReferences: [{ kind: 'InferenceService' }],
+        },
+      });
+    });
+
+    //Actual request
+    cy.wait('@createSecret').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    cy.get('@createSecret.all').then((interceptions) => {
       expect(interceptions).to.have.length(2); //1 dry run request and 1 actual request
     });
   });
@@ -548,35 +616,6 @@ describe('Model Serving Deploy Wizard', () => {
 
     cy.get('@createInferenceService.all').then((interceptions) => {
       expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
-    });
-
-    //dry run request
-    cy.wait('@createRole').then((interception) => {
-      expect(interception.request.url).to.include('?dryRun=All');
-      expect(interception.request.body).to.containSubset({
-        metadata: {
-          name: 'test-model-view-role',
-          namespace: 'test-project',
-          ownerReferences: [],
-        },
-        rules: [
-          {
-            verbs: ['get'],
-            apiGroups: ['serving.kserve.io'],
-            resources: ['inferenceservices'],
-            resourceNames: ['test-model'],
-          },
-        ],
-      });
-    });
-
-    //Actual request
-    cy.wait('@createRole').then((interception) => {
-      expect(interception.request.url).not.to.include('?dryRun=All');
-    });
-
-    cy.get('@createRole.all').then((interceptions) => {
-      expect(interceptions).to.have.length(2); //1 dry run request and 1 actual request
     });
   });
 
