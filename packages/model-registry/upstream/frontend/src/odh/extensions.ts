@@ -20,19 +20,6 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.MODEL_REGISTRY],
-    },
-    properties: {
-      id: 'modelRegistry',
-      title: 'Model registry',
-      href: '/model-registry',
-      section: 'models',
-      path: '/model-registry/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
       required: [SupportedArea.MODEL_CATALOG],
     },
     properties: {
@@ -41,6 +28,19 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       href: '/model-catalog',
       section: 'models',
       path: '/model-catalog/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.MODEL_REGISTRY],
+    },
+    properties: {
+      id: 'modelRegistry',
+      title: 'Model registry',
+      href: '/model-registry',
+      section: 'models',
+      path: '/model-registry/*',
     },
   },
   {
