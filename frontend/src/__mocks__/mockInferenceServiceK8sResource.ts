@@ -39,7 +39,6 @@ type MockResourceConfigType = {
   isNonDashboardItem?: boolean;
   hardwareProfileName?: string;
   hardwareProfileNamespace?: string;
-  useLegacyHardwareProfile?: boolean;
   creationTimestamp?: string;
   lastTransitionTime?: string;
   isReady?: boolean;
@@ -97,7 +96,6 @@ export const mockInferenceServiceK8sResource = ({
   activeModelState = 'Loaded',
   targetModelState = 'Loaded',
   url = '',
-  acceleratorIdentifier = '',
   path = 'path/to/model',
   minReplicas = 1,
   maxReplicas = 1,
@@ -117,7 +115,6 @@ export const mockInferenceServiceK8sResource = ({
   isNonDashboardItem = false,
   hardwareProfileName = '',
   hardwareProfileNamespace = undefined,
-  useLegacyHardwareProfile = false,
   creationTimestamp = '2023-03-17T16:12:41Z',
   lastTransitionTime = '2023-03-17T16:12:41Z',
   isReady = false,
@@ -142,8 +139,7 @@ export const mockInferenceServiceK8sResource = ({
           'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
         }),
       ...(hardwareProfileName && {
-        [`opendatahub.io/${useLegacyHardwareProfile ? 'legacy-' : ''}hardware-profile-name`]:
-          hardwareProfileName,
+        [`opendatahub.io/hardware-profile-name`]: hardwareProfileName,
       }),
       ...(hardwareProfileNamespace && {
         'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
@@ -177,18 +173,6 @@ export const mockInferenceServiceK8sResource = ({
           name: 'onnx',
           version: '1',
         },
-        ...(acceleratorIdentifier !== ''
-          ? {
-              resources: {
-                limits: {
-                  acceleratorIdentifier: '2',
-                },
-                requests: {
-                  acceleratorIdentifier: '2',
-                },
-              },
-            }
-          : {}),
         ...(resources && { resources }),
         runtime: modelName,
         ...(storageUri

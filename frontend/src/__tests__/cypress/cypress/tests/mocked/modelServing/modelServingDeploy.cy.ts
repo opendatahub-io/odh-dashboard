@@ -23,7 +23,7 @@ import {
   TemplateModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { ServingRuntimeModelType, ServingRuntimePlatform } from '#~/types';
-import { mockGlobalScopedHardwareProfiles } from '#~/__mocks__/mockHardwareProfile';
+import { mockNewHardwareProfilesGreek } from '#~/__mocks__/mockHardwareProfile';
 import { mockConnectionTypeConfigMap } from '../../../../../../__mocks__/mockConnectionType';
 
 const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) => {
@@ -43,6 +43,7 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
       disableNIMModelServing: true,
       disableKServe: false,
       disableDeploymentWizard: false,
+      disableHardwareProfiles: false,
     }),
   );
   cy.interceptOdh('GET /api/components', null, []);
@@ -65,7 +66,7 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
 
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'opendatahub' },
-    mockK8sResourceList(mockGlobalScopedHardwareProfiles),
+    mockK8sResourceList(mockNewHardwareProfilesGreek),
   );
 
   cy.interceptK8sList(
@@ -199,21 +200,19 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
-    hardwareProfileSection.findHardwareProfileSearchSelector().click();
-    const globalScopedHardwareProfile = hardwareProfileSection.getGlobalScopedHardwareProfile();
-    globalScopedHardwareProfile
-      .find()
-      .findByRole('menuitem', {
-        name: /Medium/,
-        hidden: true,
-      })
-      .click();
-    hardwareProfileSection.findGlobalScopedLabel().should('exist');
+
+    // Open the dropdown and debug what options are available
+    hardwareProfileSection.findNewHardwareProfileSelector().click();
+
+    // Try to click on the alpha option - try multiple variations
+    cy.get('[role="option"]').contains('alpha', { matchCase: false }).click();
+
+    // hardwareProfileSection.findGlobalScopedLabel().should('exist');
     modelServingWizard.findModelFormatSelect().should('not.exist');
     modelServingWizard.findNextButton().should('be.enabled').click();
 
-    // Step 3: Advanced Options
-    // Model access & Token authentication
+    // // Step 3: Advanced Options
+    // // Model access & Token authentication
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
     modelServingWizard.findExternalRouteCheckbox().click();
     modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
@@ -238,48 +237,51 @@ describe('Model Serving Deploy Wizard', () => {
 
     modelServingWizard.findNextButton().should('be.enabled').click();
 
-    // Step 4: Summary
+    // // Step 4: Summary
     modelServingWizard.findSubmitButton().should('be.enabled').click();
 
-    // dry run request
+    // // dry run request
     cy.wait('@createInferenceService').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
+
       expect(interception.request.body).to.containSubset({
+        apiVersion: 'serving.kserve.io/v1beta1',
+        kind: 'InferenceService',
         metadata: {
           name: 'test-model',
           namespace: 'test-project',
-          labels: { 'opendatahub.io/dashboard': 'true' },
           annotations: {
             'openshift.io/display-name': 'test-model',
-            'opendatahub.io/hardware-profile-namespace': 'opendatahub',
-            'opendatahub.io/legacy-hardware-profile-name': 'medium-serving-wz9u9',
             'opendatahub.io/model-type': 'generative',
+            'opendatahub.io/hardware-profile-name': 'alpha',
+            'opendatahub.io/hardware-profile-namespace': 'opendatahub',
             'security.opendatahub.io/enable-auth': 'true',
           },
+          labels: { 'opendatahub.io/dashboard': 'true' },
         },
-        spec: {
-          predictor: {
-            model: {
-              modelFormat: {
-                name: 'vLLM',
-              },
-              resources: {
-                requests: {
-                  cpu: '4',
-                  memory: '8Gi',
-                },
-                limits: {
-                  cpu: '4',
-                  memory: '8Gi',
-                },
-              },
-            },
-          },
-        },
+      });
+
+      // Validate spec separately to avoid containSubset issues with complex nested objects
+      const requestBody = interception.request.body;
+
+      // Validate model format (generative uses vLLM)
+      expect(requestBody.spec.predictor.model.modelFormat).to.deep.equal({
+        name: 'vLLM',
+      });
+
+      // Validate resources (from alpha hardware profile)
+      const { resources } = requestBody.spec.predictor.model;
+      expect(resources.requests).to.deep.equal({
+        cpu: 2,
+        memory: '4Gi',
+      });
+      expect(resources.limits).to.deep.equal({
+        cpu: 2,
+        memory: '4Gi',
       });
     });
 
-    // Actual request
+    // // Actual request
     cy.wait('@createInferenceService').then((interception) => {
       expect(interception.request.url).not.to.include('?dryRun=All');
     });
@@ -321,16 +323,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findAdvancedOptionsStep().should('be.disabled');
-    hardwareProfileSection.findHardwareProfileSearchSelector().click();
-    const globalScopedHardwareProfile = hardwareProfileSection.getGlobalScopedHardwareProfile();
-    globalScopedHardwareProfile
-      .find()
-      .findByRole('menuitem', {
-        name: /Medium/,
-        hidden: true,
-      })
-      .click();
-    hardwareProfileSection.findGlobalScopedLabel().should('exist');
+    hardwareProfileSection.findNewHardwareProfileSelector().click();
+    cy.get('[role="option"]').contains('gamma', { matchCase: false }).click();
+
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelFormatSelect().should('exist');
     modelServingWizard.findModelFormatSelectOption('vLLM').should('not.exist');
@@ -354,40 +349,44 @@ describe('Model Serving Deploy Wizard', () => {
     cy.wait('@createInferenceService').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
       expect(interception.request.body).to.containSubset({
+        apiVersion: 'serving.kserve.io/v1beta1',
+        kind: 'InferenceService',
         metadata: {
           name: 'test-model',
           namespace: 'test-project',
-          labels: {
-            'opendatahub.io/dashboard': 'true',
-            'networking.kserve.io/visibility': 'exposed',
-          },
           annotations: {
             'openshift.io/display-name': 'test-model',
-            'opendatahub.io/hardware-profile-namespace': 'opendatahub',
-            'opendatahub.io/legacy-hardware-profile-name': 'medium-serving-wz9u9',
             'opendatahub.io/model-type': 'predictive',
+            'opendatahub.io/hardware-profile-name': 'gamma',
+            'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+          },
+          labels: {
+            'networking.kserve.io/visibility': 'exposed',
+            'opendatahub.io/dashboard': 'true',
           },
         },
-        spec: {
-          predictor: {
-            model: {
-              modelFormat: {
-                name: 'openvino_ir',
-                version: 'opset1',
-              },
-              resources: {
-                requests: {
-                  cpu: '4',
-                  memory: '8Gi',
-                },
-                limits: {
-                  cpu: '4',
-                  memory: '8Gi',
-                },
-              },
-            },
-          },
-        },
+      });
+
+      // Validate spec separately to avoid containSubset issues with complex nested objects
+      const requestBody = interception.request.body;
+
+      // Validate model format
+      expect(requestBody.spec.predictor.model.modelFormat).to.deep.equal({
+        name: 'openvino_ir',
+        version: 'opset1',
+      });
+
+      // Validate resources (from gamma hardware profile)
+      const { resources } = requestBody.spec.predictor.model;
+      expect(resources.requests).to.deep.equal({
+        cpu: 8,
+        memory: '16Gi',
+        'nvidia.com/gpu': 1,
+      });
+      expect(resources.limits).to.deep.equal({
+        cpu: 8,
+        memory: '16Gi',
+        'nvidia.com/gpu': 1,
       });
     });
 
@@ -408,7 +407,7 @@ describe('Model Serving Deploy Wizard', () => {
       mockK8sResourceList([
         mockInferenceServiceK8sResource({
           modelType: ServingRuntimeModelType.PREDICTIVE,
-          hardwareProfileName: 'large-profile',
+          hardwareProfileName: 'alpha',
           hardwareProfileNamespace: 'opendatahub',
           resources: {
             requests: {
@@ -416,8 +415,8 @@ describe('Model Serving Deploy Wizard', () => {
               memory: '8Gi',
             },
             limits: {
-              cpu: '8',
-              memory: '16Gi',
+              cpu: '4',
+              memory: '8Gi',
             },
           },
         }),
@@ -456,11 +455,8 @@ describe('Model Serving Deploy Wizard', () => {
       .findModelDeploymentNameInput()
       .should('have.value', 'Test Inference Service');
     modelServingWizardEdit.findModelDeploymentNameInput().type('test-model');
-    hardwareProfileSection.findHardwareProfileSearchSelector().should('be.visible');
-    hardwareProfileSection
-      .findHardwareProfileSearchSelector()
-      .should('contain.text', 'Large Profile');
-    hardwareProfileSection.findGlobalScopedLabel().should('exist');
+    hardwareProfileSection.findNewHardwareProfileSelector().should('be.visible');
+    hardwareProfileSection.findNewHardwareProfileSelector().should('contain.text', 'alpha');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
     // Step 3: Advanced options

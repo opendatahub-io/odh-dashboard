@@ -13,7 +13,7 @@ import { FetchState } from '#~/utilities/useFetchState';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import BYONImageHardwareProfiles from '#~/pages/BYONImages/BYONImageHardwareProfiles';
 import { TableRowTitleDescription } from '#~/components/table';
-import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
+import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import ImageErrorStatus from './ImageErrorStatus';
 import BYONImageStatusToggle from './BYONImageStatusToggle';
 import { convertBYONImageToK8sResource } from './utils';

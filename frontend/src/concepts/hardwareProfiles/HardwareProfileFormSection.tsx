@@ -3,7 +3,7 @@ import { FormGroup, Stack, StackItem, ExpandableSection } from '@patternfly/reac
 import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import { useValidation, ValidationContext } from '#~/utilities/useValidation';
 import { ContainerResources } from '#~/types';
-import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
+import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import { ZodErrorHelperText } from '#~/components/ZodErrorFormHelperText';
 import ProjectScopedPopover from '#~/components/ProjectScopedPopover';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
@@ -83,9 +83,7 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
               hardwareProfilesLoaded={loaded}
               hardwareProfilesError={error}
               projectScopedHardwareProfiles={
-                !project
-                  ? [[], true, undefined, () => Promise.resolve()]
-                  : projectScopedHardwareProfiles
+                !project ? [[], true, undefined] : projectScopedHardwareProfiles
               }
               isHardwareProfileSupported={isHardwareProfileSupported}
               initialHardwareProfile={initialHardwareProfile}
