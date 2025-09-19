@@ -1,0 +1,83 @@
+name: Inspect Cypress cache
+on:
+  workflow_dispatch:
+    inputs:
+      cache_key:
+        description: Full cache key to restore (exact match)
+        required: true
+        default: Linux-20.x-cypress-build-6d270f7901773c442efc5a1f8cca798763223280
+
+jobs:
+  restore-and-upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore cache
+        id: restore
+        uses: actions/cache/restore@v4
+        with:
+          key: ${{ inputs.cache_key }}
+          path: |
+            **/public-cypress
+
+      - name: List restored paths
+        run: |
+          set -x
+          find . -type d -name public-cypress -maxdepth 5 -print || true
+          for d in $(find . -type d -name public-cypress -print); do
+            echo "== $d =="
+            du -sh "$d" || true
+            ls -la "$d" | head -200 || true
+          done
+
+      - name: Upload restored contents
+        uses: actions/upload-artifact@v4
+        with:
+          name: cache-${{ inputs.cache_key }}
+          path: |
+            **/public-cypress
+          if-no-files-found: warn
+          retention-days: 7
+name: Inspect Cypress cache
+on:
+  workflow_dispatch:
+    inputs:
+      cache_key:
+        description: Full cache key to restore (exact match)
+        required: true
+        default: Linux-20.x-cypress-build-6d270f7901773c442efc5a1f8cca798763223280
+
+jobs:
+  restore-and-upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore cache
+        id: restore
+        uses: actions/cache/restore@v4
+        with:
+          key: ${{ inputs.cache_key }}
+          path: |
+            **/public-cypress
+
+      - name: List restored paths
+        run: |
+          set -x
+          find . -type d -name public-cypress -maxdepth 5 -print || true
+          for d in $(find . -type d -name public-cypress -print); do
+            echo "== $d =="
+            du -sh "$d" || true
+            ls -la "$d" | head -200 || true
+          done
+
+      - name: Upload restored contents
+        uses: actions/upload-artifact@v4
+        with:
+          name: cache-${{ inputs.cache_key }}
+          path: |
+            **/public-cypress
+          if-no-files-found: warn
+          retention-days: 7
+
