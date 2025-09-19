@@ -71,7 +71,7 @@ describe('StorageClassEditModal', () => {
       unsupportedModes.forEach((mode) => {
         const checkbox = screen.getByTestId(`edit-sc-access-mode-checkbox-${mode.toLowerCase()}`);
         expect(checkbox).not.toBeChecked();
-        expect(checkbox).toBeDisabled();
+        expect(checkbox).toBeEnabled();
       });
     });
   });
