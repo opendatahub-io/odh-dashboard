@@ -35,9 +35,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     flags: {
       required: [SupportedArea.MODEL_CATALOG],
     },
-    featureFlags: ['disableModelCatalog'],
     reliantAreas: [SupportedArea.MODEL_REGISTRY],
-    requiredComponents: [StackComponent.MODEL_REGISTRY],
     properties: {
       id: 'modelCatalog',
       title: 'Model catalog',
@@ -74,9 +72,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     flags: {
       required: [SupportedArea.MODEL_CATALOG],
     },
-    featureFlags: ['disableModelCatalog'],
     reliantAreas: [SupportedArea.MODEL_REGISTRY],
-    requiredComponents: [StackComponent.MODEL_REGISTRY],
     properties: {
       path: '/model-catalog/*',
       component: () => import('./ModelCatalogWrapper'),
