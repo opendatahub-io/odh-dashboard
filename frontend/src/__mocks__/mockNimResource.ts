@@ -65,9 +65,6 @@ export const mockNimInferenceService = ({
     displayName,
     namespace,
     kserveInternalLabel: true,
-    hardwareProfileNamespace: 'opendatahub',
-    hardwareProfileName: 'migrated-gpu-mglzi-serving',
-    useLegacyHardwareProfile: true,
     resources: {
       limits: { cpu: '16', memory: '64Gi' },
       requests: { cpu: '8', memory: '32Gi' },
@@ -85,6 +82,10 @@ export const mockNimInferenceService = ({
   delete inferenceService.spec.predictor.model?.modelFormat?.version;
   delete inferenceService.spec.predictor.model?.storage;
   delete inferenceService.spec.predictor.imagePullSecrets;
+
+  if (!inferenceService.spec.predictor.tolerations) {
+    inferenceService.spec.predictor.tolerations = [];
+  }
 
   return inferenceService;
 };
