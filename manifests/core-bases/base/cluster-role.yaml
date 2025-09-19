@@ -214,3 +214,11 @@ rules:
       - 'services.platform.opendatahub.io'
     resources:
       - auths
+  - apiGroups:
+      - llamastack.io
+    verbs:
+      - get
+      - list
+      - watch
+    resources:
+      - llamastackdistributions
