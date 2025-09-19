@@ -14,7 +14,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       id: PLUGIN_MODEL_REGISTRY,
       reliantAreas,
-      devFlags: ['Model Registry Plugin'],
+      devFlags: ['Model Registry Plugin (unreleased pages)'],
     },
   },
   {
@@ -22,8 +22,6 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     flags: {
       required: [SupportedArea.MODEL_REGISTRY],
     },
-    featureFlags: ['disableModelRegistry'],
-    requiredComponents: [StackComponent.MODEL_REGISTRY],
     properties: {
       id: 'modelRegistry',
       title: 'Model registry',
@@ -63,8 +61,6 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     flags: {
       required: [SupportedArea.MODEL_REGISTRY],
     },
-    featureFlags: ['disableModelRegistry'],
-    requiredComponents: [StackComponent.MODEL_REGISTRY],
     properties: {
       path: '/model-registry/*',
       component: () => import('./ModelRegistryWrapper'),
