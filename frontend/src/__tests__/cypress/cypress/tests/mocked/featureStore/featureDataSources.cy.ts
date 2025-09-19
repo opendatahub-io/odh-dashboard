@@ -272,7 +272,7 @@ describe('Feature Data Sources for all projects', () => {
     featureDataSourcesTable
       .findTable()
       .find('thead')
-      .should('contain.text', 'Feature store repositories');
+      .should('contain.text', 'Feature store repository');
     featureDataSourcesTable.findRow('loan_data').shouldHaveProject(fsProjectName);
     featureDataSourcesTable.findRow('transaction_data').shouldHaveProject(fsProjectName2);
   });

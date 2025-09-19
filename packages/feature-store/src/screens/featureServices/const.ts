@@ -11,7 +11,7 @@ export const columns: SortableData<FeatureService>[] = [
   },
   {
     field: 'project',
-    label: 'Feature store repositories',
+    label: 'Feature store repository',
     width: 25,
     sortable: (a, b): number => (a.project || '').localeCompare(b.project || ''),
   },
@@ -73,7 +73,7 @@ export const columns: SortableData<FeatureService>[] = [
 
 export const featureServiceTableFilterOptions: Record<string, string> = {
   featureService: 'Feature service',
-  project: 'Feature store repositories',
+  project: 'Feature store repository',
   tag: 'Tags',
   featureViews: 'Feature views',
   created: 'Created after',

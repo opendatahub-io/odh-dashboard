@@ -277,7 +277,7 @@ describe('Features for all projects', () => {
     featureStoreGlobal.visitFeatures();
     const toolbar = featuresTable.findToolbar();
 
-    toolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Feature store repositories').click();
+    toolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Feature store repository').click();
     toolbar.findSearchInput().type('credit_scoring_local');
     featuresTable.shouldHaveFeatureCount(1);
 

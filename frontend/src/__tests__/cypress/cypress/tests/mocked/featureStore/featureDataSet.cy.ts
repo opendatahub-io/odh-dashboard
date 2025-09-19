@@ -270,7 +270,7 @@ describe('Feature DataSets for all projects', () => {
     featureDataSetsTable
       .findTable()
       .find('thead')
-      .should('contain.text', 'Feature store repositories');
+      .should('contain.text', 'Feature store repository');
     featureDataSetsTable.findRow('test_dataset').shouldHaveProject(fsProjectName);
     featureDataSetsTable.findRow('fraud_detection_dataset').shouldHaveProject(fsProjectName2);
   });
