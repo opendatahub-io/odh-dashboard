@@ -1,8 +1,8 @@
 module github.com/opendatahub-io/gen-ai
 
-go 1.24.1
+go 1.24.6
 
-toolchain go1.24.5
+toolchain go1.24.7
 
 require (
 	github.com/getkin/kin-openapi v0.132.0
@@ -18,6 +18,7 @@ require (
 	github.com/rs/cors v1.11.1
 	github.com/stretchr/testify v1.10.0
 	k8s.io/api v0.33.4
+	k8s.io/apiextensions-apiserver v0.33.0
 	k8s.io/apimachinery v0.33.4
 	k8s.io/client-go v0.33.4
 	sigs.k8s.io/controller-runtime v0.21.0
@@ -126,7 +127,6 @@ require (
 	gopkg.in/go-playground/validator.v9 v9.31.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiextensions-apiserver v0.33.0 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
 	k8s.io/utils v0.0.0-20250502105355-0f33e8f1c979 // indirect
@@ -140,4 +140,4 @@ require (
 )
 
 // Replace the original llama-stack-k8s-operator with the Open Data Hub fork
-replace github.com/llamastack/llama-stack-k8s-operator => github.com/opendatahub-io/llama-stack-k8s-operator v0.0.0-20250820163421-9debcf0f8241
+replace github.com/llamastack/llama-stack-k8s-operator => github.com/opendatahub-io/llama-stack-k8s-operator v0.0.0-20250918140507-87021371d8f4
