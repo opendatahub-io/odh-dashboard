@@ -119,8 +119,23 @@ if [[ -z "$PACKAGE_NAME" ]]; then
   PACKAGE_NAME="$(basename "$CONSUMER_DIR")"
 fi
 
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-RESULTS_DIR="$CONSUMER_DIR/contract-test-results/$TIMESTAMP"
+# Create CI-specific or local-specific results directory
+if [[ -n "${GITHUB_RUN_ID:-}" ]] || [[ -n "${CI:-}" ]]; then
+  # CI environment: use run ID for uniqueness across parallel PRs
+  if [[ -n "${GITHUB_RUN_ID:-}" ]]; then
+    RESULTS_DIR="$CONSUMER_DIR/contract-test-results/ci-${GITHUB_RUN_ID}"
+  else
+    # Fallback: use run number or timestamp if run ID not available
+    RUN_ID="${GITHUB_RUN_NUMBER:-${GITHUB_RUN_ID:-CI-$(date +%Y%m%d_%H%M%S)}}"
+    RESULTS_DIR="$CONSUMER_DIR/contract-test-results/ci-${RUN_ID}"
+  fi
+else
+  # Local environment: use timestamp for development
+  TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+  RESULTS_DIR="$CONSUMER_DIR/contract-test-results/$TIMESTAMP"
+fi
+
+
 mkdir -p "$RESULTS_DIR"
 
 export JEST_HTML_REPORTERS_PUBLIC_PATH="$RESULTS_DIR"
@@ -200,7 +215,7 @@ trap cleanup EXIT INT TERM
 
 # Wait for healthcheck
 log_info "Waiting for Mock BFF to be ready..."
-for i in $(seq 1 30); do
+for i in $(seq 1 120); do
   if curl -s -f "http://localhost:$PORT$CONTRACT_MOCK_BFF_HEALTH_ENDPOINT" >/dev/null 2>&1; then
     log_success "Mock BFF is ready!"
     break
@@ -215,7 +230,7 @@ done
 
 # If loop finished without success, fail explicitly
 if ! curl -s -f "http://localhost:$PORT$CONTRACT_MOCK_BFF_HEALTH_ENDPOINT" >/dev/null 2>&1; then
-  log_error "Timed out waiting for Mock BFF to become ready"
+  log_error "Timed out waiting for Mock BFF to become ready (120 seconds)"
   log_error "BFF logs (tail):"
   tail -n 200 "$BFF_LOG_FILE" || true
   exit 1
@@ -232,9 +247,6 @@ if [[ "$OPEN_REPORT" == "true" ]]; then
 fi
 "${CMD[@]}"
 exit_code=$?
-
-# Display test summary and open coverage report
-display_test_summary "$RESULTS_DIR"
 
 if [[ "${CI:-}" != "true" && "$OPEN_REPORT" == "true" ]]; then
   if ! open_html_report "$RESULTS_DIR" 2>/dev/null; then
