@@ -17,7 +17,7 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension | NavSe
       properties: {
         id: PLUGIN_FEATURE_STORE,
         reliantAreas: [SupportedArea.FEATURE_STORE],
-        devFlags: ['Feature store plugin'],
+        featureFlags: ['disableFeatureStore'],
       },
     },
     {

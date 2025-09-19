@@ -5,9 +5,9 @@ import ModelRegistryCoreLoader from './ModelRegistryCoreLoader';
 import { modelRegistryUrl } from './screens/routeUtils';
 import RegisteredModelsArchive from './screens/RegisteredModelsArchive/RegisteredModelsArchive';
 import { ModelVersionsTab } from './screens/ModelVersions/const';
-import ModelVersions from '~/odh/components/OdhModelVersions';
+import ModelVersions from "./screens/ModelVersions/ModelVersions";
 import { ModelVersionDetailsTab } from './screens/ModelVersionDetails/const';
-import ModelVersionsDetails from '~/odh/components/OdhModelVersionDetails';
+import ModelVersionsDetails from './screens/ModelVersionDetails/ModelVersionDetails';
 import ModelVersionsArchive from './screens/ModelVersionsArchive/ModelVersionsArchive';
 import ModelVersionsArchiveDetails from './screens/ModelVersionsArchive/ModelVersionArchiveDetails';
 import ArchiveModelVersionDetails from './screens/ModelVersionsArchive/ArchiveModelVersionDetails';
@@ -18,6 +18,7 @@ import { generateVersionDetailsTabExtensionRoutes } from '~/odh/VersionDetailsTa
 import { generateDetailsTabExtensionRoutes } from '~/odh/DetailsTabExtensionRoutes';
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import { isModelRegistryVersionDetailsTabExtension, isModelRegistryDetailsTabExtension } from '~/odh/extension-points';
+
 
 const ModelRegistryRoutes: React.FC = () => {
   const tabExtensions = useExtensions(isModelRegistryVersionDetailsTabExtension);

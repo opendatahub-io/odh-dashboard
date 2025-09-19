@@ -10,7 +10,6 @@ type AccessModePopoverProps = {
   canEditAccessMode?: boolean;
   currentAccessMode?: AccessMode;
   showAllAccessModes?: boolean;
-  openshiftSupportedAccessModes?: AccessMode[];
   adminSupportedAccessModes?: AccessMode[];
 };
 
@@ -18,16 +17,16 @@ export const getAccessModePopover = ({
   canEditAccessMode = true,
   currentAccessMode,
   showAllAccessModes = true,
-  openshiftSupportedAccessModes,
   adminSupportedAccessModes,
 }: AccessModePopoverProps): React.ReactNode => {
   const listItems: React.ReactNode[] = [];
+
   Object.values(AccessMode).forEach((accessMode) => {
-    const showAccessMode = openshiftSupportedAccessModes?.includes(accessMode);
     const hasAccessMode = adminSupportedAccessModes?.includes(accessMode);
+
     if (
       showAllAccessModes ||
-      ((accessMode === AccessMode.RWO || (showAccessMode && hasAccessMode)) && canEditAccessMode) ||
+      ((accessMode === AccessMode.RWO || hasAccessMode) && canEditAccessMode) ||
       currentAccessMode === accessMode
     ) {
       listItems.push(
@@ -37,6 +36,7 @@ export const getAccessModePopover = ({
       );
     }
   });
+
   return (
     <PopoverListContent
       leadText="Access mode is a Kubernetes concept that determines how nodes can interact with the volume."

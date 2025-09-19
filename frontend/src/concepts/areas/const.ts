@@ -14,7 +14,6 @@ export const techPreviewFlags = {
 
 export const devTemporaryFeatureFlags = {
   disableKueue: true,
-  disableFeatureStore: true,
   disableLlamaStackChatBot: true, // internal dev only
   disableProjectScoped: true,
   disableDeploymentWizard: true,
@@ -64,6 +63,7 @@ export const advancedAIMLFlags = {
   disableDistributedWorkloads: false,
   disableModelCatalog: true,
   disableModelRegistrySecureDB: false,
+  disableFeatureStore: false,
   disableFineTuning: true,
   disableLMEval: true,
   disableModelTraining: true,

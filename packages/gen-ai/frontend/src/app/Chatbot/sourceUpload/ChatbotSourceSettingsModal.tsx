@@ -27,6 +27,7 @@ import {
 import { ChatbotSourceSettings } from '~/app/types';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import { createVectorStore } from '~/app/services/llamaStackService';
+import { GenAiContext } from '~/app/context/GenAiContext';
 
 type ChatbotSourceSettingsModalProps = {
   isOpen: boolean;
@@ -50,12 +51,13 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
   onSubmitSettings,
 }) => {
   const [fields, setFields] = React.useState<ChatbotSourceSettings>(DEFAULT_SOURCE_SETTINGS);
+  const { namespace } = React.useContext(GenAiContext);
 
   const [isVectorStoreDropdownOpen, setIsVectorStoreDropdownOpen] = React.useState(false);
   const maxChunkLengthLabelHelpRef = React.useRef(null);
   const sourceSettingsHelpRef = React.useRef(null);
   const [vectorStores, vectorStoresLoaded, vectorStoresError, refreshVectorStores] =
-    useFetchVectorStores();
+    useFetchVectorStores(namespace?.name);
 
   // Vector store creation state
   const [vectorStoreForm, setVectorStoreForm] = React.useState(DEFAULT_VECTOR_STORE_FORM);
@@ -100,13 +102,13 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
   };
 
   const onSubmitVectorStoreCreation = async () => {
-    if (!vectorStoreForm.vectorName.trim()) {
+    if (!vectorStoreForm.vectorName.trim() || !namespace?.name) {
       return;
     }
 
     try {
       setIsCreatingVectorStore(true);
-      const newVectorStore = await createVectorStore(vectorStoreForm.vectorName);
+      const newVectorStore = await createVectorStore(vectorStoreForm.vectorName, namespace.name);
 
       // Refresh the vector stores list to include the newly created one
       await refreshVectorStores();

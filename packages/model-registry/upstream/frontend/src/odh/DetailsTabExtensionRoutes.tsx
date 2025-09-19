@@ -1,6 +1,6 @@
 import React from "react";
 import { ModelRegistryDetailsTabExtension } from "~/odh/extension-points/details";
-import OdhModelVersions from "~/odh/components/OdhModelVersions";
+import ModelVersions from "~/app/pages/modelRegistry/screens/ModelVersions/ModelVersions";
 import { Route } from "react-router-dom";
 import { LoadedExtension } from "@openshift/dynamic-plugin-sdk";
 
@@ -14,11 +14,11 @@ export const generateDetailsTabExtensionRoutes = ({
       key={extension.properties.id}
       path={extension.properties.id}
       element={
-        <OdhModelVersions
+        <ModelVersions
           tab={extension.properties.id}
           empty={false}
         />
       }
     />
   ));
-};
+}

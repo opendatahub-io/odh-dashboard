@@ -226,8 +226,6 @@ describe('ClusterStorage', () => {
     // select access mode
     addClusterStorageModal.findRWOAccessMode().should('be.checked');
     addClusterStorageModal.findRWXAccessMode().click();
-    addClusterStorageModal.findROXAccessMode().should('be.disabled');
-    addClusterStorageModal.findRWOPAccessMode().should('be.disabled');
 
     //connect workbench
     addClusterStorageModal.findAddWorkbenchButton().click();

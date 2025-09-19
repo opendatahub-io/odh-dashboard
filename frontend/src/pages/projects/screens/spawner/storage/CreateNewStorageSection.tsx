@@ -59,7 +59,6 @@ const CreateNewStorageSection = <D extends StorageData>({
     storageClassesLoaded,
     selectedStorageClassConfig,
     adminSupportedAccessModes,
-    openshiftSupportedAccessModes,
   } = useGetStorageClassConfig(data.storageClassName);
 
   const [isValidModelPath, setIsValidModelPath] = React.useState(true);
@@ -115,7 +114,6 @@ const CreateNewStorageSection = <D extends StorageData>({
           <AccessModeField
             storageClassesLoaded={storageClassesLoaded}
             adminSupportedAccessModes={adminSupportedAccessModes}
-            openshiftSupportedAccessModes={openshiftSupportedAccessModes}
             currentAccessMode={data.accessMode}
             canEditAccessMode={editableK8sName}
             setAccessMode={(accessMode) => setData('accessMode', accessMode)}

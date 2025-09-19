@@ -9,20 +9,18 @@ export const useGetStorageClassConfig = (
   storageClasses: StorageClassKind[];
   storageClassesLoaded: boolean;
   selectedStorageClassConfig?: StorageClassConfig;
-  openshiftSupportedAccessModes: AccessMode[];
   adminSupportedAccessModes: AccessMode[];
 } => {
   const [storageClasses, storageClassesLoaded] = useStorageClasses();
   const selectedStorageClass = storageClasses.find((sc) => sc.metadata.name === storageClassName);
 
-  const { selectedStorageClassConfig, openshiftSupportedAccessModes, adminSupportedAccessModes } =
+  const { selectedStorageClassConfig, adminSupportedAccessModes } =
     getPossibleStorageClassAccessModes(selectedStorageClass);
 
   return {
     storageClasses,
     storageClassesLoaded,
     selectedStorageClassConfig,
-    openshiftSupportedAccessModes,
     adminSupportedAccessModes,
   };
 };
