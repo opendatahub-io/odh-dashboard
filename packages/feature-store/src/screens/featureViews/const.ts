@@ -4,7 +4,7 @@ import { MaterializationInterval } from '../../types/global';
 
 export const featureViewTableFilterOptions: Record<string, string> = {
   featureView: 'Feature view',
-  project: 'Feature store repositories',
+  project: 'Feature store repository',
   tag: 'Tags',
   features: 'Features',
   created: 'Created after',
@@ -22,7 +22,7 @@ export const columns: SortableData<FeatureView>[] = [
   },
   {
     field: 'project',
-    label: 'Feature store repositories',
+    label: 'Feature store repository',
     width: 25,
     sortable: (a: FeatureView, b: FeatureView): number =>
       a.project?.localeCompare(b.project ?? '') ?? 0,

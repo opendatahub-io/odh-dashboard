@@ -257,7 +257,7 @@ describe('Feature Entities for all projects', () => {
     featureEntitiesTable
       .findTable()
       .find('thead')
-      .should('contain.text', 'Feature store repositories');
+      .should('contain.text', 'Feature store repository');
     featureEntitiesTable.findRow('user_id').shouldHaveProject(fsProjectName);
     featureEntitiesTable.findRow('transaction_id').shouldHaveProject(fsProjectName2);
   });
