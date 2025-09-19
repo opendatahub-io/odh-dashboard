@@ -28,6 +28,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       href: '/model-catalog',
       section: 'models',
       path: '/model-catalog/*',
+      group: '1_models',
     },
   },
   {
@@ -41,6 +42,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       href: '/model-registry',
       section: 'models',
       path: '/model-registry/*',
+      group: '1_models',
     },
   },
   {
