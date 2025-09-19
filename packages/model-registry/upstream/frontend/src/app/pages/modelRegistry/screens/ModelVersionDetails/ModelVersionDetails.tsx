@@ -5,28 +5,27 @@ import {
   BreadcrumbItem,
   Flex,
   FlexItem,
-  Truncate,
   Title,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { ModelRegistrySelectorContext } from '../../app/context/ModelRegistrySelectorContext';
-import { KnownLabels } from '../k8sTypes';
-import useRegisteredModelById from '../../app/hooks/useRegisteredModelById';
-import useModelVersionById from '../../app/hooks/useModelVersionById';
-import useModelArtifactsByVersionId from '../../app/hooks/useModelArtifactsByVersionId';
-import { ModelState } from '../../app/types';
+import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
+import { KnownLabels } from '~/odh/k8sTypes';
+import useRegisteredModelById from '~/app/hooks/useRegisteredModelById';
+import useModelVersionById from '~/app/hooks/useModelVersionById';
+import useModelArtifactsByVersionId from '~/app/hooks/useModelArtifactsByVersionId';
+import { ModelState } from '~/app/types';
 import {
   archiveModelVersionDetailsUrl,
   modelVersionArchiveDetailsUrl,
   modelVersionUrl,
   registeredModelUrl,
-} from '../../app/pages/modelRegistry/screens/routeUtils';
-import ModelVersionSelector from '../../app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionSelector';
-import ModelVersionDetailsTabs from '../../app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
-import ModelVersionsDetailsHeaderActions from '../../app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsHeaderActions';
-import { MRDeployButton } from './MRDeployButton';
-import { MRDeploymentsContextProvider } from './MRDeploymentsContextProvider';
+} from '~/app/pages/modelRegistry/screens/routeUtils';
+import ModelVersionSelector from '~/app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionSelector';
+import ModelVersionDetailsTabs from '~/app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
+import ModelVersionsDetailsHeaderActions from '~/app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsHeaderActions';
+import { MRDeployButton } from '~/odh/components/MRDeployButton';
+import { MRDeploymentsContextProvider } from '~/odh/components/MRDeploymentsContextProvider';
 
 type ModelVersionsDetailProps = {
   tab: string;
@@ -41,18 +40,19 @@ const ModelVersionsDetailsContent: React.FC<ModelVersionsDetailProps> = ({ tab, 
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
 
   const { modelVersionId: mvId, registeredModelId: rmId } = useParams();
-  const [rm] = useRegisteredModelById(rmId);
+  const [rm, rmLoaded, rmLoadError, rmRefresh] = useRegisteredModelById(rmId);
   const [mv, mvLoaded, mvLoadError, refreshModelVersion] = useModelVersionById(mvId);
   const [modelArtifacts, modelArtifactsLoaded, modelArtifactsLoadError, refreshModelArtifacts] =
     useModelArtifactsByVersionId(mvId);
 
   const refresh = React.useCallback(() => {
+    rmRefresh();
     refreshModelVersion();
     refreshModelArtifacts();
-  }, [refreshModelVersion, refreshModelArtifacts]);
+  }, [refreshModelVersion, refreshModelArtifacts, rmRefresh]);
 
-  const loaded = mvLoaded && modelArtifactsLoaded;
-  const loadError = mvLoadError || modelArtifactsLoadError;
+  const loaded = mvLoaded && modelArtifactsLoaded && rmLoaded;
+  const loadError = mvLoadError || modelArtifactsLoadError || rmLoadError;
 
   useEffect(() => {
     if (rm?.state === ModelState.ARCHIVED && mv?.id) {
@@ -125,7 +125,6 @@ const ModelVersionsDetailsContent: React.FC<ModelVersionsDetailProps> = ({ tab, 
           </Flex>
         )
       }
-      description={<Truncate content={mv?.description || ''} />}
       loadError={loadError}
       loaded={loaded}
       provideChildrenPadding
@@ -133,9 +132,12 @@ const ModelVersionsDetailsContent: React.FC<ModelVersionsDetailProps> = ({ tab, 
       {mv !== null && (
         <ModelVersionDetailsTabs
           tab={tab}
+          registeredModel={rm}
           modelVersion={mv}
           refresh={refresh}
           modelArtifacts={modelArtifacts}
+          modelArtifactsLoaded={modelArtifactsLoaded}
+          modelArtifactsLoadError={modelArtifactsLoadError}
         />
       )}
     </ApplicationsPage>

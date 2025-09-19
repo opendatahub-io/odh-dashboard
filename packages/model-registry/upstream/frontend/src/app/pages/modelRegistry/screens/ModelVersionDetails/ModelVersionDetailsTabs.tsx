@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
-import { ModelVersion, ModelArtifactList } from '~/app/types';
+import { ModelVersion, ModelArtifactList, RegisteredModel } from '~/app/types';
 import { ModelVersionDetailsTabTitle, ModelVersionDetailsTab } from './const';
 import ModelVersionDetailsView from './ModelVersionDetailsView';
 import { isModelRegistryVersionDetailsTabExtension } from '~/odh/extension-points/details';
@@ -10,18 +10,24 @@ import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelecto
 
 type ModelVersionDetailTabsProps = {
   tab: string;
+  registeredModel: RegisteredModel | null;
   modelVersion: ModelVersion;
   isArchiveVersion?: boolean;
   refresh: () => void;
   modelArtifacts: ModelArtifactList;
+  modelArtifactsLoaded: boolean;
+  modelArtifactsLoadError: Error | undefined;
 };
 
 const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
   tab,
+  registeredModel,
   modelVersion: mv,
   isArchiveVersion,
   refresh,
   modelArtifacts,
+  modelArtifactsLoaded,
+  modelArtifactsLoadError,
 }) => {
   const navigate = useNavigate();
   const tabExtensions = useExtensions(isModelRegistryVersionDetailsTabExtension);
@@ -37,10 +43,13 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
     >
       <PageSection hasBodyWrapper={false} isFilled data-testid="model-versions-details-tab-content">
         <ModelVersionDetailsView
+          registeredModel={registeredModel}
           modelVersion={mv}
           refresh={refresh}
           isArchiveVersion={isArchiveVersion}
           modelArtifacts={modelArtifacts}
+          modelArtifactsLoaded={modelArtifactsLoaded}
+          modelArtifactsLoadError={modelArtifactsLoadError}
         />
       </PageSection>
     </Tab>,

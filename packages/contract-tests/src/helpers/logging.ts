@@ -30,8 +30,8 @@ export function logApiCall(
 ): void {
   console.log(`\n[Contract Test] API Call: ${method} ${url} (${testName})`);
   if (headers && Object.keys(headers).length > 0) {
-    const redactedHeaders = redactHeaders(headers);
-    console.log('Headers:', redactedHeaders);
+    const headerCount = Object.keys(headers).length;
+    console.log(`Headers: ${headerCount} header(s) provided`);
   }
 }
 
@@ -39,24 +39,30 @@ export function logApiCall(
  * Log an API response with redacted headers
  */
 export function logApiResponse(response: ApiResponse, testName: string): void {
-  const redactedHeaders = redactHeaders(response.headers);
-  console.log(`\n[Contract Test] ${testName} - Response:`);
-  console.log('Status:', response.status);
-  console.log('Headers:', redactedHeaders);
-  // Note: Response body should be sanitized before logging
-  console.log('Data:', response.data);
+  console.log(`\n[Contract Test] ${testName} - Response: ${response.status}`);
+
+  const headerCount = Object.keys(response.headers).length;
+  if (headerCount > 0) {
+    console.log(`Headers: ${headerCount} header(s) received`);
+  }
+
+  // Log data size instead of full content for brevity
+  if (response.data) {
+    const dataSize = JSON.stringify(response.data).length;
+    console.log(`Data: ${dataSize} bytes`);
+  }
 }
 
 /**
  * Log an API error with redacted headers
  */
 export function logApiError(error: ApiError, testName: string): void {
-  console.error(`\n[Contract Test] ${testName} - Error:`);
-  console.error('Status:', error.status);
-  console.error('Message:', error.message);
+  const status = error.status || 'Unknown';
+  const message = error.message || 'No message';
+  console.error(`\n[Contract Test] ${testName} - Error: ${status} - ${message}`);
   if (error.headers && Object.keys(error.headers).length > 0) {
-    const redactedHeaders = redactHeaders(error.headers);
-    console.error('Headers:', redactedHeaders);
+    const headerCount = Object.keys(error.headers).length;
+    console.error(`Headers: ${headerCount} header(s) received`);
   }
   // Avoid logging raw error data to prevent PII leakage
 }
@@ -65,50 +71,22 @@ export function logApiError(error: ApiError, testName: string): void {
  * Log test setup information
  */
 export function logTestSetup(packageName: string, baseUrl: string, resultsDir?: string): void {
-  console.log('\n[Contract Test] Test Setup:');
-  console.log('Package:', packageName);
-  console.log('Base URL:', baseUrl);
-  console.log('Results Directory:', resultsDir);
+  console.log(`\n[Contract Test] Setup: ${packageName} -> ${baseUrl}`);
+  if (resultsDir) {
+    console.log(`Results: ${resultsDir}`);
+  }
 }
 
 /**
  * Log test success
  */
 export function logTestSuccess(testName: string): void {
-  console.log(`\n[Contract Test] ${testName} - Success`);
+  console.log(`✅ ${testName}`);
 }
 
 /**
- * Redact sensitive headers
+ * Log test failure
  */
-function redactHeaders(headers: ApiCallHeaders): ApiCallHeaders {
-  const sensitiveHeaders = [
-    'authorization',
-    'proxy-authorization',
-    'api-key',
-    'x-api-key',
-    'cookie',
-    'set-cookie',
-  ];
-
-  const redacted = { ...headers };
-
-  Object.keys(redacted).forEach((key) => {
-    const lowerKey = key.toLowerCase();
-    if (
-      sensitiveHeaders.includes(lowerKey) ||
-      lowerKey.includes('token') ||
-      lowerKey.includes('secret')
-    ) {
-      if (lowerKey === 'authorization' || lowerKey === 'proxy-authorization') {
-        // Keep auth scheme (e.g., 'Bearer' or 'Basic') but redact the token
-        const parts = redacted[key].split(' ');
-        redacted[key] = parts.length > 1 ? `${parts[0]} REDACTED` : 'REDACTED';
-      } else {
-        redacted[key] = 'REDACTED';
-      }
-    }
-  });
-
-  return redacted;
+export function logTestFailure(testName: string, error: string): void {
+  console.error(`❌ ${testName}: ${error}`);
 }
