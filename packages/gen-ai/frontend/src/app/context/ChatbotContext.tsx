@@ -11,6 +11,7 @@ type ChatbotContextProps = {
   lsdStatusLoaded: boolean;
   modelsError: Error | undefined;
   lsdStatusError: Error | undefined;
+  refresh: () => void;
   selectedModel: string;
   setSelectedModel: (model: string) => void;
   lastInput: string;
@@ -29,6 +30,7 @@ export const ChatbotContext = React.createContext<ChatbotContextProps>({
   lsdStatusLoaded: false,
   modelsError: undefined,
   lsdStatusError: undefined,
+  refresh: () => undefined,
   selectedModel: '',
   setSelectedModel: () => undefined,
   lastInput: '',
@@ -45,12 +47,19 @@ export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
     data: models,
     loaded: modelsLoaded,
     error: modelsError,
+    refresh: modelsRefresh,
   } = useFetchLlamaModels(namespace?.name);
   const {
     data: lsdStatus,
     loaded: lsdStatusLoaded,
     error: lsdStatusError,
+    refresh: lsdStatusRefresh,
   } = useFetchLSDStatus(namespace?.name);
+
+  const refresh = React.useCallback(() => {
+    lsdStatusRefresh();
+    modelsRefresh();
+  }, [lsdStatusRefresh, modelsRefresh]);
 
   const contextValue = React.useMemo(
     () => ({
@@ -60,6 +69,7 @@ export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
       lsdStatusLoaded,
       modelsError,
       lsdStatusError,
+      refresh,
       selectedModel,
       setSelectedModel,
       lastInput,
@@ -75,6 +85,7 @@ export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
       selectedModel,
       lastInput,
       setLastInput,
+      refresh,
     ],
   );
 
