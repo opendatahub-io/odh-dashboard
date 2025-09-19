@@ -1,7 +1,7 @@
 import React from 'react';
 import { Bullseye } from '@patternfly/react-core';
-import { CogIcon } from '@patternfly/react-icons';
-import { Outlet, useParams } from 'react-router';
+import { CogIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { Link, Outlet, useParams } from 'react-router-dom';
 import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
 import { conditionalArea } from '@odh-dashboard/internal/concepts/areas/AreaComponent';
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
@@ -10,6 +10,8 @@ import WhosMyAdministrator from '@odh-dashboard/internal/components/WhosMyAdmini
 import RedirectErrorState from '@odh-dashboard/internal/pages/external/RedirectErrorState';
 import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
 import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils';
+import { useClusterInfo } from '@odh-dashboard/internal/redux/selectors/clusterInfo';
+import { getOpenShiftConsoleAction } from '@odh-dashboard/internal/app/AppLauncher';
 import EmptyStateFeatureStore from './screens/components/EmptyStateFeatureStore';
 import { FeatureStoreObject } from './const';
 import InvalidFeatureStoreProject from './screens/components/InvalidFeatureStoreProject';
@@ -18,9 +20,10 @@ import { FeatureStoreContextProvider } from './FeatureStoreContext';
 import FeatureStoreCRContextProvider from './contexts/FeatureStoreContext';
 import { useFeatureStoreObject } from './apiHooks/useFeatureStoreObject';
 import useFeatureStoreProjects from './apiHooks/useFeatureStoreProjects';
-import { getFeatureStoreObjectDisplayName } from './utils';
+import { getFeatureStoreObjectDescription, getFeatureStoreObjectDisplayName } from './utils';
 import { featureStoreRoute } from './routes';
 import { FeatureStoreProject } from './types/featureStoreProjects';
+import SupportIcon from './icons/header-icons/SupportIcon';
 
 type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
 
@@ -45,7 +48,9 @@ const FeatureStoreContent: React.FC<{
 
   const { fsProjectName } = useParams<{ fsProjectName: string }>();
   const currentFeatureStoreObject = useFeatureStoreObject();
+  const { serverURL } = useClusterInfo();
   const { data: featureStoreProjects, loaded: projectsLoaded } = useFeatureStoreProjects();
+  const osConsoleAction = getOpenShiftConsoleAction(serverURL);
 
   if (featureStoreCRError) {
     return (
@@ -63,11 +68,18 @@ const FeatureStoreContent: React.FC<{
   }
 
   if (!featureStoreCR) {
-    const adminTitle = 'Create a Feature store service';
+    const adminTitle = 'Create a feature store repository';
     const adminDescription = (
       <>
-        No feature store service is available to users in your organization. Create a Feature store
-        service from the <b>OpenShift platform</b>.
+        No feature store repositories are available to users in your organization. Create a
+        repository in OpenShift. <br />
+        <br />
+        {osConsoleAction && (
+          <Link target="_blank" to={osConsoleAction.href || ''} style={{ textDecoration: 'none' }}>
+            Go to <b>OpenShift Platform</b> {'   '}
+            <ExternalLinkAltIcon />
+          </Link>
+        )}
       </>
     );
 
@@ -82,7 +94,7 @@ const FeatureStoreContent: React.FC<{
           testid="empty-state-feature-store"
           title={isAdmin ? adminTitle : userTitle}
           description={isAdmin ? adminDescription : userDescription}
-          headerIcon={() => <CogIcon />}
+          headerIcon={() => (isAdmin ? <CogIcon /> : <SupportIcon />)}
           customAction={!isAdmin && <WhosMyAdministrator />}
         />
       ),
@@ -91,8 +103,8 @@ const FeatureStoreContent: React.FC<{
 
     return (
       <ApplicationsPage
-        title="Feature Store"
-        description="A catalog of features, entities, feature views and datasets created by your own team"
+        title={getFeatureStoreObjectDisplayName(currentFeatureStoreObject)}
+        description={getFeatureStoreObjectDescription(currentFeatureStoreObject)}
         {...renderStateProps}
         loaded
         provideChildrenPadding
@@ -123,6 +135,7 @@ const FeatureStoreContent: React.FC<{
       return (
         <ApplicationsPage
           title={getFeatureStoreObjectDisplayName(currentFeatureStoreObject)}
+          description={getFeatureStoreObjectDescription(currentFeatureStoreObject)}
           {...renderStateProps}
           loaded
           provideChildrenPadding
