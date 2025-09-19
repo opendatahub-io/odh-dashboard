@@ -176,6 +176,11 @@ export type OdhApplication = {
       validationJob: string;
       validationConfigMap?: string;
       inProgressText?: string;
+      warningValidation?: {
+        field: string;
+        validationRegex?: string;
+        message: string;
+      };
     };
     featureFlag?: string;
     internalRoute?: string;
