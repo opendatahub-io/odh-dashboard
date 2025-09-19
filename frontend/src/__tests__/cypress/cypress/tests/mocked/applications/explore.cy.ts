@@ -31,6 +31,62 @@ describe('Explore Page', () => {
   });
 
   it('should validate warning message for test keys', () => {
+    cy.interceptOdh(
+      'GET /api/components',
+      null,
+      mockComponents({
+        extraComponents: [
+          {
+            metadata: {
+              annotations: {
+                'opendatahub.io/categories': 'Validation,Warning',
+              },
+              name: 'warning-validation-test',
+            },
+            spec: {
+              category: 'Test',
+              description: 'A test component for warning validation scenarios.',
+              displayName: 'Warning Validation Test',
+              docsLink: 'https://docs.redhat.com',
+              getStartedLink: 'https://docs.redhat.com',
+              getStartedMarkDown:
+                'This is a test component used to validate warning messages in the UI.',
+              img: '', // No image for test component
+              internalRoute: 'warningValidationTest',
+              provider: 'test-provider',
+              quickStart: '',
+              support: '',
+              hidden: false,
+              shownOnEnabledPage: false,
+              isEnabled: false,
+              link: null,
+              enable: {
+                title: 'Warning Validation Test',
+                actionLabel: 'Enable',
+                description: 'Enable Warning Validation Test.',
+                validationSecret: 'warning-validation-test-validation-secret',
+                validationJob: 'warning-validation-test-validation-job',
+                inProgressText: 'Validation in progress...',
+                variableDisplayText: {
+                  key: 'Key',
+                },
+                variableHelpText: {
+                  key: 'Key',
+                },
+                variables: {
+                  key: 'password',
+                },
+                warningValidation: {
+                  field: 'key',
+                  validationRegex: '^test-warning-.*',
+                  message: 'This key starts with test-warning-',
+                },
+              },
+            },
+          },
+        ],
+      }),
+    );
     asProductAdminUser();
     explorePage.visit();
 
@@ -44,10 +100,8 @@ describe('Explore Page', () => {
     warningValidationCard.findDrawerPanel().should('be.visible');
 
     // Debug: Check if enable button exists (might be disabled)
-    cy.get('[data-testid="enable-app"]').should('exist');
-
-    // Find and click the enable button
-    warningValidationCard.findEnableButton().click();
+    // cy.get('[data-testid="enable-app"]').should('exist');
+    warningValidationCard.findEnableButton().should('exist').click();
 
     // Test that a matching key triggers the warning
     cy.step('Input test key that matches warning regex');

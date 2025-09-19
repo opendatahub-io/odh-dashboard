@@ -40,8 +40,4 @@ export class Card {
   findExploreCard(metadataName: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId(['card', metadataName]);
   }
-
-  findWarningAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('warning-message-alert');
-  }
 }

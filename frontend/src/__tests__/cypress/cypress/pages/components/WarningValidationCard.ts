@@ -12,11 +12,15 @@ export class WarningValidationCard extends Card {
   }
 
   findEnableButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('button', { name: /enable/i });
+    return cy.findByTestId('enable-app');
   }
 
   findKeyInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByLabelText(/key/i);
+  }
+
+  findWarningAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('warning-message-alert');
   }
 }
 
