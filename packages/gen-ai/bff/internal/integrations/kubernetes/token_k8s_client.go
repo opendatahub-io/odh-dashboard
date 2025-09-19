@@ -36,10 +36,14 @@ const (
 	ServingRuntimeDisplayNameAnnotation = "opendatahub.io/template-display-name"
 	ServingRuntimeVersionAnnotation     = "opendatahub.io/runtime-version"
 	ServingRuntimeAPIProtocolAnnotation = "opendatahub.io/apiProtocol"
+	DisplayNameAnnotation               = "openshift.io/display-name"
 
 	// InferenceService annotation keys
 	InferenceServiceDescriptionAnnotation = "openshift.io/description"
 	InferenceServiceUseCaseAnnotation     = "opendatahub.io/genai-use-case"
+
+	// Gen-ai playground LLS distribution name
+	lsdName = "lsd-genai-playground"
 
 	// Label for LSD identification
 	OpenDataHubDashboardLabelKey = "opendatahub.io/dashboard"
@@ -385,12 +389,15 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 	defer cancel()
 
 	// Step 1: Create LlamaStackDistribution resource first
-	lsdName := "lsd-genai-playground"
+
 	configMapName := "llama-stack-config"
 	lsd := &lsdapi.LlamaStackDistribution{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      lsdName,
 			Namespace: namespace,
+			Annotations: map[string]string{
+				DisplayNameAnnotation: lsdName,
+			},
 			Labels: map[string]string{
 				OpenDataHubDashboardLabelKey: "true",
 			},
@@ -735,4 +742,48 @@ func (kc *TokenKubernetesClient) findInferenceServiceByDisplayName(ctx context.C
 	}
 
 	return nil, fmt.Errorf("InferenceService with display name '%s' not found in namespace %s", modelName, namespace)
+}
+
+func (kc *TokenKubernetesClient) DeleteLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*lsdapi.LlamaStackDistribution, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	// First, fetch the LSD in the namespace with the OpenDataHubDashboardLabelKey annotation
+	lsdList, err := kc.GetLlamaStackDistributions(ctx, identity, namespace)
+	if err != nil {
+		kc.Logger.Error("failed to fetch LlamaStackDistributions", "error", err, "namespace", namespace)
+		return nil, fmt.Errorf("failed to fetch LlamaStackDistributions: %w", err)
+	}
+
+	// Check if any LSD resources were found
+	if len(lsdList.Items) == 0 {
+		kc.Logger.Error("no LlamaStackDistribution found with OpenDataHubDashboardLabelKey annotation", "namespace", namespace)
+		return nil, fmt.Errorf("no LlamaStackDistribution found in namespace %s with OpenDataHubDashboardLabelKey annotation", namespace)
+	}
+
+	// Find the LSD with matching display name annotation
+	var targetLSD *lsdapi.LlamaStackDistribution
+	for i := range lsdList.Items {
+		lsd := &lsdList.Items[i]
+		if displayName, exists := lsd.Annotations[DisplayNameAnnotation]; exists && displayName == name {
+			targetLSD = lsd
+			break
+		}
+	}
+
+	// If no LSD with matching display name found, return error
+	if targetLSD == nil {
+		kc.Logger.Error("LlamaStackDistribution with matching display name not found", "displayName", name, "namespace", namespace)
+		return nil, fmt.Errorf("LlamaStackDistribution with display name '%s' not found in namespace %s", name, namespace)
+	}
+
+	// Delete the LSD using the actual resource name
+	err = kc.Client.Delete(ctx, &lsdapi.LlamaStackDistribution{ObjectMeta: metav1.ObjectMeta{Name: targetLSD.Name, Namespace: namespace}})
+	if err != nil {
+		kc.Logger.Error("failed to delete LlamaStackDistribution", "error", err, "namespace", namespace, "name", targetLSD.Name)
+		return nil, fmt.Errorf("failed to delete LlamaStackDistribution: %w", err)
+	}
+
+	kc.Logger.Info("successfully deleted LlamaStackDistribution", "namespace", namespace, "name", targetLSD.Name, "displayName", name)
+	return targetLSD, nil
 }

@@ -171,6 +171,9 @@ func (app *App) Routes() http.Handler {
 	// Llama Stack Distribution install endpoint
 	apiRouter.POST(constants.LlamaStackDistributionInstallPath, app.RequireAccessToService(app.AttachNamespace(app.LlamaStackDistributionInstallHandler)))
 
+	// Llama Stack Distribution delete endpoint
+	apiRouter.DELETE(constants.LlamaStackDistributionDeletePath, app.RequireAccessToService(app.AttachNamespace(app.LlamaStackDistributionDeleteHandler)))
+
 	// MCP Client endpoints
 	apiRouter.GET(constants.MCPToolsPath, app.RequireAccessToService(app.MCPToolsHandler))
 	apiRouter.GET(constants.MCPStatusPath, app.RequireAccessToService(app.MCPStatusHandler))

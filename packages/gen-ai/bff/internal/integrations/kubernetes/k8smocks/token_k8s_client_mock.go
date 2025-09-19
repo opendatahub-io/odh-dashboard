@@ -19,6 +19,10 @@ import (
 	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
 )
 
+const (
+	mockLSDName = "mock-lsd"
+)
+
 type TokenKubernetesClientMock struct {
 	*k8s.TokenKubernetesClient
 }
@@ -117,6 +121,12 @@ func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Conte
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "mock-lsd",
+					Annotations: map[string]string{
+						"openshift.io/display-name": "mock-lsd-display-name",
+					},
+					Labels: map[string]string{
+						"opendatahub.io/dashboard": "true",
+					},
 				},
 				Status: lsdapi.LlamaStackDistributionStatus{
 					Phase: lsdapi.LlamaStackDistributionPhaseReady,
@@ -275,8 +285,11 @@ server:
 	// Create a real LSD resource in the envtest cluster
 	lsd := &lsdapi.LlamaStackDistribution{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "lsd-genai-playground",
+			Name:      mockLSDName,
 			Namespace: namespace,
+			Annotations: map[string]string{
+				"openshift.io/display-name": mockLSDName,
+			},
 			Labels: map[string]string{
 				"opendatahub.io/dashboard": "true",
 			},
@@ -320,6 +333,42 @@ server:
 	}
 
 	return lsd, nil
+}
+
+func (m *TokenKubernetesClientMock) DeleteLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*lsdapi.LlamaStackDistribution, error) {
+	// First, fetch the LSD in the namespace with the OpenDataHubDashboardLabelKey annotation
+	lsdList, err := m.GetLlamaStackDistributions(ctx, identity, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch LlamaStackDistributions: %w", err)
+	}
+
+	// Check if any LSD resources were found
+	if len(lsdList.Items) == 0 {
+		return nil, fmt.Errorf("no LlamaStackDistribution found in namespace %s with OpenDataHubDashboardLabelKey annotation", namespace)
+	}
+
+	// Find the LSD with matching display name annotation
+	var targetLSD *lsdapi.LlamaStackDistribution
+	for i := range lsdList.Items {
+		lsd := &lsdList.Items[i]
+		if displayName, exists := lsd.Annotations["openshift.io/display-name"]; exists && displayName == name {
+			targetLSD = lsd
+			break
+		}
+	}
+
+	// If no LSD with matching display name found, return error
+	if targetLSD == nil {
+		return nil, fmt.Errorf("LlamaStackDistribution with display name '%s' not found in namespace %s", name, namespace)
+	}
+
+	// Delete the LSD using the actual resource name
+	err = m.Client.Delete(ctx, &lsdapi.LlamaStackDistribution{ObjectMeta: metav1.ObjectMeta{Name: targetLSD.Name, Namespace: namespace}})
+	if err != nil {
+		return nil, fmt.Errorf("failed to delete LlamaStackDistribution: %w", err)
+	}
+
+	return targetLSD, nil
 }
 
 func (m *TokenKubernetesClientMock) GetConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.ConfigMap, error) {
