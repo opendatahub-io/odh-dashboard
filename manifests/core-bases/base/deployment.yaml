@@ -84,7 +84,7 @@ spec:
             - --pass-access-token
             - '--openshift-delegate-urls={"/": {"resource": "projects", "verb": "list"}}'
             - --skip-auth-regex=^/metrics
-          image: oauth-proxy
+          image: $(oauth-proxy-image)
           ports:
             - containerPort: 8443
               name: dashboard-ui
