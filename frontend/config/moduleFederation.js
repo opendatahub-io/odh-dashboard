@@ -90,32 +90,32 @@ module.exports = {
                   return acc;
                 }, {}),
             shared: {
-              react: { singleton: true, requiredVersion: deps.react },
-              'react-dom': { singleton: true, requiredVersion: deps['react-dom'] },
+              react: { singleton: true, requiredVersion: deps.react, eager: true },
+              'react-dom': { singleton: true, requiredVersion: deps['react-dom'], eager: true },
               'react-router': {
                 singleton: true,
                 requiredVersion: deps['react-router'],
+                eager: true,
               },
               'react-router-dom': {
                 singleton: true,
                 requiredVersion: deps['react-router-dom'],
+                eager: true,
               },
               '@patternfly/react-core': {
+                singleton: true,
                 requiredVersion: deps['@patternfly/react-core'],
               },
               '@openshift/dynamic-plugin-sdk': {
                 singleton: true,
                 requiredVersion: deps['@openshift/dynamic-plugin-sdk'],
+                eager: true,
               },
-              ...workspacePackages
-                .filter((pkg) => !!pkg.exports)
-                .reduce((acc, pkg) => {
-                  acc[pkg.name] = {
-                    singleton: true,
-                    requiredVersion: pkg.version,
-                  };
-                  return acc;
-                }, {}),
+              '@odh-dashboard/plugin-core': {
+                singleton: true,
+                requiredVersion: deps['@odh-dashboard/plugin-core'],
+                eager: true,
+              },
             },
             exposes: {},
             dts: updateTypes,
