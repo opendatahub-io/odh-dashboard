@@ -34,3 +34,11 @@ type ErrorResponse struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
+
+type LlamaStackDistributionDeleteRequest struct {
+	Name string `json:"name"`
+}
+
+type LlamaStackDistributionDeleteResponse struct {
+	Data string `json:"data"`
+}
