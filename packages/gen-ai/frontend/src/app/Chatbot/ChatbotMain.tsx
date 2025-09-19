@@ -13,7 +13,7 @@ import ChatbotPlayground from './ChatbotPlayground';
 import ChatbotConfigurationModal from './components/ChatbotConfigurationModal';
 
 const ChatbotMain: React.FunctionComponent = () => {
-  const { lsdStatus, lsdStatusLoaded, lsdStatusError, selectedModel, lastInput } =
+  const { lsdStatus, lsdStatusLoaded, lsdStatusError, selectedModel, lastInput, refresh } =
     React.useContext(ChatbotContext);
   const { namespace } = React.useContext(GenAiContext);
   const {
@@ -102,7 +102,12 @@ const ChatbotMain: React.FunctionComponent = () => {
         />
       </ApplicationsPage>
       {configurationModalOpen && (
-        <ChatbotConfigurationModal onClose={() => setConfigurationModalOpen(false)} />
+        <ChatbotConfigurationModal
+          onClose={() => {
+            setConfigurationModalOpen(false);
+            refresh();
+          }}
+        />
       )}
     </>
   );
