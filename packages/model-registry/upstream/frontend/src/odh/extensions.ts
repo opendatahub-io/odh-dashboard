@@ -24,9 +24,9 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     },
     properties: {
       id: 'modelCatalog',
-      title: 'Model catalog',
+      title: 'Catalog',
       href: '/model-catalog',
-      section: 'models',
+      section: 'ai-hub',
       path: '/model-catalog/*',
     },
   },

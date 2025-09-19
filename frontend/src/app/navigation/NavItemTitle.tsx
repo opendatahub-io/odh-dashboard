@@ -14,7 +14,11 @@ export const NavItemTitle: React.FC<Props> = ({ title, navIcon, statusIcon, labe
   }
 
   return (
-    <Flex spaceItems={{ default: 'spaceItemsSm' }} style={{ width: '100%' }}>
+    <Flex
+      alignItems={{ default: 'alignItemsCenter' }}
+      spaceItems={{ default: 'spaceItemsSm' }}
+      style={{ width: '100%' }}
+    >
       {navIcon && <FlexItem>{navIcon}</FlexItem>}
       <FlexItem flex={{ default: 'flex_1' }}>
         <Flex spaceItems={{ default: 'spaceItemsSm' }}>

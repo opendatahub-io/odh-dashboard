@@ -39,10 +39,11 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     },
     properties: {
       id: 'chat-playground',
-      title: 'Chat playground',
+      title: 'Playground',
       href: chatPlaygroundRootPath,
-      section: 'gen-ai-v3',
+      section: 'gen-ai-studio',
       path: globChatPlaygroundAll,
+      label: 'Tech Preview',
     },
   },
   {
@@ -54,8 +55,9 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       id: 'ai-assets',
       title: 'AI asset endpoints',
       href: aiAssetsRootPath,
-      section: 'gen-ai-v3',
+      section: 'gen-ai-studio',
       path: globAiAssetsAll,
+      label: 'Tech Preview',
     },
   },
   {
