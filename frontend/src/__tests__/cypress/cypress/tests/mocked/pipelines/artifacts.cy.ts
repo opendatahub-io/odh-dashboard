@@ -234,6 +234,25 @@ describe('Artifacts', () => {
         .findModelVersionLink()
         .should('eq', '/ai-hub/registry/model-registry/registered-models/1/versions/1');
     });
+
+    it('redirect from v2 to v3 route', () => {
+      const artifact = mockedArtifactsResponse.artifacts[0];
+      artifactDetails.mockGetArtifactById(
+        projectName,
+        mockGetArtifactsById({
+          artifacts: [artifact],
+          artifactTypes: [],
+        }),
+      );
+      cy.visitWithLogin(`/artifacts/${projectName}/${String(artifact.id)}`);
+      cy.findByTestId('app-page-title').contains(
+        String(artifact.customProperties.display_name.stringValue),
+      );
+      cy.url().should(
+        'include',
+        `/develop-train/pipelines/artifacts/${projectName}/${String(artifact.id)}`,
+      );
+    });
   });
 
   describe('artifact in pipeline run details page', () => {

@@ -371,4 +371,27 @@ describe('Custom serving runtimes', () => {
     );
     servingRuntimes.getRowById('template-1').find().should('not.exist');
   });
+
+  describe('redirect from v2 to v3 route', () => {
+    it('root', () => {
+      cy.visitWithLogin('/servingRuntimes');
+      cy.findByTestId('app-page-title').contains('Serving runtimes');
+      cy.url().should('include', '/settings/model-resources-operations/serving-runtimes');
+    });
+
+    it('add', () => {
+      cy.visitWithLogin('/servingRuntimes/addServingRuntime');
+      cy.findByTestId('app-page-title').contains('Add serving runtime');
+      cy.url().should('include', '/settings/model-resources-operations/serving-runtimes/add');
+    });
+
+    it('edit', () => {
+      cy.visitWithLogin('/servingRuntimes/editServingRuntime/template-1');
+      cy.findByTestId('app-page-title').contains('Edit Multi Platform');
+      cy.url().should(
+        'include',
+        '/settings/model-resources-operations/serving-runtimes/edit/template-1',
+      );
+    });
+  });
 });

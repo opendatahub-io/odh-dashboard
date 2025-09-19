@@ -67,6 +67,12 @@ describe('LM Evaluation Home Page', () => {
     // Verify URL changes to evaluate page
     verifyRelativeURL('/develop-train/evaluations/test-project/evaluate');
   });
+
+  it('redirect from v2 to v3 route', () => {
+    cy.visitWithLogin('/modelEvaluations');
+    cy.findByTestId('app-page-title').contains('Model evaluation runs');
+    cy.url().should('include', '/develop-train/evaluations');
+  });
 });
 
 const initIntercepts = (disableLMEval = false): void => {

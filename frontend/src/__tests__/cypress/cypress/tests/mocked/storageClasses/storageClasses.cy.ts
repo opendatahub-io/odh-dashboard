@@ -771,5 +771,11 @@ describe('Storage classes', () => {
         .and('contain.text', 'recommended access modes are: RWO')
         .and('contain.text', 'You have selected unsupported modes: RWX');
     });
+
+    it('redirect from v2 to v3 route', () => {
+      cy.visitWithLogin('/storageClasses');
+      cy.findByTestId('app-page-title').contains('Storage classes');
+      cy.url().should('include', '/settings/cluster/storage-classes');
+    });
   });
 });

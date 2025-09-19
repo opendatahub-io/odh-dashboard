@@ -426,4 +426,11 @@ describe('Workload Status tab', () => {
       cy.findByText('No workload metrics').should('exist');
     });
   });
+
+  it('redirect from v2 to v3 route', () => {
+    initIntercepts({});
+    cy.visitWithLogin('/distributedWorkloads');
+    globalDistributedWorkloads.shouldHavePageTitle();
+    cy.url().should('include', '/observe-monitor/workload-metrics/workload-status/test-project');
+  });
 });

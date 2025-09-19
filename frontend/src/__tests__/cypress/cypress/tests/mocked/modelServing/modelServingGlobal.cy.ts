@@ -1196,5 +1196,35 @@ describe('Model Serving Global', () => {
         paginationVariant: 'bottom',
       });
     });
+
+    describe('redirect from v2 to v3 route', () => {
+      beforeEach(() => {
+        initIntercepts({});
+      });
+
+      it('root', () => {
+        cy.visitWithLogin('/modelServing');
+        cy.findByTestId('app-page-title').contains('Model deployments');
+        cy.url().should('include', '/ai-hub/deployments');
+      });
+
+      it('metrics', () => {
+        cy.visitWithLogin('/modelServing/test-project/metrics/test-inference-service');
+        cy.findByTestId('app-page-title').contains('Test Inference Service metrics');
+        cy.url().should(
+          'include',
+          '/ai-hub/deployments/test-project/metrics/test-inference-service',
+        );
+      });
+
+      it('metrics performance', () => {
+        cy.visitWithLogin('/modelServing/test-project/metrics/test-inference-service/performance');
+        cy.findByTestId('app-page-title').contains('Test Inference Service metrics');
+        cy.url().should(
+          'include',
+          '/ai-hub/deployments/test-project/metrics/test-inference-service/performance',
+        );
+      });
+    });
   });
 });
