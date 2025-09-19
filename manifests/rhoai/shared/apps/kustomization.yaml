@@ -8,3 +8,4 @@ resources:
   - ./watson-x
   - ./rhoai
   - ./nvidia-nim
+  - ./pgvector
