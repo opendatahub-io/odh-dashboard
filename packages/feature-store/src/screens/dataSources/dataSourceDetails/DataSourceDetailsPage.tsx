@@ -17,6 +17,7 @@ import { useFeatureStoreProject } from '../../../FeatureStoreContext';
 import useFeatureStoreDataSourceByName from '../../../apiHooks/useFeatureStoreDataSourceByName';
 import { featureStoreRootRoute } from '../../../routes';
 import FeatureStorePageTitle from '../../../components/FeatureStorePageTitle';
+import FeatureStoreBreadcrumb from '../../components/FeatureStoreBreadcrumb';
 
 const DataSourceDetailsPage = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -76,11 +77,11 @@ const DataSourceDetailsPage = (): React.ReactElement => {
           isDetailsPage
           breadcrumb={
             <Breadcrumb>
-              <BreadcrumbItem
-                render={() => (
-                  <Link to={`${featureStoreRootRoute()}/dataSources`}>Data Sources</Link>
-                )}
-                data-testid="data-source-details-breadcrumb-link"
+              <FeatureStoreBreadcrumb
+                pageName="Data sources"
+                projectName={currentProject || ''}
+                linkTo={`${featureStoreRootRoute()}/dataSources`}
+                dataTestId="data-source-details-breadcrumb-link"
               />
               <BreadcrumbItem
                 data-testid="data-source-details-breadcrumb-item"
