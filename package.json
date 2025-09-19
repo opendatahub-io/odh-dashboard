@@ -66,7 +66,10 @@
     "cypress:server:dev": "turbo run cypress:server:dev",
     "cypress:server:build": "turbo run cypress:server:build",
     "cypress:server:build:coverage": "turbo run cypress:server:build:coverage",
-    "postinstall": "turbo run install:module --ui=stream"
+    "postinstall": "turbo run install:module --ui=stream",
+    "test-e2e:dev": "concurrently --hide=0 -k -s first \"turbo run start:dev\" \"turbo run start:dev:wait && npm run test:cypress:e2e --prefix frontend\"",
+    "start:dev": "turbo run start:dev",
+    "start:dev:ext": "turbo run start:dev:ext"
   },
   "dependencies": {
     "@kubernetes/client-node": "^0.12.2",
