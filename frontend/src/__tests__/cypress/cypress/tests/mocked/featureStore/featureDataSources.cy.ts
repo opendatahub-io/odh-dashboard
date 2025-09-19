@@ -269,7 +269,10 @@ describe('Feature Data Sources for all projects', () => {
   it('should display project column when viewing all projects', () => {
     featureStoreGlobal.visitDataSources();
     featureDataSourcesTable.findTable().should('be.visible');
-    featureDataSourcesTable.findTable().find('thead').should('contain.text', 'Project');
+    featureDataSourcesTable
+      .findTable()
+      .find('thead')
+      .should('contain.text', 'Feature store repositories');
     featureDataSourcesTable.findRow('loan_data').shouldHaveProject(fsProjectName);
     featureDataSourcesTable.findRow('transaction_data').shouldHaveProject(fsProjectName2);
   });
@@ -328,7 +331,7 @@ describe('Feature Data Sources for all projects', () => {
     featureDataSourceDetails.findBreadcrumbLink().click();
 
     cy.url().should('include', '/featureStore/dataSources');
-    featureStoreGlobal.findHeading().should('have.text', 'Data Sources');
+    featureStoreGlobal.findHeading().should('have.text', 'Data sources');
     featureDataSourcesTable.findTable().should('be.visible');
   });
 });
@@ -342,7 +345,7 @@ describe('Feature Data Sources', () => {
 
   it('should display feature data sources page with correct title and content', () => {
     featureStoreGlobal.visitDataSources(fsProjectName);
-    featureStoreGlobal.findHeading().should('have.text', 'Data Sources');
+    featureStoreGlobal.findHeading().should('have.text', 'Data sources');
     featureStoreGlobal.findProjectSelector().should('exist');
     featureStoreGlobal.findProjectSelector().click();
     featureStoreGlobal.findProjectSelectorDropdown().should('contain.text', fsProjectName);
