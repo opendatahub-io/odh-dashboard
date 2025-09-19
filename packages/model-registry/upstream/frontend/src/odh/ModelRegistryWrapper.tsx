@@ -5,30 +5,36 @@ import {
   ModularArchContextProvider,
   ModularArchConfig,
   DeploymentMode,
+  useSettings,
 } from 'mod-arch-core';
 import { ThemeProvider, Theme } from 'mod-arch-kubeflow';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import ModelRegistryRoutes from '~/app/pages/modelRegistry/ModelRegistryRoutes';
 import { ModelRegistrySelectorContextProvider } from '~/app/context/ModelRegistrySelectorContext';
 import { AppContext } from '~/app/context/AppContext';
+import { Bullseye } from '@patternfly/react-core';
+import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDscStatus';
 
-const modularArchConfig: ModularArchConfig = {
-  deploymentMode: DeploymentMode.Federated,
-  URL_PREFIX,
-  BFF_API_VERSION,
-  mandatoryNamespace: 'odh-model-registries',
-};
-
-const ModelRegistryWrapper: React.FC = () => {
-  return (
+const ModelRegistryWrapperContent: React.FC = () => {
+  const {
+    configSettings,
+    userSettings,
+    loaded,
+    loadError,
+  } = useSettings();
+  if (loadError) {
+    return <div>Error: {loadError.message}</div>;
+  }
+  if (!loaded) {
+    return <Bullseye>Loading...</Bullseye>;
+  }
+  return configSettings && userSettings ? (
     <AppContext.Provider
       value={{
-        // TODO: remove this once we have a proper config
-        config: { common: { featureFlags: { modelRegistry: true } } },
-        user: { userId: 'test', clusterAdmin: true },
+        config: configSettings,
+        user: userSettings,
       }}
     >
-      <ModularArchContextProvider config={modularArchConfig}>
         <ThemeProvider theme={Theme.Patternfly}>
           <BrowserStorageContextProvider>
             <NotificationContextProvider>
@@ -38,8 +44,22 @@ const ModelRegistryWrapper: React.FC = () => {
             </NotificationContextProvider>
           </BrowserStorageContextProvider>
         </ThemeProvider>
-      </ModularArchContextProvider>
-    </AppContext.Provider>
+      </AppContext.Provider>
+  ) : null;
+};
+
+const ModelRegistryWrapper: React.FC = () => {
+  const [dscStatus] = useFetchDscStatus();
+  const modularArchConfig: ModularArchConfig = {
+    deploymentMode: DeploymentMode.Federated,
+    URL_PREFIX,
+    BFF_API_VERSION,
+    mandatoryNamespace: dscStatus?.components?.modelregistry?.registriesNamespace,
+  };
+  return (
+    <ModularArchContextProvider config={modularArchConfig}>
+      <ModelRegistryWrapperContent />
+    </ModularArchContextProvider>
   );
 };
 export default ModelRegistryWrapper;

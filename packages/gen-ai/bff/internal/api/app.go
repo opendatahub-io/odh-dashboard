@@ -123,10 +123,7 @@ func (app *App) isAPIRoute(path string) bool {
 		strings.HasPrefix(path, constants.ApiPathPrefix+"/") ||
 		// Match the full gen-ai path prefix
 		path == constants.PathPrefix+constants.ApiPathPrefix ||
-		strings.HasPrefix(path, constants.PathPrefix+constants.ApiPathPrefix+"/") ||
-		// Similarly for the llama-stack prefix
-		path == "/llama-stack" ||
-		strings.HasPrefix(path, "/llama-stack/")
+		strings.HasPrefix(path, constants.PathPrefix+constants.ApiPathPrefix+"/")
 }
 
 func (app *App) Routes() http.Handler {
@@ -185,13 +182,9 @@ func (app *App) Routes() http.Handler {
 	// handler for api calls
 	appMux.Handle(constants.PathPrefix+constants.ApiPathPrefix+"/", http.StripPrefix(constants.PathPrefix, apiRouter))
 
-	// Llama Stack proxy handler (unprotected)
-	appMux.HandleFunc("/llama-stack/", app.HandleLlamaStackProxy)
-
 	// file server for the frontend file and SPA routes
 	staticDir := http.Dir(app.config.StaticAssetsDir)
 	fileServer := http.FileServer(staticDir)
-	appMux.Handle(constants.ApiPathPrefix+"/", apiRouter)
 	appMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		ctxLogger := helper.GetContextLoggerFromReq(r)
 

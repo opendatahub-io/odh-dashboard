@@ -1,3 +1,4 @@
+import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import type {
   NavExtension,
   RouteExtension,
@@ -13,7 +14,33 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       id: PLUGIN_MODEL_REGISTRY,
       reliantAreas,
-      devFlags: ['Model Registry Plugin'],
+      devFlags: ['Model Registry Plugin (unreleased pages)'],
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.MODEL_CATALOG],
+    },
+    properties: {
+      id: 'modelCatalog',
+      title: 'Model catalog',
+      href: '/model-catalog',
+      section: 'models',
+      path: '/model-catalog/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.MODEL_REGISTRY],
+    },
+    properties: {
+      id: 'modelRegistry',
+      title: 'Model registry',
+      href: '/model-registry',
+      section: 'models',
+      path: '/model-registry/*',
     },
   },
   {
@@ -35,19 +62,6 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       required: [PLUGIN_MODEL_REGISTRY],
     },
     properties: {
-      id: 'modelCatalog-kf',
-      title: 'Model catalog (KF)',
-      href: '/model-catalog',
-      section: 'models',
-      path: '/model-catalog/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [PLUGIN_MODEL_REGISTRY],
-    },
-    properties: {
       id: 'settings-model-registry',
       title: 'Model registry settings (KF)',
       href: '/model-registry-settings',
@@ -58,7 +72,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.route',
     flags: {
-      required: [PLUGIN_MODEL_REGISTRY],
+      required: [SupportedArea.MODEL_REGISTRY],
     },
     properties: {
       path: '/model-registry/*',
@@ -68,7 +82,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.route',
     flags: {
-      required: [PLUGIN_MODEL_REGISTRY],
+      required: [SupportedArea.MODEL_CATALOG],
     },
     properties: {
       path: '/model-catalog/*',

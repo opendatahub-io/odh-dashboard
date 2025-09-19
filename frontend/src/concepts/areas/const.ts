@@ -61,7 +61,7 @@ export const modelServingFlags = {
 export const advancedAIMLFlags = {
   disablePipelines: false,
   disableDistributedWorkloads: false,
-  disableModelCatalog: true,
+  disableModelCatalog: false,
   disableModelRegistrySecureDB: false,
   disableFeatureStore: false,
   disableFineTuning: true,
