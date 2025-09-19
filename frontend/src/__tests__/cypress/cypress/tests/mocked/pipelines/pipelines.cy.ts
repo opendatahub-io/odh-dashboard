@@ -1596,6 +1596,26 @@ describe('Pipelines', () => {
     pipelinesTable.getRowById(mockPipelines[19].pipeline_id).find().should('exist');
     pipelinesTable.findRows().should('have.length', '20');
   });
+
+  describe('redirect from v2 to v3 route', () => {
+    it('root', () => {
+      cy.visitWithLogin('/pipelines');
+      cy.findByTestId('app-page-title').contains('Pipelines'); // TODO CAPONETTO: fix title after RHOAIENG-33162
+      cy.url().should('include', '/develop-train/pipelines/definitions');
+    });
+
+    it('view', () => {
+      initIntercepts({});
+      cy.visitWithLogin(
+        `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
+      );
+      cy.findByTestId('app-page-title').contains(initialMockPipeline.display_name);
+      cy.url().should(
+        'include',
+        `/develop-train/pipelines/definitions/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
+      );
+    });
+  });
 });
 
 type HandlersProps = {

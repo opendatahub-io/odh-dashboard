@@ -75,4 +75,10 @@ describe('User Management', () => {
     });
     userManagement.shouldHaveSuccessAlertMessage();
   });
+
+  it('redirect from v2 to v3 route', () => {
+    cy.visitWithLogin('/groupSettings');
+    cy.findByTestId('app-page-title').contains('User management');
+    cy.url().should('include', '/settings/user-management');
+  });
 });

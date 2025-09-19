@@ -38,7 +38,7 @@ const ModelRegistryRoutes: React.FC = () => (
           path={ModelVersionsTab.DETAILS}
           element={<ModelVersions tab={ModelVersionsTab.DETAILS} empty={false} />}
         />
-        <Route path="register-version" element={<RegisterVersion />} />
+        <Route path="register/version" element={<RegisterVersion />} />
         <Route path="versions/:modelVersionId">
           <Route index element={<Navigate to={ModelVersionDetailsTab.DETAILS} replace />} />
           <Route
@@ -117,8 +117,8 @@ const ModelRegistryRoutes: React.FC = () => (
         </Route>
         <Route path="*" element={<Navigate to="." />} />
       </Route>
-      <Route path="register-model" element={<RegisterModel />} />
-      <Route path="register-version" element={<RegisterVersion />} />
+      <Route path="register/model" element={<RegisterModel />} />
+      <Route path="register/version" element={<RegisterVersion />} />
       {buildV2RedirectRoutes(v2RedirectMap)}
       <Route path="*" element={<Navigate to="." />} />
     </Route>

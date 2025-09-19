@@ -134,6 +134,28 @@ describe('v2Redirect', () => {
         replace: true,
       });
     });
+
+    it('should preserve URL encoding in wildcard paths', () => {
+      mockUseParams.mockReturnValue({ '*': 'Red Hat/rhelai1/granite-8b-code-instruct/1.3.0' });
+      mockUseLocation.mockReturnValue(
+        createMockLocation(
+          '/modelCatalog/Red%20Hat/rhelai1/granite-8b-code-instruct/1%252E3%252E0',
+        ),
+      );
+
+      const element = buildV2RedirectElement({
+        from: '/modelCatalog/*',
+        to: '/ai-hub/catalog/*',
+      });
+
+      render(element);
+
+      expect(getNavigateProps()).toEqual({
+        to: '/ai-hub/catalog/Red%20Hat/rhelai1/granite-8b-code-instruct/1%252E3%252E0',
+        state: null,
+        replace: true,
+      });
+    });
   });
 
   describe('RelativeRedirect scenarios', () => {

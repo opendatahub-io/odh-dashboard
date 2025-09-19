@@ -19,6 +19,8 @@ interface RedirectConfig {
   to: string;
 }
 
+// Wildcard suffix for wildcard routes
+const WILDCARD_SUFFIX = '/*';
 // Regex pattern to escape special characters for safe use in regex
 const REGEX_ESCAPE_PATTERN = /[.*+?^${}()|[\]\\]/g;
 // Replacement string for escaping special regex characters (replaces matched chars with escaped versions)
@@ -55,6 +57,12 @@ const createPathPattern = (pathSegment: string): RegExp => {
   const escapedPath = escapeForRegex(pathSegment);
   return new RegExp(`/${escapedPath}$`);
 };
+
+/**
+ * Removes a trailing wildcard suffix (/*) from a path if present.
+ */
+const stripWildcardSuffix = (path: string): string =>
+  path.endsWith(WILDCARD_SUFFIX) ? path.slice(0, -WILDCARD_SUFFIX.length) : path;
 
 /**
  * Replaces route parameters in a path with their actual values.
@@ -98,7 +106,7 @@ const buildRedirectUrl = (args: { pathname: string; search: string; hash: string
  * Preserves URL state (search params, hash) during redirection.
  */
 const RelativeRedirect: React.FC<RedirectConfig> = ({ from, to }) => {
-  const location = useLocation();
+  const { pathname, search, hash, state } = useLocation();
   const params = useParams();
 
   const redirectTo = useMemo(() => {
@@ -106,50 +114,64 @@ const RelativeRedirect: React.FC<RedirectConfig> = ({ from, to }) => {
     const processedTo = replacePathParameters(to, params);
 
     const fromPattern = createPathPattern(processedFrom);
-    const redirectPath = location.pathname.replace(fromPattern, `/${processedTo}`);
+    const redirectPath = pathname.replace(fromPattern, `/${processedTo}`);
 
     return buildRedirectUrl({
       pathname: redirectPath,
-      search: location.search,
-      hash: location.hash,
+      search,
+      hash,
     });
-  }, [from, to, params, location.pathname, location.search, location.hash]);
+  }, [from, to, params, pathname, search, hash]);
 
-  return <Navigate to={redirectTo} state={location.state} replace />;
+  return <Navigate to={redirectTo} state={state} replace />;
 };
 
 /**
  * Component that handles absolute path redirects to a fixed destination.
  * Preserves location state during redirection.
  */
-const AbsoluteRedirect: React.FC<{ to: string }> = ({ to }) => {
-  const location = useLocation();
-  return <Navigate to={to} state={location.state} replace />;
+const AbsoluteRedirect: React.FC<Pick<RedirectConfig, 'to'>> = ({ to }) => {
+  const { state } = useLocation();
+  return <Navigate to={to} state={state} replace />;
 };
 
 /**
  * Component that handles wildcard route redirects, preserving the captured wildcard portion.
  * Maps parameters and appends the wildcard path to the target destination.
  */
-const WildcardRedirect: React.FC<{
-  targetPath: string;
-}> = ({ targetPath }) => {
+const WildcardRedirect: React.FC<RedirectConfig> = ({ from, to }) => {
   const params = useParams();
-  const location = useLocation();
+  const { pathname, search, hash, state } = useLocation();
 
   const redirectTo = useMemo(() => {
-    const wildcardPath = params['*'] ? `/${params['*']}` : '';
+    let wildcardPath: string;
 
-    const processedPath = replacePathParameters(targetPath, params).replace('/*', wildcardPath);
+    // Check if the from path has parameters (indicated by colons)
+    const hasParameters = /:/.test(from);
+
+    if (hasParameters) {
+      // For routes with parameters, use the original useParams approach
+      wildcardPath = params['*'] ? `/${params['*']}` : '';
+    } else {
+      // For simple routes without parameters, use pathname to preserve encoding
+      const basePath = stripWildcardSuffix(from);
+      wildcardPath = pathname.startsWith(basePath)
+        ? pathname.slice(basePath.length)
+        : params['*']
+        ? `/${params['*']}`
+        : '';
+    }
+
+    const processedPath = replacePathParameters(to, params).replace(WILDCARD_SUFFIX, wildcardPath);
 
     return buildRedirectUrl({
       pathname: processedPath,
-      search: location.search,
-      hash: location.hash,
+      search,
+      hash,
     });
-  }, [targetPath, params, location.search, location.hash]);
+  }, [from, to, params, pathname, search, hash]);
 
-  return <Navigate to={redirectTo} state={location.state} replace />;
+  return <Navigate to={redirectTo} state={state} replace />;
 };
 
 /**
@@ -161,8 +183,8 @@ const WildcardRedirect: React.FC<{
 export const buildV2RedirectElement = (config: RedirectConfig): React.ReactElement => {
   const { from, to } = config;
 
-  if (from.endsWith('/*')) {
-    return <WildcardRedirect targetPath={to} />;
+  if (from.endsWith(WILDCARD_SUFFIX)) {
+    return <WildcardRedirect from={from} to={to} />;
   }
 
   if (!to.startsWith('/')) {
@@ -180,17 +202,11 @@ export const buildV2RedirectElement = (config: RedirectConfig): React.ReactEleme
 export const buildV2RedirectRoutes = (
   redirectMap: Record<string, string>,
 ): React.ReactElement[] => {
-  const routes: React.ReactElement[] = [];
-
-  for (const [from, to] of Object.entries(redirectMap)) {
-    routes.push(
-      <Route
-        key={`redirect-${from}-${to}`}
-        path={from}
-        element={buildV2RedirectElement({ from, to })}
-      />,
-    );
-  }
-
-  return routes;
+  return Object.entries(redirectMap).map(([from, to]) => (
+    <Route
+      key={`redirect-${from}-${to}`}
+      path={from}
+      element={buildV2RedirectElement({ from, to })}
+    />
+  ));
 };

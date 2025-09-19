@@ -831,4 +831,24 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findServiceAccountByIndex(0).should('have.value', 'default-name');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
   });
+
+  describe('redirect from v2 to v3 route', () => {
+    // TODO: visit directly when plugin is enabled
+    const featureFlagParam = '?devFeatureFlags=Model+Serving+Plugin%3Dtrue';
+    beforeEach(() => {
+      initIntercepts({});
+    });
+
+    it('deploy create', () => {
+      cy.visitWithLogin(`/modelServing/test-project/deploy/create${featureFlagParam}`);
+      cy.findByTestId('app-page-title').contains('Deploy a model');
+      cy.url().should('include', '/ai-hub/deployments/test-project/deploy/create');
+    });
+
+    it('deploy edit', () => {
+      cy.visitWithLogin(`/modelServing/test-project/deploy/edit/test-model${featureFlagParam}`);
+      cy.findByTestId('app-page-title').contains('Edit model deployment');
+      cy.url().should('include', '/ai-hub/deployments/test-project/deploy/edit/test-model');
+    });
+  });
 });

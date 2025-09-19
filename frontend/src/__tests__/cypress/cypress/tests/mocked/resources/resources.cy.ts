@@ -352,4 +352,10 @@ describe('Resources page', () => {
 
     resourceCard.findQuickStartCardOpenButton().should('have.text', 'Open');
   });
+
+  it('redirect from v2 to v3 route', () => {
+    cy.visitWithLogin('/resources');
+    cy.findByTestId('app-page-title').should('have.text', 'Resources'); // TODO CAPONETTO: fix title after RHOAIENG-33162
+    cy.url().should('include', '/learning-resources');
+  });
 });

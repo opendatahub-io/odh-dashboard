@@ -534,6 +534,20 @@ describe('Hardware Profile', () => {
       row.findExpandableSection().contains('high').should('be.visible');
     });
   });
+
+  describe('redirect from v2 to v3 route', () => {
+    it('root', () => {
+      cy.visitWithLogin('/hardwareProfiles');
+      cy.findByTestId('app-page-title').contains('Hardware profiles');
+      cy.url().should('include', '/settings/environment-setup/hardware-profiles');
+    });
+
+    it('create', () => {
+      cy.visitWithLogin('/hardwareProfiles/create');
+      cy.findByTestId('app-page-title').contains('Create hardware profile');
+      cy.url().should('include', '/settings/environment-setup/hardware-profiles/create');
+    });
+  });
 });
 
 describe('hardware profiles - empty state', () => {
