@@ -15,6 +15,7 @@ import {
   Popover,
   ActionListGroup,
   Skeleton,
+  Spinner,
 } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { decodeParams, getModelName } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
@@ -59,13 +60,19 @@ const ModelDetailsPage: React.FC = () => {
   );
 
   const registerModelButton = (variant: 'primary' | 'secondary' = 'primary') => {
-    if (
-      !modelRegistriesLoaded ||
-      modelRegistriesLoadError ||
-      !artifactLoaded ||
-      artifactsLoadError
-    ) {
+    if (!modelRegistriesLoaded || modelRegistriesLoadError) {
       return null;
+    }
+
+    if (artifactsLoadError) {
+      return registerButtonPopover(
+        'Unable to load model artifacts',
+        'Model registration is unavailable due to an error loading model artifacts. Please try again later.',
+      );
+    }
+
+    if (!artifactLoaded) {
+      return <Spinner size="xl" />; // Still loading artifacts
     }
 
     return modelRegistries.length === 0 ? (

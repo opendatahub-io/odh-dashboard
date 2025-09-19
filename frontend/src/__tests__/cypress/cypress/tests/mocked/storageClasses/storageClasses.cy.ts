@@ -535,13 +535,11 @@ describe('Storage classes', () => {
         .and('be.checked');
     });
 
-    it('should show access mode checkboxes with disabled state for missing access modes', () => {
+    it('should show access modes as enabled even if they are missing from the config', () => {
       const config = {
         accessModeSettings: {
           [AccessMode.RWO]: true,
           [AccessMode.RWX]: true,
-          // ROX missing
-          // RWOP missing
         },
       };
       const storageClass = buildMockStorageClass(otherStorageClass, config);
@@ -576,7 +574,7 @@ describe('Storage classes', () => {
         .and('be.checked');
     });
 
-    it('should show access mode checkboxes with disabled state for supported access modes and extra keys', () => {
+    it('should show access modes as enabled when the config has extra keys', () => {
       const config = {
         accessModeSettings: {
           [AccessMode.RWO]: true,
@@ -601,18 +599,18 @@ describe('Storage classes', () => {
 
       storageClassEditModal
         .findAccessModeCheckbox(AccessMode.RWX)
-        .should('be.disabled')
-        .and('not.be.checked');
+        .should('be.enabled')
+        .and('be.checked');
 
       storageClassEditModal
         .findAccessModeCheckbox(AccessMode.ROX)
-        .should('be.disabled')
-        .and('not.be.checked');
+        .should('be.enabled')
+        .and('be.checked');
 
       storageClassEditModal
         .findAccessModeCheckbox(AccessMode.RWOP)
-        .should('be.disabled')
-        .and('not.be.checked');
+        .should('be.enabled')
+        .and('be.checked');
     });
 
     it('should show access mode checkboxes with empty access mode settings', () => {
@@ -634,17 +632,17 @@ describe('Storage classes', () => {
 
       storageClassEditModal
         .findAccessModeCheckbox(AccessMode.RWX)
-        .should('be.disabled')
+        .should('be.enabled')
         .and('not.be.checked');
 
       storageClassEditModal
         .findAccessModeCheckbox(AccessMode.ROX)
-        .should('be.disabled')
+        .should('be.enabled')
         .and('not.be.checked');
 
       storageClassEditModal
         .findAccessModeCheckbox(AccessMode.RWOP)
-        .should('be.disabled')
+        .should('be.enabled')
         .and('not.be.checked');
     });
 
@@ -749,6 +747,29 @@ describe('Storage classes', () => {
       storageClassEditModal
         .findAccessModeAlert()
         .should('contain.text', 'Disabling the RWX access mode will prevent new storage');
+    });
+
+    it('should show unsupported access modes warning based on provisioner recommendations', () => {
+      const config = {
+        accessModeSettings: {
+          [AccessMode.RWO]: true,
+          [AccessMode.RWX]: true, // RWX is not recommended for CINDER_CSI
+        },
+      };
+      const storageClass = buildMockStorageClass(openshiftDefaultStorageClass, config);
+      storageClassesPage.mockGetStorageClasses([storageClass]);
+      storageClassesPage.visit();
+      storageClassesTable
+        .getRowByConfigName('openshift-default-sc')
+        .findKebabAction('Edit')
+        .click();
+
+      cy.findByTestId('edit-sc-access-mode-mismatch-alert')
+        .should('be.visible')
+        .and('contain.text', 'Unsupported access modes selected')
+        .and('contain.text', 'cinder.csi.openstack.org')
+        .and('contain.text', 'recommended access modes are: RWO')
+        .and('contain.text', 'You have selected unsupported modes: RWX');
     });
   });
 });

@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import { renderHook, act } from '@testing-library/react';
+import * as React from 'react';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
 import { createResponse } from '~/app/services/llamaStackService';
 import { ChatbotSourceSettings, SimplifiedResponseData } from '~/app/types';
@@ -10,7 +11,13 @@ jest.mock('~/app/utilities/utils', () => ({
   getId: jest.fn(() => 'mock-id'),
 }));
 
+jest.mock('react', () => ({
+  ...jest.requireActual('react'),
+  useContext: jest.fn(),
+}));
+
 const mockCreateResponse = createResponse as jest.MockedFunction<typeof createResponse>;
+const mockUseContext = React.useContext as jest.MockedFunction<typeof React.useContext>;
 
 describe('useChatbotMessages', () => {
   const mockModelId = 'test-model-id';
@@ -30,10 +37,14 @@ describe('useChatbotMessages', () => {
     content: 'This is a bot response',
   };
 
+  const mockNamespace = { name: 'test-namespace' };
+
   beforeEach(() => {
     jest.clearAllMocks();
-    // Ensure querySource mock is properly reset
+    // Ensure createResponse mock is properly reset
     mockCreateResponse.mockReset();
+    // Mock useContext to return the namespace
+    mockUseContext.mockReturnValue({ namespace: mockNamespace });
   });
 
   describe('initialization', () => {
@@ -133,18 +144,21 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test query');
       });
 
-      expect(mockCreateResponse).toHaveBeenCalledWith({
-        input: 'Test query',
-        model: 'test-model-id',
-        vector_store_ids: ['test-vector-db'],
-        chat_context: [
-          {
-            role: 'assistant',
-            content: 'Send a message to test your configuration',
-          },
-        ],
-        instructions: '',
-      });
+      expect(mockCreateResponse).toHaveBeenCalledWith(
+        {
+          input: 'Test query',
+          model: 'test-model-id',
+          vector_store_ids: ['test-vector-db'],
+          chat_context: [
+            {
+              role: 'assistant',
+              content: 'Send a message to test your configuration',
+            },
+          ],
+          instructions: '',
+        },
+        'test-namespace',
+      );
     });
   });
 
@@ -196,17 +210,20 @@ describe('useChatbotMessages', () => {
         name: 'Bot',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
-      expect(mockCreateResponse).toHaveBeenCalledWith({
-        input: 'Test message',
-        model: 'test-model-id',
-        chat_context: [
-          {
-            role: 'assistant',
-            content: 'Send a message to test your configuration',
-          },
-        ],
-        instructions: '',
-      });
+      expect(mockCreateResponse).toHaveBeenCalledWith(
+        {
+          input: 'Test message',
+          model: 'test-model-id',
+          chat_context: [
+            {
+              role: 'assistant',
+              content: 'Send a message to test your configuration',
+            },
+          ],
+          instructions: '',
+        },
+        'test-namespace',
+      );
     });
 
     it('should handle API errors', async () => {
@@ -252,11 +269,38 @@ describe('useChatbotMessages', () => {
 
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
     });
+
+    it('should handle missing namespace', async () => {
+      // Override the useContext mock for this test
+      mockUseContext.mockReturnValue({ namespace: undefined });
+
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          modelId: mockModelId,
+          selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
+        }),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Test message');
+      });
+
+      expect(result.current.messages).toHaveLength(3); // initial + user + error bot
+      expect(result.current.messages[2]).toMatchObject({
+        role: 'bot',
+        content: 'Sorry, I encountered an error while processing your request. Please try again.',
+        name: 'Bot',
+      });
+      expect(result.current.isMessageSendButtonDisabled).toBe(false);
+      expect(mockCreateResponse).not.toHaveBeenCalled();
+    });
   });
 
   describe('conversation context functionality', () => {
     it('should include conversation history in system prompt', async () => {
-      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
 
       const { result } = renderHook(() =>
         useChatbotMessages({
