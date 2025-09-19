@@ -9,6 +9,8 @@ import {
   checkNIMApplicationExists,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/nimCommands';
 
+// Dummy comment for testing purposes
+
 /**
  * NIM Application Enablement Test
  *
