@@ -44,17 +44,18 @@ export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
   const [selectedModel, setSelectedModel] = React.useState('');
   const [lastInput, setLastInput] = React.useState('');
   const {
-    data: models,
-    loaded: modelsLoaded,
-    error: modelsError,
-    refresh: modelsRefresh,
-  } = useFetchLlamaModels(namespace?.name);
-  const {
     data: lsdStatus,
     loaded: lsdStatusLoaded,
     error: lsdStatusError,
     refresh: lsdStatusRefresh,
   } = useFetchLSDStatus(namespace?.name);
+
+  const {
+    data: models,
+    loaded: modelsLoaded,
+    error: modelsError,
+    refresh: modelsRefresh,
+  } = useFetchLlamaModels(namespace?.name, lsdStatus?.phase !== 'Ready');
 
   const refresh = React.useCallback(() => {
     lsdStatusRefresh();
