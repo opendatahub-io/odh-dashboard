@@ -23,7 +23,11 @@ export const extractHardwareProfileConfig = (
 };
 
 export const extractReplicas = (kserveDeployment: KServeDeployment): number | null => {
-  return kserveDeployment.model.spec.predictor.minReplicas ?? null;
+  return (
+    kserveDeployment.model.spec.predictor.minReplicas ??
+    kserveDeployment.model.spec.predictor.maxReplicas ??
+    null
+  );
 };
 
 export const applyHardwareProfileToDeployment = (

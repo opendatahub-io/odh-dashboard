@@ -270,6 +270,8 @@ describe('Model Serving Deploy Wizard', () => {
         },
         spec: {
           predictor: {
+            minReplicas: 99,
+            maxReplicas: 99,
             model: {
               modelFormat: {
                 name: 'vLLM',

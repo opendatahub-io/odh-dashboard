@@ -5,7 +5,10 @@ import NumberInputWrapper from '@odh-dashboard/internal/components/NumberInputWr
 import { normalizeBetween } from '@odh-dashboard/internal/utilities/utils';
 
 // Schema
-export const numReplicasFieldSchema = z.number().min(1).max(99);
+const LOWER_LIMIT = 1;
+const UPPER_LIMIT = 99;
+
+export const numReplicasFieldSchema = z.number().min(LOWER_LIMIT).max(UPPER_LIMIT);
 
 export type NumReplicasFieldData = z.infer<typeof numReplicasFieldSchema>;
 
@@ -21,7 +24,7 @@ export type NumReplicasFieldHook = {
 
 export const useNumReplicasField = (existingData?: NumReplicasFieldData): NumReplicasFieldHook => {
   const [replicaData, setReplicaData] = React.useState<NumReplicasFieldData | undefined>(
-    existingData || 1,
+    existingData || LOWER_LIMIT,
   );
 
   const setReplicas = React.useCallback((replicas: number) => {
@@ -39,13 +42,10 @@ type NumReplicasFieldProps = {
   replicaState: NumReplicasFieldHook;
 };
 
-const lowerLimit = 1;
-const upperLimit = 99;
-
 export const NumReplicasField: React.FC<NumReplicasFieldProps> = ({ replicaState }) => {
   const { data: replicas, setReplicas } = replicaState;
   const [displayValue, setDisplayValue] = React.useState<string>(
-    () => replicas?.toString() ?? lowerLimit.toString(),
+    () => replicas?.toString() ?? LOWER_LIMIT.toString(),
   );
 
   const handleChange = (val: number | undefined) => {
@@ -61,10 +61,10 @@ export const NumReplicasField: React.FC<NumReplicasFieldProps> = ({ replicaState
     }
 
     // If user tries to input 0, default to lowerLimit
-    const finalValue = newSize === 0 ? lowerLimit : newSize;
+    const finalValue = newSize === 0 ? LOWER_LIMIT : newSize;
 
-    if (finalValue <= upperLimit) {
-      const normalizedValue = normalizeBetween(finalValue, lowerLimit, upperLimit);
+    if (finalValue <= UPPER_LIMIT) {
+      const normalizedValue = normalizeBetween(finalValue, LOWER_LIMIT, UPPER_LIMIT);
       setReplicas(normalizedValue);
       setDisplayValue(normalizedValue.toString());
     }
@@ -73,8 +73,8 @@ export const NumReplicasField: React.FC<NumReplicasFieldProps> = ({ replicaState
   const handleBlur = () => {
     // If input is empty or invalid, default to lowerLimit
     if (displayValue === '' || displayValue === '0' || Number.isNaN(Number(displayValue))) {
-      setReplicas(lowerLimit);
-      setDisplayValue(lowerLimit.toString());
+      setReplicas(LOWER_LIMIT);
+      setDisplayValue(LOWER_LIMIT.toString());
     }
   };
 
@@ -86,8 +86,8 @@ export const NumReplicasField: React.FC<NumReplicasFieldProps> = ({ replicaState
       isRequired
     >
       <NumberInputWrapper
-        min={lowerLimit}
-        max={upperLimit}
+        min={LOWER_LIMIT}
+        max={UPPER_LIMIT}
         value={displayValue === '' ? undefined : Number(displayValue)}
         onChange={handleChange}
         onBlur={handleBlur}
