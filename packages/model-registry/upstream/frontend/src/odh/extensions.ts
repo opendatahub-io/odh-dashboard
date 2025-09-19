@@ -1,4 +1,4 @@
-import { StackComponent, SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import type {
   NavExtension,
   RouteExtension,
@@ -41,6 +41,19 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       href: '/model-catalog',
       section: 'models',
       path: '/model-catalog/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [PLUGIN_MODEL_REGISTRY],
+    },
+    properties: {
+      id: 'modelRegistry-kf',
+      title: 'Model registry (KF)',
+      href: '/model-registry',
+      section: 'models',
+      path: '/model-registry/*',
     },
   },
   {

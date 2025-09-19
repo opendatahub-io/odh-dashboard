@@ -72,7 +72,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableAcceleratorProfiles: false,
       disableHardwareProfiles: true,
       disableDistributedWorkloads: false,
-      disableModelCatalog: true,
+      disableModelCatalog: false,
       disableModelRegistry: false,
       disableModelRegistrySecureDB: false,
       disableServingRuntimeParams: false,
