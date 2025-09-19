@@ -1,9 +1,9 @@
+import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import type {
   NavExtension,
   RouteExtension,
   AreaExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
-import { StackComponent, SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 
 const reliantAreas = ['model-registry'];
 const PLUGIN_MODEL_REGISTRY = 'model-registry-plugin';
@@ -15,6 +15,19 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       id: PLUGIN_MODEL_REGISTRY,
       reliantAreas,
       devFlags: ['Model Registry Plugin (unreleased pages)'],
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.MODEL_CATALOG],
+    },
+    properties: {
+      id: 'modelCatalog',
+      title: 'Model catalog',
+      href: '/model-catalog',
+      section: 'models',
+      path: '/model-catalog/*',
     },
   },
   {
@@ -36,11 +49,11 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       required: [PLUGIN_MODEL_REGISTRY],
     },
     properties: {
-      id: 'modelCatalog-kf',
-      title: 'Model catalog (KF)',
-      href: '/model-catalog',
+      id: 'modelRegistry-kf',
+      title: 'Model registry (KF)',
+      href: '/model-registry',
       section: 'models',
-      path: '/model-catalog/*',
+      path: '/model-registry/*',
     },
   },
   {
@@ -69,7 +82,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.route',
     flags: {
-      required: [PLUGIN_MODEL_REGISTRY],
+      required: [SupportedArea.MODEL_CATALOG],
     },
     properties: {
       path: '/model-catalog/*',
