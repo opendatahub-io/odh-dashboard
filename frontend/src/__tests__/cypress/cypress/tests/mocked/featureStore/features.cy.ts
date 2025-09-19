@@ -273,11 +273,11 @@ describe('Features for all projects', () => {
     featuresTable.shouldHaveFeatureCount(3);
   });
 
-  it('should allow filtering by project', () => {
+  it('should allow filtering by feature store repositories', () => {
     featureStoreGlobal.visitFeatures();
     const toolbar = featuresTable.findToolbar();
 
-    toolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Project').click();
+    toolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Feature store repositories').click();
     toolbar.findSearchInput().type('credit_scoring_local');
     featuresTable.shouldHaveFeatureCount(1);
 
