@@ -13,5 +13,8 @@
   "scripts": {
     "lint": "eslint .",
     "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*"
   }
 }

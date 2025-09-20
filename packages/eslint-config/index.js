@@ -4,26 +4,14 @@ const base = require('./base');
 const react = require('./react');
 const typescript = require('./typescript');
 const markdown = require('./markdown');
+const node = require('./node');
 const yaml = require('./yaml');
 const prettier = require('./prettier');
 
 const { merge } = require('./utils');
 
-// const noExtraneousDependenciesOverrides = (dirname) => ({
-//   files: [`**/*.{js,jsx,ts,tsx}`],
-//   rules: {
-//     'import/no-extraneous-dependencies': [
-//       'error',
-//       {
-//         packageDir: [dirname, path.resolve(__dirname, '../../frontend')],
-//       },
-//     ],
-//   },
-// });
-
 const addNoExtraneousDependenciesRule = (config, dirname) => {
   const clone = structuredClone(config);
-  // clone.overrides = [...(clone.overrides || []), noExtraneousDependenciesOverrides(dirname)];
   clone.rules = {
     ...clone.rules,
     'import/no-extraneous-dependencies': [
@@ -45,6 +33,7 @@ const recommended = {
         root: true,
         extends: [
           '@odh-dashboard/eslint-config/base',
+          '@odh-dashboard/eslint-config/node',
           '@odh-dashboard/eslint-config/markdown',
           // '@odh-dashboard/eslint-config/yaml',
           '@odh-dashboard/eslint-config/prettier',
@@ -58,6 +47,7 @@ const recommended = {
         root: true,
         extends: [
           '@odh-dashboard/eslint-config/base',
+          '@odh-dashboard/eslint-config/node',
           '@odh-dashboard/eslint-config/typescript',
           '@odh-dashboard/eslint-config/markdown',
           // '@odh-dashboard/eslint-config/yaml',
@@ -72,6 +62,7 @@ const recommended = {
         root: true,
         extends: [
           '@odh-dashboard/eslint-config/base',
+          '@odh-dashboard/eslint-config/node',
           '@odh-dashboard/eslint-config/react',
           '@odh-dashboard/eslint-config/typescript',
           '@odh-dashboard/eslint-config/markdown',
@@ -100,6 +91,7 @@ module.exports = {
   react,
   typescript,
   markdown,
+  node,
   yaml,
 
   // always include prettier

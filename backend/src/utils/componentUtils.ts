@@ -209,13 +209,11 @@ const getCSVForApp = (
     });
 };
 
-// eslint-disable-next-line
 const getField = (obj: any, path: string, defaultValue: string = undefined): string => {
   const travel = (regexp: RegExp) =>
     String.prototype.split
       .call(path, regexp)
       .filter(Boolean)
-      // eslint-disable-next-line
       .reduce((res: any, key: string) => (res !== null && res !== undefined ? res[key] : res), obj);
   const result = travel(/[,[\]]+?/) || travel(/[,[\].]+?/);
   return result === undefined || result === obj ? defaultValue : result;

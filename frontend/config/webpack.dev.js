@@ -91,8 +91,7 @@ module.exports = smp.wrap(
               const username = execSync('oc whoami').toString().trim();
               console.info('Logged in as user:', username);
             } catch (e) {
-              console.error('Login with `oc login` prior to starting dev server.');
-              process.exit(1);
+              throw new Error('Login with `oc login` prior to starting dev server.');
             }
 
             const headers = {
