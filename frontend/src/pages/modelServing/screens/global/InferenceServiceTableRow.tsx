@@ -18,6 +18,8 @@ import useStopModalPreference from '#~/pages/modelServing/useStopModalPreference
 import ModelServingStopModal from '#~/pages/modelServing/ModelServingStopModal';
 import { useInferenceServiceStatus } from '#~/pages/modelServing/useInferenceServiceStatus.ts';
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
+import useServingHardwareProfileConfig from '#~/concepts/hardwareProfiles/useServingHardwareProfileConfig';
+import HardwareProfileTableColumn from '#~/concepts/hardwareProfiles/HardwareProfileTableColumn';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
@@ -54,6 +56,9 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   const isNIMAvailable = servingPlatformStatuses.kServeNIM.enabled;
 
   const [modelMetricsEnabled] = useModelMetricsEnabled();
+
+  const hardwareProfileConfig = useServingHardwareProfileConfig(inferenceService);
+  const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
 
   const modelMesh = isModelMesh(inferenceService);
   const modelMeshMetricsSupported = modelMetricsEnabled && modelMesh;
@@ -143,6 +148,19 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
           <InferenceServiceAPIProtocol
             servingRuntime={servingRuntime}
             isMultiModel={modelMeshMetricsSupported}
+          />
+        </Td>
+      )}
+
+      {isHardwareProfilesAvailable && columnNames.includes(ColumnField.HardwareProfile) && (
+        <Td dataLabel="Hardware profile">
+          <HardwareProfileTableColumn
+            namespace={inferenceService.metadata.namespace}
+            resource={inferenceService}
+            hardwareProfile={hardwareProfileConfig.initialHardwareProfile}
+            loaded={hardwareProfileConfig.profilesLoaded}
+            loadError={hardwareProfileConfig.profilesLoadError}
+            isRunning={isRunning}
           />
         </Td>
       )}
