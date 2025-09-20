@@ -1,0 +1,16 @@
+# Test data for FeatureStore Entities E2E tests
+namespace: "default"
+featureStoreNames: 
+  - "test-s3"
+projectName: "credit_scoring_local"
+searchTerm: "dummy"
+expectedColumns:
+  - "Entities"
+  - "Tags"
+  - "Join key"
+  - "Value type"
+  - "Feature Views"
+  - "Created"
+  - "Updated"
+  - "Owner"
+  - "Project"
