@@ -5,41 +5,61 @@ import {
   ModularArchContextProvider,
   ModularArchConfig,
   DeploymentMode,
+  useSettings,
 } from 'mod-arch-core';
 import { ThemeProvider, Theme } from 'mod-arch-kubeflow';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import { AppContext } from '~/app/context/AppContext';
 import ModelCatalogRoutes from '~/app/pages/modelCatalog/ModelCatalogRoutes';
 import { ModelRegistrySelectorContextProvider } from '~/app/context/ModelRegistrySelectorContext';
+import { Bullseye } from '@patternfly/react-core';
+import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDscStatus';
 
-const modularArchConfig: ModularArchConfig = {
-  deploymentMode: DeploymentMode.Federated,
-  URL_PREFIX,
-  BFF_API_VERSION,
-  mandatoryNamespace: 'odh-model-registries',
+const ModelCatalogWrapperContent: React.FC = () => {
+  const {
+    configSettings,
+    userSettings,
+    loaded,
+    loadError,
+  } = useSettings();
+  if (loadError) {
+    return <div>Error: {loadError.message}</div>;
+  }
+  if (!loaded) {
+    return <Bullseye>Loading...</Bullseye>;
+  }
+  return configSettings && userSettings ? (
+    <AppContext.Provider
+      value={{
+        config: configSettings,
+        user: userSettings,
+      }}
+    >
+      <ThemeProvider theme={Theme.Patternfly}>
+        <BrowserStorageContextProvider>
+          <NotificationContextProvider>
+            <ModelRegistrySelectorContextProvider>
+              <ModelCatalogRoutes />
+            </ModelRegistrySelectorContextProvider>
+          </NotificationContextProvider>
+        </BrowserStorageContextProvider>
+      </ThemeProvider>
+    </AppContext.Provider>
+  ) : null;
 };
 
 const ModelCatalogWrapper: React.FC = () => {
+  const [dscStatus] = useFetchDscStatus();
+  const modularArchConfig: ModularArchConfig = {
+    deploymentMode: DeploymentMode.Federated,
+    URL_PREFIX,
+    BFF_API_VERSION,
+    mandatoryNamespace: dscStatus?.components?.modelregistry?.registriesNamespace,
+  };
   return (
-    <AppContext.Provider
-      value={{
-        // TODO: remove this once we have a proper config
-        config: { common: { featureFlags: { modelRegistry: true } } },
-        user: { userId: 'test', clusterAdmin: true },
-      }}
-    >
-      <ModularArchContextProvider config={modularArchConfig}>
-        <ThemeProvider theme={Theme.Patternfly}>
-          <BrowserStorageContextProvider>
-            <NotificationContextProvider>
-              <ModelRegistrySelectorContextProvider>
-                <ModelCatalogRoutes />
-              </ModelRegistrySelectorContextProvider>
-            </NotificationContextProvider>
-          </BrowserStorageContextProvider>
-        </ThemeProvider>
-      </ModularArchContextProvider>
-    </AppContext.Provider>
+    <ModularArchContextProvider config={modularArchConfig}>
+      <ModelCatalogWrapperContent />
+    </ModularArchContextProvider>
   );
 };
 export default ModelCatalogWrapper;

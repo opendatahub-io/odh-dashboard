@@ -41,32 +41,34 @@ const extensions: NavExtension[] = [
       group: '3_models',
     },
   },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.MODEL_CATALOG],
-    },
-    properties: {
-      id: 'modelCatalog',
-      title: 'Model catalog',
-      href: '/modelCatalog',
-      section: 'models',
-      path: '/modelCatalog/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.MODEL_REGISTRY],
-    },
-    properties: {
-      id: 'modelRegistry',
-      title: 'Model registry',
-      href: '/modelRegistry',
-      section: 'models',
-      path: '/modelRegistry/*',
-    },
-  },
+  // This is being replaced by the upstream extension for model registry and will be removed along with the old MR UI code as part of https://issues.redhat.com/browse/RHOAIENG-34088
+  // {
+  //   type: 'app.navigation/href',
+  //   flags: {
+  //     required: [SupportedArea.MODEL_REGISTRY],
+  //   },
+  //   properties: {
+  //     id: 'modelRegistry',
+  //     title: 'Model registry',
+  //     href: '/modelRegistry',
+  //     section: 'models',
+  //     path: '/modelRegistry/*',
+  //   },
+  // },
+  // This is being replaced by the upstream extension for model catalog and will be removed along with the old MR UI code as part of https://issues.redhat.com/browse/RHOAIENG-34088
+  // {
+  //   type: 'app.navigation/href',
+  //   flags: {
+  //     required: [SupportedArea.MODEL_CATALOG],
+  //   },
+  //   properties: {
+  //     id: 'modelCatalog',
+  //     title: 'Model catalog',
+  //     href: '/modelCatalog',
+  //     section: 'models',
+  //     path: '/modelCatalog/*',
+  //   },
+  // },
   {
     type: 'app.navigation/href',
     flags: {

@@ -324,6 +324,11 @@ export type OdhApplication = {
       variableHelpText?: { [key: string]: string };
       variables?: { [key: string]: string };
       inProgressText?: string;
+      warningValidation?: {
+        field: string;
+        validationRegex?: string;
+        message: string;
+      };
     };
     enableCR: {
       field?: string;
