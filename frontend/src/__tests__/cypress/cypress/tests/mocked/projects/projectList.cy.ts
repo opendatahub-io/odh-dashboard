@@ -273,6 +273,8 @@ describe('Data science projects details', () => {
     projectListPage.visit();
     const projectTableRow = projectListPage.getProjectRow('Test Project');
     projectTableRow.findNotebookColumnExpander().click();
+    // Wait for notebook table to be visible after expansion
+    projectTableRow.findNotebookTable().should('be.visible');
     const notebookRows = projectTableRow.getNotebookRows();
     notebookRows.should('have.length', 1);
   });
@@ -318,6 +320,8 @@ describe('Data science projects details', () => {
     projectListPage.visit();
     const projectTableRow = projectListPage.getProjectRow('Test Project');
     projectTableRow.findNotebookColumnExpander().click();
+    // Wait for notebook table to be visible after expansion
+    projectTableRow.findNotebookTable().should('be.visible');
     const notebookRows = projectTableRow.getNotebookRows();
     notebookRows.should('have.length', 1);
 

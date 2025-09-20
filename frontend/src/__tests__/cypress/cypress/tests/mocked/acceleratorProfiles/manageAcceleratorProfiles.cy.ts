@@ -167,6 +167,8 @@ describe('Manage Accelerator Profile', () => {
   it('edit page has expected values', () => {
     initIntercepts({});
     editAcceleratorProfile.visit('test-accelerator');
+
+    // Wait for form to be populated with accelerator profile data
     editAcceleratorProfile.k8sNameDescription
       .findDisplayNameInput()
       .should('have.value', 'Test Accelerator');
@@ -174,6 +176,9 @@ describe('Manage Accelerator Profile', () => {
     editAcceleratorProfile.k8sNameDescription
       .findDescriptionInput()
       .should('have.value', 'Test description');
+
+    // Wait for toleration table to be populated before checking row data
+    cy.findByTestId('toleration-table').should('be.visible');
     editAcceleratorProfile
       .getRow('nvidia.com/gpu')
       .shouldHaveEffect('NoSchedule')
