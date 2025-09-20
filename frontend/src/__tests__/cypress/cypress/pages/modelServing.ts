@@ -941,6 +941,22 @@ class ModelServingWizard extends Wizard {
   findRemoveServiceAccountByIndex(index: number) {
     return this.findAllRemoveServiceAccountButtons().eq(index);
   }
+
+  findNumReplicasInput() {
+    return cy.findByTestId('num-replicas');
+  }
+
+  findNumReplicasInputField() {
+    return cy.findByTestId('num-replicas').find('input');
+  }
+
+  findNumReplicasMinusButton() {
+    return cy.findByTestId('num-replicas').findByRole('button', { name: 'Minus' });
+  }
+
+  findNumReplicasPlusButton() {
+    return cy.findByTestId('num-replicas').findByRole('button', { name: 'Plus' });
+  }
 }
 
 export const modelServingGlobal = new ModelServingGlobal();

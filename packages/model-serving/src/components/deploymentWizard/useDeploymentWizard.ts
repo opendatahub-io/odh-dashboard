@@ -16,12 +16,14 @@ import {
   useTokenAuthenticationField,
   type TokenAuthenticationFieldData,
 } from './fields/TokenAuthenticationField';
+import { useNumReplicasField, type NumReplicasFieldData } from './fields/NumReplicasField';
 
 export type ModelDeploymentWizardData = {
   modelTypeField?: ModelTypeFieldData;
   k8sNameDesc?: K8sNameDescriptionFieldData;
   externalRoute?: ExternalRouteFieldData;
   tokenAuthentication?: TokenAuthenticationFieldData;
+  numReplicas?: NumReplicasFieldData;
   hardwareProfile?: Parameters<typeof useHardwareProfileConfig>;
   modelFormat?: SupportedModelFormats;
   modelLocationData?: ModelLocationData;
@@ -40,6 +42,7 @@ export type UseModelDeploymentWizardState = {
     modelLocationData: ReturnType<typeof useModelLocationData>;
     externalRoute: ReturnType<typeof useExternalRouteField>;
     tokenAuthentication: ReturnType<typeof useTokenAuthenticationField>;
+    numReplicas: ReturnType<typeof useNumReplicasField>;
   };
 };
 
@@ -70,6 +73,8 @@ export const useModelDeploymentWizard = (
     initialData?.tokenAuthentication ?? undefined,
   );
 
+  const numReplicas = useNumReplicasField(initialData?.numReplicas ?? undefined);
+
   // Step 4: Summary
 
   return {
@@ -82,6 +87,7 @@ export const useModelDeploymentWizard = (
       modelLocationData,
       externalRoute,
       tokenAuthentication,
+      numReplicas,
     },
   };
 };
