@@ -6,7 +6,6 @@ import { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts
 import { extractK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
 import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
-import { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { useModelFormatField } from './fields/ModelFormatField';
 import { ModelLocationData } from './fields/modelLocationFields/types';
 import { useModelTypeField, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
@@ -25,8 +24,6 @@ export type ModelDeploymentWizardData = {
   hardwareProfile?: Parameters<typeof useHardwareProfileConfig>;
   modelFormat?: SupportedModelFormats;
   modelLocationData?: ModelLocationData;
-  connections?: LabeledConnection[];
-  initSelectedConnection?: LabeledConnection | undefined;
   // Add more field handlers as needed
 };
 
