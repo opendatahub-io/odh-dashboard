@@ -28,7 +28,8 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension | NavSe
       properties: {
         id: 'feature-store',
         title: 'Feature store',
-        group: '7_feature_store',
+        group: '1_feature_store',
+        section: 'develop-and-train',
       },
     },
     {

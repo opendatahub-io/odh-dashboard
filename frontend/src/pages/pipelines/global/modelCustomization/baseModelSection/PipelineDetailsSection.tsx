@@ -106,7 +106,7 @@ export const PipelineDetailsSection: React.FC<PipelineDetailsSectionProps> = ({
                           </ActionListItem>
                           <ActionListItem>
                             <Button variant="link" isInline onClick={() => navigate('/pipelines')}>
-                              Go to <b>Pipelines</b>
+                              Go to <b>Pipeline definitions</b>
                             </Button>
                           </ActionListItem>
                         </ActionList>

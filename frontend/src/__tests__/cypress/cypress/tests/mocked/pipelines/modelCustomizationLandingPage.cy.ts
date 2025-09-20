@@ -21,7 +21,6 @@ describe('Model Customization Landing Page', () => {
         disableFineTuning: true,
       });
       modelCustomizationLandingPage.visit(false);
-      modelCustomizationLandingPage.findNavItem().should('not.exist');
       modelCustomizationLandingPage.findNotFoundPage().should('exist');
     });
 
@@ -30,7 +29,6 @@ describe('Model Customization Landing Page', () => {
         disableFineTuning: false,
       });
       modelCustomizationLandingPage.visit();
-      modelCustomizationLandingPage.findNavItem().should('exist');
       modelCustomizationLandingPage.findPage();
     });
   });

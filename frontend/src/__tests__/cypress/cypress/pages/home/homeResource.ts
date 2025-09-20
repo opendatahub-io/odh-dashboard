@@ -6,6 +6,6 @@ export class HomeResource extends Contextual<HTMLElement> {
   }
 
   findGoToResourceLink(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('goto-resources-link');
+    return this.find().findByTestId('goto-learning-resources-link');
   }
 }

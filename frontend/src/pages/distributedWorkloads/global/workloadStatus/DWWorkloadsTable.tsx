@@ -14,7 +14,7 @@ export const DWWorkloadsTable: React.FC = () => {
   if (workloads.error) {
     return (
       <EmptyStateErrorMessage
-        title="Error loading distributed workloads"
+        title="Error loading workload metrics"
         bodyText={workloads.error.message}
       />
     );

@@ -32,7 +32,7 @@ useUserMock.mockReturnValue({
 describe('EmptyProjects', () => {
   it('should show the create project button when allowed to create projects', async () => {
     render(<EmptyProjects allowCreate />);
-    const createProject = await screen.findByTestId('create-data-science-project');
+    const createProject = await screen.findByTestId('create-project');
     expect(createProject).toBeEnabled();
     const bodyText = await screen.findByTestId('projects-empty-body-text');
     expect(bodyText).toHaveTextContent(

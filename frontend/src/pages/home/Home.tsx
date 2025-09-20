@@ -6,25 +6,20 @@ import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
 import { SupportedArea } from '#~/concepts/areas';
 //import ModelCatalogSection from '#~/pages/home/modelCatalog/ModelCatalogSection';
 import ProjectsSection from './projects/ProjectsSection';
-import { useAIFlows } from './aiFlows/useAIFlows';
 import { useResourcesSection } from './resources/useResourcesSection';
 import { useEnableTeamSection } from './useEnableTeamSection';
-import LandingPageHomeHint from './LandingPageHomeHint';
 
 const Home: React.FC = () => {
   const { status: projectsAvailable } = useIsAreaAvailable(SupportedArea.DS_PROJECTS_VIEW);
   // TODO: Temporarily disabled model catalog section - to be re-enabled in future ==> https://issues.redhat.com/browse/RHOAIENG-34405
   // const { status: modelCatalogAvailable } = useIsAreaAvailable(SupportedArea.MODEL_CATALOG);
-  const aiFlows = useAIFlows();
   const resourcesSection = useResourcesSection();
   const enableTeamSection = useEnableTeamSection();
 
   return (
     <div data-testid="home-page">
-      <LandingPageHomeHint />
       {!projectsAvailable &&
       // !modelCatalogAvailable &&
-      !aiFlows &&
       !resourcesSection &&
       !enableTeamSection ? (
         <PageSection
@@ -46,7 +41,6 @@ const Home: React.FC = () => {
           <ProjectsSection />
           {/* TODO: Temporarily disabled model catalog section  https://issues.redhat.com/browse/RHOAIENG-34405 */}
           {/* <ModelCatalogSection /> */}
-          {aiFlows}
           {resourcesSection}
           {enableTeamSection}
         </>

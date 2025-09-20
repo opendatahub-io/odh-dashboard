@@ -161,7 +161,7 @@ Setting up your LAB teacher model and LAB judge model requires performing the fo
 
 1. Find a LAB teacher or LAB judge model in the OpenShift AI model catalog.  
 2. Upload the model to your object storage.  
-3. Configure the object storage as a data connection within your data science project.  
+3. Configure the object storage as a data connection within your project.  
 4. If authorization is enabled on the model, configure service accounts to manage access.  
 5. Deploy the model in OpenShift AI.  
 6. When creating your LAB-tuning run in OpenShift AI, provide the model name, endpoint, and token, if applicable.

@@ -124,7 +124,7 @@ const ProjectsSection: React.FC = () => {
                 isInline
                 onClick={() => navigate('/projects')}
               >
-                Go to <b>Data Science Projects</b>
+                Go to <b>Projects</b>
               </Button>
             </FlexItem>
           </Flex>

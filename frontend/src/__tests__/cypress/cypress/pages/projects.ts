@@ -89,7 +89,7 @@ class ProjectListPage {
   }
 
   navigate() {
-    appChrome.findNavItem('Data science projects').click();
+    appChrome.findNavItem({ name: 'Projects' }).click();
     this.wait();
   }
 
@@ -109,12 +109,12 @@ class ProjectListPage {
   }
 
   shouldBeEmpty() {
-    cy.findByTestId('no-data-science-project').should('exist');
+    cy.findByTestId('no-project').should('exist');
     return this;
   }
 
   findCreateProjectButton() {
-    return cy.findByTestId('create-data-science-project');
+    return cy.findByTestId('create-project');
   }
 
   findLaunchStandaloneWorkbenchButton() {
@@ -150,7 +150,7 @@ class ProjectListPage {
   }
 
   /**
-   * Filter Project by name using the Project filter from the Data Science Projects view
+   * Filter Project by name using the Project filter from the Projects view
    * @param projectName Project Name
    */
   filterProjectByName = (projectName: string) => {

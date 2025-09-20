@@ -24,6 +24,7 @@ import {
   type RegisteredModel,
 } from '#~/concepts/modelRegistry/types';
 import type { ModelRegistry } from '#~/k8sTypes';
+import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
 
 const MODEL_REGISTRY_API_VERSION = 'v1';
 
@@ -268,8 +269,7 @@ describe('Model Registry core', () => {
 
     modelRegistry.landingPage();
 
-    cy.findByRole('button', { name: 'Models' }).should('exist').click();
-    cy.findByRole('link', { name: 'Model registry' }).should('exist');
+    appChrome.findNavItem({ name: 'Registry', rootSection: 'AI hub' }).should('exist');
   });
 
   // does not work because of ModelRegistryCoreLoader line 66. TODO: Fix this test and investigate this line.
@@ -293,7 +293,7 @@ describe('Model Registry core', () => {
     );
     cy.visitWithLogin('/model-registry/modelregistry-sample');
 
-    cy.findByRole('button', { name: 'Models' }).should('exist').click();
+    appChrome.findNavSection('AI hub').should('exist');
 
     // Check for admin-specific content
     modelRegistry.findModelRegistryEmptyState().should('exist');
@@ -328,7 +328,7 @@ describe('Model Registry core', () => {
       { data: { userId: 'user@example.com', clusterAdmin: true } },
     );
     cy.visitWithLogin('/model-registry/modelregistry-sample');
-    cy.findByRole('button', { name: 'Models' }).should('exist').click();
+    appChrome.findNavSection('AI hub').should('exist');
 
     // Check for non-admin specific content
     modelRegistry.findModelRegistryEmptyState().should('exist');
@@ -355,7 +355,7 @@ describe.skip('Register Model button', () => {
     // TODO: Fix this function
     // modelRegistry.visit();
     cy.visitWithLogin('/model-registry/modelregistry-sample');
-    cy.findByRole('button', { name: 'Models' }).should('exist').click();
+    appChrome.findNavSection('AI hub').should('exist');
     modelRegistry.shouldModelRegistrySelectorExist();
   });
 });
