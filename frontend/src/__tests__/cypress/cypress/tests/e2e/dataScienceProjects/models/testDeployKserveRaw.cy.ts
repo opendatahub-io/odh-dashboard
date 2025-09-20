@@ -14,6 +14,7 @@ import {
 import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
+import { MODEL_STATUS_TIMEOUT } from '#~/__tests__/cypress/cypress/support/timeouts';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -22,7 +23,7 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('[Product Bug: RHOAIENG-31261] Verify a user can deploy KServe Raw Deployment Model', () => {
+describe('Verify a user can deploy KServe Raw Deployment Model', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
     return loadDSPFixture('e2e/dataScienceProjects/testDeployKserveRaw.yaml').then(
@@ -57,7 +58,7 @@ describe('[Product Bug: RHOAIENG-31261] Verify a user can deploy KServe Raw Depl
   it(
     'Verify model deployment with KServe RawDeployment mode',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent', '@Bug'],
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent'],
     },
     () => {
       cy.step(`Log into the application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
@@ -102,6 +103,7 @@ describe('[Product Bug: RHOAIENG-31261] Verify a user can deploy KServe Raw Depl
       modelServingSection.findModelServerDeployedName(modelName);
 
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
+      const kServeRow = modelServingSection.getKServeRow(modelName);
       // For KServe Raw deployments, we only need to check Ready condition
       // LatestDeploymentReady is specific to Serverless deployments
       // Validate DeploymentMode parameter in inferenceService is RawDeployment
@@ -113,6 +115,11 @@ describe('[Product Bug: RHOAIENG-31261] Verify a user can deploy KServe Raw Depl
         },
         'RawDeployment',
       );
+      cy.reload();
+      modelServingSection.findModelMetricsLink(modelName);
+      kServeRow.shouldHaveServingRuntime('OpenVINO Model Server');
+      kServeRow.findStatusLabel('Started', MODEL_STATUS_TIMEOUT).should('exist');
+      kServeRow.findStateActionToggle().should('have.text', 'Stop').should('be.enabled');
     },
   );
 });

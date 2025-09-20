@@ -16,6 +16,7 @@ import { checkInferenceServiceState } from '#~/__tests__/cypress/cypress/utils/o
 import type { DeployOCIModelData } from '#~/__tests__/cypress/cypress/types';
 import { loadDeployOCIModelFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
+import { MODEL_STATUS_TIMEOUT } from '#~/__tests__/cypress/cypress/support/timeouts';
 
 let projectName: string;
 let connectionName: string;
@@ -26,7 +27,7 @@ let modelDeploymentName: string;
 const uuid = generateTestUUID();
 
 describe(
-  '[Product Bug: RHOAIENG-31085] A user can create an OCI connection and deploy a model with it',
+  'A user can create an OCI connection and deploy a model with it',
   { testIsolation: false },
   () => {
     let testData: DeployOCIModelData;
@@ -58,7 +59,7 @@ describe(
     it(
       'Verify User Can Create an OCI Connection in DS Connections Page And Deploy the Model',
       {
-        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent', '@Bug'],
+        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent'],
       },
       () => {
         cy.step(`Navigate to DS Project ${projectName}`);
@@ -92,12 +93,15 @@ describe(
         inferenceServiceModal.findOpenVinoOnnx().click();
         inferenceServiceModal.findOCIModelURI().type(modelDeploymentURI);
         inferenceServiceModal.findSubmitButton().focus().click();
+
+        cy.step('Validate the model is deployed');
+        const kServeRow = modelServingSection.getKServeRow(modelDeploymentName);
         checkInferenceServiceState(modelDeploymentName, projectName);
-        // Note reload is required as status tooltip was not found due to a stale element
         cy.reload();
         modelServingSection.findModelMetricsLink(modelDeploymentName);
-        modelServingSection.findStatusTooltip().click({ force: true });
-        cy.contains('Model is deployed', { timeout: 120000 }).should('be.visible');
+        kServeRow.shouldHaveServingRuntime('OpenVINO Model Server');
+        kServeRow.findStatusLabel('Started', MODEL_STATUS_TIMEOUT).should('exist');
+        kServeRow.findStateActionToggle().should('have.text', 'Stop').should('be.enabled');
       },
     );
   },
