@@ -5,6 +5,7 @@ import { LlamaStackDistributionModel } from '~/app/types';
 
 const useFetchLSDStatus = (
   selectedProject?: string,
+  activelyRefresh?: boolean,
 ): FetchStateObject<LlamaStackDistributionModel | null> => {
   const fetchLSDStatus = React.useCallback<
     FetchStateCallbackPromise<LlamaStackDistributionModel | null>
@@ -17,6 +18,8 @@ const useFetchLSDStatus = (
 
   const [data, loaded, error, refresh] = useFetchState(fetchLSDStatus, null, {
     initialPromisePurity: true,
+    // Refresh every 3 seconds if actively refreshing
+    refreshRate: activelyRefresh ? 3000 : 0,
   });
   return { data, loaded, error, refresh };
 };

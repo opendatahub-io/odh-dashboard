@@ -95,6 +95,4 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
   );
 };
 
-export { ViewCodeModal };
-
 export default ViewCodeModal;

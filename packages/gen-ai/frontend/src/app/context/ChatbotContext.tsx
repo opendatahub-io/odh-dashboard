@@ -11,6 +11,11 @@ type ChatbotContextProps = {
   lsdStatusLoaded: boolean;
   modelsError: Error | undefined;
   lsdStatusError: Error | undefined;
+  refresh: () => void;
+  selectedModel: string;
+  setSelectedModel: (model: string) => void;
+  lastInput: string;
+  setLastInput: (input: string) => void;
 };
 
 type ChatbotContextProviderProps = {
@@ -25,26 +30,64 @@ export const ChatbotContext = React.createContext<ChatbotContextProps>({
   lsdStatusLoaded: false,
   modelsError: undefined,
   lsdStatusError: undefined,
+  refresh: () => undefined,
+  selectedModel: '',
+  setSelectedModel: () => undefined,
+  lastInput: '',
+  setLastInput: () => undefined,
 });
 
 export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
   children,
   namespace,
 }) => {
-  const {
-    data: models,
-    loaded: modelsLoaded,
-    error: modelsError,
-  } = useFetchLlamaModels(namespace?.name);
+  const [selectedModel, setSelectedModel] = React.useState('');
+  const [lastInput, setLastInput] = React.useState('');
   const {
     data: lsdStatus,
     loaded: lsdStatusLoaded,
     error: lsdStatusError,
+    refresh: lsdStatusRefresh,
   } = useFetchLSDStatus(namespace?.name);
 
+  const {
+    data: models,
+    loaded: modelsLoaded,
+    error: modelsError,
+    refresh: modelsRefresh,
+  } = useFetchLlamaModels(namespace?.name, lsdStatus?.phase !== 'Ready');
+
+  const refresh = React.useCallback(() => {
+    lsdStatusRefresh();
+    modelsRefresh();
+  }, [lsdStatusRefresh, modelsRefresh]);
+
   const contextValue = React.useMemo(
-    () => ({ models, lsdStatus, modelsLoaded, lsdStatusLoaded, modelsError, lsdStatusError }),
-    [models, lsdStatus, modelsLoaded, lsdStatusLoaded, modelsError, lsdStatusError],
+    () => ({
+      models,
+      lsdStatus,
+      modelsLoaded,
+      lsdStatusLoaded,
+      modelsError,
+      lsdStatusError,
+      refresh,
+      selectedModel,
+      setSelectedModel,
+      lastInput,
+      setLastInput,
+    }),
+    [
+      models,
+      lsdStatus,
+      modelsLoaded,
+      lsdStatusLoaded,
+      modelsError,
+      lsdStatusError,
+      selectedModel,
+      lastInput,
+      setLastInput,
+      refresh,
+    ],
   );
 
   return <ChatbotContext.Provider value={contextValue}>{children}</ChatbotContext.Provider>;

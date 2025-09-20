@@ -17,12 +17,10 @@ import { ChatbotSourceUploadPanel } from '~/app/Chatbot/sourceUpload/ChatbotSour
 import { ACCORDION_ITEMS } from '~/app/Chatbot/const';
 import useAccordionState from '~/app/Chatbot/hooks/useAccordionState';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
-import { LlamaModel } from '~/app/types';
 import ModelDetailsDropdown from './ModelDetailsDropdown';
 import SystemPromptFormGroup from './SystemInstructionFormGroup';
 
 interface ChatbotSettingsPanelProps {
-  models: LlamaModel[];
   selectedModel: string;
   onModelChange: (value: string) => void;
   alerts: {
@@ -35,7 +33,6 @@ interface ChatbotSettingsPanelProps {
 }
 
 const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> = ({
-  models,
   selectedModel,
   onModelChange,
   alerts,
@@ -67,7 +64,6 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
               <Form>
                 <FormGroup label="Model" fieldId="model-details">
                   <ModelDetailsDropdown
-                    models={models}
                     selectedModel={selectedModel}
                     onModelChange={onModelChange}
                   />
