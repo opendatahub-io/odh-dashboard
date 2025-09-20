@@ -10,7 +10,7 @@ export const columns: SortableData<Entity>[] = [
   },
   {
     field: 'project',
-    label: 'Project',
+    label: 'Feature store repository',
     sortable: (a, b): number => (a.project || '').localeCompare(b.project || ''),
   },
   {
@@ -77,7 +77,7 @@ export const columns: SortableData<Entity>[] = [
 
 export const entityTableFilterOptions: Record<string, string> = {
   entity: 'Entity name',
-  project: 'Project',
+  project: 'Feature store repository',
   tag: 'Tags',
   joinKey: 'Join key',
   valueType: 'Value type',

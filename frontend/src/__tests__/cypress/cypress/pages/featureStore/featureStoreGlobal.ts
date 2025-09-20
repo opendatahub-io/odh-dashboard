@@ -156,7 +156,7 @@ class FeatureStoreGlobal {
   }
 
   private waitForDataSources() {
-    cy.findByTestId('app-page-title').should('have.text', 'Data Sources');
+    cy.findByTestId('app-page-title').should('have.text', 'Data sources');
     cy.testA11y();
   }
 

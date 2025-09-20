@@ -58,21 +58,21 @@ class FeatureServiceDetails {
 }
 
 class FeatureServiceDetailsBreadcrumb extends Contextual<HTMLElement> {
-  findFeatureServicesLink() {
-    return this.find().findByRole('link', { name: 'Feature services' });
+  findBreadcrumbLink() {
+    return cy.findByTestId('feature-service-details-breadcrumb-link');
   }
 
-  findCurrentServiceName() {
-    return this.find().findByTestId('breadcrumb-feature-service-name');
+  findBreadcrumbItem() {
+    return cy.findByTestId('breadcrumb-feature-service-name');
   }
 
   clickFeatureServicesLink() {
-    this.findFeatureServicesLink().click();
+    this.findBreadcrumbLink().click();
     return this;
   }
 
   shouldShowCurrentService(serviceName: string) {
-    this.findCurrentServiceName().should('have.text', serviceName);
+    this.findBreadcrumbItem().should('have.text', serviceName);
     return this;
   }
 }
@@ -162,7 +162,7 @@ class FeatureServiceDetailsPage {
 
 export const featureServiceDetails = new FeatureServiceDetails();
 export const featureServiceDetailsBreadcrumb = new FeatureServiceDetailsBreadcrumb(() =>
-  cy.get('.pf-v6-c-breadcrumb'),
+  cy.findByTestId('feature-service-details-page'),
 );
 export const featureServiceDetailsTabs = new FeatureServiceDetailsTabs(() =>
   cy.findByTestId('feature-details-page'),

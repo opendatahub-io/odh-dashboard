@@ -10,7 +10,7 @@ export const columns: SortableData<DataSource>[] = [
   },
   {
     field: 'project',
-    label: 'Project',
+    label: 'Feature store repository',
     width: 10,
     sortable: (a: DataSource, b: DataSource): number =>
       (a.project ?? '').localeCompare(b.project ?? ''),
@@ -74,7 +74,7 @@ export const dataSourceTableFilterKeyMapping = {
 };
 export const dataSourceTableFilterOptions: Record<string, string> = {
   name: 'Name',
-  project: 'Project',
+  project: 'Feature store repository',
   type: 'Data source connector',
   featureViews: 'Feature views',
   updated: 'Modified after',

@@ -29,7 +29,6 @@ const LineageInner: React.FC<LineageProps> = ({
   componentFactory,
   popoverComponent: PopoverComponent,
   toolbarComponent: ToolbarComponent,
-  autoResetOnDataChange = false,
 }) => {
   const controller = useLineageController('lineage-graph', componentFactory);
 
@@ -74,6 +73,9 @@ const LineageInner: React.FC<LineageProps> = ({
     onNodeSelect: handleNodeSelect,
   });
 
+  // Track if we've done initial fit to avoid conflicts with controller's fit
+  const hasInitialFitted = React.useRef(false);
+
   // Load nodes and edges into controller when it's ready
   React.useEffect(() => {
     if (controller && nodes.length > 0) {
@@ -85,30 +87,27 @@ const LineageInner: React.FC<LineageProps> = ({
           },
           true, // Update existing model
         );
+
+        // Only fit on initial data load, let controller handle subsequent layouts
+        if (!hasInitialFitted.current) {
+          const initialFitTimeout = setTimeout(() => {
+            try {
+              controller.getGraph().fit(50);
+              hasInitialFitted.current = true;
+            } catch (e) {
+              console.warn('Failed to fit graph on initial load:', e);
+            }
+          }, 200); // Longer delay for initial load
+
+          return () => clearTimeout(initialFitTimeout);
+        }
       } catch (e) {
         console.error('Error loading lineage nodes and edges:', e);
+        return undefined;
       }
     }
-  }, [controller, nodes, edges]);
-
-  // Auto-reset zoom and center when data changes after filtering
-  React.useEffect(() => {
-    if (controller && autoResetOnDataChange && nodes.length > 0) {
-      const resetTimeout = setTimeout(() => {
-        try {
-          controller.getGraph().reset();
-          controller.getGraph().layout();
-        } catch (e) {
-          console.warn('Failed to reset graph layout:', e);
-        }
-      }, 100); // Small delay to let the data load effect complete
-
-      return () => {
-        clearTimeout(resetTimeout);
-      };
-    }
     return undefined;
-  }, [controller, autoResetOnDataChange, nodes, edges]);
+  }, [controller, nodes, edges]);
 
   // Get the selected node for potential pan-into-view functionality
   const selectedNode = useMemo(() => {

@@ -3,9 +3,12 @@ import { useParams } from 'react-router-dom';
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import { conditionalArea } from '@odh-dashboard/internal/concepts/areas/AreaComponent';
 import { FeatureStoreAPIs } from './types/global';
+import { ProjectList } from './types/featureStoreProjects';
 import { useFeatureStoreCR } from './apiHooks/useFeatureStoreCR';
 import useFeatureStoreAPIState, { FeatureStoreAPIState } from './apiHooks/useFeatureStoreAPIState';
 import EnsureFeatureStoreAPIAvailability from './EnsureAPIAvailability';
+import { DEFAULT_PROJECT_LIST } from './const';
+import useFeatureStoreProjectsAPI from './apiHooks/useFeatureStoreProjectsAPI';
 
 export type FeatureStoreContextType = {
   apiState: FeatureStoreAPIState;
@@ -14,6 +17,10 @@ export type FeatureStoreContextType = {
   setCurrentProject: (project?: string) => void;
   preferredFeatureStoreProject: string | null;
   updatePreferredFeatureStoreProject: (project: string | null) => void;
+  featureStoreProjects: ProjectList;
+  featureStoreProjectsLoaded: boolean;
+  featureStoreProjectsError: Error | undefined;
+  refreshFeatureStoreProjects: () => void;
 };
 
 type FeatureStoreContextProviderProps = {
@@ -28,6 +35,10 @@ export const FeatureStoreContext = React.createContext<FeatureStoreContextType>(
   setCurrentProject: () => undefined,
   preferredFeatureStoreProject: null,
   updatePreferredFeatureStoreProject: () => undefined,
+  featureStoreProjects: DEFAULT_PROJECT_LIST,
+  featureStoreProjectsLoaded: false,
+  featureStoreProjectsError: undefined,
+  refreshFeatureStoreProjects: () => undefined,
 });
 
 export const FeatureStoreContextProvider = conditionalArea<FeatureStoreContextProviderProps>(
@@ -40,6 +51,13 @@ export const FeatureStoreContextProvider = conditionalArea<FeatureStoreContextPr
     : null;
 
   const [apiState, refreshAPIState] = useFeatureStoreAPIState(hostPath);
+
+  const {
+    data: featureStoreProjects,
+    loaded: featureStoreProjectsLoaded,
+    error: featureStoreProjectsError,
+    refresh: refreshFeatureStoreProjects,
+  } = useFeatureStoreProjectsAPI(apiState);
 
   const { fsProjectName } = useParams<{ fsProjectName: string }>();
   const [preferredFeatureStoreProject, setPreferredFeatureStoreProject] = React.useState<
@@ -60,17 +78,35 @@ export const FeatureStoreContextProvider = conditionalArea<FeatureStoreContextPr
     [setPreferredFeatureStoreProject],
   );
 
+  const contextValue = React.useMemo(
+    () => ({
+      apiState,
+      refreshAPIState,
+      currentProject,
+      setCurrentProject,
+      preferredFeatureStoreProject,
+      updatePreferredFeatureStoreProject: setPreferredFeatureStoreProject,
+      featureStoreProjects,
+      featureStoreProjectsLoaded,
+      featureStoreProjectsError,
+      refreshFeatureStoreProjects,
+    }),
+    [
+      apiState,
+      refreshAPIState,
+      currentProject,
+      setCurrentProject,
+      preferredFeatureStoreProject,
+      setPreferredFeatureStoreProject,
+      featureStoreProjects,
+      featureStoreProjectsLoaded,
+      featureStoreProjectsError,
+      refreshFeatureStoreProjects,
+    ],
+  );
+
   return (
-    <FeatureStoreContext.Provider
-      value={{
-        apiState,
-        refreshAPIState,
-        currentProject,
-        setCurrentProject,
-        preferredFeatureStoreProject,
-        updatePreferredFeatureStoreProject: setPreferredFeatureStoreProject,
-      }}
-    >
+    <FeatureStoreContext.Provider value={contextValue}>
       <EnsureFeatureStoreAPIAvailability>{children}</EnsureFeatureStoreAPIAvailability>
     </FeatureStoreContext.Provider>
   );

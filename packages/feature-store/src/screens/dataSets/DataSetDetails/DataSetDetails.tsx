@@ -19,6 +19,7 @@ import useFeatureStoreDataSetByName from '../../../apiHooks/useFeatureStoreDataS
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
 import { featureStoreRootRoute } from '../../../routes';
 import FeatureStorePageTitle from '../../../components/FeatureStorePageTitle';
+import FeatureStoreBreadcrumb from '../../components/FeatureStoreBreadcrumb';
 
 const DataSetDetails = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -85,9 +86,11 @@ const DataSetDetails = (): React.ReactElement => {
           isDetailsPage
           breadcrumb={
             <Breadcrumb>
-              <BreadcrumbItem
-                data-testid="data-set-details-breadcrumb-link"
-                render={() => <Link to={`${featureStoreRootRoute()}/dataSets`}>Datasets</Link>}
+              <FeatureStoreBreadcrumb
+                pageName="Datasets"
+                projectName={currentProject || ''}
+                linkTo={`${featureStoreRootRoute()}/dataSets`}
+                dataTestId="data-set-details-breadcrumb-link"
               />
               <BreadcrumbItem
                 data-testid="data-set-details-breadcrumb-item"
