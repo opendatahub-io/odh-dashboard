@@ -22,6 +22,7 @@ interface UseChatbotMessagesProps {
   systemInstruction: string;
   isRawUploaded: boolean;
   username?: string;
+  isStreamingEnabled: boolean;
 }
 
 const useChatbotMessages = ({
@@ -30,6 +31,7 @@ const useChatbotMessages = ({
   systemInstruction,
   isRawUploaded,
   username,
+  isStreamingEnabled,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<MessageProps[]>([initialBotMessage()]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
@@ -75,21 +77,47 @@ const useChatbotMessages = ({
           }))
           .filter((msg) => msg.content),
         instructions: systemInstruction,
+        stream: isStreamingEnabled,
       };
 
       if (!namespace?.name) {
         throw new Error('Namespace is required for generating responses');
       }
-      const response = await createResponse(responsesPayload, namespace.name);
 
-      const botMessage: MessageProps = {
-        id: getId(),
-        role: 'bot',
-        content: response.content || 'No response received',
-        name: 'Bot',
-        avatar: botAvatar,
-      };
-      setMessages((prevMessages) => [...prevMessages, botMessage]);
+      if (isStreamingEnabled) {
+        // Create initial bot message for streaming
+        const botMessageId = getId();
+        const initialBotMessage: MessageProps = {
+          id: botMessageId,
+          role: 'bot',
+          content: '',
+          name: 'Bot',
+          avatar: botAvatar,
+        };
+        setMessages((prevMessages) => [...prevMessages, initialBotMessage]);
+
+        // Handle streaming response
+        await createResponse(responsesPayload, namespace.name, (chunk: string) => {
+          // Update the bot message with streaming content
+          setMessages((prevMessages) =>
+            prevMessages.map((msg) =>
+              msg.id === botMessageId ? { ...msg, content: (msg.content || '') + chunk } : msg,
+            ),
+          );
+        });
+      } else {
+        // Handle non-streaming response
+        const response = await createResponse(responsesPayload, namespace.name);
+
+        const botMessage: MessageProps = {
+          id: getId(),
+          role: 'bot',
+          content: response.content || 'No response received',
+          name: 'Bot',
+          avatar: botAvatar,
+        };
+        setMessages((prevMessages) => [...prevMessages, botMessage]);
+      }
     } catch {
       const botMessage: MessageProps = {
         id: getId(),

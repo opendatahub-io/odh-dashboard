@@ -136,14 +136,85 @@ export const uploadSource = (
  * Request to generate AI responses with RAG and conversation context.
  * @param request - CreateResponseRequest payload for /gen-ai/api/v1/responses.
  * @param namespace - The namespace to generate responses in
+ * @param onStreamData - Optional callback for streaming data chunks
  * @returns Promise<SimplifiedResponseData> - The generated response object.
  * @throws Error - When the API request fails or returns an error response.
  */
 export const createResponse = (
   request: CreateResponseRequest,
   namespace: string,
+  onStreamData?: (chunk: string) => void,
 ): Promise<SimplifiedResponseData> => {
   const url = `${URL_PREFIX}/api/v1/responses?namespace=${namespace}`;
+
+  if (request.stream && onStreamData) {
+    // Handle streaming response using fetch with text/event-stream
+    return new Promise((resolve, reject) => {
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'text/event-stream',
+        },
+        body: JSON.stringify(request),
+      })
+        .then(async (response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const reader = response.body?.getReader();
+          if (!reader) {
+            throw new Error('Unable to read stream');
+          }
+
+          let fullContent = '';
+          const decoder = new TextDecoder();
+
+          try {
+            let done = false;
+            while (!done) {
+              const result = await reader.read();
+              done = result.done;
+
+              if (!done && result.value) {
+                const chunk = decoder.decode(result.value, { stream: true });
+                const lines = chunk.split('\n');
+
+                for (const line of lines) {
+                  if (line.startsWith('data: ')) {
+                    try {
+                      const data = JSON.parse(line.slice(6));
+                      if (data.content) {
+                        fullContent += data.content;
+                        onStreamData(data.content);
+                      }
+                    } catch {
+                      // Ignore parsing errors for individual chunks - this is expected for malformed chunks
+                    }
+                  }
+                }
+              }
+            }
+          } finally {
+            reader.releaseLock();
+          }
+
+          resolve({
+            id: 'streaming-response',
+            model: request.model,
+            status: 'completed',
+            created_at: Date.now(),
+            content: fullContent,
+          });
+        })
+        .catch((error) => {
+          reject(new Error(error.message || 'Failed to generate streaming response'));
+        });
+    });
+  }
+
+  // Handle non-streaming response
   return axios
     .post(url, request)
     .then((response) => response.data.data)

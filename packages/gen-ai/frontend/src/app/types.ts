@@ -74,6 +74,7 @@ export type CreateResponseRequest = {
   temperature?: number;
   top_p?: number;
   instructions?: string;
+  stream?: boolean;
 };
 
 export type SimplifiedUsage = {
