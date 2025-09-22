@@ -37,6 +37,17 @@ const useChatbotMessages = ({
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
   const scrollToBottomRef = React.useRef<HTMLDivElement>(null);
   const { namespace } = React.useContext(GenAiContext);
+  const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeout on unmount
+  React.useEffect(
+    () => () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    },
+    [],
+  );
 
   // Auto-scroll to bottom when messages change
   React.useEffect(() => {
@@ -87,24 +98,44 @@ const useChatbotMessages = ({
       if (isStreamingEnabled) {
         // Create initial bot message for streaming
         const botMessageId = getId();
-        const initialBotMessage: MessageProps = {
+        const streamingBotMessage: MessageProps = {
           id: botMessageId,
           role: 'bot',
           content: '',
           name: 'Bot',
           avatar: botAvatar,
         };
-        setMessages((prevMessages) => [...prevMessages, initialBotMessage]);
+        setMessages((prevMessages) => [...prevMessages, streamingBotMessage]);
 
-        // Handle streaming response
-        await createResponse(responsesPayload, namespace.name, (chunk: string) => {
-          // Update the bot message with streaming content
+        // Handle streaming response with debounced updates
+        let streamingContent = '';
+
+        const updateMessage = () => {
           setMessages((prevMessages) =>
             prevMessages.map((msg) =>
-              msg.id === botMessageId ? { ...msg, content: (msg.content || '') + chunk } : msg,
+              msg.id === botMessageId ? { ...msg, content: streamingContent } : msg,
             ),
           );
+        };
+
+        await createResponse(responsesPayload, namespace.name, (chunk: string) => {
+          // Accumulate content
+          streamingContent += chunk;
+
+          // Clear previous timeout and set a new one
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+          }
+
+          // Update UI every 50ms for smooth streaming effect
+          timeoutRef.current = setTimeout(updateMessage, 50);
         });
+
+        // Final update to ensure all content is displayed
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+        updateMessage();
       } else {
         // Handle non-streaming response
         const response = await createResponse(responsesPayload, namespace.name);
