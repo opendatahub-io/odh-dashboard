@@ -4,6 +4,7 @@ metadata:
   name: odh-dashboard
   annotations:
     service.alpha.openshift.io/serving-cert-secret-name: dashboard-proxy-tls
+    service.beta.kubernetes.io/backend-protocol: HTTPS
 spec:
   selector:
     deployment: odh-dashboard

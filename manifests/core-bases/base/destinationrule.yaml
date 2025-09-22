@@ -1,0 +1,10 @@
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: odh-dashboard
+spec:
+  host: odh-dashboard
+  trafficPolicy:
+    tls:
+      mode: SIMPLE  # Use TLS without client certificate verification
+      insecureSkipVerify: true  # Skip certificate verification for self-signed certs

@@ -20,7 +20,10 @@ resources:
   - fetch-hardwares.rbac.yaml
   - fetch-nim-account.rbac.yaml
   - aggregate-permissions.rbac.yaml
+  - kube-rbac-proxy-config.yaml
+  - httproute.yaml
+  - destinationrule.yaml
 images:
-  - name: oauth-proxy
-    newName: registry.redhat.io/openshift4/ose-oauth-proxy
-    digest: sha256:4f8d66597feeb32bb18699326029f9a71a5aca4a57679d636b876377c2e95695
+  - name: kube-rbac-proxy
+    newName: registry.redhat.io/openshift4/ose-kube-rbac-proxy
+    digest: sha256:503d5ee0fbcd5bd3492785f4246e19cbdb92960be0d05f3c6f123a32fe0fe84d

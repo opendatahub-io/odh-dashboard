@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kube-rbac-proxy-config-alt
+data:
+  config-file.yaml: |+
+    # No authorization config - trust the gateway's authentication
