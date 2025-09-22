@@ -158,13 +158,6 @@ jobs:
             fi
 
             echo "🎯 Cypress dependencies installation completed"
-
-          elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            echo "🍎 macOS detected - installing Xvfb..."
-            brew install xorg-server || echo "Homebrew install failed, Xvfb may already be available"
-
-          elif [[ "$RUNNER_OS" == "Windows" ]]; then
-            echo "🪟 Windows detected - Cypress dependencies usually pre-installed"
           fi
 
       - name: Debug available secrets
