@@ -56,7 +56,6 @@ export const mockHardwareProfile = ({
     },
   ],
   description = '',
-  enabled = true,
   schedulingType = SchedulingType.NODE,
   localQueueName = 'default-local-queue',
   priorityClass = 'None',
@@ -88,7 +87,6 @@ export const mockHardwareProfile = ({
     labels,
   },
   spec: {
-    enabled,
     identifiers,
     scheduling: {
       type: schedulingType,
