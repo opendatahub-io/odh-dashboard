@@ -83,6 +83,30 @@ export type SimplifiedUsage = {
   total_tokens: number;
 };
 
+// Backend response types (matches the actual API structure)
+export type ContentItem = {
+  type: string;
+  text: string;
+};
+
+export type OutputItem = {
+  id?: string;
+  type: string;
+  role?: string;
+  status?: string;
+  content?: ContentItem[];
+};
+
+export type BackendResponseData = {
+  id: string;
+  model: string;
+  status: string;
+  created_at: number;
+  output?: OutputItem[];
+  usage?: SimplifiedUsage;
+};
+
+// Frontend-friendly response type (flattened)
 export type SimplifiedResponseData = {
   id: string;
   model: string;

@@ -6,6 +6,8 @@ import {
   ChatbotSourceSettings,
   CreateResponseRequest,
   SimplifiedResponseData,
+  BackendResponseData,
+  OutputItem,
   LlamaModel,
   FileUploadResult,
   CodeExportRequest,
@@ -14,6 +16,46 @@ import {
 } from '../types';
 import axios from '../utilities/axios';
 import { URL_PREFIX } from '../utilities/const';
+
+/**
+ * Extracts text content from the backend response output array
+ * @param output - Array of output items from backend response
+ * @returns string - Concatenated text content
+ */
+const extractContentFromOutput = (output?: OutputItem[]): string => {
+  if (!output || output.length === 0) {
+    return '';
+  }
+
+  let content = '';
+  for (const item of output) {
+    if (item.content && Array.isArray(item.content)) {
+      for (const contentItem of item.content) {
+        if (contentItem.type === 'output_text' && contentItem.text) {
+          content += contentItem.text;
+        }
+      }
+    }
+  }
+
+  return content;
+};
+
+/**
+ * Transforms backend response to frontend-friendly format
+ * @param backendResponse - Response from backend API
+ * @returns SimplifiedResponseData - Frontend-friendly response
+ */
+const transformBackendResponse = (
+  backendResponse: BackendResponseData,
+): SimplifiedResponseData => ({
+  id: backendResponse.id,
+  model: backendResponse.model,
+  status: backendResponse.status,
+  created_at: backendResponse.created_at,
+  content: extractContentFromOutput(backendResponse.output),
+  usage: backendResponse.usage,
+});
 
 /**
  * Fetches all available models from the Llama Stack API
@@ -185,9 +227,10 @@ export const createResponse = (
                   if (line.startsWith('data: ')) {
                     try {
                       const data = JSON.parse(line.slice(6));
-                      if (data.content) {
-                        fullContent += data.content;
-                        onStreamData(data.content);
+                      // Handle streaming deltas from response.output_text.delta events
+                      if (data.delta && data.type === 'response.output_text.delta') {
+                        fullContent += data.delta;
+                        onStreamData(data.delta);
                       }
                     } catch {
                       // Ignore parsing errors for individual chunks - this is expected for malformed chunks
@@ -217,7 +260,10 @@ export const createResponse = (
   // Handle non-streaming response
   return axios
     .post(url, request)
-    .then((response) => response.data.data)
+    .then((response) => {
+      const backendResponse: BackendResponseData = response.data.data;
+      return transformBackendResponse(backendResponse);
+    })
     .catch((error) => {
       throw new Error(
         error.response?.data?.error?.message || error.message || 'Failed to generate responses',
