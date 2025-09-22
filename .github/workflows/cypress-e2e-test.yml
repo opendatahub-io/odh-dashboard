@@ -3,6 +3,8 @@ name: E2E Direct Commit PR Tests
 on:
   issue_comment:
     types: [created]
+  push:
+    branches: [e2eCypressGHActionsPipeline]
 
 permissions:
   contents: read
@@ -41,7 +43,6 @@ jobs:
         uses: actions/cache@v4
         id: npm-cache
         with:
-          lookup-only: true
           path: |
             ~/.cache/Cypress
             **/node_modules
@@ -67,15 +68,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
 
-      - name: Cache OpenShift CLI
+      - name: Cache OpenShift CLI tarball
         uses: actions/cache@v4
         id: oc-cache
         with:
-          path: /usr/local/bin/oc
-          key: ${{ runner.os }}-oc-${{ env.OC_VERSION || '4.15.0' }}
+          path: ${{ runner.temp }}/oc.tar.gz
+          key: ${{ runner.os }}-oc-tarball-${{ env.OC_VERSION || '4.15.0' }}
 
       - name: Check and Install OpenShift CLI
-        if: steps.oc-cache.outputs.cache-hit != 'true'
         run: |
           echo "🔍 Checking if OpenShift CLI (oc) is installed..."
 
@@ -87,9 +87,19 @@ jobs:
             echo "❌ OpenShift CLI (oc) not found, installing..."
             echo "📦 Installing oc CLI for Linux..."
 
-            # Download and install oc
-            curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz
-            tar -xzf oc.tar.gz
+            OC_TARBALL="${{ runner.temp }}/oc.tar.gz"
+
+            # Check if tarball was cached
+            if [ -f "$OC_TARBALL" ]; then
+              echo "✅ Using cached OpenShift CLI tarball"
+            else
+              echo "📥 Downloading OpenShift CLI tarball..."
+              curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz -o "$OC_TARBALL"
+            fi
+
+            # Extract and install oc
+            echo "📦 Extracting OpenShift CLI..."
+            tar -xzf "$OC_TARBALL"
             sudo mv oc /usr/local/bin/
             sudo chmod +x /usr/local/bin/oc
 
