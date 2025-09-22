@@ -4,7 +4,15 @@ on:
   issue_comment:
     types: [created]
 
-# Only run workflow if comment contains /run-e2e-tests-gh
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+env:
+  NODE_VERSION: 20.x
+  DO_NOT_TRACK: 1
+
 jobs:
   check-comment:
     runs-on: ubuntu-latest
