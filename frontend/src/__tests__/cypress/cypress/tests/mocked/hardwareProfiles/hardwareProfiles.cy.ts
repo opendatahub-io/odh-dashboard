@@ -27,7 +27,7 @@ const initIntercepts = () => {
       mockHardwareProfile({
         name: 'test-hardware-profile-delete',
         displayName: 'Test Hardware Profile Delete',
-        enabled: false,
+        annotations: { 'opendatahub.io/disabled': 'true' },
       }),
     ]),
   );
@@ -198,7 +198,7 @@ describe('Hardware Profile', () => {
               name: `Test Hardware Profile - ${i}`,
               displayName: `Test Hardware Profile - ${i}`,
               description: `hardware profile ${i}`,
-              enabled: false,
+              annotations: { 'opendatahub.io/disabled': 'true' },
             }),
           ),
         ),

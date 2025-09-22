@@ -393,7 +393,7 @@ describe('Workbench Hardware Profiles', () => {
           mockHardwareProfile({
             name: 'small-profile',
             displayName: 'Small Profile',
-            enabled: false,
+            annotations: { 'opendatahub.io/disabled': 'true' },
             identifiers: [
               {
                 displayName: 'CPU',
