@@ -17,8 +17,6 @@ jobs:
   check-comment:
     runs-on: ubuntu-latest
     if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-e2e-tests-gh') }}
-    outputs:
-      should-run: 'true'
     steps:
       - run: echo "E2E tests requested via /run-e2e-tests-gh comment"
 
