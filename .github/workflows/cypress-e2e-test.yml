@@ -4,18 +4,18 @@ on:
   issue_comment:
     types: [created]
 
-permissions:
-  contents: read
-  pull-requests: write
-  issues: write
-
-env:
-  NODE_VERSION: 20.x
-  DO_NOT_TRACK: 1
-
+# Only run workflow if comment contains /run-e2e-tests-gh
 jobs:
-  get-test-tags:
+  check-comment:
+    runs-on: ubuntu-latest
     if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-e2e-tests-gh') }}
+    outputs:
+      should-run: 'true'
+    steps:
+      - run: echo "E2E tests requested via /run-e2e-tests-gh comment"
+
+  get-test-tags:
+    needs: [check-comment]
     runs-on: self-hosted
     outputs:
       test-tags: ${{ steps.set-tags.outputs.test-tags }}
@@ -478,7 +478,7 @@ jobs:
   cleanup-server:
     needs: [e2e-tests]
     runs-on: self-hosted
-    if: always()
+    if: ${{ always() && needs.e2e-tests.result != 'skipped' }}
     steps:
       - name: Stop Cypress Servers
         run: |
