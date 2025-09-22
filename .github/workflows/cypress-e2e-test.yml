@@ -1,9 +1,6 @@
 name: E2E Direct Commit PR Tests
 
-on:
-  issue_comment:
-    types: [created]
-  push: {}
+on: [push, pull_request]
 
 permissions:
   contents: read
