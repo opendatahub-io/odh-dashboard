@@ -107,35 +107,57 @@ const useChatbotMessages = ({
         };
         setMessages((prevMessages) => [...prevMessages, streamingBotMessage]);
 
-        // Handle streaming response with debounced updates
-        let streamingContent = '';
+        // Handle streaming response with line-by-line display like ChatGPT
+        const completeLines: string[] = [];
+        let currentPartialLine = '';
 
-        const updateMessage = () => {
+        const updateMessage = (showPartialLine = true) => {
+          // Combine complete lines with current partial line for display
+          const displayContent =
+            completeLines.join('\n') +
+            (showPartialLine && currentPartialLine
+              ? (completeLines.length > 0 ? '\n' : '') + currentPartialLine
+              : '');
+
           setMessages((prevMessages) =>
             prevMessages.map((msg) =>
-              msg.id === botMessageId ? { ...msg, content: streamingContent } : msg,
+              msg.id === botMessageId ? { ...msg, content: displayContent } : msg,
             ),
           );
         };
 
         await createResponse(responsesPayload, namespace.name, (chunk: string) => {
-          // Accumulate content
-          streamingContent += chunk;
+          // Add chunk to current partial line
+          currentPartialLine += chunk;
 
-          // Clear previous timeout and set a new one
-          if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
+          // Check if we have complete lines (ending with newline characters)
+          const lines = currentPartialLine.split('\n');
+
+          if (lines.length > 1) {
+            // We have at least one complete line
+            // Add all complete lines except the last one (which might be partial)
+            completeLines.push(...lines.slice(0, -1));
+            currentPartialLine = lines[lines.length - 1]; // Keep the last line as partial
+
+            // Update immediately when we have a new complete line
+            updateMessage(true);
+          } else {
+            // No complete lines yet, just update the partial line
+            // Clear previous timeout and set a new one for smooth partial line updates
+            if (timeoutRef.current) {
+              clearTimeout(timeoutRef.current);
+            }
+
+            // Update UI every 50ms for smooth streaming effect on partial lines
+            timeoutRef.current = setTimeout(() => updateMessage(true), 50);
           }
-
-          // Update UI every 50ms for smooth streaming effect
-          timeoutRef.current = setTimeout(updateMessage, 50);
         });
 
         // Final update to ensure all content is displayed
         if (timeoutRef.current) {
           clearTimeout(timeoutRef.current);
         }
-        updateMessage();
+        updateMessage(true);
       } else {
         // Handle non-streaming response
         const response = await createResponse(responsesPayload, namespace.name);
