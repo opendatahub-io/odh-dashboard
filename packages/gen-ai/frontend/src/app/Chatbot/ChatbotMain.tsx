@@ -1,7 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import {
-  Bullseye,
   Button,
   EmptyState,
   EmptyStateVariant,
@@ -130,9 +129,11 @@ const ChatbotMain: React.FunctionComponent = () => {
             </EmptyStateFooter>
           </EmptyState>
         ) : (
-          <Bullseye>
-            <Spinner size="lg" />
-          </Bullseye>
+          <EmptyState headingLevel="h4" titleText="Configuring playground" icon={Spinner}>
+            <EmptyStateBody>
+              Please wait while we add models and configure the playground
+            </EmptyStateBody>
+          </EmptyState>
         )}
       </ApplicationsPage>
       {configurationModalOpen && (
