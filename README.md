@@ -4,7 +4,9 @@
 [issue]: https://github.com/opendatahub-io/odh-dashboard/issues/new/choose
 [definition of ready]: docs/definition-of-ready.md
 
-# Open Data Hub Dashboard [![codecov](https://codecov.io/gh/opendatahub-io/odh-dashboard/graph/badge.svg)](https://codecov.io/gh/opendatahub-io/odh-dashboard)
+# Open Data Hub Dashboard
+
+<!-- Test PR for Cypress E2E workflow --> [![codecov](https://codecov.io/gh/opendatahub-io/odh-dashboard/graph/badge.svg)](https://codecov.io/gh/opendatahub-io/odh-dashboard)
 
 A dashboard for Open Data Hub components, featuring user flows to navigate and interact with the various component parts of the stack.
 
