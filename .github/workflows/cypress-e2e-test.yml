@@ -468,7 +468,7 @@ jobs:
           echo "Status: ${{ job.status }}"
           echo "Event: ${{ github.event_name }}"
           echo "Branch: ${{ github.ref_name }}"
-          echo "Test Tag: ${{ matrix.test-tag }}”
+          echo "Test Tag: ${{ matrix.test-tag }}"
           echo "Commit: ${{ github.sha }}"
           echo "Run ID: ${{ github.run_id }}"
           echo ""
