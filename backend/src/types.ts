@@ -52,6 +52,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableFineTuning: boolean;
       disableKueue: boolean;
       disableLMEval: boolean;
+      disableFeatureStore: boolean;
     };
     // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
     // groupsConfig?: {
@@ -323,6 +324,11 @@ export type OdhApplication = {
       variableHelpText?: { [key: string]: string };
       variables?: { [key: string]: string };
       inProgressText?: string;
+      warningValidation?: {
+        field: string;
+        validationRegex?: string;
+        message: string;
+      };
     };
     enableCR: {
       field?: string;

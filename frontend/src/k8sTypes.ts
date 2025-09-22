@@ -36,6 +36,13 @@ export enum KnownLabels {
   KUEUE_MANAGED = 'kueue.openshift.io/managed',
 }
 
+export type ModelRegistry = {
+  name: string;
+  displayName: string;
+  description: string;
+  serverAddress?: string;
+};
+
 export type K8sVerb =
   | 'create'
   | 'get'

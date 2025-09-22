@@ -79,3 +79,25 @@ func (r *LlamaStackDistributionRepository) InstallLlamaStackDistribution(
 
 	return installModel, nil
 }
+
+// DeleteLlamaStackDistribution deletes a LlamaStackDistribution with the specified name
+func (r *LlamaStackDistributionRepository) DeleteLlamaStackDistribution(
+	client kubernetes.KubernetesClientInterface,
+	ctx context.Context,
+	identity *integrations.RequestIdentity,
+	namespace string,
+	name string,
+) (*models.LlamaStackDistributionDeleteResponse, error) {
+	// Call the Kubernetes client to delete the LSD (validation logic is now in the client)
+	_, err := client.DeleteLlamaStackDistribution(ctx, identity, namespace, name)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create the response model
+	deleteModel := &models.LlamaStackDistributionDeleteResponse{
+		Data: "LlamaStackDistribution deleted successfully",
+	}
+
+	return deleteModel, nil
+}

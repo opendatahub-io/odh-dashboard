@@ -105,23 +105,6 @@ func TestIsAPIRoute(t *testing.T) {
 			expected: true,
 		},
 
-		// Llama-stack routes
-		{
-			name:     "llama-stack exact match",
-			path:     "/llama-stack",
-			expected: true,
-		},
-		{
-			name:     "llama-stack with subpath",
-			path:     "/llama-stack/models",
-			expected: true,
-		},
-		{
-			name:     "llama-stack with nested subpath",
-			path:     "/llama-stack/v1/models",
-			expected: true,
-		},
-
 		// False positive cases - these should NOT be API routes
 		{
 			name:     "api v1something (false positive case)",
@@ -217,28 +200,6 @@ func TestIsAPIRoute(t *testing.T) {
 			path:     "/api/v1/config#section",
 			expected: true, // The function should match the path portion before fragments
 		},
-
-		// Llama-stack false positive cases
-		{
-			name:     "llama-stack-other",
-			path:     "/llama-stack-other",
-			expected: false,
-		},
-		{
-			name:     "llama-stack_other",
-			path:     "/llama-stack_other",
-			expected: false,
-		},
-		{
-			name:     "llama-stackother",
-			path:     "/llama-stackother",
-			expected: false,
-		},
-		{
-			name:     "llama-stack.",
-			path:     "/llama-stack.",
-			expected: false,
-		},
 	}
 
 	for _, tt := range tests {
@@ -285,37 +246,10 @@ func TestIsAPIRouteEdgeCases(t *testing.T) {
 			expected: false,
 		},
 
-		// Boundary testing for llama-stack prefix
-		{
-			name:     "llama-stack with single character after",
-			path:     "/llama-stacka",
-			expected: false,
-		},
-		{
-			name:     "llama-stack with number after",
-			path:     "/llama-stack2",
-			expected: false,
-		},
-		{
-			name:     "llama-stack with special character after",
-			path:     "/llama-stack@",
-			expected: false,
-		},
-		{
-			name:     "llama-stack with space after",
-			path:     "/llama-stack ",
-			expected: false,
-		},
-
 		// Case sensitivity tests
 		{
 			name:     "API v1 uppercase",
 			path:     "/API/V1/config",
-			expected: false,
-		},
-		{
-			name:     "llama-stack uppercase",
-			path:     "/LLAMA-STACK/models",
 			expected: false,
 		},
 		{

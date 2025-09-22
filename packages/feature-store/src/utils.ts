@@ -27,6 +27,14 @@ export const getFeatureStoreObjectDisplayName = (
       return 'Feature Views';
     case FeatureStoreObject.FEATURE_SERVICES:
       return 'Feature Services';
+    case FeatureStoreObject.DATA_SETS:
+      return 'Datasets';
+    case FeatureStoreObject.DATA_SOURCES:
+      return 'Data Sources';
+    case FeatureStoreObject.OVERVIEW:
+      return 'Overview';
+    case FeatureStoreObject.FEATURES:
+      return 'Features';
     default:
       return featureStoreObject;
   }
@@ -118,4 +126,27 @@ const TITLE_TO_TYPE_MAP: Record<string, FeatureStoreObjectType> = {
 
 export const getFeatureStoreObjectTypeFromTitle = (title: string): FeatureStoreObjectType => {
   return TITLE_TO_TYPE_MAP[title.toLowerCase()] ?? 'feature_store';
+};
+
+export const getFeatureStoreObjectDescription = (
+  featureStoreObject: FeatureStoreObject,
+): string => {
+  switch (featureStoreObject) {
+    case FeatureStoreObject.ENTITIES:
+      return 'Select a feature store repository to view and manage its entities. Entities are collections of related features and can be mapped to your use case (for example, customers, products, transactions).';
+    case FeatureStoreObject.DATA_SOURCES:
+      return 'Select a workspace to view and manage its data sources. Data sources provide the raw data that feeds into your feature store.';
+    case FeatureStoreObject.FEATURES:
+      return 'Select a feature store repository to view its features. A feature is a schema containing a name and a type, and is used to represent the data stored in feature views for both training and serving purposes.';
+    case FeatureStoreObject.FEATURE_VIEWS:
+      return 'Select a feature store repository to view and manage its feature views. A feature view defines how to retrieve a logical group of features from a specific data source. It binds a data source to one or more entities and contains the logic for transforming the raw data into feature values.';
+    case FeatureStoreObject.FEATURE_SERVICES:
+      return "Select a feature store repository to view and manage its feature services. Feature services groups features from across one or more Feature Views to serve a specific model's needs for training, inference, or GenAI applications like RAG. Feature service acts as a managed API for a model, ensuring features are served consistently.";
+    case FeatureStoreObject.DATA_SETS:
+      return 'View and manage datasets created from feature services. Datasets are point-in-time-correct snapshots of feature services,data and are used for training,  or validation, and analysis.';
+    case FeatureStoreObject.OVERVIEW:
+      return '';
+    default:
+      return 'Feature store object details';
+  }
 };

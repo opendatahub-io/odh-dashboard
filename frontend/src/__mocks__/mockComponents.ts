@@ -1,6 +1,12 @@
 import { OdhApplication } from '#~/types';
 
-export const mockComponents = (): OdhApplication[] => [
+interface MockComponentsParams {
+  extraComponents?: OdhApplication[];
+}
+
+export const mockComponents = ({
+  extraComponents = [],
+}: MockComponentsParams = {}): OdhApplication[] => [
   {
     metadata: {
       annotations: {
@@ -83,4 +89,5 @@ export const mockComponents = (): OdhApplication[] => [
       isEnabled: true,
     },
   },
+  ...extraComponents,
 ];
