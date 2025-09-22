@@ -337,3 +337,17 @@ export const installLSD = (
       );
     });
 };
+
+export const deleteLSD = (project: string, lsdName: string): Promise<string> => {
+  const url = `${URL_PREFIX}/api/v1/llamastack-distribution/delete?namespace=${project}`;
+  return axios
+    .delete(url, {
+      data: { name: lsdName },
+    })
+    .then((response) => response.data)
+    .catch((error) => {
+      throw new Error(
+        error.response?.data?.error?.message || error.message || 'Failed to delete LSD',
+      );
+    });
+};

@@ -1,11 +1,20 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { Button, Tooltip } from '@patternfly/react-core';
+import {
+  Bullseye,
+  Button,
+  EmptyState,
+  EmptyStateVariant,
+  EmptyStateBody,
+  Spinner,
+  Tooltip,
+  EmptyStateFooter,
+} from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { CodeIcon } from '@patternfly/react-icons';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import ChatbotEmptyState from '~/app/EmptyStates/NoData';
-import { installLSD } from '~/app/services/llamaStackService';
+import { deleteLSD, installLSD } from '~/app/services/llamaStackService';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchAIModels from '~/app/hooks/useFetchAIModels';
 import ChatbotHeader from './ChatbotHeader';
@@ -70,8 +79,7 @@ const ChatbotMain: React.FunctionComponent = () => {
         }
         loadError={lsdStatusError || aiModelsError}
         headerAction={
-          // TODO: Check if the LSD is running instead of just checking if it exists
-          lsdStatus &&
+          lsdStatus?.phase === 'Ready' &&
           (isViewCodeDisabled ? (
             <Tooltip content={getDisabledReason()}>
               <Button
@@ -95,11 +103,37 @@ const ChatbotMain: React.FunctionComponent = () => {
           ))
         }
       >
-        {/* TODO: Add a loading state here if the LSD is not running */}
-        <ChatbotPlayground
-          isViewCodeModalOpen={isViewCodeModalOpen}
-          setIsViewCodeModalOpen={setIsViewCodeModalOpen}
-        />
+        {lsdStatus?.phase === 'Ready' ? (
+          <ChatbotPlayground
+            isViewCodeModalOpen={isViewCodeModalOpen}
+            setIsViewCodeModalOpen={setIsViewCodeModalOpen}
+          />
+        ) : lsdStatus?.phase === 'Failed' ? (
+          <EmptyState
+            headingLevel="h4"
+            titleText="Failed to configure playground"
+            variant={EmptyStateVariant.lg}
+            status="danger"
+          >
+            <EmptyStateBody>Please delete the playground and try again</EmptyStateBody>
+            <EmptyStateFooter>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  if (namespace?.name) {
+                    deleteLSD(namespace.name, lsdStatus.name).then(refresh);
+                  }
+                }}
+              >
+                Delete playground
+              </Button>
+            </EmptyStateFooter>
+          </EmptyState>
+        ) : (
+          <Bullseye>
+            <Spinner size="lg" />
+          </Bullseye>
+        )}
       </ApplicationsPage>
       {configurationModalOpen && (
         <ChatbotConfigurationModal

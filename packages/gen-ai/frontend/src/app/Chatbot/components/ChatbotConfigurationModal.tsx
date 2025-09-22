@@ -9,7 +9,7 @@ import {
   Content,
   Icon,
 } from '@patternfly/react-core';
-import { CheckCircleIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
 import { GenAiContext } from '~/app/context/GenAiContext';
 
@@ -28,40 +28,47 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({ o
     }
   }, [lsdStatus]);
 
+  let icon: React.ReactNode;
+  let title: string;
+  let description: string;
+
+  switch (lsdStatus?.phase) {
+    case 'Ready':
+      icon = (
+        <Icon iconSize="2xl" size="2xl" status="success">
+          <CheckCircleIcon />
+        </Icon>
+      );
+      title = 'Playground configured';
+      description = 'Your playground has been successfully created';
+      break;
+    case 'Failed':
+      icon = (
+        <Icon iconSize="2xl" size="2xl" status="danger">
+          <ExclamationCircleIcon />
+        </Icon>
+      );
+      title = 'Failed to configure playground';
+      description = 'Please try again';
+      break;
+    default:
+      icon = <Spinner size="xl" />;
+      title = 'Configuring playground';
+      description = 'Please wait while we add models and configure the playground';
+  }
+
   // TODO: Add Failed status
   return (
     <Modal isOpen onClose={onClose} variant="medium" style={{ textAlign: 'center' }}>
       <ModalBody>
         <Stack hasGutter>
-          {lsdStatus?.phase === 'Ready' ? (
-            <>
-              <StackItem>
-                <Icon iconSize="2xl" size="2xl" status="success">
-                  <CheckCircleIcon />
-                </Icon>
-              </StackItem>
-              <StackItem>
-                <Title headingLevel="h2">Playground configured</Title>
-              </StackItem>
-              <StackItem>
-                <Content component="small">Your playground has been successfully created</Content>
-              </StackItem>
-            </>
-          ) : (
-            <>
-              <StackItem>
-                <Spinner size="xl" />
-              </StackItem>
-              <StackItem>
-                <Title headingLevel="h2">Configuring playground</Title>
-              </StackItem>
-              <StackItem>
-                <Content component="small">
-                  Please wait while we add models and configure the playground
-                </Content>
-              </StackItem>
-            </>
-          )}
+          <StackItem>{icon}</StackItem>
+          <StackItem>
+            <Title headingLevel="h2">{title}</Title>
+          </StackItem>
+          <StackItem>
+            <Content component="small">{description}</Content>
+          </StackItem>
         </Stack>
       </ModalBody>
     </Modal>
