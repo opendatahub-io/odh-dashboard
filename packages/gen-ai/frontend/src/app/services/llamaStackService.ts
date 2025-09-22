@@ -1,7 +1,6 @@
 /* eslint-disable camelcase */
 /* eslint-disable no-relative-import-paths/no-relative-import-paths */
 import {
-  LlamaModelType,
   VectorStore,
   ChatbotSourceSettings,
   CreateResponseRequest,
@@ -64,27 +63,6 @@ const transformBackendResponse = (
  */
 export const getModels = (namespace: string): Promise<LlamaModel[]> => {
   const url = `${URL_PREFIX}/api/v1/models?namespace=${namespace}`;
-  return axios
-    .get(url)
-    .then((response) => response.data.data)
-    .catch((error) => {
-      throw new Error(
-        error.response?.data?.error?.message || error.message || 'Failed to fetch models',
-      );
-    });
-};
-
-/**
- * Fetches models filtered by a specific model type from the Llama Stack API
- * @param modelType - The type of models to fetch (e.g., 'llm' or 'embedding')
- * @returns Promise<LlamaModel[]> - Array of models matching the specified type
- * @throws Error - When the API request fails or returns an error response
- */
-//TODO: This does not work as expected. It returns all models, not just the ones of the specified type.
-//Should be fixed by updating the API to return only the models of the specified type.
-//Leaving this here as a reminder for now as it is not being used anywhere.
-export const getModelsByType = (modelType: LlamaModelType): Promise<LlamaModel[]> => {
-  const url = `${URL_PREFIX}/api/v1/models?model_type=${modelType}`;
   return axios
     .get(url)
     .then((response) => response.data.data)
@@ -192,17 +170,37 @@ export const createResponse = (
   if (request.stream && onStreamData) {
     // Handle streaming response using fetch with text/event-stream
     return new Promise((resolve, reject) => {
+      // Get axios default headers to maintain consistency
+      const axiosHeaders = axios.defaults.headers.common;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+      };
+
+      // Add axios headers if they exist, converting to string format
+      Object.entries(axiosHeaders).forEach(([key, value]) => {
+        if (typeof value === 'string') {
+          headers[key] = value;
+        }
+      });
+
       fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'text/event-stream',
-        },
+        headers,
         body: JSON.stringify(request),
       })
         .then(async (response) => {
           if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            // Try to get error message from response body if available
+            let errorMessage = `HTTP error! status: ${response.status}`;
+            try {
+              const errorBody = await response.text();
+              const errorData = JSON.parse(errorBody);
+              errorMessage = errorData?.error?.message || errorMessage;
+            } catch {
+              // Use default error message if parsing fails
+            }
+            throw new Error(errorMessage);
           }
 
           const reader = response.body?.getReader();
@@ -252,7 +250,9 @@ export const createResponse = (
           });
         })
         .catch((error) => {
-          reject(new Error(error.message || 'Failed to generate streaming response'));
+          // Use consistent error handling with non-streaming path
+          const errorMessage = error.message || 'Failed to generate streaming response';
+          reject(new Error(errorMessage));
         });
     });
   }
