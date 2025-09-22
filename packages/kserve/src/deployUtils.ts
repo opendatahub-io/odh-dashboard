@@ -20,6 +20,7 @@ import {
   createRoleBinding,
 } from '@odh-dashboard/internal/api/k8s/roleBindings';
 import { addOwnerReference } from '@odh-dashboard/internal/api/k8sUtils';
+import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
 import {
   SecretKind,
   K8sAPIOptions,
@@ -31,8 +32,9 @@ import {
 import { getTokenNames } from '@odh-dashboard/internal/pages/modelServing/utils';
 import { type CreatingInferenceServiceObject } from './deploy';
 
-export const getModelServingRuntimeName = (namespace: string): string =>
-  `model-server-${namespace}`;
+const is404 = (error: unknown): boolean => {
+  return getGenericErrorCode(error) === 404;
+};
 
 export const getModelServiceAccountName = (name: string): string => `${name}-sa`;
 
@@ -45,15 +47,7 @@ export const createServiceAccountIfMissing = async (
   opts?: K8sAPIOptions,
 ): Promise<ServiceAccountKind> =>
   getServiceAccount(serviceAccount.metadata.name, namespace).catch((e: unknown) => {
-    if (
-      e &&
-      typeof e === 'object' &&
-      'statusObject' in e &&
-      e.statusObject &&
-      typeof e.statusObject === 'object' &&
-      'code' in e.statusObject &&
-      e.statusObject.code === 404
-    ) {
+    if (is404(e)) {
       return createServiceAccount(serviceAccount, opts);
     }
     return Promise.reject(e);
@@ -65,15 +59,7 @@ export const createRoleIfMissing = async (
   opts?: K8sAPIOptions,
 ): Promise<RoleKind> =>
   getRole(namespace, role.metadata.name).catch((e: unknown) => {
-    if (
-      e &&
-      typeof e === 'object' &&
-      'statusObject' in e &&
-      e.statusObject &&
-      typeof e.statusObject === 'object' &&
-      'code' in e.statusObject &&
-      e.statusObject.code === 404
-    ) {
+    if (is404(e)) {
       return createRole(role, opts);
     }
     return Promise.reject(e);
@@ -85,26 +71,9 @@ export const createRoleBindingIfMissing = async (
   opts?: K8sAPIOptions,
 ): Promise<RoleBindingKind> =>
   getRoleBinding(namespace, rolebinding.metadata.name).catch((e: unknown) => {
-    if (
-      e &&
-      typeof e === 'object' &&
-      'statusObject' in e &&
-      e.statusObject &&
-      typeof e.statusObject === 'object' &&
-      'code' in e.statusObject &&
-      e.statusObject.code === 404
-    ) {
+    if (is404(e)) {
       return createRoleBinding(rolebinding, opts).catch((error: unknown) => {
-        if (
-          error &&
-          typeof error === 'object' &&
-          'statusObject' in error &&
-          error.statusObject &&
-          typeof error.statusObject === 'object' &&
-          'code' in error.statusObject &&
-          error.statusObject.code === 404 &&
-          opts?.dryRun
-        ) {
+        if (is404(error) && opts?.dryRun) {
           // If dryRun is enabled and the user is not Cluster Admin it seems that there's a k8s error
           // that raises a 404 trying to find the role, which is missing since it's a dryRun.
           return Promise.resolve(rolebinding);
@@ -131,7 +100,7 @@ export const createSecrets = async (
     [];
   const tokensToProcess = fillData.tokens || [];
 
-  return Promise.all<K8sStatus | SecretKind>([
+  await Promise.all<K8sStatus | SecretKind>([
     ...tokensToProcess.map((token) => {
       const secretToken = addOwnerReference(
         assembleSecretSA(token.name, serviceAccountName, namespace, undefined),
@@ -140,9 +109,7 @@ export const createSecrets = async (
       return createSecret(secretToken, opts);
     }),
     ...deletedSecrets.map((secret) => deleteSecret(namespace, secret, opts)),
-  ])
-    .then(() => Promise.resolve())
-    .catch((error) => Promise.reject(error));
+  ]);
 };
 
 export const setUpTokenAuth = async (
