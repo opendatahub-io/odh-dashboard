@@ -37,13 +37,42 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        id: npm-cache
+        with:
+          lookup-only: true
+          path: |
+            ~/.cache/Cypress
+            **/node_modules
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-
+
       - name: Setup Node.js ${{ env.NODE_VERSION }}
+        if: steps.npm-cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
+        if: steps.npm-cache.outputs.cache-hit != 'true'
         run: npm ci
+
+      - name: Cache turbo build artifacts
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.turbo
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-e2e
+          restore-keys: |
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
+
+      - name: Cache OpenShift CLI
+        uses: actions/cache@v4
+        id: oc-cache
+        with:
+          path: /usr/local/bin/oc
+          key: ${{ runner.os }}-oc-${{ env.OC_VERSION || '4.15.0' }}
 
       - name: Install Git
         run: |
@@ -52,6 +81,7 @@ jobs:
           git --version
 
       - name: Check and Install OpenShift CLI
+        if: steps.oc-cache.outputs.cache-hit != 'true'
         run: |
           echo "🔍 Checking if OpenShift CLI (oc) is installed..."
 
