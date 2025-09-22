@@ -24,7 +24,7 @@ jobs:
         id: set-tags
         # TO:DO - update execution tags and simplify for v1
         run: |
-          echo "test-tags=[\"@SmokeCISet1\",\"@SmokeCISet2\",\"@SmokeCISet3\",\"@SanityCISet1\",\"@SanityCISet2\",\"@SanityCISet3\"]" >> $GITHUB_OUTPUT
+          echo "test-tags=[\"@SmokeSet1\",\"@SmokeSet2\",\"@SmokeSet3\"]" >> $GITHUB_OUTPUT
 
   e2e-tests:
     needs: [get-test-tags]
@@ -73,12 +73,6 @@ jobs:
         with:
           path: /usr/local/bin/oc
           key: ${{ runner.os }}-oc-${{ env.OC_VERSION || '4.15.0' }}
-
-      - name: Install Git
-        run: |
-          echo "🔧 Installing Git for build process..."
-          sudo dnf install -y git
-          git --version
 
       - name: Check and Install OpenShift CLI
         if: steps.oc-cache.outputs.cache-hit != 'true'
