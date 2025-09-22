@@ -1,6 +1,8 @@
 name: E2E Direct Commit PR Tests
 
-on: [push, pull_request]
+on:
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
@@ -13,8 +15,7 @@ env:
 
 jobs:
   get-test-tags:
-    # Always run for push/PR events, or run for issue comments containing /run-e2e-tests-gh
-    if: ${{ (github.event_name == 'push' || github.event_name == 'pull_request') || (github.event.issue.pull_request && contains(github.event.comment.body, '/run-e2e-tests-gh')) }}
+    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-e2e-tests-gh') }}
     runs-on: self-hosted
     outputs:
       test-tags: ${{ steps.set-tags.outputs.test-tags }}
