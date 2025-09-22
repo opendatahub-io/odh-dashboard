@@ -3,8 +3,7 @@ name: E2E Direct Commit PR Tests
 on:
   issue_comment:
     types: [created]
-  push:
-    branches: [e2eCypressGHActionsPipeline]
+  push
 
 permissions:
   contents: read
