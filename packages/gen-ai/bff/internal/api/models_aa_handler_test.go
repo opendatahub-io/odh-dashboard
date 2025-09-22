@@ -99,6 +99,7 @@ func TestModelsAAHandler(t *testing.T) {
 		assert.Equal(t, "v2025.1", firstModel["version"])
 		assert.Equal(t, "Computer Vision", firstModel["usecase"])
 		assert.Equal(t, "A high-performance computer vision model for object detection and classification", firstModel["description"])
+		assert.Equal(t, "Running", firstModel["status"])
 
 		// Check endpoints array
 		endpoints, ok := firstModel["endpoints"].([]interface{})
@@ -116,6 +117,7 @@ func TestModelsAAHandler(t *testing.T) {
 		assert.Equal(t, "v2025.1", secondModel["version"])
 		assert.Equal(t, "Natural Language Processing", secondModel["usecase"])
 		assert.Equal(t, "A natural language processing model for text generation and completion", secondModel["description"])
+		assert.Equal(t, "Error", secondModel["status"])
 
 		// Check second model endpoints
 		secondEndpoints, ok := secondModel["endpoints"].([]interface{})
