@@ -47,7 +47,7 @@ export const useEnableTeamSection = (): React.ReactNode => {
         testId="landing-page-admin--notebook-images"
         isOpen={resourcesOpen}
         title="Workbench images"
-        onClick={() => trackAndNavigate('notebook-images', '/workbenchImages')}
+        onClick={() => trackAndNavigate('workbench-images', '/workbenchImages')}
         resourceType={ProjectObjectType.notebookImage}
         sectionType={SectionType.setup}
         description={

@@ -24,11 +24,11 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     },
     properties: {
       id: 'modelCatalog',
-      title: 'Model catalog',
+      title: 'Catalog',
       href: '/model-catalog',
-      section: 'models',
+      section: 'ai-hub',
       path: '/model-catalog/*',
-      group: '1_models',
+      group: '1_aihub',
     },
   },
   {
@@ -42,7 +42,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       href: '/model-registry',
       section: 'ai-hub',
       path: '/model-registry/*',
-      group: '1_models',
+      group: '1_aihub',
     },
   },
   {
