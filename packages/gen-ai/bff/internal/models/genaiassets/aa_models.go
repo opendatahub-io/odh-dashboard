@@ -8,4 +8,5 @@ type AAModel struct {
 	Usecase        string   `json:"usecase"`
 	Description    string   `json:"description"`
 	Endpoints      []string `json:"endpoints"`
+	Status         string   `json:"status"`
 }
