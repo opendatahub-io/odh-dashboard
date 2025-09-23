@@ -6,11 +6,11 @@ import { SectionDefinition } from '#~/pages/projects/components/GenericHorizonta
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import ModelServingPlatform from '#~/pages/modelServing/screens/projects/ModelServingPlatform';
 
-export const useModelServingTab = (): SectionDefinition[] => {
+export const useDeploymentsTab = (): SectionDefinition[] => {
   const modelServingEnabled = useModelServingEnabled();
 
   const projectDetailsTabExtensions = useExtensions(isProjectDetailsTab);
-  const modelsProjectDetailsTab = projectDetailsTabExtensions.find(
+  const deploymentsProjectDetailsTab = projectDetailsTabExtensions.find(
     (tab) => tab.properties.id === ProjectSectionID.MODEL_SERVER,
   )?.properties.component;
 
@@ -18,9 +18,9 @@ export const useModelServingTab = (): SectionDefinition[] => {
     ? [
         {
           id: ProjectSectionID.MODEL_SERVER,
-          title: 'Models',
-          component: modelsProjectDetailsTab ? (
-            <LazyCodeRefComponent component={modelsProjectDetailsTab} />
+          title: 'Deployments',
+          component: deploymentsProjectDetailsTab ? (
+            <LazyCodeRefComponent component={deploymentsProjectDetailsTab} />
           ) : (
             <ModelServingPlatform />
           ),

@@ -84,14 +84,8 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
           title={fineTunePageSectionTitles[FineTunePageSections.PROJECT_DETAILS]}
           description="The project where your pipeline will run."
         >
-          <FormGroup
-            label="Data science project"
-            fieldId="model-customization-projectName"
-            isRequired
-          >
-            <div data-testid="data-science-project-name">
-              {getDisplayNameFromK8sResource(project)}
-            </div>
+          <FormGroup label="Project" fieldId="model-customization-projectName" isRequired>
+            <div data-testid="project-name">{getDisplayNameFromK8sResource(project)}</div>
           </FormGroup>
         </FormSection>
         <PipelineDetailsSection

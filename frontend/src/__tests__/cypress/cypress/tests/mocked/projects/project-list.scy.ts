@@ -3,7 +3,7 @@ import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/Delet
 import { createProjectModal, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
 import { failEarly } from '#~/__tests__/cypress/cypress/utils/failEarly';
 
-describe('Data Science Projects', { testIsolation: false }, () => {
+describe('Projects', { testIsolation: false }, () => {
   // tests run in sequence and should fail if the one before it fails
   failEarly();
 

@@ -174,7 +174,7 @@ const ClusterSettings: React.FC = () => {
   return (
     <ApplicationsPage
       title={
-        <TitleWithIcon title="Cluster settings" objectType={ProjectObjectType.clusterSettings} />
+        <TitleWithIcon title="General settings" objectType={ProjectObjectType.clusterSettings} />
       }
       description="Manage global settings for all users."
       loaded={loaded && dscLoaded}

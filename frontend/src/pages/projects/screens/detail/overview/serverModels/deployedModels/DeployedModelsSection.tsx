@@ -95,7 +95,7 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
       <EmptyState
         headingLevel="h2"
         icon={ExclamationCircleIcon}
-        titleText="Problem loading deployed models"
+        titleText="Problem loading deployments"
       >
         <EmptyStateBody>{message}</EmptyStateBody>
       </EmptyState>
@@ -127,7 +127,7 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
         <OverviewCard
           objectType={ProjectObjectType.deployedModels}
           sectionType={SectionType.serving}
-          title="Deployed models"
+          title="Deployments"
           headerInfo={
             <Flex gap={{ default: 'gapSm' }}>
               <Label>Multi-model serving enabled</Label>
@@ -156,7 +156,7 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
                 Multiple models can be deployed from a single model server. Manage model servers and
                 and deploy models from the{' '}
                 <Button component="a" isInline variant="link" onClick={navToModels}>
-                  Models
+                  Deployments
                 </Button>{' '}
                 tab.
               </Content>
@@ -166,12 +166,12 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
             <Flex gap={{ default: 'gapLg' }}>
               <FlexItem>
                 <Content>
-                  <Content component="small">No deployed models</Content>
+                  <Content component="small">No deployments</Content>
                 </Content>
               </FlexItem>
               <FlexItem>
                 <Button component="a" isInline variant="link" onClick={navToModels}>
-                  Go to <b>Models</b>
+                  Go to <b>Deployments</b>
                 </Button>
               </FlexItem>
             </Flex>
@@ -187,7 +187,7 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
             isMultiPlatform ? ProjectObjectType.modelServer : ProjectObjectType.deployedModels
           }
           sectionType={isMultiPlatform ? SectionType.setup : SectionType.serving}
-          title={isMultiPlatform ? 'No model servers' : 'Deployed models'}
+          title={isMultiPlatform ? 'No model servers' : 'Deployments'}
           headerInfo={
             <Flex gap={{ default: 'gapSm' }}>
               <Label>

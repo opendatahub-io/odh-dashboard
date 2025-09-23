@@ -64,13 +64,13 @@ class ModelRegistry {
   }
 
   navigate() {
-    appChrome.findNavItem('Model registry', 'Models').click();
+    appChrome.findNavItem({ name: 'Registry', rootSection: 'AI hub' }).click();
     this.wait();
   }
 
   private wait() {
     cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('Model registry');
+    cy.findByTestId('app-page-title').contains('Registry');
     cy.testA11y();
   }
 
@@ -128,12 +128,12 @@ class ModelRegistry {
   }
 
   tabEnabled() {
-    appChrome.findNavItem('Model Registry').should('exist');
+    appChrome.findNavItem({ name: 'Registry', rootSection: 'AI hub' }).should('exist');
     return this;
   }
 
   tabDisabled() {
-    appChrome.findNavItem('Model Registry').should('not.exist');
+    appChrome.findNavItem({ name: 'Registry', rootSection: 'AI hub' }).should('not.exist');
     return this;
   }
 

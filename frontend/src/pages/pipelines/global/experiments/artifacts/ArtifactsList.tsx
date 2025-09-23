@@ -53,7 +53,7 @@ export const ArtifactsList: React.FC = () => {
       >
         <EmptyStateBody>
           No artifacts have been generated from experiments within this project. Select a different
-          project, or execute an experiment from the <b>Experiments and runs</b> page.
+          project, or execute an experiment from the <b>Experiments</b> page.
         </EmptyStateBody>
       </EmptyState>
     );
