@@ -42,6 +42,7 @@ export const DeploymentRowExpandedSection: React.FC<{
   usePlatformAuth: ResolvedExtension<ModelServingAuthExtension>['properties']['usePlatformAuthEnabled'];
 }> = ({ deployment, useFramework, useReplicas, useResources, usePlatformAuth }) => {
   const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
+  const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
 
   const project = deployment.model.metadata.namespace;
 
@@ -51,6 +52,12 @@ export const DeploymentRowExpandedSection: React.FC<{
   const resources = useResources(deployment);
   const modelSize = resources?.modelSize.selectedSize;
   const hardwareProfile = resources?.hardwareProfile;
+  const acceleratorProfile = resources?.acceleratorProfile.initialState.acceleratorProfile;
+  const isUnknownProfileDetected =
+    resources?.acceleratorProfile.initialState.unknownProfileDetected;
+  const acceleratorProfileCount = resources?.acceleratorProfile.initialState.count;
+  const enabledAcceleratorProfiles =
+    resources?.acceleratorProfile.initialState.acceleratorProfiles.filter((ac) => ac.spec.enabled);
 
   const isPlatformAuthEnabled = usePlatformAuth(deployment);
 
@@ -95,36 +102,75 @@ export const DeploymentRowExpandedSection: React.FC<{
                     </List>
                   </DescriptionListDescription>
                 </DescriptionListGroup>
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Hardware profile</DescriptionListTerm>
-                  <DescriptionListDescription data-testid="hardware-section">
-                    {hardwareProfile?.initialHardwareProfile ? (
-                      <Flex gap={{ default: 'gapSm' }}>
-                        <FlexItem>
-                          {getHardwareProfileDisplayName(hardwareProfile.initialHardwareProfile)}
-                        </FlexItem>
-                        <FlexItem>
-                          {isProjectScopedAvailable &&
-                            hardwareProfile.initialHardwareProfile.metadata.namespace ===
-                              project && (
-                              <ScopedLabel isProject color="blue" isCompact>
-                                {ScopedType.Project}
-                              </ScopedLabel>
-                            )}
-                        </FlexItem>
-                        <Flex>
-                          {!isHardwareProfileEnabled(hardwareProfile.initialHardwareProfile)
-                            ? '(disabled)'
-                            : ''}
+                {isHardwareProfileAvailable ? (
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Hardware profile</DescriptionListTerm>
+                    <DescriptionListDescription data-testid="hardware-section">
+                      {hardwareProfile?.initialHardwareProfile ? (
+                        <Flex gap={{ default: 'gapSm' }}>
+                          <FlexItem>
+                            {getHardwareProfileDisplayName(hardwareProfile.initialHardwareProfile)}
+                          </FlexItem>
+                          <FlexItem>
+                            {isProjectScopedAvailable &&
+                              hardwareProfile.initialHardwareProfile.metadata.namespace ===
+                                project && (
+                                <ScopedLabel isProject color="blue" isCompact>
+                                  {ScopedType.Project}
+                                </ScopedLabel>
+                              )}
+                          </FlexItem>
+                          <Flex>
+                            {!isHardwareProfileEnabled(hardwareProfile.initialHardwareProfile)
+                              ? '(disabled)'
+                              : ''}
+                          </Flex>
                         </Flex>
-                      </Flex>
-                    ) : hardwareProfile?.formData.useExistingSettings ? (
-                      'Unknown'
-                    ) : (
-                      'No hardware profile selected'
+                      ) : hardwareProfile?.formData.useExistingSettings ? (
+                        'Unknown'
+                      ) : (
+                        'No hardware profile selected'
+                      )}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                ) : (
+                  <>
+                    <DescriptionListGroup data-testid="accelerator-section">
+                      <DescriptionListTerm>Accelerator</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        {acceleratorProfile ? (
+                          <>
+                            {acceleratorProfile.spec.displayName}
+                            {isProjectScopedAvailable &&
+                              acceleratorProfile.metadata.namespace === project && (
+                                <>
+                                  {' '}
+                                  <ScopedLabel isProject color="blue" isCompact>
+                                    {ScopedType.Project}
+                                  </ScopedLabel>
+                                </>
+                              )}
+                            {!acceleratorProfile.spec.enabled && ' (disabled)'}
+                          </>
+                        ) : enabledAcceleratorProfiles?.length === 0 ? (
+                          'No accelerator enabled'
+                        ) : isUnknownProfileDetected ? (
+                          'Unknown'
+                        ) : (
+                          'No accelerator selected'
+                        )}
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                    {!isUnknownProfileDetected && acceleratorProfile && (
+                      <DescriptionListGroup>
+                        <DescriptionListTerm>Number of accelerators</DescriptionListTerm>
+                        <DescriptionListDescription>
+                          {acceleratorProfileCount}
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
                     )}
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
+                  </>
+                )}
               </DescriptionList>
             </StackItem>
             {isPlatformAuthEnabled && (
