@@ -1,17 +1,29 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { MessageProps } from '@patternfly/chatbot';
+import { MessageProps, ToolResponseProps } from '@patternfly/chatbot';
 import userAvatar from '~/app/bgimages/user_avatar.svg';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { getId } from '~/app/utilities/utils';
 import { createResponse } from '~/app/services/llamaStackService';
-import { ChatbotSourceSettings, ChatMessageRole, CreateResponseRequest } from '~/app/types';
+import {
+  ChatbotSourceSettings,
+  ChatMessageRole,
+  CreateResponseRequest,
+  MCPToolCallData,
+} from '~/app/types';
 import { ERROR_MESSAGES, initialBotMessage } from '~/app/Chatbot/const';
 import { GenAiContext } from '~/app/context/GenAiContext';
+import { useMCPContext } from '~/app/context/MCPContext';
+import {
+  ToolResponseCardTitle,
+  ToolResponseCardBody,
+} from '~/app/Chatbot/ChatbotMessagesToolResponse';
 
 export interface UseChatbotMessagesReturn {
   messages: MessageProps[];
   isMessageSendButtonDisabled: boolean;
+  isLoading: boolean;
+  isStreamingWithoutContent: boolean;
   handleMessageSend: (message: string) => Promise<void>;
   scrollToBottomRef: React.RefObject<HTMLDivElement>;
 }
@@ -39,9 +51,12 @@ const useChatbotMessages = ({
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<MessageProps[]>([initialBotMessage()]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [isStreamingWithoutContent, setIsStreamingWithoutContent] = React.useState(false);
   const scrollToBottomRef = React.useRef<HTMLDivElement>(null);
   const { namespace } = React.useContext(GenAiContext);
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { getSelectedServersForAPI } = useMCPContext();
 
   // Cleanup timeout on unmount
   React.useEffect(
@@ -60,6 +75,22 @@ const useChatbotMessages = ({
     }
   }, [messages]);
 
+  // Create tool response from MCP tool call data
+  const createToolResponse = React.useCallback(
+    (toolCallData: MCPToolCallData): ToolResponseProps => {
+      const { serverLabel, toolName, toolArguments, toolOutput } = toolCallData;
+
+      return {
+        toggleContent: `Tool response: ${toolName}`,
+        subheading: `${serverLabel}`,
+        body: `Here's the summary for your ${toolName} response:`,
+        cardTitle: React.createElement(ToolResponseCardTitle, { toolName }),
+        cardBody: React.createElement(ToolResponseCardBody, { toolArguments, toolOutput }),
+      };
+    },
+    [],
+  );
+
   const handleMessageSend = async (message: string) => {
     const userMessage: MessageProps = {
       id: getId(),
@@ -71,11 +102,19 @@ const useChatbotMessages = ({
 
     setMessages((prevMessages) => [...prevMessages, userMessage]);
     setIsMessageSendButtonDisabled(true);
+    setIsLoading(true);
+
+    // For streaming, we'll track if we have content separately
+    if (isStreamingEnabled) {
+      setIsStreamingWithoutContent(true);
+    }
 
     try {
       if (!modelId) {
         throw new Error(ERROR_MESSAGES.NO_MODEL_OR_SOURCE);
       }
+
+      const mcpServers = getSelectedServersForAPI();
 
       const responsesPayload: CreateResponseRequest = {
         input: message,
@@ -95,6 +134,7 @@ const useChatbotMessages = ({
         stream: isStreamingEnabled,
         temperature,
         top_p: topP,
+        ...(mcpServers.length > 0 && { mcp_servers: mcpServers }),
       };
 
       if (!namespace?.name) {
@@ -132,41 +172,57 @@ const useChatbotMessages = ({
           );
         };
 
-        await createResponse(responsesPayload, namespace.name, (chunk: string) => {
-          // Add chunk to current partial line
-          currentPartialLine += chunk;
+        const streamingResponse = await createResponse(
+          responsesPayload,
+          namespace.name,
+          (chunk: string) => {
+            // Add chunk to current partial line
+            currentPartialLine += chunk;
 
-          // Check if we have complete lines (ending with newline characters)
-          const lines = currentPartialLine.split('\n');
+            // Check if we have complete lines (ending with newline characters)
+            const lines = currentPartialLine.split('\n');
 
-          if (lines.length > 1) {
-            // We have at least one complete line
-            // Add all complete lines except the last one (which might be partial)
-            completeLines.push(...lines.slice(0, -1));
-            currentPartialLine = lines[lines.length - 1]; // Keep the last line as partial
+            if (lines.length > 1) {
+              // We have at least one complete line
+              // Add all complete lines except the last one (which might be partial)
+              completeLines.push(...lines.slice(0, -1));
+              currentPartialLine = lines[lines.length - 1]; // Keep the last line as partial
 
-            // Update immediately when we have a new complete line
-            updateMessage(true);
-          } else {
-            // No complete lines yet, just update the partial line
-            // Clear previous timeout and set a new one for smooth partial line updates
-            if (timeoutRef.current) {
-              clearTimeout(timeoutRef.current);
+              // Update immediately when we have a new complete line
+              updateMessage(true);
+            } else {
+              // No complete lines yet, just update the partial line
+              // Clear previous timeout and set a new one for smooth partial line updates
+              if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+              }
+
+              // Update UI every 50ms for smooth streaming effect on partial lines
+              timeoutRef.current = setTimeout(() => updateMessage(true), 50);
             }
-
-            // Update UI every 50ms for smooth streaming effect on partial lines
-            timeoutRef.current = setTimeout(() => updateMessage(true), 50);
-          }
-        });
+          },
+        );
 
         // Final update to ensure all content is displayed
         if (timeoutRef.current) {
           clearTimeout(timeoutRef.current);
         }
         updateMessage(true);
+
+        // Add tool response if available from streaming response
+        if (streamingResponse.toolCallData) {
+          const toolResponse = createToolResponse(streamingResponse.toolCallData);
+          setMessages((prevMessages) =>
+            prevMessages.map((msg) => (msg.id === botMessageId ? { ...msg, toolResponse } : msg)),
+          );
+        }
       } else {
         // Handle non-streaming response
         const response = await createResponse(responsesPayload, namespace.name);
+
+        const toolResponse = response.toolCallData
+          ? createToolResponse(response.toolCallData)
+          : undefined;
 
         const botMessage: MessageProps = {
           id: getId(),
@@ -174,6 +230,7 @@ const useChatbotMessages = ({
           content: response.content || 'No response received',
           name: 'Bot',
           avatar: botAvatar,
+          ...(toolResponse && { toolResponse }),
         };
         setMessages((prevMessages) => [...prevMessages, botMessage]);
       }
@@ -188,12 +245,16 @@ const useChatbotMessages = ({
       setMessages((prevMessages) => [...prevMessages, botMessage]);
     } finally {
       setIsMessageSendButtonDisabled(false);
+      setIsLoading(false);
+      setIsStreamingWithoutContent(false);
     }
   };
 
   return {
     messages,
     isMessageSendButtonDisabled,
+    isLoading,
+    isStreamingWithoutContent,
     handleMessageSend,
     scrollToBottomRef,
   };

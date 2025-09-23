@@ -14,9 +14,11 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import AIAssetsModelsTab from './AIAssetsModelsTab';
 import useFetchAIModels from './hooks/useFetchAIModels';
+import AIAssetsMCPTab from './AIAssetsMCPTab';
 
 enum AIAssetsPageTabKey {
   MODELS = 'models',
+  MCP_SERVERS = 'mcpservers',
 }
 
 export const AIAssetsPage: React.FC = () => {
@@ -46,6 +48,12 @@ export const AIAssetsPage: React.FC = () => {
             aria-label="Models tab"
             tabContentId="models-tab-content"
           />
+          <Tab
+            eventKey={AIAssetsPageTabKey.MCP_SERVERS}
+            title={<TabTitleText>MCP Servers</TabTitleText>}
+            aria-label="MCP Servers tab"
+            tabContentId="mcpservers-tab-content"
+          />
         </Tabs>
       </PageSection>
       <PageSection>
@@ -63,6 +71,16 @@ export const AIAssetsPage: React.FC = () => {
               loaded={loaded}
               error={error}
             />
+          </TabContentBody>
+        </TabContent>
+        <TabContent
+          id="mcpservers-tab-content"
+          activeKey={activeTabKey}
+          eventKey={AIAssetsPageTabKey.MCP_SERVERS}
+          hidden={activeTabKey !== AIAssetsPageTabKey.MCP_SERVERS}
+        >
+          <TabContentBody>
+            <AIAssetsMCPTab />
           </TabContentBody>
         </TabContent>
       </PageSection>

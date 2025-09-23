@@ -4,11 +4,21 @@ import * as React from 'react';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
 import { createResponse } from '~/app/services/llamaStackService';
 import { ChatbotSourceSettings, SimplifiedResponseData } from '~/app/types';
+import { useMCPContext } from '~/app/context/MCPContext';
 
 // Mock external dependencies
 jest.mock('~/app/services/llamaStackService');
 jest.mock('~/app/utilities/utils', () => ({
   getId: jest.fn(() => 'mock-id'),
+}));
+
+jest.mock('~/app/context/MCPContext', () => ({
+  useMCPContext: jest.fn(),
+}));
+
+jest.mock('~/app/Chatbot/ChatbotMessagesToolResponse', () => ({
+  ToolResponseCardTitle: jest.fn(() => 'ToolResponseCardTitle'),
+  ToolResponseCardBody: jest.fn(() => 'ToolResponseCardBody'),
 }));
 
 jest.mock('react', () => ({
@@ -18,6 +28,7 @@ jest.mock('react', () => ({
 
 const mockCreateResponse = createResponse as jest.MockedFunction<typeof createResponse>;
 const mockUseContext = React.useContext as jest.MockedFunction<typeof React.useContext>;
+const mockUseMCPContext = useMCPContext as jest.MockedFunction<typeof useMCPContext>;
 
 describe('useChatbotMessages', () => {
   const mockModelId = 'test-model-id';
@@ -45,6 +56,26 @@ describe('useChatbotMessages', () => {
     mockCreateResponse.mockReset();
     // Mock useContext to return the namespace
     mockUseContext.mockReturnValue({ namespace: mockNamespace });
+    // Mock useMCPContext to return empty servers
+    mockUseMCPContext.mockReturnValue({
+      servers: [],
+      serversLoaded: true,
+      serversLoadError: null,
+      serverStatuses: new Map(),
+      statusesLoading: new Set(),
+      allStatusesChecked: true,
+      playgroundSelectedServerIds: [],
+      saveSelectedServersToPlayground: jest.fn(),
+      selectedServersCount: 0,
+      setSelectedServersCount: jest.fn(),
+      refresh: jest.fn(),
+      fetchServerTools: jest.fn(),
+      serverTokens: new Map(),
+      setServerTokens: jest.fn(),
+      isServerValidated: jest.fn().mockReturnValue(false),
+      getSelectedServersForAPI: jest.fn().mockReturnValue([]),
+      checkServerStatus: jest.fn(),
+    });
   });
 
   describe('initialization', () => {
