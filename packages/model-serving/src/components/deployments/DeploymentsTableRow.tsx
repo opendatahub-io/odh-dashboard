@@ -17,7 +17,6 @@ import {
   useDeploymentExtension,
   useResolvedDeploymentExtension,
 } from '../../concepts/extensionUtils';
-import { getServerApiProtocol } from '../../concepts/deploymentUtils';
 import {
   Deployment,
   DeploymentsTableColumn,
@@ -92,15 +91,17 @@ export const DeploymentRow: React.FC<{
   const row = (
     <>
       <ResourceTr resource={deployment.model}>
-        {detailsExtension && showExpandedInfo && (
+        {showExpandedInfo && (
           <Td
-            data-testid={`${deployment.modelServingPlatformId}-model-row-item`}
-            expand={{
-              rowIndex,
-              expandId: `${deployment.modelServingPlatformId}-model-row-item`,
-              isExpanded,
-              onToggle: () => setExpanded(!isExpanded),
-            }}
+            {...(detailsExtension && {
+              'data-testid': `${deployment.modelServingPlatformId}-model-row-item`,
+              expand: {
+                rowIndex,
+                expandId: `${deployment.modelServingPlatformId}-model-row-item`,
+                isExpanded,
+                onToggle: () => setExpanded(!isExpanded),
+              },
+            })}
           />
         )}
         <Td dataLabel="Name">
@@ -132,8 +133,8 @@ export const DeploymentRow: React.FC<{
           />
         </Td>
         <Td dataLabel="API protocol">
-          {getServerApiProtocol(deployment) ? (
-            <Label color="yellow">{getServerApiProtocol(deployment)}</Label>
+          {deployment.apiProtocol ? (
+            <Label color="yellow">{deployment.apiProtocol}</Label>
           ) : (
             <Content component={ContentVariants.small}>Not defined</Content>
           )}
@@ -150,13 +151,15 @@ export const DeploymentRow: React.FC<{
           />
         </Td>
         <Td dataLabel="State toggle">
-          {startStopActionExtension && deployment.status?.stoppedStates && (
+          {startStopActionExtension && deployment.status?.stoppedStates ? (
             <StateActionToggle
               currentState={deployment.status.stoppedStates}
               onStart={onStart}
               onStop={onStop}
               isDisabledWhileStarting={false}
             />
+          ) : (
+            '-'
           )}
         </Td>
         <Td isActionCell>

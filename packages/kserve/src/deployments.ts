@@ -24,7 +24,7 @@ export const isKServeDeployment = (deployment: Deployment): deployment is KServe
   deployment.modelServingPlatformId === KSERVE_ID;
 
 export const useWatchDeployments = (
-  project: ProjectKind,
+  project?: ProjectKind,
   labelSelectors?: { [key: string]: string },
   mrName?: string,
   opts?: K8sAPIOptions,
