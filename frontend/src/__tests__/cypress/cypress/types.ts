@@ -312,6 +312,14 @@ export type ModelTolerationsTestData = {
   modelFilePath: string;
 };
 
+export type AcceleratorProfilesModelTolerationsTestData = {
+  modelServingTolerationsTestNamespace: string;
+  resourceYamlPath: string;
+  acceleratorProfileName: string;
+  modelName: string;
+  modelFilePath: string;
+};
+
 export type NotebookTolerationsTestData = {
   codeserverImageName: string;
   resourceYamlPath: string;
