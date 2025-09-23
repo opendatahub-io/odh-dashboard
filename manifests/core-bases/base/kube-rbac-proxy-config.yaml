@@ -4,10 +4,11 @@ metadata:
   name: kube-rbac-proxy-config
 data:
   config-file.yaml: |+
-    # Try a more permissive resource check
+    # Check for projects instead of namespaces - more permissive for regular users
     authorization:
       resourceAttributes:
+        namespace: ""
         apiGroup: ""
         apiVersion: v1
-        resource: "namespaces"
-        verb: "get"
+        resource: "projects"
+        verb: "list"
