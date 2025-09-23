@@ -42,6 +42,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.issue.number }}/merge
 
       - name: Cache npm dependencies
         uses: actions/cache@v4
@@ -294,7 +296,7 @@ jobs:
 
           # Mask sensitive data in logs
           echo "::add-mask::$OC_PASSWORD"
-          echo "::add-mask::$TEST_USER_3_PASSWORD"
+          echo "::add-mask::$OC_USERNAME"
 
           # Extract TEST_USER_3_AUTH_TYPE from TEST_USER_3 section
           TEST_USER_3_AUTH_TYPE=$(grep -A 10 "^TEST_USER_3:" "$TEST_VARS_FILE" | grep "AUTH_TYPE:" | head -1 | sed 's/.*AUTH_TYPE: //' | tr -d ' ')
@@ -304,6 +306,10 @@ jobs:
 
           # Extract TEST_USER_3_PASSWORD from TEST_USER_3 section
           TEST_USER_3_PASSWORD=$(grep -A 10 "^TEST_USER_3:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
+
+          # Mask TEST_USER_3 credentials in logs (must happen after extraction)
+          echo "::add-mask::$TEST_USER_3_USERNAME"
+          echo "::add-mask::$TEST_USER_3_PASSWORD"
 
           # Export TEST_USER_3 credentials as environment variables for Cypress
           echo "TEST_USER_3_AUTH_TYPE=$TEST_USER_3_AUTH_TYPE" >> $GITHUB_ENV
