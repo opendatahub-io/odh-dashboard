@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
-import React, { useRef, useMemo, useEffect } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { css } from '@patternfly/react-styles';
 import styles from '@patternfly/react-topology/dist/esm/css/topology-pipelines';
 import topologyStyles from '@patternfly/react-topology/dist/esm/css/topology-components';
@@ -28,6 +28,112 @@ import LabelBadge from '@patternfly/react-topology/dist/esm/components/nodes/lab
 import { DagreLayoutOptions, TOP_TO_BOTTOM } from '@patternfly/react-topology/dist/esm/layouts';
 
 const STATUS_ICON_SIZE = 16;
+
+/**
+ * Calculates pill dimensions based on text size and other parameters
+ */
+const calculatePillDimensions = (
+  textSize: { width: number; height: number } | undefined,
+  textHeight: number,
+  textWidth: number,
+  paddingY: number,
+  paddingX: number,
+  status: RunStatus,
+  showStatusState: boolean,
+  leadSize: { width: number; height: number } | undefined,
+  leadIcon: React.ReactNode | undefined,
+  statusSize: { width: number; height: number } | undefined,
+  badgeSize: { width: number; height: number } | undefined,
+  badge: string | undefined,
+  hideContextMenuKebab: boolean,
+  onContextMenu: ((event: React.MouseEvent) => void) | undefined,
+  verticalLayout: boolean,
+  width: number,
+  taskIconClass?: string,
+  taskIcon?: React.ReactNode,
+  taskIconPadding = 4,
+  statusIconSize = STATUS_ICON_SIZE,
+): TaskPillDimensions => {
+  if (!textSize) {
+    return {
+      height: 0,
+      statusStartX: 0,
+      textStartX: 0,
+      actionStartX: 0,
+      contextStartX: 0,
+      pillWidth: 0,
+      badgeStartX: 0,
+      iconWidth: 0,
+      iconStartX: 0,
+      leadIconStartX: 0,
+      offsetX: 0,
+    };
+  }
+
+  const height: number = textHeight + 2 * paddingY;
+  const startX = paddingX + paddingX / 2;
+
+  const iconWidth = taskIconClass || taskIcon ? height - taskIconPadding : 0;
+  const iconStartX = -(iconWidth * 0.75);
+
+  const statusStartX = startX - statusIconSize / 4; // Adjust for icon padding
+  const statusSpace = showStatusState ? (statusSize?.width || 0) + paddingX : 0;
+
+  const leadIconStartX = startX + statusSpace;
+  const leadIconSpace = leadIcon ? (leadSize?.width || 0) + paddingX : 0;
+
+  const textStartX = leadIconStartX + leadIconSpace;
+  const textSpace = textWidth + paddingX;
+
+  const badgeStartX = textStartX + textSpace;
+  const badgeSpace = badge ? (badgeSize?.width || 0) + paddingX : 0;
+
+  const actionStartX = badgeStartX + badgeSpace;
+  const contextStartX = actionStartX; // No action icon space since we don't use it
+  const contextSpace = !hideContextMenuKebab && !!onContextMenu ? paddingX : 0;
+
+  const pillWidth = contextStartX + contextSpace + paddingX / 2;
+  const offsetX = verticalLayout ? (width - pillWidth) / 2 : 0;
+
+  return {
+    height,
+    statusStartX,
+    textStartX,
+    actionStartX,
+    contextStartX,
+    badgeStartX,
+    iconWidth,
+    iconStartX,
+    leadIconStartX,
+    pillWidth,
+    offsetX,
+  };
+};
+
+/**
+ * Stores pill dimensions in element data for anchor positioning
+ * Optimized to avoid unnecessary object creation and updates
+ */
+const storePillDimensions = (element: Node, dimensions: TaskPillDimensions): void => {
+  if (dimensions.pillWidth <= 0) return;
+
+  const elementData = element.getData();
+  const currentPillDimensions = elementData?.pillDimensions;
+
+  // Only update if dimensions have actually changed to prevent infinite loops
+  if (
+    !currentPillDimensions ||
+    currentPillDimensions.pillWidth !== dimensions.pillWidth ||
+    currentPillDimensions.height !== dimensions.height ||
+    currentPillDimensions.offsetX !== dimensions.offsetX
+  ) {
+    // Only create new object if we need to update
+    const newData = elementData
+      ? { ...elementData, pillDimensions: dimensions }
+      : { pillDimensions: dimensions };
+    element.setData(newData);
+  }
+};
 
 export interface LineageTaskPillProps {
   element: Node;
@@ -137,72 +243,36 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
     const textWidth = textSize?.width || 0;
     const textHeight = textSize?.height || 0;
 
-    // This is the crucial calculation logic from TaskPill line 101-113
-    const dimensions: TaskPillDimensions = useMemo(() => {
-      if (!textSize) {
-        return {
-          height: 0,
-          statusStartX: 0,
-          textStartX: 0,
-          actionStartX: 0,
-          contextStartX: 0,
-          pillWidth: 0,
-          badgeStartX: 0,
-          iconWidth: 0,
-          iconStartX: 0,
-          leadIconStartX: 0,
-          offsetX: 0,
-        };
-      }
-      const height: number = textHeight + 2 * paddingY;
-      const startX = paddingX + paddingX / 2;
-
-      const iconWidth = taskIconClass || taskIcon ? height - taskIconPadding : 0;
-      const iconStartX = -(iconWidth * 0.75);
-
-      const statusStartX = startX - statusIconSize / 4; // Adjust for icon padding
-      const statusSpace = showStatusState ? statusSize.width + paddingX : 0;
-
-      const leadIconStartX = startX + statusSpace;
-      const leadIconSpace = leadIcon ? leadSize.width + paddingX : 0;
-
-      const textStartX = leadIconStartX + leadIconSpace;
-      const textSpace = textWidth + paddingX;
-
-      const badgeStartX = textStartX + textSpace;
-      const badgeSpace = badge ? badgeSize.width + paddingX : 0;
-
-      const actionStartX = badgeStartX + badgeSpace;
-      const contextStartX = actionStartX; // No action icon space since we don't use it
-      const contextSpace = !hideContextMenuKebab && !!onContextMenu ? paddingX : 0;
-
-      const pillWidth = contextStartX + contextSpace + paddingX / 2;
-
-      const offsetX = verticalLayout ? (width - pillWidth) / 2 : 0;
-
-      return {
-        height,
-        statusStartX,
-        textStartX,
-        actionStartX,
-        contextStartX,
-        badgeStartX,
-        iconWidth,
-        iconStartX,
-        leadIconStartX,
-        pillWidth,
-        offsetX,
-      };
+    // Memoize dimension calculation to avoid recalculation when inputs haven't changed
+    const dimensions = useMemo(() => {
+      return calculatePillDimensions(
+        textSize,
+        textHeight,
+        textWidth,
+        paddingY,
+        paddingX,
+        status,
+        showStatusState,
+        leadSize,
+        leadIcon,
+        statusSize,
+        badgeSize,
+        badge,
+        hideContextMenuKebab || false,
+        onContextMenu,
+        verticalLayout,
+        width,
+        taskIconClass,
+        taskIcon,
+        taskIconPadding,
+        statusIconSize,
+      );
     }, [
       textSize,
       textHeight,
       textWidth,
       paddingY,
       paddingX,
-      taskIconClass,
-      taskIcon,
-      taskIconPadding,
-      statusIconSize,
       status,
       showStatusState,
       leadSize,
@@ -211,25 +281,19 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
       badgeSize,
       badge,
       hideContextMenuKebab,
+      onContextMenu,
       verticalLayout,
       width,
+      taskIconClass,
+      taskIcon,
+      taskIconPadding,
+      statusIconSize,
+      detailsLevel,
+      element.getGraph().getScale(),
     ]);
 
-    // Store dimensions in element data so anchors can access them
-    useEffect(() => {
-      const elementData = element.getData();
-      const currentPillDimensions = elementData?.pillDimensions;
-
-      // Only update if dimensions have actually changed to prevent infinite loops
-      if (
-        !currentPillDimensions ||
-        currentPillDimensions.pillWidth !== dimensions.pillWidth ||
-        currentPillDimensions.height !== dimensions.height ||
-        currentPillDimensions.offsetX !== dimensions.offsetX
-      ) {
-        element.setData({ ...elementData, pillDimensions: dimensions });
-      }
-    }, [element, dimensions.pillWidth, dimensions.height, dimensions.offsetX]);
+    // Store dimensions immediately after calculation (synchronous)
+    storePillDimensions(element, dimensions);
 
     const scale = element.getGraph().getScale();
 
@@ -356,6 +420,20 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
         >
           {label}
         </text>
+        {/* Hidden badge element for size measurement */}
+        {badge && (
+          <g ref={(el) => el && badgeRef(el)} opacity={0} style={{ pointerEvents: 'none' }}>
+            <LabelBadge
+              x={0}
+              y={0}
+              badge={badge}
+              badgeClassName={badgeClassName}
+              badgeColor={badgeColor}
+              badgeTextColor={badgeTextColor}
+              badgeBorderColor={badgeBorderColor}
+            />
+          </g>
+        )}
         {shadows}
         <rect
           x={dimensions.offsetX}
