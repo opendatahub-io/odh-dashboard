@@ -19,7 +19,7 @@ import {
   getImageStreamDisplayName,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/imageStreams';
 
-describe('Workbench and PVSs tests', () => {
+describe('[Product Bug: RHAIENG-1158] Workbench and PVSs tests', () => {
   let projectName: string;
   let PVCName: string;
   let PVCDisplayName: string;
@@ -74,7 +74,7 @@ describe('Workbench and PVSs tests', () => {
 
   it(
     'Verify users can create a workbench and connect an existent PersistentVolume',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-1814', '@Dashboard', '@Workbenches'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@ODS-1814', '@Dashboard', '@Workbenches', '@Bug'] },
     () => {
       const workbenchName = projectName.replace('dsp-', '');
       let selectedImageStream: string;
