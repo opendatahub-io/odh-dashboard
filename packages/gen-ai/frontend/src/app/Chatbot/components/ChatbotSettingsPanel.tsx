@@ -32,6 +32,8 @@ interface ChatbotSettingsPanelProps {
   sourceManagement: UseSourceManagementReturn;
   systemInstruction: string;
   onSystemInstructionChange: (value: string) => void;
+  isStreamingEnabled: boolean;
+  onStreamingToggle: (enabled: boolean) => void;
 }
 
 const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> = ({
@@ -42,6 +44,8 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   sourceManagement,
   systemInstruction,
   onSystemInstructionChange,
+  isStreamingEnabled,
+  onStreamingToggle,
 }) => {
   const accordionState = useAccordionState();
 
@@ -76,6 +80,15 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                   <SystemPromptFormGroup
                     systemInstruction={systemInstruction}
                     onSystemInstructionChange={onSystemInstructionChange}
+                  />
+                </FormGroup>
+                <FormGroup fieldId="streaming">
+                  <Switch
+                    id="streaming-switch"
+                    label="Streaming"
+                    isChecked={isStreamingEnabled}
+                    onChange={(_event, checked) => onStreamingToggle(checked)}
+                    aria-label="Toggle streaming responses"
                   />
                 </FormGroup>
               </Form>
