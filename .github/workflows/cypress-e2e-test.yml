@@ -43,7 +43,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: refs/pull/${{ github.event.issue.number }}/merge
+          ref: refs/pull/${{ github.event.issue.number }}/head
 
       - name: Cache npm dependencies
         uses: actions/cache@v4
