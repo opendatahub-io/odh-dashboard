@@ -146,8 +146,6 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
     };
   }, [projects, platformDeployments, deploymentWatchersLoaded, availablePlatforms]);
 
-  console.log('contextValue', contextValue);
-
   return (
     <ModelDeploymentsContext.Provider value={contextValue}>
       {
