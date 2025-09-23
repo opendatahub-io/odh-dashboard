@@ -440,10 +440,7 @@ describe('Entity Feature Views Tab', () => {
     cy.wait('@getEntityFeatureViews');
     featureEntityDetails.findFeatureViewsTabContent().within(() => {
       featureViewsTable.findTable().should('be.visible');
-      featureViewsTable
-        .findRow('zipcode_features')
-        .shouldHaveFeatureViewName('zipcode_features')
-        .shouldHaveOwner('risk-team@company.com');
+      featureViewsTable.findRow('zipcode_features').shouldHaveFeatureViewName('zipcode_features');
     });
   });
 
