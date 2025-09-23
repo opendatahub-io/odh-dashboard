@@ -51,7 +51,15 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
   const [currentFilterType, setCurrentFilterType] =
     useState<keyof FeatureStoreLineageSearchFilters>('entity');
   const [conversionError, setConversionError] = useState<string | null>(null);
-  const { triggerCenter } = useLineageCenter();
+  const { triggerCenter, forceCenter } = useLineageCenter();
+  const [lineageKey, setLineageKey] = useState(0);
+
+  // Force re-render when forceCenter is triggered (tab switch)
+  useEffect(() => {
+    if (forceCenter) {
+      setLineageKey((prev) => prev + 1);
+    }
+  }, [forceCenter]);
 
   const {
     data: lineageData,
@@ -170,6 +178,7 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
       style={{ height, display: 'flex', flexDirection: 'column' }}
     >
       <Lineage
+        key={lineageKey}
         data={visualizationData}
         loading={!lineageDataLoaded}
         error={
