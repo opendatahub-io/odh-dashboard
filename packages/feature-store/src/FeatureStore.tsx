@@ -1,6 +1,10 @@
 import React from 'react';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { Tab, Tabs, TabTitleText, TabContent, PageSection, Flex } from '@patternfly/react-core';
+import {
+  LineageCenterProvider,
+  useLineageCenter,
+} from '@odh-dashboard/internal/components/lineage/context/LineageCenterContext';
 import FeatureStoreProjectSelectorNavigator from './screens/components/FeatureStoreProjectSelectorNavigator';
 import FeatureStorePageTitle from './components/FeatureStorePageTitle';
 import FeatureStoreWarningAlert from './components/FeatureStoreWarningAlert';
@@ -20,8 +24,16 @@ type FeatureStoreProps = Omit<
   | 'removeChildrenTopPadding'
   | 'headerContent'
 >;
-const FeatureStore: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
+const FeatureStoreInner: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(FeatureStoreTabs.METRICS);
+  const { triggerCenter } = useLineageCenter();
+
+  // Trigger centering when lineage tab becomes active
+  React.useEffect(() => {
+    if (activeTabKey === FeatureStoreTabs.LINEAGE) {
+      triggerCenter();
+    }
+  }, [activeTabKey, triggerCenter]);
 
   return (
     <ApplicationsPage
@@ -100,6 +112,14 @@ const FeatureStore: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
         </TabContent>
       </PageSection>
     </ApplicationsPage>
+  );
+};
+
+const FeatureStore: React.FC<FeatureStoreProps> = (props) => {
+  return (
+    <LineageCenterProvider>
+      <FeatureStoreInner {...props} />
+    </LineageCenterProvider>
   );
 };
 

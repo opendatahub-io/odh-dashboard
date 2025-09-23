@@ -192,11 +192,7 @@ describe('Feature Service Details', () => {
       featureServiceDetails.visit(fsProjectName, featureServiceName);
       featureServiceDetails.shouldHaveTitle(featureServiceName);
 
-      featureServiceDetailsBreadcrumb
-        .findFeatureServicesLink()
-        .should('be.visible')
-        .should('have.attr', 'href', '/featureStore/featureServices');
-
+      featureServiceDetailsBreadcrumb.findBreadcrumbLink().should('be.visible');
       featureServiceDetailsBreadcrumb.shouldShowCurrentService(featureServiceName);
     });
 

@@ -226,6 +226,33 @@ export class FeatureStoreFilterUtils<
   };
 
   /**
+   * Filter by feature services - searches through relationships to find matching feature services
+   */
+  private filterByFeatureServices = (
+    item: T,
+    relationships: Record<string, R[] | undefined>,
+    filterString: string,
+  ): boolean => {
+    const itemName = getNestedValue(item, this.namePath);
+    if (!isString(itemName)) {
+      return false;
+    }
+
+    const itemRelationships = relationships[itemName];
+    if (!Array.isArray(itemRelationships)) {
+      return false;
+    }
+
+    const lowerFilterString = filterString.toLowerCase();
+    return itemRelationships.some((rel) => {
+      if (rel.target.type === 'featureService') {
+        return rel.target.name.toLowerCase().includes(lowerFilterString);
+      }
+      return false;
+    });
+  };
+
+  /**
    * Filter by a specific property path
    */
   private filterByProperty = (item: T, propertyPath: string, filterString: string): boolean => {
@@ -286,6 +313,10 @@ export class FeatureStoreFilterUtils<
 
         if (propertyPath === 'features') {
           return this.filterByFeatures(item, filterString);
+        }
+
+        if (propertyPath === 'feature_services') {
+          return this.filterByFeatureServices(item, relationships, filterString);
         }
 
         if (propertyPath === this.tagsPath) {

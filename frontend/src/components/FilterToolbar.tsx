@@ -23,6 +23,8 @@ export type ToolbarFilterProps<T extends string> = React.ComponentProps<typeof T
   filterOptionRenders: Record<T, (props: FilterOptionRenders) => React.ReactNode>;
   filterData: Record<T, string | { label: string; value: string } | undefined>;
   onFilterUpdate: (filterType: T, value?: string | { label: string; value: string }) => void;
+  currentFilterType?: T;
+  onFilterTypeChange?: (filterType: T) => void;
   testId?: string;
 };
 
@@ -31,6 +33,8 @@ function FilterToolbar<T extends string>({
   filterOptionRenders,
   filterData,
   onFilterUpdate,
+  currentFilterType: externalCurrentFilterType,
+  onFilterTypeChange,
   children,
   testId = 'filter-toolbar',
   ...toolbarGroupProps
@@ -38,7 +42,10 @@ function FilterToolbar<T extends string>({
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const keys = Object.keys(filterOptions) as Array<T>;
   const [open, setOpen] = React.useState(false);
-  const [currentFilterType, setCurrentFilterType] = React.useState<T>(keys[0]);
+
+  const [internalCurrentFilterType, setInternalCurrentFilterType] = React.useState<T>(keys[0]);
+  const currentFilterType = externalCurrentFilterType ?? internalCurrentFilterType;
+
   const filterItem = filterData[currentFilterType];
 
   return (
@@ -72,7 +79,11 @@ function FilterToolbar<T extends string>({
                     id={filterKey}
                     onClick={() => {
                       setOpen(false);
-                      setCurrentFilterType(filterKey);
+                      if (onFilterTypeChange) {
+                        onFilterTypeChange(filterKey);
+                      } else {
+                        setInternalCurrentFilterType(filterKey);
+                      }
                     }}
                   >
                     {filterOptions[filterKey]}

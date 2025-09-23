@@ -50,7 +50,6 @@ const ModelCatalogDeployModalExtension: React.FC<ModelCatalogDeployModalExtensio
   // Create model deploy prefill info for catalog model
   const modelDeployPrefill = React.useMemo(() => {
     // For catalog models, we need to create a ModelDeployPrefillInfo
-    // The model.url should contain the model artifact URI
     return {
       data: {
         modelName: model.name,
@@ -60,7 +59,8 @@ const ModelCatalogDeployModalExtension: React.FC<ModelCatalogDeployModalExtensio
       loaded: true,
       error: undefined,
     };
-  }, [model]);
+  }, [model.name, uri]);
+
 
   const handleSubmit = React.useCallback(() => {
     setOpenModal(false);

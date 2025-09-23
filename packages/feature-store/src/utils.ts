@@ -32,7 +32,7 @@ export const getFeatureStoreObjectDisplayName = (
     case FeatureStoreObject.DATA_SOURCES:
       return 'Data Sources';
     case FeatureStoreObject.OVERVIEW:
-      return 'Overview';
+      return 'Feature store overview';
     case FeatureStoreObject.FEATURES:
       return 'Features';
     default:
@@ -135,7 +135,7 @@ export const getFeatureStoreObjectDescription = (
     case FeatureStoreObject.ENTITIES:
       return 'Select a feature store repository to view and manage its entities. Entities are collections of related features and can be mapped to your use case (for example, customers, products, transactions).';
     case FeatureStoreObject.DATA_SOURCES:
-      return 'Select a workspace to view and manage its data sources. Data sources provide the raw data that feeds into your feature store.';
+      return 'Select a feature store repository to view and manage its data sources. Data sources provide the raw data that feeds into your feature store.';
     case FeatureStoreObject.FEATURES:
       return 'Select a feature store repository to view its features. A feature is a schema containing a name and a type, and is used to represent the data stored in feature views for both training and serving purposes.';
     case FeatureStoreObject.FEATURE_VIEWS:

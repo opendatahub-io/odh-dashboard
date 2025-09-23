@@ -15,6 +15,8 @@ export const featureViewTableFilterKeyMapping: Record<string, string> = {
   project: 'project',
   tag: 'spec.tags',
   features: 'features',
+  // eslint-disable-next-line camelcase
+  feature_services: 'feature_services',
   owner: 'spec.owner',
   storeType: 'storeType',
   created: 'meta.createdTimestamp',
