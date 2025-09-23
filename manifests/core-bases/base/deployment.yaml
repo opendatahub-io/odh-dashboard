@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: odh-dashboard
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       deployment: odh-dashboard
