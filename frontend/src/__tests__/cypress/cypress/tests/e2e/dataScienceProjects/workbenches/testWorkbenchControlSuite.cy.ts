@@ -18,7 +18,7 @@ import {
   getImageStreamDisplayName,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/imageStreams';
 
-describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
+describe('[Product Bug: RHAIENG-1158] Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
   let controlSuiteTestNamespace: string;
   let controlSuiteTestDescription: string;
   const uuid = generateTestUUID();
@@ -62,6 +62,7 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
         '@ODS-1975',
         '@Dashboard',
         '@Workbenches',
+        '@Bug',
       ],
     },
     () => {
@@ -140,6 +141,7 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
         '@ODS-1975',
         '@Dashboard',
         '@Workbenches',
+        '@Bug',
       ],
     },
     () => {
