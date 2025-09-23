@@ -9,8 +9,5 @@
     "test-unit-coverage": "jest --silent --coverage",
     "type-check": "tsc --noEmit",
     "test:fix": "eslint --ext .js,.ts,.jsx,.tsx . --fix"
-  },
-  "exports": {
-    "./extensions": "./extensions/index.ts"
   }
 }
