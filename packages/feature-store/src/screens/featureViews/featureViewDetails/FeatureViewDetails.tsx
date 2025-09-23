@@ -8,7 +8,7 @@ import {
   FlexItem,
 } from '@patternfly/react-core';
 import React from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { t_global_spacer_xs as ExtraSmallSpacerSize } from '@patternfly/react-tokens';
 import { SearchIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
@@ -19,6 +19,7 @@ import useFeatureViewsByName from '../../../apiHooks/useFeatureViewsByName';
 import FeatureStoreLabels from '../../../components/FeatureStoreLabels';
 import { featureStoreRootRoute } from '../../../routes';
 import FeatureStorePageTitle from '../../../components/FeatureStorePageTitle';
+import FeatureStoreBreadcrumb from '../../components/FeatureStoreBreadcrumb';
 
 const FeatureViewDetails = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -68,10 +69,11 @@ const FeatureViewDetails = (): React.ReactElement => {
           isDetailsPage
           breadcrumb={
             <Breadcrumb>
-              <BreadcrumbItem
-                render={() => (
-                  <Link to={`${featureStoreRootRoute()}/featureViews`}>Feature views</Link>
-                )}
+              <FeatureStoreBreadcrumb
+                pageName="Feature views"
+                projectName={currentProject || ''}
+                linkTo={`${featureStoreRootRoute()}/featureViews`}
+                dataTestId="feature-view-details-breadcrumb-link"
               />
               <BreadcrumbItem
                 data-testid="breadcrumb-version-name"

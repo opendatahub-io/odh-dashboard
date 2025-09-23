@@ -5,7 +5,14 @@ import {
   TopologyView,
   TopologyControlBar,
 } from '@patternfly/react-topology';
-import { EmptyState, EmptyStateVariant, Spinner, Alert, Title } from '@patternfly/react-core';
+import {
+  EmptyState,
+  EmptyStateVariant,
+  Spinner,
+  Alert,
+  Title,
+  Divider,
+} from '@patternfly/react-core';
 import {
   LineageProps,
   convertToLineageNodeModel,
@@ -16,7 +23,9 @@ import useLineageController from './useLineageController';
 import { useLineageSelection } from './useLineageSelection';
 import { useLineagePopover } from './useLineagePopover';
 import { createLineageTopologyControls } from './topologyControls';
-import { LineageClickProvider } from './LineageClickContext';
+import { LineageClickProvider, useLineageClick } from './LineageClickContext';
+import { useLineageCenter } from './context/LineageCenterContext';
+import { useDebouncedCenter } from './useDebouncedCenter';
 
 const LineageInner: React.FC<LineageProps> = ({
   data,
@@ -32,8 +41,9 @@ const LineageInner: React.FC<LineageProps> = ({
   autoResetOnDataChange = false,
 }) => {
   const controller = useLineageController('lineage-graph', componentFactory);
+  const { forceCenter } = useLineageCenter();
+  const { debouncedCenter, cleanup } = useDebouncedCenter(controller);
 
-  // Convert generic lineage data to topology format
   const nodes = useMemo(() => {
     return data.nodes.map(convertToLineageNodeModel);
   }, [data.nodes]);
@@ -42,7 +52,8 @@ const LineageInner: React.FC<LineageProps> = ({
     return data.edges.map(convertToLineageEdgeModel);
   }, [data.edges]);
 
-  // Initialize popover hook
+  const { getLastClickPosition } = useLineageClick();
+
   const {
     selectedNode: popoverNode,
     popoverPosition,
@@ -54,27 +65,38 @@ const LineageInner: React.FC<LineageProps> = ({
     enabled: showNodePopover && !!PopoverComponent,
   });
 
-  // Enhanced node selection handler that also shows popover
   const handleNodeSelect = React.useCallback(
     (nodeId: string | null) => {
       onNodeSelect?.(nodeId);
 
-      // Show popover for selected node if enabled
       if (nodeId && showNodePopover && PopoverComponent) {
-        showPopover(nodeId);
+        const isValidNode = data.nodes.some((node) => node.id === nodeId);
+
+        if (isValidNode) {
+          const clickPosition = getLastClickPosition();
+          showPopover(
+            nodeId,
+            clickPosition ? { x: clickPosition.x, y: clickPosition.y } : undefined,
+          );
+        }
       }
     },
-    [onNodeSelect, showNodePopover, PopoverComponent, showPopover],
+    [
+      onNodeSelect,
+      showNodePopover,
+      PopoverComponent,
+      showPopover,
+      getLastClickPosition,
+      data.nodes,
+    ],
   );
 
-  // Use selection management hook
   const { selectedIds, highlightedIds } = useLineageSelection({
     controller,
     edges,
     onNodeSelect: handleNodeSelect,
   });
 
-  // Load nodes and edges into controller when it's ready
   React.useEffect(() => {
     if (controller && nodes.length > 0) {
       try {
@@ -83,60 +105,77 @@ const LineageInner: React.FC<LineageProps> = ({
             nodes,
             edges,
           },
-          true, // Update existing model
+          true,
         );
       } catch (e) {
-        console.error('Error loading lineage nodes and edges:', e);
+        // Silently handle errors
       }
     }
   }, [controller, nodes, edges]);
 
   // Auto-reset zoom and center when data changes after filtering
+  const prevNodesLengthRef = React.useRef(nodes.length);
+  const prevEdgesLengthRef = React.useRef(edges.length);
+  const innerTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
   React.useEffect(() => {
-    if (controller && autoResetOnDataChange && nodes.length > 0) {
+    const nodesLengthChanged = prevNodesLengthRef.current !== nodes.length;
+    const edgesLengthChanged = prevEdgesLengthRef.current !== edges.length;
+
+    if (
+      controller &&
+      autoResetOnDataChange &&
+      nodes.length > 0 &&
+      (nodesLengthChanged || edgesLengthChanged)
+    ) {
       const resetTimeout = setTimeout(() => {
         try {
           controller.getGraph().reset();
           controller.getGraph().layout();
+
+          // Clear any existing inner timeout
+          if (innerTimeoutRef.current) {
+            clearTimeout(innerTimeoutRef.current);
+          }
+
+          innerTimeoutRef.current = setTimeout(() => {
+            debouncedCenter();
+            innerTimeoutRef.current = null;
+          }, 50);
         } catch (e) {
-          console.warn('Failed to reset graph layout:', e);
+          // Silently handle errors
         }
-      }, 100); // Small delay to let the data load effect complete
+      }, 100);
+
+      // Update refs after triggering reset
+      prevNodesLengthRef.current = nodes.length;
+      prevEdgesLengthRef.current = edges.length;
 
       return () => {
         clearTimeout(resetTimeout);
+        if (innerTimeoutRef.current) {
+          clearTimeout(innerTimeoutRef.current);
+          innerTimeoutRef.current = null;
+        }
       };
     }
+
+    prevNodesLengthRef.current = nodes.length;
+    prevEdgesLengthRef.current = edges.length;
+
     return undefined;
-  }, [controller, autoResetOnDataChange, nodes, edges]);
+  }, [controller, autoResetOnDataChange, nodes, edges, debouncedCenter]);
 
-  // Get the selected node for potential pan-into-view functionality
-  const selectedNode = useMemo(() => {
-    return selectedIds[0] && controller ? controller.getNodeById(selectedIds[0]) : null;
-  }, [selectedIds, controller]);
-
-  // Pan selected node into view like Pipeline DAG does
   React.useEffect(() => {
-    let resizeTimeout: NodeJS.Timeout | null = null;
-    if (selectedNode) {
-      // Use a timeout to allow for any UI changes to settle
-      resizeTimeout = setTimeout(() => {
-        if (controller) {
-          controller.getGraph().panIntoView(selectedNode, {
-            offset: 20,
-            minimumVisible: 100,
-          });
-        }
-      }, 300);
-    }
-    return () => {
-      if (resizeTimeout) {
-        clearTimeout(resizeTimeout);
-      }
-    };
-  }, [selectedNode, controller]);
+    if (!controller || !forceCenter) return;
+    debouncedCenter();
+  }, [controller, forceCenter, debouncedCenter]);
 
-  // Handle loading state
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return cleanup;
+  }, [cleanup]);
+
   if (loading) {
     return (
       <div
@@ -153,7 +192,6 @@ const LineageInner: React.FC<LineageProps> = ({
     );
   }
 
-  // Handle error state
   if (error) {
     return (
       <div className={className} style={{ height, padding: '1rem' }}>
@@ -187,11 +225,16 @@ const LineageInner: React.FC<LineageProps> = ({
         height,
         display: 'flex',
         flexDirection: 'column',
-        background: 'var(--pf-t--color--gray--10)',
+        backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
         borderRadius: 16,
       }}
     >
-      {ToolbarComponent && <ToolbarComponent />}
+      {ToolbarComponent && (
+        <>
+          <ToolbarComponent />
+          <Divider />
+        </>
+      )}
       <div style={{ flex: 1, overflow: 'hidden', position: 'relative', borderRadius: 16 }}>
         <TopologyView
           controlBar={

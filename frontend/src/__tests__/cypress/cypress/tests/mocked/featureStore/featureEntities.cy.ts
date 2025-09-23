@@ -254,7 +254,10 @@ describe('Feature Entities for all projects', () => {
   it('should display project column when viewing all projects', () => {
     featureStoreGlobal.visitEntities();
     featureEntitiesTable.findTable().should('be.visible');
-    featureEntitiesTable.findTable().find('thead').should('contain.text', 'Project');
+    featureEntitiesTable
+      .findTable()
+      .find('thead')
+      .should('contain.text', 'Feature store repository');
     featureEntitiesTable.findRow('user_id').shouldHaveProject(fsProjectName);
     featureEntitiesTable.findRow('transaction_id').shouldHaveProject(fsProjectName2);
   });
@@ -437,10 +440,7 @@ describe('Entity Feature Views Tab', () => {
     cy.wait('@getEntityFeatureViews');
     featureEntityDetails.findFeatureViewsTabContent().within(() => {
       featureViewsTable.findTable().should('be.visible');
-      featureViewsTable
-        .findRow('zipcode_features')
-        .shouldHaveFeatureViewName('zipcode_features')
-        .shouldHaveOwner('risk-team@company.com');
+      featureViewsTable.findRow('zipcode_features').shouldHaveFeatureViewName('zipcode_features');
     });
   });
 

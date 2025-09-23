@@ -1,9 +1,5 @@
 import * as React from 'react';
-import {
-  GRAPH_LAYOUT_END_EVENT,
-  Visualization,
-  ComponentFactory,
-} from '@patternfly/react-topology';
+import { Visualization, ComponentFactory } from '@patternfly/react-topology';
 import { lineageLayoutFactory } from './factories';
 
 const useLineageController = (
@@ -31,12 +27,17 @@ const useLineageController = (
       false,
     );
 
-    visualizationController.addEventListener(GRAPH_LAYOUT_END_EVENT, () => {
-      // Use a more aggressive fit operation for better centering
-      visualizationController.getGraph().fit(50);
-    });
-
     setController(visualizationController);
+
+    // Cleanup function to dispose of the controller
+    return () => {
+      try {
+        // Clear the controller reference to help with garbage collection
+        setController(null);
+      } catch (e) {
+        // Silently handle cleanup errors
+      }
+    };
   }, [graphId, customComponentFactory]);
 
   return controller;
