@@ -32,6 +32,8 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
   onHideNodesWithoutRelationshipsChange,
   searchFilters = {},
   onSearchFiltersChange,
+  currentFilterType = 'entity',
+  onCurrentFilterTypeChange,
   lineageData,
   lineageDataLoaded = false,
   isFeatureViewToolbar = false,
@@ -160,15 +162,6 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
       keyof FeatureStoreLineageSearchFilters,
       (props: FilterOptionRenders) => React.ReactNode
     > = {
-      entity: () => (
-        <MultiSelection
-          value={getEntityOptions}
-          setValue={(selections: SelectionOptions[]) => handleSelectionChange('entity', selections)}
-          placeholder={!lineageDataLoaded ? 'Loading lineage...' : 'Search entities...'}
-          ariaLabel="Search entities"
-          isDisabled={!lineageDataLoaded}
-        />
-      ),
       featureView: () => (
         <MultiSelection
           value={getFeatureViewOptions}
@@ -177,6 +170,15 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
           }
           placeholder={!lineageDataLoaded ? 'Loading lineage...' : 'Search feature views...'}
           ariaLabel="Search feature views"
+          isDisabled={!lineageDataLoaded}
+        />
+      ),
+      entity: () => (
+        <MultiSelection
+          value={getEntityOptions}
+          setValue={(selections: SelectionOptions[]) => handleSelectionChange('entity', selections)}
+          placeholder={!lineageDataLoaded ? 'Loading lineage...' : 'Search entities...'}
+          ariaLabel="Search entities"
           isDisabled={!lineageDataLoaded}
         />
       ),
@@ -205,8 +207,8 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
     };
     return renderers;
   }, [
-    getEntityOptions,
     getFeatureViewOptions,
+    getEntityOptions,
     getDataSourceOptions,
     getFeatureServiceOptions,
     handleSelectionChange,
@@ -238,21 +240,40 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
     }
   }, [onSearchFiltersChange]);
 
+  // Memoize filterData to prevent FilterToolbar from remounting
+  const filterData = useMemo(
+    () => ({
+      entity: searchFilters.entity,
+      featureView: searchFilters.featureView,
+      dataSource: searchFilters.dataSource,
+      featureService: searchFilters.featureService,
+    }),
+    [
+      searchFilters.entity,
+      searchFilters.featureView,
+      searchFilters.dataSource,
+      searchFilters.featureService,
+    ],
+  );
+
   return (
-    <Toolbar style={{ padding: '1rem 1.5rem 1rem' }} clearAllFilters={onClearAllFilters}>
+    <Toolbar
+      style={{
+        padding: '1rem 1.5rem 0.5rem 1.5rem',
+        backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
+      }}
+      clearAllFilters={onClearAllFilters}
+    >
       <ToolbarContent>
         <ToolbarItem>
           <FilterToolbar
             key="lineage-filters"
             filterOptions={FILTER_OPTIONS}
             filterOptionRenders={filterOptionRenders}
-            filterData={{
-              entity: searchFilters.entity,
-              featureView: searchFilters.featureView,
-              dataSource: searchFilters.dataSource,
-              featureService: searchFilters.featureService,
-            }}
+            filterData={filterData}
             onFilterUpdate={onFilterUpdate}
+            currentFilterType={currentFilterType}
+            onFilterTypeChange={onCurrentFilterTypeChange}
             testId="lineage-search-filter"
           />
         </ToolbarItem>
