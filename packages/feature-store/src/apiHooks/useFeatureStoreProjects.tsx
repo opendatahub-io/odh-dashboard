@@ -13,16 +13,19 @@ const useFeatureStoreProjects = (): FetchStateObject<ProjectList> => {
   } = React.useContext(FeatureStoreContext);
 
   const featureStoreProjectsRef = React.useRef(featureStoreProjects);
+  const refreshFeatureStoreProjectsRef = React.useRef(refreshFeatureStoreProjects);
+
   featureStoreProjectsRef.current = featureStoreProjects;
+  refreshFeatureStoreProjectsRef.current = refreshFeatureStoreProjects;
 
   const refreshCallback = React.useCallback(async (): Promise<ProjectList | undefined> => {
     try {
-      await refreshFeatureStoreProjects();
+      await refreshFeatureStoreProjectsRef.current();
       return featureStoreProjectsRef.current;
     } catch (error) {
       return undefined;
     }
-  }, [refreshFeatureStoreProjects]);
+  }, []);
 
   const result = React.useMemo(
     () => ({
