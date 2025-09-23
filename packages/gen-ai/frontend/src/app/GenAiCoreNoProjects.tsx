@@ -18,7 +18,7 @@ const GenAiCoreNoProjects: React.FC<GenAiCoreNoProjectsProps> = ({ getRedirectPa
       titleText="No data science projects"
       data-testid="empty-state-title"
     >
-      <EmptyStateBody>To use Gen AI, first create a data science project.</EmptyStateBody>
+      <EmptyStateBody>To use the playground, first create a data science project.</EmptyStateBody>
       <EmptyStateFooter>
         <NewProjectButton
           closeOnCreate
