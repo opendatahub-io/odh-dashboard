@@ -966,6 +966,14 @@ class ModelServingWizard extends Wizard {
   findNumReplicasPlusButton() {
     return cy.findByTestId('num-replicas').findByRole('button', { name: 'Plus' });
   }
+
+  findSaveAsAAACheckbox() {
+    return cy.findByTestId('save-as-aaa-checkbox');
+  }
+
+  findUseCaseInput() {
+    return cy.findByTestId('use-case-input');
+  }
 }
 
 export const modelServingGlobal = new ModelServingGlobal();
