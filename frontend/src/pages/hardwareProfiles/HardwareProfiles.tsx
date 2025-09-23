@@ -59,30 +59,11 @@ const HardwareProfiles: React.FC = () => {
   const isEmpty = allMigratedHardwareProfiles.length === 0;
   const warningMessages = generateWarningForHardwareProfiles(allMigratedHardwareProfiles);
 
-  const serverHardwareProfileOrder = dashboardConfig?.spec.hardwareProfileOrder || [];
-  const [optimisticHardwareProfileOrder, setOptimisticHardwareProfileOrder] = React.useState<
-    string[]
-  >(serverHardwareProfileOrder);
-
-  React.useEffect(() => {
-    setOptimisticHardwareProfileOrder(serverHardwareProfileOrder);
-  }, [serverHardwareProfileOrder]);
-
-  const setHardwareProfileOrder = React.useCallback(
-    async (hwpNameOrder: string[]) => {
-      // Optimistically update local state immediately
-      setOptimisticHardwareProfileOrder(hwpNameOrder);
-      try {
-        await patchDashboardConfigHardwareProfileOrder(hwpNameOrder, dashboardNamespace);
-        return await refreshDashboardConfig();
-      } catch (error) {
-        // Revert optimistic state on error
-        setOptimisticHardwareProfileOrder(serverHardwareProfileOrder);
-        throw error;
-      }
-    },
-    [dashboardNamespace, refreshDashboardConfig, serverHardwareProfileOrder],
-  );
+  const hardwareProfileOrder = dashboardConfig?.spec.hardwareProfileOrder || [];
+  const setHardwareProfileOrder = (hwpNameOrder: string[]) =>
+    patchDashboardConfigHardwareProfileOrder(hwpNameOrder, dashboardNamespace).then(() =>
+      refreshDashboardConfig(),
+    );
 
   const noHardwareProfilePageSection = (
     <PageSection isFilled>
@@ -164,7 +145,7 @@ const HardwareProfiles: React.FC = () => {
           {hardwareProfiles.length > 0 ? (
             <HardwareProfilesTable
               hardwareProfiles={hardwareProfiles}
-              hardwareProfileOrder={optimisticHardwareProfileOrder}
+              hardwareProfileOrder={hardwareProfileOrder}
               setHardwareProfileOrder={setHardwareProfileOrder}
             />
           ) : (
@@ -192,7 +173,7 @@ const HardwareProfiles: React.FC = () => {
                   isMigratedTable
                   hardwareProfiles={migratedHardwareProfiles}
                   getMigrationAction={getMigrationAction}
-                  hardwareProfileOrder={optimisticHardwareProfileOrder}
+                  hardwareProfileOrder={hardwareProfileOrder}
                   setHardwareProfileOrder={setHardwareProfileOrder}
                 />
               </ExpandableSection>
