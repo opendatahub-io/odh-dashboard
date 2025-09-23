@@ -30,7 +30,7 @@ class FeatureEntitiesTable extends Contextual<HTMLElement> {
   }
 
   findToolbar() {
-    return new FeatureEntityToolbar(() => cy.findByTestId('filter-toolbar'));
+    return new FeatureEntityToolbar(() => cy.findByTestId('feature-store-table-toolbar'));
   }
 
   findToolbarClearFiltersButton() {
