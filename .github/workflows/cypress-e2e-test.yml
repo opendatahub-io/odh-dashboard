@@ -42,6 +42,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.issue.number }}/head
 
       - name: Cache npm dependencies
         uses: actions/cache@v4
@@ -292,6 +294,28 @@ jobs:
           # Extract OC_PASSWORD from OCP_ADMIN_USER section
           OC_PASSWORD=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
 
+          # Mask sensitive data in logs
+          echo "::add-mask::$OC_PASSWORD"
+          echo "::add-mask::$OC_USERNAME"
+
+          # Extract TEST_USER_3_AUTH_TYPE from TEST_USER_3 section
+          TEST_USER_3_AUTH_TYPE=$(grep -A 10 "^TEST_USER_3:" "$TEST_VARS_FILE" | grep "AUTH_TYPE:" | head -1 | sed 's/.*AUTH_TYPE: //' | tr -d ' ')
+
+          # Extract TEST_USER_3_USERNAME from TEST_USER_3 section
+          TEST_USER_3_USERNAME=$(grep -A 10 "^TEST_USER_3:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
+
+          # Extract TEST_USER_3_PASSWORD from TEST_USER_3 section
+          TEST_USER_3_PASSWORD=$(grep -A 10 "^TEST_USER_3:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
+
+          # Mask TEST_USER_3 credentials in logs (must happen after extraction)
+          echo "::add-mask::$TEST_USER_3_USERNAME"
+          echo "::add-mask::$TEST_USER_3_PASSWORD"
+
+          # Export TEST_USER_3 credentials as environment variables for Cypress
+          echo "TEST_USER_3_AUTH_TYPE=$TEST_USER_3_AUTH_TYPE" >> $GITHUB_ENV
+          echo "TEST_USER_3_USERNAME=$TEST_USER_3_USERNAME" >> $GITHUB_ENV
+          echo "TEST_USER_3_PASSWORD=$TEST_USER_3_PASSWORD" >> $GITHUB_ENV
+          
           echo "Logging in to OpenShift cluster..."
           oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="${{ secrets.OC_SERVER }}" --insecure-skip-tls-verify
 
@@ -474,7 +498,7 @@ jobs:
           echo "Status: ${{ job.status }}"
           echo "Event: ${{ github.event_name }}"
           echo "Branch: ${{ github.ref_name }}"
-          echo "Test Tag: ${{ matrix.test-tag }}”
+          echo "Test Tag: ${{ matrix.test-tag }}"
           echo "Commit: ${{ github.sha }}"
           echo "Run ID: ${{ github.run_id }}"
           echo ""

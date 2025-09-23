@@ -78,7 +78,14 @@ describe('[Bug: RHOAIENG-33131] Verify Model Serving Creation using Accelerator 
   it(
     'Verify that a Model can be deployed with Accelerator Profile tolerations',
     {
-      tags: ['@Sanity', '@SanitySet2', '@Dashboard', '@ModelServing', '@AcceleratorProfiles'],
+      tags: [
+        '@Sanity',
+        '@SanitySet2',
+        '@Dashboard',
+        '@ModelServing',
+        '@AcceleratorProfiles',
+        '@Bug',
+      ],
     },
     () => {
       cy.log('Model Name:', modelName);
