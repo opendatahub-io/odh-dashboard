@@ -94,7 +94,7 @@ const EditModelDeploymentPage: React.FC = () => {
   }
 
   return (
-    <ModelDeploymentsProvider modelServingPlatforms={[activePlatform]} projects={[currentProject]}>
+    <ModelDeploymentsProvider projects={[currentProject]}>
       <EditModelDeploymentContent project={currentProject} modelServingPlatform={activePlatform} />
     </ModelDeploymentsProvider>
   );

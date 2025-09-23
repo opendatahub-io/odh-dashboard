@@ -64,10 +64,7 @@ const ServeModelsSection: React.FC = () => {
   }
 
   return (
-    <ModelDeploymentsProvider
-      modelServingPlatforms={activePlatform ? [activePlatform] : []}
-      projects={[currentProject]}
-    >
+    <ModelDeploymentsProvider projects={[currentProject]}>
       <ServeModelsSectionContent platforms={clusterPlatforms} />
     </ModelDeploymentsProvider>
   );
