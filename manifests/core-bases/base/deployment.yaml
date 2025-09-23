@@ -76,6 +76,9 @@ spec:
             - --config-file=/etc/kube-rbac-proxy/config-file.yaml
             - --tls-cert-file=/etc/tls/private/tls.crt
             - --tls-private-key-file=/etc/tls/private/tls.key
+            - --auth-header-fields-enabled=true
+            - --auth-header-user-field-name=X-Auth-Request-User
+            - --auth-header-groups-field-name=X-Auth-Request-Groups
             - --proxy-endpoints-port=8444
             - --v=10
           image: kube-rbac-proxy
