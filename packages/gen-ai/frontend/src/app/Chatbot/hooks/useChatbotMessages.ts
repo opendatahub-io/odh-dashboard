@@ -37,7 +37,7 @@ const useChatbotMessages = ({
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
   const scrollToBottomRef = React.useRef<HTMLDivElement>(null);
   const { namespace } = React.useContext(GenAiContext);
-  const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Cleanup timeout on unmount
   React.useEffect(
