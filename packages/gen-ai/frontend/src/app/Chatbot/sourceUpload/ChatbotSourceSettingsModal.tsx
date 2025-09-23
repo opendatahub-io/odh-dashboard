@@ -121,9 +121,9 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
 
       // Reset the vector store creation form
       setVectorStoreForm(DEFAULT_VECTOR_STORE_FORM);
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to create vector database:', error);
+    } catch {
+      // Error is handled by the createVectorStore function
+      // which will show appropriate user-facing error messages
     } finally {
       setIsCreatingVectorStore(false);
     }

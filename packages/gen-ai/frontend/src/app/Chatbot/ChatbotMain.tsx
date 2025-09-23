@@ -40,6 +40,7 @@ const ChatbotMain: React.FunctionComponent = () => {
   );
   const [isViewCodeModalOpen, setIsViewCodeModalOpen] = React.useState(false);
   const [input, setInput] = React.useState<string>('');
+  const [isStreamingEnabled, setIsStreamingEnabled] = React.useState<boolean>(true);
 
   React.useEffect(() => {
     if (!selectedModel) {
@@ -76,6 +77,7 @@ const ChatbotMain: React.FunctionComponent = () => {
     systemInstruction,
     isRawUploaded: sourceManagement.isRawUploaded,
     username,
+    isStreamingEnabled,
   });
 
   // Create alert components
@@ -105,6 +107,8 @@ const ChatbotMain: React.FunctionComponent = () => {
       sourceManagement={sourceManagement}
       systemInstruction={systemInstruction}
       onSystemInstructionChange={setSystemInstruction}
+      isStreamingEnabled={isStreamingEnabled}
+      onStreamingToggle={setIsStreamingEnabled}
     />
   );
 
