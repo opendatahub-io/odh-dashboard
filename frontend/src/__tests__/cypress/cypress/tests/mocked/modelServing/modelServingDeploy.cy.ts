@@ -348,6 +348,16 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 4: Summary
+
+    // AI Asset
+    modelServingWizard.findSaveAsAAACheckbox().should('exist');
+    modelServingWizard.findSaveAsAAACheckbox().should('not.be.checked');
+    modelServingWizard.findUseCaseInput().should('exist');
+    modelServingWizard.findUseCaseInput().should('be.disabled');
+    modelServingWizard.findSaveAsAAACheckbox().click();
+    modelServingWizard.findUseCaseInput().should('be.enabled');
+    modelServingWizard.findUseCaseInput().type('test');
+
     modelServingWizard.findSubmitButton().should('be.enabled').click();
 
     // dry run request
@@ -366,6 +376,8 @@ describe('Model Serving Deploy Wizard', () => {
           'opendatahub.io/hardware-profile-name': 'small-profile',
           'opendatahub.io/model-type': 'generative',
           'security.opendatahub.io/enable-auth': 'true',
+          'opendatahub.io/genai-asset': 'true',
+          'opendatahub.io/genai-use-case': 'test',
         },
       },
       spec: {
@@ -578,6 +590,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 4: Summary
+    modelServingWizard.findSaveAsAAACheckbox().should('not.exist');
+    modelServingWizard.findUseCaseInput().should('not.exist');
+
     modelServingWizard.findSubmitButton().should('be.enabled').click();
 
     // dry run request

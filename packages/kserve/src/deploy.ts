@@ -16,6 +16,7 @@ import { TokenAuthenticationFieldData } from '../../model-serving/src/components
 import { NumReplicasFieldData } from '../../model-serving/src/components/deploymentWizard/fields/NumReplicasField';
 import { RuntimeArgsFieldData } from '../../model-serving/src/components/deploymentWizard/fields/RuntimeArgsField';
 import { EnvironmentVariablesFieldData } from '../../model-serving/src/components/deploymentWizard/fields/EnvironmentVariablesField';
+import { AvailableAiAssetsFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/AvailableAiAssetsFields';
 
 export type CreatingInferenceServiceObject = {
   project: string;
@@ -30,6 +31,7 @@ export type CreatingInferenceServiceObject = {
   numReplicas?: NumReplicasFieldData;
   runtimeArgs?: RuntimeArgsFieldData;
   environmentVariables?: EnvironmentVariablesFieldData;
+  AAAData?: AvailableAiAssetsFieldsData;
 };
 
 export const deployKServeDeployment = async (
@@ -59,6 +61,7 @@ export const deployKServeDeployment = async (
     numReplicas: wizardData.numReplicas.data,
     runtimeArgs: wizardData.runtimeArgs.data,
     environmentVariables: wizardData.environmentVariables.data,
+    AAAData: wizardData.AAAData.data,
   };
 
   const inferenceService = await createInferenceService(
@@ -187,7 +190,7 @@ const applyAnnotations = (
   annotations: Record<string, string>,
   data: CreatingInferenceServiceObject,
 ) => {
-  const { name, description, modelType, hardwareProfile, tokenAuth } = data;
+  const { name, description, modelType, hardwareProfile, tokenAuth, AAAData } = data;
   const updatedAnnotations = { ...annotations };
   updatedAnnotations['openshift.io/display-name'] = name.trim();
   if (description) {
@@ -209,6 +212,12 @@ const applyAnnotations = (
 
   if (tokenAuth && tokenAuth.length > 0) {
     updatedAnnotations['security.opendatahub.io/enable-auth'] = 'true';
+  }
+  if (AAAData?.saveAsAAA === true) {
+    updatedAnnotations['opendatahub.io/genai-asset'] = 'true';
+    if (AAAData.useCase) {
+      updatedAnnotations['opendatahub.io/genai-use-case'] = AAAData.useCase;
+    }
   }
   return updatedAnnotations;
 };

@@ -90,6 +90,14 @@ const mockDeploymentWizardState = (
           data: undefined,
           setReplicas: jest.fn(),
         },
+        AAAData: {
+          data: {
+            saveAsAAA: false,
+            useCase: '',
+            description: '',
+          },
+          setData: jest.fn(),
+        },
       },
     },
     overrides,

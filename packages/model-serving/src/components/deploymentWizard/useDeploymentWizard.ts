@@ -22,6 +22,10 @@ import {
   useEnvironmentVariablesField,
   type EnvironmentVariablesFieldData,
 } from './fields/EnvironmentVariablesField';
+import {
+  AvailableAiAssetsFieldsData,
+  useAvailableAiAssetsFields,
+} from './fields/AvailableAiAssetsFields';
 
 export type ModelDeploymentWizardData = {
   modelTypeField?: ModelTypeFieldData;
@@ -36,6 +40,7 @@ export type ModelDeploymentWizardData = {
   modelLocationData?: ModelLocationData;
   connections?: LabeledConnection[];
   initSelectedConnection?: LabeledConnection | undefined;
+  AAAData?: AvailableAiAssetsFieldsData;
   // Add more field handlers as needed
 };
 
@@ -52,6 +57,7 @@ export type UseModelDeploymentWizardState = {
     numReplicas: ReturnType<typeof useNumReplicasField>;
     runtimeArgs: ReturnType<typeof useRuntimeArgsField>;
     environmentVariables: ReturnType<typeof useEnvironmentVariablesField>;
+    AAAData: ReturnType<typeof useAvailableAiAssetsFields>;
   };
 };
 
@@ -81,6 +87,7 @@ export const useModelDeploymentWizard = (
   const tokenAuthentication = useTokenAuthenticationField(
     initialData?.tokenAuthentication ?? undefined,
   );
+  const AAAData = useAvailableAiAssetsFields(initialData?.AAAData ?? undefined);
 
   const numReplicas = useNumReplicasField(initialData?.numReplicas ?? undefined);
 
@@ -104,6 +111,7 @@ export const useModelDeploymentWizard = (
       numReplicas,
       runtimeArgs,
       environmentVariables,
+      AAAData,
     },
   };
 };
