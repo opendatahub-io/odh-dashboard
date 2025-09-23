@@ -16,7 +16,7 @@ import {
   getImageStreamDisplayName,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/imageStreams';
 
-describe('Workbenches - status tests', () => {
+describe('[Product Bug: RHAIENG-1158] Workbenches - status tests', () => {
   let projectName: string;
   let projectDescription: string;
   const uuid = generateTestUUID();
@@ -49,7 +49,7 @@ describe('Workbenches - status tests', () => {
 
   it(
     'Verify user can access progress and event log - validate status and successful workbench creation',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1970', '@Dashboard', '@Workbenches'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1970', '@Dashboard', '@Workbenches', '@Bug'] },
     () => {
       const workbenchName = projectName.replace('dsp-', '');
       let selectedImageStream: string;

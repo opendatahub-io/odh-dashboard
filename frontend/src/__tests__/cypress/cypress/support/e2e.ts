@@ -119,6 +119,11 @@ Cypress.on('uncaught:exception', (err) => {
     return false;
   }
 
+  // Ignore 'Unexpected token :' errors from webpack-dev-server fallback in E2E tests
+  if (err.message.includes("Unexpected token ':'")) {
+    return false;
+  }
+
   // Let all other errors (including timeout errors) fail the test as expected
   return true;
 });
