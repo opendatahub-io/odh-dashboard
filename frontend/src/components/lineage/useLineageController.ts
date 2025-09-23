@@ -1,9 +1,5 @@
 import * as React from 'react';
-import {
-  GRAPH_LAYOUT_END_EVENT,
-  Visualization,
-  ComponentFactory,
-} from '@patternfly/react-topology';
+import { Visualization, ComponentFactory } from '@patternfly/react-topology';
 import { lineageLayoutFactory } from './factories';
 
 const useLineageController = (
@@ -11,7 +7,6 @@ const useLineageController = (
   customComponentFactory: ComponentFactory,
 ): Visualization | null => {
   const [controller, setController] = React.useState<Visualization | null>(null);
-  const fitTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   React.useEffect(() => {
     const visualizationController = new Visualization();
@@ -32,32 +27,16 @@ const useLineageController = (
       false,
     );
 
-    // Add a small delay to ensure the container has its final dimensions
-    const onLayoutEnd = () => {
-      if (fitTimeoutRef.current) {
-        clearTimeout(fitTimeoutRef.current);
-      }
-      fitTimeoutRef.current = setTimeout(() => {
-        try {
-          visualizationController.getGraph().fit(50);
-        } catch (e) {
-          console.warn('Failed to fit graph to screen:', e);
-        } finally {
-          fitTimeoutRef.current = null;
-        }
-      }, 100);
-    };
-    visualizationController.addEventListener(GRAPH_LAYOUT_END_EVENT, onLayoutEnd);
-
     setController(visualizationController);
 
-    // Cleanup: remove listener and clear pending timeout
+    // Cleanup function to dispose of the controller
     return () => {
-      if (fitTimeoutRef.current) {
-        clearTimeout(fitTimeoutRef.current);
-        fitTimeoutRef.current = null;
+      try {
+        // Clear the controller reference to help with garbage collection
+        setController(null);
+      } catch (e) {
+        // Silently handle cleanup errors
       }
-      visualizationController.removeEventListener(GRAPH_LAYOUT_END_EVENT, onLayoutEnd);
     };
   }, [graphId, customComponentFactory]);
 
