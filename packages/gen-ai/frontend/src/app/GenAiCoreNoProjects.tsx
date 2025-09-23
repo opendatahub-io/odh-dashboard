@@ -4,7 +4,11 @@ import { WrenchIcon } from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
 import { useNavigate } from 'react-router-dom';
 import NewProjectButton from '@odh-dashboard/internal/pages/projects/screens/projects/NewProjectButton';
 
-const GenAiCoreNoProjects: React.FC = () => {
+type GenAiCoreNoProjectsProps = {
+  getRedirectPath: (namespace: string) => string;
+};
+
+const GenAiCoreNoProjects: React.FC<GenAiCoreNoProjectsProps> = ({ getRedirectPath }) => {
   const navigate = useNavigate();
 
   return (
@@ -18,7 +22,7 @@ const GenAiCoreNoProjects: React.FC = () => {
       <EmptyStateFooter>
         <NewProjectButton
           closeOnCreate
-          onProjectCreated={(projectName) => navigate(`/gen-ai/${projectName}`)}
+          onProjectCreated={(projectName) => navigate(getRedirectPath(projectName))}
         />
       </EmptyStateFooter>
     </EmptyState>
