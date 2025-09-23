@@ -22,7 +22,6 @@ resources:
   - aggregate-permissions.rbac.yaml
   - kube-rbac-proxy-config.yaml
   - httproute.yaml
-  - destinationrule.yaml
 images:
   - name: kube-rbac-proxy
     newName: registry.redhat.io/openshift4/ose-kube-rbac-proxy
