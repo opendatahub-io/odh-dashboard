@@ -136,7 +136,10 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
     }
 
     const allLoaded =
-      deploymentWatchersLoaded && Object.values(platformDeployments).every((state) => state.loaded);
+      deploymentWatchersLoaded &&
+      availablePlatforms.every(
+        (id) => id in platformDeployments && platformDeployments[id].loaded === true,
+      );
 
     return {
       deployments: allLoaded ? allDeployments : undefined,
