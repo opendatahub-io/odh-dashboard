@@ -1,5 +1,9 @@
 import { Content, PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import * as React from 'react';
+import {
+  LineageCenterProvider,
+  useLineageCenter,
+} from '@odh-dashboard/internal/components/lineage/context/LineageCenterContext';
 import FeatureViewLineageTab from './FeatureViewLineageTab';
 import FeatureViewDetailsView from './FeatureViewDetailsTab';
 import FeatureViewMaterialization from './FeatureViewMaterialization';
@@ -22,8 +26,16 @@ const getTabTitleWithTooltip = (title: string, tooltip: string) => (
   </>
 );
 
-const FeatureViewTabs: React.FC<FeatureViewTabsProps> = ({ featureView }) => {
+const FeatureViewTabsInner: React.FC<FeatureViewTabsProps> = ({ featureView }) => {
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(FeatureViewTab.DETAILS);
+  const { triggerCenter } = useLineageCenter();
+
+  // Trigger centering when lineage tab becomes active
+  React.useEffect(() => {
+    if (activeTabKey === FeatureViewTab.LINEAGE) {
+      triggerCenter();
+    }
+  }, [activeTabKey, triggerCenter]);
 
   return (
     <Tabs
@@ -120,6 +132,14 @@ const FeatureViewTabs: React.FC<FeatureViewTabsProps> = ({ featureView }) => {
         </PageSection>
       </Tab>
     </Tabs>
+  );
+};
+
+const FeatureViewTabs: React.FC<FeatureViewTabsProps> = (props) => {
+  return (
+    <LineageCenterProvider>
+      <FeatureViewTabsInner {...props} />
+    </LineageCenterProvider>
   );
 };
 
