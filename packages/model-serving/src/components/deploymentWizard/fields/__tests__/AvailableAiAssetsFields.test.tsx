@@ -93,10 +93,6 @@ describe('AvailableAiAssetsFields', () => {
       const result = availableAiAssetsFieldsSchema.safeParse({ saveAsAAA: true });
       expect(result.success).toBe(true);
     });
-    it('should validate saveAsAAA', () => {
-      const result = availableAiAssetsFieldsSchema.safeParse({ saveAsAAA: true });
-      expect(result.success).toBe(true);
-    });
   });
   describe('isValidAvailableAiAssetsFieldsData', () => {
     // Always returns true since all the fields are optional
