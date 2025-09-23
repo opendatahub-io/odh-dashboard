@@ -9,13 +9,14 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import FeatureServiceDetailsTabs from './FeatureServiceDetailsTabs';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
 import useFeatureServiceByName from '../../../apiHooks/useFeatureServiceByName';
 import { featureStoreRootRoute } from '../../../routes';
 import FeatureStorePageTitle from '../../../components/FeatureStorePageTitle';
+import FeatureStoreBreadcrumb from '../../components/FeatureStoreBreadcrumb';
 
 const FeatureServiceDetails = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -62,10 +63,11 @@ const FeatureServiceDetails = (): React.ReactElement => {
           isDetailsPage
           breadcrumb={
             <Breadcrumb>
-              <BreadcrumbItem
-                render={() => (
-                  <Link to={`${featureStoreRootRoute()}/featureServices`}>Feature services</Link>
-                )}
+              <FeatureStoreBreadcrumb
+                pageName="Feature services"
+                projectName={currentProject || ''}
+                linkTo={`${featureStoreRootRoute()}/featureServices`}
+                dataTestId="feature-service-details-breadcrumb-link"
               />
               <BreadcrumbItem data-testid="breadcrumb-feature-service-name" isActive>
                 {featureService.spec.name}

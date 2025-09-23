@@ -32,7 +32,7 @@ export const getFeatureStoreObjectDisplayName = (
     case FeatureStoreObject.DATA_SOURCES:
       return 'Data Sources';
     case FeatureStoreObject.OVERVIEW:
-      return 'Overview';
+      return 'Feature store overview';
     case FeatureStoreObject.FEATURES:
       return 'Features';
     default:

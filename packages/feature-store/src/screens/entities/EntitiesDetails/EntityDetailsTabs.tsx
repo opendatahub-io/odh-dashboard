@@ -18,8 +18,6 @@ const EntityDetailsTabs: React.FC<EntityDetailsTabsProps> = ({ entity }) => {
       aria-label="Entity details page"
       role="region"
       data-testid="entity-details-page"
-      mountOnEnter
-      unmountOnExit
       onSelect={(e, tabIndex) => {
         setActiveTabKey(tabIndex);
       }}

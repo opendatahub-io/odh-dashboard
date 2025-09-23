@@ -65,6 +65,8 @@ export interface FeatureStoreLineageToolbarProps {
   onHideNodesWithoutRelationshipsChange: (hide: boolean) => void;
   searchFilters?: FeatureStoreLineageSearchFilters;
   onSearchFiltersChange?: (filters: FeatureStoreLineageSearchFilters) => void;
+  currentFilterType?: keyof FeatureStoreLineageSearchFilters;
+  onCurrentFilterTypeChange?: (filterType: keyof FeatureStoreLineageSearchFilters) => void;
   lineageData?: FeatureStoreLineage | FeatureViewLineage;
   lineageDataLoaded?: boolean;
   isFeatureViewToolbar?: boolean;
