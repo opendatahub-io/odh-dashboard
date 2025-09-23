@@ -355,7 +355,7 @@ describe('Resources page', () => {
 
   it('redirect from v2 to v3 route', () => {
     cy.visitWithLogin('/resources');
-    cy.findByTestId('app-page-title').should('have.text', 'Resources'); // TODO CAPONETTO: fix title after RHOAIENG-33162
+    cy.findByTestId('app-page-title').should('have.text', 'Learning resources');
     cy.url().should('include', '/learning-resources');
   });
 });

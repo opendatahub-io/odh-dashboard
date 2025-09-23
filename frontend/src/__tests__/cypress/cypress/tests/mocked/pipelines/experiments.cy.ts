@@ -398,19 +398,19 @@ describe('Experiments', () => {
 
     it('root', () => {
       cy.visitWithLogin('/experiments');
-      cy.findByTestId('app-page-title').contains('Experiments and runs'); // TODO CAPONETTO: fix title after RHOAIENG-33162
+      cy.findByTestId('app-page-title').contains('Experiments');
       cy.url().should('include', '/develop-train/experiments');
     });
 
     it('active', () => {
       cy.visitWithLogin(`/experiments/${projectName}/active`);
-      cy.findByTestId('app-page-title').contains('Experiments and runs'); // TODO CAPONETTO: fix title after RHOAIENG-33162
+      cy.findByTestId('app-page-title').contains('Experiments');
       cy.url().should('include', `/develop-train/experiments/${projectName}/active`);
     });
 
     it('archived', () => {
       cy.visitWithLogin(`/experiments/${projectName}/archived`);
-      cy.findByTestId('app-page-title').contains('Experiments and runs'); // TODO CAPONETTO: fix title after RHOAIENG-33162
+      cy.findByTestId('app-page-title').contains('Experiments');
       cy.url().should('include', `/develop-train/experiments/${projectName}/archived`);
     });
 

@@ -25,9 +25,9 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       id: 'modelCatalog',
       title: 'Catalog',
-      href: '/model-catalog',
+      href: '/ai-hub/catalog',
       section: 'ai-hub',
-      path: '/model-catalog/*',
+      path: '/ai-hub/catalog/*',
       group: '1_aihub',
     },
   },
@@ -39,9 +39,9 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       id: 'modelRegistry',
       title: 'Registry',
-      href: '/model-registry',
+      href: '/ai-hub/registry',
       section: 'ai-hub',
-      path: '/model-registry/*',
+      path: '/ai-hub/registry/*',
       group: '1_aihub',
     },
   },
@@ -53,9 +53,9 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       id: 'modelRegistry-kf',
       title: 'Model registry (KF)',
-      href: '/model-registry',
+      href: '/ai-hub/registry',
       section: 'ai-hub',
-      path: '/model-registry/*',
+      path: '/ai-hub/registry/*',
     },
   },
   {
@@ -66,9 +66,9 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       id: 'settings-model-registry',
       title: 'Model registry settings (KF)',
-      href: '/model-registry-settings',
+      href: '/settings/model-resources-operations/model-registry',
       section: 'settings-model-resources-and-operations',
-      path: '/model-registry-settings/*',
+      path: '/settings/model-resources-operations/model-registry/*',
     },
   },
   {
@@ -77,7 +77,8 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       required: [SupportedArea.MODEL_REGISTRY],
     },
     properties: {
-      path: '/model-registry/*',
+      path: '/ai-hub/registry/*',
+      v2PathRedirect: '/model-registry/*',
       component: () => import('./ModelRegistryWrapper'),
     },
   },
@@ -87,7 +88,8 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       required: [SupportedArea.MODEL_CATALOG],
     },
     properties: {
-      path: '/model-catalog/*',
+      path: '/ai-hub/catalog/*',
+      v2PathRedirect: '/model-catalog/*',
       component: () => import('./ModelCatalogWrapper'),
     },
   },

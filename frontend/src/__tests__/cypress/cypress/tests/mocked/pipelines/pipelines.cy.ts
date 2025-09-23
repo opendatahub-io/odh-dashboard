@@ -1600,7 +1600,7 @@ describe('Pipelines', () => {
   describe('redirect from v2 to v3 route', () => {
     it('root', () => {
       cy.visitWithLogin('/pipelines');
-      cy.findByTestId('app-page-title').contains('Pipelines'); // TODO CAPONETTO: fix title after RHOAIENG-33162
+      cy.findByTestId('app-page-title').contains('Pipeline definitions');
       cy.url().should('include', '/develop-train/pipelines/definitions');
     });
 
