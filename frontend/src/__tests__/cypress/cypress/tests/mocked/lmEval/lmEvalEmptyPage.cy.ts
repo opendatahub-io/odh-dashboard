@@ -70,7 +70,7 @@ describe('LM Evaluation Home Page', () => {
 
   it('redirect from v2 to v3 route', () => {
     cy.visitWithLogin('/modelEvaluations');
-    cy.findByTestId('app-page-title').contains('Model evaluation runs');
+    cy.findByTestId('app-page-title').contains('Evaluations');
     cy.url().should('include', '/develop-train/evaluations');
   });
 });
