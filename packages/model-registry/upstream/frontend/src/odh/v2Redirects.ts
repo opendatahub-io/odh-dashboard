@@ -1,6 +1,6 @@
 export const v2RedirectMap = {
   'registeredModels/:registeredModelId': 'registered-models/:registeredModelId',
-  'registeredModels/:registeredModelId/details': 'registered-models/:registeredModelId/details',
+  'registeredModels/:registeredModelId/overview': 'registered-models/:registeredModelId/overview',
   'registeredModels/:registeredModelId/registerVersion':
     'registered-models/:registeredModelId/register/version',
   'registeredModels/:registeredModelId/versions': 'registered-models/:registeredModelId/versions',
@@ -20,8 +20,8 @@ export const v2RedirectMap = {
     'registered-models/:registeredModelId/versions/archive/:modelVersionId/deployments',
   'registeredModels/archive': 'registered-models/archive',
   'registeredModels/archive/:registeredModelId': 'registered-models/archive/:registeredModelId',
-  'registeredModels/archive/:registeredModelId/details':
-    'registered-models/archive/:registeredModelId/details',
+  'registeredModels/archive/:registeredModelId/overview':
+    'registered-models/archive/:registeredModelId/overview',
   'registeredModels/archive/:registeredModelId/versions':
     'registered-models/archive/:registeredModelId/versions',
   'registeredModels/archive/:registeredModelId/versions/:modelVersionId':
