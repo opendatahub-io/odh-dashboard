@@ -59,7 +59,11 @@ const HardwareProfiles: React.FC = () => {
   const isEmpty = allMigratedHardwareProfiles.length === 0;
   const warningMessages = generateWarningForHardwareProfiles(allMigratedHardwareProfiles);
 
-  const serverHardwareProfileOrder = dashboardConfig?.spec.hardwareProfileOrder || [];
+  const serverHardwareProfileOrder = React.useMemo(
+    () => dashboardConfig?.spec.hardwareProfileOrder || [],
+    [dashboardConfig?.spec.hardwareProfileOrder],
+  );
+
   const [optimisticHardwareProfileOrder, setOptimisticHardwareProfileOrder] = React.useState<
     string[]
   >(serverHardwareProfileOrder);
@@ -74,7 +78,7 @@ const HardwareProfiles: React.FC = () => {
       setOptimisticHardwareProfileOrder(hwpNameOrder);
       try {
         await patchDashboardConfigHardwareProfileOrder(hwpNameOrder, dashboardNamespace);
-        return await refreshDashboardConfig();
+        await refreshDashboardConfig();
       } catch (error) {
         // Revert optimistic state on error
         setOptimisticHardwareProfileOrder(serverHardwareProfileOrder);
