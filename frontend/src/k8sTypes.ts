@@ -135,7 +135,7 @@ export type NotebookAnnotations = Partial<{
 }>;
 
 export type DashboardLabels = {
-  [KnownLabels.DASHBOARD_RESOURCE]: 'true';
+  [KnownLabels.DASHBOARD_RESOURCE]: 'true' | 'false';
 };
 
 export type ModelServingProjectLabels = {

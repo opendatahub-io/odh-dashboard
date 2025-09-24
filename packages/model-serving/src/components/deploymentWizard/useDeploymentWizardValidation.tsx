@@ -44,8 +44,9 @@ export const useModelDeploymentWizardValidation = (
     () => ({
       modelType: state.modelType.data,
       modelLocationData: state.modelLocationData.data,
+      createConnectionData: state.createConnectionData.data,
     }),
-    [state.modelType, state.modelLocationData.data],
+    [state.modelType, state.modelLocationData.data, state.createConnectionData.data],
   );
 
   const modelSourceStepValidation = useZodFormValidation(

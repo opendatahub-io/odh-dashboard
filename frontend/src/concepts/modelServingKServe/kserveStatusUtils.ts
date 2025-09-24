@@ -84,7 +84,8 @@ export const getInferenceServiceStatusMessage = (
  * @returns An object indicating if the pod failed to schedule and a failure message if applicable.
  */
 export const checkModelPodStatus = (model: PodKind): ModelStatus => {
-  const unschedulableCondition = model.status?.conditions.find(
+  const conditions = model.status?.conditions ?? [];
+  const unschedulableCondition = conditions.find(
     (condition) => condition.reason === 'Unschedulable',
   );
 

@@ -5,8 +5,9 @@ import {
   k8sListResource,
   k8sUpdateResource,
   K8sStatus,
+  k8sPatchResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sAPIOptions, KnownLabels, SecretKind } from '#~/k8sTypes';
+import { K8sAPIOptions, KnownLabels, SecretKind, InferenceServiceKind } from '#~/k8sTypes';
 import { SecretModel } from '#~/api/models';
 import { genRandomChars } from '#~/utilities/string';
 import { translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
@@ -202,3 +203,29 @@ export const deleteSecret = (
       opts,
     ),
   );
+
+export const patchSecretWithInferenceServiceOwnerReference = (
+  secret: SecretKind,
+  inferenceService: InferenceServiceKind,
+  uid: string,
+): Promise<SecretKind> =>
+  k8sPatchResource({
+    model: SecretModel,
+    queryOptions: { name: secret.metadata.name, ns: secret.metadata.namespace },
+    patches: [
+      {
+        op: 'add',
+        path: '/metadata/ownerReferences',
+        value: [
+          ...(secret.metadata.ownerReferences || []),
+          {
+            uid,
+            name: inferenceService.metadata.name,
+            apiVersion: inferenceService.apiVersion,
+            kind: inferenceService.kind,
+            blockOwnerDeletion: false,
+          },
+        ],
+      },
+    ],
+  });

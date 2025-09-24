@@ -1020,8 +1020,26 @@ class ModelServingWizard extends Wizard {
     return this.findModelLocationSelect().findSelectOption(name);
   }
 
+  findExistingConnectionSelect() {
+    return cy.findByTestId('existing-connection-select');
+  }
+
+  findExistingConnectionValue() {
+    return this.findExistingConnectionSelect().findByRole('combobox');
+  }
+
+  findExistingConnectionSelectOption(name: string) {
+    this.findExistingConnectionSelect().click();
+    cy.findByRole('listbox');
+    return cy.findByText(name);
+  }
+
   findUrilocationInput() {
     return cy.findByTestId('field URI');
+  }
+
+  findSaveConnectionCheckbox() {
+    return cy.findByTestId('save-connection-checkbox');
   }
 
   findExternalRouteCheckbox() {

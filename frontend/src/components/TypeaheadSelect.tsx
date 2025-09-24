@@ -114,6 +114,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   toggleProps,
   isRequired = true,
   previewDescription = true,
+  dataTestId = 'typeahead-menu-toggle',
   ...props
 }: TypeaheadSelectProps) => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -395,7 +396,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
       ref={toggleRef}
       variant="typeahead"
       aria-label="Typeahead menu toggle"
-      data-testid="typeahead-menu-toggle"
+      data-testid={dataTestId}
       onClick={onToggleClick}
       isExpanded={isOpen}
       isDisabled={isDisabled || (selectOptions.length <= 1 && notAllowEmpty)}
