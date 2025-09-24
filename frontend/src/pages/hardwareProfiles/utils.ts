@@ -1,4 +1,4 @@
-import { HardwareProfileKind } from '#~/k8sTypes';
+import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import { DisplayNameAnnotation, Identifier, IdentifierResourceType } from '#~/types';
 import {
   HardwareProfileWarningType,
@@ -236,3 +236,7 @@ export const orderHardwareProfiles = (
   }
   return alphaSortHardwareProfilesByName(profiles);
 };
+
+export function filterOutPipelines<T extends string>(values: readonly T[]): T[] {
+  return values.filter((v) => v !== HardwareProfileFeatureVisibility.PIPELINES);
+}
