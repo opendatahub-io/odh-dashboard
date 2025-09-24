@@ -308,10 +308,10 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
            row-gap: 0.5rem;
          }
          
-         .pf-topology-visualization-surface__svg{
+         #tabContent-Lineage .pf-topology-visualization-surface__svg{
            z-index: 1;
          }
-        .pf-topology-control-bar {
+        #tabContent-Lineage .pf-topology-control-bar {
           z-index:2 ;
         }
          `}
