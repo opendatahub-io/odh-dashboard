@@ -48,6 +48,7 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
         setModelType={wizardState.state.modelType.setData}
         validationProps={validation.getFieldValidationProps(['modelType'])}
         validationIssues={validation.getFieldValidation(['modelType'])}
+        isEditing={wizardState.initialData?.isEditing}
       />
     </Form>
   );

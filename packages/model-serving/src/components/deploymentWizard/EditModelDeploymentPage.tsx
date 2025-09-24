@@ -13,6 +13,7 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { setupDefaults } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
+import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
 import { ModelDeploymentWizardData } from './useDeploymentWizard';
 import {
@@ -108,6 +109,7 @@ const EditModelDeploymentContent: React.FC<{
 }> = ({ project, modelServingPlatform }) => {
   const { name: deploymentName } = useParams();
   const { deployments, loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
+  const { dashboardNamespace } = useDashboardNamespace();
 
   const existingDeployment = React.useMemo(() => {
     return deployments?.find((d: Deployment) => d.model.metadata.name === deploymentName);
@@ -132,6 +134,16 @@ const EditModelDeploymentContent: React.FC<{
     environmentVariables:
       formDataExtension?.properties.extractEnvironmentVariables(deployment) ?? undefined,
     AiAssetData: formDataExtension?.properties.extractAiAssetData(deployment) ?? undefined,
+    modelServer: {
+      name: deployment.server?.metadata.annotations?.['opendatahub.io/template-name'] || '',
+      namespace:
+        deployment.server?.metadata.annotations?.['opendatahub.io/serving-runtime-scope'] ===
+        'global'
+          ? dashboardNamespace
+          : deployment.server?.metadata.namespace || '',
+      scope:
+        deployment.server?.metadata.annotations?.['opendatahub.io/serving-runtime-scope'] || '',
+    },
   });
 
   const formData = React.useMemo(() => {
@@ -158,7 +170,7 @@ const EditModelDeploymentContent: React.FC<{
       title="Edit model deployment"
       description="Update your model deployment configuration."
       primaryButtonText="Update deployment"
-      existingData={formData}
+      existingData={formData ? { ...formData, isEditing: true } : { isEditing: true }}
       project={project}
       modelServingPlatform={modelServingPlatform}
     />

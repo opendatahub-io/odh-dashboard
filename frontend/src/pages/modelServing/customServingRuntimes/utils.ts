@@ -1,5 +1,5 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { ServingRuntimeKind, TemplateKind } from '#~/k8sTypes';
+import { K8sDSGResource, ServingRuntimeKind, TemplateKind } from '#~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import {
   ServingRuntimeAPIProtocol,
@@ -70,7 +70,9 @@ const createServingRuntimeCustomError = (name: string, message: string): Error =
   return error;
 };
 
-export const isServingRuntimeKind = (obj: K8sResourceCommon): obj is ServingRuntimeKind => {
+export const isServingRuntimeKind = (
+  obj: K8sResourceCommon | K8sDSGResource,
+): obj is ServingRuntimeKind => {
   if (obj.kind !== 'ServingRuntime') {
     throw createServingRuntimeCustomError('Invalid parameter', 'kind: must be ServingRuntime.');
   }

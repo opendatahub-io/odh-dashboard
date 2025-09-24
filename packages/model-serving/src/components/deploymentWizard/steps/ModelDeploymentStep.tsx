@@ -1,11 +1,13 @@
 import React from 'react';
 import { Form, FormSection } from '@patternfly/react-core';
 import K8sNameDescriptionField from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { useProfileIdentifiers } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import ProjectSection from '../fields/ProjectSection';
 import { ModelServingHardwareProfileSection } from '../fields/ModelServingHardwareProfileSection';
 import { ModelFormatField } from '../fields/ModelFormatField';
 import { NumReplicasField } from '../fields/NumReplicasField';
+import ModelServerTemplateSelectField from '../fields/ModelServerTemplateSelectField';
 
 type ModelDeploymentStepProps = {
   projectName: string;
@@ -16,6 +18,11 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
   projectName,
   wizardState,
 }) => {
+  const profileIdentifiers = useProfileIdentifiers(
+    undefined,
+    wizardState.state.hardwareProfileConfig.formData.selectedProfile,
+  );
+
   return (
     <Form>
       <FormSection title="Model deployment">
@@ -30,9 +37,22 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
         <ModelServingHardwareProfileSection
           project={projectName}
           hardwareProfileConfig={wizardState.state.hardwareProfileConfig}
-          isEditing={false}
+          isEditing={wizardState.initialData?.isEditing}
         />
-        <ModelFormatField modelFormatState={wizardState.state.modelFormatState} />
+        <ModelFormatField
+          modelFormatState={wizardState.state.modelFormatState}
+          isEditing={wizardState.initialData?.isEditing}
+        />
+        <ModelServerTemplateSelectField
+          modelServerState={wizardState.state.modelServer}
+          profileIdentifiers={profileIdentifiers}
+          modelServerTemplates={wizardState.state.modelServer.modelServerTemplates}
+          projectTemplates={wizardState.state.modelServer.projectTemplates}
+          modelFormat={wizardState.state.modelFormatState.modelFormat}
+          modelType={wizardState.state.modelType.data}
+          projectName={projectName}
+          isEditing={wizardState.initialData?.isEditing}
+        />
         <NumReplicasField replicaState={wizardState.state.numReplicas} />
       </FormSection>
     </Form>

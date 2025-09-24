@@ -923,6 +923,54 @@ class ModelServingWizard extends Wizard {
     return this.findModelFormatSelect().findSelectOption(name);
   }
 
+  findServingRuntimeTemplateSearchSelector() {
+    return cy.findByTestId('serving-runtime-template-selection-toggle');
+  }
+
+  findServingRuntimeTemplateSearchInput() {
+    return cy.findByTestId('serving-runtime-template-selection-search').find('input');
+  }
+
+  findGlobalScopedTemplateOption(name: string) {
+    return this.getGlobalScopedServingRuntime()
+      .find()
+      .findByRole('menuitem', { name: new RegExp(name), hidden: true });
+  }
+
+  findProjectScopedTemplateOption(name: string) {
+    return this.getProjectScopedServingRuntime()
+      .find()
+      .findByRole('menuitem', { name: new RegExp(name), hidden: true });
+  }
+
+  getGlobalServingRuntimesLabel() {
+    return cy.get('body').contains('Global serving runtimes');
+  }
+
+  getProjectScopedServingRuntimesLabel() {
+    return cy.get('body').contains('Project-scoped serving runtimes');
+  }
+
+  findProjectScopedLabel() {
+    return cy.findByTestId('project-scoped-serving-runtime-template-label');
+  }
+
+  findGlobalScopedLabel() {
+    return cy.findByTestId('global-scoped-serving-runtime-template-label');
+  }
+
+  getProjectScopedServingRuntime() {
+    return new ServingRuntimeGroup(() => cy.findByTestId('project-scoped-serving-runtimes'));
+  }
+
+  getGlobalScopedServingRuntime() {
+    return new ServingRuntimeGroup(() => cy.findByTestId('global-scoped-serving-runtimes'));
+  }
+
+  findServingRuntimeVersionLabel() {
+    return cy.findByTestId('serving-runtime-version-label');
+  }
+
   findModelLocationSelect() {
     return cy.findByTestId('model-location-select');
   }
