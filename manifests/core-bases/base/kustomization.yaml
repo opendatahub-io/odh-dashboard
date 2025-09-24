@@ -9,9 +9,7 @@ resources:
   - auth-delegator.clusterrolebinding.yaml
   - cluster-monitoring-role-binding.yaml
   - deployment.yaml
-  - routes.yaml
   - service.yaml
-  - oauth.secret.yaml
   - fetch-builds-and-images.rbac.yaml
   - image-puller.clusterrolebinding.yaml
   - model-serving-role.yaml
