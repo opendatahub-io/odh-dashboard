@@ -235,7 +235,7 @@ const getImageStatus = (
 ): NotebookImageStatus | undefined => {
   if (
     imageVersion.annotations?.['opendatahub.io/image-tag-outdated'] === 'true' ||
-    isNotedbookImageOutdated(notebook, imageStream)
+    isNotebookImageOutdated(notebook, imageStream)
   ) {
     return NotebookImageStatus.DEPRECATED;
   }
@@ -250,14 +250,15 @@ const findNoteBookImageTag = (notebook: NotebookKind, imageStream: ImageStreamKi
     notebook.metadata.annotations?.['notebooks.opendatahub.io/last-image-selection']?.split(':') ??
     [];
 
-  return imageStream.spec.tags?.some(
-    (imageTags) =>
-      imageStream.metadata.name === lastImageSelectionName &&
-      imageTags.name === lastImageSelectionTag,
+  if (imageStream.metadata.name !== lastImageSelectionName) {
+    return false;
+  }
+  return (
+    imageStream.spec.tags?.some((imageTags) => imageTags.name === lastImageSelectionTag) ?? false
   );
 };
 
-const isNotedbookImageOutdated = (notebook: NotebookKind, imageStream: ImageStreamKind) =>
+const isNotebookImageOutdated = (notebook: NotebookKind, imageStream: ImageStreamKind) =>
   !findNotebookImageCommit(notebook, imageStream) && !isBYONImageStream(imageStream);
 
 const isNotebookImageDeleted = (notebook: NotebookKind, imageStream: ImageStreamKind) =>
