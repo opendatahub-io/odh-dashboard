@@ -9,7 +9,7 @@ const useClusterQueues = (refreshRate = 0): FetchState<ClusterQueueKind[]> => {
   return useFetchState<ClusterQueueKind[]>(
     React.useCallback(() => {
       if (!dwEnabled) {
-        return Promise.reject(new NotReadyError('Distributed workloads is not enabled'));
+        return Promise.reject(new NotReadyError('Workload metrics is not enabled'));
       }
       return listClusterQueues();
     }, [dwEnabled]),

@@ -1,12 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { LineageData, LineageNode, PopoverPosition } from './types';
 import { useLineageClick } from './LineageClickContext';
+import { LineageData, LineageNode, PopoverPosition } from './types';
 
 export interface UseLineagePopoverReturn {
   selectedNode: LineageNode | null;
   popoverPosition: PopoverPosition | null;
   isPopoverVisible: boolean;
-  showPopover: (nodeId: string) => void;
+  showPopover: (nodeId: string, clickPosition?: { x: number; y: number }) => void;
   hidePopover: () => void;
 }
 
@@ -16,7 +16,8 @@ interface UseLineagePopoverProps {
 }
 
 /**
- * Hook to manage lineage node popover state and positioning
+ * Ref-based popover hook to prevent race conditions from multiple rapid clicks
+ * Uses refs to maintain stable references and prevent stale closure issues
  */
 export const useLineagePopover = ({
   data,
@@ -27,55 +28,136 @@ export const useLineagePopover = ({
   const [popoverPosition, setPopoverPosition] = useState<PopoverPosition | null>(null);
   const [isPopoverVisible, setIsPopoverVisible] = useState(false);
 
+  // Debounced state updates to prevent race conditions
+  const stateUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const stateRef = useRef<{
+    isProcessing: boolean;
+    currentOperation: AbortController | null;
+    lastRequestId: number;
+    lastShowTime: number;
+    activeNodeId: string | null;
+  }>({
+    isProcessing: false,
+    currentOperation: null,
+    lastRequestId: 0,
+    lastShowTime: 0,
+    activeNodeId: null,
+  });
+
   const activeNodeIdRef = useRef<string | null>(null);
   const lastShowTimeRef = useRef<number>(0);
   const lastSelectedNodeRef = useRef<LineageNode | null>(null);
+  const lastClickPositionRef = useRef<{ x: number; y: number } | null>(null);
+  const justShowedPopoverRef = useRef<boolean>(false);
+  const timeoutRefs = useRef<{
+    repositioning: NodeJS.Timeout | null;
+    justShowed: NodeJS.Timeout | null;
+  }>({ repositioning: null, justShowed: null });
+  const isCleanedUpRef = useRef<boolean>(false);
+  const isMountedRef = useRef<boolean>(true);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // Debounced state update to prevent race conditions
+  const debouncedStateUpdate = useCallback(
+    (node: LineageNode | null, position: PopoverPosition | null, visible: boolean) => {
+      if (stateUpdateTimeoutRef.current) {
+        clearTimeout(stateUpdateTimeoutRef.current);
+      }
+
+      stateUpdateTimeoutRef.current = setTimeout(() => {
+        // Only update state if component is still mounted
+        if (isMountedRef.current) {
+          setSelectedNode(node);
+          setPopoverPosition(position);
+          setIsPopoverVisible(visible);
+        }
+        stateUpdateTimeoutRef.current = null;
+      }, 0); // Use 0ms to batch updates in the same tick
+    },
+    [],
+  );
 
   const showPopover = useCallback(
-    (nodeId: string) => {
-      if (!enabled) return;
+    (nodeId: string, clickPosition?: { x: number; y: number }) => {
+      if (!enabled) {
+        return;
+      }
 
-      // Find the node data
       const node = data.nodes.find((n) => n.id === nodeId);
-      if (!node) return;
+      if (!node) {
+        return;
+      }
 
-      // Prevent duplicate calls for the same node
+      if (clickPosition && lastClickPositionRef.current) {
+        const distance = Math.sqrt(
+          Math.pow(clickPosition.x - lastClickPositionRef.current.x, 2) +
+            Math.pow(clickPosition.y - lastClickPositionRef.current.y, 2),
+        );
+        if (distance < 5) {
+          return;
+        }
+      }
+
       if (activeNodeIdRef.current === nodeId && isPopoverVisible) {
         return;
       }
 
-      // Debounce rapid calls
       const now = Date.now();
       if (now - lastShowTimeRef.current < 100) {
         return;
       }
       lastShowTimeRef.current = now;
 
+      if (stateRef.current.currentOperation) {
+        stateRef.current.currentOperation.abort();
+      }
+
+      const abortController = new AbortController();
+      stateRef.current.currentOperation = abortController;
+
       activeNodeIdRef.current = nodeId;
 
-      // Since we're using triggerRef, we only need a dummy position
+      if (clickPosition) {
+        lastClickPositionRef.current = clickPosition;
+      }
+
       const dummyPosition = { x: 0, y: 0 };
 
-      setSelectedNode(node);
-      setPopoverPosition(dummyPosition);
-      setIsPopoverVisible(true);
+      debouncedStateUpdate(node, dummyPosition, true);
+      justShowedPopoverRef.current = true;
 
-      // Store the node for repositioning
       lastSelectedNodeRef.current = node;
+
+      requestAnimationFrame(() => {
+        if (abortController.signal.aborted) {
+          return;
+        }
+        stateRef.current.currentOperation = null;
+      });
     },
     [data.nodes, enabled, isPopoverVisible],
   );
 
   const hidePopover = useCallback(() => {
+    // Cancel any pending operation
+    if (stateRef.current.currentOperation) {
+      stateRef.current.currentOperation.abort();
+      stateRef.current.currentOperation = null;
+    }
+
     activeNodeIdRef.current = null;
-    setSelectedNode(null);
-    setPopoverPosition(null);
-    setIsPopoverVisible(false);
+    lastClickPositionRef.current = null;
+    justShowedPopoverRef.current = false;
+    debouncedStateUpdate(null, null, false);
   }, []);
 
-  /**
-   * Finds the DOM element for a given node ID
-   */
   const findNodeElement = useCallback((nodeId: string): Element | null => {
     const selectors = [
       `[data-id="${nodeId}"] rect`,
@@ -123,29 +205,77 @@ export const useLineagePopover = ({
   );
 
   /**
-   * Updates the popover position by hiding and showing it with new trigger element
+   * Ref-based position update with race condition prevention
    */
   const updatePopoverPosition = useCallback(
     (nodeId: string, newPosition: { x: number; y: number }) => {
-      const element = findNodeElement(nodeId);
-      if (!element) return;
+      // Only allow one operation at a time
+      if (stateRef.current.isProcessing) {
+        return;
+      }
 
-      // Quick hide/show cycle to update position
+      // Check if this is still the active node (different node clicked)
+      if (activeNodeIdRef.current !== nodeId) {
+        return;
+      }
+
+      const element = findNodeElement(nodeId);
+      if (!element) {
+        return;
+      }
+
+      // Cancel any pending operation
+      if (stateRef.current.currentOperation) {
+        stateRef.current.currentOperation.abort();
+      }
+
+      // Set processing flag
+      stateRef.current.isProcessing = true;
+      stateRef.current.currentOperation = new AbortController();
+
+      const abortController = stateRef.current.currentOperation;
+
       setIsPopoverVisible(false);
 
-      setTimeout(() => {
-        // Update position
-        setClickPosition({
-          x: newPosition.x,
-          y: newPosition.y,
-          pillElement: element,
-        });
+      // Use requestAnimationFrame for better performance and consistency
+      requestAnimationFrame(() => {
+        if (abortController.signal.aborted) {
+          stateRef.current.isProcessing = false;
+          return;
+        }
 
-        // Show again
-        setTimeout(() => {
-          setIsPopoverVisible(true);
-        }, 50);
-      }, 50);
+        // Double-check node is still active
+        if (activeNodeIdRef.current !== nodeId) {
+          stateRef.current.isProcessing = false;
+          return;
+        }
+
+        // Use requestAnimationFrame to avoid MobX strict mode issues
+        requestAnimationFrame(() => {
+          setClickPosition({
+            x: newPosition.x,
+            y: newPosition.y,
+            pillElement: element,
+          });
+
+          // Final check before showing popover
+          requestAnimationFrame(() => {
+            if (abortController.signal.aborted) {
+              stateRef.current.isProcessing = false;
+              return;
+            }
+
+            if (activeNodeIdRef.current !== nodeId) {
+              stateRef.current.isProcessing = false;
+              return;
+            }
+
+            setIsPopoverVisible(true);
+            stateRef.current.isProcessing = false;
+            stateRef.current.currentOperation = null;
+          });
+        });
+      });
     },
     [findNodeElement, setClickPosition],
   );
@@ -154,11 +284,14 @@ export const useLineagePopover = ({
   useEffect(() => {
     if (!selectedNode) return;
 
+    // Reset cleanup flag for new effect
+    isCleanedUpRef.current = false;
+
     let lastKnownPosition = { x: 0, y: 0 };
     let isRepositioning = false;
 
     const checkAndRepositionPopover = () => {
-      if (isRepositioning) return;
+      if (isCleanedUpRef.current || isRepositioning) return;
 
       const nodeToReposition = lastSelectedNodeRef.current;
       if (!nodeToReposition) return;
@@ -172,8 +305,12 @@ export const useLineagePopover = ({
         updatePopoverPosition(nodeToReposition.id, currentPosition);
 
         // Reset repositioning flag after update completes
-        setTimeout(() => {
+        if (timeoutRefs.current.repositioning) {
+          clearTimeout(timeoutRefs.current.repositioning);
+        }
+        timeoutRefs.current.repositioning = setTimeout(() => {
           isRepositioning = false;
+          timeoutRefs.current.repositioning = null;
         }, 150);
       }
 
@@ -187,12 +324,26 @@ export const useLineagePopover = ({
     let updateTimer: NodeJS.Timeout;
 
     const throttledCheck = () => {
+      if (isCleanedUpRef.current) return;
       clearTimeout(updateTimer);
       updateTimer = setTimeout(checkAndRepositionPopover, 100);
     };
 
     const immediateCheck = () => {
+      if (isCleanedUpRef.current) return;
       clearTimeout(updateTimer);
+      // Don't check position immediately after popover becomes visible to avoid interference
+      if (justShowedPopoverRef.current) {
+        // Reset the flag after a short delay
+        if (timeoutRefs.current.justShowed) {
+          clearTimeout(timeoutRefs.current.justShowed);
+        }
+        timeoutRefs.current.justShowed = setTimeout(() => {
+          justShowedPopoverRef.current = false;
+          timeoutRefs.current.justShowed = null;
+        }, 200);
+        return;
+      }
       checkAndRepositionPopover();
     };
 
@@ -201,18 +352,31 @@ export const useLineagePopover = ({
     svgContainer.addEventListener('wheel', throttledCheck, { passive: true });
 
     // Listen for drag end events (immediate)
-    document.addEventListener('mouseup', immediateCheck);
-    svgContainer.addEventListener('mouseup', immediateCheck);
-    svgContainer.addEventListener('mouseleave', immediateCheck);
+    document.addEventListener('mouseup', immediateCheck, { passive: true });
+    svgContainer.addEventListener('mouseup', immediateCheck, { passive: true });
+    svgContainer.addEventListener('mouseleave', immediateCheck, { passive: true });
 
     // Also check on any interaction end
-    document.addEventListener('click', immediateCheck);
+    document.addEventListener('click', immediateCheck, { passive: true });
 
     // Initial position setup
     setTimeout(checkAndRepositionPopover, 100);
 
     return () => {
+      isCleanedUpRef.current = true;
       clearTimeout(updateTimer);
+      if (timeoutRefs.current.repositioning) {
+        clearTimeout(timeoutRefs.current.repositioning);
+        timeoutRefs.current.repositioning = null;
+      }
+      if (timeoutRefs.current.justShowed) {
+        clearTimeout(timeoutRefs.current.justShowed);
+        timeoutRefs.current.justShowed = null;
+      }
+      if (stateUpdateTimeoutRef.current) {
+        clearTimeout(stateUpdateTimeoutRef.current);
+        stateUpdateTimeoutRef.current = null;
+      }
       svgContainer.removeEventListener('mousemove', throttledCheck);
       svgContainer.removeEventListener('wheel', throttledCheck);
       svgContainer.removeEventListener('mouseup', immediateCheck);
@@ -226,18 +390,28 @@ export const useLineagePopover = ({
   useEffect(() => {
     if (!isPopoverVisible) return;
 
-    const handleClickOutside = ({ target }: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const { target } = event;
       if (!target || !(target instanceof Element)) {
         return;
       }
 
-      // Check if click is on a lineage node (SVG elements)
+      // Check if click is on a lineage node (SVG elements) - this is the key fix
       if (target.closest('g[class*="pf-topology"]') || target.closest('.pf-topology__graph')) {
         return; // Don't close on node clicks
       }
 
-      // Check if click is inside popover
-      if (target.closest('[role="dialog"]') || target.closest('.pf-c-popover')) {
+      // Check if click is inside popover - comprehensive selectors for PatternFly Popover
+      if (
+        target.closest('[role="dialog"]') ||
+        target.closest('.pf-c-popover') ||
+        target.closest('[data-testid*="popover"]') ||
+        target.closest('.pf-v5-c-popover') ||
+        target.closest('[class*="popover"]') ||
+        target.closest('[class*="Popover"]') ||
+        target.closest('[aria-describedby]') ||
+        target.closest('[aria-labelledby]')
+      ) {
         return; // Don't close on popover clicks
       }
 
@@ -250,7 +424,7 @@ export const useLineagePopover = ({
       }
     };
 
-    // Add event listeners
+    // Use mousedown instead of click to avoid the same event that opened the popover
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleEscapeKey);
 

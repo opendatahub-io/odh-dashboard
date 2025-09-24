@@ -55,6 +55,7 @@ describe('useChatbotMessages', () => {
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
           isRawUploaded: true,
+          isStreamingEnabled: false,
         }),
       );
 
@@ -80,6 +81,7 @@ describe('useChatbotMessages', () => {
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
           isRawUploaded: true,
+          isStreamingEnabled: false,
         }),
       );
 
@@ -114,6 +116,7 @@ describe('useChatbotMessages', () => {
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
           isRawUploaded: true,
+          isStreamingEnabled: false,
         }),
       );
 
@@ -137,6 +140,7 @@ describe('useChatbotMessages', () => {
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
           isRawUploaded: true,
+          isStreamingEnabled: false,
         }),
       );
 
@@ -156,6 +160,7 @@ describe('useChatbotMessages', () => {
             },
           ],
           instructions: '',
+          stream: false,
         },
         'test-namespace',
       );
@@ -170,6 +175,7 @@ describe('useChatbotMessages', () => {
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
           isRawUploaded: true,
+          isStreamingEnabled: false,
         }),
       );
 
@@ -196,6 +202,7 @@ describe('useChatbotMessages', () => {
           selectedSourceSettings: null,
           systemInstruction: '',
           isRawUploaded: false,
+          isStreamingEnabled: false,
         }),
       );
 
@@ -221,6 +228,7 @@ describe('useChatbotMessages', () => {
             },
           ],
           instructions: '',
+          stream: false,
         },
         'test-namespace',
       );
@@ -235,6 +243,7 @@ describe('useChatbotMessages', () => {
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
           isRawUploaded: true,
+          isStreamingEnabled: false,
         }),
       );
 
@@ -260,6 +269,7 @@ describe('useChatbotMessages', () => {
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
           isRawUploaded: true,
+          isStreamingEnabled: false,
         }),
       );
 
@@ -280,6 +290,7 @@ describe('useChatbotMessages', () => {
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
           isRawUploaded: true,
+          isStreamingEnabled: false,
         }),
       );
 
@@ -308,6 +319,7 @@ describe('useChatbotMessages', () => {
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: 'You are a helpful assistant.',
           isRawUploaded: true,
+          isStreamingEnabled: false,
         }),
       );
 
@@ -357,6 +369,7 @@ describe('useChatbotMessages', () => {
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
           isRawUploaded: true,
+          isStreamingEnabled: false,
         }),
       );
 
@@ -383,6 +396,7 @@ describe('useChatbotMessages', () => {
             selectedSourceSettings: mockSourceSettings,
             systemInstruction: 'Be helpful.',
             isRawUploaded: true,
+            isStreamingEnabled: false,
           }),
         { initialProps: { modelId: 'model-1' } },
       );
@@ -428,6 +442,7 @@ describe('useChatbotMessages', () => {
             selectedSourceSettings: mockSourceSettings,
             systemInstruction,
             isRawUploaded: true,
+            isStreamingEnabled: false,
           }),
         { initialProps: { systemInstruction: 'Be concise.' } },
       );

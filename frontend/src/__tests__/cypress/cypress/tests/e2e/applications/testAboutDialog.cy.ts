@@ -25,7 +25,7 @@ describe('Verify RHODS About Dialog', () => {
 
   it(
     'Verify RHODS About Dialog contains correct information',
-    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@RHOAIENG-21403'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@RHOAIENG-21403', '@NonConcurrent'] },
     () => {
       // Login and open the About dialog
       cy.step(`Login to ${productName}`);

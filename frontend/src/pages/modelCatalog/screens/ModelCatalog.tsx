@@ -20,7 +20,7 @@ const ModelCatalog: React.FC = conditionalArea(
     <>
       <ScrollViewOnMount shouldScroll />
       <ApplicationsPage
-        title={<TitleWithIcon title="Model catalog" objectType={ProjectObjectType.modelCatalog} />}
+        title={<TitleWithIcon title="Catalog" objectType={ProjectObjectType.modelCatalog} />}
         description="Discover models that are available for your organization to register, deploy, and customize."
         empty={modelCatalogSources.data.length === 0}
         emptyStatePage={

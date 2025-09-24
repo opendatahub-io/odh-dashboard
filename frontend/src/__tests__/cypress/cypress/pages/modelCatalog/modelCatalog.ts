@@ -17,7 +17,7 @@ class ModelCatalog {
   }
 
   navigate() {
-    appChrome.findNavItem('Model catalog').click();
+    appChrome.findNavItem({ name: 'Catalog', rootSection: 'AI hub' }).click();
     this.wait();
   }
 
@@ -27,17 +27,17 @@ class ModelCatalog {
 
   private wait() {
     cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('Model catalog');
+    cy.findByTestId('app-page-title').contains('Catalog');
     cy.testA11y();
   }
 
   tabEnabled() {
-    appChrome.findNavItem('Model catalog').should('exist');
+    appChrome.findNavItem({ name: 'Catalog', rootSection: 'AI hub' }).should('exist');
     return this;
   }
 
   tabDisabled() {
-    appChrome.findNavItem('Model catalog').should('not.exist');
+    appChrome.findNavItem({ name: 'Catalog', rootSection: 'AI hub' }).should('not.exist');
     return this;
   }
 

@@ -150,7 +150,7 @@ export const TopResourceConsumingWorkloads: React.FC = () => {
       return (
         <NoWorkloadState
           warn={workloadStatuses.includes('failed')}
-          title={`All distributed workloads have ${workloadStatuses.join(' or ')}`}
+          title={`All workload metrics have ${workloadStatuses.join(' or ')}`}
         />
       );
     }

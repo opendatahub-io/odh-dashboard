@@ -11,11 +11,11 @@ const LMEvalNoProjects: React.FC = () => {
     <EmptyState
       headingLevel="h4"
       icon={WrenchIcon}
-      titleText="No data science projects"
+      titleText="No projects"
       data-testid="empty-state-title"
     >
       <EmptyStateBody data-testid="empty-state-body">
-        To view model evaluations, first create a data science project.
+        To view model evaluations, first create a project.
       </EmptyStateBody>
       <EmptyStateFooter>
         <NewProjectButton closeOnCreate onProjectCreated={() => navigate('/modelEvaluations')} />

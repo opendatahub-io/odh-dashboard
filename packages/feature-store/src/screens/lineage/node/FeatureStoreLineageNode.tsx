@@ -116,6 +116,20 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
     // Get node bounds for positioning
     const bounds = element.getBounds();
 
+    // Calculate a reasonable width if bounds.width is 0 (initial render)
+    const nodeWidth =
+      bounds.width > 0
+        ? bounds.width
+        : (() => {
+            const label = element.getLabel();
+            if (label && label.length > 10) {
+              // Estimate width for large nodes based on label length
+              return Math.max(120, Math.min(200, label.length * 6 + 80));
+            }
+            // Small nodes or no label
+            return 60;
+          })();
+
     return (
       <g
         ref={hoverRef}
@@ -130,7 +144,7 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
       >
         <LineageTaskPill
           element={element}
-          onSelect={() => undefined} // Disable default selection
+          onSelect={undefined} // Disable default selection
           selected={selected}
           scaleNode={hover && detailsLevel !== ScaleDetailsLevel.high}
           status={RunStatus.Idle}
@@ -140,7 +154,7 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
           truncateLength={truncateLength}
           badge={badge}
           hover={hover}
-          width={bounds.width}
+          width={nodeWidth}
           x={0} // Position relative to the group
           y={0}
           disableTooltip // Disable small tooltip to avoid conflict with popover

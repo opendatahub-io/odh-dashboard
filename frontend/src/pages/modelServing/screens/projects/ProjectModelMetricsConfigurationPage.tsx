@@ -9,7 +9,7 @@ const ProjectModelMetricsConfigurationPage: React.FC = () => {
   return (
     <BiasConfigurationPage
       breadcrumbItems={[
-        { label: 'Data science projects', link: '/projects' },
+        { label: 'Projects', link: '/projects' },
         {
           label: getDisplayNameFromK8sResource(currentProject),
           link: `/projects/${currentProject.metadata.name}`,

@@ -1,11 +1,11 @@
 {
-  "Data Science Projects > should start with an empty project list > builds": {
+  "Projects > should start with an empty project list > builds": {
     "method": "GET",
     "url": "/api/builds",
     "statusCode": 200,
     "body": []
   },
-  "Data Science Projects > should start with an empty project list > status": {
+  "Projects > should start with an empty project list > status": {
     "method": "GET",
     "url": "/api/status",
     "statusCode": 200,
@@ -27,7 +27,7 @@
       }
     }
   },
-  "Data Science Projects > should start with an empty project list > config": {
+  "Projects > should start with an empty project list > config": {
     "method": "GET",
     "url": "/api/config",
     "statusCode": 200,
@@ -133,7 +133,7 @@
       }
     }
   },
-  "Data Science Projects > should start with an empty project list > projects": {
+  "Projects > should start with an empty project list > projects": {
     "method": "GET",
     "url": "/api/k8s/apis/project.openshift.io/v1/projects",
     "statusCode": 200,
@@ -144,7 +144,7 @@
       "items": []
     }
   },
-  "Data Science Projects > should create project > create-test-project": {
+  "Projects > should create project > create-test-project": {
     "method": "POST",
     "url": "/api/k8s/apis/project.openshift.io/v1/projectrequests",
     "statusCode": 200,
@@ -227,13 +227,13 @@
       "status": { "phase": "Active" }
     }
   },
-  "Data Science Projects > should create project > update-project": {
+  "Projects > should create project > update-project": {
     "method": "GET",
     "url": "/api/namespaces/test-project/0",
     "statusCode": 200,
     "body": { "applied": true }
   },
-  "Data Science Projects > should create project > projects-1": {
+  "Projects > should create project > projects-1": {
     "method": "GET",
     "url": "/api/k8s/apis/project.openshift.io/v1/projects",
     "statusCode": 200,
@@ -345,7 +345,7 @@
       ]
     }
   },
-  "Data Science Projects > should list the new project > projects-1": {
+  "Projects > should list the new project > projects-1": {
     "method": "GET",
     "url": "/api/k8s/apis/project.openshift.io/v1/projects",
     "statusCode": 200,
@@ -457,13 +457,13 @@
       ]
     }
   },
-  "Data Science Projects > should delete project > delete-project": {
+  "Projects > should delete project > delete-project": {
     "method": "DELETE",
     "url": "/api/k8s/apis/project.openshift.io/v1/projects/test-project",
     "statusCode": 200,
     "body": { "kind": "Status", "apiVersion": "v1", "metadata": {}, "status": "Success" }
   },
-  "Data Science Projects > should delete project > projects-0": {
+  "Projects > should delete project > projects-0": {
     "method": "GET",
     "url": "/api/k8s/apis/project.openshift.io/v1/projects",
     "statusCode": 200,

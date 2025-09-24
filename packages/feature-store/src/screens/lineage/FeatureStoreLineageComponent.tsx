@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { EmptyStateVariant, EmptyStateBody, EmptyState, PageSection } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { Lineage } from '@odh-dashboard/internal/components/lineage/Lineage';
 import { createLineageComponentFactory } from '@odh-dashboard/internal/components/lineage/factories';
+import { useLineageCenter } from '@odh-dashboard/internal/components/lineage/context/LineageCenterContext';
 import FeatureStoreLineageNode from './node/FeatureStoreLineageNode';
 import FeatureStoreLineageNodePopover from './node/FeatureStoreLineageNodePopover';
 import { applyLineageFilters } from './utils';
@@ -47,7 +48,18 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
 
   const [hideNodesWithoutRelationships, setHideNodesWithoutRelationships] = useState(false);
   const [searchFilters, setSearchFilters] = useState<FeatureStoreLineageSearchFilters>({});
+  const [currentFilterType, setCurrentFilterType] =
+    useState<keyof FeatureStoreLineageSearchFilters>('entity');
   const [conversionError, setConversionError] = useState<string | null>(null);
+  const { triggerCenter, forceCenter } = useLineageCenter();
+  const [lineageKey, setLineageKey] = useState(0);
+
+  // Force re-render when forceCenter is triggered (tab switch)
+  useEffect(() => {
+    if (forceCenter) {
+      setLineageKey((prev) => prev + 1);
+    }
+  }, [forceCenter]);
 
   const {
     data: lineageData,
@@ -120,12 +132,34 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
     featureViewName,
   ]);
 
+  // Trigger centering when filters change - but only after data is processed
+  useEffect(() => {
+    if (lineageDataLoaded && !error && visualizationData.nodes.length > 0) {
+      // Add delay to ensure the filtered data is fully rendered before centering
+      const centerTimeout = setTimeout(() => {
+        triggerCenter();
+      }, 100); // Small delay to ensure rendering is complete
+
+      return () => clearTimeout(centerTimeout);
+    }
+    return undefined;
+  }, [
+    searchFilters,
+    hideNodesWithoutRelationships,
+    lineageDataLoaded,
+    error,
+    visualizationData,
+    triggerCenter,
+  ]);
+
   const ToolbarComponent = () => (
     <FeatureStoreLineageToolbar
       hideNodesWithoutRelationships={hideNodesWithoutRelationships}
       onHideNodesWithoutRelationshipsChange={setHideNodesWithoutRelationships}
       searchFilters={searchFilters}
       onSearchFiltersChange={setSearchFilters}
+      currentFilterType={currentFilterType}
+      onCurrentFilterTypeChange={setCurrentFilterType}
       lineageData={lineageData}
       lineageDataLoaded={lineageDataLoaded}
       isFeatureViewToolbar={!!featureViewName}
@@ -133,7 +167,7 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
   );
 
   const PopoverComponent = (props: Parameters<typeof FeatureStoreLineageNodePopover>[0]) => (
-    <FeatureStoreLineageNodePopover {...props} isOnFeatureViewDetailsPage={!!featureViewName} />
+    <FeatureStoreLineageNodePopover {...props} />
   );
 
   return (
@@ -141,9 +175,10 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
       hasBodyWrapper={false}
       isFilled
       padding={{ default: 'noPadding' }}
-      style={{ height }}
+      style={{ height, display: 'flex', flexDirection: 'column' }}
     >
       <Lineage
+        key={lineageKey}
         data={visualizationData}
         loading={!lineageDataLoaded}
         error={

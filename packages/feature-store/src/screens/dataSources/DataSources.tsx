@@ -10,9 +10,9 @@ import useFeatureStoreDataSources from '../../apiHooks/useFeatureStoreDataSource
 import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
 import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
 
-const title = 'Data Sources';
+const title = 'Data sources';
 const description =
-  'Select a workspace to view and manage its data sources. Data sources provide the raw data that feeds into your feature store.';
+  'Select a feature store repository to view and manage its data sources. Data sources provide the raw data that feeds into your feature store.';
 
 const DataSources: React.FC = () => {
   const { currentProject } = useFeatureStoreProject();

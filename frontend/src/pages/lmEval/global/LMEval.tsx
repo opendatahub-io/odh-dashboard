@@ -17,7 +17,7 @@ import LMEvalLoading from './LMEvalLoading';
 import LMEvalListView from './lmEvalList/LMEvalListView';
 import EvaluateModelButton from './EvaluateModelButton';
 
-const title = 'Model evaluation runs';
+const title = 'Evaluations';
 const description =
   'Select a project to view its model evaluation runs, or start a new evaluation run. Evaluation runs help determine a model’s performance by testing it against selected evaluation benchmarks called tasks.';
 

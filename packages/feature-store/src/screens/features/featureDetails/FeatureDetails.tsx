@@ -10,8 +10,8 @@ import {
   EmptyStateFooter,
   EmptyStateActions,
 } from '@patternfly/react-core';
-import { t_global_spacer_xs as ExtraSmallSpacerSize } from '@patternfly/react-tokens';
 import { PathMissingIcon, SearchIcon } from '@patternfly/react-icons';
+import { t_global_spacer_xs as ExtraSmallSpacerSize } from '@patternfly/react-tokens';
 import { Link, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import FeatureDetailsTabs from './FeatureDetailsTab';
@@ -19,6 +19,7 @@ import useFeatureByName from '../../../apiHooks/useFeatureByName';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
 import { featureStoreRootRoute } from '../../../routes';
 import FeatureStorePageTitle from '../../../components/FeatureStorePageTitle';
+import FeatureStoreBreadcrumb from '../../components/FeatureStoreBreadcrumb';
 
 const FeatureDetails = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -85,9 +86,11 @@ const FeatureDetails = (): React.ReactElement => {
           isDetailsPage
           breadcrumb={
             <Breadcrumb>
-              <BreadcrumbItem
-                data-testid="feature-details-breadcrumb-link"
-                render={() => <Link to={`${featureStoreRootRoute()}/features`}>Features</Link>}
+              <FeatureStoreBreadcrumb
+                pageName="Features"
+                projectName={currentProject || ''}
+                linkTo={`${featureStoreRootRoute()}/features`}
+                dataTestId="feature-details-breadcrumb-link"
               />
               <BreadcrumbItem
                 data-testid="feature-details-breadcrumb-item"

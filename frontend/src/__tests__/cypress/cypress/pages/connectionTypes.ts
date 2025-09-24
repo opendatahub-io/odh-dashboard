@@ -220,7 +220,11 @@ class ConnectionTypesPage {
   }
 
   findNavItem() {
-    return appChrome.findNavItem('Connection types');
+    return appChrome.findNavItem({
+      name: 'Connection types',
+      rootSection: 'Settings',
+      subSection: 'Environment setup',
+    });
   }
 
   navigate() {

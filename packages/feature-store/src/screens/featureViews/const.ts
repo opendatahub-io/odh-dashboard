@@ -1,12 +1,14 @@
+/* eslint-disable camelcase */
 import { SortableData } from '@odh-dashboard/internal/components/table/types';
 import { FeatureView } from '../../types/featureView';
 import { MaterializationInterval } from '../../types/global';
 
 export const featureViewTableFilterOptions: Record<string, string> = {
   featureView: 'Feature view',
-  project: 'Project',
+  project: 'Feature store repository',
   tag: 'Tags',
   features: 'Features',
+  feature_services: 'Feature Services',
   created: 'Created after',
   updated: 'Updated after',
   owner: 'Owner',
@@ -22,7 +24,7 @@ export const columns: SortableData<FeatureView>[] = [
   },
   {
     field: 'project',
-    label: 'Project',
+    label: 'Feature store repository',
     width: 25,
     sortable: (a: FeatureView, b: FeatureView): number =>
       a.project?.localeCompare(b.project ?? '') ?? 0,
@@ -46,6 +48,12 @@ export const columns: SortableData<FeatureView>[] = [
       const bFeatures = b.spec.features.length;
       return aFeatures - bFeatures;
     },
+  },
+  {
+    field: 'feature_services',
+    label: 'Feature Services',
+    width: 25,
+    sortable: false,
   },
   {
     field: 'created',
