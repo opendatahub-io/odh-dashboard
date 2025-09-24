@@ -1,91 +1,13 @@
 import React, { act } from 'react';
 import { render, screen, renderHook } from '@testing-library/react';
-import { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
-import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/internal/__mocks__/mockK8sNameDescriptionFieldData';
-import * as _ from 'lodash-es';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
-import { UseModelDeploymentWizardState } from '../../useDeploymentWizard';
 import {
   availableAiAssetsFieldsSchema,
   AvailableAiAssetsFieldsComponent,
   isValidAvailableAiAssetsFieldsData,
   useAvailableAiAssetsFields,
 } from '../AvailableAiAssetsFields';
-
-const mockDeploymentWizardState = (
-  overrides: RecursivePartial<UseModelDeploymentWizardState> = {},
-): UseModelDeploymentWizardState =>
-  _.merge(
-    {
-      initialData: undefined,
-      state: {
-        modelType: {
-          data: ServingRuntimeModelType.GENERATIVE,
-          setData: jest.fn(),
-        },
-        modelLocationData: {
-          data: undefined,
-          setData: jest.fn(),
-          connections: [],
-          setSelectedConnection: jest.fn(),
-          selectedConnection: undefined,
-        },
-        k8sNameDesc: {
-          data: mockK8sNameDescriptionFieldData(),
-          onDataChange: jest.fn(),
-        },
-        hardwareProfileConfig: {
-          formData: {
-            selectedProfile: undefined,
-            useExistingSettings: false,
-            resources: undefined,
-          },
-          initialHardwareProfile: undefined,
-          isFormDataValid: true,
-          setFormData: jest.fn(),
-          resetFormData: jest.fn(),
-          profilesLoaded: true,
-        },
-        modelFormatState: {
-          modelFormatOptions: [],
-          modelFormat: undefined,
-          setModelFormat: jest.fn(),
-          isVisible: false,
-          error: undefined,
-          loaded: true,
-        },
-        externalRoute: {
-          data: undefined,
-          setData: jest.fn(),
-          updateField: jest.fn(),
-        },
-        tokenAuthentication: {
-          data: undefined,
-          setData: jest.fn(),
-          updateField: jest.fn(),
-        },
-        AAAData: {
-          data: {
-            saveAsAAA: false,
-            useCase: '',
-            description: '',
-          },
-          setData: jest.fn(),
-        },
-      },
-      data: {
-        externalRouteField: undefined,
-        tokenAuthenticationField: undefined,
-      },
-      handlers: {
-        setExternalRoute: jest.fn(),
-        updateExternalRoute: jest.fn(),
-        setTokenAuthentication: jest.fn(),
-        updateTokenAuthentication: jest.fn(),
-      },
-    },
-    overrides,
-  );
+import { mockDeploymentWizardState } from '../../../../__tests__/mockUtils';
 
 describe('AvailableAiAssetsFields', () => {
   describe('Schema validation', () => {
