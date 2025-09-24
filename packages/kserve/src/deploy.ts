@@ -14,6 +14,8 @@ import { UseModelDeploymentWizardState } from '../../model-serving/src/component
 import { ExternalRouteFieldData } from '../../model-serving/src/components/deploymentWizard/fields/ExternalRouteField';
 import { TokenAuthenticationFieldData } from '../../model-serving/src/components/deploymentWizard/fields/TokenAuthenticationField';
 import { NumReplicasFieldData } from '../../model-serving/src/components/deploymentWizard/fields/NumReplicasField';
+import { RuntimeArgsFieldData } from '../../model-serving/src/components/deploymentWizard/fields/RuntimeArgsField';
+import { EnvironmentVariablesFieldData } from '../../model-serving/src/components/deploymentWizard/fields/EnvironmentVariablesField';
 
 export type CreatingInferenceServiceObject = {
   project: string;
@@ -25,6 +27,8 @@ export type CreatingInferenceServiceObject = {
   externalRoute?: ExternalRouteFieldData;
   tokenAuth?: TokenAuthenticationFieldData;
   numReplicas?: NumReplicasFieldData;
+  runtimeArgs?: RuntimeArgsFieldData;
+  environmentVariables?: EnvironmentVariablesFieldData;
 };
 
 export const deployKServeDeployment = async (
@@ -51,6 +55,8 @@ export const deployKServeDeployment = async (
     externalRoute: wizardData.externalRoute.data,
     tokenAuth: wizardData.tokenAuthentication.data,
     numReplicas: wizardData.numReplicas.data,
+    runtimeArgs: wizardData.runtimeArgs.data,
+    environmentVariables: wizardData.environmentVariables.data,
   };
 
   const inferenceService = await createInferenceService(
@@ -91,6 +97,8 @@ const assembleInferenceService = (
     tokenAuth,
     externalRoute,
     numReplicas,
+    runtimeArgs,
+    environmentVariables,
   } = data;
   const inferenceService: InferenceServiceKind = existingInferenceService
     ? { ...existingInferenceService }
@@ -153,6 +161,21 @@ const assembleInferenceService = (
     inferenceService.spec.predictor.maxReplicas = numReplicas;
   }
 
+  if (runtimeArgs?.enabled && runtimeArgs.args.length > 0) {
+    if (!inferenceService.spec.predictor.model) {
+      inferenceService.spec.predictor.model = {};
+    }
+    inferenceService.spec.predictor.model.args = runtimeArgs.args;
+  }
+  if (environmentVariables?.enabled && environmentVariables.variables.length > 0) {
+    if (!inferenceService.spec.predictor.model) {
+      inferenceService.spec.predictor.model = {};
+    }
+    inferenceService.spec.predictor.model.env = environmentVariables.variables.map((envVar) => ({
+      name: envVar.name,
+      value: envVar.value,
+    }));
+  }
   return inferenceService;
 };
 

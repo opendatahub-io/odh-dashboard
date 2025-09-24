@@ -1,4 +1,4 @@
-import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
+import { KnownLabels, InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
 import { getTokenNames } from '@odh-dashboard/internal/pages/modelServing/utils';
 import { isValidModelType, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
 import {
@@ -7,7 +7,9 @@ import {
   ModelLocationData,
 } from './fields/modelLocationFields/types';
 import { type TokenAuthenticationFieldData } from './fields/TokenAuthenticationField';
-import type { Deployment, DeploymentEndpoint } from '../../../extension-points';
+import { type RuntimeArgsFieldData } from './fields/RuntimeArgsField';
+import { type EnvironmentVariablesFieldData } from './fields/EnvironmentVariablesField';
+import type { Deployment, DeploymentEndpoint, ModelResourceType } from '../../../extension-points';
 
 export const getDeploymentWizardRoute = (currentpath: string, deploymentName?: string): string => {
   if (deploymentName) {
@@ -91,4 +93,34 @@ export const getTokenAuthenticationFromDeployment = (
   }
 
   return tokens;
+};
+
+const isInferenceService = (model: ModelResourceType): model is InferenceServiceKind =>
+  model.kind === 'InferenceService';
+
+export const getRuntimeArgsFromDeployment = (deployment: Deployment): RuntimeArgsFieldData => {
+  if (!isInferenceService(deployment.model)) {
+    return { enabled: false, args: [] };
+  }
+  const args = deployment.model.spec.predictor.model?.args || [];
+  return {
+    enabled: args.length > 0,
+    args,
+  };
+};
+
+export const getEnvironmentVariablesFromDeployment = (
+  deployment: Deployment,
+): EnvironmentVariablesFieldData => {
+  if (!isInferenceService(deployment.model)) {
+    return { enabled: false, variables: [] };
+  }
+  const envVars = deployment.model.spec.predictor.model?.env || [];
+  return {
+    enabled: envVars.length > 0,
+    variables: envVars.map((envVar) => ({
+      name: envVar.name,
+      value: envVar.value || '',
+    })),
+  };
 };

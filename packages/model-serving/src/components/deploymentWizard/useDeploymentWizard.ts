@@ -17,6 +17,11 @@ import {
   type TokenAuthenticationFieldData,
 } from './fields/TokenAuthenticationField';
 import { useNumReplicasField, type NumReplicasFieldData } from './fields/NumReplicasField';
+import { useRuntimeArgsField, type RuntimeArgsFieldData } from './fields/RuntimeArgsField';
+import {
+  useEnvironmentVariablesField,
+  type EnvironmentVariablesFieldData,
+} from './fields/EnvironmentVariablesField';
 
 export type ModelDeploymentWizardData = {
   modelTypeField?: ModelTypeFieldData;
@@ -24,6 +29,8 @@ export type ModelDeploymentWizardData = {
   externalRoute?: ExternalRouteFieldData;
   tokenAuthentication?: TokenAuthenticationFieldData;
   numReplicas?: NumReplicasFieldData;
+  runtimeArgs?: RuntimeArgsFieldData;
+  environmentVariables?: EnvironmentVariablesFieldData;
   hardwareProfile?: Parameters<typeof useHardwareProfileConfig>;
   modelFormat?: SupportedModelFormats;
   modelLocationData?: ModelLocationData;
@@ -43,6 +50,8 @@ export type UseModelDeploymentWizardState = {
     externalRoute: ReturnType<typeof useExternalRouteField>;
     tokenAuthentication: ReturnType<typeof useTokenAuthenticationField>;
     numReplicas: ReturnType<typeof useNumReplicasField>;
+    runtimeArgs: ReturnType<typeof useRuntimeArgsField>;
+    environmentVariables: ReturnType<typeof useEnvironmentVariablesField>;
   };
 };
 
@@ -75,6 +84,11 @@ export const useModelDeploymentWizard = (
 
   const numReplicas = useNumReplicasField(initialData?.numReplicas ?? undefined);
 
+  const runtimeArgs = useRuntimeArgsField(initialData?.runtimeArgs ?? undefined);
+  const environmentVariables = useEnvironmentVariablesField(
+    initialData?.environmentVariables ?? undefined,
+  );
+
   // Step 4: Summary
 
   return {
@@ -88,6 +102,8 @@ export const useModelDeploymentWizard = (
       externalRoute,
       tokenAuthentication,
       numReplicas,
+      runtimeArgs,
+      environmentVariables,
     },
   };
 };

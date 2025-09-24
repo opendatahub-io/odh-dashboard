@@ -101,7 +101,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           />
         </WizardStep>
         <WizardStep
-          name="Advanced options"
+          name="Advanced settings (optional)"
           id="advanced-options-step"
           isDisabled={!validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid}
         >

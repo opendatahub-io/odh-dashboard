@@ -1,5 +1,5 @@
 import React from 'react';
-import { FormGroup, Checkbox, Stack, StackItem } from '@patternfly/react-core';
+import { Checkbox, Stack, StackItem } from '@patternfly/react-core';
 import { z } from 'zod';
 
 // Schema
@@ -45,16 +45,14 @@ export const ExternalRouteField: React.FC<ExternalRouteFieldProps> = ({
   return (
     <Stack hasGutter>
       <StackItem>
-        <FormGroup fieldId="model-access" label="External route">
-          <Checkbox
-            id="alt-form-checkbox-route"
-            data-testid="model-access-checkbox"
-            label="Make model deployment available through an external route"
-            isChecked={isChecked}
-            isDisabled={!allowCreate}
-            onChange={(e, check) => onChange?.(check)}
-          />
-        </FormGroup>
+        <Checkbox
+          id="alt-form-checkbox-route"
+          data-testid="model-access-checkbox"
+          label="Make model deployment available through an external route"
+          isChecked={isChecked}
+          isDisabled={!allowCreate}
+          onChange={(e, check) => onChange?.(check)}
+        />
       </StackItem>
     </Stack>
   );

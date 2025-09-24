@@ -1,9 +1,11 @@
 import React from 'react';
-import { Form, Title, Stack, StackItem, Alert } from '@patternfly/react-core';
+import { Form, Title, Stack, StackItem, Alert, FormGroup } from '@patternfly/react-core';
 import { AccessReviewResourceAttributes, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { useAccessReview } from '../../../../../../frontend/src/api';
 import { ExternalRouteField } from '../fields/ExternalRouteField';
 import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
+import { RuntimeArgsField } from '../fields/RuntimeArgsField';
+import { EnvironmentVariablesField } from '../fields/EnvironmentVariablesField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
@@ -45,23 +47,40 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
 
   return (
     <>
-      <Title headingLevel="h2">Advanced Settings</Title>
       <Form>
+        <Stack>
+          <StackItem>
+            <Title headingLevel="h2">Advanced Settings (optional)</Title>
+          </StackItem>
+        </Stack>
+
         <Stack hasGutter>
           <StackItem>
-            <ExternalRouteField
-              isChecked={externalRouteData}
-              allowCreate={allowCreate}
-              onChange={handleExternalRouteChange}
-            />
+            <FormGroup
+              label="External route"
+              data-testid="external-route-section"
+              fieldId="model-access"
+            >
+              <ExternalRouteField
+                isChecked={externalRouteData}
+                allowCreate={allowCreate}
+                onChange={handleExternalRouteChange}
+              />
+            </FormGroup>
           </StackItem>
 
           <StackItem>
-            <TokenAuthenticationField
-              tokens={tokenAuthData}
-              allowCreate={allowCreate}
-              onChange={wizardState.state.tokenAuthentication.setData}
-            />
+            <FormGroup
+              label="Token authentication"
+              data-testid="auth-section"
+              fieldId="alt-form-checkbox-auth"
+            >
+              <TokenAuthenticationField
+                tokens={tokenAuthData}
+                allowCreate={allowCreate}
+                onChange={wizardState.state.tokenAuthentication.setData}
+              />
+            </FormGroup>
           </StackItem>
 
           {externalRouteData && (!tokenAuthData || tokenAuthData.length === 0) && (
@@ -75,6 +94,33 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
               />
             </StackItem>
           )}
+
+          <StackItem>
+            <FormGroup
+              label="Configuration parameters"
+              data-testid="configuration-params"
+              fieldId="configuration-params"
+            >
+              <Stack hasGutter>
+                <StackItem>
+                  <RuntimeArgsField
+                    data={wizardState.state.runtimeArgs.data}
+                    onChange={wizardState.state.runtimeArgs.setData}
+                    allowCreate={allowCreate}
+                    predefinedArgs={[]} // TODO: Get predefined arguments from selected serving runtime
+                  />
+                </StackItem>
+                <StackItem>
+                  <EnvironmentVariablesField
+                    data={wizardState.state.environmentVariables.data}
+                    onChange={wizardState.state.environmentVariables.setData}
+                    allowCreate={allowCreate}
+                    predefinedVars={[]} // TODO: Get predefined variables from selected serving runtime
+                  />
+                </StackItem>
+              </Stack>
+            </FormGroup>
+          </StackItem>
         </Stack>
       </Form>
     </>

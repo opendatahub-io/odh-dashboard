@@ -565,6 +565,14 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findTokenAuthenticationCheckbox().click();
     modelServingWizard.findTokenWarningAlert().should('exist');
 
+    //Configuration Parameters
+    modelServingWizard.findRuntimeArgsCheckbox().should('exist').click();
+    modelServingWizard.findRuntimeArgsTextBox().type('--arg=value1');
+    modelServingWizard.findEnvVariablesCheckbox().should('exist').click();
+    modelServingWizard.findAddVariableButton().should('exist').click();
+    modelServingWizard.findEnvVariableName('0').clear().type('valid_name');
+    modelServingWizard.findEnvVariableValue('0').type('test-value');
+
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 4: Summary
@@ -593,6 +601,8 @@ describe('Model Serving Deploy Wizard', () => {
               name: 'openvino_ir',
               version: 'opset1',
             },
+              args: ['--arg=value1'],
+              env: [{ name: 'valid_name', value: 'test-value' }],
             resources: {
               requests: {
                 cpu: '4',

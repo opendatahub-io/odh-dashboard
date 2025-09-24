@@ -173,71 +173,65 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
   }, [tokens, onChange]);
 
   return (
-    <FormGroup
-      label="Token authentication"
-      data-testid="auth-section"
-      fieldId="alt-form-checkbox-auth"
-    >
-      <Stack hasGutter id="auth-section">
+    <Stack hasGutter id="auth-section">
+      <StackItem>
+        <Checkbox
+          label="Require token authentication"
+          id="alt-form-checkbox-auth"
+          data-testid="token-authentication-checkbox"
+          name="alt-form-checkbox-auth"
+          isDisabled={!allowCreate}
+          isChecked={tokens.length > 0}
+          onChange={(e, check) => {
+            if (check && tokens.length === 0) {
+              createNewToken();
+            } else if (!check) {
+              onChange?.([]);
+            }
+          }}
+        />
+      </StackItem>
+      {tokens.length > 0 && (
         <StackItem>
-          <Checkbox
-            label="Require token authentication"
-            id="alt-form-checkbox-auth"
-            data-testid="token-authentication-checkbox"
-            name="alt-form-checkbox-auth"
-            isDisabled={!allowCreate}
-            isChecked={tokens.length > 0}
-            onChange={(e, check) => {
-              if (check && tokens.length === 0) {
-                createNewToken();
-              } else if (!check) {
-                onChange?.([]);
-              }
-            }}
-          />
-        </StackItem>
-        {tokens.length > 0 && (
-          <StackItem>
-            <div style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}>
-              <Stack hasGutter>
-                {allowCreate && (
-                  <StackItem>
-                    <Alert
-                      variant="info"
-                      isInline
-                      title="The actual tokens will be created and displayed when the model server is configured."
-                    />
-                  </StackItem>
-                )}
-                {tokens.map((token) => (
-                  <StackItem key={token.uuid}>
-                    <TokenInput
-                      newToken={token}
-                      existingTokens={tokens}
-                      setTokens={onChange}
-                      disabled={!allowCreate}
-                    />
-                  </StackItem>
-                ))}
+          <div style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}>
+            <Stack hasGutter>
+              {allowCreate && (
                 <StackItem>
-                  <Button
-                    onClick={createNewToken}
+                  <Alert
+                    variant="info"
                     isInline
-                    iconPosition="left"
-                    variant="link"
-                    icon={<PlusCircleIcon />}
-                    isDisabled={!allowCreate}
-                    data-testid="add-service-account-button"
-                  >
-                    Add a service account
-                  </Button>
+                    title="The actual tokens will be created and displayed when the model server is configured."
+                  />
                 </StackItem>
-              </Stack>
-            </div>
-          </StackItem>
-        )}
-      </Stack>
-    </FormGroup>
+              )}
+              {tokens.map((token) => (
+                <StackItem key={token.uuid}>
+                  <TokenInput
+                    newToken={token}
+                    existingTokens={tokens}
+                    setTokens={onChange}
+                    disabled={!allowCreate}
+                  />
+                </StackItem>
+              ))}
+              <StackItem>
+                <Button
+                  onClick={createNewToken}
+                  isInline
+                  iconPosition="left"
+                  variant="link"
+                  icon={<PlusCircleIcon />}
+                  isDisabled={!allowCreate}
+                  data-testid="add-service-account-button"
+                >
+                  Add a service account
+                </Button>
+              </StackItem>
+            </Stack>
+          </div>
+        </StackItem>
+      )}
+    </Stack>
   );
 };
 
