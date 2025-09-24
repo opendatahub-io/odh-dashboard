@@ -96,9 +96,10 @@ export const createSecrets = async (
   const deletedSecrets =
     existingSecrets
       ?.map((secret) => secret.metadata.name)
-      .filter((token: string) => !fillData.tokens?.some((tokenEdit) => tokenEdit.name === token)) ||
-    [];
-  const tokensToProcess = fillData.tokens || [];
+      .filter(
+        (token: string) => !fillData.tokenAuth?.some((tokenEdit) => tokenEdit.name === token),
+      ) || [];
+  const tokensToProcess = fillData.tokenAuth || [];
 
   await Promise.all<K8sStatus | SecretKind>([
     ...tokensToProcess.map((token) => {
