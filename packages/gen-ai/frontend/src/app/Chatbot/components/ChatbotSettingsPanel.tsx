@@ -19,6 +19,7 @@ import useAccordionState from '~/app/Chatbot/hooks/useAccordionState';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
 import ModelDetailsDropdown from './ModelDetailsDropdown';
 import SystemPromptFormGroup from './SystemInstructionFormGroup';
+import ModelParameterFormGroup from './ModelParameterFormGroup';
 
 interface ChatbotSettingsPanelProps {
   selectedModel: string;
@@ -32,6 +33,10 @@ interface ChatbotSettingsPanelProps {
   onSystemInstructionChange: (value: string) => void;
   isStreamingEnabled: boolean;
   onStreamingToggle: (enabled: boolean) => void;
+  temperature: number;
+  onTemperatureChange: (value: number) => void;
+  topP: number;
+  onTopPChange: (value: number) => void;
 }
 
 const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> = ({
@@ -43,6 +48,10 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   onSystemInstructionChange,
   isStreamingEnabled,
   onStreamingToggle,
+  temperature,
+  onTemperatureChange,
+  topP,
+  onTopPChange,
 }) => {
   const accordionState = useAccordionState();
 
@@ -78,6 +87,24 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                     onSystemInstructionChange={onSystemInstructionChange}
                   />
                 </FormGroup>
+
+                {/* Model Parameters */}
+                <ModelParameterFormGroup
+                  fieldId="temperature"
+                  label="Temperature"
+                  helpText="This controls the randomness of the model's output."
+                  value={temperature}
+                  onChange={onTemperatureChange}
+                />
+
+                <ModelParameterFormGroup
+                  fieldId="top-p"
+                  label="Top P"
+                  helpText="This controls nucleus sampling for more focused responses."
+                  value={topP}
+                  onChange={onTopPChange}
+                />
+
                 <FormGroup fieldId="streaming">
                   <Switch
                     id="streaming-switch"
