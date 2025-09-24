@@ -65,6 +65,11 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
     return [];
   }, [hardwareProfile.metadata.annotations]);
 
+  const filteredUseCases: HardwareProfileFeatureVisibility[] = React.useMemo(
+    () => useCases.filter((v) => v !== HardwareProfileFeatureVisibility.PIPELINES),
+    [useCases],
+  );
+
   const hardwareProfileWarnings = validateProfileWarning(hardwareProfile);
 
   const { kueue, node } = hardwareProfile.spec.scheduling ?? {};
@@ -136,15 +141,15 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
         <Td dataLabel="Features">
           {useCases.length === 0 ? (
             <i>All features</i>
+          ) : filteredUseCases.length === 0 ? (
+            <>—</>
           ) : (
             <LabelGroup>
-              {useCases
-                .filter((v) => v !== HardwareProfileFeatureVisibility.PIPELINES)
-                .map((v) => (
-                  <Label key={v} data-testid={`label-${v}`}>
-                    {HardwareProfileFeatureVisibilityTitles[v]}
-                  </Label>
-                ))}
+              {filteredUseCases.map((v) => (
+                <Label key={v} data-testid={`label-${v}`}>
+                  {HardwareProfileFeatureVisibilityTitles[v]}
+                </Label>
+              ))}
             </LabelGroup>
           )}
         </Td>
