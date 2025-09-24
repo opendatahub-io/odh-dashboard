@@ -1,0 +1,6 @@
+# Feature Store test data
+projectName: "test-fs-ui-proj"
+feastInstanceName: "test-s3"
+feastCreditScoringProject: "credit_scoring_local"
+feastDriverRankingProject: "driver_ranking"
+feastNavItems : ["Datasets", "Data sources","Entities", "Features", "Feature views", "Feature services", "Overview"]

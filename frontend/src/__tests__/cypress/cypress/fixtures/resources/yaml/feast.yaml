@@ -1,0 +1,36 @@
+kind: Secret
+apiVersion: v1
+metadata:
+  name: s3-credentials-secret
+  namespace: ${namespace}
+stringData:
+  AWS_ACCESS_KEY_ID: ${awsAccessKey}
+  AWS_SECRET_ACCESS_KEY: ${awsSecretKey}
+  AWS_DEFAULT_REGION: ${awsDefaultRegion}
+---
+apiVersion: feast.dev/v1alpha1
+kind: FeatureStore
+metadata:
+  name: test-s3
+  namespace: ${namespace}
+  labels:
+    feature-store-ui: enabled
+spec:
+  feastProject: s3_features
+  services:
+    onlineStore:
+      server:
+        envFrom:
+          - secretRef:
+              name: s3-credentials-secret
+    registry:
+      local:
+        persistence:
+          file:
+            path: s3://${awsBucketName}/feast-test/feast-credit-score-remote-data/registry.pb
+        server:
+          envFrom:
+          - secretRef:
+              name: s3-credentials-secret
+          grpc: true
+          restAPI: true
