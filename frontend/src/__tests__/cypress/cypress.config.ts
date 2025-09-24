@@ -166,7 +166,7 @@ export default defineConfig({
       const retryConfig =
         config.env.CY_RETRY !== undefined
           ? { runMode: Math.max(0, parseInt(config.env.CY_RETRY) || 0), openMode: 0 }
-          : !config.env.CY_MOCK && !config.env.CY_RECORD
+          : !config.env.CY_RECORD
           ? { runMode: 2, openMode: 0 }
           : config.retries;
 
