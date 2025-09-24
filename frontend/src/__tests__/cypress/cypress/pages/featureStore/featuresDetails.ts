@@ -69,7 +69,7 @@ class FeatureDetails extends Contextual<HTMLElement> {
     return this;
   }
 
-  shouldHaveFeatureTags() {
+  shouldHaveFeatureTagsTitle() {
     this.findFeatureTags().should('be.visible');
     return this;
   }
@@ -101,6 +101,14 @@ class FeatureDetails extends Contextual<HTMLElement> {
     this.findFeatureDetailsTab().should('have.attr', 'aria-selected', 'true');
     this.findFeatureViewsTab().should('have.attr', 'aria-selected', 'false');
     return this;
+  }
+
+  shouldHaveFeatureTagsVisible() {
+    return cy.findByTestId('feature-store-tags-group').should('exist').should('be.visible');
+  }
+
+  shouldHaveInteractiveCodeContentVisible(idValue: string) {
+    return cy.get(`pre#${idValue}`).should('be.visible');
   }
 
   clickBackButton() {

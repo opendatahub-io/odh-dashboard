@@ -390,3 +390,12 @@ export type SCAccessMode = {
   ReadOnlyMany?: boolean;
   ReadWriteOncePod?: boolean;
 };
+
+export type FeatureStoreTestData = {
+  projectName: string;
+  feastInstanceName: string;
+  feastNavItems: string[];
+  feastCreditScoringProject: string;
+  feastDriverRankingProject: string;
+  expectedFeaturesColumns: string[];
+};
