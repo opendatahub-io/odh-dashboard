@@ -25,6 +25,7 @@
     "format": "prettier --write \"./**/*.ts\" \"./**/*.tsx\" \"./**/*.scss\"",
     "lint:goal": "eslint --config ./.eslintrc.goal.js --ext .json,.js,.ts,.jsx,.tsx ./src ",
     "start:dev": "webpack serve --hot --color --config ./config/webpack.dev.js",
+    "start:dev:wait": "npx wait-on -i 1000 http://localhost:4010",
     "start:dev:mf": "MF_UPDATE_TYPES=true npm run start:dev",
     "start:dev:ext": "EXT_CLUSTER=true npm run start:dev",
     "test": "run-s test:lint test:type-check test:unit test:cypress-ci",
