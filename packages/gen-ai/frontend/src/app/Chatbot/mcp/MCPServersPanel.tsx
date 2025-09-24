@@ -2,7 +2,6 @@ import * as React from 'react';
 import { EmptyState, Spinner, EmptyStateBody, EmptyStateVariant } from '@patternfly/react-core';
 import { CubesIcon, UnknownIcon } from '@patternfly/react-icons';
 import { useCheckboxTableBase, Table } from 'mod-arch-shared';
-import { useMCPServers } from '~/app/hooks/useMCPServers';
 import { getMCPServerStatus } from '~/app/services/llamaStackService';
 import { MCPServer } from '~/app/types';
 import { useMCPContext } from '~/app/context/MCPContext';
@@ -26,13 +25,11 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
     serverTokens,
     setServerTokens,
     checkServerStatus,
-  } = useMCPContext();
-  const {
     servers: apiServers,
     serversLoaded,
     serversLoadError,
     statusesLoading,
-  } = useMCPServers(selectedProject || '', { autoCheckStatuses: false });
+  } = useMCPContext();
 
   const transformedServers = React.useMemo(
     () => apiServers.map(transformMCPServerData),

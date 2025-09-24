@@ -142,7 +142,7 @@ const useChatbotMessages = ({
       }
 
       if (isStreamingEnabled) {
-        // Create initial bot message for streaming
+        // Create initial bot message for streaming with loading state
         const botMessageId = getId();
         const streamingBotMessage: MessageProps = {
           id: botMessageId,
@@ -150,6 +150,7 @@ const useChatbotMessages = ({
           content: '',
           name: 'Bot',
           avatar: botAvatar,
+          isLoading: true, // Show loading dots until first content
         };
         setMessages((prevMessages) => [...prevMessages, streamingBotMessage]);
 
@@ -157,7 +158,7 @@ const useChatbotMessages = ({
         const completeLines: string[] = [];
         let currentPartialLine = '';
 
-        const updateMessage = (showPartialLine = true) => {
+        const updateMessage = (showPartialLine = true, hasContent = false) => {
           // Combine complete lines with current partial line for display
           const displayContent =
             completeLines.join('\n') +
@@ -167,7 +168,13 @@ const useChatbotMessages = ({
 
           setMessages((prevMessages) =>
             prevMessages.map((msg) =>
-              msg.id === botMessageId ? { ...msg, content: displayContent } : msg,
+              msg.id === botMessageId
+                ? {
+                    ...msg,
+                    content: displayContent,
+                    isLoading: !hasContent, // Hide loading dots once we have content
+                  }
+                : msg,
             ),
           );
         };
@@ -176,6 +183,15 @@ const useChatbotMessages = ({
           responsesPayload,
           namespace.name,
           (chunk: string) => {
+            // Track if we have any content
+            const hasAnyContent =
+              completeLines.length > 0 || currentPartialLine.length > 0 || chunk.length > 0;
+
+            // On first non-empty chunk, hide loading dots
+            if (chunk && isStreamingWithoutContent) {
+              setIsStreamingWithoutContent(false);
+            }
+
             // Add chunk to current partial line
             currentPartialLine += chunk;
 
@@ -189,7 +205,7 @@ const useChatbotMessages = ({
               currentPartialLine = lines[lines.length - 1]; // Keep the last line as partial
 
               // Update immediately when we have a new complete line
-              updateMessage(true);
+              updateMessage(true, hasAnyContent);
             } else {
               // No complete lines yet, just update the partial line
               // Clear previous timeout and set a new one for smooth partial line updates
@@ -198,7 +214,7 @@ const useChatbotMessages = ({
               }
 
               // Update UI every 50ms for smooth streaming effect on partial lines
-              timeoutRef.current = setTimeout(() => updateMessage(true), 50);
+              timeoutRef.current = setTimeout(() => updateMessage(true, hasAnyContent), 50);
             }
           },
         );
@@ -207,7 +223,8 @@ const useChatbotMessages = ({
         if (timeoutRef.current) {
           clearTimeout(timeoutRef.current);
         }
-        updateMessage(true);
+        const finalHasContent = completeLines.length > 0 || currentPartialLine.length > 0;
+        updateMessage(true, finalHasContent);
 
         // Add tool response if available from streaming response
         if (streamingResponse.toolCallData) {

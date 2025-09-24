@@ -52,7 +52,7 @@ export const ToolResponseCardTitle: React.FC<ToolResponseCardTitleProps> = ({ to
           <FlexItem grow={{ default: 'grow' }}>
             <Flex gap={{ default: 'gapSm' }}>
               <FlexItem>
-                <WrenchIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default' }} />
+                <WrenchIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
               </FlexItem>
               <FlexItem>{toolName}</FlexItem>
             </Flex>

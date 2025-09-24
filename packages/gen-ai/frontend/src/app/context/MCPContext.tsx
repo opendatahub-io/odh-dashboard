@@ -59,6 +59,10 @@ export const MCPContextProvider: React.FunctionComponent<MCPContextProviderProps
   const [selectedServersCount, setSelectedServersCount] = React.useState<number>(0);
   const [serverTokens, setServerTokens] = React.useState<Map<string, TokenInfo>>(new Map());
 
+  React.useEffect(() => {
+    setServerTokens(new Map());
+  }, [selectedProject]);
+
   const saveSelectedServersToPlayground = React.useCallback(
     (serverIds: string[]) => {
       setPlaygroundSelectedServerIds(serverIds);
@@ -105,7 +109,8 @@ export const MCPContextProvider: React.FunctionComponent<MCPContextProviderProps
         const headers: Record<string, string> = {};
 
         if (serverTokenInfo?.token) {
-          headers.Authorization = `Bearer ${serverTokenInfo.token}`;
+          const raw = serverTokenInfo.token.trim();
+          headers.Authorization = raw.toLowerCase().startsWith('bearer ') ? raw : `Bearer ${raw}`;
         }
 
         validServers.push({

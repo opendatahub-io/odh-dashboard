@@ -16,7 +16,7 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
   isStreamingWithoutContent = false,
 }) => {
   // Show loading dots only for non-streaming requests
-  // Disable loading dots entirely during streaming
+  // During streaming, loading dots are handled within the bot message itself
   const showLoadingDots = isLoading && !isStreamingWithoutContent;
 
   return (
