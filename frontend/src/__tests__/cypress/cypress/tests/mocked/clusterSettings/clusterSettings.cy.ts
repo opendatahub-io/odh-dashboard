@@ -47,15 +47,11 @@ describe('Cluster Settings', () => {
 
     // check serving platform field
     modelServingSettings.findSinglePlatformCheckbox().should('be.checked');
-    modelServingSettings.findMultiPlatformCheckbox().should('be.checked');
     modelServingSettings.findSubmitButton().should('be.disabled');
-    modelServingSettings.findMultiPlatformCheckbox().uncheck();
-    modelServingSettings.findAlert().should(be.info);
-    modelServingSettings.findSubmitButton().should('be.enabled');
+    modelServingSettings.findAlert().should('not.exist');
     modelServingSettings.findSinglePlatformCheckbox().uncheck();
+    modelServingSettings.findSubmitButton().should('be.enabled');
     modelServingSettings.findAlert().should(be.warning);
-    modelServingSettings.findMultiPlatformCheckbox().check();
-    modelServingSettings.findAlert().should(be.info);
     modelServingSettings.findSinglePlatformCheckbox().check();
     modelServingSettings.findAlert().should('not.exist');
     modelServingSettings.findSubmitButton().should('be.disabled');
@@ -136,7 +132,6 @@ describe('Cluster Settings', () => {
 
     modelServingSettings.findSinglePlatformCheckbox().should('be.checked');
     modelServingSettings.findSinglePlatformDeploymentModeSelect().should('be.visible');
-    modelServingSettings.findMultiPlatformCheckbox().should('be.checked');
 
     modelServingSettings
       .findSinglePlatformDeploymentModeSelect()
