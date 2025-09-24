@@ -42,7 +42,7 @@ describe('AvailableAiAssetsFields', () => {
   describe('useAvailableAiAssetsFields', () => {
     it('should initialize with false by default', () => {
       const { result } = renderHook(() => useAvailableAiAssetsFields());
-      expect(result.current.data).toStrictEqual({ saveAsAAA: false, useCase: '', description: '' });
+      expect(result.current.data).toStrictEqual({ saveAsAAA: false, useCase: '' });
     });
     it('should initialize with existing data', () => {
       const { result } = renderHook(() =>
@@ -62,7 +62,7 @@ describe('AvailableAiAssetsFields', () => {
     it('should render with default props', () => {
       render(
         <AvailableAiAssetsFieldsComponent
-          data={{ saveAsAAA: false, useCase: '', description: '' }}
+          data={{ saveAsAAA: false, useCase: '' }}
           setData={jest.fn()}
           wizardData={mockDeploymentWizardState()}
         />,
@@ -73,7 +73,7 @@ describe('AvailableAiAssetsFields', () => {
     it('should render with saveAsAAA true', () => {
       render(
         <AvailableAiAssetsFieldsComponent
-          data={{ saveAsAAA: true, useCase: '', description: '' }}
+          data={{ saveAsAAA: true, useCase: '' }}
           setData={jest.fn()}
           wizardData={mockDeploymentWizardState()}
         />,
@@ -84,7 +84,7 @@ describe('AvailableAiAssetsFields', () => {
     it('should render with useCase input', () => {
       render(
         <AvailableAiAssetsFieldsComponent
-          data={{ saveAsAAA: true, useCase: 'test', description: '' }}
+          data={{ saveAsAAA: true, useCase: 'test' }}
           setData={jest.fn()}
           wizardData={mockDeploymentWizardState()}
         />,
@@ -97,7 +97,7 @@ describe('AvailableAiAssetsFields', () => {
     it('should not show the save as AAA checkbox if the model type is not generative', () => {
       render(
         <AvailableAiAssetsFieldsComponent
-          data={{ saveAsAAA: false, useCase: '', description: '' }}
+          data={{ saveAsAAA: false, useCase: '' }}
           setData={jest.fn()}
           wizardData={mockDeploymentWizardState({
             state: {

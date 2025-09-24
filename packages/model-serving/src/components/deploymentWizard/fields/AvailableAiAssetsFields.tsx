@@ -12,12 +12,12 @@ import { z } from 'zod';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { ModelTypeFieldData } from './ModelTypeSelectField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 
 export type AvailableAiAssetsFieldsData = {
   saveAsAAA: boolean;
   useCase?: string;
-  description?: string;
 };
 
 export type AvailableAiAssetsFields = {
@@ -36,16 +36,26 @@ export const availableAiAssetsFieldsSchema = z.custom<AvailableAiAssetsFieldsDat
 
 export const useAvailableAiAssetsFields = (
   existingData?: AvailableAiAssetsFieldsData,
+  modelType?: ModelTypeFieldData,
 ): AvailableAiAssetsFields => {
   const [data, setData] = React.useState<AvailableAiAssetsFieldsData>(
     existingData ?? {
       saveAsAAA: false,
       useCase: '',
-      description: '',
     },
   );
+
+  const AAAData = React.useMemo(() => {
+    if (modelType && modelType !== ServingRuntimeModelType.GENERATIVE) {
+      return {
+        saveAsAAA: false,
+        useCase: '',
+      };
+    }
+    return data;
+  }, [data, modelType]);
   return {
-    data,
+    data: AAAData,
     setData,
   };
 };
@@ -66,7 +76,6 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
       setData({
         saveAsAAA: save,
         useCase: '',
-        description: '',
       });
     },
     [setData],
@@ -76,10 +85,6 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
     return false;
   }, [data.saveAsAAA, wizardData.state.modelType.data]);
 
-  // Reset the AAA data if the model type is not generative and saveAsAAA is true
-  if (wizardData.state.modelType.data !== ServingRuntimeModelType.GENERATIVE && data.saveAsAAA) {
-    resetAAAData(false);
-  }
   return (
     <>
       {showSaveAsAAA && (

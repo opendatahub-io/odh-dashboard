@@ -7,6 +7,7 @@ import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
 import { RuntimeArgsField } from '../fields/RuntimeArgsField';
 import { EnvironmentVariablesField } from '../fields/EnvironmentVariablesField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
+import { AvailableAiAssetsFieldsComponent } from '../fields/AvailableAiAssetsFields';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -65,6 +66,15 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                 isChecked={externalRouteData}
                 allowCreate={allowCreate}
                 onChange={handleExternalRouteChange}
+              />
+            </FormGroup>
+          </StackItem>
+          <StackItem>
+            <FormGroup label="AI Asset" data-testid="ai-asset-section" fieldId="ai-asset">
+              <AvailableAiAssetsFieldsComponent
+                data={wizardState.state.AAAData.data}
+                setData={wizardState.state.AAAData.setData}
+                wizardData={wizardState}
               />
             </FormGroup>
           </StackItem>

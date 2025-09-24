@@ -87,7 +87,7 @@ export const useModelDeploymentWizard = (
   const tokenAuthentication = useTokenAuthenticationField(
     initialData?.tokenAuthentication ?? undefined,
   );
-  const AAAData = useAvailableAiAssetsFields(initialData?.AAAData ?? undefined);
+  const AAAData = useAvailableAiAssetsFields(initialData?.AAAData ?? undefined, modelType.data);
 
   const numReplicas = useNumReplicasField(initialData?.numReplicas ?? undefined);
 
