@@ -43,12 +43,13 @@ export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
 }) => {
   const [selectedModel, setSelectedModel] = React.useState('');
   const [lastInput, setLastInput] = React.useState('');
+  const [activelyRefreshing, setActivelyRefreshing] = React.useState(true);
   const {
     data: lsdStatus,
     loaded: lsdStatusLoaded,
     error: lsdStatusError,
     refresh: lsdStatusRefresh,
-  } = useFetchLSDStatus(namespace?.name);
+  } = useFetchLSDStatus(namespace?.name, activelyRefreshing);
 
   const {
     data: models,
@@ -61,6 +62,18 @@ export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
     lsdStatusRefresh();
     modelsRefresh();
   }, [lsdStatusRefresh, modelsRefresh]);
+
+  // Set activeRefresh to false when the component unmounts
+  React.useEffect(() => {
+    if (!lsdStatus || lsdStatus.phase !== 'Initializing') {
+      setActivelyRefreshing(false);
+    } else {
+      setActivelyRefreshing(true);
+    }
+    return () => {
+      setActivelyRefreshing(false);
+    };
+  }, [lsdStatus]);
 
   const contextValue = React.useMemo(
     () => ({

@@ -57,7 +57,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({ o
       description = 'Please wait while we add models and configure the playground';
   }
 
-  // TODO: Add Failed status
   return (
     <Modal isOpen onClose={onClose} variant="medium" style={{ textAlign: 'center' }}>
       <ModalBody>
