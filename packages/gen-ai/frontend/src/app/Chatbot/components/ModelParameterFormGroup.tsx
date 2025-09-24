@@ -51,8 +51,14 @@ const ModelParameterFormGroup: React.FunctionComponent<ModelParameterFormGroupPr
     <Grid hasGutter>
       <GridItem span={8}>
         <Slider
+          id={fieldId}
           value={value}
-          onChange={(_event, newValue) => onChange(newValue)}
+          onChange={(_event, newValue) => {
+            const normalized = Number.isNaN(newValue)
+              ? min
+              : Math.min(max, Math.max(min, newValue));
+            onChange(normalized);
+          }}
           min={min}
           max={max}
           step={step}
@@ -64,7 +70,11 @@ const ModelParameterFormGroup: React.FunctionComponent<ModelParameterFormGroupPr
           id={`${fieldId}-input`}
           type="number"
           value={value}
-          onChange={(_event, newValue) => onChange(parseFloat(newValue) || 0)}
+          onChange={(_event, newValue) => {
+            const parsed = parseFloat(newValue);
+            const normalized = Number.isNaN(parsed) ? min : Math.min(max, Math.max(min, parsed));
+            onChange(normalized);
+          }}
           min={min}
           max={max}
           step={step}
