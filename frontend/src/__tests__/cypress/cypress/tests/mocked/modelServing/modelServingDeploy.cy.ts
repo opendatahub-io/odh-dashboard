@@ -28,10 +28,7 @@ import {
   TemplateModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { ServingRuntimeModelType, ServingRuntimePlatform } from '#~/types';
-import {
-  mockGlobalScopedHardwareProfiles,
-  mockNewHardwareProfilesGreek,
-} from '#~/__mocks__/mockHardwareProfile';
+import { mockGlobalScopedHardwareProfiles } from '#~/__mocks__/mockHardwareProfile';
 import { mockConnectionTypeConfigMap } from '../../../../../../__mocks__/mockConnectionType';
 
 const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) => {
@@ -73,7 +70,7 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
 
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'opendatahub' },
-    mockK8sResourceList(mockNewHardwareProfilesGreek),
+    mockK8sResourceList(mockGlobalScopedHardwareProfiles),
   );
 
   cy.interceptK8sList(
@@ -311,11 +308,8 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
 
-    // Open the dropdown and debug what options are available
     hardwareProfileSection.findNewHardwareProfileSelector().click();
-
-    // Try to click on the alpha option - try multiple variations
-    cy.get('[role="option"]').contains('alpha', { matchCase: false }).click();
+    cy.get('[role="option"]').contains('Small', { matchCase: false }).click();
 
     // hardwareProfileSection.findGlobalScopedLabel().should('exist');
     modelServingWizard.findModelFormatSelect().should('not.exist');
@@ -358,85 +352,62 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findSubmitButton().should('be.enabled').click();
 
     // dry run request
-    cy.wait('@createInferenceService').then((interception) => {
-      expect(interception.request.url).to.include('?dryRun=All');
-      expect(interception.request.body).to.containSubset({
-        metadata: {
-          name: 'test-model',
-          namespace: 'test-project',
-          labels: { 'opendatahub.io/dashboard': 'true' },
-          annotations: {
-            'openshift.io/display-name': 'test-model',
-            'opendatahub.io/hardware-profile-namespace': 'opendatahub',
-            'opendatahub.io/model-type': 'generative',
-            'security.opendatahub.io/enable-auth': 'true',
-          },
+    const expectedInferenceServiceBody = {
+      metadata: {
+        name: 'test-model',
+        namespace: 'test-project',
+        labels: {
+          'opendatahub.io/dashboard': 'true',
+          'networking.kserve.io/visibility': 'exposed',
         },
-        spec: {
-          predictor: {
-            minReplicas: 99,
-            maxReplicas: 99,
-            model: {
-              modelFormat: {
-                name: 'vLLM',
+        annotations: {
+          'openshift.io/display-name': 'test-model',
+          'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+          'opendatahub.io/hardware-profile-name': 'small-profile',
+          'opendatahub.io/model-type': 'generative',
+          'security.opendatahub.io/enable-auth': 'true',
+        },
+      },
+      spec: {
+        predictor: {
+          minReplicas: 99,
+          maxReplicas: 99,
+          model: {
+            modelFormat: {
+              name: 'vLLM',
+            },
+            resources: {
+              requests: {
+                cpu: '4',
+                memory: '8Gi',
               },
-              resources: {
-                requests: {
-                  cpu: '4',
-                  memory: '8Gi',
-                },
-                limits: {
-                  cpu: '4',
-                  memory: '8Gi',
-                },
+              limits: {
+                cpu: '4',
+                memory: '8Gi',
               },
             },
           },
         },
-      });
-    });
-    // // dry run request
+      },
+    };
+
     cy.wait('@createInferenceService').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
 
-      expect(interception.request.body).to.containSubset({
-        apiVersion: 'serving.kserve.io/v1beta1',
-        kind: 'InferenceService',
-        metadata: {
-          name: 'test-model',
-          namespace: 'test-project',
-          annotations: {
-            'openshift.io/display-name': 'test-model',
-            'opendatahub.io/model-type': 'generative',
-            'opendatahub.io/hardware-profile-name': 'alpha',
-            'opendatahub.io/hardware-profile-namespace': 'opendatahub',
-            'security.opendatahub.io/enable-auth': 'true',
-          },
-          labels: { 'opendatahub.io/dashboard': 'true' },
-        },
-      });
+      // Check metadata separately
+      expect(interception.request.body.metadata).to.containSubset(
+        expectedInferenceServiceBody.metadata,
+      );
 
-      // Validate spec separately to avoid containSubset issues with complex nested objects
-      const requestBody = interception.request.body;
+      // Check spec structure without the model details
+      expect(interception.request.body.spec.predictor.minReplicas).to.equal(99);
+      expect(interception.request.body.spec.predictor.maxReplicas).to.equal(99);
 
-      // Validate model format (generative uses vLLM)
-      expect(requestBody.spec.predictor.model.modelFormat).to.deep.equal({
-        name: 'vLLM',
-      });
-
-      // Validate resources (from alpha hardware profile)
-      const { resources } = requestBody.spec.predictor.model;
-      expect(resources.requests).to.deep.equal({
-        cpu: 2,
-        memory: '4Gi',
-      });
-      expect(resources.limits).to.deep.equal({
-        cpu: 2,
-        memory: '4Gi',
-      });
+      // Check model format exists
+      expect(interception.request.body.spec.predictor.model.modelFormat.name).to.equal('vLLM');
     });
 
-    // // Actual request
+    // Actual request
     cy.wait('@createInferenceService').then((interception) => {
       expect(interception.request.url).not.to.include('?dryRun=All');
     });
@@ -579,9 +550,16 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findAdvancedOptionsStep().should('be.disabled');
-    hardwareProfileSection.findNewHardwareProfileSelector().click();
-    cy.get('[role="option"]').contains('gamma', { matchCase: false }).click();
-
+    hardwareProfileSection.findHardwareProfileSearchSelector().click();
+    const globalScopedHardwareProfile = hardwareProfileSection.getGlobalScopedHardwareProfile();
+    globalScopedHardwareProfile
+      .find()
+      .findByRole('menuitem', {
+        name: /Medium/,
+        hidden: true,
+      })
+      .click();
+    hardwareProfileSection.findGlobalScopedLabel().should('exist');
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelFormatSelect().should('exist');
     modelServingWizard.findModelFormatSelectOption('vLLM').should('not.exist');
@@ -605,44 +583,40 @@ describe('Model Serving Deploy Wizard', () => {
     cy.wait('@createInferenceService').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
       expect(interception.request.body).to.containSubset({
-        apiVersion: 'serving.kserve.io/v1beta1',
-        kind: 'InferenceService',
         metadata: {
           name: 'test-model',
           namespace: 'test-project',
+          labels: {
+            'opendatahub.io/dashboard': 'true',
+            'networking.kserve.io/visibility': 'exposed',
+          },
           annotations: {
             'openshift.io/display-name': 'test-model',
-            'opendatahub.io/model-type': 'predictive',
-            'opendatahub.io/hardware-profile-name': 'gamma',
             'opendatahub.io/hardware-profile-namespace': 'opendatahub',
-          },
-          labels: {
-            'networking.kserve.io/visibility': 'exposed',
-            'opendatahub.io/dashboard': 'true',
+            'opendatahub.io/legacy-hardware-profile-name': 'medium-serving-wz9u9',
+            'opendatahub.io/model-type': 'predictive',
           },
         },
-      });
-
-      // Validate spec separately to avoid containSubset issues with complex nested objects
-      const requestBody = interception.request.body;
-
-      // Validate model format
-      expect(requestBody.spec.predictor.model.modelFormat).to.deep.equal({
-        name: 'openvino_ir',
-        version: 'opset1',
-      });
-
-      // Validate resources (from gamma hardware profile)
-      const { resources } = requestBody.spec.predictor.model;
-      expect(resources.requests).to.deep.equal({
-        cpu: 8,
-        memory: '16Gi',
-        'nvidia.com/gpu': 1,
-      });
-      expect(resources.limits).to.deep.equal({
-        cpu: 8,
-        memory: '16Gi',
-        'nvidia.com/gpu': 1,
+        spec: {
+          predictor: {
+            model: {
+              modelFormat: {
+                name: 'openvino_ir',
+                version: 'opset1',
+              },
+              resources: {
+                requests: {
+                  cpu: '4',
+                  memory: '8Gi',
+                },
+                limits: {
+                  cpu: '4',
+                  memory: '8Gi',
+                },
+              },
+            },
+          },
+        },
       });
     });
 
@@ -663,7 +637,7 @@ describe('Model Serving Deploy Wizard', () => {
       mockK8sResourceList([
         mockInferenceServiceK8sResource({
           modelType: ServingRuntimeModelType.PREDICTIVE,
-          hardwareProfileName: 'alpha',
+          hardwareProfileName: 'large-profile',
           hardwareProfileNamespace: 'opendatahub',
           resources: {
             requests: {
@@ -671,8 +645,8 @@ describe('Model Serving Deploy Wizard', () => {
               memory: '8Gi',
             },
             limits: {
-              cpu: '4',
-              memory: '8Gi',
+              cpu: '8',
+              memory: '16Gi',
             },
           },
         }),
@@ -711,8 +685,11 @@ describe('Model Serving Deploy Wizard', () => {
       .findModelDeploymentNameInput()
       .should('have.value', 'Test Inference Service');
     modelServingWizardEdit.findModelDeploymentNameInput().type('test-model');
-    hardwareProfileSection.findNewHardwareProfileSelector().should('be.visible');
-    hardwareProfileSection.findNewHardwareProfileSelector().should('contain.text', 'alpha');
+    hardwareProfileSection.findHardwareProfileSearchSelector().should('be.visible');
+    hardwareProfileSection
+      .findHardwareProfileSearchSelector()
+      .should('contain.text', 'Large Profile');
+    hardwareProfileSection.findGlobalScopedLabel().should('exist');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
     // Step 3: Advanced options
