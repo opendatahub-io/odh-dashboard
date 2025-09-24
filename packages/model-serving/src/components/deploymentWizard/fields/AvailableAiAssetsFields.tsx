@@ -73,10 +73,13 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
   );
   const showSaveAsAAA = React.useMemo(() => {
     if (wizardData.state.modelType.data === ServingRuntimeModelType.GENERATIVE) return true;
-    resetAAAData(false);
     return false;
   }, [data.saveAsAAA, wizardData.state.modelType.data]);
 
+  // Reset the AAA data if the model type is not generative and saveAsAAA is true
+  if (wizardData.state.modelType.data !== ServingRuntimeModelType.GENERATIVE && data.saveAsAAA) {
+    resetAAAData(false);
+  }
   return (
     <>
       {showSaveAsAAA && (
