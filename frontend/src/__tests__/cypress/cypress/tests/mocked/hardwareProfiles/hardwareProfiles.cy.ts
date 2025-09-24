@@ -536,6 +536,14 @@ describe('Hardware Profile', () => {
   });
 
   describe('redirect from v2 to v3 route', () => {
+    beforeEach(() => {
+      cy.interceptK8s(
+        'GET',
+        { model: HardwareProfileModel, ns: 'opendatahub', name: 'test-hp' },
+        mockHardwareProfile({ name: 'test-hp' }),
+      );
+    });
+
     it('root', () => {
       cy.visitWithLogin('/hardwareProfiles');
       cy.findByTestId('app-page-title').contains('Hardware profiles');
@@ -546,6 +554,18 @@ describe('Hardware Profile', () => {
       cy.visitWithLogin('/hardwareProfiles/create');
       cy.findByTestId('app-page-title').contains('Create hardware profile');
       cy.url().should('include', '/settings/environment-setup/hardware-profiles/create');
+    });
+
+    it('edit', () => {
+      cy.visitWithLogin('/hardwareProfiles/edit/test-hp');
+      cy.findByTestId('app-page-title').contains('Edit');
+      cy.url().should('include', '/settings/environment-setup/hardware-profiles/edit/test-hp');
+    });
+
+    it('duplicate', () => {
+      cy.visitWithLogin('/hardwareProfiles/duplicate/test-hp');
+      cy.findByTestId('app-page-title').contains('Duplicate');
+      cy.url().should('include', '/settings/environment-setup/hardware-profiles/duplicate/test-hp');
     });
   });
 });

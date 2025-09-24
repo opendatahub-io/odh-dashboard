@@ -359,3 +359,101 @@ describe.skip('Register Model button', () => {
     modelRegistry.shouldModelRegistrySelectorExist();
   });
 });
+
+describe('redirect from v2 to v3 route', () => {
+  beforeEach(() => {
+    initIntercepts({ disableModelRegistryFeature: false });
+
+    cy.interceptOdh(
+      `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId`,
+      {
+        path: {
+          modelRegistryName: 'modelregistry-sample',
+          apiVersion: MODEL_REGISTRY_API_VERSION,
+          registeredModelId: 1,
+        },
+      },
+      { data: mockRegisteredModel({}) },
+    );
+
+    cy.interceptOdh(
+      `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId`,
+      {
+        path: {
+          modelRegistryName: 'modelregistry-sample',
+          apiVersion: MODEL_REGISTRY_API_VERSION,
+          modelVersionId: 1,
+        },
+      },
+      { data: mockModelVersion({ id: '1', name: 'My version' }) },
+    );
+  });
+
+  it('root', () => {
+    cy.visitWithLogin('/model-registry');
+    cy.findByTestId('app-page-title').contains('Registry');
+    cy.url().should('include', '/ai-hub/registry');
+  });
+
+  it('registered model', () => {
+    cy.visitWithLogin('/model-registry/modelregistry-sample/registeredModels/1');
+    cy.findByTestId('app-page-title').contains('test');
+    cy.url().should('include', '/ai-hub/registry/modelregistry-sample/registered-models/1');
+  });
+
+  it('registered model - versions', () => {
+    cy.visitWithLogin('/model-registry/modelregistry-sample/registeredModels/1/versions');
+    cy.findByTestId('app-page-title').contains('test');
+    cy.url().should(
+      'include',
+      '/ai-hub/registry/modelregistry-sample/registered-models/1/versions',
+    );
+  });
+
+  it('registered model - overview', () => {
+    cy.visitWithLogin('/model-registry/modelregistry-sample/registeredModels/1/overview');
+    cy.findByTestId('app-page-title').contains('test');
+    cy.url().should(
+      'include',
+      '/ai-hub/registry/modelregistry-sample/registered-models/1/overview',
+    );
+  });
+
+  it('registered model - register version', () => {
+    cy.visitWithLogin('/model-registry/modelregistry-sample/registeredModels/1/registerVersion');
+    cy.findByTestId('app-page-title').contains('Register new version');
+    cy.url().should(
+      'include',
+      '/ai-hub/registry/modelregistry-sample/registered-models/1/register/version',
+    );
+  });
+
+  it('registered model - version', () => {
+    cy.visitWithLogin('/model-registry/modelregistry-sample/registeredModels/1/versions/1');
+    cy.findByTestId('app-page-title').contains('My version');
+    cy.url().should(
+      'include',
+      '/ai-hub/registry/modelregistry-sample/registered-models/1/versions/1',
+    );
+  });
+
+  it('registered model - version details', () => {
+    cy.visitWithLogin('/model-registry/modelregistry-sample/registeredModels/1/versions/1/details');
+    cy.findByTestId('app-page-title').contains('My version');
+    cy.url().should(
+      'include',
+      '/ai-hub/registry/modelregistry-sample/registered-models/1/versions/1/details',
+    );
+  });
+
+  it('registered model - version deployments', () => {
+    cy.visitWithLogin(
+      '/model-registry/modelregistry-sample/registeredModels/1/versions/1/deployments',
+    );
+    cy.findByTestId('app-page-title').contains('My version');
+    cy.url().should(
+      'include',
+      '/ai-hub/registry/modelregistry-sample/registered-models/1/versions/1/deployments',
+    );
+  });
+});
