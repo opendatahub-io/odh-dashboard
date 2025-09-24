@@ -518,7 +518,7 @@ describe('Model Serving Deploy Wizard', () => {
     });
   });
 
-  it.only('Create a new predictive deployment and submit', () => {
+  it('Create a new predictive deployment and submit', () => {
     initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
@@ -558,7 +558,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelFormatSelectOption('vLLM').should('not.exist');
     modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
-    console.log('got this far: 0');
+
     // Step 3: Advanced Options
     // Model access & Token authentication
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
@@ -571,7 +571,7 @@ describe('Model Serving Deploy Wizard', () => {
 
     // Step 4: Summary
     modelServingWizard.findSubmitButton().should('be.enabled').click();
-    console.log('got this far: 1');
+
     // dry run request
     const expectedPredictiveInferenceServiceBody = {
       metadata: {
@@ -609,7 +609,7 @@ describe('Model Serving Deploy Wizard', () => {
         },
       },
     };
-    console.log('got this far: 2');
+
     cy.wait('@createInferenceService').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
 
@@ -624,7 +624,7 @@ describe('Model Serving Deploy Wizard', () => {
       );
       expect(interception.request.body.spec.predictor.model.modelFormat.version).to.equal('opset1');
     });
-    console.log('got this far: 3a');
+
     // Actual request
     cy.wait('@createInferenceService').then((interception) => {
       expect(interception.request.url).not.to.include('?dryRun=All');
@@ -690,10 +690,8 @@ describe('Model Serving Deploy Wizard', () => {
       .findModelDeploymentNameInput()
       .should('have.value', 'Test Inference Service');
     modelServingWizardEdit.findModelDeploymentNameInput().type('test-model');
-    hardwareProfileSection.findHardwareProfileSearchSelector().should('be.visible');
-    hardwareProfileSection
-      .findHardwareProfileSearchSelector()
-      .should('contain.text', 'Large Profile');
+    hardwareProfileSection.findNewHardwareProfileSelector().should('be.visible');
+    hardwareProfileSection.findNewHardwareProfileSelector().should('contain.text', 'Large Profile');
 
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
