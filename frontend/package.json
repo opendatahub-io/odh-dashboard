@@ -30,7 +30,7 @@
     "test": "run-s test:lint test:type-check test:unit test:cypress-ci",
     "test:coverage": "run-s test:lint test:type-check test:jest:coverage test:cypress-ci:coverage coverage:merge",
     "test:fix": "eslint --ext .js,.ts,.jsx,.tsx . --fix",
-    "test:lint": "NODE_OPTIONS='--max-old-space-size=8192' eslint --max-warnings 0 --ext .js . && eslint --max-warnings 0 --ext .ts . && eslint --max-warnings 0 --ext .jsx,.tsx .",
+    "test:lint": "eslint . && cd src && NODE_OPTIONS='--max-old-space-size=8192' eslint --max-warnings 0 --ext .js . && eslint --max-warnings 0 --ext .ts . && eslint --max-warnings 0 --ext .jsx,.tsx .",
     "test:type-check": "tsc --noEmit",
     "test:jest": "jest",
     "test:jest:coverage": "rimraf jest-coverage && jest --silent --coverage --coverageReporters=json --coverageReporters=lcov",
@@ -56,7 +56,8 @@
     "cypress:format": "prettier --write src/__tests__/**/*.snap.json",
     "test:cypress:e2e": "cd src/__tests__/cypress && npx cypress run --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\" --browser chrome",
     "test:cypress:e2e:open": "cd src/__tests__/cypress && npx cypress open --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\"",
-    "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9001"
+    "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9001",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@module-federation/runtime": "^0.15.0",

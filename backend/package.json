@@ -61,10 +61,12 @@
     "ts-node": "^10.9.1"
   },
   "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
     "@types/http-errors": "^1.8.0",
     "@types/lodash": "^4.14.182",
     "@types/node": "^18.14.5",
     "fastify-cli": "^5.7.1",
+    "globals": "^16.4.0",
     "nodemon": "^3.0.2",
     "pino-pretty": "^9.4.0",
     "rimraf": "^3.0.2",
