@@ -5,6 +5,7 @@ import { useAccessReview } from '../../../../../../frontend/src/api';
 import { ExternalRouteField } from '../fields/ExternalRouteField';
 import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
+import { AvailableAiAssetsFieldsComponent } from '../fields/AvailableAiAssetsFields';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -48,6 +49,13 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
       <Title headingLevel="h2">Advanced Settings</Title>
       <Form>
         <Stack hasGutter>
+          <StackItem>
+            <AvailableAiAssetsFieldsComponent
+              data={wizardState.state.AAAData.data}
+              setData={wizardState.state.AAAData.setData}
+              wizardData={wizardState}
+            />
+          </StackItem>
           <StackItem>
             <ExternalRouteField
               isChecked={externalRouteData}

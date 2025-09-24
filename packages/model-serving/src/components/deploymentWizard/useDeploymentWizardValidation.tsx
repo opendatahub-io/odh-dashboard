@@ -12,7 +12,6 @@ import {
   type TokenAuthenticationFieldData,
 } from './fields/TokenAuthenticationField';
 import { numReplicasFieldSchema, type NumReplicasFieldData } from './fields/NumReplicasField';
-import { availableAiAssetsFieldsSchema } from './fields/AvailableAiAssetsFields';
 
 export type ModelDeploymentWizardValidation = {
   modelSource: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
@@ -23,7 +22,6 @@ export type ModelDeploymentWizardValidation = {
   isModelSourceStepValid: boolean;
   isModelDeploymentStepValid: boolean;
   isAdvancedSettingsStepValid: boolean;
-  isSummaryStepValid: boolean;
 };
 
 export const useModelDeploymentWizardValidation = (
@@ -71,8 +69,6 @@ export const useModelDeploymentWizardValidation = (
     state.numReplicas.data,
     numReplicasFieldSchema,
   );
-  // Step 4: Summary Page
-  const AAADataValidation = useZodFormValidation(state.AAAData.data, availableAiAssetsFieldsSchema);
 
   // Step validation
   const isModelSourceStepValid =
@@ -85,7 +81,6 @@ export const useModelDeploymentWizardValidation = (
   const isAdvancedSettingsStepValid =
     externalRouteValidation.getFieldValidation(undefined, true).length === 0 &&
     tokenAuthenticationValidation.getFieldValidation(undefined, true).length === 0;
-  const isSummaryStepValid = AAADataValidation.getFieldValidation(undefined, true).length === 0;
   return {
     modelSource: modelSourceStepValidation,
     hardwareProfile: hardwareProfileValidation,
@@ -95,6 +90,5 @@ export const useModelDeploymentWizardValidation = (
     isModelSourceStepValid,
     isModelDeploymentStepValid,
     isAdvancedSettingsStepValid,
-    isSummaryStepValid,
   };
 };
