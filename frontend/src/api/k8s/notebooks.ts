@@ -95,13 +95,11 @@ export const assembleNotebook = (
     volumeMounts.push(getshmVolumeMount());
   }
 
-  const isAcceleratorProfileSelected = !!selectedAcceleratorProfile;
-  const hardwareProfileNamespace: Record<string, string | null> =
-    selectedHardwareProfile && !isAcceleratorProfileSelected
-      ? selectedHardwareProfile.metadata.namespace === projectName
-        ? { 'opendatahub.io/hardware-profile-namespace': projectName }
-        : { 'opendatahub.io/hardware-profile-namespace': dashboardNamespace }
-      : { 'opendatahub.io/hardware-profile-namespace': null };
+  const hardwareProfileNamespace: Record<string, string | null> = selectedHardwareProfile
+    ? selectedHardwareProfile.metadata.namespace === projectName
+      ? { 'opendatahub.io/hardware-profile-namespace': projectName }
+      : { 'opendatahub.io/hardware-profile-namespace': dashboardNamespace }
+    : { 'opendatahub.io/hardware-profile-namespace': null };
 
   let acceleratorProfileNamespace: Record<string, string | null> = {
     'opendatahub.io/accelerator-profile-namespace': null,
@@ -133,9 +131,7 @@ export const assembleNotebook = (
         'notebooks.opendatahub.io/inject-oauth': 'true',
         'opendatahub.io/username': username,
         'opendatahub.io/accelerator-name': selectedAcceleratorProfile?.metadata.name || '',
-        'opendatahub.io/hardware-profile-name': isAcceleratorProfileSelected
-          ? ''
-          : selectedHardwareProfile?.metadata.name || '',
+        'opendatahub.io/hardware-profile-name': selectedHardwareProfile?.metadata.name || '',
         'notebooks.opendatahub.io/last-image-version-git-commit-selection':
           image.imageVersion?.annotations?.['opendatahub.io/notebook-build-commit'] ?? '',
       },
@@ -204,8 +200,8 @@ export const assembleNotebook = (
             },
           ],
           volumes,
-          tolerations: isAcceleratorProfileSelected ? tolerations : undefined,
-          nodeSelector: isAcceleratorProfileSelected ? nodeSelector : undefined,
+          tolerations: selectedAcceleratorProfile ? tolerations : undefined,
+          nodeSelector: selectedAcceleratorProfile ? nodeSelector : undefined,
         },
       },
     },

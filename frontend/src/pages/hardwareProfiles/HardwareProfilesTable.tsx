@@ -144,11 +144,7 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
           );
         }}
         toolbarContent={
-          <HardwareProfilesToolbar
-            onFilterUpdate={onFilterUpdate}
-            filterData={filterData}
-            showCreateButton={true}
-          />
+          <HardwareProfilesToolbar onFilterUpdate={onFilterUpdate} filterData={filterData} />
         }
       />
       {deleteHardwareProfile ? (
