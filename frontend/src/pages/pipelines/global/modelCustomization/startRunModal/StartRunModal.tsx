@@ -89,7 +89,7 @@ const StartRunModal: React.FC<StartRunModalProps> = ({
         )}
         <Form>
           <FormGroup
-            label="Data science project"
+            label="Project"
             fieldId="start-run-modal-project-name"
             isRequired
             labelHelp={
@@ -108,7 +108,7 @@ const StartRunModal: React.FC<StartRunModalProps> = ({
                     setSelectedProject(projectName);
                   }}
                   namespace={selectedProject ?? ''}
-                  placeholder="Select a Data science project"
+                  placeholder="Select a project"
                   isLoading={isLoadingProject}
                 />
                 <FormHelperText>

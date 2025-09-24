@@ -218,7 +218,7 @@ describe('Distributed Workload Metrics root page', () => {
 
     cy.findByLabelText('Project metrics tab').click();
     cy.url().should('include', '/projectMetrics/test-project');
-    cy.findByText('Top 5 resource-consuming distributed workloads').should('exist');
+    cy.findByText('Top 5 resource-consuming workload metrics').should('exist');
 
     cy.findByLabelText('Distributed workload status tab').click();
     cy.url().should('include', '/workloadStatus/test-project');
@@ -260,7 +260,7 @@ describe('Distributed Workload Metrics root page', () => {
     initIntercepts({ hasProjects: false });
     globalDistributedWorkloads.visit();
 
-    cy.findByText('No data science projects').should('exist');
+    cy.findByText('No projects').should('exist');
   });
 
   it('Should render with no quota state when there is no clusterqueue', () => {
@@ -296,10 +296,10 @@ describe('Project Metrics tab', () => {
     cy.findByText('Requested resources').should('exist');
 
     cy.findByTestId('dw-top-consuming-workloads').within(() => {
-      cy.findByText('No distributed workloads').should('exist');
+      cy.findByText('No workload metrics').should('exist');
     });
     cy.findByTestId('dw-workload-resource-metrics').within(() => {
-      cy.findByText('No distributed workloads').should('exist');
+      cy.findByText('No workload metrics').should('exist');
     });
     cy.findByTestId('dw-requested-resources').within(() => {
       // Requested resources shows chart even if empty workload
@@ -423,7 +423,7 @@ describe('Workload Status tab', () => {
 
     cy.findByLabelText('Distributed workload status tab').click();
     cy.findByTestId('dw-workloads-table-card').within(() => {
-      cy.findByText('No distributed workloads').should('exist');
+      cy.findByText('No workload metrics').should('exist');
     });
   });
 });

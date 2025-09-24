@@ -46,7 +46,7 @@ filters:
       - 'area/model-registry'
 
   # Model Serving
-  '(frontend/src/(api|concepts|pages)/(modelServing|modelServingKServe)|packages/(model-serving|model-serving-kserve|kserve))/.*':
+  '(frontend/src/(api|concepts|pages)/(modelServing|modelServingKServe)|packages/(model-serving|model-serving-kserve|kserve|llmd-serving))/.*':
     approvers:
       - model-serving-metrics-approvers
     reviewers:

@@ -13,12 +13,18 @@ class PipelinesGlobal {
   }
 
   navigate() {
-    appChrome.findNavItem('Pipelines', 'Data Science Pipelines').click();
+    appChrome
+      .findNavItem({
+        name: 'Pipeline definitions',
+        rootSection: 'Develop & train',
+        subSection: 'Pipelines',
+      })
+      .click();
     this.wait();
   }
 
   private wait() {
-    cy.findByTestId('app-page-title').contains('Pipelines');
+    cy.findByTestId('app-page-title').contains('Pipeline definitions');
     cy.testA11y();
   }
 

@@ -12,11 +12,11 @@ const PipelineCoreNoProjects: React.FC = () => {
     <EmptyState
       headingLevel="h4"
       icon={WrenchIcon}
-      titleText="No data science projects"
+      titleText="No projects"
       data-testid="empty-state-title"
     >
       <EmptyStateBody>
-        To create a pipeline server and import a pipeline, first create a data science project.
+        To create a pipeline server and import a pipeline, first create a project.
       </EmptyStateBody>
       <EmptyStateFooter>
         <NewProjectButton

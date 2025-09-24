@@ -8,10 +8,8 @@ const DistributedWorkloadsNoProjects: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <EmptyState headingLevel="h4" icon={WrenchIcon} titleText="No data science projects">
-      <EmptyStateBody>
-        To view distributed workloads, first create a data science project.
-      </EmptyStateBody>
+    <EmptyState headingLevel="h4" icon={WrenchIcon} titleText="No projects">
+      <EmptyStateBody>To view workload metrics, first create a project.</EmptyStateBody>
       <EmptyStateFooter>
         <NewProjectButton
           closeOnCreate

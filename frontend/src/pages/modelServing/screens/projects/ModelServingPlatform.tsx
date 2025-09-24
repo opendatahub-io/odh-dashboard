@@ -225,7 +225,7 @@ const ModelServingPlatform: React.FC = () => {
         popover={
           !emptyModelServer ? (
             <Popover
-              headerContent="About models"
+              headerContent="About deployments"
               bodyContent="Deploy models to test them and integrate them into applications. Deploying a model makes it accessible via an API, enabling you to return predictions based on data inputs."
             >
               <DashboardPopupIconButton

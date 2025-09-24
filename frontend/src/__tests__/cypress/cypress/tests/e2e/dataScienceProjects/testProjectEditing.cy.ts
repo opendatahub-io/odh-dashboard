@@ -11,7 +11,7 @@ import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_co
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 
-describe('Verify Data Science Project - Editing', () => {
+describe('Verify Project - Editing', () => {
   let testData: DataScienceProjectData;
   let projectName: string;
   const uuid = generateTestUUID();
@@ -41,7 +41,7 @@ describe('Verify Data Science Project - Editing', () => {
   });
 
   it(
-    'Edit a Data Science Project in RHOAI',
+    'Edit a Project in RHOAI',
     { tags: ['@Smoke', '@SmokeSet2', '@ODS-1875', '@ODS-1783', '@ODS-1775', '@Dashboard'] },
     () => {
       // Authentication and navigation

@@ -66,7 +66,7 @@ describe('[Automation Bug: RHOAIENG-33410] Cluster Storage Access Modes Tests', 
     provisionStorageClass(scMultiAccessName, StorageProvisioner.AZURE_FILE, scMultiAccess);
     createdStorageClasses.push(scMultiAccessName);
 
-    cy.step('Provisioning data science project');
+    cy.step('Provisioning project');
     provisionClusterStorageSCFeature(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
   });
 
@@ -75,7 +75,7 @@ describe('[Automation Bug: RHOAIENG-33410] Cluster Storage Access Modes Tests', 
       cy.step('Cleaning up storage classes');
       tearDownStorageClassFeature(createdStorageClasses);
     }
-    cy.step('Cleaning up data science project');
+    cy.step('Cleaning up project');
     tearDownClusterStorageSCFeature(projectName);
   });
 

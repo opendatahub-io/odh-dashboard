@@ -26,12 +26,12 @@ class ModelServingGlobal {
   }
 
   navigate() {
-    appChrome.findNavItem('Model deployments').click();
+    appChrome.findNavItem({ name: 'Deployments', rootSection: 'AI hub' }).click();
     this.wait();
   }
 
   private wait() {
-    cy.findByTestId('app-page-title').should('have.text', 'Model deployments');
+    cy.findByTestId('app-page-title').should('have.text', 'Deployments');
     cy.testA11y();
   }
 

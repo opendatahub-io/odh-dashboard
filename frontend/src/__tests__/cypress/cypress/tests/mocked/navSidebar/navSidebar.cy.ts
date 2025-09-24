@@ -4,7 +4,7 @@ import { navSidebar } from './navSidebar';
 describe('Nav Sidebar model section', () => {
   it('should show the models section', () => {
     navSidebar.visit();
-    navSidebar.findNavSection('Models').should('exist');
+    navSidebar.findNavSection('AI hub').should('exist');
   });
 
   it('should not show the models section if all the related feature flags are disabled', () => {
@@ -18,7 +18,7 @@ describe('Nav Sidebar model section', () => {
       }),
     );
     navSidebar.visit();
-    navSidebar.findNavSection('Models').should('not.exist');
+    navSidebar.findNavSection('AI hub').should('not.exist');
   });
 
   it('should show the models section if some of the related feature flags are enabled', () => {
@@ -32,10 +32,9 @@ describe('Nav Sidebar model section', () => {
       }),
     );
     navSidebar.visit();
-    navSidebar.findNavSection('Models').should('exist');
-    navSidebar.findNavItem('Model catalog', 'Models').should('exist');
-    navSidebar.findNavItem('Model registry', 'Models').should('exist');
-    navSidebar.findNavItem('Model deployments', 'Models').should('not.exist');
-    navSidebar.findNavItem('Model customization', 'Models').should('not.exist');
+    navSidebar.findNavSection('AI hub').should('exist');
+    navSidebar.findNavItem({ name: 'Catalog', rootSection: 'AI hub' }).should('exist');
+    navSidebar.findNavItem({ name: 'Registry', rootSection: 'AI hub' }).should('exist');
+    navSidebar.findNavItem({ name: 'Deployments', rootSection: 'AI hub' }).should('not.exist');
   });
 });

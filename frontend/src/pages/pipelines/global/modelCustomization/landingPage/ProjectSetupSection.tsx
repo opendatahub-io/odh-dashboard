@@ -32,7 +32,7 @@ export const ProjectSetupSection: React.FC = () => {
           To install the InstructLab pipeline on your selected project, click{' '}
           <b>Manage preconfigured pipelines</b> on the{' '}
           <Link data-testid="go-to-pipelines" to={pipelinesRootPath}>
-            Pipelines page
+            Pipeline definitions page
           </Link>
           .
         </ModelCustomizationAccordionItem>

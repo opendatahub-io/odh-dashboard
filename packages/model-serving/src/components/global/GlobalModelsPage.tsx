@@ -52,7 +52,7 @@ const GlobalModelsPage: React.FC = () => {
   }
 
   return (
-    <ModelDeploymentsProvider modelServingPlatforms={availablePlatforms} projects={projectsToShow}>
+    <ModelDeploymentsProvider projects={projectsToShow}>
       <GlobalDeploymentsView projects={projectsToShow} projectsLoaded={projectsLoaded} />
     </ModelDeploymentsProvider>
   );

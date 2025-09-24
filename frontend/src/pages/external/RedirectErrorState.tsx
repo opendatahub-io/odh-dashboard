@@ -34,7 +34,7 @@ type RedirectErrorStateProps = {
  *   actions={
  *     <>
  *       <Button variant="link" onClick={() => navigate('/pipelines')}>
- *         Go to pipelines
+ *         Go to pipeline definitions
  *       </Button>
  *       <Button variant="link" onClick={() => navigate('/experiments')}>
  *         Go to experiments

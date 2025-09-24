@@ -45,7 +45,7 @@ const AIAssetsModelsTab: React.FC = () => {
             </Content>
           </Content>
         }
-        actionButtonText="Go to Model Deployments"
+        actionButtonText="Go to Deployments"
         handleActionButtonClick={() => {
           navigate('/modelServing');
         }}

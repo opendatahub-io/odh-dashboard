@@ -45,7 +45,7 @@ const ElyraRedirects: React.FC = () => {
           errorMessage={error?.message}
           actions={
             <Button variant="link" onClick={() => navigate(pipelinesRootPath)}>
-              Go to Pipelines
+              Go to Pipeline definitions
             </Button>
           }
         />
