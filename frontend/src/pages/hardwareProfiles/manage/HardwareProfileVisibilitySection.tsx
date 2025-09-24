@@ -20,11 +20,13 @@ export const HardwareProfileVisibilitySection: React.FC<HardwareProfileUseCaseSe
   const [selectedOptions, setSelectedOptions] = React.useState<string[]>([]);
   const visibilityOptions: SelectionOptions[] = React.useMemo(
     () =>
-      Object.values(HardwareProfileFeatureVisibility).map((value) => ({
-        id: value,
-        name: HardwareProfileFeatureVisibilityTitles[value],
-        selected: selectedOptions.includes(value),
-      })),
+      Object.values(HardwareProfileFeatureVisibility)
+        .filter((value) => value !== HardwareProfileFeatureVisibility.PIPELINES)
+        .map((value) => ({
+          id: value,
+          name: HardwareProfileFeatureVisibilityTitles[value],
+          selected: selectedOptions.includes(value),
+        })),
     [selectedOptions],
   );
 
@@ -33,7 +35,9 @@ export const HardwareProfileVisibilitySection: React.FC<HardwareProfileUseCaseSe
       setLimitedOptionSelected(false);
     } else {
       setLimitedOptionSelected(true);
-      setSelectedOptions(visibility);
+      setSelectedOptions(
+        visibility.filter((v) => v !== HardwareProfileFeatureVisibility.PIPELINES),
+      );
     }
   }, [visibility]);
 
@@ -69,8 +73,11 @@ export const HardwareProfileVisibilitySection: React.FC<HardwareProfileUseCaseSe
         isChecked={isLimitedOptionSelected}
         onChange={() => {
           setLimitedOptionSelected(true);
-          if (selectedOptions.length !== 0) {
-            setVisibility(selectedOptions);
+          const cleanedSelection = selectedOptions.filter(
+            (v) => v !== HardwareProfileFeatureVisibility.PIPELINES,
+          );
+          if (cleanedSelection.length !== 0) {
+            setVisibility(cleanedSelection);
           }
         }}
         body={

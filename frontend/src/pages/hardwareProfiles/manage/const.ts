@@ -6,4 +6,5 @@ export const HardwareProfileFeatureVisibilityTitles: Record<
 > = {
   [HardwareProfileFeatureVisibility.WORKBENCH]: 'Workbenches',
   [HardwareProfileFeatureVisibility.MODEL_SERVING]: 'Model serving',
+  [HardwareProfileFeatureVisibility.PIPELINES]: 'Data science pipelines',
 };

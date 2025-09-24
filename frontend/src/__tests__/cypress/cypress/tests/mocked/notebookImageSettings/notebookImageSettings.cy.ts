@@ -475,7 +475,7 @@ describe('Workbench image settings', () => {
           displayName: 'Test Hardware Profile Not Visible',
           annotations: {
             'opendatahub.io/dashboard-feature-visibility': JSON.stringify([
-              HardwareProfileFeatureVisibility.PIPELINES,
+              HardwareProfileFeatureVisibility.MODEL_SERVING,
             ]),
           },
           identifiers: [
