@@ -21,13 +21,11 @@ export const HardwareProfileVisibilitySection: React.FC<HardwareProfileUseCaseSe
   const [selectedOptions, setSelectedOptions] = React.useState<string[]>([]);
   const visibilityOptions: SelectionOptions[] = React.useMemo(
     () =>
-      Object.values(HardwareProfileFeatureVisibility)
-        .filter((value) => value !== HardwareProfileFeatureVisibility.PIPELINES)
-        .map((value) => ({
-          id: value,
-          name: HardwareProfileFeatureVisibilityTitles[value],
-          selected: selectedOptions.includes(value),
-        })),
+      filterOutPipelines(Object.values(HardwareProfileFeatureVisibility)).map((value) => ({
+        id: value,
+        name: HardwareProfileFeatureVisibilityTitles[value],
+        selected: selectedOptions.includes(value),
+      })),
     [selectedOptions],
   );
 
