@@ -20,7 +20,6 @@ const useNotebookImage = (
   }
 
   const { imageDisplayName, imageStatus } = data;
-  console.log('imageStatus', imageStatus);
 
   // if the image is deleted, return the image name if it is available (based on notebook annotations)
   if (imageStatus === NotebookImageStatus.DELETED) {

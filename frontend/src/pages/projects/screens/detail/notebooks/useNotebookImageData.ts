@@ -105,10 +105,8 @@ const getNotebookImageInternalRegistry = (
   versionName: string,
 ): NotebookImageData[0] => {
   const imageStream = images.find((image) => image.metadata.name === imageName);
-  console.log('imageStream', imageStream);
 
   if (!imageStream || isNotebookImageDeleted(notebook, imageStream)) {
-    console.log('notebook', notebook);
     // Get the image display name from the notebook metadata if we can't find the image stream. (this is a fallback and could still be undefined)
     return getDeletedImageData(
       notebook.metadata.annotations?.['opendatahub.io/image-display-name'],
