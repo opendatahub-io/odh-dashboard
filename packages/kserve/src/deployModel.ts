@@ -23,6 +23,7 @@ import type { NumReplicasFieldData } from '../../model-serving/src/components/de
 import type { RuntimeArgsFieldData } from '../../model-serving/src/components/deploymentWizard/fields/RuntimeArgsField';
 import type { TokenAuthenticationFieldData } from '../../model-serving/src/components/deploymentWizard/fields/TokenAuthenticationField';
 import type { ModelLocationData } from '../../model-serving/src/components/deploymentWizard/fields/modelLocationFields/types';
+import { CreateConnectionData } from '../../model-serving/src/components/deploymentWizard/fields/CreateConnectionInputFields';
 
 export type CreatingInferenceServiceObject = {
   project: string;
@@ -39,6 +40,7 @@ export type CreatingInferenceServiceObject = {
   runtimeArgs?: RuntimeArgsFieldData;
   environmentVariables?: EnvironmentVariablesFieldData;
   aiAssetData?: AvailableAiAssetsFieldsData;
+  createConnectionData?: CreateConnectionData;
 };
 
 const assembleInferenceService = (

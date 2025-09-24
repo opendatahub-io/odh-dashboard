@@ -1,7 +1,12 @@
 import { NotebookKind, PersistentVolumeClaimKind } from '#~/k8sTypes';
 import { NotebookSize } from '#~/types';
 import { formatMemory } from '#~/utilities/valueUnits';
-import { AccessMode } from '#~/pages/storageClasses/storageEnums.ts';
+import { AccessMode } from '#~/pages/storageClasses/storageEnums';
+import {
+  isModelServingCompatible,
+  ModelServingCompatibleTypes,
+} from '#~/concepts/connectionTypes/utils.ts';
+import { Connection, ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types.ts';
 import { NotebookState } from './notebook/types';
 
 export const getNotebookStatusPriority = (notebookState: NotebookState): number =>
@@ -25,3 +30,12 @@ export const getCustomNotebookSize = (
 
 export const getPvcAccessMode = (pvc: PersistentVolumeClaimKind): AccessMode =>
   pvc.spec.accessModes[0];
+
+export const getConnectionProtocolType = (
+  connectionType: ConnectionTypeConfigMapObj | string[] | Connection,
+): string =>
+  isModelServingCompatible(connectionType, ModelServingCompatibleTypes.S3ObjectStorage)
+    ? 's3'
+    : isModelServingCompatible(connectionType, ModelServingCompatibleTypes.OCI)
+    ? 'oci'
+    : 'uri';

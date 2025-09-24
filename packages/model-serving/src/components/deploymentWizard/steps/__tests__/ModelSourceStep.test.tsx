@@ -3,11 +3,13 @@ import { render, screen } from '@testing-library/react';
 import { useWizardContext, useWizardFooter, ValidatedOptions } from '@patternfly/react-core';
 import { z } from 'zod';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/internal/__mocks__/mockK8sNameDescriptionFieldData';
 import { ModelSourceStepContent } from '../ModelSourceStep';
 import { modelTypeSelectFieldSchema } from '../../fields/ModelTypeSelectField';
 import { mockDeploymentWizardState } from '../../../../__tests__/mockUtils';
 import { isValidModelLocationData } from '../../fields/ModelLocationInputFields';
 import { ModelLocationData, ModelLocationType } from '../../fields/modelLocationFields/types';
+import { createConnectionDataSchema } from '../../fields/CreateConnectionInputFields';
 
 const modelSourceStepSchema = z.object({
   modelType: modelTypeSelectFieldSchema,
@@ -15,6 +17,7 @@ const modelSourceStepSchema = z.object({
     if (!val) return false;
     return isValidModelLocationData(val.type, val);
   }),
+  createConnectionData: createConnectionDataSchema,
 });
 
 type ModelSourceStepData = z.infer<typeof modelSourceStepSchema>;
@@ -77,6 +80,10 @@ describe('ModelSourceStep', () => {
             pvcConnection: 'test',
           },
         },
+        createConnectionData: {
+          saveConnection: true,
+          nameDesc: mockK8sNameDescriptionFieldData(),
+        },
       };
       const result = modelSourceStepSchema.safeParse(validData);
       expect(result.success).toBe(true);
@@ -94,13 +101,30 @@ describe('ModelSourceStep', () => {
       render(
         <ModelSourceStepContent
           wizardState={mockDeploymentWizardState({
-            state: { modelLocationData: { isLoadingSecretData: false } },
+            state: {
+              createConnectionData: {
+                data: {
+                  saveConnection: true,
+                  nameDesc: mockK8sNameDescriptionFieldData(),
+                },
+              },
+              modelLocationData: {
+                isLoadingSecretData: false,
+                data: {
+                  type: ModelLocationType.NEW,
+                  fieldValues: { URI: 'uri://test' },
+                  additionalFields: {},
+                },
+              },
+            },
           })}
           validation={mockValidation}
         />,
       );
       expect(screen.getByTestId('model-type-select')).toBeInTheDocument();
       expect(screen.getByTestId('model-location-select')).toBeInTheDocument();
+      expect(screen.getByTestId('save-connection-checkbox')).toBeInTheDocument();
+      expect(screen.getByTestId('save-connection-checkbox')).toBeChecked();
     });
 
     it('should render with selected model type and model location', () => {
@@ -108,6 +132,12 @@ describe('ModelSourceStep', () => {
         state: {
           modelType: {
             data: ServingRuntimeModelType.GENERATIVE,
+          },
+          createConnectionData: {
+            data: {
+              saveConnection: true,
+              nameDesc: mockK8sNameDescriptionFieldData(),
+            },
           },
           modelLocationData: {
             isLoadingSecretData: false,
@@ -143,6 +173,8 @@ describe('ModelSourceStep', () => {
       );
       expect(screen.getByText('Generative AI model (e.g. LLM)')).toBeInTheDocument();
       expect(screen.getByTestId('field URI')).toHaveValue('https://test');
+      expect(screen.getByTestId('save-connection-checkbox')).toBeInTheDocument();
+      expect(screen.getByTestId('save-connection-checkbox')).toBeChecked();
     });
   });
 });
