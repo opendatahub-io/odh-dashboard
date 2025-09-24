@@ -4,7 +4,7 @@ import { FormGroup, HelperText, HelperTextItem } from '@patternfly/react-core';
 import SimpleSelect, {
   type SimpleSelectOption,
 } from '@odh-dashboard/internal/components/SimpleSelect';
-import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
+import type { SupportedModelFormats, TemplateKind } from '@odh-dashboard/internal/k8sTypes';
 import {
   getModelTypesFromTemplate,
   getServingRuntimeFromTemplate,
@@ -37,17 +37,30 @@ export type ModelFormatState = {
   isVisible?: boolean;
   error?: Error;
   loaded?: boolean;
+  templatesFilteredForModelType?: TemplateKind[];
 };
 
 export const useModelFormatField = (
   initialModelFormat?: SupportedModelFormats,
   modelType?: ModelTypeFieldData,
+  projectName?: string,
+  onModelFormatChange?: (
+    newFormat: SupportedModelFormats | undefined,
+    prevFormat: SupportedModelFormats | undefined,
+  ) => void,
 ): ModelFormatState => {
   const [servingRuntimeTemplates, servingRuntimeTemplatesLoaded, servingRuntimeTemplatesError] =
     useServingRuntimeTemplates();
+  const [projectTemplates, projectTemplatesLoaded, projectTemplatesError] =
+    useServingRuntimeTemplates(projectName);
+
+  const allModelServerTemplates = React.useMemo(
+    () => servingRuntimeTemplates.concat(projectTemplates),
+    [servingRuntimeTemplates, projectTemplates],
+  );
 
   const templatesFilteredForModelType = React.useMemo(() => {
-    return servingRuntimeTemplates.filter((template) => {
+    return allModelServerTemplates.filter((template) => {
       // If no model type is specified, show anyways for compatibility
       if (getModelTypesFromTemplate(template).length === 0) {
         return true;
@@ -61,7 +74,7 @@ export const useModelFormatField = (
       }
       return false;
     });
-  }, [servingRuntimeTemplates, modelType]);
+  }, [allModelServerTemplates, modelType]);
 
   const modelFormatOptions = React.useMemo(() => {
     const formats: SupportedModelFormats[] = [];
@@ -78,7 +91,7 @@ export const useModelFormatField = (
     return formats.toSorted((a, b) => a.name.localeCompare(b.name));
   }, [templatesFilteredForModelType]);
 
-  const [tmpModelFormat, setModelFormat] = React.useState<SupportedModelFormats | undefined>(
+  const [tmpModelFormat, setTmpModelFormat] = React.useState<SupportedModelFormats | undefined>(
     initialModelFormat,
   );
 
@@ -91,13 +104,23 @@ export const useModelFormatField = (
     return tmpModelFormat;
   }, [modelType, tmpModelFormat]);
 
+  const handleSetModelFormat = React.useCallback(
+    (newFormat: SupportedModelFormats) => {
+      const prevFormat = tmpModelFormat;
+      setTmpModelFormat(newFormat);
+      onModelFormatChange?.(newFormat, prevFormat);
+    },
+    [tmpModelFormat, onModelFormatChange],
+  );
+
   return {
     modelFormatOptions,
     modelFormat,
-    setModelFormat,
+    setModelFormat: handleSetModelFormat,
     isVisible: modelType === ServingRuntimeModelType.PREDICTIVE,
-    error: servingRuntimeTemplatesError,
-    loaded: servingRuntimeTemplatesLoaded,
+    error: servingRuntimeTemplatesError || projectTemplatesError,
+    loaded: servingRuntimeTemplatesLoaded && projectTemplatesLoaded,
+    templatesFilteredForModelType,
   };
 };
 
@@ -105,9 +128,13 @@ export const useModelFormatField = (
 
 type ModelFormatFieldProps = {
   modelFormatState: ModelFormatState;
+  isEditing?: boolean;
 };
 
-export const ModelFormatField: React.FC<ModelFormatFieldProps> = ({ modelFormatState }) => {
+export const ModelFormatField: React.FC<ModelFormatFieldProps> = ({
+  modelFormatState,
+  isEditing,
+}) => {
   const { modelFormatOptions, modelFormat, setModelFormat, isVisible, error, loaded } =
     modelFormatState;
 
@@ -129,6 +156,7 @@ export const ModelFormatField: React.FC<ModelFormatFieldProps> = ({ modelFormatS
           };
         })}
         isSkeleton={!loaded}
+        isDisabled={isEditing}
         isFullWidth
         toggleLabel={modelFormat ? getModelFormatLabel(modelFormat) : undefined}
         placeholder="Select a model format"

@@ -1,6 +1,7 @@
 import {
   InferenceServiceKind,
   KnownLabels,
+  ServingRuntimeKind,
   SupportedModelFormats,
 } from '@odh-dashboard/internal/k8sTypes';
 import { InferenceServiceModel } from '@odh-dashboard/internal/api/index';
@@ -10,6 +11,7 @@ import { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardware
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { KServeDeployment } from './deployments';
 import { setUpTokenAuth } from './deployUtils';
+import { createServingRuntime } from './deployServer';
 import { UseModelDeploymentWizardState } from '../../model-serving/src/components/deploymentWizard/useDeploymentWizard';
 import { ExternalRouteFieldData } from '../../model-serving/src/components/deploymentWizard/fields/ExternalRouteField';
 import { TokenAuthenticationFieldData } from '../../model-serving/src/components/deploymentWizard/fields/TokenAuthenticationField';
@@ -31,6 +33,7 @@ export const deployKServeDeployment = async (
   wizardData: UseModelDeploymentWizardState['state'],
   projectName: string,
   existingDeployment?: KServeDeployment,
+  serverResource?: ServingRuntimeKind,
   dryRun?: boolean,
 ): Promise<KServeDeployment> => {
   if (!wizardData.modelType.data) {
@@ -53,6 +56,18 @@ export const deployKServeDeployment = async (
     numReplicas: wizardData.numReplicas.data,
   };
 
+  const servingRuntime = serverResource
+    ? await createServingRuntime(
+        {
+          project: projectName,
+          name: wizardData.k8sNameDesc.data.k8sName.value,
+          servingRuntime: serverResource,
+          scope: wizardData.modelServer.data?.scope || '',
+        },
+        dryRun,
+      )
+    : undefined;
+
   const inferenceService = await createInferenceService(
     inferenceServiceData,
     existingDeployment?.model,
@@ -74,6 +89,7 @@ export const deployKServeDeployment = async (
   return Promise.resolve({
     modelServingPlatformId: 'kserve',
     model: inferenceService,
+    server: servingRuntime,
   });
 };
 
@@ -108,7 +124,7 @@ const assembleInferenceService = (
                 name: modelFormat.name,
                 ...(modelFormat.version && { version: modelFormat.version }),
               },
-              resources: hardwareProfile.resources,
+              runtime: k8sName,
             },
             ...(numReplicas && {
               minReplicas: numReplicas,

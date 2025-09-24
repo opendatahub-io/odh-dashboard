@@ -14,6 +14,7 @@ export type ProjectScopedToggleContentProps = {
   isCompact?: boolean;
   fallback?: React.ReactNode;
   additionalContent?: React.ReactNode;
+  labelTestId?: string;
 };
 
 const ProjectScopedToggleContent: React.FC<ProjectScopedToggleContentProps> = ({
@@ -27,6 +28,7 @@ const ProjectScopedToggleContent: React.FC<ProjectScopedToggleContentProps> = ({
   isCompact = true,
   fallback = 'Select one',
   additionalContent,
+  labelTestId,
 }) => {
   if (!displayName) {
     return <>{fallback}</>;
@@ -42,6 +44,11 @@ const ProjectScopedToggleContent: React.FC<ProjectScopedToggleContentProps> = ({
           color={isEditing ? 'grey' : color}
           isCompact={isCompact}
           style={style}
+          dataTestId={
+            labelTestId
+              ? `${isProject ? 'project-scoped' : 'global-scoped'}-${labelTestId}`
+              : undefined
+          }
         >
           {isProject ? projectLabel : globalLabel}
         </ScopedLabel>
