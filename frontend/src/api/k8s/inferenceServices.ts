@@ -126,11 +126,17 @@ export const assembleInferenceService = (
   }
 
   const dashboardNamespace = data.dashboardNamespace ?? '';
-  if (!isModelMesh && podSpecOptions && podSpecOptions.selectedHardwareProfile) {
-    annotations['opendatahub.io/hardware-profile-name'] =
-      podSpecOptions.selectedHardwareProfile.metadata.name;
-
-    if (podSpecOptions.selectedHardwareProfile.metadata.namespace === project) {
+  if (!isModelMesh && podSpecOptions) {
+    if (podSpecOptions.selectedAcceleratorProfile) {
+      const accelName = podSpecOptions.selectedAcceleratorProfile.metadata.name;
+      if (accelName) {
+        annotations['opendatahub.io/legacy-hardware-profile-name'] = accelName;
+      }
+    } else if (podSpecOptions.selectedHardwareProfile) {
+      annotations['opendatahub.io/hardware-profile-name'] =
+        podSpecOptions.selectedHardwareProfile.metadata.name;
+    }
+    if (podSpecOptions.selectedHardwareProfile?.metadata.namespace === project) {
       annotations['opendatahub.io/hardware-profile-namespace'] = project;
     } else {
       annotations['opendatahub.io/hardware-profile-namespace'] = dashboardNamespace;
