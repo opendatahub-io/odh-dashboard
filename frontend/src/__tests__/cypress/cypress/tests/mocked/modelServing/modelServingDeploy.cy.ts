@@ -3,6 +3,7 @@ import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { mock404Error } from '#~/__mocks__/mockK8sStatus';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
 import {
@@ -19,6 +20,10 @@ import {
   HardwareProfileModel,
   InferenceServiceModel,
   ProjectModel,
+  RoleBindingModel,
+  RoleModel,
+  SecretModel,
+  ServiceAccountModel,
   ServingRuntimeModel,
   TemplateModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
@@ -134,6 +139,109 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
       body: mockInferenceServiceK8sResource({ name: 'test-model', modelType }),
     },
   ).as('createInferenceService');
+
+  cy.interceptK8s(
+    'POST',
+    {
+      model: ServiceAccountModel,
+      ns: 'test-project',
+    },
+    {
+      statusCode: 200,
+      body: {
+        apiVersion: 'v1',
+        kind: 'ServiceAccount',
+        metadata: { name: 'test-model-sa', namespace: 'test-project' },
+      },
+    },
+  ).as('createServiceAccount');
+
+  cy.interceptK8s(
+    'POST',
+    {
+      model: RoleModel,
+      ns: 'test-project',
+    },
+    {
+      statusCode: 200,
+      body: {
+        apiVersion: 'rbac.authorization.k8s.io/v1',
+        kind: 'Role',
+        metadata: { name: 'test-model-view-role', namespace: 'test-project' },
+      },
+    },
+  ).as('createRole');
+
+  cy.interceptK8s(
+    'POST',
+    {
+      model: RoleBindingModel,
+      ns: 'test-project',
+    },
+    {
+      statusCode: 200,
+      body: {
+        apiVersion: 'rbac.authorization.k8s.io/v1',
+        kind: 'RoleBinding',
+        metadata: { name: 'test-model-view', namespace: 'test-project' },
+      },
+    },
+  ).as('createRoleBinding');
+
+  cy.interceptK8s(
+    'POST',
+    {
+      model: SecretModel,
+      ns: 'test-project',
+    },
+    {
+      statusCode: 200,
+      body: {
+        apiVersion: 'v1',
+        kind: 'Secret',
+        metadata: { name: 'test-model-token', namespace: 'test-project' },
+      },
+    },
+  ).as('createSecret');
+
+  cy.interceptK8s(
+    'GET',
+    {
+      model: ServiceAccountModel,
+      ns: 'test-project',
+      name: 'test-model-sa',
+    },
+    {
+      statusCode: 404,
+      body: mock404Error({}),
+    },
+  ).as('getServiceAccount');
+
+  cy.interceptK8s(
+    'GET',
+    {
+      model: RoleModel,
+      ns: 'test-project',
+      name: 'test-model-view-role',
+    },
+    {
+      statusCode: 404,
+      body: mock404Error({}),
+    },
+  ).as('getRole');
+
+  cy.interceptK8s(
+    'GET',
+    {
+      model: RoleBindingModel,
+      ns: 'test-project',
+      name: 'test-model-view',
+    },
+    {
+      statusCode: 404,
+      body: mock404Error({}),
+    },
+  ).as('getRoleBinding');
 };
 
 describe('Model Serving Deploy Wizard', () => {
@@ -240,12 +348,8 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findRemoveServiceAccountByIndex(1).click();
     modelServingWizard.findServiceAccountByIndex(0).clear();
     modelServingWizard.findNextButton().should('be.disabled');
-    modelServingWizard.findServiceAccountByIndex(0).clear().type('new-name');
+    modelServingWizard.findServiceAccountByIndex(0).clear().type('new name');
     modelServingWizard.findNextButton().should('be.enabled');
-    modelServingWizard.findRemoveServiceAccountByIndex(0).click();
-    modelServingWizard.findTokenWarningAlert().should('exist');
-    modelServingWizard.findTokenAuthenticationCheckbox().click();
-    modelServingWizard.findExternalRouteCheckbox().click();
 
     modelServingWizard.findNextButton().should('be.enabled').click();
 
@@ -299,6 +403,107 @@ describe('Model Serving Deploy Wizard', () => {
 
     cy.get('@createInferenceService.all').then((interceptions) => {
       expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
+
+    //dry run request
+    cy.wait('@createServiceAccount').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        apiVersion: 'v1',
+        kind: 'ServiceAccount',
+        metadata: {
+          name: 'test-model-sa',
+          namespace: 'test-project',
+          ownerReferences: [{ kind: 'InferenceService' }],
+        },
+      });
+    });
+
+    //Actual request
+    cy.wait('@createServiceAccount').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    cy.get('@createServiceAccount.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); //1 dry run request and 1 actual request
+    });
+
+    //dry run request
+    cy.wait('@createRole').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'test-model-view-role',
+          namespace: 'test-project',
+          ownerReferences: [{ kind: 'InferenceService' }],
+        },
+        rules: [
+          {
+            verbs: ['get'],
+            apiGroups: ['serving.kserve.io'],
+            resources: ['inferenceservices'],
+            resourceNames: ['test-model'],
+          },
+        ],
+      });
+    });
+
+    //Actual request
+    cy.wait('@createRole').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    cy.get('@createRole.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); //1 dry run request and 1 actual request
+    });
+
+    cy.wait('@createRoleBinding').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'test-model-view',
+          namespace: 'test-project',
+          ownerReferences: [{ kind: 'InferenceService' }],
+        },
+        roleRef: {
+          apiGroup: 'rbac.authorization.k8s.io',
+          kind: 'Role',
+          name: 'test-model-view-role',
+        },
+        subjects: [{ kind: 'ServiceAccount', name: 'test-model-sa' }],
+      });
+    });
+
+    //Actual request
+    cy.wait('@createRoleBinding').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    cy.get('@createRoleBinding.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); //1 dry run request and 1 actual request
+    });
+
+    //dry run request
+    cy.wait('@createSecret').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        apiVersion: 'v1',
+        kind: 'Secret',
+        metadata: {
+          name: 'new-name-test-model-sa',
+          namespace: 'test-project',
+          ownerReferences: [{ kind: 'InferenceService' }],
+        },
+      });
+    });
+
+    //Actual request
+    cy.wait('@createSecret').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    cy.get('@createSecret.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); //1 dry run request and 1 actual request
     });
   });
 
