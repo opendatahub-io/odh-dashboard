@@ -22,12 +22,21 @@ spec:
     value: '{{source_url}}'
   - name: revision
     value: '{{revision}}'
+  - name: additional-tags
+    value:
+    - 'pr-{{pull_request_number}}-into-{{target_branch}}'
+  - name: additional-labels
+    value:
+    - version=on-pr-{{revision}}
+    - io.openshift.tags=odh-mod-arch-model-registry
   - name: output-image
     value: quay.io/rhoai/pull-request-pipelines:odh-mod-arch-model-registry-{{revision}}
   - name: dockerfile
     value: Dockerfile.konflux.modelregistry
   - name: path-context
     value: .
+  - name: hermetic
+    value: true
   - name: prefetch-input
     value: '[{"path":".","type":"npm"},{"path":"packages/model-registry/upstream/frontend","type":"npm"},{"path":"packages/model-registry/upstream/bff","type":"gomod"}]'
   - name: build-image-index
@@ -38,6 +47,11 @@ spec:
     - linux-m2xlarge/arm64
     - linux/ppc64le
     - linux/s390x
+    - linux-m2xlarge/arm64
+  - name: image-expires-after
+    value: 5d
+  - name: enable-slack-failure-notification
+    value: "false"
   pipelineRef:
     resolver: git
     params:
@@ -48,7 +62,7 @@ spec:
     - name: pathInRepo
       value: pipelines/multi-arch-container-build.yaml
   taskRunTemplate:
-    serviceAccountName: build-pipeline-odh-mod-arch-model-registry
+    serviceAccountName: build-pipeline-pull-request-pipelines
   workspaces:
   - name: git-auth
     secret:
