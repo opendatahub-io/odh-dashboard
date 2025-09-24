@@ -13,7 +13,7 @@ class ModelCatalog {
 
   private wait() {
     cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('Model Catalog');
+    cy.findByTestId('app-page-title').contains('Catalog');
     cy.testA11y();
   }
 
@@ -75,7 +75,7 @@ class ModelCatalog {
   }
 
   findPageTitle() {
-    return cy.contains('Model Catalog');
+    return cy.contains('Catalog');
   }
 
   findPageDescription() {
@@ -84,7 +84,7 @@ class ModelCatalog {
 
   // Details page helpers
   findBreadcrumb() {
-    return cy.contains('Model catalog');
+    return cy.contains('Catalog');
   }
 
   findDetailsProviderText() {
