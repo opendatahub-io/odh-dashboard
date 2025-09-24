@@ -138,11 +138,13 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
             <i>All features</i>
           ) : (
             <LabelGroup>
-              {useCases.map((v) => (
-                <Label key={v} data-testid={`label-${v}`}>
-                  {HardwareProfileFeatureVisibilityTitles[v]}
-                </Label>
-              ))}
+              {useCases
+                .filter((v) => v !== HardwareProfileFeatureVisibility.PIPELINES)
+                .map((v) => (
+                  <Label key={v} data-testid={`label-${v}`}>
+                    {HardwareProfileFeatureVisibilityTitles[v]}
+                  </Label>
+                ))}
             </LabelGroup>
           )}
         </Td>
