@@ -91,6 +91,12 @@ class FeatureStoreGlobal {
     this.wait();
   }
 
+  navigateToOverview() {
+    appChrome.findNavSection('Feature store').click();
+    appChrome.findNavItem('Overview').click();
+    this.waitForOverview();
+  }
+
   navigateToFeatureViews() {
     appChrome.findNavItem('Feature views').click();
     this.waitForFeatureViews();
@@ -104,6 +110,21 @@ class FeatureStoreGlobal {
   navigateToFeatures() {
     appChrome.findNavItem('Features').click();
     this.waitForFeatures();
+  }
+
+  navigateToDataSources() {
+    appChrome.findNavItem('Data sources').click();
+    this.waitForDataSources();
+  }
+
+  navigateToDatasets() {
+    appChrome.findNavItem('Datasets').click();
+    this.waitForDataSets();
+  }
+
+  navigateToFeatureServices() {
+    appChrome.findNavItem('Feature services').click();
+    this.waitForFeatureServices();
   }
 
   findHeading() {
@@ -236,6 +257,14 @@ class FeatureStoreGlobal {
   findGlobalSearchItem(type: string, title: string) {
     const testId = `global-search-item-${type}-${title.toLowerCase().replace(/\s+/g, '-')}`;
     return cy.findByTestId(testId);
+  }
+
+  shouldHavePageDescription() {
+    return cy.findByTestId('app-page-description').should('be.visible');
+  }
+
+  shouldHaveEmptyStateDescription() {
+    return cy.findByTestId('empty-state-feature-store').should('be.visible');
   }
 }
 
