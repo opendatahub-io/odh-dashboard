@@ -32,7 +32,7 @@ const GenAiCoreLoader: React.FC<GenAiCoreLoaderProps> = ({
   if (namespaces.length === 0) {
     renderStateProps = {
       empty: true,
-      emptyStatePage: <GenAiCoreNoProjects />,
+      emptyStatePage: <GenAiCoreNoProjects getRedirectPath={getInvalidRedirectPath} />,
     };
   } else if (namespace) {
     const foundProject = namespaces.find((n) => n.name === namespace);

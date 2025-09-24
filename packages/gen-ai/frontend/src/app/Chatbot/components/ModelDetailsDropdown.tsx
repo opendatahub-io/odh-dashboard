@@ -6,19 +6,18 @@ import {
   MenuToggle,
   MenuToggleElement,
 } from '@patternfly/react-core';
-import { LlamaModel } from '~/app/types';
+import { ChatbotContext } from '~/app/context/ChatbotContext';
 
 interface ModelDetailsDropdownProps {
-  models: LlamaModel[];
   selectedModel: string;
   onModelChange: (value: string) => void;
 }
 
 const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> = ({
-  models,
   selectedModel,
   onModelChange,
 }) => {
+  const { models } = React.useContext(ChatbotContext);
   const [isOpen, setIsOpen] = React.useState(false);
 
   const placeholder = models.length === 0 ? 'No models available' : 'Select a model';
