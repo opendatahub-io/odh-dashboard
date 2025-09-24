@@ -95,7 +95,6 @@ export const assembleNotebook = (
     volumeMounts.push(getshmVolumeMount());
   }
 
-  const isAcceleratorProfileSelected = !!selectedAcceleratorProfile;
   const hardwareProfileNamespace: Record<string, string | null> = selectedHardwareProfile
     ? selectedHardwareProfile.metadata.namespace === projectName
       ? { 'opendatahub.io/hardware-profile-namespace': projectName }
@@ -201,8 +200,8 @@ export const assembleNotebook = (
             },
           ],
           volumes,
-          tolerations: isAcceleratorProfileSelected ? tolerations : undefined,
-          nodeSelector: isAcceleratorProfileSelected ? nodeSelector : undefined,
+          tolerations: selectedAcceleratorProfile ? tolerations : undefined,
+          nodeSelector: selectedAcceleratorProfile ? nodeSelector : undefined,
         },
       },
     },

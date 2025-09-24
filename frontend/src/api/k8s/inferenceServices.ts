@@ -126,17 +126,10 @@ export const assembleInferenceService = (
   }
 
   const dashboardNamespace = data.dashboardNamespace ?? '';
-  if (!isModelMesh && podSpecOptions) {
-    if (podSpecOptions.selectedAcceleratorProfile) {
-      const accelName = podSpecOptions.selectedAcceleratorProfile.metadata.name;
-      if (accelName) {
-        annotations['opendatahub.io/accelerator-name'] = accelName;
-      }
-    } else if (podSpecOptions.selectedHardwareProfile) {
-      annotations['opendatahub.io/hardware-profile-name'] =
-        podSpecOptions.selectedHardwareProfile.metadata.name;
-    }
-    if (podSpecOptions.selectedHardwareProfile?.metadata.namespace === project) {
+  if (!isModelMesh && podSpecOptions && podSpecOptions.selectedHardwareProfile) {
+    annotations['opendatahub.io/hardware-profile-name'] =
+      podSpecOptions.selectedHardwareProfile.metadata.name;
+    if (podSpecOptions.selectedHardwareProfile.metadata.namespace === project) {
       annotations['opendatahub.io/hardware-profile-namespace'] = project;
     } else {
       annotations['opendatahub.io/hardware-profile-namespace'] = dashboardNamespace;
@@ -197,13 +190,15 @@ export const assembleInferenceService = (
     data.isKServeRawDeployment,
   );
 
-  if (!isModelMesh && podSpecOptions && !podSpecOptions.selectedHardwareProfile) {
+  if (!isModelMesh && podSpecOptions) {
     const { tolerations, resources, nodeSelector } = podSpecOptions;
-    if (tolerations) {
-      updatedInferenceService.spec.predictor.tolerations = tolerations;
-    }
-    if (nodeSelector) {
-      updatedInferenceService.spec.predictor.nodeSelector = nodeSelector;
+    if (!podSpecOptions.selectedHardwareProfile) {
+      if (tolerations) {
+        updatedInferenceService.spec.predictor.tolerations = tolerations;
+      }
+      if (nodeSelector) {
+        updatedInferenceService.spec.predictor.nodeSelector = nodeSelector;
+      }
     }
     updatedInferenceService.spec.predictor.model = {
       ...updatedInferenceService.spec.predictor.model,
