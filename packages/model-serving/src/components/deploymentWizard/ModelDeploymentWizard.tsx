@@ -17,7 +17,6 @@ import { ModelSourceStepContent } from './steps/ModelSourceStep';
 import { WizardFooterWithDisablingNext } from './WizardFooterWithDisablingNext';
 import { AdvancedSettingsStepContent } from './steps/AdvancedOptionsStep';
 import { ModelDeploymentStepContent } from './steps/ModelDeploymentStep';
-import { ModelLocationType } from './fields/modelLocationFields/types';
 import { isModelServingDeploy } from '../../../extension-points';
 import { useResolvedPlatformExtension } from '../../concepts/extensionUtils';
 import { ModelServingPlatform } from '../../concepts/useProjectServingPlatform';
@@ -29,10 +28,6 @@ type ModelDeploymentWizardProps = {
   existingData?: ModelDeploymentWizardData;
   project: ProjectKind;
   modelServingPlatform: ModelServingPlatform;
-  connections: Connection[];
-  selectedConnection: Connection | undefined;
-  connectionTypes: ConnectionTypeConfigMapObj[];
-  setSelectedConnection: (connection: Connection | undefined) => void;
 };
 
 const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
@@ -42,10 +37,6 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   existingData,
   project,
   modelServingPlatform,
-  connections,
-  selectedConnection,
-  connectionTypes,
-  setSelectedConnection,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -116,40 +107,11 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     validation.isModelDeploymentStepValid,
   ]);
 
-  const updateSelectedConnection = React.useCallback(
-    (connection: Connection | undefined) => {
-      if (!connection) {
-        setSelectedConnection(undefined);
-        return;
-      }
-      const connectionTypeRef = getConnectionTypeRef(connection);
-      const selectedConnectionType = connectionTypes.find(
-        (ct) => ct.metadata.name === connectionTypeRef,
-      );
-      if (selectedConnectionType) {
-        setSelectedConnection(connection);
-        wizardState.state.modelLocationData.setData({
-          type: ModelLocationType.EXISTING,
-          connectionTypeObject: selectedConnectionType,
-          connection: getResourceNameFromK8sResource(connection),
-          fieldValues: {},
-          additionalFields: {},
-        });
-      }
-    },
-    [wizardState.state.modelLocationData.setData, setSelectedConnection, connectionTypes],
-  );
   return (
     <ApplicationsPage title={title} description={description} loaded empty={false}>
       <Wizard onClose={exitWizard} onSave={onSave} footer={<WizardFooterWithDisablingNext />}>
         <WizardStep name="Source model" id="source-model-step">
-          <ModelSourceStepContent
-            wizardState={wizardState}
-            validation={validation.modelSource}
-            connections={connections}
-            selectedConnection={selectedConnection}
-            setSelectedConnection={updateSelectedConnection}
-          />
+          <ModelSourceStepContent wizardState={wizardState} validation={validation.modelSource} />
         </WizardStep>
         <WizardStep
           name="Model deployment"

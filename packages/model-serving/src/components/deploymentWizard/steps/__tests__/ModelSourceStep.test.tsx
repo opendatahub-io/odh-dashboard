@@ -95,9 +95,6 @@ describe('ModelSourceStep', () => {
         <ModelSourceStepContent
           wizardState={mockDeploymentWizardState()}
           validation={mockValidation}
-          connections={[]}
-          selectedConnection={undefined}
-          setSelectedConnection={jest.fn()}
         />,
       );
       expect(screen.getByTestId('model-type-select')).toBeInTheDocument();
@@ -139,9 +136,6 @@ describe('ModelSourceStep', () => {
         <ModelSourceStepContent
           wizardState={wizardDataWithSelection}
           validation={mockValidation}
-          connections={[]}
-          selectedConnection={undefined}
-          setSelectedConnection={jest.fn()}
         />,
       );
       expect(screen.getByText('Generative AI model (e.g. LLM)')).toBeInTheDocument();

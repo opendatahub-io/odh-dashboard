@@ -333,11 +333,8 @@ describe('ModelLocationSelectField', () => {
       render(
         <ModelLocationSelectField
           setModelLocationData={mockSetModelLocationData}
-          connections={[]}
           project={null}
           resetModelLocationData={jest.fn()}
-          selectedConnection={undefined}
-          setSelectedConnection={jest.fn()}
         />,
       );
       expect(screen.getByRole('button')).toBeInTheDocument();
@@ -348,11 +345,8 @@ describe('ModelLocationSelectField', () => {
         <ModelLocationSelectField
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
-          connections={[]}
           project={null}
           resetModelLocationData={jest.fn()}
-          selectedConnection={undefined}
-          setSelectedConnection={jest.fn()}
           modelLocationData={{
             type: ModelLocationType.NEW,
             fieldValues: { URI: 'uri://test' },
@@ -378,11 +372,8 @@ describe('ModelLocationSelectField', () => {
       render(
         <ModelLocationSelectField
           setModelLocationData={mockSetModelLocationData}
-          connections={[]}
           project={null}
           resetModelLocationData={jest.fn()}
-          selectedConnection={undefined}
-          setSelectedConnection={jest.fn()}
           modelLocationData={{
             type: ModelLocationType.NEW,
             fieldValues: { URI: 'https://test' },
@@ -421,11 +412,8 @@ describe('ModelLocationSelectField', () => {
         <ModelLocationSelectField
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
-          connections={[]}
           project={null}
           resetModelLocationData={jest.fn()}
-          selectedConnection={undefined}
-          setSelectedConnection={jest.fn()}
           modelLocationData={{
             type: ModelLocationType.NEW,
             fieldValues: { URI: 'https://test' },
@@ -453,11 +441,8 @@ describe('ModelLocationSelectField', () => {
         <ModelLocationSelectField
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
-          connections={[]}
           project={null}
           resetModelLocationData={jest.fn()}
-          selectedConnection={undefined}
-          setSelectedConnection={jest.fn()}
           modelLocationData={{
             type: ModelLocationType.NEW,
             fieldValues: {
@@ -496,11 +481,8 @@ describe('ModelLocationSelectField', () => {
         <ModelLocationSelectField
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
-          connections={[]}
           project={null}
           resetModelLocationData={jest.fn()}
-          selectedConnection={undefined}
-          setSelectedConnection={jest.fn()}
           modelLocationData={{
             type: ModelLocationType.NEW,
             fieldValues: {

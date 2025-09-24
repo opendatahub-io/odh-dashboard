@@ -18,6 +18,7 @@ import useServingConnections from '@odh-dashboard/internal/pages/projects/screen
 import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types.js';
+import { ConnectionTypeConfigMapObj } from '@odh-dashboard/internal/concepts/connectionTypes/types.js';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
 import { ModelDeploymentWizardData } from './useDeploymentWizard';
 import {
@@ -25,8 +26,12 @@ import {
   getTokenAuthenticationFromDeployment,
   getExternalRouteFromDeployment,
 } from './utils';
-import { ModelLocationType } from './fields/modelLocationFields/types';
-import { Deployment, isModelServingDeploymentFormDataExtension } from '../../../extension-points';
+import { useModelLocationData } from './fields/ModelLocationInputFields';
+import {
+  Deployment,
+  isModelServingDeploymentFormDataExtension,
+  ModelServingDeploymentFormDataExtension,
+} from '../../../extension-points';
 import {
   ModelDeploymentsContext,
   ModelDeploymentsProvider,
@@ -59,6 +64,43 @@ const ErrorContent: React.FC<{ error: Error }> = ({ error }) => {
     </Bullseye>
   );
 };
+function useEditDeploymentData(
+  existingDeployment: Deployment | undefined,
+  formDataExtension: ReturnType<
+    typeof useResolvedDeploymentExtension<ModelServingDeploymentFormDataExtension<Deployment>>
+  >[0],
+  connectionTypes: ConnectionTypeConfigMapObj[],
+) {
+  const [formData, setFormData] = React.useState<ModelDeploymentWizardData>();
+  const [dataLoaded, setDataLoaded] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!existingDeployment || !formDataExtension || dataLoaded) return;
+
+    (async () => {
+      const modelLocationData = await formDataExtension.properties.extractModelLocationData(
+        existingDeployment,
+        connectionTypes,
+      );
+
+      setFormData({
+        modelTypeField: getModelTypeFromDeployment(existingDeployment),
+        k8sNameDesc: setupDefaults({ initialData: existingDeployment.model }),
+        hardwareProfile:
+          formDataExtension.properties.extractHardwareProfileConfig(existingDeployment) ??
+          undefined,
+        modelFormat:
+          formDataExtension.properties.extractModelFormat(existingDeployment) ?? undefined,
+        modelLocationData: modelLocationData ?? undefined,
+        externalRoute: getExternalRouteFromDeployment(existingDeployment),
+        tokenAuthentication: getTokenAuthenticationFromDeployment(existingDeployment),
+      });
+      setDataLoaded(true);
+    })();
+  }, [existingDeployment, formDataExtension, connectionTypes, dataLoaded]);
+
+  return { formData, dataLoaded };
+}
 
 const EditModelDeploymentPage: React.FC = () => {
   const { namespace } = useParams();
@@ -150,40 +192,10 @@ const EditModelDeploymentContent: React.FC<{
     },
   });
 
-  React.useMemo(() => {
-    if (existingDeployment && formDataExtension && !dataLoaded) {
-      formDataExtension.properties
-        .extractModelLocationData(existingDeployment, connectionTypes)
-        .then((modelLocationData) => {
-          setFormData({
-            modelTypeField: getModelTypeFromDeployment(existingDeployment),
-            k8sNameDesc: setupDefaults({ initialData: existingDeployment.model }),
-            hardwareProfile:
-              formDataExtension.properties.extractHardwareProfileConfig(existingDeployment) ??
-              undefined,
-            modelFormat:
-              formDataExtension.properties.extractModelFormat(existingDeployment) ?? undefined,
-            modelLocationData: modelLocationData ?? undefined,
-            externalRoute: getExternalRouteFromDeployment(existingDeployment),
-            tokenAuthentication: getTokenAuthenticationFromDeployment(existingDeployment),
-            AiAssetData:
-              formDataExtension.properties.extractAiAssetData(existingDeployment) ?? undefined,
-          });
-          setDataLoaded(true);
-        });
-    }
-  }, [existingDeployment, formDataExtension, connectionTypes, dataLoaded]);
-  const initialConnection = React.useMemo(() => {
-    if (connectionsLoaded && formData?.modelLocationData?.type === ModelLocationType.EXISTING) {
-      return connections.find(
-        (c) => getResourceNameFromK8sResource(c) === formData.modelLocationData?.connection,
-      );
-    }
-    return undefined;
-  }, [connections, connectionsLoaded, formData?.modelLocationData]);
-
-  const [selectedConnection, setSelectedConnection] = React.useState<Connection | undefined>(
-    undefined,
+  const { formData, dataLoaded } = useEditDeploymentData(
+    existingDeployment,
+    formDataExtension,
+    connectionTypes,
   );
 
   if (formDataExtensionErrors.length > 0) {
@@ -206,10 +218,6 @@ const EditModelDeploymentContent: React.FC<{
       existingData={formData ? { ...formData, isEditing: true } : { isEditing: true }}
       project={project}
       modelServingPlatform={modelServingPlatform}
-      connections={connections}
-      selectedConnection={selectedConnection || initialConnection}
-      connectionTypes={connectionTypes}
-      setSelectedConnection={setSelectedConnection}
     />
   );
 };

@@ -6,6 +6,7 @@ import {
   ConnectionTypeDataField,
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import {
+  getConnectionTypeRef,
   isModelServingCompatible,
   ModelServingCompatibleTypes,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
@@ -16,6 +17,9 @@ import {
   getPVCNameFromURI,
   isPVCUri,
 } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
+import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
+import useServingConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections';
+import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { ExistingConnectionField } from './modelLocationFields/ExistingConnectionField';
 import { ModelLocationData, ModelLocationType } from './modelLocationFields/types';
 import NewConnectionField from './modelLocationFields/NewConnectionField';
@@ -25,6 +29,11 @@ export type ModelLocationDataField = {
   data: ModelLocationData | undefined;
   setData: (data: ModelLocationData | undefined) => void;
   project: ProjectKind | null;
+  connections: Connection[];
+  connectionsLoaded: boolean;
+  connectionTypes: ConnectionTypeConfigMapObj[];
+  selectedConnection: Connection | undefined;
+  setSelectedConnection: (connection: Connection | undefined) => void;
 };
 export const useModelLocationData = (
   project: ProjectKind | null,
@@ -33,11 +42,59 @@ export const useModelLocationData = (
   const [modelLocationData, setModelLocationData] = React.useState<ModelLocationData | undefined>(
     existingData,
   );
+  const [connectionTypes] = useWatchConnectionTypes(true);
+  const [connections, connectionsLoaded] = useServingConnections(project?.metadata.name);
+
+  const initialConnection = React.useMemo(() => {
+    if (connectionsLoaded && existingData?.type === ModelLocationType.EXISTING) {
+      return connections.find((c) => getResourceNameFromK8sResource(c) === existingData.connection);
+    }
+    return undefined;
+  }, [connections, connectionsLoaded, existingData]);
+
+  // For getting the initial connection
+  const loadedConnection = React.useMemo(() => initialConnection, [initialConnection]);
+
+  // For user selecting a connection
+  const [userSelectedConnection, setUserSelectedConnection] = React.useState<
+    Connection | undefined
+  >();
+
+  const selectedConnection = userSelectedConnection ?? loadedConnection;
+
+  const updateSelectedConnection = React.useCallback(
+    (connection: Connection | undefined) => {
+      if (!connection) {
+        setUserSelectedConnection(undefined);
+        return;
+      }
+      const connectionTypeRef = getConnectionTypeRef(connection);
+      const selectedConnectionType = connectionTypes.find(
+        (ct) => ct.metadata.name === connectionTypeRef,
+      );
+      if (selectedConnectionType) {
+        setUserSelectedConnection(connection);
+        setModelLocationData({
+          type: ModelLocationType.EXISTING,
+          connectionTypeObject: selectedConnectionType,
+          connection: getResourceNameFromK8sResource(connection),
+          fieldValues: {},
+          additionalFields: {},
+        });
+      }
+    },
+    [setModelLocationData, connectionTypes, setUserSelectedConnection],
+  );
 
   return {
     data: modelLocationData,
     setData: setModelLocationData,
     project,
+    connections,
+    connectionsLoaded,
+    connectionTypes,
+    selectedConnection,
+    setSelectedConnection: updateSelectedConnection,
   };
 };
 
