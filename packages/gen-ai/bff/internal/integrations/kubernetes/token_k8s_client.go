@@ -691,7 +691,7 @@ func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.C
 	// Check if port is already present (look for :port pattern after the hostname)
 	// We need to check for :port after the hostname, not just any colon (http:// has a colon)
 	if !strings.Contains(internalURL, ".svc.cluster.local:") {
-		internalURL = internalURL + ":8080"
+		internalURL = internalURL + ":80"
 	}
 
 	// Add /v1 suffix if not present
