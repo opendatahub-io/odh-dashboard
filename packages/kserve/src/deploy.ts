@@ -12,6 +12,7 @@ import { KServeDeployment } from './deployments';
 import { UseModelDeploymentWizardState } from '../../model-serving/src/components/deploymentWizard/useDeploymentWizard';
 import { ExternalRouteFieldData } from '../../model-serving/src/components/deploymentWizard/fields/ExternalRouteField';
 import { TokenAuthenticationFieldData } from '../../model-serving/src/components/deploymentWizard/fields/TokenAuthenticationField';
+import { NumReplicasFieldData } from '../../model-serving/src/components/deploymentWizard/fields/NumReplicasField';
 
 type CreatingInferenceServiceObject = {
   project: string;
@@ -22,6 +23,7 @@ type CreatingInferenceServiceObject = {
   modelFormat: SupportedModelFormats;
   externalRoute?: ExternalRouteFieldData;
   tokenAuth?: TokenAuthenticationFieldData;
+  numReplicas?: NumReplicasFieldData;
 };
 
 export const deployKServeDeployment = async (
@@ -47,6 +49,7 @@ export const deployKServeDeployment = async (
     modelFormat: wizardData.modelFormatState.modelFormat,
     externalRoute: wizardData.externalRoute.data,
     tokenAuth: wizardData.tokenAuthentication.data,
+    numReplicas: wizardData.numReplicas.data,
   };
 
   const inferenceService = await createInferenceService(
@@ -74,6 +77,7 @@ const assembleInferenceService = (
     modelFormat,
     tokenAuth,
     externalRoute,
+    numReplicas,
   } = data;
   const inferenceService: InferenceServiceKind = existingInferenceService
     ? { ...existingInferenceService }
@@ -93,6 +97,10 @@ const assembleInferenceService = (
               },
               resources: hardwareProfile.resources,
             },
+            ...(numReplicas && {
+              minReplicas: numReplicas,
+              maxReplicas: numReplicas,
+            }),
           },
         },
       };
@@ -131,6 +139,12 @@ const assembleInferenceService = (
   const labels = { ...inferenceService.metadata.labels };
   labels[KnownLabels.DASHBOARD_RESOURCE] = 'true';
   inferenceService.metadata.labels = labels;
+
+  // Set replica configuration
+  if (numReplicas) {
+    inferenceService.spec.predictor.minReplicas = numReplicas;
+    inferenceService.spec.predictor.maxReplicas = numReplicas;
+  }
 
   return inferenceService;
 };
