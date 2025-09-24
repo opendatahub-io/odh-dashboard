@@ -105,17 +105,18 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
                   onChange={(_, checked) => resetAAAData(checked)}
                 />
               </StackItem>
-              <StackItem>
-                <TextInput
-                  id="use-case-input"
-                  data-testid="use-case-input"
-                  isDisabled={!data.saveAsAAA}
-                  placeholder="Use case"
-                  value={data.useCase}
-                  onChange={(_, value) => setData({ ...data, useCase: value })}
-                  label="Use case"
-                />
-              </StackItem>
+              {data.saveAsAAA && (
+                <StackItem>
+                  <FormGroup label="Use case">
+                    <TextInput
+                      id="use-case-input"
+                      data-testid="use-case-input"
+                      value={data.useCase}
+                      onChange={(_, value) => setData({ ...data, useCase: value })}
+                    />
+                  </FormGroup>
+                </StackItem>
+              )}
             </Stack>
           </FormGroup>
         </Form>

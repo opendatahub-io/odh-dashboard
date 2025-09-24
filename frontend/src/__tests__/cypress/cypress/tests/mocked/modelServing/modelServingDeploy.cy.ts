@@ -352,9 +352,9 @@ describe('Model Serving Deploy Wizard', () => {
     // AI Asset
     modelServingWizard.findSaveAsAAACheckbox().should('exist');
     modelServingWizard.findSaveAsAAACheckbox().should('not.be.checked');
-    modelServingWizard.findUseCaseInput().should('exist');
-    modelServingWizard.findUseCaseInput().should('be.disabled');
+    modelServingWizard.findUseCaseInput().should('not.exist');
     modelServingWizard.findSaveAsAAACheckbox().click();
+    modelServingWizard.findUseCaseInput().should('exist');
     modelServingWizard.findUseCaseInput().should('be.enabled');
     modelServingWizard.findUseCaseInput().type('test');
 
