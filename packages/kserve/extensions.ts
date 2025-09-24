@@ -121,7 +121,7 @@ const extensions: (
     type: 'model-serving.deployed-model/serving-runtime',
     properties: {
       platform: KSERVE_ID,
-      ServingDetailsComponent: () => import('./src/deploymentServingDetails'),
+      ServingDetailsComponent: () => import('./src/components/deploymentServingDetails'),
     },
   },
   {

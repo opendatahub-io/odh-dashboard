@@ -41,10 +41,7 @@ const ModelsProjectDetailsTab: React.FC = () => {
   }
 
   return (
-    <ModelDeploymentsProvider
-      modelServingPlatforms={activePlatform ? [activePlatform] : []}
-      projects={[currentProject]}
-    >
+    <ModelDeploymentsProvider projects={[currentProject]}>
       <ModelsProjectDetailsView project={currentProject} platforms={clusterPlatforms} />
     </ModelDeploymentsProvider>
   );

@@ -17,7 +17,6 @@ import {
 import { ArrowRightIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
-import { useExtensions } from '@odh-dashboard/plugin-core';
 import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import TypedObjectIcon from '@odh-dashboard/internal/concepts/design/TypedObjectIcon';
@@ -29,11 +28,7 @@ import {
   ModelDeploymentsContext,
   ModelDeploymentsProvider,
 } from '../src/concepts/ModelDeploymentsContext';
-import {
-  Deployment,
-  isModelServingMetricsExtension,
-  isModelServingPlatformExtension,
-} from '../extension-points';
+import { Deployment, isModelServingMetricsExtension } from '../extension-points';
 import { DeploymentMetricsLink } from '../src/components/metrics/DeploymentMetricsLink';
 import { useDeploymentExtension } from '../src/concepts/extensionUtils';
 import { deploymentLastDeployedSort } from '../src/concepts/deploymentUtils';
@@ -148,7 +143,6 @@ const ModelDetailsDeploymentCard: React.FC<{ rmId?: string; mrName?: string }> =
   mrName,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
-  const modelServingPlatforms = useExtensions(isModelServingPlatformExtension);
   const labelSelectors = React.useMemo(() => {
     if (!rmId) {
       return undefined;
@@ -159,12 +153,7 @@ const ModelDetailsDeploymentCard: React.FC<{ rmId?: string; mrName?: string }> =
   }, [rmId]);
 
   return (
-    <ModelDeploymentsProvider
-      projects={projects}
-      modelServingPlatforms={modelServingPlatforms}
-      labelSelectors={labelSelectors}
-      mrName={mrName}
-    >
+    <ModelDeploymentsProvider projects={projects} labelSelectors={labelSelectors} mrName={mrName}>
       <Card>
         <CardTitle>Latest deployments</CardTitle>
         <DeploymentCard rmId={rmId} preferredModelRegistry={mrName} />

@@ -28,6 +28,7 @@ const mockDeployment = (partial: Partial<Deployment> = {}) => ({
   server: partial.server,
   status: partial.status,
   endpoints: partial.endpoints,
+  apiProtocol: partial.apiProtocol,
 });
 
 describe('DeploymentsTableRow', () => {
@@ -225,17 +226,8 @@ describe('DeploymentsTableRow', () => {
         <tbody>
           <DeploymentRow
             deployment={mockDeployment({
-              server: {
-                apiVersion: 'v1',
-                kind: 'TestServerKind',
-                metadata: {
-                  name: 'test-server',
-                  namespace: 'test-project',
-                  annotations: {
-                    'opendatahub.io/apiProtocol': 'REST',
-                  },
-                },
-              },
+              server: undefined,
+              apiProtocol: 'REST',
             })}
             platformColumns={[]}
             onDelete={onDelete}

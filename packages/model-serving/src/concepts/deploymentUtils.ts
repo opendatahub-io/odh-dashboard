@@ -55,6 +55,3 @@ export const deploymentLastDeployedSort = (a: Deployment, b: Deployment): number
 
   return new Date(bTimestamp ?? '').getTime() - new Date(aTimestamp ?? '').getTime();
 };
-
-export const getServerApiProtocol = (deployment: Deployment): string | undefined =>
-  deployment.server?.metadata.annotations?.['opendatahub.io/apiProtocol'];
