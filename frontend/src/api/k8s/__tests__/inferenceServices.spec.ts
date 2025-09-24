@@ -664,7 +664,7 @@ describe('assembleInferenceService', () => {
 
   it('should not set hardware profile annotations when accelerator profile name is undefined', () => {
     const acceleratorProfile = mockAcceleratorProfile({
-      name: undefined as any,
+      name: undefined,
       displayName: 'GPU Accelerator',
       identifier: 'nvidia.com/gpu',
     });
