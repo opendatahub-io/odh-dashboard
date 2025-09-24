@@ -5,7 +5,7 @@ import { header } from '#~/__tests__/cypress/cypress/pages/components/Header';
 describe('Verify the RHOAI Application and Switcher links in the Dashboard Navigation', () => {
   it(
     'Verify the various application tabs and switcher links are operational',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-771', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@ODS-771', '@Dashboard', '@NonConcurrent'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
