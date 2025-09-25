@@ -53,11 +53,9 @@ jest.mock('#~/pages/hardwareProfiles/HardwareProfilesToolbar', () => {
   return function MockHardwareProfilesToolbar({
     onFilterUpdate,
     filterData,
-    showCreateButton,
   }: {
     onFilterUpdate: (key: string, value?: string | { label: string; value: string }) => void;
     filterData: Record<string, string>;
-    showCreateButton?: boolean;
   }) {
     return (
       <div data-testid="hardware-profiles-toolbar">
@@ -76,7 +74,7 @@ jest.mock('#~/pages/hardwareProfiles/HardwareProfilesToolbar', () => {
           <option value="Enabled">Enabled</option>
           <option value="Disabled">Disabled</option>
         </select>
-        {showCreateButton ? <button data-testid="create-button">Create</button> : null}
+        <button data-testid="create-hardware-profile">Create</button>
       </div>
     );
   };
