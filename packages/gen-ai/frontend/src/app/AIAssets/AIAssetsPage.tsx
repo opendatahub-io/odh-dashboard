@@ -12,6 +12,7 @@ import GenAiCoreHeader from '~/app/GenAiCoreHeader';
 import { genAiAiAssetsRoute } from '~/app/utilities/routes';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
+import { useMCPServers } from '~/app/hooks/useMCPServers';
 import AIAssetsModelsTab from './AIAssetsModelsTab';
 import useFetchAIModels from './hooks/useFetchAIModels';
 import AIAssetsMCPTabWithContext from './AIAssetsMCPTabWithContext';
@@ -26,7 +27,12 @@ export const AIAssetsPage: React.FC = () => {
   const { namespace } = React.useContext(GenAiContext);
   const { data: playgroundModels } = useFetchLlamaModels(namespace?.name);
   const { data: models, loaded, error } = useFetchAIModels(namespace?.name);
+  const { servers: mcpServers, serversLoaded: mcpServersLoaded } = useMCPServers(
+    namespace?.name || '',
+    { autoCheckStatuses: false },
+  );
   const modelsCount = models.length;
+  const mcpServersCount = mcpServers.length;
 
   return (
     <ApplicationsPage
@@ -50,7 +56,9 @@ export const AIAssetsPage: React.FC = () => {
           />
           <Tab
             eventKey={AIAssetsPageTabKey.MCP_SERVERS}
-            title={<TabTitleText>MCP Servers</TabTitleText>}
+            title={
+              <TabTitleText>MCP Servers {mcpServersLoaded && `(${mcpServersCount})`}</TabTitleText>
+            }
             aria-label="MCP Servers tab"
             tabContentId="mcpservers-tab-content"
           />
