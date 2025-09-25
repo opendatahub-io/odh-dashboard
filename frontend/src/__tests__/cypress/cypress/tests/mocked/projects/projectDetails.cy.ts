@@ -486,7 +486,8 @@ describe('Project Details', () => {
       cy.wait('@templates');
       projectDetails.findTopLevelDeployModelButton().should('have.attr', 'aria-disabled');
       projectDetails.findTopLevelDeployModelButton().trigger('mouseenter');
-      projectDetails.findDeployModelTooltip().should('exist');
+      // Wait for tooltip to appear after mouseenter
+      projectDetails.findDeployModelTooltip().should('exist').and('be.visible');
     });
 
     it('Only multi serving platform enabled, no serving runtimes templates', () => {
@@ -497,7 +498,8 @@ describe('Project Details', () => {
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findTopLevelAddModelServerButton().should('have.attr', 'aria-disabled');
       projectDetails.findTopLevelAddModelServerButton().trigger('mouseenter');
-      projectDetails.findDeployModelTooltip().should('exist');
+      // Wait for tooltip to appear after mouseenter
+      projectDetails.findDeployModelTooltip().should('exist').and('be.visible');
     });
 
     it('Both model serving platforms are enabled, single-model platform is selected, no serving runtimes templates', () => {
@@ -509,7 +511,8 @@ describe('Project Details', () => {
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findTopLevelDeployModelButton().should('have.attr', 'aria-disabled');
       projectDetails.findTopLevelDeployModelButton().trigger('mouseenter');
-      projectDetails.findDeployModelTooltip().should('exist');
+      // Wait for tooltip to appear after mouseenter
+      projectDetails.findDeployModelTooltip().should('exist').and('be.visible');
     });
 
     it('Both model serving platforms are enabled, multi-model platform is selected, no serving runtimes templates', () => {
@@ -521,7 +524,8 @@ describe('Project Details', () => {
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findTopLevelAddModelServerButton().should('have.attr', 'aria-disabled');
       projectDetails.findTopLevelAddModelServerButton().trigger('mouseenter');
-      projectDetails.findDeployModelTooltip().should('exist');
+      // Wait for tooltip to appear after mouseenter
+      projectDetails.findDeployModelTooltip().should('exist').and('be.visible');
     });
 
     it('Single model serving platform is enabled', () => {
