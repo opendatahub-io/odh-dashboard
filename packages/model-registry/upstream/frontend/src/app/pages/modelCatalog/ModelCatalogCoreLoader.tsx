@@ -63,7 +63,7 @@ const ModelCatalogCoreLoader: React.FC<ModelCatalogCoreLoaderrProps> = ({
   if (!catalogSourcesLoaded) {
     return (
       <ApplicationsPage
-        title={<TitleWithIcon title="Model Catalog" objectType={ProjectObjectType.modelCatalog} />}
+        title={<TitleWithIcon title="Catalog" objectType={ProjectObjectType.modelCatalog} />}
         description="Discover models that are available for your organization to register, deploy, and customize."
         headerContent={null}
         empty
@@ -114,7 +114,7 @@ const ModelCatalogCoreLoader: React.FC<ModelCatalogCoreLoaderrProps> = ({
 
   return (
     <ApplicationsPage
-      title={<TitleWithIcon title="Model Catalog" objectType={ProjectObjectType.modelCatalog} />}
+      title={<TitleWithIcon title="Catalog" objectType={ProjectObjectType.modelCatalog} />}
       description="Discover models that are available for your organization to register, deploy, and customize."
       headerContent={
         <ModelCatalogSourceSelectorNavigator getRedirectPath={(id) => modelCatalogUrl(id)} />
