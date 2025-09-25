@@ -14,6 +14,7 @@ import { UseModelDeploymentWizardState } from '../../model-serving/src/component
 import { ExternalRouteFieldData } from '../../model-serving/src/components/deploymentWizard/fields/ExternalRouteField';
 import { TokenAuthenticationFieldData } from '../../model-serving/src/components/deploymentWizard/fields/TokenAuthenticationField';
 import { NumReplicasFieldData } from '../../model-serving/src/components/deploymentWizard/fields/NumReplicasField';
+import { AvailableAiAssetsFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/AvailableAiAssetsFields';
 
 export type CreatingInferenceServiceObject = {
   project: string;
@@ -25,6 +26,7 @@ export type CreatingInferenceServiceObject = {
   externalRoute?: ExternalRouteFieldData;
   tokenAuth?: TokenAuthenticationFieldData;
   numReplicas?: NumReplicasFieldData;
+  AAAData?: AvailableAiAssetsFieldsData;
 };
 
 export const deployKServeDeployment = async (
@@ -51,6 +53,7 @@ export const deployKServeDeployment = async (
     externalRoute: wizardData.externalRoute.data,
     tokenAuth: wizardData.tokenAuthentication.data,
     numReplicas: wizardData.numReplicas.data,
+    AAAData: wizardData.AAAData.data,
   };
 
   const inferenceService = await createInferenceService(
@@ -91,6 +94,7 @@ const assembleInferenceService = (
     tokenAuth,
     externalRoute,
     numReplicas,
+    AAAData,
   } = data;
   const inferenceService: InferenceServiceKind = existingInferenceService
     ? { ...existingInferenceService }
@@ -136,6 +140,12 @@ const assembleInferenceService = (
 
   if (tokenAuth && tokenAuth.length > 0) {
     annotations['security.opendatahub.io/enable-auth'] = 'true';
+  }
+  if (AAAData?.saveAsAAA === true) {
+    annotations['opendatahub.io/genai-asset'] = 'true';
+    if (AAAData.useCase) {
+      annotations['opendatahub.io/genai-use-case'] = AAAData.useCase;
+    }
   }
 
   inferenceService.metadata.annotations = annotations;

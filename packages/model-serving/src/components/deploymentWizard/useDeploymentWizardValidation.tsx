@@ -81,7 +81,6 @@ export const useModelDeploymentWizardValidation = (
   const isAdvancedSettingsStepValid =
     externalRouteValidation.getFieldValidation(undefined, true).length === 0 &&
     tokenAuthenticationValidation.getFieldValidation(undefined, true).length === 0;
-
   return {
     modelSource: modelSourceStepValidation,
     hardwareProfile: hardwareProfileValidation,

@@ -334,6 +334,15 @@ describe('Model Serving Deploy Wizard', () => {
     // Step 3: Advanced Options
     // Model access & Token authentication
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+    // AI Asset
+    modelServingWizard.findSaveAsAAACheckbox().should('exist');
+    modelServingWizard.findSaveAsAAACheckbox().should('not.be.checked');
+    modelServingWizard.findUseCaseInput().should('not.exist');
+    modelServingWizard.findSaveAsAAACheckbox().click();
+    modelServingWizard.findUseCaseInput().should('exist');
+    modelServingWizard.findUseCaseInput().should('be.enabled');
+    modelServingWizard.findUseCaseInput().type('test');
+
     modelServingWizard.findExternalRouteCheckbox().click();
     modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
     modelServingWizard.findTokenAuthenticationCheckbox().click();
@@ -354,6 +363,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 4: Summary
+
     modelServingWizard.findSubmitButton().should('be.enabled').click();
 
     // dry run request
@@ -365,6 +375,8 @@ describe('Model Serving Deploy Wizard', () => {
           namespace: 'test-project',
           labels: { 'opendatahub.io/dashboard': 'true' },
           annotations: {
+            'opendatahub.io/genai-asset': 'true',
+            'opendatahub.io/genai-use-case': 'test',
             'openshift.io/display-name': 'test-model',
             'opendatahub.io/hardware-profile-namespace': 'opendatahub',
             'opendatahub.io/legacy-hardware-profile-name': 'medium-serving-wz9u9',
@@ -558,6 +570,10 @@ describe('Model Serving Deploy Wizard', () => {
     // Step 3: Advanced Options
     // Model access & Token authentication
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+
+    modelServingWizard.findSaveAsAAACheckbox().should('not.exist');
+    modelServingWizard.findUseCaseInput().should('not.exist');
+
     modelServingWizard.findExternalRouteCheckbox().click();
     modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
     modelServingWizard.findTokenAuthenticationCheckbox().click();
@@ -566,6 +582,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 4: Summary
+
     modelServingWizard.findSubmitButton().should('be.enabled').click();
 
     // dry run request

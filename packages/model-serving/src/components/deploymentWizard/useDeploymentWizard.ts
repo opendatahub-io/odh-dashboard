@@ -17,6 +17,10 @@ import {
   type TokenAuthenticationFieldData,
 } from './fields/TokenAuthenticationField';
 import { useNumReplicasField, type NumReplicasFieldData } from './fields/NumReplicasField';
+import {
+  AvailableAiAssetsFieldsData,
+  useAvailableAiAssetsFields,
+} from './fields/AvailableAiAssetsFields';
 
 export type ModelDeploymentWizardData = {
   modelTypeField?: ModelTypeFieldData;
@@ -29,6 +33,7 @@ export type ModelDeploymentWizardData = {
   modelLocationData?: ModelLocationData;
   connections?: LabeledConnection[];
   initSelectedConnection?: LabeledConnection | undefined;
+  AAAData?: AvailableAiAssetsFieldsData;
   // Add more field handlers as needed
 };
 
@@ -43,6 +48,7 @@ export type UseModelDeploymentWizardState = {
     externalRoute: ReturnType<typeof useExternalRouteField>;
     tokenAuthentication: ReturnType<typeof useTokenAuthenticationField>;
     numReplicas: ReturnType<typeof useNumReplicasField>;
+    AAAData: ReturnType<typeof useAvailableAiAssetsFields>;
   };
 };
 
@@ -72,6 +78,7 @@ export const useModelDeploymentWizard = (
   const tokenAuthentication = useTokenAuthenticationField(
     initialData?.tokenAuthentication ?? undefined,
   );
+  const AAAData = useAvailableAiAssetsFields(initialData?.AAAData ?? undefined, modelType.data);
 
   const numReplicas = useNumReplicasField(initialData?.numReplicas ?? undefined);
 
@@ -88,6 +95,7 @@ export const useModelDeploymentWizard = (
       externalRoute,
       tokenAuthentication,
       numReplicas,
+      AAAData,
     },
   };
 };
