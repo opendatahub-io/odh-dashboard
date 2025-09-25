@@ -4,7 +4,7 @@ import { Flex } from '@patternfly/react-core';
 import { DeploymentMode } from 'mod-arch-core';
 import { ChatbotContextProvider } from '~/app/context/ChatbotContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
-import { MCPFullProvider } from '~/app/context/MCPContextProvider';
+import { MCPDataProvider } from '~/app/context/MCPContextProvider';
 import { ChatbotMain } from './ChatbotMain';
 
 const ChatbotPage: React.FC = () => {
@@ -14,7 +14,7 @@ const ChatbotPage: React.FC = () => {
 
   return (
     <ChatbotContextProvider namespace={namespace}>
-      <MCPFullProvider namespace={namespace}>
+      <MCPDataProvider namespace={namespace}>
         {isStandalone ? (
           <ChatbotMain />
         ) : (
@@ -28,7 +28,7 @@ const ChatbotPage: React.FC = () => {
             <ChatbotMain />
           </Flex>
         )}
-      </MCPFullProvider>
+      </MCPDataProvider>
     </ChatbotContextProvider>
   );
 };

@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserStorageContextProvider, Namespace, useNamespaceSelector } from 'mod-arch-core';
 import useSyncPreferredNamespace from '~/app/hooks/useSyncPreferredNamespace';
-import { MCPLazyProvider } from './MCPContextProvider';
+import { MCPSelectionProvider } from './MCPContextProvider';
 
 type GenAiContextProps = {
   namespace: Namespace | undefined;
@@ -32,7 +32,7 @@ export const GenAiContextProvider: React.FC<GenAiContextProviderProps> = ({
   return (
     <GenAiContext.Provider value={contextValue}>
       <BrowserStorageContextProvider>
-        <MCPLazyProvider>{children}</MCPLazyProvider>
+        <MCPSelectionProvider>{children}</MCPSelectionProvider>
       </BrowserStorageContextProvider>
     </GenAiContext.Provider>
   );

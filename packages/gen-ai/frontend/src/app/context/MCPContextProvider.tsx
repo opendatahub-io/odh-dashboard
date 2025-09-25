@@ -4,31 +4,32 @@ import { MCPSelectionContextProvider } from './MCPSelectionContext';
 import { MCPServersContextProvider } from './MCPServersContext';
 import { MCPTokenContextProvider } from './MCPTokenContext';
 
-type MCPLazyProviderProps = {
+type MCPSelectionProviderProps = {
   children: React.ReactNode;
 };
 
 /**
- * Lazy MCP Provider that only loads heavy contexts when needed.
- * MCPSelectionContext is always loaded (lightweight).
- * MCPServersContext and MCPTokenContext are loaded on-demand.
+ * Basic MCP Provider that only provides selection state management.
+ * Lightweight context for tracking which MCP servers are selected.
+ * Use this at the root level for basic MCP functionality.
  */
-export const MCPLazyProvider: React.FC<MCPLazyProviderProps> = ({ children }) => (
+export const MCPSelectionProvider: React.FC<MCPSelectionProviderProps> = ({ children }) => (
   <MCPSelectionContextProvider>{children}</MCPSelectionContextProvider>
 );
 
-type MCPFullProviderProps = {
+type MCPDataProviderProps = {
   children: React.ReactNode;
   namespace: Namespace | undefined;
   autoCheckStatuses?: boolean;
 };
 
 /**
- * Full MCP Provider that loads all contexts immediately.
- * Use this when you know MCP features will be used.
- * Note: MCPSelectionContext should already be provided by MCPLazyProvider at root level.
+ * Complete MCP Provider that includes server data fetching and token management.
+ * Provides all MCP contexts including server status checking and authentication.
+ * Use this when you need full MCP functionality (server lists, status checks, tools).
+ * Note: MCPSelectionContext should already be provided by MCPSelectionProvider at root level.
  */
-export const MCPFullProvider: React.FC<MCPFullProviderProps> = ({
+export const MCPDataProvider: React.FC<MCPDataProviderProps> = ({
   children,
   namespace,
   autoCheckStatuses = false,
@@ -39,40 +40,3 @@ export const MCPFullProvider: React.FC<MCPFullProviderProps> = ({
     </MCPServersContextProvider>
   </MCPTokenContextProvider>
 );
-
-/**
- * Hook to check if heavy MCP contexts are available
- */
-export const useMCPContextsAvailable = (): {
-  serversAvailable: boolean;
-  tokensAvailable: boolean;
-} => {
-  const [serversAvailable, setServersAvailable] = React.useState(false);
-  const [tokensAvailable, setTokensAvailable] = React.useState(false);
-
-  React.useEffect(() => {
-    // Check if contexts are available
-    try {
-      // Dynamic imports to check availability
-      import('./MCPServersContext')
-        .then(() => {
-          setServersAvailable(true);
-        })
-        .catch(() => {
-          // Context not available
-        });
-
-      import('./MCPTokenContext')
-        .then(() => {
-          setTokensAvailable(true);
-        })
-        .catch(() => {
-          // Context not available
-        });
-    } catch {
-      // Contexts not available
-    }
-  }, []);
-
-  return { serversAvailable, tokensAvailable };
-};
