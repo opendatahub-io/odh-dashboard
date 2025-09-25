@@ -70,7 +70,7 @@ export type StorageClassConfig = {
   isDefault: boolean;
   lastModified: string;
   description?: string;
-  accessModeSettings: AccessModeSettings;
+  accessModeSettings?: AccessModeSettings;
 };
 
 export enum MetadataAnnotation {
