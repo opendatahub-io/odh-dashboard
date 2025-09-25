@@ -302,6 +302,78 @@ describe('v2Redirect', () => {
       });
     });
 
+    it('should fallback to params wildcard when pathname does not start with basePath', () => {
+      mockUseParams.mockReturnValue({ '*': 'fallback/content' });
+      mockUseLocation.mockReturnValue(createMockLocation('/different/path/structure'));
+
+      const element = buildV2RedirectElement({
+        from: '/old/settings/*',
+        to: '/new/config/settings/*',
+      });
+
+      render(element);
+
+      expect(getNavigateProps()).toEqual({
+        to: '/new/config/settings/fallback/content',
+        state: null,
+        replace: true,
+      });
+    });
+
+    it('should handle empty string when pathname does not match basePath and no params wildcard', () => {
+      mockUseParams.mockReturnValue({});
+      mockUseLocation.mockReturnValue(createMockLocation('/completely/different/path'));
+
+      const element = buildV2RedirectElement({
+        from: '/old/settings/*',
+        to: '/new/config/settings/*',
+      });
+
+      render(element);
+
+      expect(getNavigateProps()).toEqual({
+        to: '/new/config/settings',
+        state: null,
+        replace: true,
+      });
+    });
+
+    it('should handle empty params wildcard when pathname does not match basePath', () => {
+      mockUseParams.mockReturnValue({ '*': '' });
+      mockUseLocation.mockReturnValue(createMockLocation('/unrelated/path'));
+
+      const element = buildV2RedirectElement({
+        from: '/old/settings/*',
+        to: '/new/config/settings/*',
+      });
+
+      render(element);
+
+      expect(getNavigateProps()).toEqual({
+        to: '/new/config/settings',
+        state: null,
+        replace: true,
+      });
+    });
+
+    it('should use pathname slice when pathname starts with basePath for routes without parameters', () => {
+      mockUseParams.mockReturnValue({ '*': 'should-not-be-used' });
+      mockUseLocation.mockReturnValue(createMockLocation('/old/settings/actual/path/content'));
+
+      const element = buildV2RedirectElement({
+        from: '/old/settings/*',
+        to: '/new/config/settings/*',
+      });
+
+      render(element);
+
+      expect(getNavigateProps()).toEqual({
+        to: '/new/config/settings/actual/path/content',
+        state: null,
+        replace: true,
+      });
+    });
+
     it('should clean up double slashes', () => {
       mockUseParams.mockReturnValue({
         namespace: '',
