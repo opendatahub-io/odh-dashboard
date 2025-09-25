@@ -104,7 +104,7 @@ const ModelDetailsPage: React.FC = () => {
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem>
-            <Link to="/model-catalog">Model catalog</Link>
+            <Link to="/model-catalog">Catalog</Link>
           </BreadcrumbItem>
           <BreadcrumbItem isActive>{getModelName(model?.name || '') || 'Details'}</BreadcrumbItem>
         </Breadcrumb>
