@@ -1,5 +1,11 @@
 import React from 'react';
-import { ImageStreamKind, AcceleratorProfileKind, HardwareProfileKind } from '#~/k8sTypes';
+import {
+  ImageStreamKind,
+  AcceleratorProfileKind,
+  HardwareProfileKind,
+  InferenceServiceKind,
+  NotebookKind,
+} from '#~/k8sTypes';
 import { getCompatibleIdentifiers } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import {
   Toleration,
@@ -10,6 +16,7 @@ import {
 } from '#~/types';
 import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 import { splitValueUnit, CPU_UNITS, MEMORY_UNITS_FOR_PARSING } from '#~/utilities/valueUnits';
+import { ResourceType, SupportedResource } from './types';
 
 export const formatToleration = (toleration: Toleration): string => {
   const parts = [`Key = ${toleration.key}`];
@@ -174,3 +181,85 @@ export const getProfileScore = (profile: HardwareProfileKind): number => {
 
   return score;
 };
+
+export const createHardwareProfileSpecSnapshot = (hardwareProfile: HardwareProfileKind): string => {
+  const specSnapshot = {
+    identifiers: hardwareProfile.spec.identifiers
+      ?.map((identifier) => ({
+        displayName: identifier.displayName,
+        identifier: identifier.identifier,
+        minCount: identifier.minCount,
+        maxCount: identifier.maxCount,
+        defaultCount: identifier.defaultCount,
+        resourceType: identifier.resourceType,
+      }))
+      .toSorted((a, b) => a.identifier.localeCompare(b.identifier)), // Sort for consistency
+    scheduling: hardwareProfile.spec.scheduling
+      ? {
+          type: hardwareProfile.spec.scheduling.type,
+          node: hardwareProfile.spec.scheduling.node
+            ? {
+                nodeSelector: hardwareProfile.spec.scheduling.node.nodeSelector,
+                tolerations: hardwareProfile.spec.scheduling.node.tolerations
+                  ?.map((toleration) => ({
+                    key: toleration.key,
+                    operator: toleration.operator,
+                    value: toleration.value,
+                    effect: toleration.effect,
+                    tolerationSeconds: toleration.tolerationSeconds,
+                  }))
+                  .toSorted((a, b) => (a.key || '').localeCompare(b.key || '')), // Sort for consistency
+              }
+            : undefined,
+          kueue: hardwareProfile.spec.scheduling.kueue,
+        }
+      : undefined,
+  };
+
+  // Return JSON string for direct storage in annotations
+  return JSON.stringify(specSnapshot);
+};
+
+/**
+ * Compare two hardware profile spec snapshots to detect changes
+ */
+export const hasHardwareProfileSpecChanged = (
+  currentProfile: HardwareProfileKind,
+  storedSpecSnapshot?: string,
+): boolean => {
+  if (!storedSpecSnapshot) {
+    return false;
+  }
+  try {
+    const currentSnapshot = createHardwareProfileSpecSnapshot(currentProfile);
+    return currentSnapshot !== storedSpecSnapshot;
+  } catch (error) {
+    return true;
+  }
+};
+
+export const resourceTypeOf = (r: SupportedResource): ResourceType => {
+  return r.kind === 'Notebook' ? 'workbench' : 'deployment';
+};
+
+export function isNotebook(r: SupportedResource): r is NotebookKind {
+  return r.kind === 'Notebook';
+}
+
+export function isInferenceService(r: SupportedResource): r is InferenceServiceKind {
+  return r.kind === 'InferenceService';
+}
+
+export function extractContainerResources(
+  resource: SupportedResource,
+): ContainerResources | undefined {
+  if (isNotebook(resource)) {
+    return resource.spec.template.spec.containers.find(
+      (container) => container.name === resource.metadata.name,
+    )?.resources;
+  }
+  if (isInferenceService(resource)) {
+    return resource.spec.predictor.model?.resources;
+  }
+  return undefined;
+}

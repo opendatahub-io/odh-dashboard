@@ -40,6 +40,7 @@ type MockResourceConfigType = {
   hardwareProfileName?: string;
   hardwareProfileNamespace?: string;
   useLegacyHardwareProfile?: boolean;
+  hardwareProfileSpecSnapshot?: string;
   creationTimestamp?: string;
   lastTransitionTime?: string;
   isReady?: boolean;
@@ -118,6 +119,7 @@ export const mockInferenceServiceK8sResource = ({
   hardwareProfileName = '',
   hardwareProfileNamespace = undefined,
   useLegacyHardwareProfile = false,
+  hardwareProfileSpecSnapshot = undefined,
   creationTimestamp = '2023-03-17T16:12:41Z',
   lastTransitionTime = '2023-03-17T16:12:41Z',
   isReady = false,
@@ -147,6 +149,9 @@ export const mockInferenceServiceK8sResource = ({
       }),
       ...(hardwareProfileNamespace && {
         'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
+      }),
+      ...(hardwareProfileSpecSnapshot && {
+        'opendatahub.io/hardware-profile-spec-snapshot': hardwareProfileSpecSnapshot,
       }),
       ...(modelType && { 'opendatahub.io/model-type': modelType }),
     },

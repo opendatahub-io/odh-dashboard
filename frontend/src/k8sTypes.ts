@@ -129,6 +129,7 @@ export type NotebookAnnotations = Partial<{
   'opendatahub.io/hardware-profile-namespace': string | null; // the namespace of the hardware profile used
   'opendatahub.io/workbench-image-namespace': string | null; // namespace of the
   'opendatahub.io/accelerator-profile-namespace': string | undefined; // the namespace of the accelerator profile used
+  'opendatahub.io/hardware-profile-spec-snapshot': string; // JSON snapshot of hardware profile spec when assigned
 }>;
 
 export type DashboardLabels = {

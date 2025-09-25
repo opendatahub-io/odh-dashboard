@@ -11,6 +11,7 @@ import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUt
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
 import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import InferenceServiceTableRow from './InferenceServiceTableRow';
 import { getGlobalInferenceServiceColumns, getProjectInferenceServiceColumns } from './data';
 import DeleteInferenceServiceModal from './DeleteInferenceServiceModal';
@@ -45,6 +46,8 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
   const [deleteInferenceService, setDeleteInferenceService] =
     React.useState<InferenceServiceKind>();
   const [editInferenceService, setEditInferenceService] = React.useState<InferenceServiceKind>();
+  const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
+
   const mappedColumns = React.useMemo(() => {
     const columns = getColumns?.(projects);
 
@@ -53,11 +56,11 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
     }
 
     if (isGlobal) {
-      return getGlobalInferenceServiceColumns(projects);
+      return getGlobalInferenceServiceColumns(projects, isHardwareProfilesAvailable);
     }
 
-    return getProjectInferenceServiceColumns();
-  }, [getColumns, isGlobal, projects]);
+    return getProjectInferenceServiceColumns(isHardwareProfilesAvailable);
+  }, [getColumns, isGlobal, projects, isHardwareProfilesAvailable]);
 
   return (
     <>

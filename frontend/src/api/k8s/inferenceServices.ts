@@ -15,7 +15,8 @@ import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import { getInferenceServiceDeploymentMode } from '#~/pages/modelServing/screens/projects/utils';
 import { parseCommandLine } from '#~/api/k8s/utils';
 import { ModelServingPodSpecOptions } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
-import { getModelServingProjects } from './projects';
+import { createHardwareProfileSpecSnapshot } from '#~/concepts/hardwareProfiles/utils';
+import { getModelServingProjects } from '#~/api';
 
 const applyAuthToInferenceService = (
   inferenceService: InferenceServiceKind,
@@ -144,6 +145,8 @@ export const assembleInferenceService = (
     } else {
       annotations['opendatahub.io/hardware-profile-namespace'] = dashboardNamespace;
     }
+    annotations['opendatahub.io/hardware-profile-spec-snapshot'] =
+      createHardwareProfileSpecSnapshot(podSpecOptions.selectedHardwareProfile);
   }
 
   const labels = { ...updatedInferenceService.metadata.labels, ...data.labels };
