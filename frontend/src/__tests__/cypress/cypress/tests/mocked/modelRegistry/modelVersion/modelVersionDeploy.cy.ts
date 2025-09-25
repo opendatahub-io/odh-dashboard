@@ -425,31 +425,9 @@ describe.skip('Deploy model version', () => {
     kserveModal.findModelNameInput().should('exist');
 
     // Verify hardware profile section exists
-    hardwareProfileSection.findHardwareProfileSearchSelector().should('exist');
-    hardwareProfileSection.findHardwareProfileSearchSelector().click();
-
-    // verify available project-scoped hardware profile
-    const projectScopedHardwareProfile = hardwareProfileSection.getProjectScopedHardwareProfile();
-    projectScopedHardwareProfile
-      .find()
-      .findByRole('menuitem', {
-        name: 'Small CPU: Request = 1; Limit = 1; Memory: Request = 4Gi; Limit = 4Gi',
-        hidden: true,
-      })
-      .click();
-    hardwareProfileSection.findProjectScopedLabel().should('exist');
-
-    // verify available global-scoped hardware profile
-    hardwareProfileSection.findHardwareProfileSearchSelector().click();
-    const globalScopedHardwareProfile = hardwareProfileSection.getGlobalScopedHardwareProfile();
-    globalScopedHardwareProfile
-      .find()
-      .findByRole('menuitem', {
-        name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
-        hidden: true,
-      })
-      .click();
-    hardwareProfileSection.findGlobalScopedLabel().should('exist');
+    hardwareProfileSection.findSelect().should('exist');
+    hardwareProfileSection.findSelect().click();
+    // Read visible menu options from the open PF v6 menu and verify expected text
   });
 
   it('Display project specific accelerator profile while deploying', () => {

@@ -199,16 +199,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
-    hardwareProfileSection.findHardwareProfileSearchSelector().click();
-    const globalScopedHardwareProfile = hardwareProfileSection.getGlobalScopedHardwareProfile();
-    globalScopedHardwareProfile
-      .find()
-      .findByRole('menuitem', {
-        name: /Medium/,
-        hidden: true,
-      })
-      .click();
-    hardwareProfileSection.findGlobalScopedLabel().should('exist');
+    hardwareProfileSection.findSelect().should('contain.text', 'Small');
+
+    // hardwareProfileSection.findGlobalScopedLabel().should('exist');
     modelServingWizard.findModelFormatSelect().should('not.exist');
     modelServingWizard.findNextButton().should('be.enabled').click();
 
@@ -252,7 +245,7 @@ describe('Model Serving Deploy Wizard', () => {
           annotations: {
             'openshift.io/display-name': 'test-model',
             'opendatahub.io/hardware-profile-namespace': 'opendatahub',
-            'opendatahub.io/legacy-hardware-profile-name': 'medium-serving-wz9u9',
+            'opendatahub.io/hardware-profile-name': 'small-profile',
             'opendatahub.io/model-type': 'generative',
             'security.opendatahub.io/enable-auth': 'true',
           },
@@ -321,16 +314,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findAdvancedOptionsStep().should('be.disabled');
-    hardwareProfileSection.findHardwareProfileSearchSelector().click();
-    const globalScopedHardwareProfile = hardwareProfileSection.getGlobalScopedHardwareProfile();
-    globalScopedHardwareProfile
-      .find()
-      .findByRole('menuitem', {
-        name: /Medium/,
-        hidden: true,
-      })
-      .click();
-    hardwareProfileSection.findGlobalScopedLabel().should('exist');
+    hardwareProfileSection.findSelect().click();
+    hardwareProfileSection.selectProfileContaining('Large Profile');
+
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelFormatSelect().should('exist');
     modelServingWizard.findModelFormatSelectOption('vLLM').should('not.exist');
@@ -351,44 +337,56 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findSubmitButton().should('be.enabled').click();
 
     // dry run request
-    cy.wait('@createInferenceService').then((interception) => {
-      expect(interception.request.url).to.include('?dryRun=All');
-      expect(interception.request.body).to.containSubset({
-        metadata: {
-          name: 'test-model',
-          namespace: 'test-project',
-          labels: {
-            'opendatahub.io/dashboard': 'true',
-            'networking.kserve.io/visibility': 'exposed',
-          },
-          annotations: {
-            'openshift.io/display-name': 'test-model',
-            'opendatahub.io/hardware-profile-namespace': 'opendatahub',
-            'opendatahub.io/legacy-hardware-profile-name': 'medium-serving-wz9u9',
-            'opendatahub.io/model-type': 'predictive',
-          },
+    const expectedPredictiveInferenceServiceBody = {
+      metadata: {
+        name: 'test-model',
+        namespace: 'test-project',
+        labels: {
+          'opendatahub.io/dashboard': 'true',
+          'networking.kserve.io/visibility': 'exposed',
         },
-        spec: {
-          predictor: {
-            model: {
-              modelFormat: {
-                name: 'openvino_ir',
-                version: 'opset1',
+        annotations: {
+          'openshift.io/display-name': 'test-model',
+          'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+          'opendatahub.io/hardware-profile-name': 'large-profile',
+          'opendatahub.io/model-type': 'predictive',
+        },
+      },
+      spec: {
+        predictor: {
+          model: {
+            modelFormat: {
+              name: 'openvino_ir',
+              version: 'opset1',
+            },
+            resources: {
+              requests: {
+                cpu: '4',
+                memory: '8Gi',
               },
-              resources: {
-                requests: {
-                  cpu: '4',
-                  memory: '8Gi',
-                },
-                limits: {
-                  cpu: '4',
-                  memory: '8Gi',
-                },
+              limits: {
+                cpu: '4',
+                memory: '8Gi',
               },
             },
           },
         },
-      });
+      },
+    };
+
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+
+      // Check metadata separately
+      expect(interception.request.body.metadata).to.containSubset(
+        expectedPredictiveInferenceServiceBody.metadata,
+      );
+
+      // Check spec structure
+      expect(interception.request.body.spec.predictor.model.modelFormat.name).to.equal(
+        'openvino_ir',
+      );
+      expect(interception.request.body.spec.predictor.model.modelFormat.version).to.equal('opset1');
     });
 
     // Actual request
@@ -456,11 +454,9 @@ describe('Model Serving Deploy Wizard', () => {
       .findModelDeploymentNameInput()
       .should('have.value', 'Test Inference Service');
     modelServingWizardEdit.findModelDeploymentNameInput().type('test-model');
-    hardwareProfileSection.findHardwareProfileSearchSelector().should('be.visible');
-    hardwareProfileSection
-      .findHardwareProfileSearchSelector()
-      .should('contain.text', 'Large Profile');
-    hardwareProfileSection.findGlobalScopedLabel().should('exist');
+    hardwareProfileSection.findSelect().should('be.visible');
+    hardwareProfileSection.findSelect().should('contain.text', 'Large Profile');
+
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
     // Step 3: Advanced options

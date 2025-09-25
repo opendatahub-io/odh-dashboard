@@ -13,6 +13,7 @@ import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { mock200Status } from '#~/__mocks__/mockK8sStatus';
 import { mockStartNotebookData } from '#~/__mocks__/mockStartNotebookData';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
+import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
 
 import {
   assembleNotebook,
@@ -296,15 +297,6 @@ describe('assembleNotebook', () => {
     expect(result.metadata.annotations?.['opendatahub.io/image-display-name']).toBeUndefined();
   });
 
-  it('should not set hardware profile annotation for legacy profiles', () => {
-    const notebookData = mockStartNotebookData({});
-    const hardwareProfile = mockHardwareProfile({});
-    hardwareProfile.metadata.uid = undefined;
-    notebookData.podSpecOptions.selectedHardwareProfile = hardwareProfile;
-    const result = assembleNotebook(notebookData, 'test-user');
-    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBe('');
-  });
-
   it('should set hardware profile annotation for real profiles', () => {
     const notebookData = mockStartNotebookData({});
     const hardwareProfile = mockHardwareProfile({ name: 'real-profile' });
@@ -316,14 +308,14 @@ describe('assembleNotebook', () => {
     );
   });
 
-  it('should set pod specs like tolerations and nodeSelector for legacy hardware profiles', () => {
+  it('should set pod specs like tolerations and nodeSelector and have a null hardware-profile-namespace for accelerator profiles', () => {
     const notebookData = mockStartNotebookData({});
-    const hardwareProfile = mockHardwareProfile({});
-    hardwareProfile.metadata.uid = undefined;
-    notebookData.podSpecOptions.selectedHardwareProfile = hardwareProfile;
+    const acceleratorProfile = mockAcceleratorProfile({});
+    notebookData.podSpecOptions.selectedAcceleratorProfile = acceleratorProfile;
     const result = assembleNotebook(notebookData, 'test-user');
     expect(result.spec.template.spec.tolerations).toBeDefined();
     expect(result.spec.template.spec.nodeSelector).toBeDefined();
+    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-namespace']).toBe(null);
   });
 
   it('should not set pod specs like tolerations and nodeSelector for real hardware profiles', () => {
