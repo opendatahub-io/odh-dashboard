@@ -96,6 +96,7 @@ export const mockInferenceServiceK8sResource = ({
   activeModelState = 'Loaded',
   targetModelState = 'Loaded',
   url = '',
+  acceleratorIdentifier = '',
   path = 'path/to/model',
   minReplicas = 1,
   maxReplicas = 1,
@@ -173,6 +174,18 @@ export const mockInferenceServiceK8sResource = ({
           name: 'onnx',
           version: '1',
         },
+        ...(acceleratorIdentifier !== ''
+          ? {
+              resources: {
+                limits: {
+                  acceleratorIdentifier: '2',
+                },
+                requests: {
+                  acceleratorIdentifier: '2',
+                },
+              },
+            }
+          : {}),
         ...(resources && { resources }),
         runtime: modelName,
         ...(storageUri
