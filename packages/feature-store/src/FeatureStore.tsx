@@ -27,11 +27,17 @@ type FeatureStoreProps = Omit<
 const FeatureStoreInner: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(FeatureStoreTabs.METRICS);
   const { triggerCenter } = useLineageCenter();
+  const lineageTabRef = React.useRef<HTMLDivElement>(null);
 
-  // Trigger centering when lineage tab becomes active
   React.useEffect(() => {
     if (activeTabKey === FeatureStoreTabs.LINEAGE) {
       triggerCenter();
+      requestAnimationFrame(() => {
+        lineageTabRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      });
     }
   }, [activeTabKey, triggerCenter]);
 
@@ -64,8 +70,9 @@ const FeatureStoreInner: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
     >
       <PageSection
         hasBodyWrapper={false}
-        style={{ height: '100%', minHeight: '600px' }}
+        style={{ height: '100%', minHeight: '600px', gap: 'unset' }}
         padding={{ default: 'noPadding' }}
+        isFilled={false}
       >
         <Tabs
           activeKey={activeTabKey}
@@ -75,6 +82,7 @@ const FeatureStoreInner: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
           aria-label="Overview page"
           role="region"
           data-testid="feature-store-page"
+          isFilled={false}
         >
           <Tab
             eventKey={FeatureStoreTabs.METRICS}
@@ -88,7 +96,7 @@ const FeatureStoreInner: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
               eventKey={FeatureStoreTabs.METRICS}
               activeKey={activeTabKey}
               hidden={FeatureStoreTabs.METRICS !== activeTabKey}
-              style={{ height: '100%' }}
+              style={{ height: '100%', marginTop: 'var(--pf-t--global--spacer--md)' }}
             >
               <Metrics />
             </TabContent>
@@ -102,6 +110,7 @@ const FeatureStoreInner: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
           />
         </Tabs>
         <TabContent
+          ref={lineageTabRef}
           id={`tabContent-${FeatureStoreTabs.LINEAGE}`}
           eventKey={FeatureStoreTabs.LINEAGE}
           activeKey={activeTabKey}

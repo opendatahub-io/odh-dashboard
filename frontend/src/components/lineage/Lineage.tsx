@@ -5,14 +5,7 @@ import {
   TopologyView,
   TopologyControlBar,
 } from '@patternfly/react-topology';
-import {
-  EmptyState,
-  EmptyStateVariant,
-  Spinner,
-  Alert,
-  Title,
-  Divider,
-} from '@patternfly/react-core';
+import { EmptyState, EmptyStateVariant, Spinner, Alert, Title } from '@patternfly/react-core';
 import {
   LineageProps,
   convertToLineageNodeModel,
@@ -229,12 +222,7 @@ const LineageInner: React.FC<LineageProps> = ({
         borderRadius: 16,
       }}
     >
-      {ToolbarComponent && (
-        <>
-          <ToolbarComponent />
-          <Divider />
-        </>
-      )}
+      {ToolbarComponent && <ToolbarComponent />}
       <div style={{ flex: 1, overflow: 'hidden', position: 'relative', borderRadius: 16 }}>
         <TopologyView
           controlBar={
