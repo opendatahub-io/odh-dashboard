@@ -5,7 +5,7 @@ import type { FetchStateObject } from '@odh-dashboard/internal/utilities/useFetc
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import type { Deployment } from '../../extension-points';
 
-export const useDeploymentAuthEnabled = (deployment: Deployment): boolean =>
+export const isDeploymentAuthEnabled = (deployment: Deployment): boolean =>
   deployment.model.metadata.annotations?.['security.opendatahub.io/enable-auth'] === 'true';
 
 export const useDeploymentAuthTokens = (deployment: Deployment): FetchStateObject<SecretKind[]> => {

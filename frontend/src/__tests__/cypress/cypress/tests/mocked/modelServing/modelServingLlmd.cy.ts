@@ -1,9 +1,10 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { LLMInferenceServiceModel } from '@odh-dashboard/llmd-serving/types';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/llmd-serving/__tests__/utils';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
-import { mockLLMInferenceServiceK8sResource } from '#~/__mocks__/mockLLMInferenceServiceK8sResource';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';

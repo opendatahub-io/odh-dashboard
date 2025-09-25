@@ -1,6 +1,6 @@
-import type { LLMInferenceServiceKind } from '@odh-dashboard/llmd-serving/types';
-import { KnownLabels } from '#~/k8sTypes';
-import { genUID } from '#~/__mocks__/mockUtils';
+import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
+import { genUID } from '@odh-dashboard/internal/__mocks__/mockUtils';
+import type { LLMInferenceServiceKind } from '../types';
 
 type MockLLMInferenceServiceConfigType = {
   name?: string;
