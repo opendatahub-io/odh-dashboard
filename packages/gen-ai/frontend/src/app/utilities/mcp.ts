@@ -7,6 +7,7 @@ import {
   OutputItem,
   MCPToolCallData,
 } from '~/app/types';
+import { ServerStatusInfo } from '~/app/hooks/useMCPServers';
 
 /**
  * Transform MCP server data from API to table format
@@ -170,7 +171,7 @@ export const extractMCPToolCallData = (output?: OutputItem[]): MCPToolCallData |
 export const getSelectedServersForAPI = (
   selectedServerIds: string[],
   servers: MCPServerFromAPI[],
-  serverStatuses: Map<string, { status: MCPServerUIStatus; message: string }>,
+  serverStatuses: Map<string, ServerStatusInfo>,
   serverTokens: Map<string, { token: string; authenticated: boolean; autoConnected: boolean }>,
 ): MCPServerConfig[] => {
   const selectedServerUrls = new Set(selectedServerIds);
