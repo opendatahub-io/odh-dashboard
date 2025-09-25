@@ -127,18 +127,8 @@ export const assembleInferenceService = (
 
   const dashboardNamespace = data.dashboardNamespace ?? '';
   if (!isModelMesh && podSpecOptions && podSpecOptions.selectedHardwareProfile) {
-    const isLegacyHardwareProfile =
-      !!podSpecOptions.selectedAcceleratorProfile ||
-      !podSpecOptions.selectedHardwareProfile.metadata.uid;
-    if (!isLegacyHardwareProfile) {
-      annotations['opendatahub.io/hardware-profile-name'] =
-        podSpecOptions.selectedHardwareProfile.metadata.name;
-    } else {
-      const legacyName = podSpecOptions.selectedHardwareProfile.metadata.name;
-      if (legacyName) {
-        annotations['opendatahub.io/legacy-hardware-profile-name'] = legacyName;
-      }
-    }
+    annotations['opendatahub.io/hardware-profile-name'] =
+      podSpecOptions.selectedHardwareProfile.metadata.name;
     if (podSpecOptions.selectedHardwareProfile.metadata.namespace === project) {
       annotations['opendatahub.io/hardware-profile-namespace'] = project;
     } else {
@@ -200,13 +190,15 @@ export const assembleInferenceService = (
     data.isKServeRawDeployment,
   );
 
-  if (!isModelMesh && podSpecOptions && !podSpecOptions.selectedHardwareProfile) {
+  if (!isModelMesh && podSpecOptions) {
     const { tolerations, resources, nodeSelector } = podSpecOptions;
-    if (tolerations) {
-      updatedInferenceService.spec.predictor.tolerations = tolerations;
-    }
-    if (nodeSelector) {
-      updatedInferenceService.spec.predictor.nodeSelector = nodeSelector;
+    if (!podSpecOptions.selectedHardwareProfile) {
+      if (tolerations) {
+        updatedInferenceService.spec.predictor.tolerations = tolerations;
+      }
+      if (nodeSelector) {
+        updatedInferenceService.spec.predictor.nodeSelector = nodeSelector;
+      }
     }
     updatedInferenceService.spec.predictor.model = {
       ...updatedInferenceService.spec.predictor.model,

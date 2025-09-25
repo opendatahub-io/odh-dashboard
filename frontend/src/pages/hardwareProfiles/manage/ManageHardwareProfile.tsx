@@ -18,7 +18,6 @@ import {
 } from '#~/pages/hardwareProfiles/utils';
 import ManageHardwareProfileFooter from '#~/pages/hardwareProfiles/manage/ManageHardwareProfileFooter';
 import ManageNodeResourceSection from '#~/pages/hardwareProfiles/manage/ManageNodeResourceSection';
-import { MigrationAction } from '#~/pages/hardwareProfiles/migration/types';
 import { useValidation, ValidationContext } from '#~/utilities/useValidation';
 import ManageResourceAllocationSection from '#~/pages/hardwareProfiles/manage/ManageResourceAllocationSection.tsx';
 import { SchedulingType } from '#~/types.ts';
@@ -31,7 +30,6 @@ type ManageHardwareProfileProps = {
   duplicatedHardwareProfile?: HardwareProfileKind;
   contextPath?: string;
   homepageTitle?: string;
-  migrationAction?: MigrationAction;
 };
 
 const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
@@ -39,7 +37,6 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
   duplicatedHardwareProfile,
   contextPath = '/hardwareProfiles',
   homepageTitle = 'Hardware profiles',
-  migrationAction,
 }) => {
   const [state, setState] = useGenericObjectState<HardwareProfileFormData>(
     DEFAULT_HARDWARE_PROFILE_FORM_DATA,
@@ -183,7 +180,6 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
             existingHardwareProfile={existingHardwareProfile}
             validFormData={validation.validationResult.success}
             redirectPath={contextPath}
-            migrationAction={migrationAction}
           />
         </PageSection>
       </ApplicationsPage>
