@@ -33,7 +33,8 @@ const extensions: (
       platform: LLMD_SERVING_ID,
       extractHardwareProfileConfig: () =>
         import('../src/deployments/hardware').then((m) => m.extractHardwareProfileConfig),
-      extractModelFormat: async () => () => null,
+      extractModelFormat: () =>
+        import('../src/deployments/model').then((m) => m.extractModelFormat),
       extractReplicas: () => import('../src/deployments/hardware').then((m) => m.extractReplicas),
     },
   },
