@@ -5,6 +5,7 @@ import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import ProjectSection from '../fields/ProjectSection';
 import { ModelServingHardwareProfileSection } from '../fields/ModelServingHardwareProfileSection';
 import { ModelFormatField } from '../fields/ModelFormatField';
+import { NumReplicasField } from '../fields/NumReplicasField';
 
 type ModelDeploymentStepProps = {
   projectName: string;
@@ -33,6 +34,7 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
           isEditing={false}
         />
         <ModelFormatField modelFormatState={wizardState.state.modelFormatState} />
+        <NumReplicasField replicaState={wizardState.state.numReplicas} />
       </FormSection>
     </Form>
   );

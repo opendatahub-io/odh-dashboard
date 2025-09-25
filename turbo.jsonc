@@ -1,6 +1,8 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
+  "globalDependencies": [".env*"],
+  "envMode": "loose",
   "tasks": {
     "includeDependenciesAsInputs": {},
     "build": {
@@ -34,6 +36,18 @@
       "cache": false
     },
 
+    "start:dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "start:dev:wait": {
+      "cache": false
+    },
+    "start:dev:ext": {
+      "cache": false,
+      "persistent": true
+    },
+
     // Cypress tasks
     "cypress:server:build": {
       // no caching until we can optimize the dependency graph
@@ -59,7 +73,7 @@
 
     /*
      * TODO waiting for feature https://github.com/vercel/turborepo/discussions/10495
-     * Workaround: use `concurrently` through package.json. See "test-mocked" script.
+     * Workaround: use `concurrently` through package.json.
      */
     // "cypress:run:mock": {
     //   "dependsOn": ["cypress:server:wait"],

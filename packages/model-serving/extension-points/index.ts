@@ -152,6 +152,7 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
       (deployment: D) => Parameters<typeof useHardwareProfileConfig> | null
     >;
     extractModelFormat: CodeRef<(deployment: D) => SupportedModelFormats | null>;
+    extractReplicas: CodeRef<(deployment: D) => number | null>;
   }
 >;
 export const isModelServingDeploymentFormDataExtension = <D extends Deployment = Deployment>(

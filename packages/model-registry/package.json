@@ -13,13 +13,16 @@
     "cypress:server:build:coverage": "COVERAGE=true npm run cypress:server:build",
     "cypress:server": "cd upstream/frontend && serve ./public-cypress -p 9100 -s -L",
     "cypress:server:dev": "cd upstream/frontend && DEPLOYMENT_MODE=federated PORT=9100 npm run start:dev",
-    "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9100"
+    "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9100",
+    "start:dev": "cd upstream && PORT=9100 make dev-start-federated",
+    "start:dev:ext": "cd upstream/frontend && DEPLOYMENT_MODE=federated PORT=9100 npm run start:dev",
+    "start:dev:wait": "npx wait-on -i 1000 http://localhost:9100"
   },
   "subtree": {
     "repo": "https://github.com/kubeflow/model-registry.git",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "bbb91eb7d7c4040a30c612cf602d5be8424e8cba"
+    "commit": "0f521260e8025434667fd885252729519548c735"
   },
   "module-federation": {
     "name": "modelRegistry",

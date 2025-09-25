@@ -9,11 +9,13 @@ import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { KServeDeployment } from './deployments';
+import { setUpTokenAuth } from './deployUtils';
 import { UseModelDeploymentWizardState } from '../../model-serving/src/components/deploymentWizard/useDeploymentWizard';
 import { ExternalRouteFieldData } from '../../model-serving/src/components/deploymentWizard/fields/ExternalRouteField';
 import { TokenAuthenticationFieldData } from '../../model-serving/src/components/deploymentWizard/fields/TokenAuthenticationField';
+import { NumReplicasFieldData } from '../../model-serving/src/components/deploymentWizard/fields/NumReplicasField';
 
-type CreatingInferenceServiceObject = {
+export type CreatingInferenceServiceObject = {
   project: string;
   name: string;
   k8sName: string;
@@ -22,6 +24,7 @@ type CreatingInferenceServiceObject = {
   modelFormat: SupportedModelFormats;
   externalRoute?: ExternalRouteFieldData;
   tokenAuth?: TokenAuthenticationFieldData;
+  numReplicas?: NumReplicasFieldData;
 };
 
 export const deployKServeDeployment = async (
@@ -47,6 +50,7 @@ export const deployKServeDeployment = async (
     modelFormat: wizardData.modelFormatState.modelFormat,
     externalRoute: wizardData.externalRoute.data,
     tokenAuth: wizardData.tokenAuthentication.data,
+    numReplicas: wizardData.numReplicas.data,
   };
 
   const inferenceService = await createInferenceService(
@@ -54,6 +58,18 @@ export const deployKServeDeployment = async (
     existingDeployment?.model,
     dryRun,
   );
+
+  if (inferenceServiceData.tokenAuth) {
+    await setUpTokenAuth(
+      inferenceServiceData,
+      inferenceServiceData.k8sName,
+      projectName,
+      true,
+      inferenceService,
+      undefined,
+      { dryRun: dryRun ?? false },
+    );
+  }
 
   return Promise.resolve({
     modelServingPlatformId: 'kserve',
@@ -74,6 +90,7 @@ const assembleInferenceService = (
     modelFormat,
     tokenAuth,
     externalRoute,
+    numReplicas,
   } = data;
   const inferenceService: InferenceServiceKind = existingInferenceService
     ? { ...existingInferenceService }
@@ -93,6 +110,10 @@ const assembleInferenceService = (
               },
               resources: hardwareProfile.resources,
             },
+            ...(numReplicas && {
+              minReplicas: numReplicas,
+              maxReplicas: numReplicas,
+            }),
           },
         },
       };
@@ -131,6 +152,12 @@ const assembleInferenceService = (
   const labels = { ...inferenceService.metadata.labels };
   labels[KnownLabels.DASHBOARD_RESOURCE] = 'true';
   inferenceService.metadata.labels = labels;
+
+  // Set replica configuration
+  if (numReplicas) {
+    inferenceService.spec.predictor.minReplicas = numReplicas;
+    inferenceService.spec.predictor.maxReplicas = numReplicas;
+  }
 
   return inferenceService;
 };

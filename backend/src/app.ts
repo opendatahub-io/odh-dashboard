@@ -6,8 +6,7 @@ import fastifyAutoload from '@fastify/autoload';
 import fastifySensible from '@fastify/sensible';
 import fastifyWebsocket from '@fastify/websocket';
 import fastifyAccepts from '@fastify/accepts';
-import { FastifyInstance } from 'fastify/types/instance';
-import { FastifyRegisterOptions } from 'fastify';
+import type { FastifyInstance, FastifyRegisterOptions } from 'fastify/';
 
 export const initializeApp = async (
   fastify: FastifyInstance,

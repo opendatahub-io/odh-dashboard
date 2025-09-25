@@ -21,6 +21,7 @@
     "clean": "rm -f ../logs/adminActivity.log",
     "start": "NODE_ENV=production node ./dist/server.js --log=1 --registry=localhost:50051",
     "start:dev": "npm run clean && export NODE_TLS_REJECT_UNAUTHORIZED=0 && export NODE_ENV=development && nodemon src/server.ts --log=1 --registry=localhost:50051",
+    "start:dev:wait": "npx wait-on -i 1000 http://localhost:4000",
     "debug": "npm run tsc && export NODE_TLS_REJECT_UNAUTHORIZED=0 && export NODE_ENV=development && node --inspect ./dist/server.js --log=1 --registry=localhost:50051",
     "build-only": "tsc -p . && node ./dist/server.js --log=1 --registry=localhost:50051 --buildonly",
     "build": "run-s build:clean tsc:prod",
@@ -61,10 +62,12 @@
     "ts-node": "^10.9.1"
   },
   "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
     "@types/http-errors": "^1.8.0",
     "@types/lodash": "^4.14.182",
     "@types/node": "^18.14.5",
     "fastify-cli": "^5.7.1",
+    "globals": "^16.4.0",
     "nodemon": "^3.0.2",
     "pino-pretty": "^9.4.0",
     "rimraf": "^3.0.2",
