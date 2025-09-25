@@ -5,6 +5,7 @@ import {
   transformMCPServerData,
   getStatusErrorMessage,
   processServerStatus,
+  getSelectedServersForAPI,
 } from '~/app/utilities/mcp';
 
 describe('MCP Utilities', () => {
@@ -386,6 +387,125 @@ describe('MCP Utilities', () => {
 
       const result = processServerStatus(status);
       expect(result).toBe('unreachable');
+    });
+  });
+
+  describe('getSelectedServersForAPI', () => {
+    const mockServers = [
+      {
+        name: 'Server 1',
+        url: 'http://server1.com',
+        transport: 'sse' as const,
+        description: 'Test server 1',
+        logo: null,
+        status: 'healthy' as const,
+      },
+      {
+        name: 'Server 2',
+        url: 'http://server2.com',
+        transport: 'sse' as const,
+        description: 'Test server 2',
+        logo: null,
+        status: 'healthy' as const,
+      },
+    ];
+
+    const mockServerStatuses = new Map([
+      ['http://server1.com', { status: 'connected' as const, message: 'Connected' }],
+      ['http://server2.com', { status: 'unreachable' as const, message: 'Failed to connect' }],
+    ]);
+
+    const mockServerTokens = new Map([
+      ['http://server1.com', { token: 'token1', authenticated: true, autoConnected: false }],
+      ['http://server2.com', { token: 'token2', authenticated: false, autoConnected: false }],
+    ]);
+
+    it('should return API-ready server configs for connected and authenticated servers', () => {
+      const selectedServerIds = ['http://server1.com', 'http://server2.com'];
+
+      const result = getSelectedServersForAPI(
+        selectedServerIds,
+        mockServers,
+        mockServerStatuses,
+        mockServerTokens,
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual({
+        server_label: 'Server 1',
+        server_url: 'http://server1.com',
+        headers: {
+          Authorization: 'Bearer token1',
+        },
+      });
+    });
+
+    it('should handle Bearer prefix in token', () => {
+      const mockTokensWithBearer = new Map([
+        [
+          'http://server1.com',
+          { token: 'Bearer existing-token', authenticated: true, autoConnected: false },
+        ],
+      ]);
+
+      const result = getSelectedServersForAPI(
+        ['http://server1.com'],
+        mockServers,
+        mockServerStatuses,
+        mockTokensWithBearer,
+      );
+
+      expect(result[0].headers.Authorization).toBe('Bearer existing-token');
+    });
+
+    it('should include auto-connected servers without tokens', () => {
+      const mockAutoConnectedTokens = new Map([
+        ['http://server1.com', { token: '', authenticated: false, autoConnected: true }],
+      ]);
+
+      const result = getSelectedServersForAPI(
+        ['http://server1.com'],
+        mockServers,
+        mockServerStatuses,
+        mockAutoConnectedTokens,
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].headers).toEqual({});
+    });
+
+    it('should exclude servers that are not selected', () => {
+      const result = getSelectedServersForAPI(
+        ['http://server1.com'],
+        mockServers,
+        mockServerStatuses,
+        mockServerTokens,
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].server_url).toBe('http://server1.com');
+    });
+
+    it('should exclude servers that are not connected or authenticated', () => {
+      const result = getSelectedServersForAPI(
+        ['http://server2.com'], // This server is unreachable and not authenticated
+        mockServers,
+        mockServerStatuses,
+        mockServerTokens,
+      );
+
+      expect(result).toHaveLength(0);
+    });
+
+    it('should return empty array when no servers are selected', () => {
+      const result = getSelectedServersForAPI(
+        [],
+        mockServers,
+        mockServerStatuses,
+        mockServerTokens,
+      );
+
+      expect(result).toHaveLength(0);
     });
   });
 });

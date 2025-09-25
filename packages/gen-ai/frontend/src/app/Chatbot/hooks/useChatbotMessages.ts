@@ -13,7 +13,10 @@ import {
 } from '~/app/types';
 import { ERROR_MESSAGES, initialBotMessage } from '~/app/Chatbot/const';
 import { GenAiContext } from '~/app/context/GenAiContext';
-import { useMCPContext } from '~/app/context/MCPContext';
+import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
+import { useMCPServersContext } from '~/app/context/MCPServersContext';
+import { useMCPTokenContext } from '~/app/context/MCPTokenContext';
+import { getSelectedServersForAPI } from '~/app/utilities/mcp';
 import {
   ToolResponseCardTitle,
   ToolResponseCardBody,
@@ -56,7 +59,26 @@ const useChatbotMessages = ({
   const scrollToBottomRef = React.useRef<HTMLDivElement>(null);
   const { namespace } = React.useContext(GenAiContext);
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { getSelectedServersForAPI } = useMCPContext();
+  const { playgroundSelectedServerIds } = useMCPSelectionContext();
+  const serversContext = useMCPServersContext();
+  const tokenContext = useMCPTokenContext();
+
+  const getSelectedServersForAPICallback = React.useCallback(
+    () =>
+      getSelectedServersForAPI(
+        playgroundSelectedServerIds,
+        serversContext.servers,
+        serversContext.serverStatuses,
+        tokenContext.serverTokens,
+      ),
+    [
+      playgroundSelectedServerIds,
+      serversContext.servers,
+      serversContext.serverStatuses,
+      tokenContext.serverTokens,
+    ],
+  );
+  // const [isToolResponseExpanded, setIsToolResponseExpanded] = React.useState(false);
 
   // Cleanup timeout on unmount
   React.useEffect(
@@ -86,6 +108,13 @@ const useChatbotMessages = ({
         body: `Here's the summary for your ${toolName} response:`,
         cardTitle: React.createElement(ToolResponseCardTitle, { toolName }),
         cardBody: React.createElement(ToolResponseCardBody, { toolArguments, toolOutput }),
+        // expandableSectionProps: {
+        //   isDetached: true,
+        //   isExpanded: isToolResponseExpanded,
+        //   onToggle: (_event: React.MouseEvent, expanded: boolean) => {
+        //     setIsToolResponseExpanded(expanded);
+        //   },
+        // },
       };
     },
     [],
@@ -114,7 +143,7 @@ const useChatbotMessages = ({
         throw new Error(ERROR_MESSAGES.NO_MODEL_OR_SOURCE);
       }
 
-      const mcpServers = getSelectedServersForAPI();
+      const mcpServers = getSelectedServersForAPICallback();
 
       const responsesPayload: CreateResponseRequest = {
         input: message,

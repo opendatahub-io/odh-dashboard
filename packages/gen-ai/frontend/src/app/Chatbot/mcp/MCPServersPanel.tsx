@@ -4,7 +4,9 @@ import { CubesIcon, UnknownIcon } from '@patternfly/react-icons';
 import { useCheckboxTableBase, Table } from 'mod-arch-shared';
 import { getMCPServerStatus } from '~/app/services/llamaStackService';
 import { MCPServer } from '~/app/types';
-import { useMCPContext } from '~/app/context/MCPContext';
+import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
+import { useMCPServersContext } from '~/app/context/MCPServersContext';
+import { useMCPTokenContext } from '~/app/context/MCPTokenContext';
 import { transformMCPServerData } from '~/app/utilities/mcp';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import MCPPanelColumns from './MCPPanelColumns';
@@ -19,17 +21,15 @@ interface MCPServersPanelProps {
 const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) => {
   const { namespace } = React.useContext(GenAiContext);
   const selectedProject = namespace?.name;
+  const { playgroundSelectedServerIds, setSelectedServersCount } = useMCPSelectionContext();
   const {
-    playgroundSelectedServerIds,
-    setSelectedServersCount,
-    serverTokens,
-    setServerTokens,
-    checkServerStatus,
     servers: apiServers,
     serversLoaded,
     serversLoadError,
     statusesLoading,
-  } = useMCPContext();
+    checkServerStatus,
+  } = useMCPServersContext();
+  const { serverTokens, setServerTokens } = useMCPTokenContext();
 
   const transformedServers = React.useMemo(
     () => apiServers.map(transformMCPServerData),

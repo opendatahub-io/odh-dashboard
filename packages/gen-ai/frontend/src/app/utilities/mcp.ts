@@ -3,6 +3,7 @@ import {
   MCPServer,
   MCPServerFromAPI,
   MCPServerUIStatus,
+  MCPServerConfig,
   OutputItem,
   MCPToolCallData,
 } from '~/app/types';
@@ -155,4 +156,64 @@ export const extractMCPToolCallData = (output?: OutputItem[]): MCPToolCallData |
     // eslint-disable-next-line @typescript-eslint/no-base-to-string
     toolOutput: toolOutput ? String(toolOutput) : undefined,
   };
+};
+
+/**
+ * Converts selected MCP servers to API-ready format with authentication headers
+ *
+ * @param selectedServerIds - Array of server URLs that are selected
+ * @param servers - Available MCP servers from API
+ * @param serverStatuses - Map of server connection statuses
+ * @param serverTokens - Map of server authentication tokens
+ * @returns Array of MCP server configurations ready for API calls
+ */
+export const getSelectedServersForAPI = (
+  selectedServerIds: string[],
+  servers: MCPServerFromAPI[],
+  serverStatuses: Map<string, { status: MCPServerUIStatus; message: string }>,
+  serverTokens: Map<string, { token: string; authenticated: boolean; autoConnected: boolean }>,
+): MCPServerConfig[] => {
+  const selectedServerUrls = new Set(selectedServerIds);
+  const validServers: MCPServerConfig[] = [];
+  let excludedCount = 0;
+
+  servers.forEach((server) => {
+    if (!selectedServerUrls.has(server.url)) {
+      return;
+    }
+
+    const statusInfo = serverStatuses.get(server.url);
+    const tokenInfo = serverTokens.get(server.url);
+    const isValidated = tokenInfo?.authenticated || tokenInfo?.autoConnected || false;
+    const isConnected = statusInfo?.status === 'connected' || tokenInfo?.authenticated === true;
+
+    if (isConnected && isValidated) {
+      const serverTokenInfo = serverTokens.get(server.url);
+      const headers: Record<string, string> = {};
+
+      if (serverTokenInfo?.token) {
+        const raw = serverTokenInfo.token.trim();
+        headers.Authorization = raw.toLowerCase().startsWith('bearer ') ? raw : `Bearer ${raw}`;
+      }
+
+      validServers.push({
+        // eslint-disable-next-line camelcase
+        server_label: server.name,
+        // eslint-disable-next-line camelcase
+        server_url: server.url,
+        headers,
+      });
+    } else {
+      excludedCount++;
+    }
+  });
+
+  if (excludedCount > 0) {
+    // eslint-disable-next-line no-console
+    console.log(
+      `Warning: ${excludedCount} selected MCP server(s) excluded from API call due to authentication/connection issues`,
+    );
+  }
+
+  return validServers;
 };

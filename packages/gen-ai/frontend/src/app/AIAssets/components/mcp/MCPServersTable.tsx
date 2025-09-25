@@ -3,7 +3,7 @@ import { useCheckboxTable, Table, DashboardEmptyTableView } from 'mod-arch-share
 import { SearchType } from 'mod-arch-shared/dist/components/DashboardSearchField';
 import { MCPServer, MCPServerFromAPI } from '~/app/types';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServers';
-import { useMCPContext } from '~/app/context/MCPContext';
+import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
 import NoData from '~/app/EmptyStates/NoData';
 import { transformMCPServerData } from '~/app/utilities/mcp';
 import MCPServerTableRow from './MCPServerTableRow';
@@ -32,7 +32,7 @@ const MCPServersTable: React.FC<MCPServersTableProps> = ({
 }) => {
   const [filterValue, setFilterValue] = React.useState('');
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
-  const { saveSelectedServersToPlayground } = useMCPContext();
+  const { saveSelectedServersToPlayground } = useMCPSelectionContext();
 
   const transformedServers = React.useMemo(
     () => apiServers.map(transformMCPServerData),

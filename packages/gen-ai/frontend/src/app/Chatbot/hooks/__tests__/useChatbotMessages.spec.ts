@@ -4,7 +4,9 @@ import * as React from 'react';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
 import { createResponse } from '~/app/services/llamaStackService';
 import { ChatbotSourceSettings, SimplifiedResponseData } from '~/app/types';
-import { useMCPContext } from '~/app/context/MCPContext';
+import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
+import { useMCPServersContext } from '~/app/context/MCPServersContext';
+import { useMCPTokenContext } from '~/app/context/MCPTokenContext';
 
 // Mock external dependencies
 jest.mock('~/app/services/llamaStackService');
@@ -12,8 +14,16 @@ jest.mock('~/app/utilities/utils', () => ({
   getId: jest.fn(() => 'mock-id'),
 }));
 
-jest.mock('~/app/context/MCPContext', () => ({
-  useMCPContext: jest.fn(),
+jest.mock('~/app/context/MCPSelectionContext', () => ({
+  useMCPSelectionContext: jest.fn(),
+}));
+
+jest.mock('~/app/context/MCPServersContext', () => ({
+  useMCPServersContext: jest.fn(),
+}));
+
+jest.mock('~/app/context/MCPTokenContext', () => ({
+  useMCPTokenContext: jest.fn(),
 }));
 
 jest.mock('~/app/Chatbot/ChatbotMessagesToolResponse', () => ({
@@ -28,7 +38,13 @@ jest.mock('react', () => ({
 
 const mockCreateResponse = createResponse as jest.MockedFunction<typeof createResponse>;
 const mockUseContext = React.useContext as jest.MockedFunction<typeof React.useContext>;
-const mockUseMCPContext = useMCPContext as jest.MockedFunction<typeof useMCPContext>;
+const mockUseMCPSelectionContext = useMCPSelectionContext as jest.MockedFunction<
+  typeof useMCPSelectionContext
+>;
+const mockUseMCPServersContext = useMCPServersContext as jest.MockedFunction<
+  typeof useMCPServersContext
+>;
+const mockUseMCPTokenContext = useMCPTokenContext as jest.MockedFunction<typeof useMCPTokenContext>;
 
 describe('useChatbotMessages', () => {
   const mockModelId = 'test-model-id';
@@ -56,25 +72,30 @@ describe('useChatbotMessages', () => {
     mockCreateResponse.mockReset();
     // Mock useContext to return the namespace
     mockUseContext.mockReturnValue({ namespace: mockNamespace });
-    // Mock useMCPContext to return empty servers
-    mockUseMCPContext.mockReturnValue({
+    // Mock MCP contexts
+    mockUseMCPSelectionContext.mockReturnValue({
+      playgroundSelectedServerIds: [],
+      selectedServersCount: 0,
+      saveSelectedServersToPlayground: jest.fn(),
+      setSelectedServersCount: jest.fn(),
+    });
+
+    mockUseMCPServersContext.mockReturnValue({
       servers: [],
       serversLoaded: true,
       serversLoadError: null,
       serverStatuses: new Map(),
       statusesLoading: new Set(),
       allStatusesChecked: true,
-      playgroundSelectedServerIds: [],
-      saveSelectedServersToPlayground: jest.fn(),
-      selectedServersCount: 0,
-      setSelectedServersCount: jest.fn(),
       refresh: jest.fn(),
-      fetchServerTools: jest.fn(),
+      checkServerStatus: jest.fn(),
+      getSelectedServersForAPI: jest.fn().mockReturnValue([]),
+    });
+
+    mockUseMCPTokenContext.mockReturnValue({
       serverTokens: new Map(),
       setServerTokens: jest.fn(),
       isServerValidated: jest.fn().mockReturnValue(false),
-      getSelectedServersForAPI: jest.fn().mockReturnValue([]),
-      checkServerStatus: jest.fn(),
     });
   });
 

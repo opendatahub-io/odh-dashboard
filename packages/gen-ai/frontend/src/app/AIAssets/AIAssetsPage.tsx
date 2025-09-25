@@ -14,7 +14,7 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import AIAssetsModelsTab from './AIAssetsModelsTab';
 import useFetchAIModels from './hooks/useFetchAIModels';
-import AIAssetsMCPTab from './AIAssetsMCPTab';
+import AIAssetsMCPTabWithContext from './AIAssetsMCPTabWithContext';
 
 enum AIAssetsPageTabKey {
   MODELS = 'models',
@@ -80,7 +80,7 @@ export const AIAssetsPage: React.FC = () => {
           hidden={activeTabKey !== AIAssetsPageTabKey.MCP_SERVERS}
         >
           <TabContentBody>
-            <AIAssetsMCPTab />
+            <AIAssetsMCPTabWithContext />
           </TabContentBody>
         </TabContent>
       </PageSection>
