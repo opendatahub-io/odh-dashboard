@@ -44,7 +44,6 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
   const [alert, setAlert] = React.useState<{ variant: AlertVariant; message: string }>();
   const {
     kServe: { installed: kServeInstalled },
-    modelMesh: { installed: modelMeshInstalled },
   } = useServingPlatformStatuses();
 
   const url = useOpenShiftURL();
@@ -53,18 +52,11 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
 
   React.useEffect(() => {
     const kServeDisabled = !enabledPlatforms.kServe || !kServeInstalled;
-    const modelMeshDisabled = !enabledPlatforms.modelMesh || !modelMeshInstalled;
-    if (kServeDisabled && modelMeshDisabled) {
+    if (kServeDisabled) {
       setAlert({
         variant: AlertVariant.warning,
         message:
-          'Disabling both model serving platforms prevents new projects from deploying models. Models can still be deployed from existing projects that already have a serving platform.',
-      });
-    } else if (initialValue.modelMesh && !enabledPlatforms.modelMesh) {
-      setAlert({
-        variant: AlertVariant.info,
-        message:
-          'Projects with models already deployed will be unaffected by deselecting multi-model serving.',
+          'Disabling all model serving platforms prevents new projects from deploying models. Models can still be deployed from existing projects that already have a serving platform.',
       });
     } else if (initialValue.kServe && !enabledPlatforms.kServe) {
       setAlert({
@@ -75,7 +67,7 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
     } else {
       setAlert(undefined);
     }
-  }, [enabledPlatforms, initialValue, kServeInstalled, modelMeshInstalled]);
+  }, [enabledPlatforms, initialValue, kServeInstalled]);
 
   const options: SimpleSelectOption[] = [
     {
@@ -91,6 +83,7 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
   ];
 
   return (
+    // TODO: We need to support new LLM-D interface here -- this will be awkward until that support
     <SettingSection
       title="Model serving platforms"
       description={
@@ -203,25 +196,6 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
                 </FormGroup>
               )
             }
-          />
-        </StackItem>
-        <StackItem>
-          <Checkbox
-            label="Multi-model serving platform"
-            description="Multiple models can be deployed on one shared model server. Useful for deploying a number of small or medium-sized models that can share the server resources."
-            isDisabled={!modelMeshInstalled}
-            isChecked={modelMeshInstalled && enabledPlatforms.modelMesh}
-            onChange={(e, enabled) => {
-              const newEnabledPlatforms: ModelServingPlatformEnabled = {
-                ...enabledPlatforms,
-                modelMesh: enabled,
-              };
-              setEnabledPlatforms(newEnabledPlatforms);
-            }}
-            aria-label="Multi-model serving platform enabled checkbox"
-            id="multi-model-serving-platform-enabled-checkbox"
-            data-testid="multi-model-serving-platform-enabled-checkbox"
-            name="multiModelServingPlatformEnabledCheckbox"
           />
         </StackItem>
         {alert && (
