@@ -18,9 +18,14 @@ type FeatureViewTabProps = {
     featureService?: string;
   };
   contextName: string;
+  isFromDetailsPage?: boolean;
 };
 
-const FeatureViewTab: React.FC<FeatureViewTabProps> = ({ fsObject, contextName }) => {
+const FeatureViewTab: React.FC<FeatureViewTabProps> = ({
+  fsObject,
+  contextName,
+  isFromDetailsPage = true,
+}) => {
   const { currentProject } = useFeatureStoreProject();
 
   const {
@@ -69,7 +74,14 @@ const FeatureViewTab: React.FC<FeatureViewTabProps> = ({ fsObject, contextName }
     );
   }
 
-  return <FeatureViewsListView featureViews={featureViews} fsProject={currentProject} />;
+  return (
+    <FeatureViewsListView
+      featureViews={featureViews}
+      fsProject={currentProject}
+      isFromDetailsPage={isFromDetailsPage}
+      fsObject={fsObject}
+    />
+  );
 };
 
 export default FeatureViewTab;
