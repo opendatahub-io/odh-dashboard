@@ -16,10 +16,3 @@ export const mockLlamaModels: LlamaModel[] = [
     owned_by: 'llama_stack',
   },
 ];
-
-export const mockSingleModel: LlamaModel = {
-  id: 'ollama/llama3.2:3b',
-  object: 'model',
-  created: 1755721063,
-  owned_by: 'llama_stack',
-};
