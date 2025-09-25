@@ -80,6 +80,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				"internal: http://mock-model-1.namespace.svc.cluster.local:8080",
 				"external: https://mock-model-1.example.com",
 			},
+			Status: "Running",
 		},
 		{
 			ModelName:      "mock-model-2",
@@ -91,6 +92,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 			Endpoints: []string{
 				"internal: http://mock-model-2.namespace.svc.cluster.local:8080",
 			},
+			Status: "Error",
 		},
 	}, nil
 }
