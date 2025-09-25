@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - ../core-bases/base
   - federation-configmap.yaml
+  - networkpolicy.yaml
 configMapGenerator:
   - name: modular-architecture-params
     env: params.env
