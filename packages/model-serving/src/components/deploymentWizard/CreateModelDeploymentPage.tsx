@@ -57,7 +57,7 @@ const CreateModelDeploymentPage: React.FC = () => {
   }
 
   return (
-    <ModelDeploymentsProvider modelServingPlatforms={[activePlatform]} projects={[currentProject]}>
+    <ModelDeploymentsProvider projects={[currentProject]}>
       <ModelDeploymentWizard
         title="Deploy a model"
         description="Configure and deploy your model."

@@ -1,7 +1,7 @@
 import { DEV_MODE, USER_ACCESS_TOKEN } from './constants';
 import { KubeFastifyInstance, OauthFastifyRequest } from '../types';
 import { getImpersonateAccessToken, isImpersonating } from '../devFlags';
-import { FastifyRequest } from 'fastify/types/request';
+import type { FastifyRequest } from 'fastify';
 
 export const getAccessToken = (options: Partial<FastifyRequest>): string | undefined =>
   typeof options.headers?.Authorization === 'string'

@@ -818,7 +818,7 @@ describe('Project Details', () => {
     });
 
     it('Show error when failed to select platform on overview tab', () => {
-      initModelServingIntercepts({});
+      initModelServingIntercepts({ isEmpty: true });
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,
@@ -843,7 +843,7 @@ describe('Project Details', () => {
     });
 
     it('Select single-model serving on overview tab', () => {
-      initModelServingIntercepts({});
+      initModelServingIntercepts({ isEmpty: true });
       initIntercepts({ disableKServeConfig: false, disableModelConfig: false });
       projectDetails.visitSection('test-project', 'overview');
       projectDetails.findSelectPlatformButton('kserve').click();
@@ -871,7 +871,7 @@ describe('Project Details', () => {
     });
 
     it('Select multi-model serving on overview tab', () => {
-      initModelServingIntercepts({});
+      initModelServingIntercepts({ isEmpty: true });
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,
@@ -902,7 +902,7 @@ describe('Project Details', () => {
     });
 
     it('Select NIM serving on overview tab', () => {
-      initModelServingIntercepts({});
+      initModelServingIntercepts({ isEmpty: true });
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,
@@ -935,7 +935,7 @@ describe('Project Details', () => {
       });
     });
 
-    it('Show error when failed to select platform on overview tab', () => {
+    it('Show error when failed to select platform on models tab', () => {
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,

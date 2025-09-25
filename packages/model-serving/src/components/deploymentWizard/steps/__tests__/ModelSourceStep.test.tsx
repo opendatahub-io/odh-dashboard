@@ -78,16 +78,10 @@ const mockDeploymentWizardState = (
           setData: jest.fn(),
           updateField: jest.fn(),
         },
-      },
-      data: {
-        externalRouteField: undefined,
-        tokenAuthenticationField: undefined,
-      },
-      handlers: {
-        setExternalRoute: jest.fn(),
-        updateExternalRoute: jest.fn(),
-        setTokenAuthentication: jest.fn(),
-        updateTokenAuthentication: jest.fn(),
+        numReplicas: {
+          data: undefined,
+          setReplicas: jest.fn(),
+        },
       },
     },
     overrides,

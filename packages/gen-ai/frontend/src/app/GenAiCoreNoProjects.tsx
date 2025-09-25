@@ -4,7 +4,11 @@ import { WrenchIcon } from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
 import { useNavigate } from 'react-router-dom';
 import NewProjectButton from '@odh-dashboard/internal/pages/projects/screens/projects/NewProjectButton';
 
-const GenAiCoreNoProjects: React.FC = () => {
+type GenAiCoreNoProjectsProps = {
+  getRedirectPath: (namespace: string) => string;
+};
+
+const GenAiCoreNoProjects: React.FC<GenAiCoreNoProjectsProps> = ({ getRedirectPath }) => {
   const navigate = useNavigate();
 
   return (
@@ -14,11 +18,11 @@ const GenAiCoreNoProjects: React.FC = () => {
       titleText="No data science projects"
       data-testid="empty-state-title"
     >
-      <EmptyStateBody>To use Gen AI, first create a data science project.</EmptyStateBody>
+      <EmptyStateBody>To use the playground, first create a data science project.</EmptyStateBody>
       <EmptyStateFooter>
         <NewProjectButton
           closeOnCreate
-          onProjectCreated={(projectName) => navigate(`/gen-ai/${projectName}`)}
+          onProjectCreated={(projectName) => navigate(getRedirectPath(projectName))}
         />
       </EmptyStateFooter>
     </EmptyState>

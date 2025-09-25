@@ -1,11 +1,10 @@
 import React from 'react';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
-import { useExtensions } from '@odh-dashboard/plugin-core';
 import {
   ModelDeploymentsContext,
   ModelDeploymentsProvider,
 } from '../src/concepts/ModelDeploymentsContext';
-import { Deployment, isModelServingPlatformExtension } from '../extension-points';
+import { Deployment } from '../extension-points';
 
 interface DeploymentsContextProviderProps {
   children: ({
@@ -38,15 +37,9 @@ const DeploymentsContextProvider: React.FC<DeploymentsContextProviderProps> = ({
   mrName,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
-  const modelServingPlatforms = useExtensions(isModelServingPlatformExtension);
 
   return (
-    <ModelDeploymentsProvider
-      projects={projects}
-      modelServingPlatforms={modelServingPlatforms}
-      labelSelectors={labelSelectors}
-      mrName={mrName}
-    >
+    <ModelDeploymentsProvider projects={projects} labelSelectors={labelSelectors} mrName={mrName}>
       <ModelDeploymentsProviderContent>{children}</ModelDeploymentsProviderContent>
     </ModelDeploymentsProvider>
   );

@@ -37,10 +37,7 @@ export type ServerResourceType = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
-    annotations?: DisplayNameAnnotations &
-      Partial<{
-        'opendatahub.io/apiProtocol': string;
-      }>;
+    annotations?: DisplayNameAnnotations;
   };
 };
 
@@ -64,6 +61,7 @@ export type Deployment<
   server?: ServerResource;
   status?: DeploymentStatus;
   endpoints?: DeploymentEndpoint[];
+  apiProtocol?: string;
   resources?: ModelServingPodSpecOptionsState;
 };
 
@@ -121,7 +119,7 @@ export type ModelServingPlatformWatchDeploymentsExtension<D extends Deployment =
       platform: D['modelServingPlatformId'];
       watch: CodeRef<
         (
-          project: ProjectKind,
+          project?: ProjectKind,
           labelSelectors?: { [key: string]: string },
           mrName?: string,
           opts?: K8sAPIOptions,
@@ -154,6 +152,7 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
       (deployment: D) => Parameters<typeof useHardwareProfileConfig> | null
     >;
     extractModelFormat: CodeRef<(deployment: D) => SupportedModelFormats | null>;
+    extractReplicas: CodeRef<(deployment: D) => number | null>;
   }
 >;
 export const isModelServingDeploymentFormDataExtension = <D extends Deployment = Deployment>(

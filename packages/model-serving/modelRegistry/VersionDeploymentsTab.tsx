@@ -2,10 +2,8 @@ import React from 'react';
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
-import { useExtensions } from '@odh-dashboard/plugin-core';
 import EmptyDeploymentsState from './EmptyDeploymentsState';
 import ModelRegistryDeploymentsTable from './ModelRegistryDeploymentsTable';
-import { isModelServingPlatformExtension } from '../extension-points';
 import {
   ModelDeploymentsContext,
   ModelDeploymentsProvider,
@@ -44,7 +42,6 @@ const VersionDeploymentsTab: React.FC<{
   mrName?: string;
 }> = ({ rmId, mvId, mrName }) => {
   const { projects } = React.useContext(ProjectsContext);
-  const modelServingPlatforms = useExtensions(isModelServingPlatformExtension);
   const labelSelectors = React.useMemo(() => {
     if (!rmId || !mvId) {
       return undefined;
@@ -56,12 +53,7 @@ const VersionDeploymentsTab: React.FC<{
   }, [rmId, mvId]);
 
   return (
-    <ModelDeploymentsProvider
-      projects={projects}
-      modelServingPlatforms={modelServingPlatforms}
-      labelSelectors={labelSelectors}
-      mrName={mrName}
-    >
+    <ModelDeploymentsProvider projects={projects} labelSelectors={labelSelectors} mrName={mrName}>
       <VersionDeploymentsTabContent />
     </ModelDeploymentsProvider>
   );

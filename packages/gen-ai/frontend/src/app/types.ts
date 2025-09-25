@@ -199,7 +199,7 @@ export type CodeExportResponse = {
 
 export type LlamaStackDistributionModel = {
   name: string;
-  phase: string;
+  phase: 'Initializing' | 'Ready' | 'Failed' | 'Terminating' | 'Pending';
   version: string;
   distributionConfig: {
     activeDistribution: string;
@@ -216,3 +216,21 @@ export type LlamaStackDistributionModel = {
     availableDistributions: Record<string, string>;
   };
 };
+
+export interface AAModelResponse {
+  model_name: string;
+  serving_runtime: string;
+  api_protocol: string;
+  version: string;
+  usecase: string;
+  description: string;
+  endpoints: string[];
+}
+
+export interface AIModel extends AAModelResponse {
+  id: string;
+  playgroundStatus: string;
+  // Parse endpoints into usable format
+  internalEndpoint?: string;
+  externalEndpoint?: string;
+}

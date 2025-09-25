@@ -94,7 +94,7 @@ const EditModelDeploymentPage: React.FC = () => {
   }
 
   return (
-    <ModelDeploymentsProvider modelServingPlatforms={[activePlatform]} projects={[currentProject]}>
+    <ModelDeploymentsProvider projects={[currentProject]}>
       <EditModelDeploymentContent project={currentProject} modelServingPlatform={activePlatform} />
     </ModelDeploymentsProvider>
   );
@@ -124,6 +124,7 @@ const EditModelDeploymentContent: React.FC<{
     hardwareProfile:
       formDataExtension?.properties.extractHardwareProfileConfig(deployment) ?? undefined,
     modelFormat: formDataExtension?.properties.extractModelFormat(deployment) ?? undefined,
+    numReplicas: formDataExtension?.properties.extractReplicas(deployment) ?? undefined,
     modelLocationData: setupModelLocationData(), // TODO: Implement fully in next ticket RHOAIENG-32186
     externalRoute: getExternalRouteFromDeployment(deployment),
     tokenAuthentication: getTokenAuthenticationFromDeployment(deployment),

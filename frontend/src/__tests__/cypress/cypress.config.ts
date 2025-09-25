@@ -135,7 +135,9 @@ export default defineConfig({
         if (results.video) {
           // Do we have failures for any retry attempts?
           const failures = results.tests.some((test) =>
-            test.attempts.some((attempt) => attempt.state === 'failed'),
+            test.attempts[config.env.MOCK ? 'every' : 'some'](
+              (attempt) => attempt.state === 'failed',
+            ),
           );
           if (!failures) {
             // delete the video if the spec passed and no tests retried
@@ -164,7 +166,7 @@ export default defineConfig({
       const retryConfig =
         config.env.CY_RETRY !== undefined
           ? { runMode: Math.max(0, parseInt(config.env.CY_RETRY) || 0), openMode: 0 }
-          : !config.env.CY_MOCK && !config.env.CY_RECORD
+          : !config.env.CY_RECORD
           ? { runMode: 2, openMode: 0 }
           : config.retries;
 

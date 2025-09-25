@@ -1,8 +1,7 @@
 import React from 'react';
-import { usePlatformExtension, useResolvedPlatformExtension } from '../../concepts/extensionUtils';
+import { useResolvedPlatformExtension } from '../../concepts/extensionUtils';
 import DeploymentsTable from '../deployments/DeploymentsTable';
 import {
-  isModelServingDeploymentsExpandedInfo,
   isModelServingDeploymentsTableExtension,
   type Deployment,
 } from '../../../extension-points';
@@ -17,17 +16,13 @@ export const ProjectDeploymentsTable: React.FC<{
     isModelServingDeploymentsTableExtension,
     modelServingPlatform,
   );
-  const expandedInfoExtension = usePlatformExtension(
-    isModelServingDeploymentsExpandedInfo,
-    modelServingPlatform,
-  );
 
   return (
     <DeploymentsTable
       data-testid="kserve-inference-service-table" // legacy testid
       deployments={deployments}
       loaded={loaded && tableExtensionLoaded}
-      showExpandedInfo={!!expandedInfoExtension}
+      showExpandedInfo
       platformColumns={tableExtension?.properties.columns()}
     />
   );

@@ -11,12 +11,14 @@ import {
   tokenAuthenticationFieldSchema,
   type TokenAuthenticationFieldData,
 } from './fields/TokenAuthenticationField';
+import { numReplicasFieldSchema, type NumReplicasFieldData } from './fields/NumReplicasField';
 
 export type ModelDeploymentWizardValidation = {
   modelSource: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
   hardwareProfile: ReturnType<typeof useValidation>;
   externalRoute: ReturnType<typeof useZodFormValidation<ExternalRouteFieldData>>;
   tokenAuthentication: ReturnType<typeof useZodFormValidation<TokenAuthenticationFieldData>>;
+  numReplicas: ReturnType<typeof useZodFormValidation<NumReplicasFieldData>>;
   isModelSourceStepValid: boolean;
   isModelDeploymentStepValid: boolean;
   isAdvancedSettingsStepValid: boolean;
@@ -63,13 +65,19 @@ export const useModelDeploymentWizardValidation = (
     tokenAuthenticationFieldSchema,
   );
 
+  const numReplicasValidation = useZodFormValidation(
+    state.numReplicas.data,
+    numReplicasFieldSchema,
+  );
+
   // Step validation
   const isModelSourceStepValid =
     modelSourceStepValidation.getFieldValidation(undefined, true).length === 0;
   const isModelDeploymentStepValid =
     isK8sNameDescriptionDataValid(state.k8sNameDesc.data) &&
     Object.keys(hardwareProfileValidation.getAllValidationIssues()).length === 0 &&
-    Object.keys(modelFormatValidation.getAllValidationIssues()).length === 0;
+    Object.keys(modelFormatValidation.getAllValidationIssues()).length === 0 &&
+    numReplicasValidation.getFieldValidation(undefined, true).length === 0;
   const isAdvancedSettingsStepValid =
     externalRouteValidation.getFieldValidation(undefined, true).length === 0 &&
     tokenAuthenticationValidation.getFieldValidation(undefined, true).length === 0;
@@ -79,6 +87,7 @@ export const useModelDeploymentWizardValidation = (
     hardwareProfile: hardwareProfileValidation,
     externalRoute: externalRouteValidation,
     tokenAuthentication: tokenAuthenticationValidation,
+    numReplicas: numReplicasValidation,
     isModelSourceStepValid,
     isModelDeploymentStepValid,
     isAdvancedSettingsStepValid,

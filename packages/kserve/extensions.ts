@@ -121,7 +121,7 @@ const extensions: (
     type: 'model-serving.deployed-model/serving-runtime',
     properties: {
       platform: KSERVE_ID,
-      ServingDetailsComponent: () => import('./src/deploymentServingDetails'),
+      ServingDetailsComponent: () => import('./src/components/deploymentServingDetails'),
     },
   },
   {
@@ -146,6 +146,7 @@ const extensions: (
       extractHardwareProfileConfig: () =>
         import('./src/useKServeResources').then((m) => m.extractHardwareProfileConfig),
       extractModelFormat: () => import('./src/modelFormat').then((m) => m.extractKServeModelFormat),
+      extractReplicas: () => import('./src/useKServeResources').then((m) => m.extractReplicas),
     },
   },
   {
