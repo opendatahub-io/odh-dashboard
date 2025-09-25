@@ -61,7 +61,7 @@ func TestModelsAAHandler(t *testing.T) {
 
 		// Add namespace and identity to context
 		ctx := context.Background()
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-2")
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN", // Use one of the default test tokens
 		})
@@ -88,40 +88,57 @@ func TestModelsAAHandler(t *testing.T) {
 
 		dataArray, ok := data.([]interface{})
 		assert.True(t, ok, "Data should be an array")
-		assert.Len(t, dataArray, 2, "Should return 2 mock AA models")
+		assert.Len(t, dataArray, 5, "Should return 5 mock AA models for mock-test-namespace-2")
 
-		// Check first model
+		// Check first model (granite-7b-code)
 		firstModel, ok := dataArray[0].(map[string]interface{})
 		assert.True(t, ok, "First model should be a map")
-		assert.Equal(t, "mock-model-1", firstModel["model_name"])
+		assert.Equal(t, "granite-7b-code", firstModel["model_name"])
 		assert.Equal(t, "OpenVINO Model Server", firstModel["serving_runtime"])
 		assert.Equal(t, "v2", firstModel["api_protocol"])
 		assert.Equal(t, "v2025.1", firstModel["version"])
-		assert.Equal(t, "Computer Vision", firstModel["usecase"])
-		assert.Equal(t, "A high-performance computer vision model for object detection and classification", firstModel["description"])
+		assert.Equal(t, "Code generation", firstModel["usecase"])
+		assert.Equal(t, "IBM Granite 7B model specialized for code generation tasks", firstModel["description"])
 
 		// Check endpoints array
 		endpoints, ok := firstModel["endpoints"].([]interface{})
 		assert.True(t, ok, "Endpoints should be an array")
 		assert.Len(t, endpoints, 2, "Should have 2 endpoints")
-		assert.Equal(t, "internal: http://mock-model-1.namespace.svc.cluster.local:8080", endpoints[0])
-		assert.Equal(t, "external: https://mock-model-1.example.com", endpoints[1])
+		assert.Equal(t, "internal: http://granite-7b-code.mock-test-namespace-2.svc.cluster.local:8080", endpoints[0])
+		assert.Equal(t, "external: https://granite-7b-code-mock-test-namespace-2.example.com", endpoints[1])
 
-		// Check second model
+		// Check second model (llama-3.1-8b-instruct)
 		secondModel, ok := dataArray[1].(map[string]interface{})
 		assert.True(t, ok, "Second model should be a map")
-		assert.Equal(t, "mock-model-2", secondModel["model_name"])
+		assert.Equal(t, "llama-3.1-8b-instruct", secondModel["model_name"])
 		assert.Equal(t, "TorchServe", secondModel["serving_runtime"])
 		assert.Equal(t, "v1", secondModel["api_protocol"])
 		assert.Equal(t, "v2025.1", secondModel["version"])
-		assert.Equal(t, "Natural Language Processing", secondModel["usecase"])
-		assert.Equal(t, "A natural language processing model for text generation and completion", secondModel["description"])
+		assert.Equal(t, "General chat", secondModel["usecase"])
+		assert.Equal(t, "Meta Llama 3.1 8B parameter model optimized for instruction following", secondModel["description"])
 
 		// Check second model endpoints
 		secondEndpoints, ok := secondModel["endpoints"].([]interface{})
 		assert.True(t, ok, "Second model endpoints should be an array")
-		assert.Len(t, secondEndpoints, 1, "Should have 1 endpoint")
-		assert.Equal(t, "internal: http://mock-model-2.namespace.svc.cluster.local:8080", secondEndpoints[0])
+		assert.Len(t, secondEndpoints, 2, "Should have 2 endpoints")
+		assert.Equal(t, "internal: http://llama-3.1-8b-instruct.mock-test-namespace-2.svc.cluster.local:8080", secondEndpoints[0])
+		assert.Equal(t, "external: https://llama-3.1-8b-instruct-mock-test-namespace-2.example.com", secondEndpoints[1])
+
+		// Check third model
+		thirdModel, ok := dataArray[2].(map[string]interface{})
+		assert.True(t, ok, "Third model should be a map")
+		assert.Equal(t, "mistral-7b-instruct", thirdModel["model_name"])
+		assert.Equal(t, "TorchServe", thirdModel["serving_runtime"])
+		assert.Equal(t, "v1", thirdModel["api_protocol"])
+		assert.Equal(t, "v2025.1", thirdModel["version"])
+		assert.Equal(t, "Multilingual, Reasoning", thirdModel["usecase"])
+		assert.Equal(t, "Mistral 7B instruction-tuned model for general purpose tasks", thirdModel["description"])
+
+		// Check third model endpoints
+		thirdEndpoints, ok := thirdModel["endpoints"].([]interface{})
+		assert.True(t, ok, "Third model endpoints should be an array")
+		assert.Len(t, thirdEndpoints, 1, "Should have 1 endpoint")
+		assert.Equal(t, "internal: http://mistral-7b-instruct.mock-test-namespace-2.svc.cluster.local:8080", thirdEndpoints[0])
 	})
 
 	// Test error cases - simple parameter validation
@@ -154,7 +171,7 @@ func TestModelsAAHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Add namespace to context but no RequestIdentity
-		ctx := context.WithValue(context.Background(), constants.NamespaceQueryParameterKey, "test-namespace")
+		ctx := context.WithValue(context.Background(), constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
