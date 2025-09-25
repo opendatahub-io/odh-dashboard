@@ -12,7 +12,7 @@ import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
 
 const title = 'Feature services';
 const description =
-  "Select a feature store repository to view and manage its feature services. Feature services groups features from across one or more Feature Views to serve a specific model's needs for training, inference, or GenAI applications like RAG. Feature service acts as a managed API for a model, ensuring features are served consistently.";
+  "Select a feature store repository to view and manage its feature services. Feature services groups features from across one or more Feature views to serve a specific model's needs for training, inference, or GenAI applications like RAG. Feature service acts as a managed API for a model, ensuring features are served consistently.";
 
 const FeatureServices = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();

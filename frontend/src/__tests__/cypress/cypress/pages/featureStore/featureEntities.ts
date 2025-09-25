@@ -78,7 +78,7 @@ class FeatureEntityTableRow extends TableRow {
   }
 
   findFeatureViews() {
-    return this.find().find('[data-label="Feature Views"]');
+    return this.find().find('[data-label="Feature views"]');
   }
 
   findCreatedDate() {

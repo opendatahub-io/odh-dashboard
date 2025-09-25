@@ -27,11 +27,11 @@ class FeatureMetricsOverview extends Contextual<HTMLElement> {
   }
 
   findFeatureViewsCard() {
-    return this.findResourceCountsCard('Feature Views');
+    return this.findResourceCountsCard('Feature views');
   }
 
   findFeatureServicesCard() {
-    return this.findResourceCountsCard('Feature Services');
+    return this.findResourceCountsCard('Feature services');
   }
 
   findPopularTagsTitle() {
@@ -184,11 +184,11 @@ class FeatureMetricsOverview extends Contextual<HTMLElement> {
   }
 
   findGoToDataSourcesLink() {
-    return this.findDataSourcesCard().find('a').contains('Go to Data Sources');
+    return this.findDataSourcesCard().find('a').contains('Go to Data sources');
   }
 
   findGoToSavedDatasetsLink() {
-    return this.findSavedDatasetsCard().find('a').contains('Go to Saved Datasets');
+    return this.findSavedDatasetsCard().find('a').contains('Go to Datasets');
   }
 
   findGoToFeaturesLink() {
@@ -196,11 +196,11 @@ class FeatureMetricsOverview extends Contextual<HTMLElement> {
   }
 
   findGoToFeatureViewsLink() {
-    return this.findFeatureViewsCard().find('a').contains('Go to Feature Views');
+    return this.findFeatureViewsCard().find('a').contains('Go to Feature views');
   }
 
   findGoToFeatureServicesLink() {
-    return this.findFeatureServicesCard().find('a').contains('Go to Feature Services');
+    return this.findFeatureServicesCard().find('a').contains('Go to Feature services');
   }
 
   shouldDisplayResourceCounts() {
