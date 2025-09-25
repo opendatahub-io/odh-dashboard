@@ -104,7 +104,7 @@ const ChatbotMain: React.FunctionComponent = () => {
               }
               actionButtonText="Go to Model Deployments"
               handleActionButtonClick={() => {
-                navigate(`/modelServing/${namespace?.name}`);
+                navigate(`/ai-hub/deployments/${namespace?.name}`);
               }}
             />
           ) : (
