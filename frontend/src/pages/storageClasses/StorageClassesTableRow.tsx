@@ -174,7 +174,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
                           {Object.values(AccessMode)
                             .filter(
                               (accessMode) =>
-                                storageClassConfig.accessModeSettings[accessMode] === true ||
+                                storageClassConfig.accessModeSettings?.[accessMode] === true ||
                                 accessMode === AccessMode.RWO,
                             )
                             .map((accessMode) => (
