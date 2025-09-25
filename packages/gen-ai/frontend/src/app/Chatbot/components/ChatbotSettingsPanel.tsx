@@ -18,7 +18,6 @@ import { ChatbotSourceUploadPanel } from '~/app/Chatbot/sourceUpload/ChatbotSour
 import { ACCORDION_ITEMS } from '~/app/Chatbot/const';
 import useAccordionState from '~/app/Chatbot/hooks/useAccordionState';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
-import { LlamaModel } from '~/app/types';
 import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
 import MCPServersPanelWithContext from '~/app/Chatbot/mcp/MCPServersPanelWithContext';
 import ModelDetailsDropdown from './ModelDetailsDropdown';

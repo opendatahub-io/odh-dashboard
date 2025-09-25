@@ -86,31 +86,27 @@ export const ToolResponseCardBody: React.FC<ToolResponseCardBodyProps> = ({
   return (
     <>
       <DescriptionList style={descriptionListStyle} aria-label="Tool response">
-        {toolArguments && (
-          <DescriptionListGroup style={descriptionListGroupStyle}>
-            <DescriptionListTerm>Arguments</DescriptionListTerm>
-            <DescriptionListDescription>
-              <CodeBlock>
-                <CodeBlockCode>
-                  {(() => {
-                    // Ensure we always have a string value
-                    const argumentsText =
-                      toolArguments && typeof toolArguments === 'string'
-                        ? toolArguments
-                        : 'No arguments provided.';
-
-                    try {
-                      const parsedArgs = JSON.parse(argumentsText);
-                      return JSON.stringify(parsedArgs, null, 2);
-                    } catch {
-                      return argumentsText;
-                    }
-                  })()}
-                </CodeBlockCode>
-              </CodeBlock>
-            </DescriptionListDescription>
-          </DescriptionListGroup>
-        )}
+        <DescriptionListGroup style={descriptionListGroupStyle}>
+          <DescriptionListTerm>Arguments</DescriptionListTerm>
+          <DescriptionListDescription>
+            <CodeBlock>
+              <CodeBlockCode>
+                {(() => {
+                  const argumentsText =
+                    typeof toolArguments === 'string' && toolArguments.length > 0
+                      ? toolArguments
+                      : 'No arguments provided.';
+                  try {
+                    const parsedArgs = JSON.parse(argumentsText);
+                    return JSON.stringify(parsedArgs, null, 2);
+                  } catch {
+                    return argumentsText;
+                  }
+                })()}
+              </CodeBlockCode>
+            </CodeBlock>
+          </DescriptionListDescription>
+        </DescriptionListGroup>
         <DescriptionListGroup style={descriptionListGroupStyle}>
           <DescriptionListTerm>Response</DescriptionListTerm>
           <DescriptionListDescription>

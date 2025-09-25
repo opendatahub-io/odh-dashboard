@@ -78,7 +78,6 @@ const useChatbotMessages = ({
       tokenContext.serverTokens,
     ],
   );
-  // const [isToolResponseExpanded, setIsToolResponseExpanded] = React.useState(false);
 
   // Cleanup timeout on unmount
   React.useEffect(
@@ -108,13 +107,6 @@ const useChatbotMessages = ({
         body: `Here's the summary for your ${toolName} response:`,
         cardTitle: React.createElement(ToolResponseCardTitle, { toolName }),
         cardBody: React.createElement(ToolResponseCardBody, { toolArguments, toolOutput }),
-        // expandableSectionProps: {
-        //   isDetached: true,
-        //   isExpanded: isToolResponseExpanded,
-        //   onToggle: (_event: React.MouseEvent, expanded: boolean) => {
-        //     setIsToolResponseExpanded(expanded);
-        //   },
-        // },
       };
     },
     [],
