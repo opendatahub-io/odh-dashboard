@@ -60,7 +60,7 @@ const genericColumns: SortableData<Deployment>[] = [
 
 type DeploymentsTableProps = {
   deployments: Deployment[];
-  showExpandedInfo?: boolean;
+  showExpandedToggleColumn?: boolean;
   platformColumns?: DeploymentsTableColumn<Deployment>[];
   loaded: boolean;
   alertContent?: React.ReactNode;
@@ -73,7 +73,7 @@ type DeploymentsTableProps = {
 
 const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
   deployments,
-  showExpandedInfo,
+  showExpandedToggleColumn,
   platformColumns,
   loaded = true,
   alertContent,
@@ -88,12 +88,12 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
   const [editDeployment, setEditDeployment] = React.useState<Deployment | undefined>(undefined);
   const allColumns: SortableData<Deployment>[] = React.useMemo(
     () => [
-      ...(showExpandedInfo ? [expandedInfoColumn] : []),
+      ...(showExpandedToggleColumn ? [expandedInfoColumn] : []),
       genericColumns[0],
       ...(platformColumns ?? []),
       ...genericColumns.slice(1),
     ],
-    [platformColumns, showExpandedInfo],
+    [platformColumns, showExpandedToggleColumn],
   );
 
   return (
@@ -101,9 +101,9 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
       <Table
         data-testid="inference-service-table" // legacy testid
         columns={allColumns}
-        defaultSortColumn={showExpandedInfo ? 1 : 0}
+        defaultSortColumn={showExpandedToggleColumn ? 1 : 0}
         data={deployments}
-        disableRowRenderSupport={showExpandedInfo}
+        disableRowRenderSupport={showExpandedToggleColumn}
         rowRenderer={(row: Deployment, rowIndex: number) => (
           <DeploymentRow
             key={row.model.metadata.uid}
@@ -118,7 +118,7 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
                 setEditDeployment(row);
               }
             }}
-            showExpandedToggle={showExpandedInfo}
+            showExpandedToggle={showExpandedToggleColumn}
           />
         )}
         loading={!loaded}
