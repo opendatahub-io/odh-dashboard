@@ -36,8 +36,6 @@ export const getNotebookImageData = (
     images,
     imageName,
     versionName,
-    lastImageSelectionName,
-    lastImageSelectionTag,
   );
 
   if (
@@ -52,7 +50,6 @@ export const getNotebookImageData = (
     images,
     lastImageSelectionName,
     container.image,
-    lastImageSelectionTag,
   );
 
   if (
@@ -67,7 +64,6 @@ export const getNotebookImageData = (
     images,
     lastImageSelectionTag,
     container.image,
-    lastImageSelectionName,
   );
 
   if (
@@ -113,15 +109,10 @@ const getNotebookImageInternalRegistry = (
   images: ImageStreamKind[],
   imageName: string,
   versionName: string,
-  lastImageSelectionName: string,
-  lastImageSelectionTag: string,
 ): NotebookImageData[0] => {
   const imageStream = images.find((image) => image.metadata.name === imageName);
 
-  if (
-    !imageStream ||
-    isNotebookImageDeleted(notebook, imageStream, lastImageSelectionName, lastImageSelectionTag)
-  ) {
+  if (!imageStream || isNotebookImageDeleted(notebook, imageStream, imageName, versionName)) {
     // Get the image display name from the notebook metadata if we can't find the image stream. (this is a fallback and could still be undefined)
     return getDeletedImageData(
       notebook.metadata.annotations?.['opendatahub.io/image-display-name'],
@@ -154,7 +145,6 @@ const getNotebookImageNoInternalRegistry = (
   images: ImageStreamKind[],
   lastImageSelectionName: string,
   containerImage: string,
-  lastImageSelectionTag: string,
 ): NotebookImageData[0] => {
   const imageStream = images.find(
     (image) =>
@@ -162,10 +152,7 @@ const getNotebookImageNoInternalRegistry = (
       image.spec.tags?.find((version) => version.from?.name === containerImage),
   );
 
-  if (
-    !imageStream ||
-    isNotebookImageDeleted(notebook, imageStream, lastImageSelectionName, lastImageSelectionTag)
-  ) {
+  if (!imageStream) {
     // Get the image display name from the notebook metadata if we can't find the image stream. (this is a fallback and could still be undefined)
     return getDeletedImageData(
       notebook.metadata.annotations?.['opendatahub.io/image-display-name'],
@@ -198,7 +185,6 @@ const getNotebookImageNoInternalRegistryNoSHA = (
   images: ImageStreamKind[],
   lastImageSelectionTag: string,
   containerImage: string,
-  lastImageSelectionName: string,
 ): NotebookImageData[0] => {
   const imageStream = images.find((image) =>
     image.status?.tags?.find(
@@ -208,10 +194,7 @@ const getNotebookImageNoInternalRegistryNoSHA = (
     ),
   );
 
-  if (
-    !imageStream ||
-    isNotebookImageDeleted(notebook, imageStream, lastImageSelectionName, lastImageSelectionTag)
-  ) {
+  if (!imageStream) {
     // Get the image display name from the notebook metadata if we can't find the image stream. (this is a fallback and could still be undefined)
     return getDeletedImageData(
       notebook.metadata.annotations?.['opendatahub.io/image-display-name'],
@@ -271,15 +254,13 @@ const getImageStatus = (
 const findNoteBookImageTag = (
   notebook: NotebookKind,
   imageStream: ImageStreamKind,
-  lastImageSelectionName: string,
-  lastImageSelectionTag: string,
+  imageName: string,
+  versionName: string,
 ) => {
-  if (imageStream.metadata.name !== lastImageSelectionName) {
+  if (imageStream.metadata.name !== imageName) {
     return false;
   }
-  return (
-    imageStream.spec.tags?.some((imageTags) => imageTags.name === lastImageSelectionTag) ?? false
-  );
+  return imageStream.spec.tags?.some((imageTags) => imageTags.name === versionName) ?? false;
 };
 
 const isNotebookImageOutdated = (notebook: NotebookKind, imageStream: ImageStreamKind) =>
@@ -288,10 +269,10 @@ const isNotebookImageOutdated = (notebook: NotebookKind, imageStream: ImageStrea
 const isNotebookImageDeleted = (
   notebook: NotebookKind,
   imageStream: ImageStreamKind,
-  lastImageSelectionName: string,
-  lastImageSelectionTag: string,
+  imageName: string,
+  versionName: string,
 ) =>
-  !findNoteBookImageTag(notebook, imageStream, lastImageSelectionName, lastImageSelectionTag) &&
+  !findNoteBookImageTag(notebook, imageStream, imageName, versionName) &&
   !isBYONImageStream(imageStream);
 
 const findNotebookImageCommit = (notebook: NotebookKind, imageStream: ImageStreamKind) =>
