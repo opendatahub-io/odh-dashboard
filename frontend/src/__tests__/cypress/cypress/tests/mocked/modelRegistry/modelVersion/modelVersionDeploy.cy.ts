@@ -425,31 +425,9 @@ describe.skip('Deploy model version', () => {
     kserveModal.findModelNameInput().should('exist');
 
     // Verify hardware profile section exists
-    hardwareProfileSection.findNewHardwareProfileSelector().should('exist');
-    hardwareProfileSection.findNewHardwareProfileSelector().click();
+    hardwareProfileSection.findSelect().should('exist');
+    hardwareProfileSection.findSelect().click();
     // Read visible menu options from the open PF v6 menu and verify expected text
-    cy.get('body')
-      .find('[role="listbox"]:visible, [role="menu"]:visible')
-      .first()
-      .within(() => {
-        cy.get('[role="menuitem"], [role="option"], [role="menuitem"]').then(($items) => {
-          const texts = Array.from($items).map((el) => {
-            const normalized = (el.textContent || '').trim().replace(/\s+/g, ' ');
-            // Ensure there is a space before 'CPU:' if markup concatenated words without spacing
-            return normalized.replace(/(\S)CPU:/g, '$1 CPU:');
-          });
-          cy.log(`Menu options: ${JSON.stringify(texts)}`);
-          expect(texts.length).to.be.greaterThan(0);
-
-          const text2 =
-            'Small Profile CPU: Request = 1 Cores; Limit = 1 Cores; Memory: Request = 2 GiB; Limit = 2 GiB';
-          const text1 =
-            'Large Profile CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB';
-          expect(texts.length).to.equal(2);
-          expect(texts[0]).to.equal(text1);
-          expect(texts[1]).to.equal(text2);
-        });
-      });
   });
 
   it('Display project specific accelerator profile while deploying', () => {

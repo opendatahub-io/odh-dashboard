@@ -23,7 +23,6 @@ type HardwareProfilesToolbarProps = {
 const HardwareProfilesToolbar: React.FC<HardwareProfilesToolbarProps> = ({
   filterData,
   onFilterUpdate,
-  showCreateButton = true,
 }) => {
   const navigate = useNavigate();
 
@@ -75,20 +74,18 @@ const HardwareProfilesToolbar: React.FC<HardwareProfilesToolbarProps> = ({
       onFilterUpdate={onFilterUpdate}
     >
       <AccessAllowed resourceAttributes={verbModelAccess('create', HardwareProfileModel)}>
-        {() =>
-          showCreateButton && (
-            <ToolbarGroup>
-              <ToolbarItem>
-                <Button
-                  data-testid="create-hardware-profile"
-                  onClick={() => navigate('/hardwareProfiles/create')}
-                >
-                  Create hardware profile
-                </Button>
-              </ToolbarItem>
-            </ToolbarGroup>
-          )
-        }
+        {() => (
+          <ToolbarGroup>
+            <ToolbarItem>
+              <Button
+                data-testid="create-hardware-profile"
+                onClick={() => navigate('/hardwareProfiles/create')}
+              >
+                Create hardware profile
+              </Button>
+            </ToolbarItem>
+          </ToolbarGroup>
+        )}
       </AccessAllowed>
     </FilterToolbar>
   );
