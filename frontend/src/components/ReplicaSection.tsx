@@ -21,7 +21,14 @@ type ReplicaSectionProps = {
   onChange: (value: number) => void;
   infoContent?: string;
   isRequired?: boolean;
-  showMinMax: boolean;
+  /**
+   * @deprecated -- name is bad, currently unused -- showMinMax sounds like 'show both min and max'
+   * When support is brought back for this -- we should name this something like "minMaxAsOne" or something
+   * Also we should support EitherNotBoth type definition & tie 'minMaxAsOne' & onMaxChange & onMinChange
+   * onChange makes only sense when you have 1 value -- mixing min & max is confusing. Either we embrace
+   * it all together or make unique API the component types specifically.
+   */
+  showMinMax?: boolean;
   maxValue: number;
   onMaxChange?: (value: number) => void;
   onValidationChange?: (hasValidationErrors: boolean) => void;

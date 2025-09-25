@@ -67,13 +67,6 @@ jest.mock('#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState', () 
   useModelServingPodSpecOptionsState: jest.fn(),
 }));
 
-jest.mock('#~/pages/modelServing/useKServeDeploymentMode', () => ({
-  useKServeDeploymentMode: jest.fn(() => ({
-    isRawAvailable: true,
-    isServerlessAvailable: true,
-  })),
-}));
-
 jest.mock('#~/pages/projects/screens/spawner/storage/StorageClassSelect', () => ({
   __esModule: true,
   default: jest.fn((props) => {
@@ -155,16 +148,6 @@ jest.mock('../../kServeModal/KServeAutoscalerReplicaSection', () => ({
 jest.mock('../../ServingRuntimeModal/AuthServingRuntimeSection', () => ({
   __esModule: true,
   default: jest.fn(() => <div data-testid="auth-serving-runtime-section">Auth Section</div>),
-}));
-
-jest.mock('../../kServeModal/KServeDeploymentModeDropdown', () => ({
-  KServeDeploymentModeDropdown: jest.fn(() => (
-    <div data-testid="deployment-mode-dropdown">Deployment Mode</div>
-  )),
-}));
-
-jest.mock('../NoAuthAlert', () => ({
-  NoAuthAlert: jest.fn(() => <div data-testid="no-auth-alert">No Auth Alert</div>),
 }));
 
 jest.mock('#~/concepts/dashboard/DashboardModalFooter', () => ({

@@ -398,9 +398,7 @@ describe('assembleInferenceService', () => {
   });
 
   it('should have base annotations for kserve raw', async () => {
-    const inferenceService = assembleInferenceService(
-      mockInferenceServiceModalData({ isKServeRawDeployment: true }),
-    );
+    const inferenceService = assembleInferenceService(mockInferenceServiceModalData({}));
     const { annotations, labels } = inferenceService.metadata;
 
     expect(annotations?.['serving.kserve.io/deploymentMode']).toBe(DeploymentMode.RawDeployment);
@@ -414,9 +412,7 @@ describe('assembleInferenceService', () => {
   });
 
   it('should have correct auth and routing for kserve raw', async () => {
-    const ext = assembleInferenceService(
-      mockInferenceServiceModalData({ isKServeRawDeployment: true, externalRoute: true }),
-    );
+    const ext = assembleInferenceService(mockInferenceServiceModalData({ externalRoute: true }));
     expect(ext.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe(
       DeploymentMode.RawDeployment,
     );
@@ -425,9 +421,7 @@ describe('assembleInferenceService', () => {
     expect(ext.metadata.labels?.['networking.kserve.io/visibility']).toBe('exposed');
     expect(ext.metadata.labels?.['networking.knative.dev/visibility']).toBe(undefined);
 
-    const auth = assembleInferenceService(
-      mockInferenceServiceModalData({ isKServeRawDeployment: true, tokenAuth: true }),
-    );
+    const auth = assembleInferenceService(mockInferenceServiceModalData({ tokenAuth: true }));
     expect(auth.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe(
       DeploymentMode.RawDeployment,
     );
@@ -437,7 +431,6 @@ describe('assembleInferenceService', () => {
 
     const both = assembleInferenceService(
       mockInferenceServiceModalData({
-        isKServeRawDeployment: true,
         externalRoute: true,
         tokenAuth: true,
       }),
@@ -458,7 +451,6 @@ describe('assembleInferenceService', () => {
     });
     const result = assembleInferenceService(
       mockInferenceServiceModalData({
-        isKServeRawDeployment: true,
         externalRoute: true,
         tokenAuth: true,
       }),
@@ -482,7 +474,6 @@ describe('assembleInferenceService', () => {
     });
     const result = assembleInferenceService(
       mockInferenceServiceModalData({
-        isKServeRawDeployment: true,
         externalRoute: true,
         tokenAuth: true,
       }),
@@ -505,7 +496,6 @@ describe('assembleInferenceService', () => {
     });
     const result = assembleInferenceService(
       mockInferenceServiceModalData({
-        isKServeRawDeployment: true,
         externalRoute: true,
         tokenAuth: true,
       }),
@@ -529,7 +519,6 @@ describe('assembleInferenceService', () => {
     });
     const result = assembleInferenceService(
       mockInferenceServiceModalData({
-        isKServeRawDeployment: true,
         externalRoute: true,
         tokenAuth: true,
       }),
@@ -556,7 +545,6 @@ describe('assembleInferenceService', () => {
     // Test with modelmesh
     const resultModelMesh = assembleInferenceService(
       mockInferenceServiceModalData({
-        isKServeRawDeployment: true,
         externalRoute: true,
         tokenAuth: true,
       }),
@@ -574,7 +562,6 @@ describe('assembleInferenceService', () => {
     // Test with KServe
     const resultKServe = assembleInferenceService(
       mockInferenceServiceModalData({
-        isKServeRawDeployment: true,
         externalRoute: true,
         tokenAuth: true,
       }),
@@ -615,9 +602,7 @@ describe('assembleInferenceService', () => {
     });
 
     const result = assembleInferenceService(
-      mockInferenceServiceModalData({
-        isKServeRawDeployment: true,
-      }),
+      mockInferenceServiceModalData({}),
       undefined,
       undefined,
       false,
