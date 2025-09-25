@@ -133,9 +133,7 @@ export const assembleNotebook = (
         'notebooks.opendatahub.io/inject-oauth': 'true',
         'opendatahub.io/username': username,
         'opendatahub.io/accelerator-name': selectedAcceleratorProfile?.metadata.name || '',
-        'opendatahub.io/hardware-profile-name': isAcceleratorProfileSelected
-          ? ''
-          : selectedHardwareProfile?.metadata.name || '',
+        'opendatahub.io/hardware-profile-name': selectedHardwareProfile?.metadata.name || '',
         'notebooks.opendatahub.io/last-image-version-git-commit-selection':
           image.imageVersion?.annotations?.['opendatahub.io/notebook-build-commit'] ?? '',
       },

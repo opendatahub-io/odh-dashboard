@@ -631,7 +631,7 @@ describe('assembleInferenceService', () => {
     expect(result.spec.predictor.model?.resources?.limits?.['nvidia.com/gpu']).toBe(1);
   });
 
-  it('should set legacy hardware profile annotation for accelerator profiles', () => {
+  it('should set accelerator profile annotation for accelerator profiles', () => {
     const acceleratorProfile = mockAcceleratorProfile({
       name: 'gpu-accelerator',
       displayName: 'GPU Accelerator',
@@ -656,7 +656,7 @@ describe('assembleInferenceService', () => {
       podSpecOptions,
     );
 
-    expect(result.metadata.annotations?.['opendatahub.io/legacy-hardware-profile-name']).toBe(
+    expect(result.metadata.annotations?.['opendatahub.io/accelerator-name']).toBe(
       'gpu-accelerator',
     );
     expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBeUndefined();
@@ -687,53 +687,8 @@ describe('assembleInferenceService', () => {
       podSpecOptions,
     );
 
-    expect(result.metadata.annotations?.['opendatahub.io/legacy-hardware-profile-name']).toBe(
-      'migrated-gpu',
-    );
+    expect(result.metadata.annotations?.['opendatahub.io/accelerator-name']).toBe('migrated-gpu');
     expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBeUndefined();
-  });
-
-  it('should set hardware profile name annotation when both hardware and accelerator profiles are present', () => {
-    const hardwareProfile = mockHardwareProfile({
-      name: 'real-profile',
-      namespace: 'test-project',
-    });
-    hardwareProfile.metadata.uid = 'test-uid';
-
-    const acceleratorProfile = mockAcceleratorProfile({
-      name: 'gpu-accelerator',
-      displayName: 'GPU Accelerator',
-      identifier: 'nvidia.com/gpu',
-    });
-
-    const podSpecOptions = mockModelServingPodSpecOptions({
-      selectedHardwareProfile: hardwareProfile,
-      selectedAcceleratorProfile: acceleratorProfile,
-    });
-
-    const result = assembleInferenceService(
-      mockInferenceServiceModalData({
-        isKServeRawDeployment: true,
-        externalRoute: true,
-        tokenAuth: true,
-        project: 'test-project',
-      }),
-      undefined,
-      undefined,
-      false,
-      undefined,
-      undefined,
-      podSpecOptions,
-    );
-
-    // When both are present, it should detect accelerator profile and use legacy annotation
-    expect(result.metadata.annotations?.['opendatahub.io/legacy-hardware-profile-name']).toBe(
-      'gpu-accelerator',
-    );
-    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBeUndefined();
-    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-namespace']).toBe(
-      'test-project',
-    );
   });
 
   it('should set hardware profile namespace annotation correctly for accelerator profiles', () => {
@@ -764,7 +719,7 @@ describe('assembleInferenceService', () => {
     );
 
     // Hardware profile is global scope, so should use dashboard namespace
-    expect(result.metadata.annotations?.['opendatahub.io/legacy-hardware-profile-name']).toBe(
+    expect(result.metadata.annotations?.['opendatahub.io/accelerator-name']).toBe(
       'gpu-accelerator',
     );
   });

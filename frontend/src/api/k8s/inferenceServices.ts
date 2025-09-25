@@ -130,7 +130,7 @@ export const assembleInferenceService = (
     if (podSpecOptions.selectedAcceleratorProfile) {
       const accelName = podSpecOptions.selectedAcceleratorProfile.metadata.name;
       if (accelName) {
-        annotations['opendatahub.io/legacy-hardware-profile-name'] = accelName;
+        annotations['opendatahub.io/accelerator-name'] = accelName;
       }
     } else if (podSpecOptions.selectedHardwareProfile) {
       annotations['opendatahub.io/hardware-profile-name'] =
