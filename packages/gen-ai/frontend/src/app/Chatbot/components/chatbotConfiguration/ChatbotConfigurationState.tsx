@@ -1,23 +1,18 @@
 import React from 'react';
-import {
-  Modal,
-  ModalBody,
-  Stack,
-  StackItem,
-  Spinner,
-  Title,
-  Content,
-  Icon,
-} from '@patternfly/react-core';
+import { Icon, Stack, StackItem, Content, Title, Spinner, Button } from '@patternfly/react-core';
 import { CheckCircleIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
-import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
+import { Link } from 'react-router-dom';
 import { GenAiContext } from '~/app/context/GenAiContext';
+import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
+import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
 
-type ChatbotConfigurationModalProps = {
-  onClose: () => void;
+type ChatbotConfigurationStateProps = {
+  redirectToPlayground?: boolean;
 };
 
-const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({ onClose }) => {
+const ChatbotConfigurationState: React.FC<ChatbotConfigurationStateProps> = ({
+  redirectToPlayground,
+}) => {
   const { namespace } = React.useContext(GenAiContext);
   const [activelyRefreshing, setActivelyRefreshing] = React.useState(true);
   const { data: lsdStatus } = useFetchLSDStatus(namespace?.name, activelyRefreshing);
@@ -56,22 +51,24 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({ o
       title = 'Configuring playground';
       description = 'Please wait while we add models and configure the playground';
   }
-
   return (
-    <Modal isOpen onClose={onClose} variant="medium" style={{ textAlign: 'center' }}>
-      <ModalBody>
-        <Stack hasGutter>
-          <StackItem>{icon}</StackItem>
-          <StackItem>
-            <Title headingLevel="h2">{title}</Title>
-          </StackItem>
-          <StackItem>
-            <Content component="small">{description}</Content>
-          </StackItem>
-        </Stack>
-      </ModalBody>
-    </Modal>
+    <Stack hasGutter style={{ textAlign: 'center' }}>
+      <StackItem>{icon}</StackItem>
+      <StackItem>
+        <Title headingLevel="h4">{title}</Title>
+      </StackItem>
+      <StackItem>
+        <Content component="small">{description}</Content>
+      </StackItem>
+      {redirectToPlayground && lsdStatus?.phase === 'Ready' && (
+        <StackItem>
+          <Button variant="primary">
+            <Link to={genAiChatPlaygroundRoute(namespace?.name)}>Go to playground</Link>
+          </Button>
+        </StackItem>
+      )}
+    </Stack>
   );
 };
 
-export default ChatbotConfigurationModal;
+export default ChatbotConfigurationState;

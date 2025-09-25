@@ -15,12 +15,11 @@ import { CodeIcon } from '@patternfly/react-icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import ChatbotEmptyState from '~/app/EmptyStates/NoData';
-import { deleteLSD, installLSD } from '~/app/services/llamaStackService';
+import { deleteLSD } from '~/app/services/llamaStackService';
 import { GenAiContext } from '~/app/context/GenAiContext';
-import useFetchAIModels from '~/app/hooks/useFetchAIModels';
+import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import ChatbotHeader from './ChatbotHeader';
 import ChatbotPlayground from './ChatbotPlayground';
-import ChatbotConfigurationModal from './components/ChatbotConfigurationModal';
 
 const ChatbotMain: React.FunctionComponent = () => {
   const {
@@ -28,16 +27,15 @@ const ChatbotMain: React.FunctionComponent = () => {
     lsdStatusLoaded,
     lsdStatusError,
     selectedModel,
+    setSelectedModel,
     lastInput,
     refresh,
-    setSelectedModel,
+    aiModels,
+    aiModelsLoaded,
+    aiModelsError,
   } = React.useContext(ChatbotContext);
   const { namespace } = React.useContext(GenAiContext);
-  const {
-    data: aiModels,
-    loaded: aiModelsLoaded,
-    error: aiModelsError,
-  } = useFetchAIModels(namespace?.name);
+
   const navigate = useNavigate();
 
   const [isViewCodeModalOpen, setIsViewCodeModalOpen] = React.useState(false);
@@ -113,20 +111,7 @@ const ChatbotMain: React.FunctionComponent = () => {
               description="Create a playground to chat with the generative models deployed in this project. Experiment with model output using a simple RAG simulation, custom prompt and MCP servers."
               actionButtonText="Configure playground"
               handleActionButtonClick={() => {
-                if (namespace?.name) {
-                  installLSD(
-                    namespace.name,
-                    aiModels.map((model) => model.model_name),
-                  )
-                    .then(() => {
-                      setConfigurationModalOpen(true);
-                    })
-                    .catch((e) => {
-                      // TODO: Figure out how to handle errors here
-                      // eslint-disable-next-line no-console
-                      console.error('Failed to configure playground', e.message);
-                    });
-                }
+                setConfigurationModalOpen(true);
               }}
             />
           )
@@ -197,6 +182,8 @@ const ChatbotMain: React.FunctionComponent = () => {
             setConfigurationModalOpen(false);
             refresh();
           }}
+          allModels={aiModels}
+          lsdStatus={lsdStatus}
         />
       )}
     </>

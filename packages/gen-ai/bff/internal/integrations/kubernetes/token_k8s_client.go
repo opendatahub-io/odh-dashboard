@@ -294,6 +294,7 @@ func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *inte
 			Usecase:        kc.extractUseCaseFromInferenceService(&isvc),
 			Endpoints:      kc.extractEndpoints(&isvc),
 			Status:         kc.extractStatusFromInferenceService(&isvc),
+			DisplayName:    kc.extractDisplayNameFromInferenceService(&isvc),
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -377,7 +378,10 @@ func (kc *TokenKubernetesClient) extractEndpoints(isvc *kservev1beta1.InferenceS
 	// Extract external endpoint from URL
 	if isvc.Status.URL != nil {
 		external := isvc.Status.URL.String()
-		// Only add if it's different from internal
+		if strings.Contains(external, ".svc.cluster.local") {
+			return endpoints
+		}
+		// Only add if it's different from internal and not internal service
 		if len(endpoints) == 0 || !strings.Contains(endpoints[0], external) {
 			endpoints = append(endpoints, fmt.Sprintf("external: %s", external))
 		}
@@ -400,6 +404,18 @@ func ExtractStatusFromInferenceService(isvc *kservev1beta1.InferenceService) str
 		}
 	}
 	return "Stop"
+}
+
+func (kc *TokenKubernetesClient) extractDisplayNameFromInferenceService(isvc *kservev1beta1.InferenceService) string {
+	if isvc == nil || isvc.Annotations == nil {
+		return ""
+	}
+	// If display name is not present, use the inference service name
+	displayName := isvc.Annotations[DisplayNameAnnotation]
+	if displayName == "" {
+		return isvc.Name
+	}
+	return displayName
 }
 
 func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []string) (*lsdapi.LlamaStackDistribution, error) {
