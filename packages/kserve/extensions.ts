@@ -124,9 +124,9 @@ const extensions: (
     properties: {
       platform: KSERVE_ID,
       extractHardwareProfileConfig: () =>
-        import('./src/useKServeResources').then((m) => m.extractHardwareProfileConfig),
+        import('./src/hardware').then((m) => m.extractHardwareProfileConfig),
       extractModelFormat: () => import('./src/modelFormat').then((m) => m.extractKServeModelFormat),
-      extractReplicas: () => import('./src/useKServeResources').then((m) => m.extractReplicas),
+      extractReplicas: () => import('./src/hardware').then((m) => m.extractReplicas),
     },
   },
   {
