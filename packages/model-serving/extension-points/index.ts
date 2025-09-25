@@ -15,6 +15,8 @@ import type { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelSe
 import type { ToggleState } from '@odh-dashboard/internal/components/StateActionToggle';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
 import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import type { ConnectionTypeConfigMapObj } from '@odh-dashboard/internal/concepts/connectionTypes/types';
+import type { ModelLocationData } from '../src/components/deploymentWizard/fields/modelLocationFields/types';
 import type { UseModelDeploymentWizardState } from '../src/components/deploymentWizard/useDeploymentWizard';
 
 export type DeploymentStatus = {
@@ -153,6 +155,12 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
     >;
     extractModelFormat: CodeRef<(deployment: D) => SupportedModelFormats | null>;
     extractReplicas: CodeRef<(deployment: D) => number | null>;
+    extractModelLocationData: CodeRef<
+      (
+        deployment: D,
+        connectionTypes: ConnectionTypeConfigMapObj[],
+      ) => Promise<ModelLocationData | null>
+    >;
   }
 >;
 export const isModelServingDeploymentFormDataExtension = <D extends Deployment = Deployment>(

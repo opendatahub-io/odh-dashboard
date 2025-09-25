@@ -12,6 +12,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
+import { useModelLocationData } from './fields/ModelLocationInputFields';
 import { useAvailableClusterPlatforms } from '../../concepts/useAvailableClusterPlatforms';
 import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
 import { ModelDeploymentsProvider } from '../../concepts/ModelDeploymentsContext';
@@ -27,7 +28,9 @@ const CreateModelDeploymentPage: React.FC = () => {
     useAvailableClusterPlatforms();
   const { activePlatform } = useProjectServingPlatform(currentProject, clusterPlatforms);
 
-  if (!projectsLoaded || !clusterPlatformsLoaded) {
+  const { connectionsLoaded } = useModelLocationData(currentProject ?? null, undefined);
+
+  if (!projectsLoaded || !clusterPlatformsLoaded || !connectionsLoaded) {
     return (
       <Bullseye>
         <Spinner />

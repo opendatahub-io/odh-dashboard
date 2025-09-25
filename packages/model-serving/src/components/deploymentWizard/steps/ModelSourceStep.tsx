@@ -2,7 +2,6 @@ import React from 'react';
 import { z } from 'zod';
 import { Form } from '@patternfly/react-core';
 import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
-import { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { modelTypeSelectFieldSchema, ModelTypeSelectField } from '../fields/ModelTypeSelectField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { ModelLocationSelectField } from '../fields/ModelLocationSelectField';
@@ -23,13 +22,11 @@ export type ModelSourceStepData = z.infer<typeof modelSourceStepSchema>;
 type ModelSourceStepProps = {
   wizardState: UseModelDeploymentWizardState;
   validation: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
-  connections: LabeledConnection[] | undefined;
 };
 
 export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
   wizardState,
   validation,
-  connections,
 }) => {
   return (
     <Form>
@@ -37,11 +34,10 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
         modelLocation={wizardState.state.modelLocationData.data?.type}
         validationProps={validation.getFieldValidationProps(['modelLocation', 'modelLocationData'])}
         validationIssues={validation.getFieldValidation(['modelLocation', 'modelLocationData'])}
-        connections={connections ?? []}
+        project={wizardState.state.modelLocationData.project}
+        modelLocationData={wizardState.state.modelLocationData.data}
         setModelLocationData={wizardState.state.modelLocationData.setData}
         resetModelLocationData={() => wizardState.state.modelLocationData.setData(undefined)}
-        modelLocationData={wizardState.state.modelLocationData.data}
-        initSelectedConnection={wizardState.state.modelLocationData.selectedConnection}
       />
       <ModelTypeSelectField
         modelType={wizardState.state.modelType.data}

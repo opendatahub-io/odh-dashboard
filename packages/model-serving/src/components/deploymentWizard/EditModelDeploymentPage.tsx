@@ -13,15 +13,20 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { setupDefaults } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
+import { ConnectionTypeConfigMapObj } from '@odh-dashboard/internal/concepts/connectionTypes/types.js';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
 import { ModelDeploymentWizardData } from './useDeploymentWizard';
 import {
   getModelTypeFromDeployment,
-  setupModelLocationData,
   getTokenAuthenticationFromDeployment,
   getExternalRouteFromDeployment,
 } from './utils';
-import { Deployment, isModelServingDeploymentFormDataExtension } from '../../../extension-points';
+import { useModelLocationData } from './fields/ModelLocationInputFields';
+import {
+  Deployment,
+  isModelServingDeploymentFormDataExtension,
+  ModelServingDeploymentFormDataExtension,
+} from '../../../extension-points';
 import {
   ModelDeploymentsContext,
   ModelDeploymentsProvider,
@@ -54,6 +59,43 @@ const ErrorContent: React.FC<{ error: Error }> = ({ error }) => {
     </Bullseye>
   );
 };
+function useEditDeploymentData(
+  existingDeployment: Deployment | undefined,
+  formDataExtension: ReturnType<
+    typeof useResolvedDeploymentExtension<ModelServingDeploymentFormDataExtension<Deployment>>
+  >[0],
+  connectionTypes: ConnectionTypeConfigMapObj[],
+) {
+  const [formData, setFormData] = React.useState<ModelDeploymentWizardData>();
+  const [dataLoaded, setDataLoaded] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!existingDeployment || !formDataExtension || dataLoaded) return;
+
+    (async () => {
+      const modelLocationData = await formDataExtension.properties.extractModelLocationData(
+        existingDeployment,
+        connectionTypes,
+      );
+
+      setFormData({
+        modelTypeField: getModelTypeFromDeployment(existingDeployment),
+        k8sNameDesc: setupDefaults({ initialData: existingDeployment.model }),
+        hardwareProfile:
+          formDataExtension.properties.extractHardwareProfileConfig(existingDeployment) ??
+          undefined,
+        modelFormat:
+          formDataExtension.properties.extractModelFormat(existingDeployment) ?? undefined,
+        modelLocationData: modelLocationData ?? undefined,
+        externalRoute: getExternalRouteFromDeployment(existingDeployment),
+        tokenAuthentication: getTokenAuthenticationFromDeployment(existingDeployment),
+      });
+      setDataLoaded(true);
+    })();
+  }, [existingDeployment, formDataExtension, connectionTypes, dataLoaded]);
+
+  return { formData, dataLoaded };
+}
 
 const EditModelDeploymentPage: React.FC = () => {
   const { namespace } = useParams();
@@ -116,32 +158,19 @@ const EditModelDeploymentContent: React.FC<{
   const [formDataExtension, formDataExtensionLoaded, formDataExtensionErrors] =
     useResolvedDeploymentExtension(isModelServingDeploymentFormDataExtension, existingDeployment);
 
-  const extractFormDataFromDeployment: (deployment: Deployment) => ModelDeploymentWizardData = (
-    deployment: Deployment,
-  ) => ({
-    modelTypeField: getModelTypeFromDeployment(deployment),
-    k8sNameDesc: setupDefaults({ initialData: deployment.model }),
-    hardwareProfile:
-      formDataExtension?.properties.extractHardwareProfileConfig(deployment) ?? undefined,
-    modelFormat: formDataExtension?.properties.extractModelFormat(deployment) ?? undefined,
-    numReplicas: formDataExtension?.properties.extractReplicas(deployment) ?? undefined,
-    modelLocationData: setupModelLocationData(), // TODO: Implement fully in next ticket RHOAIENG-32186
-    externalRoute: getExternalRouteFromDeployment(deployment),
-    tokenAuthentication: getTokenAuthenticationFromDeployment(deployment),
-  });
+  const { connectionsLoaded, connectionTypes } = useModelLocationData(project, undefined);
 
-  const formData = React.useMemo(() => {
-    if (existingDeployment) {
-      return extractFormDataFromDeployment(existingDeployment);
-    }
-    return undefined;
-  }, [existingDeployment, extractFormDataFromDeployment]);
+  const { formData, dataLoaded } = useEditDeploymentData(
+    existingDeployment,
+    formDataExtension,
+    connectionTypes,
+  );
 
   if (formDataExtensionErrors.length > 0) {
     return <ErrorContent error={formDataExtensionErrors[0]} />;
   }
 
-  if (!deploymentsLoaded || !formDataExtensionLoaded) {
+  if (!deploymentsLoaded || !formDataExtensionLoaded || !connectionsLoaded || !dataLoaded) {
     return (
       <Bullseye>
         <Spinner />
