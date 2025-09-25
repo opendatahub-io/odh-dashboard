@@ -306,6 +306,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findAdvancedOptionsStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
+    modelServingWizard.findModelDeploymentDescriptionInput().type('test-description');
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
     hardwareProfileSection.findSelect().should('contain.text', 'Small');
 
@@ -360,6 +361,7 @@ describe('Model Serving Deploy Wizard', () => {
         },
         annotations: {
           'openshift.io/display-name': 'test-model',
+          'openshift.io/description': 'test-description',
           'opendatahub.io/hardware-profile-namespace': 'opendatahub',
           'opendatahub.io/hardware-profile-name': 'small-profile',
           'opendatahub.io/model-type': 'generative',
@@ -652,6 +654,7 @@ describe('Model Serving Deploy Wizard', () => {
           modelType: ServingRuntimeModelType.PREDICTIVE,
           hardwareProfileName: 'large-profile',
           hardwareProfileNamespace: 'opendatahub',
+          description: 'test-description',
           resources: {
             requests: {
               cpu: '4',
@@ -690,6 +693,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
+    modelServingWizardEdit
+      .findModelDeploymentDescriptionInput()
+      .should('contain.text', 'test-description');
     modelServingWizardEdit.findModelDeploymentStep().should('be.enabled');
     modelServingWizardEdit.findAdvancedOptionsStep().should('be.enabled');
     modelServingWizardEdit.findNextButton().should('be.enabled');

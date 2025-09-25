@@ -7,6 +7,7 @@ type MockResourceConfigType = {
   name?: string;
   namespace?: string;
   displayName?: string;
+  description?: string;
   modelName?: string;
   secretName?: string;
   deleted?: boolean;
@@ -88,6 +89,7 @@ export const mockInferenceServiceK8sResource = ({
   name = 'test-inference-service',
   namespace = 'test-project',
   displayName = 'Test Inference Service',
+  description = undefined,
   modelName = 'test-model',
   secretName = 'test-secret',
   deleted = false,
@@ -128,6 +130,7 @@ export const mockInferenceServiceK8sResource = ({
   metadata: {
     annotations: {
       'openshift.io/display-name': displayName,
+      ...(description && { 'openshift.io/description': description }),
       'serving.kserve.io/deploymentMode': isModelMesh
         ? DeploymentMode.ModelMesh
         : isKserveRaw
