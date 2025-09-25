@@ -292,6 +292,7 @@ const initIntercepts = ({
         ? []
         : [
             mockNotebookK8sResource({
+              lastImageSelection: `${imageStreamName}:${imageStreamTag}`,
               opts: {
                 spec: {
                   template: {
