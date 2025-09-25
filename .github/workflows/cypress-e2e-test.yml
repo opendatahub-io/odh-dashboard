@@ -307,14 +307,30 @@ jobs:
           # Extract TEST_USER_3_PASSWORD from TEST_USER_3 section
           TEST_USER_3_PASSWORD=$(grep -A 10 "^TEST_USER_3:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
 
-          # Mask TEST_USER_3 credentials in logs (must happen after extraction)
+          # Extract HTPASSWD_CLUSTER_ADMIN_USER credentials
+          HTPASSWD_CLUSTER_ADMIN_AUTH_TYPE=$(grep -A 10 "^HTPASSWD_CLUSTER_ADMIN_USER:" "$TEST_VARS_FILE" | grep "AUTH_TYPE:" | head -1 | sed 's/.*AUTH_TYPE: //' | tr -d ' ')
+          HTPASSWD_CLUSTER_ADMIN_USERNAME=$(grep -A 10 "^HTPASSWD_CLUSTER_ADMIN_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
+          HTPASSWD_CLUSTER_ADMIN_PASSWORD=$(grep -A 10 "^HTPASSWD_CLUSTER_ADMIN_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
+
+          # Extract LDAP_CONTRIBUTOR_USER credentials
+          LDAP_CONTRIBUTOR_AUTH_TYPE=$(grep -A 10 "^LDAP_CONTRIBUTOR_USER:" "$TEST_VARS_FILE" | grep "AUTH_TYPE:" | head -1 | sed 's/.*AUTH_TYPE: //' | tr -d ' ')
+          LDAP_CONTRIBUTOR_USERNAME=$(grep -A 10 "^LDAP_CONTRIBUTOR_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
+          LDAP_CONTRIBUTOR_PASSWORD=$(grep -A 10 "^LDAP_CONTRIBUTOR_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
+
+          # Mask all credentials in logs (must happen after extraction)
           echo "::add-mask::$TEST_USER_3_USERNAME"
           echo "::add-mask::$TEST_USER_3_PASSWORD"
+          echo "::add-mask::$HTPASSWD_CLUSTER_ADMIN_USERNAME"
+          echo "::add-mask::$HTPASSWD_CLUSTER_ADMIN_PASSWORD"
+          echo "::add-mask::$LDAP_CONTRIBUTOR_USERNAME"
+          echo "::add-mask::$LDAP_CONTRIBUTOR_PASSWORD"
 
-          # Export TEST_USER_3 credentials as environment variables for Cypress
+          # Export all credentials as environment variables for Cypress
           echo "TEST_USER_3_AUTH_TYPE=$TEST_USER_3_AUTH_TYPE" >> $GITHUB_ENV
           echo "TEST_USER_3_USERNAME=$TEST_USER_3_USERNAME" >> $GITHUB_ENV
           echo "TEST_USER_3_PASSWORD=$TEST_USER_3_PASSWORD" >> $GITHUB_ENV
+          echo "HTPASSWD_CLUSTER_ADMIN_USER={\"AUTH_TYPE\":\"$HTPASSWD_CLUSTER_ADMIN_AUTH_TYPE\",\"USERNAME\":\"$HTPASSWD_CLUSTER_ADMIN_USERNAME\",\"PASSWORD\":\"$HTPASSWD_CLUSTER_ADMIN_PASSWORD\"}" >> $GITHUB_ENV
+          echo "LDAP_CONTRIBUTOR_USER={\"AUTH_TYPE\":\"$LDAP_CONTRIBUTOR_AUTH_TYPE\",\"USERNAME\":\"$LDAP_CONTRIBUTOR_USERNAME\",\"PASSWORD\":\"$LDAP_CONTRIBUTOR_PASSWORD\"}" >> $GITHUB_ENV
           
           echo "Logging in to OpenShift cluster..."
           oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="${{ secrets.OC_SERVER }}" --insecure-skip-tls-verify

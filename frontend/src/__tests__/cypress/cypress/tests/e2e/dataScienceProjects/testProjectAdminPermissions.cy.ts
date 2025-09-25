@@ -44,7 +44,15 @@ describe('Verify that users can provide admin project permissions to non-admin u
   it(
     'Verify that user can be added as an Admin for a Project',
     {
-      tags: ['@Smoke', '@SmokeSet1', '@ODS-2194', '@ODS-2201', '@ODS-2208', '@Dashboard', '@NonConcurrent'],
+      tags: [
+        '@Smoke',
+        '@SmokeSet1',
+        '@ODS-2194',
+        '@ODS-2201',
+        '@ODS-2208',
+        '@Dashboard',
+        '@NonConcurrent',
+      ],
     },
     () => {
       // Authentication and navigation
