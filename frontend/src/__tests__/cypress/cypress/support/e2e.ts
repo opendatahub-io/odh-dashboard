@@ -375,17 +375,31 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
 
           try {
             // Use fetch as oppose to req.continue or cy.request to ECONNREFUSED errors.
-            const response = await fetch(forwardedUrl);
-            req.reply({
-              statusCode: response.status,
-              body: await response.text(),
-            });
+            let retry = 3;
+            do {
+              try {
+                const response = await fetch(forwardedUrl);
+                req.reply({
+                  statusCode: response.status,
+                  body: await response.text(),
+                });
+                return;
+              } catch (error) {
+                // ignore ChunkLoadError errors and retry to save having to retry the entire test
+                if (error instanceof Error && error.name === 'ChunkLoadError') {
+                  cy.task('log', `ChunkLoadError caught and ignored ${error.message}`);
+                } else {
+                  throw error;
+                }
+              }
+            } while (--retry > 0);
           } catch (error) {
-            req.reply({
-              statusCode: 404,
-              statusText: 'Module federation request failed',
-            });
+            // fall through to the 404 reply
           }
+          req.reply({
+            statusCode: 404,
+            statusText: 'Module federation request failed',
+          });
         },
       );
     });
