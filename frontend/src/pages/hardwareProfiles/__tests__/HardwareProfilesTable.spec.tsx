@@ -242,7 +242,7 @@ describe('HardwareProfilesTable', () => {
     it('should show create button in toolbar when not migrated table', () => {
       render(<HardwareProfilesTable {...defaultProps} />);
 
-      expect(screen.getByTestId('create-button')).toBeInTheDocument();
+      expect(screen.getByTestId('create-hardware-profile')).toBeInTheDocument();
     });
   });
 
