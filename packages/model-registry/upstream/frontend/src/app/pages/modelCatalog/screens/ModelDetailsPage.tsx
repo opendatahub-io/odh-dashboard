@@ -42,7 +42,7 @@ const ModelDetailsPage: React.FC = () => {
 
   const [artifacts, artifactLoaded, artifactsLoadError] = useCatalogModelArtifacts(
     decodedParams.sourceId || '',
-    encodeURIComponent(encodeURIComponent(`${decodedParams.modelName}`)) || '',
+    encodeURIComponent(`${decodedParams.modelName}`),
   );
 
   const registerButtonPopover = (headerContent: string, bodyContent: string, variant: 'primary' | 'secondary' = 'primary') => (
