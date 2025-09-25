@@ -91,6 +91,7 @@ const initIntercepts = ({
   disableHardwareProfiles = true,
   notebooks = [
     mockNotebookK8sResource({
+      lastImageSelection: 'test-imagestream:1.2',
       envFrom,
       opts: {
         metadata: {
@@ -109,6 +110,7 @@ const initIntercepts = ({
       name: 'outdated-notebook',
       displayName: 'Outdated Notebook',
       image: 'test-10:2023.1',
+      lastImageSelection: 'test-10:2023.1',
       envFrom,
       opts: {
         metadata: {
@@ -127,6 +129,7 @@ const initIntercepts = ({
       name: 'latest-notebook',
       displayName: 'Latest Notebook',
       image: 'test-10:2024.2',
+      lastImageSelection: 'test-10:2024.2',
       envFrom,
       opts: {
         metadata: {
@@ -143,8 +146,9 @@ const initIntercepts = ({
     }),
     mockNotebookK8sResource({
       name: 'mismatch-commit-notebook',
-      displayName: 'Deleted Notebook',
+      displayName: 'Deprecated Notebook',
       image: 'test-10:2023.1',
+      lastImageSelection: 'test-10:2023.1',
       envFrom,
       opts: {
         metadata: {
@@ -163,6 +167,7 @@ const initIntercepts = ({
       name: 'mismatch-commit-byon-notebook',
       displayName: 'BYON Notebook',
       image: 'test-6:2024.2',
+      lastImageSelection: 'test-6:2024.2',
       envFrom,
       opts: {
         metadata: {
@@ -1033,7 +1038,7 @@ describe('Workbench page', () => {
     popover.findImageVersionSoftware().contains('Software: Python v3.8');
   });
 
-  it('Shows deleted image label for commit mismatch', () => {
+  it('Shows deprecated image label for commit mismatch', () => {
     initIntercepts({});
     cy.interceptK8sList(
       PVCModel,
@@ -1045,7 +1050,38 @@ describe('Workbench page', () => {
     cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'mismatch-commit-notebook' }));
     workbenchPage.visit('test-project');
     workbenchPage.getNotebookRow('BYON Notebook').findNotebookImageLabel().should('not.exist');
-    workbenchPage.getNotebookRow('Deleted Notebook').findNotebookImageLabel().click();
+    workbenchPage.getNotebookRow('Deprecated Notebook').findNotebookImageLabel().click();
+    cy.contains('Notebook image deprecated');
+  });
+
+  it('Shows deleted image label when last image selection tag is missing', () => {
+    initIntercepts({
+      notebooks: [
+        mockNotebookK8sResource({
+          name: 'deleted-image-popover',
+          displayName: 'Deleted Image Popover',
+          image: 'nonexistent-image:0.0',
+          lastImageSelection: 'nonexistent-image:0.0',
+          opts: {
+            metadata: {
+              labels: {
+                'opendatahub.io/notebook-image': 'true',
+              },
+              annotations: {
+                'opendatahub.io/image-display-name': 'Deleted image',
+              },
+            },
+          },
+        }),
+      ],
+    });
+    cy.interceptK8sList(
+      PVCModel,
+      mockK8sResourceList([mockPVCK8sResource({ name: 'deleted-image-popover' })]),
+    );
+    cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'deleted-image-popover' }));
+    workbenchPage.visit('test-project');
+    workbenchPage.getNotebookRow('Deleted Image Popover').findNotebookImageLabel().click();
     cy.contains('Notebook image deleted');
   });
 
@@ -1082,6 +1118,7 @@ describe('Workbench page', () => {
       ],
       notebooks: [
         mockNotebookK8sResource({
+          lastImageSelection: 'test-imagestream:1.2',
           workbenchImageNamespace: 'test-project',
           opts: {
             metadata: {
