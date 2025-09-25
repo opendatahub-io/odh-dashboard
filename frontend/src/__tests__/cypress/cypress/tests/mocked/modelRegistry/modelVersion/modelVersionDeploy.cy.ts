@@ -450,13 +450,6 @@ describe.skip('Deploy model version', () => {
           expect(texts[1]).to.equal(text2);
         });
       });
-
-    // verify available project-scoped hardware profile
-    // cy.findByRole('menuitem', {
-    //   name: 'Small CPU: Request = 1; Limit = 1; Memory: Request = 4Gi; Limit = 4Gi',
-    //   hidden: true,
-    // }).click();
-    // hardwareProfileSection.findProjectScopedLabel().should('exist');
   });
 
   it('Display project specific accelerator profile while deploying', () => {
