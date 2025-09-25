@@ -307,9 +307,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
-
-    hardwareProfileSection.findNewHardwareProfileSelector().click();
-    cy.get('[role="option"]').contains('Small', { matchCase: false }).click();
+    hardwareProfileSection.findSelect().should('contain.text', 'Small');
 
     // hardwareProfileSection.findGlobalScopedLabel().should('exist');
     modelServingWizard.findModelFormatSelect().should('not.exist');
@@ -550,8 +548,8 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findAdvancedOptionsStep().should('be.disabled');
-    hardwareProfileSection.findNewHardwareProfileSelector().click();
-    cy.get('[role="option"]').contains('Large', { matchCase: false }).click();
+    hardwareProfileSection.findSelect().click();
+    hardwareProfileSection.selectProfileContaining('Large Profile');
 
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelFormatSelect().should('exist');
@@ -690,8 +688,8 @@ describe('Model Serving Deploy Wizard', () => {
       .findModelDeploymentNameInput()
       .should('have.value', 'Test Inference Service');
     modelServingWizardEdit.findModelDeploymentNameInput().type('test-model');
-    hardwareProfileSection.findNewHardwareProfileSelector().should('be.visible');
-    hardwareProfileSection.findNewHardwareProfileSelector().should('contain.text', 'Large Profile');
+    hardwareProfileSection.findSelect().should('be.visible');
+    hardwareProfileSection.findSelect().should('contain.text', 'Large Profile');
 
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 

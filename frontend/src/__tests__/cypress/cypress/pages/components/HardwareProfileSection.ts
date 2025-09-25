@@ -12,20 +12,12 @@ export class HardwareProfileSection {
     return cy.findByTestId('hardware-profile-selection-toggle');
   }
 
-  findNewHardwareProfileSelector(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('hardware-profile-select');
-  }
-
   findHardwareProfileSearchInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
     return cy.findByTestId('hardware-profile-selection-search').find('input');
   }
 
   getGlobalHardwareProfileLabel(): Cypress.Chainable<JQuery<HTMLBodyElement>> {
     return cy.get('body').contains('Global hardware profiles');
-  }
-
-  getHardwareProfileLabelSelection(labelName: string): Cypress.Chainable<JQuery<HTMLBodyElement>> {
-    return cy.get('body').contains(labelName);
   }
 
   getProjectScopedHardwareProfileLabel(): Cypress.Chainable<JQuery<HTMLBodyElement>> {
@@ -79,6 +71,12 @@ export class HardwareProfileSection {
         cy.findByRole('option', { name: profileDisplayName }).click();
       }
     });
+  }
+
+  selectProfileContaining(name: string): void {
+    cy.findByRole('option', {
+      name: (content) => content.includes(name),
+    }).click();
   }
 
   getProjectScopedHardwareProfile(): Contextual<HTMLElement> {
