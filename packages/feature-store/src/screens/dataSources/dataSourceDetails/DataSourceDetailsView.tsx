@@ -20,6 +20,7 @@ import FeatureStoreTimestamp from '../../../components/FeatureStoreTimestamp';
 
 import { featureDataSourceRoute } from '../../../routes';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
+import { getDataSourceConnectorType } from '../utils';
 
 type DetailsItemProps = {
   label: string;
@@ -70,7 +71,10 @@ const DataSourceDetailsView: React.FC<DataSourceDetailsViewProps> = ({ dataSourc
           >
             <DetailsItem
               label="Data source connector"
-              value={getContentValue(dataSource.type, 'No data source connector')}
+              value={getContentValue(
+                getDataSourceConnectorType(dataSource.type),
+                'No data source connector',
+              )}
               testId="data-source-connector"
               className={getDisabledClassName(dataSource.type)}
             />
