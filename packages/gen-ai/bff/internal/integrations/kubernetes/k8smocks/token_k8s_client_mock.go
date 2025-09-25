@@ -69,7 +69,7 @@ func (m *TokenKubernetesClientMock) GetNamespaces(ctx context.Context, identity 
 func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]genaiassets.AAModel, error) {
 	// Return different mock AA models based on namespace
 	switch namespace {
-	case "mock-test-namespace-2":
+	case "mock-test-namespace-2", "mock-test-namespace-3":
 		return []genaiassets.AAModel{
 			{
 				ModelName:      "granite-7b-code",
@@ -82,6 +82,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://granite-7b-code.%s.svc.cluster.local:8080", namespace),
 					fmt.Sprintf("external: https://granite-7b-code-%s.example.com", namespace),
 				},
+				DisplayName: "Granite 7B code",
 			},
 			{
 				ModelName:      "llama-3.1-8b-instruct",
@@ -94,6 +95,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://llama-3.1-8b-instruct.%s.svc.cluster.local:8080", namespace),
 					fmt.Sprintf("external: https://llama-3.1-8b-instruct-%s.example.com", namespace),
 				},
+				DisplayName: "Llama 3.1 8B instruct",
 			},
 			{
 				ModelName:      "mistral-7b-instruct",
@@ -105,6 +107,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Endpoints: []string{
 					fmt.Sprintf("internal: http://mistral-7b-instruct.%s.svc.cluster.local:8080", namespace),
 				},
+				DisplayName: "Mistral 7B instruct",
 			},
 			{
 				ModelName:      "ollama/llama3.2:3b",
@@ -117,6 +120,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://llama3.2-3b.%s.svc.cluster.local:11434", namespace),
 					fmt.Sprintf("external: https://llama3.2-3b-%s.example.com", namespace),
 				},
+				DisplayName: "Ollama Llama 3.2 3B",
 			},
 			{
 				ModelName:      "ollama/all-minilm:l6-v2",
@@ -129,6 +133,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://all-minilm-l6-v2.%s.svc.cluster.local:11434", namespace),
 					fmt.Sprintf("external: https://all-minilm-l6-v2-%s.example.com", namespace),
 				},
+				DisplayName: "Ollama All MiniLM L6 v2",
 			},
 		}, nil
 	default:
@@ -151,7 +156,7 @@ func (m *TokenKubernetesClientMock) GetUser(ctx context.Context, identity *integ
 // GetLlamaStackDistributions returns mock LSD list for testing
 func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*lsdapi.LlamaStackDistributionList, error) {
 	// Return empty list for mock-test-namespace-1 to test empty state
-	if namespace == "mock-test-namespace-1" {
+	if namespace == "mock-test-namespace-1" || namespace == "mock-test-namespace-3" {
 		return &lsdapi.LlamaStackDistributionList{
 			Items: []lsdapi.LlamaStackDistribution{},
 		}, nil
