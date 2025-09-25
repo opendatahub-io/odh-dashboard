@@ -161,16 +161,14 @@ const assembleInferenceService = (
     inferenceService.spec.predictor.maxReplicas = numReplicas;
   }
 
+  if (!inferenceService.spec.predictor.model) {
+    inferenceService.spec.predictor.model = {};
+  }
+
   if (runtimeArgs?.enabled && runtimeArgs.args.length > 0) {
-    if (!inferenceService.spec.predictor.model) {
-      inferenceService.spec.predictor.model = {};
-    }
     inferenceService.spec.predictor.model.args = runtimeArgs.args;
   }
   if (environmentVariables?.enabled && environmentVariables.variables.length > 0) {
-    if (!inferenceService.spec.predictor.model) {
-      inferenceService.spec.predictor.model = {};
-    }
     inferenceService.spec.predictor.model.env = environmentVariables.variables.map((envVar) => ({
       name: envVar.name,
       value: envVar.value,

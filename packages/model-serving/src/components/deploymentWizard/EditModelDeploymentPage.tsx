@@ -20,8 +20,6 @@ import {
   setupModelLocationData,
   getTokenAuthenticationFromDeployment,
   getExternalRouteFromDeployment,
-  getRuntimeArgsFromDeployment,
-  getEnvironmentVariablesFromDeployment,
 } from './utils';
 import { Deployment, isModelServingDeploymentFormDataExtension } from '../../../extension-points';
 import {
@@ -130,8 +128,9 @@ const EditModelDeploymentContent: React.FC<{
     modelLocationData: setupModelLocationData(), // TODO: Implement fully in next ticket RHOAIENG-32186
     externalRoute: getExternalRouteFromDeployment(deployment),
     tokenAuthentication: getTokenAuthenticationFromDeployment(deployment),
-    runtimeArgs: getRuntimeArgsFromDeployment(deployment),
-    environmentVariables: getEnvironmentVariablesFromDeployment(deployment),
+    runtimeArgs: formDataExtension?.properties.extractRuntimeArgs(deployment) ?? undefined,
+    environmentVariables:
+      formDataExtension?.properties.extractEnvironmentVariables(deployment) ?? undefined,
   });
 
   const formData = React.useMemo(() => {

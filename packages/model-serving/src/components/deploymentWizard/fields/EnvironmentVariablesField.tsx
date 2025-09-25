@@ -26,7 +26,12 @@ import { z } from 'zod';
 
 // Schema
 const envVarSchema = z.object({
-  name: z.string(),
+  name: z
+    .string()
+    .regex(
+      /^[A-Za-z_][A-Za-z0-9_]*$/,
+      'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
+    ),
   value: z.string(),
 });
 
@@ -37,10 +42,12 @@ export const environmentVariablesFieldSchema = z.object({
 
 export type EnvironmentVariablesFieldData = z.infer<typeof environmentVariablesFieldSchema>;
 
-export const isValidEnvironmentVariables = (
-  value: unknown,
-): value is EnvironmentVariablesFieldData => {
-  return environmentVariablesFieldSchema.safeParse(value).success;
+export const isValidEnvironmentVariables = (name: string): string => {
+  if (name.length === 0) {
+    return '';
+  }
+  const result = envVarSchema.shape.name.safeParse(name);
+  return result.success ? '' : result.error.errors[0]?.message || '';
 };
 
 // Hook
@@ -80,13 +87,7 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
   const addVarButtonRef = React.useRef<HTMLButtonElement>(null);
 
   const validateEnvVarName = (name: string): string => {
-    if (name.length === 0) {
-      return '';
-    }
-    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
-      return 'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores';
-    }
-    return '';
+    return isValidEnvironmentVariables(name);
   };
 
   const addEnvVar = () => {
@@ -95,7 +96,6 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
     onChange?.(newData);
     requestAnimationFrame(() => {
       lastNameFieldRef.current?.focus();
-      addVarButtonRef.current?.scrollIntoView();
     });
   };
 
