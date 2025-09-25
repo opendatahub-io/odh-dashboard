@@ -250,7 +250,7 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
                   data-testid={`edit-sc-access-mode-checkbox-${modeName.toLowerCase()}`}
                   onChange={(_, enabled) => {
                     if (modeName === AccessMode.RWX) {
-                      if (!enabled && storageClassConfig?.accessModeSettings[AccessMode.RWX]) {
+                      if (!enabled && storageClassConfig?.accessModeSettings?.[AccessMode.RWX]) {
                         setShowAccessModeAlert(true);
                       } else {
                         setShowAccessModeAlert(false);
