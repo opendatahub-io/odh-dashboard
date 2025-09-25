@@ -66,5 +66,11 @@ patchesJson6902:
       version: v1
       kind: Route
       name: odh-dashboard
+  - path: networkpolicy.yaml
+    target:
+      group: networking.k8s.io
+      version: v1
+      kind: NetworkPolicy
+      name: odh-dashboard-allow-ports
 patchesStrategicMerge:
   - federation-configmap.yaml
