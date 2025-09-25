@@ -5,7 +5,7 @@ import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import useIsAreaAvailable from '@odh-dashboard/internal/concepts/areas/useIsAreaAvailable';
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
-import { DeploymentRow } from './DeploymentsTableRow';
+import { DeploymentRow } from './row/DeploymentsTableRow';
 import { EditModelServingModal } from '../deploy/EditModelServingModal';
 import { deploymentNameSort, deploymentLastDeployedSort } from '../../concepts/deploymentUtils';
 import { Deployment, type DeploymentsTableColumn } from '../../../extension-points';
@@ -118,7 +118,7 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
                 setEditDeployment(row);
               }
             }}
-            showExpandedInfo={showExpandedInfo}
+            showExpandedToggle={showExpandedInfo}
           />
         )}
         loading={!loaded}

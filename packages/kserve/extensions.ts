@@ -6,9 +6,7 @@ import type {
   ModelServingPlatformExtension,
   ModelServingDeleteModal,
   ModelServingPlatformWatchDeploymentsExtension,
-  ModelServingDeploymentsExpandedInfo,
   ModelServingMetricsExtension,
-  ModelServingDeploymentResourcesExtension,
   ModelServingAuthExtension,
   DeployedModelServingDetails,
   ModelServingStartStopAction,
@@ -25,10 +23,8 @@ export const KSERVE_ID = 'kserve';
 const extensions: (
   | ModelServingPlatformExtension<KServeDeployment>
   | ModelServingPlatformWatchDeploymentsExtension<KServeDeployment>
-  | ModelServingDeploymentResourcesExtension<KServeDeployment>
   | ModelServingDeploymentFormDataExtension<KServeDeployment>
   | ModelServingAuthExtension<KServeDeployment>
-  | ModelServingDeploymentsExpandedInfo<KServeDeployment>
   | ModelServingDeleteModal<KServeDeployment>
   | ModelServingMetricsExtension<KServeDeployment>
   | DeployedModelServingDetails<KServeDeployment>
@@ -76,27 +72,11 @@ const extensions: (
     },
   },
   {
-    type: 'model-serving.deployment/resources',
-    properties: {
-      platform: KSERVE_ID,
-      useResources: () => import('./src/useKServeResources').then((m) => m.useKServeResources),
-    },
-  },
-  {
     type: 'model-serving.auth',
     properties: {
       platform: KSERVE_ID,
       usePlatformAuthEnabled: () =>
         import('./src/useAuth').then((m) => m.useKServePlatformAuthEnabled),
-    },
-  },
-  {
-    type: 'model-serving.deployments-table/expanded-info',
-    properties: {
-      platform: KSERVE_ID,
-      useReplicas: () => import('./src/deploymentExpandedDetails').then((m) => m.useKserveReplicas),
-      useFramework: () =>
-        import('./src/deploymentExpandedDetails').then((m) => m.useKserveFramework),
     },
   },
   {
