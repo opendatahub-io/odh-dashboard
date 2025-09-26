@@ -23,6 +23,8 @@ interface UseChatbotMessagesProps {
   isRawUploaded: boolean;
   username?: string;
   isStreamingEnabled: boolean;
+  temperature: number;
+  topP: number;
 }
 
 const useChatbotMessages = ({
@@ -32,6 +34,8 @@ const useChatbotMessages = ({
   isRawUploaded,
   username,
   isStreamingEnabled,
+  temperature,
+  topP,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<MessageProps[]>([initialBotMessage()]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
@@ -89,6 +93,8 @@ const useChatbotMessages = ({
           .filter((msg) => msg.content),
         instructions: systemInstruction,
         stream: isStreamingEnabled,
+        temperature,
+        top_p: topP,
       };
 
       if (!namespace?.name) {
