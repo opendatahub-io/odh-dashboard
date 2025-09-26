@@ -26,3 +26,4 @@ Read more about the Dashboard in one of our documentation links.
 
 * [Dev setup & Requirements]
 * [Dashboard documentation]
+# Simple dummy PR for testing Cypress E2E workflow
