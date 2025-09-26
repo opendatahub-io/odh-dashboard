@@ -1,6 +1,8 @@
 name: E2E Direct Commit PR Tests
 
-on: [push, pull_request]
+on:
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
@@ -12,7 +14,14 @@ env:
   DO_NOT_TRACK: 1
 
 jobs:
+  check-comment:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-e2e-tests-gh') }}
+    steps:
+      - run: echo "E2E tests requested via /run-e2e-tests-gh comment"
+
   get-test-tags:
+    needs: [check-comment]
     runs-on: self-hosted
     outputs:
       test-tags: ${{ steps.set-tags.outputs.test-tags }}
@@ -33,6 +42,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.issue.number }}/head
 
       - name: Cache npm dependencies
         uses: actions/cache@v4
