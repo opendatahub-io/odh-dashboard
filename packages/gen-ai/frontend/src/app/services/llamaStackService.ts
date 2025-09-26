@@ -1,6 +1,5 @@
 /* eslint-disable camelcase */
 import { isAxiosError } from 'axios';
-
 import axiosInstance from '~/app/utilities/axios';
 import {
   BackendResponseData,
@@ -22,8 +21,7 @@ import {
   SimplifiedResponseData,
   VectorStore,
 } from '~/app/types';
-import { URL_PREFIX } from '~/app/utilities/const';
-import { extractMCPToolCallData } from '../utilities';
+import { URL_PREFIX, extractMCPToolCallData } from '~/app/utilities';
 
 /**
  * Extracts text content from the backend response output array
