@@ -29,6 +29,7 @@ import {
   getHardwareProfileDescription,
   getHardwareProfileDisplayName,
   validateProfileWarning,
+  filterOutPipelines,
 } from '#~/pages/hardwareProfiles/utils';
 import { HardwareProfileModel } from '#~/api';
 import { HardwareProfileFeatureVisibilityTitles } from './manage/const';
@@ -64,6 +65,11 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
     }
     return [];
   }, [hardwareProfile.metadata.annotations]);
+
+  const filteredUseCases: HardwareProfileFeatureVisibility[] = React.useMemo(
+    () => filterOutPipelines(useCases),
+    [useCases],
+  );
 
   const hardwareProfileWarnings = validateProfileWarning(hardwareProfile);
 
@@ -136,9 +142,11 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
         <Td dataLabel="Features">
           {useCases.length === 0 ? (
             <i>All features</i>
+          ) : filteredUseCases.length === 0 ? (
+            <>—</>
           ) : (
             <LabelGroup>
-              {useCases.map((v) => (
+              {filteredUseCases.map((v) => (
                 <Label key={v} data-testid={`label-${v}`}>
                   {HardwareProfileFeatureVisibilityTitles[v]}
                 </Label>

@@ -4,6 +4,7 @@ import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import { MultiSelection, type SelectionOptions } from '#~/components/MultiSelection';
 import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
 import { ManageHardwareProfileSectionTitles } from '#~/pages/hardwareProfiles/const';
+import { filterOutPipelines } from '#~/pages/hardwareProfiles/utils';
 import { ManageHardwareProfileSectionID } from './types';
 import { HardwareProfileFeatureVisibilityTitles } from './const';
 
@@ -20,7 +21,7 @@ export const HardwareProfileVisibilitySection: React.FC<HardwareProfileUseCaseSe
   const [selectedOptions, setSelectedOptions] = React.useState<string[]>([]);
   const visibilityOptions: SelectionOptions[] = React.useMemo(
     () =>
-      Object.values(HardwareProfileFeatureVisibility).map((value) => ({
+      filterOutPipelines(Object.values(HardwareProfileFeatureVisibility)).map((value) => ({
         id: value,
         name: HardwareProfileFeatureVisibilityTitles[value],
         selected: selectedOptions.includes(value),
@@ -33,7 +34,7 @@ export const HardwareProfileVisibilitySection: React.FC<HardwareProfileUseCaseSe
       setLimitedOptionSelected(false);
     } else {
       setLimitedOptionSelected(true);
-      setSelectedOptions(visibility);
+      setSelectedOptions(filterOutPipelines(visibility));
     }
   }, [visibility]);
 
@@ -46,8 +47,7 @@ export const HardwareProfileVisibilitySection: React.FC<HardwareProfileUseCaseSe
           content={
             <>
               Visible features indicate where the hardware profile can be used: in{' '}
-              <b>workbenches</b>, during <b>model deployment</b>, and in{' '}
-              <b>Data Science Pipelines</b>.
+              <b>workbenches</b> and during <b>model deployment</b>.
             </>
           }
         />
@@ -70,8 +70,9 @@ export const HardwareProfileVisibilitySection: React.FC<HardwareProfileUseCaseSe
         isChecked={isLimitedOptionSelected}
         onChange={() => {
           setLimitedOptionSelected(true);
-          if (selectedOptions.length !== 0) {
-            setVisibility(selectedOptions);
+          const cleanedSelection = filterOutPipelines(selectedOptions);
+          if (cleanedSelection.length !== 0) {
+            setVisibility(cleanedSelection);
           }
         }}
         body={
