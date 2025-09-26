@@ -25,7 +25,7 @@ func (app *App) MCPToolsHandler(w http.ResponseWriter, r *http.Request, ps httpr
 		return
 	}
 
-	serverConfig, err := app.findMCPServerConfig(ctx, k8sClient, identity, decodedURL)
+	serverConfig, err := app.findMCPServerConfig(ctx, k8sClient, identity, decodedURL, app.dashboardNamespace)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return

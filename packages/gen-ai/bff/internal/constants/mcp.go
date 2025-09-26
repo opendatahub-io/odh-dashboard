@@ -2,8 +2,7 @@ package constants
 
 // MCP Servers List
 const (
-	MCPServerName      = "gen-ai-aa-mcp-servers"
-	MCPServerNamespace = "mcp-servers"
+	MCPServerName = "gen-ai-aa-mcp-servers"
 )
 
 // MCP Transport Types

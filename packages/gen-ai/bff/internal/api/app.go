@@ -34,10 +34,19 @@ type App struct {
 	kubernetesClientFactory k8s.KubernetesClientFactory
 	llamaStackClientFactory llamastack.LlamaStackClientFactory
 	mcpClientFactory        mcp.MCPClientFactory
+	dashboardNamespace      string
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	logger.Info("Initializing app with config", slog.Any("config", cfg))
+
+	// Detect dashboard namespace
+	dashboardNamespace, err := helper.GetCurrentNamespace()
+	if err != nil {
+		logger.Warn("Failed to detect dashboard namespace, using default", "error", err, "default", "opendatahub")
+		dashboardNamespace = "opendatahub"
+	}
+	logger.Info("Detected dashboard namespace", "namespace", dashboardNamespace)
 
 	// Initialize LlamaStack client factory - clients will be created per request
 	var llamaStackClientFactory llamastack.LlamaStackClientFactory
@@ -101,6 +110,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		kubernetesClientFactory: k8sFactory,
 		llamaStackClientFactory: llamaStackClientFactory,
 		mcpClientFactory:        mcpFactory,
+		dashboardNamespace:      dashboardNamespace,
 	}
 	return app, nil
 }
