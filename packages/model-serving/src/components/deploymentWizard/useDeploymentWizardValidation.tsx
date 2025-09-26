@@ -12,6 +12,11 @@ import {
   type TokenAuthenticationFieldData,
 } from './fields/TokenAuthenticationField';
 import { numReplicasFieldSchema, type NumReplicasFieldData } from './fields/NumReplicasField';
+import { runtimeArgsFieldSchema, type RuntimeArgsFieldData } from './fields/RuntimeArgsField';
+import {
+  environmentVariablesFieldSchema,
+  type EnvironmentVariablesFieldData,
+} from './fields/EnvironmentVariablesField';
 
 export type ModelDeploymentWizardValidation = {
   modelSource: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
@@ -19,6 +24,8 @@ export type ModelDeploymentWizardValidation = {
   externalRoute: ReturnType<typeof useZodFormValidation<ExternalRouteFieldData>>;
   tokenAuthentication: ReturnType<typeof useZodFormValidation<TokenAuthenticationFieldData>>;
   numReplicas: ReturnType<typeof useZodFormValidation<NumReplicasFieldData>>;
+  runtimeArgs: ReturnType<typeof useZodFormValidation<RuntimeArgsFieldData>>;
+  environmentVariables: ReturnType<typeof useZodFormValidation<EnvironmentVariablesFieldData>>;
   isModelSourceStepValid: boolean;
   isModelDeploymentStepValid: boolean;
   isAdvancedSettingsStepValid: boolean;
@@ -70,6 +77,16 @@ export const useModelDeploymentWizardValidation = (
     numReplicasFieldSchema,
   );
 
+  const runtimeArgsValidation = useZodFormValidation(
+    state.runtimeArgs.data,
+    runtimeArgsFieldSchema,
+  );
+
+  const environmentVariablesValidation = useZodFormValidation(
+    state.environmentVariables.data,
+    environmentVariablesFieldSchema,
+  );
+
   // Step validation
   const isModelSourceStepValid =
     modelSourceStepValidation.getFieldValidation(undefined, true).length === 0;
@@ -80,7 +97,9 @@ export const useModelDeploymentWizardValidation = (
     numReplicasValidation.getFieldValidation(undefined, true).length === 0;
   const isAdvancedSettingsStepValid =
     externalRouteValidation.getFieldValidation(undefined, true).length === 0 &&
-    tokenAuthenticationValidation.getFieldValidation(undefined, true).length === 0;
+    tokenAuthenticationValidation.getFieldValidation(undefined, true).length === 0 &&
+    runtimeArgsValidation.getFieldValidation(undefined, true).length === 0 &&
+    environmentVariablesValidation.getFieldValidation(undefined, true).length === 0;
 
   return {
     modelSource: modelSourceStepValidation,
@@ -88,6 +107,8 @@ export const useModelDeploymentWizardValidation = (
     externalRoute: externalRouteValidation,
     tokenAuthentication: tokenAuthenticationValidation,
     numReplicas: numReplicasValidation,
+    runtimeArgs: runtimeArgsValidation,
+    environmentVariables: environmentVariablesValidation,
     isModelSourceStepValid,
     isModelDeploymentStepValid,
     isAdvancedSettingsStepValid,

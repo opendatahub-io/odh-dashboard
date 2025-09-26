@@ -128,6 +128,9 @@ const EditModelDeploymentContent: React.FC<{
     modelLocationData: setupModelLocationData(), // TODO: Implement fully in next ticket RHOAIENG-32186
     externalRoute: getExternalRouteFromDeployment(deployment),
     tokenAuthentication: getTokenAuthenticationFromDeployment(deployment),
+    runtimeArgs: formDataExtension?.properties.extractRuntimeArgs(deployment) ?? undefined,
+    environmentVariables:
+      formDataExtension?.properties.extractEnvironmentVariables(deployment) ?? undefined,
   });
 
   const formData = React.useMemo(() => {

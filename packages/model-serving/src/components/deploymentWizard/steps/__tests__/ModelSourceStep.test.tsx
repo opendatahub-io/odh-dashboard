@@ -78,6 +78,14 @@ const mockDeploymentWizardState = (
           setData: jest.fn(),
           updateField: jest.fn(),
         },
+        runtimeArgs: {
+          data: undefined,
+          setData: jest.fn(),
+        },
+        environmentVariables: {
+          data: undefined,
+          setData: jest.fn(),
+        },
         numReplicas: {
           data: undefined,
           setReplicas: jest.fn(),
