@@ -816,6 +816,7 @@ describe('Model Serving Global', () => {
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
 
     hardwareProfileSection.findHardwareProfileSearchSelector().should('be.visible');
+
     hardwareProfileSection
       .findHardwareProfileSearchSelector()
       .should('contain.text', 'Large Profile-1');
@@ -827,6 +828,7 @@ describe('Model Serving Global', () => {
       projectEnableModelMesh: false,
       disableServingRuntimeParamsConfig: false,
       disableProjectScoped: false,
+      disableHardwareProfiles: true,
     });
     modelServingGlobal.visit('test-project');
     modelServingGlobal.clickDeployModelButtonWithRetry();

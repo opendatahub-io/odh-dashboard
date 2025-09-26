@@ -301,7 +301,7 @@ describe('Feature Data Sources for all projects', () => {
       .shouldHaveApplicationsPageDescription(
         'Loan application data including personal and loan characteristics',
       )
-      .shouldHaveDataSourceConnector('BATCH_FILE')
+      .shouldHaveDataSourceConnector('File source')
       .shouldHaveOwner('risk-team@company.com');
     featureDataSourceDetails.findInteractiveExample().should('be.visible');
     featureDataSourceDetails.findBreadcrumbLink().should('be.visible');
@@ -321,7 +321,7 @@ describe('Feature Data Sources for all projects', () => {
       .shouldHaveApplicationsPageDescription(
         'Loan application data including personal and loan characteristics',
       )
-      .shouldHaveDataSourceConnector('BATCH_FILE')
+      .shouldHaveDataSourceConnector('File source')
       .shouldHaveOwner('risk-team@company.com');
     featureDataSourceDetails.findInteractiveExample().should('be.visible');
 
@@ -527,7 +527,7 @@ describe('Data Source Details Tab', () => {
 
     featureDataSourceDetails.findDetailsTab().should('be.visible');
     featureDataSourceDetails.findDetailsTabContent().within(() => {
-      featureDataSourceDetails.shouldHaveDataSourceConnector('BATCH_FILE');
+      featureDataSourceDetails.shouldHaveDataSourceConnector('File source');
       featureDataSourceDetails.shouldHaveOwner('risk-team@company.com');
       featureDataSourceDetails.findLastModified().should('be.visible');
       featureDataSourceDetails.findCreated().should('be.visible');

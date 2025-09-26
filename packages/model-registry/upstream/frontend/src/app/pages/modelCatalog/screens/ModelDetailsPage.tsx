@@ -18,7 +18,7 @@ import {
 } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { decodeParams, getModelName } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
-import ModelDetailsView from '~/app/pages/modelCatalog/screens/ModelDetailsView';
+import ModelDetailsTabs from '~/app/pages/modelCatalog/screens/ModelDetailsTabs';
 import { useCatalogModel } from '~/app/hooks/modelCatalog/useCatalogModel';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { getRegisterCatalogModelRoute } from '~/app/routes/modelCatalog/catalogModelRegister';
@@ -42,7 +42,7 @@ const ModelDetailsPage: React.FC = () => {
 
   const [artifacts, artifactLoaded, artifactsLoadError] = useCatalogModelArtifacts(
     decodedParams.sourceId || '',
-    encodeURIComponent(encodeURIComponent(`${decodedParams.modelName}`)) || '',
+    encodeURIComponent(`${decodedParams.modelName}`),
   );
 
   const registerButtonPopover = (headerContent: string, bodyContent: string, variant: 'primary' | 'secondary' = 'primary') => (
@@ -104,7 +104,7 @@ const ModelDetailsPage: React.FC = () => {
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem>
-            <Link to="/model-catalog">Model catalog</Link>
+            <Link to="/model-catalog">Catalog</Link>
           </BreadcrumbItem>
           <BreadcrumbItem isActive>{getModelName(model?.name || '') || 'Details'}</BreadcrumbItem>
         </Breadcrumb>
@@ -172,7 +172,7 @@ const ModelDetailsPage: React.FC = () => {
         )
       }
     >
-      {model && <ModelDetailsView model={model} decodedParams={decodedParams} />}
+      {model && <ModelDetailsTabs model={model} decodedParams={decodedParams} />}
     </ApplicationsPage>
   );
 };

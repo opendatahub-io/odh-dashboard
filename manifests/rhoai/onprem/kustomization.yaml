@@ -19,6 +19,13 @@ vars:
       apiVersion: v1
     fieldref:
       fieldpath: data.odh-dashboard-image
+  - name: oauth-proxy-image
+    objref:
+      kind: ConfigMap
+      name: odh-dashboard-params
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.oauth-proxy-image
   - name: section-title
     objref:
       kind: ConfigMap

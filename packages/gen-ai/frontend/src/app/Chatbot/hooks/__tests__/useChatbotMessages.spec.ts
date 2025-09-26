@@ -56,6 +56,8 @@ describe('useChatbotMessages', () => {
           systemInstruction: '',
           isRawUploaded: true,
           isStreamingEnabled: false,
+          temperature: 0.7,
+          topP: 0.9,
         }),
       );
 
@@ -82,6 +84,8 @@ describe('useChatbotMessages', () => {
           systemInstruction: '',
           isRawUploaded: true,
           isStreamingEnabled: false,
+          temperature: 0.7,
+          topP: 0.9,
         }),
       );
 
@@ -117,6 +121,8 @@ describe('useChatbotMessages', () => {
           systemInstruction: '',
           isRawUploaded: true,
           isStreamingEnabled: false,
+          temperature: 0.7,
+          topP: 0.9,
         }),
       );
 
@@ -141,6 +147,8 @@ describe('useChatbotMessages', () => {
           systemInstruction: '',
           isRawUploaded: true,
           isStreamingEnabled: false,
+          temperature: 0.7,
+          topP: 0.9,
         }),
       );
 
@@ -161,6 +169,8 @@ describe('useChatbotMessages', () => {
           ],
           instructions: '',
           stream: false,
+          temperature: 0.7,
+          top_p: 0.9,
         },
         'test-namespace',
       );
@@ -176,6 +186,8 @@ describe('useChatbotMessages', () => {
           systemInstruction: '',
           isRawUploaded: true,
           isStreamingEnabled: false,
+          temperature: 0.7,
+          topP: 0.9,
         }),
       );
 
@@ -203,6 +215,8 @@ describe('useChatbotMessages', () => {
           systemInstruction: '',
           isRawUploaded: false,
           isStreamingEnabled: false,
+          temperature: 0.7,
+          topP: 0.9,
         }),
       );
 
@@ -229,6 +243,8 @@ describe('useChatbotMessages', () => {
           ],
           instructions: '',
           stream: false,
+          temperature: 0.7,
+          top_p: 0.9,
         },
         'test-namespace',
       );
@@ -244,6 +260,8 @@ describe('useChatbotMessages', () => {
           systemInstruction: '',
           isRawUploaded: true,
           isStreamingEnabled: false,
+          temperature: 0.7,
+          topP: 0.9,
         }),
       );
 
@@ -270,6 +288,8 @@ describe('useChatbotMessages', () => {
           systemInstruction: '',
           isRawUploaded: true,
           isStreamingEnabled: false,
+          temperature: 0.7,
+          topP: 0.9,
         }),
       );
 
@@ -291,6 +311,8 @@ describe('useChatbotMessages', () => {
           systemInstruction: '',
           isRawUploaded: true,
           isStreamingEnabled: false,
+          temperature: 0.7,
+          topP: 0.9,
         }),
       );
 
@@ -320,6 +342,8 @@ describe('useChatbotMessages', () => {
           systemInstruction: 'You are a helpful assistant.',
           isRawUploaded: true,
           isStreamingEnabled: false,
+          temperature: 0.7,
+          topP: 0.9,
         }),
       );
 
@@ -370,6 +394,8 @@ describe('useChatbotMessages', () => {
           systemInstruction: '',
           isRawUploaded: true,
           isStreamingEnabled: false,
+          temperature: 0.7,
+          topP: 0.9,
         }),
       );
 
@@ -397,6 +423,8 @@ describe('useChatbotMessages', () => {
             systemInstruction: 'Be helpful.',
             isRawUploaded: true,
             isStreamingEnabled: false,
+            temperature: 0.7,
+            topP: 0.9,
           }),
         { initialProps: { modelId: 'model-1' } },
       );
@@ -443,6 +471,8 @@ describe('useChatbotMessages', () => {
             systemInstruction,
             isRawUploaded: true,
             isStreamingEnabled: false,
+            temperature: 0.7,
+            topP: 0.9,
           }),
         { initialProps: { systemInstruction: 'Be concise.' } },
       );

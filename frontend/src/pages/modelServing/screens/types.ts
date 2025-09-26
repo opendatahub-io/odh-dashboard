@@ -134,6 +134,7 @@ type PlatformStatus = {
 export type ServingPlatformStatuses = {
   kServe: PlatformStatus;
   kServeNIM: PlatformStatus;
+  /** @deprecated -- remove Model Mesh */
   modelMesh: PlatformStatus;
   platformEnabledCount: number;
   refreshNIMAvailability: () => Promise<boolean | undefined>;

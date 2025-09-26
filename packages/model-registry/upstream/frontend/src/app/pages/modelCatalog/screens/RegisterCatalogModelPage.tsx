@@ -47,7 +47,7 @@ const RegisterCatalogModelPageInner: React.FC = () => {
       description="Create and register the first version of a new model."
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to="/model-catalog">Model catalog</Link>} />
+          <BreadcrumbItem render={() => <Link to="/model-catalog">Catalog</Link>} />
           <BreadcrumbItem
             data-testid="breadcrumb-model-name"
             render={() =>

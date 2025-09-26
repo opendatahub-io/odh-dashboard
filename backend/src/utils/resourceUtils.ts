@@ -517,6 +517,29 @@ export const initializeWatchedResources = (fastify: KubeFastifyInstance): void =
   consoleLinksWatcher = new ResourceWatcher<ConsoleLinkKind>(fastify, fetchConsoleLinks);
 };
 
+/**
+ * Sometimes we need to lockout a feature while we look to remove it more properly. This function
+ * can help align the feature to being disabled.
+ */
+const applyFeatureLockouts = (config: DashboardConfig): DashboardConfig => ({
+  ...config,
+  spec: {
+    ...config.spec,
+    dashboardConfig: {
+      ...config.spec.dashboardConfig,
+      // Apply Feature Lockouts Directly below
+      // Feature flags noted below are removable from the CRD at the earliest convenience
+      // Do note, update the CRD is a backwards incompatible step and needs an up-version
+      //---------------------------------------
+
+      /**
+       * Model Mesh is removed in v3.0
+       */
+      disableModelMesh: true,
+    },
+  },
+});
+
 const FEATURE_FLAGS_HEADER = 'x-odh-feature-flags';
 
 // if inspecting feature flags, provide the request to ensure overridden feature flags are considered
@@ -527,7 +550,7 @@ export const getDashboardConfig = (request?: FastifyRequest): DashboardConfig =>
     if (typeof flagsHeader === 'string') {
       try {
         const featureFlags = JSON.parse(flagsHeader);
-        return {
+        return applyFeatureLockouts({
           ...dashboardConfig,
           spec: {
             ...dashboardConfig.spec,
@@ -536,13 +559,13 @@ export const getDashboardConfig = (request?: FastifyRequest): DashboardConfig =>
               ...featureFlags,
             },
           },
-        };
+        });
       } catch {
         // ignore
       }
     }
   }
-  return dashboardConfig;
+  return applyFeatureLockouts(dashboardConfig);
 };
 
 export const getClusterStatus = (
