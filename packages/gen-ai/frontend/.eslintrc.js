@@ -185,7 +185,7 @@ module.exports = {
       },
     ],
     'no-relative-import-paths/no-relative-import-paths': [
-      'warn',
+      'error',
       {
         allowSameFolder: true,
         rootDir: 'src',
