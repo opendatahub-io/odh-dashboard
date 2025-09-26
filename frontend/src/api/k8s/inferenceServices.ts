@@ -200,13 +200,15 @@ export const assembleInferenceService = (
     data.isKServeRawDeployment,
   );
 
-  if (!isModelMesh && podSpecOptions && !podSpecOptions.selectedHardwareProfile) {
+  if (!isModelMesh && podSpecOptions) {
     const { tolerations, resources, nodeSelector } = podSpecOptions;
-    if (tolerations) {
-      updatedInferenceService.spec.predictor.tolerations = tolerations;
-    }
-    if (nodeSelector) {
-      updatedInferenceService.spec.predictor.nodeSelector = nodeSelector;
+    if (!podSpecOptions.selectedHardwareProfile) {
+      if (tolerations) {
+        updatedInferenceService.spec.predictor.tolerations = tolerations;
+      }
+      if (nodeSelector) {
+        updatedInferenceService.spec.predictor.nodeSelector = nodeSelector;
+      }
     }
     updatedInferenceService.spec.predictor.model = {
       ...updatedInferenceService.spec.predictor.model,
