@@ -100,7 +100,7 @@ jobs:
               echo "✅ Using cached OpenShift CLI tarball"
             else
               echo "📥 Downloading OpenShift CLI tarball..."
-              curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz -o "$OC_TARBALL"
+              curl -L https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz -o "$OC_TARBALL"
             fi
 
             # Extract and install oc
