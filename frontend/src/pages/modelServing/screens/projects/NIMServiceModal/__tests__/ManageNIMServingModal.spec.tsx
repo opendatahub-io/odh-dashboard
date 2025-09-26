@@ -379,7 +379,6 @@ describe('ManageNIMServingModal', () => {
       expect(screen.getByTestId('autoscaler-replica-section')).toBeInTheDocument();
       expect(screen.getByTestId('serving-runtime-size-section')).toBeInTheDocument();
       expect(screen.getByTestId('auth-serving-runtime-section')).toBeInTheDocument();
-      expect(screen.getByTestId('deployment-mode-dropdown')).toBeInTheDocument();
     });
 
     it('renders storage class select when storage classes are available', () => {
@@ -521,15 +520,6 @@ describe('ManageNIMServingModal', () => {
   });
 
   describe('Authentication', () => {
-    it('shows NoAuthAlert when auth is not available and not raw deployment', () => {
-      const { useIsAreaAvailable } = require('#~/concepts/areas');
-      useIsAreaAvailable.mockReturnValue({ status: false });
-
-      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
-
-      expect(screen.getByTestId('no-auth-alert')).toBeInTheDocument();
-    });
-
     it('does not show NoAuthAlert when auth is available', () => {
       const { useIsAreaAvailable } = require('#~/concepts/areas');
       useIsAreaAvailable.mockReturnValue({ status: true });
@@ -537,20 +527,6 @@ describe('ManageNIMServingModal', () => {
       render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
 
       expect(screen.queryByTestId('no-auth-alert')).not.toBeInTheDocument();
-    });
-  });
-
-  describe('Deployment Mode', () => {
-    it('shows deployment mode dropdown when both raw and serverless are available', () => {
-      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
-
-      expect(screen.getByTestId('deployment-mode-dropdown')).toBeInTheDocument();
-    });
-
-    it('disables deployment mode dropdown when editing', () => {
-      render(<ManageNIMServingModal onClose={mockOnClose} editInfo={mockEditInfo} />);
-
-      expect(screen.getByTestId('deployment-mode-dropdown')).toBeInTheDocument();
     });
   });
 
