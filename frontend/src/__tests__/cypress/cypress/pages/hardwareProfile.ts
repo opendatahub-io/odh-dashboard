@@ -581,20 +581,6 @@ class NodeResourceModal extends Modal {
   }
 }
 
-class LegacyHardwareProfile extends HardwareProfile {
-  findSection() {
-    return cy.findByTestId('migrated-hardware-profiles-section');
-  }
-
-  findExpandButton() {
-    return this.findSection().findByRole('button');
-  }
-
-  findTable() {
-    return this.findSection().findByTestId('hardware-profile-table');
-  }
-}
-
 export const hardwareProfile = new HardwareProfile();
 export const createHardwareProfile = new CreateHardwareProfile();
 export const createTolerationModal = new TolerationModal(false);
@@ -605,4 +591,3 @@ export const createNodeResourceModal = new NodeResourceModal(false);
 export const editNodeResourceModal = new NodeResourceModal(true);
 export const editHardwareProfile = new EditHardwareProfile();
 export const duplicateHardwareProfile = new DuplicateHardwareProfile();
-export const legacyHardwareProfile = new LegacyHardwareProfile();

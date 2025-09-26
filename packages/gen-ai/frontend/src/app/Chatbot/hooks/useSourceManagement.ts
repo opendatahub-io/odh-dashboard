@@ -9,7 +9,6 @@ export interface UseSourceManagementReturn {
   selectedSource: File[];
   selectedSourceSettings: ChatbotSourceSettings | null;
   isSourceSettingsOpen: boolean;
-  extractedText: string;
   isRawUploaded: boolean;
   setIsRawUploaded: (isRawUploaded: boolean) => void;
   handleSourceDrop: (event: DropEvent, source: File[]) => Promise<void>;
@@ -34,7 +33,6 @@ const useSourceManagement = ({
     React.useState<ChatbotSourceSettings | null>(null);
   const [isRawUploaded, setIsRawUploaded] = React.useState(false);
   const [isSourceSettingsOpen, setIsSourceSettingsOpen] = React.useState(false);
-  const [extractedText, setExtractedText] = React.useState<string>('');
 
   // Open source settings modal when source is selected with slight delay to prevent flicker
   React.useEffect(() => {
@@ -54,7 +52,6 @@ const useSourceManagement = ({
   }, []);
 
   const removeUploadedSource = React.useCallback(() => {
-    setExtractedText('');
     setSelectedSource([]);
     setSelectedSourceSettings(null);
   }, []);
@@ -69,14 +66,21 @@ const useSourceManagement = ({
           if (!namespace?.name) {
             throw new Error('Namespace is required for file upload');
           }
+
+          if (selectedSource.length === 0) {
+            throw new Error('No file selected for upload');
+          }
+
           await uploadSource(selectedSource[0], settings, namespace.name);
           onShowSuccessAlert();
-        } catch {
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error('Upload failed:', error);
           onShowErrorAlert();
         }
       } else {
         setSelectedSource([]);
-        setExtractedText('');
+        setSelectedSourceSettings(null);
       }
     },
     [selectedSource, onShowSuccessAlert, onShowErrorAlert, namespace?.name],
@@ -88,7 +92,6 @@ const useSourceManagement = ({
     isSourceSettingsOpen,
     isRawUploaded,
     setIsRawUploaded,
-    extractedText,
     handleSourceDrop,
     removeUploadedSource,
     handleSourceSettingsSubmit,

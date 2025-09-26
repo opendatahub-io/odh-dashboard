@@ -56,7 +56,6 @@ export const mockHardwareProfile = ({
     },
   ],
   description = '',
-  enabled = true,
   schedulingType = SchedulingType.NODE,
   localQueueName = 'default-local-queue',
   priorityClass = 'None',
@@ -84,7 +83,6 @@ export const mockHardwareProfile = ({
       ...annotations,
       'opendatahub.io/display-name': displayName,
       'opendatahub.io/description': description,
-      'opendatahub.io/disabled': (!enabled).toString(),
     },
     labels,
   },
@@ -107,6 +105,129 @@ export const mockHardwareProfile = ({
     },
   },
 });
+
+// New method for creating non-migrated hardware profiles (native new profiles)
+export const mockNewHardwareProfile = (
+  config: Partial<MockResourceConfigType> = {},
+): HardwareProfileKind => {
+  const {
+    name = 'new-hardware-profile',
+    namespace = 'opendatahub',
+    uid = genUID('service'),
+    displayName = 'New Hardware Profile',
+    description = '',
+    enabled = true,
+    identifiers = [
+      {
+        displayName: 'CPU',
+        identifier: 'cpu',
+        minCount: 1,
+        maxCount: 4,
+        defaultCount: 2,
+        resourceType: IdentifierResourceType.CPU,
+      },
+      {
+        displayName: 'Memory',
+        identifier: 'memory',
+        minCount: '2Gi',
+        maxCount: '8Gi',
+        defaultCount: '4Gi',
+        resourceType: IdentifierResourceType.MEMORY,
+      },
+    ],
+    annotations,
+    labels,
+  } = config;
+
+  return {
+    apiVersion: 'infrastructure.opendatahub.io/v1alpha1',
+    kind: 'HardwareProfile',
+    metadata: {
+      creationTimestamp: new Date().toISOString(),
+      generation: 1,
+      name,
+      namespace,
+      resourceVersion: '1000000',
+      uid,
+      annotations: {
+        ...annotations,
+        'openshift.io/display-name': displayName,
+        'opendatahub.io/description': description,
+        'opendatahub.io/dashboard-feature-visibility': '[]',
+        'opendatahub.io/disabled': 'false',
+        'opendatahub.io/modified-date': new Date().toISOString(),
+        // Explicitly NO 'opendatahub.io/migrated-from' annotation
+      },
+      labels,
+    },
+    spec: {
+      enabled,
+      identifiers,
+    },
+  };
+};
+
+export const mockNewHardwareProfilesGreek = [
+  mockNewHardwareProfile({
+    name: 'alpha',
+    displayName: 'Alpha Profile',
+    description: 'Basic development profile',
+  }),
+  mockNewHardwareProfile({
+    name: 'beta',
+    displayName: 'Beta Profile',
+    description: 'Enhanced profile with more resources',
+    identifiers: [
+      {
+        displayName: 'CPU',
+        identifier: 'cpu',
+        minCount: 2,
+        maxCount: 8,
+        defaultCount: 4,
+        resourceType: IdentifierResourceType.CPU,
+      },
+      {
+        displayName: 'Memory',
+        identifier: 'memory',
+        minCount: '4Gi',
+        maxCount: '16Gi',
+        defaultCount: '8Gi',
+        resourceType: IdentifierResourceType.MEMORY,
+      },
+    ],
+  }),
+  mockNewHardwareProfile({
+    name: 'gamma',
+    displayName: 'Gamma Profile',
+    description: 'High-performance profile with GPU',
+    identifiers: [
+      {
+        displayName: 'CPU',
+        identifier: 'cpu',
+        minCount: 4,
+        maxCount: 16,
+        defaultCount: 8,
+        resourceType: IdentifierResourceType.CPU,
+      },
+      {
+        displayName: 'Memory',
+        identifier: 'memory',
+        minCount: '8Gi',
+        maxCount: '32Gi',
+        defaultCount: '16Gi',
+        resourceType: IdentifierResourceType.MEMORY,
+      },
+      {
+        displayName: 'GPU',
+        identifier: 'nvidia.com/gpu',
+        minCount: 1,
+        maxCount: 4,
+        defaultCount: 1,
+        resourceType: IdentifierResourceType.ACCELERATOR,
+      },
+    ],
+  }),
+];
 
 export const mockGlobalScopedHardwareProfiles = [
   mockHardwareProfile({
@@ -175,6 +296,7 @@ export const mockProjectScopedHardwareProfiles = [
         minCount: '1',
         maxCount: '2',
         defaultCount: '1',
+        resourceType: IdentifierResourceType.CPU,
       },
       {
         displayName: 'Memory',
@@ -182,6 +304,7 @@ export const mockProjectScopedHardwareProfiles = [
         minCount: '2Gi',
         maxCount: '4Gi',
         defaultCount: '2Gi',
+        resourceType: IdentifierResourceType.MEMORY,
       },
     ],
     tolerations: [
@@ -204,6 +327,7 @@ export const mockProjectScopedHardwareProfiles = [
         minCount: '4',
         maxCount: '8',
         defaultCount: '4',
+        resourceType: IdentifierResourceType.CPU,
       },
       {
         displayName: 'Memory',
@@ -211,6 +335,7 @@ export const mockProjectScopedHardwareProfiles = [
         minCount: '8Gi',
         maxCount: '16Gi',
         defaultCount: '8Gi',
+        resourceType: IdentifierResourceType.MEMORY,
       },
     ],
   }),

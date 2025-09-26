@@ -12,7 +12,7 @@ import {
 } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { CodeIcon } from '@patternfly/react-icons';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import ChatbotEmptyState from '~/app/EmptyStates/NoData';
 import { deleteLSD, installLSD } from '~/app/services/llamaStackService';
@@ -23,8 +23,15 @@ import ChatbotPlayground from './ChatbotPlayground';
 import ChatbotConfigurationModal from './components/ChatbotConfigurationModal';
 
 const ChatbotMain: React.FunctionComponent = () => {
-  const { lsdStatus, lsdStatusLoaded, lsdStatusError, selectedModel, lastInput, refresh } =
-    React.useContext(ChatbotContext);
+  const {
+    lsdStatus,
+    lsdStatusLoaded,
+    lsdStatusError,
+    selectedModel,
+    lastInput,
+    refresh,
+    setSelectedModel,
+  } = React.useContext(ChatbotContext);
   const { namespace } = React.useContext(GenAiContext);
   const {
     data: aiModels,
@@ -36,7 +43,16 @@ const ChatbotMain: React.FunctionComponent = () => {
   const [isViewCodeModalOpen, setIsViewCodeModalOpen] = React.useState(false);
   const [configurationModalOpen, setConfigurationModalOpen] = React.useState(false);
 
+  const location = useLocation();
+  const selectedAAModel = location.state?.model;
+
   const isViewCodeDisabled = !lastInput || !selectedModel;
+
+  React.useEffect(() => {
+    if (selectedAAModel) {
+      setSelectedModel(selectedAAModel);
+    }
+  }, [selectedAAModel, setSelectedModel]);
 
   // Get disabled reason for popover
   const getDisabledReason = () => {

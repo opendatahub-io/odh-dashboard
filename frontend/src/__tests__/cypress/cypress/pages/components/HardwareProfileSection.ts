@@ -73,6 +73,12 @@ export class HardwareProfileSection {
     });
   }
 
+  selectProfileContaining(name: string): void {
+    cy.findByRole('option', {
+      name: (content) => content.includes(name),
+    }).click();
+  }
+
   getProjectScopedHardwareProfile(): Contextual<HTMLElement> {
     return new HardwareProfileGroup(() => cy.findByTestId('project-scoped-hardware-profiles'));
   }

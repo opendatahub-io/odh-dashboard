@@ -31,7 +31,7 @@ export const getPossibleStorageClassAccessModes = (
   // RWO is always supported
   const adminSupportedAccessModes = Object.values(AccessMode).filter(
     (mode) =>
-      selectedStorageClassConfig?.accessModeSettings[mode] === true || mode === AccessMode.RWO,
+      selectedStorageClassConfig?.accessModeSettings?.[mode] === true || mode === AccessMode.RWO,
   );
   return { selectedStorageClassConfig, adminSupportedAccessModes };
 };

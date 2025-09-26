@@ -34,7 +34,7 @@ const ModelRegistry: React.FC<ModelRegistryProps> = ({ ...pageProps }) => {
     <ApplicationsPage
       {...pageProps}
       title={
-        <TitleWithIcon title="Model Registry" objectType={ProjectObjectType.registeredModels} />
+        <TitleWithIcon title="Registry" objectType={ProjectObjectType.registeredModels} />
       }
       description={
         <Stack hasGutter>
