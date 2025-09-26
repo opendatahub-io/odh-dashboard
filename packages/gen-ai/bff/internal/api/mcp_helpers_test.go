@@ -352,7 +352,7 @@ func TestFindMCPServerConfig(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			config, err := app.findMCPServerConfig(testCtx, k8sClient, identity, tc.decodedURL)
+			config, err := app.findMCPServerConfig(testCtx, k8sClient, identity, tc.decodedURL, "test-dashboard-namespace")
 
 			if tc.expectError {
 				assert.Error(t, err)
@@ -653,7 +653,7 @@ func TestMCPHelpersIntegration(t *testing.T) {
 		assert.Equal(t, "FAKE_BEARER_TOKEN", identity.Token)
 
 		// Step 3: Find server config
-		config, err := app.findMCPServerConfig(testCtx, k8sClient, identity, decodedURL)
+		config, err := app.findMCPServerConfig(testCtx, k8sClient, identity, decodedURL, "test-dashboard-namespace")
 		require.NoError(t, err)
 		assert.Equal(t, serverURL, config.URL)
 	})
