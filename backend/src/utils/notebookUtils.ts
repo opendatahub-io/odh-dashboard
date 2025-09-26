@@ -224,6 +224,19 @@ export const assembleNotebook = async (
     },
   }));
 
+  const isLegacyProfile = selectedHardwareProfile && !selectedHardwareProfile.metadata.uid;
+  const hardwareProfileAnnotations = {
+    'opendatahub.io/hardware-profile-namespace': !isLegacyProfile
+      ? selectedHardwareProfile?.metadata.namespace
+      : '',
+    'opendatahub.io/hardware-profile-name': !isLegacyProfile
+      ? selectedHardwareProfile?.metadata.name
+      : '',
+    'opendatahub.io/legacy-hardware-profile-name': isLegacyProfile
+      ? selectedHardwareProfile?.metadata.name
+      : '',
+  };
+
   return {
     apiVersion: 'kubeflow.org/v1',
     kind: 'Notebook',
@@ -241,7 +254,7 @@ export const assembleNotebook = async (
         'opendatahub.io/username': username,
         'kubeflow-resource-stopped': null,
         'opendatahub.io/accelerator-name': selectedAcceleratorProfile?.metadata.name || '',
-        'opendatahub.io/hardware-profile-name': selectedHardwareProfile?.metadata.name || '',
+        ...hardwareProfileAnnotations,
       },
       name: name,
       namespace: namespace,
@@ -310,8 +323,8 @@ export const assembleNotebook = async (
             },
           ],
           volumes,
-          tolerations,
-          nodeSelector,
+          tolerations: isLegacyProfile || !selectedHardwareProfile ? tolerations : null,
+          nodeSelector: isLegacyProfile || !selectedHardwareProfile ? nodeSelector : null,
         },
       },
     },
