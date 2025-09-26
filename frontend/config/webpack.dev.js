@@ -103,12 +103,14 @@ module.exports = smp.wrap(
               {
                 context: ['/api', '/_mf', ...mfProxies],
                 target: `https://${dashboardHost}`,
+                secure: false,
                 changeOrigin: true,
                 headers,
               },
               {
-                context: ['/wss'],
+                context: ['/wss/k8s'],
                 target: `wss://${dashboardHost}`,
+                secure: false,
                 ws: true,
                 changeOrigin: true,
                 headers,
@@ -121,7 +123,7 @@ module.exports = smp.wrap(
               target: `http://0.0.0.0:${BACKEND_PORT}`,
             },
             {
-              context: ['/wss'],
+              context: ['/wss/k8s'],
               target: `ws://0.0.0.0:${BACKEND_PORT}`,
               ws: true,
             },
