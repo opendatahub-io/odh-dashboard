@@ -85,8 +85,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
       <Tr
         key={hardwareProfile.metadata.name}
         id={hardwareProfile.metadata.name}
-        draggable
-        {...props}
+        {...(!migrationAction && { draggable: true, ...props })}
       >
         <Td
           expand={{
@@ -96,11 +95,13 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
             onToggle: onToggleExpansion,
           }}
         />
-        <Td
-          draggableRow={{
-            id: `draggable-row-${hardwareProfile.metadata.name}`,
-          }}
-        />
+        {!migrationAction && (
+          <Td
+            draggableRow={{
+              id: `draggable-row-${hardwareProfile.metadata.name}`,
+            }}
+          />
+        )}
         <Td dataLabel="Name">
           <TableRowTitleDescription
             title={<Truncate content={getHardwareProfileDisplayName(hardwareProfile)} />}
