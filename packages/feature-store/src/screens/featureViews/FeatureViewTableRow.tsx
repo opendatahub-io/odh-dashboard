@@ -154,7 +154,7 @@ const FeatureViewTableRow: React.FC<FeatureViewTableRowType> = ({
         );
       case 'feature_services':
         return (
-          <Td key="feature_services" dataLabel="Feature Services">
+          <Td key="feature_services" dataLabel="Feature services">
             <ScrollableLinksPopover
               trigger={featureServicesTrigger}
               links={featureServiceLinks}

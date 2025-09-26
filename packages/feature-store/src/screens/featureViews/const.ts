@@ -8,7 +8,7 @@ export const featureViewTableFilterOptions: Record<string, string> = {
   project: 'Feature store repository',
   tag: 'Tags',
   features: 'Features',
-  feature_services: 'Feature Services',
+  feature_services: 'Feature services',
   created: 'Created after',
   updated: 'Updated after',
   owner: 'Owner',
@@ -51,7 +51,7 @@ export const columns: SortableData<FeatureView>[] = [
   },
   {
     field: 'feature_services',
-    label: 'Feature Services',
+    label: 'Feature services',
     width: 25,
     sortable: false,
   },

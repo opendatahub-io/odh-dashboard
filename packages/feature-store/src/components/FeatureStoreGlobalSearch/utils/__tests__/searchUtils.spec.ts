@@ -189,10 +189,10 @@ describe('searchUtils', () => {
     it('should group mixed categories with multiple items each', () => {
       const items = [
         createMockSearchItem('1', 'Entities', 'Entity 1', 'entity'),
-        createMockSearchItem('2', 'Feature Views', 'View 1', 'featureView'),
+        createMockSearchItem('2', 'Feature views', 'View 1', 'featureView'),
         createMockSearchItem('3', 'Entities', 'Entity 2', 'entity'),
-        createMockSearchItem('4', 'Feature Views', 'View 2', 'featureView'),
-        createMockSearchItem('5', 'Data Sources', 'Source 1', 'dataSource'),
+        createMockSearchItem('4', 'Feature views', 'View 2', 'featureView'),
+        createMockSearchItem('5', 'Data sources', 'Source 1', 'dataSource'),
       ];
 
       const result = groupResultsByCategory(items);
@@ -202,10 +202,10 @@ describe('searchUtils', () => {
       const entitiesGroup = result.find((g) => g.category === 'Entities');
       expect(entitiesGroup?.items).toEqual([items[0], items[2]]);
 
-      const viewsGroup = result.find((g) => g.category === 'Feature Views');
+      const viewsGroup = result.find((g) => g.category === 'Feature views');
       expect(viewsGroup?.items).toEqual([items[1], items[3]]);
 
-      const sourcesGroup = result.find((g) => g.category === 'Data Sources');
+      const sourcesGroup = result.find((g) => g.category === 'Data sources');
       expect(sourcesGroup?.items).toEqual([items[4]]);
     });
 

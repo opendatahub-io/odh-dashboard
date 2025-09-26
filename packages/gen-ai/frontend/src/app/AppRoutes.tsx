@@ -34,7 +34,7 @@ export const useNavData = (): NavDataItem[] => [
     label: 'Gen AI V3',
     children: [
       {
-        label: 'Chat playground',
+        label: 'Playground',
         path: '/gen-ai/playground/*',
         href: '/gen-ai/playground',
       },
@@ -53,10 +53,7 @@ const AppRoutes = (): React.ReactElement => (
     <Route
       path="/playground"
       element={
-        <GenAiCoreLoader
-          title="Chat playground"
-          getInvalidRedirectPath={genAiChatPlaygroundRoute}
-        />
+        <GenAiCoreLoader title="Playground" getInvalidRedirectPath={genAiChatPlaygroundRoute} />
       }
     >
       <Route path=":namespace" element={<ChatbotPage />} />
