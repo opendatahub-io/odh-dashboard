@@ -176,6 +176,11 @@ export type OdhApplication = {
       validationJob: string;
       validationConfigMap?: string;
       inProgressText?: string;
+      warningValidation?: {
+        field: string;
+        validationRegex?: string;
+        message: string;
+      };
     };
     featureFlag?: string;
     internalRoute?: string;
@@ -831,3 +836,8 @@ export enum IconSize {
   XL = 'xl',
   XXL = 'xxl',
 }
+
+export type Namespace = {
+  name: string;
+  displayName?: string;
+};

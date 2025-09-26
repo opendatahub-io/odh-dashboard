@@ -20,42 +20,50 @@ export const extractFilterOptionsFromLineage = (
     };
   }
   return {
-    entity: lineageData.objects.entities.map((entity) => ({
-      id: `${lineageData.project || 'default'}-entity-${entity.spec.name}`,
-      name: entity.spec.name,
-      description: entity.spec.description,
-    })),
-    featureView: lineageData.objects.featureViews.map((featureView) => {
-      let name = '';
-      let description = '';
+    entity: lineageData.objects.entities
+      .filter((entity) => entity.spec.name) // Filter out entities with undefined names
+      .map((entity) => ({
+        id: `${lineageData.project || 'default'}-entity-${entity.spec.name}`,
+        name: entity.spec.name,
+        description: entity.spec.description,
+      })),
+    featureView: lineageData.objects.featureViews
+      .map((featureView) => {
+        let name = '';
+        let description = '';
 
-      if ('featureView' in featureView) {
-        name = featureView.featureView.spec.name || '';
-        description = featureView.featureView.spec.description || '';
-      } else if ('onDemandFeatureView' in featureView) {
-        name = featureView.onDemandFeatureView.spec.name || '';
-        description = featureView.onDemandFeatureView.spec.description || '';
-      } else if ('streamFeatureView' in featureView) {
-        name = featureView.streamFeatureView.spec.name || '';
-        description = featureView.streamFeatureView.spec.description || '';
-      }
+        if ('featureView' in featureView) {
+          name = featureView.featureView.spec.name || '';
+          description = featureView.featureView.spec.description || '';
+        } else if ('onDemandFeatureView' in featureView) {
+          name = featureView.onDemandFeatureView.spec.name || '';
+          description = featureView.onDemandFeatureView.spec.description || '';
+        } else if ('streamFeatureView' in featureView) {
+          name = featureView.streamFeatureView.spec.name || '';
+          description = featureView.streamFeatureView.spec.description || '';
+        }
 
-      return {
-        id: `${lineageData.project || 'default'}-featureview-${name}`,
-        name,
-        description,
-      };
-    }),
-    dataSource: lineageData.objects.dataSources.map((dataSource) => ({
-      id: `${lineageData.project || 'default'}-datasource-${dataSource.name}`,
-      name: dataSource.name,
-      description: dataSource.description,
-    })),
-    featureService: lineageData.objects.featureServices.map((featureService) => ({
-      id: `${lineageData.project || 'default'}-featureservice-${featureService.spec.name}`,
-      name: featureService.spec.name,
-      description: featureService.spec.description,
-    })),
+        return {
+          id: `${lineageData.project || 'default'}-featureview-${name}`,
+          name,
+          description,
+        };
+      })
+      .filter((option) => option.name), // Filter out options with empty names
+    dataSource: lineageData.objects.dataSources
+      .filter((dataSource) => dataSource.name) // Filter out data sources with undefined names
+      .map((dataSource) => ({
+        id: `${lineageData.project || 'default'}-datasource-${dataSource.name}`,
+        name: dataSource.name,
+        description: dataSource.description,
+      })),
+    featureService: lineageData.objects.featureServices
+      .filter((featureService) => featureService.spec.name) // Filter out feature services with undefined names
+      .map((featureService) => ({
+        id: `${lineageData.project || 'default'}-featureservice-${featureService.spec.name}`,
+        name: featureService.spec.name,
+        description: featureService.spec.description,
+      })),
   };
 };
 
@@ -91,6 +99,11 @@ export const extractFilterOptionsFromFeatureViewLineage = (
   };
 
   uniqueObjects.forEach((obj) => {
+    // Skip objects with undefined names
+    if (!obj.name) {
+      return;
+    }
+
     const option = {
       id: `${project}-${obj.type.toLowerCase()}-${obj.name}`,
       name: obj.name,
@@ -154,22 +167,26 @@ const findConnectedNodeIds = (
 ): Set<string> => {
   const allConnectedIds = new Set<string>();
 
+  // Always include the seed nodes
+  seedNodeIds.forEach((id) => allConnectedIds.add(id));
+
   try {
-    const topologyEdges = edges.map((edge) => convertToLineageEdgeModel(edge));
+    // Only use real edges, not positioning edges
+    const realEdges = edges.filter((edge) => !edge.isPositioningEdge);
+    const topologyEdges = realEdges.map((edge) => convertToLineageEdgeModel(edge));
 
     seedNodeIds.forEach((seedNodeId) => {
       const connectedElements = findConnectedElements(seedNodeId, topologyEdges);
       connectedElements.forEach((elementId) => {
-        // Filter to only include node IDs (exclude edge IDs)
+        // Only add node IDs, not edge IDs
         if (!elementId.includes('-edge-')) {
           allConnectedIds.add(elementId);
         }
       });
     });
   } catch (error) {
-    console.error('Error in findConnectedNodeIds:', error);
-    // Fallback: just return the seed nodes if the utility fails
-    seedNodeIds.forEach((id) => allConnectedIds.add(id));
+    // If anything fails, just return the seed nodes
+    console.warn('Connection finding failed, using seed nodes only:', error);
   }
 
   return allConnectedIds;
@@ -183,6 +200,11 @@ export const filterNodesBySearch = (
 
   if (!hasActiveFilters) {
     return data;
+  }
+
+  // Simple check - if no nodes, return empty
+  if (data.nodes.length === 0) {
+    return { nodes: [], edges: [] };
   }
 
   const matchingNodes = new Set<string>();
@@ -237,10 +259,23 @@ export const filterNodesBySearch = (
 
   const connectedNodeIds = findConnectedNodeIds(data.edges, matchingNodes);
 
+  // Ensure we at least have the matching nodes even if connection finding fails
+  if (connectedNodeIds.size === 0) {
+    console.warn('No connected nodes found, falling back to matching nodes only');
+    matchingNodes.forEach((id) => connectedNodeIds.add(id));
+  }
+
   const filteredNodes = data.nodes.filter((node) => connectedNodeIds.has(node.id));
-  const filteredEdges = data.edges.filter(
-    (edge) => connectedNodeIds.has(edge.source) && connectedNodeIds.has(edge.target),
-  );
+  const remainingNodeIds = new Set(filteredNodes.map((node) => node.id));
+
+  const filteredEdges = data.edges.filter((edge) => {
+    // Always keep positioning edges if both nodes exist (needed for alignment)
+    if (edge.isPositioningEdge) {
+      return remainingNodeIds.has(edge.source) && remainingNodeIds.has(edge.target);
+    }
+    // For regular edges, keep them if both nodes are connected
+    return connectedNodeIds.has(edge.source) && connectedNodeIds.has(edge.target);
+  });
 
   return {
     nodes: filteredNodes,

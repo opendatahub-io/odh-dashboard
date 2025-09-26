@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
-    "@odh-dashboard/feature-store": "*"
+    "@odh-dashboard/feature-store": "*",
+    "@odh-dashboard/app-config": "*"
   }
 }

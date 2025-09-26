@@ -111,7 +111,7 @@ class FeatureStoreGlobal {
   }
 
   private wait() {
-    cy.findByTestId('app-page-title').should('have.text', 'Feature Store');
+    cy.findByTestId('app-page-title').should('have.text', 'Feature store overview');
     cy.testA11y();
   }
 
@@ -146,7 +146,7 @@ class FeatureStoreGlobal {
   }
 
   private waitForOverview() {
-    cy.findByTestId('app-page-title').should('have.text', 'Feature store');
+    cy.findByTestId('app-page-title').should('have.text', 'Feature store overview');
     cy.testA11y();
   }
 
@@ -156,7 +156,7 @@ class FeatureStoreGlobal {
   }
 
   private waitForDataSources() {
-    cy.findByTestId('app-page-title').should('have.text', 'Data Sources');
+    cy.findByTestId('app-page-title').should('have.text', 'Data sources');
     cy.testA11y();
   }
 

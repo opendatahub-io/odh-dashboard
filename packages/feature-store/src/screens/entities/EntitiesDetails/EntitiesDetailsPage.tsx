@@ -17,6 +17,7 @@ import { useFeatureStoreProject } from '../../../FeatureStoreContext';
 import useFeatureStoreEntityByName from '../../../apiHooks/useFeatureStoreEntityByName';
 import { featureStoreRootRoute } from '../../../routes';
 import FeatureStorePageTitle from '../../../components/FeatureStorePageTitle';
+import FeatureStoreBreadcrumb from '../../../screens/components/FeatureStoreBreadcrumb';
 
 const EntitiesDetailsPage = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -76,10 +77,13 @@ const EntitiesDetailsPage = (): React.ReactElement => {
           isDetailsPage
           breadcrumb={
             <Breadcrumb>
-              <BreadcrumbItem
-                render={() => <Link to={`${featureStoreRootRoute()}/entities`}>Entities</Link>}
-                data-testid="entity-details-breadcrumb-link"
+              <FeatureStoreBreadcrumb
+                dataTestId="entity-details-breadcrumb-link"
+                pageName="Entities"
+                linkTo={`${featureStoreRootRoute()}/entities`}
+                projectName={currentProject || ''}
               />
+
               <BreadcrumbItem
                 data-testid="entity-details-breadcrumb-item"
                 isActive

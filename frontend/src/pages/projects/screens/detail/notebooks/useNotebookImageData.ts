@@ -37,36 +37,42 @@ export const getNotebookImageData = (
     imageName,
     versionName,
   );
+
   if (
     notebookImageInternalRegistry &&
     notebookImageInternalRegistry.imageStatus !== NotebookImageStatus.DELETED
   ) {
     return notebookImageInternalRegistry;
   }
+
   const notebookImageNoInternalRegistry = getNotebookImageNoInternalRegistry(
     notebook,
     images,
     lastImageSelectionName,
     container.image,
   );
+
   if (
     notebookImageNoInternalRegistry &&
     notebookImageNoInternalRegistry.imageStatus !== NotebookImageStatus.DELETED
   ) {
     return notebookImageNoInternalRegistry;
   }
+
   const notebookImageNoInternalRegistryNoSHA = getNotebookImageNoInternalRegistryNoSHA(
     notebook,
     images,
     lastImageSelectionTag,
     container.image,
   );
+
   if (
     notebookImageNoInternalRegistryNoSHA &&
     notebookImageNoInternalRegistryNoSHA.imageStatus !== NotebookImageStatus.DELETED
   ) {
     return notebookImageNoInternalRegistryNoSHA;
   }
+
   return {
     imageStatus: NotebookImageStatus.DELETED,
     imageDisplayName:
@@ -106,7 +112,7 @@ const getNotebookImageInternalRegistry = (
 ): NotebookImageData[0] => {
   const imageStream = images.find((image) => image.metadata.name === imageName);
 
-  if (!imageStream || isNotebookImageDeleted(notebook, imageStream)) {
+  if (!imageStream || isNotebookImageDeleted(notebook, imageStream, imageName, versionName)) {
     // Get the image display name from the notebook metadata if we can't find the image stream. (this is a fallback and could still be undefined)
     return getDeletedImageData(
       notebook.metadata.annotations?.['opendatahub.io/image-display-name'],
@@ -120,7 +126,7 @@ const getNotebookImageInternalRegistry = (
     return getDeletedImageData(imageDisplayName);
   }
   const imageAvailability = getImageAvailability(imageStream);
-  const imageStatus = getImageStatus(imageVersion);
+  const imageStatus = getImageStatus(notebook, imageStream, imageVersion);
   const latestImageVersion = versions.find(
     (version) => version.annotations?.['opendatahub.io/workbench-image-recommended'] === 'true',
   );
@@ -146,7 +152,7 @@ const getNotebookImageNoInternalRegistry = (
       image.spec.tags?.find((version) => version.from?.name === containerImage),
   );
 
-  if (!imageStream || isNotebookImageDeleted(notebook, imageStream)) {
+  if (!imageStream) {
     // Get the image display name from the notebook metadata if we can't find the image stream. (this is a fallback and could still be undefined)
     return getDeletedImageData(
       notebook.metadata.annotations?.['opendatahub.io/image-display-name'],
@@ -160,7 +166,7 @@ const getNotebookImageNoInternalRegistry = (
     return getDeletedImageData(imageDisplayName);
   }
   const imageAvailability = getImageAvailability(imageStream);
-  const imageStatus = getImageStatus(imageVersion);
+  const imageStatus = getImageStatus(notebook, imageStream, imageVersion);
   const latestImageVersion = versions.find(
     (version) => version.annotations?.['opendatahub.io/workbench-image-recommended'] === 'true',
   );
@@ -188,7 +194,7 @@ const getNotebookImageNoInternalRegistryNoSHA = (
     ),
   );
 
-  if (!imageStream || isNotebookImageDeleted(notebook, imageStream)) {
+  if (!imageStream) {
     // Get the image display name from the notebook metadata if we can't find the image stream. (this is a fallback and could still be undefined)
     return getDeletedImageData(
       notebook.metadata.annotations?.['opendatahub.io/image-display-name'],
@@ -202,7 +208,7 @@ const getNotebookImageNoInternalRegistryNoSHA = (
     return getDeletedImageData(imageDisplayName);
   }
   const imageAvailability = getImageAvailability(imageStream);
-  const imageStatus = getImageStatus(imageVersion);
+  const imageStatus = getImageStatus(notebook, imageStream, imageVersion);
   const latestImageVersion = versions.find(
     (version) => version.annotations?.['opendatahub.io/workbench-image-recommended'] === 'true',
   );
@@ -228,8 +234,15 @@ export const getDeletedImageData = (
   imageDisplayName,
 });
 
-const getImageStatus = (imageVersion: ImageStreamSpecTagType): NotebookImageStatus | undefined => {
-  if (imageVersion.annotations?.['opendatahub.io/image-tag-outdated'] === 'true') {
+const getImageStatus = (
+  notebook: NotebookKind,
+  imageStream: ImageStreamKind,
+  imageVersion: ImageStreamSpecTagType,
+): NotebookImageStatus | undefined => {
+  if (
+    imageVersion.annotations?.['opendatahub.io/image-tag-outdated'] === 'true' ||
+    isNotebookImageOutdated(notebook, imageStream)
+  ) {
     return NotebookImageStatus.DEPRECATED;
   }
   if (imageVersion.annotations?.['opendatahub.io/workbench-image-recommended'] === 'true') {
@@ -238,8 +251,29 @@ const getImageStatus = (imageVersion: ImageStreamSpecTagType): NotebookImageStat
   return undefined;
 };
 
-const isNotebookImageDeleted = (notebook: NotebookKind, imageStream: ImageStreamKind) =>
+const findNoteBookImageTag = (
+  notebook: NotebookKind,
+  imageStream: ImageStreamKind,
+  imageName: string,
+  versionName: string,
+) => {
+  if (imageStream.metadata.name !== imageName) {
+    return false;
+  }
+  return imageStream.spec.tags?.some((imageTags) => imageTags.name === versionName) ?? false;
+};
+
+const isNotebookImageOutdated = (notebook: NotebookKind, imageStream: ImageStreamKind) =>
   !findNotebookImageCommit(notebook, imageStream) && !isBYONImageStream(imageStream);
+
+const isNotebookImageDeleted = (
+  notebook: NotebookKind,
+  imageStream: ImageStreamKind,
+  imageName: string,
+  versionName: string,
+) =>
+  !findNoteBookImageTag(notebook, imageStream, imageName, versionName) &&
+  !isBYONImageStream(imageStream);
 
 const findNotebookImageCommit = (notebook: NotebookKind, imageStream: ImageStreamKind) =>
   imageStream.spec.tags?.some(

@@ -7,10 +7,6 @@ export type LlamaModel = {
   owned_by: string;
 };
 
-export type NamespaceModel = {
-  name: string;
-};
-
 export type FileCounts = {
   /** Number of cancelled file operations */
   cancelled: number;
@@ -152,6 +148,28 @@ export type CompletionMessage = {
   content: string;
   stop_reason: string;
   tool_calls?: unknown[];
+};
+
+export type CodeExportTool = {
+  type: string;
+  vector_store_ids: string[];
+};
+
+export type CodeExportRequest = {
+  input: string;
+  instructions?: string;
+  model: string;
+  stream?: boolean;
+  temperature?: number;
+  tools?: CodeExportTool[];
+};
+
+export type CodeExportData = {
+  code: string;
+};
+
+export type CodeExportResponse = {
+  data: CodeExportData;
 };
 
 export type LlamaStackDistributionModel = {

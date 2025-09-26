@@ -8,44 +8,32 @@ import {
   CardTitle,
   Flex,
   FlexItem,
-  Icon,
   Label,
   Skeleton,
-  Split,
-  SplitItem,
   Stack,
   StackItem,
   Truncate,
 } from '@patternfly/react-core';
-import { TagIcon } from '@patternfly/react-icons';
-import { useNavigate } from 'react-router-dom';
-import { ModelCatalogItem } from '~/app/modelCatalogTypes';
-import {
-  extractVersionTag,
-  filterNonVersionTags,
-} from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import { Link } from 'react-router-dom';
+import { CatalogModel, CatalogSource } from '~/app/modelCatalogTypes';
+import { getModelName } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import { catalogModelDetailsFromModel } from '~/app/routes/modelCatalog/catalogModel';
+import { getLabels } from '~/app/pages/modelRegistry/screens/utils';
 import ModelCatalogLabels from './ModelCatalogLabels';
 
 type ModelCatalogCardProps = {
-  model: ModelCatalogItem;
-  source: string;
+  model: CatalogModel;
+  source: CatalogSource | undefined;
   truncate?: boolean;
-  onSelect?: (model: ModelCatalogItem) => void;
 };
 
-const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({
-  model,
-  source,
-  truncate = false,
-  onSelect,
-}) => {
-  const navigate = useNavigate();
-
-  const versionTag = extractVersionTag(model.tags);
-  const nonVersionTags = filterNonVersionTags(model.tags);
+const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source, truncate = false }) => {
+  // Extract labels from customProperties and check for validated label
+  const allLabels = model.customProperties ? getLabels(model.customProperties) : [];
+  const validatedLabels = allLabels.includes('validated') ? ['validated'] : [];
 
   return (
-    <Card isFullHeight data-testid="model-catalog-card">
+    <Card isFullHeight data-testid="model-catalog-card" key={`${model.name}/${model.source_id}`}>
       <CardHeader>
         <CardTitle>
           <Flex alignItems={{ default: 'alignItemsCenter' }}>
@@ -60,53 +48,38 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({
               />
             )}
             <FlexItem align={{ default: 'alignRight' }}>
-              <Label>{source}</Label>
+              {source && <Label>{source.name}</Label>}
             </FlexItem>
           </Flex>
         </CardTitle>
       </CardHeader>
       <CardBody>
         <Stack hasGutter>
-          <StackItem isFilled>
-            <Button
-              data-testid="model-catalog-detail-link"
-              variant="link"
-              isInline
-              component="a"
-              onClick={() => {
-                if (onSelect) {
-                  onSelect(model);
-                } else {
-                  navigate(`/model-catalog/${encodeURIComponent(model.id)}` || '#');
-                }
-              }}
-              style={{
-                fontSize: 'var(--pf-t--global--font--size--body--default)',
-                fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
-              }}
-            >
-              {truncate ? (
-                <Truncate
-                  data-testid="model-catalog-card-name"
-                  content={model.name}
-                  position="middle"
-                  tooltipPosition="top"
-                  style={{ textDecoration: 'underline' }}
-                />
-              ) : (
-                <span>{model.name}</span>
-              )}
-            </Button>
-            <Split hasGutter>
-              <SplitItem>
-                <Icon isInline>
-                  <TagIcon />
-                </Icon>
-                <span style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}>
-                  {versionTag || 'No version'}
-                </span>
-              </SplitItem>
-            </Split>
+          <StackItem>
+            <Link to={catalogModelDetailsFromModel(model.name, source?.id)}>
+              <Button
+                data-testid="model-catalog-detail-link"
+                variant="link"
+                tabIndex={-1}
+                isInline
+                style={{
+                  fontSize: 'var(--pf-t--global--font--size--body--default)',
+                  fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+                }}
+              >
+                {truncate ? (
+                  <Truncate
+                    data-testid="model-catalog-card-name"
+                    content={model.name}
+                    position="middle"
+                    tooltipPosition="top"
+                    style={{ textDecoration: 'underline' }}
+                  />
+                ) : (
+                  <span>{getModelName(model.name)}</span>
+                )}
+              </Button>
+            </Link>
           </StackItem>
           <StackItem isFilled data-testid="model-catalog-card-description">
             {truncate ? (
@@ -119,20 +92,20 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({
                   display: '-webkit-box',
                 }}
               >
-                {model.longDescription}
+                {model.description}
               </div>
             ) : (
-              model.longDescription
+              model.description
             )}
           </StackItem>
         </Stack>
       </CardBody>
       <CardFooter>
         <ModelCatalogLabels
-          tags={nonVersionTags}
-          framework={model.framework}
-          task={model.task}
+          tasks={model.tasks ?? []}
           license={model.license}
+          provider={model.provider}
+          labels={validatedLabels}
         />
       </CardFooter>
     </Card>

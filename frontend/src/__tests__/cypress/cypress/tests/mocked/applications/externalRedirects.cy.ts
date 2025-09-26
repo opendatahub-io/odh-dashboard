@@ -1,4 +1,5 @@
 import {
+  elyraRedirect,
   externalRedirect,
   pipelinesSdkRedirect,
 } from '#~/__tests__/cypress/cypress/pages/externalRedirect';
@@ -22,6 +23,19 @@ describe('External Redirects', () => {
       externalRedirect.findErrorState().should('exist');
       pipelinesSdkRedirect.findPipelinesButton().should('exist');
       pipelinesSdkRedirect.findExperimentsButton().should('exist');
+    });
+  });
+
+  describe('Elyra Redirects', () => {
+    it('should redirect run URLs correctly', () => {
+      externalRedirect.visit('/external/elyra/test-namespace/runs/123');
+      cy.url().should('include', '/pipelineRuns/test-namespace/runs/123');
+    });
+
+    it('should handle invalid URL format', () => {
+      externalRedirect.visit('/external/elyra/test-namespace/invalid');
+      externalRedirect.findErrorState().should('exist');
+      elyraRedirect.findPipelinesButton().should('exist');
     });
   });
 

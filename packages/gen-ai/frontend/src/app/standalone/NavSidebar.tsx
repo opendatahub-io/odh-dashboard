@@ -14,7 +14,7 @@ const NavHref: React.FC<{ item: NavDataHref }> = ({ item }) => {
   const isMatch = !!useMatch(item.path);
   return (
     <NavItem isActive={isMatch} key={item.label} data-id={item.label} itemId={item.label}>
-      <NavLink to={item.path}>{item.label}</NavLink>
+      <NavLink to={item.href}>{item.label}</NavLink>
     </NavItem>
   );
 };

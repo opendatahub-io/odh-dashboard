@@ -24,25 +24,16 @@ export const getPossibleStorageClassAccessModes = (
   storageClass?: StorageClassKind | null,
 ): {
   selectedStorageClassConfig?: StorageClassConfig;
-  openshiftSupportedAccessModes: AccessMode[];
   adminSupportedAccessModes: AccessMode[];
 } => {
-  const openshiftSupportedAccessModes = getSupportedAccessModesForProvisioner(
-    storageClass?.provisioner,
-  );
   const selectedStorageClassConfig = storageClass ? getStorageClassConfig(storageClass) : undefined;
 
   // RWO is always supported
-  const adminSupportedAccessModes: AccessMode[] = [
-    AccessMode.RWO,
-    ...openshiftSupportedAccessModes.filter(
-      (accessMode) =>
-        accessMode !== AccessMode.RWO &&
-        selectedStorageClassConfig?.accessModeSettings &&
-        selectedStorageClassConfig.accessModeSettings[accessMode] === true,
-    ),
-  ];
-  return { selectedStorageClassConfig, openshiftSupportedAccessModes, adminSupportedAccessModes };
+  const adminSupportedAccessModes = Object.values(AccessMode).filter(
+    (mode) =>
+      selectedStorageClassConfig?.accessModeSettings?.[mode] === true || mode === AccessMode.RWO,
+  );
+  return { selectedStorageClassConfig, adminSupportedAccessModes };
 };
 
 export const isOpenshiftDefaultStorageClass = (
@@ -52,7 +43,7 @@ export const isOpenshiftDefaultStorageClass = (
 
 export const isValidConfigValue = (
   configKey: keyof StorageClassConfig,
-  value: string | boolean | undefined | AccessModeSettings,
+  value: string | boolean | undefined | AccessModeSettings | null,
 ): boolean => {
   switch (configKey) {
     case 'displayName':
@@ -64,31 +55,20 @@ export const isValidConfigValue = (
     case 'lastModified':
       return typeof value === 'string' && isValidDate(new Date(value));
     case 'accessModeSettings':
-      return typeof value === 'object';
+      return typeof value === 'object' && value !== null;
     default:
       return false;
   }
 };
 
 export const isValidAccessModeSettings = (
-  storageClass: StorageClassKind,
-  value: string | boolean | undefined | AccessModeSettings,
+  value: string | boolean | undefined | AccessModeSettings | null,
 ): boolean => {
-  if (typeof value !== 'object') {
+  if (typeof value !== 'object' || value === null) {
     return false;
   }
 
-  const supportedAccessModes = getSupportedAccessModesForProvisioner(storageClass.provisioner);
-
-  if (
-    !supportedAccessModes.every(
-      (mode) => value[mode] === undefined || typeof value[mode] === 'boolean',
-    )
-  ) {
-    return false;
-  }
-
-  return true;
+  return Object.values(value).every((v) => typeof v === 'boolean');
 };
 
 // Create a Set of StorageProvisioner values for efficient lookup in the type guard
@@ -100,7 +80,7 @@ const isStorageProvisioner = (value: string): value is StorageProvisioner =>
 
 export const getSupportedAccessModesForProvisioner = (
   provisionerParameter?: StorageProvisioner | string,
-): AccessMode[] => {
+): AccessMode[] | null => {
   if (!provisionerParameter) {
     return [];
   }
@@ -112,42 +92,12 @@ export const getSupportedAccessModesForProvisioner = (
     return provisionerAccessModes[provisionerString];
   }
 
-  // If it's a provisioner not in the StorageProvisioner enum then return RWO
-  return [AccessMode.RWO];
+  // If it's a provisioner not in the StorageProvisioner enum then we cannot recommend
+  return null;
 };
 
-export const getAccessModeSettings = (
-  supportedAccessModes: AccessMode[],
-  accessModeSettings?: AccessModeSettings,
-): AccessMode[] => {
-  const accessModeSettingsArr = [];
-  for (const accessMode of supportedAccessModes) {
-    if (accessModeSettings?.[accessMode] === true) {
-      accessModeSettingsArr.push(accessMode);
-    }
-  }
-  return accessModeSettingsArr;
-};
-
-export const getAdminDefaultAccessModeSettings = (
-  supportedAccessModes: AccessMode[],
-): AccessModeSettings => {
-  const initialSettings: AccessModeSettings = {};
-  return supportedAccessModes.reduce((currentSettings, mode) => {
-    // AccessMode.RWO should be set to true, and all other supported access modes should be set to false
-    const newSetting = mode === AccessMode.RWO;
-    return {
-      ...currentSettings,
-      [mode]: newSetting,
-    };
-  }, initialSettings);
-};
-
-export const getStorageClassDefaultAccessModeSettings = (
-  storageClass: StorageClassKind,
-): AccessModeSettings => {
-  const supportedAccessModesForProvisioner = getSupportedAccessModesForProvisioner(
-    storageClass.provisioner,
-  );
-  return getAdminDefaultAccessModeSettings(supportedAccessModesForProvisioner);
+export const getStorageClassDefaultAccessModeSettings = (): AccessModeSettings => {
+  return {
+    [AccessMode.RWO]: true,
+  };
 };

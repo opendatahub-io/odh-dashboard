@@ -14,7 +14,6 @@ export const techPreviewFlags = {
 
 export const devTemporaryFeatureFlags = {
   disableKueue: true,
-  disableFeatureStore: true,
   disableLlamaStackChatBot: true, // internal dev only
   disableProjectScoped: true,
   disableDeploymentWizard: true,
@@ -62,8 +61,9 @@ export const modelServingFlags = {
 export const advancedAIMLFlags = {
   disablePipelines: false,
   disableDistributedWorkloads: false,
-  disableModelCatalog: true,
+  disableModelCatalog: false,
   disableModelRegistrySecureDB: false,
+  disableFeatureStore: false,
   disableFineTuning: true,
   disableLMEval: true,
   disableModelTraining: true,
@@ -125,10 +125,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.DS_PROJECTS_PERMISSIONS]: {
     featureFlags: ['disableProjectSharing'],
     reliantAreas: [SupportedArea.DS_PROJECTS_VIEW],
-  },
-  [SupportedArea.K_SERVE]: {
-    featureFlags: ['disableKServe'],
-    requiredComponents: [StackComponent.K_SERVE],
   },
   [SupportedArea.K_SERVE_AUTH]: {
     featureFlags: ['disableKServeAuth'],

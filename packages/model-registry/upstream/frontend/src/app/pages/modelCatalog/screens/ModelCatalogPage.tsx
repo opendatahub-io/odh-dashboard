@@ -1,99 +1,97 @@
-import * as React from 'react';
 import {
-  PageSection,
-  Title,
-  Gallery,
-  GalleryItem,
-  EmptyState,
-  EmptyStateBody,
-  Button,
-  Spinner,
   Alert,
+  Bullseye,
+  Button,
+  EmptyState,
+  Gallery,
+  Spinner,
+  Title,
 } from '@patternfly/react-core';
-import { CubesIcon } from '@patternfly/react-icons';
-import { useNavigate } from 'react-router-dom';
-import { useModelCatalogSources } from '~/app/hooks/modelCatalog/useModelCatalogSources';
-import { ModelCatalogItem } from '~/app/modelCatalogTypes';
+import { SearchIcon } from '@patternfly/react-icons';
+import React from 'react';
+import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
+import { useCatalogModelsBySources } from '~/app/hooks/modelCatalog/useCatalogModelsBySource';
+import { CatalogModel } from '~/app/modelCatalogTypes';
 import ModelCatalogCard from '~/app/pages/modelCatalog/components/ModelCatalogCard';
+import EmptyModelCatalogState from '~/app/pages/modelCatalog/EmptyModelCatalogState';
 
-const ModelCatalogPage: React.FC = () => {
-  const { sources, loading, error, refreshSources } = useModelCatalogSources();
-  const navigate = useNavigate();
+type ModelCatalogPageProps = {
+  searchTerm: string;
+};
 
-  const handleModelSelect = (model: ModelCatalogItem) => {
-    if (model.id) {
-      navigate(`/model-catalog/${encodeURIComponent(model.id)}`);
-    }
-  };
+const ModelCatalogPage: React.FC<ModelCatalogPageProps> = ({ searchTerm }) => {
+  const { selectedSource } = React.useContext(ModelCatalogContext);
+  const { catalogModels, catalogModelsLoaded, catalogModelsLoadError } = useCatalogModelsBySources(
+    selectedSource?.id || '',
+    10,
+    searchTerm,
+  );
 
-  if (loading) {
+  if (catalogModelsLoadError) {
     return (
-      <PageSection>
-        <EmptyState>
-          <Spinner />
-          <Title headingLevel="h4" size="lg">
-            Loading model catalog...
-          </Title>
-        </EmptyState>
-      </PageSection>
+      <Alert variant="danger" title="Failed to load model catalog" isInline>
+        {catalogModelsLoadError.message}
+      </Alert>
     );
   }
 
-  if (error) {
+  if (!catalogModelsLoaded) {
     return (
-      <PageSection>
-        <Alert variant="danger" title="Failed to load model catalog" isInline>
-          {error.message}
-          <Button variant="link" onClick={refreshSources}>
-            Try again
-          </Button>
-        </Alert>
-      </PageSection>
+      <EmptyState>
+        <Spinner />
+        <Title headingLevel="h4" size="lg">
+          Loading model catalog...
+        </Title>
+      </EmptyState>
     );
   }
 
-  if (sources.length === 0) {
+  if (catalogModels.items.length === 0) {
     return (
-      <PageSection>
-        <EmptyState>
-          <CubesIcon />
-          <Title headingLevel="h4" size="lg">
-            No models available
-          </Title>
-          <EmptyStateBody>
-            There are no models available in the catalog. Try refreshing or contact your
-            administrator.
-          </EmptyStateBody>
-          <Button variant="primary" onClick={refreshSources}>
-            Refresh
-          </Button>
-        </EmptyState>
-      </PageSection>
+      <EmptyModelCatalogState
+        testid="empty-model-catalog-state"
+        title="No result found"
+        headerIcon={SearchIcon}
+        description={
+          <>
+            No models from the <b>{selectedSource?.name}</b> source match the search criteria.
+            Adjust your search, or select a different source
+          </>
+        }
+      />
     );
   }
 
   return (
-    <PageSection>
-      <Title headingLevel="h1" size="2xl" className="pf-v5-u-mb-md">
-        Model Catalog
-      </Title>
-      <p className="pf-v5-u-mb-lg">
-        Discover models that are available for your organization to register, deploy, and customize.
-      </p>
+    <>
       <Gallery hasGutter minWidths={{ default: '300px' }}>
-        {sources.map((source) =>
-          (source.models || []).map((model) => (
-            <GalleryItem key={model.id}>
-              <ModelCatalogCard
-                model={model}
-                source={source.displayName}
-                onSelect={handleModelSelect}
-              />
-            </GalleryItem>
-          )),
-        )}
+        {catalogModels.items.map((model: CatalogModel) => (
+          <ModelCatalogCard
+            model={model}
+            source={selectedSource}
+            key={`${model.name}/${model.source_id}`}
+          />
+        ))}
       </Gallery>
-    </PageSection>
+      {catalogModels.hasMore && (
+        <div style={{ marginTop: '2rem' }}>
+          <Bullseye>
+            {catalogModels.isLoadingMore ? (
+              <>
+                <Spinner size="lg" className="pf-v5-u-mb-md" />
+                <Title size="lg" headingLevel="h5">
+                  Loading more catalog models...
+                </Title>
+              </>
+            ) : (
+              <Button variant="tertiary" onClick={catalogModels.loadMore} size="lg">
+                Load more models
+              </Button>
+            )}
+          </Bullseye>
+        </div>
+      )}
+    </>
   );
 };
 

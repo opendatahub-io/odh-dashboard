@@ -207,3 +207,32 @@ export const getHardwareProfileDescription = (
 export const isHardwareProfileEnabled = (hardwareProfile: HardwareProfileKind): boolean =>
   hardwareProfile.metadata.annotations?.['opendatahub.io/disabled'] === 'false' ||
   hardwareProfile.metadata.annotations?.['opendatahub.io/disabled'] === undefined;
+
+export const alphaSortHardwareProfilesByName = (
+  profiles: HardwareProfileKind[],
+): HardwareProfileKind[] => {
+  const collator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
+  return profiles.toSorted((a, b) => collator.compare(a.metadata.name, b.metadata.name));
+};
+
+export const orderHardwareProfiles = (
+  profiles: HardwareProfileKind[],
+  hardwareProfileOrder: string[] = [],
+): HardwareProfileKind[] => {
+  if (hardwareProfileOrder.length > 0) {
+    const alphaOrderedNames = alphaSortHardwareProfilesByName(profiles).map(
+      (hwp) => hwp.metadata.name,
+    );
+    const existingNames = new Set(alphaOrderedNames);
+    const persistedOrder = hardwareProfileOrder.filter((name) => existingNames.has(name));
+    const persistedOrderSet = new Set(persistedOrder);
+    const newProfiles = alphaOrderedNames.filter((name) => !persistedOrderSet.has(name));
+    const currentOrder = [...persistedOrder, ...newProfiles];
+    const profilesMap = new Map(profiles.map((profile) => [profile.metadata.name, profile]));
+    return currentOrder.flatMap((name) => {
+      const profile = profilesMap.get(name);
+      return profile ? [profile] : [];
+    });
+  }
+  return alphaSortHardwareProfilesByName(profiles);
+};

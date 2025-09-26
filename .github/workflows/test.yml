@@ -15,7 +15,7 @@ jobs:
       - name: Generate modules cache key
         id: key
         run: |
-          echo "modules-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}" >> $GITHUB_OUTPUT
+          echo "modules-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-${{ hashFiles('**/package-lock.json') }}" >> $GITHUB_OUTPUT
       - name: Node.js modules cache
         uses: actions/cache@v4
         id: modules-cache
@@ -52,7 +52,7 @@ jobs:
           path: |
             ~/.cache/Cypress
             **/node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-${{ hashFiles('**/package-lock.json') }}
       - name: Cache turbo
         uses: actions/cache@v4
         with:
@@ -78,7 +78,7 @@ jobs:
           path: |
             ~/.cache/Cypress
             **/node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-${{ hashFiles('**/package-lock.json') }}
       - name: Cache turbo
         uses: actions/cache@v4
         with:
@@ -154,6 +154,52 @@ jobs:
             echo "test-groups=[\"default\"]" >> "$GITHUB_OUTPUT"
           fi
 
+  Contract-Tests:
+    needs: [Setup, Lint, Type-Check]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      - name: Restore cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cache/Cypress
+            **/node_modules
+          key: ${{ needs.Setup.outputs.modules-cache-key }}
+      - name: Run contract tests
+        run: |
+          export GITHUB_RUN_ID="$GITHUB_RUN_ID"
+          export CI="true"
+          npm run test:contract
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          CI: true
+      - name: Upload contract test results
+        if: always()
+        run: |
+          # Find and upload the most recent contract test results
+          LATEST_DIR=$(find packages/*/contract-tests/contract-test-results -name "ci-*" -type d 2>/dev/null | head -1)
+          if [ -n "$LATEST_DIR" ] && [ -d "$LATEST_DIR" ]; then
+            echo "Uploading from: $LATEST_DIR" && echo "results-dir=$LATEST_DIR" >> $GITHUB_OUTPUT
+          else
+            echo "No results found" && echo "results-dir=" >> $GITHUB_OUTPUT
+          fi
+        id: upload-results
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: steps.upload-results.outputs.results-dir != ''
+        with:
+          name: contract-test-results
+          path: ${{ steps.upload-results.outputs.results-dir }}
+
   Cypress-Setup:
     needs: [Setup]
     runs-on: ubuntu-latest
@@ -171,7 +217,7 @@ jobs:
         with:
           lookup-only: true
           path: |
-            ${{ github.workspace }}/frontend/public-cypress
+            **/public-cypress
           key: ${{ steps.key.outputs.cypress-cache-key }}
       - name: Restore cache
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
@@ -186,10 +232,9 @@ jobs:
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Build frontend for cypress
+      - name: Build for cypress
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
         run: npm run cypress:server:build:coverage
-        working-directory: ./frontend
 
   Cypress-Mock-Tests:
     needs: [Setup, Lint, Type-Check, Cypress-Setup, Get-Test-Groups]
@@ -215,7 +260,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: |
-            ${{ github.workspace }}/frontend/public-cypress
+            **/public-cypress
           key: ${{ needs.Cypress-Setup.outputs.cypress-cache-key }}
       - name: Run Cypress Mock tests
         run: |
@@ -302,6 +347,7 @@ jobs:
       - Lint
       - Type-Check
       - Unit-Tests
+      - Contract-Tests
       - Cypress-Mock-Tests
       - Combine-Results-and-Upload
     steps:

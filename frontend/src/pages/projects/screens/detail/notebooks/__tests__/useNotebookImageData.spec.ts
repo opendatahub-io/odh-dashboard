@@ -11,7 +11,7 @@ describe('getNotebookImageData', () => {
     const notebook = mockNotebookK8sResource({
       image:
         'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
-      lastImageSelection: 'jupyter-datascience-notebook',
+      lastImageSelection: 'jupyter-datascience-notebook:1.2',
     });
     const images = [
       mockImageStreamK8sResource({
@@ -31,7 +31,7 @@ describe('getNotebookImageData', () => {
     const tagName = '2024.1';
     const notebook = mockNotebookK8sResource({
       image: `image-registry.openshift-image-registry.svc:5000/opendatahub/${imageName}:${tagName}`,
-      lastImageSelection: 'jupyter-datascience-notebook',
+      lastImageSelection: `${imageName}:${tagName}`,
     });
     const images = [
       mockImageStreamK8sResource({
@@ -52,7 +52,7 @@ describe('getNotebookImageData', () => {
     const notebook = mockNotebookK8sResource({
       image:
         'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
-      lastImageSelection: 'jupyter-datascience-notebook',
+      lastImageSelection: 'jupyter-datascience-notebook:1.2',
     });
     const images = [
       mockImageStreamK8sResource({
@@ -78,7 +78,7 @@ describe('getNotebookImageData', () => {
     const displayName = 'Jupyter Data Science Notebook';
     const notebook = mockNotebookK8sResource({
       image: `image-registry.openshift-image-registry.svc:5000/opendatahub/${imageName}:${tagName}`,
-      lastImageSelection: 'jupyter-datascience-notebook',
+      lastImageSelection: `${imageName}:${tagName}`,
     });
     const images = [
       mockImageStreamK8sResource({
@@ -137,7 +137,7 @@ describe('getNotebookImageData', () => {
     const imageName = 'jupyter-datascience-notebook';
     const imageSha = 'sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75';
     const notebook = mockNotebookK8sResource({
-      lastImageSelection: `${imageName}:${imageSha}`,
+      lastImageSelection: `${imageName}:1.2`,
       image: `quay.io/opendatahub/${imageName}@${imageSha}`,
     });
     const images = [

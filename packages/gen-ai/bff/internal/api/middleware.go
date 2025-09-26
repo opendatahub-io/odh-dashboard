@@ -155,8 +155,7 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 // AttachLlamaStackClient middleware creates a LlamaStack client for the namespace and attaches it to context.
 // This middleware must be used after AttachNamespace middleware.
 //
-// DEVELOPMENT ONLY: Currently uses the global LlamaStack URL from app configuration for all namespaces.
-// TODO: Replace with proper namespace-specific service discovery for production.
+// Gets the LlamaStack URL from the namespace-specific LlamaStackDistribution resource's status.serviceURL field.
 func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		ctx := r.Context()
@@ -179,23 +178,61 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 			// In mock mode, use empty URL since mock factory ignores it
 			llamaStackClient = app.llamaStackClientFactory.CreateClient("")
 		} else {
-			// DEVELOPMENT ONLY: Use global LlamaStack URL from app configuration
-			// TODO: Replace with proper namespace-specific service discovery:
-			// - Look for LlamaStack services in the namespace
-			// - Read namespace-specific ConfigMaps or annotations
-			// - Query LlamaStackDistribution CRDs for active instances
-			globalDevLlamastackURL := app.config.LlamaStackURL
-			if globalDevLlamastackURL == "" {
-				app.serverErrorResponse(w, r, fmt.Errorf("LlamaStack URL not configured - set LLAMA_STACK_URL environment variable"))
-				return
+			var serviceURL string
+			// Use environment variable if explicitly set (developer override)
+			if app.config.LlamaStackURL != "" {
+				serviceURL = app.config.LlamaStackURL
+				logger.Debug("Using LLAMA_STACK_URL environment variable (developer override)",
+					"namespace", namespace,
+					"serviceURL", serviceURL)
+			} else {
+				identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+				if !ok || identity == nil {
+					app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+					return
+				}
+
+				k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+				if err != nil {
+					app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+					return
+				}
+
+				// Get LlamaStackDistribution list using existing client method
+				lsdList, err := k8sClient.GetLlamaStackDistributions(ctx, identity, namespace)
+				if err != nil {
+					app.serverErrorResponse(w, r, fmt.Errorf("failed to get LlamaStackDistributions: %w", err))
+					return
+				}
+
+				if len(lsdList.Items) == 0 {
+					app.serverErrorResponse(w, r, fmt.Errorf("no LlamaStackDistribution found in namespace %q", namespace))
+					return
+				}
+				if len(lsdList.Items) > 1 {
+					app.logger.Warn(fmt.Sprintf("warning: %d LlamaStackDistributions found in namespace %q, using the first", len(lsdList.Items), namespace))
+				}
+
+				lsd := lsdList.Items[0]
+				serviceURL = lsd.Status.ServiceURL
+
+				if serviceURL == "" {
+					app.serverErrorResponse(w, r, fmt.Errorf("LlamaStackDistribution %s has no service url", lsd.Name))
+					return
+				}
+
+				logger.Debug("Using ServiceURL from LlamaStackDistribution",
+					"namespace", namespace,
+					"lsdName", lsd.Name,
+					"serviceURL", serviceURL)
 			}
 
-			logger.Debug("DEVELOPMENT MODE: creating LlamaStack client for namespace",
+			logger.Debug("Creating LlamaStack client for namespace",
 				"namespace", namespace,
-				"globalDevURL", globalDevLlamastackURL)
+				"serviceURL", serviceURL)
 
 			// Create LlamaStack client per-request using app factory (consistent with K8s pattern)
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(globalDevLlamastackURL)
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(serviceURL)
 		}
 
 		// Attach ready-to-use client to context

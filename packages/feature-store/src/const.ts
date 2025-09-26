@@ -1,3 +1,5 @@
+import { ProjectList } from './types/featureStoreProjects';
+
 export const FEATURE_STORE_API_VERSION = 'v1';
 export const FEATURE_STORE_UI_LABEL_KEY = 'feature-store-ui';
 export const FEATURE_STORE_UI_LABEL_VALUE = 'enabled';
@@ -6,6 +8,10 @@ export enum FeatureStoreObject {
   ENTITIES = 'entities',
   FEATURE_VIEWS = 'featureViews',
   FEATURE_SERVICES = 'featureServices',
+  DATA_SETS = 'dataSets',
+  DATA_SOURCES = 'dataSources',
+  OVERVIEW = 'overview',
+  FEATURES = 'features',
 }
 
 export enum FeatureStoreSections {
@@ -25,3 +31,16 @@ export enum FeatureStoreTabs {
   METRICS = 'Metrics',
   LINEAGE = 'Lineage',
 }
+/* eslint-disable camelcase */
+export const DEFAULT_PROJECT_LIST: ProjectList = {
+  projects: [],
+  pagination: {
+    page: 0,
+    limit: 0,
+    total_count: 0,
+    total_pages: 0,
+    has_next: false,
+    has_previous: false,
+  },
+};
+/* eslint-enable camelcase */

@@ -19,12 +19,13 @@ import { useNavigate } from 'react-router-dom';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import HardwareProfilesTable from '#~/pages/hardwareProfiles/HardwareProfilesTable';
 import { useAccessAllowed, verbModelAccess } from '#~/concepts/userSSAR';
-import { HardwareProfileModel } from '#~/api';
+import { HardwareProfileModel, patchDashboardConfigHardwareProfileOrder } from '#~/api';
 import { generateWarningForHardwareProfiles } from '#~/pages/hardwareProfiles/utils';
 import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
+import { useApplicationSettings } from '#~/app/useApplicationSettings.tsx';
 import useMigratedHardwareProfiles from './migration/useMigratedHardwareProfiles';
 
 const description =
@@ -32,6 +33,7 @@ const description =
 
 const HardwareProfiles: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
+  const { dashboardConfig, refresh: refreshDashboardConfig } = useApplicationSettings();
   const {
     data: migratedHardwareProfiles,
     loaded: loadedMigratedHardwareProfiles,
@@ -56,6 +58,35 @@ const HardwareProfiles: React.FC = () => {
 
   const isEmpty = allMigratedHardwareProfiles.length === 0;
   const warningMessages = generateWarningForHardwareProfiles(allMigratedHardwareProfiles);
+
+  const serverHardwareProfileOrder = React.useMemo(
+    () => dashboardConfig?.spec.hardwareProfileOrder || [],
+    [dashboardConfig?.spec.hardwareProfileOrder],
+  );
+
+  const [optimisticHardwareProfileOrder, setOptimisticHardwareProfileOrder] = React.useState<
+    string[]
+  >(serverHardwareProfileOrder);
+
+  React.useEffect(() => {
+    setOptimisticHardwareProfileOrder(serverHardwareProfileOrder);
+  }, [serverHardwareProfileOrder]);
+
+  const setHardwareProfileOrder = React.useCallback(
+    async (hwpNameOrder: string[]) => {
+      // Optimistically update local state immediately
+      setOptimisticHardwareProfileOrder(hwpNameOrder);
+      try {
+        await patchDashboardConfigHardwareProfileOrder(hwpNameOrder, dashboardNamespace);
+        await refreshDashboardConfig();
+      } catch (error) {
+        // Revert optimistic state on error
+        setOptimisticHardwareProfileOrder(serverHardwareProfileOrder);
+        throw error;
+      }
+    },
+    [dashboardNamespace, refreshDashboardConfig, serverHardwareProfileOrder],
+  );
 
   const noHardwareProfilePageSection = (
     <PageSection isFilled>
@@ -135,7 +166,11 @@ const HardwareProfiles: React.FC = () => {
         )}
         <StackItem>
           {hardwareProfiles.length > 0 ? (
-            <HardwareProfilesTable hardwareProfiles={hardwareProfiles} />
+            <HardwareProfilesTable
+              hardwareProfiles={hardwareProfiles}
+              hardwareProfileOrder={optimisticHardwareProfileOrder}
+              setHardwareProfileOrder={setHardwareProfileOrder}
+            />
           ) : (
             noHardwareProfilePageSection
           )}
@@ -161,6 +196,8 @@ const HardwareProfiles: React.FC = () => {
                   isMigratedTable
                   hardwareProfiles={migratedHardwareProfiles}
                   getMigrationAction={getMigrationAction}
+                  hardwareProfileOrder={optimisticHardwareProfileOrder}
+                  setHardwareProfileOrder={setHardwareProfileOrder}
                 />
               </ExpandableSection>
             </StackItem>

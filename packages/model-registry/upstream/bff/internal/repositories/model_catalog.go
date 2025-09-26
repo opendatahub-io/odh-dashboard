@@ -11,7 +11,7 @@ import (
 type ModelCatalogRepository struct {
 }
 
-const ModelCatalogServiceName = "model-catalog-service"
+const ModelCatalogServiceName = "model-catalog"
 
 func NewCatalogRepository() *ModelCatalogRepository {
 	return &ModelCatalogRepository{}
@@ -19,7 +19,7 @@ func NewCatalogRepository() *ModelCatalogRepository {
 
 func (m *ModelCatalogRepository) GetModelCatalogWithMode(sessionCtx context.Context, client k8s.KubernetesClientInterface, namespace string, isFederatedMode bool) (models.ModelCatalogModel, error) {
 
-	s, err := client.GetServiceDetailsByName(sessionCtx, namespace, ModelCatalogServiceName)
+	s, err := client.GetServiceDetailsByName(sessionCtx, namespace, ModelCatalogServiceName, k8s.ComponentLabelValueCatalog)
 	if err != nil {
 		return models.ModelCatalogModel{}, fmt.Errorf("error fetching model catalog: %w", err)
 	}

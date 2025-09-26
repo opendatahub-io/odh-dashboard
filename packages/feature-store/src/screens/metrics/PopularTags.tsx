@@ -21,6 +21,7 @@ import {
 import { PlusIcon, TagIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { Link } from 'react-router-dom';
+import TruncatedText from '@odh-dashboard/internal/components/TruncatedText';
 import { EMPTY_STATE_MESSAGES } from './const';
 import useMetricsPopularTags from '../../apiHooks/useMetricsPopularTags';
 import { featureViewRoute } from '../../routes';
@@ -39,11 +40,13 @@ const PopularTagCard = ({ tag }: { tag: PopularTag }) => {
     >
       <CardHeader>
         <Flex gap={{ default: 'gapSm' }}>
-          <FlexItem>
+          <FlexItem flex={{ default: 'flexNone' }}>
             <TagIcon />
           </FlexItem>
-          <FlexItem>
-            <CardTitle>{`${tag.tag_key}=${tag.tag_value}`}</CardTitle>
+          <FlexItem flex={{ default: 'flex_1' }} style={{ minWidth: 0 }}>
+            <CardTitle>
+              <TruncatedText maxLines={1} content={`${tag.tag_key}=${tag.tag_value}`} />
+            </CardTitle>
           </FlexItem>
         </Flex>
       </CardHeader>
@@ -173,8 +176,8 @@ const PopularTags: React.FC<PopularTagsProps> = ({ project, limit = 4 }) => {
 
   return (
     <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsMd' }}>
-      <Title headingLevel="h3" data-testid="popular-tags-title">
-        View most used feature view tags Feature views using popular tags?
+      <Title headingLevel="h3" data-testid="popular-tags-title" style={{ marginBottom: '2rem' }}>
+        Feature views using popular tags
       </Title>
       {renderContent()}
     </Flex>

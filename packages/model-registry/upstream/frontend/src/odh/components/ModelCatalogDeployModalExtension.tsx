@@ -1,12 +1,14 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { HookNotify, useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { isModelCatalogDeployModalExtension } from '~/odh/extension-points';
-import { ModelCatalogItem } from '~/app/modelCatalogTypes';
+import { CatalogModel, CatalogModelDetailsParams } from '~/app/modelCatalogTypes';
 import { getDeployButtonState } from '~/odh/utils';
+import { useCatalogModelArtifacts } from '~/app/hooks/modelCatalog/useCatalogModelArtifacts';
+import { decodeParams } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 
 type ModelCatalogDeployModalExtensionProps = {
-  model: ModelCatalogItem;
+  model: CatalogModel;
   render: (
     buttonState: { enabled?: boolean; tooltip?: string },
     onOpenModal: () => void,
@@ -14,9 +16,9 @@ type ModelCatalogDeployModalExtensionProps = {
   ) => React.ReactNode;
 };
 
-const ModelCatalogDeployModalExtension: React.FC<ModelCatalogDeployModalExtensionProps> = ({ 
-  model, 
-  render 
+const ModelCatalogDeployModalExtension: React.FC<ModelCatalogDeployModalExtensionProps> = ({
+  model,
+  render,
 }) => {
   const navigate = useNavigate();
   const [extensions, extensionsLoaded] = useResolvedExtensions(isModelCatalogDeployModalExtension);
@@ -24,7 +26,7 @@ const ModelCatalogDeployModalExtension: React.FC<ModelCatalogDeployModalExtensio
   const [openModal, setOpenModal] = React.useState(false);
 
   const [availablePlatformIds, setAvailablePlatformIds] = React.useState<string[]>([]);
-  const buttonState = getDeployButtonState(availablePlatformIds);
+  const buttonState = getDeployButtonState(availablePlatformIds, true);
 
   const onOpenModal = React.useCallback(() => {
     setOpenModal(true);
@@ -35,20 +37,30 @@ const ModelCatalogDeployModalExtension: React.FC<ModelCatalogDeployModalExtensio
     [extensionsLoaded, extensions],
   );
 
+  const params = useParams<CatalogModelDetailsParams>();
+  const decodedParams = decodeParams(params);
+  const [artifacts, artifactLoaded, artifactsLoadError] = useCatalogModelArtifacts(
+    decodedParams.sourceId || '',
+    encodeURIComponent(`${decodedParams.modelName}`),
+  );
+  const uri = artifacts.items.length > 0 ? artifacts.items[0].uri : '';
+  const loaded = isModalAvailable && artifactLoaded && !artifactsLoadError;
+
+
   // Create model deploy prefill info for catalog model
   const modelDeployPrefill = React.useMemo(() => {
     // For catalog models, we need to create a ModelDeployPrefillInfo
-    // The model.url should contain the model artifact URI
     return {
       data: {
         modelName: model.name,
-        modelArtifactUri: model.url,
-        connectionTypeName: model.url?.includes('oci://') ? 'oci' : 's3',
+        modelArtifactUri: uri,
+        connectionTypeName: uri?.includes('oci://') ? 'oci' : 's3',
       },
       loaded: true,
       error: undefined,
     };
-  }, [model]);
+  }, [model.name, uri]);
+
 
   const handleSubmit = React.useCallback(() => {
     setOpenModal(false);
@@ -66,7 +78,7 @@ const ModelCatalogDeployModalExtension: React.FC<ModelCatalogDeployModalExtensio
           />
         )
       })}
-      {render(buttonState, onOpenModal, isModalAvailable)}
+      {render(buttonState, onOpenModal, loaded)}
       {openModal && extensions.map((extension) => {
         return extension.properties.modalComponent && (
           <extension.properties.modalComponent

@@ -89,6 +89,18 @@ spec:
                       additionalProperties:
                         type: string
                       type: object
+                    warningValidation:
+                      required:
+                        - field
+                        - message
+                      properties:
+                        field:
+                          type: string
+                        validationRegex:
+                          type: string
+                        message:
+                          type: string
+                      type: object
                   type: object
                 enableCR:
                   properties:

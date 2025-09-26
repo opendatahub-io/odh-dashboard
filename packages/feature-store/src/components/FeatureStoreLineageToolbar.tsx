@@ -27,15 +27,47 @@ const FILTER_OPTIONS = {
   featureService: 'Feature Service',
 };
 
+const FILTER_TOOLBAR_INNER_FILTER_CLASS = 'filter-toolbar-inner-filter';
+
 const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
   hideNodesWithoutRelationships,
   onHideNodesWithoutRelationshipsChange,
   searchFilters = {},
   onSearchFiltersChange,
+  currentFilterType = 'entity',
+  onCurrentFilterTypeChange,
   lineageData,
   lineageDataLoaded = false,
   isFeatureViewToolbar = false,
 }) => {
+  React.useEffect(() => {
+    const hasFilters = Object.values(searchFilters).some(
+      (filter) => filter && filter.trim() !== '',
+    );
+
+    if (hasFilters) {
+      const addClassToSecondElement = () => {
+        const toolbarContents = document.querySelectorAll(
+          '.fs-toolbar-content .pf-v6-c-toolbar__content',
+        );
+        if (toolbarContents.length >= 2) {
+          const secondContent = toolbarContents[1];
+          if (!secondContent.classList.contains(FILTER_TOOLBAR_INNER_FILTER_CLASS)) {
+            secondContent.classList.add(FILTER_TOOLBAR_INNER_FILTER_CLASS);
+          }
+        }
+      };
+      requestAnimationFrame(addClassToSecondElement);
+    } else {
+      const toolbarContents = document.querySelectorAll(
+        '.fs-toolbar-content .pf-v6-c-toolbar__content',
+      );
+      if (toolbarContents.length >= 2) {
+        toolbarContents[1].classList.remove(FILTER_TOOLBAR_INNER_FILTER_CLASS);
+      }
+    }
+  }, [searchFilters]);
+
   const availableOptions = useMemo(() => {
     if (!lineageData || !lineageDataLoaded) {
       return {
@@ -160,15 +192,6 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
       keyof FeatureStoreLineageSearchFilters,
       (props: FilterOptionRenders) => React.ReactNode
     > = {
-      entity: () => (
-        <MultiSelection
-          value={getEntityOptions}
-          setValue={(selections: SelectionOptions[]) => handleSelectionChange('entity', selections)}
-          placeholder={!lineageDataLoaded ? 'Loading lineage...' : 'Search entities...'}
-          ariaLabel="Search entities"
-          isDisabled={!lineageDataLoaded}
-        />
-      ),
       featureView: () => (
         <MultiSelection
           value={getFeatureViewOptions}
@@ -177,6 +200,15 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
           }
           placeholder={!lineageDataLoaded ? 'Loading lineage...' : 'Search feature views...'}
           ariaLabel="Search feature views"
+          isDisabled={!lineageDataLoaded}
+        />
+      ),
+      entity: () => (
+        <MultiSelection
+          value={getEntityOptions}
+          setValue={(selections: SelectionOptions[]) => handleSelectionChange('entity', selections)}
+          placeholder={!lineageDataLoaded ? 'Loading lineage...' : 'Search entities...'}
+          ariaLabel="Search entities"
           isDisabled={!lineageDataLoaded}
         />
       ),
@@ -205,8 +237,8 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
     };
     return renderers;
   }, [
-    getEntityOptions,
     getFeatureViewOptions,
+    getEntityOptions,
     getDataSourceOptions,
     getFeatureServiceOptions,
     handleSelectionChange,
@@ -238,21 +270,62 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
     }
   }, [onSearchFiltersChange]);
 
+  // Memoize filterData to prevent FilterToolbar from remounting
+  const filterData = useMemo(
+    () => ({
+      entity: searchFilters.entity,
+      featureView: searchFilters.featureView,
+      dataSource: searchFilters.dataSource,
+      featureService: searchFilters.featureService,
+    }),
+    [
+      searchFilters.entity,
+      searchFilters.featureView,
+      searchFilters.dataSource,
+      searchFilters.featureService,
+    ],
+  );
+
   return (
-    <Toolbar style={{ padding: '0.5rem' }} clearAllFilters={onClearAllFilters}>
+    <Toolbar
+      className="fs-toolbar-content"
+      style={{
+        padding: '1rem 1rem 0.2rem',
+        backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
+        position: 'relative',
+      }}
+      clearAllFilters={onClearAllFilters}
+    >
+      <style>
+        {`.${FILTER_TOOLBAR_INNER_FILTER_CLASS} {
+           position: absolute;
+           top: 4rem;
+           left: 16px;
+           right: 0;
+           bottom: 0;
+           z-index: 2;
+           width: fit-content;
+           row-gap: 0.5rem;
+         }
+         
+         #tabContent-Lineage .pf-topology-visualization-surface__svg{
+           z-index: 1;
+         }
+        #tabContent-Lineage .pf-topology-control-bar {
+          z-index:2 ;
+        }
+         `}
+      </style>
       <ToolbarContent>
         <ToolbarItem>
           <FilterToolbar
             key="lineage-filters"
             filterOptions={FILTER_OPTIONS}
             filterOptionRenders={filterOptionRenders}
-            filterData={{
-              entity: searchFilters.entity,
-              featureView: searchFilters.featureView,
-              dataSource: searchFilters.dataSource,
-              featureService: searchFilters.featureService,
-            }}
+            filterData={filterData}
             onFilterUpdate={onFilterUpdate}
+            currentFilterType={currentFilterType}
+            onFilterTypeChange={onCurrentFilterTypeChange}
             testId="lineage-search-filter"
           />
         </ToolbarItem>

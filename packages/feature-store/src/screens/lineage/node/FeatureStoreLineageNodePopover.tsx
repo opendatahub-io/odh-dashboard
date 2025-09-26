@@ -27,7 +27,6 @@ export interface FeatureStoreLineageNodePopoverProps {
   node: LineageNode | null;
   isVisible: boolean;
   onClose: () => void;
-  isOnFeatureViewDetailsPage?: boolean;
 }
 
 const getFsObjectTypeLabel = (fsObjectType: FsObjectType): string => {
@@ -60,12 +59,9 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
   node,
   isVisible,
   onClose,
-  isOnFeatureViewDetailsPage = false,
 }) => {
   const { currentProject } = useFeatureStoreProject();
   const navigate = useNavigate();
-
-  // Drag tracking is now handled in useLineagePopover hook
 
   // Conditional rendering after all hooks
   if (!node || !isVisible || !currentProject) {
@@ -83,14 +79,23 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
   const popoverContent = (
     <Popover
       isVisible={isVisible}
-      shouldClose={() => onClose()}
+      shouldClose={() => {
+        onClose();
+        return true;
+      }}
       minWidth="320px"
       maxWidth="480px"
       position="top"
       enableFlip
       triggerRef={{ current: triggerElement }}
       bodyContent={
-        <Stack hasGutter style={{ minWidth: '280px' }}>
+        <Stack
+          hasGutter
+          style={{ minWidth: '280px' }}
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
           {node.description && (
             <StackItem>
               <Content>{node.description}</Content>
@@ -129,28 +134,35 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
         </Stack>
       }
       headerContent={
-        <Flex>
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
           <FlexItem>{getEntityTypeIcon(node.entityType)}</FlexItem>
           <FlexItem>{node.label}</FlexItem>
         </Flex>
       }
       footerContent={
-        <Flex>
-          {!isOnFeatureViewDetailsPage && (
-            <FlexItem>
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  const route = goToDetailsPage(node, currentProject);
-                  if (route) {
-                    navigate(route);
-                  }
-                }}
-              >
-                View {getFsObjectTypeLabel(node.fsObjectTypes)} details page
-              </Button>
-            </FlexItem>
-          )}
+        <Flex
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          <FlexItem>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                const route = goToDetailsPage(node, currentProject);
+                if (route) {
+                  navigate(route);
+                }
+              }}
+            >
+              View {getFsObjectTypeLabel(node.fsObjectTypes)} details page
+            </Button>
+          </FlexItem>
           {node.fsObjectTypes === 'feature_view' && (
             <FlexItem>
               <Button
@@ -167,10 +179,7 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
           )}
         </Flex>
       }
-    >
-      {/* Empty div since we're using triggerRef */}
-      <div />
-    </Popover>
+    />
   );
 
   // Render directly in the overlay container (no portal needed now)

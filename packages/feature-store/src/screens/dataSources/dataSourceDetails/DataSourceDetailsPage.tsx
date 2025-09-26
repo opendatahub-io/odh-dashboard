@@ -7,6 +7,8 @@ import {
   BreadcrumbItem,
   EmptyStateFooter,
   EmptyStateActions,
+  Flex,
+  FlexItem,
 } from '@patternfly/react-core';
 import { t_global_spacer_xs as ExtraSmallSpacerSize } from '@patternfly/react-tokens';
 import { SearchIcon, PathMissingIcon } from '@patternfly/react-icons';
@@ -17,6 +19,9 @@ import { useFeatureStoreProject } from '../../../FeatureStoreContext';
 import useFeatureStoreDataSourceByName from '../../../apiHooks/useFeatureStoreDataSourceByName';
 import { featureStoreRootRoute } from '../../../routes';
 import FeatureStorePageTitle from '../../../components/FeatureStorePageTitle';
+import FeatureStoreBreadcrumb from '../../components/FeatureStoreBreadcrumb';
+import FeatureStoreLabels from '../../../components/FeatureStoreLabels';
+import { getDataSourceConnectorType } from '../utils';
 
 const DataSourceDetailsPage = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -64,7 +69,18 @@ const DataSourceDetailsPage = (): React.ReactElement => {
     <ApplicationsPage
       empty={!dataSourceLoaded}
       emptyStatePage={emptyState}
-      title={dataSource.name}
+      title={
+        dataSourceLoaded && (
+          <Flex alignItems={{ default: 'alignItemsCenter' }}>
+            <FlexItem>{dataSource.name}</FlexItem>
+            <FlexItem>
+              <FeatureStoreLabels color="blue">
+                {getDataSourceConnectorType(dataSource.type)}
+              </FeatureStoreLabels>
+            </FlexItem>
+          </Flex>
+        )
+      }
       data-testid="data-source-details-page"
       description={dataSource.description}
       loadError={dataSourceLoadError}
@@ -76,11 +92,11 @@ const DataSourceDetailsPage = (): React.ReactElement => {
           isDetailsPage
           breadcrumb={
             <Breadcrumb>
-              <BreadcrumbItem
-                render={() => (
-                  <Link to={`${featureStoreRootRoute()}/dataSources`}>Data Sources</Link>
-                )}
-                data-testid="data-source-details-breadcrumb-link"
+              <FeatureStoreBreadcrumb
+                pageName="Data sources"
+                projectName={currentProject || ''}
+                linkTo={`${featureStoreRootRoute()}/dataSources`}
+                dataTestId="data-source-details-breadcrumb-link"
               />
               <BreadcrumbItem
                 data-testid="data-source-details-breadcrumb-item"

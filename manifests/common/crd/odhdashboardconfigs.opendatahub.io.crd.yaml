@@ -97,6 +97,8 @@ spec:
                       type: boolean
                     disableLMEval:
                       type: boolean
+                    disableFeatureStore:
+                      type: boolean
                 # TODO: Remove before going to v1
                 groupsConfig:
                   description: 'Ignored -- See "Auth" Resource'
@@ -201,6 +203,11 @@ spec:
                     type: string
                 # Likely needs a better spot to exist -- hard to do granular permissions
                 templateDisablement:
+                  type: array
+                  items:
+                    type: string
+                # Likely needs a better spot to exist -- hard to do granular permissions
+                hardwareProfileOrder:
                   type: array
                   items:
                     type: string

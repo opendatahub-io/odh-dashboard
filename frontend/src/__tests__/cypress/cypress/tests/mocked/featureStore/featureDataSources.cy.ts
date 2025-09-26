@@ -269,7 +269,10 @@ describe('Feature Data Sources for all projects', () => {
   it('should display project column when viewing all projects', () => {
     featureStoreGlobal.visitDataSources();
     featureDataSourcesTable.findTable().should('be.visible');
-    featureDataSourcesTable.findTable().find('thead').should('contain.text', 'Project');
+    featureDataSourcesTable
+      .findTable()
+      .find('thead')
+      .should('contain.text', 'Feature store repository');
     featureDataSourcesTable.findRow('loan_data').shouldHaveProject(fsProjectName);
     featureDataSourcesTable.findRow('transaction_data').shouldHaveProject(fsProjectName2);
   });
@@ -298,7 +301,7 @@ describe('Feature Data Sources for all projects', () => {
       .shouldHaveApplicationsPageDescription(
         'Loan application data including personal and loan characteristics',
       )
-      .shouldHaveDataSourceConnector('BATCH_FILE')
+      .shouldHaveDataSourceConnector('File source')
       .shouldHaveOwner('risk-team@company.com');
     featureDataSourceDetails.findInteractiveExample().should('be.visible');
     featureDataSourceDetails.findBreadcrumbLink().should('be.visible');
@@ -318,7 +321,7 @@ describe('Feature Data Sources for all projects', () => {
       .shouldHaveApplicationsPageDescription(
         'Loan application data including personal and loan characteristics',
       )
-      .shouldHaveDataSourceConnector('BATCH_FILE')
+      .shouldHaveDataSourceConnector('File source')
       .shouldHaveOwner('risk-team@company.com');
     featureDataSourceDetails.findInteractiveExample().should('be.visible');
 
@@ -328,7 +331,7 @@ describe('Feature Data Sources for all projects', () => {
     featureDataSourceDetails.findBreadcrumbLink().click();
 
     cy.url().should('include', '/featureStore/dataSources');
-    featureStoreGlobal.findHeading().should('have.text', 'Data Sources');
+    featureStoreGlobal.findHeading().should('have.text', 'Data sources');
     featureDataSourcesTable.findTable().should('be.visible');
   });
 });
@@ -342,7 +345,7 @@ describe('Feature Data Sources', () => {
 
   it('should display feature data sources page with correct title and content', () => {
     featureStoreGlobal.visitDataSources(fsProjectName);
-    featureStoreGlobal.findHeading().should('have.text', 'Data Sources');
+    featureStoreGlobal.findHeading().should('have.text', 'Data sources');
     featureStoreGlobal.findProjectSelector().should('exist');
     featureStoreGlobal.findProjectSelector().click();
     featureStoreGlobal.findProjectSelectorDropdown().should('contain.text', fsProjectName);
@@ -524,7 +527,7 @@ describe('Data Source Details Tab', () => {
 
     featureDataSourceDetails.findDetailsTab().should('be.visible');
     featureDataSourceDetails.findDetailsTabContent().within(() => {
-      featureDataSourceDetails.shouldHaveDataSourceConnector('BATCH_FILE');
+      featureDataSourceDetails.shouldHaveDataSourceConnector('File source');
       featureDataSourceDetails.shouldHaveOwner('risk-team@company.com');
       featureDataSourceDetails.findLastModified().should('be.visible');
       featureDataSourceDetails.findCreated().should('be.visible');

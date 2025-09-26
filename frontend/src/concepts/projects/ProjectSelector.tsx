@@ -1,12 +1,11 @@
 import * as React from 'react';
 import { Bullseye, Divider, Flex, FlexItem, MenuItem, Truncate } from '@patternfly/react-core';
-import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import SearchSelector from '#~/components/searchSelector/SearchSelector';
-import { ProjectKind } from '#~/k8sTypes';
 import ProjectNavigatorLink from '#~/concepts/projects/ProjectNavigatorLink';
 import { ProjectIconWithSize } from '#~/concepts/projects/ProjectIconWithSize';
-import { IconSize } from '#~/types';
+import { IconSize, Namespace } from '#~/types';
 
 type ProjectSelectorProps = {
   onSelection: (projectName: string) => void;
@@ -14,12 +13,12 @@ type ProjectSelectorProps = {
   invalidDropdownPlaceholder?: string;
   selectAllProjects?: boolean;
   primary?: boolean;
-  filterLabel?: string;
   showTitle?: boolean;
   selectorLabel?: string;
   isFullWidth?: boolean;
   placeholder?: string;
   isLoading?: boolean;
+  namespacesOverride?: Namespace[];
 };
 
 const ProjectSelector: React.FC<ProjectSelectorProps> = ({
@@ -28,33 +27,36 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   invalidDropdownPlaceholder,
   selectAllProjects,
   primary,
-  filterLabel,
   showTitle = false,
   selectorLabel = 'Project',
   isFullWidth = false,
   placeholder = undefined,
   isLoading = false,
+  namespacesOverride,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
-  const selection = projects.find(byName(namespace));
+  const namespaces =
+    namespacesOverride ??
+    projects.map((project) => ({
+      name: project.metadata.name,
+      displayName: getDisplayNameFromK8sResource(project),
+    }));
+  const selection = namespaces.find((n) => n.name === namespace);
   const [searchText, setSearchText] = React.useState('');
   const bySearchText = React.useCallback(
-    (project: ProjectKind) =>
-      !searchText ||
-      getDisplayNameFromK8sResource(project).toLowerCase().includes(searchText.toLowerCase()),
+    (n: Namespace) =>
+      !searchText || n.displayName?.toLowerCase().includes(searchText.toLowerCase()),
     [searchText],
   );
 
   const selectionDisplayName = selection
-    ? getDisplayNameFromK8sResource(selection)
+    ? selection.displayName
     : invalidDropdownPlaceholder ?? placeholder ?? namespace;
 
-  const filteredProjects = filterLabel
-    ? projects.filter((project) => project.metadata.labels?.[filterLabel] !== undefined)
-    : projects;
-  const visibleProjects = filteredProjects.filter(bySearchText);
+  const visibleNamespaces = namespaces.filter(bySearchText);
 
-  const toggleLabel = projects.length === 0 ? 'No projects' : selectionDisplayName;
+  const toggleLabel = namespaces.length === 0 ? 'No projects' : selectionDisplayName;
+
   const selector = (
     <SearchSelector
       dataTestId="project-selector"
@@ -85,19 +87,17 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
             <Divider component="li" />
           </>
         )}
-        {visibleProjects.length === 0 && <MenuItem isDisabled>No matching results</MenuItem>}
-        {visibleProjects.map((project) => (
+        {visibleNamespaces.length === 0 && <MenuItem isDisabled>No matching results</MenuItem>}
+        {visibleNamespaces.map((n) => (
           <MenuItem
-            key={project.metadata.name}
-            isSelected={project.metadata.name === selection?.metadata.name}
+            key={n.name}
+            isSelected={n.name === selection?.name}
             onClick={() => {
               setSearchText('');
-              onSelection(project.metadata.name);
+              onSelection(n.name);
             }}
           >
-            <Truncate content={getDisplayNameFromK8sResource(project)}>
-              {getDisplayNameFromK8sResource(project)}
-            </Truncate>
+            <Truncate content={n.displayName ?? n.name}>{n.displayName ?? n.name}</Truncate>
           </MenuItem>
         ))}
       </>
@@ -118,7 +118,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
           </FlexItem>
           <FlexItem flex={{ default: 'flex_1' }}>
             {selector}
-            <ProjectNavigatorLink project={selection} />
+            <ProjectNavigatorLink namespace={selection} />
           </FlexItem>
         </Flex>
       </Flex>

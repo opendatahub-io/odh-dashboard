@@ -21,6 +21,7 @@ const (
 	NamespacesPath                    = ApiPathPrefix + "/namespaces"
 	LlamaStackDistributionStatusPath  = ApiPathPrefix + "/llamastack-distribution/status"
 	LlamaStackDistributionInstallPath = ApiPathPrefix + "/llamastack-distribution/install"
+	LlamaStackDistributionDeletePath  = ApiPathPrefix + "/llamastack-distribution/delete"
 	UserPath                          = ApiPathPrefix + "/user"
 
 	// MCP (Model Context Protocol) endpoint paths

@@ -232,6 +232,9 @@ const DataSourceDetailsTabs: React.FC<DataSourceDetailsTabsProps> = ({ dataSourc
             isWidthLimited
             style={{ maxWidth: '75%' }}
           >
+            <Title headingLevel="h3" data-testid="feature-schema-tab-title">
+              Schema
+            </Title>
             <SchemaTabContent dataSource={dataSource} />
           </PageSection>
         </Tab>

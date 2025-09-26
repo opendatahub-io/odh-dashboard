@@ -8,10 +8,11 @@ import { featureStoreRoute } from '../../routes';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import useFeatureStoreDataSources from '../../apiHooks/useFeatureStoreDataSources';
 import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
+import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
 
-const title = 'Data Sources';
+const title = 'Data sources';
 const description =
-  'Select a workspace to view and manage its data sources. Data sources provide the raw data that feeds into your feature store.';
+  'Select a feature store repository to view and manage its data sources. Data sources provide the raw data that feeds into your feature store.';
 
 const DataSources: React.FC = () => {
   const { currentProject } = useFeatureStoreProject();
@@ -38,7 +39,18 @@ const DataSources: React.FC = () => {
     <ApplicationsPage
       empty={dataSources.dataSources.length === 0}
       emptyStatePage={emptyState}
-      title={<FeatureStorePageTitle title={title} />}
+      title={
+        <FeatureStorePageTitle
+          title={
+            <FeatureStoreObjectIcon
+              objectType="data_source"
+              title={title}
+              showBackground
+              useTypedColors
+            />
+          }
+        />
+      }
       description={description}
       loadError={dataSourcesLoadError}
       loaded={dataSourcesLoaded}

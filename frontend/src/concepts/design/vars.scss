@@ -110,6 +110,28 @@
   --ai-group--SelectedColor: var(--ai-set-up--SelectedColor);
   --ai-group--Color: var(--ai-set-up--BorderColor);
   --ai-group--IconColor: var(--ai-set-up--IconColor);
+
+  /* Feature Store specific colors */
+  --ai-fs-entity--BackgroundColor: var(--pf-t--color--gray--10);
+  --ai-fs-entity--IconColor: var(--pf-t--global--text--color--regular);
+
+  --ai-fs-data-source--BackgroundColor: var(--pf-t--color--blue--10);
+  --ai-fs-data-source--IconColor: var(--pf-t--global--text--color--regular);
+
+  --ai-fs-data-set--BackgroundColor: var(--pf-t--color--teal--10);
+  --ai-fs-data-set--IconColor: var(--pf-t--global--text--color--regular);
+
+  --ai-fs-feature--BackgroundColor: var(--pf-t--color--orange--10);
+  --ai-fs-feature--IconColor: var(--pf-t--global--text--color--regular);
+
+  --ai-fs-feature-view--BackgroundColor: var(--pf-t--color--purple--10);
+  --ai-fs-feature-view--IconColor: var(--pf-t--global--text--color--regular);
+
+  --ai-fs-feature-service--BackgroundColor: var(--pf-t--color--green--10);
+  --ai-fs-feature-service--IconColor: var(--pf-t--global--text--color--regular);
+
+  --ai-fs-feature-store--BackgroundColor: var(--pf-t--color--gray--10);
+  --ai-fs-feature-store--IconColor: var(--pf-t--global--text--color--regular);
 }
 :root:where(.pf-v6-theme-dark) {
   --ai-set-up--BackgroundColor: var(--pf-t--color--orange--50);
@@ -129,4 +151,32 @@
 
   --ai-general--BackgroundColor: var(--pf-t--color--gray--50);
   --ai-general--IconColor: var(--pf-t--color--white);
+
+  /* Feature Store dark theme colors */
+  --ai-fs-entity--BackgroundColor: var(--pf-t--color--gray--50);
+  --ai-fs-entity--IconColor: var(--pf-t--color--white);
+
+  --ai-fs-data-source--BackgroundColor: var(--pf-t--color--blue--40);
+  --ai-fs-data-source--IconColor: var(--pf-t--color--white);
+
+  --ai-fs-data-set--BackgroundColor: var(--pf-t--color--teal--50);
+  --ai-fs-data-set--IconColor: var(--pf-t--color--white);
+
+  --ai-fs-feature--BackgroundColor: var(--pf-t--color--orange--50);
+  --ai-fs-feature--IconColor: var(--pf-t--color--white);
+
+  --ai-fs-feature-view--BackgroundColor: var(--pf-t--color--purple--40);
+  --ai-fs-feature-view--IconColor: var(--pf-t--color--white);
+
+  --ai-fs-feature-service--BackgroundColor: var(--pf-t--color--green--50);
+  --ai-fs-feature-service--IconColor: var(--pf-t--color--white);
+
+  --ai-fs-feature-store--BackgroundColor: var(--pf-t--color--gray--50);
+  --ai-fs-feature-store--IconColor: var(--pf-t--color--white);
+}
+
+#tabContent-Lineage .pf-topology-pipelines__status-icon-background.pf-m-idle.pf-m-selected,
+#feature-view-lineage-tab .pf-topology-pipelines__status-icon-background.pf-m-idle.pf-m-selected {
+  fill: var(--pf-t--global--color--brand--default) !important;
+  stroke: var(--pf-t--global--border--color--default) !important;
 }

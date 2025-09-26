@@ -1,5 +1,9 @@
 import { Content, PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import * as React from 'react';
+import {
+  LineageCenterProvider,
+  useLineageCenter,
+} from '@odh-dashboard/internal/components/lineage/context/LineageCenterContext';
 import FeatureViewLineageTab from './FeatureViewLineageTab';
 import FeatureViewDetailsView from './FeatureViewDetailsTab';
 import FeatureViewMaterialization from './FeatureViewMaterialization';
@@ -22,8 +26,16 @@ const getTabTitleWithTooltip = (title: string, tooltip: string) => (
   </>
 );
 
-const FeatureViewTabs: React.FC<FeatureViewTabsProps> = ({ featureView }) => {
+const FeatureViewTabsInner: React.FC<FeatureViewTabsProps> = ({ featureView }) => {
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(FeatureViewTab.DETAILS);
+  const { triggerCenter } = useLineageCenter();
+
+  // Trigger centering when lineage tab becomes active
+  React.useEffect(() => {
+    if (activeTabKey === FeatureViewTab.LINEAGE) {
+      triggerCenter();
+    }
+  }, [activeTabKey, triggerCenter]);
 
   return (
     <Tabs
@@ -51,6 +63,7 @@ const FeatureViewTabs: React.FC<FeatureViewTabsProps> = ({ featureView }) => {
         </PageSection>
       </Tab>
       <Tab
+        id="feature-view-page-tabs"
         eventKey={FeatureViewTab.LINEAGE}
         title={<TabTitleText>{FeatureViewTab.LINEAGE}</TabTitleText>}
         aria-label="Lineage feature views tab"
@@ -99,27 +112,34 @@ const FeatureViewTabs: React.FC<FeatureViewTabsProps> = ({ featureView }) => {
           <FeatureViewMaterialization featureView={featureView} />
         </PageSection>
       </Tab>
-      {featureView.type === 'onDemandFeatureView' && (
-        <Tab
-          eventKey={FeatureViewTab.TRANSFORMATIONS}
-          title={getTabTitleWithTooltip(
-            FeatureViewTab.TRANSFORMATIONS,
-            `A transformation converts raw data from the source into feature values, such as by calculating aggregates or deriving timestamps.
+
+      <Tab
+        eventKey={FeatureViewTab.TRANSFORMATIONS}
+        title={getTabTitleWithTooltip(
+          FeatureViewTab.TRANSFORMATIONS,
+          `A transformation converts raw data from the source into feature values, such as by calculating aggregates or deriving timestamps.
             You can define these transformations using expressions, code, or SQL, depending on the feature store backend.`,
-          )}
-          aria-label="Feature view transformations tab"
-          data-testid="feature-view-transformations-tab"
+        )}
+        aria-label="Feature view transformations tab"
+        data-testid="feature-view-transformations-tab"
+      >
+        <PageSection
+          hasBodyWrapper={false}
+          isFilled
+          data-testid="feature-view-transformations-tab-content"
         >
-          <PageSection
-            hasBodyWrapper={false}
-            isFilled
-            data-testid="feature-view-transformations-tab-content"
-          >
-            <FeatureViewTransformation featureView={featureView} />
-          </PageSection>
-        </Tab>
-      )}
+          <FeatureViewTransformation featureView={featureView} />
+        </PageSection>
+      </Tab>
     </Tabs>
+  );
+};
+
+const FeatureViewTabs: React.FC<FeatureViewTabsProps> = (props) => {
+  return (
+    <LineageCenterProvider>
+      <FeatureViewTabsInner {...props} />
+    </LineageCenterProvider>
   );
 };
 

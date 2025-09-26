@@ -10,23 +10,33 @@ import {
   Sidebar,
   SidebarContent,
   SidebarPanel,
-  Label,
+  Spinner,
+  Alert,
 } from '@patternfly/react-core';
-import { TagIcon, OutlinedClockIcon } from '@patternfly/react-icons';
-import { ModelCatalogItem } from '~/app/modelCatalogTypes';
-import {
-  extractVersionTag,
-  filterNonVersionTags,
-} from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import { OutlinedClockIcon } from '@patternfly/react-icons';
+import { InlineTruncatedClipboardCopy } from 'mod-arch-shared';
+import text from '@patternfly/react-styles/css/utilities/Text/text';
+import { CatalogModel, CatalogModelDetailsParams } from '~/app/modelCatalogTypes';
+import { useCatalogModelArtifacts } from '~/app/hooks/modelCatalog/useCatalogModelArtifacts';
+import { getLabels } from '~/app/pages/modelRegistry/screens/utils';
 import ModelCatalogLabels from '~/app/pages/modelCatalog/components/ModelCatalogLabels';
+import ExternalLink from '~/app/shared/components/ExternalLink';
+import MarkdownComponent from '~/app/shared/markdown/MarkdownComponent';
+import ModelTimestamp from '~/app/pages/modelRegistry/screens/components/ModelTimestamp';
 
 type ModelDetailsViewProps = {
-  model: ModelCatalogItem;
+  model: CatalogModel;
+  decodedParams: CatalogModelDetailsParams;
 };
 
-const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({ model }) => {
-  const versionTag = extractVersionTag(model.tags);
-  const nonVersionTags = filterNonVersionTags(model.tags) ?? [];
+const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({ model, decodedParams }) => {
+  const [artifacts, artifactLoaded, artifactsLoadError] = useCatalogModelArtifacts(
+    decodedParams.sourceId || '',
+    encodeURIComponent(`${decodedParams.modelName}`),
+  );
+
+  // Extract all labels from customProperties
+  const allLabels = model.customProperties ? getLabels(model.customProperties) : [];
 
   return (
     <PageSection hasBodyWrapper={false} isFilled>
@@ -34,35 +44,37 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({ model }) => {
         <SidebarContent>
           <Content>
             <h2>Description</h2>
-            <p data-testid="model-long-description">{model.longDescription || 'No description'}</p>
+            <p data-testid="model-long-description">{model.description || 'No description'}</p>
             <h2>Model card</h2>
-            <p className="pf-v5-u-color-200">No model card</p>
+            {!model.readme && <p className={text.textColorDisabled}>No model card</p>}
           </Content>
+          {model.readme && (
+            <MarkdownComponent
+              data={model.readme}
+              dataTestId="model-card-markdown"
+              maxHeading={3}
+            />
+          )}
         </SidebarContent>
         <SidebarPanel>
           <DescriptionList isFillColumns>
             <DescriptionListGroup>
-              <DescriptionListTerm>Version</DescriptionListTerm>
-              <DescriptionListDescription>
-                <Label variant="outline" icon={<TagIcon />}>
-                  {versionTag || 'N/A'}
-                </Label>
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-            <DescriptionListGroup>
               <DescriptionListTerm>Labels</DescriptionListTerm>
               <DescriptionListDescription>
                 <ModelCatalogLabels
-                  tags={nonVersionTags}
-                  framework={model.framework}
-                  task={model.task}
+                  tasks={model.tasks ?? []}
                   license={model.license}
+                  labels={allLabels}
                 />
               </DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>
               <DescriptionListTerm>License</DescriptionListTerm>
-              <DescriptionListDescription>{model.license || 'N/A'}</DescriptionListDescription>
+              <ExternalLink
+                text="Agreement"
+                to={model.licenseLink || ''}
+                testId="model-license-link"
+              />
             </DescriptionListGroup>
             <DescriptionListGroup>
               <DescriptionListTerm>Provider</DescriptionListTerm>
@@ -70,7 +82,20 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({ model }) => {
             </DescriptionListGroup>
             <DescriptionListGroup>
               <DescriptionListTerm>Model location</DescriptionListTerm>
-              <DescriptionListDescription>{model.url || 'N/A'}</DescriptionListDescription>
+              {artifactsLoadError ? (
+                <Alert variant="danger" isInline title={artifactsLoadError.name}>
+                  {artifactsLoadError.message}
+                </Alert>
+              ) : !artifactLoaded ? (
+                <Spinner size="sm" />
+              ) : artifacts.items.length > 0 ? (
+                <InlineTruncatedClipboardCopy
+                  testId="source-image-location"
+                  textToCopy={artifacts.items.map((artifact) => artifact.uri)[0] || ''}
+                />
+              ) : (
+                <p className={text.textColorDisabled}>No artifacts available</p>
+              )}
             </DescriptionListGroup>
             <DescriptionListGroup>
               <DescriptionListTerm>Last modified</DescriptionListTerm>
@@ -78,7 +103,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({ model }) => {
                 <Icon isInline style={{ marginRight: 4 }}>
                   <OutlinedClockIcon />
                 </Icon>
-                {model.updatedAt || 'N/A'}
+                <ModelTimestamp timeSinceEpoch={model.lastUpdateTimeSinceEpoch} />
               </DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>
@@ -87,7 +112,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({ model }) => {
                 <Icon isInline style={{ marginRight: 4 }}>
                   <OutlinedClockIcon />
                 </Icon>
-                {model.createdAt || 'N/A'}
+                <ModelTimestamp timeSinceEpoch={model.createTimeSinceEpoch} />
               </DescriptionListDescription>
             </DescriptionListGroup>
           </DescriptionList>
