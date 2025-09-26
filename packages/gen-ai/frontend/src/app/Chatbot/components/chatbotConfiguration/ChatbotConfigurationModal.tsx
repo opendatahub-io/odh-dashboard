@@ -83,8 +83,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
         })
         .catch((e) => {
           setError(e);
-        })
-        .finally(() => {
           setConfiguringPlayground(false);
         });
     };
@@ -95,8 +93,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
         .then(install)
         .catch((e) => {
           setError(e);
-        })
-        .finally(() => {
           setConfiguringPlayground(false);
         });
     } else {
