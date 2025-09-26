@@ -734,5 +734,14 @@ describe('Workbench image settings', () => {
         '/settings/environment-setup/workbench-images/hardware-profile/create',
       );
     });
+
+    it('accelerator profile create', () => {
+      cy.visitWithLogin('/workbenchImages/acceleratorProfile/create');
+      cy.findByTestId('app-page-title').contains('Create accelerator profile');
+      cy.url().should(
+        'include',
+        '/settings/environment-setup/workbench-images/accelerator-profile/create',
+      );
+    });
   });
 });
