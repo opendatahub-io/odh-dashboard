@@ -29,13 +29,13 @@ const DeploymentsColumn: React.FC<{ registeredModel: RegisteredModel }> = ({ reg
     return <span>-</span>;
   }
   const handleDeploymentsClick = () => {
-    navigate(`/modelServing?registeredModelId=${registeredModel.id}`);
+    navigate(`/ai-hub/deployments?registeredModelId=${registeredModel.id}`);
   };
 
   return (
     <div>
       <Link
-        to={`/modelServing?registeredModelId=${registeredModel.id}`}
+        to={`/ai-hub/deployments?registeredModelId=${registeredModel.id}`}
         onClick={handleDeploymentsClick}
         style={{ textDecoration: 'none' }}
       >

@@ -22,14 +22,14 @@ export const useDistributedWorkloadsTabs = (): DistributedWorkloadsTabConfig[] =
     {
       id: DistributedWorkloadsTabId.WORKLOAD_STATUS,
       title: 'Distributed workload status',
-      path: 'workloadStatus',
+      path: 'workload-status',
       isAvailable: dwAreaIsAvailable,
       ContentComponent: GlobalDistributedWorkloadsWorkloadStatusTab,
     },
     {
       id: DistributedWorkloadsTabId.PROJECT_METRICS,
       title: 'Project metrics',
-      path: 'projectMetrics',
+      path: 'project-metrics',
       isAvailable: dwAreaIsAvailable,
       ContentComponent: GlobalDistributedWorkloadsProjectMetricsTab,
     },

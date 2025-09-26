@@ -32,6 +32,7 @@ import {
   RouteModel,
   SecretModel,
   ServiceAccountModel,
+  ServiceModel,
   ServingRuntimeModel,
   TemplateModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
@@ -45,6 +46,7 @@ import { NamespaceApplicationCase } from '#~/pages/projects/types';
 import { mockNimServingRuntimeTemplate } from '#~/__mocks__/mockNimResource';
 import { mockNimAccount } from '#~/__mocks__/mockNimAccount';
 import { mockOdhApplication } from '#~/__mocks__/mockOdhApplication';
+import { mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
 import type { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 
 type HandlersProps = {
@@ -341,6 +343,10 @@ const initIntercepts = ({
     },
   );
   cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
+
+  const modelRegistryServices = [mockModelRegistryService({ name: 'modelregistry-sample' })];
+  cy.interceptK8sList(ServiceModel, mockK8sResourceList(modelRegistryServices));
+  cy.interceptK8s(ServiceModel, mockModelRegistryService({ name: 'modelregistry-sample' }));
 
   cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(servingRuntimes));
   cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList(inferenceServices));
@@ -1055,7 +1061,7 @@ describe('Project Details', () => {
       projectDetails.findBackToRegistryButton().click();
       cy.url().should(
         'include',
-        '/modelRegistry/modelregistry-sample/registeredModels/1/versions/2',
+        '/ai-hub/registry/modelregistry-sample/registered-models/1/versions/2',
       );
     });
 
@@ -1076,7 +1082,7 @@ describe('Project Details', () => {
         .click();
       cy.url().should(
         'include',
-        '/modelRegistry/modelregistry-sample/registeredModels/1/versions/2',
+        '/ai-hub/registry/modelregistry-sample/registered-models/1/versions/2',
       );
     });
 
@@ -1097,7 +1103,7 @@ describe('Project Details', () => {
       projectDetails.findBackToRegistryButton().click();
       cy.url().should(
         'include',
-        '/modelRegistry/modelregistry-sample/registeredModels/1/versions/2',
+        '/ai-hub/registry/modelregistry-sample/registered-models/1/versions/2',
       );
     });
 
@@ -1115,10 +1121,7 @@ describe('Project Details', () => {
       );
       projectDetails.findSectionTab('overview').click();
       projectDetails.findBackToRegistryButton().click();
-      cy.url().should(
-        'include',
-        '/modelRegistry/modelregistry-sample/registeredModels/1/versions/2',
-      );
+      cy.url().should('include', '/registry/modelregistry-sample/registered-models/1/versions/2');
     });
 
     it('Navigate back after choosing NIM serving from overview tab after switching tabs', () => {
@@ -1137,10 +1140,7 @@ describe('Project Details', () => {
       );
       projectDetails.findSectionTab('overview').click();
       projectDetails.findBackToRegistryButton().click();
-      cy.url().should(
-        'include',
-        '/modelRegistry/modelregistry-sample/registeredModels/1/versions/2',
-      );
+      cy.url().should('include', '/registry/modelregistry-sample/registered-models/1/versions/2');
     });
   });
 

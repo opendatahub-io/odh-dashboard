@@ -122,4 +122,10 @@ describe('Explore Page', () => {
     cy.step('Verify warning message disappears for production key');
     warningValidationCard.findWarningAlert().should('not.exist');
   });
+
+  it('redirect from v2 to v3 route', () => {
+    cy.visitWithLogin('/explore');
+    cy.findByTestId('app-page-title').should('have.text', 'Explore');
+    cy.url().should('include', '/applications/explore');
+  });
 });

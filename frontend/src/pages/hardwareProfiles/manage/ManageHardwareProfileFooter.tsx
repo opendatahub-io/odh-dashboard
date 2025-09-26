@@ -38,7 +38,7 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
     setIsLoading(true);
     createHardwareProfile(name, spec, dashboardNamespace, useCases)
       .then(() => {
-        if (redirectPath !== '/hardwareProfiles') {
+        if (redirectPath !== '/settings/environment-setup/hardware-profiles') {
           notification.success(
             'Hardware profile has been created.',
             <Stack hasGutter>
@@ -46,7 +46,11 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
                 A new hardware profile <strong>{state.displayName}</strong> has been created.
               </StackItem>
               <StackItem>
-                <Button isInline variant="link" onClick={() => navigate(`/hardwareProfiles`)}>
+                <Button
+                  isInline
+                  variant="link"
+                  onClick={() => navigate(`/settings/environment-setup/hardware-profiles`)}
+                >
                   View profile details
                 </Button>
               </StackItem>

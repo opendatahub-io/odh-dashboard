@@ -238,4 +238,11 @@ describe('Administration Tab', () => {
 
     cy.wait('@stopNotebookServer');
   });
+
+  it('redirect from v2 to v3 route', () => {
+    initIntercepts({});
+    cy.visitWithLogin('/notebookController/spawner');
+    cy.findByTestId('app-page-title').should('have.text', 'Start a basic workbench');
+    cy.url().should('include', '/notebook-controller/spawner');
+  });
 });

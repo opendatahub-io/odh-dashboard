@@ -29,7 +29,7 @@ const CustomServingRuntimeHeaderLabels: React.FC = () => {
           <>
             You can change which model serving platforms are enabled in the{' '}
             <Button size="sm" isInline variant="link">
-              <Link to="/clusterSettings">Cluster settings</Link>
+              <Link to="/settings/cluster/general">Cluster settings</Link>
             </Button>
             .
           </>

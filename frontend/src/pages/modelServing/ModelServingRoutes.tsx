@@ -20,7 +20,7 @@ const ModelServingRoutes: React.FC = () => {
         path="/:namespace?/*"
         element={
           <GlobalModelServingCoreLoader
-            getInvalidRedirectPath={(namespace) => `/modelServing/${namespace}`}
+            getInvalidRedirectPath={(namespace) => `/ai-hub/deployments/${namespace}`}
           />
         }
       >

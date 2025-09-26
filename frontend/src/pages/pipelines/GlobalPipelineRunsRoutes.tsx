@@ -26,6 +26,8 @@ import {
 } from '#~/pages/pipelines/global/runs/GlobalPipelineCreateRunPage';
 import GlobalPipelineDuplicateRunPage from '#~/pages/pipelines/global/runs/GlobalPipelineDuplicateRunPage';
 import GlobalPipelineDuplicateRecurringRunPage from '#~/pages/pipelines/global/runs/GlobalPipelineDuplicateRecurringRunPage';
+import { buildV2RedirectRoutes } from '#~/utilities/v2Redirect';
+import { pipelineRunsV2RedirectMap } from './v2Redirects';
 
 const GlobalPipelineRunsRoutes: React.FC = () => (
   <ProjectsRoutes>
@@ -92,13 +94,14 @@ const GlobalPipelineRunsRoutes: React.FC = () => (
           />
         </Route>
         <Route
-          path="compareRuns"
+          path="compare-runs"
           element={<GlobalComparePipelineRunsLoader BreadcrumbDetailsComponent={CompareRunsPage} />}
         />
         <Route
-          path="compareRuns/add"
+          path="compare-runs/add"
           element={<GlobalManagePipelineRunsLoader BreadcrumbDetailsComponent={ManageRunsPage} />}
         />
+        {buildV2RedirectRoutes(pipelineRunsV2RedirectMap)}
         <Route path="*" element={<Navigate to="." />} />
       </Route>
       <Route path="*" element={<Navigate to="." />} />

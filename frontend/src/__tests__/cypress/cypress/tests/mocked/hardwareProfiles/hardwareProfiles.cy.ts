@@ -534,6 +534,40 @@ describe('Hardware Profile', () => {
       row.findExpandableSection().contains('high').should('be.visible');
     });
   });
+
+  describe('redirect from v2 to v3 route', () => {
+    beforeEach(() => {
+      cy.interceptK8s(
+        'GET',
+        { model: HardwareProfileModel, ns: 'opendatahub', name: 'test-hp' },
+        mockHardwareProfile({ name: 'test-hp' }),
+      );
+    });
+
+    it('root', () => {
+      cy.visitWithLogin('/hardwareProfiles');
+      cy.findByTestId('app-page-title').contains('Hardware profiles');
+      cy.url().should('include', '/settings/environment-setup/hardware-profiles');
+    });
+
+    it('create', () => {
+      cy.visitWithLogin('/hardwareProfiles/create');
+      cy.findByTestId('app-page-title').contains('Create hardware profile');
+      cy.url().should('include', '/settings/environment-setup/hardware-profiles/create');
+    });
+
+    it('edit', () => {
+      cy.visitWithLogin('/hardwareProfiles/edit/test-hp');
+      cy.findByTestId('app-page-title').contains('Edit');
+      cy.url().should('include', '/settings/environment-setup/hardware-profiles/edit/test-hp');
+    });
+
+    it('duplicate', () => {
+      cy.visitWithLogin('/hardwareProfiles/duplicate/test-hp');
+      cy.findByTestId('app-page-title').contains('Duplicate');
+      cy.url().should('include', '/settings/environment-setup/hardware-profiles/duplicate/test-hp');
+    });
+  });
 });
 
 describe('hardware profiles - empty state', () => {
@@ -556,7 +590,7 @@ describe('hardware profiles - empty state', () => {
     hardwareProfile.findNoProfilesAvailableText().should('contain', 'No hardware profiles');
     hardwareProfile.findHardwareProfilesCreateButton().and('contain', 'Add new hardware profile');
     hardwareProfile.findHardwareProfilesCreateButton().click();
-    cy.url().should('include', '/hardwareProfiles/create');
+    cy.url().should('include', '/hardware-profiles/create');
   });
 
   it('should hide "Add new hardware profile" button when user does not have create permission', () => {

@@ -42,7 +42,7 @@ const ManageHardwareProfileWrapper: React.FC<ManageHardwareProfileWrapperProps> 
           <Button
             data-testid="view-all-hardware-profiles"
             variant="primary"
-            onClick={() => navigate('/hardwareProfiles')}
+            onClick={() => navigate('/settings/environment-setup/hardware-profiles')}
           >
             View all hardware profiles
           </Button>

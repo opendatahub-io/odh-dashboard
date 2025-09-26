@@ -43,7 +43,7 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
             const redirectProject =
               preferredProject ?? projects.length > 0 ? projects[0] : undefined;
             if (redirectProject) {
-              navigate(`/modelServing/${redirectProject.metadata.name}`);
+              navigate(`/ai-hub/deployments/${redirectProject.metadata.name}`);
             }
           }}
         />
@@ -59,7 +59,9 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
       description="Manage and view the health and performance of your deployed models."
       title={<TitleWithIcon title="Deployments" objectType={ProjectObjectType.deployedModels} />}
       headerContent={
-        <ModelServingProjectSelection getRedirectPath={(ns: string) => `/modelServing/${ns}`} />
+        <ModelServingProjectSelection
+          getRedirectPath={(ns: string) => `/ai-hub/deployments/${ns}`}
+        />
       }
       provideChildrenPadding
     >

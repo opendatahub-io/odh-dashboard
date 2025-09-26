@@ -1,6 +1,6 @@
 import { FeatureStoreObject } from './const';
 
-export const featureStoreRootRoute = (): string => `/featureStore`;
+export const featureStoreRootRoute = (): string => `/develop-train/feature-store`;
 
 export const featureStoreRoute = (
   featureStoreObject: FeatureStoreObject,
@@ -11,7 +11,7 @@ export const featureStoreRoute = (
   }`;
 
 export const featureViewRoute = (featureViewName: string, featureStoreProject: string): string =>
-  `${featureStoreRootRoute()}/featureViews/${featureStoreProject}/${featureViewName}`;
+  `${featureStoreRootRoute()}/feature-views/${featureStoreProject}/${featureViewName}`;
 
 export const featureEntityRoute = (entityName: string, featureStoreProject: string): string =>
   `${featureStoreRootRoute()}/entities/${featureStoreProject}/${entityName}`;
@@ -20,7 +20,7 @@ export const featureServiceRoute = (
   featureServiceName: string,
   featureStoreProject: string,
 ): string =>
-  `${featureStoreRootRoute()}/featureServices/${featureStoreProject}/${featureServiceName}`;
+  `${featureStoreRootRoute()}/feature-services/${featureStoreProject}/${featureServiceName}`;
 
 export const featureRoute = (featureName: string, featureStoreProject: string): string =>
   `${featureStoreRootRoute()}/features/${featureStoreProject}/${featureName}`;
@@ -28,7 +28,7 @@ export const featureRoute = (featureName: string, featureStoreProject: string): 
 export const featureDataSourceRoute = (
   dataSourceName: string,
   featureStoreProject: string,
-): string => `${featureStoreRootRoute()}/dataSources/${featureStoreProject}/${dataSourceName}`;
+): string => `${featureStoreRootRoute()}/data-sources/${featureStoreProject}/${dataSourceName}`;
 
 export const featureDataSetRoute = (dataSetName: string, featureStoreProject: string): string =>
-  `${featureStoreRootRoute()}/dataSets/${featureStoreProject}/${dataSetName}`;
+  `${featureStoreRootRoute()}/datasets/${featureStoreProject}/${dataSetName}`;

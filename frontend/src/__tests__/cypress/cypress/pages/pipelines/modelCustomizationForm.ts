@@ -15,7 +15,7 @@ class ModelCustomizationFormGlobal {
 
     cy.visit('/', {
       onBeforeLoad(win) {
-        win.history.pushState(state, '', `/modelCustomization/fine-tune/${projectName}`);
+        win.history.pushState(state, '', `/ai-hub/model-customization/fine-tune/${projectName}`);
       },
     });
 
@@ -31,7 +31,7 @@ class ModelCustomizationFormGlobal {
   }
 
   invalidVisit() {
-    cy.visitWithLogin('/modelCustomization/fine-tune');
+    cy.visitWithLogin('/ai-hub/model-customization/fine-tune');
     this.emptyWait();
   }
 

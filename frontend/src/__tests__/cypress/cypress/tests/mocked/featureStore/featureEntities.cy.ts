@@ -271,7 +271,7 @@ describe('Feature Entities for all projects', () => {
     cy.findByRole('dialog').should('be.visible');
     cy.findByText('user_features').should('be.visible');
     cy.findByRole('dialog').findByText('user_features').click();
-    cy.url().should('include', '/featureStore/featureViews/credit_scoring_local/user_features');
+    cy.url().should('include', '/feature-store/feature-views/credit_scoring_local/user_features');
   });
 
   it('should navigate to entity details when clicking entity name in all projects view', () => {
@@ -280,7 +280,7 @@ describe('Feature Entities for all projects', () => {
 
     featureEntitiesTable.findTable().should('be.visible');
     featureEntitiesTable.findRow('user_id').findEntityLink().click();
-    cy.url().should('include', '/featureStore/entities/credit_scoring_local');
+    cy.url().should('include', '/feature-store/entities/credit_scoring_local');
     featureEntityDetails
       .shouldHaveApplicationsPageDescription('Unique identifier for each user')
       .shouldHaveValueType('STRING')
@@ -296,13 +296,13 @@ describe('Feature Entities for all projects', () => {
     featureStoreGlobal.visitEntities();
     featureEntitiesTable.findTable().should('be.visible');
     featureEntitiesTable.findRow('user_id').findEntityLink().click();
-    cy.url().should('include', '/featureStore/entities/credit_scoring_local');
+    cy.url().should('include', '/feature-store/entities/credit_scoring_local');
 
     featureEntityDetails.findBreadcrumbLink().should('be.visible');
     featureEntityDetails.findBreadcrumbItem().should('contain.text', 'user_id');
     featureEntityDetails.findBreadcrumbLink().click();
 
-    cy.url().should('include', '/featureStore/entities');
+    cy.url().should('include', '/feature-store/entities');
     featureStoreGlobal.findHeading().should('have.text', 'Entities');
     featureEntitiesTable.findTable().should('be.visible');
   });
@@ -373,8 +373,8 @@ describe('Feature Entities', () => {
     cy.findByRole('dialog').should('be.visible');
     cy.findByText('user_features').should('be.visible');
     cy.findByRole('dialog').findByText('user_features').click();
-    cy.url().should('include', '/featureStore/featureViews/credit_scoring_local/user_features');
-    cy.url().should('include', '/featureStore/featureViews/credit_scoring_local/user_features');
+    cy.url().should('include', '/feature-store/feature-views/credit_scoring_local/user_features');
+    cy.url().should('include', '/feature-store/feature-views/credit_scoring_local/user_features');
   });
 
   it('should handle entity not found with proper error message', () => {
@@ -388,7 +388,7 @@ describe('Feature Entities', () => {
     ).as('getEntityNotFound');
 
     cy.visit(
-      `/featureStore/entities/${fsProjectName}/nonexistent?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/entities/${fsProjectName}/nonexistent?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     cy.findByText(`Entity nonexistent does not exist in project ${fsProjectName}`).should(
       'be.visible',
@@ -432,7 +432,7 @@ describe('Entity Feature Views Tab', () => {
 
   it('should display feature views for the entity', () => {
     cy.visit(
-      `/featureStore/entities/${fsProjectName}/user_id?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/entities/${fsProjectName}/user_id?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     cy.wait('@getEntityDetails');
 
@@ -459,7 +459,7 @@ describe('Entity Feature Views Tab', () => {
     ).as('getEmptyEntityFeatureViews');
 
     cy.visit(
-      `/featureStore/entities/${fsProjectName}/user_id?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/entities/${fsProjectName}/user_id?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     cy.wait('@getEntityDetails');
     featureEntityDetails.clickFeatureViewsTab();
@@ -472,7 +472,7 @@ describe('Entity Feature Views Tab', () => {
 
   it('should only call feature views API when tab is clicked', () => {
     cy.visit(
-      `/featureStore/entities/${fsProjectName}/user_id?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/entities/${fsProjectName}/user_id?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     cy.wait('@getEntityDetails');
 
@@ -487,7 +487,7 @@ describe('Entity Feature Views Tab', () => {
 
   it('should navigate to feature view details when clicking on feature view name', () => {
     cy.visit(
-      `/featureStore/entities/${fsProjectName}/user_id?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/entities/${fsProjectName}/user_id?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     cy.wait('@getEntityDetails');
     featureEntityDetails.clickFeatureViewsTab();
@@ -495,7 +495,7 @@ describe('Entity Feature Views Tab', () => {
     featureEntityDetails.findFeatureViewsTabContent().within(() => {
       featureViewsTable.findRow('zipcode_features').clickFeatureViewLink();
     });
-    cy.url().should('include', `/featureStore/featureViews/${fsProjectName}/zipcode_features`);
+    cy.url().should('include', `/feature-store/feature-views/${fsProjectName}/zipcode_features`);
   });
 });
 
@@ -556,7 +556,7 @@ describe('Global Search in Feature Entities', () => {
     featureStoreGlobal.findGlobalSearchResultsCount().should('be.visible');
     featureStoreGlobal.findGlobalSearchItem('entity', 'user_id').click();
 
-    cy.url().should('include', `/featureStore/entities/${fsProjectName}/user_id`);
+    cy.url().should('include', `/feature-store/entities/${fsProjectName}/user_id`);
   });
 
   it('should display no results message for empty search', () => {

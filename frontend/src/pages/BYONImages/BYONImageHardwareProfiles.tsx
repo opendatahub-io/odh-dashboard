@@ -70,9 +70,11 @@ const BYONImageHardwareProfiles: React.FC<BYONImageHardwareProfilesProps> = ({
               variant="outline"
               render={({ className, content }) => (
                 <Link
-                  to={`/workbenchImages/hardwareProfile/create?${new URLSearchParams({
-                    identifiers: image.recommendedAcceleratorIdentifiers.join(','),
-                  }).toString()}`}
+                  to={`/settings/environment-setup/workbench-images/hardware-profile/create?${new URLSearchParams(
+                    {
+                      identifiers: image.recommendedAcceleratorIdentifiers.join(','),
+                    },
+                  ).toString()}`}
                   className={className}
                 >
                   {content}

@@ -1,4 +1,5 @@
 export const modelRegistryRoute = (preferredModelRegistry = ''): string =>
-  `/modelRegistry/${preferredModelRegistry}`;
+  `/ai-hub/registry/${preferredModelRegistry}`;
 
-export const modelRegistrySettingsRoute = (): string => '/modelRegistrySettings';
+export const modelRegistrySettingsRoute = (): string =>
+  '/settings/model-resources-operations/model-registry';

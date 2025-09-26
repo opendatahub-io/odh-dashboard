@@ -3,7 +3,7 @@ import { Contextual } from '#~/__tests__/cypress/cypress/pages/components/Contex
 
 class ArtifactsGlobal {
   visit(projectName: string) {
-    cy.visitWithLogin(`/artifacts/${projectName}`);
+    cy.visitWithLogin(`/develop-train/pipelines/artifacts/${projectName}`);
     this.wait();
   }
 
@@ -93,7 +93,7 @@ class ArtifactsTableRow extends Contextual<HTMLTableRowElement> {
 
 class ArtifactDetails {
   visit(projectName: string, artifactName: string, artifactId: string) {
-    cy.visitWithLogin(`/artifacts/${projectName}/${artifactId}`);
+    cy.visitWithLogin(`/develop-train/pipelines/artifacts/${projectName}/${artifactId}`);
     this.wait(artifactName);
   }
 

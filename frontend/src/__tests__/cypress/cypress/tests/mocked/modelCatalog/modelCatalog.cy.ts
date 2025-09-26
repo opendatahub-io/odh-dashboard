@@ -97,9 +97,9 @@ describe.skip('Model Catalog core', () => {
     modelCatalog.landingPage();
     appChrome.findNavItem({ name: 'Catalog', rootSection: 'AI hub' }).should('not.exist');
 
-    cy.visitWithLogin(`/modelCatalog`);
+    cy.visitWithLogin(`/ai-hub/catalog`);
     modelCatalog.findModelCatalogNotFoundState().should('exist');
-    cy.visitWithLogin(`/modelCatalog/tempDetails`);
+    cy.visitWithLogin(`/ai-hub/catalog/tempDetails`);
     modelCatalog.findModelCatalogNotFoundState().should('exist');
   });
 
@@ -131,7 +131,7 @@ describe.skip('Model Catalog core', () => {
     modelCatalog.findModelCatalogModelDetailLink('granite-8b-code-instruct').click();
     cy.location('pathname').should(
       'equal',
-      '/modelCatalog/Red%20Hat/rhelai1/granite-8b-code-instruct/1%252E3%252E0',
+      '/ai-hub/catalog/Red%20Hat/rhelai1/granite-8b-code-instruct/1%252E3%252E0',
     );
   });
 });
@@ -393,5 +393,31 @@ describe.skip('Model catalog sources from multiple configmaps', () => {
 
     cy.contains('Unable to load model catalog').should('not.exist');
     modelCatalog.findModelCatalogEmptyState().should('not.exist');
+  });
+});
+
+// TODO: Fix these tests
+describe.skip('redirect from v2 to v3 route', () => {
+  const modelPath = 'Red%20Hat/rhelai1/granite-8b-code-instruct/1%252E3%252E0';
+  beforeEach(() => {
+    initIntercepts({ disableModelCatalogFeature: false });
+  });
+
+  it('root', () => {
+    cy.visitWithLogin('/model-catalog');
+    cy.findByTestId('app-page-title').contains('Catalog');
+    cy.url().should('include', '/ai-hub/catalog');
+  });
+
+  it('details', () => {
+    cy.visitWithLogin(`/model-catalog/${modelPath}`);
+    cy.findByTestId('app-page-title').contains('granite-8b-code-instruct');
+    cy.url().should('include', `/ai-hub/catalog/${modelPath}`);
+  });
+
+  it('register', () => {
+    cy.visitWithLogin(`/model-catalog/${modelPath}/register`);
+    cy.findByTestId('app-page-title').contains('Register granite-8b-code-instruct');
+    cy.url().should('include', `/ai-hub/catalog/${modelPath}/register`);
   });
 });

@@ -54,7 +54,7 @@ describe('Model Customization Landing Page', () => {
           name: 'go-to-pipelines',
         })
         .click();
-      cy.url().should('include', '/pipelines');
+      cy.url().should('include', '/develop-train/pipelines/definitions');
     });
   });
 
@@ -79,7 +79,7 @@ describe('Model Customization Landing Page', () => {
           name: 'go-to-pipeline-runs',
         })
         .click();
-      cy.url().should('include', '/pipelineRuns');
+      cy.url().should('include', '/develop-train/pipelines/runs');
     });
 
     it('should go to Model Registry when the button is clicked', () => {
@@ -93,7 +93,7 @@ describe('Model Customization Landing Page', () => {
           name: 'go-to-model-registry',
         })
         .click();
-      cy.url().should('include', '/modelRegistry');
+      cy.url().should('include', '/ai-hub/registry');
     });
   });
 

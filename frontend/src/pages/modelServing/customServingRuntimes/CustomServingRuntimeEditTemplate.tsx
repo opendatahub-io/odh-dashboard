@@ -37,7 +37,10 @@ const CustomServingRuntimeEditTemplate: React.FC = () => {
         >
           <EmptyStateBody>We were unable to find a serving runtime by this name</EmptyStateBody>
           <EmptyStateFooter>
-            <Button variant="primary" onClick={() => navigate(`/servingRuntimes`)}>
+            <Button
+              variant="primary"
+              onClick={() => navigate(`/settings/model-resources-operations/serving-runtimes`)}
+            >
               Return to the list
             </Button>
           </EmptyStateFooter>

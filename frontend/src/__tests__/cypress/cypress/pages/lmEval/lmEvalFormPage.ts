@@ -1,6 +1,6 @@
 class LMEvalFormPage {
   visit(namespace: string, skipA11y = false) {
-    cy.visitWithLogin(`/modelEvaluations/${namespace}/evaluate`);
+    cy.visitWithLogin(`/develop-train/evaluations/${namespace}/evaluate`);
     this.wait(skipA11y);
   }
 
@@ -15,7 +15,7 @@ class LMEvalFormPage {
 
   // Page verification methods
   shouldHaveCorrectUrl(namespace: string) {
-    cy.url().should('include', `/modelEvaluations/${namespace}/evaluate`);
+    cy.url().should('include', `/evaluations/${namespace}/evaluate`);
     return this;
   }
 
@@ -315,7 +315,7 @@ class LMEvalFormPage {
   }
 
   shouldNavigateToModelEvaluationsHome() {
-    cy.url().should('include', '/modelEvaluations');
+    cy.url().should('include', '/evaluations');
     cy.url().should('not.include', '/evaluate');
     return this;
   }

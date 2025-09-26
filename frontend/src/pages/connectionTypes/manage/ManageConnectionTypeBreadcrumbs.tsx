@@ -9,7 +9,7 @@ type Props = {
 const ManageConnectionTypeBreadcrumbs: React.FC<Props> = ({ name }) => (
   <Breadcrumb ouiaId="BasicBreadcrumb">
     <BreadcrumbItem>
-      <Link to="/connectionTypes">Connection types</Link>
+      <Link to="/settings/environment-setup/connection-types">Connection types</Link>
     </BreadcrumbItem>
     <BreadcrumbItem isActive>{name}</BreadcrumbItem>
   </Breadcrumb>

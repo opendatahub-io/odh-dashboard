@@ -22,7 +22,7 @@ const NotebookControlPanelRedirect: React.FC = () => {
           // TODO: we need to worry about this case -- how to manage it?
           // setImpersonating(undefined, translatedUsername);
           setCurrentAdminTab(NotebookControllerTabTypes.ADMIN);
-          navigate('/notebookController', { replace: true });
+          navigate('/notebook-controller', { replace: true });
           return;
         }
 
@@ -32,7 +32,7 @@ const NotebookControlPanelRedirect: React.FC = () => {
       }
 
       // Logged in user -- just redirect and it will load the state normally
-      navigate('/notebookController', { replace: true });
+      navigate('/notebook-controller', { replace: true });
     }
   }, [
     translatedUsername,

@@ -20,7 +20,10 @@ describe('Verify OOTB Connection Types', () => {
     { tags: ['@Smoke', '@SmokeSet2', '@Dashboard'] },
     () => {
       cy.step('Navigate to Connection Types view');
-      cy.visitWithLogin('/connectionTypes', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin(
+        '/settings/environment-setup/connection-types',
+        HTPASSWD_CLUSTER_ADMIN_USER,
+      );
 
       connectionTypesPage.shouldHaveConnectionTypes();
       const uri = connectionTypesPage.getConnectionTypeRow(testData.uri);

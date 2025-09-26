@@ -675,17 +675,19 @@ describe('Feature View Utils', () => {
 
     it('should return entity route for entity items', () => {
       const result = getSchemaItemLink(mockEntityItem, mockFeatureView, 'test-project');
-      expect(result).toBe('/featureStore/entities/test-project/test-entity');
+      expect(result).toBe('/develop-train/feature-store/entities/test-project/test-entity');
     });
 
     it('should return feature route for feature items', () => {
       const result = getSchemaItemLink(mockFeatureItem, mockFeatureView, 'test-project');
-      expect(result).toBe('/featureStore/features/test-project/test-feature-view/test-feature');
+      expect(result).toBe(
+        '/develop-train/feature-store/features/test-project/test-feature-view/test-feature',
+      );
     });
 
     it('should use featureView.project when currentProject is not provided', () => {
       const result = getSchemaItemLink(mockEntityItem, mockFeatureView);
-      expect(result).toBe('/featureStore/entities/test-project/test-entity');
+      expect(result).toBe('/develop-train/feature-store/entities/test-project/test-entity');
     });
 
     it('should use currentProject when featureView.project is not available', () => {
@@ -699,7 +701,7 @@ describe('Feature View Utils', () => {
         featureViewWithoutProject,
         'fallback-project',
       );
-      expect(result).toBe('/featureStore/entities/fallback-project/test-entity');
+      expect(result).toBe('/develop-train/feature-store/entities/fallback-project/test-entity');
     });
 
     it('should return "#" when no project is available', () => {
@@ -739,7 +741,7 @@ describe('Feature View Utils', () => {
         'test-project',
       );
       expect(result).toBe(
-        '/featureStore/features/test-project/different-feature-view/test-feature',
+        '/develop-train/feature-store/features/test-project/different-feature-view/test-feature',
       );
     });
   });

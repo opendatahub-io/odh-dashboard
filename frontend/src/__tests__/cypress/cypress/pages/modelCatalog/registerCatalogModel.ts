@@ -4,7 +4,9 @@ class RegisterCatalogModelPage {
     const repositoryName = 'rhelai1';
     const modelName = name ?? 'granite-8b-code-instruct';
     const tag = '1%2E3%2E0';
-    cy.visitWithLogin(`/modelCatalog/${sourceName}/${repositoryName}/${modelName}/${tag}/register`);
+    cy.visitWithLogin(
+      `/ai-hub/catalog/${sourceName}/${repositoryName}/${modelName}/${tag}/register`,
+    );
     this.wait(modelName);
   }
 

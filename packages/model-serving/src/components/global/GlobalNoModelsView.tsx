@@ -20,7 +20,7 @@ export const GlobalNoModelsView: React.FC<GlobalNoModelsViewProps> = ({ project 
         project={project ?? null}
         createRoute={
           project?.metadata.name
-            ? getDeploymentWizardRoute(`/modelServing/${project.metadata.name}`)
+            ? getDeploymentWizardRoute(`/ai-hub/deployments/${project.metadata.name}`)
             : undefined
         }
       />

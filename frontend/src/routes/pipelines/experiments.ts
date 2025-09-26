@@ -1,6 +1,6 @@
 import { CompareRunsSearchParam } from '#~/concepts/pipelines/content/types';
 
-export const experimentsRootPath = '/experiments';
+export const experimentsRootPath = '/develop-train/experiments';
 export const globExperimentsAll = `${experimentsRootPath}/*`;
 
 export const experimentsBaseRoute = (namespace?: string): string =>
@@ -85,7 +85,7 @@ export const experimentsCompareRunsRoute = (
   experimentId: string,
   runIds: string[],
 ): string =>
-  `${experimentsBaseRoute(namespace)}/${experimentId}/compareRuns${generateCompareRunsQueryString(
+  `${experimentsBaseRoute(namespace)}/${experimentId}/compare-runs${generateCompareRunsQueryString(
     runIds,
   )}`;
 
@@ -96,4 +96,4 @@ export const experimentsManageCompareRunsRoute = (
 ): string =>
   `${experimentsBaseRoute(
     namespace,
-  )}/${experimentId}/compareRuns/add${generateCompareRunsQueryString(runIds)}`;
+  )}/${experimentId}/compare-runs/add${generateCompareRunsQueryString(runIds)}`;

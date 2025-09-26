@@ -257,11 +257,13 @@ describe('Model Serving Deploy Wizard', () => {
     );
 
     // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin('/modelServing/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue');
+    cy.visitWithLogin(
+      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
+    );
     modelServingGlobal.findDeployModelButton().click();
     cy.findByRole('heading', { name: 'Deploy a model' }).should('exist');
     cy.findByRole('button', { name: 'Cancel' }).click();
-    cy.url().should('include', '/modelServing/test-project');
+    cy.url().should('include', '/deployments/test-project');
 
     cy.visitWithLogin(
       '/projects/test-project?section=model-server&devFeatureFlags=Model+Serving+Plugin%3Dtrue',
@@ -284,7 +286,9 @@ describe('Model Serving Deploy Wizard', () => {
     );
 
     // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin('/modelServing/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue');
+    cy.visitWithLogin(
+      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
+    );
     modelServingGlobal.findDeployModelButton().click();
 
     // Step 1: Model source
@@ -528,7 +532,9 @@ describe('Model Serving Deploy Wizard', () => {
     );
 
     // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin('/modelServing/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue');
+    cy.visitWithLogin(
+      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
+    );
     modelServingGlobal.findDeployModelButton().click();
 
     // Step 1: Model source
@@ -672,7 +678,9 @@ describe('Model Serving Deploy Wizard', () => {
     );
 
     // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin('/modelServing/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue');
+    cy.visitWithLogin(
+      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
+    );
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
 
     // Step 1: Model source
@@ -709,5 +717,25 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findTokenAuthenticationCheckbox().click();
     modelServingWizardEdit.findServiceAccountByIndex(0).should('have.value', 'default-name');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
+  });
+
+  describe('redirect from v2 to v3 route', () => {
+    // TODO: visit directly when plugin is enabled
+    const featureFlagParam = '?devFeatureFlags=Model+Serving+Plugin%3Dtrue';
+    beforeEach(() => {
+      initIntercepts({});
+    });
+
+    it('deploy create', () => {
+      cy.visitWithLogin(`/modelServing/test-project/deploy/create${featureFlagParam}`);
+      cy.findByTestId('app-page-title').contains('Deploy a model');
+      cy.url().should('include', '/ai-hub/deployments/test-project/deploy/create');
+    });
+
+    it('deploy edit', () => {
+      cy.visitWithLogin(`/modelServing/test-project/deploy/edit/test-model${featureFlagParam}`);
+      cy.findByTestId('app-page-title').contains('Edit model deployment');
+      cy.url().should('include', '/ai-hub/deployments/test-project/deploy/edit/test-model');
+    });
   });
 });

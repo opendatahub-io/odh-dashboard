@@ -99,7 +99,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
               data-testid={`metrics-link-${displayName}`}
               to={
                 isGlobal
-                  ? `/modelServing/${inferenceService.metadata.namespace}/metrics/${inferenceService.metadata.name}`
+                  ? `/ai-hub/deployments/${inferenceService.metadata.namespace}/metrics/${inferenceService.metadata.name}`
                   : `/projects/${inferenceService.metadata.namespace}/metrics/model/${inferenceService.metadata.name}`
               }
             >
