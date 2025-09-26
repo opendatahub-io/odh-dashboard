@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icon, Stack, StackItem, Content, Title, Spinner, Button } from '@patternfly/react-core';
+import { Icon, Stack, StackItem, Content, Title, Spinner } from '@patternfly/react-core';
 import { CheckCircleIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -62,9 +62,7 @@ const ChatbotConfigurationState: React.FC<ChatbotConfigurationStateProps> = ({
       </StackItem>
       {redirectToPlayground && lsdStatus?.phase === 'Ready' && (
         <StackItem>
-          <Button variant="primary">
-            <Link to={genAiChatPlaygroundRoute(namespace?.name)}>Go to playground</Link>
-          </Button>
+          <Link to={genAiChatPlaygroundRoute(namespace?.name)}>Go to playground</Link>
         </StackItem>
       )}
     </Stack>
