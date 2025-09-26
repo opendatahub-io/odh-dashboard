@@ -12,6 +12,10 @@ import {
   type TokenAuthenticationFieldData,
 } from './fields/TokenAuthenticationField';
 import { numReplicasFieldSchema, type NumReplicasFieldData } from './fields/NumReplicasField';
+import {
+  ModelServerSelectFieldData,
+  modelServerSelectFieldSchema,
+} from './fields/ModelServerTemplateSelectField';
 
 export type ModelDeploymentWizardValidation = {
   modelSource: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
@@ -19,6 +23,7 @@ export type ModelDeploymentWizardValidation = {
   externalRoute: ReturnType<typeof useZodFormValidation<ExternalRouteFieldData>>;
   tokenAuthentication: ReturnType<typeof useZodFormValidation<TokenAuthenticationFieldData>>;
   numReplicas: ReturnType<typeof useZodFormValidation<NumReplicasFieldData>>;
+  modelServer: ReturnType<typeof useZodFormValidation<ModelServerSelectFieldData>>;
   isModelSourceStepValid: boolean;
   isModelDeploymentStepValid: boolean;
   isAdvancedSettingsStepValid: boolean;
@@ -54,6 +59,15 @@ export const useModelDeploymentWizardValidation = (
     modelFormatFieldSchema,
   );
 
+  const modelServerValidation = useZodFormValidation(
+    {
+      name: state.modelServer.data?.name,
+      namespace: state.modelServer.data?.namespace,
+      scope: state.modelServer.data?.scope,
+    },
+    modelServerSelectFieldSchema,
+  );
+
   // Step 3: Advanced Options
   const externalRouteValidation = useZodFormValidation(
     state.externalRoute.data,
@@ -77,7 +91,8 @@ export const useModelDeploymentWizardValidation = (
     isK8sNameDescriptionDataValid(state.k8sNameDesc.data) &&
     Object.keys(hardwareProfileValidation.getAllValidationIssues()).length === 0 &&
     Object.keys(modelFormatValidation.getAllValidationIssues()).length === 0 &&
-    numReplicasValidation.getFieldValidation(undefined, true).length === 0;
+    numReplicasValidation.getFieldValidation(undefined, true).length === 0 &&
+    modelServerValidation.getFieldValidation(undefined, true).length === 0;
   const isAdvancedSettingsStepValid =
     externalRouteValidation.getFieldValidation(undefined, true).length === 0 &&
     tokenAuthenticationValidation.getFieldValidation(undefined, true).length === 0;
@@ -86,6 +101,7 @@ export const useModelDeploymentWizardValidation = (
     modelSource: modelSourceStepValidation,
     hardwareProfile: hardwareProfileValidation,
     externalRoute: externalRouteValidation,
+    modelServer: modelServerValidation,
     tokenAuthentication: tokenAuthenticationValidation,
     numReplicas: numReplicasValidation,
     isModelSourceStepValid,

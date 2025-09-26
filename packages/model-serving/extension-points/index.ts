@@ -279,6 +279,7 @@ export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
         wizardData: UseModelDeploymentWizardState['state'],
         projectName: string,
         existingDeployment?: D,
+        serverResource?: D['server'],
         dryRun?: boolean,
       ) => Promise<D>
     >;

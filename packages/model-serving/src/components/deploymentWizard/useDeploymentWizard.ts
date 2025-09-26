@@ -7,6 +7,7 @@ import { extractK8sNameDescriptionFieldData } from '@odh-dashboard/internal/conc
 import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
 import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { useModelFormatField } from './fields/ModelFormatField';
 import { ModelLocationData } from './fields/modelLocationFields/types';
 import { useModelTypeField, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
@@ -17,6 +18,10 @@ import {
   type TokenAuthenticationFieldData,
 } from './fields/TokenAuthenticationField';
 import { useNumReplicasField, type NumReplicasFieldData } from './fields/NumReplicasField';
+import {
+  ModelServerSelectFieldData,
+  useModelServerSelectField,
+} from './fields/ModelServerTemplateSelectField';
 
 export type ModelDeploymentWizardData = {
   modelTypeField?: ModelTypeFieldData;
@@ -27,6 +32,8 @@ export type ModelDeploymentWizardData = {
   hardwareProfile?: Parameters<typeof useHardwareProfileConfig>;
   modelFormat?: SupportedModelFormats;
   modelLocationData?: ModelLocationData;
+  modelServer?: ModelServerSelectFieldData;
+  isEditing?: boolean;
   connections?: LabeledConnection[];
   initSelectedConnection?: LabeledConnection | undefined;
   // Add more field handlers as needed
@@ -43,6 +50,7 @@ export type UseModelDeploymentWizardState = {
     externalRoute: ReturnType<typeof useExternalRouteField>;
     tokenAuthentication: ReturnType<typeof useTokenAuthenticationField>;
     numReplicas: ReturnType<typeof useNumReplicasField>;
+    modelServer: ReturnType<typeof useModelServerSelectField>;
   };
 };
 
@@ -64,7 +72,35 @@ export const useModelDeploymentWizard = (
     initialData: extractK8sNameDescriptionFieldData(initialData?.k8sNameDesc),
   });
   const hardwareProfileConfig = useHardwareProfileConfig(...(initialData?.hardwareProfile ?? []));
-  const modelFormatState = useModelFormatField(initialData?.modelFormat, modelType.data);
+  const modelFormatState = useModelFormatField(
+    initialData?.modelFormat,
+    modelType.data,
+    currentProject?.metadata.name,
+    React.useCallback(
+      (
+        newFormat: SupportedModelFormats | undefined,
+        prevFormat: SupportedModelFormats | undefined,
+      ) => {
+        // Only reset if the format actually changed and we're dealing with predictive models
+        if (
+          modelType.data === ServingRuntimeModelType.PREDICTIVE &&
+          newFormat !== prevFormat &&
+          prevFormat !== undefined
+        ) {
+          modelServer.setData({ name: '', namespace: '', scope: '' });
+        }
+      },
+      [modelType.data],
+    ),
+  );
+  const modelServer = useModelServerSelectField(
+    initialData?.modelServer,
+    currentProject?.metadata.name,
+    modelFormatState.templatesFilteredForModelType,
+    modelType.data === ServingRuntimeModelType.GENERATIVE // Don't pass model format for generative models
+      ? undefined
+      : modelFormatState.modelFormat,
+  );
 
   // Step 3: Advanced Options - Individual Fields
   const externalRoute = useExternalRouteField(initialData?.externalRoute ?? undefined);
@@ -88,6 +124,7 @@ export const useModelDeploymentWizard = (
       externalRoute,
       tokenAuthentication,
       numReplicas,
+      modelServer,
     },
   };
 };

@@ -67,6 +67,8 @@ const mockDeploymentWizardState = (
           isVisible: false,
           error: undefined,
           loaded: true,
+          templatesFilteredForModelType: [],
+          onModelFormatChange: jest.fn(),
         },
         externalRoute: {
           data: undefined,
@@ -81,6 +83,14 @@ const mockDeploymentWizardState = (
         numReplicas: {
           data: undefined,
           setReplicas: jest.fn(),
+        },
+        modelServer: {
+          data: undefined,
+          setData: jest.fn(),
+          projectTemplates: [],
+          modelServerTemplates: [],
+          loaded: true,
+          error: undefined,
         },
       },
     },
