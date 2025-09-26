@@ -10,7 +10,7 @@ const useFetchAIModels = (namespace?: string): FetchStateObject<AIModel[]> => {
     }
     const rawData = await getAAModels(namespace);
 
-    return rawData.map((item: AAModelResponse, index: number) => {
+    return rawData.map((item: AAModelResponse) => {
       // Parse endpoints into usable format
       const internalEndpoint = item.endpoints
         .find((endpoint) => endpoint.startsWith('internal:'))
@@ -23,8 +23,6 @@ const useFetchAIModels = (namespace?: string): FetchStateObject<AIModel[]> => {
 
       return {
         ...item,
-        id: `model-${index}`,
-        playgroundStatus: 'not-available',
         internalEndpoint,
         externalEndpoint,
       };

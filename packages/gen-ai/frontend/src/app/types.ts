@@ -241,11 +241,10 @@ export interface AAModelResponse {
   usecase: string;
   description: string;
   endpoints: string[];
+  display_name: string;
 }
 
 export interface AIModel extends AAModelResponse {
-  id: string;
-  playgroundStatus: string;
   // Parse endpoints into usable format
   internalEndpoint?: string;
   externalEndpoint?: string;
