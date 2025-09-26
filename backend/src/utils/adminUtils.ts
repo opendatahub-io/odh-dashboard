@@ -1,18 +1,21 @@
+import { V1ResourceAttributes, V1SelfSubjectAccessReview } from '@kubernetes/client-node';
 import {
-  CustomObjectsApi,
-  V1ClusterRoleBinding,
-  V1ClusterRoleBindingList,
-} from '@kubernetes/client-node';
-import { KubeFastifyInstance, ResourceAccessReviewResponse } from '../types';
-import { getAllGroupsByUser, getGroup } from './groupsUtils';
+  K8sStatus,
+  KubeFastifyInstance,
+  OauthFastifyRequest,
+  ResourceAccessReviewResponse,
+} from '../types';
+import { getGroup } from './groupsUtils';
 import { flatten, uniq } from 'lodash';
 import { getNamespaces } from '../utils/notebookUtils';
 import { getAuth } from './resourceUtils';
+import { isK8sStatus } from './pass-through';
+import { createSelfSubjectAccessReview } from './authUtils';
 
-const SYSTEM_AUTHENTICATED = 'system:authenticated';
 /** Usernames with invalid characters can start with `b64:` to keep their unwanted characters */
 export const KUBE_SAFE_PREFIX = 'b64:';
 
+/** @deprecated -- don't rely on groups (legacy usage only) */
 const getGroupUserList = async (
   fastify: KubeFastifyInstance,
   groupListNames: string[],
@@ -24,11 +27,13 @@ const getGroupUserList = async (
   );
 };
 
+/** @deprecated -- don't rely on groups (legacy usage only) */
 export const getAdminUserList = async (fastify: KubeFastifyInstance): Promise<string[]> => {
   const auth = getAuth();
   return getGroupUserList(fastify, auth.spec.adminGroups);
 };
 
+/** @deprecated -- don't rely on groups (legacy usage only) */
 export const getClusterAdminUserList = async (fastify: KubeFastifyInstance): Promise<string[]> => {
   // fetch all the users and groups who have cluster-admin role and put them into the admin user list
   const { workbenchNamespace } = getNamespaces(fastify);
@@ -57,6 +62,7 @@ export const getClusterAdminUserList = async (fastify: KubeFastifyInstance): Pro
   return getGroupUserList(fastify, filteredClusterAdminGroups, filteredClusterAdminUsers);
 };
 
+/** @deprecated -- don't rely on groups (legacy usage only) */
 export const getAllowedUserList = async (fastify: KubeFastifyInstance): Promise<string[]> => {
   const auth = getAuth();
   return getGroupUserList(
@@ -65,114 +71,33 @@ export const getAllowedUserList = async (fastify: KubeFastifyInstance): Promise<
   );
 };
 
-export const getGroupsConfig = async (
-  fastify: KubeFastifyInstance,
-  customObjectApi: CustomObjectsApi,
-  username: string,
-): Promise<boolean> => {
-  try {
-    const auth = getAuth();
-    const adminGroupsList: string[] = auth.spec.adminGroups;
-
-    if (adminGroupsList.includes(SYSTEM_AUTHENTICATED)) {
-      throw new Error('It is not allowed to set system:authenticated as admin group.');
-    } else {
-      return await checkUserInGroups(fastify, customObjectApi, adminGroupsList, username);
-    }
-  } catch (e) {
-    fastify.log.error(e, 'Error getting groups config');
-    return false;
-  }
+const SingletonAuthResource: V1ResourceAttributes = {
+  group: 'services.platform.opendatahub.io',
+  resource: 'auths',
+  name: 'default-auth',
 };
+
+const handleSSARCheck = (v: V1SelfSubjectAccessReview | K8sStatus): boolean =>
+  isK8sStatus(v) ? false : v.status.allowed;
 
 export const isUserAdmin = async (
   fastify: KubeFastifyInstance,
-  username: string,
-  namespace: string,
-): Promise<boolean> => {
-  const isAdmin: boolean = await isUserClusterRole(fastify, username, namespace);
-  return isAdmin || (await getGroupsConfig(fastify, fastify.kube.customObjectsApi, username));
-};
+  request: OauthFastifyRequest,
+): Promise<boolean> =>
+  createSelfSubjectAccessReview(fastify, request, {
+    ...SingletonAuthResource,
+    verb: 'update',
+  })
+    .then(handleSSARCheck)
+    .catch(() => false);
 
 export const isUserAllowed = async (
   fastify: KubeFastifyInstance,
-  username: string,
-): Promise<boolean> => {
-  try {
-    const auth = getAuth();
-    const allowedGroupsList: string[] = auth.spec.allowedGroups;
-
-    if (allowedGroupsList.includes(SYSTEM_AUTHENTICATED)) {
-      return true;
-    } else {
-      return await checkUserInGroups(
-        fastify,
-        fastify.kube.customObjectsApi,
-        allowedGroupsList,
-        username,
-      );
-    }
-  } catch (e) {
-    fastify.log.error(e, 'Error determining isUserAllowed.');
-    return false;
-  }
-};
-
-const checkRoleBindings = (
-  roleBindings: V1ClusterRoleBindingList,
-  username: string,
-  groups: string[],
-): boolean => {
-  return (
-    roleBindings.items.filter(
-      (role: V1ClusterRoleBinding): boolean =>
-        role.subjects?.some(
-          (subject) => subject.name === username || groups.includes(subject.name),
-        ) &&
-        role.roleRef.kind === 'ClusterRole' &&
-        role.roleRef.name === 'cluster-admin',
-    ).length !== 0
-  );
-};
-
-export const isUserClusterRole = async (
-  fastify: KubeFastifyInstance,
-  username: string,
-  namespace: string,
-): Promise<boolean> => {
-  try {
-    const clusterrolebinding = await fastify.kube.rbac.listClusterRoleBinding();
-    const rolebinding = await fastify.kube.rbac.listNamespacedRoleBinding(namespace);
-    const groups = await getAllGroupsByUser(fastify.kube.customObjectsApi, username);
-    const isAdminClusterRoleBinding = checkRoleBindings(clusterrolebinding.body, username, groups);
-    const isAdminRoleBinding = checkRoleBindings(rolebinding.body, username, groups);
-    return isAdminClusterRoleBinding || isAdminRoleBinding;
-  } catch (e) {
-    fastify.log.error(
-      `Failed to list rolebindings for user, ${e.response?.body?.message || e.message}`,
-    );
-    return false;
-  }
-};
-
-const checkUserInGroups = async (
-  fastify: KubeFastifyInstance,
-  customObjectApi: CustomObjectsApi,
-  groupList: string[],
-  userName: string,
-): Promise<boolean> => {
-  for (const group of groupList) {
-    try {
-      const groupUsers = await getGroup(customObjectApi, group);
-      if (
-        groupUsers?.includes(userName) ||
-        groupUsers?.includes(`${KUBE_SAFE_PREFIX}${userName}`)
-      ) {
-        return true;
-      }
-    } catch (e) {
-      fastify.log.error(e, 'Error checking if user is in group.');
-    }
-  }
-  return false;
-};
+  request: OauthFastifyRequest,
+): Promise<boolean> =>
+  createSelfSubjectAccessReview(fastify, request, {
+    ...SingletonAuthResource,
+    verb: 'get',
+  })
+    .then(handleSSARCheck)
+    .catch(() => false);
