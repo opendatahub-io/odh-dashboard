@@ -89,7 +89,7 @@ const FeatureStoreDataSourcesTableRow: React.FC<FeatureStoreDataSourcesTableRowT
   return (
     <Tr>
       {renderTableCell(
-        'Data Sources',
+        'Data sources',
         <DataSourceName dataSource={dataSource} currentProject={currentProject} />,
         'data-source-name',
       )}

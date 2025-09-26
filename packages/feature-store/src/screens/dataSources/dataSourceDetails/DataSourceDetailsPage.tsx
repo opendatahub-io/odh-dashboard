@@ -59,7 +59,7 @@ const DataSourceDetailsPage = (): React.ReactElement => {
       </EmptyStateBody>
       <EmptyStateFooter>
         <EmptyStateActions>
-          <Link to={`${featureStoreRootRoute()}/dataSources`}>Go to Data Sources</Link>
+          <Link to={`${featureStoreRootRoute()}/dataSources`}>Go to Data sources</Link>
         </EmptyStateActions>
       </EmptyStateFooter>
     </EmptyState>

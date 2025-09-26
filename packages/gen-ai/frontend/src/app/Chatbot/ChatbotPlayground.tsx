@@ -37,6 +37,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 
   const [systemInstruction, setSystemInstruction] = React.useState<string>('');
   const [isStreamingEnabled, setIsStreamingEnabled] = React.useState<boolean>(true);
+  const [temperature, setTemperature] = React.useState<number>(0.1);
+  const [topP, setTopP] = React.useState<number>(0.1);
 
   React.useEffect(() => {
     if (modelsLoaded && models.length > 0 && !selectedModel) {
@@ -58,6 +60,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     isRawUploaded: sourceManagement.isRawUploaded,
     username,
     isStreamingEnabled,
+    temperature,
+    topP,
   });
 
   // Create alert components
@@ -88,6 +92,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       onSystemInstructionChange={setSystemInstruction}
       isStreamingEnabled={isStreamingEnabled}
       onStreamingToggle={setIsStreamingEnabled}
+      temperature={temperature}
+      onTemperatureChange={setTemperature}
+      topP={topP}
+      onTopPChange={setTopP}
     />
   );
 
