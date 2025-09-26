@@ -22,7 +22,7 @@ export const ProjectDeploymentsTable: React.FC<{
       data-testid="kserve-inference-service-table" // legacy testid
       deployments={deployments}
       loaded={loaded && tableExtensionLoaded}
-      showExpandedInfo
+      showExpandedToggleColumn
       platformColumns={tableExtension?.properties.columns()}
     />
   );

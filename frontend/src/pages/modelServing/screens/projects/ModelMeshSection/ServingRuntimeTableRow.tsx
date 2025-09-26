@@ -101,7 +101,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
             obj.spec.builtInAdapter?.serverType ||
             'Custom Runtime'}
         </Td>
-        <Td dataLabel="Serving Runtime">
+        <Td dataLabel="Serving runtime">
           <Truncate content={getDisplayNameFromServingRuntimeTemplate(obj)} />
         </Td>
         <Td
