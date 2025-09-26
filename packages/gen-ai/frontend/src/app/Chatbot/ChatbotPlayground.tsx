@@ -128,6 +128,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   <ChatbotMessages
                     messageList={chatbotMessages.messages}
                     scrollRef={chatbotMessages.scrollToBottomRef}
+                    isLoading={chatbotMessages.isLoading}
+                    isStreamingWithoutContent={chatbotMessages.isStreamingWithoutContent}
                   />
                 </MessageBox>
               </ChatbotContent>

@@ -1,20 +1,29 @@
 /* eslint-disable camelcase */
 /* eslint-disable no-relative-import-paths/no-relative-import-paths */
+import { isAxiosError } from 'axios';
+
+import axiosInstance from '../utilities/axios';
+import { extractMCPToolCallData } from '../utilities';
 import {
-  VectorStore,
-  ChatbotSourceSettings,
-  CreateResponseRequest,
-  SimplifiedResponseData,
   BackendResponseData,
-  OutputItem,
-  LlamaModel,
-  FileUploadResult,
+  ChatbotSourceSettings,
   CodeExportRequest,
   CodeExportResponse,
+  CreateResponseRequest,
+  FileUploadResult,
+  LlamaModel,
+  LlamaModelType,
   LlamaStackDistributionModel,
   AAModelResponse,
+  MCPConnectionStatus,
+  MCPErrorResponse,
+  MCPServersResponse,
+  MCPToolsResponse,
+  MCPToolsStatus,
+  OutputItem,
+  SimplifiedResponseData,
+  VectorStore,
 } from '../types';
-import axios from '../utilities/axios';
 import { URL_PREFIX } from '../utilities/const';
 
 /**
@@ -46,16 +55,19 @@ const extractContentFromOutput = (output?: OutputItem[]): string => {
  * @param backendResponse - Response from backend API
  * @returns SimplifiedResponseData - Frontend-friendly response
  */
-const transformBackendResponse = (
-  backendResponse: BackendResponseData,
-): SimplifiedResponseData => ({
-  id: backendResponse.id,
-  model: backendResponse.model,
-  status: backendResponse.status,
-  created_at: backendResponse.created_at,
-  content: extractContentFromOutput(backendResponse.output),
-  usage: backendResponse.usage,
-});
+const transformBackendResponse = (backendResponse: BackendResponseData): SimplifiedResponseData => {
+  const toolCallData = extractMCPToolCallData(backendResponse.output);
+
+  return {
+    id: backendResponse.id,
+    model: backendResponse.model,
+    status: backendResponse.status,
+    created_at: backendResponse.created_at,
+    content: extractContentFromOutput(backendResponse.output),
+    usage: backendResponse.usage,
+    ...(toolCallData && { toolCallData }),
+  };
+};
 
 /**
  * Fetches all available models from the Llama Stack API
@@ -64,7 +76,28 @@ const transformBackendResponse = (
  */
 export const getModels = (namespace: string): Promise<LlamaModel[]> => {
   const url = `${URL_PREFIX}/api/v1/models?namespace=${namespace}`;
-  return axios
+  return axiosInstance
+    .get(url)
+    .then((response) => response.data.data)
+    .catch((error) => {
+      throw new Error(
+        error.response?.data?.error?.message || error.message || 'Failed to fetch models',
+      );
+    });
+};
+
+/**
+ * Fetches models filtered by a specific model type from the Llama Stack API
+ * @param modelType - The type of models to fetch (e.g., 'llm' or 'embedding')
+ * @returns Promise<LlamaModel[]> - Array of models matching the specified type
+ * @throws Error - When the API request fails or returns an error response
+ */
+//TODO: This does not work as expected. It returns all models, not just the ones of the specified type.
+//Should be fixed by updating the API to return only the models of the specified type.
+//Leaving this here as a reminder for now as it is not being used anywhere.
+export const getModelsByType = (modelType: LlamaModelType): Promise<LlamaModel[]> => {
+  const url = `${URL_PREFIX}/api/v1/models?model_type=${modelType}`;
+  return axiosInstance
     .get(url)
     .then((response) => response.data.data ?? [])
     .catch((error) => {
@@ -82,7 +115,7 @@ export const getModels = (namespace: string): Promise<LlamaModel[]> => {
  */
 export const getVectorStores = (namespace: string): Promise<VectorStore[]> => {
   const url = `${URL_PREFIX}/api/v1/vectorstores?namespace=${namespace}`;
-  return axios
+  return axiosInstance
     .get(url)
     .then((response) => response.data.data)
     .catch((error) => {
@@ -101,7 +134,7 @@ export const getVectorStores = (namespace: string): Promise<VectorStore[]> => {
  */
 export const createVectorStore = (vectorName: string, namespace: string): Promise<VectorStore> => {
   const url = `${URL_PREFIX}/api/v1/vectorstores?namespace=${namespace}`;
-  return axios
+  return axiosInstance
     .post(url, {
       name: vectorName,
     })
@@ -139,7 +172,7 @@ export const uploadSource = (
   }
   formData.append('vector_store_id', settings.vectorStore);
 
-  return axios
+  return axiosInstance
     .post(url, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -172,7 +205,7 @@ export const createResponse = (
     // Handle streaming response using fetch with text/event-stream
     return new Promise((resolve, reject) => {
       // Get axios default headers to maintain consistency
-      const axiosHeaders = axios.defaults.headers.common;
+      const axiosHeaders = axiosInstance.defaults.headers.common;
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         Accept: 'text/event-stream',
@@ -210,6 +243,7 @@ export const createResponse = (
           }
 
           let fullContent = '';
+          let completeResponseData: BackendResponseData | null = null;
           const decoder = new TextDecoder();
 
           try {
@@ -231,6 +265,10 @@ export const createResponse = (
                         fullContent += data.delta;
                         onStreamData(data.delta);
                       }
+                      // Capture the complete response data when streaming completes
+                      else if (data.type === 'response.completed' && data.response) {
+                        completeResponseData = data.response;
+                      }
                     } catch {
                       // Ignore parsing errors for individual chunks - this is expected for malformed chunks
                     }
@@ -242,12 +280,18 @@ export const createResponse = (
             reader.releaseLock();
           }
 
+          // Extract tool call data from complete response if available
+          const toolCallData = completeResponseData?.output
+            ? extractMCPToolCallData(completeResponseData.output)
+            : undefined;
+
           resolve({
-            id: 'streaming-response',
-            model: request.model,
-            status: 'completed',
-            created_at: Date.now(),
+            id: completeResponseData?.id || 'streaming-response',
+            model: completeResponseData?.model || request.model,
+            status: completeResponseData?.status || 'completed',
+            created_at: completeResponseData?.created_at || Date.now(),
             content: fullContent,
+            ...(toolCallData && { toolCallData }),
           });
         })
         .catch((error) => {
@@ -259,7 +303,7 @@ export const createResponse = (
   }
 
   // Handle non-streaming response
-  return axios
+  return axiosInstance
     .post(url, request)
     .then((response) => {
       const backendResponse: BackendResponseData = response.data.data;
@@ -283,7 +327,7 @@ export const exportCode = (
   namespace: string,
 ): Promise<CodeExportResponse> => {
   const url = `${URL_PREFIX}/api/v1/code-exporter?namespace=${namespace}`;
-  return axios
+  return axiosInstance
     .post(url, request)
     .then((response) => response.data)
     .catch((error) => {
@@ -295,7 +339,7 @@ export const exportCode = (
 
 export const getLSDstatus = (project: string): Promise<LlamaStackDistributionModel> => {
   const url = `${URL_PREFIX}/api/v1/llamastack-distribution/status?namespace=${project}`;
-  return axios
+  return axiosInstance
     .get(url)
     .then((response) => response.data.data)
     .catch((error) => {
@@ -313,7 +357,7 @@ export const getLSDstatus = (project: string): Promise<LlamaStackDistributionMod
  */
 export const getAAModels = (namespace: string): Promise<AAModelResponse[]> => {
   const url = `${URL_PREFIX}/api/v1/aa/models?namespace=${namespace}`;
-  return axios
+  return axiosInstance
     .get(url)
     .then((response) => response.data.data ?? [])
     .catch((error) => {
@@ -328,7 +372,7 @@ export const installLSD = (
   models: string[],
 ): Promise<LlamaStackDistributionModel> => {
   const url = `${URL_PREFIX}/api/v1/llamastack-distribution/install?namespace=${project}`;
-  return axios
+  return axiosInstance
     .post(url, { models })
     .then((response) => response.data.data)
     .catch((error) => {
@@ -340,7 +384,7 @@ export const installLSD = (
 
 export const deleteLSD = (project: string, lsdName: string): Promise<string> => {
   const url = `${URL_PREFIX}/api/v1/llamastack-distribution/delete?namespace=${project}`;
-  return axios
+  return axiosInstance
     .delete(url, {
       data: { name: lsdName },
     })
@@ -349,5 +393,187 @@ export const deleteLSD = (project: string, lsdName: string): Promise<string> => 
       throw new Error(
         error.response?.data?.error?.message || error.message || 'Failed to delete LSD',
       );
+    });
+};
+
+/**
+ * Fetches MCP servers from the cluster ConfigMap for a specific namespace
+ * @param namespace - The namespace (project) to fetch MCP servers from
+ * @returns Promise<MCPServersResponse> - MCP servers data with ConfigMap metadata
+ * @throws Error - When the API request fails, ConfigMap doesn't exist, or insufficient permissions
+ */
+export const getMCPServers = (namespace: string): Promise<MCPServersResponse> => {
+  if (!namespace || namespace.trim() === '') {
+    throw new Error('Namespace parameter is required');
+  }
+
+  const url = `${URL_PREFIX}/api/v1/aa/mcps`;
+  return axiosInstance
+    .get<{ data: MCPServersResponse }>(url, {
+      params: { namespace: namespace.trim() },
+    })
+    .then((response) => response.data.data)
+    .catch((error) => {
+      // Handle specific error cases from the BFF
+      if (error.response?.status === 404) {
+        const errorData: MCPErrorResponse = error.response.data;
+        throw new Error(
+          errorData.error.message ||
+            `ConfigMap not found in namespace '${namespace}'. The MCP servers ConfigMap may not be deployed yet.`,
+        );
+      }
+
+      if (error.response?.status === 403) {
+        const errorData: MCPErrorResponse = error.response.data;
+        throw new Error(
+          errorData.error.message ||
+            `Access denied to ConfigMap in namespace '${namespace}'. Check your permissions.`,
+        );
+      }
+
+      if (error.response?.status === 400) {
+        throw new Error(`Invalid namespace parameter: ${namespace}`);
+      }
+
+      // Generic error handling
+      const message = error.response?.data?.error?.message || error.message;
+      throw new Error(`Failed to fetch MCP servers: ${message}`);
+    });
+};
+
+export const getMCPServerStatus = (
+  namespace: string,
+  serverUrl: string,
+  mcpBearerToken?: string,
+): Promise<MCPConnectionStatus> => {
+  if (!namespace || namespace.trim() === '') {
+    throw new Error('Namespace parameter is required');
+  }
+  if (!serverUrl || serverUrl.trim() === '') {
+    throw new Error('Server URL parameter is required');
+  }
+
+  const url = `${URL_PREFIX}/api/v1/mcp/status`;
+  const encodedServerUrl = encodeURIComponent(serverUrl.trim());
+
+  // Prepare headers
+  const headers: Record<string, string> = {};
+  if (mcpBearerToken) {
+    headers['X-MCP-Bearer'] = mcpBearerToken.startsWith('Bearer ')
+      ? mcpBearerToken
+      : `Bearer ${mcpBearerToken}`;
+  }
+
+  return axiosInstance
+    .get<{ data: MCPConnectionStatus }>(url, {
+      params: {
+        namespace: namespace.trim(),
+        server_url: encodedServerUrl,
+      },
+      headers,
+    })
+    .then((response) => response.data.data)
+    .catch((error) => {
+      // Handle BFF-level errors
+      if (error.response?.status === 404) {
+        const errorData: MCPErrorResponse = error.response.data;
+        throw new Error(errorData.error.message || `Server not found in ConfigMap: ${serverUrl}`);
+      }
+
+      if (error.response?.status === 401) {
+        throw new Error(`Authentication failed for namespace '${namespace}'`);
+      }
+
+      if (error.response?.status === 403) {
+        throw new Error(`Access denied to namespace '${namespace}'`);
+      }
+
+      if (error.response?.status === 400) {
+        const errorData: MCPErrorResponse = error.response.data;
+        throw new Error(
+          errorData.error.message ||
+            `Invalid parameters: namespace=${namespace}, server_url=${serverUrl}`,
+        );
+      }
+
+      // Generic error handling
+      const message = error.response?.data?.error?.message || error.message;
+      throw new Error(`Failed to check MCP server status: ${message}`);
+    });
+};
+
+export const getMCPServerTools = (
+  namespace: string,
+  serverUrl: string,
+  mcpBearerToken?: string,
+): Promise<MCPToolsStatus> => {
+  const encodedServerUrl = encodeURIComponent(serverUrl);
+  const url = `/gen-ai/api/v1/mcp/tools?namespace=${encodeURIComponent(namespace)}&server_url=${encodedServerUrl}`;
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  // Add MCP Bearer token if provided
+  if (mcpBearerToken && mcpBearerToken.trim() !== '') {
+    const token = mcpBearerToken.startsWith('Bearer ')
+      ? mcpBearerToken
+      : `Bearer ${mcpBearerToken}`;
+    headers['X-MCP-Bearer'] = token;
+  }
+
+  return axiosInstance
+    .get(url, { headers })
+    .then((response) => {
+      const responseData: MCPToolsResponse = response.data;
+      return responseData.data;
+    })
+    .catch((error) => {
+      if (isAxiosError(error) && error.response) {
+        const { status } = error.response;
+        const errorData: MCPErrorResponse = error.response.data;
+
+        // Create a structured error response that matches MCPToolsStatus
+        const errorResponse: MCPToolsStatus = {
+          server_url: serverUrl,
+          status: 'error',
+          message: errorData.error.message || `HTTP ${status}: Server error`,
+          last_checked: Date.now(),
+          server_info: {
+            name: 'unknown',
+            version: 'N/A',
+            protocol_version: '',
+          },
+          tools: [],
+          error_details: {
+            code: errorData.error.code || 'CONNECTION_FAILED',
+            status_code: status,
+            raw_error: errorData.error.message || `HTTP ${status}: Server error`,
+          },
+        };
+
+        return errorResponse;
+      }
+
+      // Network or other errors
+      const errorResponse: MCPToolsStatus = {
+        server_url: serverUrl,
+        status: 'error',
+        message: 'Connection failed',
+        last_checked: Date.now(),
+        server_info: {
+          name: 'unknown',
+          version: 'N/A',
+          protocol_version: '',
+        },
+        tools: [],
+        error_details: {
+          code: 'CONNECTION_FAILED',
+          status_code: 503,
+          raw_error: error instanceof Error ? error.message : 'Unknown connection error',
+        },
+      };
+
+      return errorResponse;
     });
 };

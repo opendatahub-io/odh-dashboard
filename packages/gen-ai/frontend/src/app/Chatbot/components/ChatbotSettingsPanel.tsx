@@ -12,11 +12,14 @@ import {
   Switch,
   FlexItem,
   Flex,
+  Label,
 } from '@patternfly/react-core';
 import { ChatbotSourceUploadPanel } from '~/app/Chatbot/sourceUpload/ChatbotSourceUploadPanel';
 import { ACCORDION_ITEMS } from '~/app/Chatbot/const';
 import useAccordionState from '~/app/Chatbot/hooks/useAccordionState';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
+import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
+import MCPServersPanelWithContext from '~/app/Chatbot/mcp/MCPServersPanelWithContext';
 import ModelDetailsDropdown from './ModelDetailsDropdown';
 import SystemPromptFormGroup from './SystemInstructionFormGroup';
 import ModelParameterFormGroup from './ModelParameterFormGroup';
@@ -54,6 +57,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   onTopPChange,
 }) => {
   const accordionState = useAccordionState();
+  const { selectedServersCount, saveSelectedServersToPlayground } = useMCPSelectionContext();
 
   return (
     <DrawerPanelContent isResizable defaultSize="400px" minSize="300px">
@@ -184,18 +188,19 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
               onClick={() => accordionState.onAccordionToggle(ACCORDION_ITEMS.MCP_SERVERS)}
               id={ACCORDION_ITEMS.MCP_SERVERS}
             >
-              <Title headingLevel="h2" size="lg">
-                MCP servers
-              </Title>
+              <div className="pf-v6-u-display-flex pf-v6-u-align-items-center">
+                <Title headingLevel="h2" size="lg">
+                  MCP servers
+                </Title>
+                {selectedServersCount > 0 && (
+                  <Label key={1} color="blue" className="pf-v6-u-ml-sm">
+                    {selectedServersCount}
+                  </Label>
+                )}
+              </div>
             </AccordionToggle>
             <AccordionContent id="mcp-servers-content">
-              <Form>
-                <FormGroup fieldId="mcpServers">
-                  <Title headingLevel="h2" size="md">
-                    List of mcp servers
-                  </Title>
-                </FormGroup>
-              </Form>
+              <MCPServersPanelWithContext onSelectionChange={saveSelectedServersToPlayground} />
             </AccordionContent>
           </AccordionItem>
         </Accordion>
