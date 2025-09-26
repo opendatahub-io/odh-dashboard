@@ -20,18 +20,15 @@ jobs:
         uses: actions/cache@v4
         id: modules-cache
         with:
-          lookup-only: true
           path: |
             ~/.cache/Cypress
             **/node_modules
           key: ${{ steps.key.outputs.modules-cache-key }}
       - name: Setup Node.js ${{ env.NODE_VERSION }}
-        if: steps.modules-cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Install dependencies
-        if: steps.modules-cache.outputs.cache-hit != 'true'
         run: npm install
 
       - name: Check for uncommitted changes
@@ -52,11 +49,12 @@ jobs:
           path: |
             ~/.cache/Cypress
             **/node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ needs.Setup.outputs.modules-cache-key }}
       - name: Cache turbo
         uses: actions/cache@v4
         with:
-          path: ${{ github.workspace }}/.turbo
+          path: |
+            **/.turbo
           key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-type-check
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
@@ -78,11 +76,12 @@ jobs:
           path: |
             ~/.cache/Cypress
             **/node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ needs.Setup.outputs.modules-cache-key }}
       - name: Cache turbo
         uses: actions/cache@v4
         with:
-          path: ${{ github.workspace }}/.turbo
+          path: |
+            **/.turbo
           key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-lint
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
@@ -108,7 +107,8 @@ jobs:
       - name: Cache turbo
         uses: actions/cache@v4
         with:
-          path: ${{ github.workspace }}/.turbo
+          path: |
+            **/.turbo
           key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-unit-tests
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
