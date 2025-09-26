@@ -106,11 +106,9 @@ export const mockInferenceServiceK8sResource = ({
   resources,
   statusPredictor = undefined,
   kserveInternalUrl = '',
-  kserveInternalLabel = false,
   additionalLabels = {},
   args = [],
   env = [],
-  isKserveRaw = false,
   tolerations,
   nodeSelector,
   isNonDashboardItem = false,
@@ -130,15 +128,7 @@ export const mockInferenceServiceK8sResource = ({
       'openshift.io/display-name': displayName,
       'serving.kserve.io/deploymentMode': isModelMesh
         ? DeploymentMode.ModelMesh
-        : isKserveRaw
-        ? DeploymentMode.RawDeployment
-        : DeploymentMode.Serverless,
-      ...(!isModelMesh &&
-        !isKserveRaw && {
-          'serving.knative.openshift.io/enablePassthrough': 'true',
-          'sidecar.istio.io/inject': 'true',
-          'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
-        }),
+        : DeploymentMode.RawDeployment,
       ...(hardwareProfileName && {
         [`opendatahub.io/hardware-profile-name`]: hardwareProfileName,
       }),
@@ -154,7 +144,6 @@ export const mockInferenceServiceK8sResource = ({
       name,
       ...additionalLabels,
       ...(isNonDashboardItem ? {} : { [KnownLabels.DASHBOARD_RESOURCE]: 'true' }),
-      ...(kserveInternalLabel && { 'networking.knative.dev/visibility': 'cluster-local' }),
     },
     name,
     namespace,

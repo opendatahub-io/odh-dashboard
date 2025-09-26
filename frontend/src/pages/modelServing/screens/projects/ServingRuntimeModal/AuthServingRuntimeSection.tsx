@@ -20,7 +20,6 @@ type AuthServingRuntimeSectionProps<D extends CreatingModelServingObjectCommon> 
   setData: UpdateObjectAtPropAndValue<D>;
   allowCreate: boolean;
   publicRoute?: boolean;
-  showModelRoute?: boolean;
 };
 
 const AuthServingRuntimeSection = <D extends CreatingModelServingObjectCommon>({
@@ -28,7 +27,6 @@ const AuthServingRuntimeSection = <D extends CreatingModelServingObjectCommon>({
   setData,
   allowCreate,
   publicRoute,
-  showModelRoute = true,
 }: AuthServingRuntimeSectionProps<D>): React.ReactNode => {
   const createNewToken = React.useCallback(() => {
     const name = 'default-name';
@@ -87,16 +85,14 @@ const AuthServingRuntimeSection = <D extends CreatingModelServingObjectCommon>({
           </FormGroup>
         </StackItem>
       )}
-      {showModelRoute && (
-        <StackItem>
-          <ServingRuntimeTokenSection
-            data={data}
-            setData={setData}
-            allowCreate={allowCreate}
-            createNewToken={createNewToken}
-          />
-        </StackItem>
-      )}
+      <StackItem>
+        <ServingRuntimeTokenSection
+          data={data}
+          setData={setData}
+          allowCreate={allowCreate}
+          createNewToken={createNewToken}
+        />
+      </StackItem>
       {((publicRoute && data.externalRoute && !data.tokenAuth) ||
         (!publicRoute && !data.tokenAuth)) && (
         <StackItem>
@@ -109,7 +105,7 @@ const AuthServingRuntimeSection = <D extends CreatingModelServingObjectCommon>({
           />
         </StackItem>
       )}
-      {publicRoute && data.externalRoute && !showModelRoute && (
+      {publicRoute && data.externalRoute && (
         <Alert
           isInline
           variant="warning"

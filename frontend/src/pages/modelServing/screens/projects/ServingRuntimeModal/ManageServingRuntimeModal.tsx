@@ -57,6 +57,7 @@ const accessReviewResource: AccessReviewResourceAttributes = {
 export const modelServerAddedName = 'Model Server Added';
 export const modelServerEditName = 'Model Server Modified';
 
+/** @deprecated -- no MM */
 const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   onClose,
   currentProject,

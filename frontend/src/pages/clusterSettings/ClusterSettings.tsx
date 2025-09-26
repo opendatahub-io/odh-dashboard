@@ -9,7 +9,6 @@ import {
   ModelServingPlatformEnabled,
   NotebookTolerationFormSettings,
 } from '#~/types';
-import { DeploymentMode } from '#~/k8sTypes';
 import { addNotification } from '#~/redux/actions/actions';
 import { useCheckJupyterEnabled } from '#~/utilities/notebookControllerUtils';
 import { useAppDispatch } from '#~/redux/hooks';
@@ -18,11 +17,9 @@ import CullerSettings from '#~/pages/clusterSettings/CullerSettings';
 import TelemetrySettings from '#~/pages/clusterSettings/TelemetrySettings';
 import TolerationSettings from '#~/pages/clusterSettings/TolerationSettings';
 import ModelServingPlatformSettings from '#~/pages/clusterSettings/ModelServingPlatformSettings';
-import { useKServeDeploymentMode } from '#~/pages/modelServing/useKServeDeploymentMode';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
-import { patchDefaultDeploymentMode } from '#~/api';
 import {
   DEFAULT_CONFIG,
   DEFAULT_PVC_SIZE,
@@ -30,13 +27,8 @@ import {
   MIN_CULLER_TIMEOUT,
   DEFAULT_TOLERATION_VALUE,
 } from './const';
-import useDefaultDsc from './useDefaultDsc';
 
 const ClusterSettings: React.FC = () => {
-  const { defaultMode } = useKServeDeploymentMode();
-  const [defaultSingleModelDeploymentMode, setDefaultSingleModelDeploymentMode] =
-    React.useState<DeploymentMode>(defaultMode);
-  const [dsc, dscLoaded, dscError, refreshDsc] = useDefaultDsc();
   const [loaded, setLoaded] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error>();
@@ -55,9 +47,6 @@ const ClusterSettings: React.FC = () => {
     });
   const [modelServingEnabledPlatforms, setModelServingEnabledPlatforms] =
     React.useState<ModelServingPlatformEnabled>(clusterSettings.modelServingPlatformEnabled);
-  const [defaultDeploymentMode, setDefaultDeploymentMode] = React.useState<DeploymentMode>(
-    defaultSingleModelDeploymentMode,
-  );
 
   const dispatch = useAppDispatch();
 
@@ -85,7 +74,7 @@ const ClusterSettings: React.FC = () => {
           key: notebookTolerationSettings.key,
         },
         modelServingPlatformEnabled: modelServingEnabledPlatforms,
-      }) || defaultDeploymentMode !== defaultSingleModelDeploymentMode,
+      }),
     [
       clusterSettings,
       pvcSize,
@@ -94,8 +83,6 @@ const ClusterSettings: React.FC = () => {
       notebookTolerationSettings.enabled,
       notebookTolerationSettings.key,
       modelServingEnabledPlatforms,
-      defaultDeploymentMode,
-      defaultSingleModelDeploymentMode,
     ],
   );
 
@@ -112,10 +99,8 @@ const ClusterSettings: React.FC = () => {
     };
 
     const clusterSettingsUnchanged = _.isEqual(clusterSettings, newClusterSettings);
-    const defaultDeploymentModeUnchanged =
-      defaultDeploymentMode === defaultSingleModelDeploymentMode;
 
-    if (clusterSettingsUnchanged && defaultDeploymentModeUnchanged) {
+    if (clusterSettingsUnchanged) {
       return;
     }
 
@@ -128,24 +113,14 @@ const ClusterSettings: React.FC = () => {
 
     setSaving(true);
 
-    const clusterSettingsPromise = clusterSettingsUnchanged
-      ? Promise.resolve()
-      : updateClusterSettings(newClusterSettings).then((response) => {
-          if (!response.success) {
-            throw new Error(response.error);
-          }
-          setClusterSettings(newClusterSettings);
-        });
+    const clusterSettingsPromise = updateClusterSettings(newClusterSettings).then((response) => {
+      if (!response.success) {
+        throw new Error(response.error);
+      }
+      setClusterSettings(newClusterSettings);
+    });
 
-    const defaultDeploymentModePromise = defaultDeploymentModeUnchanged
-      ? Promise.resolve()
-      : dsc &&
-        patchDefaultDeploymentMode(defaultDeploymentMode, dsc.metadata.name).then(() => {
-          setDefaultSingleModelDeploymentMode(defaultDeploymentMode);
-          refreshDsc();
-        });
-
-    Promise.all([clusterSettingsPromise, defaultDeploymentModePromise])
+    clusterSettingsPromise
       .then(() => {
         dispatch(
           addNotification({
@@ -177,9 +152,9 @@ const ClusterSettings: React.FC = () => {
         <TitleWithIcon title="General settings" objectType={ProjectObjectType.clusterSettings} />
       }
       description="Manage global settings for all users."
-      loaded={loaded && dscLoaded}
+      loaded={loaded}
       empty={false}
-      loadError={loadError || dscError}
+      loadError={loadError}
       errorMessage="Unable to load cluster settings."
       emptyMessage="No cluster settings found."
       provideChildrenPadding
@@ -191,8 +166,6 @@ const ClusterSettings: React.FC = () => {
               initialValue={clusterSettings.modelServingPlatformEnabled}
               enabledPlatforms={modelServingEnabledPlatforms}
               setEnabledPlatforms={setModelServingEnabledPlatforms}
-              defaultDeploymentMode={defaultDeploymentMode}
-              setDefaultDeploymentMode={setDefaultDeploymentMode}
             />
           </StackItem>
         )}
