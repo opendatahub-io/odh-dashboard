@@ -88,9 +88,7 @@ export const AIAssetsPage: React.FC = () => {
           hidden={activeTabKey !== AIAssetsPageTabKey.MCP_SERVERS}
         >
           <TabContentBody>
-            <TabContentBody>
-              {activeTabKey === AIAssetsPageTabKey.MCP_SERVERS && <AIAssetsMCPTabWithContext />}
-            </TabContentBody>
+            {activeTabKey === AIAssetsPageTabKey.MCP_SERVERS && <AIAssetsMCPTabWithContext />}
           </TabContentBody>
         </TabContent>
       </PageSection>
