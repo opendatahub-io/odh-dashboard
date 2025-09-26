@@ -1,8 +1,6 @@
-name: E2E Direct Commit PR Tests
+name: E2E Tests
 
-on:
-  issue_comment:
-    types: [created]
+on: [push, pull_request]
 
 permissions:
   contents: read
@@ -14,14 +12,7 @@ env:
   DO_NOT_TRACK: 1
 
 jobs:
-  check-comment:
-    runs-on: ubuntu-latest
-    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-e2e-tests-gh') }}
-    steps:
-      - run: echo "E2E tests requested via /run-e2e-tests-gh comment"
-
   get-test-tags:
-    needs: [check-comment]
     runs-on: self-hosted
     outputs:
       test-tags: ${{ steps.set-tags.outputs.test-tags }}
@@ -38,8 +29,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event_name == 'pull_request' && format('refs/pull/{0}/head', github.event.number) || github.ref }}
 
       - name: Cache npm dependencies
         uses: actions/cache@v4
@@ -349,8 +338,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: refs/pull/${{ github.event.issue.number }}/head
 
       - name: Cache npm dependencies
         uses: actions/cache@v4
@@ -482,8 +469,7 @@ jobs:
           echo "Repository: ${{ github.repository }}"
           echo "Repository owner: ${{ github.repository_owner }}"
           echo "Ref: ${{ github.ref }}"
-          echo "Base ref: ${{ github.base_ref }}"
-          echo "Head ref: ${{ github.head_ref }}"
+          echo "SHA: ${{ github.sha }}"
 
           # Check for specific secrets without revealing values
           if [ -n "${{ secrets.GITLAB_TOKEN }}" ]; then
@@ -573,13 +559,12 @@ jobs:
             echo "🔍 DEBUG INFO:"
             echo "- Repository: ${{ github.repository }}"
             echo "- Event: ${{ github.event_name }}"
-            echo "- Is fork: $([ '${{ github.repository_owner }}' != 'opendatahub-io' ] && echo 'YES' || echo 'NO')"
-            echo "- Base repo: ${{ github.base_ref && github.repository || 'N/A' }}"
+            echo "- Branch: ${{ github.ref_name }}"
+            echo "- SHA: ${{ github.sha }}"
             echo ""
             echo "💡 POSSIBLE SOLUTIONS:"
-            echo "1. Ensure secrets are configured in upstream repo (opendatahub-io/odh-dashboard)"
-            "2. For testing, secrets need to be available when PR is merged"
-            "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
+            echo "1. Ensure secrets are configured in the repository"
+            echo "2. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
             exit 1
           fi
 
