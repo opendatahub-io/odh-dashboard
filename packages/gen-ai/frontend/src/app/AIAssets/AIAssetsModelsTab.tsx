@@ -4,8 +4,8 @@ import { Namespace } from 'mod-arch-core';
 import { useNavigate } from 'react-router-dom';
 import ModelsEmptyState from '~/app/EmptyStates/NoData';
 import { LlamaModel, AIModel } from '~/app/types';
+import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
 import AIModelsTable from './components/AIModelsTable';
-import { genAiChatPlaygroundRoute } from '../utilities/routes';
 
 type AIAssetsModelsTabProps = {
   models: AIModel[];
