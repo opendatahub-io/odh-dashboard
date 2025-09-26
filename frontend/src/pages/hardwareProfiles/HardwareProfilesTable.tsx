@@ -111,7 +111,9 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
     () =>
       hardwareProfileColumns.filter(
         (column) =>
-          (isMigratedTable && column.field !== 'last_modified') ||
+          (isMigratedTable &&
+            column.field !== 'last_modified' &&
+            column.field !== 'drag-drop-handle') ||
           (!isMigratedTable && column.field !== 'source'),
       ),
     [isMigratedTable],
@@ -126,7 +128,7 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
     filteredColumns,
     [],
     undefined,
-    true,
+    !isMigratedTable,
   );
   const displayedHardwareProfiles = transformData(orderedHardwareProfiles);
   const currentOrder = displayedHardwareProfiles.map((profile) => profile.metadata.name);
