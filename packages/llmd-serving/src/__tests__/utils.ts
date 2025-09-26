@@ -1,4 +1,3 @@
-import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
 import { genUID } from '@odh-dashboard/internal/__mocks__/mockUtils';
 import type { LLMInferenceServiceKind } from '../types';
 
@@ -29,9 +28,7 @@ export const mockLLMInferenceServiceK8sResource = ({
   creationTimestamp = '2023-03-17T16:12:41Z',
   lastTransitionTime = '2023-03-17T16:12:41Z',
   isReady = true,
-  url = 'http://test-llm-service.test-project.example.com/llm-test/facebook-opt-125m-single',
-  additionalLabels = {},
-  isNonDashboardItem = false,
+  url,
 }: MockLLMInferenceServiceConfigType): LLMInferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1alpha1',
   kind: 'LLMInferenceService',
@@ -44,8 +41,6 @@ export const mockLLMInferenceServiceK8sResource = ({
     generation: 1,
     labels: {
       name,
-      ...additionalLabels,
-      ...(isNonDashboardItem ? {} : { [KnownLabels.DASHBOARD_RESOURCE]: 'true' }),
     },
     name,
     namespace,
@@ -62,6 +57,36 @@ export const mockLLMInferenceServiceK8sResource = ({
       gateway: {},
       route: {},
       scheduler: {},
+    },
+    template: {
+      containers: [
+        {
+          env: [
+            {
+              name: 'VLLM_LOGGING_LEVEL',
+              value: 'DEBUG',
+            },
+          ],
+          image: 'quay.io/pierdipi/vllm-cpu:latest',
+          livenessProbe: {
+            failureThreshold: 5,
+            initialDelaySeconds: 30,
+            periodSeconds: 30,
+            timeoutSeconds: 30,
+          },
+          name: 'main',
+          resources: {
+            limits: {
+              cpu: '2',
+              memory: '8Gi',
+            },
+            requests: {
+              cpu: '1',
+              memory: '4Gi',
+            },
+          },
+        },
+      ],
     },
   },
   status: {
@@ -89,8 +114,7 @@ export const mockLLMInferenceServiceK8sResource = ({
         type: 'MainWorkloadReady',
       },
     ],
-    url,
-    address: { url },
+    url: url || `http://us-east-1.elb.amazonaws.com/${namespace}/${name}`,
     observedGeneration: 1,
   },
 });
