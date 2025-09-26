@@ -1,8 +1,6 @@
 name: E2E Direct Commit PR Tests
 
-on:
-  issue_comment:
-    types: [created]
+on: [push, pull_request]
 
 permissions:
   contents: read
@@ -14,14 +12,7 @@ env:
   DO_NOT_TRACK: 1
 
 jobs:
-  check-comment:
-    runs-on: ubuntu-latest
-    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-e2e-tests-gh') }}
-    steps:
-      - run: echo "E2E tests requested via /run-e2e-tests-gh comment"
-
   get-test-tags:
-    needs: [check-comment]
     runs-on: self-hosted
     outputs:
       test-tags: ${{ steps.set-tags.outputs.test-tags }}
@@ -42,8 +33,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: refs/pull/${{ github.event.issue.number }}/head
 
       - name: Cache npm dependencies
         uses: actions/cache@v4
@@ -481,13 +470,13 @@ jobs:
           echo "📋 Test group: ${{ matrix.test-tag }}"
 
           # Use Jenkins-style command format for proper tag filtering
-          echo "🔄 Using Electron browser (Chrome not available on Fedora)"
+          echo "🔄 Using Chrome browser"
 
           # Create results directory
           mkdir -p "$CY_RESULTS_DIR"
 
           # Run tests against port 4010
-          BASE_URL=http://localhost:4010 npm run cypress:run:electron -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+          BASE_URL=http://localhost:4010 npm run cypress:run:chrome -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Test tag name
         if: ${{ always() }}
