@@ -47,7 +47,7 @@ const CreateModelDeploymentPage: React.FC = () => {
           <EmptyStateFooter>
             <EmptyStateActions>
               <Button variant="primary" onClick={() => navigate(`/ai-hub/deployments/`)}>
-                Return to model serving
+                Return to deployments
               </Button>
             </EmptyStateActions>
           </EmptyStateFooter>

@@ -26,7 +26,7 @@ const ModelRegistryDeploymentsTable: React.FC<ModelRegistryDeploymentsTableProps
   const alertContent = (
     <Alert variant="info" isInline title="Filtered list: Deployments from model registry only">
       This list includes only deployments that were initiated from the model registry. To view and
-      manage all of your deployments, go to the <Link to="/ai-hub/deployments">Model Serving</Link>{' '}
+      manage all of your deployments, go to the <Link to="/ai-hub/deployments">Deployments</Link>{' '}
       page.
     </Alert>
   );
