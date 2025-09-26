@@ -14,9 +14,8 @@ import {
   asClusterAdminUser,
   asProjectAdminUser,
 } from '#~/__tests__/cypress/cypress/utils/mockUsers';
-import { DataScienceStackComponent, StackComponent } from '#~/concepts/areas/types';
-import { DeploymentMode } from '#~/k8sTypes';
-import { mockDashboardConfig, mockK8sResourceList } from '#~/__mocks__';
+import { StackComponent } from '#~/concepts/areas/types';
+import { mockK8sResourceList } from '#~/__mocks__';
 import { DataScienceClusterModel } from '#~/__tests__/cypress/cypress/utils/models';
 import { mockDsc } from '#~/__mocks__/mockDsc';
 
@@ -105,60 +104,5 @@ describe('Cluster Settings', () => {
         }),
       );
     });
-  });
-
-  it('View and Patch KServe defaultDeploymentMode', () => {
-    cy.interceptOdh(
-      'GET /api/config',
-      mockDashboardConfig({
-        disableKServeRaw: false,
-      }),
-    );
-    cy.interceptOdh(
-      'GET /api/dsc/status',
-      mockDscStatus({
-        components: {
-          [DataScienceStackComponent.K_SERVE]: {
-            defaultDeploymentMode: DeploymentMode.RawDeployment,
-          },
-        },
-        installedComponents: { [StackComponent.K_SERVE]: true, [StackComponent.MODEL_MESH]: true },
-      }),
-    );
-    cy.interceptOdh('GET /api/cluster-settings', mockClusterSettings({}));
-    cy.interceptK8s('PATCH', DataScienceClusterModel, mockDsc({}));
-
-    clusterSettings.visit();
-
-    modelServingSettings.findSinglePlatformCheckbox().should('be.checked');
-    modelServingSettings.findSinglePlatformDeploymentModeSelect().should('be.visible');
-
-    modelServingSettings
-      .findSinglePlatformDeploymentModeSelect()
-      .findSelectOption('KServe RawDeployment')
-      .should('have.attr', 'aria-selected', 'true');
-    modelServingSettings
-      .findSinglePlatformDeploymentModeSelect()
-      .findSelectOption('Knative Serverless')
-      .should('have.attr', 'aria-selected', 'false');
-
-    modelServingSettings.findSubmitButton().should('be.disabled');
-    modelServingSettings
-      .findSinglePlatformDeploymentModeSelect()
-      .findSelectOption('Knative Serverless')
-      .click();
-
-    modelServingSettings.findSubmitButton().should('be.enabled');
-    modelServingSettings.findSubmitButton().click();
-    modelServingSettings.findSubmitButton().should('be.disabled');
-
-    modelServingSettings
-      .findSinglePlatformDeploymentModeSelect()
-      .findSelectOption('KServe RawDeployment')
-      .should('have.attr', 'aria-selected', 'false');
-    modelServingSettings
-      .findSinglePlatformDeploymentModeSelect()
-      .findSelectOption('Knative Serverless')
-      .should('have.attr', 'aria-selected', 'true');
   });
 });

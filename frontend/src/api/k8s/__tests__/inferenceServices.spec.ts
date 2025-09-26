@@ -53,17 +53,10 @@ describe('assembleInferenceService', () => {
 
     expect(inferenceService.metadata.annotations).toBeDefined();
     expect(inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe(
-      DeploymentMode.Serverless,
+      DeploymentMode.RawDeployment,
     );
     expect(inferenceService.metadata.annotations?.['security.opendatahub.io/enable-auth']).toBe(
       undefined,
-    );
-    expect(
-      inferenceService.metadata.annotations?.['serving.knative.openshift.io/enablePassthrough'],
-    ).toBe('true');
-    expect(inferenceService.metadata.annotations?.['sidecar.istio.io/inject']).toBe('true');
-    expect(inferenceService.metadata.annotations?.['sidecar.istio.io/rewriteAppHTTPProbers']).toBe(
-      'true',
     );
   });
 
@@ -74,16 +67,9 @@ describe('assembleInferenceService', () => {
 
     expect(inferenceService.metadata.annotations).toBeDefined();
     expect(inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe(
-      DeploymentMode.Serverless,
+      DeploymentMode.RawDeployment,
     );
     expect(inferenceService.metadata.annotations?.['security.opendatahub.io/enable-auth']).toBe(
-      'true',
-    );
-    expect(
-      inferenceService.metadata.annotations?.['serving.knative.openshift.io/enablePassthrough'],
-    ).toBe('true');
-    expect(inferenceService.metadata.annotations?.['sidecar.istio.io/inject']).toBe('true');
-    expect(inferenceService.metadata.annotations?.['sidecar.istio.io/rewriteAppHTTPProbers']).toBe(
       'true',
     );
   });
@@ -111,18 +97,16 @@ describe('assembleInferenceService', () => {
 
   it('should have the right labels when creating for Kserve with public route', async () => {
     const inferenceService = assembleInferenceService(
-      mockInferenceServiceModalData({ externalRoute: false }),
-    );
-
-    expect(inferenceService.metadata.labels?.['networking.knative.dev/visibility']).toBe(
-      'cluster-local',
-    );
-
-    const missingExternalRoute = assembleInferenceService(
       mockInferenceServiceModalData({ externalRoute: true }),
     );
 
-    expect(missingExternalRoute.metadata.labels?.['networking.knative.dev/visibility']).toBe(
+    expect(inferenceService.metadata.labels?.['networking.kserve.io/visibility']).toBe('exposed');
+
+    const missingExternalRoute = assembleInferenceService(
+      mockInferenceServiceModalData({ externalRoute: false }),
+    );
+
+    expect(missingExternalRoute.metadata.labels?.['networking.kserve.io/visibility']).toBe(
       undefined,
     );
   });
@@ -1063,9 +1047,6 @@ describe('assembleInferenceService - Preservation Tests', () => {
 
     // Should add new required annotations
     expect(result.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBeDefined();
-    expect(result.metadata.annotations?.['serving.knative.openshift.io/enablePassthrough']).toBe(
-      'true',
-    );
   });
 
   it('should preserve existing metadata labels when updating inference service', () => {

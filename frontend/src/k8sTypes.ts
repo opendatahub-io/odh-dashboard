@@ -500,7 +500,6 @@ export type SupportedModelFormats = {
 export enum DeploymentMode {
   ModelMesh = 'ModelMesh',
   RawDeployment = 'RawDeployment',
-  Serverless = 'Serverless',
 }
 
 export type InferenceServiceAnnotations = DisplayNameAnnotations &
