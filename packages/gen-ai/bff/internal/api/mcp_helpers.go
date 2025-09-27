@@ -78,12 +78,13 @@ func (app *App) findMCPServerConfig(
 	k8sClient kubernetes.KubernetesClientInterface,
 	identity *integrations.RequestIdentity,
 	decodedURL string,
+	dashboardNamespace string,
 ) (genaiassets.MCPServerConfig, error) {
 	servers, err := app.repositories.MCPClient.GetMCPServersFromConfig(
 		k8sClient,
 		ctx,
 		identity,
-		constants.MCPServerNamespace,
+		dashboardNamespace,
 		constants.MCPServerName,
 	)
 	if err != nil {

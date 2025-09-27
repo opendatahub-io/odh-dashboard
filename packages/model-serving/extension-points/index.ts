@@ -153,6 +153,10 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
     >;
     extractModelFormat: CodeRef<(deployment: D) => SupportedModelFormats | null>;
     extractReplicas: CodeRef<(deployment: D) => number | null>;
+    extractRuntimeArgs: CodeRef<(deployment: D) => { enabled: boolean; args: string[] } | null>;
+    extractEnvironmentVariables: CodeRef<
+      (deployment: D) => { enabled: boolean; variables: { name: string; value: string }[] } | null
+    >;
   }
 >;
 export const isModelServingDeploymentFormDataExtension = <D extends Deployment = Deployment>(

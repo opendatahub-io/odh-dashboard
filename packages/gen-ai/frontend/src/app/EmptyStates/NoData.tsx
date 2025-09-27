@@ -5,8 +5,8 @@ import emptyStateImage from '~/app/bgimages/empty-state.svg';
 type NoDataProps = {
   title: string;
   description: React.ReactNode;
-  actionButtonText: string;
-  handleActionButtonClick: () => void;
+  actionButtonText?: string;
+  handleActionButtonClick?: () => void;
 };
 
 const NoData: React.FC<NoDataProps> = ({
@@ -23,11 +23,13 @@ const NoData: React.FC<NoDataProps> = ({
   >
     <EmptyStateBody>
       {description}
-      <EmptyStateFooter>
-        <Button variant="primary" onClick={handleActionButtonClick}>
-          {actionButtonText}
-        </Button>
-      </EmptyStateFooter>
+      {actionButtonText && handleActionButtonClick && (
+        <EmptyStateFooter>
+          <Button variant="primary" onClick={handleActionButtonClick}>
+            {actionButtonText}
+          </Button>
+        </EmptyStateFooter>
+      )}
     </EmptyStateBody>
   </EmptyState>
 );

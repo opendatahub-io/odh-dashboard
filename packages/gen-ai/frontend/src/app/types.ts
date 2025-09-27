@@ -66,6 +66,12 @@ export type ChatContextMessage = {
   content: string;
 };
 
+export type MCPServerConfig = {
+  server_label: string;
+  server_url: string;
+  headers: Record<string, string>;
+};
+
 export type CreateResponseRequest = {
   input: string;
   model: string;
@@ -75,6 +81,7 @@ export type CreateResponseRequest = {
   top_p?: number;
   instructions?: string;
   stream?: boolean;
+  mcp_servers?: MCPServerConfig[];
 };
 
 export type SimplifiedUsage = {
@@ -106,6 +113,14 @@ export type BackendResponseData = {
   usage?: SimplifiedUsage;
 };
 
+// MCP tool call data extracted from backend response
+export type MCPToolCallData = {
+  serverLabel: string;
+  toolName: string;
+  toolArguments?: string;
+  toolOutput?: string;
+};
+
 // Frontend-friendly response type (flattened)
 export type SimplifiedResponseData = {
   id: string;
@@ -114,6 +129,7 @@ export type SimplifiedResponseData = {
   created_at: number;
   content: string;
   usage?: SimplifiedUsage; // Optional - only present when Llama Stack API returns token data
+  toolCallData?: MCPToolCallData; // Optional - only present when MCP tool calls exist
 };
 
 export type FileError = {
@@ -234,3 +250,21 @@ export interface AIModel extends AAModelResponse {
   internalEndpoint?: string;
   externalEndpoint?: string;
 }
+export type {
+  MCPServerFromAPI,
+  MCPConfigMapInfo,
+  MCPServersResponse,
+  MCPErrorResponse,
+  TokenInfo,
+  MCPToolFromAPI,
+  MCPToolsStatus,
+  MCPToolsResponse,
+  MCPTool,
+  MCPServer,
+  MCPTransportType,
+  MCPServerStatus,
+  MCPConnectionStatus,
+  MCPServerInfo,
+  MCPErrorDetails,
+  MCPServerUIStatus,
+} from './types/mcp';

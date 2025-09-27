@@ -54,6 +54,7 @@ func TestMCPListHandler(t *testing.T) {
 		repositories:            repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
 		kubernetesClientFactory: mockK8sFactory,
 		mcpClientFactory:        mockMCPFactory,
+		dashboardNamespace:      "opendatahub",
 	}
 
 	t.Run("should return list of MCP servers successfully", func(t *testing.T) {

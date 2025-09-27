@@ -966,6 +966,30 @@ class ModelServingWizard extends Wizard {
   findNumReplicasPlusButton() {
     return cy.findByTestId('num-replicas').findByRole('button', { name: 'Plus' });
   }
+
+  findRuntimeArgsCheckbox() {
+    return cy.findByTestId('runtime-args-checkbox');
+  }
+
+  findRuntimeArgsTextBox() {
+    return cy.findByTestId('runtime-args-textarea');
+  }
+
+  findEnvVariablesCheckbox() {
+    return cy.findByTestId('env-vars-checkbox');
+  }
+
+  findAddVariableButton() {
+    return cy.findByTestId('add-environment-variable');
+  }
+
+  findEnvVariableName(key: string) {
+    return cy.findByTestId(`env-var-name-${key}`);
+  }
+
+  findEnvVariableValue(value: string) {
+    return cy.findByTestId(`env-var-value-${value}`);
+  }
 }
 
 export const modelServingGlobal = new ModelServingGlobal();
