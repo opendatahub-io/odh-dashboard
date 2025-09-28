@@ -77,8 +77,13 @@ const SingletonAuthResource: V1ResourceAttributes = {
   name: 'default-auth',
 };
 
-const handleSSARCheck = (v: V1SelfSubjectAccessReview | K8sStatus): boolean =>
-  isK8sStatus(v) ? false : v.status.allowed;
+const handleSSARCheck =
+  (fastify) =>
+  (v: V1SelfSubjectAccessReview | K8sStatus): boolean => {
+    fastify.log.info('>>>>>>>', JSON.stringify(v));
+
+    return isK8sStatus(v) ? false : v.status.allowed;
+  };
 
 export const isUserAdmin = async (
   fastify: KubeFastifyInstance,
@@ -88,7 +93,7 @@ export const isUserAdmin = async (
     ...SingletonAuthResource,
     verb: 'update',
   })
-    .then(handleSSARCheck)
+    .then(handleSSARCheck(fastify))
     .catch(() => false);
 
 export const isUserAllowed = async (
@@ -99,5 +104,5 @@ export const isUserAllowed = async (
     ...SingletonAuthResource,
     verb: 'get',
   })
-    .then(handleSSARCheck)
+    .then(handleSSARCheck(fastify))
     .catch(() => false);
