@@ -91,7 +91,7 @@ export const isUserAdmin = async (
 ): Promise<boolean> =>
   createSelfSubjectAccessReview(fastify, request, {
     ...SingletonAuthResource,
-    verb: 'update',
+    verb: 'patch',
   })
     .then(handleSSARCheck(fastify))
     .catch(() => false);
