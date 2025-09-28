@@ -3152,7 +3152,6 @@ describe('Serving Runtime List', () => {
             displayName: 'Llama Caikit',
             url: 'http://llama-caikit.test-project.svc.cluster.local',
             activeModelState: 'Loaded',
-            isKserveRaw: true,
           }),
         ],
       });
@@ -3468,7 +3467,7 @@ describe('Serving Runtime List', () => {
             displayName: 'Loaded model',
             isModelMesh: false,
             kserveInternalUrl: 'http://test.kserve.svc.cluster.local',
-            kserveInternalLabel: true,
+            hasExternalRoute: true,
             activeModelState: 'Loaded',
           }),
         ],

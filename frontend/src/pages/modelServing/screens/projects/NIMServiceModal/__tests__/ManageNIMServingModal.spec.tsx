@@ -279,7 +279,6 @@ describe('ManageNIMServingModal', () => {
     name: 'test-model',
     project: 'test-project',
     k8sName: 'test-model',
-    isKServeRawDeployment: false,
     format: { name: 'test-model-format' },
   };
 
@@ -676,7 +675,6 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
     name: 'test-model',
     project: 'test-project',
     k8sName: 'test-model',
-    isKServeRawDeployment: false,
     format: { name: 'test-model-format' },
   };
 
