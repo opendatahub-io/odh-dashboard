@@ -3467,7 +3467,7 @@ describe('Serving Runtime List', () => {
             displayName: 'Loaded model',
             isModelMesh: false,
             kserveInternalUrl: 'http://test.kserve.svc.cluster.local',
-            hasExternalRoute: true,
+            hasExternalRoute: false,
             activeModelState: 'Loaded',
           }),
         ],
