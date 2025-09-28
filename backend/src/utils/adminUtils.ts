@@ -80,7 +80,7 @@ const SingletonAuthResource: V1ResourceAttributes = {
 const handleSSARCheck =
   (fastify) =>
   (v: V1SelfSubjectAccessReview | K8sStatus): boolean => {
-    fastify.log.info('>>>>>>>', JSON.stringify(v));
+    fastify.log.info(`>>>>>>> ${JSON.stringify(v)}`);
 
     return isK8sStatus(v) ? false : v.status.allowed;
   };
