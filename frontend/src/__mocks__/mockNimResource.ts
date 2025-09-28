@@ -64,7 +64,7 @@ export const mockNimInferenceService = ({
     modelName: 'test-name',
     displayName,
     namespace,
-    kserveInternalLabel: true,
+    hasExternalRoute: true,
     resources: {
       limits: { cpu: '16', memory: '64Gi' },
       requests: { cpu: '8', memory: '32Gi' },
