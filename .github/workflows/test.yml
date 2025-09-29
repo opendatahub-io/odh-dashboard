@@ -1,13 +1,27 @@
-name: zQuick e2e Test
+name: E2E Direct Commit PR Tests
 
-on: [push, pull_request]
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
 
 env:
   NODE_VERSION: 20.x
   DO_NOT_TRACK: 1
 
 jobs:
+  check-comment:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-e2e-tests-gh') }}
+    steps:
+      - run: echo "E2E tests requested via /run-e2e-tests-gh comment"
+
   get-test-tags:
+    needs: [check-comment]
     runs-on: self-hosted
     outputs:
       test-tags: ${{ steps.set-tags.outputs.test-tags }}
@@ -26,65 +40,22 @@ jobs:
       matrix:
         test-tag: ${{ fromJson(needs.get-test-tags.outputs.test-tags) }}
     steps:
-      - name: Cache npm dependencies
-        uses: actions/cache@v4
-        id: npm-cache
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          path: |
-            ~/.cache/Cypress
-            **/node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-${{ hashFiles('**/package-lock.json') }}-v2
-          restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-
-
-      - name: Clean conflicting cache files
-        if: steps.npm-cache.outputs.cache-hit == 'true'
-        run: |
-          echo "🧹 Cleaning up potential cache conflicts..."
-          # Remove any conflicting Cypress installations
-          if [ -d ~/.cache/Cypress ]; then
-            echo "📦 Found existing Cypress cache, checking for conflicts..."
-            find ~/.cache/Cypress -name "*.js" -newer ~/.cache/Cypress 2>/dev/null | head -10 || echo "No conflicts found"
-            
-            # If we have multiple versions, clean up the older one
-            if [ -d ~/.cache/Cypress/13.17.0 ] && [ -d ~/.cache/Cypress/14.5.4 ]; then
-              echo "🗑️  Removing older Cypress version to prevent conflicts..."
-              rm -rf ~/.cache/Cypress/13.17.0
-            fi
-          fi
-          
-          # Verify Cypress installation
-          if command -v npx &> /dev/null; then
-            echo "🔍 Verifying Cypress installation..."
-            npx cypress version || echo "⚠️  Cypress verification failed, will reinstall"
-          fi
+          ref: refs/pull/${{ github.event.issue.number }}/head
 
       - name: Setup Node.js ${{ env.NODE_VERSION }}
-        if: steps.npm-cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install dependencies
-        if: steps.npm-cache.outputs.cache-hit != 'true'
+      - name: Install dependencies (self-hosted optimized)
         run: |
-          echo "📦 Installing dependencies..."
-          npm ci
-          echo "🔧 Installing/verifying Cypress..."
-          npx cypress install
+          echo "📦 Installing dependencies for self-hosted runner..."
+          # npm ci is already optimized for self-hosted - only installs if package-lock.json changed
+          npm ci --prefer-offline --no-audit --no-fund
           echo "✅ Dependencies installed"
-
-      - name: Verify Cypress installation
-        run: |
-          echo "🔍 Verifying Cypress is properly installed..."
-          npx cypress version
-          if [ $? -eq 0 ]; then
-            echo "✅ Cypress verification successful"
-          else
-            echo "❌ Cypress verification failed, reinstalling..."
-            npx cypress install
-            npx cypress version
-          fi
 
       - name: Cache turbo build artifacts
         uses: actions/cache@v4
@@ -94,18 +65,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
 
-      - name: Cache OpenShift CLI tarball
-        uses: actions/cache@v4
-        id: oc-cache
-        with:
-          path: ${{ runner.temp }}/oc.tar.gz
-          key: ${{ runner.os }}-oc-tarball-${{ env.OC_VERSION || '4.15.0' }}
-
-      - name: Check and Install OpenShift CLI
+      - name: Check and Install OpenShift CLI (self-hosted optimized)
         run: |
           echo "🔍 Checking if OpenShift CLI (oc) is installed..."
 
-          # Check if oc is already installed
+          # Check if oc is already installed (should persist on self-hosted runner)
           if command -v oc &> /dev/null; then
             echo "✅ OpenShift CLI (oc) is already installed"
             oc version --client
@@ -113,21 +77,16 @@ jobs:
             echo "❌ OpenShift CLI (oc) not found, installing..."
             echo "📦 Installing oc CLI for Linux..."
 
-            OC_TARBALL="${{ runner.temp }}/oc.tar.gz"
-
-            # Check if tarball was cached
-            if [ -f "$OC_TARBALL" ]; then
-              echo "✅ Using cached OpenShift CLI tarball"
-            else
-              echo "📥 Downloading OpenShift CLI tarball..."
-              curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz -o "$OC_TARBALL"
-            fi
+            # For self-hosted, download directly without caching complexity
+            echo "📥 Downloading OpenShift CLI..."
+            curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz
 
             # Extract and install oc
             echo "📦 Extracting OpenShift CLI..."
-            tar -xzf "$OC_TARBALL"
+            tar -xzf oc.tar.gz
             sudo mv oc /usr/local/bin/
             sudo chmod +x /usr/local/bin/oc
+            rm -f oc.tar.gz  # Clean up
 
             # Verify installation
             echo "✅ OpenShift CLI installed successfully"
@@ -137,6 +96,48 @@ jobs:
           # Final verification
           echo "🎯 Final oc version check:"
           oc version --client || echo "⚠️  Could not determine oc version"
+
+      - name: Install jq for Cypress tests
+        run: |
+          echo "🔍 Checking if jq is installed..."
+
+          # Check if jq is already installed
+          if command -v jq &> /dev/null; then
+            echo "✅ jq is already installed"
+            jq --version
+          else
+            echo "❌ jq not found, installing..."
+            echo "📦 Installing jq for Linux..."
+
+            if [[ "$RUNNER_OS" == "Linux" ]]; then
+              # For RHEL/Fedora-based systems
+              if command -v dnf &> /dev/null; then
+                echo "📦 Using dnf package manager..."
+                sudo dnf install -y jq
+              elif command -v yum &> /dev/null; then
+                echo "📦 Using yum package manager..."
+                sudo yum install -y jq
+              else
+                # Fallback: download binary directly
+                echo "📥 Downloading jq binary directly..."
+                sudo wget -O /usr/local/bin/jq https://github.com/stedolan/jq/releases/latest/download/jq-linux64
+                sudo chmod +x /usr/local/bin/jq
+              fi
+            fi
+
+            # Verify installation
+            if command -v jq &> /dev/null; then
+              echo "✅ jq installation successful"
+              jq --version
+            else
+              echo "❌ jq installation failed"
+              exit 1
+            fi
+          fi
+
+          # Final verification
+          echo "🎯 Final jq version check:"
+          jq --version || echo "⚠️  Could not determine jq version"
 
       - name: Install Cypress Dependencies
         run: |
@@ -291,8 +292,8 @@ jobs:
             echo ""
             echo "💡 POSSIBLE SOLUTIONS:"
             echo "1. Ensure secrets are configured in upstream repo (opendatahub-io/odh-dashboard)"
-            echo "2. For testing, secrets need to be available when PR is merged"
-            echo "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
+            "2. For testing, secrets need to be available when PR is merged"
+            "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
             exit 1
           fi
 
@@ -305,27 +306,6 @@ jobs:
             exit 0
           fi
 
-          # Install jq if not available
-          if ! command -v jq &> /dev/null; then
-            echo "📦 Installing jq..."
-            if [[ "$RUNNER_OS" == "Linux" ]]; then
-              # For RHEL/Fedora-based systems
-              if command -v dnf &> /dev/null; then
-                sudo dnf install -y jq
-              elif command -v yum &> /dev/null; then
-                sudo yum install -y jq
-              else
-                # Fallback: download binary directly
-                echo "📥 Downloading jq binary..."
-                sudo wget -O /usr/local/bin/jq https://github.com/stedolan/jq/releases/latest/download/jq-linux64
-                sudo chmod +x /usr/local/bin/jq
-              fi
-            fi
-            echo "✅ jq installed: $(jq --version)"
-          else
-            echo "✅ jq already available: $(jq --version)"
-          fi
-
           # Read credentials from downloaded test-variables.yml
           TEST_VARS_FILE="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
 
@@ -335,13 +315,9 @@ jobs:
           # Extract OC_PASSWORD from OCP_ADMIN_USER section
           OC_PASSWORD=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
 
-          # Mask sensitive data in logs (only if not empty)
-          if [ -n "$OC_PASSWORD" ]; then
-            echo "::add-mask::$OC_PASSWORD"
-          fi
-          if [ -n "$OC_USERNAME" ]; then
-            echo "::add-mask::$OC_USERNAME"
-          fi
+          # Mask sensitive data in logs
+          echo "::add-mask::$OC_PASSWORD"
+          echo "::add-mask::$OC_USERNAME"
 
           # Extract TEST_USER_3_AUTH_TYPE from TEST_USER_3 section
           TEST_USER_3_AUTH_TYPE=$(grep -A 10 "^TEST_USER_3:" "$TEST_VARS_FILE" | grep "AUTH_TYPE:" | head -1 | sed 's/.*AUTH_TYPE: //' | tr -d ' ')
@@ -362,53 +338,40 @@ jobs:
           LDAP_CONTRIBUTOR_USERNAME=$(grep -A 10 "^LDAP_CONTRIBUTOR_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
           LDAP_CONTRIBUTOR_PASSWORD=$(grep -A 10 "^LDAP_CONTRIBUTOR_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
 
-          # Mask all credentials in logs (only if not empty)
-          if [ -n "$TEST_USER_3_USERNAME" ]; then
-            echo "::add-mask::$TEST_USER_3_USERNAME"
-          fi
-          if [ -n "$TEST_USER_3_PASSWORD" ]; then
-            echo "::add-mask::$TEST_USER_3_PASSWORD"
-          fi
-          if [ -n "$HTPASSWD_CLUSTER_ADMIN_USERNAME" ]; then
-            echo "::add-mask::$HTPASSWD_CLUSTER_ADMIN_USERNAME"
-          fi
-          if [ -n "$HTPASSWD_CLUSTER_ADMIN_PASSWORD" ]; then
-            echo "::add-mask::$HTPASSWD_CLUSTER_ADMIN_PASSWORD"
-          fi
-          if [ -n "$LDAP_CONTRIBUTOR_USERNAME" ]; then
-            echo "::add-mask::$LDAP_CONTRIBUTOR_USERNAME"
-          fi
-          if [ -n "$LDAP_CONTRIBUTOR_PASSWORD" ]; then
-            echo "::add-mask::$LDAP_CONTRIBUTOR_PASSWORD"
-          fi
+          # Mask all credentials in logs (must happen after extraction)
+          echo "::add-mask::$TEST_USER_3_USERNAME"
+          echo "::add-mask::$TEST_USER_3_PASSWORD"
+          echo "::add-mask::$HTPASSWD_CLUSTER_ADMIN_USERNAME"
+          echo "::add-mask::$HTPASSWD_CLUSTER_ADMIN_PASSWORD"
+          echo "::add-mask::$LDAP_CONTRIBUTOR_USERNAME"
+          echo "::add-mask::$LDAP_CONTRIBUTOR_PASSWORD"
 
           # Export all credentials as environment variables for Cypress
           echo "TEST_USER_3_AUTH_TYPE=$TEST_USER_3_AUTH_TYPE" >> $GITHUB_ENV
           echo "TEST_USER_3_USERNAME=$TEST_USER_3_USERNAME" >> $GITHUB_ENV
           echo "TEST_USER_3_PASSWORD=$TEST_USER_3_PASSWORD" >> $GITHUB_ENV
           
-          # Build JSON safely using jq with compact output for GITHUB_ENV
-          if [ -n "$HTPASSWD_CLUSTER_ADMIN_USERNAME" ] || [ -n "$HTPASSWD_CLUSTER_ADMIN_PASSWORD" ]; then
-            HTPASSWD_JSON=$(jq -n -c \
-              --arg auth_type "$HTPASSWD_CLUSTER_ADMIN_AUTH_TYPE" \
-              --arg username "$HTPASSWD_CLUSTER_ADMIN_USERNAME" \
-              --arg password "$HTPASSWD_CLUSTER_ADMIN_PASSWORD" \
-              '{"AUTH_TYPE": $auth_type, "USERNAME": $username, "PASSWORD": $password}')
-            echo "HTPASSWD_CLUSTER_ADMIN_USER=$HTPASSWD_JSON" >> $GITHUB_ENV
-          else
-            echo "⚠️ HTPASSWD_CLUSTER_ADMIN_USER credentials are empty, skipping JSON creation"
-          fi
-
-          if [ -n "$LDAP_CONTRIBUTOR_USERNAME" ] || [ -n "$LDAP_CONTRIBUTOR_PASSWORD" ]; then
-            LDAP_JSON=$(jq -n -c \
-              --arg auth_type "$LDAP_CONTRIBUTOR_AUTH_TYPE" \
-              --arg username "$LDAP_CONTRIBUTOR_USERNAME" \
-              --arg password "$LDAP_CONTRIBUTOR_PASSWORD" \
-              '{"AUTH_TYPE": $auth_type, "USERNAME": $username, "PASSWORD": $password}')
-            echo "LDAP_CONTRIBUTOR_USER=$LDAP_JSON" >> $GITHUB_ENV
-          else
-            echo "⚠️ LDAP_CONTRIBUTOR_USER credentials are empty, skipping JSON creation"
-          fi
+          # Safely construct JSON objects using jq to prevent shell expansion issues
+          # Export variables for jq to access them without shell interpolation
+          export HTPASSWD_CLUSTER_ADMIN_AUTH_TYPE HTPASSWD_CLUSTER_ADMIN_USERNAME HTPASSWD_CLUSTER_ADMIN_PASSWORD
+          export LDAP_CONTRIBUTOR_AUTH_TYPE LDAP_CONTRIBUTOR_USERNAME LDAP_CONTRIBUTOR_PASSWORD
+          
+          # Build JSON safely using jq with proper escaping
+          HTPASSWD_JSON=$(jq -n \
+            --arg auth_type "$HTPASSWD_CLUSTER_ADMIN_AUTH_TYPE" \
+            --arg username "$HTPASSWD_CLUSTER_ADMIN_USERNAME" \
+            --arg password "$HTPASSWD_CLUSTER_ADMIN_PASSWORD" \
+            '{"AUTH_TYPE": $auth_type, "USERNAME": $username, "PASSWORD": $password}')
+          
+          LDAP_JSON=$(jq -n \
+            --arg auth_type "$LDAP_CONTRIBUTOR_AUTH_TYPE" \
+            --arg username "$LDAP_CONTRIBUTOR_USERNAME" \
+            --arg password "$LDAP_CONTRIBUTOR_PASSWORD" \
+            '{"AUTH_TYPE": $auth_type, "USERNAME": $username, "PASSWORD": $password}')
+          
+          # Write safely constructed JSON to environment
+          echo "HTPASSWD_CLUSTER_ADMIN_USER=$HTPASSWD_JSON" >> $GITHUB_ENV
+          echo "LDAP_CONTRIBUTOR_USER=$LDAP_JSON" >> $GITHUB_ENV
           
           echo "Logging in to OpenShift cluster..."
           oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="${{ secrets.OC_SERVER }}" --insecure-skip-tls-verify
@@ -613,3 +576,4 @@ jobs:
           pkill -f "webpack.*serve" || echo "No webpack processes found"
           pkill -f "node.*4010" || echo "No node processes on port 4010"
           echo "✅ Server cleanup completed"
+
