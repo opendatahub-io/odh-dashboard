@@ -329,8 +329,28 @@ jobs:
           echo "TEST_USER_3_AUTH_TYPE=$TEST_USER_3_AUTH_TYPE" >> $GITHUB_ENV
           echo "TEST_USER_3_USERNAME=$TEST_USER_3_USERNAME" >> $GITHUB_ENV
           echo "TEST_USER_3_PASSWORD=$TEST_USER_3_PASSWORD" >> $GITHUB_ENV
-          echo "HTPASSWD_CLUSTER_ADMIN_USER={\"AUTH_TYPE\":\"$HTPASSWD_CLUSTER_ADMIN_AUTH_TYPE\",\"USERNAME\":\"$HTPASSWD_CLUSTER_ADMIN_USERNAME\",\"PASSWORD\":\"$HTPASSWD_CLUSTER_ADMIN_PASSWORD\"}" >> $GITHUB_ENV
-          echo "LDAP_CONTRIBUTOR_USER={\"AUTH_TYPE\":\"$LDAP_CONTRIBUTOR_AUTH_TYPE\",\"USERNAME\":\"$LDAP_CONTRIBUTOR_USERNAME\",\"PASSWORD\":\"$LDAP_CONTRIBUTOR_PASSWORD\"}" >> $GITHUB_ENV
+          
+          # Safely construct JSON objects using jq to prevent shell expansion issues
+          # Export variables for jq to access them without shell interpolation
+          export HTPASSWD_CLUSTER_ADMIN_AUTH_TYPE HTPASSWD_CLUSTER_ADMIN_USERNAME HTPASSWD_CLUSTER_ADMIN_PASSWORD
+          export LDAP_CONTRIBUTOR_AUTH_TYPE LDAP_CONTRIBUTOR_USERNAME LDAP_CONTRIBUTOR_PASSWORD
+          
+          # Build JSON safely using jq with proper escaping
+          HTPASSWD_JSON=$(jq -n \
+            --arg auth_type "$HTPASSWD_CLUSTER_ADMIN_AUTH_TYPE" \
+            --arg username "$HTPASSWD_CLUSTER_ADMIN_USERNAME" \
+            --arg password "$HTPASSWD_CLUSTER_ADMIN_PASSWORD" \
+            '{"AUTH_TYPE": $auth_type, "USERNAME": $username, "PASSWORD": $password}')
+          
+          LDAP_JSON=$(jq -n \
+            --arg auth_type "$LDAP_CONTRIBUTOR_AUTH_TYPE" \
+            --arg username "$LDAP_CONTRIBUTOR_USERNAME" \
+            --arg password "$LDAP_CONTRIBUTOR_PASSWORD" \
+            '{"AUTH_TYPE": $auth_type, "USERNAME": $username, "PASSWORD": $password}')
+          
+          # Write safely constructed JSON to environment
+          echo "HTPASSWD_CLUSTER_ADMIN_USER=$HTPASSWD_JSON" >> $GITHUB_ENV
+          echo "LDAP_CONTRIBUTOR_USER=$LDAP_JSON" >> $GITHUB_ENV
           
           echo "Logging in to OpenShift cluster..."
           oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="${{ secrets.OC_SERVER }}" --insecure-skip-tls-verify
