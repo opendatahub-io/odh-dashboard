@@ -397,7 +397,7 @@ class KserveTableRow extends TableRow {
   }
 
   findServiceRuntime() {
-    return this.find().find(`[data-label="Serving Runtime"]`);
+    return this.find().find(`[data-label="Serving runtime"]`);
   }
 
   findDetailsTriggerButton() {

@@ -15,7 +15,7 @@ export const columns: SortableData<ServingRuntimeKind>[] = [
   },
   {
     field: 'template-name',
-    label: 'Serving Runtime',
+    label: 'Serving runtime',
     width: 25,
     sortable: false,
   },

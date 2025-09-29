@@ -8,27 +8,21 @@ import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import StateActionToggle from '@odh-dashboard/internal/components/StateActionToggle';
-import DeployedModelsVersion from './DeployedModelsVersion';
 import { DeploymentRowExpandedSection } from './DeploymentsTableRowExpandedSection';
-import DeploymentLastDeployed from './DeploymentLastDeployed';
-import DeploymentStatus from './DeploymentStatus';
-import ModelServingStopModal from './ModelServingStopModal';
-import {
-  useDeploymentExtension,
-  useResolvedDeploymentExtension,
-} from '../../concepts/extensionUtils';
+import DeploymentLastDeployed from '../DeploymentLastDeployed';
+import DeploymentStatus from '../DeploymentStatus';
+import DeployedModelsVersion from '../DeployedModelsVersion';
+import ModelServingStopModal from '../ModelServingStopModal';
+import { useDeploymentExtension } from '../../../concepts/extensionUtils';
 import {
   Deployment,
   DeploymentsTableColumn,
-  isModelServingAuthExtension,
-  isModelServingDeploymentResourcesExtension,
-  isModelServingDeploymentsExpandedInfo,
   isModelServingMetricsExtension,
   isModelServingStartStopAction,
-} from '../../../extension-points';
-import { useModelDeploymentNotification } from '../../concepts/useModelDeploymentNotification';
-import { DeploymentMetricsLink } from '../metrics/DeploymentMetricsLink';
-import useStopModalPreference from '../../concepts/useStopModalPreference';
+} from '../../../../extension-points';
+import { useModelDeploymentNotification } from '../../../concepts/useModelDeploymentNotification';
+import { DeploymentMetricsLink } from '../../metrics/DeploymentMetricsLink';
+import useStopModalPreference from '../../../concepts/useStopModalPreference';
 
 export const DeploymentRow: React.FC<{
   deployment: Deployment;
@@ -36,27 +30,10 @@ export const DeploymentRow: React.FC<{
   onDelete: (deployment: Deployment) => void;
   onEdit: (deployment: Deployment) => void;
   rowIndex: number;
-  showExpandedInfo?: boolean;
-}> = ({ deployment, platformColumns, onDelete, onEdit, rowIndex, showExpandedInfo }) => {
+  showExpandedToggle?: boolean;
+}> = ({ deployment, platformColumns, onDelete, onEdit, rowIndex, showExpandedToggle }) => {
   const metricsExtension = useDeploymentExtension(isModelServingMetricsExtension, deployment);
-  // Loads instantly so we know if the row is expandable
-  const detailsExtension = useDeploymentExtension(
-    isModelServingDeploymentsExpandedInfo,
-    deployment,
-  );
 
-  const [resolvedResourcesExtension] = useResolvedDeploymentExtension(
-    isModelServingDeploymentResourcesExtension,
-    deployment,
-  );
-  const [resolvedExpandedInfoExtension] = useResolvedDeploymentExtension(
-    isModelServingDeploymentsExpandedInfo,
-    deployment,
-  );
-  const [resolvedAuthExtension] = useResolvedDeploymentExtension(
-    isModelServingAuthExtension,
-    deployment,
-  );
   const startStopActionExtension = useDeploymentExtension(
     isModelServingStartStopAction,
     deployment,
@@ -91,9 +68,9 @@ export const DeploymentRow: React.FC<{
   const row = (
     <>
       <ResourceTr resource={deployment.model}>
-        {showExpandedInfo && (
+        {showExpandedToggle && (
           <Td
-            {...(detailsExtension && {
+            {...{
               'data-testid': `${deployment.modelServingPlatformId}-model-row-item`,
               expand: {
                 rowIndex,
@@ -101,7 +78,7 @@ export const DeploymentRow: React.FC<{
                 isExpanded,
                 onToggle: () => setExpanded(!isExpanded),
               },
-            })}
+            }}
           />
         )}
         <Td dataLabel="Name">
@@ -189,18 +166,9 @@ export const DeploymentRow: React.FC<{
           />
         </Td>
       </ResourceTr>
-      {isExpanded &&
-        resolvedResourcesExtension &&
-        resolvedExpandedInfoExtension &&
-        resolvedAuthExtension && (
-          <DeploymentRowExpandedSection
-            deployment={deployment}
-            useResources={resolvedResourcesExtension.properties.useResources}
-            useFramework={resolvedExpandedInfoExtension.properties.useFramework}
-            useReplicas={resolvedExpandedInfoExtension.properties.useReplicas}
-            usePlatformAuth={resolvedAuthExtension.properties.usePlatformAuthEnabled}
-          />
-        )}
+      {showExpandedToggle && (
+        <DeploymentRowExpandedSection deployment={deployment} isVisible={isExpanded} />
+      )}
       {isOpenConfirm && startStopActionExtension && (
         <ModelServingStopModal
           modelName={getDisplayNameFromK8sResource(deployment.model)}
@@ -218,5 +186,5 @@ export const DeploymentRow: React.FC<{
     </>
   );
 
-  return detailsExtension && showExpandedInfo ? <Tbody isExpanded={isExpanded}>{row}</Tbody> : row;
+  return showExpandedToggle ? <Tbody isExpanded={isExpanded}>{row}</Tbody> : row;
 };
