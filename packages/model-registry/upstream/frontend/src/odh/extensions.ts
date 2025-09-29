@@ -71,9 +71,11 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       id: 'settings-model-registry',
       title: 'Model registry settings (KF)',
-      href: '/settings/model-resources-operations/model-registry',
+      // TODO: Change to /settings/model-resources-operations/model-registry once made default
+      href: '/model-registry-settings',
       section: 'settings-model-resources-and-operations',
-      path: '/settings/model-resources-operations/model-registry/*',
+      // TODO: Change to /settings/model-resources-operations/model-registry once made default
+      path: '/model-registry-settings/*',
     },
   },
   {
