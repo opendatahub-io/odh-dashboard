@@ -17,13 +17,14 @@ import { ScopedType } from '@odh-dashboard/internal/pages/modelServing/screens/c
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas/index';
 
 const HardwareProfileNameValue = ({
+  project,
   hardwareProfileConfig,
 }: {
+  project: string;
   hardwareProfileConfig: Parameters<typeof useHardwareProfileConfig>;
 }): React.ReactNode => {
-  const hardwareProfile = useHardwareProfileConfig(...hardwareProfileConfig);
   const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
-  const project = hardwareProfile.initialHardwareProfile?.metadata.namespace;
+  const hardwareProfile = useHardwareProfileConfig(...hardwareProfileConfig);
 
   return (
     <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '250px' }}>

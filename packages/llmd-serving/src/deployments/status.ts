@@ -2,7 +2,6 @@ import type { DeploymentStatus } from '@odh-dashboard/model-serving/extension-po
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { LLMInferenceServiceKind } from '../types';
 
-// https://redhat-internal.slack.com/archives/C062CCKAJ3D/p1758724105720909
 export const getLlmdDeploymentStatus = (
   llmInferenceService: LLMInferenceServiceKind,
 ): DeploymentStatus => {

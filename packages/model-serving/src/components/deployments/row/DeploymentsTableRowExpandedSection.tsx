@@ -138,7 +138,10 @@ export const DeploymentRowExpandedSection: React.FC<{
             <ReplicasItem replicas={replicas} />
             {hardwareProfileConfig?.[1] && <ModelSizeItem resources={hardwareProfileConfig[1]} />}
             {hardwareProfileConfig && (
-              <HardwareProfileNameValue hardwareProfileConfig={hardwareProfileConfig} />
+              <HardwareProfileNameValue
+                project={deployment.model.metadata.namespace}
+                hardwareProfileConfig={hardwareProfileConfig}
+              />
             )}
             <TokenAuthenticationItem deployment={deployment} />
           </Stack>
