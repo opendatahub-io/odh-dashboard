@@ -1376,7 +1376,6 @@ export type LMEvalKind = K8sResourceCommon & {
 export enum HardwareProfileFeatureVisibility {
   WORKBENCH = 'workbench',
   MODEL_SERVING = 'model-serving',
-  PIPELINES = 'pipelines',
 }
 
 export type HardwareProfileKind = K8sResourceCommon & {
