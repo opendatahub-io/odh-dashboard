@@ -10,7 +10,6 @@ import { ModelSourceStepContent } from './steps/ModelSourceStep';
 import { WizardFooterWithDisablingNext } from './WizardFooterWithDisablingNext';
 import { AdvancedSettingsStepContent } from './steps/AdvancedOptionsStep';
 import { ModelDeploymentStepContent } from './steps/ModelDeploymentStep';
-import { DeploymentSummaryStepContent } from './steps/DeploymentSummaryStepContent';
 import { isModelServingDeploy } from '../../../extension-points';
 import { useResolvedPlatformExtension } from '../../concepts/extensionUtils';
 import { ModelServingPlatform } from '../../concepts/useProjectServingPlatform';
@@ -118,7 +117,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
             !validation.isAdvancedSettingsStepValid
           }
         >
-          <DeploymentSummaryStepContent wizardState={wizardState} />
+          Review step content
         </WizardStep>
       </Wizard>
     </ApplicationsPage>
