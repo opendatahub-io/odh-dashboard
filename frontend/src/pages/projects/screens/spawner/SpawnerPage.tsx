@@ -23,14 +23,12 @@ import useNotebookImageData from '#~/pages/projects/screens/detail/notebooks/use
 import NotebookRestartAlert from '#~/pages/projects/components/NotebookRestartAlert';
 import useWillNotebooksRestart from '#~/pages/projects/notebook/useWillNotebooksRestart';
 import CanEnableElyraPipelinesCheck from '#~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
-import AcceleratorProfileSelectField from '#~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import {
   NotebookImageAvailability,
   NotebookImageStatus,
 } from '#~/pages/projects/screens/detail/notebooks/const';
 import useProjectPvcs from '#~/pages/projects/screens/detail/storage/useProjectPvcs';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
@@ -56,7 +54,6 @@ import {
 } from './const';
 import SpawnerFooter from './SpawnerFooter';
 import ImageSelectorField from './imageSelector/ImageSelectorField';
-import ContainerSizeSelector from './deploymentSize/ContainerSizeSelector';
 import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
 import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 import { useDefaultStorageClass } from './storage/useDefaultStorageClass';
@@ -69,7 +66,6 @@ import { defaultClusterStorage } from './storage/constants';
 import { ClusterStorageEmptyState } from './storage/ClusterStorageEmptyState';
 import AttachExistingStorageModal from './storage/AttachExistingStorageModal';
 import WorkbenchStorageModal from './storage/WorkbenchStorageModal';
-import { getCompatibleIdentifiers } from './spawnerUtils';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
@@ -101,7 +97,6 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     imageVersion: undefined,
   });
   const [defaultStorageClass] = useDefaultStorageClass();
-  const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
 
   const {
     data: storages,
@@ -290,35 +285,13 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               id={SpawnerPageSectionID.DEPLOYMENT_SIZE}
               aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.DEPLOYMENT_SIZE]}
             >
-              {!isHardwareProfilesAvailable ? (
-                <>
-                  <ContainerSizeSelector
-                    sizes={sizes}
-                    setValue={setNotebookSize}
-                    value={notebookSize}
-                  />
-                  <AcceleratorProfileSelectField
-                    currentProject={currentProject.metadata.name}
-                    compatibleIdentifiers={
-                      selectedImage.imageStream
-                        ? getCompatibleIdentifiers(selectedImage.imageStream)
-                        : undefined
-                    }
-                    initialState={acceleratorProfileInitialState}
-                    formData={acceleratorProfileFormData}
-                    acceleratorProfilesLoaded={acceleratorProfilesLoaded}
-                    setFormData={setAcceleratorProfileFormData}
-                  />
-                </>
-              ) : (
-                <HardwareProfileFormSection
-                  isEditing={!!existingNotebook}
-                  project={currentProject.metadata.name}
-                  podSpecOptionsState={podSpecOptionsState}
-                  isHardwareProfileSupported={isHardwareProfileSupported}
-                  visibleIn={[HardwareProfileFeatureVisibility.WORKBENCH]}
-                />
-              )}
+              <HardwareProfileFormSection
+                isEditing={!!existingNotebook}
+                project={currentProject.metadata.name}
+                podSpecOptionsState={podSpecOptionsState}
+                isHardwareProfileSupported={isHardwareProfileSupported}
+                visibleIn={[HardwareProfileFeatureVisibility.WORKBENCH]}
+              />
             </FormSection>
             <FormSection
               title={SpawnerPageSectionTitles[SpawnerPageSectionID.ENVIRONMENT_VARIABLES]}
