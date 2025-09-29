@@ -1,6 +1,8 @@
 import React from 'react';
-import { Form, Title, Stack, StackItem, Alert, FormGroup } from '@patternfly/react-core';
+import { Form, Title, Stack, StackItem, Alert, FormGroup, Popover } from '@patternfly/react-core';
 import { AccessReviewResourceAttributes, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
 import { useAccessReview } from '../../../../../../frontend/src/api';
 import { ExternalRouteField } from '../fields/ExternalRouteField';
 import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
@@ -70,10 +72,22 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
             </FormGroup>
           </StackItem>
           <StackItem>
-            <FormGroup label="AI Asset" data-testid="ai-asset-section" fieldId="ai-asset">
+            <FormGroup
+              label="AI Asset"
+              data-testid="ai-asset-section"
+              fieldId="ai-asset"
+              labelHelp={
+                <Popover bodyContent="POPOVER BODY CONTENT" headerContent="POPOVER HEADER CONTENT">
+                  <DashboardPopupIconButton
+                    icon={<OutlinedQuestionCircleIcon />}
+                    aria-label="More info"
+                  />
+                </Popover>
+              }
+            >
               <AvailableAiAssetsFieldsComponent
-                data={wizardState.state.AAAData.data}
-                setData={wizardState.state.AAAData.setData}
+                data={wizardState.state.AiAssetData.data}
+                setData={wizardState.state.AiAssetData.setData}
                 wizardData={wizardState}
               />
             </FormGroup>

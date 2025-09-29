@@ -329,10 +329,10 @@ describe('Model Serving Deploy Wizard', () => {
     // Model access & Token authentication
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
     // AI Asset
-    modelServingWizard.findSaveAsAAACheckbox().should('exist');
-    modelServingWizard.findSaveAsAAACheckbox().should('not.be.checked');
+    modelServingWizard.findSaveAiAssetCheckbox().should('exist');
+    modelServingWizard.findSaveAiAssetCheckbox().should('not.be.checked');
     modelServingWizard.findUseCaseInput().should('not.exist');
-    modelServingWizard.findSaveAsAAACheckbox().click();
+    modelServingWizard.findSaveAiAssetCheckbox().click();
     modelServingWizard.findUseCaseInput().should('exist');
     modelServingWizard.findUseCaseInput().should('be.enabled');
     modelServingWizard.findUseCaseInput().type('test');
@@ -575,7 +575,7 @@ describe('Model Serving Deploy Wizard', () => {
     // Model access & Token authentication
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
 
-    modelServingWizard.findSaveAsAAACheckbox().should('not.exist');
+    modelServingWizard.findSaveAiAssetCheckbox().should('not.exist');
     modelServingWizard.findUseCaseInput().should('not.exist');
 
     modelServingWizard.findExternalRouteCheckbox().click();

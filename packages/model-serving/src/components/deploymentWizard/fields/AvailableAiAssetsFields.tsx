@@ -1,22 +1,12 @@
 import React from 'react';
-import {
-  Form,
-  Checkbox,
-  TextInput,
-  StackItem,
-  Stack,
-  Popover,
-  FormGroup,
-} from '@patternfly/react-core';
+import { Checkbox, TextInput, StackItem, Stack, FormGroup } from '@patternfly/react-core';
 import { z } from 'zod';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
-import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ModelTypeFieldData } from './ModelTypeSelectField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 
 export type AvailableAiAssetsFieldsData = {
-  saveAsAAA: boolean;
+  saveAsAiAsset: boolean;
   useCase?: string;
 };
 
@@ -40,22 +30,22 @@ export const useAvailableAiAssetsFields = (
 ): AvailableAiAssetsFields => {
   const [data, setData] = React.useState<AvailableAiAssetsFieldsData>(
     existingData ?? {
-      saveAsAAA: false,
+      saveAsAiAsset: false,
       useCase: '',
     },
   );
 
-  const AAAData = React.useMemo(() => {
+  const AiAssetData = React.useMemo(() => {
     if (modelType && modelType !== ServingRuntimeModelType.GENERATIVE) {
       return {
-        saveAsAAA: false,
+        saveAsAiAsset: false,
         useCase: '',
       };
     }
     return data;
   }, [data, modelType]);
   return {
-    data: AAAData,
+    data: AiAssetData,
     setData,
   };
 };
@@ -71,60 +61,46 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
   setData,
   wizardData,
 }) => {
-  const resetAAAData = React.useCallback(
+  const resetAiAssetData = React.useCallback(
     (save: boolean) => {
       setData({
-        saveAsAAA: save,
+        saveAsAiAsset: save,
         useCase: '',
       });
     },
     [setData],
   );
-  const showSaveAsAAA = React.useMemo(() => {
+  const showSaveAsAiAsset = React.useMemo(() => {
     if (wizardData.state.modelType.data === ServingRuntimeModelType.GENERATIVE) return true;
     return false;
-  }, [data.saveAsAAA, wizardData.state.modelType.data]);
+  }, [data.saveAsAiAsset, wizardData.state.modelType.data]);
 
   return (
     <>
-      {showSaveAsAAA && (
-        <Form maxWidth="450px">
-          <FormGroup
-            label="AI Asset"
-            labelHelp={
-              <Popover bodyContent="POPOVER BODY CONTENT" headerContent="POPOVER HEADER CONTENT">
-                <DashboardPopupIconButton
-                  icon={<OutlinedQuestionCircleIcon />}
-                  aria-label="More info"
+      {showSaveAsAiAsset && (
+        <Stack hasGutter>
+          <StackItem>
+            <Checkbox
+              id="save-as-ai-asset-checkbox"
+              data-testid="save-as-ai-asset-checkbox"
+              label="Make this deployment available as an AI asset"
+              isChecked={data.saveAsAiAsset}
+              onChange={(_, checked) => resetAiAssetData(checked)}
+            />
+          </StackItem>
+          {data.saveAsAiAsset && (
+            <StackItem>
+              <FormGroup label="Use case">
+                <TextInput
+                  id="use-case-input"
+                  data-testid="use-case-input"
+                  value={data.useCase}
+                  onChange={(_, value) => setData({ ...data, useCase: value })}
                 />
-              </Popover>
-            }
-          >
-            <Stack hasGutter>
-              <StackItem>
-                <Checkbox
-                  id="save-as-aaa-checkbox"
-                  data-testid="save-as-aaa-checkbox"
-                  label="Make this deployment available as an AI asset"
-                  isChecked={data.saveAsAAA}
-                  onChange={(_, checked) => resetAAAData(checked)}
-                />
-              </StackItem>
-              {data.saveAsAAA && (
-                <StackItem>
-                  <FormGroup label="Use case">
-                    <TextInput
-                      id="use-case-input"
-                      data-testid="use-case-input"
-                      value={data.useCase}
-                      onChange={(_, value) => setData({ ...data, useCase: value })}
-                    />
-                  </FormGroup>
-                </StackItem>
-              )}
-            </Stack>
-          </FormGroup>
-        </Form>
+              </FormGroup>
+            </StackItem>
+          )}
+        </Stack>
       )}
     </>
   );

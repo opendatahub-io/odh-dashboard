@@ -8,9 +8,9 @@ import {
 } from '@odh-dashboard/plugin-core';
 import * as _ from 'lodash-es';
 import type { Extension, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/internal/__mocks__/mockK8sNameDescriptionFieldData';
 import { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
+import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { UseModelDeploymentWizardState } from '../components/deploymentWizard/useDeploymentWizard';
 import { ModelServingPlatform } from '../concepts/useProjectServingPlatform';
 
@@ -173,28 +173,25 @@ export const mockDeploymentWizardState = (
           setData: jest.fn(),
           updateField: jest.fn(),
         },
+        runtimeArgs: {
+          data: undefined,
+          setData: jest.fn(),
+        },
+        environmentVariables: {
+          data: undefined,
+          setData: jest.fn(),
+        },
         numReplicas: {
           data: undefined,
           setReplicas: jest.fn(),
         },
-        AAAData: {
+        AiAssetData: {
           data: {
-            saveAsAAA: false,
+            saveAsAiAsset: false,
             useCase: '',
-            description: '',
           },
           setData: jest.fn(),
         },
-      },
-      data: {
-        externalRouteField: undefined,
-        tokenAuthenticationField: undefined,
-      },
-      handlers: {
-        setExternalRoute: jest.fn(),
-        updateExternalRoute: jest.fn(),
-        setTokenAuthentication: jest.fn(),
-        updateTokenAuthentication: jest.fn(),
       },
     },
     overrides,

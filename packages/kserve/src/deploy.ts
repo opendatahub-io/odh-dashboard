@@ -31,7 +31,7 @@ export type CreatingInferenceServiceObject = {
   numReplicas?: NumReplicasFieldData;
   runtimeArgs?: RuntimeArgsFieldData;
   environmentVariables?: EnvironmentVariablesFieldData;
-  AAAData?: AvailableAiAssetsFieldsData;
+  AiAssetData?: AvailableAiAssetsFieldsData;
 };
 
 export const deployKServeDeployment = async (
@@ -61,7 +61,7 @@ export const deployKServeDeployment = async (
     numReplicas: wizardData.numReplicas.data,
     runtimeArgs: wizardData.runtimeArgs.data,
     environmentVariables: wizardData.environmentVariables.data,
-    AAAData: wizardData.AAAData.data,
+    AiAssetData: wizardData.AiAssetData.data,
   };
 
   const inferenceService = await createInferenceService(
@@ -190,7 +190,7 @@ const applyAnnotations = (
   annotations: Record<string, string>,
   data: CreatingInferenceServiceObject,
 ) => {
-  const { name, description, modelType, hardwareProfile, tokenAuth, AAAData } = data;
+  const { name, description, modelType, hardwareProfile, tokenAuth, AiAssetData } = data;
   const updatedAnnotations = { ...annotations };
   updatedAnnotations['openshift.io/display-name'] = name.trim();
   if (description) {
@@ -213,10 +213,10 @@ const applyAnnotations = (
   if (tokenAuth && tokenAuth.length > 0) {
     updatedAnnotations['security.opendatahub.io/enable-auth'] = 'true';
   }
-  if (AAAData?.saveAsAAA === true) {
+  if (AiAssetData?.saveAsAiAsset === true) {
     updatedAnnotations['opendatahub.io/genai-asset'] = 'true';
-    if (AAAData.useCase) {
-      updatedAnnotations['opendatahub.io/genai-use-case'] = AAAData.useCase;
+    if (AiAssetData.useCase) {
+      updatedAnnotations['opendatahub.io/genai-use-case'] = AiAssetData.useCase;
     }
   }
   return updatedAnnotations;

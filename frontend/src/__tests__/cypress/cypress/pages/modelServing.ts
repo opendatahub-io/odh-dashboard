@@ -1017,8 +1017,8 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId(`env-var-value-${value}`);
   }
 
-  findSaveAsAAACheckbox() {
-    return cy.findByTestId('save-as-aaa-checkbox');
+  findSaveAiAssetCheckbox() {
+    return cy.findByTestId('save-as-ai-asset-checkbox');
   }
 
   findUseCaseInput() {

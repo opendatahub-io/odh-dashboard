@@ -11,22 +11,22 @@ import { mockDeploymentWizardState } from '../../../../__tests__/mockUtils';
 
 describe('AvailableAiAssetsFields', () => {
   describe('Schema validation', () => {
-    it('should validate saveAsAAA', () => {
-      const result = availableAiAssetsFieldsSchema.safeParse({ saveAsAAA: true });
+    it('should validate saveAsAiAsset', () => {
+      const result = availableAiAssetsFieldsSchema.safeParse({ saveAsAiAsset: true });
       expect(result.success).toBe(true);
     });
   });
   describe('isValidAvailableAiAssetsFieldsData', () => {
     // Always returns true since all the fields are optional
-    it('should return true if saveAsAAA is false', () => {
+    it('should return true if saveAsAiAsset is false', () => {
       const result = isValidAvailableAiAssetsFieldsData();
       expect(result).toBe(true);
     });
-    it('should return true if saveAsAAA is true and useCase is provided', () => {
+    it('should return true if saveAsAiAsset is true and useCase is provided', () => {
       const result = isValidAvailableAiAssetsFieldsData();
       expect(result).toBe(true);
     });
-    it('should return true if saveAsAAA is true and useCase is not provided', () => {
+    it('should return true if saveAsAiAsset is true and useCase is not provided', () => {
       const result = isValidAvailableAiAssetsFieldsData();
       expect(result).toBe(true);
     });
@@ -42,62 +42,62 @@ describe('AvailableAiAssetsFields', () => {
   describe('useAvailableAiAssetsFields', () => {
     it('should initialize with false by default', () => {
       const { result } = renderHook(() => useAvailableAiAssetsFields());
-      expect(result.current.data).toStrictEqual({ saveAsAAA: false, useCase: '' });
+      expect(result.current.data).toStrictEqual({ saveAsAiAsset: false, useCase: '' });
     });
     it('should initialize with existing data', () => {
       const { result } = renderHook(() =>
-        useAvailableAiAssetsFields({ saveAsAAA: true, useCase: 'test' }),
+        useAvailableAiAssetsFields({ saveAsAiAsset: true, useCase: 'test' }),
       );
-      expect(result.current.data).toStrictEqual({ saveAsAAA: true, useCase: 'test' });
+      expect(result.current.data).toStrictEqual({ saveAsAiAsset: true, useCase: 'test' });
     });
     it('should update data', () => {
       const { result } = renderHook(() => useAvailableAiAssetsFields());
       act(() => {
-        result.current.setData({ saveAsAAA: true, useCase: 'test' });
+        result.current.setData({ saveAsAiAsset: true, useCase: 'test' });
       });
-      expect(result.current.data).toStrictEqual({ saveAsAAA: true, useCase: 'test' });
+      expect(result.current.data).toStrictEqual({ saveAsAiAsset: true, useCase: 'test' });
     });
   });
   describe('AvailableAiAssetsFieldsComponent', () => {
     it('should render with default props', () => {
       render(
         <AvailableAiAssetsFieldsComponent
-          data={{ saveAsAAA: false, useCase: '' }}
+          data={{ saveAsAiAsset: false, useCase: '' }}
           setData={jest.fn()}
           wizardData={mockDeploymentWizardState()}
         />,
       );
-      expect(screen.getByTestId('save-as-aaa-checkbox')).toBeInTheDocument();
-      expect(screen.getByTestId('save-as-aaa-checkbox')).not.toBeChecked();
+      expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeInTheDocument();
+      expect(screen.getByTestId('save-as-ai-asset-checkbox')).not.toBeChecked();
     });
-    it('should render with saveAsAAA true', () => {
+    it('should render with saveAsAiAsset true', () => {
       render(
         <AvailableAiAssetsFieldsComponent
-          data={{ saveAsAAA: true, useCase: '' }}
+          data={{ saveAsAiAsset: true, useCase: '' }}
           setData={jest.fn()}
           wizardData={mockDeploymentWizardState()}
         />,
       );
-      expect(screen.getByTestId('save-as-aaa-checkbox')).toBeInTheDocument();
-      expect(screen.getByTestId('save-as-aaa-checkbox')).toBeChecked();
+      expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeInTheDocument();
+      expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeChecked();
     });
     it('should render with useCase input', () => {
       render(
         <AvailableAiAssetsFieldsComponent
-          data={{ saveAsAAA: true, useCase: 'test' }}
+          data={{ saveAsAiAsset: true, useCase: 'test' }}
           setData={jest.fn()}
           wizardData={mockDeploymentWizardState()}
         />,
       );
-      expect(screen.getByTestId('save-as-aaa-checkbox')).toBeInTheDocument();
-      expect(screen.getByTestId('save-as-aaa-checkbox')).toBeChecked();
+      expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeInTheDocument();
+      expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeChecked();
       expect(screen.getByTestId('use-case-input')).toBeInTheDocument();
       expect(screen.getByTestId('use-case-input')).toHaveValue('test');
     });
-    it('should not show the save as AAA checkbox if the model type is not generative', () => {
+    it('should not show the save as AiAsset checkbox if the model type is not generative', () => {
       render(
         <AvailableAiAssetsFieldsComponent
-          data={{ saveAsAAA: false, useCase: '' }}
+          data={{ saveAsAiAsset: false, useCase: '' }}
           setData={jest.fn()}
           wizardData={mockDeploymentWizardState({
             state: {
@@ -109,7 +109,7 @@ describe('AvailableAiAssetsFields', () => {
           })}
         />,
       );
-      expect(screen.queryByTestId('save-as-aaa-checkbox')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('save-as-ai-asset-checkbox')).not.toBeInTheDocument();
       expect(screen.queryByTestId('use-case-input')).not.toBeInTheDocument();
     });
   });
