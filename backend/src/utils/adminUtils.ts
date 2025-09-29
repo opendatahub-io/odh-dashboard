@@ -12,6 +12,7 @@ import { getAuth } from './resourceUtils';
 import { isK8sStatus } from './pass-through';
 import { createSelfSubjectAccessReview } from './authUtils';
 
+const SYSTEM_AUTHENTICATED = 'system:authenticated';
 /** Usernames with invalid characters can start with `b64:` to keep their unwanted characters */
 export const KUBE_SAFE_PREFIX = 'b64:';
 
@@ -99,10 +100,17 @@ export const isUserAdmin = async (
 export const isUserAllowed = async (
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
-): Promise<boolean> =>
-  createSelfSubjectAccessReview(fastify, request, {
+): Promise<boolean> => {
+  const auth = getAuth();
+  if (auth.spec.allowedGroups.includes(SYSTEM_AUTHENTICATED)) {
+    // Escape hatch -- if everyone is authenticated, we don't need to check
+    return true;
+  }
+
+  return createSelfSubjectAccessReview(fastify, request, {
     ...SingletonAuthResource,
     verb: 'get',
   })
     .then(handleSSARCheck(fastify))
     .catch(() => false);
+};
