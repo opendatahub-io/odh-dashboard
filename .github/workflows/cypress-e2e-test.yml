@@ -1,27 +1,13 @@
-name: E2E Direct Commit PR Tests
+name: zQuick e2e Test
 
-on:
-  issue_comment:
-    types: [created]
-
-permissions:
-  contents: read
-  pull-requests: write
-  issues: write
+on: [push, pull_request]
 
 env:
   NODE_VERSION: 20.x
   DO_NOT_TRACK: 1
 
 jobs:
-  check-comment:
-    runs-on: ubuntu-latest
-    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-e2e-tests-gh') }}
-    steps:
-      - run: echo "E2E tests requested via /run-e2e-tests-gh comment"
-
   get-test-tags:
-    needs: [check-comment]
     runs-on: self-hosted
     outputs:
       test-tags: ${{ steps.set-tags.outputs.test-tags }}
@@ -40,11 +26,6 @@ jobs:
       matrix:
         test-tag: ${{ fromJson(needs.get-test-tags.outputs.test-tags) }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: refs/pull/${{ github.event.issue.number }}/head
-
       - name: Cache npm dependencies
         uses: actions/cache@v4
         id: npm-cache
@@ -307,14 +288,50 @@ jobs:
           # Extract TEST_USER_3_PASSWORD from TEST_USER_3 section
           TEST_USER_3_PASSWORD=$(grep -A 10 "^TEST_USER_3:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
 
-          # Mask TEST_USER_3 credentials in logs (must happen after extraction)
+          # Extract HTPASSWD_CLUSTER_ADMIN_USER credentials
+          HTPASSWD_CLUSTER_ADMIN_AUTH_TYPE=$(grep -A 10 "^HTPASSWD_CLUSTER_ADMIN_USER:" "$TEST_VARS_FILE" | grep "AUTH_TYPE:" | head -1 | sed 's/.*AUTH_TYPE: //' | tr -d ' ')
+          HTPASSWD_CLUSTER_ADMIN_USERNAME=$(grep -A 10 "^HTPASSWD_CLUSTER_ADMIN_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
+          HTPASSWD_CLUSTER_ADMIN_PASSWORD=$(grep -A 10 "^HTPASSWD_CLUSTER_ADMIN_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
+
+          # Extract LDAP_CONTRIBUTOR_USER credentials
+          LDAP_CONTRIBUTOR_AUTH_TYPE=$(grep -A 10 "^LDAP_CONTRIBUTOR_USER:" "$TEST_VARS_FILE" | grep "AUTH_TYPE:" | head -1 | sed 's/.*AUTH_TYPE: //' | tr -d ' ')
+          LDAP_CONTRIBUTOR_USERNAME=$(grep -A 10 "^LDAP_CONTRIBUTOR_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
+          LDAP_CONTRIBUTOR_PASSWORD=$(grep -A 10 "^LDAP_CONTRIBUTOR_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
+
+          # Mask all credentials in logs (must happen after extraction)
           echo "::add-mask::$TEST_USER_3_USERNAME"
           echo "::add-mask::$TEST_USER_3_PASSWORD"
+          echo "::add-mask::$HTPASSWD_CLUSTER_ADMIN_USERNAME"
+          echo "::add-mask::$HTPASSWD_CLUSTER_ADMIN_PASSWORD"
+          echo "::add-mask::$LDAP_CONTRIBUTOR_USERNAME"
+          echo "::add-mask::$LDAP_CONTRIBUTOR_PASSWORD"
 
-          # Export TEST_USER_3 credentials as environment variables for Cypress
+          # Export all credentials as environment variables for Cypress
           echo "TEST_USER_3_AUTH_TYPE=$TEST_USER_3_AUTH_TYPE" >> $GITHUB_ENV
           echo "TEST_USER_3_USERNAME=$TEST_USER_3_USERNAME" >> $GITHUB_ENV
           echo "TEST_USER_3_PASSWORD=$TEST_USER_3_PASSWORD" >> $GITHUB_ENV
+          
+          # Safely construct JSON objects using jq to prevent shell expansion issues
+          # Export variables for jq to access them without shell interpolation
+          export HTPASSWD_CLUSTER_ADMIN_AUTH_TYPE HTPASSWD_CLUSTER_ADMIN_USERNAME HTPASSWD_CLUSTER_ADMIN_PASSWORD
+          export LDAP_CONTRIBUTOR_AUTH_TYPE LDAP_CONTRIBUTOR_USERNAME LDAP_CONTRIBUTOR_PASSWORD
+          
+          # Build JSON safely using jq with proper escaping
+          HTPASSWD_JSON=$(jq -n \
+            --arg auth_type "$HTPASSWD_CLUSTER_ADMIN_AUTH_TYPE" \
+            --arg username "$HTPASSWD_CLUSTER_ADMIN_USERNAME" \
+            --arg password "$HTPASSWD_CLUSTER_ADMIN_PASSWORD" \
+            '{"AUTH_TYPE": $auth_type, "USERNAME": $username, "PASSWORD": $password}')
+          
+          LDAP_JSON=$(jq -n \
+            --arg auth_type "$LDAP_CONTRIBUTOR_AUTH_TYPE" \
+            --arg username "$LDAP_CONTRIBUTOR_USERNAME" \
+            --arg password "$LDAP_CONTRIBUTOR_PASSWORD" \
+            '{"AUTH_TYPE": $auth_type, "USERNAME": $username, "PASSWORD": $password}')
+          
+          # Write safely constructed JSON to environment
+          echo "HTPASSWD_CLUSTER_ADMIN_USER=$HTPASSWD_JSON" >> $GITHUB_ENV
+          echo "LDAP_CONTRIBUTOR_USER=$LDAP_JSON" >> $GITHUB_ENV
           
           echo "Logging in to OpenShift cluster..."
           oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="${{ secrets.OC_SERVER }}" --insecure-skip-tls-verify
@@ -465,13 +482,13 @@ jobs:
           echo "📋 Test group: ${{ matrix.test-tag }}"
 
           # Use Jenkins-style command format for proper tag filtering
-          echo "🔄 Using Electron browser (Chrome not available on Fedora)"
+          echo "🔄 Using Chrome browser"
 
           # Create results directory
           mkdir -p "$CY_RESULTS_DIR"
 
           # Run tests against port 4010
-          BASE_URL=http://localhost:4010 npm run cypress:run:electron -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+          BASE_URL=http://localhost:4010 npm run cypress:run:chrome -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Test tag name
         if: ${{ always() }}
@@ -519,3 +536,4 @@ jobs:
           pkill -f "webpack.*serve" || echo "No webpack processes found"
           pkill -f "node.*4010" || echo "No node processes on port 4010"
           echo "✅ Server cleanup completed"
+
