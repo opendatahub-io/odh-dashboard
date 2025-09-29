@@ -22,7 +22,7 @@ vars:
   - name: oauth-proxy-image
     objref:
       kind: ConfigMap
-      name: odh-dashboard-params
+      name: rhoai-dashboard-params
       apiVersion: v1
     fieldref:
       fieldpath: data.oauth-proxy-image
