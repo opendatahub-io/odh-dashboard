@@ -73,8 +73,6 @@ spec:
                       type: boolean
                     disableAcceleratorProfiles:
                       type: boolean
-                    disableHardwareProfiles:
-                      type: boolean
                     disableDistributedWorkloads:
                       type: boolean
                     disableModelCatalog:
