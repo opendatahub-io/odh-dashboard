@@ -1,4 +1,3 @@
-// Dummy PR for testing Cypress E2E workflow - safe to merge
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import { extractLauncherUrls } from '#~/__tests__/cypress/cypress/utils/urlExtractor';
 import { header } from '#~/__tests__/cypress/cypress/pages/components/Header';
