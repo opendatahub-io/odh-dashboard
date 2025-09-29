@@ -145,6 +145,9 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
     extractEnvironmentVariables: CodeRef<
       (deployment: D) => { enabled: boolean; variables: { name: string; value: string }[] } | null
     >;
+    extractAiAssetData: CodeRef<
+      (deployment: D) => { saveAsAiAsset: boolean; useCase: string } | null
+    >;
   }
 >;
 export const isModelServingDeploymentFormDataExtension = <D extends Deployment = Deployment>(

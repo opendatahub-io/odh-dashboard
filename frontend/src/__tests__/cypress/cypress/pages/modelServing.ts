@@ -1016,6 +1016,14 @@ class ModelServingWizard extends Wizard {
   findEnvVariableValue(value: string) {
     return cy.findByTestId(`env-var-value-${value}`);
   }
+
+  findSaveAiAssetCheckbox() {
+    return cy.findByTestId('save-as-ai-asset-checkbox');
+  }
+
+  findUseCaseInput() {
+    return cy.findByTestId('use-case-input');
+  }
 }
 
 export const modelServingGlobal = new ModelServingGlobal();
