@@ -58,7 +58,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
   servingRuntimeSelected,
   resetModelFormat,
 }) => {
-  const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
+  const isHardwareProfilesAvailable = true;
   const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
 
   const [searchServingRuntime, setSearchServingRuntime] = React.useState('');
@@ -112,11 +112,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
       <FlexItem align={{ default: 'alignRight' }}>
         {compatibleIdentifiers?.some((identifier) =>
           isCompatibleWithIdentifier(identifier, template.objects[0]),
-        ) && (
-          <Label color="blue">
-            Compatible with {isHardwareProfilesAvailable ? 'hardware profile' : 'accelerator'}
-          </Label>
-        )}
+        ) && <Label color="blue">Compatible with hardware profile</Label>}
       </FlexItem>
     </>
   );
