@@ -466,7 +466,6 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
               data={createDataInferenceService}
               setData={setCreateDataInferenceService}
               allowCreate={allowCreate}
-              publicRoute
             />
             {servingRuntimeParamsEnabled && (
               <EnvironmentVariablesSection

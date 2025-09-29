@@ -232,7 +232,6 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
               data={createData}
               setData={setCreateData}
               allowCreate={allowCreate}
-              publicRoute
             />
           </Stack>
         </Form>

@@ -19,14 +19,12 @@ type AuthServingRuntimeSectionProps<D extends CreatingModelServingObjectCommon> 
   data: D;
   setData: UpdateObjectAtPropAndValue<D>;
   allowCreate: boolean;
-  publicRoute?: boolean;
 };
 
 const AuthServingRuntimeSection = <D extends CreatingModelServingObjectCommon>({
   data,
   setData,
   allowCreate,
-  publicRoute,
 }: AuthServingRuntimeSectionProps<D>): React.ReactNode => {
   const createNewToken = React.useCallback(() => {
     const name = 'default-name';
@@ -48,43 +46,35 @@ const AuthServingRuntimeSection = <D extends CreatingModelServingObjectCommon>({
         <StackItem>
           <Popover
             showClose
-            bodyContent={
-              publicRoute
-                ? 'Model route and token authentication can only be changed by administrator users.'
-                : 'Token authentication can only be changed by administrator users and component Authorino needs to be installed.'
-            }
+            bodyContent="Model route and token authentication can only be changed by administrator users."
           >
             <Button variant="link" icon={<OutlinedQuestionCircleIcon />} isInline>
-              {publicRoute
-                ? "Why can't I change the model route and token authentication fields?"
-                : "Why can't I change the token authentication field?"}
+              Why can't I change the model route and token authentication fields?
             </Button>
           </Popover>
         </StackItem>
       )}
-      {publicRoute && (
-        <StackItem>
-          <FormGroup fieldId="alt-form-checkbox-route" label="Model route">
-            <Checkbox
-              label="Make deployed models available through an external route"
-              id="alt-form-checkbox-route"
-              data-testid="alt-form-checkbox-route"
-              name="alt-form-checkbox-route"
-              isChecked={data.externalRoute}
-              isDisabled={!allowCreate}
-              onChange={(e, check) => {
-                setData('externalRoute', check);
-                if (check && allowCreate) {
-                  setData('tokenAuth', check);
-                  if (data.tokens.length === 0) {
-                    createNewToken();
-                  }
+      <StackItem>
+        <FormGroup fieldId="alt-form-checkbox-route" label="Model route">
+          <Checkbox
+            label="Make deployed models available through an external route"
+            id="alt-form-checkbox-route"
+            data-testid="alt-form-checkbox-route"
+            name="alt-form-checkbox-route"
+            isChecked={data.externalRoute}
+            isDisabled={!allowCreate}
+            onChange={(e, check) => {
+              setData('externalRoute', check);
+              if (check && allowCreate) {
+                setData('tokenAuth', check);
+                if (data.tokens.length === 0) {
+                  createNewToken();
                 }
-              }}
-            />
-          </FormGroup>
-        </StackItem>
-      )}
+              }
+            }}
+          />
+        </FormGroup>
+      </StackItem>
       <StackItem>
         <ServingRuntimeTokenSection
           data={data}
@@ -93,8 +83,7 @@ const AuthServingRuntimeSection = <D extends CreatingModelServingObjectCommon>({
           createNewToken={createNewToken}
         />
       </StackItem>
-      {((publicRoute && data.externalRoute && !data.tokenAuth) ||
-        (!publicRoute && !data.tokenAuth)) && (
+      {data.externalRoute && !data.tokenAuth && (
         <StackItem>
           <Alert
             id="external-route-no-token-alert"
@@ -104,21 +93,6 @@ const AuthServingRuntimeSection = <D extends CreatingModelServingObjectCommon>({
             title="Making models available by external routes without requiring authorization can lead to security vulnerabilities."
           />
         </StackItem>
-      )}
-      {publicRoute && data.externalRoute && (
-        <Alert
-          isInline
-          variant="warning"
-          title="Token authentication prerequisite not installed"
-          data-testid="token-authentication-prerequisite-alert"
-        >
-          <p>
-            Making models available through external routes without requiring token authentication
-            can lead to unauthorized access of your model. To enable token authentication, you must
-            first request that your cluster administrator install the Authorino operator on your
-            cluster.
-          </p>
-        </Alert>
       )}
     </Stack>
   );
