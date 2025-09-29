@@ -52,15 +52,12 @@ export const useModelLocationData = (
     return undefined;
   }, [connections, connectionsLoaded, existingData]);
 
-  // For getting the initial connection
-  const loadedConnection = React.useMemo(() => initialConnection, [initialConnection]);
-
   // For user selecting a connection
   const [userSelectedConnection, setUserSelectedConnection] = React.useState<
     Connection | undefined
   >();
 
-  const selectedConnection = userSelectedConnection ?? loadedConnection;
+  const selectedConnection = userSelectedConnection ?? initialConnection;
 
   const updateSelectedConnection = React.useCallback(
     (connection: Connection | undefined) => {
@@ -270,36 +267,34 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
 
   if (modelLocation === ModelLocationType.PVC) {
     return (
-      <>
-        <PvcSelectField
-          pvcs={pvcs}
-          selectedPVC={selectedPVC}
-          pvcNameFromUri={pvcNameFromUri}
-          existingUriOption={modelLocationData?.fieldValues.URI?.toString()}
-          onSelect={(selection?: PersistentVolumeClaimKind | undefined) => {
-            setModelLocationData({
-              type: ModelLocationType.PVC,
-              fieldValues: {
-                URI: selection ? `pvc://${selection.metadata.name}/` : '',
-              },
-              additionalFields: {
-                pvcConnection: selection?.metadata.name ?? '',
-              },
-            });
-          }}
-          setModelUri={(uri: string) => {
-            setModelLocationData({
-              type: ModelLocationType.PVC,
-              fieldValues: {
-                URI: uri || '',
-              },
-              additionalFields: {
-                pvcConnection: modelLocationData?.additionalFields.pvcConnection ?? '',
-              },
-            });
-          }}
-        />
-      </>
+      <PvcSelectField
+        pvcs={pvcs}
+        selectedPVC={selectedPVC}
+        pvcNameFromUri={pvcNameFromUri}
+        existingUriOption={modelLocationData?.fieldValues.URI?.toString()}
+        onSelect={(selection?: PersistentVolumeClaimKind | undefined) => {
+          setModelLocationData({
+            type: ModelLocationType.PVC,
+            fieldValues: {
+              URI: selection ? `pvc://${selection.metadata.name}/` : '',
+            },
+            additionalFields: {
+              pvcConnection: selection?.metadata.name ?? '',
+            },
+          });
+        }}
+        setModelUri={(uri: string) => {
+          setModelLocationData({
+            type: ModelLocationType.PVC,
+            fieldValues: {
+              URI: uri || '',
+            },
+            additionalFields: {
+              pvcConnection: modelLocationData?.additionalFields.pvcConnection ?? '',
+            },
+          });
+        }}
+      />
     );
   }
 

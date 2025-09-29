@@ -5,7 +5,6 @@ import {
   HelperTextItem,
   Stack,
   StackItem,
-  Form,
 } from '@patternfly/react-core';
 import { z, type ZodIssue } from 'zod';
 import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
@@ -120,71 +119,69 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     return baseOptions;
   }, [baseOptions]);
   return (
-    <Form maxWidth="450px">
-      <FormGroup fieldId="model-location-select" label="Model location" isRequired>
-        <FormHelperText>
-          <HelperTextItem>Where is the model you want to deploy located?</HelperTextItem>
-        </FormHelperText>
-        <Stack hasGutter>
-          <StackItem>
-            <SimpleSelect
-              dataTestId="model-location-select"
-              options={selectOptions}
-              onChange={(key) => {
-                if (key === '__placeholder__') {
-                  return;
-                }
-                setSelectedConnection(undefined);
-                resetModelLocationData();
-                if (isValidModelLocation(key)) {
+    <FormGroup fieldId="model-location-select" label="Model location" isRequired>
+      <FormHelperText>
+        <HelperTextItem>Where is the model you want to deploy located?</HelperTextItem>
+      </FormHelperText>
+      <Stack hasGutter>
+        <StackItem>
+          <SimpleSelect
+            dataTestId="model-location-select"
+            options={selectOptions}
+            onChange={(key) => {
+              if (key === '__placeholder__') {
+                return;
+              }
+              setSelectedConnection(undefined);
+              resetModelLocationData();
+              if (isValidModelLocation(key)) {
+                setModelLocationData({
+                  type: key,
+                  fieldValues: {},
+                  additionalFields: {},
+                });
+              } else {
+                const foundConnectionType = modelServingConnectionTypes.find(
+                  (ct) => ct.metadata.name === key,
+                );
+                if (foundConnectionType) {
                   setModelLocationData({
-                    type: key,
+                    type: ModelLocationType.NEW,
+                    connectionTypeObject: foundConnectionType,
                     fieldValues: {},
                     additionalFields: {},
                   });
-                } else {
-                  const foundConnectionType = modelServingConnectionTypes.find(
-                    (ct) => ct.metadata.name === key,
-                  );
-                  if (foundConnectionType) {
-                    setModelLocationData({
-                      type: ModelLocationType.NEW,
-                      connectionTypeObject: foundConnectionType,
-                      fieldValues: {},
-                      additionalFields: {},
-                    });
-                  }
                 }
-              }}
-              onBlur={validationProps?.onBlur}
-              placeholder="Select model location"
-              value={
-                modelLocation === ModelLocationType.NEW && modelLocationData?.connectionTypeObject
-                  ? modelLocationData.connectionTypeObject.metadata.name
-                  : modelLocation
               }
-              toggleProps={{ style: { minWidth: '450px' } }}
+            }}
+            onBlur={validationProps?.onBlur}
+            placeholder="Select model location"
+            value={
+              modelLocation === ModelLocationType.NEW && modelLocationData?.connectionTypeObject
+                ? modelLocationData.connectionTypeObject.metadata.name
+                : modelLocation
+            }
+            toggleProps={{ style: { minWidth: '450px' } }}
+          />
+        </StackItem>
+        <ZodErrorHelperText zodIssue={validationIssues} />
+        {modelLocation && (
+          <StackItem>
+            <ModelLocationInputFields
+              modelLocation={modelLocation}
+              connections={connections}
+              connectionTypes={modelServingConnectionTypes}
+              selectedConnection={selectedConnection}
+              setSelectedConnection={setSelectedConnection}
+              selectedConnectionType={selectedConnectionType}
+              setModelLocationData={setModelLocationData}
+              resetModelLocationData={resetModelLocationData}
+              modelLocationData={modelLocationData}
+              pvcs={pvcs.data}
             />
           </StackItem>
-          <ZodErrorHelperText zodIssue={validationIssues} />
-          {modelLocation && (
-            <StackItem>
-              <ModelLocationInputFields
-                modelLocation={modelLocation}
-                connections={connections}
-                connectionTypes={modelServingConnectionTypes}
-                selectedConnection={selectedConnection}
-                setSelectedConnection={setSelectedConnection}
-                selectedConnectionType={selectedConnectionType}
-                setModelLocationData={setModelLocationData}
-                resetModelLocationData={resetModelLocationData}
-                modelLocationData={modelLocationData}
-                pvcs={pvcs.data}
-              />
-            </StackItem>
-          )}
-        </Stack>
-      </FormGroup>
-    </Form>
+        )}
+      </Stack>
+    </FormGroup>
   );
 };
