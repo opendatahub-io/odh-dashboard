@@ -82,6 +82,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://granite-7b-code.%s.svc.cluster.local:8080", namespace),
 					fmt.Sprintf("external: https://granite-7b-code-%s.example.com", namespace),
 				},
+				Status: "Running",
 			},
 			{
 				ModelName:      "llama-3.1-8b-instruct",
@@ -94,6 +95,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://llama-3.1-8b-instruct.%s.svc.cluster.local:8080", namespace),
 					fmt.Sprintf("external: https://llama-3.1-8b-instruct-%s.example.com", namespace),
 				},
+				Status: "Running",
 			},
 			{
 				ModelName:      "mistral-7b-instruct",
@@ -105,6 +107,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Endpoints: []string{
 					fmt.Sprintf("internal: http://mistral-7b-instruct.%s.svc.cluster.local:8080", namespace),
 				},
+				Status: "Running",
 			},
 			{
 				ModelName:      "ollama/llama3.2:3b",
@@ -117,6 +120,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://llama3.2-3b.%s.svc.cluster.local:11434", namespace),
 					fmt.Sprintf("external: https://llama3.2-3b-%s.example.com", namespace),
 				},
+				Status: "Running",
 			},
 			{
 				ModelName:      "ollama/all-minilm:l6-v2",
@@ -129,10 +133,10 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://all-minilm-l6-v2.%s.svc.cluster.local:11434", namespace),
 					fmt.Sprintf("external: https://all-minilm-l6-v2-%s.example.com", namespace),
 				},
+				Status: "Stop",
 			},
 		}, nil
 	default:
-		// Return empty array for unknown namespaces
 		return []genaiassets.AAModel{}, nil
 	}
 }

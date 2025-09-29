@@ -293,6 +293,7 @@ func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *inte
 			Description:    kc.extractDescriptionFromInferenceService(&isvc),
 			Usecase:        kc.extractUseCaseFromInferenceService(&isvc),
 			Endpoints:      kc.extractEndpoints(&isvc),
+			Status:         kc.extractStatusFromInferenceService(&isvc),
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -382,6 +383,23 @@ func (kc *TokenKubernetesClient) extractEndpoints(isvc *kservev1beta1.InferenceS
 		}
 	}
 	return endpoints
+}
+
+// extractStatusFromInferenceService consolidates all KServe status information into "Running" or "Error"
+func (kc *TokenKubernetesClient) extractStatusFromInferenceService(isvc *kservev1beta1.InferenceService) string {
+	return ExtractStatusFromInferenceService(isvc)
+}
+
+// ExtractStatusFromInferenceService is a pure function that extracts status from InferenceService
+// This function is exported for testing purposes
+func ExtractStatusFromInferenceService(isvc *kservev1beta1.InferenceService) string {
+	// Simply check if the overall service is ready
+	for _, condition := range isvc.Status.Conditions {
+		if condition.Type == "Ready" && condition.Status == "True" {
+			return "Running"
+		}
+	}
+	return "Stop"
 }
 
 func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []string) (*lsdapi.LlamaStackDistribution, error) {
