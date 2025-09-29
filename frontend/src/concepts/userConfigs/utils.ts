@@ -1,30 +1,9 @@
+import * as _ from 'lodash-es';
 import { AuthKind, GroupKind } from '#~/k8sTypes';
 import { getAuth, patchAuth } from '#~/api';
 import { GroupsConfig } from './groupTypes';
 
 const ALL_USERS = 'system:authenticated';
-
-const getError = (array: string[], predicate: (group: string) => boolean): string | undefined => {
-  let error;
-  if (array.length === 0) {
-    error = 'No group is set in the group config, please set one or more group.';
-    // eslint-disable-next-line no-console
-    console.error(error);
-    return error;
-  }
-
-  const missingItems = array.filter(predicate);
-  if (missingItems.length === 0) {
-    return undefined;
-  }
-
-  error = `The group${missingItems.length === 1 ? '' : 's'} ${missingItems.join(
-    ', ',
-  )} no longer exists in OpenShift and has been removed from the selected group list.`;
-  // eslint-disable-next-line no-console
-  console.error(error);
-  return error;
-};
 
 const compileGroupValues = (
   adminGroups: string[],
@@ -35,31 +14,18 @@ const compileGroupValues = (
 
   const data: GroupsConfig = {
     allowedGroups: [
-      ...groupNames.map((name) => ({
+      ..._.uniq([...groupNames, ...allowedGroups, ALL_USERS]).map((name) => ({
         id: name,
         name,
         enabled: allowedGroups.includes(name),
       })),
-      { id: ALL_USERS, name: ALL_USERS, enabled: allowedGroups.includes(ALL_USERS) },
     ],
-    adminGroups: groupNames.map((name) => ({
+    adminGroups: _.uniq([...groupNames, ...adminGroups]).map((name) => ({
       id: name,
       name,
       enabled: adminGroups.includes(name),
     })),
   };
-
-  const errorAdmin = getError(adminGroups, (group) => !groupNames.includes(group));
-  if (errorAdmin) {
-    data.errorAdmin = errorAdmin;
-  }
-  const errorUser = getError(
-    allowedGroups,
-    (group) => !groupNames.includes(group) && group !== ALL_USERS,
-  );
-  if (errorUser) {
-    data.errorUser = errorUser;
-  }
 
   return data;
 };
