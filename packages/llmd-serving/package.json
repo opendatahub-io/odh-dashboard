@@ -11,8 +11,9 @@
     "test:fix": "eslint --ext .js,.ts,.jsx,.tsx . --fix"
   },
   "exports": {
-    "./extensions": "./extensions/index.ts",
-    "./types": "./src/types.ts"
+    "./extensions": "./extensions/extensions.ts",
+    "./types": "./src/types.ts",
+    "./__tests__/utils": "./src/__tests__/utils.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",

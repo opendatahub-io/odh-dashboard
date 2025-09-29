@@ -118,7 +118,7 @@ class ModelServingGlobal {
   }
 
   findServingRuntime(name: string) {
-    return this.findModelsTable().find(`[data-label=Serving Runtime]`).contains(name);
+    return this.findModelsTable().find(`[data-label=Serving runtime]`).contains(name);
   }
 
   findTokenCopyButton(index: number) {
@@ -619,7 +619,7 @@ mixin(KServeModal, [ServingRuntimeModal, InferenceServiceModal]);
 
 class ModelServingRow extends TableRow {
   shouldHaveServingRuntime(servingRuntime: string) {
-    this.find().find('[data-label="Serving Runtime"]').contains(servingRuntime);
+    this.find().find('[data-label="Serving runtime"]').contains(servingRuntime);
     return this;
   }
 
@@ -637,6 +637,22 @@ class ModelServingRow extends TableRow {
 
   findInternalServicePopover() {
     return cy.findByTestId('internal-service-popover');
+  }
+
+  findExternalServiceButton() {
+    return this.find().findByTestId('internal-external-service-button');
+  }
+
+  findExternalServicePopover() {
+    return cy.findByTestId('external-service-popover');
+  }
+
+  findAPIProtocol() {
+    return this.find().find(`[data-label="API protocol"]`);
+  }
+
+  findLastDeployed() {
+    return this.find().find(`[data-label="Last deployed"]`);
   }
 
   findConfirmStopModal() {
@@ -753,7 +769,7 @@ class InferenceServiceRow extends TableRow {
   }
 
   findServingRuntime() {
-    return this.find().find(`[data-label="Serving Runtime"]`);
+    return this.find().find(`[data-label="Serving runtime"]`);
   }
 
   findProject() {
@@ -766,6 +782,12 @@ class InferenceServiceRow extends TableRow {
 }
 
 class ModelServingSection {
+  visit(project: string) {
+    cy.visitWithLogin(`/projects/${project}?section=model-server`);
+    cy.findByTestId(`section-model-server`);
+    cy.testA11y();
+  }
+
   find() {
     return cy.findByTestId('section-model-server');
   }

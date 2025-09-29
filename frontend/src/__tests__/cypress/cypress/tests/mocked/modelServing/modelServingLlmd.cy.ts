@@ -1,13 +1,17 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { LLMInferenceServiceModel } from '@odh-dashboard/llmd-serving/types';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/llmd-serving/__tests__/utils';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
-import { mockLLMInferenceServiceK8sResource } from '#~/__mocks__/mockLLMInferenceServiceK8sResource';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
-import { modelServingGlobal } from '#~/__tests__/cypress/cypress/pages/modelServing';
+import {
+  modelServingGlobal,
+  modelServingSection,
+} from '#~/__tests__/cypress/cypress/pages/modelServing';
 import {
   InferenceServiceModel,
   ProjectModel,
@@ -72,18 +76,20 @@ describe('Model Serving LLMD', () => {
     );
 
     // Visit the model serving page
-    cy.visitWithLogin('/modelServing/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue');
-
-    // Verify LLMD deployment is displayed in the table
-    modelServingGlobal.getModelRow('Facebook OPT 125M').should('exist');
-    modelServingGlobal.getModelRow('Facebook OPT 125M').should('be.visible');
+    modelServingSection.visit('test-project');
 
     // Verify deployment details
-    const llmdRow = modelServingGlobal.getModelRow('Facebook OPT 125M');
-    llmdRow.should('contain', 'Facebook OPT 125M');
-
-    // Check that the status shows as ready
-    llmdRow.findByTestId('deployed-model-name').should('contain', 'Facebook OPT 125M');
+    const row = modelServingSection.getKServeRow('Facebook OPT 125M');
+    row.shouldHaveServingRuntime('Distributed Inference Server with llm-d');
+    row.findExternalServiceButton().click();
+    row.findExternalServicePopover().findByText('External').should('exist');
+    row
+      .findExternalServicePopover()
+      .findByText('http://us-east-1.elb.amazonaws.com/test-project/facebook-opt-125m-single')
+      .should('exist');
+    row.findAPIProtocol().should('have.text', 'REST');
+    row.findLastDeployed().should('have.text', '17 Mar 2023');
+    row.findStatusLabel('Started');
   });
 
   it('should display both KServe and LLMD deployments in the same project', () => {
@@ -128,7 +134,7 @@ describe('Model Serving LLMD', () => {
     );
 
     // Visit the model serving page
-    cy.visitWithLogin('/modelServing/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue');
+    modelServingGlobal.visit('test-project');
 
     // Verify both deployments are displayed in the table
     modelServingGlobal.getModelRow('LLMD Test Model').should('exist');
@@ -173,7 +179,7 @@ describe('Model Serving LLMD', () => {
     );
 
     // Visit the model serving page
-    cy.visitWithLogin('/modelServing/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue');
+    modelServingGlobal.visit('test-project');
 
     // Verify empty state is shown
     modelServingGlobal.shouldBeEmpty();
@@ -209,7 +215,7 @@ describe('Model Serving LLMD', () => {
     );
 
     // Visit the model serving page
-    cy.visitWithLogin('/modelServing/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue');
+    modelServingGlobal.visit('test-project');
 
     // Verify LLMD deployment is displayed even with error status
     modelServingGlobal.getModelRow('Error LLMD Model').should('exist');

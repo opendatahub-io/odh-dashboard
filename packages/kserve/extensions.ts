@@ -6,9 +6,7 @@ import type {
   ModelServingPlatformExtension,
   ModelServingDeleteModal,
   ModelServingPlatformWatchDeploymentsExtension,
-  ModelServingDeploymentsExpandedInfo,
   ModelServingMetricsExtension,
-  ModelServingDeploymentResourcesExtension,
   ModelServingAuthExtension,
   DeployedModelServingDetails,
   ModelServingStartStopAction,
@@ -25,10 +23,8 @@ export const KSERVE_ID = 'kserve';
 const extensions: (
   | ModelServingPlatformExtension<KServeDeployment>
   | ModelServingPlatformWatchDeploymentsExtension<KServeDeployment>
-  | ModelServingDeploymentResourcesExtension<KServeDeployment>
   | ModelServingDeploymentFormDataExtension<KServeDeployment>
   | ModelServingAuthExtension<KServeDeployment>
-  | ModelServingDeploymentsExpandedInfo<KServeDeployment>
   | ModelServingDeleteModal<KServeDeployment>
   | ModelServingMetricsExtension<KServeDeployment>
   | DeployedModelServingDetails<KServeDeployment>
@@ -76,27 +72,11 @@ const extensions: (
     },
   },
   {
-    type: 'model-serving.deployment/resources',
-    properties: {
-      platform: KSERVE_ID,
-      useResources: () => import('./src/useKServeResources').then((m) => m.useKServeResources),
-    },
-  },
-  {
     type: 'model-serving.auth',
     properties: {
       platform: KSERVE_ID,
       usePlatformAuthEnabled: () =>
         import('./src/useAuth').then((m) => m.useKServePlatformAuthEnabled),
-    },
-  },
-  {
-    type: 'model-serving.deployments-table/expanded-info',
-    properties: {
-      platform: KSERVE_ID,
-      useReplicas: () => import('./src/deploymentExpandedDetails').then((m) => m.useKserveReplicas),
-      useFramework: () =>
-        import('./src/deploymentExpandedDetails').then((m) => m.useKserveFramework),
     },
   },
   {
@@ -144,13 +124,12 @@ const extensions: (
     properties: {
       platform: KSERVE_ID,
       extractHardwareProfileConfig: () =>
-        import('./src/useKServeResources').then((m) => m.extractHardwareProfileConfig),
+        import('./src/hardware').then((m) => m.extractHardwareProfileConfig),
       extractModelFormat: () => import('./src/modelFormat').then((m) => m.extractKServeModelFormat),
-      extractReplicas: () => import('./src/useKServeResources').then((m) => m.extractReplicas),
-      extractRuntimeArgs: () =>
-        import('./src/useKServeResources').then((m) => m.extractRuntimeArgs),
+      extractReplicas: () => import('./src/hardware').then((m) => m.extractReplicas),
+      extractRuntimeArgs: () => import('./src/hardware').then((m) => m.extractRuntimeArgs),
       extractEnvironmentVariables: () =>
-        import('./src/useKServeResources').then((m) => m.extractEnvironmentVariables),
+        import('./src/hardware').then((m) => m.extractEnvironmentVariables),
     },
   },
   {
