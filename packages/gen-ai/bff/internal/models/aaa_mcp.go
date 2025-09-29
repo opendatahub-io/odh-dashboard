@@ -1,4 +1,4 @@
-package genaiassets
+package models
 
 // ConnectionStatus represents the status of an MCP server connection
 type ConnectionStatus struct {

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
-	"github.com/opendatahub-io/gen-ai/internal/models/genaiassets"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
 // MockMCPClient implements MCPClientInterface for testing
@@ -17,10 +17,10 @@ type MockMCPClient struct {
 }
 
 // getToolsForServer returns mock tools based on server URL
-func (m *MockMCPClient) getToolsForServer(serverURL string) []genaiassets.Tool {
+func (m *MockMCPClient) getToolsForServer(serverURL string) []models.Tool {
 	switch serverURL {
 	case "http://localhost:9091/mcp":
-		return []genaiassets.Tool{
+		return []models.Tool{
 			{
 				Name:        "kubectl_get_pods",
 				Description: "Get list of pods in a namespace",
@@ -55,7 +55,7 @@ func (m *MockMCPClient) getToolsForServer(serverURL string) []genaiassets.Tool {
 			},
 		}
 	case "http://localhost:9090/sse":
-		return []genaiassets.Tool{
+		return []models.Tool{
 			{
 				Name:        "brave_web_search",
 				Description: "Search the Internet using Brave Search",
@@ -90,7 +90,7 @@ func (m *MockMCPClient) getToolsForServer(serverURL string) []genaiassets.Tool {
 			},
 		}
 	case "http://localhost:9092/default-transport":
-		return []genaiassets.Tool{
+		return []models.Tool{
 			{
 				Name:        "default_transport_tool",
 				Description: "A tool from server with default transport (streamable-http)",
@@ -107,7 +107,7 @@ func (m *MockMCPClient) getToolsForServer(serverURL string) []genaiassets.Tool {
 			},
 		}
 	case "http://localhost:9093/invalid-transport":
-		return []genaiassets.Tool{
+		return []models.Tool{
 			{
 				Name:        "invalid_transport_tool",
 				Description: "A tool from server with invalid transport field (defaults to streamable-http)",
@@ -124,7 +124,7 @@ func (m *MockMCPClient) getToolsForServer(serverURL string) []genaiassets.Tool {
 			},
 		}
 	case "https://api.githubcopilot.com/mcp":
-		return []genaiassets.Tool{
+		return []models.Tool{
 			{
 				Name:        "kubectl_get_pods",
 				Description: "List pods in a Kubernetes namespace",
@@ -221,7 +221,7 @@ func (m *MockMCPClient) getToolsForServer(serverURL string) []genaiassets.Tool {
 			},
 		}
 	default:
-		return []genaiassets.Tool{
+		return []models.Tool{
 			{
 				Name:        "mock_tool",
 				Description: "A mock tool for testing",
@@ -255,7 +255,7 @@ func NewMockMCPClientWithFixedTime(logger *slog.Logger, timestamp int64) *MockMC
 }
 
 // CheckConnectionStatus returns mock connection status
-func (m *MockMCPClient) CheckConnectionStatus(ctx context.Context, identity *integrations.RequestIdentity, serverConfig genaiassets.MCPServerConfig) (*genaiassets.ConnectionStatus, error) {
+func (m *MockMCPClient) CheckConnectionStatus(ctx context.Context, identity *integrations.RequestIdentity, serverConfig models.MCPServerConfig) (*models.ConnectionStatus, error) {
 	if m.logger != nil {
 		m.logger.Debug("Mock: Checking MCP server connection status", "server_url", serverConfig.URL, "transport", serverConfig.Transport)
 	}
@@ -268,7 +268,7 @@ func (m *MockMCPClient) CheckConnectionStatus(ctx context.Context, identity *int
 	switch serverConfig.URL {
 	case "http://localhost:9090/sse":
 		pingMs := int64(25)
-		return &genaiassets.ConnectionStatus{
+		return &models.ConnectionStatus{
 			ServerURL:   serverConfig.URL,
 			Status:      "connected",
 			Message:     "Connection successful",
@@ -286,7 +286,7 @@ func (m *MockMCPClient) CheckConnectionStatus(ctx context.Context, identity *int
 		}, nil
 	case "http://localhost:9091/mcp":
 		pingMs := int64(18)
-		return &genaiassets.ConnectionStatus{
+		return &models.ConnectionStatus{
 			ServerURL:   serverConfig.URL,
 			Status:      "connected",
 			Message:     "Connection successful",
@@ -303,7 +303,7 @@ func (m *MockMCPClient) CheckConnectionStatus(ctx context.Context, identity *int
 			PingResponseTimeMs: &pingMs,
 		}, nil
 	case "https://mcp-unavailable:8080/sse":
-		return &genaiassets.ConnectionStatus{
+		return &models.ConnectionStatus{
 			ServerURL:   serverConfig.URL,
 			Status:      "error",
 			Message:     "Server is not reachable",
@@ -317,14 +317,14 @@ func (m *MockMCPClient) CheckConnectionStatus(ctx context.Context, identity *int
 				Version:         "N/A",
 				ProtocolVersion: "",
 			},
-			ErrorDetails: &genaiassets.ErrorDetails{
+			ErrorDetails: &models.ErrorDetails{
 				Code:       "connection_error",
 				StatusCode: 503,
 				RawError:   "failed to create SSE transport: dial tcp: connection refused",
 			},
 		}, nil
 	case "https://mcp-error:8080/mcp":
-		return &genaiassets.ConnectionStatus{
+		return &models.ConnectionStatus{
 			ServerURL:   serverConfig.URL,
 			Status:      "error",
 			Message:     "Authentication failed",
@@ -338,7 +338,7 @@ func (m *MockMCPClient) CheckConnectionStatus(ctx context.Context, identity *int
 				Version:         "N/A",
 				ProtocolVersion: "",
 			},
-			ErrorDetails: &genaiassets.ErrorDetails{
+			ErrorDetails: &models.ErrorDetails{
 				Code:       "unauthorized",
 				StatusCode: 401,
 				RawError:   "MCP initialization failed: authentication failed",
@@ -346,7 +346,7 @@ func (m *MockMCPClient) CheckConnectionStatus(ctx context.Context, identity *int
 		}, nil
 	case "http://localhost:9092/default-transport":
 		pingMs := int64(32)
-		return &genaiassets.ConnectionStatus{
+		return &models.ConnectionStatus{
 			ServerURL:   serverConfig.URL,
 			Status:      "connected",
 			Message:     "Connection successful",
@@ -364,7 +364,7 @@ func (m *MockMCPClient) CheckConnectionStatus(ctx context.Context, identity *int
 		}, nil
 	case "http://localhost:9093/invalid-transport":
 		pingMs := int64(28)
-		return &genaiassets.ConnectionStatus{
+		return &models.ConnectionStatus{
 			ServerURL:   serverConfig.URL,
 			Status:      "connected",
 			Message:     "Connection successful",
@@ -382,7 +382,7 @@ func (m *MockMCPClient) CheckConnectionStatus(ctx context.Context, identity *int
 		}, nil
 	default:
 		pingMs := int64(42)
-		return &genaiassets.ConnectionStatus{
+		return &models.ConnectionStatus{
 			ServerURL:   serverConfig.URL,
 			Status:      "connected",
 			Message:     "Connection successful",
@@ -402,7 +402,7 @@ func (m *MockMCPClient) CheckConnectionStatus(ctx context.Context, identity *int
 }
 
 // ListToolsWithStatus provides comprehensive tools information (mock implementation)
-func (m *MockMCPClient) ListToolsWithStatus(ctx context.Context, identity *integrations.RequestIdentity, serverConfig genaiassets.MCPServerConfig) (*genaiassets.ToolsStatus, error) {
+func (m *MockMCPClient) ListToolsWithStatus(ctx context.Context, identity *integrations.RequestIdentity, serverConfig models.MCPServerConfig) (*models.ToolsStatus, error) {
 	timestamp := time.Now().Unix()
 	if m.fixedTimestamp != nil {
 		timestamp = *m.fixedTimestamp
@@ -412,7 +412,7 @@ func (m *MockMCPClient) ListToolsWithStatus(ctx context.Context, identity *integ
 	case "http://localhost:9090/sse":
 		mockTools := m.getToolsForServer(serverConfig.URL)
 		toolsCount := len(mockTools)
-		return &genaiassets.ToolsStatus{
+		return &models.ToolsStatus{
 			ServerURL:   serverConfig.URL,
 			Status:      "success",
 			Message:     fmt.Sprintf("Successfully retrieved %d tools", toolsCount),
@@ -433,7 +433,7 @@ func (m *MockMCPClient) ListToolsWithStatus(ctx context.Context, identity *integ
 	case "http://localhost:9091/mcp":
 		mockTools := m.getToolsForServer(serverConfig.URL)
 		toolsCount := len(mockTools)
-		return &genaiassets.ToolsStatus{
+		return &models.ToolsStatus{
 			ServerURL:   serverConfig.URL,
 			Status:      "success",
 			Message:     fmt.Sprintf("Successfully retrieved %d tools", toolsCount),
@@ -452,7 +452,7 @@ func (m *MockMCPClient) ListToolsWithStatus(ctx context.Context, identity *integ
 		}, nil
 
 	case "https://mcp-unavailable:8080/sse":
-		return &genaiassets.ToolsStatus{
+		return &models.ToolsStatus{
 			ServerURL:   serverConfig.URL,
 			Status:      "error",
 			Message:     "Server is not reachable",
@@ -466,8 +466,8 @@ func (m *MockMCPClient) ListToolsWithStatus(ctx context.Context, identity *integ
 				Version:         "N/A",
 				ProtocolVersion: "",
 			},
-			Tools: []genaiassets.Tool{},
-			ErrorDetails: &genaiassets.ErrorDetails{
+			Tools: []models.Tool{},
+			ErrorDetails: &models.ErrorDetails{
 				Code:       "connection_error",
 				StatusCode: 503,
 				RawError:   "failed to create SSE transport: dial tcp: connection refused",
@@ -475,7 +475,7 @@ func (m *MockMCPClient) ListToolsWithStatus(ctx context.Context, identity *integ
 		}, nil
 
 	case "https://mcp-error:8080/mcp":
-		return &genaiassets.ToolsStatus{
+		return &models.ToolsStatus{
 			ServerURL:   serverConfig.URL,
 			Status:      "error",
 			Message:     "Authentication failed",
@@ -489,8 +489,8 @@ func (m *MockMCPClient) ListToolsWithStatus(ctx context.Context, identity *integ
 				Version:         "N/A",
 				ProtocolVersion: "",
 			},
-			Tools: []genaiassets.Tool{},
-			ErrorDetails: &genaiassets.ErrorDetails{
+			Tools: []models.Tool{},
+			ErrorDetails: &models.ErrorDetails{
 				Code:       "unauthorized",
 				StatusCode: 401,
 				RawError:   "MCP initialization failed: authentication failed",
@@ -500,7 +500,7 @@ func (m *MockMCPClient) ListToolsWithStatus(ctx context.Context, identity *integ
 	case "http://localhost:9092/default-transport":
 		mockTools := m.getToolsForServer(serverConfig.URL)
 		toolsCount := len(mockTools)
-		return &genaiassets.ToolsStatus{
+		return &models.ToolsStatus{
 			ServerURL:   serverConfig.URL,
 			Status:      "success",
 			Message:     fmt.Sprintf("Successfully retrieved %d tools", toolsCount),
@@ -521,7 +521,7 @@ func (m *MockMCPClient) ListToolsWithStatus(ctx context.Context, identity *integ
 	case "http://localhost:9093/invalid-transport":
 		mockTools := m.getToolsForServer(serverConfig.URL)
 		toolsCount := len(mockTools)
-		return &genaiassets.ToolsStatus{
+		return &models.ToolsStatus{
 			ServerURL:   serverConfig.URL,
 			Status:      "success",
 			Message:     fmt.Sprintf("Successfully retrieved %d tools", toolsCount),
@@ -542,7 +542,7 @@ func (m *MockMCPClient) ListToolsWithStatus(ctx context.Context, identity *integ
 	default:
 		mockTools := m.getToolsForServer(serverConfig.URL)
 		toolsCount := len(mockTools)
-		return &genaiassets.ToolsStatus{
+		return &models.ToolsStatus{
 			ServerURL:   serverConfig.URL,
 			Status:      "success",
 			Message:     fmt.Sprintf("Successfully retrieved %d tools", toolsCount),

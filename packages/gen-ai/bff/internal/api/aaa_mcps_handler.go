@@ -7,7 +7,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
-	"github.com/opendatahub-io/gen-ai/internal/models/genaiassets"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
 // MCPServerSummary represents a single MCP server for frontend table display
@@ -144,7 +144,7 @@ func (app *App) handleConfigMapError(w http.ResponseWriter, r *http.Request, err
 }
 
 // determineServerStatusFromConfig determines server status based on ConfigMap data only (no MCP calls)
-func (app *App) determineServerStatusFromConfig(config genaiassets.MCPServerConfig) string {
+func (app *App) determineServerStatusFromConfig(config models.MCPServerConfig) string {
 	if config.URL == "" {
 		return "error"
 	}

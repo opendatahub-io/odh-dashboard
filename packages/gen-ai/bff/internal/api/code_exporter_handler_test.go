@@ -122,7 +122,7 @@ func TestGeneratePythonCode(t *testing.T) {
 			Instructions: "You are a helpful AI assistant",
 			Stream:       true,
 			Temperature:  0.5,
-			Tools: []models.Tool{
+			Tools: []models.CodeExportTool{
 				{
 					Type:           "file_search",
 					VectorStoreIDs: []string{"store1", "store2"},
@@ -237,7 +237,7 @@ func TestGeneratePythonCode(t *testing.T) {
 					Purpose: "assistants",
 				},
 			},
-			Tools: []models.Tool{
+			Tools: []models.CodeExportTool{
 				{
 					Type:           "file_search",
 					VectorStoreIDs: []string{}, // Will be populated from vector store
