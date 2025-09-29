@@ -24,11 +24,12 @@
     }
   },
   "dependencies": {
-    "@odh-dashboard/plugin-core": "*",
-    "@odh-dashboard/internal": "*"
+    "@odh-dashboard/internal": "*",
+    "@odh-dashboard/plugin-core": "*"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/tsconfig": "*"
+    "@odh-dashboard/tsconfig": "*",
+    "eslint-plugin-n": "^17.23.1"
   }
 }

@@ -449,3 +449,252 @@ func TestLlamaStackCreateVectorStoreHandler(t *testing.T) {
 		assert.Contains(t, vectorStore, "metadata")
 	})
 }
+
+func TestLlamaStackDeleteVectorStoreHandler(t *testing.T) {
+	// Create test app with mock client (lightweight approach)
+	llamaStackClientFactory := lsmocks.NewMockClientFactory()
+	app := App{
+		config: config.EnvConfig{
+			Port: 4000,
+		},
+		llamaStackClientFactory: llamaStackClientFactory,
+		repositories:            repositories.NewRepositories(),
+	}
+
+	t.Run("successful delete vector store", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodDelete, constants.VectorStoresDeletePath+"?namespace=default&vector_store_id=vs-test123", nil)
+		// Simulate AttachNamespace and AttachLlamaStackClient middleware
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackDeleteVectorStoreHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		responseBody, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response map[string]interface{}
+		err = json.Unmarshal(responseBody, &response)
+		assert.NoError(t, err)
+
+		// Verify envelope structure
+		assert.Contains(t, response, "data")
+		data := response["data"].(map[string]interface{})
+		assert.Equal(t, "vs-test123", data["id"])
+		assert.Equal(t, "vector_store.deleted", data["object"])
+		assert.Equal(t, true, data["deleted"])
+	})
+
+	t.Run("missing vector_store_id parameter", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodDelete, constants.VectorStoresDeletePath+"?namespace=default", nil)
+		// Simulate AttachNamespace and AttachLlamaStackClient middleware
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackDeleteVectorStoreHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("missing LlamaStack client in context", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodDelete, constants.VectorStoresDeletePath+"?namespace=default&vector_store_id=vs-test123", nil)
+		// Simulate AttachNamespace middleware but skip AttachLlamaStackClient
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackDeleteVectorStoreHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	})
+}
+
+func TestLlamaStackListVectorStoreFilesHandler(t *testing.T) {
+	// Create test app with mock client (lightweight approach)
+	llamaStackClientFactory := lsmocks.NewMockClientFactory()
+	app := App{
+		config: config.EnvConfig{
+			Port: 4000,
+		},
+		llamaStackClientFactory: llamaStackClientFactory,
+		repositories:            repositories.NewRepositories(),
+	}
+
+	t.Run("successful list vector store files", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, constants.VectorStoreFilesListPath+"?namespace=default&vector_store_id=vs-test123", nil)
+		// Simulate AttachNamespace and AttachLlamaStackClient middleware
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackListVectorStoreFilesHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		responseBody, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response map[string]interface{}
+		err = json.Unmarshal(responseBody, &response)
+		assert.NoError(t, err)
+
+		// Verify envelope structure
+		assert.Contains(t, response, "data")
+		data := response["data"].([]interface{})
+		assert.Len(t, data, 2) // Mock returns 2 files
+
+		// Verify first file structure
+		firstFile := data[0].(map[string]interface{})
+		assert.Equal(t, "file-mock123abc456def", firstFile["id"])
+		assert.Equal(t, "vector_store.file", firstFile["object"])
+		assert.Equal(t, "vs-test123", firstFile["vector_store_id"])
+		assert.Equal(t, "completed", firstFile["status"])
+	})
+
+	t.Run("list vector store files with query parameters", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, constants.VectorStoreFilesListPath+"?namespace=default&vector_store_id=vs-test123&limit=10&order=desc&filter=completed", nil)
+		// Simulate AttachNamespace and AttachLlamaStackClient middleware
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackListVectorStoreFilesHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		responseBody, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response map[string]interface{}
+		err = json.Unmarshal(responseBody, &response)
+		assert.NoError(t, err)
+
+		// Verify envelope structure
+		assert.Contains(t, response, "data")
+		data := response["data"].([]interface{})
+		assert.Len(t, data, 2) // Mock returns 2 files regardless of parameters
+	})
+
+	t.Run("missing vector_store_id parameter", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, constants.VectorStoreFilesListPath+"?namespace=default", nil)
+		// Simulate AttachNamespace and AttachLlamaStackClient middleware
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackListVectorStoreFilesHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("invalid limit parameter", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, constants.VectorStoreFilesListPath+"?namespace=default&vector_store_id=vs-test123&limit=invalid", nil)
+		// Simulate AttachNamespace and AttachLlamaStackClient middleware
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackListVectorStoreFilesHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+}
+
+func TestLlamaStackDeleteVectorStoreFileHandler(t *testing.T) {
+	// Create test app with mock client (lightweight approach)
+	llamaStackClientFactory := lsmocks.NewMockClientFactory()
+	app := App{
+		config: config.EnvConfig{
+			Port: 4000,
+		},
+		llamaStackClientFactory: llamaStackClientFactory,
+		repositories:            repositories.NewRepositories(),
+	}
+
+	t.Run("successful delete vector store file", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodDelete, constants.VectorStoreFilesDeletePath+"?namespace=default&vector_store_id=vs-test123&file_id=file-test456", nil)
+		// Simulate AttachNamespace and AttachLlamaStackClient middleware
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackDeleteVectorStoreFileHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		responseBody, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response map[string]interface{}
+		err = json.Unmarshal(responseBody, &response)
+		assert.NoError(t, err)
+
+		// Verify envelope structure
+		assert.Contains(t, response, "data")
+		data := response["data"].(map[string]interface{})
+		assert.Equal(t, "file-test456", data["id"])
+		assert.Equal(t, "vector_store.file.deleted", data["object"])
+		assert.Equal(t, true, data["deleted"])
+	})
+
+	t.Run("missing vector_store_id parameter", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodDelete, constants.VectorStoreFilesDeletePath+"?namespace=default&file_id=file-test456", nil)
+		// Simulate AttachNamespace and AttachLlamaStackClient middleware
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackDeleteVectorStoreFileHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("missing file_id parameter", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodDelete, constants.VectorStoreFilesDeletePath+"?namespace=default&vector_store_id=vs-test123", nil)
+		// Simulate AttachNamespace and AttachLlamaStackClient middleware
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackDeleteVectorStoreFileHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("missing LlamaStack client in context", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodDelete, constants.VectorStoreFilesDeletePath+"?namespace=default&vector_store_id=vs-test123&file_id=file-test456", nil)
+		// Simulate AttachNamespace middleware but skip AttachLlamaStackClient
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackDeleteVectorStoreFileHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	})
+}

@@ -96,3 +96,81 @@ func (app *App) LlamaStackUploadFileHandler(w http.ResponseWriter, r *http.Reque
 		app.serverErrorResponse(w, r, err)
 	}
 }
+
+type FilesListResponse = llamastack.APIResponse
+
+// LlamaStackListFilesHandler handles GET /gen-ai/api/v1/lsd/files.
+func (app *App) LlamaStackListFilesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ctx := r.Context()
+
+	// Parse query parameters
+	params := llamastack.ListFilesParams{}
+
+	// Parse limit parameter
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if limit, err := strconv.ParseInt(limitStr, 10, 64); err == nil {
+			params.Limit = &limit
+		} else {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid limit parameter: %s", limitStr))
+			return
+		}
+	}
+
+	// Parse order parameter
+	if order := r.URL.Query().Get("order"); order != "" {
+		params.Order = order
+	}
+
+	// Parse purpose parameter
+	if purpose := r.URL.Query().Get("purpose"); purpose != "" {
+		params.Purpose = purpose
+	}
+
+	result, err := app.repositories.Files.ListFiles(ctx, params)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	// Use envelope pattern for consistent response structure
+	response := FilesListResponse{
+		Data: result,
+	}
+
+	err = app.WriteJSON(w, http.StatusOK, response, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+// LlamaStackDeleteFileHandler handles DELETE /gen-ai/api/v1/lsd/files/delete.
+func (app *App) LlamaStackDeleteFileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ctx := r.Context()
+
+	// Get file_id from query parameter
+	fileID := r.URL.Query().Get("file_id")
+	if fileID == "" {
+		app.badRequestResponse(w, r, errors.New("file_id query parameter is required"))
+		return
+	}
+
+	err := app.repositories.Files.DeleteFile(ctx, fileID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	// Return success response
+	response := llamastack.APIResponse{
+		Data: map[string]interface{}{
+			"id":      fileID,
+			"object":  "file",
+			"deleted": true,
+		},
+	}
+
+	err = app.WriteJSON(w, http.StatusOK, response, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
