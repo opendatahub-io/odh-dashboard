@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Tr, Td } from '@patternfly/react-table';
 import { CheckboxTd, ResourceNameTooltip, TableRowTitleDescription } from 'mod-arch-shared';
 import { Icon } from '@patternfly/react-core';
-import { CheckCircleIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { AIModel } from '~/app/types';
 import { convertAIModelToK8sResource } from '~/app/utilities/utils';
 
@@ -18,7 +18,12 @@ const ChatbotConfigurationTableRow: React.FC<ChatbotConfigurationTableRowProps> 
   onToggleCheck,
 }) => (
   <Tr>
-    <CheckboxTd id={model.model_name} isChecked={isChecked} onToggle={onToggleCheck} />
+    <CheckboxTd
+      id={model.model_name}
+      isChecked={isChecked}
+      isDisabled={model.status !== 'Running'}
+      onToggle={onToggleCheck}
+    />
     <Td dataLabel="Model deployment name">
       <TableRowTitleDescription
         title={
@@ -31,9 +36,8 @@ const ChatbotConfigurationTableRow: React.FC<ChatbotConfigurationTableRowProps> 
       />
     </Td>
     <Td dataLabel="Status">
-      {/* TODO: use status when available */}
-      <Icon status="success" size="md">
-        <CheckCircleIcon />
+      <Icon status={model.status === 'Running' ? 'success' : 'danger'} size="md">
+        {model.status === 'Running' ? <CheckCircleIcon /> : <ExclamationCircleIcon />}
       </Icon>
     </Td>
     <Td dataLabel="Use case">{model.usecase}</Td>

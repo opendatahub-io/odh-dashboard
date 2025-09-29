@@ -13,8 +13,7 @@ export const chatbotConfigurationColumns: SortableData<AIModel>[] = [
   {
     label: 'Status',
     field: 'status',
-    //TODO: add status sortable
-    sortable: false,
+    sortable: (a, b) => a.status.localeCompare(b.status),
     width: 20,
     info: {
       popover: AIModelStatusPopoverContent,

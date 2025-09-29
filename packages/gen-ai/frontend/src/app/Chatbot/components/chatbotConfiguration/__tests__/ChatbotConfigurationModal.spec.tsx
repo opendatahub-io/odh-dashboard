@@ -22,6 +22,7 @@ const createAIModel = (overrides: Partial<AIModel>): AIModel => ({
   api_protocol: 'v2',
   version: 'v1',
   usecase: 'llm',
+  status: 'Running',
   ...overrides,
 });
 
@@ -52,12 +53,25 @@ describe('ChatbotConfigurationModal preSelectedModels', () => {
   const aiA = createAIModel({ model_name: 'mA', display_name: 'A' });
   const aiB = createAIModel({ model_name: 'mB', display_name: 'B' });
   const aiC = createAIModel({ model_name: 'mC', display_name: 'C' });
-  const allModels = [aiA, aiB, aiC];
+  const aiD = createAIModel({ model_name: 'mD', display_name: 'D', status: 'Stop' });
+  const allModels = [aiA, aiB, aiC, aiD];
 
   test('uses existing models only when provided (mapped by id ↔ model_name)', () => {
     const existing: LlamaModel[] = [
       { id: 'mA', object: 'model', created: Date.now(), owned_by: 'x' },
       { id: 'mC', object: 'model', created: Date.now(), owned_by: 'x' },
+    ];
+
+    renderModal({ allModels, existingModels: existing });
+
+    expect(getSelectedModelNames()).toEqual(['mA', 'mC']);
+  });
+
+  test('uses only available existing models (Running status)', () => {
+    const existing: LlamaModel[] = [
+      { id: 'mA', object: 'model', created: Date.now(), owned_by: 'x' },
+      { id: 'mC', object: 'model', created: Date.now(), owned_by: 'x' },
+      { id: 'mD', object: 'model', created: Date.now(), owned_by: 'x' },
     ];
 
     renderModal({ allModels, existingModels: existing });

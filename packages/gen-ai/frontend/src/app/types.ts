@@ -241,6 +241,7 @@ export interface AAModelResponse {
   usecase: string;
   description: string;
   endpoints: string[];
+  status: 'Running' | 'Stop';
   display_name: string;
 }
 

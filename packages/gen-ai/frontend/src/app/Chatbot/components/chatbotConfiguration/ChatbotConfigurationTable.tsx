@@ -24,8 +24,6 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
   selectedModels,
   setSelectedModels,
 }) => {
-  // TODO: Uncomment when status is available and use it instead of all models
-  // const availableModels = allModels.filter((model) => model.status === 'available');
   const { tableProps, isSelected, toggleSelection } = useCheckboxTableBase<AIModel>(
     allModels,
     selectedModels,
@@ -40,29 +38,34 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
     [allModels, search],
   );
 
+  const availableModels = React.useMemo(
+    () => filteredModels.filter((model) => model.status === 'Running'),
+    [filteredModels],
+  );
+
   const selectedModelsIds = selectedModels.map((model) => model.model_name);
-  const filteredModelsIds = filteredModels.map((model) => model.model_name);
+  const availableModelsIds = availableModels.map((model) => model.model_name);
 
   const isAllSelected =
-    filteredModels.length > 0 && filteredModelsIds.every((id) => selectedModelsIds.includes(id));
+    availableModels.length > 0 && availableModelsIds.every((id) => selectedModelsIds.includes(id));
 
   const handleSelectAll = (value: boolean) => {
     setSelectedModels((prev) => {
       // Create a set of the filtered model names
-      const filteredIds = new Set(filteredModels.map((m) => m.model_name));
+      const availableIds = new Set(availableModels.map((m) => m.model_name));
 
       // If the select all checkbox is checked, we want to add the filtered models to the selected models
       if (value) {
         // Create a map of the current selected models by model name
         const byId = new Map(prev.map((m) => [m.model_name, m]));
         // Add the filtered models to the map
-        filteredModels.forEach((m) => byId.set(m.model_name, m));
+        availableModels.forEach((m) => byId.set(m.model_name, m));
         // Return the selected model names as an array from the map
         return Array.from(byId.values());
       }
 
       // If the select all checkbox is unchecked, we want to remove the filtered models from the selected models
-      return prev.filter((m) => !filteredIds.has(m.model_name));
+      return prev.filter((m) => !availableIds.has(m.model_name));
     });
   };
 

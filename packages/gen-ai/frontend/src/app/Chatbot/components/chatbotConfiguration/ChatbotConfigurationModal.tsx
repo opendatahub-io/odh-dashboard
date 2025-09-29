@@ -52,7 +52,12 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     return extraSelectedModels ?? allModels;
   }, [existingModels, extraSelectedModels, allModels]);
 
-  const [selectedModels, setSelectedModels] = React.useState<AIModel[]>(preSelectedModels);
+  const availableModels = React.useMemo(
+    () => preSelectedModels.filter((model) => model.status === 'Running'),
+    [preSelectedModels],
+  );
+
+  const [selectedModels, setSelectedModels] = React.useState<AIModel[]>(availableModels);
 
   const [configuringPlayground, setConfiguringPlayground] = React.useState(false);
   const [error, setError] = React.useState<Error>();
