@@ -39,12 +39,12 @@ const ClusterSettings: React.FC = () => {
   const { dashboardConfig } = useAppContext();
   const modelServingEnabled = useIsAreaAvailable(SupportedArea.MODEL_SERVING).status;
   const isJupyterEnabled = useCheckJupyterEnabled();
-  const isHardwareProfileEnabled = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
-  const [notebookTolerationSettings, setNotebookTolerationSettings] =
-    React.useState<NotebookTolerationFormSettings>({
-      enabled: false,
-      key: isJupyterEnabled ? DEFAULT_TOLERATION_VALUE : '',
-    });
+
+  const notebookTolerationSettings: NotebookTolerationFormSettings = {
+    enabled: false,
+    key: isJupyterEnabled ? DEFAULT_TOLERATION_VALUE : '',
+  };
+
   const [modelServingEnabledPlatforms, setModelServingEnabledPlatforms] =
     React.useState<ModelServingPlatformEnabled>(clusterSettings.modelServingPlatformEnabled);
 
@@ -189,15 +189,6 @@ const ClusterSettings: React.FC = () => {
               initialValue={clusterSettings.userTrackingEnabled}
               enabled={userTrackingEnabled}
               setEnabled={setUserTrackingEnabled}
-            />
-          </StackItem>
-        )}
-        {isJupyterEnabled && !isHardwareProfileEnabled && (
-          <StackItem>
-            <TolerationSettings
-              initialValue={clusterSettings.notebookTolerationSettings}
-              tolerationSettings={notebookTolerationSettings}
-              setTolerationSettings={setNotebookTolerationSettings}
             />
           </StackItem>
         )}
