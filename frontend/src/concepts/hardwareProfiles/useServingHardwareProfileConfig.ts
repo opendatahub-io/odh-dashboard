@@ -16,8 +16,6 @@ export const extractHardwareProfileConfigFromInferenceService = (
   const hardwareProfileNamespace =
     inferenceService?.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'];
 
-  console.log(hardwareProfileNamespace);
-
   return [
     name,
     resources,

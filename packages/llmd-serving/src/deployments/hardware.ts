@@ -5,11 +5,7 @@ import type { LLMdDeployment } from '../types';
 export const extractHardwareProfileConfig = (
   llmdDeployment: LLMdDeployment,
 ): Parameters<typeof useHardwareProfileConfig> => {
-  const legacyName =
-    llmdDeployment.model.metadata.annotations?.['opendatahub.io/legacy-hardware-profile-name'];
-  const name =
-    legacyName ||
-    llmdDeployment.model.metadata.annotations?.['opendatahub.io/hardware-profile-name'];
+  const name = llmdDeployment.model.metadata.annotations?.['opendatahub.io/hardware-profile-name'];
   const resources = llmdDeployment.model.spec.template?.containers?.[0]?.resources;
   const tolerations = undefined;
   const nodeSelector = undefined;
