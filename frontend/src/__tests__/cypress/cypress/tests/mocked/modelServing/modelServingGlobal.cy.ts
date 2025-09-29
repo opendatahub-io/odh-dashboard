@@ -569,6 +569,7 @@ describe('Model Serving Global', () => {
           annotations: {
             'openshift.io/display-name': 'Test Name',
             'serving.kserve.io/deploymentMode': DeploymentMode.ModelMesh,
+            'opendatahub.io/connections': 'test-secret',
           },
         },
         spec: {
@@ -576,7 +577,7 @@ describe('Model Serving Global', () => {
             model: {
               modelFormat: { name: 'onnx', version: '1' },
               runtime: 'test-model',
-              storage: { key: 'test-secret', path: 'test-model/' },
+              storage: { path: 'test-model/' },
               args: [],
               env: [],
             },
@@ -633,6 +634,7 @@ describe('Model Serving Global', () => {
           annotations: {
             'openshift.io/display-name': 'trigger-error',
             'serving.kserve.io/deploymentMode': DeploymentMode.ModelMesh,
+            'opendatahub.io/connections': 'test-secret',
           },
         },
         spec: {
@@ -640,7 +642,7 @@ describe('Model Serving Global', () => {
             model: {
               modelFormat: { name: 'onnx', version: '1' },
               runtime: 'test-model',
-              storage: { key: 'test-secret', path: 'test-model/test-model/' },
+              storage: { path: 'test-model/test-model/' },
               args: [],
               env: [],
             },
