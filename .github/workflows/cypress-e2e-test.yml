@@ -252,8 +252,8 @@ jobs:
             echo ""
             echo "💡 POSSIBLE SOLUTIONS:"
             echo "1. Ensure secrets are configured in upstream repo (opendatahub-io/odh-dashboard)"
-            "2. For testing, secrets need to be available when PR is merged"
-            "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
+            echo "2. For testing, secrets need to be available when PR is merged"
+            echo "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
             exit 1
           fi
 
@@ -311,27 +311,28 @@ jobs:
           echo "TEST_USER_3_USERNAME=$TEST_USER_3_USERNAME" >> $GITHUB_ENV
           echo "TEST_USER_3_PASSWORD=$TEST_USER_3_PASSWORD" >> $GITHUB_ENV
           
-          # Safely construct JSON objects using jq to prevent shell expansion issues
-          # Export variables for jq to access them without shell interpolation
-          export HTPASSWD_CLUSTER_ADMIN_AUTH_TYPE HTPASSWD_CLUSTER_ADMIN_USERNAME HTPASSWD_CLUSTER_ADMIN_PASSWORD
-          export LDAP_CONTRIBUTOR_AUTH_TYPE LDAP_CONTRIBUTOR_USERNAME LDAP_CONTRIBUTOR_PASSWORD
-          
-          # Build JSON safely using jq with proper escaping
-          HTPASSWD_JSON=$(jq -n \
-            --arg auth_type "$HTPASSWD_CLUSTER_ADMIN_AUTH_TYPE" \
-            --arg username "$HTPASSWD_CLUSTER_ADMIN_USERNAME" \
-            --arg password "$HTPASSWD_CLUSTER_ADMIN_PASSWORD" \
-            '{"AUTH_TYPE": $auth_type, "USERNAME": $username, "PASSWORD": $password}')
-          
-          LDAP_JSON=$(jq -n \
-            --arg auth_type "$LDAP_CONTRIBUTOR_AUTH_TYPE" \
-            --arg username "$LDAP_CONTRIBUTOR_USERNAME" \
-            --arg password "$LDAP_CONTRIBUTOR_PASSWORD" \
-            '{"AUTH_TYPE": $auth_type, "USERNAME": $username, "PASSWORD": $password}')
-          
-          # Write safely constructed JSON to environment
-          echo "HTPASSWD_CLUSTER_ADMIN_USER=$HTPASSWD_JSON" >> $GITHUB_ENV
-          echo "LDAP_CONTRIBUTOR_USER=$LDAP_JSON" >> $GITHUB_ENV
+          # Build JSON safely using jq with compact output for GITHUB_ENV
+          if [ -n "$HTPASSWD_CLUSTER_ADMIN_USERNAME" ] || [ -n "$HTPASSWD_CLUSTER_ADMIN_PASSWORD" ]; then
+            HTPASSWD_JSON=$(jq -n -c \
+              --arg auth_type "$HTPASSWD_CLUSTER_ADMIN_AUTH_TYPE" \
+              --arg username "$HTPASSWD_CLUSTER_ADMIN_USERNAME" \
+              --arg password "$HTPASSWD_CLUSTER_ADMIN_PASSWORD" \
+              '{"AUTH_TYPE": $auth_type, "USERNAME": $username, "PASSWORD": $password}')
+            echo "HTPASSWD_CLUSTER_ADMIN_USER=$HTPASSWD_JSON" >> $GITHUB_ENV
+          else
+            echo "⚠️ HTPASSWD_CLUSTER_ADMIN_USER credentials are empty, skipping JSON creation"
+          fi
+
+          if [ -n "$LDAP_CONTRIBUTOR_USERNAME" ] || [ -n "$LDAP_CONTRIBUTOR_PASSWORD" ]; then
+            LDAP_JSON=$(jq -n -c \
+              --arg auth_type "$LDAP_CONTRIBUTOR_AUTH_TYPE" \
+              --arg username "$LDAP_CONTRIBUTOR_USERNAME" \
+              --arg password "$LDAP_CONTRIBUTOR_PASSWORD" \
+              '{"AUTH_TYPE": $auth_type, "USERNAME": $username, "PASSWORD": $password}')
+            echo "LDAP_CONTRIBUTOR_USER=$LDAP_JSON" >> $GITHUB_ENV
+          else
+            echo "⚠️ LDAP_CONTRIBUTOR_USER credentials are empty, skipping JSON creation"
+          fi
           
           echo "Logging in to OpenShift cluster..."
           oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="${{ secrets.OC_SERVER }}" --insecure-skip-tls-verify
@@ -536,4 +537,3 @@ jobs:
           pkill -f "webpack.*serve" || echo "No webpack processes found"
           pkill -f "node.*4010" || echo "No node processes on port 4010"
           echo "✅ Server cleanup completed"
-
