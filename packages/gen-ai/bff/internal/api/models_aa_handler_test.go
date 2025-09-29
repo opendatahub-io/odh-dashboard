@@ -99,6 +99,7 @@ func TestModelsAAHandler(t *testing.T) {
 		assert.Equal(t, "v2025.1", firstModel["version"])
 		assert.Equal(t, "Code generation", firstModel["usecase"])
 		assert.Equal(t, "IBM Granite 7B model specialized for code generation tasks", firstModel["description"])
+		assert.Equal(t, "Running", firstModel["status"])
 
 		// Check endpoints array
 		endpoints, ok := firstModel["endpoints"].([]interface{})
@@ -116,6 +117,7 @@ func TestModelsAAHandler(t *testing.T) {
 		assert.Equal(t, "v2025.1", secondModel["version"])
 		assert.Equal(t, "General chat", secondModel["usecase"])
 		assert.Equal(t, "Meta Llama 3.1 8B parameter model optimized for instruction following", secondModel["description"])
+		assert.Equal(t, "Running", secondModel["status"])
 
 		// Check second model endpoints
 		secondEndpoints, ok := secondModel["endpoints"].([]interface{})
@@ -133,12 +135,35 @@ func TestModelsAAHandler(t *testing.T) {
 		assert.Equal(t, "v2025.1", thirdModel["version"])
 		assert.Equal(t, "Multilingual, Reasoning", thirdModel["usecase"])
 		assert.Equal(t, "Mistral 7B instruction-tuned model for general purpose tasks", thirdModel["description"])
+		assert.Equal(t, "Running", thirdModel["status"])
 
 		// Check third model endpoints
 		thirdEndpoints, ok := thirdModel["endpoints"].([]interface{})
 		assert.True(t, ok, "Third model endpoints should be an array")
 		assert.Len(t, thirdEndpoints, 1, "Should have 1 endpoint")
 		assert.Equal(t, "internal: http://mistral-7b-instruct.mock-test-namespace-2.svc.cluster.local:8080", thirdEndpoints[0])
+
+		// Check fourth model (ollama/llama3.2:3b)
+		fourthModel, ok := dataArray[3].(map[string]interface{})
+		assert.True(t, ok, "Fourth model should be a map")
+		assert.Equal(t, "ollama/llama3.2:3b", fourthModel["model_name"])
+		assert.Equal(t, "Ollama", fourthModel["serving_runtime"])
+		assert.Equal(t, "v1", fourthModel["api_protocol"])
+		assert.Equal(t, "v2025.1", fourthModel["version"])
+		assert.Equal(t, "General chat, Code generation", fourthModel["usecase"])
+		assert.Equal(t, "Meta Llama 3.2 3B parameter model optimized for efficiency and performance", fourthModel["description"])
+		assert.Equal(t, "Running", fourthModel["status"])
+
+		// Check fifth model (ollama/all-minilm:l6-v2)
+		fifthModel, ok := dataArray[4].(map[string]interface{})
+		assert.True(t, ok, "Fifth model should be a map")
+		assert.Equal(t, "ollama/all-minilm:l6-v2", fifthModel["model_name"])
+		assert.Equal(t, "Ollama", fifthModel["serving_runtime"])
+		assert.Equal(t, "v1", fifthModel["api_protocol"])
+		assert.Equal(t, "v2025.1", fifthModel["version"])
+		assert.Equal(t, "Embeddings, Semantic search", fifthModel["usecase"])
+		assert.Equal(t, "Microsoft All-MiniLM-L6-v2 embedding model for semantic search and text similarity", fifthModel["description"])
+		assert.Equal(t, "Stop", fifthModel["status"])
 	})
 
 	// Test error cases - simple parameter validation
