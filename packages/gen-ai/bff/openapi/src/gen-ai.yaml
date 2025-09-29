@@ -65,6 +65,38 @@ paths:
       summary: List All Models
       description: Gets a list of all available AI models from Llama Stack.
 
+  /gen-ai/api/v1/aa/models:
+    summary: List AI Assets models
+    description: >-
+      Lists all available AI Assets models from Kubernetes InferenceServices.
+      Returns models with their serving runtime, API protocol, version, and status information.
+      Requires namespace parameter for proper multi-tenant isolation.
+    get:
+      tags:
+        - Models
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace to query for AI Assets models
+          required: true
+          schema:
+            type: string
+            example: "genai-lls"
+      responses:
+        '200':
+          $ref: '#/components/responses/AAModelsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: listAAModels
+      summary: List AI Assets Models
+      description: Gets a list of all available AI Assets models from Kubernetes InferenceServices.
+
   /gen-ai/api/v1/vectorstores:
     summary: Manage vector stores for RAG
     description: >-
@@ -666,11 +698,66 @@ components:
           example: 'llama_stack'
           description: Model owner/provider
 
+    # AI Assets Model Schema
+    AAModel:
+      type: object
+      required:
+        - model_name
+        - serving_runtime
+        - api_protocol
+        - version
+        - endpoints
+        - status
+      properties:
+        model_name:
+          type: string
+          example: 'llama-32-3b-instruct'
+          description: Name of the AI model
+        serving_runtime:
+          type: string
+          example: 'OpenVINO Model Server'
+          description: Runtime used to serve the model
+        api_protocol:
+          type: string
+          example: 'v2'
+          description: API protocol version used by the model
+        version:
+          type: string
+          example: 'v2025.1'
+          description: Version of the model
+        description:
+          type: string
+          nullable: true
+          example: 'A high-performance computer vision model for object detection and classification'
+          description: Human-readable description of the model
+        usecase:
+          type: string
+          nullable: true
+          example: 'Computer Vision'
+          description: Primary use case for the model
+        endpoints:
+          type: array
+          items:
+            type: string
+          example: ['internal: http://llama-32-3b-instruct.genai-lls.svc.cluster.local:8080']
+          description: List of available endpoints for the model
+        status:
+          type: string
+          enum: ['Running', 'Stop']
+          example: 'Running'
+          description: Current status of the model (Running or Stop)
+
     ModelsData:
       type: array
       items:
         $ref: '#/components/schemas/Model'
       description: Array of available models
+
+    AAModelsData:
+      type: array
+      items:
+        $ref: '#/components/schemas/AAModel'
+      description: Array of available AI Assets models
 
     # Vector Stores Schema
     VectorStore:
@@ -2011,6 +2098,18 @@ components:
             properties:
               data:
                 $ref: '#/components/schemas/ModelsData'
+
+    AAModelsResponse:
+      description: List of available AI Assets models
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/AAModelsData'
 
     VectorStoresResponse:
       description: List of vector stores with pagination support
