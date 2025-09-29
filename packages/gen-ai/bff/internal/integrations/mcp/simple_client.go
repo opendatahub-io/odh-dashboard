@@ -11,7 +11,7 @@ import (
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
-	"github.com/opendatahub-io/gen-ai/internal/models/genaiassets"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
 // SimpleMCPClient implements MCPClientInterface using one-shot connections
@@ -52,7 +52,7 @@ func NewSimpleMCPClientWithConfig(logger *slog.Logger, config *MCPClientConfig) 
 }
 
 // CheckConnectionStatus checks the connection status of an MCP server
-func (c *SimpleMCPClient) CheckConnectionStatus(ctx context.Context, identity *integrations.RequestIdentity, serverConfig genaiassets.MCPServerConfig) (*genaiassets.ConnectionStatus, error) {
+func (c *SimpleMCPClient) CheckConnectionStatus(ctx context.Context, identity *integrations.RequestIdentity, serverConfig models.MCPServerConfig) (*models.ConnectionStatus, error) {
 	c.logger.Debug("Checking MCP server connection status", "server_url", serverConfig.URL)
 
 	// Create fresh MCP client session for this request
@@ -71,7 +71,7 @@ func (c *SimpleMCPClient) CheckConnectionStatus(ctx context.Context, identity *i
 			}
 		}
 
-		return &genaiassets.ConnectionStatus{
+		return &models.ConnectionStatus{
 			ServerURL:   serverConfig.URL,
 			Status:      "error",
 			Message:     mcpErr.Message,
@@ -85,7 +85,7 @@ func (c *SimpleMCPClient) CheckConnectionStatus(ctx context.Context, identity *i
 				Version:         "N/A",
 				ProtocolVersion: "",
 			},
-			ErrorDetails: &genaiassets.ErrorDetails{
+			ErrorDetails: &models.ErrorDetails{
 				Code:       mcpErr.Code,
 				StatusCode: mcpErr.StatusCode,
 				RawError:   err.Error(),
@@ -113,7 +113,7 @@ func (c *SimpleMCPClient) CheckConnectionStatus(ctx context.Context, identity *i
 		}
 
 		// Connection established but ping failed
-		return &genaiassets.ConnectionStatus{
+		return &models.ConnectionStatus{
 			ServerURL:   serverConfig.URL,
 			Status:      "error",
 			Message:     mcpErr.Message,
@@ -127,7 +127,7 @@ func (c *SimpleMCPClient) CheckConnectionStatus(ctx context.Context, identity *i
 				Version:         c.extractServerVersion(initResult),
 				ProtocolVersion: c.extractProtocolVersion(initResult),
 			},
-			ErrorDetails: &genaiassets.ErrorDetails{
+			ErrorDetails: &models.ErrorDetails{
 				Code:       mcpErr.Code,
 				StatusCode: mcpErr.StatusCode,
 				RawError:   err.Error(),
@@ -140,7 +140,7 @@ func (c *SimpleMCPClient) CheckConnectionStatus(ctx context.Context, identity *i
 		"server_url", serverConfig.URL,
 		"ping_ms", pingMs)
 
-	return &genaiassets.ConnectionStatus{
+	return &models.ConnectionStatus{
 		ServerURL:   serverConfig.URL,
 		Status:      "connected",
 		Message:     "Connection successful",
@@ -159,7 +159,7 @@ func (c *SimpleMCPClient) CheckConnectionStatus(ctx context.Context, identity *i
 }
 
 // ListToolsWithStatus provides comprehensive tools information with server metadata and error handling
-func (c *SimpleMCPClient) ListToolsWithStatus(ctx context.Context, identity *integrations.RequestIdentity, serverConfig genaiassets.MCPServerConfig) (*genaiassets.ToolsStatus, error) {
+func (c *SimpleMCPClient) ListToolsWithStatus(ctx context.Context, identity *integrations.RequestIdentity, serverConfig models.MCPServerConfig) (*models.ToolsStatus, error) {
 	c.logger.Debug("Listing tools with status from MCP server", "server_url", serverConfig.URL)
 
 	// Create fresh MCP client session for this request
@@ -178,7 +178,7 @@ func (c *SimpleMCPClient) ListToolsWithStatus(ctx context.Context, identity *int
 			}
 		}
 
-		return &genaiassets.ToolsStatus{
+		return &models.ToolsStatus{
 			ServerURL:   serverConfig.URL,
 			Status:      "error",
 			Message:     mcpErr.Message,
@@ -192,8 +192,8 @@ func (c *SimpleMCPClient) ListToolsWithStatus(ctx context.Context, identity *int
 				Version:         "N/A",
 				ProtocolVersion: "",
 			},
-			Tools: []genaiassets.Tool{},
-			ErrorDetails: &genaiassets.ErrorDetails{
+			Tools: []models.Tool{},
+			ErrorDetails: &models.ErrorDetails{
 				Code:       mcpErr.Code,
 				StatusCode: mcpErr.StatusCode,
 				RawError:   err.Error(),
@@ -217,7 +217,7 @@ func (c *SimpleMCPClient) ListToolsWithStatus(ctx context.Context, identity *int
 			}
 		}
 
-		return &genaiassets.ToolsStatus{
+		return &models.ToolsStatus{
 			ServerURL:   serverConfig.URL,
 			Status:      "error",
 			Message:     mcpErr.Message,
@@ -231,8 +231,8 @@ func (c *SimpleMCPClient) ListToolsWithStatus(ctx context.Context, identity *int
 				Version:         c.extractServerVersion(initResult),
 				ProtocolVersion: c.extractProtocolVersion(initResult),
 			},
-			Tools: []genaiassets.Tool{},
-			ErrorDetails: &genaiassets.ErrorDetails{
+			Tools: []models.Tool{},
+			ErrorDetails: &models.ErrorDetails{
 				Code:       mcpErr.Code,
 				StatusCode: mcpErr.StatusCode,
 				RawError:   err.Error(),
@@ -240,9 +240,9 @@ func (c *SimpleMCPClient) ListToolsWithStatus(ctx context.Context, identity *int
 		}, nil
 	}
 
-	tools := make([]genaiassets.Tool, 0, len(toolsResponse.Tools))
+	tools := make([]models.Tool, 0, len(toolsResponse.Tools))
 	for _, mcpTool := range toolsResponse.Tools {
-		tool := genaiassets.Tool{
+		tool := models.Tool{
 			Name:        mcpTool.Name,
 			Description: mcpTool.Description,
 			InputSchema: convertMCPInputSchema(mcpTool.InputSchema),
@@ -255,7 +255,7 @@ func (c *SimpleMCPClient) ListToolsWithStatus(ctx context.Context, identity *int
 		"tool_count", len(tools))
 
 	toolsCount := len(tools)
-	return &genaiassets.ToolsStatus{
+	return &models.ToolsStatus{
 		ServerURL:   serverConfig.URL,
 		Status:      "success",
 		Message:     fmt.Sprintf("Successfully retrieved %d tools", toolsCount),
@@ -275,7 +275,7 @@ func (c *SimpleMCPClient) ListToolsWithStatus(ctx context.Context, identity *int
 }
 
 // createMCPSessionWithInit creates a fresh MCP session and returns both session and initialization result
-func (c *SimpleMCPClient) createMCPSessionWithInit(ctx context.Context, serverConfig genaiassets.MCPServerConfig, identity *integrations.RequestIdentity) (*mcp.ClientSession, *mcp.InitializeResult, error) {
+func (c *SimpleMCPClient) createMCPSessionWithInit(ctx context.Context, serverConfig models.MCPServerConfig, identity *integrations.RequestIdentity) (*mcp.ClientSession, *mcp.InitializeResult, error) {
 	client := mcp.NewClient(
 		c.config.ToMCPImplementation(),
 		c.config.ToMCPClientOptions(),

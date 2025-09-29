@@ -7,25 +7,35 @@ const (
 	ApiPathPrefix = "/api/v1"
 
 	// API endpoint paths
-	HealthCheckPath                   = "/healthcheck"
-	OpenAPIPath                       = PathPrefix + "/openapi"
-	OpenAPIJSONPath                   = PathPrefix + "/openapi.json"
-	OpenAPIYAMLPath                   = PathPrefix + "/openapi.yaml"
-	SwaggerUIPath                     = PathPrefix + "/swagger-ui"
-	ModelsListPath                    = ApiPathPrefix + "/models"
-	ModelsAAPath                      = ApiPathPrefix + "/aa/models"
-	VectorStoresListPath              = ApiPathPrefix + "/vectorstores"
-	ResponsesPath                     = ApiPathPrefix + "/responses"
-	FilesUploadPath                   = ApiPathPrefix + "/files/upload"
-	CodeExporterPath                  = ApiPathPrefix + "/code-exporter"
-	NamespacesPath                    = ApiPathPrefix + "/namespaces"
-	LlamaStackDistributionStatusPath  = ApiPathPrefix + "/llamastack-distribution/status"
-	LlamaStackDistributionInstallPath = ApiPathPrefix + "/llamastack-distribution/install"
-	LlamaStackDistributionDeletePath  = ApiPathPrefix + "/llamastack-distribution/delete"
-	UserPath                          = ApiPathPrefix + "/user"
+	HealthCheckPath = "/healthcheck"
+	OpenAPIPath     = PathPrefix + "/openapi"
+	OpenAPIJSONPath = PathPrefix + "/openapi.json"
+	OpenAPIYAMLPath = PathPrefix + "/openapi.yaml"
+	SwaggerUIPath   = PathPrefix + "/swagger-ui"
+
+	// LlamaStack Distribution (LSD) endpoints
+	ModelsListPath                    = ApiPathPrefix + "/lsd/models"
+	VectorStoresListPath              = ApiPathPrefix + "/lsd/vectorstores"
+	ResponsesPath                     = ApiPathPrefix + "/lsd/responses"
+	FilesUploadPath                   = ApiPathPrefix + "/lsd/files/upload"
+	LlamaStackDistributionStatusPath  = ApiPathPrefix + "/lsd/status"
+	LlamaStackDistributionInstallPath = ApiPathPrefix + "/lsd/install"
+	LlamaStackDistributionDeletePath  = ApiPathPrefix + "/lsd/delete"
+
+	// General endpoints
+	CodeExporterPath = ApiPathPrefix + "/code-exporter"
+	NamespacesPath   = ApiPathPrefix + "/namespaces"
+	UserPath         = ApiPathPrefix + "/user"
 
 	// MCP (Model Context Protocol) endpoint paths
-	MCPToolsPath       = ApiPathPrefix + "/mcp/tools"
-	MCPStatusPath      = ApiPathPrefix + "/mcp/status"
-	MCPServersListPath = ApiPathPrefix + "/aa/mcps"
+	MCPToolsPath  = ApiPathPrefix + "/mcp/tools"
+	MCPStatusPath = ApiPathPrefix + "/mcp/status"
+
+	// AI Assets (AAA) endpoints
+	MCPServersListPath = ApiPathPrefix + "/aaa/mcps"
+	ModelsAAPath       = ApiPathPrefix + "/aaa/models"
+
+	// Model as a Service (MaaS) endpoints
+	MaasModelsPath = ApiPathPrefix + "/maas/models"
+	MaasTokenPath  = ApiPathPrefix + "/maas/token"
 )

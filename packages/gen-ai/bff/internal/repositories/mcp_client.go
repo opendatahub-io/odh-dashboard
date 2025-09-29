@@ -9,7 +9,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	kubernetes "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp"
-	"github.com/opendatahub-io/gen-ai/internal/models/genaiassets"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
 // MCPClientRepository handles MCP client operations
@@ -31,8 +31,8 @@ func NewMCPClientRepository(mcpClientFactory mcp.MCPClientFactory, logger *slog.
 
 // MCPServerInfo represents information about an MCP server from ConfigMap
 type MCPServerInfo struct {
-	Name   string                      `json:"name"`
-	Config genaiassets.MCPServerConfig `json:"config"`
+	Name   string                 `json:"name"`
+	Config models.MCPServerConfig `json:"config"`
 }
 
 // MCPServersFromConfigResult represents the result of getting servers from ConfigMap with metadata
@@ -47,10 +47,10 @@ type MCPServersFromConfigResult struct {
 
 // MCPServerStatus represents the status of an MCP server
 type MCPServerStatus struct {
-	Name             string                        `json:"name"`
-	Config           genaiassets.MCPServerConfig   `json:"config"`
-	ConnectionStatus *genaiassets.ConnectionStatus `json:"connection_status"`
-	Tools            []genaiassets.Tool            `json:"tools,omitempty"`
+	Name             string                   `json:"name"`
+	Config           models.MCPServerConfig   `json:"config"`
+	ConnectionStatus *models.ConnectionStatus `json:"connection_status"`
+	Tools            []models.Tool            `json:"tools,omitempty"`
 }
 
 // GetMCPServersFromConfig retrieves MCP server configurations from ConfigMap
@@ -69,7 +69,7 @@ func (r *MCPClientRepository) GetMCPServersFromConfig(
 	var servers []MCPServerInfo
 
 	for serverName, configJSON := range configMap.Data {
-		var config genaiassets.MCPServerConfig
+		var config models.MCPServerConfig
 		if err := json.Unmarshal([]byte(configJSON), &config); err != nil {
 			r.logger.Error("Failed to parse MCP server configuration JSON",
 				"server_name", serverName,
@@ -104,7 +104,7 @@ func (r *MCPClientRepository) GetMCPServersFromConfigWithMetadata(
 	var servers []MCPServerInfo
 
 	for serverName, configJSON := range configMap.Data {
-		var config genaiassets.MCPServerConfig
+		var config models.MCPServerConfig
 		if err := json.Unmarshal([]byte(configJSON), &config); err != nil {
 			r.logger.Error("Failed to parse MCP server configuration JSON",
 				"server_name", serverName,
@@ -140,8 +140,8 @@ func (r *MCPClientRepository) GetMCPServersFromConfigWithMetadata(
 func (r *MCPClientRepository) CheckMCPServerStatus(
 	ctx context.Context,
 	identity *integrations.RequestIdentity,
-	serverConfig genaiassets.MCPServerConfig,
-) (*genaiassets.ConnectionStatus, error) {
+	serverConfig models.MCPServerConfig,
+) (*models.ConnectionStatus, error) {
 	mcpClient, err := r.mcpClientFactory.GetClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get MCP client: %w", err)
@@ -154,8 +154,8 @@ func (r *MCPClientRepository) CheckMCPServerStatus(
 func (r *MCPClientRepository) ListMCPServerToolsWithStatus(
 	ctx context.Context,
 	identity *integrations.RequestIdentity,
-	serverConfig genaiassets.MCPServerConfig,
-) (*genaiassets.ToolsStatus, error) {
+	serverConfig models.MCPServerConfig,
+) (*models.ToolsStatus, error) {
 	mcpClient, err := r.mcpClientFactory.GetClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get MCP client: %w", err)

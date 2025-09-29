@@ -186,6 +186,10 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(constants.MCPStatusPath, app.RequireAccessToService(app.MCPStatusHandler))
 	apiRouter.GET(constants.MCPServersListPath, app.RequireAccessToService(app.MCPListHandler))
 
+	// MaaS endpoints (placeholders)
+	apiRouter.GET(constants.MaasModelsPath, app.RequireAccessToService(app.MaasModelsPlaceholderHandler))
+	apiRouter.GET(constants.MaasTokenPath, app.RequireAccessToService(app.MaasTokenPlaceholderHandler))
+
 	// App Router
 	appMux := http.NewServeMux()
 

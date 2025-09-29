@@ -17,7 +17,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp/mcpmocks"
-	"github.com/opendatahub-io/gen-ai/internal/models/genaiassets"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -357,10 +357,10 @@ func TestFindMCPServerConfig(t *testing.T) {
 			if tc.expectError {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tc.expectedErrorMsg)
-				assert.Equal(t, genaiassets.MCPServerConfig{}, config)
+				assert.Equal(t, models.MCPServerConfig{}, config)
 			} else {
 				assert.NoError(t, err)
-				assert.NotEqual(t, genaiassets.MCPServerConfig{}, config)
+				assert.NotEqual(t, models.MCPServerConfig{}, config)
 				assert.Equal(t, tc.decodedURL, config.URL)
 			}
 		})

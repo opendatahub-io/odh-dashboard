@@ -9,7 +9,7 @@ import (
 
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
-	"github.com/opendatahub-io/gen-ai/internal/models/genaiassets"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 	authnv1 "k8s.io/api/authentication/v1"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -253,7 +253,7 @@ func (kc *TokenKubernetesClient) GetConfigMap(ctx context.Context, identity *int
 	return configMap, nil
 }
 
-func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]genaiassets.AAModel, error) {
+func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]models.AAModel, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -274,7 +274,7 @@ func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *inte
 	}
 
 	// Convert InferenceServices to AAModel structs
-	var aaModels []genaiassets.AAModel
+	var aaModels []models.AAModel
 	for _, isvc := range inferenceServiceList.Items {
 		// Extract serving runtime name from the InferenceService
 		servingRuntimeName := kc.extractServingRuntimeName(&isvc)
@@ -285,7 +285,7 @@ func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *inte
 			kc.Logger.Warn("failed to fetch ServingRuntime", "error", err, "servingRuntime", servingRuntimeName)
 		}
 
-		aaModel := genaiassets.AAModel{
+		aaModel := models.AAModel{
 			ModelName:      isvc.Name,
 			ServingRuntime: kc.extractServingRuntimeFromAnnotations(servingRuntime),
 			APIProtocol:    kc.extractAPIProtocolFromAnnotations(servingRuntime),

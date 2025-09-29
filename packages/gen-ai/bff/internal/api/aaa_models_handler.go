@@ -7,10 +7,10 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
-	"github.com/opendatahub-io/gen-ai/internal/models/genaiassets"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
-type ModelsAAEnvelope Envelope[[]genaiassets.AAModel, None]
+type ModelsAAEnvelope Envelope[[]models.AAModel, None]
 
 func (app *App) ModelsAAHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
