@@ -1,13 +1,7 @@
 import { CustomObjectsApi } from '@kubernetes/client-node';
-import { GroupCustomObject, GroupObjResponse } from '../types';
+import { GroupObjResponse } from '../types';
 
-export class MissingGroupError extends Error {
-  constructor(message: string) {
-    super(message);
-    Object.setPrototypeOf(this, MissingGroupError.prototype);
-  }
-}
-
+/** @deprecated -- no new functionality should use this; don't rely on reading groups */
 export const getGroup = async (
   customObjectsApi: CustomObjectsApi,
   adminGroup: string,
@@ -21,23 +15,7 @@ export const getGroup = async (
     );
     return (adminGroupResponse.body as GroupObjResponse).users || [];
   } catch (e) {
-    throw new MissingGroupError(`Failed to retrieve Group ${adminGroup}, might not exist.`);
-  }
-};
-
-export const getAllGroupsByUser = async (
-  customObjectsApi: CustomObjectsApi,
-  username: string,
-): Promise<string[]> => {
-  try {
-    const adminGroupResponse = await customObjectsApi.listClusterCustomObject(
-      'user.openshift.io',
-      'v1',
-      'groups',
-    );
-    const groups = adminGroupResponse.body as GroupCustomObject;
-    return groups.items.filter((x) => x.users?.includes(username)).map((x) => x.metadata?.name);
-  } catch (e) {
-    throw new Error(`Failed to list groups filtered by username: ${e.message}.`);
+    // TODO: Silence fetch errors -- Group API might be disabled on cluster
+    return [];
   }
 };
