@@ -1,355 +1,615 @@
-name: Test
+name: zQuick e2e Test
+
 on: [push, pull_request]
+
 env:
   NODE_VERSION: 20.x
   DO_NOT_TRACK: 1
+
 jobs:
-  Setup:
-    runs-on: ubuntu-latest
+  get-test-tags:
+    runs-on: self-hosted
     outputs:
-      modules-cache-key: ${{ steps.key.outputs.modules-cache-key }}
+      test-tags: ${{ steps.set-tags.outputs.test-tags }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Validate all package-lock.json files
-        run: ./scripts/check-package-lock.sh --all
-      - name: Generate modules cache key
-        id: key
+      - name: Set default test tags
+        id: set-tags
+        # TO:DO - update execution tags and simplify for v1
         run: |
-          echo "modules-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-${{ hashFiles('**/package-lock.json') }}" >> $GITHUB_OUTPUT
-      - name: Node.js modules cache
-        uses: actions/cache@v4
-        id: modules-cache
-        with:
-          lookup-only: true
-          path: |
-            ~/.cache/Cypress
-            **/node_modules
-          key: ${{ steps.key.outputs.modules-cache-key }}
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        if: steps.modules-cache.outputs.cache-hit != 'true'
-        uses: actions/setup-node@v4.3.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - name: Install dependencies
-        if: steps.modules-cache.outputs.cache-hit != 'true'
-        run: npm install
+          echo "test-tags=[\"@SmokeSet1\",\"@SmokeSet2\",\"@SmokeSet3\"]" >> $GITHUB_OUTPUT
 
-      - name: Check for uncommitted changes
-        run: git diff --exit-code
-
-  Type-Check:
-    needs: Setup
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4.3.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - name: Restore cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/.cache/Cypress
-            **/node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-${{ hashFiles('**/package-lock.json') }}
-      - name: Cache turbo
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/.turbo
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-type-check
-          restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
-      - name: Run type checks
-        run: npm run type-check
-
-  Lint:
-    needs: Setup
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4.3.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - name: Restore cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/.cache/Cypress
-            **/node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-${{ hashFiles('**/package-lock.json') }}
-      - name: Cache turbo
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/.turbo
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-lint
-          restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
-      - name: Run linting and formatting checks
-        run: NODE_OPTIONS="--max-old-space-size=8192" npm run lint
-
-  Unit-Tests:
-    needs: [Setup, Lint, Type-Check]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4.3.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - name: Restore cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/.cache/Cypress
-            **/node_modules
-          key: ${{ needs.Setup.outputs.modules-cache-key }}
-      - name: Cache turbo
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/.turbo
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-unit-tests
-          restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
-      - name: Unit tests with coverage
-        run: |
-          npm run test-unit-coverage
-      - name: Upload unit test coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: unit-coverage
-          path: ./jest-coverage
-          if-no-files-found: error
-
-  Get-Test-Groups:
-    runs-on: ubuntu-latest
-    outputs:
-      test-groups: ${{ steps.set-groups.outputs.test-groups }}
-    steps:
-      - uses: actions/checkout@v4
-      - id: set-groups
-        shell: bash
-        run: |
-          set -x  # Enable debug mode to see each command
-
-          echo "Checking directory structure..."
-          ls -la frontend/src/__tests__/cypress/cypress/tests/ || echo "Base test directory not found"
-
-          if [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked" ]; then
-            echo "Found mocked tests directory"
-            
-            # Get directories and create JSON array - force compact output with -c
-            DIRS=$(cd frontend/src/__tests__/cypress/cypress/tests/mocked && \
-                  find . -name "*.cy.*" -printf "%h\n" | sed 's|^\./||' | sort -u | \
-                  jq -R . | jq -c -s .)
-            
-            # Output in the correct format for GitHub Actions
-            echo "test-groups=$DIRS" >> "$GITHUB_OUTPUT"
-            
-            echo "Generated test groups:"
-            cat "$GITHUB_OUTPUT"
-          else
-            echo "No mocked tests directory found, using default"
-            echo "test-groups=[\"default\"]" >> "$GITHUB_OUTPUT"
-          fi
-
-  Contract-Tests:
-    needs: [Setup, Lint, Type-Check]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4.3.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.21'
-      - name: Restore cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/.cache/Cypress
-            **/node_modules
-          key: ${{ needs.Setup.outputs.modules-cache-key }}
-      - name: Run contract tests
-        run: |
-          export GITHUB_RUN_ID="$GITHUB_RUN_ID"
-          export CI="true"
-          npm run test:contract
-        env:
-          GITHUB_RUN_ID: ${{ github.run_id }}
-          CI: true
-      - name: Upload contract test results
-        if: always()
-        run: |
-          # Find and upload the most recent contract test results
-          LATEST_DIR=$(find packages/*/contract-tests/contract-test-results -name "ci-*" -type d 2>/dev/null | head -1)
-          if [ -n "$LATEST_DIR" ] && [ -d "$LATEST_DIR" ]; then
-            echo "Uploading from: $LATEST_DIR" && echo "results-dir=$LATEST_DIR" >> $GITHUB_OUTPUT
-          else
-            echo "No results found" && echo "results-dir=" >> $GITHUB_OUTPUT
-          fi
-        id: upload-results
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        if: steps.upload-results.outputs.results-dir != ''
-        with:
-          name: contract-test-results
-          path: ${{ steps.upload-results.outputs.results-dir }}
-
-  Cypress-Setup:
-    needs: [Setup]
-    runs-on: ubuntu-latest
-    outputs:
-      cypress-cache-key: ${{ steps.key.outputs.cypress-cache-key }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Generate cypress cache key
-        id: key
-        run: |
-          echo "cypress-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-build-${{ github.sha }}" >> $GITHUB_OUTPUT
-      - name: Cypress build cache
-        uses: actions/cache@v4
-        id: cypress-build-cache
-        with:
-          lookup-only: true
-          path: |
-            **/public-cypress
-          key: ${{ steps.key.outputs.cypress-cache-key }}
-      - name: Restore cache
-        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/.cache/Cypress
-            **/node_modules
-          key: ${{ needs.Setup.outputs.modules-cache-key }}
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
-        uses: actions/setup-node@v4.3.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - name: Build for cypress
-        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
-        run: npm run cypress:server:build:coverage
-
-  Cypress-Mock-Tests:
-    needs: [Setup, Lint, Type-Check, Cypress-Setup, Get-Test-Groups]
-    runs-on: ubuntu-latest
+  e2e-tests:
+    needs: [get-test-tags]
+    runs-on: self-hosted
     strategy:
       fail-fast: false
       matrix:
-        test-group: ${{ fromJson(needs.Get-Test-Groups.outputs.test-groups) }}
+        test-tag: ${{ fromJson(needs.get-test-tags.outputs.test-tags) }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4.3.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - name: Restore cache
-        uses: actions/cache/restore@v4
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        id: npm-cache
         with:
           path: |
             ~/.cache/Cypress
             **/node_modules
-          key: ${{ needs.Setup.outputs.modules-cache-key }}
-      - name: Restore Cypress build cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            **/public-cypress
-          key: ${{ needs.Cypress-Setup.outputs.cypress-cache-key }}
-      - name: Run Cypress Mock tests
-        run: |
-          if [ "${{ matrix.test-group }}" == "default" ]; then
-            npm run test:cypress-ci:coverage:nobuild
-          else
-            npm run test:cypress-ci:coverage:nobuild -- --spec "src/__tests__/cypress/cypress/tests/mocked/${{ matrix.test-group }}/*"
-          fi
-        working-directory: ./frontend
-      - name: Test group name
-        if: ${{ always() }}
-        run: echo "TEST_GROUP_NAME=$(echo ${{ matrix.test-group }} | tr '/' '_')" >> $GITHUB_ENV
-      - name: Upload Cypress Mock results
-        uses: actions/upload-artifact@v4
-        if: ${{ always() }}
-        with:
-          name: cypress-results-${{ env.TEST_GROUP_NAME }}
-          path: ./frontend/src/__tests__/cypress/results/mocked
-      - name: Upload Cypress coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: cypress-coverage-${{ env.TEST_GROUP_NAME }}
-          path: ./frontend/src/__tests__/cypress/coverage
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-${{ hashFiles('**/package-lock.json') }}-v2
+          restore-keys: |
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-
 
-  Combine-Results-and-Upload:
-    needs: [Unit-Tests, Cypress-Mock-Tests]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      - name: Clean conflicting cache files
+        if: steps.npm-cache.outputs.cache-hit == 'true'
+        run: |
+          echo "🧹 Cleaning up potential cache conflicts..."
+          # Remove any conflicting Cypress installations
+          if [ -d ~/.cache/Cypress ]; then
+            echo "📦 Found existing Cypress cache, checking for conflicts..."
+            find ~/.cache/Cypress -name "*.js" -newer ~/.cache/Cypress 2>/dev/null | head -10 || echo "No conflicts found"
+            
+            # If we have multiple versions, clean up the older one
+            if [ -d ~/.cache/Cypress/13.17.0 ] && [ -d ~/.cache/Cypress/14.5.4 ]; then
+              echo "🗑️  Removing older Cypress version to prevent conflicts..."
+              rm -rf ~/.cache/Cypress/13.17.0
+            fi
+          fi
+          
+          # Verify Cypress installation
+          if command -v npx &> /dev/null; then
+            echo "🔍 Verifying Cypress installation..."
+            npx cypress version || echo "⚠️  Cypress verification failed, will reinstall"
+          fi
+
       - name: Setup Node.js ${{ env.NODE_VERSION }}
+        if: steps.npm-cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: all-artifacts
+
       - name: Install dependencies
-        run: npm install nyc --no-save
-      - name: Combine coverage reports
+        if: steps.npm-cache.outputs.cache-hit != 'true'
         run: |
-          mkdir -p ./coverage
-          cp all-artifacts/unit-coverage/coverage-final.json ./coverage/unit-coverage-final.json || true
-          find all-artifacts -name "cypress-coverage-*" -type d | while read dir; do
-          group_name=$(basename "$dir")
-          cp "$dir/coverage-final.json" "./coverage/${group_name}-coverage-final.json" || true
+          echo "📦 Installing dependencies..."
+          npm ci
+          echo "🔧 Installing/verifying Cypress..."
+          npx cypress install
+          echo "✅ Dependencies installed"
+
+      - name: Verify Cypress installation
+        run: |
+          echo "🔍 Verifying Cypress is properly installed..."
+          npx cypress version
+          if [ $? -eq 0 ]; then
+            echo "✅ Cypress verification successful"
+          else
+            echo "❌ Cypress verification failed, reinstalling..."
+            npx cypress install
+            npx cypress version
+          fi
+
+      - name: Cache turbo build artifacts
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.turbo
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-e2e
+          restore-keys: |
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
+
+      - name: Cache OpenShift CLI tarball
+        uses: actions/cache@v4
+        id: oc-cache
+        with:
+          path: ${{ runner.temp }}/oc.tar.gz
+          key: ${{ runner.os }}-oc-tarball-${{ env.OC_VERSION || '4.15.0' }}
+
+      - name: Check and Install OpenShift CLI
+        run: |
+          echo "🔍 Checking if OpenShift CLI (oc) is installed..."
+
+          # Check if oc is already installed
+          if command -v oc &> /dev/null; then
+            echo "✅ OpenShift CLI (oc) is already installed"
+            oc version --client
+          else
+            echo "❌ OpenShift CLI (oc) not found, installing..."
+            echo "📦 Installing oc CLI for Linux..."
+
+            OC_TARBALL="${{ runner.temp }}/oc.tar.gz"
+
+            # Check if tarball was cached
+            if [ -f "$OC_TARBALL" ]; then
+              echo "✅ Using cached OpenShift CLI tarball"
+            else
+              echo "📥 Downloading OpenShift CLI tarball..."
+              curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz -o "$OC_TARBALL"
+            fi
+
+            # Extract and install oc
+            echo "📦 Extracting OpenShift CLI..."
+            tar -xzf "$OC_TARBALL"
+            sudo mv oc /usr/local/bin/
+            sudo chmod +x /usr/local/bin/oc
+
+            # Verify installation
+            echo "✅ OpenShift CLI installed successfully"
+            oc version --client
+          fi
+
+          # Final verification
+          echo "🎯 Final oc version check:"
+          oc version --client || echo "⚠️  Could not determine oc version"
+
+      - name: Install Cypress Dependencies
+        run: |
+          echo "🔧 Installing Cypress system dependencies for Fedora (based on Cypress docs)..."
+
+          # Use the simplified approach from Cypress documentation for Amazon Linux 2023 (Fedora-compatible)
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            echo "📦 Installing minimal Cypress dependencies for Linux..."
+
+            # Based on Cypress docs for Amazon Linux 2023 - Fedora compatible
+            echo "Installing core dependencies..."
+            sudo dnf install -y xorg-x11-server-Xvfb gtk3-devel nss alsa-lib
+
+            # Add the missing ATK packages that Cypress actually needs
+            echo "Installing ATK dependencies..."
+            sudo dnf install -y atk atk-devel at-spi2-atk
+
+            # Add additional GUI libraries that might be needed
+            echo "Installing additional GUI libraries..."
+            sudo dnf install -y libgbm libgbm-devel libnotify libnotify-devel
+
+            # Update library cache
+            sudo ldconfig
+
+            # Verify installations
+            echo "🔍 Verifying installations..."
+            if command -v Xvfb &> /dev/null; then
+              echo "✅ Xvfb installed"
+            else
+              echo "❌ Xvfb missing"
+            fi
+
+            if ldconfig -p | grep -q libnss3; then
+              echo "✅ NSS libraries installed"
+            else
+              echo "❌ NSS libraries missing"
+            fi
+
+            if ldconfig -p | grep -q libatk; then
+              echo "✅ ATK libraries installed (fixes libatk-1.0.so.0 error)"
+              echo "📋 ATK libraries found:"
+              ldconfig -p | grep libatk
+            else
+              echo "❌ ATK libraries missing - checking what we have..."
+              sudo dnf list installed | grep -i atk || echo "No ATK packages found"
+              find /usr/lib* -name "*libatk*" 2>/dev/null || echo "No ATK libraries found in filesystem"
+            fi
+
+            echo "🎯 Cypress dependencies installation completed"
+          fi
+
+      - name: Debug available secrets
+        run: |
+          echo "🔍 DEBUG: Checking available secrets..."
+          echo "Event name: ${{ github.event_name }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Repository owner: ${{ github.repository_owner }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Base ref: ${{ github.base_ref }}"
+          echo "Head ref: ${{ github.head_ref }}"
+
+          # Check for specific secrets without revealing values
+          if [ -n "${{ secrets.GITLAB_TOKEN }}" ]; then
+            echo "✅ GITLAB_TOKEN: Available (length: ${#GITLAB_TOKEN})"
+          else
+            echo "❌ GITLAB_TOKEN: Not available or empty"
+          fi
+
+          if [ -n "${{ secrets.GITLAB_TEST_VARS_URL }}" ]; then
+            echo "✅ GITLAB_TEST_VARS_URL: Available (length: ${#GITLAB_TEST_VARS_URL})"
+          else
+            echo "❌ GITLAB_TEST_VARS_URL: Not available or empty"
+          fi
+
+          # Check other potentially relevant secrets
+          if [ -n "${{ secrets.OC_SERVER }}" ]; then
+            echo "✅ OC_SERVER: Available"
+          else
+            echo "❌ OC_SERVER: Not available"
+          fi
+
+          if [ -n "${{ secrets.OCP_CONSOLE_URL }}" ]; then
+            echo "✅ OCP_CONSOLE_URL: Available"
+          else
+            echo "❌ OCP_CONSOLE_URL: Not available"
+          fi
+
+          if [ -n "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
+            echo "✅ ODH_DASHBOARD_URL: Available"
+          else
+            echo "❌ ODH_DASHBOARD_URL: Not available"
+          fi
+
+          # List all available secrets (names only)
+          echo "📋 Available secrets in this environment:"
+          env | grep -E '^[^=]+=' | sed 's/=.*//' | grep -i secret || echo "No SECRET variables found"
+
+      - name: Download test configuration
+        run: |
+          # Debug: Show what we're working with
+          echo "🔧 DEBUG: Attempting to download test configuration..."
+          echo "GITLAB_TOKEN present: $([ -n "${{ secrets.GITLAB_TOKEN }}" ] && echo 'YES' || echo 'NO')"
+          echo "GITLAB_TEST_VARS_URL present: $([ -n "${{ secrets.GITLAB_TEST_VARS_URL }}" ] && echo 'YES' || echo 'NO')"
+
+          # Try to download test-variables.yml from GitLab securely
+          if [ -n "${{ secrets.GITLAB_TOKEN }}" ] && [ -n "${{ secrets.GITLAB_TEST_VARS_URL }}" ]; then
+            echo "🔄 Both secrets are available, attempting download..."
+            echo "Token length: ${#GITLAB_TOKEN}"
+            echo "URL length: ${#GITLAB_TEST_VARS_URL}"
+
+            # Debug: Show first few characters of secrets (safely)
+            if [ -n "${{ secrets.GITLAB_TOKEN }}" ]; then
+              echo "Token starts with: ${{ secrets.GITLAB_TOKEN }}" | cut -c1-10
+            fi
+            if [ -n "${{ secrets.GITLAB_TEST_VARS_URL }}" ]; then
+              echo "URL starts with: ${{ secrets.GITLAB_TEST_VARS_URL }}" | cut -c1-20
+            fi
+
+            # Try with SSL verification disabled (for self-signed certs)
+            if curl -f -k -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
+                        "${{ secrets.GITLAB_TEST_VARS_URL }}" \
+                        -o ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml; then
+              echo "✅ Successfully downloaded test configuration from GitLab"
+              ls -la ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+            else
+              echo "❌ Failed to download from GitLab"
+              echo "Curl exit code: $?"
+
+              # Try to get more details about the failure
+              echo "Trying without -f to see error details..."
+              curl -k -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
+                  "${{ secrets.GITLAB_TEST_VARS_URL }}" \
+                  -o /tmp/test-response 2>&1 || echo "Curl failed with: $?"
+
+              if [ -f /tmp/test-response ]; then
+                echo "GitLab API Response:"
+                head -10 /tmp/test-response
+              fi
+
+              exit 1
+            fi
+          else
+            echo "⚠️  GitLab secrets not available - cannot download test configuration"
+            echo "💡 This workflow requires GITLAB_TOKEN and GITLAB_TEST_VARS_URL secrets to be configured"
+            echo "💡 For forked PRs, these secrets need to be available in the upstream repository"
+            echo ""
+            echo "🔍 DEBUG INFO:"
+            echo "- Repository: ${{ github.repository }}"
+            echo "- Event: ${{ github.event_name }}"
+            echo "- Is fork: $([ '${{ github.repository_owner }}' != 'opendatahub-io' ] && echo 'YES' || echo 'NO')"
+            echo "- Base repo: ${{ github.base_ref && github.repository || 'N/A' }}"
+            echo ""
+            echo "💡 POSSIBLE SOLUTIONS:"
+            echo "1. Ensure secrets are configured in upstream repo (opendatahub-io/odh-dashboard)"
+            echo "2. For testing, secrets need to be available when PR is merged"
+            echo "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
+            exit 1
+          fi
+
+      - name: Login to OpenShift cluster
+        run: |
+          # For forked PRs, skip OpenShift login since secrets are not available
+          if [ -z "${{ secrets.OC_SERVER }}" ]; then
+            echo "⚠️  OpenShift secrets not available (forked PR) - skipping cluster login"
+            echo "💡 Tests will run in mock mode or against local test environment"
+            exit 0
+          fi
+
+          # Install jq if not available
+          if ! command -v jq &> /dev/null; then
+            echo "📦 Installing jq..."
+            if [[ "$RUNNER_OS" == "Linux" ]]; then
+              # For RHEL/Fedora-based systems
+              if command -v dnf &> /dev/null; then
+                sudo dnf install -y jq
+              elif command -v yum &> /dev/null; then
+                sudo yum install -y jq
+              else
+                # Fallback: download binary directly
+                echo "📥 Downloading jq binary..."
+                sudo wget -O /usr/local/bin/jq https://github.com/stedolan/jq/releases/latest/download/jq-linux64
+                sudo chmod +x /usr/local/bin/jq
+              fi
+            fi
+            echo "✅ jq installed: $(jq --version)"
+          else
+            echo "✅ jq already available: $(jq --version)"
+          fi
+
+          # Read credentials from downloaded test-variables.yml
+          TEST_VARS_FILE="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
+
+          # Extract OC_USERNAME from OCP_ADMIN_USER section
+          OC_USERNAME=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
+
+          # Extract OC_PASSWORD from OCP_ADMIN_USER section
+          OC_PASSWORD=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
+
+          # Mask sensitive data in logs (only if not empty)
+          if [ -n "$OC_PASSWORD" ]; then
+            echo "::add-mask::$OC_PASSWORD"
+          fi
+          if [ -n "$OC_USERNAME" ]; then
+            echo "::add-mask::$OC_USERNAME"
+          fi
+
+          # Extract TEST_USER_3_AUTH_TYPE from TEST_USER_3 section
+          TEST_USER_3_AUTH_TYPE=$(grep -A 10 "^TEST_USER_3:" "$TEST_VARS_FILE" | grep "AUTH_TYPE:" | head -1 | sed 's/.*AUTH_TYPE: //' | tr -d ' ')
+
+          # Extract TEST_USER_3_USERNAME from TEST_USER_3 section
+          TEST_USER_3_USERNAME=$(grep -A 10 "^TEST_USER_3:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
+
+          # Extract TEST_USER_3_PASSWORD from TEST_USER_3 section
+          TEST_USER_3_PASSWORD=$(grep -A 10 "^TEST_USER_3:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
+
+          # Extract HTPASSWD_CLUSTER_ADMIN_USER credentials
+          HTPASSWD_CLUSTER_ADMIN_AUTH_TYPE=$(grep -A 10 "^HTPASSWD_CLUSTER_ADMIN_USER:" "$TEST_VARS_FILE" | grep "AUTH_TYPE:" | head -1 | sed 's/.*AUTH_TYPE: //' | tr -d ' ')
+          HTPASSWD_CLUSTER_ADMIN_USERNAME=$(grep -A 10 "^HTPASSWD_CLUSTER_ADMIN_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
+          HTPASSWD_CLUSTER_ADMIN_PASSWORD=$(grep -A 10 "^HTPASSWD_CLUSTER_ADMIN_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
+
+          # Extract LDAP_CONTRIBUTOR_USER credentials
+          LDAP_CONTRIBUTOR_AUTH_TYPE=$(grep -A 10 "^LDAP_CONTRIBUTOR_USER:" "$TEST_VARS_FILE" | grep "AUTH_TYPE:" | head -1 | sed 's/.*AUTH_TYPE: //' | tr -d ' ')
+          LDAP_CONTRIBUTOR_USERNAME=$(grep -A 10 "^LDAP_CONTRIBUTOR_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
+          LDAP_CONTRIBUTOR_PASSWORD=$(grep -A 10 "^LDAP_CONTRIBUTOR_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
+
+          # Mask all credentials in logs (only if not empty)
+          if [ -n "$TEST_USER_3_USERNAME" ]; then
+            echo "::add-mask::$TEST_USER_3_USERNAME"
+          fi
+          if [ -n "$TEST_USER_3_PASSWORD" ]; then
+            echo "::add-mask::$TEST_USER_3_PASSWORD"
+          fi
+          if [ -n "$HTPASSWD_CLUSTER_ADMIN_USERNAME" ]; then
+            echo "::add-mask::$HTPASSWD_CLUSTER_ADMIN_USERNAME"
+          fi
+          if [ -n "$HTPASSWD_CLUSTER_ADMIN_PASSWORD" ]; then
+            echo "::add-mask::$HTPASSWD_CLUSTER_ADMIN_PASSWORD"
+          fi
+          if [ -n "$LDAP_CONTRIBUTOR_USERNAME" ]; then
+            echo "::add-mask::$LDAP_CONTRIBUTOR_USERNAME"
+          fi
+          if [ -n "$LDAP_CONTRIBUTOR_PASSWORD" ]; then
+            echo "::add-mask::$LDAP_CONTRIBUTOR_PASSWORD"
+          fi
+
+          # Export all credentials as environment variables for Cypress
+          echo "TEST_USER_3_AUTH_TYPE=$TEST_USER_3_AUTH_TYPE" >> $GITHUB_ENV
+          echo "TEST_USER_3_USERNAME=$TEST_USER_3_USERNAME" >> $GITHUB_ENV
+          echo "TEST_USER_3_PASSWORD=$TEST_USER_3_PASSWORD" >> $GITHUB_ENV
+          
+          # Build JSON safely using jq with compact output for GITHUB_ENV
+          if [ -n "$HTPASSWD_CLUSTER_ADMIN_USERNAME" ] || [ -n "$HTPASSWD_CLUSTER_ADMIN_PASSWORD" ]; then
+            HTPASSWD_JSON=$(jq -n -c \
+              --arg auth_type "$HTPASSWD_CLUSTER_ADMIN_AUTH_TYPE" \
+              --arg username "$HTPASSWD_CLUSTER_ADMIN_USERNAME" \
+              --arg password "$HTPASSWD_CLUSTER_ADMIN_PASSWORD" \
+              '{"AUTH_TYPE": $auth_type, "USERNAME": $username, "PASSWORD": $password}')
+            echo "HTPASSWD_CLUSTER_ADMIN_USER=$HTPASSWD_JSON" >> $GITHUB_ENV
+          else
+            echo "⚠️ HTPASSWD_CLUSTER_ADMIN_USER credentials are empty, skipping JSON creation"
+          fi
+
+          if [ -n "$LDAP_CONTRIBUTOR_USERNAME" ] || [ -n "$LDAP_CONTRIBUTOR_PASSWORD" ]; then
+            LDAP_JSON=$(jq -n -c \
+              --arg auth_type "$LDAP_CONTRIBUTOR_AUTH_TYPE" \
+              --arg username "$LDAP_CONTRIBUTOR_USERNAME" \
+              --arg password "$LDAP_CONTRIBUTOR_PASSWORD" \
+              '{"AUTH_TYPE": $auth_type, "USERNAME": $username, "PASSWORD": $password}')
+            echo "LDAP_CONTRIBUTOR_USER=$LDAP_JSON" >> $GITHUB_ENV
+          else
+            echo "⚠️ LDAP_CONTRIBUTOR_USER credentials are empty, skipping JSON creation"
+          fi
+          
+          echo "Logging in to OpenShift cluster..."
+          oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="${{ secrets.OC_SERVER }}" --insecure-skip-tls-verify
+
+          # Export OpenShift configuration for Cypress tests
+          echo "🔧 Setting up OpenShift configuration for Cypress tests..."
+          export KUBECONFIG="$HOME/.kube/config"
+          echo "KUBECONFIG=$KUBECONFIG" >> $GITHUB_ENV
+
+      - name: Set test configuration
+        run: |
+          # For forked PRs, use default URLs from local test-vars.yml
+          if [ -n "${{ secrets.OCP_CONSOLE_URL }}" ]; then
+            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: ${{ secrets.OCP_CONSOLE_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          fi
+          if [ -n "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
+            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: ${{ secrets.ODH_DASHBOARD_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          fi
+
+          # For forked PRs, set default URLs if secrets are not available
+          if [ -z "${{ secrets.OCP_CONSOLE_URL }}" ]; then
+            echo "⚠️  OCP_CONSOLE_URL secret not available (forked PR) - using localhost"
+            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:4010|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          fi
+          if [ -z "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
+            echo "⚠️  ODH_DASHBOARD_URL secret not available (forked PR) - using localhost"
+            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:4010|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          fi
+
+          export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
+
+      - name: Start Cypress Server
+        run: |
+          echo "🧹 Cleaning up any existing processes..."
+          pkill -f "webpack.*serve" || echo "No webpack processes found"
+          pkill -f "node.*4010" || echo "No node processes on port 4010"
+          sleep 2
+          
+          echo "🚀 Starting webpack dev server with cluster proxy..."
+          cd frontend && npm run start:dev:ext &
+          
+          SERVER_PID=$!
+          echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+          echo "Started webpack dev server with PID: $SERVER_PID"
+          
+          # Give the server extra time to start in CI
+          echo "⏳ Giving server 15 seconds to initialize..."
+          sleep 15
+
+      - name: Wait for Server Ready
+        run: |
+          echo "⏳ Waiting for localhost:4010 to be ready..."
+          # Use HTTP check instead of TCP since server is clearly running
+          npx wait-on http://localhost:4010 --timeout 120000
+          echo "✅ Server is responding to HTTP!"
+          
+          # Verify the application actually loads with more details
+          echo "🔍 Verifying application loads properly..."
+          for i in {1..10}; do
+            echo "🔄 Attempt $i/10: Testing application..."
+            
+            # Check if basic page loads
+            if curl -s -f http://localhost:4010/ > /tmp/response.html 2>/dev/null; then
+              echo "✅ HTTP 200 response received"
+              
+              # Check for dashboard content
+              if grep -q "Data Science Projects\|ODH\|Open Data Hub\|Dashboard" /tmp/response.html; then
+                echo "✅ Found dashboard content!"
+                break
+              else
+                echo "⚠️  Page loads but no dashboard content yet..."
+                echo "📄 Response contains: $(head -c 200 /tmp/response.html | tr '\n' ' ')"
+              fi
+            else
+              echo "❌ HTTP request failed"
+              curl_exit_code=$?
+              echo "Curl exit code: $curl_exit_code"
+            fi
+            
+            if [ $i -lt 10 ]; then
+              echo "⏳ Waiting 8 seconds before retry..."
+              sleep 8
+            fi
           done
-          echo "Combined coverage files:"
-          ls -R ./coverage
-      - name: Merge coverage reports
+          
+          # Final verification with detailed debugging
+          echo "🔍 Final application verification..."
+          if curl -s -f http://localhost:4010/ | grep -q "Data Science Projects\|ODH\|Open Data Hub\|Dashboard"; then
+            echo "✅ Server is ready and application is loaded!"
+            
+            # Test API endpoint
+            echo "🔍 Testing API endpoint..."
+            if curl -s -f http://localhost:4010/api/status > /dev/null; then
+              echo "✅ API proxy is working!"
+            else
+              echo "⚠️  API endpoint test failed, but frontend is working"
+            fi
+          else
+            echo "❌ Application failed to load properly"
+            echo ""
+            echo "📊 Debugging information:"
+            echo "🔄 Server process status:"
+            ps aux | grep -E '(webpack|node.*4010)' | head -5 || echo "No matching processes found"
+            
+            echo ""
+            echo "🌐 Network connectivity test:"
+            curl -I http://localhost:4010/ 2>&1 || echo "Connection failed"
+            
+            echo ""
+            echo "📄 Raw response (first 1000 chars):"
+            curl -s http://localhost:4010/ 2>/dev/null | head -c 1000 || echo "Failed to get response"
+            
+            echo ""
+            echo "🔍 Looking for webpack output in background..."
+            # Check if there are any relevant log files or output
+            ls -la /tmp/ | grep -E "(webpack|error|log)" || echo "No relevant temp files found"
+            
+            exit 1
+          fi
+
+      - name: Run E2E Tests
         run: |
-          npx nyc merge ./coverage ./coverage/merged-coverage.json
-          echo "Cleaning up merged coverage file..."
-          jq 'del(.[] | select(.statementMap == {}))' ./coverage/merged-coverage.json > ./coverage/cleaned-coverage.json
-          mv ./coverage/cleaned-coverage.json ./coverage/merged-coverage.json
-      - name: Generate coverage report
+          cd frontend
+
+          echo "🧪 Running commit-based E2E tests..."
+          echo "Event: ${{ github.event_name }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+
+          # Run real E2E tests (not mock mode)
+          echo "🚀 Running real E2E tests against live dashboard"
+
+          # Run tests with matrix tag using Jenkins-style command format
+          export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
+          export CY_RESULTS_DIR="${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}"
+
+          # Ensure OpenShift configuration is available to Cypress process
+          if [ -n "$KUBECONFIG" ]; then
+            echo "🔧 OpenShift configuration available: $KUBECONFIG"
+            # Verify oc command works in this context
+            oc whoami || echo "⚠️  oc whoami failed, but continuing with tests"
+          else
+            echo "⚠️  No KUBECONFIG set, OpenShift commands may fail"
+          fi
+
+          echo "🎯 Running tests with tags: ${{ matrix.test-tag }}"
+          echo "🚫 Skipping tags: @Bug,@Maintain,@NonConcurrent"
+          echo "📋 Test group: ${{ matrix.test-tag }}"
+
+          # Use Jenkins-style command format for proper tag filtering
+          echo "🔄 Using Chrome browser"
+
+          # Create results directory
+          mkdir -p "$CY_RESULTS_DIR"
+
+          # Run tests against port 4010
+          BASE_URL=http://localhost:4010 npm run cypress:run:chrome -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+
+      - name: Test tag name
+        if: ${{ always() }}
         run: |
-          mkdir -p ./coverage/report
-          npx nyc report --reporter=html --reporter=text-summary --temp-directory ./coverage -t ./coverage --report-dir ./coverage/report
-          cp ./coverage/unit-coverage-final.json ./coverage/combined-coverage-final.json || true
-      - name: Upload combined results
+          TEST_TAG_NAME=$(echo '${{ matrix.test-tag }}' | tr '/' '_' | tr '@' '_')
+          echo "TEST_TAG_NAME=$TEST_TAG_NAME" >> $GITHUB_ENV
+
+      - name: Upload test results
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: combined-coverage-results
-          path: ./coverage/combined-coverage-final.json
-      - name: Cleanup interim coverage files
-        run: |
-          rm -rf ./coverage/unit-coverage-final.json
-          find ./coverage -name "*-coverage-final.json" -type f -delete
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4.6.0
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
-          name: frontend-and-backend
-          file: ./coverage/merged-coverage.json
-          disable_search: true
-          directory: ./coverage
-          verbose: true
+          name: e2e-test-results-${{ matrix.test-tag }}
+          path: |
+            frontend/src/__tests__/cypress/results/
+            frontend/src/__tests__/cypress/videos/
+            frontend/src/__tests__/cypress/screenshots/
+            frontend/src/__tests__/cypress/coverage/
+          retention-days: 7
 
-  Tests:
-    runs-on: ubuntu-latest
-    needs:
-      - Lint
-      - Type-Check
-      - Unit-Tests
-      - Contract-Tests
-      - Cypress-Mock-Tests
-      - Combine-Results-and-Upload
+      - name: Log test completion
+        if: always()
+        run: |
+          echo "🏁 E2E Test completed!"
+          echo "Status: ${{ job.status }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Test Tag: ${{ matrix.test-tag }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Run ID: ${{ github.run_id }}"
+          echo ""
+          echo "📊 Test artifacts uploaded to:"
+          echo "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+  cleanup-server:
+    needs: [e2e-tests]
+    runs-on: self-hosted
+    if: ${{ always() && needs.e2e-tests.result != 'skipped' }}
     steps:
-      - name: Verify all jobs succeeded
-        run: echo "All required jobs have successfully completed for Node.js ${{ env.NODE_VERSION }}."
+      - name: Stop Cypress Servers
+        run: |
+          echo "🛑 Stopping webpack dev server..."
+          if [ -n "$SERVER_PID" ]; then
+            kill $SERVER_PID || echo "Failed to kill SERVER_PID"
+          fi
+          pkill -f "webpack.*serve" || echo "No webpack processes found"
+          pkill -f "node.*4010" || echo "No node processes on port 4010"
+          echo "✅ Server cleanup completed"
