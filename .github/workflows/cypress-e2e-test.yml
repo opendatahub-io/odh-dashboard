@@ -1,13 +1,27 @@
-name: zQuick e2e Test
+name: E2E Direct Commit PR Tests
 
-on: [push, pull_request]
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
 
 env:
   NODE_VERSION: 20.x
   DO_NOT_TRACK: 1
 
 jobs:
+  check-comment:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-e2e-tests-gh') }}
+    steps:
+      - run: echo "E2E tests requested via /run-e2e-tests-gh comment"
+
   get-test-tags:
+    needs: [check-comment]
     runs-on: self-hosted
     outputs:
       test-tags: ${{ steps.set-tags.outputs.test-tags }}
@@ -26,26 +40,29 @@ jobs:
       matrix:
         test-tag: ${{ fromJson(needs.get-test-tags.outputs.test-tags) }}
     steps:
-      - name: Cache npm dependencies
-        uses: actions/cache@v4
-        id: npm-cache
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          path: |
-            ~/.cache/Cypress
-            **/node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-
+          ref: refs/pull/${{ github.event.issue.number }}/head
+
+      - name: Set dynamic port for parallel jobs
+        run: |
+          # Use GitHub's built-in job index to ensure unique ports per matrix job
+          CYPRESS_PORT=$((4010 + ${{ strategy.job-index }}))
+          echo "CYPRESS_PORT=$CYPRESS_PORT" >> $GITHUB_ENV
+          echo "🔧 Assigned port $CYPRESS_PORT for test tag: ${{ matrix.test-tag }}"
 
       - name: Setup Node.js ${{ env.NODE_VERSION }}
-        if: steps.npm-cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install dependencies
-        if: steps.npm-cache.outputs.cache-hit != 'true'
-        run: npm ci
+      - name: Install dependencies (self-hosted optimized)
+        run: |
+          echo "📦 Installing dependencies for self-hosted runner..."
+          # npm ci is already optimized for self-hosted - only installs if package-lock.json changed
+          npm ci --prefer-offline --no-audit --no-fund
+          echo "✅ Dependencies installed"
 
       - name: Cache turbo build artifacts
         uses: actions/cache@v4
@@ -55,18 +72,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
 
-      - name: Cache OpenShift CLI tarball
-        uses: actions/cache@v4
-        id: oc-cache
-        with:
-          path: ${{ runner.temp }}/oc.tar.gz
-          key: ${{ runner.os }}-oc-tarball-${{ env.OC_VERSION || '4.15.0' }}
-
-      - name: Check and Install OpenShift CLI
+      - name: Check and Install OpenShift CLI (self-hosted optimized)
         run: |
           echo "🔍 Checking if OpenShift CLI (oc) is installed..."
 
-          # Check if oc is already installed
+          # Check if oc is already installed (should persist on self-hosted runner)
           if command -v oc &> /dev/null; then
             echo "✅ OpenShift CLI (oc) is already installed"
             oc version --client
@@ -74,21 +84,16 @@ jobs:
             echo "❌ OpenShift CLI (oc) not found, installing..."
             echo "📦 Installing oc CLI for Linux..."
 
-            OC_TARBALL="${{ runner.temp }}/oc.tar.gz"
-
-            # Check if tarball was cached
-            if [ -f "$OC_TARBALL" ]; then
-              echo "✅ Using cached OpenShift CLI tarball"
-            else
-              echo "📥 Downloading OpenShift CLI tarball..."
-              curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz -o "$OC_TARBALL"
-            fi
+            # For self-hosted, download directly without caching complexity
+            echo "📥 Downloading OpenShift CLI..."
+            curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz
 
             # Extract and install oc
             echo "📦 Extracting OpenShift CLI..."
-            tar -xzf "$OC_TARBALL"
+            tar -xzf oc.tar.gz
             sudo mv oc /usr/local/bin/
             sudo chmod +x /usr/local/bin/oc
+            rm -f oc.tar.gz  # Clean up
 
             # Verify installation
             echo "✅ OpenShift CLI installed successfully"
@@ -98,6 +103,48 @@ jobs:
           # Final verification
           echo "🎯 Final oc version check:"
           oc version --client || echo "⚠️  Could not determine oc version"
+
+      - name: Install jq for Cypress tests
+        run: |
+          echo "🔍 Checking if jq is installed..."
+
+          # Check if jq is already installed
+          if command -v jq &> /dev/null; then
+            echo "✅ jq is already installed"
+            jq --version
+          else
+            echo "❌ jq not found, installing..."
+            echo "📦 Installing jq for Linux..."
+
+            if [[ "$RUNNER_OS" == "Linux" ]]; then
+              # For RHEL/Fedora-based systems
+              if command -v dnf &> /dev/null; then
+                echo "📦 Using dnf package manager..."
+                sudo dnf install -y jq
+              elif command -v yum &> /dev/null; then
+                echo "📦 Using yum package manager..."
+                sudo yum install -y jq
+              else
+                # Fallback: download binary directly
+                echo "📥 Downloading jq binary directly..."
+                sudo wget -O /usr/local/bin/jq https://github.com/stedolan/jq/releases/latest/download/jq-linux64
+                sudo chmod +x /usr/local/bin/jq
+              fi
+            fi
+
+            # Verify installation
+            if command -v jq &> /dev/null; then
+              echo "✅ jq installation successful"
+              jq --version
+            else
+              echo "❌ jq installation failed"
+              exit 1
+            fi
+          fi
+
+          # Final verification
+          echo "🎯 Final jq version check:"
+          jq --version || echo "⚠️  Could not determine jq version"
 
       - name: Install Cypress Dependencies
         run: |
@@ -275,9 +322,13 @@ jobs:
           # Extract OC_PASSWORD from OCP_ADMIN_USER section
           OC_PASSWORD=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
 
-          # Mask sensitive data in logs
-          echo "::add-mask::$OC_PASSWORD"
-          echo "::add-mask::$OC_USERNAME"
+          # Mask sensitive data in logs (ONLY if not empty - THIS FIXES THE WARNINGS)
+          if [ -n "$OC_PASSWORD" ]; then
+            echo "::add-mask::$OC_PASSWORD"
+          fi
+          if [ -n "$OC_USERNAME" ]; then
+            echo "::add-mask::$OC_USERNAME"
+          fi
 
           # Extract TEST_USER_3_AUTH_TYPE from TEST_USER_3 section
           TEST_USER_3_AUTH_TYPE=$(grep -A 10 "^TEST_USER_3:" "$TEST_VARS_FILE" | grep "AUTH_TYPE:" | head -1 | sed 's/.*AUTH_TYPE: //' | tr -d ' ')
@@ -298,13 +349,25 @@ jobs:
           LDAP_CONTRIBUTOR_USERNAME=$(grep -A 10 "^LDAP_CONTRIBUTOR_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
           LDAP_CONTRIBUTOR_PASSWORD=$(grep -A 10 "^LDAP_CONTRIBUTOR_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
 
-          # Mask all credentials in logs (must happen after extraction)
-          echo "::add-mask::$TEST_USER_3_USERNAME"
-          echo "::add-mask::$TEST_USER_3_PASSWORD"
-          echo "::add-mask::$HTPASSWD_CLUSTER_ADMIN_USERNAME"
-          echo "::add-mask::$HTPASSWD_CLUSTER_ADMIN_PASSWORD"
-          echo "::add-mask::$LDAP_CONTRIBUTOR_USERNAME"
-          echo "::add-mask::$LDAP_CONTRIBUTOR_PASSWORD"
+          # Mask all credentials in logs (ONLY IF NOT EMPTY - THIS IS THE KEY FIX)
+          if [ -n "$TEST_USER_3_USERNAME" ]; then
+            echo "::add-mask::$TEST_USER_3_USERNAME"
+          fi
+          if [ -n "$TEST_USER_3_PASSWORD" ]; then
+            echo "::add-mask::$TEST_USER_3_PASSWORD"
+          fi
+          if [ -n "$HTPASSWD_CLUSTER_ADMIN_USERNAME" ]; then
+            echo "::add-mask::$HTPASSWD_CLUSTER_ADMIN_USERNAME"
+          fi
+          if [ -n "$HTPASSWD_CLUSTER_ADMIN_PASSWORD" ]; then
+            echo "::add-mask::$HTPASSWD_CLUSTER_ADMIN_PASSWORD"
+          fi
+          if [ -n "$LDAP_CONTRIBUTOR_USERNAME" ]; then
+            echo "::add-mask::$LDAP_CONTRIBUTOR_USERNAME"
+          fi
+          if [ -n "$LDAP_CONTRIBUTOR_PASSWORD" ]; then
+            echo "::add-mask::$LDAP_CONTRIBUTOR_PASSWORD"
+          fi
 
           # Export all credentials as environment variables for Cypress
           echo "TEST_USER_3_AUTH_TYPE=$TEST_USER_3_AUTH_TYPE" >> $GITHUB_ENV
@@ -352,14 +415,14 @@ jobs:
             sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: ${{ secrets.ODH_DASHBOARD_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
           fi
 
-          # For forked PRs, set default URLs if secrets are not available
+          # For forked PRs, set default URLs if secrets are not available (USING DYNAMIC PORT)
           if [ -z "${{ secrets.OCP_CONSOLE_URL }}" ]; then
-            echo "⚠️  OCP_CONSOLE_URL secret not available (forked PR) - using localhost"
-            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:4010|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+            echo "⚠️  OCP_CONSOLE_URL secret not available (forked PR) - using localhost:$CYPRESS_PORT"
+            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:$CYPRESS_PORT|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
           fi
           if [ -z "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
-            echo "⚠️  ODH_DASHBOARD_URL secret not available (forked PR) - using localhost"
-            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:4010|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+            echo "⚠️  ODH_DASHBOARD_URL secret not available (forked PR) - using localhost:$CYPRESS_PORT"
+            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:$CYPRESS_PORT|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
           fi
 
           export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
@@ -368,15 +431,15 @@ jobs:
         run: |
           echo "🧹 Cleaning up any existing processes..."
           pkill -f "webpack.*serve" || echo "No webpack processes found"
-          pkill -f "node.*4010" || echo "No node processes on port 4010"
+          pkill -f "node.*$CYPRESS_PORT" || echo "No node processes on port $CYPRESS_PORT"
           sleep 2
           
-          echo "🚀 Starting webpack dev server with cluster proxy..."
-          cd frontend && npm run start:dev:ext &
+          echo "🚀 Starting webpack dev server with cluster proxy on port $CYPRESS_PORT..."
+          cd frontend && PORT=$CYPRESS_PORT npm run start:dev:ext &
           
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
-          echo "Started webpack dev server with PID: $SERVER_PID"
+          echo "Started webpack dev server with PID: $SERVER_PID on port $CYPRESS_PORT"
           
           # Give the server extra time to start in CI
           echo "⏳ Giving server 15 seconds to initialize..."
@@ -384,10 +447,10 @@ jobs:
 
       - name: Wait for Server Ready
         run: |
-          echo "⏳ Waiting for localhost:4010 to be ready..."
+          echo "⏳ Waiting for localhost:$CYPRESS_PORT to be ready..."
           # Use HTTP check instead of TCP since server is clearly running
-          npx wait-on http://localhost:4010 --timeout 120000
-          echo "✅ Server is responding to HTTP!"
+          npx wait-on http://localhost:$CYPRESS_PORT --timeout 120000
+          echo "✅ Server is responding to HTTP on port $CYPRESS_PORT!"
           
           # Verify the application actually loads with more details
           echo "🔍 Verifying application loads properly..."
@@ -395,7 +458,7 @@ jobs:
             echo "🔄 Attempt $i/10: Testing application..."
             
             # Check if basic page loads
-            if curl -s -f http://localhost:4010/ > /tmp/response.html 2>/dev/null; then
+            if curl -s -f http://localhost:$CYPRESS_PORT/ > /tmp/response.html 2>/dev/null; then
               echo "✅ HTTP 200 response received"
               
               # Check for dashboard content
@@ -420,12 +483,12 @@ jobs:
           
           # Final verification with detailed debugging
           echo "🔍 Final application verification..."
-          if curl -s -f http://localhost:4010/ | grep -q "Data Science Projects\|ODH\|Open Data Hub\|Dashboard"; then
-            echo "✅ Server is ready and application is loaded!"
+          if curl -s -f http://localhost:$CYPRESS_PORT/ | grep -q "Data Science Projects\|ODH\|Open Data Hub\|Dashboard"; then
+            echo "✅ Server is ready and application is loaded on port $CYPRESS_PORT!"
             
             # Test API endpoint
             echo "🔍 Testing API endpoint..."
-            if curl -s -f http://localhost:4010/api/status > /dev/null; then
+            if curl -s -f http://localhost:$CYPRESS_PORT/api/status > /dev/null; then
               echo "✅ API proxy is working!"
             else
               echo "⚠️  API endpoint test failed, but frontend is working"
@@ -435,15 +498,15 @@ jobs:
             echo ""
             echo "📊 Debugging information:"
             echo "🔄 Server process status:"
-            ps aux | grep -E '(webpack|node.*4010)' | head -5 || echo "No matching processes found"
+            ps aux | grep -E "(webpack|node.*$CYPRESS_PORT)" | head -5 || echo "No matching processes found"
             
             echo ""
             echo "🌐 Network connectivity test:"
-            curl -I http://localhost:4010/ 2>&1 || echo "Connection failed"
+            curl -I http://localhost:$CYPRESS_PORT/ 2>&1 || echo "Connection failed"
             
             echo ""
             echo "📄 Raw response (first 1000 chars):"
-            curl -s http://localhost:4010/ 2>/dev/null | head -c 1000 || echo "Failed to get response"
+            curl -s http://localhost:$CYPRESS_PORT/ 2>/dev/null | head -c 1000 || echo "Failed to get response"
             
             echo ""
             echo "🔍 Looking for webpack output in background..."
@@ -461,6 +524,7 @@ jobs:
           echo "Event: ${{ github.event_name }}"
           echo "Branch: ${{ github.ref_name }}"
           echo "Commit: ${{ github.sha }}"
+          echo "Port: $CYPRESS_PORT"
 
           # Run real E2E tests (not mock mode)
           echo "🚀 Running real E2E tests against live dashboard"
@@ -488,8 +552,8 @@ jobs:
           # Create results directory
           mkdir -p "$CY_RESULTS_DIR"
 
-          # Run tests against port 4010
-          BASE_URL=http://localhost:4010 npm run cypress:run:chrome -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+          # Run tests against dynamic port
+          BASE_URL=http://localhost:$CYPRESS_PORT npm run cypress:run:chrome -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Test tag name
         if: ${{ always() }}
@@ -501,12 +565,13 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-test-results-${{ matrix.test-tag }}
+          name: e2e-test-results-${{ env.TEST_TAG_NAME }}
           path: |
             frontend/src/__tests__/cypress/results/
             frontend/src/__tests__/cypress/videos/
             frontend/src/__tests__/cypress/screenshots/
             frontend/src/__tests__/cypress/coverage/
+          if-no-files-found: ignore
           retention-days: 7
 
       - name: Log test completion
@@ -517,6 +582,7 @@ jobs:
           echo "Event: ${{ github.event_name }}"
           echo "Branch: ${{ github.ref_name }}"
           echo "Test Tag: ${{ matrix.test-tag }}"
+          echo "Port: $CYPRESS_PORT"
           echo "Commit: ${{ github.sha }}"
           echo "Run ID: ${{ github.run_id }}"
           echo ""
@@ -531,9 +597,7 @@ jobs:
       - name: Stop Cypress Servers
         run: |
           echo "🛑 Stopping webpack dev server..."
-          if [ -n "$SERVER_PID" ]; then
-            kill $SERVER_PID || echo "Failed to kill SERVER_PID"
-          fi
+          # Use pkill with broader patterns since we can't access CYPRESS_PORT here
           pkill -f "webpack.*serve" || echo "No webpack processes found"
-          pkill -f "node.*4010" || echo "No node processes on port 4010"
+          pkill -f "node.*401[0-9]" || echo "No node processes on 4010-4019 range"
           echo "✅ Server cleanup completed"
