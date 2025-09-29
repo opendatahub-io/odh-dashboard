@@ -160,7 +160,7 @@ const DeployPrefilledModelModalContents: React.FC<
       <Modal variant="medium" isOpen onClose={() => onClose(false)}>
         <ModalHeader
           title="Deploy model"
-          description="Configure properties for deploying your model"
+          description="Configure properties for deploying your model 22c"
         />
         <ModalBody>{modalForm}</ModalBody>
         <ModalFooter>

@@ -18,7 +18,7 @@ export const useDeploymentsTab = (): SectionDefinition[] => {
     ? [
         {
           id: ProjectSectionID.MODEL_SERVER,
-          title: 'Deployments',
+          title: 'Deployments ccc',
           component: deploymentsProjectDetailsTab ? (
             <LazyCodeRefComponent component={deploymentsProjectDetailsTab} />
           ) : (
