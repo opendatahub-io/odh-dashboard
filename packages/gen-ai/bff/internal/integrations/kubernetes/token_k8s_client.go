@@ -295,6 +295,7 @@ func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *inte
 			Endpoints:      kc.extractEndpoints(&isvc),
 			Status:         kc.extractStatusFromInferenceService(&isvc),
 			DisplayName:    kc.extractDisplayNameFromInferenceService(&isvc),
+			SAToken:        kc.extractSATokenFromInferenceService(&isvc),
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -416,6 +417,132 @@ func (kc *TokenKubernetesClient) extractDisplayNameFromInferenceService(isvc *ks
 		return isvc.Name
 	}
 	return displayName
+}
+
+// Helper method to extract service account token information from InferenceService
+func (kc *TokenKubernetesClient) extractSATokenFromInferenceService(isvc *kservev1beta1.InferenceService) models.SAToken {
+	ctx := context.Background()
+
+	// Get the actual service account used by the InferenceService pods
+	serviceAccountName, secretName := kc.findServiceAccountAndSecretForInferenceService(ctx, isvc)
+
+	// Extract the actual token value and display name from the secret
+	tokenValue, tokenName := kc.extractTokenAndDisplayNameFromSecret(ctx, isvc.Namespace, secretName)
+
+	kc.Logger.Debug("extracted service account info",
+		"inferenceService", isvc.Name,
+		"serviceAccount", serviceAccountName,
+		"secretName", secretName,
+		"tokenName", tokenName,
+		"hasToken", tokenValue != "")
+
+	return models.SAToken{
+		Name:      serviceAccountName,
+		TokenName: tokenName,  // This is the display name from the secret
+		Token:     tokenValue, // This is the actual token value
+	}
+}
+
+// Helper method to find the actual service account and secret used by InferenceService
+func (kc *TokenKubernetesClient) findServiceAccountAndSecretForInferenceService(ctx context.Context, isvc *kservev1beta1.InferenceService) (string, string) {
+	// List service accounts in the namespace
+	var saList corev1.ServiceAccountList
+	err := kc.Client.List(ctx, &saList, client.InNamespace(isvc.Namespace))
+	if err != nil {
+		kc.Logger.Warn("failed to list service accounts", "error", err, "namespace", isvc.Namespace)
+		return "", ""
+	}
+
+	// Find service account with owner reference to this InferenceService
+	for _, sa := range saList.Items {
+		for _, ownerRef := range sa.OwnerReferences {
+			if ownerRef.Kind == "InferenceService" && ownerRef.Name == isvc.Name {
+				kc.Logger.Debug("found service account with owner reference",
+					"serviceAccount", sa.Name,
+					"inferenceService", isvc.Name)
+
+				// Find the secret associated with this service account
+				secretName := kc.findSecretForServiceAccount(ctx, isvc.Namespace, sa.Name)
+				return sa.Name, secretName
+			}
+		}
+	}
+
+	// If no service account found with owner reference, use default
+	kc.Logger.Debug("no service account found with owner reference, using default",
+		"inferenceService", isvc.Name)
+	secretName := kc.findSecretForServiceAccount(ctx, isvc.Namespace, "default")
+	return "default", secretName
+}
+
+// Helper method to find the secret containing the service account token
+func (kc *TokenKubernetesClient) findSecretForServiceAccount(ctx context.Context, namespace, serviceAccountName string) string {
+	// List secrets in the namespace
+	var secretList corev1.SecretList
+	err := kc.Client.List(ctx, &secretList, client.InNamespace(namespace))
+	if err != nil {
+		kc.Logger.Warn("failed to list secrets", "error", err, "namespace", namespace)
+		return serviceAccountName + "-token"
+	}
+
+	// Find secret with the service account annotation
+	for _, secret := range secretList.Items {
+		if secret.Type == corev1.SecretTypeServiceAccountToken {
+			if saName, exists := secret.Annotations["kubernetes.io/service-account.name"]; exists && saName == serviceAccountName {
+				kc.Logger.Debug("found service account token secret",
+					"serviceAccount", serviceAccountName,
+					"secretName", secret.Name)
+				return secret.Name
+			}
+		}
+	}
+
+	// If no secret found, return the expected pattern
+	kc.Logger.Debug("no service account token secret found, using pattern",
+		"serviceAccount", serviceAccountName)
+	return serviceAccountName + "-token"
+}
+
+// Helper method to extract the actual token value and display name from a secret
+func (kc *TokenKubernetesClient) extractTokenAndDisplayNameFromSecret(ctx context.Context, namespace, secretName string) (string, string) {
+	if secretName == "" {
+		return "", ""
+	}
+
+	// Get the secret
+	var secret corev1.Secret
+	key := client.ObjectKey{
+		Namespace: namespace,
+		Name:      secretName,
+	}
+	err := kc.Client.Get(ctx, key, &secret)
+	if err != nil {
+		kc.Logger.Warn("failed to get secret", "error", err, "secretName", secretName, "namespace", namespace)
+		return "", ""
+	}
+
+	// Extract the token from the secret data
+	tokenValue := ""
+	if tokenData, exists := secret.Data["token"]; exists {
+		tokenValue = string(tokenData)
+	} else {
+		kc.Logger.Warn("token not found in secret data", "secretName", secretName)
+	}
+
+	// Extract the display name from the secret annotations
+	tokenName := ""
+	if secret.Annotations != nil {
+		if displayName, exists := secret.Annotations["openshift.io/display-name"]; exists {
+			tokenName = displayName
+		}
+	}
+
+	// If no display name found, use the secret name as fallback
+	if tokenName == "" {
+		tokenName = secretName
+	}
+
+	return tokenValue, tokenName
 }
 
 func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []string) (*lsdapi.LlamaStackDistribution, error) {
