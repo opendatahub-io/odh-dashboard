@@ -889,6 +889,10 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('model-deployment-name');
   }
 
+  findModelDeploymentDescriptionInput() {
+    return cy.findByTestId('model-deployment-description');
+  }
+
   findModelFormatSelect() {
     return cy.findByTestId('model-framework-select');
   }

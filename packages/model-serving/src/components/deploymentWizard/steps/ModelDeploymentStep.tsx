@@ -26,7 +26,6 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
           dataTestId="model-deployment"
           nameLabel="Model deployment name"
           nameHelperText="This is the name of the inference service created when the model is deployed." // TODO: make this non-Kserve specific
-          hideDescription
         />
         <ModelServingHardwareProfileSection
           project={projectName}
