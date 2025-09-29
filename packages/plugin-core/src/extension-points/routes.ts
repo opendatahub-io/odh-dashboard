@@ -11,8 +11,6 @@ export type RouteExtension = Extension<
     component: ComponentCodeRef;
     /** The react-router path pattern to match against the current location. */
     path: string;
-    /** The react-router path pattern corresponding to the v2 path for backward compatibility. */
-    v2PathRedirect?: string;
   }
 >;
 

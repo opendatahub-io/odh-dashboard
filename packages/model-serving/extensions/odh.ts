@@ -11,6 +11,11 @@ import { StackComponent, SupportedArea } from '@odh-dashboard/internal/concepts/
 
 const PLUGIN_MODEL_SERVING = SupportedArea.K_SERVE;
 
+const createRedirectComponent = (args: { from: string; to: string }) => () =>
+  import('@odh-dashboard/internal/utilities/v2Redirect').then((module) => ({
+    default: () => module.buildV2RedirectElement(args),
+  }));
+
 const extensions: (
   | AreaExtension
   | ProjectDetailsTab
@@ -66,8 +71,20 @@ const extensions: (
     type: 'app.route',
     properties: {
       path: '/ai-hub/deployments/:namespace?/*',
-      v2PathRedirect: '/modelServing/:namespace?/*',
       component: () => import('../src/GlobalModelsRoutes'),
+    },
+    flags: {
+      required: [PLUGIN_MODEL_SERVING],
+    },
+  },
+  {
+    type: 'app.route',
+    properties: {
+      path: '/modelServing/:namespace?/*',
+      component: createRedirectComponent({
+        from: '/modelServing/:namespace?/*',
+        to: '/ai-hub/deployments/:namespace?/*',
+      }),
     },
     flags: {
       required: [PLUGIN_MODEL_SERVING],

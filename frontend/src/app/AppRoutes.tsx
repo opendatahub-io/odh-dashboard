@@ -6,7 +6,6 @@ import { InvalidArgoDeploymentAlert } from '#~/concepts/pipelines/content/Invali
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import UnauthorizedError from '#~/pages/UnauthorizedError';
 import { useUser } from '#~/redux/selectors';
-import { buildV2RedirectElement } from '#~/utilities/v2Redirect';
 
 const NotFound = React.lazy(() => import('../pages/NotFound'));
 
@@ -22,36 +21,19 @@ const AppRoutes: React.FC = () => {
 
   const dynamicRoutes = React.useMemo(
     () =>
-      routeExtensions.flatMap((routeExtension) => {
-        const routes = [
-          <Route
-            key={routeExtension.uid}
-            path={routeExtension.properties.path}
-            element={
-              <LazyCodeRefComponent
-                key={routeExtension.uid}
-                component={routeExtension.properties.component}
-                fallback={fallback}
-              />
-            }
-          />,
-        ];
-
-        if (routeExtension.properties.v2PathRedirect) {
-          routes.push(
-            <Route
-              key={`${routeExtension.uid}-v2-redirect`}
-              path={routeExtension.properties.v2PathRedirect}
-              element={buildV2RedirectElement({
-                from: routeExtension.properties.v2PathRedirect,
-                to: routeExtension.properties.path,
-              })}
-            />,
-          );
-        }
-
-        return routes;
-      }),
+      routeExtensions.map((routeExtension) => (
+        <Route
+          key={routeExtension.uid}
+          path={routeExtension.properties.path}
+          element={
+            <LazyCodeRefComponent
+              key={routeExtension.uid}
+              component={routeExtension.properties.component}
+              fallback={fallback}
+            />
+          }
+        />
+      )),
     [routeExtensions],
   );
 
