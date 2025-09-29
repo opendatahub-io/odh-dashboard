@@ -4,7 +4,6 @@ import { Table } from '#~/components/table';
 import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import useAcceleratorProfiles from '#~/pages/notebookController/screens/server/useAcceleratorProfiles';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import ManageBYONImageModal from './BYONImageModal/ManageBYONImageModal';
@@ -47,8 +46,6 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
     HardwareProfileFeatureVisibility.WORKBENCH,
   ]);
 
-  const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
-
   const onFilterUpdate = React.useCallback(
     (key: string, value: string | { label: string; value: string } | undefined) =>
       setFilterData((prevValues) => ({ ...prevValues, [key]: value })),
@@ -67,11 +64,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
         data-testid="notebook-images-table"
         enablePagination
         data={filteredImages}
-        columns={
-          isHardwareProfileAvailable
-            ? columns.filter((column) => column.field !== 'recommendedAccelerators')
-            : columns.filter((column) => column.field !== 'recommendedHardwareProfiles')
-        }
+        columns={columns}
         defaultSortColumn={1}
         emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
         disableRowRenderSupport
