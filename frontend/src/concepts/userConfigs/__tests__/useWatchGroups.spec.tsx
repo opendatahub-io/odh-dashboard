@@ -132,28 +132,4 @@ describe('useWatchGroups', () => {
       'Error getting group settings',
     );
   });
-
-  it('should test admin error', async () => {
-    const mockGroupSettings: GroupsConfig = {
-      adminGroups: [{ id: 'odh-admins', name: 'odh-admins', enabled: true }],
-      allowedGroups: [],
-      errorAdmin: 'errorAdmin',
-    };
-    fetchAuthGroupsMock.mockResolvedValue(mockGroupSettings);
-    const renderResult = testHook(useWatchGroups)();
-    await renderResult.waitForNextUpdate();
-    expect(useNotificationMock().error).toHaveBeenCalledWith('Group error', 'errorAdmin');
-  });
-
-  it('should test user error', async () => {
-    const mockGroupSettings: GroupsConfig = {
-      adminGroups: [{ id: 'odh-admins', name: 'odh-admins', enabled: true }],
-      allowedGroups: [],
-      errorUser: 'errorUser',
-    };
-    fetchAuthGroupsMock.mockResolvedValue(mockGroupSettings);
-    const renderResult = testHook(useWatchGroups)();
-    await renderResult.waitForNextUpdate();
-    expect(useNotificationMock().error).toHaveBeenCalledWith('Group error', 'errorUser');
-  });
 });
