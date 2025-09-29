@@ -25,13 +25,5 @@ export const createSelfSubjectAccessReview = (
     url: `${cluster.server}/apis/authorization.k8s.io/v1/selfsubjectaccessreviews`,
     method: 'POST',
     requestData: JSON.stringify(selfSubjectAccessReviewObject),
-  })
-    .then((v) => {
-      fastify.log.info(`!!!! ${JSON.stringify(v)}`);
-      return v;
-    })
-    .catch((e) => {
-      fastify.log.error(`error ${JSON.stringify(e)}`);
-      throw e;
-    });
+  });
 };
