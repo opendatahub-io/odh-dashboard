@@ -67,6 +67,28 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
 
   const hardwareProfileWarnings = validateProfileWarning(hardwareProfile);
 
+  const renderFeatureVisibility = () => {
+    if (useCases.length === 0) {
+      return <i>All features</i>;
+    }
+
+    const validUseCases = useCases.filter((v) => HardwareProfileFeatureVisibilityTitles[v]);
+
+    if (validUseCases.length === 0) {
+      return '-';
+    }
+
+    return (
+      <LabelGroup>
+        {validUseCases.map((v) => (
+          <Label key={v} data-testid={`label-${v}`}>
+            {HardwareProfileFeatureVisibilityTitles[v]}
+          </Label>
+        ))}
+      </LabelGroup>
+    );
+  };
+
   const { kueue, node } = hardwareProfile.spec.scheduling ?? {};
   const localQueueName = kueue?.localQueueName;
   const priorityClass = kueue?.priorityClass;
@@ -133,19 +155,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
             }
           />
         </Td>
-        <Td dataLabel="Features">
-          {useCases.length === 0 ? (
-            <i>All features</i>
-          ) : (
-            <LabelGroup>
-              {useCases.map((v) => (
-                <Label key={v} data-testid={`label-${v}`}>
-                  {HardwareProfileFeatureVisibilityTitles[v]}
-                </Label>
-              ))}
-            </LabelGroup>
-          )}
-        </Td>
+        <Td dataLabel="Features">{renderFeatureVisibility()}</Td>
         <Td dataLabel="Enabled">
           <HardwareProfileEnableToggle hardwareProfile={hardwareProfile} />
         </Td>
