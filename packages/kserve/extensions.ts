@@ -147,6 +147,10 @@ const extensions: (
         import('./src/useKServeResources').then((m) => m.extractHardwareProfileConfig),
       extractModelFormat: () => import('./src/modelFormat').then((m) => m.extractKServeModelFormat),
       extractReplicas: () => import('./src/useKServeResources').then((m) => m.extractReplicas),
+      extractRuntimeArgs: () =>
+        import('./src/useKServeResources').then((m) => m.extractRuntimeArgs),
+      extractEnvironmentVariables: () =>
+        import('./src/useKServeResources').then((m) => m.extractEnvironmentVariables),
     },
   },
   {

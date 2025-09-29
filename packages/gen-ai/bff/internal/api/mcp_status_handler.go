@@ -25,7 +25,7 @@ func (app *App) MCPStatusHandler(w http.ResponseWriter, r *http.Request, ps http
 		return
 	}
 
-	serverConfig, err := app.findMCPServerConfig(ctx, k8sClient, identity, decodedURL)
+	serverConfig, err := app.findMCPServerConfig(ctx, k8sClient, identity, decodedURL, app.dashboardNamespace)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return

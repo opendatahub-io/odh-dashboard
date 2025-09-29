@@ -101,7 +101,7 @@ const FeatureStoreEntitiesTableRow: React.FC<FeatureStoreEntitiesTableRowType> =
         `value-type-${entity.spec.name}`,
       )}
       {renderTableCell(
-        'Feature Views',
+        'Feature views',
         <ScrollableLinksPopover
           trigger={featureViewsTrigger}
           links={featureViewLinks}

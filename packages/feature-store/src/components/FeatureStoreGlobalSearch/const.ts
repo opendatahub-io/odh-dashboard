@@ -1,9 +1,9 @@
 export const FEATURE_STORE_TYPE_TO_CATEGORY: { [key: string]: string } = {
   entity: 'Entities',
-  dataSource: 'Data Sources',
-  featureView: 'Feature Views',
+  dataSource: 'Data sources',
+  featureView: 'Feature views',
   feature: 'Features',
-  featureService: 'Feature Services',
+  featureService: 'Feature services',
   savedDataset: 'Datasets',
 } as const;
 

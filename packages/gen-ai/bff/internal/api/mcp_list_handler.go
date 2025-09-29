@@ -56,11 +56,11 @@ func (app *App) MCPListHandler(w http.ResponseWriter, r *http.Request, ps httpro
 		k8sClient,
 		ctx,
 		identity,
-		constants.MCPServerNamespace,
+		app.dashboardNamespace,
 		constants.MCPServerName,
 	)
 	if err != nil {
-		app.handleConfigMapError(w, r, err, constants.MCPServerName, constants.MCPServerNamespace)
+		app.handleConfigMapError(w, r, err, constants.MCPServerName, app.dashboardNamespace)
 		return
 	}
 

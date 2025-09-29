@@ -34,6 +34,10 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
         }
       }}
       onOpenChange={(isOpenChange: boolean) => setIsOpen(isOpenChange)}
+      popperProps={{
+        appendTo: () => document.body,
+        position: 'right',
+      }}
       toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
         <MenuToggle
           ref={toggleRef}
@@ -47,7 +51,7 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
       )}
       shouldFocusToggleOnSelect
     >
-      <DropdownList>
+      <DropdownList style={{ maxHeight: '300px', overflowY: 'auto' }}>
         {models.map((option) => (
           <DropdownItem value={option.id} key={option.id}>
             {option.id}

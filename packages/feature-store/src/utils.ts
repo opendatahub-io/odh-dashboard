@@ -24,13 +24,13 @@ export const getFeatureStoreObjectDisplayName = (
     case FeatureStoreObject.ENTITIES:
       return 'Entities';
     case FeatureStoreObject.FEATURE_VIEWS:
-      return 'Feature Views';
+      return 'Feature views';
     case FeatureStoreObject.FEATURE_SERVICES:
-      return 'Feature Services';
+      return 'Feature services';
     case FeatureStoreObject.DATA_SETS:
       return 'Datasets';
     case FeatureStoreObject.DATA_SOURCES:
-      return 'Data Sources';
+      return 'Data sources';
     case FeatureStoreObject.OVERVIEW:
       return 'Feature store overview';
     case FeatureStoreObject.FEATURES:
@@ -141,7 +141,7 @@ export const getFeatureStoreObjectDescription = (
     case FeatureStoreObject.FEATURE_VIEWS:
       return 'Select a feature store repository to view and manage its feature views. A feature view defines how to retrieve a logical group of features from a specific data source. It binds a data source to one or more entities and contains the logic for transforming the raw data into feature values.';
     case FeatureStoreObject.FEATURE_SERVICES:
-      return "Select a feature store repository to view and manage its feature services. Feature services groups features from across one or more Feature Views to serve a specific model's needs for training, inference, or GenAI applications like RAG. Feature service acts as a managed API for a model, ensuring features are served consistently.";
+      return "Select a feature store repository to view and manage its feature services. Feature services groups features from across one or more Feature views to serve a specific model's needs for training, inference, or GenAI applications like RAG. Feature service acts as a managed API for a model, ensuring features are served consistently.";
     case FeatureStoreObject.DATA_SETS:
       return 'View and manage datasets created from feature services. Datasets are point-in-time-correct snapshots of feature services,data and are used for training,  or validation, and analysis.';
     case FeatureStoreObject.OVERVIEW:

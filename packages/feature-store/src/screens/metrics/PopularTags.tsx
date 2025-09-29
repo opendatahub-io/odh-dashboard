@@ -52,7 +52,7 @@ const PopularTagCard = ({ tag }: { tag: PopularTag }) => {
       </CardHeader>
       <CardBody style={{ paddingBottom: '16px' }}>
         <Content component={ContentVariants.p} style={{ margin: '0' }}>
-          Feature Views:
+          Feature views:
         </Content>
         <List
           className="pf-u-ps-sm"
