@@ -4,7 +4,6 @@ import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import { MultiSelection, type SelectionOptions } from '#~/components/MultiSelection';
 import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
 import { ManageHardwareProfileSectionTitles } from '#~/pages/hardwareProfiles/const';
-import { filterOutPipelines } from '#~/pages/hardwareProfiles/utils';
 import { ManageHardwareProfileSectionID } from './types';
 import { HardwareProfileFeatureVisibilityTitles } from './const';
 
@@ -21,7 +20,7 @@ export const HardwareProfileVisibilitySection: React.FC<HardwareProfileUseCaseSe
   const [selectedOptions, setSelectedOptions] = React.useState<string[]>([]);
   const visibilityOptions: SelectionOptions[] = React.useMemo(
     () =>
-      filterOutPipelines(Object.values(HardwareProfileFeatureVisibility)).map((value) => ({
+      Object.values(HardwareProfileFeatureVisibility).map((value) => ({
         id: value,
         name: HardwareProfileFeatureVisibilityTitles[value],
         selected: selectedOptions.includes(value),
@@ -34,7 +33,7 @@ export const HardwareProfileVisibilitySection: React.FC<HardwareProfileUseCaseSe
       setLimitedOptionSelected(false);
     } else {
       setLimitedOptionSelected(true);
-      setSelectedOptions(filterOutPipelines(visibility));
+      setSelectedOptions(visibility);
     }
   }, [visibility]);
 
@@ -70,9 +69,8 @@ export const HardwareProfileVisibilitySection: React.FC<HardwareProfileUseCaseSe
         isChecked={isLimitedOptionSelected}
         onChange={() => {
           setLimitedOptionSelected(true);
-          const cleanedSelection = filterOutPipelines(selectedOptions);
-          if (cleanedSelection.length !== 0) {
-            setVisibility(cleanedSelection);
+          if (selectedOptions.length !== 0) {
+            setVisibility(selectedOptions);
           }
         }}
         body={
