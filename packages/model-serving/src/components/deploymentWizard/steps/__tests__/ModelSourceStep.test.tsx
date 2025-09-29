@@ -93,7 +93,9 @@ describe('ModelSourceStep', () => {
     it('should render ModelTypeSelectField and ModelLocationSelectField', () => {
       render(
         <ModelSourceStepContent
-          wizardState={mockDeploymentWizardState()}
+          wizardState={mockDeploymentWizardState({
+            state: { modelLocationData: { isLoadingSecretData: false } },
+          })}
           validation={mockValidation}
         />,
       );
@@ -108,6 +110,7 @@ describe('ModelSourceStep', () => {
             data: ServingRuntimeModelType.GENERATIVE,
           },
           modelLocationData: {
+            isLoadingSecretData: false,
             data: {
               type: ModelLocationType.NEW,
               fieldValues: {

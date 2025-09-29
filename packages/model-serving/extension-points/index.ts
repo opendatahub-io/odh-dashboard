@@ -151,10 +151,7 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
       (deployment: D) => { saveAsAiAsset: boolean; useCase: string } | null
     >;
     extractModelLocationData: CodeRef<
-      (
-        deployment: D,
-        connectionTypes: ConnectionTypeConfigMapObj[],
-      ) => Promise<ModelLocationData | null>
+      (deployment: D, connectionTypes: ConnectionTypeConfigMapObj[]) => ModelLocationData | null
     >;
   }
 >;

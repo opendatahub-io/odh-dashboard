@@ -14,24 +14,14 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { setupDefaults } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
-import useServingConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections';
-import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
-import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
-import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types.js';
-import { ConnectionTypeConfigMapObj } from '@odh-dashboard/internal/concepts/connectionTypes/types.js';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
-import { ModelDeploymentWizardData } from './useDeploymentWizard';
+import { ModelDeploymentWizardData, useModelDeploymentWizard } from './useDeploymentWizard';
 import {
   getModelTypeFromDeployment,
   getTokenAuthenticationFromDeployment,
   getExternalRouteFromDeployment,
 } from './utils';
-import { useModelLocationData } from './fields/ModelLocationInputFields';
-import {
-  Deployment,
-  isModelServingDeploymentFormDataExtension,
-  ModelServingDeploymentFormDataExtension,
-} from '../../../extension-points';
+import { Deployment, isModelServingDeploymentFormDataExtension } from '../../../extension-points';
 import {
   ModelDeploymentsContext,
   ModelDeploymentsProvider,
@@ -64,43 +54,6 @@ const ErrorContent: React.FC<{ error: Error }> = ({ error }) => {
     </Bullseye>
   );
 };
-function useEditDeploymentData(
-  existingDeployment: Deployment | undefined,
-  formDataExtension: ReturnType<
-    typeof useResolvedDeploymentExtension<ModelServingDeploymentFormDataExtension<Deployment>>
-  >[0],
-  connectionTypes: ConnectionTypeConfigMapObj[],
-) {
-  const [formData, setFormData] = React.useState<ModelDeploymentWizardData>();
-  const [dataLoaded, setDataLoaded] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!existingDeployment || !formDataExtension || dataLoaded) return;
-
-    (async () => {
-      const modelLocationData = await formDataExtension.properties.extractModelLocationData(
-        existingDeployment,
-        connectionTypes,
-      );
-
-      setFormData({
-        modelTypeField: getModelTypeFromDeployment(existingDeployment),
-        k8sNameDesc: setupDefaults({ initialData: existingDeployment.model }),
-        hardwareProfile:
-          formDataExtension.properties.extractHardwareProfileConfig(existingDeployment) ??
-          undefined,
-        modelFormat:
-          formDataExtension.properties.extractModelFormat(existingDeployment) ?? undefined,
-        modelLocationData: modelLocationData ?? undefined,
-        externalRoute: getExternalRouteFromDeployment(existingDeployment),
-        tokenAuthentication: getTokenAuthenticationFromDeployment(existingDeployment),
-      });
-      setDataLoaded(true);
-    })();
-  }, [existingDeployment, formDataExtension, connectionTypes, dataLoaded]);
-
-  return { formData, dataLoaded };
-}
 
 const EditModelDeploymentPage: React.FC = () => {
   const { namespace } = useParams();
@@ -153,6 +106,9 @@ const EditModelDeploymentContent: React.FC<{
   project: ProjectKind;
   modelServingPlatform: ModelServingPlatform;
 }> = ({ project, modelServingPlatform }) => {
+  const wizardState = useModelDeploymentWizard();
+  const { connectionTypes } = wizardState.state.modelLocationData;
+
   const { name: deploymentName } = useParams();
   const { deployments, loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
   const { dashboardNamespace } = useDashboardNamespace();
@@ -173,7 +129,9 @@ const EditModelDeploymentContent: React.FC<{
       formDataExtension?.properties.extractHardwareProfileConfig(deployment) ?? undefined,
     modelFormat: formDataExtension?.properties.extractModelFormat(deployment) ?? undefined,
     numReplicas: formDataExtension?.properties.extractReplicas(deployment) ?? undefined,
-    modelLocationData: setupModelLocationData(), // TODO: Implement fully in next ticket RHOAIENG-32186
+    modelLocationData:
+      formDataExtension?.properties.extractModelLocationData(deployment, connectionTypes) ??
+      undefined,
     externalRoute: getExternalRouteFromDeployment(deployment),
     tokenAuthentication: getTokenAuthenticationFromDeployment(deployment),
     runtimeArgs: formDataExtension?.properties.extractRuntimeArgs(deployment) ?? undefined,
@@ -192,17 +150,18 @@ const EditModelDeploymentContent: React.FC<{
     },
   });
 
-  const { formData, dataLoaded } = useEditDeploymentData(
-    existingDeployment,
-    formDataExtension,
-    connectionTypes,
-  );
+  const formData = React.useMemo(() => {
+    if (existingDeployment) {
+      return extractFormDataFromDeployment(existingDeployment);
+    }
+    return undefined;
+  }, [existingDeployment, extractFormDataFromDeployment]);
 
   if (formDataExtensionErrors.length > 0) {
     return <ErrorContent error={formDataExtensionErrors[0]} />;
   }
 
-  if (!deploymentsLoaded || !formDataExtensionLoaded || !connectionsLoaded || !dataLoaded) {
+  if (!deploymentsLoaded || !formDataExtensionLoaded) {
     return (
       <Bullseye>
         <Spinner />

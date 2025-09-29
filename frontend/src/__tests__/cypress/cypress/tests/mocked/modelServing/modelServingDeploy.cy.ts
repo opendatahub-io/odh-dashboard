@@ -29,7 +29,10 @@ import {
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { ServingRuntimeModelType, ServingRuntimePlatform } from '#~/types';
 import { mockGlobalScopedHardwareProfiles } from '#~/__mocks__/mockHardwareProfile';
-import { mockConnectionTypeConfigMap } from '../../../../../../__mocks__/mockConnectionType';
+import {
+  mockConnectionTypeConfigMap,
+  mockModelServingFields,
+} from '../../../../../../__mocks__/mockConnectionType';
 
 const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) => {
   cy.interceptOdh(
@@ -70,43 +73,7 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
       displayName: 'S3',
       name: 's3',
       category: ['existing-category'],
-      fields: [
-        {
-          type: 'short-text',
-          name: 'AWS_ACCESS_KEY_ID',
-          envVar: 'AWS_ACCESS_KEY_ID',
-          required: true,
-          properties: {},
-        },
-        {
-          type: 'short-text',
-          name: 'AWS_SECRET_ACCESS_KEY',
-          envVar: 'AWS_SECRET_ACCESS_KEY',
-          required: true,
-          properties: {},
-        },
-        {
-          type: 'short-text',
-          name: 'AWS_S3_ENDPOINT',
-          envVar: 'AWS_S3_ENDPOINT',
-          required: true,
-          properties: {},
-        },
-        {
-          type: 'short-text',
-          name: 'AWS_S3_BUCKET',
-          envVar: 'AWS_S3_BUCKET',
-          required: true,
-          properties: {},
-        },
-        {
-          type: 'short-text',
-          name: 'AWS_DEFAULT_REGION',
-          envVar: 'AWS_DEFAULT_REGION',
-          required: false,
-          properties: {},
-        },
-      ],
+      fields: mockModelServingFields,
     }),
   ]).as('getConnectionTypes');
 

@@ -7,8 +7,10 @@ import {
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import {
   getConnectionTypeRef,
+  isConnection,
   isModelServingCompatible,
   ModelServingCompatibleTypes,
+  parseConnectionSecretValues,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { z } from 'zod';
 import { ConnectionOciAlert } from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciAlert';
@@ -20,6 +22,7 @@ import {
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import useServingConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections';
 import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
+import { getSecret } from '@odh-dashboard/internal/api/k8s/secrets';
 import { ExistingConnectionField } from './modelLocationFields/ExistingConnectionField';
 import { ModelLocationData, ModelLocationType } from './modelLocationFields/types';
 import NewConnectionField from './modelLocationFields/NewConnectionField';
@@ -34,6 +37,7 @@ export type ModelLocationDataField = {
   connectionTypes: ConnectionTypeConfigMapObj[];
   selectedConnection: Connection | undefined;
   setSelectedConnection: (connection: Connection | undefined) => void;
+  isLoadingSecretData: boolean;
 };
 export const useModelLocationData = (
   project: ProjectKind | null,
@@ -42,8 +46,65 @@ export const useModelLocationData = (
   const [modelLocationData, setModelLocationData] = React.useState<ModelLocationData | undefined>(
     existingData,
   );
-  const [connectionTypes] = useWatchConnectionTypes(true);
+  const [connectionTypes, connectionTypesLoaded] = useWatchConnectionTypes(true);
   const [connections, connectionsLoaded] = useServingConnections(project?.metadata.name);
+
+  const [isStableState, setIsStableState] = React.useState(
+    connectionTypesLoaded && connectionsLoaded,
+  );
+  React.useEffect(() => {
+    if (!project?.metadata.name || !connectionsLoaded || !connectionTypesLoaded) {
+      return;
+    }
+    if (!existingData) {
+      // new deployment
+      setIsStableState(true);
+      return;
+    }
+
+    const fetchConnectionData = async () => {
+      if (existingData.type === ModelLocationType.PVC) {
+        setIsStableState(true);
+        return;
+      }
+
+      setIsStableState(false);
+      try {
+        const connectionName = existingData.connection || existingData.fieldValues.URI;
+        if (!connectionName) {
+          return;
+        }
+
+        const secret = await getSecret(project.metadata.name, connectionName.toString());
+        if (!isConnection(secret)) {
+          return;
+        }
+
+        const connectionTypeRef =
+          secret.metadata.annotations['opendatahub.io/connection-type-ref'] ||
+          secret.metadata.annotations['opendatahub.io/connection-type'];
+        const connectionType = connectionTypes.find((ct) => ct.metadata.name === connectionTypeRef);
+        const values = parseConnectionSecretValues(secret, connectionType);
+        const hasOwnerRef = !!secret.metadata.ownerReferences?.length;
+
+        const newState = {
+          type: hasOwnerRef ? ModelLocationType.NEW : ModelLocationType.EXISTING,
+          fieldValues: values,
+          connectionTypeObject: connectionType,
+          additionalFields: existingData.additionalFields,
+          ...(hasOwnerRef ? {} : { connection: connectionName.toString() }),
+        };
+
+        setModelLocationData(newState);
+      } catch (e) {
+        console.error('Failed to fetch secret data:', e);
+      } finally {
+        setIsStableState(true);
+      }
+    };
+
+    fetchConnectionData();
+  }, [existingData, project?.metadata.name, connectionsLoaded, connectionTypesLoaded]);
 
   const initialConnection = React.useMemo(() => {
     if (connectionsLoaded && existingData?.type === ModelLocationType.EXISTING) {
@@ -92,6 +153,7 @@ export const useModelLocationData = (
     connectionTypes,
     selectedConnection,
     setSelectedConnection: updateSelectedConnection,
+    isLoadingSecretData: !isStableState,
   };
 };
 
