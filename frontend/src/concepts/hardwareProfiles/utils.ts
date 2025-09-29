@@ -52,10 +52,9 @@ export const useProfileIdentifiers = (
   hardwareProfile?: HardwareProfileKind,
 ): string[] => {
   const [identifiers, setIdentifiers] = React.useState<string[]>([]);
-  const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
 
   React.useEffect(() => {
-    if (isHardwareProfilesAvailable && hardwareProfile) {
+    if (hardwareProfile) {
       const profileIdentifiers =
         hardwareProfile.spec.identifiers?.map((identifier) => identifier.identifier) ?? [];
       setIdentifiers(profileIdentifiers);
@@ -64,7 +63,7 @@ export const useProfileIdentifiers = (
     } else {
       setIdentifiers([]);
     }
-  }, [acceleratorProfile, hardwareProfile, isHardwareProfilesAvailable]);
+  }, [acceleratorProfile, hardwareProfile]);
 
   return identifiers;
 };
