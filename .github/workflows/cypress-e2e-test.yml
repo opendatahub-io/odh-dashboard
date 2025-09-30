@@ -249,7 +249,7 @@ jobs:
           echo "Running E2E tests on port $CYPRESS_PORT"
           echo "Test tag: ${{ matrix.test-tag }}"
           
-          BASE_URL=http://localhost:$CYPRESS_PORT npm run cypress:run:chrome -- \
+          BASE_URL=http://localhost:$CYPRESS_PORT npm run cypress:run:electron -- \
             --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true \
             --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
