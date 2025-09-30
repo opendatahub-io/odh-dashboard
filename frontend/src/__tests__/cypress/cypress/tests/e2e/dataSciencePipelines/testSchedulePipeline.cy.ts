@@ -49,7 +49,7 @@ describe('Verify that a pipeline can be scheduled to run', { testIsolation: fals
     'Admin imports a pipeline and schedules it to run',
     { tags: ['@Pipelines', '@Dashboard', '@Smoke', '@SmokeSet1'] },
     () => {
-      cy.step(`Navigate to DSP ${projectName}`);
+      cy.step(`Navigate to Pipelines ${projectName}`);
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
