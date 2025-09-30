@@ -1,4 +1,4 @@
-name: zSample e2e Test
+name: E2E Direct Commit PR Tests
 
 on: [push, pull_request]
 
@@ -32,34 +32,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Find available port starting from 4010
-        run: |
-          # Find first available port in the proven working range (4010-4100)
-          # This approach is safe for 5+ concurrent workflow runs
-          PORT=4010
-          MAX_PORT=4100
-          
-          echo "🔍 Searching for available port in range $PORT-$MAX_PORT..."
-          while [ $PORT -le $MAX_PORT ]; do
-            if ! lsof -ti:$PORT > /dev/null 2>&1; then
-              echo "✅ Found available port: $PORT"
-              echo "CYPRESS_PORT=$PORT" >> $GITHUB_ENV
-              echo "🔧 Port $PORT assigned to test tag: ${{ matrix.test-tag }}"
-              echo "📊 Run ID: ${{ github.run_id }}, Job: ${{ github.job }}"
-              break
-            else
-              echo "⚠️  Port $PORT in use, trying next..."
-              PORT=$((PORT + 1))
-            fi
-          done
-          
-          if [ $PORT -gt $MAX_PORT ]; then
-            echo "❌ No available ports found in range 4010-$MAX_PORT"
-            echo "📋 Active ports in range:"
-            lsof -i :4010-4100 2>/dev/null || echo "Cannot list ports"
-            exit 1
-          fi
 
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4.3.0
@@ -158,26 +130,50 @@ jobs:
           oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="${{ secrets.OC_SERVER }}" --insecure-skip-tls-verify
           echo "KUBECONFIG=$HOME/.kube/config" >> $GITHUB_ENV
 
-      - name: Set test configuration
+      - name: Set test configuration URLs from secrets
         run: |
+          # Only update URLs if secrets are provided
+          # Port will be set dynamically at server start time
           if [ -n "${{ secrets.OCP_CONSOLE_URL }}" ]; then
             sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: ${{ secrets.OCP_CONSOLE_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
-          else
-            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:$CYPRESS_PORT|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
           fi
           
           if [ -n "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
             sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: ${{ secrets.ODH_DASHBOARD_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
-          else
-            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:$CYPRESS_PORT|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
           fi
-
-      - name: Start Cypress Server
-        run: |
-          echo "🧹 Cleaning up any existing processes on port $CYPRESS_PORT..."
-          lsof -ti:$CYPRESS_PORT | xargs kill -9 2>/dev/null || echo "Port $CYPRESS_PORT is clean"
-          sleep 2
           
+          # Note: If secrets not provided, BASE_URL will be set at test run time with dynamic port
+
+      - name: Find available port and start server
+        run: |
+          # Find available port RIGHT BEFORE starting server (prevents race conditions)
+          # Use job index to assign base ports dynamically (works with any number of test tags)
+          BASE_PORT=$((4010 + (${{ strategy.job-index }} * 10)))
+          
+          PORT=$BASE_PORT
+          MAX_PORT=$((BASE_PORT + 9))
+          
+          echo "🔍 Finding port for ${{ matrix.test-tag }} in range $PORT-$MAX_PORT..."
+          while [ $PORT -le $MAX_PORT ]; do
+            if ! lsof -ti:$PORT > /dev/null 2>&1; then
+              echo "✅ Found available port: $PORT"
+              CYPRESS_PORT=$PORT
+              break
+            else
+              echo "⚠️  Port $PORT in use, trying next..."
+              PORT=$((PORT + 1))
+            fi
+          done
+          
+          if [ $PORT -gt $MAX_PORT ]; then
+            echo "❌ No ports available in range $BASE_PORT-$MAX_PORT"
+            exit 1
+          fi
+          
+          # Export port for later steps
+          echo "CYPRESS_PORT=$CYPRESS_PORT" >> $GITHUB_ENV
+          
+          # Immediately start server to claim the port (minimize race window)
           echo "🚀 Starting webpack dev server on port $CYPRESS_PORT..."
           cd frontend && ODH_PORT=$CYPRESS_PORT npm run start:dev:ext > /tmp/webpack-${CYPRESS_PORT}.log 2>&1 &
           
