@@ -7,7 +7,6 @@ import {
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import {
   getConnectionTypeRef,
-  isConnection,
   isModelServingCompatible,
   ModelServingCompatibleTypes,
   parseConnectionSecretValues,
@@ -22,7 +21,6 @@ import {
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import useServingConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections';
 import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
-import { getSecret } from '@odh-dashboard/internal/api/k8s/secrets';
 import { ExistingConnectionField } from './modelLocationFields/ExistingConnectionField';
 import {
   ConnectionTypeRefs,
@@ -93,14 +91,12 @@ export const useModelLocationData = (
           return;
         }
 
-        const secret = await getSecret(project.metadata.name, connectionName.toString());
-        if (!isConnection(secret)) {
+        const secret = connections.find((c) => c.metadata.name === existingData.connection);
+        if (!secret) {
           return;
         }
 
-        const connectionTypeRef =
-          secret.metadata.annotations['opendatahub.io/connection-type-ref'] ||
-          secret.metadata.annotations['opendatahub.io/connection-type'];
+        const connectionTypeRef = getConnectionTypeRef(secret);
         const connectionType = connectionTypes.find((ct) => ct.metadata.name === connectionTypeRef);
         const values = parseConnectionSecretValues(secret, connectionType);
         const hasOwnerRef = !!secret.metadata.ownerReferences?.length;

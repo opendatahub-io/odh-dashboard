@@ -4,12 +4,6 @@ import { Wizard, WizardStep } from '@patternfly/react-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
-import {
-  Connection,
-  ConnectionTypeConfigMapObj,
-} from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
-import { getConnectionTypeRef } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { getDeploymentWizardExitRoute } from './utils';
 import { useModelDeploymentWizard, type ModelDeploymentWizardData } from './useDeploymentWizard';
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
