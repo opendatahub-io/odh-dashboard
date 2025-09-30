@@ -3,27 +3,14 @@ import {
   isPVCUri,
 } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
 import { MetadataAnnotation, InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
-import { ConnectionTypeConfigMapObj } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import { ModelServingCompatibleTypes } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import {
   ModelLocationData,
   ModelLocationType,
-  ConnectionTypeRefs,
 } from '../../model-serving/src/components/deploymentWizard/fields/modelLocationFields/types';
 
 export const getModelLocationUri = (deployment: InferenceServiceKind): string | undefined => {
   return deployment.spec.predictor.model?.storageUri;
-};
-
-const getConnectionTypeObject = (
-  connectionTypeRef: string,
-  connectionTypes: ConnectionTypeConfigMapObj[],
-): ConnectionTypeConfigMapObj | undefined => {
-  const foundType = connectionTypes.find((ct) => ct.metadata.name === connectionTypeRef);
-  if (foundType) {
-    return foundType;
-  }
-  return undefined;
 };
 
 const extractAdditionalFields = (deployment: InferenceServiceKind): Record<string, string> => {
@@ -48,10 +35,9 @@ const extractAdditionalFields = (deployment: InferenceServiceKind): Record<strin
   return additionalFields;
 };
 
-export const extractKServeModelLocationData = (
-  deployment: { model: InferenceServiceKind },
-  connectionTypes: ConnectionTypeConfigMapObj[],
-): ModelLocationData => {
+export const extractKServeModelLocationData = (deployment: {
+  model: InferenceServiceKind;
+}): ModelLocationData => {
   const uri = getModelLocationUri(deployment.model);
   if (uri && isPVCUri(uri)) {
     return {
@@ -82,7 +68,6 @@ export const extractKServeModelLocationData = (
   return {
     type: ModelLocationType.NEW,
     fieldValues: { URI: uri },
-    connectionTypeObject: getConnectionTypeObject(ConnectionTypeRefs.URI, connectionTypes),
     additionalFields,
   };
 };

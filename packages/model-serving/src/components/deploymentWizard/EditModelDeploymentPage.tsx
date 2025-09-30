@@ -15,7 +15,7 @@ import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { setupDefaults } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
-import { ModelDeploymentWizardData, useModelDeploymentWizard } from './useDeploymentWizard';
+import { ModelDeploymentWizardData } from './useDeploymentWizard';
 import {
   getModelTypeFromDeployment,
   getTokenAuthenticationFromDeployment,
@@ -106,9 +106,6 @@ const EditModelDeploymentContent: React.FC<{
   project: ProjectKind;
   modelServingPlatform: ModelServingPlatform;
 }> = ({ project, modelServingPlatform }) => {
-  const wizardState = useModelDeploymentWizard();
-  const { connectionTypes } = wizardState.state.modelLocationData;
-
   const { name: deploymentName } = useParams();
   const { deployments, loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
   const { dashboardNamespace } = useDashboardNamespace();
@@ -130,8 +127,7 @@ const EditModelDeploymentContent: React.FC<{
     modelFormat: formDataExtension?.properties.extractModelFormat(deployment) ?? undefined,
     numReplicas: formDataExtension?.properties.extractReplicas(deployment) ?? undefined,
     modelLocationData:
-      formDataExtension?.properties.extractModelLocationData(deployment, connectionTypes) ??
-      undefined,
+      formDataExtension?.properties.extractModelLocationData(deployment) ?? undefined,
     externalRoute: getExternalRouteFromDeployment(deployment),
     tokenAuthentication: getTokenAuthenticationFromDeployment(deployment),
     runtimeArgs: formDataExtension?.properties.extractRuntimeArgs(deployment) ?? undefined,

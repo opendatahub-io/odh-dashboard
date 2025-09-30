@@ -24,7 +24,11 @@ import useServingConnections from '@odh-dashboard/internal/pages/projects/screen
 import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { getSecret } from '@odh-dashboard/internal/api/k8s/secrets';
 import { ExistingConnectionField } from './modelLocationFields/ExistingConnectionField';
-import { ModelLocationData, ModelLocationType } from './modelLocationFields/types';
+import {
+  ConnectionTypeRefs,
+  ModelLocationData,
+  ModelLocationType,
+} from './modelLocationFields/types';
 import NewConnectionField from './modelLocationFields/NewConnectionField';
 import { PvcSelectField } from './modelLocationFields/PVCSelectField';
 
@@ -67,10 +71,24 @@ export const useModelLocationData = (
         setIsStableState(true);
         return;
       }
+      if (existingData.type === ModelLocationType.NEW) {
+        // Setting connection type object as URI by default, get reset later if it's something else
+        const connectionTypeObject = connectionTypes.find(
+          (ct) => ct.metadata.name === ConnectionTypeRefs.URI,
+        );
+        if (connectionTypeObject) {
+          setModelLocationData({
+            ...existingData,
+            connectionTypeObject,
+          });
+        }
+        setIsStableState(true);
+        return;
+      }
 
       setIsStableState(false);
       try {
-        const connectionName = existingData.connection || existingData.fieldValues.URI;
+        const connectionName = existingData.connection;
         if (!connectionName) {
           return;
         }
