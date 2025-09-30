@@ -12,7 +12,7 @@ dev-install-dependencies: ## Install dependencies for frontend
 
 .PHONY: dev-bff-mock
 dev-bff-mock: ## Run only the bff in development mode
-	cd bff && make run MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true AUTH_TOKEN=FAKE_BEARER_TOKEN
+	cd bff && make run MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MAAS_CLIENT=true AUTH_TOKEN=FAKE_BEARER_TOKEN
 
 .PHONY: dev-bff
 dev-bff:

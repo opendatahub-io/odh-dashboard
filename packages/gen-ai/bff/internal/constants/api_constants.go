@@ -36,6 +36,6 @@ const (
 	ModelsAAPath       = ApiPathPrefix + "/aaa/models"
 
 	// Model as a Service (MaaS) endpoints
-	MaasModelsPath = ApiPathPrefix + "/maas/models"
-	MaasTokenPath  = ApiPathPrefix + "/maas/token"
+	MaaSModelsPath = ApiPathPrefix + "/maas/models"
+	MaaSTokensPath = ApiPathPrefix + "/maas/tokens"
 )

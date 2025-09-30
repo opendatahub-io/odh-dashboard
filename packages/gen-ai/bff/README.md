@@ -79,6 +79,7 @@ make run STATIC_ASSETS_DIR=../frontend/dist
 **Environment Variables:**
 
 - `LLAMA_STACK_URL`: URL of your LlamaStack backend
+- `MAAS_URL`: URL of your MaaS (Model as a Service) backend
 - `AUTH_METHOD=user_token`: Enables token-based authentication
 - `AUTH_TOKEN_HEADER=Authorization`: Header name for the bearer token
 - `AUTH_TOKEN_PREFIX="Bearer "`: Token prefix format
@@ -111,6 +112,33 @@ curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/n
 
 ```bash
 curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/llamastack-distribution/status?namespace=default"
+```
+
+#### Test MaaS (Model as a Service) Endpoints
+
+**List Available MaaS Models:**
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/maas/models"
+```
+
+**Issue New Token:**
+
+```bash
+# Issue token with default 4h TTL
+curl -i -X POST -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/maas/tokens"
+
+# Issue token with custom TTL
+curl -i -X POST -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"expiration": "2h"}' \
+     "http://localhost:8080/gen-ai/api/v1/maas/tokens"
+```
+
+**Revoke All Tokens:**
+
+```bash
+curl -i -X DELETE -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/maas/tokens"
 ```
 
 #### Test MCP (Model Context Protocol) Endpoints
@@ -197,6 +225,48 @@ curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/l
     }
   ]
 }
+```
+
+**MaaS Models Response:**
+
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "llama-2-7b-chat",
+      "object": "model",
+      "created": 1672531200,
+      "owned_by": "model-namespace",
+      "ready": true,
+      "url": "http://llama-2-7b-chat.openshift-ai-inference-tier-premium.svc.cluster.local"
+    },
+    {
+      "id": "mistral-7b-instruct",
+      "object": "model",
+      "created": 1672531200,
+      "owned_by": "model-namespace",
+      "ready": false,
+      "url": "http://mistral-7b-instruct.openshift-ai-inference-tier-premium.svc.cluster.local"
+    }
+  ]
+}
+```
+
+**MaaS Token Issue Response:**
+
+```json
+{
+  "token": "maas-token-placeholder-12345",
+  "expiresAt": 1735406400
+}
+```
+
+**MaaS Token Revoke Response:**
+
+```http
+HTTP/1.1 204 No Content
+(empty body)
 ```
 
 **LlamaStack Distribution Status Response (LSD Found):**
@@ -426,7 +496,25 @@ make run STATIC_ASSETS_DIR=../frontend/dist
 - `MOCK_MCP_CLIENT=true`: Enables mock MCP client
 - `MOCK_MCP_CLIENT=false` (or not set): Uses real MCP servers
 
-#### 5. Combined Mock Mode (All Services)
+#### 5. Mock MaaS Client
+
+**Start BFF with Mock MaaS Client:**
+
+```bash
+LLAMA_STACK_URL=http://localhost:8321 \
+AUTH_METHOD=user_token \
+AUTH_TOKEN_HEADER=Authorization \
+AUTH_TOKEN_PREFIX="Bearer " \
+MOCK_MAAS_CLIENT=true \
+make run STATIC_ASSETS_DIR=../frontend/dist
+```
+
+**Environment Variables:**
+
+- `MOCK_MAAS_CLIENT=true`: Enables mock MaaS client
+- `MOCK_MAAS_CLIENT=false` (or not set): Uses real MaaS server
+
+#### 6. Combined Mock Mode (All Services)
 
 **Start BFF with All Mock Clients:**
 
@@ -438,6 +526,7 @@ AUTH_TOKEN_PREFIX="Bearer " \
 MOCK_K8S_CLIENT=true \
 MOCK_LS_CLIENT=true \
 MOCK_MCP_CLIENT=true \
+MOCK_MAAS_CLIENT=true \
 make run STATIC_ASSETS_DIR=../frontend/dist
 ```
 
@@ -475,7 +564,7 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-
       "displayName": "mock-test-namespace-1"
     },
     {
-      "name": "mock-test-namespace-2", 
+      "name": "mock-test-namespace-2",
       "displayName": "mock-test-namespace-2"
     },
     {
@@ -733,7 +822,7 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-
         }
       },
       {
-        "name": "mock_local_search", 
+        "name": "mock_local_search",
         "description": "Mock local search tool",
         "input_schema": {
           "type": "object",
@@ -753,20 +842,116 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-
 
 **Mock Data Source:** Hardcoded in `internal/integrations/mcp/mcpmocks/`
 
+### Testing Mock MaaS Endpoints
+
+#### List MaaS Models (Mock MaaS)
+
+**Request:**
+
+```bash
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/maas/models"
+```
+
+**Expected Response (200 OK):**
+
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "llama-2-7b-chat",
+      "object": "model",
+      "created": 1672531200,
+      "owned_by": "model-namespace",
+      "ready": true,
+      "url": "http://llama-2-7b-chat.openshift-ai-inference-tier-premium.svc.cluster.local"
+    },
+    {
+      "id": "llama-2-13b-chat",
+      "object": "model",
+      "created": 1672531200,
+      "owned_by": "model-namespace",
+      "ready": true,
+      "url": "http://llama-2-13b-chat.openshift-ai-inference-tier-premium.svc.cluster.local"
+    },
+    {
+      "id": "mistral-7b-instruct",
+      "object": "model",
+      "created": 1672531200,
+      "owned_by": "model-namespace",
+      "ready": false,
+      "url": "http://mistral-7b-instruct.openshift-ai-inference-tier-premium.svc.cluster.local"
+    },
+    {
+      "id": "granite-7b-lab",
+      "object": "model",
+      "created": 1672531200,
+      "owned_by": "model-namespace",
+      "ready": true,
+      "url": "http://granite-7b-lab.openshift-ai-inference-tier-premium.svc.cluster.local"
+    }
+  ]
+}
+```
+
+#### Issue Token (Mock MaaS)
+
+**Request:**
+
+```bash
+# Default TTL (4h)
+curl -i -X POST -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/maas/tokens"
+
+# Custom TTL (Go duration format: ns, us, ms, s, m, h)
+curl -i -X POST -H "Authorization: Bearer FAKE_BEARER_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"expiration": "2h"}' \
+     "http://localhost:8080/gen-ai/api/v1/maas/tokens"
+```
+
+**Expected Response (201 Created):**
+
+```json
+{
+  "token": "maas-token-placeholder-67890",
+  "expiresAt": 1735406400
+}
+```
+
+#### Revoke All Tokens (Mock MaaS)
+
+**Request:**
+
+```bash
+curl -i -X DELETE -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/maas/tokens"
+```
+
+**Expected Response (204 No Content):**
+
+```http
+HTTP/1.1 204 No Content
+(empty body)
+```
+
+**Mock Data Source:** Hardcoded in `internal/integrations/maas/maasmocks/`
+
 ### Troubleshooting Mock Mode
 
 **Common Issues:**
 
 1. **"unknown test token" Error:**
+
    - Ensure you're using one of the valid mock tokens
    - Check that `MOCK_K8S_CLIENT=true` is set
 
 2. **Still Getting Real Data:**
+
    - Verify environment variables are set correctly
-   - Check BFF startup logs for "Using mocked Kubernetes client", "Using mock LlamaStack client", or "Using mocked MCP client"
+   - Check BFF startup logs for "Using mocked Kubernetes client", "Using mock LlamaStack client", "Using mocked MCP client", or "Using mock MaaS client factory"
    - Restart BFF after changing mock settings
 
 3. **Mock Data Not Matching Expected:**
+
    - Check the mock client source files for current mock data
    - Mock data is hardcoded and may be updated in newer versions
 
@@ -779,3 +964,4 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-
 - **K8s Mock Data:** `internal/integrations/kubernetes/k8smocks/`
 - **LS Mock Data:** `internal/integrations/llamastack/lsmocks/`
 - **MCP Mock Data:** `internal/integrations/mcp/mcpmocks/`
+- **MaaS Mock Data:** `internal/integrations/maas/maasmocks/`

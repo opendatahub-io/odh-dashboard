@@ -4,19 +4,25 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
-// MaasModelsPlaceholderHandler handles GET /gen-ai/api/v1/maas/models
-// This is a placeholder implementation for the MaaS models endpoint
-func (app *App) MaasModelsPlaceholderHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	// Return a placeholder response indicating the endpoint is not yet implemented
-	response := map[string]interface{}{
-		"message": "MaaS models endpoint is not yet implemented",
-		"status":  "placeholder",
-		"data":    []interface{}{},
+// MaaSModelsHandler handles GET /v1/models
+func (app *App) MaaSModelsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ctx := r.Context()
+
+	maasModels, err := app.repositories.MaaSModels.ListModels(ctx)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
 	}
 
-	err := app.WriteJSON(w, http.StatusNotImplemented, response, nil)
+	response := models.MaaSModelsResponse{
+		Object: "list",
+		Data:   maasModels,
+	}
+
+	err = app.WriteJSON(w, http.StatusOK, response, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

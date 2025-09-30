@@ -51,7 +51,7 @@ paths:
           required: true
           schema:
             type: string
-            example: "default"
+            example: 'default'
       responses:
         '200':
           $ref: '#/components/responses/ModelsResponse'
@@ -83,7 +83,7 @@ paths:
           required: true
           schema:
             type: string
-            example: "genai-lls"
+            example: 'genai-lls'
       responses:
         '200':
           $ref: '#/components/responses/AAModelsResponse'
@@ -98,76 +98,142 @@ paths:
       description: Gets a list of all available AI Assets models from Kubernetes InferenceServices.
 
   /gen-ai/api/v1/maas/models:
-    summary: List MaaS models (placeholder)
+    summary: List available MaaS models
     description: >-
-      Lists all available Model as a Service (MaaS) models.
-      This is a placeholder endpoint for future implementation.
+      Lists all available models from MaaS (Model as a Service).
+      Returns models with their identifiers, creation timestamps, ownership information, ready status, and service URLs.
+      This endpoint does not require namespace parameter as MaaS operates independently.
     get:
       tags:
-        - Models
+        - MaaS
       security:
         - Bearer: []
       responses:
-        '501':
-          description: Not implemented yet
+        '200':
+          description: Successful response with MaaS models list
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  message:
+                  object:
                     type: string
-                    example: "MaaS models endpoint is not yet implemented"
-                  status:
-                    type: string
-                    example: "placeholder"
+                    example: 'list'
                   data:
                     type: array
-                    items: {}
-                    example: []
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          example: 'llama-2-7b-chat'
+                        object:
+                          type: string
+                          example: 'model'
+                        created:
+                          type: integer
+                          format: int64
+                          example: 1672531200
+                        owned_by:
+                          type: string
+                          example: 'model-namespace'
+                        ready:
+                          type: boolean
+                          example: true
+                        url:
+                          type: string
+                          example: 'http://llama-2-7b-chat.openshift-ai-inference-tier-premium.svc.cluster.local'
+                      required:
+                        - id
+                        - object
+                        - created
+                        - owned_by
+                        - ready
+                        - url
+                required:
+                  - object
+                  - data
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
-      operationId: listMaasModels
-      summary: List MaaS Models (Placeholder)
-      description: Placeholder for MaaS models endpoint - not yet implemented.
+      operationId: listMaaSModels
+      summary: List All MaaS Models
+      description: Gets a list of all available models from MaaS service.
 
-  /gen-ai/api/v1/maas/token:
-    summary: Get MaaS token (placeholder)
+  /gen-ai/api/v1/maas/tokens:
+    summary: Manage MaaS authentication tokens
     description: >-
-      Gets authentication token for Model as a Service (MaaS) access.
-      This is a placeholder endpoint for future implementation.
-    get:
+      Issue new ephemeral tokens and revoke existing tokens for MaaS service authentication.
+      Tokens are JWT-based with configurable TTL (time-to-live).
+    post:
       tags:
-        - Models
+        - MaaS
       security:
         - Bearer: []
+      summary: Issue New Token
+      description: Create a new ephemeral token with specified TTL for API authentication.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                expiration:
+                  type: string
+                  description: Token time-to-live in Go duration format. Supports ns, us, ms, s, m, h units.
+                  default: '4h'
+                  example: '2h'
+                  pattern: '^[0-9]+(ns|us|ms|s|m|h)$'
+            example:
+              expiration: '4h'
       responses:
-        '501':
-          description: Not implemented yet
+        '201':
+          description: Token created successfully
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  message:
-                    type: string
-                    example: "MaaS token endpoint is not yet implemented"
-                  status:
-                    type: string
-                    example: "placeholder"
                   token:
                     type: string
-                    nullable: true
-                    example: null
+                    description: Generated JWT token
+                    example: 'maas-token-placeholder-12345'
+                  expiresAt:
+                    type: integer
+                    format: int64
+                    description: Token expiration timestamp as Unix timestamp
+                    example: 1735406400
+                required:
+                  - token
+                  - expiresAt
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
-      operationId: getMaasToken
-      summary: Get MaaS Token (Placeholder)
-      description: Placeholder for MaaS token endpoint - not yet implemented.
+      operationId: issueMaaSToken
+    delete:
+      tags:
+        - MaaS
+      security:
+        - Bearer: []
+      summary: Revoke All Tokens
+      description: Invalidate all tokens for the current user. This will break any applications currently using those tokens.
+      responses:
+        '204':
+          description: All tokens revoked successfully (no content)
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: revokeAllMaaSTokens
 
   /gen-ai/api/v1/lsd/vectorstores:
     summary: Manage vector stores for RAG
@@ -187,7 +253,7 @@ paths:
           required: true
           schema:
             type: string
-            example: "default"
+            example: 'default'
         - name: limit
           in: query
           description: Number of vector stores to return (1-100, default 20)
@@ -231,7 +297,7 @@ paths:
           required: true
           schema:
             type: string
-            example: "default"
+            example: 'default'
       requestBody:
         description: Vector store creation request (only name is required, all other parameters are optional)
         content:
@@ -271,7 +337,7 @@ paths:
           required: true
           schema:
             type: string
-            example: "default"
+            example: 'default'
       requestBody:
         description: Multipart form with file and vector store information
         content:
@@ -313,7 +379,7 @@ paths:
           required: true
           schema:
             type: string
-            example: "default"
+            example: 'default'
       requestBody:
         description: Response creation request with comprehensive parameter support
         content:
@@ -360,7 +426,7 @@ paths:
           required: true
           schema:
             type: string
-            example: "default"
+            example: 'default'
       requestBody:
         description: Code generation request with configuration parameters
         content:
@@ -464,25 +530,25 @@ paths:
           required: true
           schema:
             type: string
-            example: "default"
+            example: 'default'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/LlamaStackDistributionInstallRequest"
+              $ref: '#/components/schemas/LlamaStackDistributionInstallRequest'
             description: Installation request with list of models to include
             example:
-              models: ["llama-3-2-3b-instruct", "granite-embedding-125m"]
+              models: ['llama-3-2-3b-instruct', 'granite-embedding-125m']
       responses:
-        "200":
-          $ref: "#/components/responses/LlamaStackDistributionInstallResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          $ref: '#/components/responses/LlamaStackDistributionInstallResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: installLlamaStackDistribution
       summary: Install LSD
       description: Installs a new LlamaStack Distribution with the specified models.
@@ -1281,7 +1347,7 @@ components:
           items:
             $ref: '#/components/schemas/SearchResult'
           description: Search results for file_search_call outputs
-        
+
         # MCP-specific fields
         server_label:
           type: string
@@ -1635,7 +1701,7 @@ components:
           items:
             type: string
           description: List of model names to include in the LSD installation
-          example: ["llama-3-2-3b-instruct", "granite-embedding-125m"]
+          example: ['llama-3-2-3b-instruct', 'granite-embedding-125m']
           minItems: 1
 
     LlamaStackDistributionInstallModel:
@@ -1646,11 +1712,11 @@ components:
       properties:
         name:
           type: string
-          example: "lsd-genai-playground"
+          example: 'lsd-genai-playground'
           description: Name of installed LlamaStack Distribution
         httpStatus:
           type: string
-          example: "200"
+          example: '200'
           description: HTTP status code of the installation operation
 
     DistributionConfig:
@@ -2296,7 +2362,7 @@ components:
                       health:
                         status: 'healthy'
                         message: 'Provider is responding normally'
-                        
+
     LlamaStackDistributionInstallResponse:
       description: LlamaStack Distribution installation result
       content:
@@ -2307,19 +2373,19 @@ components:
               - data
             properties:
               data:
-                $ref: "#/components/schemas/LlamaStackDistributionInstallModel"
+                $ref: '#/components/schemas/LlamaStackDistributionInstallModel'
                 nullable: true
             example:
               data:
-                name: "lsd-genai-playground"
-                httpStatus: "200"
+                name: 'lsd-genai-playground'
+                httpStatus: '200'
             examples:
               installation_success:
                 summary: Successful installation
                 value:
                   data:
-                    name: "lsd-genai-playground"
-                    httpStatus: "200"
+                    name: 'lsd-genai-playground'
+                    httpStatus: '200'
               installation_error:
                 summary: Installation failed
                 value:
@@ -2651,31 +2717,39 @@ tags:
   - name: Models
     description: |
       AI model discovery and management
-      
+
       **LlamaStack Models** (`/models`): Queries LlamaStack service for available models
       **AI Assets Models** (`/aa/models`): Queries Kubernetes InferenceServices with GenAI labels
-      
+
       Both endpoints require namespace parameter for proper multi-tenant isolation.
   - name: VectorStores
     description: |
       Vector store management for RAG functionality
-      
+
       Requires namespace parameter. Uses namespace-specific LlamaStack service discovery.
   - name: Files
     description: |
       File upload and vector store integration
-      
+
       Requires namespace parameter. Uses namespace-specific LlamaStack service discovery.
   - name: Responses
     description: |
       AI response generation with comprehensive parameter support
-      
+
       Requires namespace parameter. Uses namespace-specific LlamaStack service discovery.
   - name: CodeExporter
     description: |
       Code generation for Llama Stack integration
-      
+
       Requires namespace parameter. Generates code templates for client configuration.
+  - name: MaaS
+    description: |
+      Model as a Service (MaaS) operations
+
+      **Models** (`/maas/models`): Lists available MaaS models with ready status and service URLs
+      **Tokens** (`/maas/tokens`): Manages authentication tokens for MaaS service access
+
+      MaaS endpoints operate independently and do not require namespace parameters.
   - name: Kubernetes
     description: Kubernetes cluster operations and namespace management
   - name: Identity
