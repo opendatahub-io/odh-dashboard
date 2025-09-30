@@ -13,10 +13,7 @@ import {
 } from '@patternfly/react-core';
 import { PersistentVolumeClaimKind } from '@odh-dashboard/internal/k8sTypes';
 import { getModelServingPVCAnnotations } from '@odh-dashboard/internal/pages/modelServing/utils';
-import {
-  getModelPathFromUri,
-  getPVCNameFromURI,
-} from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
+import { getModelPathFromUri } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
 
 type PVCInputFieldProps = {
   selectedPVC?: PersistentVolumeClaimKind;
@@ -48,38 +45,15 @@ export const PVCInputField: React.FC<PVCInputFieldProps> = ({
     return annotatedPath ?? '';
   };
 
-  // Get the PVC name from the URI
-  const pvcNameFromUri = React.useMemo(() => {
-    if (existingUriOption) {
-      return getPVCNameFromURI(existingUriOption);
-    }
-    return undefined;
-  }, [existingUriOption]);
-
-  // Whether the model path has been prefilled on initial load
-  const didInitialPrefill = React.useRef(false);
-
-  // Compute the model path based on selectedPVC and prefill logic
   const computedModelPath = React.useMemo(() => {
-    if (
-      !didInitialPrefill.current &&
-      initialModelPath &&
-      selectedPVC?.metadata.name === pvcNameFromUri
-    ) {
-      // Initial mount with original PVC: use URI path (what it was deployed with)
-      didInitialPrefill.current = true;
+    if (initialModelPath) {
       return initialModelPath;
     }
     if (selectedPVC) {
-      // Any other PVC selection: use PVC annotation path
       return getModelPath(selectedPVC);
     }
-    if (existingUriOption) {
-      // If the selected PVC doesn't exist, use the URI path (what it was deployed with)
-      return getModelPathFromUri(existingUriOption);
-    }
     return '';
-  }, [selectedPVC, initialModelPath, pvcNameFromUri]);
+  }, [initialModelPath, selectedPVC]);
 
   // If the user has manually edited the path, use the user input path instead of the computed path
   const [userHasEdited, setUserHasEdited] = React.useState(false);
@@ -117,10 +91,10 @@ export const PVCInputField: React.FC<PVCInputFieldProps> = ({
 
   // Validate model path when modelPath changes / is prefilled
   React.useEffect(() => {
-    handlePathChange(modelPath);
+    handlePathChange(computedModelPath);
     // Only run when selectedPVC or modelPath changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPVC, modelPath]);
+  }, [selectedPVC, computedModelPath]);
 
   return (
     <Stack hasGutter>
