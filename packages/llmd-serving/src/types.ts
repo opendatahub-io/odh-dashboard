@@ -1,6 +1,7 @@
 import type { K8sModelCommon, K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { DisplayNameAnnotations } from '@odh-dashboard/internal/k8sTypes';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
+import type { PodContainer } from '@odh-dashboard/internal/types.js';
 
 export type LLMInferenceServiceKind = K8sResourceCommon & {
   kind: 'LLMInferenceService';
@@ -20,6 +21,9 @@ export type LLMInferenceServiceKind = K8sResourceCommon & {
       route?: object;
       scheduler?: object;
     };
+    template?: {
+      containers?: PodContainer[];
+    };
   };
   status?: {
     conditions?: {
@@ -31,7 +35,7 @@ export type LLMInferenceServiceKind = K8sResourceCommon & {
       type?: string;
     }[];
     url?: string;
-    address?: { name?: string; url?: string };
+    addresses?: { name?: string; url?: string }[];
     observedGeneration?: number;
   };
 };

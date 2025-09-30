@@ -4,9 +4,9 @@ import {
   K8sStatus,
   KubeFastifyInstance,
   OauthFastifyRequest,
-} from '../../../types';
-import { DEV_MODE } from '../../../utils/constants';
-import { proxyCall, ProxyError, ProxyErrorType } from '../../../utils/httpUtils';
+} from '../types';
+import { DEV_MODE } from './constants';
+import { proxyCall, ProxyError, ProxyErrorType } from './httpUtils';
 
 export type PassThroughData = {
   method: string;

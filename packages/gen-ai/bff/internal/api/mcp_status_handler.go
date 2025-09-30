@@ -4,10 +4,10 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/gen-ai/internal/models/genaiassets"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
-type MCPStatusEnvelope = Envelope[*genaiassets.ConnectionStatus, None]
+type MCPStatusEnvelope = Envelope[*models.ConnectionStatus, None]
 
 // MCPStatusHandler handles GET /genai/v1/mcp/status?namespace=<>&server_url=<>
 func (app *App) MCPStatusHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {

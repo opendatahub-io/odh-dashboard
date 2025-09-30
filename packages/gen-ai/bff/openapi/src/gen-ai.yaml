@@ -33,7 +33,7 @@ paths:
       description: Returns BFF service status and version information.
       security: []
 
-  /gen-ai/api/v1/models:
+  /gen-ai/api/v1/lsd/models:
     summary: List available AI models
     description: >-
       Lists all available AI models from Llama Stack using OpenAI SDK.
@@ -65,7 +65,7 @@ paths:
       summary: List All Models
       description: Gets a list of all available AI models from Llama Stack.
 
-  /gen-ai/api/v1/aa/models:
+  /gen-ai/api/v1/aaa/models:
     summary: List AI Assets models
     description: >-
       Lists all available AI Assets models from Kubernetes InferenceServices.
@@ -97,7 +97,79 @@ paths:
       summary: List AI Assets Models
       description: Gets a list of all available AI Assets models from Kubernetes InferenceServices.
 
-  /gen-ai/api/v1/vectorstores:
+  /gen-ai/api/v1/maas/models:
+    summary: List MaaS models (placeholder)
+    description: >-
+      Lists all available Model as a Service (MaaS) models.
+      This is a placeholder endpoint for future implementation.
+    get:
+      tags:
+        - Models
+      security:
+        - Bearer: []
+      responses:
+        '501':
+          description: Not implemented yet
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "MaaS models endpoint is not yet implemented"
+                  status:
+                    type: string
+                    example: "placeholder"
+                  data:
+                    type: array
+                    items: {}
+                    example: []
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: listMaasModels
+      summary: List MaaS Models (Placeholder)
+      description: Placeholder for MaaS models endpoint - not yet implemented.
+
+  /gen-ai/api/v1/maas/token:
+    summary: Get MaaS token (placeholder)
+    description: >-
+      Gets authentication token for Model as a Service (MaaS) access.
+      This is a placeholder endpoint for future implementation.
+    get:
+      tags:
+        - Models
+      security:
+        - Bearer: []
+      responses:
+        '501':
+          description: Not implemented yet
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "MaaS token endpoint is not yet implemented"
+                  status:
+                    type: string
+                    example: "placeholder"
+                  token:
+                    type: string
+                    nullable: true
+                    example: null
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getMaasToken
+      summary: Get MaaS Token (Placeholder)
+      description: Placeholder for MaaS token endpoint - not yet implemented.
+
+  /gen-ai/api/v1/lsd/vectorstores:
     summary: Manage vector stores for RAG
     description: >-
       Vector stores are used for Retrieval-Augmented Generation (RAG).
@@ -180,7 +252,7 @@ paths:
       summary: Create Vector Store
       description: Creates a new vector store for document storage and RAG. Only the name field is required.
 
-  /gen-ai/api/v1/files/upload:
+  /gen-ai/api/v1/lsd/files/upload:
     summary: Upload files to vector stores with chunking control
     description: >-
       Uploads a file and automatically adds it to the specified vector store.
@@ -220,7 +292,7 @@ paths:
       summary: Upload File to Vector Store
       description: Uploads a file and adds it to the specified vector store for RAG functionality. Supports custom chunking strategies for optimal document processing.
 
-  /gen-ai/api/v1/responses:
+  /gen-ai/api/v1/lsd/responses:
     summary: Create AI responses with clean LlamaStack structure
     description: >-
       Creates AI responses using LlamaStack with comprehensive parameter support.
@@ -333,7 +405,7 @@ paths:
       summary: List All Namespaces
       description: Gets a list of all namespaces in the Kubernetes cluster.
 
-  /gen-ai/api/v1/llamastack-distribution/status:
+  /gen-ai/api/v1/lsd/status:
     summary: Get LlamaStack Distribution status
     description: >-
       Retrieves the status of LlamaStack Distribution (LSD) in the specified namespace.
@@ -370,7 +442,7 @@ paths:
       summary: Get LSD Status
       description: Gets the status of LlamaStack Distribution in the specified namespace.
 
-  /gen-ai/api/v1/llamastack-distribution/install:
+  /gen-ai/api/v1/lsd/install:
     summary: Install LlamaStack Distribution
     description: >-
       Installs a new LlamaStack Distribution (LSD) in the specified namespace with the provided models.
@@ -548,7 +620,7 @@ paths:
       summary: Get MCP Server Status by URL
       description: Gets the connection status of the MCP server specified by URL.
 
-  /gen-ai/api/v1/aa/mcps:
+  /gen-ai/api/v1/aaa/mcps:
     get:
       tags:
         - MCP Servers

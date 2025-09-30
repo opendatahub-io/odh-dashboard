@@ -56,7 +56,7 @@ describe('llamaStackService', () => {
 
       expect(result).toEqual(mockLlamaModels);
       expect(mockedAxios.get).toHaveBeenCalledWith(
-        `/gen-ai/api/v1/models?namespace=${testNamespace}`,
+        `/gen-ai/api/v1/lsd/models?namespace=${testNamespace}`,
       );
     });
 
@@ -99,7 +99,7 @@ describe('llamaStackService', () => {
 
       expect(result).toEqual(mockVectorStores);
       expect(mockedAxios.get).toHaveBeenCalledWith(
-        `/gen-ai/api/v1/vectorstores?namespace=${testNamespace}`,
+        `/gen-ai/api/v1/lsd/vectorstores?namespace=${testNamespace}`,
       );
     });
 
@@ -137,7 +137,7 @@ describe('llamaStackService', () => {
 
       expect(result).toEqual(mockVectorStores[0]);
       expect(mockedAxios.post).toHaveBeenCalledWith(
-        `/gen-ai/api/v1/vectorstores?namespace=${testNamespace}`,
+        `/gen-ai/api/v1/lsd/vectorstores?namespace=${testNamespace}`,
         { name: vectorName },
       );
     });
@@ -207,7 +207,7 @@ describe('llamaStackService', () => {
 
       expect(result).toEqual(mockUploadResult);
       expect(mockedAxios.post).toHaveBeenCalledWith(
-        `/gen-ai/api/v1/files/upload?namespace=${testNamespace}`,
+        `/gen-ai/api/v1/lsd/files/upload?namespace=${testNamespace}`,
         expect.any(FormData),
         {
           headers: {
@@ -326,7 +326,7 @@ describe('llamaStackService', () => {
 
         expect(result).toEqual(expectedSimplifiedResponse);
         expect(mockedAxios.post).toHaveBeenCalledWith(
-          `/gen-ai/api/v1/responses?namespace=${testNamespace}`,
+          `/gen-ai/api/v1/lsd/responses?namespace=${testNamespace}`,
           mockRequest,
         );
       });
@@ -443,7 +443,7 @@ describe('llamaStackService', () => {
         expect(mockStreamData).toHaveBeenCalledTimes(2);
 
         expect(mockFetch).toHaveBeenCalledWith(
-          `/gen-ai/api/v1/responses?namespace=${testNamespace}`,
+          `/gen-ai/api/v1/lsd/responses?namespace=${testNamespace}`,
           {
             method: 'POST',
             headers: {
@@ -620,7 +620,7 @@ describe('llamaStackService', () => {
         await createResponse(streamingRequest, testNamespace, mockStreamData);
 
         expect(mockFetch).toHaveBeenCalledWith(
-          `/gen-ai/api/v1/responses?namespace=${testNamespace}`,
+          `/gen-ai/api/v1/lsd/responses?namespace=${testNamespace}`,
           expect.objectContaining({
             method: 'POST',
             headers: expect.objectContaining({
@@ -697,7 +697,7 @@ describe('llamaStackService', () => {
 
       expect(result).toEqual(mockLlamaStackDistribution);
       expect(mockedAxios.get).toHaveBeenCalledWith(
-        `/gen-ai/api/v1/llamastack-distribution/status?namespace=${project}`,
+        `/gen-ai/api/v1/lsd/status?namespace=${project}`,
       );
     });
 
@@ -736,7 +736,7 @@ describe('llamaStackService', () => {
 
       expect(result).toEqual(mockLlamaStackDistribution);
       expect(mockedAxios.post).toHaveBeenCalledWith(
-        `/gen-ai/api/v1/llamastack-distribution/install?namespace=${project}`,
+        `/gen-ai/api/v1/lsd/install?namespace=${project}`,
         { models },
       );
     });
@@ -780,7 +780,7 @@ describe('llamaStackService', () => {
 
       expect(result).toEqual(mockLlamaStackDistribution);
       expect(mockedAxios.post).toHaveBeenCalledWith(
-        `/gen-ai/api/v1/llamastack-distribution/install?namespace=${project}`,
+        `/gen-ai/api/v1/lsd/install?namespace=${project}`,
         { models: [] },
       );
     });
@@ -798,7 +798,7 @@ describe('llamaStackService', () => {
 
       expect(result).toBe('LSD deleted successfully');
       expect(mockedAxios.delete).toHaveBeenCalledWith(
-        `/gen-ai/api/v1/llamastack-distribution/delete?namespace=${project}`,
+        `/gen-ai/api/v1/lsd/delete?namespace=${project}`,
         {
           data: { name: lsdName },
         },
@@ -874,7 +874,7 @@ describe('llamaStackService', () => {
 
       await getModelsWithPrefix(testNamespace);
       expect(localMockedAxios.get).toHaveBeenCalledWith(
-        `/custom-prefix/api/v1/models?namespace=${testNamespace}`,
+        `/custom-prefix/api/v1/lsd/models?namespace=${testNamespace}`,
       );
     });
   });

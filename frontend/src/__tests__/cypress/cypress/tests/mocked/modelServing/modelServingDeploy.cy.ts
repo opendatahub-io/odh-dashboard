@@ -306,6 +306,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findAdvancedOptionsStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
+    modelServingWizard.findModelDeploymentDescriptionInput().type('test-description');
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
     hardwareProfileSection.findSelect().should('contain.text', 'Small');
 
@@ -327,6 +328,15 @@ describe('Model Serving Deploy Wizard', () => {
     // Step 3: Advanced Options
     // Model access & Token authentication
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+    // AI Asset
+    modelServingWizard.findSaveAiAssetCheckbox().should('exist');
+    modelServingWizard.findSaveAiAssetCheckbox().should('not.be.checked');
+    modelServingWizard.findUseCaseInput().should('not.exist');
+    modelServingWizard.findSaveAiAssetCheckbox().click();
+    modelServingWizard.findUseCaseInput().should('exist');
+    modelServingWizard.findUseCaseInput().should('be.enabled');
+    modelServingWizard.findUseCaseInput().type('test');
+
     modelServingWizard.findExternalRouteCheckbox().click();
     modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
     modelServingWizard.findTokenAuthenticationCheckbox().click();
@@ -347,6 +357,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 4: Summary
+
     modelServingWizard.findSubmitButton().should('be.enabled').click();
 
     // dry run request
@@ -360,10 +371,13 @@ describe('Model Serving Deploy Wizard', () => {
         },
         annotations: {
           'openshift.io/display-name': 'test-model',
+          'openshift.io/description': 'test-description',
           'opendatahub.io/hardware-profile-namespace': 'opendatahub',
           'opendatahub.io/hardware-profile-name': 'small-profile',
           'opendatahub.io/model-type': 'generative',
           'security.opendatahub.io/enable-auth': 'true',
+          'opendatahub.io/genai-asset': 'true',
+          'opendatahub.io/genai-use-case': 'test',
         },
       },
       spec: {
@@ -560,6 +574,10 @@ describe('Model Serving Deploy Wizard', () => {
     // Step 3: Advanced Options
     // Model access & Token authentication
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+
+    modelServingWizard.findSaveAiAssetCheckbox().should('not.exist');
+    modelServingWizard.findUseCaseInput().should('not.exist');
+
     modelServingWizard.findExternalRouteCheckbox().click();
     modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
     modelServingWizard.findTokenAuthenticationCheckbox().click();
@@ -576,6 +594,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 4: Summary
+
     modelServingWizard.findSubmitButton().should('be.enabled').click();
 
     // dry run request
@@ -652,6 +671,7 @@ describe('Model Serving Deploy Wizard', () => {
           modelType: ServingRuntimeModelType.PREDICTIVE,
           hardwareProfileName: 'large-profile',
           hardwareProfileNamespace: 'opendatahub',
+          description: 'test-description',
           resources: {
             requests: {
               cpu: '4',
@@ -690,6 +710,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
+    modelServingWizardEdit
+      .findModelDeploymentDescriptionInput()
+      .should('contain.text', 'test-description');
     modelServingWizardEdit.findModelDeploymentStep().should('be.enabled');
     modelServingWizardEdit.findAdvancedOptionsStep().should('be.enabled');
     modelServingWizardEdit.findNextButton().should('be.enabled');

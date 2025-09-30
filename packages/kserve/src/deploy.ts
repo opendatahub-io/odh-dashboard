@@ -16,11 +16,13 @@ import { TokenAuthenticationFieldData } from '../../model-serving/src/components
 import { NumReplicasFieldData } from '../../model-serving/src/components/deploymentWizard/fields/NumReplicasField';
 import { RuntimeArgsFieldData } from '../../model-serving/src/components/deploymentWizard/fields/RuntimeArgsField';
 import { EnvironmentVariablesFieldData } from '../../model-serving/src/components/deploymentWizard/fields/EnvironmentVariablesField';
+import { AvailableAiAssetsFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/AvailableAiAssetsFields';
 
 export type CreatingInferenceServiceObject = {
   project: string;
   name: string;
   k8sName: string;
+  description: string;
   modelType: ServingRuntimeModelType;
   hardwareProfile: HardwareProfileConfig;
   modelFormat: SupportedModelFormats;
@@ -29,6 +31,7 @@ export type CreatingInferenceServiceObject = {
   numReplicas?: NumReplicasFieldData;
   runtimeArgs?: RuntimeArgsFieldData;
   environmentVariables?: EnvironmentVariablesFieldData;
+  AiAssetData?: AvailableAiAssetsFieldsData;
 };
 
 export const deployKServeDeployment = async (
@@ -49,6 +52,7 @@ export const deployKServeDeployment = async (
     project: projectName,
     name: wizardData.k8sNameDesc.data.name,
     k8sName: wizardData.k8sNameDesc.data.k8sName.value,
+    description: wizardData.k8sNameDesc.data.description,
     modelType: wizardData.modelType.data,
     hardwareProfile: wizardData.hardwareProfileConfig.formData,
     modelFormat: wizardData.modelFormatState.modelFormat,
@@ -57,6 +61,7 @@ export const deployKServeDeployment = async (
     numReplicas: wizardData.numReplicas.data,
     runtimeArgs: wizardData.runtimeArgs.data,
     environmentVariables: wizardData.environmentVariables.data,
+    AiAssetData: wizardData.AiAssetData.data,
   };
 
   const inferenceService = await createInferenceService(
@@ -89,12 +94,9 @@ const assembleInferenceService = (
 ): InferenceServiceKind => {
   const {
     project,
-    name,
     k8sName,
-    modelType,
     hardwareProfile,
     modelFormat,
-    tokenAuth,
     externalRoute,
     numReplicas,
     runtimeArgs,
@@ -127,20 +129,9 @@ const assembleInferenceService = (
       };
 
   const annotations = { ...inferenceService.metadata.annotations };
-  annotations['openshift.io/display-name'] = name.trim();
-  annotations['opendatahub.io/model-type'] = modelType;
+  const updatedAnnotations = applyAnnotations(annotations, data);
 
-  annotations['opendatahub.io/hardware-profile-name'] =
-    hardwareProfile.selectedProfile?.metadata.name;
-
-  annotations['opendatahub.io/hardware-profile-namespace'] =
-    hardwareProfile.selectedProfile?.metadata.namespace;
-
-  if (tokenAuth && tokenAuth.length > 0) {
-    annotations['security.opendatahub.io/enable-auth'] = 'true';
-  }
-
-  inferenceService.metadata.annotations = annotations;
+  inferenceService.metadata.annotations = updatedAnnotations;
 
   if (externalRoute) {
     if (!inferenceService.metadata.labels) {
@@ -193,4 +184,40 @@ const createInferenceService = (
       { dryRun: dryRun ?? false },
     ),
   );
+};
+
+const applyAnnotations = (
+  annotations: Record<string, string>,
+  data: CreatingInferenceServiceObject,
+) => {
+  const { name, description, modelType, hardwareProfile, tokenAuth, AiAssetData } = data;
+  const updatedAnnotations = { ...annotations };
+  updatedAnnotations['openshift.io/display-name'] = name.trim();
+  if (description) {
+    updatedAnnotations['openshift.io/description'] = description;
+  }
+  updatedAnnotations['opendatahub.io/model-type'] = modelType;
+  const isLegacyHardwareProfile = !hardwareProfile.selectedProfile?.metadata.uid;
+  if (!isLegacyHardwareProfile) {
+    updatedAnnotations['opendatahub.io/hardware-profile-name'] =
+      hardwareProfile.selectedProfile?.metadata.name || '';
+  } else {
+    const legacyName = hardwareProfile.selectedProfile?.metadata.name;
+    if (legacyName) {
+      updatedAnnotations['opendatahub.io/legacy-hardware-profile-name'] = legacyName;
+    }
+  }
+  updatedAnnotations['opendatahub.io/hardware-profile-namespace'] =
+    hardwareProfile.selectedProfile?.metadata.namespace || '';
+
+  if (tokenAuth && tokenAuth.length > 0) {
+    updatedAnnotations['security.opendatahub.io/enable-auth'] = 'true';
+  }
+  if (AiAssetData?.saveAsAiAsset === true) {
+    updatedAnnotations['opendatahub.io/genai-asset'] = 'true';
+    if (AiAssetData.useCase) {
+      updatedAnnotations['opendatahub.io/genai-use-case'] = AiAssetData.useCase;
+    }
+  }
+  return updatedAnnotations;
 };

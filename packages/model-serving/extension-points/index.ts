@@ -132,18 +132,6 @@ export const isModelServingPlatformWatchDeployments = <D extends Deployment = De
 ): extension is ModelServingPlatformWatchDeploymentsExtension<D> =>
   extension.type === 'model-serving.platform/watch-deployments';
 
-export type ModelServingDeploymentResourcesExtension<D extends Deployment = Deployment> = Extension<
-  'model-serving.deployment/resources',
-  {
-    platform: D['modelServingPlatformId'];
-    useResources: CodeRef<(deployment: D) => ModelServingPodSpecOptionsState | null>;
-  }
->;
-export const isModelServingDeploymentResourcesExtension = <D extends Deployment = Deployment>(
-  extension: Extension,
-): extension is ModelServingDeploymentResourcesExtension<D> =>
-  extension.type === 'model-serving.deployment/resources';
-
 export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deployment> = Extension<
   'model-serving.deployment/form-data',
   {
@@ -156,6 +144,9 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
     extractRuntimeArgs: CodeRef<(deployment: D) => { enabled: boolean; args: string[] } | null>;
     extractEnvironmentVariables: CodeRef<
       (deployment: D) => { enabled: boolean; variables: { name: string; value: string }[] } | null
+    >;
+    extractAiAssetData: CodeRef<
+      (deployment: D) => { saveAsAiAsset: boolean; useCase: string } | null
     >;
   }
 >;
@@ -192,19 +183,6 @@ export const isModelServingDeploymentsTableExtension = <D extends Deployment = D
   extension: Extension,
 ): extension is ModelServingDeploymentsTableExtension<D> =>
   extension.type === 'model-serving.deployments-table';
-
-export type ModelServingDeploymentsExpandedInfo<D extends Deployment = Deployment> = Extension<
-  'model-serving.deployments-table/expanded-info',
-  {
-    platform: D['modelServingPlatformId'];
-    useFramework: CodeRef<(deployment: D) => string | null>;
-    useReplicas: CodeRef<(deployment: D) => number | null>;
-  }
->;
-export const isModelServingDeploymentsExpandedInfo = <D extends Deployment = Deployment>(
-  extension: Extension,
-): extension is ModelServingDeploymentsExpandedInfo<D> =>
-  extension.type === 'model-serving.deployments-table/expanded-info';
 
 export type ModelServingDeleteModal<D extends Deployment = Deployment> = Extension<
   'model-serving.platform/delete-modal',

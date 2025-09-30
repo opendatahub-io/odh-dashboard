@@ -7,7 +7,7 @@ import (
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
-	"github.com/opendatahub-io/gen-ai/internal/models/genaiassets"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -66,11 +66,11 @@ func (m *TokenKubernetesClientMock) GetNamespaces(ctx context.Context, identity 
 }
 
 // GetAAModels returns mock AA models for testing, namespace-scoped
-func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]genaiassets.AAModel, error) {
+func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]models.AAModel, error) {
 	// Return different mock AA models based on namespace
 	switch namespace {
 	case "mock-test-namespace-2":
-		return []genaiassets.AAModel{
+		return []models.AAModel{
 			{
 				ModelName:      "granite-7b-code",
 				ServingRuntime: "OpenVINO Model Server",
@@ -137,7 +137,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 			},
 		}, nil
 	default:
-		return []genaiassets.AAModel{}, nil
+		return []models.AAModel{}, nil
 	}
 }
 
