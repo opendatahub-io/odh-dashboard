@@ -1,4 +1,4 @@
-name: E2E Direct Commit PR Tests
+name: zSample e2e Test Pipeline
 
 on: [push, pull_request]
 
@@ -89,13 +89,15 @@ jobs:
       - name: Install Cypress Dependencies
         run: |
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            echo "📦 Installing Cypress system dependencies..."
+            echo "Installing Cypress system dependencies..."
             sudo dnf install -y xorg-x11-server-Xvfb gtk3-devel nss alsa-lib
             sudo dnf install -y atk atk-devel at-spi2-atk
             sudo dnf install -y libgbm libgbm-devel libnotify libnotify-devel
+            sudo dnf install -y lsof
             sudo ldconfig
-            echo "✅ Cypress dependencies installed"
+            echo "Cypress dependencies installed"
           fi
+
 
       - name: Download test configuration
         run: |
@@ -146,34 +148,50 @@ jobs:
 
       - name: Find available port and start server
         run: |
-          # Find available port RIGHT BEFORE starting server (prevents race conditions)
-          # Use job index to assign base ports dynamically (works with any number of test tags)
+          # Find available port with retry loop to handle race conditions
+          # Use PID to ensure uniqueness even across re-runs on same runner
+          MAX_ATTEMPTS=30
+          ATTEMPT=0
+          
+          # Start from a base determined by job index, then search upward
           BASE_PORT=$((4010 + (${{ strategy.job-index }} * 10)))
-          
           PORT=$BASE_PORT
-          MAX_PORT=$((BASE_PORT + 9))
           
-          echo "🔍 Finding port for ${{ matrix.test-tag }} in range $PORT-$MAX_PORT..."
-          while [ $PORT -le $MAX_PORT ]; do
-            if ! lsof -ti:$PORT > /dev/null 2>&1; then
-              echo "✅ Found available port: $PORT"
-              CYPRESS_PORT=$PORT
-              break
-            else
-              echo "⚠️  Port $PORT in use, trying next..."
-              PORT=$((PORT + 1))
+          echo "🔍 Finding available port for ${{ matrix.test-tag }} starting from $BASE_PORT..."
+          
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            # Check if port is free AND not recently used (check for lock file)
+            LOCK_FILE="/tmp/port_${PORT}.lock"
+            
+            if ! lsof -ti:$PORT > /dev/null 2>&1 && [ ! -f "$LOCK_FILE" ]; then
+              # Create lock file with our PID
+              echo $$ > "$LOCK_FILE"
+              sleep 0.5
+              
+              # Verify we still own the lock (atomic-ish)
+              if [ "$(cat $LOCK_FILE 2>/dev/null)" = "$$" ]; then
+                echo "✅ Claimed port $PORT"
+                CYPRESS_PORT=$PORT
+                break
+              fi
             fi
+            
+            # Port in use or couldn't claim lock, try next
+            PORT=$((PORT + 1))
+            ATTEMPT=$((ATTEMPT + 1))
+            sleep 0.2
           done
           
-          if [ $PORT -gt $MAX_PORT ]; then
-            echo "❌ No ports available in range $BASE_PORT-$MAX_PORT"
+          if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+            echo "❌ Could not find available port after $MAX_ATTEMPTS attempts"
             exit 1
           fi
           
           # Export port for later steps
           echo "CYPRESS_PORT=$CYPRESS_PORT" >> $GITHUB_ENV
+          echo "PORT_LOCK_FILE=$LOCK_FILE" >> $GITHUB_ENV
           
-          # Immediately start server to claim the port (minimize race window)
+          # Start server immediately after claiming port
           echo "🚀 Starting webpack dev server on port $CYPRESS_PORT..."
           cd frontend && ODH_PORT=$CYPRESS_PORT npm run start:dev:ext > /tmp/webpack-${CYPRESS_PORT}.log 2>&1 &
           
@@ -227,7 +245,7 @@ jobs:
         run: |
           echo "🧹 Cleaning up server on port $CYPRESS_PORT (this job only)..."
           
-          # Kill by PID if available
+          # Kill server by PID if available
           if [ -n "$SERVER_PID" ]; then
             echo "🔥 Killing server PID: $SERVER_PID"
             kill -9 $SERVER_PID 2>/dev/null || echo "PID $SERVER_PID already terminated"
@@ -237,6 +255,12 @@ jobs:
           if lsof -ti:$CYPRESS_PORT > /dev/null 2>&1; then
             echo "🔥 Killing remaining processes on port $CYPRESS_PORT"
             lsof -ti:$CYPRESS_PORT | xargs kill -9 2>/dev/null || true
+          fi
+          
+          # Remove port lock file
+          if [ -n "$PORT_LOCK_FILE" ] && [ -f "$PORT_LOCK_FILE" ]; then
+            echo "🔓 Removing port lock file: $PORT_LOCK_FILE"
+            rm -f "$PORT_LOCK_FILE"
           fi
           
           echo "✅ Cleanup complete for port $CYPRESS_PORT"
