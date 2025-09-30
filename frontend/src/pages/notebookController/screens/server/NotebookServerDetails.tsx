@@ -63,7 +63,7 @@ const NotebookServerDetails: React.FC = () => {
     <ExpandableSection
       data-id="details-expand"
       className="odh-notebook-controller__server-details"
-      toggleText="Workbench details squirrel-walnut"
+      toggleText="Workbench details"
       onToggle={(e, expanded: boolean) => onToggle(expanded)}
       isExpanded={isExpanded}
       isIndented
@@ -99,7 +99,7 @@ const NotebookServerDetails: React.FC = () => {
         </>
       )}
 
-      <p className="odh-notebook-controller__server-details-title">Deployment size squirrel-nut</p>
+      <p className="odh-notebook-controller__server-details-title">Deployment size</p>
       <DescriptionList isCompact>
         <DescriptionListGroup>
           <DescriptionListTerm>Container size</DescriptionListTerm>
