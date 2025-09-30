@@ -40,7 +40,6 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
   buildStatuses,
   compatibleIdentifiers,
 }) => {
-  const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
   const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   const [searchImageStreamName, setSearchImageStreamName] = React.useState('');
 
@@ -68,13 +67,13 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
       icon={<ProjectScopedIcon isProject={scope === 'project'} alt="" />}
     >
       <ImageStreamDropdownLabel
-        displayName={getImageStreamDisplayName(imageStream)}
+        displayName={`${getImageStreamDisplayName(imageStream)}-acorn-squash`}
         compatible={
           !!compatibleIdentifiers?.some((identifier) =>
             isCompatibleWithIdentifier(identifier, imageStream),
           )
         }
-        content={isHardwareProfilesAvailable ? 'hardware profile' : 'accelerator'}
+        content={'hardware profile'}
       />
     </MenuItem>
   );
@@ -96,7 +95,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
           <ImageStreamDropdownLabel
             displayName={displayName}
             compatible={compatible}
-            content={isHardwareProfilesAvailable ? 'hardware profile' : 'accelerator'}
+            content={'hardware profile'}
           />
         ),
       };
@@ -157,7 +156,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
           dataTestId="workbench-image-stream-selection"
           aria-label="Select an image"
           options={options}
-          placeholder="Select one"
+          placeholder="Select one squash"
           value={
             selectedImageStream?.metadata.namespace !== currentProject
               ? selectedImageStream?.metadata.name

@@ -50,13 +50,11 @@ import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { useImageStreams } from '#~/utilities/useImageStreams';
 import { mapImageStreamToImageInfo } from '#~/utilities/imageStreamUtils';
-import SizeSelectField from './SizeSelectField';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
 import ImageSelector from './ImageSelector';
 import StartServerModal from './StartServerModal';
-import AcceleratorProfileSelectField from './AcceleratorProfileSelectField';
 
 import '#~/pages/notebookController/NotebookController.scss';
 
@@ -64,7 +62,7 @@ const SpawnerPage: React.FC = () => {
   const navigate = useNavigate();
   const notification = useNotification();
   const isHomeAvailable = useIsAreaAvailable(SupportedArea.HOME).status;
-  const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
+
   const { dashboardNamespace } = useDashboardNamespace();
   const [imageStreams, loaded, loadError] = useImageStreams(dashboardNamespace, { enabled: true });
   const images = React.useMemo(() => imageStreams.map(mapImageStreamToImageInfo), [imageStreams]);
@@ -346,28 +344,11 @@ const SpawnerPage: React.FC = () => {
             </FormGroup>
           </FormSection>
           <FormSection title="Deployment size">
-            {isHardwareProfilesAvailable ? (
-              <HardwareProfileFormSection
-                podSpecOptionsState={podSpecOptionsState}
-                isEditing={!!currentUserNotebook}
-                visibleIn={[HardwareProfileFeatureVisibility.WORKBENCH]}
-              />
-            ) : (
-              <>
-                <SizeSelectField
-                  data-id="container-size"
-                  value={podSpecOptionsState.notebooksSize.selectedSize}
-                  setValue={(size) => podSpecOptionsState.notebooksSize.setSelectedSize(size)}
-                  sizes={podSpecOptionsState.notebooksSize.sizes}
-                />
-                <AcceleratorProfileSelectField
-                  initialState={podSpecOptionsState.acceleratorProfile.initialState}
-                  acceleratorProfilesLoaded={podSpecOptionsState.acceleratorProfile.loaded}
-                  formData={podSpecOptionsState.acceleratorProfile.formData}
-                  setFormData={podSpecOptionsState.acceleratorProfile.setFormData}
-                />
-              </>
-            )}
+            <HardwareProfileFormSection
+              podSpecOptionsState={podSpecOptionsState}
+              isEditing={!!currentUserNotebook}
+              visibleIn={[HardwareProfileFeatureVisibility.WORKBENCH]}
+            />
           </FormSection>
           <FormSection title="Environment variables" className="odh-notebook-controller__env-var">
             {renderEnvironmentVariableRows()}
