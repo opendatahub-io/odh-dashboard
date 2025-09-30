@@ -1,4 +1,4 @@
-name: E2E Direct Commit PR Tests
+name: zSample e2e Test Pipeline
 
 on: [push, pull_request]
 
@@ -34,12 +34,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set dynamic port for parallel jobs
+      - name: Set unique port for concurrent PRs and parallel jobs
         run: |
-          # Use GitHub's built-in job index to ensure unique ports per matrix job
-          CYPRESS_PORT=$((4010 + ${{ strategy.job-index }}))
+          # FIXED: Use GitHub Run ID + Matrix Index for perfect isolation
+          # Each run gets 10-port block to prevent conflicts between concurrent runs
+          CYPRESS_PORT=$((4000 + ((${{ github.run_id }} % 500) * 10) + ${{ strategy.job-index }}))
           echo "CYPRESS_PORT=$CYPRESS_PORT" >> $GITHUB_ENV
-          echo "🔧 Assigned port $CYPRESS_PORT for test tag: ${{ matrix.test-tag }}"
+          echo "🔧 Using port $CYPRESS_PORT for test tag: ${{ matrix.test-tag }}"
+          echo "📊 Calculation: 4000 + ((${{ github.run_id }} % 500) * 10) + ${{ strategy.job-index }} = $CYPRESS_PORT"
 
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4.3.0
@@ -514,6 +516,7 @@ jobs:
           echo "Branch: ${{ github.ref_name }}"
           echo "Commit: ${{ github.sha }}"
           echo "Port: $CYPRESS_PORT"
+          echo "Run ID: ${{ github.run_id }}"
 
           # Run real E2E tests (not mock mode)
           echo "🚀 Running real E2E tests against live dashboard"
@@ -583,10 +586,30 @@ jobs:
     runs-on: self-hosted
     if: ${{ always() && needs.e2e-tests.result != 'skipped' }}
     steps:
-      - name: Stop Cypress Servers
+      - name: Stop Cypress Servers (only for this run's ports)
         run: |
-          echo "🛑 Stopping webpack dev server..."
-          # Use pkill with broader patterns since we can't access CYPRESS_PORT here
-          pkill -f "webpack.*serve" || echo "No webpack processes found"
-          pkill -f "node.*401[0-9]" || echo "No node processes on 4010-4019 range"
-          echo "✅ Server cleanup completed"
+          echo "🛑 Stopping webpack dev servers for THIS run only..."
+          
+          # Calculate the SAME port range this run used (don't affect other concurrent runs)
+          PORT_BASE=$((4000 + ((${{ github.run_id }} % 500) * 10)))
+          PORT_END=$((PORT_BASE + 9))  # Each run gets 10-port block
+          
+          echo "📊 This run used port range: $PORT_BASE - $PORT_END"
+          echo "🎯 Only cleaning up ports for Run ID: ${{ github.run_id }}"
+          
+          # Kill only processes in THIS run's specific port range
+          for port in $(seq $PORT_BASE $PORT_END); do
+            if pgrep -f "node.*$port" > /dev/null; then
+              echo "🔥 Killing processes on port $port (this run)"
+              pkill -f "node.*$port" || echo "No process on port $port"
+            fi
+            
+            # Also kill webpack serve processes on this specific port
+            if pgrep -f "webpack.*serve.*$port" > /dev/null; then
+              echo "🔥 Killing webpack serve on port $port (this run)"
+              pkill -f "webpack.*serve.*$port" || echo "No webpack process on port $port"
+            fi
+          done
+          
+          echo "✅ Cleaned up ONLY this run's ports ($PORT_BASE-$PORT_END)"
+          echo "🤝 Other concurrent PRs remain unaffected"
