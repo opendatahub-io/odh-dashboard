@@ -29,7 +29,7 @@ describe('Verify that a pipeline can be scheduled to run', { testIsolation: fals
   let pipelineUrl = '';
 
   retryableBefore(() => {
-    cy.fixture('e2e/dataSciencePipelines/testSchedulePipeline.yaml').then((yamlString) => {
+    cy.fixture('e2e/aipipelines/testSchedulePipeline.yaml').then((yamlString) => {
       const cfg = yaml.load(yamlString as string) as Record<string, string>;
       pipelineName = cfg.pipelineName;
       pipelineDescription = cfg.pipelineDescription;
