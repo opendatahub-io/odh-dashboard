@@ -1276,7 +1276,9 @@ describe('Model Serving Global', () => {
         mockHardwareProfile({
           name: 'disabled-profile',
           displayName: 'Disabled Profile',
-          enabled: false,
+          annotations: {
+            'opendatahub.io/disabled': 'true',
+          },
           identifiers: [
             {
               displayName: 'CPU',

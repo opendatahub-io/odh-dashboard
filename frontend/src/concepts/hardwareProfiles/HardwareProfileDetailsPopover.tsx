@@ -133,6 +133,7 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
         isInline
         variant="link"
         icon={tableView ? undefined : <QuestionCircleIcon />}
+        style={tableView ? { textDecoration: 'none' } : undefined}
         data-testid="hardware-profile-details-popover"
       >
         {tableView ? (

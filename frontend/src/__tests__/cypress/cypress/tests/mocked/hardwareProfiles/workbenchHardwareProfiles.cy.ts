@@ -250,6 +250,20 @@ describe('Workbench Hardware Profiles', () => {
       ]),
     );
 
+    // Mock the individual hardware profile resource fetch
+    cy.interceptK8s(
+      {
+        model: HardwareProfileModel,
+        ns: 'test-project',
+        name: 'large-profile-1',
+      },
+      mockHardwareProfile({
+        name: 'large-profile-1',
+        displayName: 'Large Profile-1',
+        namespace: 'test-project',
+      }),
+    );
+
     projectDetails.visit(projectName);
     projectDetails.findSectionTab('workbenches').click();
     workbenchPage
@@ -876,7 +890,9 @@ describe('Workbench Hardware Profiles', () => {
         mockHardwareProfile({
           name: 'disabled-profile',
           displayName: 'Disabled Profile',
-          enabled: false,
+          annotations: {
+            'opendatahub.io/disabled': 'true',
+          },
           identifiers: [
             {
               displayName: 'CPU',
@@ -946,7 +962,9 @@ describe('Workbench Hardware Profiles', () => {
         mockHardwareProfile({
           name: 'updated-profile',
           displayName: 'Updated Profile',
-          enabled: true,
+          annotations: {
+            'opendatahub.io/disabled': 'false',
+          },
           identifiers: [
             {
               displayName: 'CPU',

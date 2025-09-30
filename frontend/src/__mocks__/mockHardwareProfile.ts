@@ -70,7 +70,6 @@ export const mockHardwareProfile = ({
   nodeSelector,
   annotations,
   labels,
-  enabled = true,
   resourceVersion = '1309350',
 }: MockResourceConfigType): HardwareProfileKind => ({
   apiVersion: 'infrastructure.opendatahub.io/v1alpha1',
@@ -86,7 +85,6 @@ export const mockHardwareProfile = ({
       ...annotations,
       'opendatahub.io/display-name': displayName,
       'opendatahub.io/description': description,
-      'opendatahub.io/disabled': (!enabled).toString(),
     },
     labels,
   },
