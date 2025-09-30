@@ -69,7 +69,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
 
       // Get the pipeline ID and version ID from the URL
       cy.url().then((currentUrl) => {
-        const regex = /\/pipelines\/[^/]+\/([^/]+)\/([^/]+)\/view/;
+        const regex = /\/develop-train\/pipelines\/definitions\/[^/]+\/([^/]+)\/([^/]+)\/view/;
         const match = currentUrl.match(regex);
 
         if (match) {
