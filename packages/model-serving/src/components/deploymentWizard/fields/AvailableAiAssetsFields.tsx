@@ -3,7 +3,6 @@ import { Checkbox, TextInput, StackItem, Stack, FormGroup } from '@patternfly/re
 import { z } from 'zod';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { ModelTypeFieldData } from './ModelTypeSelectField';
-import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 
 export type AvailableAiAssetsFieldsData = {
   saveAsAiAsset: boolean;
@@ -53,13 +52,11 @@ export const useAvailableAiAssetsFields = (
 type AvailableAiAssetsFieldsComponentProps = {
   data: AvailableAiAssetsFieldsData;
   setData: (data: AvailableAiAssetsFieldsData) => void;
-  wizardData: UseModelDeploymentWizardState;
 };
 
 export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsComponentProps> = ({
   data,
   setData,
-  wizardData,
 }) => {
   const resetAiAssetData = React.useCallback(
     (save: boolean) => {
@@ -70,38 +67,30 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
     },
     [setData],
   );
-  const showSaveAsAiAsset = React.useMemo(() => {
-    if (wizardData.state.modelType.data === ServingRuntimeModelType.GENERATIVE) return true;
-    return false;
-  }, [data.saveAsAiAsset, wizardData.state.modelType.data]);
 
   return (
-    <>
-      {showSaveAsAiAsset && (
-        <Stack hasGutter>
-          <StackItem>
-            <Checkbox
-              id="save-as-ai-asset-checkbox"
-              data-testid="save-as-ai-asset-checkbox"
-              label="Make this deployment available as an AI asset"
-              isChecked={data.saveAsAiAsset}
-              onChange={(_, checked) => resetAiAssetData(checked)}
+    <Stack hasGutter>
+      <StackItem>
+        <Checkbox
+          id="save-as-ai-asset-checkbox"
+          data-testid="save-as-ai-asset-checkbox"
+          label="Make this deployment available as an AI asset"
+          isChecked={data.saveAsAiAsset}
+          onChange={(_, checked) => resetAiAssetData(checked)}
+        />
+      </StackItem>
+      {data.saveAsAiAsset && (
+        <StackItem>
+          <FormGroup label="Use case">
+            <TextInput
+              id="use-case-input"
+              data-testid="use-case-input"
+              value={data.useCase}
+              onChange={(_, value) => setData({ ...data, useCase: value })}
             />
-          </StackItem>
-          {data.saveAsAiAsset && (
-            <StackItem>
-              <FormGroup label="Use case">
-                <TextInput
-                  id="use-case-input"
-                  data-testid="use-case-input"
-                  value={data.useCase}
-                  onChange={(_, value) => setData({ ...data, useCase: value })}
-                />
-              </FormGroup>
-            </StackItem>
-          )}
-        </Stack>
+          </FormGroup>
+        </StackItem>
       )}
-    </>
+    </Stack>
   );
 };

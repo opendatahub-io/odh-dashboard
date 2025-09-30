@@ -10,6 +10,7 @@ import {
   ServingRuntimeKind,
 } from '@odh-dashboard/internal/k8sTypes';
 import { isServingRuntimeKind } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
+import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { useAccessReview } from '../../../../../../frontend/src/api';
 import { ExternalRouteField } from '../fields/ExternalRouteField';
 import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
@@ -86,6 +87,10 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
       wizardState.state.tokenAuthentication.setData([defaultToken]);
     }
   };
+  const showSaveAsAiAsset = React.useMemo(() => {
+    if (wizardState.state.modelType.data === ServingRuntimeModelType.GENERATIVE) return true;
+    return false;
+  }, [wizardState.state.modelType.data]);
 
   return (
     <>
@@ -95,7 +100,6 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
             <Title headingLevel="h2">Advanced Settings (optional)</Title>
           </StackItem>
         </Stack>
-
         <Stack hasGutter>
           <StackItem>
             <FormGroup
@@ -110,28 +114,31 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
               />
             </FormGroup>
           </StackItem>
-          <StackItem>
-            <FormGroup
-              label="AI Asset"
-              data-testid="ai-asset-section"
-              fieldId="ai-asset"
-              labelHelp={
-                <Popover bodyContent="POPOVER BODY CONTENT" headerContent="POPOVER HEADER CONTENT">
-                  <DashboardPopupIconButton
-                    icon={<OutlinedQuestionCircleIcon />}
-                    aria-label="More info"
-                  />
-                </Popover>
-              }
-            >
-              <AvailableAiAssetsFieldsComponent
-                data={wizardState.state.AiAssetData.data}
-                setData={wizardState.state.AiAssetData.setData}
-                wizardData={wizardState}
-              />
-            </FormGroup>
-          </StackItem>
-
+          {showSaveAsAiAsset && (
+            <StackItem>
+              <FormGroup
+                label="AI Asset"
+                data-testid="ai-asset-section"
+                fieldId="ai-asset"
+                labelHelp={
+                  <Popover
+                    bodyContent="POPOVER BODY CONTENT"
+                    headerContent="POPOVER HEADER CONTENT"
+                  >
+                    <DashboardPopupIconButton
+                      icon={<OutlinedQuestionCircleIcon />}
+                      aria-label="More info"
+                    />
+                  </Popover>
+                }
+              >
+                <AvailableAiAssetsFieldsComponent
+                  data={wizardState.state.AiAssetData.data}
+                  setData={wizardState.state.AiAssetData.setData}
+                />
+              </FormGroup>
+            </StackItem>
+          )}
           <StackItem>
             <FormGroup
               label="Token authentication"
