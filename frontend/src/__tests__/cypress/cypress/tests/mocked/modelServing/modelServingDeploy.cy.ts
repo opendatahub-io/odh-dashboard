@@ -143,6 +143,18 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
   cy.interceptK8s(
     'POST',
     {
+      model: ServingRuntimeModel,
+      ns: 'test-project',
+    },
+    {
+      statusCode: 200,
+      body: mockServingRuntimeK8sResource({}),
+    },
+  ).as('createServingRuntime');
+
+  cy.interceptK8s(
+    'POST',
+    {
       model: ServiceAccountModel,
       ns: 'test-project',
     },
@@ -307,11 +319,13 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findModelDeploymentDescriptionInput().type('test-description');
-    modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
     hardwareProfileSection.findSelect().should('contain.text', 'Small');
 
     // hardwareProfileSection.findGlobalScopedLabel().should('exist');
     modelServingWizard.findModelFormatSelect().should('not.exist');
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().should('exist');
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.findGlobalScopedTemplateOption('vLLM NVIDIA').should('exist').click();
 
     modelServingWizard.findNumReplicasInput().should('exist');
     modelServingWizard.findNumReplicasInputField().should('have.value', '1');
@@ -428,7 +442,37 @@ describe('Model Serving Deploy Wizard', () => {
       expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
     });
 
-    //dry run request
+    cy.wait('@createServingRuntime').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'test-model',
+          annotations: {
+            'opendatahub.io/apiProtocol': 'REST',
+            'opendatahub.io/runtime-version': '1.0.0',
+            'opendatahub.io/template-display-name': 'vLLM NVIDIA',
+            'openshift.io/display-name': 'vLLM NVIDIA',
+          },
+          labels: { 'opendatahub.io/dashboard': 'true' },
+          namespace: 'test-project',
+        },
+      });
+      expect(interception.request.body.spec).to.containSubset({
+        supportedModelFormats: [{ name: 'vLLM' }],
+      });
+    });
+
+    // Actual request
+    cy.wait('@createServingRuntime').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    // the serving runtime should have been created
+    cy.get('@createServingRuntime.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
+
+    // dry run request
     cy.wait('@createServiceAccount').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
       expect(interception.request.body).to.containSubset({
@@ -569,6 +613,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelFormatSelect().should('exist');
     modelServingWizard.findModelFormatSelectOption('vLLM').should('not.exist');
     modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().should('exist');
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 3: Advanced Options
@@ -660,6 +707,37 @@ describe('Model Serving Deploy Wizard', () => {
     cy.get('@createInferenceService.all').then((interceptions) => {
       expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
     });
+
+    // dry run request
+    cy.wait('@createServingRuntime').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'test-model',
+          annotations: {
+            'opendatahub.io/apiProtocol': 'REST',
+            'opendatahub.io/runtime-version': '1.0.0',
+            'opendatahub.io/template-display-name': 'OpenVINO',
+            'openshift.io/display-name': 'OpenVINO',
+          },
+          labels: { 'opendatahub.io/dashboard': 'true' },
+          namespace: 'test-project',
+        },
+      });
+      expect(interception.request.body.spec).to.containSubset({
+        supportedModelFormats: [{ name: 'openvino_ir', version: 'opset1' }],
+      });
+    });
+
+    // Actual request
+    cy.wait('@createServingRuntime').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    // the serving runtime should have been created
+    cy.get('@createServingRuntime.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
   });
 
   it('Edit an existing deployment', () => {
@@ -699,10 +777,10 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findModelSourceStep().should('be.enabled');
     modelServingWizardEdit.findNextButton().should('be.enabled');
 
-    // Need to update this when you extract model type from deployment
     modelServingWizardEdit
-      .findModelTypeSelectOption('Predictive model')
-      .should('have.attr', 'aria-selected', 'true');
+      .findModelTypeSelect()
+      .should('have.text', 'Predictive model')
+      .should('be.disabled');
 
     modelServingWizardEdit.findModelLocationSelect().should('exist');
     modelServingWizardEdit.findUrilocationInput().should('have.value', 'https://test');
@@ -723,7 +801,10 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findModelDeploymentNameInput().type('test-model');
     hardwareProfileSection.findSelect().should('be.visible');
     hardwareProfileSection.findSelect().should('contain.text', 'Large Profile');
-
+    modelServingWizardEdit.findServingRuntimeTemplateSearchSelector().should('exist');
+    modelServingWizardEdit
+      .findServingRuntimeTemplateSearchSelector()
+      .should('contain.text', 'OpenVINO');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
     // Step 3: Advanced options

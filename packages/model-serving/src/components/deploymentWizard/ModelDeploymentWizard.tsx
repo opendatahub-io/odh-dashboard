@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Wizard, WizardStep } from '@patternfly/react-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import { getServingRuntimeFromTemplate } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { getDeploymentWizardExitRoute } from './utils';
 import { useModelDeploymentWizard, type ModelDeploymentWizardData } from './useDeploymentWizard';
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
@@ -56,14 +57,34 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       return;
     }
 
+    const serverResourceTemplateName = wizardState.state.modelServer.data?.name;
+    const allModelServerTemplates =
+      wizardState.state.modelFormatState.templatesFilteredForModelType;
+    const serverResource = serverResourceTemplateName
+      ? getServingRuntimeFromTemplate(
+          allModelServerTemplates?.find(
+            (template) => template.metadata.name === serverResourceTemplateName,
+          ),
+        )
+      : undefined;
+
     Promise.all([
-      deployExtension?.properties.deploy(wizardState.state, project.metadata.name, undefined, true),
+      deployExtension?.properties.deploy(
+        wizardState.state,
+        project.metadata.name,
+        undefined,
+        serverResource,
+        serverResourceTemplateName,
+        true,
+      ),
     ]).then(() => {
       Promise.all([
         deployExtension?.properties.deploy(
           wizardState.state,
           project.metadata.name,
           undefined,
+          serverResource,
+          serverResourceTemplateName,
           false,
         ),
       ]).then(() => {
