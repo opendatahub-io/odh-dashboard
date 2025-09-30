@@ -1,7 +1,4 @@
 import React from 'react';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
-import { Form, Title, Stack, StackItem, Alert, FormGroup, Popover } from '@patternfly/react-core';
 import {
   AccessReviewResourceAttributes,
   K8sDSGResource,
@@ -10,6 +7,7 @@ import {
   ServingRuntimeKind,
 } from '@odh-dashboard/internal/k8sTypes';
 import { isServingRuntimeKind } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
+import { Form, Title, Stack, StackItem, Alert, FormGroup } from '@patternfly/react-core';
 import { useAccessReview } from '../../../../../../frontend/src/api';
 import { ExternalRouteField } from '../fields/ExternalRouteField';
 import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
@@ -95,8 +93,12 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
             <Title headingLevel="h2">Advanced Settings (optional)</Title>
           </StackItem>
         </Stack>
-
         <Stack hasGutter>
+          <AvailableAiAssetsFieldsComponent
+            data={wizardState.state.AiAssetData.data}
+            setData={wizardState.state.AiAssetData.setData}
+            wizardData={wizardState}
+          />
           <StackItem>
             <FormGroup
               label="External route"
@@ -110,28 +112,6 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
               />
             </FormGroup>
           </StackItem>
-          <StackItem>
-            <FormGroup
-              label="AI Asset"
-              data-testid="ai-asset-section"
-              fieldId="ai-asset"
-              labelHelp={
-                <Popover bodyContent="POPOVER BODY CONTENT" headerContent="POPOVER HEADER CONTENT">
-                  <DashboardPopupIconButton
-                    icon={<OutlinedQuestionCircleIcon />}
-                    aria-label="More info"
-                  />
-                </Popover>
-              }
-            >
-              <AvailableAiAssetsFieldsComponent
-                data={wizardState.state.AiAssetData.data}
-                setData={wizardState.state.AiAssetData.setData}
-                wizardData={wizardState}
-              />
-            </FormGroup>
-          </StackItem>
-
           <StackItem>
             <FormGroup
               label="Token authentication"

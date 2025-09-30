@@ -1,13 +1,13 @@
 import React, { act } from 'react';
 import { render, screen, renderHook } from '@testing-library/react';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { mockDeploymentWizardState } from '../../../../__tests__/mockUtils';
 import {
   availableAiAssetsFieldsSchema,
   AvailableAiAssetsFieldsComponent,
   isValidAvailableAiAssetsFieldsData,
   useAvailableAiAssetsFields,
 } from '../AvailableAiAssetsFields';
-import { mockDeploymentWizardState } from '../../../../__tests__/mockUtils';
 
 describe('AvailableAiAssetsFields', () => {
   describe('Schema validation', () => {
