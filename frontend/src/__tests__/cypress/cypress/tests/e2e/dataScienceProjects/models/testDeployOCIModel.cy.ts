@@ -11,6 +11,7 @@ import {
   inferenceServiceModal,
   modelServingGlobal,
   modelServingSection,
+  modelServingWizard,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import { checkInferenceServiceState } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
 import type { DeployOCIModelData } from '#~/__tests__/cypress/cypress/types';
@@ -85,13 +86,16 @@ describe(
         projectDetails.findSectionTab('model-server').click();
         modelServingGlobal.findSingleServingModelButton().click();
         modelServingGlobal.findDeployModelButton().click();
-        inferenceServiceModal.findModelNameInput().type(modelDeploymentName);
-        inferenceServiceModal.findServingRuntimeTemplateSearchSelector().click();
-        inferenceServiceModal.findGlobalScopedTemplateOption('OpenVINO Model Server').click();
-        inferenceServiceModal.findModelFrameworkSelect().click();
-        inferenceServiceModal.findOpenVinoOnnx().click();
+        modelServingWizard.findModelLocationSelectOption('Exisiting connection').click();
         inferenceServiceModal.findOCIModelURI().type(modelDeploymentURI);
+        modelServingWizard.findModelTypeSelectOption('Predictive model').click();
+        modelServingWizard.findNextButton().should('be.enabled').click();
+        modelServingWizard.findModelDeploymentNameInput().type(modelDeploymentName);
+        modelServingWizard.findModelFormatSelectOption('OpenVINO Model Server').click();
         inferenceServiceModal.findSubmitButton().focus().click();
+        modelServingWizard.findNextButton().should('be.enabled').click();
+        modelServingWizard.findNextButton().should('be.enabled').click();
+        modelServingWizard.findSubmitButton().should('be.enabled').click();
         checkInferenceServiceState(modelDeploymentName, projectName);
         // Note reload is required as status tooltip was not found due to a stale element
         cy.reload();

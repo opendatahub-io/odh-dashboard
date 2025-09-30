@@ -2,6 +2,7 @@ import {
   modelServingGlobal,
   modelServingSection,
   inferenceServiceModal,
+  modelServingWizard,
 } from '#~/__tests__/cypress/cypress/pages/modelServing.ts';
 import { projectDetails, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
 import type { DataScienceProjectData } from '#~/__tests__/cypress/cypress/types';
@@ -78,14 +79,15 @@ describe('[Product Bug: RHOAIENG-32764] A model can be stopped and started', () 
 
       // Deploy a Model
       cy.step('Deploy a Model');
-      inferenceServiceModal.findModelNameInput().type(testData.singleModelName);
-      inferenceServiceModal.findServingRuntimeTemplateSearchSelector().click();
-      inferenceServiceModal.findGlobalScopedTemplateOption('OpenVINO Model Server').click();
-      inferenceServiceModal.findModelFrameworkSelect().click();
-      inferenceServiceModal.findOpenVinoIROpSet13().click();
+      modelServingWizard.findModelLocationSelectOption('Exisiting connection').click();
       inferenceServiceModal.findLocationPathInput().type(modelFilePath);
-      inferenceServiceModal.findSubmitButton().click();
-      inferenceServiceModal.shouldBeOpen(false);
+      modelServingWizard.findModelTypeSelectOption('Predictive model').click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+      modelServingWizard.findModelDeploymentNameInput().type(modelName);
+      modelServingWizard.findModelFormatSelectOption('OpenVINO Model Server').click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+      modelServingWizard.findSubmitButton().should('be.enabled').click();
       modelServingSection.findModelServerDeployedName(testData.singleModelName);
       const kServeRow = modelServingSection.getKServeRow(testData.singleModelName);
 
