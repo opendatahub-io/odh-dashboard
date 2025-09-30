@@ -13,8 +13,8 @@ import { genAiAiAssetsRoute } from '~/app/utilities/routes';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import { useMCPServers } from '~/app/hooks/useMCPServers';
+import useFetchAIModels from '~/app/hooks/useFetchAIModels';
 import AIAssetsModelsTab from './AIAssetsModelsTab';
-import useFetchAIModels from './hooks/useFetchAIModels';
 import AIAssetsMCPTabWithContext from './AIAssetsMCPTabWithContext';
 
 enum AIAssetsPageTabKey {

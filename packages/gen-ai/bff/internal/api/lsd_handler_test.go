@@ -377,7 +377,7 @@ func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
 	}
 
 	// Test successful deletion
-	t.Run("should delete LSD successfully with valid display name", func(t *testing.T) {
+	t.Run("should delete LSD successfully with valid k8s name", func(t *testing.T) {
 		// Use a unique namespace for this test to avoid conflicts with other tests
 		testNamespace := fmt.Sprintf("delete-test-namespace-%d", time.Now().UnixNano())
 
@@ -406,7 +406,7 @@ func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
 
 		// Now test deletion
 		deleteRequestBody := map[string]interface{}{
-			"name": "mock-lsd", // This matches the display name created by the install operation
+			"name": "mock-lsd", // This matches the k8s name created by the install operation
 		}
 		deleteJsonBody, err := json.Marshal(deleteRequestBody)
 		require.NoError(t, err)
@@ -563,7 +563,7 @@ func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
 	})
 
 	// Test error case - LSD not found
-	t.Run("should return error when LSD with display name is not found", func(t *testing.T) {
+	t.Run("should return error when LSD with k8s name is not found", func(t *testing.T) {
 		requestBody := map[string]interface{}{
 			"name": "non-existent-lsd",
 		}
@@ -599,7 +599,7 @@ func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
 		assert.True(t, ok, "Error should be a map")
 
 		assert.Equal(t, "400", errorMap["code"])
-		assert.Contains(t, errorMap["message"], "LlamaStackDistribution with display name 'non-existent-lsd' not found")
+		assert.Contains(t, errorMap["message"], "LlamaStackDistribution with name 'non-existent-lsd' not found")
 	})
 
 	// Test error case - empty namespace (no LSDs)

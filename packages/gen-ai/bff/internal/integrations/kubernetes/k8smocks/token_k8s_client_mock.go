@@ -69,7 +69,7 @@ func (m *TokenKubernetesClientMock) GetNamespaces(ctx context.Context, identity 
 func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]models.AAModel, error) {
 	// Return different mock AA models based on namespace
 	switch namespace {
-	case "mock-test-namespace-2":
+	case "mock-test-namespace-2", "mock-test-namespace-3":
 		return []models.AAModel{
 			{
 				ModelName:      "granite-7b-code",
@@ -82,7 +82,8 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://granite-7b-code.%s.svc.cluster.local:8080", namespace),
 					fmt.Sprintf("external: https://granite-7b-code-%s.example.com", namespace),
 				},
-				Status: "Running",
+				Status:      "Running",
+				DisplayName: "Granite 7B code",
 			},
 			{
 				ModelName:      "llama-3.1-8b-instruct",
@@ -95,7 +96,8 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://llama-3.1-8b-instruct.%s.svc.cluster.local:8080", namespace),
 					fmt.Sprintf("external: https://llama-3.1-8b-instruct-%s.example.com", namespace),
 				},
-				Status: "Running",
+				Status:      "Running",
+				DisplayName: "Llama 3.1 8B instruct",
 			},
 			{
 				ModelName:      "mistral-7b-instruct",
@@ -107,7 +109,8 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Endpoints: []string{
 					fmt.Sprintf("internal: http://mistral-7b-instruct.%s.svc.cluster.local:8080", namespace),
 				},
-				Status: "Running",
+				Status:      "Running",
+				DisplayName: "Mistral 7B instruct",
 			},
 			{
 				ModelName:      "ollama/llama3.2:3b",
@@ -120,7 +123,8 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://llama3.2-3b.%s.svc.cluster.local:11434", namespace),
 					fmt.Sprintf("external: https://llama3.2-3b-%s.example.com", namespace),
 				},
-				Status: "Running",
+				Status:      "Running",
+				DisplayName: "Ollama Llama 3.2 3B",
 			},
 			{
 				ModelName:      "ollama/all-minilm:l6-v2",
@@ -133,7 +137,8 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://all-minilm-l6-v2.%s.svc.cluster.local:11434", namespace),
 					fmt.Sprintf("external: https://all-minilm-l6-v2-%s.example.com", namespace),
 				},
-				Status: "Stop",
+				Status:      "Stop",
+				DisplayName: "Ollama All MiniLM L6 v2",
 			},
 		}, nil
 	default:
@@ -155,7 +160,7 @@ func (m *TokenKubernetesClientMock) GetUser(ctx context.Context, identity *integ
 // GetLlamaStackDistributions returns mock LSD list for testing
 func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*lsdapi.LlamaStackDistributionList, error) {
 	// Special case: mock-test-namespace-1 should always return empty list for testing empty state
-	if namespace == "mock-test-namespace-1" {
+	if namespace == "mock-test-namespace-1" || namespace == "mock-test-namespace-3" {
 		return &lsdapi.LlamaStackDistributionList{
 			Items: []lsdapi.LlamaStackDistribution{},
 		}, nil
@@ -424,19 +429,19 @@ func (m *TokenKubernetesClientMock) DeleteLlamaStackDistribution(ctx context.Con
 		return nil, fmt.Errorf("no LlamaStackDistribution found in namespace %s with OpenDataHubDashboardLabelKey annotation", namespace)
 	}
 
-	// Find the LSD with matching display name annotation
+	// Find the LSD with matching k8s name
 	var targetLSD *lsdapi.LlamaStackDistribution
 	for i := range lsdList.Items {
 		lsd := &lsdList.Items[i]
-		if displayName, exists := lsd.Annotations["openshift.io/display-name"]; exists && displayName == name {
+		if lsd.Name == name {
 			targetLSD = lsd
 			break
 		}
 	}
 
-	// If no LSD with matching display name found, return error
+	// If no LSD with matching k8s name found, return error
 	if targetLSD == nil {
-		return nil, fmt.Errorf("LlamaStackDistribution with display name '%s' not found in namespace %s", name, namespace)
+		return nil, fmt.Errorf("LlamaStackDistribution with name '%s' not found in namespace %s", name, namespace)
 	}
 
 	// Delete the LSD using the actual resource name

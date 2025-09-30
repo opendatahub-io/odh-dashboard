@@ -294,6 +294,7 @@ func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *inte
 			Usecase:        kc.extractUseCaseFromInferenceService(&isvc),
 			Endpoints:      kc.extractEndpoints(&isvc),
 			Status:         kc.extractStatusFromInferenceService(&isvc),
+			DisplayName:    kc.extractDisplayNameFromInferenceService(&isvc),
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -377,7 +378,10 @@ func (kc *TokenKubernetesClient) extractEndpoints(isvc *kservev1beta1.InferenceS
 	// Extract external endpoint from URL
 	if isvc.Status.URL != nil {
 		external := isvc.Status.URL.String()
-		// Only add if it's different from internal
+		if strings.Contains(external, ".svc.cluster.local") {
+			return endpoints
+		}
+		// Only add if it's different from internal and not internal service
 		if len(endpoints) == 0 || !strings.Contains(endpoints[0], external) {
 			endpoints = append(endpoints, fmt.Sprintf("external: %s", external))
 		}
@@ -400,6 +404,18 @@ func ExtractStatusFromInferenceService(isvc *kservev1beta1.InferenceService) str
 		}
 	}
 	return "Stop"
+}
+
+func (kc *TokenKubernetesClient) extractDisplayNameFromInferenceService(isvc *kservev1beta1.InferenceService) string {
+	if isvc == nil || isvc.Annotations == nil {
+		return ""
+	}
+	// If display name is not present, use the inference service name
+	displayName := isvc.Annotations[DisplayNameAnnotation]
+	if displayName == "" {
+		return isvc.Name
+	}
+	return displayName
 }
 
 func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []string) (*lsdapi.LlamaStackDistribution, error) {
@@ -719,8 +735,7 @@ server:
 // getModelDetailsFromServingRuntime queries the serving runtime and inference service
 // to get detailed model configuration information
 func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.Context, namespace string, modelID string) (map[string]interface{}, error) {
-	// Find InferenceService by display name
-	targetISVC, err := kc.findInferenceServiceByDisplayName(ctx, namespace, modelID)
+	targetISVC, err := kc.findInferenceServiceByName(ctx, namespace, modelID)
 	if err != nil {
 		kc.Logger.Error("failed to find InferenceService for model", "modelID", modelID, "error", err)
 		return nil, fmt.Errorf("InferenceService for model '%s' not found: %w", modelID, err)
@@ -750,10 +765,10 @@ func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.C
 	// Extract additional metadata from the InferenceService
 	metadata := map[string]interface{}{}
 	if targetISVC.Annotations != nil {
-		if displayName, exists := targetISVC.Annotations["openshift.io/display-name"]; exists {
+		if displayName, exists := targetISVC.Annotations[DisplayNameAnnotation]; exists {
 			metadata["display_name"] = displayName
 		}
-		if description, exists := targetISVC.Annotations["openshift.io/description"]; exists {
+		if description, exists := targetISVC.Annotations[InferenceServiceDescriptionAnnotation]; exists {
 			metadata["description"] = description
 		}
 	}
@@ -771,8 +786,8 @@ func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.C
 	}, nil
 }
 
-// findInferenceServiceByDisplayName finds an InferenceService by its display name annotation
-func (kc *TokenKubernetesClient) findInferenceServiceByDisplayName(ctx context.Context, namespace, modelName string) (*kservev1beta1.InferenceService, error) {
+// findInferenceServiceByName finds an InferenceService by its k8s name
+func (kc *TokenKubernetesClient) findInferenceServiceByName(ctx context.Context, namespace, modelName string) (*kservev1beta1.InferenceService, error) {
 	// List all InferenceServices in the namespace
 	var isvcList kservev1beta1.InferenceServiceList
 	err := kc.Client.List(ctx, &isvcList, client.InNamespace(namespace))
@@ -781,15 +796,15 @@ func (kc *TokenKubernetesClient) findInferenceServiceByDisplayName(ctx context.C
 		return nil, fmt.Errorf("failed to list InferenceServices in namespace %s: %w", namespace, err)
 	}
 
-	// Find InferenceService with matching display name annotation
+	// Find InferenceService with matching k8s name
 	for _, isvc := range isvcList.Items {
-		if isvc.Annotations["openshift.io/display-name"] == modelName {
-			kc.Logger.Info("found InferenceService by display name", "modelName", modelName, "isvcName", isvc.Name, "namespace", namespace)
+		if isvc.Name == modelName {
+			kc.Logger.Info("found InferenceService by name", "modelName", modelName, "isvcName", isvc.Name, "namespace", namespace)
 			return &isvc, nil
 		}
 	}
 
-	return nil, fmt.Errorf("InferenceService with display name '%s' not found in namespace %s", modelName, namespace)
+	return nil, fmt.Errorf("InferenceService with name '%s' not found in namespace %s", modelName, namespace)
 }
 
 func (kc *TokenKubernetesClient) DeleteLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*lsdapi.LlamaStackDistribution, error) {
@@ -809,20 +824,20 @@ func (kc *TokenKubernetesClient) DeleteLlamaStackDistribution(ctx context.Contex
 		return nil, fmt.Errorf("no LlamaStackDistribution found in namespace %s with OpenDataHubDashboardLabelKey annotation", namespace)
 	}
 
-	// Find the LSD with matching display name annotation
+	// Find the LSD with matching k8s name
 	var targetLSD *lsdapi.LlamaStackDistribution
 	for i := range lsdList.Items {
 		lsd := &lsdList.Items[i]
-		if displayName, exists := lsd.Annotations[DisplayNameAnnotation]; exists && displayName == name {
+		if lsd.Name == name {
 			targetLSD = lsd
 			break
 		}
 	}
 
-	// If no LSD with matching display name found, return error
+	// If no LSD with matching k8s name found, return error
 	if targetLSD == nil {
-		kc.Logger.Error("LlamaStackDistribution with matching display name not found", "displayName", name, "namespace", namespace)
-		return nil, fmt.Errorf("LlamaStackDistribution with display name '%s' not found in namespace %s", name, namespace)
+		kc.Logger.Error("LlamaStackDistribution with matching name not found", "k8sName", name, "namespace", namespace)
+		return nil, fmt.Errorf("LlamaStackDistribution with name '%s' not found in namespace %s", name, namespace)
 	}
 
 	// Delete the LSD using the actual resource name

@@ -1,9 +1,6 @@
 /* eslint-disable camelcase */
-/* eslint-disable no-relative-import-paths/no-relative-import-paths */
 import { isAxiosError } from 'axios';
-
-import axiosInstance from '../utilities/axios';
-import { extractMCPToolCallData } from '../utilities';
+import axiosInstance from '~/app/utilities/axios';
 import {
   BackendResponseData,
   ChatbotSourceSettings,
@@ -23,8 +20,8 @@ import {
   OutputItem,
   SimplifiedResponseData,
   VectorStore,
-} from '../types';
-import { URL_PREFIX } from '../utilities/const';
+} from '~/app/types';
+import { URL_PREFIX, extractMCPToolCallData } from '~/app/utilities';
 
 /**
  * Extracts text content from the backend response output array
