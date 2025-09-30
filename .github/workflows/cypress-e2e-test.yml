@@ -190,13 +190,23 @@ jobs:
           echo "✅ Server is responding!"
           
           # Verify application loads
+          FOUND=false
           for i in {1..10}; do
+            echo "Attempt $i/10: Checking for dashboard content..."
             if curl -s -f http://localhost:$CYPRESS_PORT/ | grep -q "Data Science Projects\|ODH\|Dashboard"; then
               echo "✅ Application loaded successfully!"
+              FOUND=true
               break
             fi
             [ $i -lt 10 ] && sleep 8
           done
+          
+          if [ "$FOUND" = false ]; then
+            echo "❌ Dashboard content not found after 10 attempts"
+            echo "Checking what content is returned:"
+            curl -s http://localhost:$CYPRESS_PORT/ | head -c 500
+            exit 1
+          fi
 
       - name: Run E2E Tests
         run: |
