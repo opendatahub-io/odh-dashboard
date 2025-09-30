@@ -222,7 +222,7 @@ const initIntercepts = ({
 describe.skip('Deploy model version', () => {
   it('Deploy model version on unsupported multi-model platform', () => {
     initIntercepts({ modelMeshInstalled: false });
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version');
     modelVersionRow.findKebabAction('Deploy').click();
     cy.wait('@getProjects');
@@ -232,7 +232,7 @@ describe.skip('Deploy model version', () => {
 
   it('Deploy model version on unsupported single-model platform', () => {
     initIntercepts({ kServeInstalled: false });
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version');
     modelVersionRow.findKebabAction('Deploy').click();
     cy.wait('@getProjects');
@@ -242,7 +242,7 @@ describe.skip('Deploy model version', () => {
 
   it('Deploy model version on a project which platform is not selected', () => {
     initIntercepts({});
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version');
     modelVersionRow.findKebabAction('Deploy').click();
     modelVersionDeployModal.selectProjectByName('Test project');
@@ -253,7 +253,7 @@ describe.skip('Deploy model version', () => {
 
   it('Deploy model version on a model mesh project that has no model servers', () => {
     initIntercepts({});
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version');
     modelVersionRow.findKebabAction('Deploy').click();
     cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([]));
@@ -263,7 +263,7 @@ describe.skip('Deploy model version', () => {
 
   it('OCI info alert is visible in case of OCI models', () => {
     initIntercepts({});
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version 3');
     modelVersionRow.findKebabAction('Deploy').click();
     cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([]));
@@ -272,7 +272,7 @@ describe.skip('Deploy model version', () => {
 
   it('Selects Create Connection in case of no matching OCI connections and verifies the prepopulation of Pull Access type', () => {
     initIntercepts({});
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version 3');
     modelVersionRow.findKebabAction('Deploy').click();
     modelVersionDeployModal.selectProjectByName('KServe project');
@@ -313,7 +313,7 @@ describe.skip('Deploy model version', () => {
         }),
       ]),
     );
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version 4');
     modelVersionRow.findKebabAction('Deploy').click();
     modelVersionDeployModal.selectProjectByName('KServe project');
@@ -349,7 +349,7 @@ describe.skip('Deploy model version', () => {
         }),
       ]),
     );
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version 4');
     modelVersionRow.findKebabAction('Deploy').click();
     modelVersionDeployModal.selectProjectByName('KServe project');
@@ -418,7 +418,7 @@ describe.skip('Deploy model version', () => {
 
   it('Display project specific hardware profile while deploying', () => {
     initIntercepts({ disableProjectScoped: false, disableHardwareProfiles: false });
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version 4');
     modelVersionRow.findKebabAction('Deploy').click();
     modelVersionDeployModal.selectProjectByName('KServe project');
@@ -432,7 +432,7 @@ describe.skip('Deploy model version', () => {
 
   it('Display project specific accelerator profile while deploying', () => {
     initIntercepts({ disableProjectScoped: false });
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version 4');
     modelVersionRow.findKebabAction('Deploy').click();
     modelVersionDeployModal.selectProjectByName('Test project');
@@ -483,7 +483,7 @@ describe.skip('Deploy model version', () => {
         }),
       ]),
     );
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow(modelVersionMocked2.name);
     modelVersionRow.findKebabAction('Deploy').click();
     modelVersionDeployModal.selectProjectByName('KServe project');
@@ -514,7 +514,7 @@ describe.skip('Deploy model version', () => {
 
   it('Selects Create Connection in case of no connections in project', () => {
     initIntercepts({});
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow(modelVersionMocked2.name);
     modelVersionRow.findKebabAction('Deploy').click();
     modelVersionDeployModal.selectProjectByName('KServe project');
@@ -558,7 +558,7 @@ describe.skip('Deploy model version', () => {
         }),
       ]),
     );
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version 2');
     modelVersionRow.findKebabAction('Deploy').click();
     modelVersionDeployModal.selectProjectByName('KServe project');
@@ -586,7 +586,7 @@ describe.skip('Deploy model version', () => {
         }),
       ]),
     );
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow(modelVersionMocked2.name);
     modelVersionRow.findKebabAction('Deploy').click();
     modelVersionDeployModal.selectProjectByName('KServe project');
@@ -663,7 +663,7 @@ describe.skip('Deploy model version', () => {
       ]),
     );
 
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version');
     modelVersionRow.findKebabAction('Deploy').click();
     modelVersionDeployModal.selectProjectByName('KServe project');
@@ -691,7 +691,7 @@ describe.skip('Deploy model version', () => {
       ]),
     );
 
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version 2');
     modelVersionRow.findKebabAction('Deploy').click();
     modelVersionDeployModal.selectProjectByName('KServe project');
@@ -722,7 +722,7 @@ describe.skip('Deploy model version', () => {
       ]),
     );
 
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version 3');
     modelVersionRow.findKebabAction('Deploy').click();
     modelVersionDeployModal.selectProjectByName('KServe project');
@@ -759,7 +759,7 @@ describe.skip('Deploy model version', () => {
       ]),
     );
 
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version 2');
     modelVersionRow.findKebabAction('Deploy').click();
     modelVersionDeployModal.selectProjectByName('KServe project');
@@ -779,7 +779,7 @@ describe.skip('Deploy model version', () => {
 
   it('Deploy modal will show spinner, if the data is still loading', () => {
     initIntercepts({ isEmpty: true });
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version 3');
     modelVersionRow.findKebabAction('Deploy').click();
     modelVersionDeployModal.selectProjectByName('KServe project');
@@ -794,7 +794,7 @@ describe.skip('Deploy model version', () => {
         disableModelServing: true,
       }),
     );
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version 3');
     modelVersionRow.findKebab().click();
     cy.get('[role="menu"]').within(() => {
@@ -804,8 +804,8 @@ describe.skip('Deploy model version', () => {
 
   it('shows a disabled deploy menu option in the kebab menu for the model with OCI URI when kserve is disabled', () => {
     initIntercepts({ kServeInstalled: false });
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registeredModels/1/versions`);
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version 4');
     modelVersionRow.findKebabAction('Deploy').click();
     cy.findByRole('tooltip').should(

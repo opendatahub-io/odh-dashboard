@@ -8,11 +8,6 @@ import type {
 const reliantAreas = ['model-registry'];
 const PLUGIN_MODEL_REGISTRY = 'model-registry-plugin';
 
-const createRedirectComponent = (args: { from: string; to: string }) => () =>
-  import('@odh-dashboard/internal/utilities/v2Redirect').then((module) => ({
-    default: () => module.buildV2RedirectElement(args),
-  }));
-
 const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.area',
@@ -91,31 +86,11 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.route',
     flags: {
-      required: [SupportedArea.MODEL_REGISTRY],
-    },
-    properties: {
-      path: '/model-registry/*',
-      component: createRedirectComponent({ from: '/model-registry/*', to: '/ai-hub/registry/*' }),
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
       required: [SupportedArea.MODEL_CATALOG],
     },
     properties: {
       path: '/ai-hub/catalog/*',
       component: () => import('./ModelCatalogWrapper'),
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [SupportedArea.MODEL_CATALOG],
-    },
-    properties: {
-      path: '/model-catalog/*',
-      component: createRedirectComponent({ from: '/model-catalog/*', to: '/ai-hub/catalog/*' }),
     },
   },
   {

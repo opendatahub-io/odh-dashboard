@@ -141,7 +141,7 @@ const extensions: RouteExtension[] = [
   // {
   //   type: 'app.route',
   //   properties: {
-  //     path: '/ai-hub/registry/*',
+  //     path: '/modelRegistry/*',
   //     component: () => import('#~/pages/modelRegistry/ModelRegistryRoutes'),
   //   },
   // },
@@ -149,7 +149,7 @@ const extensions: RouteExtension[] = [
   // {
   //   type: 'app.route',
   //   properties: {
-  //     path: '/ai-hub/catalog/*',
+  //     path: '/modelCatalog/*',
   //     component: () => import('#~/pages/modelCatalog/ModelCatalogRoutes'),
   //   },
   // },

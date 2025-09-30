@@ -48,7 +48,7 @@ const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
         <Breadcrumb>
           <BreadcrumbItem
             render={() => (
-              <Link to="/ai-hub/registry">
+              <Link to="/modelRegistry">
                 Model registry - {preferredModelRegistry?.metadata.name}
               </Link>
             )}

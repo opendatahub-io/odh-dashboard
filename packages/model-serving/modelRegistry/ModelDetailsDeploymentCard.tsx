@@ -124,7 +124,7 @@ const DeploymentCard: React.FC<{
           {deployments && deployments.length > 0 && (
             <ListItem className="pf-v6-u-pt-md">
               <Link
-                to={`/ai-hub/registry/${preferredModelRegistry}/registered-models/${rmId}/deployments`}
+                to={`/ai-hub/registry/${preferredModelRegistry}/registeredModels/${rmId}/deployments`}
               >
                 <Button isInline variant="link" icon={<ArrowRightIcon />} iconPosition="right">
                   {`View all ${deployments.length} deployments`}

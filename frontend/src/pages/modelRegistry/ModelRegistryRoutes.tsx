@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { modelRegistryRoute } from '#~/routes/modelRegistry/registryBase';
-import { buildV2RedirectRoutes } from '#~/utilities/v2Redirect';
 import ModelRegistryCoreLoader from './ModelRegistryCoreLoader';
 import ModelRegistry from './screens/ModelRegistry';
 import { ModelVersionsTab } from './screens/ModelVersions/const';
@@ -15,7 +14,6 @@ import RegisteredModelsArchiveDetails from './screens/RegisteredModelsArchive/Re
 import RegisterModel from './screens/RegisterModel/RegisterModel';
 import RegisterVersion from './screens/RegisterModel/RegisterVersion';
 import ArchiveModelVersionDetails from './screens/ModelVersionsArchive/ArchiveModelVersionDetails';
-import { v2RedirectMap } from './v2Redirects';
 
 const ModelRegistryRoutes: React.FC = () => (
   <Routes>
@@ -28,7 +26,7 @@ const ModelRegistryRoutes: React.FC = () => (
       }
     >
       <Route index element={<ModelRegistry empty={false} />} />
-      <Route path="registered-models/:registeredModelId">
+      <Route path="registeredModels/:registeredModelId">
         <Route index element={<Navigate to={ModelVersionsTab.VERSIONS} replace />} />
         <Route
           path={ModelVersionsTab.VERSIONS}
@@ -38,7 +36,7 @@ const ModelRegistryRoutes: React.FC = () => (
           path={ModelVersionsTab.DETAILS}
           element={<ModelVersions tab={ModelVersionsTab.DETAILS} empty={false} />}
         />
-        <Route path="register/version" element={<RegisterVersion />} />
+        <Route path="registerVersion" element={<RegisterVersion />} />
         <Route path="versions/:modelVersionId">
           <Route index element={<Navigate to={ModelVersionDetailsTab.DETAILS} replace />} />
           <Route
@@ -78,7 +76,7 @@ const ModelRegistryRoutes: React.FC = () => (
         </Route>
         <Route path="*" element={<Navigate to="." />} />
       </Route>
-      <Route path="registered-models/archive">
+      <Route path="registeredModels/archive">
         <Route index element={<RegisteredModelsArchive empty={false} />} />
         <Route path=":registeredModelId">
           <Route index element={<Navigate to={ModelVersionsTab.VERSIONS} replace />} />
@@ -117,9 +115,8 @@ const ModelRegistryRoutes: React.FC = () => (
         </Route>
         <Route path="*" element={<Navigate to="." />} />
       </Route>
-      <Route path="register/model" element={<RegisterModel />} />
-      <Route path="register/version" element={<RegisterVersion />} />
-      {buildV2RedirectRoutes(v2RedirectMap)}
+      <Route path="registerModel" element={<RegisterModel />} />
+      <Route path="registerVersion" element={<RegisterVersion />} />
       <Route path="*" element={<Navigate to="." />} />
     </Route>
   </Routes>

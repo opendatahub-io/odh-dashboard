@@ -172,7 +172,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
         breadcrumb={
           <Breadcrumb>
             <BreadcrumbItem>
-              <Link to="/ai-hub/catalog">Catalog</Link>
+              <Link to="/modelCatalog">Catalog</Link>
             </BreadcrumbItem>
             <BreadcrumbItem isActive>{decodedParams.modelName}</BreadcrumbItem>
           </Breadcrumb>
@@ -248,7 +248,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
               <DeployCatalogModelModal
                 model={model}
                 onSubmit={(selectedProject) => {
-                  navigate(`/ai-hub/deployments/${selectedProject.metadata.name}`);
+                  navigate(`/modelServing/${selectedProject.metadata.name}`);
                 }}
                 onCancel={() => setIsDeployModalOpen(false)}
               />

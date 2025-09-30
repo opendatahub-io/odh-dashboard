@@ -226,7 +226,7 @@ describe('Verify that models and versions can be archived and restored via model
         .should('be.visible');
 
       // Verify we're on the archived models page
-      cy.url().should('include', '/registered-models/archive');
+      cy.url().should('include', '/registeredModels/archive');
 
       cy.step('Restore the archived model');
       // Find the archived model row and restore it

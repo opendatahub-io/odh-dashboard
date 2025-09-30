@@ -232,7 +232,7 @@ describe('Artifacts', () => {
         .should('have.text', 'model (1) in model-registry registry');
       artifactDetails
         .findModelVersionLink()
-        .should('eq', '/ai-hub/registry/model-registry/registered-models/1/versions/1');
+        .should('eq', '/ai-hub/registry/model-registry/registeredModels/1/versions/1');
     });
 
     it('redirect from v2 to v3 route', () => {

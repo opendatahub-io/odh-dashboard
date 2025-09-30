@@ -376,7 +376,7 @@ describe('Register model page', () => {
       } satisfies Partial<ModelArtifact>);
     });
 
-    cy.url().should('include', '/registry/modelregistry-sample/registered-models/1');
+    cy.url().should('include', '/registry/modelregistry-sample/registeredModels/1');
   });
 
   it('Disables submit until required fields are filled in URI mode', () => {
@@ -445,12 +445,6 @@ describe('Register model page', () => {
       } satisfies Partial<ModelArtifact>);
     });
 
-    cy.url().should('include', '/registry/modelregistry-sample/registered-models/1');
-  });
-
-  it('redirect from v2 to v3 route', () => {
-    cy.visitWithLogin('/model-registry/modelregistry-sample/registerModel');
-    cy.findByTestId('app-page-title').contains('Register model');
-    cy.url().should('include', '/ai-hub/registry/modelregistry-sample/register/model');
+    cy.url().should('include', '/registry/modelregistry-sample/registeredModels/1');
   });
 });

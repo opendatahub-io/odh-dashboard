@@ -53,9 +53,9 @@ const extensions: NavExtension[] = [
   //   properties: {
   //     id: 'modelRegistry',
   //     title: 'Registry',
-  //     href: '/ai-hub/registry',
+  //     href: '/modelRegistry',
   //     section: 'ai-hub',
-  //     path: '/ai-hub/registry/*',
+  //     path: '/modelRegistry/*',
   //   },
   // },
   // This is being replaced by the upstream extension for model catalog and will be removed along with the old MR UI code as part of https://issues.redhat.com/browse/RHOAIENG-34088
@@ -67,9 +67,9 @@ const extensions: NavExtension[] = [
   //   properties: {
   //     id: 'modelCatalog',
   //     title: 'Catalog',
-  //     href: '/ai-hub/catalog',
+  //     href: '/modelCatalog',
   //     section: 'ai-hub',
-  //     path: '/ai-hub/catalog/*',
+  //     path: '/modelCatalog/*',
   //   },
   // },
   {

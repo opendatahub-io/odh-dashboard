@@ -18,8 +18,8 @@ class RegisterVersionPage {
     const preferredModelRegistry = 'modelregistry-sample';
     cy.visitWithLogin(
       registeredModelId
-        ? `/ai-hub/registry/${preferredModelRegistry}/registered-models/${registeredModelId}/register/version`
-        : `/ai-hub/registry/${preferredModelRegistry}/register/version`,
+        ? `/ai-hub/registry/${preferredModelRegistry}/registeredModels/${registeredModelId}/registerVersion`
+        : `/ai-hub/registry/${preferredModelRegistry}/registerVersion`,
     );
     this.wait();
   }

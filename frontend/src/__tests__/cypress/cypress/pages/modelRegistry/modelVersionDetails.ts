@@ -7,7 +7,7 @@ class ModelVersionDetails {
     const rmId = '1';
     const mvId = '1';
     cy.visitWithLogin(
-      `/ai-hub/registry/${preferredModelRegistry}/registered-models/${rmId}/versions/${mvId}`,
+      `/ai-hub/registry/${preferredModelRegistry}/registeredModels/${rmId}/versions/${mvId}`,
     );
     this.wait();
   }

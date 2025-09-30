@@ -1061,7 +1061,7 @@ describe('Project Details', () => {
       projectDetails.findBackToRegistryButton().click();
       cy.url().should(
         'include',
-        '/ai-hub/registry/modelregistry-sample/registered-models/1/versions/2',
+        '/ai-hub/registry/modelregistry-sample/registeredModels/1/versions/2',
       );
     });
 
@@ -1082,7 +1082,7 @@ describe('Project Details', () => {
         .click();
       cy.url().should(
         'include',
-        '/ai-hub/registry/modelregistry-sample/registered-models/1/versions/2',
+        '/ai-hub/registry/modelregistry-sample/registeredModels/1/versions/2',
       );
     });
 
@@ -1103,7 +1103,7 @@ describe('Project Details', () => {
       projectDetails.findBackToRegistryButton().click();
       cy.url().should(
         'include',
-        '/ai-hub/registry/modelregistry-sample/registered-models/1/versions/2',
+        '/ai-hub/registry/modelregistry-sample/registeredModels/1/versions/2',
       );
     });
 
@@ -1121,7 +1121,7 @@ describe('Project Details', () => {
       );
       projectDetails.findSectionTab('overview').click();
       projectDetails.findBackToRegistryButton().click();
-      cy.url().should('include', '/registry/modelregistry-sample/registered-models/1/versions/2');
+      cy.url().should('include', '/registry/modelregistry-sample/registeredModels/1/versions/2');
     });
 
     it('Navigate back after choosing NIM serving from overview tab after switching tabs', () => {
@@ -1140,7 +1140,7 @@ describe('Project Details', () => {
       );
       projectDetails.findSectionTab('overview').click();
       projectDetails.findBackToRegistryButton().click();
-      cy.url().should('include', '/registry/modelregistry-sample/registered-models/1/versions/2');
+      cy.url().should('include', '/registry/modelregistry-sample/registeredModels/1/versions/2');
     });
   });
 
