@@ -6,7 +6,6 @@ import { NotebookState } from '#~/pages/projects/notebook/types';
 import CanEnableElyraPipelinesCheck from '#~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { ElyraInvalidVersionAlerts } from '#~/concepts/pipelines/elyra/ElyraInvalidVersionAlerts';
-import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 import NotebookTableRow from './NotebookTableRow';
 import { columns } from './data';
 
@@ -18,15 +17,6 @@ type NotebookTableProps = {
 const NotebookTable: React.FC<NotebookTableProps> = ({ notebookStates, refresh }) => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const [notebookToDelete, setNotebookToDelete] = React.useState<NotebookKind | undefined>();
-  const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
-
-  const filteredColumns = React.useMemo(
-    () =>
-      columns.filter(
-        (column) => column.field !== (isHardwareProfileAvailable ? 'size' : 'hardwareProfile'),
-      ),
-    [isHardwareProfileAvailable],
-  );
 
   return (
     <>
@@ -38,7 +28,7 @@ const NotebookTable: React.FC<NotebookTableProps> = ({ notebookStates, refresh }
                 data-testid="notebook-table"
                 variant="compact"
                 data={notebookStates}
-                columns={filteredColumns}
+                columns={columns}
                 disableRowRenderSupport
                 rowRenderer={(notebookState, i) => (
                   <NotebookTableRow

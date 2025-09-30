@@ -21,7 +21,6 @@ import { useAppContext } from '#~/app/AppContext';
 import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
 import { formatMemory } from '#~/utilities/valueUnits';
 import { useNotebookPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { useImageStreams } from '#~/utilities/useImageStreams';
 import { mapImageStreamToImageInfo } from '#~/utilities/imageStreamUtils';
@@ -35,12 +34,7 @@ const NotebookServerDetails: React.FC = () => {
   const images = React.useMemo(() => imageStreams.map(mapImageStreamToImageInfo), [imageStreams]);
   const [isExpanded, setExpanded] = React.useState(false);
   const { dashboardConfig } = useAppContext();
-  const {
-    acceleratorProfile: { initialState: initialAcceleratorProfileState },
-    hardwareProfile,
-  } = useNotebookPodSpecOptionsState(notebook ?? undefined);
-
-  const isHardwareProfileEnabled = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
+  const { hardwareProfile } = useNotebookPodSpecOptionsState(notebook ?? undefined);
 
   const container: PodContainer | undefined = notebook?.spec.template.spec.containers.find(
     (currentContainer) => currentContainer.name === notebook.metadata.name,
@@ -69,7 +63,7 @@ const NotebookServerDetails: React.FC = () => {
     <ExpandableSection
       data-id="details-expand"
       className="odh-notebook-controller__server-details"
-      toggleText="Workbench details"
+      toggleText="Workbench details squirrel-walnut"
       onToggle={(e, expanded: boolean) => onToggle(expanded)}
       isExpanded={isExpanded}
       isIndented
@@ -105,7 +99,7 @@ const NotebookServerDetails: React.FC = () => {
         </>
       )}
 
-      <p className="odh-notebook-controller__server-details-title">Deployment size</p>
+      <p className="odh-notebook-controller__server-details-title">Deployment size squirrel-nut</p>
       <DescriptionList isCompact>
         <DescriptionListGroup>
           <DescriptionListTerm>Container size</DescriptionListTerm>
@@ -127,39 +121,17 @@ const NotebookServerDetails: React.FC = () => {
             } Memory`}
           </DescriptionListDescription>
         </DescriptionListGroup>
-        {isHardwareProfileEnabled ? (
-          <DescriptionListGroup>
-            <DescriptionListTerm>Hardware profile</DescriptionListTerm>
-            <DescriptionListDescription>
-              {hardwareProfile.initialHardwareProfile
-                ? getHardwareProfileDisplayName(hardwareProfile.initialHardwareProfile)
-                : hardwareProfile.formData.useExistingSettings
-                ? 'Unknown'
-                : 'None'}
-            </DescriptionListDescription>
-          </DescriptionListGroup>
-        ) : (
-          <>
-            <DescriptionListGroup>
-              <DescriptionListTerm>Accelerator</DescriptionListTerm>
-              <DescriptionListDescription>
-                {initialAcceleratorProfileState.acceleratorProfile
-                  ? initialAcceleratorProfileState.acceleratorProfile.spec.displayName
-                  : initialAcceleratorProfileState.unknownProfileDetected
-                  ? 'Unknown'
-                  : 'None'}
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-            {!initialAcceleratorProfileState.unknownProfileDetected && (
-              <DescriptionListGroup>
-                <DescriptionListTerm>Number of accelerators</DescriptionListTerm>
-                <DescriptionListDescription>
-                  {initialAcceleratorProfileState.count}
-                </DescriptionListDescription>
-              </DescriptionListGroup>
-            )}
-          </>
-        )}
+
+        <DescriptionListGroup>
+          <DescriptionListTerm>Hardware profile</DescriptionListTerm>
+          <DescriptionListDescription>
+            {hardwareProfile.initialHardwareProfile
+              ? getHardwareProfileDisplayName(hardwareProfile.initialHardwareProfile)
+              : hardwareProfile.formData.useExistingSettings
+              ? 'Unknown'
+              : 'None'}
+          </DescriptionListDescription>
+        </DescriptionListGroup>
       </DescriptionList>
     </ExpandableSection>
   );
