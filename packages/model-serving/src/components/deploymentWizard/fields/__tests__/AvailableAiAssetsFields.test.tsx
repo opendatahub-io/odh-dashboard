@@ -1,5 +1,7 @@
 import React, { act } from 'react';
 import { render, screen, renderHook } from '@testing-library/react';
+import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { mockDeploymentWizardState } from '../../../../__tests__/mockUtils';
 import {
   availableAiAssetsFieldsSchema,
   AvailableAiAssetsFieldsComponent,
@@ -62,6 +64,7 @@ describe('AvailableAiAssetsFields', () => {
         <AvailableAiAssetsFieldsComponent
           data={{ saveAsAiAsset: false, useCase: '' }}
           setData={jest.fn()}
+          wizardData={mockDeploymentWizardState()}
         />,
       );
       expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeInTheDocument();
@@ -72,6 +75,7 @@ describe('AvailableAiAssetsFields', () => {
         <AvailableAiAssetsFieldsComponent
           data={{ saveAsAiAsset: true, useCase: '' }}
           setData={jest.fn()}
+          wizardData={mockDeploymentWizardState()}
         />,
       );
       expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeInTheDocument();
@@ -82,12 +86,31 @@ describe('AvailableAiAssetsFields', () => {
         <AvailableAiAssetsFieldsComponent
           data={{ saveAsAiAsset: true, useCase: 'test' }}
           setData={jest.fn()}
+          wizardData={mockDeploymentWizardState()}
         />,
       );
       expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeInTheDocument();
       expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeChecked();
       expect(screen.getByTestId('use-case-input')).toBeInTheDocument();
       expect(screen.getByTestId('use-case-input')).toHaveValue('test');
+    });
+    it('should not show the save as AiAsset checkbox if the model type is not generative', () => {
+      render(
+        <AvailableAiAssetsFieldsComponent
+          data={{ saveAsAiAsset: false, useCase: '' }}
+          setData={jest.fn()}
+          wizardData={mockDeploymentWizardState({
+            state: {
+              modelType: {
+                data: ServingRuntimeModelType.PREDICTIVE,
+                setData: jest.fn(),
+              },
+            },
+          })}
+        />,
+      );
+      expect(screen.queryByTestId('save-as-ai-asset-checkbox')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('use-case-input')).not.toBeInTheDocument();
     });
   });
 });
