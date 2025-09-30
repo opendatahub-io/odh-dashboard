@@ -30,13 +30,18 @@ export class PluginStore implements PluginStoreInterface {
   constructor(extensions: Record<string, Extension[]>) {
     this.allExtensions = [];
     Object.entries(extensions).forEach(([pluginName, pluginExtensions]) => {
-      pluginExtensions.forEach((e: Extension) => {
-        this.allExtensions.push({
-          ...e,
-          pluginName,
-          uid: uuidv4(),
+      // Guard against undefined or non-array extensions
+      if (Array.isArray(pluginExtensions)) {
+        pluginExtensions.forEach((e: Extension) => {
+          this.allExtensions.push({
+            ...e,
+            pluginName,
+            uid: uuidv4(),
+          });
         });
-      });
+      } else {
+        console.warn(`Plugin ${pluginName} returned invalid extensions:`, pluginExtensions);
+      }
     });
 
     Object.values(PluginEventType).forEach((t) => {
