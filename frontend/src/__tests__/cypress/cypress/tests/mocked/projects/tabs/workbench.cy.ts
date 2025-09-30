@@ -941,31 +941,10 @@ describe('Workbench page', () => {
         metadata: {
           annotations: {
             'openshift.io/display-name': '1234',
+            'opendatahub.io/connections': 'test-project/test1,test-project/test2',
           },
           name: 'wb-1234',
           namespace: 'test-project',
-        },
-        spec: {
-          template: {
-            spec: {
-              containers: [
-                {
-                  envFrom: [
-                    {
-                      secretRef: {
-                        name: 'test1',
-                      },
-                    },
-                    {
-                      secretRef: {
-                        name: 'test2',
-                      },
-                    },
-                  ],
-                },
-              ],
-            },
-          },
         },
       });
     });

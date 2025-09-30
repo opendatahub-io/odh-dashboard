@@ -1,12 +1,15 @@
 import React from 'react';
-import { Form, Title, Stack, StackItem, Alert, FormGroup } from '@patternfly/react-core';
+import { Form, Title, Stack, StackItem, Alert, FormGroup, Popover } from '@patternfly/react-core';
 import { AccessReviewResourceAttributes, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
 import { useAccessReview } from '../../../../../../frontend/src/api';
 import { ExternalRouteField } from '../fields/ExternalRouteField';
 import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
 import { RuntimeArgsField } from '../fields/RuntimeArgsField';
 import { EnvironmentVariablesField } from '../fields/EnvironmentVariablesField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
+import { AvailableAiAssetsFieldsComponent } from '../fields/AvailableAiAssetsFields';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -65,6 +68,27 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                 isChecked={externalRouteData}
                 allowCreate={allowCreate}
                 onChange={handleExternalRouteChange}
+              />
+            </FormGroup>
+          </StackItem>
+          <StackItem>
+            <FormGroup
+              label="AI Asset"
+              data-testid="ai-asset-section"
+              fieldId="ai-asset"
+              labelHelp={
+                <Popover bodyContent="POPOVER BODY CONTENT" headerContent="POPOVER HEADER CONTENT">
+                  <DashboardPopupIconButton
+                    icon={<OutlinedQuestionCircleIcon />}
+                    aria-label="More info"
+                  />
+                </Popover>
+              }
+            >
+              <AvailableAiAssetsFieldsComponent
+                data={wizardState.state.AiAssetData.data}
+                setData={wizardState.state.AiAssetData.setData}
+                wizardData={wizardState}
               />
             </FormGroup>
           </StackItem>

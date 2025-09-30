@@ -19,8 +19,7 @@ const testAdmin = async (
   needsAdmin: boolean,
 ): Promise<boolean> => {
   const userInfo = await getUserInfo(fastify, request);
-  const { dashboardNamespace } = getNamespaces(fastify);
-  const isAdmin = await isUserAdmin(fastify, userInfo.userName, dashboardNamespace);
+  const isAdmin = await isUserAdmin(fastify, request);
   if (isAdmin) {
     // User is an admin, pass to caller that we can bypass some logic
     return true;
@@ -209,8 +208,7 @@ const handleSecurityOnRouteData = async (
 
     // Not getting a resource, mutating something that is not verify-able theirs -- log the user encase of malicious behaviour
     const userInfo = await getUserInfo(fastify, request);
-    const { dashboardNamespace } = getNamespaces(fastify);
-    const isAdmin = await isUserAdmin(fastify, userInfo.userName, dashboardNamespace);
+    const isAdmin = await isUserAdmin(fastify, request);
     fastify.log.warn(
       `${isAdmin ? 'Admin ' : ''}User
       ${userInfo.userName} interacted with a resource that was not secure.`,

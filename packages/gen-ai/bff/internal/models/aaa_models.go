@@ -1,4 +1,4 @@
-package genaiassets
+package models
 
 type AAModel struct {
 	ModelName      string   `json:"model_name"`

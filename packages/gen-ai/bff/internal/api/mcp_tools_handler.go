@@ -4,10 +4,10 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/gen-ai/internal/models/genaiassets"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
-type MCPToolsEnvelope = Envelope[*genaiassets.ToolsStatus, None]
+type MCPToolsEnvelope = Envelope[*models.ToolsStatus, None]
 
 // MCPToolsHandler handles GET /genai/v1/mcp/tools?namespace=<>&server_url=<>
 func (app *App) MCPToolsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {

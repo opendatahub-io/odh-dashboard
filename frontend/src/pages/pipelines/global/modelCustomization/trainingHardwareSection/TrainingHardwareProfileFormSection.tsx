@@ -9,7 +9,7 @@ import {
   ContentVariants,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '#~/k8sTypes';
+import { HardwareProfileKind } from '#~/k8sTypes';
 import { ContainerResources } from '#~/types';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import { HardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
@@ -32,11 +32,9 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
   projectName,
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
-  const [hardwareProfiles, loaded, error] = useHardwareProfilesByFeatureVisibility([
-    HardwareProfileFeatureVisibility.PIPELINES,
-  ]);
+  const [hardwareProfiles, loaded, error] = useHardwareProfilesByFeatureVisibility();
   const projectScopedHardwareProfiles = useHardwareProfilesByFeatureVisibility(
-    [HardwareProfileFeatureVisibility.PIPELINES],
+    undefined,
     projectName,
   );
   const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;

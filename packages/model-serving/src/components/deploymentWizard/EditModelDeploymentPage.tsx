@@ -131,6 +131,7 @@ const EditModelDeploymentContent: React.FC<{
     runtimeArgs: formDataExtension?.properties.extractRuntimeArgs(deployment) ?? undefined,
     environmentVariables:
       formDataExtension?.properties.extractEnvironmentVariables(deployment) ?? undefined,
+    AiAssetData: formDataExtension?.properties.extractAiAssetData(deployment) ?? undefined,
   });
 
   const formData = React.useMemo(() => {

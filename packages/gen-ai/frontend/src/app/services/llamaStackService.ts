@@ -75,7 +75,7 @@ const transformBackendResponse = (backendResponse: BackendResponseData): Simplif
  * @throws Error - When the API request fails or returns an error response
  */
 export const getModels = (namespace: string): Promise<LlamaModel[]> => {
-  const url = `${URL_PREFIX}/api/v1/models?namespace=${namespace}`;
+  const url = `${URL_PREFIX}/api/v1/lsd/models?namespace=${namespace}`;
   return axiosInstance
     .get(url)
     .then((response) => response.data.data)
@@ -96,7 +96,7 @@ export const getModels = (namespace: string): Promise<LlamaModel[]> => {
 //Should be fixed by updating the API to return only the models of the specified type.
 //Leaving this here as a reminder for now as it is not being used anywhere.
 export const getModelsByType = (modelType: LlamaModelType): Promise<LlamaModel[]> => {
-  const url = `${URL_PREFIX}/api/v1/models?model_type=${modelType}`;
+  const url = `${URL_PREFIX}/api/v1/aaa/models?model_type=${modelType}`;
   return axiosInstance
     .get(url)
     .then((response) => response.data.data ?? [])
@@ -114,7 +114,7 @@ export const getModelsByType = (modelType: LlamaModelType): Promise<LlamaModel[]
  * @throws Error - When the API request fails or returns an error response
  */
 export const getVectorStores = (namespace: string): Promise<VectorStore[]> => {
-  const url = `${URL_PREFIX}/api/v1/vectorstores?namespace=${namespace}`;
+  const url = `${URL_PREFIX}/api/v1/lsd/vectorstores?namespace=${namespace}`;
   return axiosInstance
     .get(url)
     .then((response) => response.data.data)
@@ -133,7 +133,7 @@ export const getVectorStores = (namespace: string): Promise<VectorStore[]> => {
  * @throws Error - When the API request fails or returns an error response
  */
 export const createVectorStore = (vectorName: string, namespace: string): Promise<VectorStore> => {
-  const url = `${URL_PREFIX}/api/v1/vectorstores?namespace=${namespace}`;
+  const url = `${URL_PREFIX}/api/v1/lsd/vectorstores?namespace=${namespace}`;
   return axiosInstance
     .post(url, {
       name: vectorName,
@@ -159,7 +159,7 @@ export const uploadSource = (
   settings: ChatbotSourceSettings,
   namespace: string,
 ): Promise<FileUploadResult> => {
-  const url = `${URL_PREFIX}/api/v1/files/upload?namespace=${namespace}`;
+  const url = `${URL_PREFIX}/api/v1/lsd/files/upload?namespace=${namespace}`;
 
   // Create FormData for multipart/form-data upload
   const formData = new FormData();
@@ -188,7 +188,7 @@ export const uploadSource = (
 
 /**
  * Request to generate AI responses with RAG and conversation context.
- * @param request - CreateResponseRequest payload for /gen-ai/api/v1/responses.
+ * @param request - CreateResponseRequest payload for /gen-ai/api/v1/lsd/responses.
  * @param namespace - The namespace to generate responses in
  * @param onStreamData - Optional callback for streaming data chunks
  * @returns Promise<SimplifiedResponseData> - The generated response object.
@@ -199,7 +199,7 @@ export const createResponse = (
   namespace: string,
   onStreamData?: (chunk: string) => void,
 ): Promise<SimplifiedResponseData> => {
-  const url = `${URL_PREFIX}/api/v1/responses?namespace=${namespace}`;
+  const url = `${URL_PREFIX}/api/v1/lsd/responses?namespace=${namespace}`;
 
   if (request.stream && onStreamData) {
     // Handle streaming response using fetch with text/event-stream
@@ -338,7 +338,7 @@ export const exportCode = (
 };
 
 export const getLSDstatus = (project: string): Promise<LlamaStackDistributionModel> => {
-  const url = `${URL_PREFIX}/api/v1/llamastack-distribution/status?namespace=${project}`;
+  const url = `${URL_PREFIX}/api/v1/lsd/status?namespace=${project}`;
   return axiosInstance
     .get(url)
     .then((response) => response.data.data)
@@ -356,7 +356,7 @@ export const getLSDstatus = (project: string): Promise<LlamaStackDistributionMod
  * @throws Error - When the API request fails or returns an error response
  */
 export const getAAModels = (namespace: string): Promise<AAModelResponse[]> => {
-  const url = `${URL_PREFIX}/api/v1/aa/models?namespace=${namespace}`;
+  const url = `${URL_PREFIX}/api/v1/aaa/models?namespace=${namespace}`;
   return axiosInstance
     .get(url)
     .then((response) => response.data.data ?? [])
@@ -371,7 +371,7 @@ export const installLSD = (
   project: string,
   models: string[],
 ): Promise<LlamaStackDistributionModel> => {
-  const url = `${URL_PREFIX}/api/v1/llamastack-distribution/install?namespace=${project}`;
+  const url = `${URL_PREFIX}/api/v1/lsd/install?namespace=${project}`;
   return axiosInstance
     .post(url, { models })
     .then((response) => response.data.data)
@@ -383,7 +383,7 @@ export const installLSD = (
 };
 
 export const deleteLSD = (project: string, lsdName: string): Promise<string> => {
-  const url = `${URL_PREFIX}/api/v1/llamastack-distribution/delete?namespace=${project}`;
+  const url = `${URL_PREFIX}/api/v1/lsd/delete?namespace=${project}`;
   return axiosInstance
     .delete(url, {
       data: { name: lsdName },
@@ -407,7 +407,7 @@ export const getMCPServers = (namespace: string): Promise<MCPServersResponse> =>
     throw new Error('Namespace parameter is required');
   }
 
-  const url = `${URL_PREFIX}/api/v1/aa/mcps`;
+  const url = `${URL_PREFIX}/api/v1/aaa/mcps`;
   return axiosInstance
     .get<{ data: MCPServersResponse }>(url, {
       params: { namespace: namespace.trim() },

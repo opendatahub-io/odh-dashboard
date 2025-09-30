@@ -37,7 +37,6 @@ import {
   updatePvcDataForNotebook,
 } from './service';
 import { checkRequiredFieldsForNotebookStart, getPvcVolumeDetails } from './spawnerUtils';
-import { setConnectionsOnEnvFrom } from './connections/utils';
 
 type SpawnerFooterProps = {
   startNotebookData: StartNotebookData;
@@ -57,7 +56,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const [error, setError] = React.useState<K8sStatusError>();
   const {
     notebooks: { data: notebooks, refresh: refreshNotebooks },
-    connections: { data: projectConnections, refresh: refreshConnections },
+    connections: { refresh: refreshConnections },
   } = React.useContext(ProjectDetailsContext);
   const { notebookName } = useParams();
   const notebookState = notebooks.find(
@@ -170,14 +169,13 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
 
     await Promise.all(restartConnectedNotebooksPromises);
 
-    let envFrom = await updateConfigMapsAndSecretsForNotebook(
+    const envFrom = await updateConfigMapsAndSecretsForNotebook(
       projectName,
       editNotebook,
       envVariables,
       connections,
       dryRun,
     );
-    envFrom = setConnectionsOnEnvFrom(connections, envFrom, projectConnections);
 
     const annotations = { ...editNotebook.metadata.annotations };
     if (envFrom.length > 0) {
@@ -190,6 +188,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       volumes,
       volumeMounts,
       envFrom,
+      connections,
     };
     if (dryRun) {
       return updateNotebook(editNotebook, newStartNotebookData, username, { dryRun });
@@ -220,20 +219,20 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
 
     await Promise.all(restartConnectedNotebooksPromises);
 
-    let envFrom = await createConfigMapsAndSecretsForNotebook(
+    const envFrom = await createConfigMapsAndSecretsForNotebook(
       projectName,
       [...envVariables],
       dryRun,
     );
 
     const { volumes, volumeMounts } = pvcVolumeDetails;
-    envFrom = setConnectionsOnEnvFrom(connections, envFrom, projectConnections);
 
     const newStartData: StartNotebookData = {
       ...startNotebookData,
       volumes,
       volumeMounts,
       envFrom: [...envFrom],
+      connections,
     };
     return createNotebook(newStartData, username, canEnablePipelines, { dryRun });
   };
