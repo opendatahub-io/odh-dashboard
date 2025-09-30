@@ -8,7 +8,7 @@ metadata:
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "odh-release" && ( "./frontend/packages/model-registry/***".pathChanged()
+      == "odh-release" && ( "./packages/model-registry/***".pathChanged()
       || ".tekton/odh-mod-arch-modular-architecture-push.yaml".pathChanged() || "Dockerfile".pathChanged()
       )
   creationTimestamp: null
@@ -29,7 +29,7 @@ spec:
   - name: dockerfile
     value: packages/model-registry/Dockerfile.workspace
   - name: path-context
-    value: ./frontend
+    value: .
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while maintaining trust after pipeline customization.
