@@ -185,7 +185,7 @@ export const isModelServingDeploymentsTableExtension = <D extends Deployment = D
   extension.type === 'model-serving.deployments-table';
 
 export type ModelServingDeleteModal<D extends Deployment = Deployment> = Extension<
-  'model-serving.platform/delete-modal',
+  'model-serving.platform/delete-deployment',
   {
     platform: D['modelServingPlatformId'];
     onDelete: CodeRef<(deployment: D) => Promise<void>>;
@@ -197,7 +197,7 @@ export type ModelServingDeleteModal<D extends Deployment = Deployment> = Extensi
 export const isModelServingDeleteModal = <D extends Deployment = Deployment>(
   extension: Extension,
 ): extension is ModelServingDeleteModal<D> =>
-  extension.type === 'model-serving.platform/delete-modal';
+  extension.type === 'model-serving.platform/delete-deployment';
 
 export type ModelServingMetricsExtension<D extends Deployment = Deployment> = Extension<
   'model-serving.metrics',

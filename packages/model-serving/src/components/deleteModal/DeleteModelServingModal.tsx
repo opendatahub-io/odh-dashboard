@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { Bullseye, Spinner } from '@patternfly/react-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
 import {
@@ -50,24 +49,20 @@ const DeleteModelServingModal: React.FC<DeleteModelServingModalProps> = ({
     setError(undefined);
   };
 
-  return !deleteModalLoaded || !deleteModal ? (
-    <Bullseye>
-      <Spinner />
-    </Bullseye>
-  ) : (
-    getDisplayNameFromK8sResource(deployment.model) && (
-      <DeleteModal
-        title={deleteModal.properties.title}
-        onClose={() => onBeforeClose(false)}
-        submitButtonLabel={deleteModal.properties.submitButtonLabel}
-        onDelete={onDelete}
-        deleting={isDeleting}
-        error={error}
-        deleteName={getDisplayNameFromK8sResource(deployment.model)}
-      >
-        This action cannot be undone.
-      </DeleteModal>
-    )
-  );
+  return !deleteModalLoaded || !deleteModal
+    ? null
+    : getDisplayNameFromK8sResource(deployment.model) && (
+        <DeleteModal
+          title={deleteModal.properties.title}
+          onClose={() => onBeforeClose(false)}
+          submitButtonLabel={deleteModal.properties.submitButtonLabel}
+          onDelete={onDelete}
+          deleting={isDeleting}
+          error={error}
+          deleteName={getDisplayNameFromK8sResource(deployment.model)}
+        >
+          This action cannot be undone.
+        </DeleteModal>
+      );
 };
 export default DeleteModelServingModal;

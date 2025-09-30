@@ -80,7 +80,7 @@ const extensions: (
     },
   },
   {
-    type: 'model-serving.platform/delete-modal',
+    type: 'model-serving.platform/delete-deployment',
     properties: {
       platform: KSERVE_ID,
       onDelete: () => import('./src/deployments').then((m) => m.deleteDeployment),
