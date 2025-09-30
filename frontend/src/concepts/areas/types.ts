@@ -114,7 +114,7 @@ export enum StackComponent {
 export enum DataScienceStackComponent {
   CODE_FLARE = 'codeflare',
   DASHBOARD = 'dashboard',
-  DS_PIPELINES = 'datasciencepipelines',
+  DS_PIPELINES = 'aipipelines',
   K_SERVE = 'kserve',
   KUEUE = 'kueue',
   MODEL_MESH_SERVING = 'modelmeshserving',
