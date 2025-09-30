@@ -189,12 +189,12 @@ jobs:
           npx wait-on http://localhost:$CYPRESS_PORT --timeout 120000
           echo "✅ Server is responding!"
           
-          # Verify application loads
+          # Verify application HTML is served (check for static content in the shell)
           FOUND=false
           for i in {1..10}; do
-            echo "Attempt $i/10: Checking for dashboard content..."
-            if curl -s -f http://localhost:$CYPRESS_PORT/ | grep -q "Data Science Projects\|ODH\|Dashboard"; then
-              echo "✅ Application loaded successfully!"
+            echo "Attempt $i/10: Checking for dashboard HTML shell..."
+            if curl -s -f http://localhost:$CYPRESS_PORT/ | grep -q "Open Data Hub\|id=\"root\""; then
+              echo "✅ Dashboard HTML shell loaded successfully!"
               FOUND=true
               break
             fi
@@ -202,7 +202,7 @@ jobs:
           done
           
           if [ "$FOUND" = false ]; then
-            echo "❌ Dashboard content not found after 10 attempts"
+            echo "❌ Dashboard HTML not found after 10 attempts"
             echo "Checking what content is returned:"
             curl -s http://localhost:$CYPRESS_PORT/ | head -c 500
             exit 1
