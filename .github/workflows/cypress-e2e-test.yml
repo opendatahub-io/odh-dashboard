@@ -1,4 +1,4 @@
-name: zSample e2e Test Pipeline
+name: E2E Direct Commit PR Tests
 
 on: [push, pull_request]
 
@@ -40,9 +40,9 @@ jobs:
 
       - name: Install dependencies (self-hosted optimized)
         run: |
-          echo "📦 Installing dependencies for self-hosted runner..."
+          echo "Installing dependencies for self-hosted runner..."
           npm ci --prefer-offline --no-audit --no-fund
-          echo "✅ Dependencies installed"
+          echo "Dependencies installed"
 
       - name: Cache turbo build artifacts
         uses: actions/cache@v4
@@ -54,27 +54,27 @@ jobs:
 
       - name: Check and Install OpenShift CLI (self-hosted optimized)
         run: |
-          echo "🔍 Checking if OpenShift CLI (oc) is installed..."
+          echo "Checking if OpenShift CLI (oc) is installed..."
           if command -v oc &> /dev/null; then
-            echo "✅ OpenShift CLI (oc) is already installed"
+            echo "OpenShift CLI (oc) is already installed"
             oc version --client
           else
-            echo "❌ OpenShift CLI (oc) not found, installing..."
+            echo "OpenShift CLI (oc) not found, installing..."
             curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz
             tar -xzf oc.tar.gz
             sudo mv oc /usr/local/bin/
             sudo chmod +x /usr/local/bin/oc
             rm -f oc.tar.gz
-            echo "✅ OpenShift CLI installed successfully"
+            echo "OpenShift CLI installed successfully"
             oc version --client
           fi
 
       - name: Install jq for Cypress tests
         run: |
           if command -v jq &> /dev/null; then
-            echo "✅ jq is already installed"
+            echo "jq is already installed"
           else
-            echo "📦 Installing jq..."
+            echo "Installing jq..."
             if command -v dnf &> /dev/null; then
               sudo dnf install -y jq
             elif command -v yum &> /dev/null; then
@@ -83,7 +83,7 @@ jobs:
               sudo wget -O /usr/local/bin/jq https://github.com/stedolan/jq/releases/latest/download/jq-linux64
               sudo chmod +x /usr/local/bin/jq
             fi
-            echo "✅ jq installed"
+            echo "jq installed"
           fi
 
       - name: Install Cypress Dependencies
@@ -105,9 +105,9 @@ jobs:
             curl -f -k -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
                  "${{ secrets.GITLAB_TEST_VARS_URL }}" \
                  -o ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
-            echo "✅ Successfully downloaded test configuration from GitLab"
+            echo "Successfully downloaded test configuration from GitLab"
           else
-            echo "❌ GitLab secrets not available - cannot download test configuration"
+            echo "GitLab secrets not available - cannot download test configuration"
             exit 1
           fi
 
@@ -157,7 +157,7 @@ jobs:
           BASE_PORT=$((4010 + (${{ strategy.job-index }} * 10)))
           PORT=$BASE_PORT
           
-          echo "🔍 Finding available port for ${{ matrix.test-tag }} starting from $BASE_PORT..."
+          echo "Finding available port for ${{ matrix.test-tag }} starting from $BASE_PORT..."
           
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
             # Check if port is free AND not recently used (check for lock file)
@@ -170,7 +170,7 @@ jobs:
               
               # Verify we still own the lock (atomic-ish)
               if [ "$(cat $LOCK_FILE 2>/dev/null)" = "$$" ]; then
-                echo "✅ Claimed port $PORT"
+                echo "Claimed port $PORT"
                 CYPRESS_PORT=$PORT
                 break
               fi
@@ -183,7 +183,7 @@ jobs:
           done
           
           if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-            echo "❌ Could not find available port after $MAX_ATTEMPTS attempts"
+            echo "Could not find available port after $MAX_ATTEMPTS attempts"
             exit 1
           fi
           
@@ -192,7 +192,7 @@ jobs:
           echo "PORT_LOCK_FILE=$LOCK_FILE" >> $GITHUB_ENV
           
           # Start server immediately after claiming port
-          echo "🚀 Starting webpack dev server on port $CYPRESS_PORT..."
+          echo "Starting webpack dev server on port $CYPRESS_PORT..."
           cd frontend && ODH_PORT=$CYPRESS_PORT npm run start:dev:ext > /tmp/webpack-${CYPRESS_PORT}.log 2>&1 &
           
           SERVER_PID=$!
@@ -203,16 +203,16 @@ jobs:
 
       - name: Wait for Server Ready
         run: |
-          echo "⏳ Waiting for server on port $CYPRESS_PORT..."
+          echo "Waiting for server on port $CYPRESS_PORT..."
           npx wait-on http://localhost:$CYPRESS_PORT --timeout 120000
-          echo "✅ Server is responding!"
+          echo "Server is responding!"
           
           # Verify application HTML is served (check for static content in the shell)
           FOUND=false
           for i in {1..10}; do
             echo "Attempt $i/10: Checking for dashboard HTML shell..."
             if curl -s -f http://localhost:$CYPRESS_PORT/ | grep -q "Open Data Hub\|id=\"root\""; then
-              echo "✅ Dashboard HTML shell loaded successfully!"
+              echo "Dashboard HTML shell loaded successfully!"
               FOUND=true
               break
             fi
@@ -220,10 +220,23 @@ jobs:
           done
           
           if [ "$FOUND" = false ]; then
-            echo "❌ Dashboard HTML not found after 10 attempts"
+            echo "Dashboard HTML not found after 10 attempts"
             echo "Checking what content is returned:"
             curl -s http://localhost:$CYPRESS_PORT/ | head -c 500
             exit 1
+          fi
+
+      - name: Kill zombie Chrome processes
+        run: |
+          echo "Checking for zombie Chrome processes..."
+          CHROME_COUNT=$(ps aux | grep chrome | grep -v grep | wc -l)
+          echo "Found $CHROME_COUNT Chrome processes"
+          
+          if [ $CHROME_COUNT -gt 0 ]; then
+            echo "Killing all Chrome processes to prevent conflicts..."
+            pkill -9 chrome 2>/dev/null || true
+            sleep 2
+            echo "Chrome processes killed"
           fi
 
       - name: Run E2E Tests
@@ -233,8 +246,8 @@ jobs:
           export CY_RESULTS_DIR="${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}"
           mkdir -p "$CY_RESULTS_DIR"
           
-          echo "🧪 Running E2E tests on port $CYPRESS_PORT"
-          echo "🎯 Test tag: ${{ matrix.test-tag }}"
+          echo "Running E2E tests on port $CYPRESS_PORT"
+          echo "Test tag: ${{ matrix.test-tag }}"
           
           BASE_URL=http://localhost:$CYPRESS_PORT npm run cypress:run:chrome -- \
             --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true \
@@ -243,27 +256,27 @@ jobs:
       - name: Cleanup server for this job
         if: always()
         run: |
-          echo "🧹 Cleaning up server on port $CYPRESS_PORT (this job only)..."
+          echo "Cleaning up server on port $CYPRESS_PORT (this job only)..."
           
           # Kill server by PID if available
           if [ -n "$SERVER_PID" ]; then
-            echo "🔥 Killing server PID: $SERVER_PID"
+            echo "Killing server PID: $SERVER_PID"
             kill -9 $SERVER_PID 2>/dev/null || echo "PID $SERVER_PID already terminated"
           fi
           
           # Also kill by port as backup
           if lsof -ti:$CYPRESS_PORT > /dev/null 2>&1; then
-            echo "🔥 Killing remaining processes on port $CYPRESS_PORT"
+            echo "Killing remaining processes on port $CYPRESS_PORT"
             lsof -ti:$CYPRESS_PORT | xargs kill -9 2>/dev/null || true
           fi
           
           # Remove port lock file
           if [ -n "$PORT_LOCK_FILE" ] && [ -f "$PORT_LOCK_FILE" ]; then
-            echo "🔓 Removing port lock file: $PORT_LOCK_FILE"
+            echo "Removing port lock file: $PORT_LOCK_FILE"
             rm -f "$PORT_LOCK_FILE"
           fi
           
-          echo "✅ Cleanup complete for port $CYPRESS_PORT"
+          echo "Cleanup complete for port $CYPRESS_PORT"
 
       - name: Test tag name
         if: always()
@@ -284,7 +297,7 @@ jobs:
       - name: Log test completion
         if: always()
         run: |
-          echo "🏁 Test completed: ${{ matrix.test-tag }}"
+          echo "Test completed: ${{ matrix.test-tag }}"
           echo "Status: ${{ job.status }}"
           echo "Port used: $CYPRESS_PORT"
           echo "Run ID: ${{ github.run_id }}"
@@ -294,12 +307,14 @@ jobs:
     runs-on: self-hosted
     if: always()
     steps:
-      - name: Clean up any stale webpack processes
+      - name: Clean up any stale processes
         run: |
-          echo "🧹 Final cleanup: removing any stale webpack processes..."
+          echo "Final cleanup: removing any stale processes..."
           
           # Kill any webpack processes older than 1 hour (stale from failed runs)
-          # This won't affect currently running tests
           pkill -f "webpack.*serve" -o 3600 2>/dev/null || echo "No stale webpack processes found"
           
-          echo "✅ Final cleanup complete"
+          # Clean up Cypress Chrome cache directories older than 1 day
+          find /home/fedora/.config/Cypress/cy/production/browsers/chrome-stable/ -maxdepth 1 -type d -name "run-*" -mtime +1 -exec rm -rf {} \; 2>/dev/null || true
+          
+          echo "Final cleanup complete"
