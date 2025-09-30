@@ -34,7 +34,7 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
   const [search, setSearch] = React.useState('');
   const filteredModels = React.useMemo(
     () =>
-      allModels.filter((model) => model.model_name.toLowerCase().includes(search.toLowerCase())),
+      allModels.filter((model) => model.display_name.toLowerCase().includes(search.toLowerCase())),
     [allModels, search],
   );
 
