@@ -240,7 +240,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
             )}
           </ExpandableRowContent>
         </Td>
-        <Td dataLabel="Limits">
+        <Td dataLabel="Limits 77798">
           <ExpandableRowContent>
             <NotebookSizeDetails notebookSize={notebookSize || lastDeployedSize} />
           </ExpandableRowContent>
