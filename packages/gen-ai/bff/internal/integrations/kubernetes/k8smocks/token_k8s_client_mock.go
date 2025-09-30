@@ -154,59 +154,89 @@ func (m *TokenKubernetesClientMock) GetUser(ctx context.Context, identity *integ
 
 // GetLlamaStackDistributions returns mock LSD list for testing
 func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*lsdapi.LlamaStackDistributionList, error) {
-	// Return empty list for mock-test-namespace-1 to test empty state
+	// Special case: mock-test-namespace-1 should always return empty list for testing empty state
 	if namespace == "mock-test-namespace-1" {
 		return &lsdapi.LlamaStackDistributionList{
 			Items: []lsdapi.LlamaStackDistribution{},
 		}, nil
 	}
 
-	// For all other namespaces, return mock LSD data
-	return &lsdapi.LlamaStackDistributionList{
-		Items: []lsdapi.LlamaStackDistribution{
-			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "mock-lsd",
-					Annotations: map[string]string{
-						"openshift.io/display-name": "mock-lsd-display-name",
-					},
-					Labels: map[string]string{
-						"opendatahub.io/dashboard": "true",
-					},
-				},
-				Status: lsdapi.LlamaStackDistributionStatus{
-					Phase: lsdapi.LlamaStackDistributionPhaseReady,
-					Version: lsdapi.VersionInfo{
-						LlamaStackServerVersion: "v0.2.0",
-					},
-					ServiceURL: "http://mock-lsd.test-namespace.svc.cluster.local:8321",
-					DistributionConfig: lsdapi.DistributionConfig{
-						ActiveDistribution: "mock-distribution",
-						Providers: []lsdapi.ProviderInfo{
-							{
-								ProviderID:   "mock-provider",
-								ProviderType: "mock-type",
-								API:          "mock-api",
-							},
+	// For other namespaces, first try to query the real cluster for LSD resources
+	var lsdList lsdapi.LlamaStackDistributionList
+	err := m.Client.List(ctx, &lsdList, client.InNamespace(namespace))
+	if err != nil {
+		return nil, fmt.Errorf("failed to list LlamaStackDistributions: %w", err)
+	}
+
+	// If we found real LSD resources in the cluster, return them
+	if len(lsdList.Items) > 0 {
+		return &lsdList, nil
+	}
+
+	// For namespaces that should return mock LSD data (for testing existing LSD scenarios)
+	if namespace == "mock-test-namespace-2" || namespace == "test-namespace" {
+		return &lsdapi.LlamaStackDistributionList{
+			Items: []lsdapi.LlamaStackDistribution{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "mock-lsd",
+						Namespace: namespace,
+						Annotations: map[string]string{
+							"openshift.io/display-name": "mock-lsd-display-name",
 						},
-						AvailableDistributions: map[string]string{
-							"mock-distribution": "mock-image:latest",
+						Labels: map[string]string{
+							"opendatahub.io/dashboard": "true",
+						},
+					},
+					Status: lsdapi.LlamaStackDistributionStatus{
+						Phase: lsdapi.LlamaStackDistributionPhaseReady,
+						Version: lsdapi.VersionInfo{
+							LlamaStackServerVersion: "v0.2.0",
+						},
+						ServiceURL: "http://mock-lsd.test-namespace.svc.cluster.local:8321",
+						DistributionConfig: lsdapi.DistributionConfig{
+							ActiveDistribution: "mock-distribution",
+							Providers: []lsdapi.ProviderInfo{
+								{
+									ProviderID:   "mock-provider",
+									ProviderType: "mock-type",
+									API:          "mock-api",
+								},
+							},
+							AvailableDistributions: map[string]string{
+								"mock-distribution": "mock-image:latest",
+							},
 						},
 					},
 				},
 			},
-		},
+		}, nil
+	}
+
+	// For all other namespaces, return empty list (no existing LSDs)
+	return &lsdapi.LlamaStackDistributionList{
+		Items: []lsdapi.LlamaStackDistribution{},
 	}, nil
 }
 
 func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []string) (*lsdapi.LlamaStackDistribution, error) {
+	// Check if LSD already exists in the namespace
+	existingLSDList, err := m.GetLlamaStackDistributions(ctx, identity, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check for existing LlamaStackDistribution: %w", err)
+	}
+
+	if len(existingLSDList.Items) > 0 {
+		return nil, fmt.Errorf("LlamaStackDistribution already exists in namespace %s", namespace)
+	}
+
 	// First ensure the namespace exists
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
 		},
 	}
-	err := m.Client.Create(ctx, ns)
+	err = m.Client.Create(ctx, ns)
 	if err != nil && !errors.IsAlreadyExists(err) {
 		return nil, fmt.Errorf("failed to create namespace %s: %w", namespace, err)
 	}

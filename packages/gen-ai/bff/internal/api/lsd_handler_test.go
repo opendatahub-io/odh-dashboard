@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"log/slog"
 
@@ -196,7 +198,7 @@ func TestLlamaStackDistributionInstallHandler(t *testing.T) {
 
 		// Add namespace and identity to context
 		ctx := context.Background()
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN", // Use one of the default test tokens
 		})
@@ -301,6 +303,46 @@ func TestLlamaStackDistributionInstallHandler(t *testing.T) {
 		assert.Equal(t, "400", errorMap["code"])
 		assert.Contains(t, errorMap["message"], "missing namespace in the context")
 	})
+
+	// Test error case - LSD already exists
+	t.Run("should return error when LSD already exists in namespace", func(t *testing.T) {
+		requestBody := map[string]interface{}{
+			"models": []string{"llama-3-2-3b-instruct"},
+		}
+		jsonBody, err := json.Marshal(requestBody)
+		require.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/llamastack-distribution/install", bytes.NewReader(jsonBody))
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		// Use mock-test-namespace-2 which has an existing LSD according to the mock
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-2")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+
+		app.LlamaStackDistributionInstallHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+		var response map[string]interface{}
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		errorData, exists := response["error"]
+		assert.True(t, exists, "Response should contain 'error' field")
+
+		errorMap, ok := errorData.(map[string]interface{})
+		assert.True(t, ok, "Error should be a map")
+
+		assert.Equal(t, "400", errorMap["code"])
+		assert.Contains(t, errorMap["message"], "LlamaStackDistribution already exists in namespace mock-test-namespace-2")
+	})
 }
 
 func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
@@ -336,6 +378,9 @@ func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
 
 	// Test successful deletion
 	t.Run("should delete LSD successfully with valid display name", func(t *testing.T) {
+		// Use a unique namespace for this test to avoid conflicts with other tests
+		testNamespace := fmt.Sprintf("delete-test-namespace-%d", time.Now().UnixNano())
+
 		// First, install an LSD to have something to delete
 		installRequestBody := map[string]interface{}{
 			"models": []string{"llama-3-2-3b-instruct"},
@@ -349,7 +394,7 @@ func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
 
 		// Add namespace and identity to context
 		installCtx := context.Background()
-		installCtx = context.WithValue(installCtx, constants.NamespaceQueryParameterKey, "test-namespace")
+		installCtx = context.WithValue(installCtx, constants.NamespaceQueryParameterKey, testNamespace)
 		installCtx = context.WithValue(installCtx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
@@ -361,7 +406,7 @@ func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
 
 		// Now test deletion
 		deleteRequestBody := map[string]interface{}{
-			"name": "mock-lsd-display-name", // This matches the display name in the mock
+			"name": "mock-lsd", // This matches the display name created by the install operation
 		}
 		deleteJsonBody, err := json.Marshal(deleteRequestBody)
 		require.NoError(t, err)
@@ -372,7 +417,7 @@ func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
 
 		// Add namespace and identity to context
 		ctx := context.Background()
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, testNamespace)
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})

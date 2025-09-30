@@ -406,6 +406,16 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
+	// Check if LSD already exists in the namespace
+	existingLSDList, err := kc.GetLlamaStackDistributions(ctx, identity, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check for existing LlamaStackDistribution: %w", err)
+	}
+
+	if len(existingLSDList.Items) > 0 {
+		return nil, fmt.Errorf("LlamaStackDistribution already exists in namespace %s", namespace)
+	}
+
 	// Step 1: Create LlamaStackDistribution resource first
 
 	configMapName := "llama-stack-config"
