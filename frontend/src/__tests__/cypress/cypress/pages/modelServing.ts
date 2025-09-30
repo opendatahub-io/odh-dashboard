@@ -93,6 +93,10 @@ class ModelServingGlobal {
     return this.findModelsTable().find(`[data-label=Name]`).contains(name).parents('tr');
   }
 
+  getInferenceServiceRow(name: string) {
+    return new InferenceServiceRow(() => this.getModelRow(name));
+  }
+
   findRows() {
     return this.findModelsTable().find('[data-label=Name]').parents('tr');
   }
@@ -778,6 +782,43 @@ class InferenceServiceRow extends TableRow {
 
   findStatusLabel(label: string) {
     return this.find().findByTestId('model-status-text').should('include.text', label);
+  }
+
+  findHardwareProfileColumn() {
+    return this.find().findByTestId('hardware-profile-table-column');
+  }
+
+  findHardwareProfileDeletedLabel() {
+    return this.findHardwareProfileColumn().findByTestId('hardware-profile-status-deleted');
+  }
+
+  findHardwareProfileDisabledLabel() {
+    return this.findHardwareProfileColumn().findByTestId('hardware-profile-status-disabled');
+  }
+
+  findHardwareProfileUpdatedLabel() {
+    return this.findHardwareProfileColumn().findByTestId('hardware-profile-status-updated');
+  }
+
+  findHardwareProfileDeletedPopover() {
+    return {
+      title: () => cy.findByTestId('hardware-profile-status-deleted-popover-title'),
+      body: () => cy.findByTestId('hardware-profile-status-deleted-popover-body'),
+    };
+  }
+
+  findHardwareProfileDisabledPopover() {
+    return {
+      title: () => cy.findByTestId('hardware-profile-status-disabled-popover-title'),
+      body: () => cy.findByTestId('hardware-profile-status-disabled-popover-body'),
+    };
+  }
+
+  findHardwareProfileUpdatedPopover() {
+    return {
+      title: () => cy.findByTestId('hardware-profile-status-updated-popover-title'),
+      body: () => cy.findByTestId('hardware-profile-status-updated-popover-body'),
+    };
   }
 }
 

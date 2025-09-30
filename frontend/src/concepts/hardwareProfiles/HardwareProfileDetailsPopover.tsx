@@ -26,6 +26,7 @@ type HardwareProfileDetailsPopoverProps = {
   nodeSelector?: NodeSelector;
   resources?: ContainerResources;
   hardwareProfile?: HardwareProfileKind;
+  tableView?: boolean;
 };
 
 const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps> = ({
@@ -35,6 +36,7 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
   nodeSelector,
   resources,
   hardwareProfile,
+  tableView = false,
 }) => {
   const renderSection = (title: string, items: string[]) => (
     <DescriptionList>
@@ -130,10 +132,18 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
       <Button
         isInline
         variant="link"
-        icon={<QuestionCircleIcon />}
+        icon={tableView ? undefined : <QuestionCircleIcon />}
         data-testid="hardware-profile-details-popover"
       >
-        View details
+        {tableView ? (
+          hardwareProfile ? (
+            getHardwareProfileDisplayName(hardwareProfile)
+          ) : (
+            <i>Custom</i>
+          )
+        ) : (
+          'View details'
+        )}
       </Button>
     </Popover>
   );

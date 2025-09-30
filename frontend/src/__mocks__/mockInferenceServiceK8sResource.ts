@@ -40,6 +40,7 @@ type MockResourceConfigType = {
   isNonDashboardItem?: boolean;
   hardwareProfileName?: string;
   hardwareProfileNamespace?: string;
+  hardwareProfileResourceVersion?: string;
   creationTimestamp?: string;
   lastTransitionTime?: string;
   isReady?: boolean;
@@ -118,6 +119,7 @@ export const mockInferenceServiceK8sResource = ({
   isNonDashboardItem = false,
   hardwareProfileName = '',
   hardwareProfileNamespace = undefined,
+  hardwareProfileResourceVersion = undefined,
   creationTimestamp = '2023-03-17T16:12:41Z',
   lastTransitionTime = '2023-03-17T16:12:41Z',
   isReady = false,
@@ -147,6 +149,9 @@ export const mockInferenceServiceK8sResource = ({
       }),
       ...(hardwareProfileNamespace && {
         'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
+      }),
+      ...(hardwareProfileResourceVersion && {
+        'opendatahub.io/hardware-profile-resource-version': hardwareProfileResourceVersion,
       }),
       ...(modelType && { 'opendatahub.io/model-type': modelType }),
     },
