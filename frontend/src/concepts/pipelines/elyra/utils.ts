@@ -97,10 +97,10 @@ export const generateElyraSecret = (
     stringData: {
       /* eslint-disable camelcase */
       [ELYRA_SECRET_DATA_KEY]: JSON.stringify({
-        display_name: 'Data Science Pipeline',
+        display_name: 'Pipeline',
         metadata: {
           tags: [],
-          display_name: 'Data Science Pipeline',
+          display_name: 'Pipeline',
           engine: 'Argo',
           auth_type: 'KUBERNETES_SERVICE_ACCOUNT_TOKEN',
           api_endpoint: route,
