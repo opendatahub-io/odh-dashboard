@@ -1,4 +1,4 @@
-name: zSample e2e Test Pipeline
+name: E2E Direct Commit PR Tests
 
 on: [push, pull_request]
 
@@ -426,7 +426,7 @@ jobs:
           sleep 2
           
           echo "🚀 Starting webpack dev server with cluster proxy on port $CYPRESS_PORT..."
-          cd frontend && PORT=$CYPRESS_PORT npm run start:dev:ext &
+          cd frontend && ODH_PORT=$CYPRESS_PORT npm run start:dev:ext &
           
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
