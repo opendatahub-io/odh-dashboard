@@ -132,6 +132,52 @@ func TestLlamaStackModelsHandler(t *testing.T) {
 	})
 }
 
+func TestLlamaStackModelsHandlerWithFilteredModelKeywords(t *testing.T) {
+	// Create test app with mock client
+	llamaStackClientFactory := lsmocks.NewMockClientFactory()
+	app := App{
+		config: config.EnvConfig{
+			Port:                  4000,
+			FilteredModelKeywords: []string{"mistral"},
+		},
+		llamaStackClientFactory: llamaStackClientFactory,
+		repositories:            repositories.NewRepositories(),
+	}
+
+	t.Run("should return all models successfully", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models?namespace="+testutil.TestNamespace, nil)
+		assert.NoError(t, err)
+
+		// Simulate AttachLlamaStackClient middleware: create client and add to context
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		app.LlamaStackModelsHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		body, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response ModelsResponse
+		err = json.Unmarshal(body, &response)
+		assert.NoError(t, err)
+
+		// Verify mock returns 1 models all mini and mistral should be filtered out
+		models := response.Data.([]interface{})
+		assert.Len(t, models, 1)
+
+		// Verify first model structure and values
+		firstModel := models[0].(map[string]interface{})
+		assert.Equal(t, "ollama/llama3.2:3b", firstModel["id"])
+		assert.Equal(t, "model", firstModel["object"])
+		assert.Equal(t, "llama_stack", firstModel["owned_by"])
+	})
+}
+
 func TestInferenceServiceStatusExtraction(t *testing.T) {
 	// Test the status extraction logic directly
 	t.Run("should return Running status when Ready condition is True", func(t *testing.T) {
