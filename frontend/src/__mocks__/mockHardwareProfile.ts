@@ -288,6 +288,61 @@ export const mockGlobalScopedHardwareProfiles = [
   }),
 ];
 
+export const mockGlobalScopedHardwareProfilesGreek = [
+  mockHardwareProfile({
+    name: 'alpha-small-profile',
+    displayName: 'alpha Small Profile',
+    identifiers: [
+      {
+        displayName: 'CPU',
+        identifier: 'cpu',
+        minCount: '1',
+        maxCount: '2',
+        defaultCount: '1',
+        resourceType: IdentifierResourceType.CPU,
+      },
+      {
+        displayName: 'Memory',
+        identifier: 'memory',
+        minCount: '2Gi',
+        maxCount: '4Gi',
+        defaultCount: '2Gi',
+        resourceType: IdentifierResourceType.MEMORY,
+      },
+    ],
+    tolerations: [
+      {
+        effect: TolerationEffect.NO_SCHEDULE,
+        key: 'NotebooksOnlyChange',
+        operator: TolerationOperator.EXISTS,
+      },
+    ],
+    nodeSelector: {},
+  }),
+  mockHardwareProfile({
+    name: 'beta-large-profile',
+    displayName: 'Beta Large Profile',
+    identifiers: [
+      {
+        displayName: 'CPU',
+        identifier: 'cpu',
+        minCount: '4',
+        maxCount: '8',
+        defaultCount: '4',
+        resourceType: IdentifierResourceType.CPU,
+      },
+      {
+        displayName: 'Memory',
+        identifier: 'memory',
+        minCount: '8Gi',
+        maxCount: '16Gi',
+        defaultCount: '8Gi',
+        resourceType: IdentifierResourceType.MEMORY,
+      },
+    ],
+  }),
+];
+
 export const mockProjectScopedHardwareProfiles = [
   mockHardwareProfile({
     name: 'small-profile',

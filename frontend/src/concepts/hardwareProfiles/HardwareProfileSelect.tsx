@@ -102,6 +102,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
 
   const { kueueFilteringState } = useKueueConfiguration(projectForKueue);
 
+  console.log('avo99a: hardwareProfiles', hardwareProfiles);
   const options = React.useMemo(() => {
     const enabledProfiles = orderHardwareProfiles(
       filterProfilesByKueue(hardwareProfiles.filter(isHardwareProfileEnabled), kueueFilteringState),
