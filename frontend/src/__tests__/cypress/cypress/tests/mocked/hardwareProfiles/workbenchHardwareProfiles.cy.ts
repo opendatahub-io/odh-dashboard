@@ -112,7 +112,7 @@ const initIntercepts = ({
 describe('Workbench Hardware Profiles', () => {
   const projectName = 'test-project';
 
-  it.only('should display hardware profile selection in workbench creation without setting a feature flag', () => {
+  it('should display hardware profile selection in workbench creation without setting a feature flag', () => {
     initIntercepts();
     // debugger;
     // Navigate to workbench creation
@@ -274,6 +274,7 @@ describe('Workbench Hardware Profiles', () => {
   });
 
   it('should validate hardware profile customization within limits', () => {
+    initIntercepts();
     // Navigate to workbench creation
     projectDetails.visit(projectName);
     projectDetails.findSectionTab('workbenches').click();
@@ -320,6 +321,7 @@ describe('Workbench Hardware Profiles', () => {
 
   describe('Edit Workbench Hardware Profiles', () => {
     it('should auto-select hardware profile from annotations', () => {
+      initIntercepts();
       // Mock notebook with hardware profile annotation
       cy.interceptK8sList(
         {
@@ -376,6 +378,7 @@ describe('Workbench Hardware Profiles', () => {
     });
 
     it('should auto-select disabled hardware profile from annotations and show disabled state', () => {
+      initIntercepts();
       // Mock disabled hardware profile
       cy.interceptK8sList(
         { model: HardwareProfileModel, ns: 'opendatahub' },
@@ -426,6 +429,7 @@ describe('Workbench Hardware Profiles', () => {
     });
 
     it('should auto-select matching hardware profile when resources match', () => {
+      initIntercepts();
       // Mock notebook with matching resources but no hardware profile annotation
       cy.interceptK8sList(
         NotebookModel,
@@ -479,6 +483,7 @@ describe('Workbench Hardware Profiles', () => {
     });
 
     it('should auto-select "Use existing settings" when resources do not match any profile', () => {
+      initIntercepts();
       // Mock notebook with non-matching resources and no hardware profile annotation
       cy.interceptK8sList(
         NotebookModel,
@@ -536,6 +541,7 @@ describe('Workbench Hardware Profiles', () => {
 
   describe('Hardware Profile Dropdown Ordering', () => {
     beforeEach(() => {
+      initIntercepts();
       // Common config for all dropdown ordering tests - remove notebook sizes
       cy.interceptOdh(
         'GET /api/config',
