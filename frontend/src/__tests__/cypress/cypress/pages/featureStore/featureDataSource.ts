@@ -125,7 +125,7 @@ class FeatureDataSourceTableRow extends TableRow {
   }
 
   shouldNavigateToFeatureView(featureViewName: string, projectName: string) {
-    cy.url().should('include', `/featureStore/featureViews/${projectName}/${featureViewName}`);
+    cy.url().should('include', `/feature-store/feature-views/${projectName}/${featureViewName}`);
     return this;
   }
 
@@ -172,7 +172,7 @@ class DataSourceDetailsPage extends Contextual<HTMLElement> {
   }
 
   shouldNavigateToFeatureView(featureViewName: string, projectName: string) {
-    cy.url().should('include', `/featureStore/featureViews/${projectName}/${featureViewName}`);
+    cy.url().should('include', `/feature-store/feature-views/${projectName}/${featureViewName}`);
     return this;
   }
 }

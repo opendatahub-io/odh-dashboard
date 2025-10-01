@@ -90,7 +90,7 @@ describe('Artifacts', () => {
       artifactsGlobal.visit(projectName);
       artifactsTable.getRowByName('scalar metrics').findName().find('a').click();
 
-      cy.url().should('include', `/artifacts/${projectName}/1`);
+      cy.url().should('include', `/develop-train/pipelines/artifacts/${projectName}/1`);
     });
 
     it('it has label Registered for fine tune artifact', () => {
@@ -215,7 +215,7 @@ describe('Artifacts', () => {
       artifactDetails.findPipelineLink('runs/details/test-run');
       artifactDetails.findExecutionLink('execution/211');
       artifactDetails.findExecutionLink('execution/211').click();
-      verifyRelativeURL('/executions/test-project-name/211');
+      verifyRelativeURL('/develop-train/pipelines/executions/test-project-name/211');
     });
 
     it('Registered models section', () => {
@@ -232,7 +232,26 @@ describe('Artifacts', () => {
         .should('have.text', 'model (1) in model-registry registry');
       artifactDetails
         .findModelVersionLink()
-        .should('eq', '/modelRegistry/model-registry/registeredModels/1/versions/1');
+        .should('eq', '/ai-hub/registry/model-registry/registeredModels/1/versions/1');
+    });
+
+    it('redirect from v2 to v3 route', () => {
+      const artifact = mockedArtifactsResponse.artifacts[0];
+      artifactDetails.mockGetArtifactById(
+        projectName,
+        mockGetArtifactsById({
+          artifacts: [artifact],
+          artifactTypes: [],
+        }),
+      );
+      cy.visitWithLogin(`/artifacts/${projectName}/${String(artifact.id)}`);
+      cy.findByTestId('app-page-title').contains(
+        String(artifact.customProperties.display_name.stringValue),
+      );
+      cy.url().should(
+        'include',
+        `/develop-train/pipelines/artifacts/${projectName}/${String(artifact.id)}`,
+      );
     });
   });
 

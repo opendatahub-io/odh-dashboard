@@ -26,7 +26,7 @@ class NotebookImageSettingsTableToolbar extends Contextual<HTMLElement> {
 
 class NotebookImageSettings {
   visit(wait = true) {
-    cy.visitWithLogin('/workbenchImages');
+    cy.visitWithLogin('/settings/environment-setup/workbench-images');
     if (wait) {
       this.wait();
     }

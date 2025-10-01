@@ -170,7 +170,9 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
                 onClick={() => {
                   const searchParams = new URLSearchParams();
                   searchParams.set('featureView', node.name);
-                  navigate(`/featureStore/features/${currentProject}?${searchParams.toString()}`);
+                  navigate(
+                    `/develop-train/feature-store/features/${currentProject}?${searchParams.toString()}`,
+                  );
                 }}
               >
                 View all features

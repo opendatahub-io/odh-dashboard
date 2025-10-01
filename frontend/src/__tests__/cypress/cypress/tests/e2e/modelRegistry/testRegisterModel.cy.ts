@@ -116,7 +116,7 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify the object storage model was registered');
-      cy.url().should('include', '/modelRegistry');
+      cy.url().should('include', '/ai-hub/registry');
       cy.contains(objectStorageModelName, { timeout: 10000 }).should('be.visible');
 
       cy.step('Verify the object storage model exists in the database');
@@ -149,14 +149,14 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify the URI model was registered');
-      cy.url().should('include', '/modelRegistry');
+      cy.url().should('include', '/ai-hub/registry');
       cy.contains(testData.uriModelName, { timeout: 10000 }).should('be.visible');
 
       cy.step('Verify the URI model exists in the database');
       checkModelExistsInDatabase(testData.uriModelName).should('be.true');
 
       cy.step('Navigate back to model registry to verify both models');
-      cy.visitWithLogin(`/modelRegistry/${registryName}`, HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin(`/ai-hub/registry/${registryName}`, HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Verify both models are visible in the registry');
       cy.contains(objectStorageModelName, { timeout: 10000 }).should('be.visible');

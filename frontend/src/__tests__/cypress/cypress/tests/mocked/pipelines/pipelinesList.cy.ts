@@ -173,7 +173,7 @@ describe('PipelinesList', () => {
       .click();
 
     verifyRelativeURL(
-      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
+      `/develop-train/pipelines/definitions/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
     );
   });
 
@@ -206,7 +206,7 @@ describe('PipelinesList', () => {
       .findKebabAction('Create run')
       .click();
 
-    verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
+    verifyRelativeURL(`/develop-train/pipelines/runs/${projectName}/runs/create`);
   });
 
   it('navigates to "Schedule run" page from pipeline row', () => {
@@ -219,7 +219,7 @@ describe('PipelinesList', () => {
       .findKebabAction('Create schedule')
       .click();
 
-    verifyRelativeURL(`/pipelineRuns/${projectName}/schedules/create`);
+    verifyRelativeURL(`/develop-train/pipelines/runs/${projectName}/schedules/create`);
   });
 });
 

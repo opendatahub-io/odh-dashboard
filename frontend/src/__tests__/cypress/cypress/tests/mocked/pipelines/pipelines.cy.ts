@@ -660,10 +660,10 @@ describe('Pipelines', () => {
   it('selects a different project', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
-    verifyRelativeURL('/pipelines/test-project-name');
+    verifyRelativeURL('/develop-train/pipelines/definitions/test-project-name');
 
     pipelineRunsGlobal.selectProjectByName('Test Project 2');
-    verifyRelativeURL('/pipelines/test-project-name-2');
+    verifyRelativeURL('/develop-train/pipelines/definitions/test-project-name-2');
   });
 
   it('imports a new pipeline', () => {
@@ -733,7 +733,7 @@ describe('Pipelines', () => {
     cy.wait('@getPipelineVersion');
 
     verifyRelativeURL(
-      `/pipelines/${projectName}/${uploadedMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
+      `/develop-train/pipelines/definitions/${projectName}/${uploadedMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
     );
   });
 
@@ -815,7 +815,7 @@ describe('Pipelines', () => {
     cy.wait('@getPipelineVersion');
 
     verifyRelativeURL(
-      `/pipelines/${projectName}/${uploadedMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
+      `/develop-train/pipelines/definitions/${projectName}/${uploadedMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
     );
   });
 
@@ -927,7 +927,7 @@ describe('Pipelines', () => {
     cy.wait('@getPipelineVersion');
 
     verifyRelativeURL(
-      `/pipelines/${projectName}/${createdMockPipeline.pipeline_id}/${createdVersion.pipeline_version_id}/view`,
+      `/develop-train/pipelines/definitions/${projectName}/${createdMockPipeline.pipeline_id}/${createdVersion.pipeline_version_id}/view`,
     );
   });
 
@@ -1005,7 +1005,7 @@ describe('Pipelines', () => {
     cy.wait('@getPipelineVersion');
 
     verifyRelativeURL(
-      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${uploadedMockPipelineVersion.pipeline_version_id}/view`,
+      `/develop-train/pipelines/definitions/${projectName}/${initialMockPipeline.pipeline_id}/${uploadedMockPipelineVersion.pipeline_version_id}/view`,
     );
   });
 
@@ -1086,7 +1086,7 @@ describe('Pipelines', () => {
     cy.wait('@getPipelineVersion');
 
     verifyRelativeURL(
-      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${uploadedMockPipelineVersion.pipeline_version_id}/view`,
+      `/develop-train/pipelines/definitions/${projectName}/${initialMockPipeline.pipeline_id}/${uploadedMockPipelineVersion.pipeline_version_id}/view`,
     );
   });
 
@@ -1174,7 +1174,7 @@ describe('Pipelines', () => {
     cy.wait('@getPipelineVersion');
 
     verifyRelativeURL(
-      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${uploadedMockPipelineVersion.pipeline_version_id}/view`,
+      `/develop-train/pipelines/definitions/${projectName}/${initialMockPipeline.pipeline_id}/${uploadedMockPipelineVersion.pipeline_version_id}/view`,
     );
   });
 
@@ -1269,7 +1269,7 @@ describe('Pipelines', () => {
       .click();
 
     verifyRelativeURL(
-      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
+      `/develop-train/pipelines/definitions/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
     );
   });
 
@@ -1282,7 +1282,7 @@ describe('Pipelines', () => {
     pipelineRow.findPipelineNameLink(initialMockPipeline.display_name).click();
 
     verifyRelativeURL(
-      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
+      `/develop-train/pipelines/definitions/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
     );
   });
 
@@ -1372,7 +1372,7 @@ describe('Pipelines', () => {
       .findKebabAction('Create run')
       .click();
 
-    verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
+    verifyRelativeURL(`/develop-train/pipelines/runs/${projectName}/runs/create`);
   });
 
   it('run and schedule dropdown action should be disabled when pipeline and pipeline version is not supported', () => {
@@ -1447,7 +1447,7 @@ describe('Pipelines', () => {
       .findKebabAction('Create schedule')
       .click();
 
-    verifyRelativeURL(`/pipelineRuns/${projectName}/schedules/create`);
+    verifyRelativeURL(`/develop-train/pipelines/runs/${projectName}/schedules/create`);
   });
 
   it('navigate to create run page from pipeline version row', () => {
@@ -1463,7 +1463,7 @@ describe('Pipelines', () => {
       .findKebabAction('Create run')
       .click();
 
-    verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
+    verifyRelativeURL(`/develop-train/pipelines/runs/${projectName}/runs/create`);
   });
 
   it('navigates to "Schedule run" page from pipeline version row', () => {
@@ -1478,7 +1478,7 @@ describe('Pipelines', () => {
       .findKebabAction('Create schedule')
       .click();
 
-    verifyRelativeURL(`/pipelineRuns/${projectName}/schedules/create`);
+    verifyRelativeURL(`/develop-train/pipelines/runs/${projectName}/schedules/create`);
   });
 
   it('navigate to view runs page from pipeline version row', () => {
@@ -1495,7 +1495,7 @@ describe('Pipelines', () => {
       .click();
 
     verifyRelativeURL(
-      `/pipelineRuns/${projectName}/runs/active?pipeline_version=${initialMockPipelineVersion.pipeline_version_id}`,
+      `/develop-train/pipelines/runs/${projectName}/runs/active?pipeline_version=${initialMockPipelineVersion.pipeline_version_id}`,
     );
   });
 
@@ -1512,7 +1512,7 @@ describe('Pipelines', () => {
       .click();
 
     verifyRelativeURL(
-      `/pipelineRuns/${projectName}/schedules?pipeline_version=${initialMockPipelineVersion.pipeline_version_id}`,
+      `/develop-train/pipelines/runs/${projectName}/schedules?pipeline_version=${initialMockPipelineVersion.pipeline_version_id}`,
     );
   });
 
@@ -1595,6 +1595,26 @@ describe('Pipelines', () => {
     pagination.findPreviousButton().should('be.disabled');
     pipelinesTable.getRowById(mockPipelines[19].pipeline_id).find().should('exist');
     pipelinesTable.findRows().should('have.length', '20');
+  });
+
+  describe('redirect from v2 to v3 route', () => {
+    it('root', () => {
+      cy.visitWithLogin('/pipelines');
+      cy.findByTestId('app-page-title').contains('Pipeline definitions');
+      cy.url().should('include', '/develop-train/pipelines/definitions');
+    });
+
+    it('view', () => {
+      initIntercepts({});
+      cy.visitWithLogin(
+        `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
+      );
+      cy.findByTestId('app-page-title').contains(initialMockPipeline.display_name);
+      cy.url().should(
+        'include',
+        `/develop-train/pipelines/definitions/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
+      );
+    });
   });
 });
 

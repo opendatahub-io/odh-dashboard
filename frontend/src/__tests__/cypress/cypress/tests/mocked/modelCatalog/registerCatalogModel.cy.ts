@@ -321,7 +321,7 @@ describe.skip('Register catalog model page', () => {
       } satisfies Partial<ModelArtifact>);
     });
 
-    cy.url().should('include', '/modelRegistry/modelregistry-sample-2/registeredModels/1');
+    cy.url().should('include', '/ai-hub/registry/modelregistry-sample-2/registeredModels/1');
   });
 
   it('Disables submit if model name is duplicated', () => {

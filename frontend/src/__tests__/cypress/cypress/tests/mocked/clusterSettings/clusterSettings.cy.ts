@@ -105,4 +105,10 @@ describe('Cluster Settings', () => {
       );
     });
   });
+
+  it('redirect from v2 to v3 route', () => {
+    cy.visitWithLogin('/clusterSettings');
+    cy.findByTestId('app-page-title').contains('General settings');
+    cy.url().should('include', '/settings/cluster/general');
+  });
 });

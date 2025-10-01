@@ -44,7 +44,7 @@ class ServingRuntimeRow {
 
 class ServingRuntimes {
   visit(wait = true) {
-    cy.visitWithLogin('/servingRuntimes');
+    cy.visitWithLogin('/settings/model-resources-operations/serving-runtimes');
     if (wait) {
       this.wait();
     }

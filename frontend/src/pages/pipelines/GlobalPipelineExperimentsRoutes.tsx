@@ -21,6 +21,7 @@ import {
 } from '#~/pages/pipelines/global/experiments/ExperimentCreateRunPage';
 import PipelineAvailabilityLoader from '#~/pages/pipelines/global/pipelines/PipelineAvailabilityLoader';
 import ExperimentDuplicateRunPage from '#~/pages/pipelines/global/experiments/ExperimentDuplicateRunPage';
+import { buildV2RedirectRoutes } from '#~/utilities/v2Redirect';
 import ExperimentDuplicateRecurringRunPage from '#~/pages/pipelines/global/experiments/ExperimentDuplicateRecurringRunPage';
 import { ExperimentCoreDetails } from './global/GlobalPipelineCoreDetails';
 import {
@@ -29,6 +30,7 @@ import {
 } from './global/experiments/compareRuns/GlobalComparePipelineRunsLoader';
 import CompareRunsPage from './global/experiments/compareRuns/CompareRunsPage';
 import ManageRunsPage from './global/experiments/compareRuns/ManageRunsPage';
+import { experimentsV2RedirectMap } from './v2Redirects';
 
 const GlobalPipelineExperimentsRoutes: React.FC = () => (
   <ProjectsRoutes>
@@ -112,17 +114,18 @@ const GlobalPipelineExperimentsRoutes: React.FC = () => (
             />
           </Route>
           <Route
-            path="compareRuns"
+            path="compare-runs"
             element={
               <ExperimentComparePipelineRunsLoader BreadcrumbDetailsComponent={CompareRunsPage} />
             }
           />
           <Route
-            path="compareRuns/add"
+            path="compare-runs/add"
             element={
               <ExperimentManagePipelineRunsLoader BreadcrumbDetailsComponent={ManageRunsPage} />
             }
           />
+          {buildV2RedirectRoutes(experimentsV2RedirectMap)}
           <Route path="*" element={<Navigate to="./runs" />} />
         </Route>
       </Route>

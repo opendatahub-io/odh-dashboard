@@ -8,7 +8,7 @@ class PipelinesGlobal {
   projectDropdown = new SearchSelector('project-selector');
 
   visit(projectName: string) {
-    cy.visitWithLogin(`/pipelines/${projectName}`);
+    cy.visitWithLogin(`/develop-train/pipelines/definitions/${projectName}`);
     this.wait();
   }
 

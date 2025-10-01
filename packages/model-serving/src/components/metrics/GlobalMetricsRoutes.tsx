@@ -17,7 +17,7 @@ const GlobalMetricsRoutes: React.FC = () => {
         path=""
         element={
           <GlobalModelServingCoreLoader
-            getInvalidRedirectPath={(namespace) => `/modelServing/${namespace}`}
+            getInvalidRedirectPath={(namespace) => `/ai-hub/deployments/${namespace}`}
           />
         }
       >

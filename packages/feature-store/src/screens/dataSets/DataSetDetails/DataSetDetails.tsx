@@ -57,7 +57,7 @@ const DataSetDetails = (): React.ReactElement => {
         </EmptyStateBody>
         <EmptyStateFooter>
           <EmptyStateActions>
-            <Link to={`${featureStoreRootRoute()}/dataSets`}>Go to Data Sets</Link>
+            <Link to={`${featureStoreRootRoute()}/datasets`}>Go to Data Sets</Link>
           </EmptyStateActions>
         </EmptyStateFooter>
       </EmptyState>
@@ -89,7 +89,7 @@ const DataSetDetails = (): React.ReactElement => {
               <FeatureStoreBreadcrumb
                 pageName="Datasets"
                 projectName={currentProject || ''}
-                linkTo={`${featureStoreRootRoute()}/dataSets`}
+                linkTo={`${featureStoreRootRoute()}/datasets`}
                 dataTestId="data-set-details-breadcrumb-link"
               />
               <BreadcrumbItem

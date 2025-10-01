@@ -31,7 +31,7 @@ type AccordionButtonName =
 
 class ModelCustomizationLandingPage {
   visit(wait = true) {
-    cy.visitWithLogin(`/modelCustomization`);
+    cy.visitWithLogin(`/ai-hub/model-customization`);
     if (wait) {
       this.wait();
     }

@@ -7,7 +7,7 @@ enum EnvVarItemType {
 
 class NotebookServer {
   visit() {
-    cy.visitWithLogin('/notebookController/spawner');
+    cy.visitWithLogin('/notebook-controller/spawner');
     this.wait();
   }
 

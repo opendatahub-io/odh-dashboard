@@ -139,7 +139,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
         odhApp.spec.internalRoute ? (
           <Link
             data-testid="jupyter-app-link"
-            to="/notebookController"
+            to="/notebook-controller"
             className={css('odh-card__footer__link', !workbenchEnabled && 'm-disabled')}
           >
             Open application

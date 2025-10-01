@@ -47,7 +47,9 @@ export const useEnableTeamSection = (): React.ReactNode => {
         testId="landing-page-admin--notebook-images"
         isOpen={resourcesOpen}
         title="Workbench images"
-        onClick={() => trackAndNavigate('workbench-images', '/workbenchImages')}
+        onClick={() =>
+          trackAndNavigate('workbench-images', '/settings/environment-setup/workbench-images')
+        }
         resourceType={ProjectObjectType.notebookImage}
         sectionType={SectionType.setup}
         description={
@@ -68,7 +70,12 @@ export const useEnableTeamSection = (): React.ReactNode => {
         testId="landing-page-admin--serving-runtimes"
         isOpen={resourcesOpen}
         title="Serving runtimes"
-        onClick={() => trackAndNavigate('serving-runtimes', '/servingRuntimes')}
+        onClick={() =>
+          trackAndNavigate(
+            'serving-runtimes',
+            '/settings/model-resources-operations/serving-runtimes',
+          )
+        }
         resourceType={ProjectObjectType.servingRuntime}
         sectionType={SectionType.setup}
         description={
@@ -89,7 +96,7 @@ export const useEnableTeamSection = (): React.ReactNode => {
         testId="landing-page-admin--cluster-settings"
         isOpen={resourcesOpen}
         title="Cluster settings"
-        onClick={() => trackAndNavigate('cluster-settings', '/clusterSettings')}
+        onClick={() => trackAndNavigate('cluster-settings', '/settings/cluster/general')}
         resourceType={ProjectObjectType.clusterSettings}
         sectionType={SectionType.setup}
         description={
@@ -110,7 +117,7 @@ export const useEnableTeamSection = (): React.ReactNode => {
         testId="landing-page-admin--user-management"
         isOpen={resourcesOpen}
         title="User management"
-        onClick={() => trackAndNavigate('user-management', '/groupSettings')}
+        onClick={() => trackAndNavigate('user-management', '/settings/user-management')}
         resourceType={ProjectObjectType.permissions}
         sectionType={SectionType.setup}
         description={

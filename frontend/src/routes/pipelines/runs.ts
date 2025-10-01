@@ -70,7 +70,7 @@ export const manageCompareRunsRoute = (
     ? experimentsManageCompareRunsRoute(namespace, experimentId, runIds)
     : globalManageCompareRunsRoute(namespace, runIds);
 
-export const pipelineRunsRootPath = '/pipelineRuns';
+export const pipelineRunsRootPath = '/develop-train/pipelines/runs';
 export const globPipelineRunsAll = `${pipelineRunsRootPath}/*`;
 
 export const pipelineRunsBaseRoute = (namespace?: string): string =>
@@ -104,10 +104,10 @@ export const globalPipelineRecurringRunDetailsRoute = (
 ): string => `${globalPipelineRecurringRunsRoute(namespace)}/${recurringRunId}`;
 
 export const globalCompareRunsRoute = (namespace: string, runIds: string[]): string =>
-  `${pipelineRunsBaseRoute(namespace)}/compareRuns${generateCompareRunsQueryString(runIds)}`;
+  `${pipelineRunsBaseRoute(namespace)}/compare-runs${generateCompareRunsQueryString(runIds)}`;
 
 export const globalManageCompareRunsRoute = (namespace: string, runIds: string[]): string =>
-  `${pipelineRunsBaseRoute(namespace)}/compareRuns/add${generateCompareRunsQueryString(runIds)}`;
+  `${pipelineRunsBaseRoute(namespace)}/compare-runs/add${generateCompareRunsQueryString(runIds)}`;
 
 export const globalCreatePipelineRunRoute = (namespace: string): string =>
   `${globalPipelineRunsRoute(namespace)}/create`;

@@ -59,13 +59,19 @@ describe('LM Evaluation Home Page', () => {
     lmEvalPage.visit('test-project');
 
     // Verify URL
-    verifyRelativeURL('/modelEvaluations/test-project');
+    verifyRelativeURL('/develop-train/evaluations/test-project');
 
     // Click Evaluate model button
     lmEvalPage.findEvaluateModelButton().click();
 
     // Verify URL changes to evaluate page
-    verifyRelativeURL('/modelEvaluations/test-project/evaluate');
+    verifyRelativeURL('/develop-train/evaluations/test-project/evaluate');
+  });
+
+  it('redirect from v2 to v3 route', () => {
+    cy.visitWithLogin('/modelEvaluations');
+    cy.findByTestId('app-page-title').contains('Evaluations');
+    cy.url().should('include', '/develop-train/evaluations');
   });
 });
 

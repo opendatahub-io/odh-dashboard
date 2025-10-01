@@ -16,7 +16,7 @@ import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/Delet
 
 it('Connection types should not be available for non product admins', () => {
   asProjectAdminUser();
-  cy.visitWithLogin('/connectionTypes');
+  cy.visitWithLogin('/settings/environment-setup/connection-types');
   pageNotfound.findPage().should('exist');
   connectionTypesPage.findNavItem().should('not.exist');
 });
@@ -24,7 +24,7 @@ it('Connection types should not be available for non product admins', () => {
 it('Connection types should be hidden by feature flag', () => {
   asProductAdminUser();
 
-  cy.visitWithLogin('/connectionTypes');
+  cy.visitWithLogin('/settings/environment-setup/connection-types');
 
   cy.interceptOdh(
     'GET /api/config',

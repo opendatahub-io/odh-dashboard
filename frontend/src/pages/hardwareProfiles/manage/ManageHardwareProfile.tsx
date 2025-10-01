@@ -35,7 +35,7 @@ type ManageHardwareProfileProps = {
 const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
   existingHardwareProfile,
   duplicatedHardwareProfile,
-  contextPath = '/hardwareProfiles',
+  contextPath = '/settings/environment-setup/hardware-profiles',
   homepageTitle = 'Hardware profiles',
 }) => {
   const [state, setState] = useGenericObjectState<HardwareProfileFormData>(

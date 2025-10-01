@@ -99,7 +99,7 @@ The built-in library includes several segment tracking methods to help in the us
     },
     "locale": "en-GB",
     "page": {
-      "path": "/explore",
+      "path": "/applications/explore",
       "referrer": "https://oauth-openshift.apps.my-referrer.com/",
       "search": "",
       "title": "Open Data Hub Dashboard",
@@ -112,7 +112,7 @@ The built-in library includes several segment tracking methods to help in the us
   "originalTimestamp": "2022-03-01T16:49:11.528Z",
   "properties": {
     "clusterID": "a8ff924d-c667-4b4f-9d16-f3135b6082ca",
-    "path": "/explore",
+    "path": "/applications/explore",
     "referrer": "https://oauth-openshift.apps.my-referrer.com/",
     "search": "",
     "title": "Open Data Hub Dashboard",
