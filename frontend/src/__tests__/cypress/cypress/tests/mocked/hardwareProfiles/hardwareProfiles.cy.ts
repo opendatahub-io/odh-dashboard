@@ -1,5 +1,5 @@
 import { hardwareProfile } from '#~/__tests__/cypress/cypress/pages/hardwareProfile';
-import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
+import { mockDefaultHardwareProfile, mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import {
   HardwareProfileModel,
@@ -184,6 +184,29 @@ describe('Hardware Profile', () => {
           },
         ]);
       });
+    });
+
+    it('should not show the delete action button for the default profile, but should for regular profiles', () => {
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          mockDefaultHardwareProfile,
+          mockHardwareProfile({
+            name: 'custom-profile',
+            displayName: 'Custom Profile',
+          }),
+        ]),
+      );
+      hardwareProfile.visit();
+
+      // Default profile should not have delete option
+      hardwareProfile
+        .getRow('default-profile')
+        .findKebabAction('Delete', false)
+        .should('not.exist');
+
+      // Custom profile should have delete option
+      hardwareProfile.getRow('Custom Profile').findKebabAction('Delete').should('exist');
     });
   });
 

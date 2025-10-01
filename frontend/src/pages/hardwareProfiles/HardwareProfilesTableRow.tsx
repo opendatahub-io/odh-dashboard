@@ -28,6 +28,7 @@ import {
   createHardwareProfileWarningTitle,
   getHardwareProfileDescription,
   getHardwareProfileDisplayName,
+  isDefaultHardwareProfile,
   validateProfileWarning,
 } from '#~/pages/hardwareProfiles/utils';
 import { HardwareProfileModel } from '#~/api';
@@ -201,16 +202,20 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
                 verbModelAccess('create', HardwareProfileModel),
               ),
               ...useKebabAccessAllowed([], verbModelAccess('create', HardwareProfileModel)),
-              ...useKebabAccessAllowed(
-                [
-                  { isSeparator: true },
-                  {
-                    title: 'Delete',
-                    onClick: () => handleDelete(hardwareProfile),
-                  },
-                ],
-                verbModelAccess('delete', HardwareProfileModel),
-              ),
+              ...(!isDefaultHardwareProfile(hardwareProfile)
+                ? [
+                    ...useKebabAccessAllowed(
+                      [
+                        { isSeparator: true },
+                        {
+                          title: 'Delete',
+                          onClick: () => handleDelete(hardwareProfile),
+                        },
+                      ],
+                      verbModelAccess('delete', HardwareProfileModel),
+                    ),
+                  ]
+                : []),
             ]}
           />
         </Td>
