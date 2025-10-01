@@ -135,12 +135,7 @@ export const ModelFormatField: React.FC<ModelFormatFieldProps> = ({
   modelFormatState,
   isEditing,
 }) => {
-  const { modelFormatOptions, modelFormat, setModelFormat, isVisible, error, loaded } =
-    modelFormatState;
-
-  if (!isVisible) {
-    return null;
-  }
+  const { modelFormatOptions, modelFormat, setModelFormat, error, loaded } = modelFormatState;
 
   return (
     <FormGroup label="Model framework (name - version)" fieldId="model-framework-select" isRequired>

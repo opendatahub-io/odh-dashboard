@@ -1,5 +1,5 @@
 import type { K8sModelCommon, K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import type { DisplayNameAnnotations } from '@odh-dashboard/internal/k8sTypes';
+import type { DisplayNameAnnotations, MetadataAnnotation } from '@odh-dashboard/internal/k8sTypes';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
 import type { PodContainer } from '@odh-dashboard/internal/types.js';
 
@@ -8,7 +8,11 @@ export type LLMInferenceServiceKind = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
-    annotations?: DisplayNameAnnotations;
+    annotations?: DisplayNameAnnotations & {
+      [MetadataAnnotation.ConnectionName]?: string;
+    } & {
+      'opendatahub.io/model-type'?: string; // ['predictive' | 'generative']
+    };
   };
   spec: {
     model: {
