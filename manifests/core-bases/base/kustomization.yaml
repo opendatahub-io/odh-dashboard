@@ -22,5 +22,5 @@ resources:
   - httproute.yaml
 images:
   - name: kube-rbac-proxy
-    newName: registry.redhat.io/openshift4/ose-kube-rbac-proxy
-    digest: sha256:503d5ee0fbcd5bd3492785f4246e19cbdb92960be0d05f3c6f123a32fe0fe84d
+    newName: registry.redhat.io/openshift4/ose-kube-rbac-proxy-rhel9
+    digest: sha256:784c4667a867abdbec6d31a4bbde52676a0f37f8e448eaae37568a46fcdeace7
