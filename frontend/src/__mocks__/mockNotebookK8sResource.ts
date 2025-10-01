@@ -68,7 +68,7 @@ export const mockNotebookK8sResource = ({
         annotations: {
           'opendatahub.io/image-display-name': imageDisplayName,
           'notebooks.kubeflow.org/last-activity': '2023-02-14T21:45:14Z',
-          'notebooks.opendatahub.io/inject-oauth': 'true',
+          'notebooks.opendatahub.io/inject-auth': 'true',
           'notebooks.opendatahub.io/last-image-selection': lastImageSelection,
           'notebooks.opendatahub.io/last-size-selection': 'Small',
           'notebooks.opendatahub.io/oauth-logout-url':

@@ -12,7 +12,7 @@ const notebook: NotebookKind = {
   kind: 'Notebook',
   metadata: {
     annotations: {
-      'notebooks.opendatahub.io/inject-oauth': 'true',
+      'notebooks.opendatahub.io/inject-auth': 'true',
       'notebooks.opendatahub.io/last-image-selection': 'tensorflow:2024.2',
       'notebooks.opendatahub.io/last-size-selection': 'Large',
       'notebooks.opendatahub.io/oauth-logout-url':
