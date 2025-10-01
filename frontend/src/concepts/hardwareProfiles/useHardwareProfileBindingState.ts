@@ -5,7 +5,7 @@ import { getGenericErrorCode } from '#~/api';
 import { isHardwareProfileEnabled } from '#~/pages/hardwareProfiles/utils';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { HardwareProfileBindingStateInfo } from '#~/concepts/hardwareProfiles/types';
-import useWatchHardwareProfile from '#~/pages/hardwareProfiles/useWatchHardwareProfile';
+import useHardwareProfile from '#~/pages/hardwareProfiles/useHardwareProfile.ts';
 import { HardwareProfileBindingState } from './const';
 
 export const useHardwareProfileBindingState = (
@@ -17,31 +17,35 @@ export const useHardwareProfileBindingState = (
   const hardwareProfileNamespace =
     resource?.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'] ||
     dashboardNamespace;
-  const [profile, loaded, loadError] = useWatchHardwareProfile(
+
+  if (!hardwareProfileName || !hardwareProfileNamespace) {
+    return [null, true, undefined];
+  }
+
+  const [profile, loaded, loadError] = useHardwareProfile(
     hardwareProfileNamespace,
     hardwareProfileName,
   );
-  if (!hardwareProfileName) {
-    return [null, true, undefined];
+
+  if (loadError) {
+    const bindingState: HardwareProfileBindingStateInfo | null =
+      getGenericErrorCode(loadError) === 404
+        ? {
+            state: HardwareProfileBindingState.DELETED,
+            profile: undefined,
+          }
+        : null;
+    return [bindingState, true, loadError];
   }
-  if (getGenericErrorCode(loadError) === 404) {
-    return [
-      {
-        state: HardwareProfileBindingState.DELETED,
-        profile: undefined,
-      },
-      true,
-      loadError,
-    ];
-  }
+
   if (!loaded) {
     return [null, false, loadError];
   }
-  const isDisabled = !isHardwareProfileEnabled(profile);
+  const isDisabled = profile && !isHardwareProfileEnabled(profile);
   const storedResourceVersion =
     resource.metadata.annotations?.['opendatahub.io/hardware-profile-resource-version'];
   const isUpdated =
-    storedResourceVersion && profile.metadata.resourceVersion
+    profile && storedResourceVersion && profile.metadata.resourceVersion
       ? storedResourceVersion !== profile.metadata.resourceVersion
       : false;
   let state: HardwareProfileBindingState | undefined;
@@ -50,10 +54,12 @@ export const useHardwareProfileBindingState = (
   } else if (isUpdated) {
     state = HardwareProfileBindingState.UPDATED;
   }
-  const stateInfo: HardwareProfileBindingStateInfo = {
-    state,
-    profile,
-  };
-
-  return [stateInfo, loaded, loadError];
+  return [
+    {
+      state,
+      profile: profile ?? undefined,
+    },
+    loaded,
+    loadError,
+  ];
 };

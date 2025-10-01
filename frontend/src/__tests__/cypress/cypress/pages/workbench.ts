@@ -291,18 +291,12 @@ class NotebookRow extends TableRow {
     };
   }
 
-  findHardwareProfileDisabledPopover() {
-    return {
-      title: () => cy.findByTestId('hardware-profile-status-disabled-popover-title'),
-      body: () => cy.findByTestId('hardware-profile-status-disabled-popover-body'),
-    };
+  findHardwareProfileErrorIcon() {
+    return this.find().findByTestId('hardware-profile-column-error-icon');
   }
 
-  findHardwareProfileUpdatedPopover() {
-    return {
-      title: () => cy.findByTestId('hardware-profile-status-updated-popover-title'),
-      body: () => cy.findByTestId('hardware-profile-status-updated-popover-body'),
-    };
+  findHardwareProfileErrorPopover() {
+    return cy.findByTestId('hardware-profile-column-error-popover');
   }
 }
 

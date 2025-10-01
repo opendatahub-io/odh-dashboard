@@ -2,7 +2,7 @@ import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
-import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
+import { mock200Status, mock403ErrorWithDetails, mock404Error } from '#~/__mocks__/mockK8sStatus';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import { mockSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
 import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
@@ -1377,6 +1377,39 @@ describe('Model Serving Global', () => {
         .findHardwareProfileUpdatedPopover();
       popover.title().should('be.visible');
       popover.body().should('be.visible');
+    });
+
+    it('should show error icon with popover when hardware profile fails to load (non-404 error)', () => {
+      const mockInferenceService = mockInferenceServiceK8sResource({
+        name: 'test-model',
+        displayName: 'Test Model',
+        namespace: 'test-project',
+        isModelMesh: false,
+        hardwareProfileName: 'error-profile',
+      });
+
+      initIntercepts({
+        disableHardwareProfiles: false,
+        inferenceServices: [mockInferenceService],
+      });
+
+      cy.interceptK8s(
+        {
+          model: HardwareProfileModel,
+          ns: 'opendatahub',
+          name: 'error-profile',
+        },
+        mock403ErrorWithDetails({}),
+      );
+
+      modelServingGlobal.visit('test-project');
+
+      const modelRow = modelServingGlobal.getInferenceServiceRow('Test Model');
+      const errorIcon = modelRow.findHardwareProfileErrorIcon();
+      errorIcon.should('exist');
+      errorIcon.trigger('mouseenter');
+      const errorPopoverTitle = modelRow.findHardwareProfileErrorPopover();
+      errorPopoverTitle.should('be.visible');
     });
   });
 });

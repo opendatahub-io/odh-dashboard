@@ -16,6 +16,7 @@ import {
   StorageClassModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import {
+  mock403ErrorWithDetails,
   mockK8sResourceList,
   mockNotebookK8sResource,
   mockProjectK8sResource,
@@ -1057,6 +1058,45 @@ describe('Workbench Hardware Profiles', () => {
       // Verify popover mentions running workbench
       workbenchPage.getNotebookRow('Running Notebook').findHardwareProfileDeletedLabel().click();
       cy.findByTestId('hardware-profile-status-deleted-popover-body').should('be.visible');
+    });
+
+    it('should show error icon with popover when hardware profile fails to load (non-404 error)', () => {
+      initIntercepts({ disableHardwareProfiles: false });
+
+      cy.interceptK8sList(
+        {
+          model: NotebookModel,
+          ns: 'test-project',
+        },
+        mockK8sResourceList([
+          mockNotebookK8sResource({
+            hardwareProfileName: 'error-profile',
+            hardwareProfileNamespace: 'opendatahub',
+            displayName: 'Test Notebook',
+          }),
+        ]),
+      );
+
+      // Mock the hardware profile with a 403 error (forbidden)
+      cy.interceptK8s(
+        {
+          model: HardwareProfileModel,
+          ns: 'opendatahub',
+          name: 'error-profile',
+        },
+        mock403ErrorWithDetails({}),
+      );
+
+      projectDetails.visit(projectName);
+      projectDetails.findSectionTab('workbenches').click();
+
+      // Verify error icon appears
+      const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+      const errorIcon = notebookRow.findHardwareProfileErrorIcon();
+      errorIcon.should('exist');
+      errorIcon.trigger('mouseenter');
+      const errorPopoverTitle = notebookRow.findHardwareProfileErrorPopover();
+      errorPopoverTitle.should('be.visible');
     });
   });
 });

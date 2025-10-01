@@ -820,6 +820,14 @@ class InferenceServiceRow extends TableRow {
       body: () => cy.findByTestId('hardware-profile-status-updated-popover-body'),
     };
   }
+
+  findHardwareProfileErrorIcon() {
+    return this.find().findByTestId('hardware-profile-column-error-icon');
+  }
+
+  findHardwareProfileErrorPopover() {
+    return cy.findByTestId('hardware-profile-column-error-popover');
+  }
 }
 
 class ModelServingSection {

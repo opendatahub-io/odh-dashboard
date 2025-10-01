@@ -1,4 +1,5 @@
-import { HelperText, HelperTextItem, Spinner, Flex, FlexItem } from '@patternfly/react-core';
+import { Spinner, Flex, FlexItem, Popover } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
@@ -9,6 +10,7 @@ import ScopedLabel from '#~/components/ScopedLabel';
 import { ScopedType } from '#~/pages/modelServing/screens/const';
 import { getHardwareProfileDisplayName } from '#~/pages/hardwareProfiles/utils';
 import { resourceTypeOf } from '#~/concepts/hardwareProfiles/utils';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton.tsx';
 import { useHardwareProfileBindingState } from './useHardwareProfileBindingState';
 import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
 import HardwareProfileBindingStateLabel from './HardwareProfileBindingStateLabel';
@@ -35,9 +37,20 @@ const HardwareProfileTableColumn: React.FC<HardwareProfileTableColumnProps> = ({
 
   if (loadError && bindingStateInfo?.state !== HardwareProfileBindingState.DELETED) {
     return (
-      <HelperText>
-        <HelperTextItem variant="error">Custom</HelperTextItem>
-      </HelperText>
+      <Popover
+        alertSeverityVariant="danger"
+        headerContent="Error loading hardware profile"
+        bodyContent={loadError.message || 'An error occurred while loading the hardware profile.'}
+        triggerAction="hover"
+        data-testid="hardware-profile-column-error-popover"
+      >
+        <DashboardPopupIconButton
+          icon={
+            <ExclamationCircleIcon color="red" data-testid="hardware-profile-column-error-icon" />
+          }
+          aria-label="Error info"
+        />
+      </Popover>
     );
   }
   if (!bindingStateLoaded) {
