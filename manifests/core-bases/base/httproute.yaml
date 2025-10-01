@@ -4,7 +4,7 @@ metadata:
   name: odh-dashboard
 spec:
   parentRefs:
-    - name: odh-gateway
+    - name: data-science-gateway
       kind: Gateway
       namespace: openshift-ingress
   rules:
