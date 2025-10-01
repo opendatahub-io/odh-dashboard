@@ -46,7 +46,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
 
   it(
     'Verify User Can Create, Run and Delete A DS Pipeline From DS Project Details Page Using Custom Pip Mirror',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-2206', '@Pipelines', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@ODS-2206', '@Pipelines', '@Dashboard', '@NonConcurrent'] },
     () => {
       cy.step(`Navigate to DSP ${projectName}`);
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
