@@ -29,7 +29,10 @@ import {
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { ServingRuntimeModelType, ServingRuntimePlatform } from '#~/types';
 import { mockGlobalScopedHardwareProfiles } from '#~/__mocks__/mockHardwareProfile';
-import { mockConnectionTypeConfigMap } from '../../../../../../__mocks__/mockConnectionType';
+import {
+  mockConnectionTypeConfigMap,
+  mockModelServingFields,
+} from '../../../../../../__mocks__/mockConnectionType';
 
 const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) => {
   cy.interceptOdh(
@@ -65,6 +68,12 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
           properties: {},
         },
       ],
+    }),
+    mockConnectionTypeConfigMap({
+      displayName: 'S3',
+      name: 's3',
+      category: ['existing-category'],
+      fields: mockModelServingFields,
     }),
   ]).as('getConnectionTypes');
 
@@ -760,8 +769,8 @@ describe('Model Serving Deploy Wizard', () => {
               memory: '16Gi',
             },
           },
+          storageUri: 'https://test',
         }),
-        mockInferenceServiceK8sResource({ storageUri: 'https://test' }),
       ]),
     );
     cy.interceptK8sList(
@@ -774,6 +783,8 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
 
     // Step 1: Model source
+    modelServingWizardEdit.findModelLocationSelect().should('exist');
+    modelServingWizardEdit.findUrilocationInput().should('have.value', 'https://test');
     modelServingWizardEdit.findModelSourceStep().should('be.enabled');
     modelServingWizardEdit.findNextButton().should('be.enabled');
 
@@ -781,9 +792,6 @@ describe('Model Serving Deploy Wizard', () => {
       .findModelTypeSelect()
       .should('have.text', 'Predictive model')
       .should('be.disabled');
-
-    modelServingWizardEdit.findModelLocationSelect().should('exist');
-    modelServingWizardEdit.findUrilocationInput().should('have.value', 'https://test');
 
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 

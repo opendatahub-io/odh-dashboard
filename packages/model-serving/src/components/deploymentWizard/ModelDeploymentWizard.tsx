@@ -105,11 +105,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     <ApplicationsPage title={title} description={description} loaded empty={false}>
       <Wizard onClose={exitWizard} onSave={onSave} footer={<WizardFooterWithDisablingNext />}>
         <WizardStep name="Source model" id="source-model-step">
-          <ModelSourceStepContent
-            wizardState={wizardState}
-            validation={validation.modelSource}
-            connections={wizardState.state.modelLocationData.connections}
-          />
+          <ModelSourceStepContent wizardState={wizardState} validation={validation.modelSource} />
         </WizardStep>
         <WizardStep
           name="Model deployment"

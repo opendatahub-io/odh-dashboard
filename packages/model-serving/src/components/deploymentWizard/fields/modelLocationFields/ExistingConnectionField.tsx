@@ -1,6 +1,5 @@
 import React from 'react';
-import { Flex, FlexItem, FormGroup, Label, Truncate } from '@patternfly/react-core';
-import { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { Flex, FlexItem, FormGroup, Stack, StackItem, Truncate } from '@patternfly/react-core';
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
@@ -28,7 +27,7 @@ import { isExistingModelLocation } from '../../utils';
 type ExistingConnectionFieldProps = {
   children: React.ReactNode;
   connectionTypes: ConnectionTypeConfigMapObj[];
-  projectConnections: LabeledConnection[];
+  projectConnections: Connection[];
   selectedConnection?: Connection;
   onSelect: (connection: Connection) => void;
   selectedConnectionType?: ConnectionTypeConfigMapObj;
@@ -53,33 +52,22 @@ export const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = (
   const options: TypeaheadSelectOption[] = React.useMemo(
     () =>
       projectConnections.map((connection) => {
-        const { isRecommended } = connection;
-        const displayName = getDisplayNameFromK8sResource(connection.connection);
+        const displayName = getDisplayNameFromK8sResource(connection);
 
         return {
           content: displayName,
-          value: getResourceNameFromK8sResource(connection.connection),
-          dropdownLabel: (
-            <>
-              {isRecommended && (
-                <Label color="blue" isCompact>
-                  Recommended
-                </Label>
-              )}
-            </>
-          ),
+          value: getResourceNameFromK8sResource(connection),
           description: (
             <Flex direction={{ default: 'column' }} rowGap={{ default: 'rowGapNone' }}>
-              {getDescriptionFromK8sResource(connection.connection) && (
+              {getDescriptionFromK8sResource(connection) && (
                 <FlexItem>
-                  <Truncate content={getDescriptionFromK8sResource(connection.connection)} />
+                  <Truncate content={getDescriptionFromK8sResource(connection)} />
                 </FlexItem>
               )}
               <FlexItem>
                 <Truncate
                   content={`Type: ${
-                    getConnectionTypeDisplayName(connection.connection, connectionTypes) ||
-                    'Unknown'
+                    getConnectionTypeDisplayName(connection, connectionTypes) || 'Unknown'
                   }`}
                 />
               </FlexItem>
@@ -87,7 +75,7 @@ export const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = (
           ),
           isSelected:
             !!selectedConnection &&
-            getResourceNameFromK8sResource(connection.connection) ===
+            getResourceNameFromK8sResource(connection) ===
               getResourceNameFromK8sResource(selectedConnection),
         };
       }),
@@ -107,8 +95,8 @@ export const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = (
               }
 
               const newConnection = projectConnections.find(
-                (conn) => getResourceNameFromK8sResource(conn.connection) === value,
-              )?.connection;
+                (conn) => getResourceNameFromK8sResource(conn) === value,
+              );
               if (!newConnection) return;
 
               onSelect(newConnection);
@@ -157,39 +145,55 @@ export const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = (
           />
         </FlexItem>
       </Flex>
-      {children}
-      {selectedConnectionType?.metadata.name === ConnectionTypeRefs.S3 && (
-        <ConnectionS3FolderPathField
-          folderPath={
-            isExistingModelLocation(modelLocationData)
-              ? modelLocationData.additionalFields.modelPath ?? ''
-              : ''
-          }
-          setFolderPath={(path) => {
-            if (isExistingModelLocation(modelLocationData) && setModelLocationData) {
-              setModelLocationData({ ...modelLocationData, additionalFields: { modelPath: path } });
-            }
-          }}
-        />
-      )}
-      {selectedConnectionType?.metadata.name === ConnectionTypeRefs.OCI && (
-        <ConnectionOciPathField
-          ociHost={window.atob(selectedConnection?.data?.OCI_HOST ?? '')}
-          modelUri={
-            isExistingModelLocation(modelLocationData)
-              ? modelLocationData.additionalFields.modelUri ?? ''
-              : ''
-          }
-          setModelUri={(uri) => {
-            if (isExistingModelLocation(modelLocationData) && setModelLocationData) {
-              setModelLocationData({
-                ...modelLocationData,
-                additionalFields: { modelUri: uri ?? '' },
-              });
-            }
-          }}
-        />
-      )}
+      <Stack hasGutter>
+        <StackItem>{children}</StackItem>
+        {((selectedConnectionType &&
+          isModelServingCompatible(
+            selectedConnectionType,
+            ModelServingCompatibleTypes.S3ObjectStorage,
+          )) ||
+          selectedConnectionType?.metadata.name === ConnectionTypeRefs.S3) && (
+          <StackItem>
+            <ConnectionS3FolderPathField
+              folderPath={
+                isExistingModelLocation(modelLocationData)
+                  ? modelLocationData.additionalFields.modelPath ?? ''
+                  : ''
+              }
+              setFolderPath={(path) => {
+                if (isExistingModelLocation(modelLocationData) && setModelLocationData) {
+                  setModelLocationData({
+                    ...modelLocationData,
+                    additionalFields: { modelPath: path },
+                  });
+                }
+              }}
+            />
+          </StackItem>
+        )}
+        {((selectedConnectionType &&
+          isModelServingCompatible(selectedConnectionType, ModelServingCompatibleTypes.OCI)) ||
+          selectedConnectionType?.metadata.name === ConnectionTypeRefs.OCI) && (
+          <StackItem>
+            <ConnectionOciPathField
+              ociHost={window.atob(selectedConnection?.data?.OCI_HOST ?? '')}
+              modelUri={
+                isExistingModelLocation(modelLocationData)
+                  ? modelLocationData.additionalFields.modelUri ?? ''
+                  : ''
+              }
+              setModelUri={(uri) => {
+                if (isExistingModelLocation(modelLocationData) && setModelLocationData) {
+                  setModelLocationData({
+                    ...modelLocationData,
+                    additionalFields: { modelUri: uri ?? '' },
+                  });
+                }
+              }}
+            />
+          </StackItem>
+        )}
+      </Stack>
     </FormGroup>
   );
 };

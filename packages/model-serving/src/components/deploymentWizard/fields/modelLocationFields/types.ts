@@ -17,12 +17,13 @@ export enum ModelLocationType {
 
 export type ModelLocationData = {
   type: ModelLocationType.EXISTING | ModelLocationType.NEW | ModelLocationType.PVC;
-  connectionTypeObject: ConnectionTypeConfigMapObj;
+  connectionTypeObject?: ConnectionTypeConfigMapObj;
   connection?: string;
   fieldValues: Record<string, ConnectionTypeValueType>;
   additionalFields: {
     // For S3 and OCI additional fields
     modelPath?: string;
     modelUri?: string;
+    pvcConnection?: string;
   };
 };

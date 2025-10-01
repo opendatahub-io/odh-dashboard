@@ -12,11 +12,15 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
+import { useModelDeploymentWizard } from './useDeploymentWizard';
 import { useAvailableClusterPlatforms } from '../../concepts/useAvailableClusterPlatforms';
 import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
 import { ModelDeploymentsProvider } from '../../concepts/ModelDeploymentsContext';
 
 const CreateModelDeploymentPage: React.FC = () => {
+  const wizardState = useModelDeploymentWizard();
+  const { connectionsLoaded } = wizardState.state.modelLocationData;
+
   const { namespace } = useParams();
   const navigate = useNavigate();
 
@@ -27,7 +31,7 @@ const CreateModelDeploymentPage: React.FC = () => {
     useAvailableClusterPlatforms();
   const { activePlatform } = useProjectServingPlatform(currentProject, clusterPlatforms);
 
-  if (!projectsLoaded || !clusterPlatformsLoaded) {
+  if (!projectsLoaded || !clusterPlatformsLoaded || !connectionsLoaded) {
     return (
       <Bullseye>
         <Spinner />
