@@ -146,52 +146,20 @@ jobs:
           
           # Note: If secrets not provided, BASE_URL will be set at test run time with dynamic port
 
-      - name: Find available port and start server
+      - name: Start webpack server
         run: |
-          # Find available port with retry loop to handle race conditions
-          # Use PID to ensure uniqueness even across re-runs on same runner
-          MAX_ATTEMPTS=30
-          ATTEMPT=0
+          # Assign fixed port based on test tag to avoid conflicts
+          case "${{ matrix.test-tag }}" in
+            "@SmokeSet1") CYPRESS_PORT=4010 ;;
+            "@SmokeSet2") CYPRESS_PORT=4020 ;;
+            "@SmokeSet3") CYPRESS_PORT=4030 ;;
+            *) CYPRESS_PORT=4010 ;;
+          esac
           
-          # Start from a base determined by job index, then search upward
-          BASE_PORT=$((4010 + (${{ strategy.job-index }} * 10)))
-          PORT=$BASE_PORT
-          
-          echo "Finding available port for ${{ matrix.test-tag }} starting from $BASE_PORT..."
-          
-          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-            # Check if port is free AND not recently used (check for lock file)
-            LOCK_FILE="/tmp/port_${PORT}.lock"
-            
-            if ! lsof -ti:$PORT > /dev/null 2>&1 && [ ! -f "$LOCK_FILE" ]; then
-              # Create lock file with our PID
-              echo $$ > "$LOCK_FILE"
-              sleep 0.5
-              
-              # Verify we still own the lock (atomic-ish)
-              if [ "$(cat $LOCK_FILE 2>/dev/null)" = "$$" ]; then
-                echo "Claimed port $PORT"
-                CYPRESS_PORT=$PORT
-                break
-              fi
-            fi
-            
-            # Port in use or couldn't claim lock, try next
-            PORT=$((PORT + 1))
-            ATTEMPT=$((ATTEMPT + 1))
-            sleep 0.2
-          done
-          
-          if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-            echo "Could not find available port after $MAX_ATTEMPTS attempts"
-            exit 1
-          fi
-          
-          # Export port for later steps
+          echo "Using port $CYPRESS_PORT for ${{ matrix.test-tag }}"
           echo "CYPRESS_PORT=$CYPRESS_PORT" >> $GITHUB_ENV
-          echo "PORT_LOCK_FILE=$LOCK_FILE" >> $GITHUB_ENV
           
-          # Start server immediately after claiming port
+          # Start server
           echo "Starting webpack dev server on port $CYPRESS_PORT..."
           cd frontend && ODH_PORT=$CYPRESS_PORT npm run start:dev:ext > /tmp/webpack-${CYPRESS_PORT}.log 2>&1 &
           
@@ -226,18 +194,12 @@ jobs:
             exit 1
           fi
 
-      - name: Kill zombie Chrome processes
+      - name: Update test-variables.yml to use localhost
         run: |
-          echo "Checking for zombie Chrome processes..."
-          CHROME_COUNT=$(ps aux | grep chrome | grep -v grep | wc -l)
-          echo "Found $CHROME_COUNT Chrome processes"
-          
-          if [ $CHROME_COUNT -gt 0 ]; then
-            echo "Killing all Chrome processes to prevent conflicts..."
-            pkill -9 chrome 2>/dev/null || true
-            sleep 2
-            echo "Chrome processes killed"
-          fi
+          echo "Updating test-variables.yml to point to localhost:$CYPRESS_PORT..."
+          sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:$CYPRESS_PORT|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:$CYPRESS_PORT|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          echo "test-variables.yml updated"
 
       - name: Run E2E Tests
         run: |
@@ -268,12 +230,6 @@ jobs:
           if lsof -ti:$CYPRESS_PORT > /dev/null 2>&1; then
             echo "Killing remaining processes on port $CYPRESS_PORT"
             lsof -ti:$CYPRESS_PORT | xargs kill -9 2>/dev/null || true
-          fi
-          
-          # Remove port lock file
-          if [ -n "$PORT_LOCK_FILE" ] && [ -f "$PORT_LOCK_FILE" ]; then
-            echo "Removing port lock file: $PORT_LOCK_FILE"
-            rm -f "$PORT_LOCK_FILE"
           fi
           
           echo "Cleanup complete for port $CYPRESS_PORT"
