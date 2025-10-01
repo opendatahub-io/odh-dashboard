@@ -35,6 +35,9 @@ type EnvConfig struct {
 	// MaaS (Model as a Service) Configuration
 	MaaSURL string
 
+	// Filter models configuration
+	FilteredModelKeywords []string
+
 	// ─── AUTH ───────────────────────────────────────────────────
 	// Specifies the authentication method used by the server.
 	// Valid values: "disabled" or "user_token"

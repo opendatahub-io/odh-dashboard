@@ -46,6 +46,26 @@ func parseLevel(s string) slog.Level {
 	return level
 }
 
+func newKeywordParser(keywordList *[]string, defaultVal string) func(s string) error {
+	return func(s string) error {
+		value := defaultVal
+
+		if s != "" {
+			value = s
+		}
+
+		if value == "" {
+			return nil
+		}
+
+		for _, str := range strings.Split(s, ",") {
+			*keywordList = append(*keywordList, strings.TrimSpace(str))
+		}
+
+		return nil
+	}
+}
+
 func newOriginParser(allowList *[]string, defaultVal string) func(s string) error {
 	return func(s string) error {
 		value := defaultVal
