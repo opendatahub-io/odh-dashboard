@@ -33,3 +33,30 @@ export const createOpenShiftConfigMap = (
     return result;
   });
 };
+
+/**
+ * Check if metrics dashboard ConfigMap exists for a model
+ * Similar to Robot Framework: oc get cm -n ${TEST_NS} ${MODEL_NAME}-metrics-dashboard
+ */
+export const checkMetricsDashboardConfigMap = (modelName: string, namespace: string): void => {
+  const configMapName = `${modelName}-metrics-dashboard`;
+
+  cy.exec(`oc get cm -n ${namespace} ${configMapName} -o jsonpath='{.data.supported}'`, {
+    failOnNonZeroExit: false,
+  }).then((result) => {
+    cy.log(`Metrics ConfigMap check result: ${JSON.stringify(result)}`);
+
+    if (result.code === 0) {
+      // ConfigMap exists, check if metrics are supported
+      const isSupported = result.stdout.trim() === 'true';
+      if (!isSupported) {
+        throw new Error(
+          `Metrics dashboard is not supported or ConfigMap missing for model: ${modelName}`,
+        );
+      }
+      cy.log(`✅ Metrics dashboard is supported and properly configured for model: ${modelName}`);
+    } else {
+      throw new Error(`ConfigMap missing for model: ${modelName}`);
+    }
+  });
+};

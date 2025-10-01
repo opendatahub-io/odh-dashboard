@@ -4,11 +4,11 @@ import { TableRow } from './components/table';
 
 class ModelMetricsGlobal {
   findMetricsToolbarTimeRangeSelect() {
-    return cy.findByTestId('metrics-toolbar-time-range-select');
+    return cy.get('#metrics-toolbar-time-range-select-toggle');
   }
 
   findMetricsToolbarRefreshIntervalSelect() {
-    return cy.findByTestId('metrics-toolbar-refresh-interval-select');
+    return cy.get('#metrics-toolbar-refresh-interval-select-toggle');
   }
 
   getMetricsChart(title: string) {
@@ -226,7 +226,7 @@ class ConfigureBiasMetricModal extends Modal {
     return this.find().findByTestId('metric-batch-size');
   }
 }
-
+export const modelMetricsGlobal = new ModelMetricsGlobal();
 export const modelMetricsPerformance = new ModelMetricsPerformance();
 export const modelMetricsNim = new ModelMetricsNim();
 export const modelMetricsBias = new ModelMetricsBias();

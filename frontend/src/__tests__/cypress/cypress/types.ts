@@ -198,6 +198,10 @@ export type DataScienceProjectData = {
   pvStorageDescription: string;
   pvStorageNameEdited: string;
   invalidResourceNames: string[];
+  modelMetricsConfig: {
+    defaultTimeRange: string;
+    defaultRefreshInterval: string;
+  };
 };
 
 export type NotebookImageData = {
