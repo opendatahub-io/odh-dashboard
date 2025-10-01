@@ -8,7 +8,6 @@ import {
   ContainerResources,
   IdentifierResourceType,
 } from '#~/types';
-import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 import { splitValueUnit, CPU_UNITS, MEMORY_UNITS_FOR_PARSING } from '#~/utilities/valueUnits';
 
 export const formatToleration = (toleration: Toleration): string => {
