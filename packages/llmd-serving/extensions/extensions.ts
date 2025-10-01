@@ -2,6 +2,7 @@ import type {
   DeployedModelServingDetails,
   ModelServingDeploymentFormDataExtension,
   ModelServingPlatformWatchDeploymentsExtension,
+  ModelServingDeleteModal,
 } from '@odh-dashboard/model-serving/extension-points';
 import type { LLMdDeployment } from '../src/types';
 
@@ -11,6 +12,7 @@ const extensions: (
   | ModelServingPlatformWatchDeploymentsExtension<LLMdDeployment>
   | DeployedModelServingDetails<LLMdDeployment>
   | ModelServingDeploymentFormDataExtension<LLMdDeployment>
+  | ModelServingDeleteModal<LLMdDeployment>
 )[] = [
   {
     type: 'model-serving.platform/watch-deployments',
@@ -36,6 +38,15 @@ const extensions: (
       extractModelFormat: () =>
         import('../src/deployments/model').then((m) => m.extractModelFormat),
       extractReplicas: () => import('../src/deployments/hardware').then((m) => m.extractReplicas),
+    },
+  },
+  {
+    type: 'model-serving.platform/delete-deployment',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      onDelete: () => import('../src/deployments').then((m) => m.deleteDeployment),
+      title: 'Delete model deployment?',
+      submitButtonLabel: 'Delete model deployment',
     },
   },
 ];
