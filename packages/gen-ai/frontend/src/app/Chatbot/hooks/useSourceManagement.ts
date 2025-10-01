@@ -14,7 +14,6 @@ export interface FileWithSettings {
 }
 
 export interface UseSourceManagementReturn {
-  selectedSource: File[];
   selectedSourceSettings: ChatbotSourceSettings | null;
   isSourceSettingsOpen: boolean;
   isRawUploaded: boolean;
@@ -38,7 +37,6 @@ const useSourceManagement = ({
   onShowSuccessAlert,
   onShowErrorAlert,
 }: UseSourceManagementProps): UseSourceManagementReturn => {
-  const [selectedSource, setSelectedSource] = React.useState<File[]>([]);
   const { namespace } = React.useContext(GenAiContext);
   const [selectedSourceSettings, setSelectedSourceSettings] =
     React.useState<ChatbotSourceSettings | null>(null);
@@ -70,8 +68,6 @@ const useSourceManagement = ({
 
   const handleSourceDrop = React.useCallback(
     async (event: DropEvent, source: File[]) => {
-      setSelectedSource(source);
-
       // Add files to filesWithSettings with pending status
       const newFilesWithSettings: FileWithSettings[] = source.map((file) => ({
         file,
@@ -97,7 +93,6 @@ const useSourceManagement = ({
       setFilesWithSettings((prev) =>
         prev.filter((fileWithSettings) => fileWithSettings.file.name !== fileName),
       );
-      setSelectedSource((prev) => prev.filter((file) => file.name !== fileName));
 
       // If the removed file was the current file for settings, clear it
       if (currentFileForSettings?.name === fileName) {
@@ -193,7 +188,6 @@ const useSourceManagement = ({
   }, [currentFileForSettings, removeUploadedSource, processNextFile]);
 
   return {
-    selectedSource,
     selectedSourceSettings,
     isSourceSettingsOpen,
     isRawUploaded,

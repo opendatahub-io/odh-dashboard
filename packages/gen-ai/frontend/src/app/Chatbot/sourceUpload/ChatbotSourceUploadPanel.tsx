@@ -2,7 +2,6 @@ import React, { useRef, useState } from 'react';
 import { AlertGroup, Button, type DropEvent } from '@patternfly/react-core';
 import { FileIcon } from '@patternfly/react-icons';
 import { FileWithSettings } from '~/app/Chatbot/hooks/useSourceManagement';
-import { initializeFileProgress } from './utils';
 import { UploadedFileItem } from './UploadedFileItem';
 
 type ChatbotSourceUploadPanelProps = {
@@ -22,7 +21,6 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [fileProgress, setFileProgress] = useState<Record<string, number>>({});
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -39,7 +37,6 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
     setIsDragOver(false);
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
-      initializeFileProgress(files, setFileProgress);
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       handleSourceDrop(e as DropEvent, files);
     }
@@ -48,7 +45,6 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
-      initializeFileProgress(files, setFileProgress);
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any
       handleSourceDrop(e as any, files);
     }
@@ -104,12 +100,12 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
 
       {filesWithSettings.map((fileWithSettings) => {
         const progress =
-          fileWithSettings.status === 'uploading'
-            ? fileProgress[fileWithSettings.file.name] || 0
-            : fileWithSettings.status === 'uploaded'
+          fileWithSettings.status === 'uploaded'
+            ? 100
+            : fileWithSettings.status === 'failed'
               ? 100
-              : fileWithSettings.status === 'failed'
-                ? 100
+              : fileWithSettings.status === 'uploading'
+                ? 50 // Show 50% progress during upload since we don't have real progress
                 : 0;
 
         return (

@@ -74,15 +74,16 @@ describe('useSourceManagement', () => {
         }),
       );
 
-      expect(result.current.selectedSource).toEqual([]);
+      expect(result.current.filesWithSettings).toEqual([]);
       expect(result.current.selectedSourceSettings).toBeNull();
       expect(result.current.isSourceSettingsOpen).toBe(false);
       expect(result.current.isRawUploaded).toBe(false);
+      expect(result.current.currentFileForSettings).toBeNull();
     });
   });
 
   describe('handleSourceDrop', () => {
-    it('should set selected source when files are dropped', async () => {
+    it('should add files to filesWithSettings when files are dropped', async () => {
       const { result } = renderHook(() =>
         useSourceManagement({
           onShowSuccessAlert: mockOnShowSuccessAlert,
@@ -94,7 +95,10 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceDrop(mockDropEvent, [mockFile]);
       });
 
-      expect(result.current.selectedSource).toEqual([mockFile]);
+      expect(result.current.filesWithSettings).toHaveLength(1);
+      expect(result.current.filesWithSettings[0].file).toEqual(mockFile);
+      expect(result.current.filesWithSettings[0].status).toBe('pending');
+      expect(result.current.filesWithSettings[0].settings).toBeNull();
     });
 
     it('should handle text files without extraction for now', async () => {
@@ -112,7 +116,9 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceDrop(mockDropEvent, [textFile]);
       });
 
-      expect(result.current.selectedSource).toEqual([textFile]);
+      expect(result.current.filesWithSettings).toHaveLength(1);
+      expect(result.current.filesWithSettings[0].file).toEqual(textFile);
+      expect(result.current.filesWithSettings[0].status).toBe('pending');
     });
 
     it('should handle binary files', async () => {
@@ -129,7 +135,9 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceDrop(mockDropEvent, [binaryFile]);
       });
 
-      expect(result.current.selectedSource).toEqual([binaryFile]);
+      expect(result.current.filesWithSettings).toHaveLength(1);
+      expect(result.current.filesWithSettings[0].file).toEqual(binaryFile);
+      expect(result.current.filesWithSettings[0].status).toBe('pending');
     });
 
     it('should handle multiple files being dropped', async () => {
@@ -145,10 +153,14 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceDrop(mockDropEvent, [mockFile, mockFile2]);
       });
 
-      expect(result.current.selectedSource).toEqual([mockFile, mockFile2]);
+      expect(result.current.filesWithSettings).toHaveLength(2);
+      expect(result.current.filesWithSettings[0].file).toEqual(mockFile);
+      expect(result.current.filesWithSettings[1].file).toEqual(mockFile2);
+      expect(result.current.filesWithSettings[0].status).toBe('pending');
+      expect(result.current.filesWithSettings[1].status).toBe('pending');
     });
 
-    it('should open source settings modal after delay when source is selected', async () => {
+    it('should open source settings modal after delay when files are dropped', async () => {
       const { result } = renderHook(() =>
         useSourceManagement({
           onShowSuccessAlert: mockOnShowSuccessAlert,
@@ -161,6 +173,7 @@ describe('useSourceManagement', () => {
       });
 
       expect(result.current.isSourceSettingsOpen).toBe(false);
+      expect(result.current.currentFileForSettings).toBeNull();
 
       // Fast-forward the timer
       act(() => {
@@ -168,11 +181,12 @@ describe('useSourceManagement', () => {
       });
 
       expect(result.current.isSourceSettingsOpen).toBe(true);
+      expect(result.current.currentFileForSettings).toEqual(mockFile);
     });
   });
 
   describe('removeUploadedSource', () => {
-    it('should clear all source-related state', () => {
+    it('should remove file from filesWithSettings', async () => {
       const { result } = renderHook(() =>
         useSourceManagement({
           onShowSuccessAlert: mockOnShowSuccessAlert,
@@ -180,26 +194,51 @@ describe('useSourceManagement', () => {
         }),
       );
 
-      // Set some initial state
-      act(() => {
-        result.current.setSelectedSourceSettings(mockSourceSettings);
+      // Add a file
+      await act(async () => {
+        await result.current.handleSourceDrop(mockDropEvent, [mockFile]);
       });
 
-      act(() => {
-        result.current.handleSourceDrop(mockDropEvent, [mockFile]);
-      });
-
-      // Verify state is set
-      expect(result.current.selectedSource).toEqual([mockFile]);
-      expect(result.current.selectedSourceSettings).toEqual(mockSourceSettings);
+      // Verify file is added
+      expect(result.current.filesWithSettings).toHaveLength(1);
+      expect(result.current.filesWithSettings[0].file).toEqual(mockFile);
 
       // Remove uploaded source
       act(() => {
         result.current.removeUploadedSource(mockFile.name);
       });
 
-      expect(result.current.selectedSource).toEqual([]);
-      expect(result.current.selectedSourceSettings).toBeNull();
+      expect(result.current.filesWithSettings).toHaveLength(0);
+    });
+
+    it('should clear currentFileForSettings if removing current file', async () => {
+      const { result } = renderHook(() =>
+        useSourceManagement({
+          onShowSuccessAlert: mockOnShowSuccessAlert,
+          onShowErrorAlert: mockOnShowErrorAlert,
+        }),
+      );
+
+      // Add a file and process it
+      await act(async () => {
+        await result.current.handleSourceDrop(mockDropEvent, [mockFile]);
+      });
+
+      // Fast-forward timer to set current file
+      act(() => {
+        jest.advanceTimersByTime(100);
+      });
+
+      expect(result.current.currentFileForSettings).toEqual(mockFile);
+      expect(result.current.isSourceSettingsOpen).toBe(true);
+
+      // Remove the current file
+      act(() => {
+        result.current.removeUploadedSource(mockFile.name);
+      });
+
+      expect(result.current.currentFileForSettings).toBeNull();
+      expect(result.current.isSourceSettingsOpen).toBe(false);
     });
   });
 
@@ -232,6 +271,13 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceDrop(mockDropEvent, [mockFile]);
       });
 
+      // Fast-forward timer to set current file
+      act(() => {
+        jest.advanceTimersByTime(100);
+      });
+
+      expect(result.current.currentFileForSettings).toEqual(mockFile);
+
       await act(async () => {
         await result.current.handleSourceSettingsSubmit(mockSourceSettings);
       });
@@ -241,6 +287,9 @@ describe('useSourceManagement', () => {
       expect(result.current.isSourceSettingsOpen).toBe(false);
       expect(mockOnShowSuccessAlert).toHaveBeenCalled();
       expect(mockOnShowErrorAlert).not.toHaveBeenCalled();
+
+      // Check that file status was updated to uploaded
+      expect(result.current.filesWithSettings[0].status).toBe('uploaded');
     });
 
     it('should handle upload failure and show error alert', async () => {
@@ -260,6 +309,11 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceDrop(mockDropEvent, [mockFile]);
       });
 
+      // Fast-forward timer to set current file
+      act(() => {
+        jest.advanceTimersByTime(100);
+      });
+
       await act(async () => {
         await result.current.handleSourceSettingsSubmit(mockSourceSettings);
       });
@@ -267,10 +321,13 @@ describe('useSourceManagement', () => {
       expect(mockUploadSource).toHaveBeenCalledWith(mockFile, mockSourceSettings, 'test-namespace');
       expect(mockOnShowErrorAlert).toHaveBeenCalled();
       expect(mockOnShowSuccessAlert).not.toHaveBeenCalled();
+
+      // Check that file status was updated to failed
+      expect(result.current.filesWithSettings[0].status).toBe('failed');
       consoleErrorSpy.mockRestore();
     });
 
-    it('should throw error when namespace is missing', async () => {
+    it('should handle error when namespace is missing', async () => {
       mockUseContext.mockReturnValue({ namespace: undefined });
 
       const { result } = renderHook(() =>
@@ -285,6 +342,11 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceDrop(mockDropEvent, [mockFile]);
       });
 
+      // Fast-forward timer to set current file
+      act(() => {
+        jest.advanceTimersByTime(100);
+      });
+
       await act(async () => {
         await result.current.handleSourceSettingsSubmit(mockSourceSettings);
       });
@@ -294,7 +356,7 @@ describe('useSourceManagement', () => {
       expect(mockOnShowSuccessAlert).not.toHaveBeenCalled();
     });
 
-    it('should throw error when namespace name is empty', async () => {
+    it('should handle error when namespace name is empty', async () => {
       mockUseContext.mockReturnValue({ namespace: { name: '' } });
 
       const { result } = renderHook(() =>
@@ -309,6 +371,11 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceDrop(mockDropEvent, [mockFile]);
       });
 
+      // Fast-forward timer to set current file
+      act(() => {
+        jest.advanceTimersByTime(100);
+      });
+
       await act(async () => {
         await result.current.handleSourceSettingsSubmit(mockSourceSettings);
       });
@@ -318,7 +385,7 @@ describe('useSourceManagement', () => {
       expect(mockOnShowSuccessAlert).not.toHaveBeenCalled();
     });
 
-    it('should clear source when settings is null', async () => {
+    it('should remove file when settings is null (user cancels)', async () => {
       const { result } = renderHook(() =>
         useSourceManagement({
           onShowSuccessAlert: mockOnShowSuccessAlert,
@@ -331,13 +398,19 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceDrop(mockDropEvent, [mockFile]);
       });
 
-      expect(result.current.selectedSource).toEqual([mockFile]);
+      // Fast-forward timer to set current file
+      act(() => {
+        jest.advanceTimersByTime(100);
+      });
+
+      expect(result.current.filesWithSettings).toHaveLength(1);
+      expect(result.current.currentFileForSettings).toEqual(mockFile);
 
       await act(async () => {
         await result.current.handleSourceSettingsSubmit(null);
       });
 
-      expect(result.current.selectedSource).toEqual([]);
+      expect(result.current.filesWithSettings).toHaveLength(0);
       expect(result.current.selectedSourceSettings).toBeNull();
       expect(result.current.isSourceSettingsOpen).toBe(false);
       expect(mockUploadSource).not.toHaveBeenCalled();
@@ -345,7 +418,7 @@ describe('useSourceManagement', () => {
       expect(mockOnShowErrorAlert).not.toHaveBeenCalled();
     });
 
-    it('should handle empty selectedSource array gracefully', async () => {
+    it('should handle submit when no current file is set', async () => {
       const { result } = renderHook(() =>
         useSourceManagement({
           onShowSuccessAlert: mockOnShowSuccessAlert,
@@ -353,53 +426,21 @@ describe('useSourceManagement', () => {
         }),
       );
 
-      expect(result.current.selectedSource).toEqual([]);
+      expect(result.current.currentFileForSettings).toBeNull();
 
-      // This should now handle the case where selectedSource[0] is undefined
+      // This should handle the case where no current file is set
       await act(async () => {
         await result.current.handleSourceSettingsSubmit(mockSourceSettings);
       });
 
       expect(mockUploadSource).not.toHaveBeenCalled();
-      // Should call error alert due to "No file selected" error
-      expect(mockOnShowErrorAlert).toHaveBeenCalled();
+      expect(mockOnShowErrorAlert).not.toHaveBeenCalled();
       expect(mockOnShowSuccessAlert).not.toHaveBeenCalled();
-    });
-
-    it('should clear selectedSourceSettings when settings is null', async () => {
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
-      );
-
-      // Set up initial state
-      act(() => {
-        result.current.setSelectedSourceSettings(mockSourceSettings);
-      });
-
-      await act(async () => {
-        await result.current.handleSourceDrop(mockDropEvent, [mockFile]);
-      });
-
-      expect(result.current.selectedSourceSettings).toEqual(mockSourceSettings);
-      expect(result.current.selectedSource).toEqual([mockFile]);
-
-      // Submit with null settings
-      await act(async () => {
-        await result.current.handleSourceSettingsSubmit(null);
-      });
-
-      // Verify all state is cleared consistently
-      expect(result.current.selectedSource).toEqual([]);
-      expect(result.current.selectedSourceSettings).toBeNull();
-      expect(result.current.isSourceSettingsOpen).toBe(false);
     });
   });
 
-  describe('useEffect timer behavior', () => {
-    it('should not open modal when selectedSource is empty', () => {
+  describe('timer behavior', () => {
+    it('should not open modal when no files are pending', () => {
       const { result } = renderHook(() =>
         useSourceManagement({
           onShowSuccessAlert: mockOnShowSuccessAlert,
@@ -416,7 +457,7 @@ describe('useSourceManagement', () => {
       expect(result.current.isSourceSettingsOpen).toBe(false);
     });
 
-    it('should cleanup timer when selectedSource changes before timeout', async () => {
+    it('should process multiple files sequentially', async () => {
       const { result } = renderHook(() =>
         useSourceManagement({
           onShowSuccessAlert: mockOnShowSuccessAlert,
@@ -424,35 +465,22 @@ describe('useSourceManagement', () => {
         }),
       );
 
-      // Set first file
-      await act(async () => {
-        await result.current.handleSourceDrop(mockDropEvent, [mockFile]);
-      });
-
-      // Advance timer partially
-      act(() => {
-        jest.advanceTimersByTime(50);
-      });
-
-      // Set different file before timer completes
       const mockFile2 = new File(['test content 2'], 'test2.txt', { type: 'text/plain' });
+
+      // Add multiple files
       await act(async () => {
-        await result.current.handleSourceDrop(mockDropEvent, [mockFile2]);
+        await result.current.handleSourceDrop(mockDropEvent, [mockFile, mockFile2]);
       });
 
-      // Complete the original timer
-      act(() => {
-        jest.advanceTimersByTime(50);
-      });
+      expect(result.current.filesWithSettings).toHaveLength(2);
 
-      expect(result.current.isSourceSettingsOpen).toBe(false);
-
-      // Complete the new timer
+      // Fast-forward timer to process first file
       act(() => {
         jest.advanceTimersByTime(100);
       });
 
       expect(result.current.isSourceSettingsOpen).toBe(true);
+      expect(result.current.currentFileForSettings).toEqual(mockFile);
     });
   });
 
@@ -469,6 +497,11 @@ describe('useSourceManagement', () => {
 
       await act(async () => {
         await result.current.handleSourceDrop(mockDropEvent, [mockFile]);
+      });
+
+      // Fast-forward timer to set current file
+      act(() => {
+        jest.advanceTimersByTime(100);
       });
 
       await act(async () => {
@@ -496,6 +529,11 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceDrop(mockDropEvent, [mockFile]);
       });
 
+      // Fast-forward timer to set current file
+      act(() => {
+        jest.advanceTimersByTime(100);
+      });
+
       await act(async () => {
         await result.current.handleSourceSettingsSubmit(partialSettings);
       });
@@ -521,8 +559,10 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceDrop(mockDropEvent, [file2]);
       });
 
-      // Should use the last dropped file
-      expect(result.current.selectedSource).toEqual([file2]);
+      // Should accumulate all files
+      expect(result.current.filesWithSettings).toHaveLength(2);
+      expect(result.current.filesWithSettings[0].file).toEqual(file1);
+      expect(result.current.filesWithSettings[1].file).toEqual(file2);
     });
   });
 });
