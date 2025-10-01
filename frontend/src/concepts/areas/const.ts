@@ -8,7 +8,6 @@ import {
 } from './types';
 
 export const techPreviewFlags = {
-  disableHardwareProfiles: true,
   disableModelRegistry: true,
 } satisfies Partial<DashboardCommonConfig>;
 
