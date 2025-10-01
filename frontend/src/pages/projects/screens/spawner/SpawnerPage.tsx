@@ -196,13 +196,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
 
   const podSpecOptionsState = useNotebookKindPodSpecOptionsState(existingNotebook);
   const {
-    notebooksSize: { selectedSize: notebookSize, setSelectedSize: setNotebookSize, sizes },
-    acceleratorProfile: {
-      initialState: acceleratorProfileInitialState,
-      formData: acceleratorProfileFormData,
-      setFormData: setAcceleratorProfileFormData,
-      loaded: acceleratorProfilesLoaded,
-    },
+    acceleratorProfile: { formData: acceleratorProfileFormData },
     hardwareProfile: { formData: hardwareProfileFormData },
   } = podSpecOptionsState;
 
