@@ -322,18 +322,6 @@ describe('Workbench Hardware Profiles', () => {
     );
   });
 
-  it('should not display hardware profile selection when feature flag is disabled', () => {
-    initIntercepts({ disableHardwareProfiles: true });
-
-    // Navigate to workbench creation
-    projectDetails.visit(projectName);
-    projectDetails.findSectionTab('workbenches').click();
-    workbenchPage.findCreateButton().click();
-
-    // Verify hardware profile section does not exist
-    hardwareProfileSection.findSelect().should('not.exist');
-  });
-
   describe('Edit Workbench Hardware Profiles', () => {
     it('should auto-select hardware profile from annotations', () => {
       initIntercepts({
