@@ -146,27 +146,27 @@ jobs:
           
           # Note: If secrets not provided, BASE_URL will be set at test run time with dynamic port
 
-      - name: Start webpack server
+      - name: Cleanup and start webpack server
         run: |
-          # Assign fixed port based on test tag to avoid conflicts
-          case "${{ matrix.test-tag }}" in
-            "@SmokeSet1") CYPRESS_PORT=4010 ;;
-            "@SmokeSet2") CYPRESS_PORT=4020 ;;
-            "@SmokeSet3") CYPRESS_PORT=4030 ;;
-            *) CYPRESS_PORT=4010 ;;
-          esac
-          
-          echo "Using port $CYPRESS_PORT for ${{ matrix.test-tag }}"
+          # Use port 4010 only - match OLD workflow exactly
+          CYPRESS_PORT=4010
           echo "CYPRESS_PORT=$CYPRESS_PORT" >> $GITHUB_ENV
           
-          # Start server
-          echo "Starting webpack dev server on port $CYPRESS_PORT..."
-          cd frontend && ODH_PORT=$CYPRESS_PORT npm run start:dev:ext > /tmp/webpack-${CYPRESS_PORT}.log 2>&1 &
+          # Cleanup like old workflow
+          echo "Cleaning up any existing processes..."
+          pkill -f "webpack.*serve" || echo "No webpack processes found"
+          pkill -f "node.*4010" || echo "No node processes on port 4010"
+          sleep 2
+          
+          # Start server EXACTLY like old workflow - no ODH_PORT setting
+          echo "Starting webpack dev server with cluster proxy..."
+          cd frontend && npm run start:dev:ext &
           
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
-          echo "Started server with PID: $SERVER_PID on port $CYPRESS_PORT"
+          echo "Started webpack dev server with PID: $SERVER_PID"
           
+          echo "Giving server 15 seconds to initialize..."
           sleep 15
 
       - name: Wait for Server Ready
