@@ -295,6 +295,7 @@ func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *inte
 			Endpoints:      kc.extractEndpoints(&isvc),
 			Status:         kc.extractStatusFromInferenceService(&isvc),
 			DisplayName:    kc.extractDisplayNameFromInferenceService(&isvc),
+			SAToken:        kc.extractSATokenFromInferenceService(&isvc),
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -416,6 +417,132 @@ func (kc *TokenKubernetesClient) extractDisplayNameFromInferenceService(isvc *ks
 		return isvc.Name
 	}
 	return displayName
+}
+
+// Helper method to extract service account token information from InferenceService
+func (kc *TokenKubernetesClient) extractSATokenFromInferenceService(isvc *kservev1beta1.InferenceService) models.SAToken {
+	ctx := context.Background()
+
+	// Get the actual service account used by the InferenceService pods
+	serviceAccountName, secretName := kc.findServiceAccountAndSecretForInferenceService(ctx, isvc)
+
+	// Extract the actual token value and display name from the secret
+	tokenValue, tokenName := kc.extractTokenAndDisplayNameFromSecret(ctx, isvc.Namespace, secretName)
+
+	kc.Logger.Debug("extracted service account info",
+		"inferenceService", isvc.Name,
+		"serviceAccount", serviceAccountName,
+		"secretName", secretName,
+		"tokenName", tokenName,
+		"hasToken", tokenValue != "")
+
+	return models.SAToken{
+		Name:      serviceAccountName,
+		TokenName: tokenName,  // This is the display name from the secret
+		Token:     tokenValue, // This is the actual token value
+	}
+}
+
+// Helper method to find the actual service account and secret used by InferenceService
+func (kc *TokenKubernetesClient) findServiceAccountAndSecretForInferenceService(ctx context.Context, isvc *kservev1beta1.InferenceService) (string, string) {
+	// List service accounts in the namespace
+	var saList corev1.ServiceAccountList
+	err := kc.Client.List(ctx, &saList, client.InNamespace(isvc.Namespace))
+	if err != nil {
+		kc.Logger.Warn("failed to list service accounts", "error", err, "namespace", isvc.Namespace)
+		return "", ""
+	}
+
+	// Find service account with owner reference to this InferenceService
+	for _, sa := range saList.Items {
+		for _, ownerRef := range sa.OwnerReferences {
+			if ownerRef.Kind == "InferenceService" && ownerRef.Name == isvc.Name {
+				kc.Logger.Debug("found service account with owner reference",
+					"serviceAccount", sa.Name,
+					"inferenceService", isvc.Name)
+
+				// Find the secret associated with this service account
+				secretName := kc.findSecretForServiceAccount(ctx, isvc.Namespace, sa.Name)
+				return sa.Name, secretName
+			}
+		}
+	}
+
+	// If no service account found with owner reference, use default
+	kc.Logger.Debug("no service account found with owner reference, using default",
+		"inferenceService", isvc.Name)
+	secretName := kc.findSecretForServiceAccount(ctx, isvc.Namespace, "default")
+	return "default", secretName
+}
+
+// Helper method to find the secret containing the service account token
+func (kc *TokenKubernetesClient) findSecretForServiceAccount(ctx context.Context, namespace, serviceAccountName string) string {
+	// List secrets in the namespace
+	var secretList corev1.SecretList
+	err := kc.Client.List(ctx, &secretList, client.InNamespace(namespace))
+	if err != nil {
+		kc.Logger.Warn("failed to list secrets", "error", err, "namespace", namespace)
+		return serviceAccountName + "-token"
+	}
+
+	// Find secret with the service account annotation
+	for _, secret := range secretList.Items {
+		if secret.Type == corev1.SecretTypeServiceAccountToken {
+			if saName, exists := secret.Annotations["kubernetes.io/service-account.name"]; exists && saName == serviceAccountName {
+				kc.Logger.Debug("found service account token secret",
+					"serviceAccount", serviceAccountName,
+					"secretName", secret.Name)
+				return secret.Name
+			}
+		}
+	}
+
+	// If no secret found, return the expected pattern
+	kc.Logger.Debug("no service account token secret found, using pattern",
+		"serviceAccount", serviceAccountName)
+	return serviceAccountName + "-token"
+}
+
+// Helper method to extract the actual token value and display name from a secret
+func (kc *TokenKubernetesClient) extractTokenAndDisplayNameFromSecret(ctx context.Context, namespace, secretName string) (string, string) {
+	if secretName == "" {
+		return "", ""
+	}
+
+	// Get the secret
+	var secret corev1.Secret
+	key := client.ObjectKey{
+		Namespace: namespace,
+		Name:      secretName,
+	}
+	err := kc.Client.Get(ctx, key, &secret)
+	if err != nil {
+		kc.Logger.Warn("failed to get secret", "error", err, "secretName", secretName, "namespace", namespace)
+		return "", ""
+	}
+
+	// Extract the token from the secret data
+	tokenValue := ""
+	if tokenData, exists := secret.Data["token"]; exists {
+		tokenValue = string(tokenData)
+	} else {
+		kc.Logger.Warn("token not found in secret data", "secretName", secretName)
+	}
+
+	// Extract the display name from the secret annotations
+	tokenName := ""
+	if secret.Annotations != nil {
+		if displayName, exists := secret.Annotations["openshift.io/display-name"]; exists {
+			tokenName = displayName
+		}
+	}
+
+	// If no display name found, use the secret name as fallback
+	if tokenName == "" {
+		tokenName = secretName
+	}
+
+	return tokenValue, tokenName
 }
 
 func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []string) (*lsdapi.LlamaStackDistribution, error) {
@@ -726,6 +853,7 @@ benchmarks: []
 tool_groups:
 - toolgroup_id: builtin::rag
   provider_id: rag-runtime
+external_providers_dir: /opt/app-root/.llama/providers.d
 server:
   port: 8321`, providersYAML, modelsYAML)
 
@@ -735,7 +863,8 @@ server:
 // getModelDetailsFromServingRuntime queries the serving runtime and inference service
 // to get detailed model configuration information
 func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.Context, namespace string, modelID string) (map[string]interface{}, error) {
-	targetISVC, err := kc.findInferenceServiceByName(ctx, namespace, modelID)
+	// Find InferenceService by name
+	targetISVC, err := kc.findInferenceServiceByModelName(ctx, namespace, modelID)
 	if err != nil {
 		kc.Logger.Error("failed to find InferenceService for model", "modelID", modelID, "error", err)
 		return nil, fmt.Errorf("InferenceService for model '%s' not found: %w", modelID, err)
@@ -743,23 +872,35 @@ func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.C
 
 	// Extract the internal URL from the InferenceService status
 	// Use Status.URL which is already the internal HTTP address
-	if targetISVC.Status.URL == nil {
+	if targetISVC.Status.Address.URL == nil {
 		kc.Logger.Error("InferenceService has no internal URL", "name", targetISVC.Name, "namespace", namespace)
 		return nil, fmt.Errorf("InferenceService '%s' has no internal URL - service may not be ready", targetISVC.Name)
 	}
 
-	// Convert URL pointer to string
-	internalURL := targetISVC.Status.URL.String()
+	// When routes are enabled, the Status.URL is the route URL, not the internal URL so we use the Address.URL
+	internalURL := targetISVC.Status.Address.URL.URL()
+	currentPort := internalURL.Port()
+	hostname := internalURL.Hostname()
 
-	// Check if port is already present (look for :port pattern after the hostname)
-	// We need to check for :port after the hostname, not just any colon (http:// has a colon)
-	if !strings.Contains(internalURL, ".svc.cluster.local:") {
-		internalURL = internalURL + ":80"
+	// Auth Inference Services should always have the auth annotation and include the 8443 port
+	if targetISVC.Annotations["security.opendatahub.io/enable-auth"] == "true" {
+		if currentPort != "8443" {
+			internalURL.Host = hostname + ":8443"
+		}
+	} else {
+		// For non-auth services, ensure http scheme and 8080 port
+		if internalURL.Scheme == "https" {
+			internalURL.Scheme = "http"
+		}
+		if currentPort != "8080" {
+			internalURL.Host = hostname + ":8080"
+		}
 	}
 
+	internalURLStr := internalURL.String()
 	// Add /v1 suffix if not present
-	if !strings.HasSuffix(internalURL, "/v1") {
-		internalURL = internalURL + "/v1"
+	if !strings.HasSuffix(internalURLStr, "/v1") {
+		internalURLStr = internalURLStr + "/v1"
 	}
 
 	// Extract additional metadata from the InferenceService
@@ -782,12 +923,12 @@ func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.C
 		"provider_id":  providerID,
 		"model_type":   modelType,
 		"metadata":     metadata,
-		"endpoint_url": internalURL,
+		"endpoint_url": internalURLStr,
 	}, nil
 }
 
-// findInferenceServiceByName finds an InferenceService by its k8s name
-func (kc *TokenKubernetesClient) findInferenceServiceByName(ctx context.Context, namespace, modelName string) (*kservev1beta1.InferenceService, error) {
+// findInferenceServiceByModelName finds an InferenceService by its display name annotation
+func (kc *TokenKubernetesClient) findInferenceServiceByModelName(ctx context.Context, namespace, modelName string) (*kservev1beta1.InferenceService, error) {
 	// List all InferenceServices in the namespace
 	var isvcList kservev1beta1.InferenceServiceList
 	err := kc.Client.List(ctx, &isvcList, client.InNamespace(namespace))
@@ -796,15 +937,15 @@ func (kc *TokenKubernetesClient) findInferenceServiceByName(ctx context.Context,
 		return nil, fmt.Errorf("failed to list InferenceServices in namespace %s: %w", namespace, err)
 	}
 
-	// Find InferenceService with matching k8s name
+	// Find InferenceService with name matching the model name
 	for _, isvc := range isvcList.Items {
 		if isvc.Name == modelName {
-			kc.Logger.Info("found InferenceService by name", "modelName", modelName, "isvcName", isvc.Name, "namespace", namespace)
+			kc.Logger.Info("found InferenceService by model name", "modelName", modelName, "isvcName", isvc.Name, "namespace", namespace)
 			return &isvc, nil
 		}
 	}
 
-	return nil, fmt.Errorf("InferenceService with name '%s' not found in namespace %s", modelName, namespace)
+	return nil, fmt.Errorf("InferenceService with model name '%s' not found in namespace %s", modelName, namespace)
 }
 
 func (kc *TokenKubernetesClient) DeleteLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*lsdapi.LlamaStackDistribution, error) {
