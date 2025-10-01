@@ -45,3 +45,45 @@ func (r *VectorStoresRepository) CreateVectorStore(ctx context.Context, params l
 	// For now, direct passthrough from client to handler
 	return client.CreateVectorStore(ctx, params)
 }
+
+// DeleteVectorStore deletes a vector store by ID.
+// The LlamaStack client is expected to be in the context (created by AttachLlamaStackClient middleware).
+func (r *VectorStoresRepository) DeleteVectorStore(ctx context.Context, vectorStoreID string) error {
+	// Get ready-to-use LlamaStack client from context using helper
+	client, err := helper.GetContextLlamaStackClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Repository layer can add transformation logic here if needed
+	// For now, direct passthrough from client to handler
+	return client.DeleteVectorStore(ctx, vectorStoreID)
+}
+
+// ListVectorStoreFiles lists files in a vector store with optional filtering parameters.
+// The LlamaStack client is expected to be in the context (created by AttachLlamaStackClient middleware).
+func (r *VectorStoresRepository) ListVectorStoreFiles(ctx context.Context, vectorStoreID string, params llamastack.ListVectorStoreFilesParams) ([]openai.VectorStoreFile, error) {
+	// Get ready-to-use LlamaStack client from context using helper
+	client, err := helper.GetContextLlamaStackClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Repository layer can add transformation logic here if needed
+	// For now, direct passthrough from client to handler
+	return client.ListVectorStoreFiles(ctx, vectorStoreID, params)
+}
+
+// DeleteVectorStoreFile removes a file from a vector store.
+// The LlamaStack client is expected to be in the context (created by AttachLlamaStackClient middleware).
+func (r *VectorStoresRepository) DeleteVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) error {
+	// Get ready-to-use LlamaStack client from context using helper
+	client, err := helper.GetContextLlamaStackClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Repository layer can add transformation logic here if needed
+	// For now, direct passthrough from client to handler
+	return client.DeleteVectorStoreFile(ctx, vectorStoreID, fileID)
+}

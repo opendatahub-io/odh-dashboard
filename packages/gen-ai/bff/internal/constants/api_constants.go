@@ -16,8 +16,13 @@ const (
 	// LlamaStack Distribution (LSD) endpoints
 	ModelsListPath                    = ApiPathPrefix + "/lsd/models"
 	VectorStoresListPath              = ApiPathPrefix + "/lsd/vectorstores"
+	VectorStoresDeletePath            = ApiPathPrefix + "/lsd/vectorstores/delete"
 	ResponsesPath                     = ApiPathPrefix + "/lsd/responses"
+	FilesListPath                     = ApiPathPrefix + "/lsd/files"
 	FilesUploadPath                   = ApiPathPrefix + "/lsd/files/upload"
+	FilesDeletePath                   = ApiPathPrefix + "/lsd/files/delete"
+	VectorStoreFilesListPath          = ApiPathPrefix + "/lsd/vectorstores/files"
+	VectorStoreFilesDeletePath        = ApiPathPrefix + "/lsd/vectorstores/files/delete"
 	LlamaStackDistributionStatusPath  = ApiPathPrefix + "/lsd/status"
 	LlamaStackDistributionInstallPath = ApiPathPrefix + "/lsd/install"
 	LlamaStackDistributionDeletePath  = ApiPathPrefix + "/lsd/delete"
