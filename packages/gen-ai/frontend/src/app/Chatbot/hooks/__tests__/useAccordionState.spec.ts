@@ -6,7 +6,7 @@ jest.mock('~/app/Chatbot/const', () => ({
   DEFAULT_EXPANDED_ACCORDION_ITEMS: ['model-details-item'],
   ACCORDION_ITEMS: {
     MODEL_DETAILS: 'model-details-item',
-    SOURCES: 'sources-item',
+    RAG: 'sources-item',
     MCP_SERVERS: 'mcp-servers-item',
   },
 }));

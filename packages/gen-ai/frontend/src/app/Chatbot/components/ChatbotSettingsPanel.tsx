@@ -10,8 +10,6 @@ import {
   FormGroup,
   Title,
   Switch,
-  FlexItem,
-  Flex,
   Label,
 } from '@patternfly/react-core';
 import { ChatbotSourceUploadPanel } from '~/app/Chatbot/sourceUpload/ChatbotSourceUploadPanel';
@@ -121,48 +119,44 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
               </Form>
             </AccordionContent>
           </AccordionItem>
-          {/* Sources Accordion Item */}
+          {/* RAG Accordion Item */}
           <AccordionItem
-            isExpanded={accordionState.expandedAccordionItems.includes(ACCORDION_ITEMS.SOURCES)}
+            isExpanded={accordionState.expandedAccordionItems.includes(ACCORDION_ITEMS.RAG)}
           >
             <AccordionToggle
-              onClick={() => accordionState.onAccordionToggle(ACCORDION_ITEMS.SOURCES)}
-              id={ACCORDION_ITEMS.SOURCES}
+              onClick={() => accordionState.onAccordionToggle(ACCORDION_ITEMS.RAG)}
+              id={ACCORDION_ITEMS.RAG}
             >
-              <Flex alignItems={{ default: 'alignItemsCenter' }}>
-                <FlexItem>
-                  {/* Use div to prevent the click event from bubbling up to the accordion toggle */}
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={(e) => {
+              <div className="pf-v6-u-display-flex pf-v6-u-align-items-center pf-v6-u-justify-content-space-between pf-v6-u-w-100">
+                <Title headingLevel="h2" size="lg">
+                  RAG
+                </Title>
+                {/* Use div to prevent the click event from bubbling up to the accordion toggle */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
                       e.stopPropagation();
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        sourceManagement.setIsRawUploaded(!sourceManagement.isRawUploaded);
-                      }
-                    }}
+                      e.preventDefault();
+                      sourceManagement.setIsRawUploaded(!sourceManagement.isRawUploaded);
+                    }
+                  }}
+                  aria-label="Toggle uploaded mode"
+                >
+                  <Switch
+                    id="no-label-switch-on"
                     aria-label="Toggle uploaded mode"
-                  >
-                    <Switch
-                      id="no-label-switch-on"
-                      aria-label="Toggle uploaded mode"
-                      isChecked={sourceManagement.isRawUploaded}
-                      onChange={() =>
-                        sourceManagement.setIsRawUploaded(!sourceManagement.isRawUploaded)
-                      }
-                    />
-                  </div>
-                </FlexItem>
-                <FlexItem>
-                  <Title headingLevel="h2" size="lg">
-                    Sources
-                  </Title>
-                </FlexItem>
-              </Flex>
+                    isChecked={sourceManagement.isRawUploaded}
+                    onChange={() =>
+                      sourceManagement.setIsRawUploaded(!sourceManagement.isRawUploaded)
+                    }
+                  />
+                </div>
+              </div>
             </AccordionToggle>
             <AccordionContent id="sources-content">
               <Form>
