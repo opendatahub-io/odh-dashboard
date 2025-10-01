@@ -103,9 +103,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     <>
       <ChatbotSourceSettingsModal
         isOpen={sourceManagement.isSourceSettingsOpen}
-        onToggle={() =>
-          sourceManagement.setIsSourceSettingsOpen(!sourceManagement.isSourceSettingsOpen)
-        }
+        onToggle={sourceManagement.handleModalClose}
         onSubmitSettings={sourceManagement.handleSourceSettingsSubmit}
       />
       <ViewCodeModal

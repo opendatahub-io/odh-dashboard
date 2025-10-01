@@ -195,7 +195,7 @@ describe('useSourceManagement', () => {
 
       // Remove uploaded source
       act(() => {
-        result.current.removeUploadedSource();
+        result.current.removeUploadedSource(mockFile.name);
       });
 
       expect(result.current.selectedSource).toEqual([]);

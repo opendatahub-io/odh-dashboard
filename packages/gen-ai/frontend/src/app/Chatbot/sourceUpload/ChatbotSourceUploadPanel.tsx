@@ -1,37 +1,28 @@
 import React, { useRef, useState } from 'react';
-import {
-  AlertGroup,
-  Button,
-  Card,
-  CardBody,
-  Flex,
-  FlexItem,
-  type DropEvent,
-} from '@patternfly/react-core';
-import { FileIcon, TimesIcon } from '@patternfly/react-icons';
-import { ChatbotSourceSettings } from '~/app/types';
+import { AlertGroup, Button, type DropEvent } from '@patternfly/react-core';
+import { FileIcon } from '@patternfly/react-icons';
+import { FileWithSettings } from '~/app/Chatbot/hooks/useSourceManagement';
+import { initializeFileProgress } from './utils';
+import { UploadedFileItem } from './UploadedFileItem';
 
 type ChatbotSourceUploadPanelProps = {
   successAlert?: React.ReactElement;
   errorAlert?: React.ReactElement;
   handleSourceDrop: (event: DropEvent, sources: File[]) => void;
   removeUploadedSource: (sourceName: string) => void;
-  selectedSource: File[];
-  selectedSourceSettings: ChatbotSourceSettings | null;
-  setSelectedSourceSettings: (settings: ChatbotSourceSettings | null) => void;
+  filesWithSettings: FileWithSettings[];
 };
 
 const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
   successAlert,
   errorAlert,
   handleSourceDrop,
-  selectedSource,
-  selectedSourceSettings,
   removeUploadedSource,
-  setSelectedSourceSettings,
+  filesWithSettings,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [fileProgress, setFileProgress] = useState<Record<string, number>>({});
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -48,7 +39,7 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
     setIsDragOver(false);
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
-      // Pass the original drag event as DropEvent
+      initializeFileProgress(files, setFileProgress);
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       handleSourceDrop(e as DropEvent, files);
     }
@@ -57,7 +48,7 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
-      // Pass the change event as DropEvent
+      initializeFileProgress(files, setFileProgress);
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any
       handleSourceDrop(e as any, files);
     }
@@ -103,6 +94,7 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
             ref={fileInputRef}
             type="file"
             accept=".pdf,.doc,.docx,.csv"
+            multiple
             onChange={handleFileSelect}
             hidden
             aria-label="File upload input"
@@ -110,40 +102,28 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
         </div>
       </div>
 
-      {selectedSourceSettings &&
-        selectedSource.map((file) => (
-          <Card key={file.name} className="pf-v6-u-mt-md">
-            <CardBody>
-              <Flex
-                justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                alignItems={{ default: 'alignItemsCenter' }}
-              >
-                <FlexItem>
-                  <Flex alignItems={{ default: 'alignItemsCenter' }}>
-                    <FlexItem>
-                      <FileIcon className="pf-v6-u-mr-sm pf-v6-u-color-200" />
-                    </FlexItem>
-                    <FlexItem>
-                      <span className="pf-v6-u-font-size-sm">{file.name}</span>
-                    </FlexItem>
-                  </Flex>
-                </FlexItem>
-                <FlexItem>
-                  <Button
-                    variant="plain"
-                    onClick={() => {
-                      removeUploadedSource(file.name);
-                      setSelectedSourceSettings(null);
-                    }}
-                    aria-label={`Remove ${file.name}`}
-                  >
-                    <TimesIcon />
-                  </Button>
-                </FlexItem>
-              </Flex>
-            </CardBody>
-          </Card>
-        ))}
+      {filesWithSettings.map((fileWithSettings) => {
+        const progress =
+          fileWithSettings.status === 'uploading'
+            ? fileProgress[fileWithSettings.file.name] || 0
+            : fileWithSettings.status === 'uploaded'
+              ? 100
+              : fileWithSettings.status === 'failed'
+                ? 100
+                : 0;
+
+        return (
+          <UploadedFileItem
+            key={fileWithSettings.file.name}
+            file={fileWithSettings.file}
+            progress={progress}
+            status={fileWithSettings.status}
+            onRemove={(fileName) => {
+              removeUploadedSource(fileName);
+            }}
+          />
+        );
+      })}
     </>
   );
 };

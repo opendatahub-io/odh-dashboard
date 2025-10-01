@@ -165,10 +165,8 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                     successAlert={alerts.successAlert}
                     errorAlert={alerts.errorAlert}
                     handleSourceDrop={sourceManagement.handleSourceDrop}
-                    selectedSource={sourceManagement.selectedSource}
-                    selectedSourceSettings={sourceManagement.selectedSourceSettings}
                     removeUploadedSource={sourceManagement.removeUploadedSource}
-                    setSelectedSourceSettings={sourceManagement.setSelectedSourceSettings}
+                    filesWithSettings={sourceManagement.filesWithSettings}
                   />
                 </FormGroup>
               </Form>
