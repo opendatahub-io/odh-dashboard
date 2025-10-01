@@ -8,6 +8,7 @@ import {
   CodeExportResponse,
   CreateResponseRequest,
   FileUploadResult,
+  FileModel,
   LlamaModel,
   LlamaModelType,
   LlamaStackDistributionModel,
@@ -139,6 +140,63 @@ export const createVectorStore = (vectorName: string, namespace: string): Promis
     .catch((error) => {
       throw new Error(
         error.response?.data?.error?.message || error.message || 'Failed to create vector store',
+      );
+    });
+};
+
+/**
+ * Fetches all uploaded files from the Llama Stack API
+ * @param namespace - The namespace to fetch files from
+ * @param limit - Optional limit for number of files to return (default: 20)
+ * @param order - Optional sort order by creation timestamp (asc/desc, default: desc)
+ * @param purpose - Optional filter by file purpose (e.g., "assistants")
+ * @returns Promise<FileModel[]> - Array of uploaded files with their metadata
+ * @throws Error - When the API request fails or returns an error response
+ */
+export const listFiles = (
+  namespace: string,
+  limit?: number,
+  order?: 'asc' | 'desc',
+  purpose?: string,
+): Promise<FileModel[]> => {
+  const params = new URLSearchParams();
+  params.append('namespace', namespace);
+  if (limit) {
+    params.append('limit', limit.toString());
+  }
+  if (order) {
+    params.append('order', order);
+  }
+  if (purpose) {
+    params.append('purpose', purpose);
+  }
+
+  const url = `${URL_PREFIX}/api/v1/lsd/files?${params.toString()}`;
+  return axiosInstance
+    .get(url)
+    .then((response) => response.data.data)
+    .catch((error) => {
+      throw new Error(
+        error.response?.data?.error?.message || error.message || 'Failed to fetch files',
+      );
+    });
+};
+
+/**
+ * Deletes a file from the Llama Stack API
+ * @param fileId - The ID of the file to delete
+ * @param namespace - The namespace containing the file
+ * @returns Promise<void> - A promise that resolves when the file is deleted
+ * @throws Error - When the API request fails or returns an error response
+ */
+export const deleteFile = (fileId: string, namespace: string): Promise<void> => {
+  const url = `${URL_PREFIX}/api/v1/lsd/files/delete?namespace=${namespace}&file_id=${fileId}`;
+  return axiosInstance
+    .delete(url)
+    .then(() => undefined)
+    .catch((error) => {
+      throw new Error(
+        error.response?.data?.error?.message || error.message || 'Failed to delete file',
       );
     });
 };

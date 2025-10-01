@@ -8,7 +8,7 @@ export const ALERT_TIMEOUT_MS = 4000;
 // Accordion item identifiers
 export const ACCORDION_ITEMS = {
   MODEL_DETAILS: 'model-details-item',
-  RAG: 'sources-item',
+  SOURCES: 'sources-item',
   MCP_SERVERS: 'mcp-servers-item',
 } as const;
 

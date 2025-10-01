@@ -164,6 +164,18 @@ export type FileUploadResult = {
   vector_store_file: VectorStoreFile;
 };
 
+export type FileModel = {
+  id: string;
+  object: string;
+  bytes: number;
+  created_at: number;
+  filename: string;
+  purpose: string;
+  status: string;
+  expires_at: number;
+  status_details: string;
+};
+
 // Roles must be 'user' and 'assistant' according to the Llama Stack API
 export type ChatMessage = {
   role: 'user' | 'assistant';

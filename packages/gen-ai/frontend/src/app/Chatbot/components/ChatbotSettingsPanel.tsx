@@ -16,8 +16,10 @@ import { ChatbotSourceUploadPanel } from '~/app/Chatbot/sourceUpload/ChatbotSour
 import { ACCORDION_ITEMS } from '~/app/Chatbot/const';
 import useAccordionState from '~/app/Chatbot/hooks/useAccordionState';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
+import useFileManagement from '~/app/Chatbot/hooks/useFileManagement';
 import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
 import MCPServersPanelWithContext from '~/app/Chatbot/mcp/MCPServersPanelWithContext';
+import UploadedFilesList from './UploadedFilesList';
 import ModelDetailsDropdown from './ModelDetailsDropdown';
 import SystemPromptFormGroup from './SystemInstructionFormGroup';
 import ModelParameterFormGroup from './ModelParameterFormGroup';
@@ -56,6 +58,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
 }) => {
   const accordionState = useAccordionState();
   const { selectedServersCount, saveSelectedServersToPlayground } = useMCPSelectionContext();
+
+  // File management hook for displaying uploaded files
+  const fileManagement = useFileManagement();
 
   return (
     <DrawerPanelContent isResizable defaultSize="400px" minSize="300px">
@@ -121,11 +126,11 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           </AccordionItem>
           {/* RAG Accordion Item */}
           <AccordionItem
-            isExpanded={accordionState.expandedAccordionItems.includes(ACCORDION_ITEMS.RAG)}
+            isExpanded={accordionState.expandedAccordionItems.includes(ACCORDION_ITEMS.SOURCES)}
           >
             <AccordionToggle
-              onClick={() => accordionState.onAccordionToggle(ACCORDION_ITEMS.RAG)}
-              id={ACCORDION_ITEMS.RAG}
+              onClick={() => accordionState.onAccordionToggle(ACCORDION_ITEMS.SOURCES)}
+              id={ACCORDION_ITEMS.SOURCES}
             >
               <div className="pf-v6-u-display-flex pf-v6-u-align-items-center pf-v6-u-justify-content-space-between pf-v6-u-w-100">
                 <Title headingLevel="h2" size="lg">
@@ -167,6 +172,16 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                     handleSourceDrop={sourceManagement.handleSourceDrop}
                     removeUploadedSource={sourceManagement.removeUploadedSource}
                     filesWithSettings={sourceManagement.filesWithSettings}
+                  />
+                </FormGroup>
+                <FormGroup fieldId="uploaded-files" className="pf-v6-u-mt-md">
+                  <UploadedFilesList
+                    files={fileManagement.files}
+                    isLoading={fileManagement.isLoading}
+                    isDeleting={fileManagement.isDeleting}
+                    error={fileManagement.error}
+                    onRefresh={fileManagement.refreshFiles}
+                    onDeleteFile={fileManagement.deleteFileById}
                   />
                 </FormGroup>
               </Form>
