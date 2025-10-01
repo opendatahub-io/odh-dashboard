@@ -74,42 +74,31 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
         {errorAlert}
       </AlertGroup>
 
-      <Card
-        className={`pf-v6-u-border-style-dashed pf-v6-u-border-2 ${
-          isDragOver
-            ? 'pf-v6-u-border-color-primary pf-v6-u-background-color-primary-50'
-            : 'pf-v6-u-border-color-200'
+      <div
+        className={`pf-v6-c-multiple-file-upload pf-m-horizontal ${
+          isDragOver ? 'pf-v6-u-border-color-primary pf-v6-u-background-color-primary-50' : ''
         }`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        <CardBody className="pf-v6-u-p-lg">
-          <Flex
-            justifyContent={{ default: 'justifyContentSpaceBetween' }}
-            alignItems={{ default: 'alignItemsCenter' }}
-          >
-            <FlexItem flex={{ default: 'flex_1' }}>
-              <Flex alignItems={{ default: 'alignItemsCenter' }}>
-                <FlexItem>
-                  <FileIcon className="pf-v6-u-mr-md pf-v6-u-color-200" />
-                </FlexItem>
-                <FlexItem>
-                  <span>Drag and drop files here or upload</span>
-                </FlexItem>
-              </Flex>
-            </FlexItem>
-            <FlexItem>
-              <Button variant="secondary" onClick={handleUploadClick}>
-                Upload
-              </Button>
-            </FlexItem>
-          </Flex>
-
-          <div className="pf-v6-u-mt-md">
-            <small className="pf-v6-u-color-200">Accepted file types: PDF, DOC, CSV</small>
+        <div className="pf-v6-c-multiple-file-upload__main">
+          <div className="pf-v6-c-multiple-file-upload__title">
+            <div className="pf-v6-c-multiple-file-upload__title-icon">
+              <FileIcon aria-hidden="true" />
+            </div>
+            <div className="pf-v6-c-multiple-file-upload__title-text">
+              Drag and drop files here or upload
+            </div>
           </div>
-
+          <div className="pf-v6-c-multiple-file-upload__upload">
+            <Button variant="secondary" onClick={handleUploadClick}>
+              Upload
+            </Button>
+          </div>
+          <div className="pf-v6-c-multiple-file-upload__info">
+            Accepted file types: PDF, DOC, CSV
+          </div>
           <input
             ref={fileInputRef}
             type="file"
@@ -118,8 +107,8 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
             hidden
             aria-label="File upload input"
           />
-        </CardBody>
-      </Card>
+        </div>
+      </div>
 
       {selectedSourceSettings &&
         selectedSource.map((file) => (
