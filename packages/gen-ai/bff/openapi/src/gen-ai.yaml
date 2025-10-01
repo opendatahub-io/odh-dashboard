@@ -1678,7 +1678,13 @@ components:
               content: 'Artificial intelligence (AI) is a branch of computer science that aims to create machines capable of intelligent behavior, learning, and decision-making.'
             - role: 'user'
               content: 'Can you give me some examples?'
-          description: Full conversation history for multi-turn conversations
+          description: >-
+            Full conversation history for multi-turn conversations. Each message includes role (user/assistant)
+            and content. The system will use this context to maintain conversation flow and provide
+            contextually relevant responses. Messages should be ordered chronologically.
+            
+            **Note**: Cannot be used together with `previous_response_id`. Use either manual conversation history
+            via `chat_context` or automatic conversation threading via `previous_response_id`.
 
         # === GENERATION PARAMETERS ===
         temperature:
@@ -1719,6 +1725,16 @@ components:
                 Authorization: 'Bearer github_token_456'
                 X-API-Version: 'v1'
           description: MCP server configurations for external tool access. Each server can have its own authentication headers and provides multiple tools.
+        previous_response_id:
+          type: string
+          example: 'resp-abc123-def456'
+          description: >-
+            Optional reference to a previous response ID for conversation continuity and thread tracking.
+            When provided, the system validates that the response exists and links the new response to it.
+            This enables conversation threading and context reconstruction from response chains.
+            
+            **Note**: Cannot be used together with `chat_context`. Use either manual conversation history
+            via `chat_context` or automatic conversation threading via `previous_response_id`.
 
     # Clean Response Schema - Preserves LlamaStack Structure
     ResponseData:
@@ -1752,6 +1768,13 @@ components:
           items:
             $ref: '#/components/schemas/OutputItem'
           description: Array of output items (messages, tool calls, etc.)
+        previous_response_id:
+          type: string
+          example: 'resp-xyz789-abc123'
+          description: >-
+            Reference to the previous response ID in the conversation thread.
+            Only present when the request included a previous_response_id parameter.
+            Enables conversation continuity and thread tracking.
 
     OutputItem:
       type: object

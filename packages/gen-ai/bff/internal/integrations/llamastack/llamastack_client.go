@@ -301,6 +301,8 @@ type CreateResponseParams struct {
 	Instructions string
 	// Tools contains MCP server configurations for tool-enabled responses.
 	Tools []MCPServerParam
+	// PreviousResponseID links this response to a previous response for conversation continuity.
+	PreviousResponseID string
 }
 
 // prepareResponseParams validates input parameters and prepares the API parameters for response creation.
@@ -417,6 +419,11 @@ func (c *LlamaStackClient) prepareResponseParams(params CreateResponseParams) (*
 		apiParams.Tools = tools
 	}
 
+	// Set previous response ID if provided
+	if params.PreviousResponseID != "" {
+		apiParams.PreviousResponseID = openai.String(params.PreviousResponseID)
+	}
+
 	return apiParams, nil
 }
 
@@ -458,6 +465,20 @@ func (c *LlamaStackClient) DeleteVectorStore(ctx context.Context, vectorStoreID 
 	}
 
 	return nil
+}
+
+// GetResponse retrieves a response by ID for validation purposes.
+func (c *LlamaStackClient) GetResponse(ctx context.Context, responseID string) (*responses.Response, error) {
+	if responseID == "" {
+		return nil, fmt.Errorf("responseID is required")
+	}
+
+	response, err := c.client.Responses.Get(ctx, responseID, responses.ResponseGetParams{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get response: %w", err)
+	}
+
+	return response, nil
 }
 
 // ListFiles retrieves files with optional filtering parameters.
