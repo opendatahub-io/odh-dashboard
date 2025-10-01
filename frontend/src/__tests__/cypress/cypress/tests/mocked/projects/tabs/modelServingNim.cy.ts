@@ -80,17 +80,21 @@ describe('NIM Model Serving', () => {
 
       nimDeployModal.findNimStorageSizeInput().should('have.value', '30');
 
-      // Validate model replicas
-      nimDeployModal.findMinReplicasInput().should('have.value', '1');
-      nimDeployModal.findMinReplicasPlusButton().should('be.disabled');
-      nimDeployModal.findMaxReplicasInput().should('have.value', '1');
-      nimDeployModal.findMaxReplicasMinusButton().should('be.disabled');
-      nimDeployModal.findMaxReplicasPlusButton().click();
-      nimDeployModal.findMaxReplicasInput().should('have.value', '2');
-      nimDeployModal.findMinReplicasPlusButton().click();
-      nimDeployModal.findMinReplicasInput().should('have.value', '2');
-      nimDeployModal.findMinReplicasMinusButton().click();
-      nimDeployModal.findMaxReplicasMinusButton().click();
+      // Temp until KEDA is supported
+      nimDeployModal.findNimModelReplicas().should('have.value', '1');
+
+      /* Disabled until KEDA is supported -- Serverless has been removed */
+      // // Validate model replicas
+      // nimDeployModal.findMinReplicasInput().should('have.value', '1');
+      // nimDeployModal.findMinReplicasPlusButton().should('be.disabled');
+      // nimDeployModal.findMaxReplicasInput().should('have.value', '1');
+      // nimDeployModal.findMaxReplicasMinusButton().should('be.disabled');
+      // nimDeployModal.findMaxReplicasPlusButton().click();
+      // nimDeployModal.findMaxReplicasInput().should('have.value', '2');
+      // nimDeployModal.findMinReplicasPlusButton().click();
+      // nimDeployModal.findMinReplicasInput().should('have.value', '2');
+      // nimDeployModal.findMinReplicasMinusButton().click();
+      // nimDeployModal.findMaxReplicasMinusButton().click();
 
       nimDeployModal.findSubmitButton().click();
 

@@ -53,17 +53,10 @@ describe('assembleInferenceService', () => {
 
     expect(inferenceService.metadata.annotations).toBeDefined();
     expect(inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe(
-      DeploymentMode.Serverless,
+      DeploymentMode.RawDeployment,
     );
     expect(inferenceService.metadata.annotations?.['security.opendatahub.io/enable-auth']).toBe(
       undefined,
-    );
-    expect(
-      inferenceService.metadata.annotations?.['serving.knative.openshift.io/enablePassthrough'],
-    ).toBe('true');
-    expect(inferenceService.metadata.annotations?.['sidecar.istio.io/inject']).toBe('true');
-    expect(inferenceService.metadata.annotations?.['sidecar.istio.io/rewriteAppHTTPProbers']).toBe(
-      'true',
     );
   });
 
@@ -74,16 +67,9 @@ describe('assembleInferenceService', () => {
 
     expect(inferenceService.metadata.annotations).toBeDefined();
     expect(inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe(
-      DeploymentMode.Serverless,
+      DeploymentMode.RawDeployment,
     );
     expect(inferenceService.metadata.annotations?.['security.opendatahub.io/enable-auth']).toBe(
-      'true',
-    );
-    expect(
-      inferenceService.metadata.annotations?.['serving.knative.openshift.io/enablePassthrough'],
-    ).toBe('true');
-    expect(inferenceService.metadata.annotations?.['sidecar.istio.io/inject']).toBe('true');
-    expect(inferenceService.metadata.annotations?.['sidecar.istio.io/rewriteAppHTTPProbers']).toBe(
       'true',
     );
   });
@@ -111,18 +97,16 @@ describe('assembleInferenceService', () => {
 
   it('should have the right labels when creating for Kserve with public route', async () => {
     const inferenceService = assembleInferenceService(
-      mockInferenceServiceModalData({ externalRoute: false }),
-    );
-
-    expect(inferenceService.metadata.labels?.['networking.knative.dev/visibility']).toBe(
-      'cluster-local',
-    );
-
-    const missingExternalRoute = assembleInferenceService(
       mockInferenceServiceModalData({ externalRoute: true }),
     );
 
-    expect(missingExternalRoute.metadata.labels?.['networking.knative.dev/visibility']).toBe(
+    expect(inferenceService.metadata.labels?.['networking.kserve.io/visibility']).toBe('exposed');
+
+    const missingExternalRoute = assembleInferenceService(
+      mockInferenceServiceModalData({ externalRoute: false }),
+    );
+
+    expect(missingExternalRoute.metadata.labels?.['networking.kserve.io/visibility']).toBe(
       undefined,
     );
   });
@@ -398,9 +382,7 @@ describe('assembleInferenceService', () => {
   });
 
   it('should have base annotations for kserve raw', async () => {
-    const inferenceService = assembleInferenceService(
-      mockInferenceServiceModalData({ isKServeRawDeployment: true }),
-    );
+    const inferenceService = assembleInferenceService(mockInferenceServiceModalData({}));
     const { annotations, labels } = inferenceService.metadata;
 
     expect(annotations?.['serving.kserve.io/deploymentMode']).toBe(DeploymentMode.RawDeployment);
@@ -414,9 +396,7 @@ describe('assembleInferenceService', () => {
   });
 
   it('should have correct auth and routing for kserve raw', async () => {
-    const ext = assembleInferenceService(
-      mockInferenceServiceModalData({ isKServeRawDeployment: true, externalRoute: true }),
-    );
+    const ext = assembleInferenceService(mockInferenceServiceModalData({ externalRoute: true }));
     expect(ext.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe(
       DeploymentMode.RawDeployment,
     );
@@ -425,9 +405,7 @@ describe('assembleInferenceService', () => {
     expect(ext.metadata.labels?.['networking.kserve.io/visibility']).toBe('exposed');
     expect(ext.metadata.labels?.['networking.knative.dev/visibility']).toBe(undefined);
 
-    const auth = assembleInferenceService(
-      mockInferenceServiceModalData({ isKServeRawDeployment: true, tokenAuth: true }),
-    );
+    const auth = assembleInferenceService(mockInferenceServiceModalData({ tokenAuth: true }));
     expect(auth.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe(
       DeploymentMode.RawDeployment,
     );
@@ -437,7 +415,6 @@ describe('assembleInferenceService', () => {
 
     const both = assembleInferenceService(
       mockInferenceServiceModalData({
-        isKServeRawDeployment: true,
         externalRoute: true,
         tokenAuth: true,
       }),
@@ -458,7 +435,6 @@ describe('assembleInferenceService', () => {
     });
     const result = assembleInferenceService(
       mockInferenceServiceModalData({
-        isKServeRawDeployment: true,
         externalRoute: true,
         tokenAuth: true,
       }),
@@ -482,7 +458,6 @@ describe('assembleInferenceService', () => {
     });
     const result = assembleInferenceService(
       mockInferenceServiceModalData({
-        isKServeRawDeployment: true,
         externalRoute: true,
         tokenAuth: true,
       }),
@@ -505,7 +480,6 @@ describe('assembleInferenceService', () => {
     });
     const result = assembleInferenceService(
       mockInferenceServiceModalData({
-        isKServeRawDeployment: true,
         externalRoute: true,
         tokenAuth: true,
       }),
@@ -529,7 +503,6 @@ describe('assembleInferenceService', () => {
     });
     const result = assembleInferenceService(
       mockInferenceServiceModalData({
-        isKServeRawDeployment: true,
         externalRoute: true,
         tokenAuth: true,
       }),
@@ -556,7 +529,6 @@ describe('assembleInferenceService', () => {
     // Test with modelmesh
     const resultModelMesh = assembleInferenceService(
       mockInferenceServiceModalData({
-        isKServeRawDeployment: true,
         externalRoute: true,
         tokenAuth: true,
       }),
@@ -574,7 +546,6 @@ describe('assembleInferenceService', () => {
     // Test with KServe
     const resultKServe = assembleInferenceService(
       mockInferenceServiceModalData({
-        isKServeRawDeployment: true,
         externalRoute: true,
         tokenAuth: true,
       }),
@@ -615,9 +586,7 @@ describe('assembleInferenceService', () => {
     });
 
     const result = assembleInferenceService(
-      mockInferenceServiceModalData({
-        isKServeRawDeployment: true,
-      }),
+      mockInferenceServiceModalData({}),
       undefined,
       undefined,
       false,
@@ -1078,9 +1047,6 @@ describe('assembleInferenceService - Preservation Tests', () => {
 
     // Should add new required annotations
     expect(result.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBeDefined();
-    expect(result.metadata.annotations?.['serving.knative.openshift.io/enablePassthrough']).toBe(
-      'true',
-    );
   });
 
   it('should preserve existing metadata labels when updating inference service', () => {

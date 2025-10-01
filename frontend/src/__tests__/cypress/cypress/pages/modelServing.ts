@@ -426,14 +426,6 @@ class ServingRuntimeModal extends ServingModal {
     super(`${edit ? 'Edit' : 'Add'} model server`);
   }
 
-  findAuthorinoNotEnabledAlert() {
-    return this.find().findByTestId('no-authorino-installed-alert');
-  }
-
-  findTokenAuthAlert() {
-    return this.find().findByTestId('token-authentication-prerequisite-alert');
-  }
-
   findSubmitButton() {
     return this.findFooter().findByTestId('modal-submit-button');
   }
