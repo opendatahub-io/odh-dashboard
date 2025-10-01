@@ -62,7 +62,6 @@ const SpawnerPage: React.FC = () => {
   const navigate = useNavigate();
   const notification = useNotification();
   const isHomeAvailable = useIsAreaAvailable(SupportedArea.HOME).status;
-
   const { dashboardNamespace } = useDashboardNamespace();
   const [imageStreams, loaded, loadError] = useImageStreams(dashboardNamespace, { enabled: true });
   const images = React.useMemo(() => imageStreams.map(mapImageStreamToImageInfo), [imageStreams]);

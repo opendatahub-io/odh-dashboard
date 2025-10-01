@@ -67,7 +67,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
       icon={<ProjectScopedIcon isProject={scope === 'project'} alt="" />}
     >
       <ImageStreamDropdownLabel
-        displayName={`${getImageStreamDisplayName(imageStream)}-acorn-squash`}
+        displayName={getImageStreamDisplayName(imageStream)}
         compatible={
           !!compatibleIdentifiers?.some((identifier) =>
             isCompatibleWithIdentifier(identifier, imageStream),
@@ -156,7 +156,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
           dataTestId="workbench-image-stream-selection"
           aria-label="Select an image"
           options={options}
-          placeholder="Select one squash"
+          placeholder="Select one"
           value={
             selectedImageStream?.metadata.namespace !== currentProject
               ? selectedImageStream?.metadata.name
