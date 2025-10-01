@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import ModelsEmptyState from '~/app/EmptyStates/NoData';
 import { LlamaModel, AIModel } from '~/app/types';
 import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
+import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
 import AIModelsTable from './components/AIModelsTable';
 
 type AIAssetsModelsTabProps = {
@@ -23,6 +24,7 @@ const AIAssetsModelsTab: React.FC<AIAssetsModelsTabProps> = ({
   error,
 }) => {
   const navigate = useNavigate();
+  const { data: lsdStatus } = useFetchLSDStatus(namespace?.name);
 
   const handleTryInPlayground = (model: AIModel) => {
     // Navigate to playground with the selected model
@@ -81,6 +83,7 @@ const AIAssetsModelsTab: React.FC<AIAssetsModelsTabProps> = ({
       models={models}
       playgroundModels={playgroundModels}
       onTryInPlayground={handleTryInPlayground}
+      lsdStatus={lsdStatus}
     />
   );
 };

@@ -19,17 +19,17 @@ import {
 } from '@patternfly/react-core';
 import { CloseIcon, FilterIcon } from '@patternfly/react-icons';
 import { DashboardEmptyTableView, Table } from 'mod-arch-shared';
-import { AIModel, LlamaModel } from '~/app/types';
+import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
 import { aiModelColumns } from '~/app/AIAssets/data/columns';
 import useAIModelsFilter from '~/app/AIAssets/hooks/useAIModelsFilter';
 import { AIAssetsFilterOptions, aiAssetsFilterOptions } from '~/app/AIAssets/data/filterOptions';
-import { ChatbotContext } from '~/app/context/ChatbotContext';
 import AIModelTableRow from './AIModelTableRow';
 
 type AIModelsTableProps = {
   models: AIModel[];
   playgroundModels: LlamaModel[];
   onTryInPlayground: (model: AIModel) => void;
+  lsdStatus: LlamaStackDistributionModel | null;
 };
 
 export const AIModelStatusPopoverContent: React.ReactNode = (
@@ -51,6 +51,7 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
   models,
   playgroundModels,
   onTryInPlayground,
+  lsdStatus,
 }) => {
   const { filterData, onFilterUpdate, onClearFilters, filteredModels } = useAIModelsFilter(models);
 
@@ -59,8 +60,6 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
     AIAssetsFilterOptions.NAME,
   );
   const [searchValue, setSearchValue] = React.useState('');
-
-  const { lsdStatus } = React.useContext(ChatbotContext);
 
   const handleSearch = () => {
     onFilterUpdate(currentFilterType, searchValue);
