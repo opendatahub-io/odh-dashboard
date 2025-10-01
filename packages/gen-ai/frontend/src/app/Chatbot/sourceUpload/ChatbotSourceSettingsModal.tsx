@@ -3,15 +3,10 @@ import {
   Alert,
   Bullseye,
   Button,
-  Dropdown,
-  DropdownItem,
-  DropdownList,
   Form,
   FormGroup,
   FormGroupLabelHelp,
   FormSection,
-  MenuToggle,
-  MenuToggleElement,
   Modal,
   ModalBody,
   ModalFooter,
@@ -33,12 +28,15 @@ type ChatbotSourceSettingsModalProps = {
   isOpen: boolean;
   onToggle: () => void;
   onSubmitSettings: (settings: ChatbotSourceSettings | null) => void;
+  filename?: string;
 };
 
 const DEFAULT_SOURCE_SETTINGS: ChatbotSourceSettings = {
   embeddingModel: '',
   vectorStore: '',
   delimiter: '',
+  maxChunkLength: 500,
+  chunkOverlap: 50,
 };
 
 const DEFAULT_VECTOR_STORE_FORM = {
@@ -49,20 +47,29 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
   isOpen,
   onToggle,
   onSubmitSettings,
+  filename,
 }) => {
   const [fields, setFields] = React.useState<ChatbotSourceSettings>(DEFAULT_SOURCE_SETTINGS);
   const { namespace } = React.useContext(GenAiContext);
 
-  const [isVectorStoreDropdownOpen, setIsVectorStoreDropdownOpen] = React.useState(false);
   const maxChunkLengthLabelHelpRef = React.useRef(null);
-  const sourceSettingsHelpRef = React.useRef(null);
   const [vectorStores, vectorStoresLoaded, vectorStoresError, refreshVectorStores] =
     useFetchVectorStores(namespace?.name);
+
+  // Auto-select the first vector database when vector stores are loaded
+  React.useEffect(() => {
+    if (vectorStoresLoaded && vectorStores.length > 0 && !fields.vectorStore) {
+      setFields((prev) => ({
+        ...prev,
+        vectorStore: vectorStores[0].id,
+      }));
+    }
+  }, [vectorStoresLoaded, vectorStores, fields.vectorStore]);
 
   // Vector store creation state
   const [vectorStoreForm, setVectorStoreForm] = React.useState(DEFAULT_VECTOR_STORE_FORM);
   const [isCreatingVectorStore, setIsCreatingVectorStore] = React.useState(false);
-  const title = 'Source input settings';
+  const title = filename ? `RAG input settings - ${filename}` : 'RAG input settings';
   const vectorStoreName = vectorStores.find(
     (vectorStore) => vectorStore.id === fields.vectorStore,
   )?.name;
@@ -86,18 +93,6 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
     setVectorStoreForm((prev) => ({
       ...prev,
       [name]: value,
-    }));
-  };
-
-  const vectorStoreDropdownToggle = () => {
-    setIsVectorStoreDropdownOpen(!isVectorStoreDropdownOpen);
-  };
-
-  const onVectorStoreSelect = (value: string) => {
-    setIsVectorStoreDropdownOpen(false);
-    setFields((prev) => ({
-      ...prev,
-      vectorStore: value,
     }));
   };
 
@@ -137,7 +132,6 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
         isOpen={isOpen}
         onClose={() => {
           setFields(DEFAULT_SOURCE_SETTINGS);
-          setIsVectorStoreDropdownOpen(false);
           onToggle();
         }}
         aria-labelledby="source-settings-form-modal-title"
@@ -164,7 +158,6 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
         isOpen
         onClose={() => {
           setFields(DEFAULT_SOURCE_SETTINGS);
-          setIsVectorStoreDropdownOpen(false);
           onToggle();
         }}
         variant="medium"
@@ -194,7 +187,6 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
         isOpen={isOpen}
         onClose={() => {
           setFields(DEFAULT_SOURCE_SETTINGS);
-          setIsVectorStoreDropdownOpen(false);
           onToggle();
         }}
         aria-labelledby="source-settings-form-modal-title"
@@ -204,101 +196,28 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
           title={title}
           description={
             vectorStores.length !== 0
-              ? 'Review the embedding settings that will be used to process your source'
+              ? 'Review the embedding settings that will be used to process your RAG source'
               : 'No vector databases found. Please create a vector database first.'
           }
           descriptorId="source-settings-modal-box-description-form"
           labelId="source-settings-form-modal-title"
-          help={
-            <Popover
-              triggerRef={sourceSettingsHelpRef}
-              headerContent={<div>Source input settings</div>}
-              bodyContent={<div>Source input settings.</div>}
-            >
-              <FormGroupLabelHelp
-                ref={sourceSettingsHelpRef}
-                aria-label="More info for source input settings"
-                style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
-              />
-            </Popover>
-          }
         />
         {vectorStores.length !== 0 ? (
           <>
             <ModalBody>
               <Form id="source-settings-form" isWidthLimited>
-                <FormGroup
-                  label="Vector Database "
-                  fieldId="source-settings-form-vectorStore"
-                  isRequired
-                >
-                  <Dropdown
-                    isOpen={isVectorStoreDropdownOpen}
-                    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-                    onSelect={(_, value) => onVectorStoreSelect(value as string)}
-                    onOpenChange={(open: boolean) => setIsVectorStoreDropdownOpen(open)}
-                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                      <MenuToggle
-                        id="modal-dropdown-toggle"
-                        ref={toggleRef}
-                        onClick={vectorStoreDropdownToggle}
-                        isExpanded={isVectorStoreDropdownOpen}
-                      >
-                        {vectorStoreName || 'Select a vector database'}
-                      </MenuToggle>
-                    )}
-                  >
-                    <DropdownList>
-                      {vectorStores.map((option) => (
-                        <DropdownItem value={option.id} key={option.id}>
-                          {option.name}
-                        </DropdownItem>
-                      ))}
-                    </DropdownList>
-                  </Dropdown>
+                <FormGroup label="Vector database" fieldId="source-settings-form-vectorStore">
+                  <TextInput
+                    type="text"
+                    id="source-settings-form-vectorStore"
+                    name="vectorStore"
+                    value={vectorStoreName || ''}
+                    isDisabled
+                    placeholder="No vector database available"
+                  />
                 </FormGroup>
-                {/* TODO: Uncomment this when the embedding model is implemented */}
-                {/* <FormGroup
-                  label="Embedding model"
-                  fieldId="source-settings-form-embeddingModel"
-                  isRequired
-                >
-                  <Dropdown
-                    isOpen={isEmbeddingModelDropdownOpen}
-                    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-                    onSelect={(_, value) => onSourceSelect(value as string)}
-                    onOpenChange={(isOpen: boolean) => setIsEmbeddingModelDropdownOpen(isOpen)}
-                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                      <MenuToggle
-                        id="modal-dropdown-toggle"
-                        ref={toggleRef}
-                        onClick={dropdownToggle}
-                        isExpanded={isEmbeddingModelDropdownOpen}
-                      >
-                        {fields.embeddingModel || 'Select a model'}
-                      </MenuToggle>
-                    )}
-                  >
-                    <DropdownList>
-                      {embeddingModels.map((option) => (
-                        <DropdownItem value={option.id} key={option.id}>
-                          {option.id}
-                        </DropdownItem>
-                      ))}
-                    </DropdownList>
-                  </Dropdown>
-                </FormGroup> */}
                 <FormGroup>
                   <FormSection title="Chunk settings">
-                    <FormGroup label="Delimiter" fieldId="source-settings-form-delimiter">
-                      <TextInput
-                        type="text"
-                        id="source-settings-form-delimiter"
-                        name="delimiter"
-                        value={fields.delimiter}
-                        onChange={handleInputChange}
-                      />
-                    </FormGroup>
                     <FormGroup
                       label="Maximum chunk length"
                       labelHelp={
@@ -346,6 +265,15 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
                         }
                       />
                     </FormGroup>
+                    <FormGroup label="Delimiter" fieldId="source-settings-form-delimiter">
+                      <TextInput
+                        type="text"
+                        id="source-settings-form-delimiter"
+                        name="delimiter"
+                        value={fields.delimiter}
+                        onChange={handleInputChange}
+                      />
+                    </FormGroup>
                   </FormSection>
                 </FormGroup>
               </Form>
@@ -354,7 +282,7 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
               <Button
                 key="upload"
                 variant="primary"
-                isDisabled={!fields.vectorStore}
+                isDisabled={!fields.vectorStore || !vectorStoreName}
                 onClick={() => onSubmitSettings(fields)}
               >
                 Upload
