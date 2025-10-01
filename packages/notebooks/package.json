@@ -12,7 +12,7 @@
     "repo": "https://github.com/kubeflow/notebooks.git",
     "src": "workspaces/frontend",
     "target": "upstream",
-    "commit": "83caeff57c1535f140b4f7dee25b1ce800ef1af4"
+    "commit": "6490251310ba1a4f823ec4a997651ffe2a3b6bc5"
   },
   "module-federation": {
     "name": "notebooks",
