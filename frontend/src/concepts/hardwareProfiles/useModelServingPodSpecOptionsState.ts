@@ -1,5 +1,4 @@
 import React from 'react';
-import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 import { ContainerResources } from '#~/types';
 import { assemblePodSpecOptions } from '#~/utilities/podSpec';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
