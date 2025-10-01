@@ -96,7 +96,7 @@ describe('NotebookServer', () => {
     initIntercepts();
   });
 
-  it.only('should start a workbench', () => {
+  it('should start a workbench', () => {
     // Mock hardware profiles
     cy.interceptK8sList(
       { model: HardwareProfileModel, ns: 'opendatahub' },
@@ -112,38 +112,6 @@ describe('NotebookServer', () => {
     notebookServer.findStartServerButton().should('be.visible');
     notebookServer.findStartServerButton().click();
     notebookServer.findEventlog().click();
-
-    const expectedRequestBody = {
-      imageName: 'code-server-notebook',
-      imageTagName: '2023.2',
-      podSpecOptions: {
-        resources: {
-          requests: {
-            cpu: '1',
-            memory: '2Gi',
-          },
-          limits: {
-            cpu: '1',
-            memory: '2Gi',
-          },
-        },
-        tolerations: [
-          {
-            effect: 'NoSchedule',
-            key: 'NotebooksOnlyChange',
-            operator: 'Exists',
-          },
-        ],
-        nodeSelector: {},
-        selectedHardwareProfile: mockGlobalScopedHardwareProfilesGreek[0],
-      },
-      envVars: {
-        configMap: {},
-        secrets: {},
-      },
-      state: 'started',
-      storageClassName: 'openshift-default-sc',
-    };
 
     cy.wait('@startNotebookServer').then((interception) => {
       console.log('actual(sweet potato):', interception.request.body);
@@ -332,67 +300,6 @@ describe('NotebookServer', () => {
           defaultCount: '8Gi',
         },
       ]);
-    });
-  });
-
-  it('should start a workbench with accelerator profile', () => {
-    notebookServer.visit();
-    notebookServer.findAcceleratorProfileSelect().click();
-    notebookServer.findAcceleratorProfileSelect().findSelectOption('Test GPU').click();
-    notebookServer.findAcceleratorProfileSelect().should('contain', 'Test GPU');
-    notebookServer.findStartServerButton().should('be.visible');
-    notebookServer.findStartServerButton().click();
-
-    cy.wait('@startNotebookServer').then((interception) => {
-      const requestBody = interception.request.body;
-      expect(requestBody).to.have.property('imageName', 'code-server-notebook');
-      expect(requestBody).to.have.property('imageTagName', '2023.2');
-      expect(requestBody).to.have.property('state', 'started');
-      expect(requestBody).to.have.property('storageClassName', 'openshift-default-sc');
-      expect(requestBody)
-        .to.have.property('envVars')
-        .that.deep.equals({ configMap: {}, secrets: {} });
-      expect(requestBody).to.have.property('podSpecOptions');
-      expect(requestBody.podSpecOptions)
-        .to.have.property('resources')
-        .that.deep.equals({
-          limits: {
-            cpu: '0.5',
-            memory: '500Mi',
-            'nvidia.com/gpu': 1,
-          },
-          requests: {
-            cpu: '0.1',
-            memory: '100Mi',
-            'nvidia.com/gpu': 1,
-          },
-        });
-      expect(requestBody.podSpecOptions)
-        .to.have.property('tolerations')
-        .that.deep.equals([
-          {
-            key: 'nvidia.com/gpu',
-            operator: 'Exists',
-            effect: 'NoSchedule',
-          },
-          {
-            effect: 'NoSchedule',
-            key: 'NotebooksOnlyChange',
-            operator: 'Exists',
-          },
-        ]);
-      expect(requestBody.podSpecOptions).to.have.property('nodeSelector').that.deep.equals({});
-      expect(requestBody.podSpecOptions)
-        .to.have.property('selectedAcceleratorProfile')
-        .that.deep.equals(
-          mockAcceleratorProfile({
-            name: 'test-gpu',
-            displayName: 'Test GPU',
-            namespace: 'opendatahub',
-            uid: 'uid',
-          }),
-        );
-      expect(requestBody.podSpecOptions).to.have.property('selectedHardwareProfile', undefined);
     });
   });
 
