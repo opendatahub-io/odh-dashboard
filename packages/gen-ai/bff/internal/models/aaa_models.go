@@ -10,4 +10,11 @@ type AAModel struct {
 	Endpoints      []string `json:"endpoints"`
 	Status         string   `json:"status"`
 	DisplayName    string   `json:"display_name"`
+	SAToken        SAToken  `json:"sa_token"`
+}
+
+type SAToken struct {
+	Name      string `json:"name"`
+	TokenName string `json:"token_name"`
+	Token     string `json:"token"`
 }

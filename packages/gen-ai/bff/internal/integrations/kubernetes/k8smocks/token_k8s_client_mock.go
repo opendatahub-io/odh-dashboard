@@ -70,7 +70,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 	// Return different mock AA models based on namespace
 	switch namespace {
 	case "mock-test-namespace-2", "mock-test-namespace-3":
-		return []models.AAModel{
+		aaModels := []models.AAModel{
 			{
 				ModelName:      "granite-7b-code",
 				ServingRuntime: "OpenVINO Model Server",
@@ -140,10 +140,82 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Status:      "Stop",
 				DisplayName: "Ollama All MiniLM L6 v2",
 			},
-		}, nil
+		}
+
+		// Use mock helper methods to populate SA tokens
+		for i := range aaModels {
+			serviceAccountName, secretName := m.findServiceAccountAndSecretForInferenceService(ctx, aaModels[i].ModelName)
+			tokenValue, tokenName := m.extractTokenAndDisplayNameFromSecret(ctx, namespace, secretName)
+			aaModels[i].SAToken = models.SAToken{
+				Name:      serviceAccountName,
+				TokenName: tokenName,
+				Token:     tokenValue,
+			}
+		}
+
+		return aaModels, nil
 	default:
 		return []models.AAModel{}, nil
 	}
+}
+
+// Mock implementation of findServiceAccountAndSecretForInferenceService
+func (m *TokenKubernetesClientMock) findServiceAccountAndSecretForInferenceService(_ context.Context, isvcName string) (string, string) {
+	// Mock service account names based on the model name
+	var serviceAccountName, secretName string
+
+	switch isvcName {
+	case "granite-7b-code":
+		serviceAccountName = "granite-sa"
+		secretName = "granite-sa-token"
+	case "llama-3.1-8b-instruct":
+		serviceAccountName = "llama-sa"
+		secretName = "llama-sa-token"
+	case "mistral-7b-instruct":
+		serviceAccountName = "mistral-sa"
+		secretName = "mistral-sa-token"
+	case "ollama/llama3.2:3b":
+		serviceAccountName = "ollama-sa"
+		secretName = "ollama-sa-token"
+	case "ollama/all-minilm:l6-v2":
+		serviceAccountName = "embedding-sa"
+		secretName = "embedding-sa-token"
+	default:
+		serviceAccountName = "default"
+		secretName = "default-token"
+	}
+
+	return serviceAccountName, secretName
+}
+
+// Mock implementation of extractTokenAndDisplayNameFromSecret
+func (m *TokenKubernetesClientMock) extractTokenAndDisplayNameFromSecret(_ context.Context, _, secretName string) (string, string) {
+	// Mock token values and display names based on secret name
+	tokenValue := ""
+	tokenName := ""
+
+	switch secretName {
+	case "granite-sa-token":
+		tokenValue = "eyJhbGciOiJSUzI1NiIsImtpZCI6Ik1yNS1BVWliZkJpaTdOZDFqQmViYXhib1hXMCJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tYWJjMTIzIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQubmFtZSI6ImRlZmF1bHQiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiIxMjM0NTY3OC05YWJjLWRlZjAtZ2hpai0xMjM0NTY3ODkwYWJjIiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50OmRlZmF1bHQ6ZGVmYXVsdCJ9.mock-token-signature"
+		tokenName = "granite-sa"
+	case "llama-sa-token":
+		tokenValue = "eyJhbGciOiJSUzI1NiIsImtpZCI6Ik1yNS1BVWliZkJpaTdOZDFqQmViYXhib1hXMCJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tZGVmNDU2Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQubmFtZSI6ImRlZmF1bHQiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiIxMjM0NTY3OC05YWJjLWRlZjAtZ2hpai0xMjM0NTY3ODkwYWJjIiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50OmRlZmF1bHQ6ZGVmYXVsdCJ9.mock-token-signature-def456"
+		tokenName = "llama-sa"
+	case "mistral-sa-token":
+		tokenValue = "eyJhbGciOiJSUzI1NiIsImtpZCI6Ik1yNS1BVWliZkJpaTdOZDFqQmViYXhib1hXMCJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tZ2hpNzg5Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQubmFtZSI6ImRlZmF1bHQiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiIxMjM0NTY3OC05YWJjLWRlZjAtZ2hpai0xMjM0NTY3ODkwYWJjIiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50OmRlZmF1bHQ6ZGVmYXVsdCJ9.mock-token-signature-ghi789"
+		tokenName = "mistral-sa"
+	case "ollama-sa-token":
+		tokenValue = "eyJhbGciOiJSUzI1NiIsImtpZCI6Ik1yNS1BVWliZkJpaTdOZDFqQmViYXhib1hXMCJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tamtsMDEyIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQubmFtZSI6ImRlZmF1bHQiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiIxMjM0NTY3OC05YWJjLWRlZjAtZ2hpai0xMjM0NTY3ODkwYWJjIiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50OmRlZmF1bHQ6ZGVmYXVsdCJ9.mock-token-signature-jkl012"
+		tokenName = "ollama-sa"
+	case "embedding-sa-token":
+		tokenValue = "eyJhbGciOiJSUzI1NiIsImtpZCI6Ik1yNS1BVWliZkJpaTdOZDFqQmViYXhib1hXMCJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tbW5vMzQ1Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQubmFtZSI6ImRlZmF1bHQiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiIxMjM0NTY3OC05YWJjLWRlZjAtZ2hpai0xMjM0NTY3ODkwYWJjIiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50OmRlZmF1bHQ6ZGVmYXVsdCJ9.mock-token-signature-mno345"
+		tokenName = "embedding-sa"
+	default:
+		tokenValue = "eyJhbGciOiJSUzI1NiIsImtpZCI6Ik1yNS1BVWliZkJpaTdOZDFqQmViYXhib1hXMCJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tYWJjMTIzIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQubmFtZSI6ImRlZmF1bHQiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiIxMjM0NTY3OC05YWJjLWRlZjAtZ2hpai0xMjM0NTY3ODkwYWJjIiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50OmRlZmF1bHQ6ZGVmYXVsdCJ9.mock-token-signature"
+		tokenName = "default-sa"
+	}
+
+	return tokenValue, tokenName
 }
 
 // IsClusterAdmin returns mock admin status for testing
