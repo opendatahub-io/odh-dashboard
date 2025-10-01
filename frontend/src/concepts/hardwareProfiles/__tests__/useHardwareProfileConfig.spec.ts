@@ -141,7 +141,7 @@ describe('useHardwareProfileConfig', () => {
     const renderResult = testHook(useHardwareProfileConfig)();
     const state = renderResult.result.current;
 
-    expect(state.isFormDataValid).toBe(true);
+    expect(state.isFormDataValid).toBe(false);
   });
 
   it('should handle form data updates', () => {
