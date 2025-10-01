@@ -13,7 +13,7 @@ export const NAME_CHARACTER_LIMIT = 255;
 export const DESCRIPTION_CHARACTER_LIMIT = 255;
 
 export const PIPELINE_IMPORT_V1_ERROR_TEXT =
-  'DSP 1.0 pipelines are no longer supported by OpenShift AI. To import this pipeline, you must update and recompile it. To learn more, view the Migrating pipelines from DSP 1.0 to 2.0 documentation.';
+  'Pipelines 1.0 are no longer supported by OpenShift AI. To import this pipeline, you must update and recompile it. To learn more, view the Migrating pipelines from Pipelines 1.0 to 2.0 documentation.';
 export const MAX_SIZE_AS_MB = 1;
 export const MAX_SIZE = MAX_SIZE_AS_MB * 1024 * 1024;
 

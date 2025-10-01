@@ -19,7 +19,7 @@ export const mockDsc = ({
   },
   spec: {
     components: {
-      datasciencepipelines: {
+      aipipelines: {
         managementState: 'Managed',
       },
       kserve: {
