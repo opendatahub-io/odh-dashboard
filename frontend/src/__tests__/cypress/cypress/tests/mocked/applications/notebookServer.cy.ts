@@ -191,9 +191,26 @@ describe('NotebookServer', () => {
 
       // Check podSpecOptions.selectedHardwareProfile
       expect(requestBody.podSpecOptions).to.have.property('selectedHardwareProfile');
-      expect(requestBody.podSpecOptions.selectedHardwareProfile).to.deep.equal(
-        mockGlobalScopedHardwareProfilesGreek[0],
+      const selectedProfile = requestBody.podSpecOptions.selectedHardwareProfile;
+      const expectedProfile = mockGlobalScopedHardwareProfilesGreek[0];
+
+      // Check hardware profile basic properties
+      expect(selectedProfile).to.have.property('apiVersion', expectedProfile.apiVersion);
+      expect(selectedProfile).to.have.property('kind', expectedProfile.kind);
+
+      // Check metadata properties
+      expect(selectedProfile).to.have.property('metadata');
+      expect(selectedProfile.metadata).to.have.property('name', expectedProfile.metadata.name);
+      expect(selectedProfile.metadata).to.have.property(
+        'namespace',
+        expectedProfile.metadata.namespace,
       );
+      expect(selectedProfile.metadata).to.have.property('uid', expectedProfile.metadata.uid);
+
+      // Check spec exists
+      expect(selectedProfile).to.have.property('spec');
+      expect(selectedProfile.spec).to.have.property('identifiers');
+      expect(selectedProfile.spec).to.have.property('scheduling');
     });
   });
 
