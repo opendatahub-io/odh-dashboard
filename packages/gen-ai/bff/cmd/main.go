@@ -30,6 +30,7 @@ func main() {
 	flag.BoolVar(&cfg.MockLSClient, "mock-ls-client", getEnvAsBool("MOCK_LS_CLIENT", false), "Use mock Llama Stack client")
 	flag.BoolVar(&cfg.MockK8sClient, "mock-k8s-client", getEnvAsBool("MOCK_K8S_CLIENT", false), "Use mock Kubernetes client")
 	flag.BoolVar(&cfg.MockMCPClient, "mock-mcp-client", getEnvAsBool("MOCK_MCP_CLIENT", false), "Use mock MCP client")
+	flag.BoolVar(&cfg.MockMaaSClient, "mock-maas-client", getEnvAsBool("MOCK_MAAS_CLIENT", false), "Use mock MaaS client")
 	flag.StringVar(&cfg.AuthMethod, "auth-method", "user_token", "Authentication method (disabled or user_token)")
 	flag.StringVar(&cfg.AuthTokenHeader, "auth-token-header", getEnvAsString("AUTH_TOKEN_HEADER", config.DefaultAuthTokenHeader), "Header used to extract the token (e.g., Authorization)")
 	flag.StringVar(&cfg.AuthTokenPrefix, "auth-token-prefix", getEnvAsString("AUTH_TOKEN_PREFIX", config.DefaultAuthTokenPrefix), "Prefix used in the token header (e.g., 'Bearer ')")
@@ -38,6 +39,9 @@ func main() {
 
 	// Llama Stack configuration
 	flag.StringVar(&cfg.LlamaStackURL, "llama-stack-url", getEnvAsString("LLAMA_STACK_URL", ""), "Llama Stack server URL for proxying requests")
+
+	// MaaS configuration
+	flag.StringVar(&cfg.MaaSURL, "maas-url", getEnvAsString("MAAS_URL", ""), "MaaS server URL for proxying requests")
 
 	flag.Parse()
 

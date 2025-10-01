@@ -13,7 +13,6 @@ import {
   SplitItem,
   Stack,
   TextInput,
-  Tooltip,
   ValidatedOptions,
 } from '@patternfly/react-core';
 import {
@@ -143,53 +142,35 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
             </Icon>
           </Popover>
         </div>
-        {!predefinedVars ? (
-          <Tooltip
-            data-testid="predefined-vars-tooltip"
-            content={
-              <div>Select a serving runtime to view its predefined environment variables.</div>
-            }
+        <Popover
+          headerContent="Predefined variables of the selected serving runtime"
+          bodyContent={
+            <List isPlain data-testid="predefined-vars-list">
+              {predefinedVars?.length === 0 ? (
+                <ListItem key="0">No predefined variables</ListItem>
+              ) : (
+                predefinedVars?.map((arg: string, index: number) => (
+                  <ListItem key={index}>{arg}</ListItem>
+                ))
+              )}
+            </List>
+          }
+          footerContent={
+            <div>
+              To <strong>overwrite</strong> a predefined variable, specify a new value in the{' '}
+              <strong>Additional environment variables</strong> field.
+            </div>
+          }
+        >
+          <Button
+            isInline
+            data-testid="view-predefined-vars-button"
+            variant="link"
+            isAriaDisabled={!predefinedVars}
           >
-            <Button
-              isInline
-              data-testid="view-predefined-vars-button"
-              variant="link"
-              isAriaDisabled={!predefinedVars}
-            >
-              View predefined variables
-            </Button>
-          </Tooltip>
-        ) : (
-          <Popover
-            headerContent="Predefined variables of the selected serving runtime"
-            bodyContent={
-              <List isPlain data-testid="predefined-vars-list">
-                {!predefinedVars.length ? (
-                  <ListItem key="0">No predefined variables</ListItem>
-                ) : (
-                  predefinedVars.map((arg: string, index: number) => (
-                    <ListItem key={index}>{arg}</ListItem>
-                  ))
-                )}
-              </List>
-            }
-            footerContent={
-              <div>
-                To <strong>overwrite</strong> a predefined variable, specify a new value in the{' '}
-                <strong>Additional environment variables</strong> field.
-              </div>
-            }
-          >
-            <Button
-              isInline
-              data-testid="view-predefined-vars-button"
-              variant="link"
-              isAriaDisabled={!predefinedVars}
-            >
-              View predefined variables
-            </Button>
-          </Popover>
-        )}
+            View predefined variables
+          </Button>
+        </Popover>
       </div>
 
       {data.enabled && (

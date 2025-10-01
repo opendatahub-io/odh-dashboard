@@ -17,6 +17,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/rs/cors"
 )
 
@@ -237,6 +238,60 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 
 		// Attach ready-to-use client to context
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		r = r.WithContext(ctx)
+
+		next(w, r, ps)
+	}
+}
+
+// AttachMaaSClient middleware creates a MaaS client and attaches it to context.
+// This middleware can be used independently and doesn't require namespace.
+//
+// In mock mode, creates a mock client. In real mode, uses the configured MaaS URL.
+// Uses RequestIdentity from context for authentication, consistent with other clients.
+func (app *App) AttachMaaSClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		ctx := r.Context()
+
+		// Use request-scoped logger to avoid nil-panic in tests/environments where app.logger is not set
+		logger := helper.GetContextLoggerFromReq(r)
+
+		var maasClient maas.MaaSClient
+
+		// Check if running in mock mode
+		if app.config.MockMaaSClient {
+			logger.Debug("MOCK MODE: creating mock MaaS client")
+			// In mock mode, use empty URL since mock factory ignores it
+			maasClient = app.maasClientFactory.CreateClient("", "")
+		} else {
+			var serviceURL string
+			// Use environment variable if explicitly set
+			if app.config.MaaSURL != "" {
+				serviceURL = app.config.MaaSURL
+				logger.Debug("Using MAAS_URL environment variable",
+					"serviceURL", serviceURL)
+			} else {
+				app.serverErrorResponse(w, r, fmt.Errorf("MaaS URL not configured - set MAAS_URL environment variable"))
+				return
+			}
+
+			// Get RequestIdentity from context (set by InjectRequestIdentity middleware)
+			identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+			if !ok || identity == nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+				return
+			}
+
+			logger.Debug("Creating MaaS client",
+				"serviceURL", serviceURL,
+				"hasAuthToken", identity.Token != "")
+
+			// Create MaaS client per-request using app factory with auth token from RequestIdentity
+			maasClient = app.maasClientFactory.CreateClient(serviceURL, identity.Token)
+		}
+
+		// Attach ready-to-use client to context
+		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasClient)
 		r = r.WithContext(ctx)
 
 		next(w, r, ps)

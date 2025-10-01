@@ -11,7 +11,6 @@ import {
   Popover,
   Stack,
   TextArea,
-  Tooltip,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
@@ -94,51 +93,35 @@ export const RuntimeArgsField: React.FC<RuntimeArgsFieldProps> = ({
             </Icon>
           </Popover>
         </div>
-        {!predefinedArgs ? (
-          <Tooltip
-            data-testid="predefined-args-tooltip"
-            content={<div>Select a serving runtime to view its predefined arguments</div>}
+        <Popover
+          headerContent="Predefined arguments of the selected serving runtime"
+          bodyContent={
+            <List isPlain data-testid="predefined-args-list">
+              {predefinedArgs?.length === 0 ? (
+                <ListItem key="0">No predefined arguments</ListItem>
+              ) : (
+                predefinedArgs?.map((arg: string, index: number) => (
+                  <ListItem key={index}>{arg}</ListItem>
+                ))
+              )}
+            </List>
+          }
+          footerContent={
+            <div>
+              To <strong>overwrite</strong> a predefined argument, specify a new value in the{' '}
+              <strong>Additional serving runtime arguments</strong> field.
+            </div>
+          }
+        >
+          <Button
+            isInline
+            data-testid="view-predefined-args-button"
+            variant="link"
+            isAriaDisabled={!predefinedArgs}
           >
-            <Button
-              isInline
-              data-testid="view-predefined-args-button"
-              variant="link"
-              isAriaDisabled={!predefinedArgs}
-            >
-              View predefined arguments
-            </Button>
-          </Tooltip>
-        ) : (
-          <Popover
-            headerContent="Predefined arguments of the selected serving runtime"
-            bodyContent={
-              <List isPlain data-testid="predefined-args-list">
-                {!predefinedArgs.length ? (
-                  <ListItem key="0">No predefined arguments</ListItem>
-                ) : (
-                  predefinedArgs.map((arg: string, index: number) => (
-                    <ListItem key={index}>{arg}</ListItem>
-                  ))
-                )}
-              </List>
-            }
-            footerContent={
-              <div>
-                To <strong>overwrite</strong> a predefined argument, specify a new value in the{' '}
-                <strong>Additional serving runtime arguments</strong> field.
-              </div>
-            }
-          >
-            <Button
-              isInline
-              data-testid="view-predefined-args-button"
-              variant="link"
-              isAriaDisabled={!predefinedArgs}
-            >
-              View predefined arguments
-            </Button>
-          </Popover>
-        )}
+            View predefined arguments
+          </Button>
+        </Popover>
       </div>
 
       {data.enabled && (

@@ -69,7 +69,7 @@ func (m *TokenKubernetesClientMock) GetNamespaces(ctx context.Context, identity 
 func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]models.AAModel, error) {
 	// Return different mock AA models based on namespace
 	switch namespace {
-	case "mock-test-namespace-2":
+	case "mock-test-namespace-2", "mock-test-namespace-3":
 		return []models.AAModel{
 			{
 				ModelName:      "granite-7b-code",
@@ -82,7 +82,8 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://granite-7b-code.%s.svc.cluster.local:8080", namespace),
 					fmt.Sprintf("external: https://granite-7b-code-%s.example.com", namespace),
 				},
-				Status: "Running",
+				Status:      "Running",
+				DisplayName: "Granite 7B code",
 			},
 			{
 				ModelName:      "llama-3.1-8b-instruct",
@@ -95,7 +96,8 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://llama-3.1-8b-instruct.%s.svc.cluster.local:8080", namespace),
 					fmt.Sprintf("external: https://llama-3.1-8b-instruct-%s.example.com", namespace),
 				},
-				Status: "Running",
+				Status:      "Running",
+				DisplayName: "Llama 3.1 8B instruct",
 			},
 			{
 				ModelName:      "mistral-7b-instruct",
@@ -107,7 +109,8 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Endpoints: []string{
 					fmt.Sprintf("internal: http://mistral-7b-instruct.%s.svc.cluster.local:8080", namespace),
 				},
-				Status: "Running",
+				Status:      "Running",
+				DisplayName: "Mistral 7B instruct",
 			},
 			{
 				ModelName:      "ollama/llama3.2:3b",
@@ -120,7 +123,8 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://llama3.2-3b.%s.svc.cluster.local:11434", namespace),
 					fmt.Sprintf("external: https://llama3.2-3b-%s.example.com", namespace),
 				},
-				Status: "Running",
+				Status:      "Running",
+				DisplayName: "Ollama Llama 3.2 3B",
 			},
 			{
 				ModelName:      "ollama/all-minilm:l6-v2",
@@ -133,7 +137,8 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://all-minilm-l6-v2.%s.svc.cluster.local:11434", namespace),
 					fmt.Sprintf("external: https://all-minilm-l6-v2-%s.example.com", namespace),
 				},
-				Status: "Stop",
+				Status:      "Stop",
+				DisplayName: "Ollama All MiniLM L6 v2",
 			},
 		}, nil
 	default:
@@ -154,59 +159,89 @@ func (m *TokenKubernetesClientMock) GetUser(ctx context.Context, identity *integ
 
 // GetLlamaStackDistributions returns mock LSD list for testing
 func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*lsdapi.LlamaStackDistributionList, error) {
-	// Return empty list for mock-test-namespace-1 to test empty state
-	if namespace == "mock-test-namespace-1" {
+	// Special case: mock-test-namespace-1 should always return empty list for testing empty state
+	if namespace == "mock-test-namespace-1" || namespace == "mock-test-namespace-3" {
 		return &lsdapi.LlamaStackDistributionList{
 			Items: []lsdapi.LlamaStackDistribution{},
 		}, nil
 	}
 
-	// For all other namespaces, return mock LSD data
-	return &lsdapi.LlamaStackDistributionList{
-		Items: []lsdapi.LlamaStackDistribution{
-			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "mock-lsd",
-					Annotations: map[string]string{
-						"openshift.io/display-name": "mock-lsd-display-name",
-					},
-					Labels: map[string]string{
-						"opendatahub.io/dashboard": "true",
-					},
-				},
-				Status: lsdapi.LlamaStackDistributionStatus{
-					Phase: lsdapi.LlamaStackDistributionPhaseReady,
-					Version: lsdapi.VersionInfo{
-						LlamaStackServerVersion: "v0.2.0",
-					},
-					ServiceURL: "http://mock-lsd.test-namespace.svc.cluster.local:8321",
-					DistributionConfig: lsdapi.DistributionConfig{
-						ActiveDistribution: "mock-distribution",
-						Providers: []lsdapi.ProviderInfo{
-							{
-								ProviderID:   "mock-provider",
-								ProviderType: "mock-type",
-								API:          "mock-api",
-							},
+	// For other namespaces, first try to query the real cluster for LSD resources
+	var lsdList lsdapi.LlamaStackDistributionList
+	err := m.Client.List(ctx, &lsdList, client.InNamespace(namespace))
+	if err != nil {
+		return nil, fmt.Errorf("failed to list LlamaStackDistributions: %w", err)
+	}
+
+	// If we found real LSD resources in the cluster, return them
+	if len(lsdList.Items) > 0 {
+		return &lsdList, nil
+	}
+
+	// For namespaces that should return mock LSD data (for testing existing LSD scenarios)
+	if namespace == "mock-test-namespace-2" || namespace == "test-namespace" {
+		return &lsdapi.LlamaStackDistributionList{
+			Items: []lsdapi.LlamaStackDistribution{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "mock-lsd",
+						Namespace: namespace,
+						Annotations: map[string]string{
+							"openshift.io/display-name": "mock-lsd-display-name",
 						},
-						AvailableDistributions: map[string]string{
-							"mock-distribution": "mock-image:latest",
+						Labels: map[string]string{
+							"opendatahub.io/dashboard": "true",
+						},
+					},
+					Status: lsdapi.LlamaStackDistributionStatus{
+						Phase: lsdapi.LlamaStackDistributionPhaseReady,
+						Version: lsdapi.VersionInfo{
+							LlamaStackServerVersion: "v0.2.0",
+						},
+						ServiceURL: "http://mock-lsd.test-namespace.svc.cluster.local:8321",
+						DistributionConfig: lsdapi.DistributionConfig{
+							ActiveDistribution: "mock-distribution",
+							Providers: []lsdapi.ProviderInfo{
+								{
+									ProviderID:   "mock-provider",
+									ProviderType: "mock-type",
+									API:          "mock-api",
+								},
+							},
+							AvailableDistributions: map[string]string{
+								"mock-distribution": "mock-image:latest",
+							},
 						},
 					},
 				},
 			},
-		},
+		}, nil
+	}
+
+	// For all other namespaces, return empty list (no existing LSDs)
+	return &lsdapi.LlamaStackDistributionList{
+		Items: []lsdapi.LlamaStackDistribution{},
 	}, nil
 }
 
 func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []string) (*lsdapi.LlamaStackDistribution, error) {
+	// Check if LSD already exists in the namespace
+	existingLSDList, err := m.GetLlamaStackDistributions(ctx, identity, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check for existing LlamaStackDistribution: %w", err)
+	}
+
+	if len(existingLSDList.Items) > 0 {
+		return nil, fmt.Errorf("LlamaStackDistribution already exists in namespace %s", namespace)
+	}
+
 	// First ensure the namespace exists
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
 		},
 	}
-	err := m.Client.Create(ctx, ns)
+	err = m.Client.Create(ctx, ns)
 	if err != nil && !errors.IsAlreadyExists(err) {
 		return nil, fmt.Errorf("failed to create namespace %s: %w", namespace, err)
 	}
@@ -394,19 +429,19 @@ func (m *TokenKubernetesClientMock) DeleteLlamaStackDistribution(ctx context.Con
 		return nil, fmt.Errorf("no LlamaStackDistribution found in namespace %s with OpenDataHubDashboardLabelKey annotation", namespace)
 	}
 
-	// Find the LSD with matching display name annotation
+	// Find the LSD with matching k8s name
 	var targetLSD *lsdapi.LlamaStackDistribution
 	for i := range lsdList.Items {
 		lsd := &lsdList.Items[i]
-		if displayName, exists := lsd.Annotations["openshift.io/display-name"]; exists && displayName == name {
+		if lsd.Name == name {
 			targetLSD = lsd
 			break
 		}
 	}
 
-	// If no LSD with matching display name found, return error
+	// If no LSD with matching k8s name found, return error
 	if targetLSD == nil {
-		return nil, fmt.Errorf("LlamaStackDistribution with display name '%s' not found in namespace %s", name, namespace)
+		return nil, fmt.Errorf("LlamaStackDistribution with name '%s' not found in namespace %s", name, namespace)
 	}
 
 	// Delete the LSD using the actual resource name

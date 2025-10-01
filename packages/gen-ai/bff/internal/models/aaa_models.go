@@ -9,4 +9,5 @@ type AAModel struct {
 	Description    string   `json:"description"`
 	Endpoints      []string `json:"endpoints"`
 	Status         string   `json:"status"`
+	DisplayName    string   `json:"display_name"`
 }

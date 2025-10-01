@@ -1,7 +1,9 @@
 import React from 'react';
-import { Checkbox, TextInput, StackItem, Stack, FormGroup } from '@patternfly/react-core';
+import { Checkbox, TextInput, StackItem, Stack, FormGroup, Popover } from '@patternfly/react-core';
 import { z } from 'zod';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ModelTypeFieldData } from './ModelTypeSelectField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 
@@ -73,11 +75,23 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
   const showSaveAsAiAsset = React.useMemo(() => {
     if (wizardData.state.modelType.data === ServingRuntimeModelType.GENERATIVE) return true;
     return false;
-  }, [data.saveAsAiAsset, wizardData.state.modelType.data]);
+  }, [wizardData.state.modelType.data]);
 
-  return (
-    <>
-      {showSaveAsAiAsset && (
+  return showSaveAsAiAsset ? (
+    <StackItem>
+      <FormGroup
+        label="AI Asset"
+        data-testid="ai-asset-section"
+        fieldId="ai-asset"
+        labelHelp={
+          <Popover bodyContent="POPOVER BODY CONTENT" headerContent="POPOVER HEADER CONTENT">
+            <DashboardPopupIconButton
+              icon={<OutlinedQuestionCircleIcon />}
+              aria-label="More info"
+            />
+          </Popover>
+        }
+      >
         <Stack hasGutter>
           <StackItem>
             <Checkbox
@@ -101,7 +115,7 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
             </StackItem>
           )}
         </Stack>
-      )}
-    </>
-  );
+      </FormGroup>
+    </StackItem>
+  ) : null;
 };
