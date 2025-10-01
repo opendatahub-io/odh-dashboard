@@ -1,12 +1,6 @@
 import React from 'react';
-import { Button, Flex, FlexItem, Progress, Label } from '@patternfly/react-core';
-import {
-  FileIcon,
-  TimesIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
-  ClockIcon,
-} from '@patternfly/react-icons';
+import { Button, Divider, Grid, GridItem, Progress, ProgressVariant } from '@patternfly/react-core';
+import { FileIcon, TimesIcon } from '@patternfly/react-icons';
 import { formatFileSize } from './utils';
 
 type FileStatus = 'pending' | 'configured' | 'uploading' | 'uploaded' | 'failed';
@@ -25,85 +19,48 @@ export const UploadedFileItem: React.FC<UploadedFileItemProps> = ({
   onRemove,
 }) => {
   const fileSize = formatFileSize(file.size);
-
-  const getStatusLabel = () => {
-    switch (status) {
-      case 'pending':
-        return (
-          <Label color="orange" icon={<ClockIcon />}>
-            Awaiting settings
-          </Label>
-        );
-      case 'configured':
-        return (
-          <Label color="blue" icon={<CheckCircleIcon />}>
-            Configured
-          </Label>
-        );
-      case 'uploading':
-        return <Label color="blue">Uploading...</Label>;
-      case 'uploaded':
-        return (
-          <Label color="green" icon={<CheckCircleIcon />}>
-            Uploaded
-          </Label>
-        );
-      case 'failed':
-        return (
-          <Label color="red" icon={<ExclamationTriangleIcon />}>
-            Failed
-          </Label>
-        );
-      default:
-        return null;
-    }
-  };
+  const title = `${file.name} (${fileSize})`;
 
   const getProgressVariant = () => {
     switch (status) {
       case 'uploaded':
-        return 'success';
+        return ProgressVariant.success;
       case 'failed':
-        return 'danger';
+        return ProgressVariant.danger;
       default:
         return undefined;
     }
   };
 
+  const getProgressValue = () => (status === 'uploaded' ? 100 : progress);
+
   return (
-    <div className="pf-v6-u-mt-md pf-v6-u-p-md pf-v6-u-border-bottom-1 pf-v6-u-border-color-200">
-      <Flex
-        justifyContent={{ default: 'justifyContentSpaceBetween' }}
-        alignItems={{ default: 'alignItemsCenter' }}
-        className="pf-v6-u-mb-sm"
-      >
-        <FlexItem>
-          <Flex alignItems={{ default: 'alignItemsCenter' }}>
-            <FlexItem>
-              <FileIcon className="pf-v6-u-mr-sm pf-v6-u-color-200" />
-            </FlexItem>
-            <FlexItem>
-              <span className="pf-v6-u-font-weight-bold">{file.name}</span>
-              <span className="pf-v6-u-ml-sm pf-v6-u-color-200">{fileSize}</span>
-            </FlexItem>
-          </Flex>
-        </FlexItem>
-        <FlexItem>
-          <Flex alignItems={{ default: 'alignItemsCenter' }}>
-            <FlexItem>{getStatusLabel()}</FlexItem>
-            <FlexItem>
-              <Button
-                variant="plain"
-                onClick={() => onRemove(file.name)}
-                aria-label={`Remove ${file.name}`}
-              >
-                <TimesIcon />
-              </Button>
-            </FlexItem>
-          </Flex>
-        </FlexItem>
-      </Flex>
-      <Progress value={progress} variant={getProgressVariant()} className="pf-v6-u-mb-sm" />
+    <div>
+      <div className="pf-v6-u-p-sm pf-v6-u-pt-md pf-v6-u-pb-md">
+        <Grid hasGutter={false}>
+          {/* First column: File icon */}
+          <GridItem span={1}>
+            <FileIcon className="pf-v6-u-color-200" />
+          </GridItem>
+
+          {/* Second column: Progress with file name and size in title */}
+          <GridItem span={10} className="pf-v6-u-px-sm">
+            <Progress value={getProgressValue()} title={title} variant={getProgressVariant()} />
+          </GridItem>
+
+          {/* Third column: Remove button */}
+          <GridItem span={1} className="pf-v6-u-display-flex pf-v6-u-align-items-flex-start">
+            <Button
+              variant="plain"
+              onClick={() => onRemove(file.name)}
+              aria-label={`Remove ${file.name}`}
+            >
+              <TimesIcon />
+            </Button>
+          </GridItem>
+        </Grid>
+      </div>
+      <Divider />
     </div>
   );
 };
