@@ -113,40 +113,116 @@ describe('NotebookServer', () => {
     notebookServer.findStartServerButton().click();
     notebookServer.findEventlog().click();
 
-    cy.wait('@startNotebookServer').then((interception) => {
-      const requestBody = interception.request.body;
-      expect(requestBody).to.have.property('imageName', 'code-server-notebook');
-      expect(requestBody).to.have.property('imageTagName', '2023.2');
-      expect(requestBody).to.have.property('state', 'started');
-      expect(requestBody).to.have.property('storageClassName', 'openshift-default-sc');
-      expect(requestBody)
-        .to.have.property('envVars')
-        .that.deep.equals({ configMap: {}, secrets: {} });
-      expect(requestBody).to.have.property('podSpecOptions');
-      expect(requestBody.podSpecOptions)
-        .to.have.property('resources')
-        .that.deep.equals({
-          limits: {
-            cpu: '1',
-            memory: '2Gi',
-          },
+    const expectedRequestBody = {
+      imageName: 'code-server-notebook',
+      imageTagName: '2023.2',
+      podSpecOptions: {
+        resources: {
           requests: {
             cpu: '1',
             memory: '2Gi',
           },
-        });
-      console.log('avo99a: requestBody.podSpecOptions', requestBody.podSpecOptions);
-      expect(requestBody.podSpecOptions)
-        .to.have.property('tolerations')
-        .that.deep.equals([
+          limits: {
+            cpu: '1',
+            memory: '2Gi',
+          },
+        },
+        tolerations: [
           {
             effect: 'NoSchedule',
             key: 'NotebooksOnlyChange',
             operator: 'Exists',
           },
-        ]);
-      expect(requestBody.podSpecOptions).to.have.property('nodeSelector', {});
-      expect(requestBody.podSpecOptions).to.have.property('selectedHardwareProfile', undefined);
+        ],
+        nodeSelector: {},
+        selectedHardwareProfile: {
+          apiVersion: 'infrastructure.opendatahub.io/v1alpha1',
+          kind: 'HardwareProfile',
+          metadata: {
+            creationTimestamp: '2023-03-17T16:12:41Z',
+            generation: 1,
+            name: 'alpha-small-profile',
+            namespace: 'opendatahub',
+            resourceVersion: '1309350',
+            uid: 'test-uid_service_ntdfus',
+            annotations: {
+              'opendatahub.io/display-name': 'alpha Small Profile',
+              'opendatahub.io/description': '',
+            },
+          },
+          spec: {
+            identifiers: [
+              {
+                displayName: 'CPU',
+                identifier: 'cpu',
+                minCount: '1',
+                maxCount: '2',
+                defaultCount: '1',
+                resourceType: 'CPU',
+              },
+              {
+                displayName: 'Memory',
+                identifier: 'memory',
+                minCount: '2Gi',
+                maxCount: '4Gi',
+                defaultCount: '2Gi',
+                resourceType: 'Memory',
+              },
+            ],
+            scheduling: {
+              type: 'Node',
+              node: {
+                nodeSelector: {},
+                tolerations: [
+                  {
+                    effect: 'NoSchedule',
+                    key: 'NotebooksOnlyChange',
+                    operator: 'Exists',
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+      envVars: {
+        configMap: {},
+        secrets: {},
+      },
+      state: 'started',
+      storageClassName: 'openshift-default-sc',
+    };
+
+    cy.wait('@startNotebookServer').then((interception) => {
+      console.log('actual(sweet potato):', interception.request.body);
+      expect(interception.request.body).to.eql({
+        imageName: 'code-server-notebook',
+        imageTagName: '2023.2',
+        podSpecOptions: {
+          resources: {
+            requests: {
+              cpu: '1',
+              memory: '2Gi',
+            },
+            limits: {
+              cpu: '1',
+              memory: '2Gi',
+            },
+          },
+          tolerations: [
+            {
+              effect: 'NoSchedule',
+              key: 'NotebooksOnlyChange',
+              operator: 'Exists',
+            },
+          ],
+          nodeSelector: {},
+          selectedHardwareProfile: mockGlobalScopedHardwareProfilesGreek[0],
+        },
+        envVars: { configMap: {}, secrets: {} },
+        state: 'started',
+        storageClassName: 'openshift-default-sc',
+      });
     });
   });
 
