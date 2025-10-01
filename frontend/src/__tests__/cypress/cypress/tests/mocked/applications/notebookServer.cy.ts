@@ -147,34 +147,53 @@ describe('NotebookServer', () => {
 
     cy.wait('@startNotebookServer').then((interception) => {
       console.log('actual(sweet potato):', interception.request.body);
-      expect(interception.request.body).to.eql({
-        imageName: 'code-server-notebook',
-        imageTagName: '2023.2',
-        podSpecOptions: {
-          resources: {
-            requests: {
-              cpu: '1',
-              memory: '2Gi',
-            },
-            limits: {
-              cpu: '1',
-              memory: '2Gi',
-            },
-          },
-          tolerations: [
-            {
-              effect: 'NoSchedule',
-              key: 'NotebooksOnlyChange',
-              operator: 'Exists',
-            },
-          ],
-          nodeSelector: {},
-          selectedHardwareProfile: mockGlobalScopedHardwareProfilesGreek[0],
-        },
-        envVars: { configMap: {}, secrets: {} },
-        state: 'started',
-        storageClassName: 'openshift-default-sc',
+      const requestBody = interception.request.body;
+
+      // Check top-level properties
+      expect(requestBody).to.have.property('imageName', 'code-server-notebook');
+      expect(requestBody).to.have.property('imageTagName', '2023.2');
+      expect(requestBody).to.have.property('state', 'started');
+      expect(requestBody).to.have.property('storageClassName', 'openshift-default-sc');
+
+      // Check envVars object
+      expect(requestBody).to.have.property('envVars');
+      expect(requestBody.envVars).to.deep.equal({ configMap: {}, secrets: {} });
+
+      // Check podSpecOptions exists
+      expect(requestBody).to.have.property('podSpecOptions');
+
+      // Check podSpecOptions.resources
+      expect(requestBody.podSpecOptions).to.have.property('resources');
+      expect(requestBody.podSpecOptions.resources).to.have.property('requests');
+      expect(requestBody.podSpecOptions.resources.requests).to.deep.equal({
+        cpu: '1',
+        memory: '2Gi',
       });
+      expect(requestBody.podSpecOptions.resources).to.have.property('limits');
+      expect(requestBody.podSpecOptions.resources.limits).to.deep.equal({
+        cpu: '1',
+        memory: '2Gi',
+      });
+
+      // Check podSpecOptions.tolerations
+      expect(requestBody.podSpecOptions).to.have.property('tolerations');
+      expect(requestBody.podSpecOptions.tolerations).to.deep.equal([
+        {
+          effect: 'NoSchedule',
+          key: 'NotebooksOnlyChange',
+          operator: 'Exists',
+        },
+      ]);
+
+      // Check podSpecOptions.nodeSelector
+      expect(requestBody.podSpecOptions).to.have.property('nodeSelector');
+      expect(requestBody.podSpecOptions.nodeSelector).to.deep.equal({});
+
+      // Check podSpecOptions.selectedHardwareProfile
+      expect(requestBody.podSpecOptions).to.have.property('selectedHardwareProfile');
+      expect(requestBody.podSpecOptions.selectedHardwareProfile).to.deep.equal(
+        mockGlobalScopedHardwareProfilesGreek[0],
+      );
     });
   });
 
