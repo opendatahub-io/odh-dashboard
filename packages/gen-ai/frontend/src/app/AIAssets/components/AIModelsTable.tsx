@@ -23,6 +23,7 @@ import { AIModel, LlamaModel } from '~/app/types';
 import { aiModelColumns } from '~/app/AIAssets/data/columns';
 import useAIModelsFilter from '~/app/AIAssets/hooks/useAIModelsFilter';
 import { AIAssetsFilterOptions, aiAssetsFilterOptions } from '~/app/AIAssets/data/filterOptions';
+import { ChatbotContext } from '~/app/context/ChatbotContext';
 import AIModelTableRow from './AIModelTableRow';
 
 type AIModelsTableProps = {
@@ -59,7 +60,7 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
   );
   const [searchValue, setSearchValue] = React.useState('');
 
-  // TODO: get the LSD status for the namespace
+  const { lsdStatus } = React.useContext(ChatbotContext);
 
   const handleSearch = () => {
     onFilterUpdate(currentFilterType, searchValue);
@@ -233,11 +234,11 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
       toolbarContent={toolbarContent}
       onClearFilters={onClearFilters}
       rowRenderer={(model) => (
-        // TODO: pass the LSD status and all models to the AIModelTableRow
         <AIModelTableRow
+          lsdStatus={lsdStatus}
           key={model.model_name}
           model={model}
-          // models={models}
+          models={models}
           playgroundModels={playgroundModels}
           onTryInPlayground={onTryInPlayground}
         />

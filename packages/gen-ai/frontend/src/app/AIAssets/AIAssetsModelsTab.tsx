@@ -23,7 +23,6 @@ const AIAssetsModelsTab: React.FC<AIAssetsModelsTabProps> = ({
   error,
 }) => {
   const navigate = useNavigate();
-  // Determine which AI Assets models are available in the playground
 
   const handleTryInPlayground = (model: AIModel) => {
     // Navigate to playground with the selected model
