@@ -135,55 +135,7 @@ describe('NotebookServer', () => {
           },
         ],
         nodeSelector: {},
-        selectedHardwareProfile: {
-          apiVersion: 'infrastructure.opendatahub.io/v1alpha1',
-          kind: 'HardwareProfile',
-          metadata: {
-            creationTimestamp: '2023-03-17T16:12:41Z',
-            generation: 1,
-            name: 'alpha-small-profile',
-            namespace: 'opendatahub',
-            resourceVersion: '1309350',
-            uid: 'test-uid_service_ntdfus',
-            annotations: {
-              'opendatahub.io/display-name': 'alpha Small Profile',
-              'opendatahub.io/description': '',
-            },
-          },
-          spec: {
-            identifiers: [
-              {
-                displayName: 'CPU',
-                identifier: 'cpu',
-                minCount: '1',
-                maxCount: '2',
-                defaultCount: '1',
-                resourceType: 'CPU',
-              },
-              {
-                displayName: 'Memory',
-                identifier: 'memory',
-                minCount: '2Gi',
-                maxCount: '4Gi',
-                defaultCount: '2Gi',
-                resourceType: 'Memory',
-              },
-            ],
-            scheduling: {
-              type: 'Node',
-              node: {
-                nodeSelector: {},
-                tolerations: [
-                  {
-                    effect: 'NoSchedule',
-                    key: 'NotebooksOnlyChange',
-                    operator: 'Exists',
-                  },
-                ],
-              },
-            },
-          },
-        },
+        selectedHardwareProfile: mockGlobalScopedHardwareProfilesGreek[0],
       },
       envVars: {
         configMap: {},
