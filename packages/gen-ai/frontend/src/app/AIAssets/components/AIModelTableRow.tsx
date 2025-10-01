@@ -75,6 +75,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
               variant={ButtonVariant.link}
               icon={<PlusCircleIcon />}
               onClick={() => setIsConfigurationModalOpen(true)}
+              isDisabled={model.status !== 'Running'}
             >
               Add to playground
             </Button>

@@ -109,7 +109,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Endpoints: []string{
 					fmt.Sprintf("internal: http://mistral-7b-instruct.%s.svc.cluster.local:8080", namespace),
 				},
-				Status:      "Running",
+				Status:      "Stop",
 				DisplayName: "Mistral 7B instruct",
 			},
 			{
@@ -137,7 +137,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://all-minilm-l6-v2.%s.svc.cluster.local:11434", namespace),
 					fmt.Sprintf("external: https://all-minilm-l6-v2-%s.example.com", namespace),
 				},
-				Status:      "Stop",
+				Status:      "Running",
 				DisplayName: "Ollama All MiniLM L6 v2",
 			},
 		}
