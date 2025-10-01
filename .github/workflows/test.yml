@@ -331,7 +331,7 @@ jobs:
           rm -rf ./coverage/unit-coverage-final.json
           find ./coverage -name "*-coverage-final.json" -type f -delete
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4.6.0
+        uses: codecov/codecov-action@v5.5.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
