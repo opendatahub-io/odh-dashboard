@@ -135,7 +135,7 @@ func TestModelsAAHandler(t *testing.T) {
 		assert.Equal(t, "v2025.1", thirdModel["version"])
 		assert.Equal(t, "Multilingual, Reasoning", thirdModel["usecase"])
 		assert.Equal(t, "Mistral 7B instruction-tuned model for general purpose tasks", thirdModel["description"])
-		assert.Equal(t, "Running", thirdModel["status"])
+		assert.Equal(t, "Stop", thirdModel["status"])
 
 		// Check third model endpoints
 		thirdEndpoints, ok := thirdModel["endpoints"].([]interface{})
@@ -163,7 +163,7 @@ func TestModelsAAHandler(t *testing.T) {
 		assert.Equal(t, "v2025.1", fifthModel["version"])
 		assert.Equal(t, "Embeddings, Semantic search", fifthModel["usecase"])
 		assert.Equal(t, "Microsoft All-MiniLM-L6-v2 embedding model for semantic search and text similarity", fifthModel["description"])
-		assert.Equal(t, "Stop", fifthModel["status"])
+		assert.Equal(t, "Running", fifthModel["status"])
 	})
 
 	// Test error cases - simple parameter validation

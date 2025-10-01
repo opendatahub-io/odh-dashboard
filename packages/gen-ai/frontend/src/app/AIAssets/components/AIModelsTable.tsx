@@ -19,7 +19,7 @@ import {
 } from '@patternfly/react-core';
 import { CloseIcon, FilterIcon } from '@patternfly/react-icons';
 import { DashboardEmptyTableView, Table } from 'mod-arch-shared';
-import { AIModel, LlamaModel } from '~/app/types';
+import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
 import { aiModelColumns } from '~/app/AIAssets/data/columns';
 import useAIModelsFilter from '~/app/AIAssets/hooks/useAIModelsFilter';
 import { AIAssetsFilterOptions, aiAssetsFilterOptions } from '~/app/AIAssets/data/filterOptions';
@@ -29,6 +29,7 @@ type AIModelsTableProps = {
   models: AIModel[];
   playgroundModels: LlamaModel[];
   onTryInPlayground: (model: AIModel) => void;
+  lsdStatus: LlamaStackDistributionModel | null;
 };
 
 export const AIModelStatusPopoverContent: React.ReactNode = (
@@ -50,6 +51,7 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
   models,
   playgroundModels,
   onTryInPlayground,
+  lsdStatus,
 }) => {
   const { filterData, onFilterUpdate, onClearFilters, filteredModels } = useAIModelsFilter(models);
 
@@ -58,8 +60,6 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
     AIAssetsFilterOptions.NAME,
   );
   const [searchValue, setSearchValue] = React.useState('');
-
-  // TODO: get the LSD status for the namespace
 
   const handleSearch = () => {
     onFilterUpdate(currentFilterType, searchValue);
@@ -233,11 +233,11 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
       toolbarContent={toolbarContent}
       onClearFilters={onClearFilters}
       rowRenderer={(model) => (
-        // TODO: pass the LSD status and all models to the AIModelTableRow
         <AIModelTableRow
+          lsdStatus={lsdStatus}
           key={model.model_name}
           model={model}
-          // models={models}
+          models={models}
           playgroundModels={playgroundModels}
           onTryInPlayground={onTryInPlayground}
         />

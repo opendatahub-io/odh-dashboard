@@ -11,6 +11,7 @@ import (
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/packages/ssestream"
 	"github.com/openai/openai-go/v2/responses"
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 )
 
@@ -26,6 +27,14 @@ func NewMockLlamaStackClient() *MockLlamaStackClient {
 
 // ListModels returns mock model data
 func (m *MockLlamaStackClient) ListModels(ctx context.Context) ([]openai.Model, error) {
+	// Check namespace from context - return no models for mock-test-namespace-3
+	// This allows testing "Add to playground" button for all AAmodels
+	if namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string); ok {
+		if namespace == "mock-test-namespace-3" {
+			return []openai.Model{}, nil
+		}
+	}
+
 	return []openai.Model{
 		{
 			ID:      "ollama/llama3.2:3b",

@@ -130,6 +130,34 @@ func TestLlamaStackModelsHandler(t *testing.T) {
 		firstModel := models[0].(map[string]interface{})
 		assert.Equal(t, "ollama/llama3.2:3b", firstModel["id"])
 	})
+
+	t.Run("should return no models for mock-test-namespace-3", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models?namespace=mock-test-namespace-3", nil)
+		assert.NoError(t, err)
+
+		// Simulate AttachLlamaStackClient middleware: create client and add namespace to context
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-3")
+		req = req.WithContext(ctx)
+
+		app.LlamaStackModelsHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		body, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response ModelsResponse
+		err = json.Unmarshal(body, &response)
+		assert.NoError(t, err)
+
+		// Verify mock returns no models for mock-test-namespace-3
+		models := response.Data.([]interface{})
+		assert.Len(t, models, 0, "Should return no models for mock-test-namespace-3 to show 'Add to playground' button for all AA models")
+	})
 }
 
 func TestLlamaStackModelsHandlerWithFilteredModelKeywords(t *testing.T) {

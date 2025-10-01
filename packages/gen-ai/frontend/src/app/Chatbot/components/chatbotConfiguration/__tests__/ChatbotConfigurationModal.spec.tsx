@@ -23,6 +23,11 @@ const createAIModel = (overrides: Partial<AIModel>): AIModel => ({
   version: 'v1',
   usecase: 'llm',
   status: 'Running',
+  sa_token: {
+    name: '',
+    token_name: '',
+    token: '',
+  },
   ...overrides,
 });
 
