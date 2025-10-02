@@ -146,25 +146,55 @@ jobs:
           
           # Note: If secrets not provided, BASE_URL will be set at test run time with dynamic port
 
-      - name: Cleanup and start webpack server
+      - name: Calculate unique port for this job
         run: |
-          # Use port 4010 only - match OLD workflow exactly
-          CYPRESS_PORT=4010
+          # Dynamic port allocation to support concurrent PRs with any tags
+          # Use hash-based approach for better distribution across port space
+          # This minimizes collisions even with many concurrent PRs
+          
+          # Hash the run_id to spread PRs across port space (reduces collision probability)
+          # Using last 3 digits gives us 1000 possible port ranges (vs 100 with simple modulo)
+          RUN_HASH=$(echo "${{ github.run_id }}" | md5sum | cut -c1-8)
+          RUN_OFFSET=$((0x$RUN_HASH % 500))  # 500 possible base ports
+          BASE_PORT=$((4000 + (RUN_OFFSET * 10)))
+          
+          # Use strategy.job-index for port offset (works with ANY tag values)
+          # job-index is 0-based: first job=0, second=1, third=2, etc.
+          PORT_OFFSET=${{ strategy.job-index }}
+          
+          CYPRESS_PORT=$((BASE_PORT + PORT_OFFSET))
           echo "CYPRESS_PORT=$CYPRESS_PORT" >> $GITHUB_ENV
           
-          # Cleanup like old workflow
-          echo "Cleaning up any existing processes..."
-          pkill -f "webpack.*serve" || echo "No webpack processes found"
-          pkill -f "node.*4010" || echo "No node processes on port 4010"
-          sleep 2
+          echo "Allocated port $CYPRESS_PORT for ${{ matrix.test-tag }}"
+          echo "  run_id=${{ github.run_id }}, base=$BASE_PORT, job-index=$PORT_OFFSET"
+          echo "  Port range for this PR: $BASE_PORT-$((BASE_PORT + 9))"
+      
+      - name: Cleanup and start webpack server
+        run: |
+          # Cleanup any existing processes on this specific port (critical for self-hosted runners)
+          echo "Cleaning up any existing processes on port $CYPRESS_PORT..."
+          if lsof -ti:$CYPRESS_PORT > /dev/null 2>&1; then
+            echo "Found processes on port $CYPRESS_PORT, killing them..."
+            lsof -ti:$CYPRESS_PORT | xargs kill -9 2>/dev/null || true
+            sleep 3
+          else
+            echo "No existing processes on port $CYPRESS_PORT"
+          fi
           
-          # Start server EXACTLY like old workflow - no ODH_PORT setting
-          echo "Starting webpack dev server with cluster proxy..."
-          cd frontend && npm run start:dev:ext &
+          # Double-check port is free before starting
+          if lsof -ti:$CYPRESS_PORT > /dev/null 2>&1; then
+            echo "ERROR: Port $CYPRESS_PORT is still in use after cleanup!"
+            lsof -i:$CYPRESS_PORT
+            exit 1
+          fi
+          
+          # Start server with dynamic port
+          echo "Starting webpack dev server on port $CYPRESS_PORT with cluster proxy..."
+          cd frontend && ODH_PORT=$CYPRESS_PORT npm run start:dev:ext &
           
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
-          echo "Started webpack dev server with PID: $SERVER_PID"
+          echo "Started webpack dev server with PID: $SERVER_PID on port $CYPRESS_PORT"
           
           echo "Giving server 15 seconds to initialize..."
           sleep 15
@@ -194,12 +224,27 @@ jobs:
             exit 1
           fi
 
-      - name: Update test-variables.yml to use localhost
+      - name: Set Test Configuration
         run: |
-          echo "Updating test-variables.yml to point to localhost:$CYPRESS_PORT..."
-          sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:$CYPRESS_PORT|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
-          sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:$CYPRESS_PORT|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
-          echo "test-variables.yml updated"
+          # Set cluster URLs from secrets if available
+          if [ -n "${{ secrets.OCP_CONSOLE_URL }}" ]; then
+            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: ${{ secrets.OCP_CONSOLE_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          fi
+          if [ -n "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
+            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: ${{ secrets.ODH_DASHBOARD_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          fi
+          
+          # For forked PRs, set default URLs using dynamic port (not 4010)
+          if [ -z "${{ secrets.OCP_CONSOLE_URL }}" ]; then
+            echo "OCP_CONSOLE_URL secret not available (forked PR) - using localhost:$CYPRESS_PORT"
+            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:$CYPRESS_PORT|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          fi
+          if [ -z "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
+            echo "ODH_DASHBOARD_URL secret not available (forked PR) - using localhost:$CYPRESS_PORT"
+            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:$CYPRESS_PORT|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          fi
+          
+          export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
 
       - name: Run E2E Tests
         run: |
@@ -211,6 +256,7 @@ jobs:
           echo "Running E2E tests on port $CYPRESS_PORT"
           echo "Test tag: ${{ matrix.test-tag }}"
           
+          # Run tests against dynamic port (supports parallel execution)
           BASE_URL=http://localhost:$CYPRESS_PORT npm run cypress:run:electron -- \
             --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true \
             --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
@@ -265,12 +311,16 @@ jobs:
     steps:
       - name: Clean up any stale processes
         run: |
-          echo "Final cleanup: removing any stale processes..."
+          echo "Final cleanup: removing any stale processes on self-hosted runner..."
           
           # Kill any webpack processes older than 1 hour (stale from failed runs)
-          pkill -f "webpack.*serve" -o 3600 2>/dev/null || echo "No stale webpack processes found"
+          # Find processes older than 3600 seconds (1 hour)
+          for pid in $(ps -eo pid,etimes,cmd | grep -E "webpack.*serve|node.*start:dev" | awk '$2 > 3600 {print $1}'); do
+            echo "Killing stale process $pid (running for more than 1 hour)"
+            kill -9 $pid 2>/dev/null || true
+          done
           
-          # Clean up Cypress Chrome cache directories older than 1 day
-          find /home/fedora/.config/Cypress/cy/production/browsers/chrome-stable/ -maxdepth 1 -type d -name "run-*" -mtime +1 -exec rm -rf {} \; 2>/dev/null || true
+          # Clean up any orphaned Electron/Cypress processes
+          pkill -f "Cypress|Electron" 2>/dev/null || echo "No Cypress/Electron processes found"
           
           echo "Final cleanup complete"
