@@ -2,7 +2,7 @@ import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
-import { mock200Status } from '#~/__mocks__/mockK8sStatus';
+import { mock200Status, mock403ErrorWithDetails, mock404Error } from '#~/__mocks__/mockK8sStatus';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import { mockSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
 import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
@@ -47,6 +47,7 @@ import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/compo
 import {
   mockGlobalScopedHardwareProfiles,
   mockProjectScopedHardwareProfiles,
+  mockHardwareProfile,
 } from '#~/__mocks__/mockHardwareProfile';
 import { initInterceptsForAllProjects } from '#~/__tests__/cypress/cypress/utils/servingUtils';
 import { nimDeployModal } from '#~/__tests__/cypress/cypress/pages/components/NIMDeployModal';
@@ -1225,6 +1226,220 @@ describe('Model Serving Global', () => {
           '/ai-hub/deployments/test-project/metrics/test-inference-service/performance',
         );
       });
+    });
+  });
+
+  describe('Model Serving Hardware Profile Binding State Labels', () => {
+    it('should show "Deleted" label when hardware profile is deleted', () => {
+      initIntercepts({ disableHardwareProfiles: false });
+      // Mock inference service with non-existent hardware profile annotation
+      cy.interceptK8sList(
+        {
+          model: InferenceServiceModel,
+          ns: 'test-project',
+        },
+        mockK8sResourceList([
+          mockInferenceServiceK8sResource({
+            name: 'test-model',
+            displayName: 'Test Model',
+            namespace: 'test-project',
+            isModelMesh: false,
+            hardwareProfileName: 'deleted-profile', // Non-existent profile
+            hardwareProfileResourceVersion: '104110942',
+          }),
+        ]),
+      );
+
+      // Mock the hardware profile as deleted (404 error)
+      cy.interceptK8s(
+        {
+          model: HardwareProfileModel,
+          ns: 'opendatahub',
+          name: 'deleted-profile',
+        },
+        {
+          statusCode: 404,
+          body: mock404Error({}),
+        },
+      );
+
+      modelServingGlobal.visit('test-project');
+
+      // Verify "Deleted" label appears in hardware profile column
+      const deletedLabel = modelServingGlobal
+        .getInferenceServiceRow('Test Model')
+        .findHardwareProfileDeletedLabel();
+
+      deletedLabel.should('be.visible');
+      deletedLabel.click();
+
+      // Verify "Deleted" popover shows correct message
+      const popover = modelServingGlobal
+        .getInferenceServiceRow('Test Model')
+        .findHardwareProfileDeletedPopover();
+      popover.title().should('be.visible');
+      popover.body().should('be.visible');
+    });
+
+    it('should show "Disabled" label when hardware profile is disabled', () => {
+      const mockInferenceService = mockInferenceServiceK8sResource({
+        name: 'test-model',
+        displayName: 'Test Model',
+        namespace: 'test-project',
+        isModelMesh: false,
+        hardwareProfileName: 'disabled-profile',
+      });
+
+      // Set up proper intercepts with hardware profiles enabled
+      initIntercepts({
+        disableHardwareProfiles: false,
+        inferenceServices: [mockInferenceService],
+      });
+
+      // Mock disabled hardware profile
+      cy.interceptK8s(
+        {
+          model: HardwareProfileModel,
+          ns: 'opendatahub',
+          name: 'disabled-profile',
+        },
+        mockHardwareProfile({
+          name: 'disabled-profile',
+          displayName: 'Disabled Profile',
+          annotations: {
+            'opendatahub.io/disabled': 'true',
+          },
+          identifiers: [
+            {
+              displayName: 'CPU',
+              identifier: 'cpu',
+              minCount: '1',
+              maxCount: '2',
+              defaultCount: '1',
+            },
+            {
+              displayName: 'Memory',
+              identifier: 'memory',
+              minCount: '2Gi',
+              maxCount: '4Gi',
+              defaultCount: '2Gi',
+            },
+          ],
+        }),
+      );
+
+      modelServingGlobal.visit('test-project');
+
+      // Verify "Disabled" label appears in hardware profile column
+      const disabledLabel = modelServingGlobal
+        .getInferenceServiceRow('Test Model')
+        .findHardwareProfileDisabledLabel();
+      disabledLabel.should('be.visible');
+      disabledLabel.click();
+
+      // Verify "Disabled" popover shows correct message
+      const popover = modelServingGlobal
+        .getInferenceServiceRow('Test Model')
+        .findHardwareProfileDisabledPopover();
+      popover.title().should('be.visible');
+      popover.body().should('be.visible');
+    });
+
+    it('should show "Updated" label when hardware profile spec has changed', () => {
+      const mockInferenceService = mockInferenceServiceK8sResource({
+        name: 'test-model',
+        displayName: 'Test Model',
+        namespace: 'test-project',
+        isModelMesh: false,
+        hardwareProfileName: 'updated-profile',
+        hardwareProfileResourceVersion: '104110942',
+      });
+
+      // Set up proper intercepts with hardware profiles enabled
+      initIntercepts({
+        disableHardwareProfiles: false,
+        inferenceServices: [mockInferenceService],
+      });
+
+      // Mock hardware profile with different spec (updated)
+      cy.interceptK8s(
+        {
+          model: HardwareProfileModel,
+          ns: 'opendatahub',
+          name: 'updated-profile',
+        },
+        mockHardwareProfile({
+          name: 'updated-profile',
+          displayName: 'Updated Profile',
+          enabled: true,
+          identifiers: [
+            {
+              displayName: 'CPU',
+              identifier: 'cpu',
+              minCount: '2', // Changed from 1 to 2
+              maxCount: '4', // Changed from 1 to 4
+              defaultCount: '2', // Changed from 1 to 2
+            },
+            {
+              displayName: 'Memory',
+              identifier: 'memory',
+              minCount: '4Gi',
+              maxCount: '8Gi',
+              defaultCount: '4Gi',
+            },
+          ],
+          resourceVersion: '104110943',
+        }),
+      );
+
+      modelServingGlobal.visit('test-project');
+
+      // Verify "Updated" label appears in hardware profile column
+      const updatedLabel = modelServingGlobal
+        .getInferenceServiceRow('Test Model')
+        .findHardwareProfileUpdatedLabel();
+      updatedLabel.should('be.visible');
+      updatedLabel.click();
+
+      // Verify "Updated" popover shows correct message
+      const popover = modelServingGlobal
+        .getInferenceServiceRow('Test Model')
+        .findHardwareProfileUpdatedPopover();
+      popover.title().should('be.visible');
+      popover.body().should('be.visible');
+    });
+
+    it('should show error icon with popover when hardware profile fails to load (non-404 error)', () => {
+      const mockInferenceService = mockInferenceServiceK8sResource({
+        name: 'test-model',
+        displayName: 'Test Model',
+        namespace: 'test-project',
+        isModelMesh: false,
+        hardwareProfileName: 'error-profile',
+      });
+
+      initIntercepts({
+        disableHardwareProfiles: false,
+        inferenceServices: [mockInferenceService],
+      });
+
+      cy.interceptK8s(
+        {
+          model: HardwareProfileModel,
+          ns: 'opendatahub',
+          name: 'error-profile',
+        },
+        mock403ErrorWithDetails({}),
+      );
+
+      modelServingGlobal.visit('test-project');
+
+      const modelRow = modelServingGlobal.getInferenceServiceRow('Test Model');
+      const errorIcon = modelRow.findHardwareProfileErrorIcon();
+      errorIcon.should('exist');
+      errorIcon.trigger('mouseenter');
+      const errorPopoverTitle = modelRow.findHardwareProfileErrorPopover();
+      errorPopoverTitle.should('be.visible');
     });
   });
 });
