@@ -113,6 +113,11 @@ jobs:
 
       - name: Login to OpenShift cluster
         run: |
+          if [ -z "${{ secrets.OC_SERVER }}" ]; then
+            echo "⚠️  OpenShift secrets not available - skipping cluster login"
+            exit 0
+          fi
+
           TEST_VARS_FILE="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
           OC_USERNAME=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
           OC_PASSWORD=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
@@ -143,26 +148,14 @@ jobs:
 
       - name: Calculate unique port for this job
         run: |
-          # Dynamic port allocation to support concurrent PRs with any tags
-          # Use hash-based approach for better distribution across port space
-          # This minimizes collisions even with many concurrent PRs
-          
-          # Hash the run_id to spread PRs across port space (reduces collision probability)
-          # Using last 3 digits gives us 1000 possible port ranges (vs 100 with simple modulo)
-          RUN_HASH=$(echo "${{ github.run_id }}" | md5sum | cut -c1-8)
-          RUN_OFFSET=$((0x$RUN_HASH % 500))  # 500 possible base ports
-          BASE_PORT=$((4000 + (RUN_OFFSET * 10)))
-          
-          # Use strategy.job-index for port offset (works with ANY tag values)
-          # job-index is 0-based: first job=0, second=1, third=2, etc.
-          PORT_OFFSET=${{ strategy.job-index }}
-          
-          CYPRESS_PORT=$((BASE_PORT + PORT_OFFSET))
+          # TEMPORARILY use fixed port 4010 to match OLD workflow exactly
+          # This is for debugging - if this works, issue is with dynamic ports
+          # If this fails, issue is something else in the workflow
+          CYPRESS_PORT=4010
           echo "CYPRESS_PORT=$CYPRESS_PORT" >> $GITHUB_ENV
           
-          echo "Allocated port $CYPRESS_PORT for ${{ matrix.test-tag }}"
-          echo "  run_id=${{ github.run_id }}, base=$BASE_PORT, job-index=$PORT_OFFSET"
-          echo "  Port range for this PR: $BASE_PORT-$((BASE_PORT + 9))"
+          echo "Using FIXED port $CYPRESS_PORT for debugging (matching OLD workflow)"
+          echo "Test tag: ${{ matrix.test-tag }}"
       
       - name: Cleanup and start webpack server
         run: |
