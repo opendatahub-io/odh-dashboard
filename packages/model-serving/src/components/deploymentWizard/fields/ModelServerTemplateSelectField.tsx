@@ -61,7 +61,6 @@ export const useModelServerSelectField = (
     existingData,
   );
   const { dashboardNamespace } = useDashboardNamespace();
-  console.log('modelServer', modelServer);
 
   const modelServerTemplatesFiltered = React.useMemo(
     () =>
@@ -120,20 +119,21 @@ export const useModelServerSelectField = (
     );
 
     return result;
-  }, [modelServerTemplatesFiltered, dashboardNamespace]);
+  }, [
+    platformExtensionData,
+    modelType,
+    modelServerTemplatesFiltered,
+    dashboardNamespace,
+    projectName,
+  ]);
 
   const updatedModelServer = React.useMemo(() => {
     // auto-select when there's only one template available
     if (options.length === 1) {
       return options[0];
     }
-    // if server isn't supported by format (format was changed), reset to undefined
-    // if (modelServer && !options.find((option) => option.name === modelServer.name)) {
-    //   return undefined;
-    // }
     return modelServer;
   }, [options, modelServer]);
-  console.log('updatedModelServer', updatedModelServer);
 
   return {
     data: updatedModelServer,
