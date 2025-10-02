@@ -181,6 +181,8 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                     handleSourceDrop={sourceManagement.handleSourceDrop}
                     removeUploadedSource={sourceManagement.removeUploadedSource}
                     filesWithSettings={sourceManagement.filesWithSettings}
+                    uploadedFilesCount={fileManagement.files.length}
+                    maxFilesAllowed={10}
                   />
                 </FormGroup>
                 <FormGroup fieldId="uploaded-files" className="pf-v6-u-mt-md">

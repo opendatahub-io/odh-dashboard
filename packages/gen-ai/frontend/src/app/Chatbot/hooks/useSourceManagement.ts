@@ -47,6 +47,7 @@ const useSourceManagement = ({
 
   // Constants
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+  const MAX_FILES_IN_VECTOR_STORE = 10; // Maximum number of files allowed in vector store
   const [selectedSourceSettings, setSelectedSourceSettings] =
     React.useState<ChatbotSourceSettings | null>(null);
   const [isRawUploaded, setIsRawUploaded] = React.useState(false);
@@ -85,6 +86,17 @@ const useSourceManagement = ({
         return;
       }
 
+      // Check total file count limit (API files + current queue + new files)
+      const currentTotalFiles = uploadedFiles.length + filesWithSettings.length;
+      const availableSlots = MAX_FILES_IN_VECTOR_STORE - currentTotalFiles;
+
+      if (availableSlots <= 0) {
+        onShowErrorAlert(
+          `Cannot upload more files. The vector store already contains the maximum of ${MAX_FILES_IN_VECTOR_STORE} files.`,
+        );
+        return;
+      }
+
       // Filter out files that are already uploaded (check against API files)
       const uploadedFileNames = uploadedFiles.map((file) => file.filename);
       const newFiles = validSizeFiles.filter((file) => !uploadedFileNames.includes(file.name));
@@ -106,8 +118,19 @@ const useSourceManagement = ({
         return;
       }
 
-      // Add only unique files to filesWithSettings with pending status
-      const newFilesWithSettings: FileWithSettings[] = uniqueNewFiles.map((file, index) => ({
+      // Limit the number of files to upload based on available slots
+      const filesToUpload = uniqueNewFiles.slice(0, availableSlots);
+      const skippedCount = uniqueNewFiles.length - filesToUpload.length;
+
+      if (skippedCount > 0) {
+        const remainingSlots = availableSlots;
+        onShowErrorAlert(
+          `Only ${remainingSlots} file${remainingSlots === 1 ? '' : 's'} can be uploaded. ${skippedCount} file${skippedCount === 1 ? ' was' : 's were'} skipped to stay within the ${MAX_FILES_IN_VECTOR_STORE} file limit.`,
+        );
+      }
+
+      // Add only files within the limit to filesWithSettings with pending status
+      const newFilesWithSettings: FileWithSettings[] = filesToUpload.map((file, index) => ({
         id: `${file.name}-${file.size}-${file.lastModified}-${Date.now()}-${index}`,
         file,
         settings: null,
@@ -124,14 +147,21 @@ const useSourceManagement = ({
       });
 
       // Process the first file in the queue
-      if (uniqueNewFiles.length > 0) {
+      if (filesToUpload.length > 0) {
         // Small delay to allow state to update before processing
         setTimeout(() => {
           processNextFile();
         }, 100);
       }
     },
-    [uploadedFiles, filesWithSettings, MAX_FILE_SIZE, onShowErrorAlert, processNextFile],
+    [
+      uploadedFiles,
+      filesWithSettings,
+      MAX_FILE_SIZE,
+      MAX_FILES_IN_VECTOR_STORE,
+      onShowErrorAlert,
+      processNextFile,
+    ],
   );
 
   const removeUploadedSource = React.useCallback(
