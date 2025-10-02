@@ -7,10 +7,10 @@ import {
   administration,
 } from '#~/__tests__/cypress/cypress/pages/administration';
 
-describe('[Product Bug: RHOAIENG-33688] Verify Notebook Server Administration', () => {
+describe('Verify Notebook Server Administration', () => {
   it(
     'Verify Admin User Can Access Notebook Administration',
-    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@NotebookAdministration', '@Bug'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@NotebookAdministration'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -30,7 +30,7 @@ describe('[Product Bug: RHOAIENG-33688] Verify Notebook Server Administration', 
   );
   it(
     'Verify Non-Admin User cannot Access Notebook Administration',
-    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@NotebookAdministration', '@Bug'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@NotebookAdministration'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
