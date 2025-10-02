@@ -64,6 +64,8 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any
       await handleSourceDrop(e as any, files);
     }
+    // Clear the input value to allow selecting the same file again
+    e.target.value = '';
   };
 
   const handleUploadClick = () => {

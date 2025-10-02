@@ -97,30 +97,8 @@ const useSourceManagement = ({
         return;
       }
 
-      // Filter out files that are already uploaded (check against API files)
-      const uploadedFileNames = uploadedFiles.map((file) => file.filename);
-      const newFiles = validSizeFiles.filter((file) => !uploadedFileNames.includes(file.name));
-
-      // Also filter out files that are already in the current queue
-      const currentFileNames = filesWithSettings.map(
-        (fileWithSettings) => fileWithSettings.file.name,
-      );
-      const uniqueNewFiles = newFiles.filter((file) => !currentFileNames.includes(file.name));
-
-      if (uniqueNewFiles.length === 0) {
-        // All remaining valid files are duplicates
-        const duplicateCount = validSizeFiles.length;
-        const message =
-          duplicateCount === 1
-            ? 'The remaining file has already been uploaded.'
-            : `All ${duplicateCount} remaining files have already been uploaded.`;
-        onShowErrorAlert(message);
-        return;
-      }
-
-      // Limit the number of files to upload based on available slots
-      const filesToUpload = uniqueNewFiles.slice(0, availableSlots);
-      const skippedCount = uniqueNewFiles.length - filesToUpload.length;
+      const filesToUpload = validSizeFiles.slice(0, availableSlots);
+      const skippedCount = validSizeFiles.length - filesToUpload.length;
 
       if (skippedCount > 0) {
         const remainingSlots = availableSlots;
@@ -138,12 +116,7 @@ const useSourceManagement = ({
       }));
 
       setFilesWithSettings((prev) => {
-        // Check for duplicates inside the state updater to prevent race conditions
-        const existingFileNames = prev.map((fileWithSettings) => fileWithSettings.file.name);
-        const trulyUniqueFiles = newFilesWithSettings.filter(
-          (newFileWithSettings) => !existingFileNames.includes(newFileWithSettings.file.name),
-        );
-        return [...prev, ...trulyUniqueFiles];
+        return [...prev, ...newFilesWithSettings];
       });
 
       // Process the first file in the queue
