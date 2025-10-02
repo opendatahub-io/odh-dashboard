@@ -36,14 +36,12 @@ import type { PodKind } from '#~/k8sTypes';
 type HandlersProps = {
   isEmpty?: boolean;
   mockPodList?: PodKind[];
-  disableHardwareProfiles?: boolean;
   disableProjectScoped?: boolean;
 };
 
 const initIntercepts = ({
   isEmpty = false,
   mockPodList = [mockPodK8sResource({})],
-  disableHardwareProfiles = false,
   disableProjectScoped = true,
 }: HandlersProps = {}) => {
   asProductAdminUser();
@@ -72,7 +70,6 @@ const initIntercepts = ({
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
-      disableHardwareProfiles,
       disableProjectScoped,
     }),
   );
@@ -113,9 +110,9 @@ const initIntercepts = ({
 describe('Workbench Hardware Profiles', () => {
   const projectName = 'test-project';
 
-  it('should display hardware profile selection in workbench creation when feature flag is enabled', () => {
-    initIntercepts({ disableHardwareProfiles: false });
-
+  it('should display hardware profile selection in workbench creation without setting a feature flag', () => {
+    initIntercepts();
+    // debugger;
     // Navigate to workbench creation
     projectDetails.visit(projectName);
     projectDetails.findSectionTab('workbenches').click();
@@ -137,7 +134,7 @@ describe('Workbench Hardware Profiles', () => {
   });
 
   it('should display and select project-scoped hardware and global-scoped hardware profiles while creating a workbench', () => {
-    initIntercepts({ disableHardwareProfiles: false, disableProjectScoped: false });
+    initIntercepts({ disableProjectScoped: false });
 
     cy.interceptK8sList(
       {
@@ -194,7 +191,7 @@ describe('Workbench Hardware Profiles', () => {
   });
 
   it('should display hardware profile selection in workbench creation when both hardware profile and project-scoped feature flag is enabled', () => {
-    initIntercepts({ disableHardwareProfiles: false, disableProjectScoped: false });
+    initIntercepts({ disableProjectScoped: false });
 
     // Navigate to workbench creation
     projectDetails.visit(projectName);
@@ -233,7 +230,7 @@ describe('Workbench Hardware Profiles', () => {
   });
 
   it('should have project scoped label on table row', () => {
-    initIntercepts({ disableHardwareProfiles: false, disableProjectScoped: false });
+    initIntercepts({ disableProjectScoped: false });
 
     // Mock notebook with hardware profile annotation
     cy.interceptK8sList(
@@ -261,8 +258,7 @@ describe('Workbench Hardware Profiles', () => {
   });
 
   it('should validate hardware profile customization within limits', () => {
-    initIntercepts({ disableHardwareProfiles: false });
-
+    initIntercepts();
     // Navigate to workbench creation
     projectDetails.visit(projectName);
     projectDetails.findSectionTab('workbenches').click();
@@ -307,24 +303,9 @@ describe('Workbench Hardware Profiles', () => {
     );
   });
 
-  it('should not display hardware profile selection when feature flag is disabled', () => {
-    initIntercepts({ disableHardwareProfiles: true });
-
-    // Navigate to workbench creation
-    projectDetails.visit(projectName);
-    projectDetails.findSectionTab('workbenches').click();
-    workbenchPage.findCreateButton().click();
-
-    // Verify hardware profile section does not exist
-    hardwareProfileSection.findSelect().should('not.exist');
-  });
-
   describe('Edit Workbench Hardware Profiles', () => {
     it('should auto-select hardware profile from annotations', () => {
-      initIntercepts({
-        disableHardwareProfiles: false,
-      });
-
+      initIntercepts();
       // Mock notebook with hardware profile annotation
       cy.interceptK8sList(
         {
@@ -350,7 +331,6 @@ describe('Workbench Hardware Profiles', () => {
 
     it('should auto-select project-scoped hardware profile from annotations', () => {
       initIntercepts({
-        disableHardwareProfiles: false,
         disableProjectScoped: false,
       });
 
@@ -382,10 +362,7 @@ describe('Workbench Hardware Profiles', () => {
     });
 
     it('should auto-select disabled hardware profile from annotations and show disabled state', () => {
-      initIntercepts({
-        disableHardwareProfiles: false,
-      });
-
+      initIntercepts();
       // Mock disabled hardware profile
       cy.interceptK8sList(
         { model: HardwareProfileModel, ns: 'opendatahub' },
@@ -436,10 +413,7 @@ describe('Workbench Hardware Profiles', () => {
     });
 
     it('should auto-select matching hardware profile when resources match', () => {
-      initIntercepts({
-        disableHardwareProfiles: false,
-      });
-
+      initIntercepts();
       // Mock notebook with matching resources but no hardware profile annotation
       cy.interceptK8sList(
         NotebookModel,
@@ -493,10 +467,7 @@ describe('Workbench Hardware Profiles', () => {
     });
 
     it('should auto-select "Use existing settings" when resources do not match any profile', () => {
-      initIntercepts({
-        disableHardwareProfiles: false,
-      });
-
+      initIntercepts();
       // Mock notebook with non-matching resources and no hardware profile annotation
       cy.interceptK8sList(
         NotebookModel,
@@ -554,13 +525,11 @@ describe('Workbench Hardware Profiles', () => {
 
   describe('Hardware Profile Dropdown Ordering', () => {
     beforeEach(() => {
-      initIntercepts({ disableHardwareProfiles: false });
-
+      initIntercepts();
       // Common config for all dropdown ordering tests - remove notebook sizes
       cy.interceptOdh(
         'GET /api/config',
         mockDashboardConfig({
-          disableHardwareProfiles: false,
           disableProjectScoped: true,
           notebookSizes: [], // Remove notebook sizes to test only hardware profiles
           hardwareProfileOrder: [], // Will be overridden by individual tests if needed
@@ -625,7 +594,6 @@ describe('Workbench Hardware Profiles', () => {
       cy.interceptOdh(
         'GET /api/config',
         mockDashboardConfig({
-          disableHardwareProfiles: false,
           disableProjectScoped: true,
           hardwareProfileOrder: ['zebra-profile', 'alpha-profile', 'beta-profile'],
           notebookSizes: [],
@@ -662,7 +630,6 @@ describe('Workbench Hardware Profiles', () => {
       cy.interceptOdh(
         'GET /api/config',
         mockDashboardConfig({
-          disableHardwareProfiles: false,
           disableProjectScoped: true,
           hardwareProfileOrder: ['beta-profile'], // Only beta specified
           notebookSizes: [],
@@ -708,7 +675,6 @@ describe('Workbench Hardware Profiles', () => {
       cy.interceptOdh(
         'GET /api/config',
         mockDashboardConfig({
-          disableHardwareProfiles: false,
           disableProjectScoped: false, // Enable to get search input
           hardwareProfileOrder: [
             'gamma-profile',
@@ -755,7 +721,6 @@ describe('Workbench Hardware Profiles', () => {
       cy.interceptOdh(
         'GET /api/config',
         mockDashboardConfig({
-          disableHardwareProfiles: false,
           disableProjectScoped: true,
           hardwareProfileOrder: ['gamma-profile', 'deleted-profile', 'alpha-profile'],
           notebookSizes: [],

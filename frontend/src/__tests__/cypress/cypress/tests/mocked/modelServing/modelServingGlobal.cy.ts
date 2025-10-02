@@ -67,7 +67,6 @@ type HandlersProps = {
   disableKServeMetrics?: boolean;
   disableServingRuntimeParamsConfig?: boolean;
   disableProjectScoped?: boolean;
-  disableHardwareProfiles?: boolean;
   servingRuntimesTemplates?: TemplateKind[];
 };
 
@@ -82,7 +81,6 @@ const initIntercepts = ({
   disableKServeMetrics,
   disableServingRuntimeParamsConfig,
   disableProjectScoped = true,
-  disableHardwareProfiles = true,
 }: HandlersProps) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
@@ -101,7 +99,6 @@ const initIntercepts = ({
       disableKServeMetrics,
       disableServingRuntimeParams: disableServingRuntimeParamsConfig,
       disableProjectScoped,
-      disableHardwareProfiles,
     }),
   );
 
@@ -750,7 +747,6 @@ describe('Model Serving Global', () => {
       projectEnableModelMesh: false,
       disableServingRuntimeParamsConfig: false,
       disableProjectScoped: false,
-      disableHardwareProfiles: false,
     });
     modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().should('be.enabled');
@@ -791,7 +787,6 @@ describe('Model Serving Global', () => {
       projectEnableModelMesh: false,
       disableServingRuntimeParamsConfig: false,
       disableProjectScoped: false,
-      disableHardwareProfiles: false,
       inferenceServices: [
         mockInferenceServiceK8sResource({
           namespace: 'test-project',
@@ -828,7 +823,6 @@ describe('Model Serving Global', () => {
       projectEnableModelMesh: false,
       disableServingRuntimeParamsConfig: false,
       disableProjectScoped: false,
-      disableHardwareProfiles: true,
     });
     modelServingGlobal.visit('test-project');
     modelServingGlobal.clickDeployModelButtonWithRetry();

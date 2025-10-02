@@ -8,7 +8,6 @@ import {
 } from './types';
 
 export const techPreviewFlags = {
-  disableHardwareProfiles: true,
   disableModelRegistry: true,
 } satisfies Partial<DashboardCommonConfig>;
 
@@ -39,7 +38,6 @@ export const projectManagementFlags = {
   disableBYONImageStream: false,
   disableAdminConnectionTypes: false,
   disableStorageClasses: false,
-  disableAcceleratorProfiles: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 3: Model Serving & AI/ML Infrastructure
@@ -85,12 +83,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.BYON]: {
     featureFlags: ['disableBYONImageStream'],
   },
-  [SupportedArea.ACCELERATOR_PROFILES]: {
-    featureFlags: ['disableAcceleratorProfiles'],
-  },
-  [SupportedArea.HARDWARE_PROFILES]: {
-    featureFlags: ['disableHardwareProfiles'],
-  },
   [SupportedArea.CLUSTER_SETTINGS]: {
     featureFlags: ['disableClusterManager'],
   },
@@ -116,11 +108,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.DS_PROJECT_SCOPED]: {
     featureFlags: ['disableProjectScoped'],
-    reliantAreas: [
-      SupportedArea.WORKBENCHES,
-      SupportedArea.HARDWARE_PROFILES,
-      SupportedArea.MODEL_SERVING,
-    ],
+    reliantAreas: [SupportedArea.WORKBENCHES, SupportedArea.MODEL_SERVING],
   },
   [SupportedArea.DS_PROJECTS_PERMISSIONS]: {
     featureFlags: ['disableProjectSharing'],

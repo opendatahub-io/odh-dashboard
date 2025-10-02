@@ -6,13 +6,10 @@ import {
   HardwareProfileFeatureVisibility,
   ServingRuntimeKind,
 } from '#~/k8sTypes';
-import { isGpuDisabled } from '#~/pages/modelServing/screens/projects/utils';
-import AcceleratorProfileSelectField from '#~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import { getCompatibleIdentifiers } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { formatMemory } from '#~/utilities/valueUnits';
 import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import HardwareProfileFormSection from '#~/concepts/hardwareProfiles/HardwareProfileFormSection';
 import { ModelServingSize } from '#~/pages/modelServing/screens/types';
 import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
@@ -36,10 +33,6 @@ const ServingRuntimeSizeSection = ({
   customDefaults,
   isProjectModelMesh = false,
 }: ServingRuntimeSizeSectionProps): React.ReactNode => {
-  const isHardwareProfileEnabled = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
-
-  const gpuDisabled = servingRuntimeSelected ? isGpuDisabled(servingRuntimeSelected) : false;
-
   const lastEditedCustomResourcesRef = React.useRef<ModelServingSize['resources'] | undefined>(
     customDefaults?.resources,
   );
@@ -99,7 +92,7 @@ const ServingRuntimeSizeSection = ({
 
   return (
     <>
-      {isHardwareProfileEnabled && !isProjectModelMesh ? (
+      {!isProjectModelMesh ? (
         <HardwareProfileFormSection
           project={projectName}
           podSpecOptionsState={podSpecOptionState}
@@ -152,21 +145,6 @@ const ServingRuntimeSizeSection = ({
                   }}
                 />
               </StackItem>
-            )}
-            {!gpuDisabled && !isHardwareProfileEnabled && (
-              <AcceleratorProfileSelectField
-                hasAdditionalPopoverInfo
-                currentProject={projectName}
-                initialState={podSpecOptionState.acceleratorProfile.initialState}
-                acceleratorProfilesLoaded={podSpecOptionState.acceleratorProfile.loaded}
-                compatibleIdentifiers={
-                  servingRuntimeSelected ? getCompatibleIdentifiers(servingRuntimeSelected) : []
-                }
-                resourceDisplayName="serving runtime"
-                infoContent="Ensure that appropriate tolerations are in place before adding an accelerator to your model server."
-                formData={podSpecOptionState.acceleratorProfile.formData}
-                setFormData={podSpecOptionState.acceleratorProfile.setFormData}
-              />
             )}
           </Stack>
         </FormGroup>

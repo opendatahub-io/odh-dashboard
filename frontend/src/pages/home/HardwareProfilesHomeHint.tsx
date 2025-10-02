@@ -3,7 +3,7 @@ import { Content } from '@patternfly/react-core';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import ExternalLink from '#~/components/ExternalLink';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+
 import HomeHint from './HomeHint';
 
 const HardwareProfilesHomeHint: React.FC = () => {
@@ -34,7 +34,7 @@ const HardwareProfilesHomeHint: React.FC = () => {
         </>
       }
       homeHintKey="hardware-profiles-intro"
-      isDisplayed={useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status}
+      isDisplayed
     />
   );
 };
