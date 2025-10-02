@@ -11,7 +11,6 @@ import {
   ProjectScopedSearchDropdown,
 } from '@odh-dashboard/internal/components/searchSelector/ProjectScopedSearchDropdown';
 import ProjectScopedToggleContent from '@odh-dashboard/internal/components/searchSelector/ProjectScopedToggleContent';
-import ServerVersionLabel from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeVersionLabel';
 import {
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeFromTemplate,
@@ -19,6 +18,7 @@ import {
 } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import ServingRuntimeVersionLabel from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeVersionLabel';
 import { ModelTypeFieldData } from './ModelTypeSelectField';
 import type { ModelServerTemplateField } from '../types';
 
@@ -173,7 +173,10 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
       </FlexItem>
       {option.template && getServingRuntimeVersion(option.template) && (
         <FlexItem>
-          <ServerVersionLabel version={getServingRuntimeVersion(option.template)} isCompact />
+          <ServingRuntimeVersionLabel
+            version={getServingRuntimeVersion(option.template)}
+            isCompact
+          />
         </FlexItem>
       )}
       {option.template && (
@@ -263,6 +266,15 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
             }
             color={isEditing ? 'grey' : 'blue'}
             labelTestId="serving-runtime-template-label"
+            additionalContent={
+              getServingRuntimeVersion(selectedTemplate?.template) && (
+                <ServingRuntimeVersionLabel
+                  version={getServingRuntimeVersion(selectedTemplate?.template)}
+                  isCompact
+                  isEditing={isEditing}
+                />
+              )
+            }
           />
         }
         projectGroupLabel={

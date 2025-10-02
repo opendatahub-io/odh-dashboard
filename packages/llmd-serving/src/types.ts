@@ -13,7 +13,7 @@ export type LLMInferenceServiceKind = K8sResourceCommon & {
     annotations?: DisplayNameAnnotations & {
       [MetadataAnnotation.ConnectionName]?: string;
     } & {
-      'opendatahub.io/model-type'?: string; // ['predictive' | 'generative']
+      'opendatahub.io/model-type'?: 'generative';
     };
   };
   spec: {
