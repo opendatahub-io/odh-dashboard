@@ -11,6 +11,7 @@ import {
   Title,
   Switch,
   Label,
+  AlertGroup,
 } from '@patternfly/react-core';
 import { ChatbotSourceUploadPanel } from '~/app/Chatbot/sourceUpload/ChatbotSourceUploadPanel';
 import { ACCORDION_ITEMS } from '~/app/Chatbot/const';
@@ -28,7 +29,8 @@ interface ChatbotSettingsPanelProps {
   selectedModel: string;
   onModelChange: (value: string) => void;
   alerts: {
-    successAlert: React.ReactElement | undefined;
+    uploadSuccessAlert: React.ReactElement | undefined;
+    deleteSuccessAlert: React.ReactElement | undefined;
     errorAlert: React.ReactElement | undefined;
   };
   sourceManagement: UseSourceManagementReturn;
@@ -176,7 +178,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
               <Form>
                 <FormGroup fieldId="sources">
                   <ChatbotSourceUploadPanel
-                    successAlert={alerts.successAlert}
+                    successAlert={alerts.uploadSuccessAlert}
                     errorAlert={alerts.errorAlert}
                     handleSourceDrop={sourceManagement.handleSourceDrop}
                     removeUploadedSource={sourceManagement.removeUploadedSource}
@@ -186,6 +188,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                   />
                 </FormGroup>
                 <FormGroup fieldId="uploaded-files" className="pf-v6-u-mt-md">
+                  <AlertGroup hasAnimations isToast isLiveRegion>
+                    {alerts.deleteSuccessAlert}
+                  </AlertGroup>
                   <UploadedFilesList
                     files={fileManagement.files}
                     isLoading={fileManagement.isLoading}

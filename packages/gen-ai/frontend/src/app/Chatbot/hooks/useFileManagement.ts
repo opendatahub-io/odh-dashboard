@@ -17,7 +17,7 @@ export interface UseFileManagementReturn {
 }
 
 interface UseFileManagementProps {
-  onShowSuccessAlert?: () => void;
+  onShowDeleteSuccessAlert?: () => void;
   onShowErrorAlert?: (message?: string) => void;
 }
 
@@ -38,7 +38,7 @@ const convertVectorStoreFileToFileModel = (vectorStoreFile: VectorStoreFile): Fi
 });
 
 const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagementReturn => {
-  const { onShowSuccessAlert, onShowErrorAlert } = props;
+  const { onShowDeleteSuccessAlert, onShowErrorAlert } = props;
   const { namespace } = React.useContext(GenAiContext);
   const [files, setFiles] = React.useState<FileModel[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -102,7 +102,7 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
         await deleteVectorStoreFile(namespace.name, currentVectorStoreId, fileId);
         // Remove the deleted file from the local state
         setFiles((prevFiles) => prevFiles.filter((file) => file.id !== fileId));
-        onShowSuccessAlert?.();
+        onShowDeleteSuccessAlert?.();
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to delete file';
         setError(errorMessage);
@@ -111,7 +111,7 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
         setIsDeleting(false);
       }
     },
-    [namespace, currentVectorStoreId, onShowSuccessAlert, onShowErrorAlert],
+    [namespace, currentVectorStoreId, onShowDeleteSuccessAlert, onShowErrorAlert],
   );
 
   // Load files on mount and when namespace changes
