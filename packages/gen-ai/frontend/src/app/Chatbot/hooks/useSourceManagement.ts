@@ -31,11 +31,13 @@ export interface UseSourceManagementReturn {
 interface UseSourceManagementProps {
   onShowSuccessAlert: () => void;
   onShowErrorAlert: () => void;
+  onFileUploadComplete?: () => void;
 }
 
 const useSourceManagement = ({
   onShowSuccessAlert,
   onShowErrorAlert,
+  onFileUploadComplete,
 }: UseSourceManagementProps): UseSourceManagementReturn => {
   const { namespace } = React.useContext(GenAiContext);
   const [selectedSourceSettings, setSelectedSourceSettings] =
@@ -135,6 +137,9 @@ const useSourceManagement = ({
           );
 
           onShowSuccessAlert();
+
+          // Refresh the uploaded files list
+          onFileUploadComplete?.();
         } catch (error) {
           // eslint-disable-next-line no-console
           console.error('Upload failed:', error);
@@ -166,6 +171,7 @@ const useSourceManagement = ({
       currentFileForSettings,
       onShowSuccessAlert,
       onShowErrorAlert,
+      onFileUploadComplete,
       namespace?.name,
       removeUploadedSource,
       processNextFile,

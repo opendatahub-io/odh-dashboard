@@ -40,6 +40,7 @@ interface ChatbotSettingsPanelProps {
   onTemperatureChange: (value: number) => void;
   topP: number;
   onTopPChange: (value: number) => void;
+  fileRefreshRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> = ({
@@ -55,12 +56,28 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   onTemperatureChange,
   topP,
   onTopPChange,
+  fileRefreshRef,
 }) => {
   const accordionState = useAccordionState();
   const { selectedServersCount, saveSelectedServersToPlayground } = useMCPSelectionContext();
 
   // File management hook for displaying uploaded files
-  const fileManagement = useFileManagement();
+  const fileManagement = useFileManagement({
+    onShowSuccessAlert: () => {
+      // File deleted successfully - could show alert if needed
+    },
+    onShowErrorAlert: () => {
+      // File deletion failed - could show alert if needed
+    },
+  });
+
+  // Assign the refresh function to the ref so it can be called from parent
+  React.useEffect(() => {
+    if (fileRefreshRef) {
+      // eslint-disable-next-line no-param-reassign
+      fileRefreshRef.current = fileManagement.refreshFiles;
+    }
+  }, [fileRefreshRef, fileManagement.refreshFiles]);
 
   return (
     <DrawerPanelContent isResizable defaultSize="400px" minSize="300px">

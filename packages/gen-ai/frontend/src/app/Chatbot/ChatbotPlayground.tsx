@@ -48,9 +48,17 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 
   // Custom hooks for managing different aspects of the chatbot
   const alertManagement = useAlertManagement();
+
+  // Create a ref to store the file refresh function
+  const fileRefreshRef = React.useRef<(() => void) | null>(null);
+
   const sourceManagement = useSourceManagement({
     onShowSuccessAlert: alertManagement.onShowSuccessAlert,
     onShowErrorAlert: alertManagement.onShowErrorAlert,
+    onFileUploadComplete: () => {
+      // Refresh the uploaded files list when a file upload completes
+      fileRefreshRef.current?.();
+    },
   });
 
   const chatbotMessages = useChatbotMessages({
@@ -96,6 +104,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       onTemperatureChange={setTemperature}
       topP={topP}
       onTopPChange={setTopP}
+      fileRefreshRef={fileRefreshRef}
     />
   );
 

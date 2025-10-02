@@ -15,6 +15,7 @@ import {
 } from '@patternfly/react-core';
 import { FileIcon, TrashIcon, SyncAltIcon } from '@patternfly/react-icons';
 import { FileModel } from '~/app/types';
+import DeleteFileModal from './DeleteFileModal';
 
 interface UploadedFilesListProps {
   files: FileModel[];
@@ -45,6 +46,26 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
   onRefresh,
   onDeleteFile,
 }) => {
+  const [fileToDelete, setFileToDelete] = React.useState<FileModel | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+
+  const handleDeleteClick = (file: FileModel) => {
+    setFileToDelete(file);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (fileToDelete) {
+      onDeleteFile(fileToDelete.id);
+      setIsDeleteModalOpen(false);
+      setFileToDelete(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setIsDeleteModalOpen(false);
+    setFileToDelete(null);
+  };
   if (isLoading) {
     return (
       <Card>
@@ -101,38 +122,9 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
     );
   }
 
+  // Don't render anything if there are no files
   if (files.length === 0) {
-    return (
-      <Card>
-        <CardTitle>
-          <Flex>
-            <FlexItem>Uploaded Files</FlexItem>
-            <FlexItem align={{ default: 'alignRight' }}>
-              <Button
-                variant="plain"
-                icon={<SyncAltIcon />}
-                onClick={onRefresh}
-                isDisabled={isLoading}
-                aria-label="Refresh files"
-              />
-            </FlexItem>
-          </Flex>
-        </CardTitle>
-        <CardBody>
-          <EmptyState>
-            <EmptyStateBody>
-              <div style={{ textAlign: 'center' }}>
-                <FileIcon style={{ fontSize: '2rem', marginBottom: '1rem' }} />
-                <br />
-                <strong>No files uploaded</strong>
-                <br />
-                Upload files to see them listed here for use in your conversations.
-              </div>
-            </EmptyStateBody>
-          </EmptyState>
-        </CardBody>
-      </Card>
-    );
+    return null;
   }
 
   return (
@@ -177,7 +169,7 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
                     <Button
                       variant="plain"
                       icon={<TrashIcon />}
-                      onClick={() => onDeleteFile(file.id)}
+                      onClick={() => handleDeleteClick(file)}
                       isDisabled={isDeleting}
                       aria-label={`Delete ${file.filename}`}
                       isDanger
@@ -189,6 +181,13 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
           ))}
         </List>
       </CardBody>
+      <DeleteFileModal
+        isOpen={isDeleteModalOpen}
+        file={fileToDelete}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        isDeleting={isDeleting}
+      />
     </Card>
   );
 };

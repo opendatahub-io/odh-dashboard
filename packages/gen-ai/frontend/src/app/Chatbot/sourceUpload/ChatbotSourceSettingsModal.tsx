@@ -27,7 +27,7 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 type ChatbotSourceSettingsModalProps = {
   isOpen: boolean;
   onToggle: () => void;
-  onSubmitSettings: (settings: ChatbotSourceSettings | null) => void;
+  onSubmitSettings: (settings: ChatbotSourceSettings | null) => Promise<void>;
   filename?: string;
 };
 
@@ -283,7 +283,13 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
                 key="upload"
                 variant="primary"
                 isDisabled={!fields.vectorStore || !vectorStoreName}
-                onClick={() => onSubmitSettings(fields)}
+                onClick={async () => {
+                  try {
+                    await onSubmitSettings(fields);
+                  } catch {
+                    // Error is handled by the onSubmitSettings function
+                  }
+                }}
               >
                 Upload
               </Button>

@@ -73,7 +73,8 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
   // Load files on mount and when namespace changes
   React.useEffect(() => {
     refreshFiles();
-  }, [refreshFiles]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [namespace?.name]); // Only depend on namespace.name, not the entire refreshFiles function
 
   return {
     files,
