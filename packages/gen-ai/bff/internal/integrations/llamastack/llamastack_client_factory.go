@@ -21,6 +21,7 @@ type LlamaStackClientInterface interface {
 	DeleteVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) error
 	CreateResponse(ctx context.Context, params CreateResponseParams) (*responses.Response, error)
 	CreateResponseStream(ctx context.Context, params CreateResponseParams) (*ssestream.Stream[responses.ResponseStreamEventUnion], error)
+	GetResponse(ctx context.Context, responseID string) (*responses.Response, error)
 }
 
 // LlamaStackClientFactory interface for creating LlamaStack clients

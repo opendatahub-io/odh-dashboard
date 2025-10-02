@@ -15,14 +15,36 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 )
 
+// MockResponse represents a mock response for testing
+type MockResponse struct {
+	ID     string
+	Model  string
+	Status string
+}
+
 // MockLlamaStackClient provides a mock implementation of the LlamaStackClient for testing
 type MockLlamaStackClient struct {
 	// Add fields here if you need to store state for testing
+	getResponseResults map[string]*MockResponse
+	getResponseErrors  map[string]error
 }
 
 // NewMockLlamaStackClient creates a new mock client
 func NewMockLlamaStackClient() *MockLlamaStackClient {
-	return &MockLlamaStackClient{}
+	return &MockLlamaStackClient{
+		getResponseResults: make(map[string]*MockResponse),
+		getResponseErrors:  make(map[string]error),
+	}
+}
+
+// SetGetResponseResult sets a mock response for a given response ID
+func (m *MockLlamaStackClient) SetGetResponseResult(responseID string, mockResponse *MockResponse) {
+	m.getResponseResults[responseID] = mockResponse
+}
+
+// SetGetResponseError sets an error for a given response ID
+func (m *MockLlamaStackClient) SetGetResponseError(responseID string, err error) {
+	m.getResponseErrors[responseID] = err
 }
 
 // ListModels returns mock model data
@@ -162,6 +184,11 @@ func (m *MockLlamaStackClient) CreateResponse(ctx context.Context, params llamas
 	// Create base response text
 	responseText := "This is a mock response to your query: " + params.Input
 
+	// If previous response ID is provided, acknowledge it in the response
+	if params.PreviousResponseID != "" {
+		responseText = "Continuing from previous response " + params.PreviousResponseID + ". " + responseText
+	}
+
 	// Create output items
 	var outputItems []responses.ResponseOutputItemUnion
 
@@ -284,6 +311,11 @@ func (m *MockLlamaStackClient) HandleMockStreaming(w http.ResponseWriter, flushe
 	responseText := "This is a mock response to your query: " + params.Input
 	if len(params.VectorStoreIDs) > 0 {
 		responseText = "Based on retrieved documents, this is a mock response to your query: " + params.Input
+	}
+
+	// If previous response ID is provided, acknowledge it in the response
+	if params.PreviousResponseID != "" {
+		responseText = "Continuing from previous response " + params.PreviousResponseID + ". " + responseText
 	}
 
 	// Mock identifiers
@@ -493,6 +525,11 @@ func (m *MockLlamaStackClient) CreateResponseStream(ctx context.Context, params 
 		responseText = "Based on retrieved documents, this is a mock response to your query: " + params.Input
 	}
 
+	// If previous response ID is provided, acknowledge it in the response
+	if params.PreviousResponseID != "" {
+		responseText = "Continuing from previous response " + params.PreviousResponseID + ". " + responseText
+	}
+
 	// Return a special error that the handler can detect and delegate back to the mock
 	mockError := &MockStreamError{
 		Message:      "mock_streaming_mode",
@@ -541,6 +578,36 @@ func (m *MockLlamaStackClient) DeleteFile(ctx context.Context, fileID string) er
 	}
 	// Mock deletion always succeeds
 	return nil
+}
+
+// GetResponse returns a mock response for testing
+func (m *MockLlamaStackClient) GetResponse(ctx context.Context, responseID string) (*responses.Response, error) {
+	if responseID == "" {
+		return nil, fmt.Errorf("responseID is required")
+	}
+
+	// Check if there's a specific error set for this response ID
+	if err, exists := m.getResponseErrors[responseID]; exists {
+		return nil, err
+	}
+
+	// Check if there's a specific mock response set for this response ID
+	if mockResp, exists := m.getResponseResults[responseID]; exists {
+		return &responses.Response{
+			ID:        mockResp.ID,
+			Model:     responses.ResponsesModel(mockResp.Model),
+			Status:    responses.ResponseStatus(mockResp.Status),
+			CreatedAt: 1234567890,
+		}, nil
+	}
+
+	// Default mock response
+	return &responses.Response{
+		ID:        responseID,
+		Model:     "llama-3.1-8b",
+		Status:    "completed",
+		CreatedAt: 1234567890,
+	}, nil
 }
 
 // ListVectorStoreFiles returns mock vector store file data
