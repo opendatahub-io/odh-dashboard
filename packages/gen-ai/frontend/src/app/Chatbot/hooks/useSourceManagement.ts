@@ -1,3 +1,4 @@
+/* eslint-disable arrow-body-style */
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { DropEvent } from '@patternfly/react-core';
@@ -43,6 +44,9 @@ const useSourceManagement = ({
   uploadedFiles = [],
 }: UseSourceManagementProps): UseSourceManagementReturn => {
   const { namespace } = React.useContext(GenAiContext);
+
+  // Constants
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
   const [selectedSourceSettings, setSelectedSourceSettings] =
     React.useState<ChatbotSourceSettings | null>(null);
   const [isRawUploaded, setIsRawUploaded] = React.useState(false);
@@ -73,9 +77,17 @@ const useSourceManagement = ({
 
   const handleSourceDrop = React.useCallback(
     async (event: DropEvent, source: File[]) => {
+      // Filter files by size - silently skip oversized files
+      const validSizeFiles = source.filter((file) => file.size <= MAX_FILE_SIZE);
+
+      // If no valid files remain, return early
+      if (validSizeFiles.length === 0) {
+        return;
+      }
+
       // Filter out files that are already uploaded (check against API files)
       const uploadedFileNames = uploadedFiles.map((file) => file.filename);
-      const newFiles = source.filter((file) => !uploadedFileNames.includes(file.name));
+      const newFiles = validSizeFiles.filter((file) => !uploadedFileNames.includes(file.name));
 
       // Also filter out files that are already in the current queue
       const currentFileNames = filesWithSettings.map(
@@ -84,12 +96,12 @@ const useSourceManagement = ({
       const uniqueNewFiles = newFiles.filter((file) => !currentFileNames.includes(file.name));
 
       if (uniqueNewFiles.length === 0) {
-        // All files are duplicates, show error with specific message
-        const duplicateCount = source.length;
+        // All remaining valid files are duplicates
+        const duplicateCount = validSizeFiles.length;
         const message =
           duplicateCount === 1
-            ? 'This file has already been uploaded.'
-            : `All ${duplicateCount} files have already been uploaded.`;
+            ? 'The remaining file has already been uploaded.'
+            : `All ${duplicateCount} remaining files have already been uploaded.`;
         onShowErrorAlert(message);
         return;
       }
@@ -119,7 +131,7 @@ const useSourceManagement = ({
         }, 100);
       }
     },
-    [processNextFile, uploadedFiles, filesWithSettings, onShowErrorAlert],
+    [uploadedFiles, filesWithSettings, MAX_FILE_SIZE, onShowErrorAlert, processNextFile],
   );
 
   const removeUploadedSource = React.useCallback(

@@ -84,7 +84,7 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
             </Button>
           </div>
           <div className="pf-v6-c-multiple-file-upload__info">
-            Accepted file types: PDF, DOC, CSV
+            Accepted file types: PDF, DOC, CSV (max 10MB per file)
           </div>
           <input
             ref={fileInputRef}
