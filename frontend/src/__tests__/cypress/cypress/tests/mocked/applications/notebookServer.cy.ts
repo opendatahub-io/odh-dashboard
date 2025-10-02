@@ -28,7 +28,6 @@ import {
 import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
 import {
   mockGlobalScopedHardwareProfiles,
-  mockGlobalScopedHardwareProfilesGreek,
   mockProjectScopedHardwareProfiles,
 } from '#~/__mocks__/mockHardwareProfile';
 import type { EnvironmentVariable, NotebookData } from '#~/types';
@@ -100,7 +99,7 @@ describe('NotebookServer', () => {
     // Mock hardware profiles
     cy.interceptK8sList(
       { model: HardwareProfileModel, ns: 'opendatahub' },
-      mockK8sResourceList(mockGlobalScopedHardwareProfilesGreek),
+      mockK8sResourceList(mockGlobalScopedHardwareProfiles),
     ).as('hardwareProfiles');
 
     cy.interceptK8sList(
@@ -160,7 +159,7 @@ describe('NotebookServer', () => {
       // Check podSpecOptions.selectedHardwareProfile
       expect(requestBody.podSpecOptions).to.have.property('selectedHardwareProfile');
       const selectedProfile = requestBody.podSpecOptions.selectedHardwareProfile;
-      const expectedProfile = mockGlobalScopedHardwareProfilesGreek[0];
+      const expectedProfile = mockGlobalScopedHardwareProfiles[0];
 
       // Check hardware profile basic properties
       expect(selectedProfile).to.have.property('apiVersion', expectedProfile.apiVersion);

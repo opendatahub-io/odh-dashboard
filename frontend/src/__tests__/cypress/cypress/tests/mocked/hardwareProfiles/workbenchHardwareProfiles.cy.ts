@@ -37,7 +37,6 @@ import type { PodKind } from '#~/k8sTypes';
 type HandlersProps = {
   isEmpty?: boolean;
   mockPodList?: PodKind[];
-  disableHardwareProfiles?: boolean;
   disableProjectScoped?: boolean;
 };
 

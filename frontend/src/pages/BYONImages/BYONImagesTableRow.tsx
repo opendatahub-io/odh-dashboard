@@ -10,7 +10,6 @@ import { BYONImage } from '#~/types';
 import { relativeTime } from '#~/utilities/time';
 import { AcceleratorProfileKind } from '#~/k8sTypes';
 import { FetchState } from '#~/utilities/useFetchState';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import BYONImageHardwareProfiles from '#~/pages/BYONImages/BYONImageHardwareProfiles';
 import { TableRowTitleDescription } from '#~/components/table';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
@@ -18,12 +17,11 @@ import ImageErrorStatus from './ImageErrorStatus';
 import BYONImageStatusToggle from './BYONImageStatusToggle';
 import { convertBYONImageToK8sResource } from './utils';
 import BYONImageDependenciesList from './BYONImageDependenciesList';
-import { BYONImageAccelerators } from './BYONImageAccelerators';
 
 type BYONImagesTableRowProps = {
   obj: BYONImage;
   rowIndex: number;
-  acceleratorProfiles: FetchState<AcceleratorProfileKind[]>;
+  acceleratorProfiles?: FetchState<AcceleratorProfileKind[]>;
   hardwareProfiles: ReturnType<typeof useHardwareProfilesByFeatureVisibility>;
   onEditImage: (obj: BYONImage) => void;
   onDeleteImage: (obj: BYONImage) => void;
@@ -33,7 +31,6 @@ type BYONImagesTableRowProps = {
 const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
   obj,
   rowIndex,
-  acceleratorProfiles,
   hardwareProfiles,
   onEditImage,
   onDeleteImage,
@@ -133,5 +130,4 @@ const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
     </Tbody>
   );
 };
-
 export default BYONImagesTableRow;
