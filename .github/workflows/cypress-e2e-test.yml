@@ -226,7 +226,7 @@ jobs:
 
       - name: Set Test Configuration
         run: |
-          # Set cluster URLs from secrets if available
+          # Match OLD workflow: use cluster URLs from secrets if available
           if [ -n "${{ secrets.OCP_CONSOLE_URL }}" ]; then
             sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: ${{ secrets.OCP_CONSOLE_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
           fi
@@ -234,7 +234,7 @@ jobs:
             sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: ${{ secrets.ODH_DASHBOARD_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
           fi
           
-          # For forked PRs, set default URLs using dynamic port (not 4010)
+          # For forked PRs, use localhost with dynamic port
           if [ -z "${{ secrets.OCP_CONSOLE_URL }}" ]; then
             echo "OCP_CONSOLE_URL secret not available (forked PR) - using localhost:$CYPRESS_PORT"
             sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:$CYPRESS_PORT|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
@@ -246,7 +246,40 @@ jobs:
           
           export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
 
+      - name: Pre-test diagnostics
+        run: |
+          echo "=== PRE-TEST SYSTEM DIAGNOSTICS ==="
+          echo ""
+          echo "Runner: ${{ runner.name }}"
+          echo "Job: ${{ matrix.test-tag }}"
+          echo "Port: $CYPRESS_PORT"
+          echo ""
+          echo "File descriptor limit:"
+          ulimit -n
+          echo ""
+          echo "File descriptors in use by current user:"
+          lsof -u $(whoami) 2>/dev/null | wc -l || echo "Unable to check"
+          echo ""
+          echo "Existing Cypress/Electron processes (count only):"
+          ps aux | grep -E "(cypress|Cypress|electron|Electron)" | grep -v grep | wc -l || echo "0"
+          echo ""
+          echo "Memory usage:"
+          free -h || echo "Unable to check memory"
+          echo ""
+          echo "Disk space on /dev/shm:"
+          df -h /dev/shm || echo "Unable to check"
+          echo ""
+          echo "Test configuration verification (localhost only):"
+          ODH_URL=$(grep "ODH_DASHBOARD_URL:" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml | head -1)
+          if echo "$ODH_URL" | grep -q "localhost"; then
+            echo "  ✓ ODH_DASHBOARD_URL is set to localhost (safe)"
+          else
+            echo "  ✗ WARNING: ODH_DASHBOARD_URL is NOT localhost (this may cause issues)"
+          fi
+          echo ""
+      
       - name: Run E2E Tests
+        id: run-tests
         run: |
           cd frontend
           export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
@@ -255,11 +288,63 @@ jobs:
           
           echo "Running E2E tests on port $CYPRESS_PORT"
           echo "Test tag: ${{ matrix.test-tag }}"
+          echo "Start time: $(date)"
           
-          # Run tests against dynamic port (supports parallel execution)
+          # Run tests against dynamic port
           BASE_URL=http://localhost:$CYPRESS_PORT npm run cypress:run:electron -- \
             --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true \
-            --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+            --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos" \
+            2>&1 | tee /tmp/cypress-run-${{ matrix.test-tag }}.log
+      
+      - name: Post-test diagnostics on failure
+        if: failure() && steps.run-tests.outcome == 'failure'
+        run: |
+          echo "=== POST-FAILURE DIAGNOSTICS ==="
+          echo ""
+          echo "Test failed for: ${{ matrix.test-tag }}"
+          echo "Failure time: $(date)"
+          echo ""
+          
+          echo "--- Checking for specific error patterns ---"
+          if grep -qi "timed out waiting for the browser" /tmp/cypress-run-${{ matrix.test-tag }}.log 2>/dev/null; then
+            echo "✗ FOUND: 'Timed out waiting for the browser to connect' error"
+            echo "  Number of occurrences:"
+            grep -i "timed out waiting for the browser" /tmp/cypress-run-${{ matrix.test-tag }}.log | wc -l
+            echo "  Retry attempts:"
+            grep -i "retrying" /tmp/cypress-run-${{ matrix.test-tag }}.log | wc -l
+          else
+            echo "✓ No browser connection timeout found"
+          fi
+          
+          if grep -qi "DevTools.*disconnect\|CDP.*error\|protocol error" /tmp/cypress-run-${{ matrix.test-tag }}.log 2>/dev/null; then
+            echo "✗ FOUND: DevTools/CDP protocol errors"
+          fi
+          
+          if grep -qi "ECONNREFUSED\|ETIMEDOUT\|ENOTFOUND" /tmp/cypress-run-${{ matrix.test-tag }}.log 2>/dev/null; then
+            echo "✗ FOUND: Network connection errors"
+          fi
+          echo ""
+          
+          echo "--- System state at failure ---"
+          echo "Cypress/Electron processes still running (count):"
+          ps aux | grep -E "(cypress|Cypress|electron|Electron)" | grep -v grep | wc -l || echo "0"
+          echo ""
+          echo "File descriptors in use:"
+          lsof -u $(whoami) 2>/dev/null | wc -l || echo "Unable to check"
+          echo ""
+          echo "Server still running on port $CYPRESS_PORT?"
+          if lsof -i:$CYPRESS_PORT >/dev/null 2>&1; then
+            echo "Yes, server is still running"
+            echo "Server response test:"
+            timeout 3 curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" http://localhost:$CYPRESS_PORT/ || echo "Server not responding"
+          else
+            echo "No server on port $CYPRESS_PORT"
+          fi
+          echo ""
+          
+          echo "--- Last 40 lines of Cypress output (sanitized) ---"
+          tail -40 /tmp/cypress-run-${{ matrix.test-tag }}.log 2>/dev/null | sed 's/https:\/\/[^/]*\.[^/]*\.[^/]*\.[^/]*/https:\/\/[REDACTED]/g' || echo "Log file not found"
+          echo ""
 
       - name: Cleanup server for this job
         if: always()
