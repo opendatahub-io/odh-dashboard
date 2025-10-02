@@ -1,8 +1,8 @@
 import React from 'react';
 import { Button, Divider, Grid, GridItem, Progress, ProgressVariant } from '@patternfly/react-core';
 import { FileIcon, TimesIcon } from '@patternfly/react-icons';
+import { FileStatus } from '~/app/Chatbot/hooks/useSourceManagement';
 import { formatFileSize } from './utils';
-import { FileStatus } from '../hooks/useSourceManagement';
 
 type UploadedFileItemProps = {
   file: File;
