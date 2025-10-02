@@ -68,15 +68,19 @@ type ListVectorStoreFilesParams struct {
 }
 
 // ListVectorStores retrieves vector stores with optional filtering parameters.
+// When limit is not specified or set to 100, it automatically paginates to fetch all vectorstores.
 func (c *LlamaStackClient) ListVectorStores(ctx context.Context, params ListVectorStoresParams) ([]openai.VectorStore, error) {
 	apiParams := openai.VectorStoreListParams{}
 
+	// Set limit to maximum (100) to minimize API calls
+	limit := int64(100)
 	if params.Limit != nil {
 		if *params.Limit < 1 || *params.Limit > 100 {
 			return nil, fmt.Errorf("limit must be between 1 and 100, got: %d", *params.Limit)
 		}
-		apiParams.Limit = openai.Int(*params.Limit)
+		limit = *params.Limit
 	}
+	apiParams.Limit = openai.Int(limit)
 
 	if params.Order != "" {
 		if params.Order != "asc" && params.Order != "desc" {
@@ -85,12 +89,33 @@ func (c *LlamaStackClient) ListVectorStores(ctx context.Context, params ListVect
 		apiParams.Order = openai.VectorStoreListParamsOrder(params.Order)
 	}
 
-	vectorStoresPage, err := c.client.VectorStores.List(ctx, apiParams)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list vector stores: %w", err)
+	// Collect all vectorstores across pages
+	allVectorStores := []openai.VectorStore{}
+
+	for {
+		vectorStoresPage, err := c.client.VectorStores.List(ctx, apiParams)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list vector stores: %w", err)
+		}
+
+		allVectorStores = append(allVectorStores, vectorStoresPage.Data...)
+
+		// Check if there are more pages using HasMore flag
+		if !vectorStoresPage.HasMore {
+			break
+		}
+
+		// Get the last item's ID for pagination cursor
+		if len(vectorStoresPage.Data) > 0 {
+			lastItem := vectorStoresPage.Data[len(vectorStoresPage.Data)-1]
+			apiParams.After = openai.String(lastItem.ID)
+		} else {
+			// No data but HasMore is true - shouldn't happen, but break to avoid infinite loop
+			break
+		}
 	}
 
-	return vectorStoresPage.Data, nil
+	return allVectorStores, nil
 }
 
 // CreateVectorStoreParams contains parameters for creating vector stores.

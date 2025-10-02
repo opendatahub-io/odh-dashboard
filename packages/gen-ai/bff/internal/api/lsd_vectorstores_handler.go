@@ -66,22 +66,24 @@ func (app *App) LlamaStackListVectorStoresHandler(w http.ResponseWriter, r *http
 
 	hashedUsername := hashUsername(username)
 
-	// Parse query parameters
+	// TEMPORARY: Ignore limit and order parameters from request
+	// We always return exactly 1 vectorstore (user's own), so we need to fetch all
+	// vectorstores to find the match. Empty params means fetch all with defaults.
 	params := llamastack.ListVectorStoresParams{}
 
-	// Parse limit parameter (1-100, default 20)
-	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
-		if limit, err := strconv.ParseInt(limitStr, 10, 64); err == nil {
-			if limit >= 1 && limit <= 100 {
-				params.Limit = &limit
-			}
-		}
-	}
+	// // Parse limit parameter (1-100, default 20)
+	// if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+	// 	if limit, err := strconv.ParseInt(limitStr, 10, 64); err == nil {
+	// 		if limit >= 1 && limit <= 100 {
+	// 			params.Limit = &limit
+	// 		}
+	// 	}
+	// }
 
-	// Parse order parameter ("asc" or "desc")
-	if order := r.URL.Query().Get("order"); order == "asc" || order == "desc" {
-		params.Order = order
-	}
+	// // Parse order parameter ("asc" or "desc")
+	// if order := r.URL.Query().Get("order"); order == "asc" || order == "desc" {
+	// 	params.Order = order
+	// }
 
 	// Get all vectorstores
 	vectorStores, err := app.repositories.VectorStores.ListVectorStores(ctx, params)
