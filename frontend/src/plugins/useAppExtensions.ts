@@ -2,7 +2,7 @@ import React from 'react';
 import { init, loadRemote } from '@module-federation/runtime';
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import { allSettledPromises } from '#~/utilities/allSettledPromises';
-import { MF_CONFIG } from '#~/utilities/const';
+import { MF_REMOTES } from '#~/utilities/const';
 import pluginExtensions from './plugin-extensions';
 
 type MFConfig = {
@@ -36,12 +36,12 @@ const loadModuleExtensions = (moduleName: string): Promise<Record<string, Extens
 
 export const useAppExtensions = (): [Record<string, Extension[]>, boolean] => {
   const [appExtensions, setAppExtensions] = React.useState<Record<string, Extension[]>>({});
-  const [loaded, setLoaded] = React.useState(!MF_CONFIG);
+  const [loaded, setLoaded] = React.useState(!MF_REMOTES);
 
   React.useEffect(() => {
-    if (MF_CONFIG) {
+    if (MF_REMOTES) {
       try {
-        const remotes: MFConfig[] = JSON.parse(MF_CONFIG);
+        const remotes: MFConfig[] = JSON.parse(MF_REMOTES);
         if (remotes.length > 0) {
           initRemotes(remotes);
           allSettledPromises(remotes.map((r) => loadModuleExtensions(r.name)))
