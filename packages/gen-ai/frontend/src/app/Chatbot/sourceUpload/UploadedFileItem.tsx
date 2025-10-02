@@ -21,6 +21,18 @@ export const UploadedFileItem: React.FC<UploadedFileItemProps> = ({
   const fileSize = formatFileSize(file.size);
   const title = `${file.name} (${fileSize})`;
 
+  // Auto-dismiss after 5 seconds when upload is successful
+  React.useEffect(() => {
+    if (status === 'uploaded') {
+      const timer = setTimeout(() => {
+        onRemove(file.name);
+      }, 5000); // 5 seconds
+
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [status, file.name, onRemove]);
+
   const getProgressVariant = () => {
     switch (status) {
       case 'uploaded':
