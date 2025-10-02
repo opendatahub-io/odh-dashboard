@@ -62,7 +62,7 @@ export const listModels = (): Promise<LlamaModel[]> => {
     .get(url)
     .then((response) => response.data)
     .catch((e) => {
-      throw new Error(e.response.data.message);
+      throw new Error(e.response?.data?.message || e.message || 'Failed to fetch models');
     });
 };
 
@@ -100,7 +100,7 @@ export const listVectorStores = (): Promise<VectorStore[]> => {
     .get(url)
     .then((response) => response.data.data)
     .catch((e) => {
-      throw new Error(e.response.data.message);
+      throw new Error(e.response?.data?.message || e.message || 'Failed to fetch vector stores');
     });
 };
 
@@ -129,7 +129,9 @@ export const listVectorStoreFiles = (
     .get(url)
     .then((response) => response.data.data)
     .catch((e) => {
-      throw new Error(e.response.data.message);
+      throw new Error(
+        e.response?.data?.message || e.message || 'Failed to fetch vector store files',
+      );
     });
 };
 
@@ -148,6 +150,8 @@ export const deleteVectorStoreFile = (
     .delete(url)
     .then((response) => response.data.data)
     .catch((e) => {
-      throw new Error(e.response.data.message);
+      throw new Error(
+        e.response?.data?.message || e.message || 'Failed to delete vector store file',
+      );
     });
 };

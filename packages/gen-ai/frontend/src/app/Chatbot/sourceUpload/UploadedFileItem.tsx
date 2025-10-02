@@ -2,8 +2,7 @@ import React from 'react';
 import { Button, Divider, Grid, GridItem, Progress, ProgressVariant } from '@patternfly/react-core';
 import { FileIcon, TimesIcon } from '@patternfly/react-icons';
 import { formatFileSize } from './utils';
-
-type FileStatus = 'pending' | 'configured' | 'uploading' | 'uploaded' | 'failed';
+import { FileStatus } from '../hooks/useSourceManagement';
 
 type UploadedFileItemProps = {
   file: File;
