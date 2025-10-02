@@ -97,6 +97,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       isVisible={alertManagement.showErrorAlert}
       alertKey={alertManagement.alertKey}
       onClose={alertManagement.onHideErrorAlert}
+      errorMessage={alertManagement.errorMessage}
     />
   );
 

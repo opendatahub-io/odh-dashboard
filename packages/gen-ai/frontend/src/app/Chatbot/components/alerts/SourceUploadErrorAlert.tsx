@@ -6,16 +6,21 @@ interface SourceUploadErrorAlertProps {
   isVisible: boolean;
   alertKey: number;
   onClose: () => void;
+  errorMessage?: string;
 }
 
 const SourceUploadErrorAlert: React.FunctionComponent<SourceUploadErrorAlertProps> = ({
   isVisible,
   alertKey,
   onClose,
+  errorMessage,
 }) => {
   if (!isVisible) {
     return null;
   }
+
+  const defaultMessage = 'Please try again.';
+  const displayMessage = errorMessage || defaultMessage;
 
   return (
     <Alert
@@ -27,7 +32,7 @@ const SourceUploadErrorAlert: React.FunctionComponent<SourceUploadErrorAlertProp
       actionClose={<AlertActionCloseButton onClose={onClose} />}
       onTimeout={onClose}
     >
-      <p>Please try again.</p>
+      <p>{displayMessage}</p>
     </Alert>
   );
 };

@@ -30,7 +30,7 @@ export interface UseSourceManagementReturn {
 
 interface UseSourceManagementProps {
   onShowSuccessAlert: () => void;
-  onShowErrorAlert: () => void;
+  onShowErrorAlert: (message?: string) => void;
   onFileUploadComplete?: () => void;
   uploadedFiles?: FileModel[];
 }
@@ -83,8 +83,13 @@ const useSourceManagement = ({
       const uniqueNewFiles = newFiles.filter((file) => !currentFileNames.includes(file.name));
 
       if (uniqueNewFiles.length === 0) {
-        // All files are duplicates, show error
-        onShowErrorAlert();
+        // All files are duplicates, show error with specific message
+        const duplicateCount = source.length;
+        const message =
+          duplicateCount === 1
+            ? 'This file has already been uploaded.'
+            : `All ${duplicateCount} files have already been uploaded.`;
+        onShowErrorAlert(message);
         return;
       }
 
@@ -171,7 +176,9 @@ const useSourceManagement = ({
             ),
           );
 
-          onShowErrorAlert();
+          // Extract error message from the error object
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+          onShowErrorAlert(errorMessage);
         }
       } else if (!settings) {
         // User cancelled - remove the file

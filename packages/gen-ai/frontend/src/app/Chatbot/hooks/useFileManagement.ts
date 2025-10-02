@@ -14,7 +14,7 @@ export interface UseFileManagementReturn {
 
 interface UseFileManagementProps {
   onShowSuccessAlert?: () => void;
-  onShowErrorAlert?: () => void;
+  onShowErrorAlert?: (message?: string) => void;
 }
 
 const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagementReturn => {
@@ -39,7 +39,7 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch files';
       setError(errorMessage);
-      onShowErrorAlert?.();
+      onShowErrorAlert?.(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -62,7 +62,7 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to delete file';
         setError(errorMessage);
-        onShowErrorAlert?.();
+        onShowErrorAlert?.(errorMessage);
       } finally {
         setIsDeleting(false);
       }
