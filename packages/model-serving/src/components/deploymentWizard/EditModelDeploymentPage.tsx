@@ -137,7 +137,7 @@ const EditModelDeploymentContent: React.FC<{
       typeof formDataExtension?.properties.extractEnvironmentVariables === 'function'
         ? formDataExtension.properties.extractEnvironmentVariables(deployment) ?? undefined
         : undefined,
-    AiAssetData:
+    aiAssetData:
       typeof formDataExtension?.properties.extractAiAssetData === 'function'
         ? formDataExtension.properties.extractAiAssetData(deployment) ?? undefined
         : undefined,

@@ -49,10 +49,18 @@ export type ModelDeploymentWizardData = {
   isEditing?: boolean;
   connections?: LabeledConnection[];
   initSelectedConnection?: LabeledConnection | undefined;
-  AiAssetData?: AvailableAiAssetsFieldsData;
+  aiAssetData?: AvailableAiAssetsFieldsData;
+  // Add more field handlers as needed
 };
 
-export type UseModelDeploymentWizardState = WizardFormData;
+export type UseModelDeploymentWizardState = WizardFormData & {
+  loaded: {
+    modelSourceLoaded: boolean;
+    modelDeploymentLoaded: boolean;
+    advancedOptionsLoaded: boolean;
+    summaryLoaded: boolean;
+  };
+};
 
 export const useModelDeploymentWizard = (
   initialData?: ModelDeploymentWizardData,
@@ -62,12 +70,25 @@ export const useModelDeploymentWizard = (
   // Step 1: Model Source
   const modelType = useModelTypeField(initialData?.modelTypeField);
   const { namespace } = useParams();
-  const { projects } = React.useContext(ProjectsContext);
+  const { projects, loaded: projectsLoaded } = React.useContext(ProjectsContext);
   const currentProject = projects.find(byName(namespace));
   const modelLocationData = useModelLocationData(
     currentProject ?? null,
     initialData?.modelLocationData,
   );
+
+  // loaded state
+  const modelSourceLoaded = React.useMemo(() => {
+    return (
+      modelLocationData.connectionsLoaded &&
+      modelLocationData.connectionTypesLoaded &&
+      projectsLoaded
+    );
+  }, [
+    modelLocationData.connectionsLoaded,
+    modelLocationData.connectionTypesLoaded,
+    projectsLoaded,
+  ]);
 
   // Step 2: Model Deployment
   const k8sNameDesc = useK8sNameDescriptionFieldData({
@@ -109,18 +130,23 @@ export const useModelDeploymentWizard = (
     modelType.data,
   );
 
+  const numReplicas = useNumReplicasField(initialData?.numReplicas ?? undefined);
+
+  // loaded state
+  const modelDeploymentLoaded = React.useMemo(() => {
+    return modelFormatState.loaded && hardwareProfileConfig.profilesLoaded;
+  }, [modelFormatState.loaded, hardwareProfileConfig.profilesLoaded]);
+
   // Step 3: Advanced Options - Individual Fields
   const externalRoute = useExternalRouteField(initialData?.externalRoute ?? undefined);
 
   const tokenAuthentication = useTokenAuthenticationField(
     initialData?.tokenAuthentication ?? undefined,
   );
-  const AiAssetData = useAvailableAiAssetsFields(
-    initialData?.AiAssetData ?? undefined,
+  const aiAssetData = useAvailableAiAssetsFields(
+    initialData?.aiAssetData ?? undefined,
     modelType.data,
   );
-
-  const numReplicas = useNumReplicasField(initialData?.numReplicas ?? undefined);
 
   const runtimeArgs = useRuntimeArgsField(initialData?.runtimeArgs ?? undefined);
   const environmentVariables = useEnvironmentVariablesField(
@@ -142,8 +168,14 @@ export const useModelDeploymentWizard = (
       numReplicas,
       runtimeArgs,
       environmentVariables,
-      AiAssetData,
+      aiAssetData,
       modelServer,
+    },
+    loaded: {
+      modelSourceLoaded,
+      modelDeploymentLoaded,
+      advancedOptionsLoaded: true, // TODO: Update if these get dependencies that we need to wait for
+      summaryLoaded: true, // TODO: Update if these get dependencies that we need to wait for
     },
   };
 };

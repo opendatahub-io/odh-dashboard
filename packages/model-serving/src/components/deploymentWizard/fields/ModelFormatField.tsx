@@ -36,7 +36,7 @@ export type ModelFormatState = {
   setModelFormat: (modelFormat: SupportedModelFormats) => void;
   isVisible?: boolean;
   error?: Error;
-  loaded?: boolean;
+  loaded: boolean;
   templatesFilteredForModelType?: TemplateKind[];
 };
 

@@ -66,7 +66,7 @@ export type WizardFormData = {
     numReplicas: ReturnType<typeof useNumReplicasField>;
     runtimeArgs: ReturnType<typeof useRuntimeArgsField>;
     environmentVariables: ReturnType<typeof useEnvironmentVariablesField>;
-    AiAssetData: ReturnType<typeof useAvailableAiAssetsFields>;
+    aiAssetData: ReturnType<typeof useAvailableAiAssetsFields>;
     modelServer: ReturnType<typeof useModelServerSelectField>;
   };
 };

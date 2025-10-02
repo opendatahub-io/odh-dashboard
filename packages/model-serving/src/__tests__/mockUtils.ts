@@ -192,7 +192,7 @@ export const mockDeploymentWizardState = (
           data: undefined,
           setReplicas: jest.fn(),
         },
-        AiAssetData: {
+        aiAssetData: {
           data: {
             saveAsAiAsset: false,
             useCase: '',
@@ -204,6 +204,12 @@ export const mockDeploymentWizardState = (
           setData: jest.fn(),
           options: [],
         },
+      },
+      loaded: {
+        modelSourceLoaded: true,
+        modelDeploymentLoaded: true,
+        advancedOptionsLoaded: true,
+        summaryLoaded: true,
       },
     },
     overrides,
