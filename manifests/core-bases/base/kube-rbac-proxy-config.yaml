@@ -8,7 +8,7 @@ data:
     authorization:
       resourceAttributes:
         namespace: ""
-        apiGroup: ""
+        apiGroup: "project.openshift.io"
         apiVersion: v1
         resource: "projects"
         verb: "list"
