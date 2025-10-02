@@ -88,7 +88,7 @@ func TestModelsAAHandler(t *testing.T) {
 
 		dataArray, ok := data.([]interface{})
 		assert.True(t, ok, "Data should be an array")
-		assert.Len(t, dataArray, 5, "Should return 5 mock AA models for mock-test-namespace-2")
+		assert.Len(t, dataArray, 8, "Should return 8 mock AA models for mock-test-namespace-2 (5 InferenceService + 3 LLMInferenceService)")
 
 		// Check first model (granite-7b-code)
 		firstModel, ok := dataArray[0].(map[string]interface{})
