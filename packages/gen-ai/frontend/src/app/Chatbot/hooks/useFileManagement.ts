@@ -1,6 +1,10 @@
 import * as React from 'react';
-import { listFiles, deleteFile } from '~/app/services/llamaStackService';
-import { FileModel } from '~/app/types';
+import {
+  deleteVectorStoreFile,
+  getVectorStores,
+  listVectorStoreFiles,
+} from '~/app/services/llamaStackService';
+import { FileModel, VectorStoreFile } from '~/app/types';
 import { GenAiContext } from '~/app/context/GenAiContext';
 
 export interface UseFileManagementReturn {
@@ -17,6 +21,22 @@ interface UseFileManagementProps {
   onShowErrorAlert?: (message?: string) => void;
 }
 
+// Helper function to convert VectorStoreFile to FileModel format
+const convertVectorStoreFileToFileModel = (vectorStoreFile: VectorStoreFile): FileModel => ({
+  id: vectorStoreFile.id,
+  object: vectorStoreFile.object,
+  bytes: vectorStoreFile.usage_bytes,
+  // eslint-disable-next-line camelcase
+  created_at: vectorStoreFile.created_at,
+  filename: `file-${vectorStoreFile.id}`, // Vector store files don't have original filenames
+  purpose: 'assistants',
+  status: vectorStoreFile.status,
+  // eslint-disable-next-line camelcase
+  expires_at: 0, // Vector store files don't have expiration
+  // eslint-disable-next-line camelcase
+  status_details: vectorStoreFile.last_error?.message || '',
+});
+
 const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagementReturn => {
   const { onShowSuccessAlert, onShowErrorAlert } = props;
   const { namespace } = React.useContext(GenAiContext);
@@ -24,6 +44,7 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
   const [isLoading, setIsLoading] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [currentVectorStoreId, setCurrentVectorStoreId] = React.useState<string | null>(null);
 
   const refreshFiles = React.useCallback(async () => {
     if (!namespace?.name) {
@@ -34,8 +55,31 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
     setError(null);
 
     try {
-      const fetchedFiles = await listFiles(namespace.name, 50, 'desc', 'assistants');
-      setFiles(fetchedFiles);
+      // First, get the list of vector stores
+      const vectorStores = await getVectorStores(namespace.name);
+
+      if (vectorStores.length === 0) {
+        // No vector stores available, set empty files list
+        setFiles([]);
+        return;
+      }
+
+      // Use the first vector store ID
+      const firstVectorStoreId = vectorStores[0].id;
+      setCurrentVectorStoreId(firstVectorStoreId);
+
+      // Get files from the first vector store
+      const vectorStoreFiles = await listVectorStoreFiles(
+        namespace.name,
+        firstVectorStoreId,
+        50,
+        'desc',
+        'completed',
+      );
+
+      // Convert vector store files to FileModel format
+      const convertedFiles = vectorStoreFiles.map(convertVectorStoreFileToFileModel);
+      setFiles(convertedFiles);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch files';
       setError(errorMessage);
@@ -47,7 +91,7 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
 
   const deleteFileById = React.useCallback(
     async (fileId: string) => {
-      if (!namespace?.name) {
+      if (!namespace?.name || !currentVectorStoreId) {
         return;
       }
 
@@ -55,7 +99,7 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
       setError(null);
 
       try {
-        await deleteFile(fileId, namespace.name);
+        await deleteVectorStoreFile(namespace.name, currentVectorStoreId, fileId);
         // Remove the deleted file from the local state
         setFiles((prevFiles) => prevFiles.filter((file) => file.id !== fileId));
         onShowSuccessAlert?.();
@@ -67,7 +111,7 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
         setIsDeleting(false);
       }
     },
-    [namespace, onShowSuccessAlert, onShowErrorAlert],
+    [namespace, currentVectorStoreId, onShowSuccessAlert, onShowErrorAlert],
   );
 
   // Load files on mount and when namespace changes

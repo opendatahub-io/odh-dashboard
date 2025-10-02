@@ -21,6 +21,7 @@ import {
   OutputItem,
   SimplifiedResponseData,
   VectorStore,
+  VectorStoreFile,
 } from '~/app/types';
 import { URL_PREFIX, extractMCPToolCallData } from '~/app/utilities';
 
@@ -140,6 +141,80 @@ export const createVectorStore = (vectorName: string, namespace: string): Promis
     .catch((error) => {
       throw new Error(
         error.response?.data?.error?.message || error.message || 'Failed to create vector store',
+      );
+    });
+};
+
+/**
+ * Fetches files from a specific vector store
+ * @param namespace - The namespace containing the vector store
+ * @param vectorStoreId - The ID of the vector store to get files from
+ * @param limit - Optional limit for number of files to return (default: 20)
+ * @param order - Optional sort order by creation timestamp (asc/desc, default: desc)
+ * @param filter - Optional filter by file status (completed, in_progress, failed, cancelled)
+ * @returns Promise<VectorStoreFile[]> - Array of files in the vector store
+ * @throws Error - When the API request fails or returns an error response
+ */
+export const listVectorStoreFiles = (
+  namespace: string,
+  vectorStoreId: string,
+  limit?: number,
+  order?: 'asc' | 'desc',
+  filter?: string,
+): Promise<VectorStoreFile[]> => {
+  const params = new URLSearchParams();
+  params.append('namespace', namespace);
+  params.append('vector_store_id', vectorStoreId);
+  if (limit) {
+    params.append('limit', limit.toString());
+  }
+  if (order) {
+    params.append('order', order);
+  }
+  if (filter) {
+    params.append('filter', filter);
+  }
+
+  const url = `${URL_PREFIX}/api/v1/lsd/vectorstores/files?${params.toString()}`;
+  return axiosInstance
+    .get(url)
+    .then((response) => response.data.data)
+    .catch((error) => {
+      throw new Error(
+        error.response?.data?.error?.message ||
+          error.message ||
+          'Failed to fetch vector store files',
+      );
+    });
+};
+
+/**
+ * Deletes a file from a vector store
+ * @param namespace - The namespace containing the vector store
+ * @param vectorStoreId - The ID of the vector store containing the file
+ * @param fileId - The ID of the file to delete
+ * @returns Promise<{deleted: boolean, id: string, object: string}> - Delete confirmation response
+ * @throws Error - When the API request fails or returns an error response
+ */
+export const deleteVectorStoreFile = (
+  namespace: string,
+  vectorStoreId: string,
+  fileId: string,
+): Promise<{ deleted: boolean; id: string; object: string }> => {
+  const params = new URLSearchParams();
+  params.append('namespace', namespace);
+  params.append('vector_store_id', vectorStoreId);
+  params.append('file_id', fileId);
+
+  const url = `${URL_PREFIX}/api/v1/lsd/vectorstores/files/delete?${params.toString()}`;
+  return axiosInstance
+    .delete(url)
+    .then((response) => response.data.data)
+    .catch((error) => {
+      throw new Error(
+        error.response?.data?.error?.message ||
+          error.message ||
+          'Failed to delete vector store file',
       );
     });
 };
