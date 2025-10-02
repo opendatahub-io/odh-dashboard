@@ -1980,6 +1980,13 @@ components:
           type: string
           example: 'ollama/llama3.2:3b'
           description: Model ID to use in the generated code
+        temperature:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 2.0
+          example: 0.5
+          description: Controls randomness in code generation (0.0=deterministic, 2.0=very random)
         instructions:
           type: string
           example: 'You are a helpful assistant. Use the RAG tool to answer questions as needed.'
@@ -1989,14 +1996,16 @@ components:
           default: false
           example: false
           description: Whether to enable streaming in the generated code
-        temperature:
-          type: number
-          format: float
-          minimum: 0.0
-          maximum: 2.0
-          default: 0.7
-          example: 0.5
-          description: Controls randomness in code generation (0.0=deterministic, 2.0=very random)
+        mcp_servers:
+          type: array
+          items:
+            $ref: '#/components/schemas/MCPServerRequestConfig'
+          example:
+            - server_label: 'slack'
+              server_url: 'http://127.0.0.1:13080/sse'
+              headers:
+                Authorization: 'Bearer slack_token_123'
+          description: MCP server configurations for tool integration
         tools:
           type: array
           items:
