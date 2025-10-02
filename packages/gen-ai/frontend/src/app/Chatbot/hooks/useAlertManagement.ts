@@ -20,17 +20,12 @@ const useAlertManagement = (): UseAlertManagementReturn => {
   const showSuccAlert = React.useCallback(() => {
     setAlertKey((key) => key + 1);
     setShowSuccessAlert(true);
-    // Clear any existing error when showing success
-    setShowErrorAlert(false);
-    setErrorMessage(undefined);
   }, []);
 
   const showErrAlert = React.useCallback((message?: string) => {
     setAlertKey((key) => key + 1);
     setShowErrorAlert(true);
     setErrorMessage(message);
-    // Clear any existing success when showing error
-    setShowSuccessAlert(false);
   }, []);
 
   const hideSuccessAlert = React.useCallback(() => {
