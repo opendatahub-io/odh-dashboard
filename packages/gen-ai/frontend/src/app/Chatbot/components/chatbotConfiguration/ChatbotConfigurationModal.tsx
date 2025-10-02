@@ -9,7 +9,7 @@ import ChatbotConfigurationTable from './ChatbotConfigurationTable';
 import ChatbotConfigurationState from './ChatbotConfigurationState';
 
 type ChatbotConfigurationModalProps = {
-  onClose: (onSubmitted: boolean) => void;
+  onClose: () => void;
   lsdStatus: LlamaStackDistributionModel | null;
   /** All available AI assets models in the namespace */
   allModels: AIModel[];
@@ -33,11 +33,11 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const { namespace } = React.useContext(GenAiContext);
 
   const preSelectedModels = React.useMemo(() => {
-    if (existingModels) {
+    if (existingModels && existingModels.length > 0) {
       const existingModelsSet = new Set(existingModels.map((model) => model.id));
       const existingAIModels = allModels.filter((model) => existingModelsSet.has(model.model_name));
 
-      if (extraSelectedModels) {
+      if (extraSelectedModels && extraSelectedModels.length > 0) {
         const extraSelectedModelsSet = new Set(
           extraSelectedModels.map((model) => model.model_name),
         );
@@ -105,15 +105,15 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     }
   };
 
-  const onBeforeClose = (submitted: boolean) => {
+  const onBeforeClose = () => {
     setConfiguringPlayground(false);
     setError(undefined);
     setAlertTitle(undefined);
-    onClose(submitted);
+    onClose();
   };
 
   return (
-    <Modal isOpen onClose={() => onBeforeClose(false)} variant={ModalVariant.large}>
+    <Modal isOpen onClose={() => onBeforeClose()} variant={ModalVariant.large}>
       {!configuringPlayground && (
         <ModalHeader
           title="Configure playground"
@@ -142,7 +142,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
           <DashboardModalFooter
             submitLabel={existingModels ? 'Update configuration' : 'Configure'}
             onSubmit={onSubmit}
-            onCancel={() => onBeforeClose(false)}
+            onCancel={() => onBeforeClose()}
             error={error}
             alertTitle={alertTitle || 'Error configuring playground'}
           />

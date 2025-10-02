@@ -62,6 +62,11 @@ func (m *TokenKubernetesClientMock) GetNamespaces(ctx context.Context, identity 
 				Name: "mock-test-namespace-3",
 			},
 		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "mock-test-namespace-4",
+			},
+		},
 	}, nil
 }
 
@@ -292,6 +297,28 @@ func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Conte
 								"mock-distribution": "mock-image:latest",
 							},
 						},
+					},
+				},
+			},
+		}, nil
+	}
+
+	if namespace == "mock-test-namespace-4" {
+		return &lsdapi.LlamaStackDistributionList{
+			Items: []lsdapi.LlamaStackDistribution{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "mock-lsd",
+						Namespace: namespace,
+						Annotations: map[string]string{
+							"openshift.io/display-name": "mock-lsd-display-name",
+						},
+						Labels: map[string]string{
+							"opendatahub.io/dashboard": "true",
+						},
+					},
+					Status: lsdapi.LlamaStackDistributionStatus{
+						Phase: lsdapi.LlamaStackDistributionPhaseFailed,
 					},
 				},
 			},
