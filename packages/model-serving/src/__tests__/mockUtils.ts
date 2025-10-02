@@ -159,6 +159,7 @@ export const mockDeploymentWizardState = (
           setFormData: jest.fn(),
           resetFormData: jest.fn(),
           profilesLoaded: true,
+          profilesLoadError: undefined,
         },
         modelFormatState: {
           modelFormatOptions: [],
@@ -167,6 +168,7 @@ export const mockDeploymentWizardState = (
           isVisible: false,
           error: undefined,
           loaded: true,
+          templatesFilteredForModelType: [],
         },
         externalRoute: {
           data: undefined,
@@ -190,7 +192,7 @@ export const mockDeploymentWizardState = (
           data: undefined,
           setReplicas: jest.fn(),
         },
-        AiAssetData: {
+        aiAssetData: {
           data: {
             saveAsAiAsset: false,
             useCase: '',
@@ -207,6 +209,12 @@ export const mockDeploymentWizardState = (
           projectName: undefined,
           isEditing: false,
         },
+      },
+      loaded: {
+        modelSourceLoaded: true,
+        modelDeploymentLoaded: true,
+        advancedOptionsLoaded: true,
+        summaryLoaded: true,
       },
     },
     overrides,

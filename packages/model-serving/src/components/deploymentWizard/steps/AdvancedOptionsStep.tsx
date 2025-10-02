@@ -95,8 +95,8 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
         </Stack>
         <Stack hasGutter>
           <AvailableAiAssetsFieldsComponent
-            data={wizardState.state.AiAssetData.data}
-            setData={wizardState.state.AiAssetData.setData}
+            data={wizardState.state.aiAssetData.data}
+            setData={wizardState.state.aiAssetData.setData}
             wizardData={wizardState}
           />
           <StackItem>
