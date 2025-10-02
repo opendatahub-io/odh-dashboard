@@ -22,6 +22,7 @@ const (
 	FilesUploadPath                   = ApiPathPrefix + "/lsd/files/upload"
 	FilesDeletePath                   = ApiPathPrefix + "/lsd/files/delete"
 	VectorStoreFilesListPath          = ApiPathPrefix + "/lsd/vectorstores/files"
+	VectorStoreFilesUploadPath        = ApiPathPrefix + "/lsd/vectorstores/files/upload"
 	VectorStoreFilesDeletePath        = ApiPathPrefix + "/lsd/vectorstores/files/delete"
 	LlamaStackDistributionStatusPath  = ApiPathPrefix + "/lsd/status"
 	LlamaStackDistributionInstallPath = ApiPathPrefix + "/lsd/install"

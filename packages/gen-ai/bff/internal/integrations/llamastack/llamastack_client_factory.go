@@ -16,6 +16,7 @@ type LlamaStackClientInterface interface {
 	DeleteVectorStore(ctx context.Context, vectorStoreID string) error
 	UploadFile(ctx context.Context, params UploadFileParams) (*FileUploadResult, error)
 	ListFiles(ctx context.Context, params ListFilesParams) ([]openai.FileObject, error)
+	GetFile(ctx context.Context, fileID string) (*openai.FileObject, error)
 	DeleteFile(ctx context.Context, fileID string) error
 	ListVectorStoreFiles(ctx context.Context, vectorStoreID string, params ListVectorStoreFilesParams) ([]openai.VectorStoreFile, error)
 	DeleteVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) error

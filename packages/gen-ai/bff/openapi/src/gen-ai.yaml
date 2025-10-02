@@ -465,6 +465,7 @@ paths:
       summary: List Vector Stores
       description: Gets a list of vector stores with optional pagination and sorting.
     post:
+      deprecated: true
       tags:
         - VectorStores
       security:
@@ -544,6 +545,7 @@ paths:
       Lists all files with optional filtering by purpose, limit, and sorting.
       Requires namespace parameter for proper multi-tenant isolation.
     get:
+      deprecated: true
       tags:
         - Files
       security:
@@ -603,6 +605,7 @@ paths:
       Supports custom chunking strategies for optimal document processing and RAG performance.
       Requires namespace parameter for proper multi-tenant isolation.
     post:
+      deprecated: true
       tags:
         - Files
       security:
@@ -642,6 +645,7 @@ paths:
       Note that this does not automatically remove the file from vector stores it may be associated with.
       Requires namespace parameter for proper multi-tenant isolation.
     delete:
+      deprecated: true
       tags:
         - Files
       security:
@@ -740,11 +744,53 @@ paths:
       summary: List Vector Store Files
       description: Gets a list of files in a vector store with optional filtering and pagination.
 
-  /gen-ai/api/v1/lsd/vectorstores/files/delete:
-    summary: Remove file from vector store
+  /gen-ai/api/v1/lsd/vectorstores/files/upload:
+    summary: Upload files to vector stores (alias endpoint)
     description: >-
-      Removes a file from a specific vector store. This operation removes the file association
-      and embeddings from the vector store but does not delete the original file from storage.
+      Alias endpoint for file upload that provides a more intuitive vectorstore-centric path.
+      This endpoint is functionally identical to /gen-ai/api/v1/lsd/files/upload.
+      Uploads a file and automatically adds it to the specified vector store.
+      Supports custom chunking strategies for optimal document processing and RAG performance.
+      Requires namespace parameter for proper multi-tenant isolation.
+    post:
+      tags:
+        - VectorStores
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace for file upload context
+          required: true
+          schema:
+            type: string
+            example: 'default'
+      requestBody:
+        description: Multipart form with file and vector store information
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FileUploadRequest'
+        required: true
+      responses:
+        '201':
+          $ref: '#/components/responses/FileUploadResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: uploadVectorStoreFile
+      summary: Upload File to Vector Store (Alias)
+      description: Alias endpoint - uploads a file and adds it to the specified vector store. Identical to /lsd/files/upload.
+
+  /gen-ai/api/v1/lsd/vectorstores/files/delete:
+    summary: Remove file from vector store and delete file (temporary cascading delete)
+    description: >-
+      Removes a file from a specific vector store and also deletes the actual file from storage.
+      TEMPORARY: This endpoint performs cascading delete (vectorstore removal + file deletion) 
+      until proper file lifecycle management and sharing is implemented.
       Requires namespace parameter for proper multi-tenant isolation.
     delete:
       tags:
