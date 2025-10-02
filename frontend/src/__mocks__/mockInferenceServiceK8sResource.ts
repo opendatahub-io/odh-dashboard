@@ -91,7 +91,7 @@ export const mockInferenceServiceK8sResource = ({
   displayName = 'Test Inference Service',
   description = undefined,
   modelName = 'test-model',
-  secretName = 'test-secret',
+  secretName,
   deleted = false,
   isModelMesh = false,
   missingStatus = false,
