@@ -412,7 +412,7 @@ export type PodKind = K8sResourceCommon & {
   spec: PodSpec;
   status?: {
     phase: string;
-    conditions: K8sCondition[];
+    conditions?: K8sCondition[];
     containerStatuses?: PodContainerStatus[];
   };
 };

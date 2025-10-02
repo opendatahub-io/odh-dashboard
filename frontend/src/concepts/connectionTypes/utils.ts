@@ -470,3 +470,12 @@ export const trimInputOnPaste =
     e.preventDefault();
     onChange(trimmed);
   };
+
+export const getConnectionProtocolType = (
+  connectionType: ConnectionTypeConfigMapObj | string[] | Connection,
+): string =>
+  isModelServingCompatible(connectionType, ModelServingCompatibleTypes.S3ObjectStorage)
+    ? 's3'
+    : isModelServingCompatible(connectionType, ModelServingCompatibleTypes.OCI)
+    ? 'oci'
+    : 'uri';

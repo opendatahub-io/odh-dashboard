@@ -1,15 +1,11 @@
 import {
   InferenceServiceKind,
   KnownLabels,
+  MetadataAnnotation,
   ServingRuntimeKind,
   SupportedModelFormats,
 } from '@odh-dashboard/internal/k8sTypes';
-import {
-  createSecret,
-  InferenceServiceModel,
-  getGeneratedSecretName,
-  getSecret,
-} from '@odh-dashboard/internal/api/index';
+import { InferenceServiceModel } from '@odh-dashboard/internal/api/index';
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
 import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
@@ -18,18 +14,12 @@ import type { WizardFormData } from '@odh-dashboard/model-serving/types/form-dat
 import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
-  assembleConnectionSecret,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { isPVCUri } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
-import { getConnectionProtocolType } from '@odh-dashboard/internal/pages/projects/utils';
 import { KServeDeployment } from './deployments';
 import { setUpTokenAuth } from './deployUtils';
 import { createServingRuntime } from './deployServer';
-import { setCreateConnectionData, handleSecretOwnerReferencePatch } from './utils';
-import {
-  ModelLocationData,
-  ModelLocationType,
-} from '../../model-serving/src/components/deploymentWizard/fields/modelLocationFields/types';
+import { ModelLocationData } from '../../model-serving/src/components/deploymentWizard/fields/modelLocationFields/types';
 import { ExternalRouteFieldData } from '../../model-serving/src/components/deploymentWizard/fields/ExternalRouteField';
 import { TokenAuthenticationFieldData } from '../../model-serving/src/components/deploymentWizard/fields/TokenAuthenticationField';
 import { NumReplicasFieldData } from '../../model-serving/src/components/deploymentWizard/fields/NumReplicasField';
@@ -54,7 +44,6 @@ export type CreatingInferenceServiceObject = {
   runtimeArgs?: RuntimeArgsFieldData;
   environmentVariables?: EnvironmentVariablesFieldData;
   AiAssetData?: AvailableAiAssetsFieldsData;
-  inferenceServiceUID?: string;
 };
 
 export const deployKServeDeployment = async (
@@ -104,25 +93,6 @@ export const deployKServeDeployment = async (
       )
     : undefined;
 
-  const secretName =
-    inferenceServiceData.createConnectionData?.nameDesc?.name ||
-    inferenceServiceData.modelLocationData?.connection ||
-    getGeneratedSecretName();
-
-  if (!inferenceServiceData.createConnectionData?.nameDesc) {
-    // Set the secret name in the create connection data
-    const newInferenceServiceData = setCreateConnectionData(inferenceServiceData, secretName);
-    inferenceServiceData.createConnectionData = { ...newInferenceServiceData.createConnectionData };
-  }
-
-  await handleConnectionCreation(inferenceServiceData, dryRun, secretName).then(() => {
-    // If we're not in dry run, get the secret to make sure it exists before creating the inference service
-    if (!dryRun) {
-      return getSecret(inferenceServiceData.project, secretName);
-    }
-    return Promise.resolve(undefined);
-  });
-
   const inferenceService = await createInferenceService(
     inferenceServiceData,
     existingDeployment?.model,
@@ -140,9 +110,6 @@ export const deployKServeDeployment = async (
       { dryRun: dryRun ?? false },
     );
   }
-
-  // Add owner reference to the secret if the connection is not saved
-  handleSecretOwnerReferencePatch(inferenceServiceData, inferenceService, secretName, dryRun);
 
   return Promise.resolve({
     modelServingPlatformId: 'kserve',
@@ -166,7 +133,7 @@ const assembleInferenceService = (
     environmentVariables,
   } = data;
   const inferenceService: InferenceServiceKind = existingInferenceService
-    ? { ...existingInferenceService }
+    ? structuredClone(existingInferenceService)
     : {
         apiVersion: 'serving.kserve.io/v1beta1',
         kind: 'InferenceService',
@@ -265,7 +232,7 @@ const applyAnnotations = (
     AiAssetData,
     createConnectionData,
   } = data;
-  const updatedAnnotations = { ...annotations };
+  const updatedAnnotations = structuredClone(annotations);
   updatedAnnotations['openshift.io/display-name'] = name.trim();
   if (description) {
     updatedAnnotations['openshift.io/description'] = description;
@@ -294,74 +261,18 @@ const applyAnnotations = (
     }
   }
   if (createConnectionData?.nameDesc?.name && !dryRun) {
-    updatedAnnotations['opendatahub.io/connections'] = createConnectionData.nameDesc.name;
+    updatedAnnotations[MetadataAnnotation.ConnectionName] = createConnectionData.nameDesc.name;
   }
   return updatedAnnotations;
 };
-const handleConnectionCreation = async (
-  data: CreatingInferenceServiceObject,
-  dryRun?: boolean,
-  secretName?: string,
-) => {
-  const { createConnectionData, modelLocationData, project } = data;
 
-  // Don't do anything if the connection already exists
-  if (modelLocationData?.type === ModelLocationType.EXISTING || !modelLocationData) {
-    return;
-  }
-
-  const connectionTypeName = modelLocationData.connectionTypeObject?.metadata.name ?? 'uri';
-
-  const newConnection = assembleConnectionSecret(
-    project,
-    connectionTypeName,
-    createConnectionData?.nameDesc ?? {
-      name: secretName ?? '',
-      description: '',
-      k8sName: {
-        value: secretName ?? '',
-        state: {
-          immutable: false,
-          invalidCharacters: false,
-          invalidLength: false,
-          maxLength: 0,
-          touched: false,
-        },
-      },
-    },
-    modelLocationData.fieldValues,
-  );
-
-  // Apply protocol annotation based on base connection type
-  const protocolType = modelLocationData.connectionTypeObject
-    ? getConnectionProtocolType(modelLocationData.connectionTypeObject)
-    : 'uri';
-
-  const annotatedConnection = {
-    ...newConnection,
-    metadata: {
-      ...newConnection.metadata,
-      annotations: {
-        ...newConnection.metadata.annotations,
-        'opendatahub.io/connection-type-protocol': protocolType,
-      },
-    },
-  };
-
-  // If not saving as connection
-  if (!createConnectionData?.saveConnection) {
-    // Remove dashboard resource label so it doesn't show in connections list
-    annotatedConnection.metadata.labels['opendatahub.io/dashboard'] = 'false';
-  }
-  return createSecret(annotatedConnection, { dryRun: dryRun ?? false });
-};
-
+// For connection data structurally specific to KServe
 const addConnectionDataToInferenceService = (
   data: CreatingInferenceServiceObject,
   inferenceService: InferenceServiceKind,
 ): InferenceServiceKind => {
   const { modelLocationData } = data;
-  const updatedInferenceService = { ...inferenceService };
+  const updatedInferenceService = structuredClone(inferenceService);
 
   if (!updatedInferenceService.spec.predictor.model || !inferenceService.spec.predictor.model) {
     updatedInferenceService.spec.predictor.model = {};

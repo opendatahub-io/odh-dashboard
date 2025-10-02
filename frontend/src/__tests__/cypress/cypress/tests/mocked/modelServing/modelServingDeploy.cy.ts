@@ -266,24 +266,6 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
       body: mock404Error({}),
     },
   ).as('getRole');
-
-  cy.interceptK8s(
-    'GET',
-    {
-      model: RoleBindingModel,
-      ns: 'test-project',
-      name: 'test-model-view',
-    },
-    {
-      statusCode: 404,
-      body: mock404Error({}),
-    },
-  ).as('getRoleBinding');
-  cy.interceptK8s(
-    'GET',
-    { model: SecretModel, ns: 'test-project', name: 'test-uri-secret' },
-    mockURISecretK8sResource({}),
-  ).as('getExistingSecret');
 };
 
 describe('Model Serving Deploy Wizard', () => {
@@ -413,8 +395,6 @@ describe('Model Serving Deploy Wizard', () => {
     // Step 4: Summary
 
     modelServingWizard.findSubmitButton().should('be.enabled').click();
-
-    cy.wait('@getExistingSecret');
 
     // dry run request
     const expectedInferenceServiceBody = {
@@ -693,8 +673,6 @@ describe('Model Serving Deploy Wizard', () => {
     // Step 4: Summary
 
     modelServingWizard.findSubmitButton().should('be.enabled').click();
-
-    cy.wait('@getExistingSecret');
 
     // dry run request
     const expectedPredictiveInferenceServiceBody = {

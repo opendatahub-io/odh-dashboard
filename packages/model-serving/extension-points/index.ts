@@ -5,6 +5,7 @@ import type {
   DisplayNameAnnotations,
   K8sAPIOptions,
   ProjectKind,
+  SecretKind,
   SupportedModelFormats,
 } from '@odh-dashboard/internal/k8sTypes';
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
@@ -15,6 +16,7 @@ import type { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelSe
 import type { ToggleState } from '@odh-dashboard/internal/components/StateActionToggle';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
 import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import type { CreateConnectionData } from '../src/components/deploymentWizard/fields/CreateConnectionInputFields';
 import type { ModelLocationData } from '../src/components/deploymentWizard/fields/modelLocationFields/types';
 import type {
   WizardFormData,
@@ -292,3 +294,33 @@ export const isDeploymentWizardFieldExtension = <D extends Deployment = Deployme
   extension: Extension,
 ): extension is DeploymentWizardFieldExtension<D> =>
   extension.type === 'model-serving.deployment/wizard-field';
+export type ModelServingConnectionCreation<D extends Deployment = Deployment> = Extension<
+  'model-serving.deployment/connection-creation',
+  {
+    platform: D['modelServingPlatformId'];
+    handleConnectionCreation: CodeRef<
+      (
+        createConnectionData: CreateConnectionData,
+        project: string,
+        modelLocationData?: ModelLocationData,
+        secretName?: string,
+        dryRun?: boolean,
+      ) => Promise<SecretKind | undefined>
+    >;
+    handleSecretOwnerReferencePatch: CodeRef<
+      (
+        createConnectionData: CreateConnectionData,
+        resource: K8sResourceCommon & { metadata: { name: string } },
+        modelLocationData: ModelLocationData,
+        secretName: string,
+        uid: string,
+        dryRun?: boolean,
+      ) => Promise<void>
+    >;
+  }
+>;
+
+export const isModelServingConnectionCreation = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingConnectionCreation<D> =>
+  extension.type === 'model-serving.deployment/connection-creation';
