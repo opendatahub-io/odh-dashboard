@@ -1,6 +1,6 @@
 import React from 'react';
-import { Button, Divider, Grid, GridItem, Progress, ProgressVariant } from '@patternfly/react-core';
-import { FileIcon, TimesIcon } from '@patternfly/react-icons';
+import { Divider, Grid, GridItem, Progress, ProgressVariant } from '@patternfly/react-core';
+import { FileIcon } from '@patternfly/react-icons';
 import { FileStatus } from '~/app/Chatbot/hooks/useSourceManagement';
 import { formatFileSize } from './utils';
 
@@ -55,19 +55,8 @@ export const UploadedFileItem: React.FC<UploadedFileItemProps> = ({
           </GridItem>
 
           {/* Second column: Progress with file name and size in title */}
-          <GridItem span={10} className="pf-v6-u-px-sm">
+          <GridItem span={11} className="pf-v6-u-px-sm">
             <Progress value={getProgressValue()} title={title} variant={getProgressVariant()} />
-          </GridItem>
-
-          {/* Third column: Remove button */}
-          <GridItem span={1} className="pf-v6-u-display-flex pf-v6-u-align-items-flex-start">
-            <Button
-              variant="plain"
-              onClick={() => onRemove(file.name)}
-              aria-label={`Remove ${file.name}`}
-            >
-              <TimesIcon />
-            </Button>
           </GridItem>
         </Grid>
       </div>
