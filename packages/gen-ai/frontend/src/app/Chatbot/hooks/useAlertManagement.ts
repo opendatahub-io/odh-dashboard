@@ -31,12 +31,30 @@ const useAlertManagement = (): UseAlertManagementReturn => {
   const [showErrorAlert, setShowErrorAlert] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | undefined>();
 
+  const autoHideTimeouts = React.useRef<Record<string, ReturnType<typeof setTimeout> | undefined>>({
+    success: undefined,
+    upload: undefined,
+    delete: undefined,
+    error: undefined,
+  });
+  const uploadRafRef = React.useRef<number>();
+  const deleteRafRef = React.useRef<number>();
+
+  const clearTimeoutRef = (key: keyof typeof autoHideTimeouts.current) => {
+    const handle = autoHideTimeouts.current[key];
+    if (handle) {
+      clearTimeout(handle);
+      autoHideTimeouts.current[key] = undefined;
+    }
+  };
+
   const showSuccAlert = React.useCallback(() => {
     setAlertKey((key) => key + 1);
     setShowSuccessAlert(true);
-    // Add manual timeout as backup
-    setTimeout(() => {
+    clearTimeoutRef('success');
+    autoHideTimeouts.current.success = setTimeout(() => {
       setShowSuccessAlert(false);
+      clearTimeoutRef('success');
     }, 4000);
   }, []);
 
@@ -46,11 +64,15 @@ const useAlertManagement = (): UseAlertManagementReturn => {
     setUploadAlertKey((key) => key + 1);
     setAlertKey((key) => key + 1);
     // Use requestAnimationFrame to ensure the reset happens before showing
-    requestAnimationFrame(() => {
+    if (uploadRafRef.current) {
+      cancelAnimationFrame(uploadRafRef.current);
+    }
+    uploadRafRef.current = requestAnimationFrame(() => {
       setShowUploadSuccessAlert(true);
-      // Add manual timeout as backup
-      setTimeout(() => {
+      clearTimeoutRef('upload');
+      autoHideTimeouts.current.upload = setTimeout(() => {
         setShowUploadSuccessAlert(false);
+        clearTimeoutRef('upload');
       }, 4000);
     });
   }, []);
@@ -61,11 +83,15 @@ const useAlertManagement = (): UseAlertManagementReturn => {
     setDeleteAlertKey((key) => key + 1);
     setAlertKey((key) => key + 1);
     // Use requestAnimationFrame to ensure the reset happens before showing
-    requestAnimationFrame(() => {
+    if (deleteRafRef.current) {
+      cancelAnimationFrame(deleteRafRef.current);
+    }
+    deleteRafRef.current = requestAnimationFrame(() => {
       setShowDeleteSuccessAlert(true);
-      // Add manual timeout as backup
-      setTimeout(() => {
+      clearTimeoutRef('delete');
+      autoHideTimeouts.current.delete = setTimeout(() => {
         setShowDeleteSuccessAlert(false);
+        clearTimeoutRef('delete');
       }, 4000);
     });
   }, []);
@@ -75,10 +101,11 @@ const useAlertManagement = (): UseAlertManagementReturn => {
     setAlertKey((key) => key + 1);
     setErrorMessage(message);
     setShowErrorAlert(true);
-    // Add manual timeout as backup
-    setTimeout(() => {
+    clearTimeoutRef('error');
+    autoHideTimeouts.current.error = setTimeout(() => {
       setShowErrorAlert(false);
       setErrorMessage(undefined);
+      clearTimeoutRef('error');
     }, 4000);
   }, []);
 
@@ -98,6 +125,25 @@ const useAlertManagement = (): UseAlertManagementReturn => {
     setShowErrorAlert(false);
     setErrorMessage(undefined);
   }, []);
+
+  React.useEffect(
+    () => () => {
+      const timeoutKeys: Array<keyof typeof autoHideTimeouts.current> = [
+        'success',
+        'upload',
+        'delete',
+        'error',
+      ];
+      timeoutKeys.forEach(clearTimeoutRef);
+      if (uploadRafRef.current) {
+        cancelAnimationFrame(uploadRafRef.current);
+      }
+      if (deleteRafRef.current) {
+        cancelAnimationFrame(deleteRafRef.current);
+      }
+    },
+    [],
+  );
 
   return {
     showSuccessAlert,
