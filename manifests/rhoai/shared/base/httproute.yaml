@@ -2,5 +2,5 @@
   path: /metadata/name
   value: rhods-dashboard
 - op: replace
-  path: /spec/to/name
+  path: /spec/rules/0/backendRefs/0/name
   value: rhods-dashboard
