@@ -13,7 +13,7 @@ import {
   getImageStreamDisplayName,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/imageStreams';
 
-describe('[Product Bug: RHAIENG-1158] Workbenches - variable tests', () => {
+describe('Workbenches - variable tests', () => {
   let projectName: string;
   let projectDescription: string;
   let testData: WBVariablesTestData;
@@ -47,15 +47,7 @@ describe('[Product Bug: RHAIENG-1158] Workbenches - variable tests', () => {
   it(
     'Verify user can set environment variables in their workbenches by uploading a yaml Secret and Config Map file.',
     {
-      tags: [
-        '@Sanity',
-        '@SanitySet3',
-        '@ODS-1883',
-        '@ODS-1864',
-        '@Dashboard',
-        '@Workbenches',
-        '@Bug',
-      ],
+      tags: ['@Sanity', '@SanitySet3', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'],
     },
     () => {
       const workbenchName = projectName;
@@ -164,15 +156,7 @@ describe('[Product Bug: RHAIENG-1158] Workbenches - variable tests', () => {
   it(
     'Verify that the user can inject environment variables manually into a workbench using Key / Value',
     {
-      tags: [
-        '@Sanity',
-        '@SanitySet3',
-        '@ODS-1883',
-        '@ODS-1864',
-        '@Dashboard',
-        '@Workbenches',
-        '@Bug',
-      ],
+      tags: ['@Sanity', '@SanitySet3', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'],
     },
     () => {
       const workbenchName = projectName;
