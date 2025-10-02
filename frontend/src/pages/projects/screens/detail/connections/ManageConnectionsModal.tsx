@@ -19,8 +19,8 @@ import {
   getDefaultValues,
   isConnectionTypeDataField,
   parseConnectionSecretValues,
+  getConnectionProtocolType,
 } from '#~/concepts/connectionTypes/utils';
-import { getConnectionProtocolType } from '#~/pages/projects/utils';
 import usePersistentData from './usePersistentData';
 
 type Props = {

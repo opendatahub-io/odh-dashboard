@@ -4,6 +4,7 @@ import { Spinner, Wizard, WizardStep } from '@patternfly/react-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import { getGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
 import { getDeploymentWizardExitRoute } from './utils';
 import { ModelDeploymentWizardData, useModelDeploymentWizard } from './useDeploymentWizard';
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
@@ -12,6 +13,8 @@ import { AdvancedSettingsStepContent } from './steps/AdvancedOptionsStep';
 import { ModelDeploymentStepContent } from './steps/ModelDeploymentStep';
 import { useDeployMethod } from './useDeployMethod';
 import { WizardFooterWithDisablingNext } from '../generic/WizardFooterWithDisablingNext';
+import { isModelServingConnectionCreation } from '../../../extension-points';
+import { useResolvedDeploymentExtension } from '../../concepts/extensionUtils';
 
 type ModelDeploymentWizardProps = {
   title: string;
@@ -31,6 +34,10 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
 
+  const [connectionExtension, connectionExtensionLoaded] = useResolvedDeploymentExtension(
+    isModelServingConnectionCreation,
+  );
+
   const exitWizard = React.useCallback(() => {
     navigate(getDeploymentWizardExitRoute(location.pathname));
   }, [navigate, location.pathname]);
@@ -39,6 +46,33 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   const validation = useModelDeploymentWizardValidation(wizardState.state);
 
   const { deployMethod, deployMethodLoaded } = useDeployMethod(wizardState.state);
+  const secretName =
+    wizardState.state.createConnectionData.data.nameDesc?.name ||
+    wizardState.state.modelLocationData.data?.connection ||
+    getGeneratedSecretName();
+
+  if (
+    !wizardState.state.createConnectionData.data.nameDesc?.name ||
+    !wizardState.state.createConnectionData.data.nameDesc.k8sName.value
+  ) {
+    wizardState.state.createConnectionData.setData({
+      ...wizardState.state.createConnectionData.data,
+      nameDesc: {
+        name: secretName,
+        description: wizardState.state.createConnectionData.data.nameDesc?.description || '',
+        k8sName: {
+          value: secretName,
+          state: {
+            immutable: false,
+            invalidCharacters: false,
+            invalidLength: false,
+            maxLength: 0,
+            touched: false,
+          },
+        },
+      },
+    });
+  }
 
   const onSave = React.useCallback(() => {
     // Use existing validation to prevent submission with invalid data
@@ -46,7 +80,8 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       !validation.isModelSourceStepValid ||
       !validation.isModelDeploymentStepValid ||
       !deployMethodLoaded ||
-      !deployMethod
+      !deployMethod ||
+      !connectionExtensionLoaded
     ) {
       return;
     }
@@ -63,6 +98,13 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       : undefined;
 
     Promise.all([
+      connectionExtension?.properties.handleConnectionCreation(
+        wizardState.state.createConnectionData.data,
+        project.metadata.name,
+        wizardState.state.modelLocationData.data,
+        secretName,
+        true,
+      ),
       deployMethod.properties.deploy(
         wizardState.state,
         project.metadata.name,
@@ -73,6 +115,13 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       ),
     ]).then(() => {
       Promise.all([
+        connectionExtension?.properties.handleConnectionCreation(
+          wizardState.state.createConnectionData.data,
+          project.metadata.name,
+          wizardState.state.modelLocationData.data,
+          secretName,
+          false,
+        ),
         deployMethod.properties.deploy(
           wizardState.state,
           project.metadata.name,
@@ -81,8 +130,23 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           serverResourceTemplateName,
           false,
         ),
-      ]).then(() => {
-        exitWizard();
+      ]).then(([, deploymentResult]) => {
+        if (!wizardState.state.modelLocationData.data) {
+          return;
+        }
+
+        Promise.all([
+          connectionExtension?.properties.handleSecretOwnerReferencePatch(
+            wizardState.state.createConnectionData.data,
+            deploymentResult.model,
+            wizardState.state.modelLocationData.data,
+            secretName,
+            deploymentResult.model.metadata.uid ?? '',
+            false,
+          ),
+        ]).then(() => {
+          exitWizard();
+        });
       });
     });
   }, [

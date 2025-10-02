@@ -5,6 +5,7 @@ import type {
   ModelServingDeploymentFormDataExtension,
   ModelServingPlatformWatchDeploymentsExtension,
   ModelServingDeleteModal,
+  ModelServingConnectionCreation,
 } from '@odh-dashboard/model-serving/extension-points';
 import type { LLMdDeployment } from '../src/types';
 
@@ -17,6 +18,7 @@ const extensions: (
   | ModelServingDeleteModal<LLMdDeployment>
   | ModelServingDeploy<LLMdDeployment>
   | DeploymentWizardFieldExtension<LLMdDeployment>
+  | ModelServingConnectionCreation<LLMdDeployment>
 )[] = [
   {
     type: 'model-serving.platform/watch-deployments',
@@ -67,6 +69,20 @@ const extensions: (
     properties: {
       platform: LLMD_SERVING_ID,
       field: () => import('../src/wizardFields/modelServerField').then((m) => m.modelServerField),
+    },
+  },
+  {
+    type: 'model-serving.deployment/connection-creation',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      handleConnectionCreation: () =>
+        import('@odh-dashboard/model-serving/concepts/connectionUtils').then(
+          (m) => m.handleConnectionCreation,
+        ),
+      handleSecretOwnerReferencePatch: () =>
+        import('@odh-dashboard/model-serving/concepts/connectionUtils').then(
+          (m) => m.handleSecretOwnerReferencePatch,
+        ),
     },
   },
 ];
