@@ -15,6 +15,12 @@ export const APP_ENV = process.env.APP_ENV;
 
 export const USER_ACCESS_TOKEN = 'x-forwarded-access-token';
 
+// BYOIDC header constants
+export const BYOIDC_USER_HEADER = 'x-auth-request-user';
+export const BYOIDC_GROUPS_HEADER = 'x-auth-request-groups';
+export const BYOIDC_EMAIL_HEADER = 'x-auth-request-email';
+export const BYOIDC_EXTRACT_USERNAME = process.env.BYOIDC_EXTRACT_USERNAME !== 'false'; // default true
+
 export const yamlRegExp = /\.ya?ml$/;
 export const mdRegExp = /\.md$/;
 

@@ -29,7 +29,7 @@ export const logRequestDetails = (
   const writeLogAsync = async () => {
     const userInfo = await getUserInfo(fastify, request);
     const { dashboardNamespace } = getNamespaces(fastify);
-    const isAdmin = await isUserAdmin(fastify, userInfo.userName, dashboardNamespace);
+    const isAdmin = await isUserAdmin(fastify, userInfo.userName, dashboardNamespace, request);
 
     writeAdminLog(fastify, {
       ...data,

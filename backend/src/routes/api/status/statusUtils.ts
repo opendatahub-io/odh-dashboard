@@ -20,7 +20,7 @@ export const status = async (
   const { server } = currentCluster;
 
   const { userName, userID } = await getUserInfo(fastify, request);
-  const isAdmin = await isUserAdmin(fastify, userName, namespace);
+  const isAdmin = await isUserAdmin(fastify, userName, namespace, request);
   const isAllowed = isAdmin ? true : await isUserAllowed(fastify, userName);
 
   if (!kubeContext && !kubeContext.trim()) {

@@ -8,10 +8,37 @@ import { getAllGroupsByUser, getGroup } from './groupsUtils';
 import { flatten, uniq } from 'lodash';
 import { getNamespaces } from '../utils/notebookUtils';
 import { getAuth } from './resourceUtils';
+import { BYOIDC_GROUPS_HEADER } from './constants';
 
 const SYSTEM_AUTHENTICATED = 'system:authenticated';
 /** Usernames with invalid characters can start with `b64:` to keep their unwanted characters */
 export const KUBE_SAFE_PREFIX = 'b64:';
+
+/**
+ * Check if user is admin based on BYOIDC groups header
+ * @param request FastifyRequest containing headers
+ * @returns true if user is admin based on groups in header
+ */
+export const isUserAdminFromHeaders = (request: any): boolean => {
+  const groupsHeader = request.headers[BYOIDC_GROUPS_HEADER] as string;
+  
+  if (!groupsHeader) {
+    return false;
+  }
+
+  // Parse pipe-separated groups
+  const groups = groupsHeader.split('|').map(group => group.trim());
+  
+  // Check for admin groups (these are already mapped by kube-rbac-proxy)
+  const adminGroups = [
+    'cluster-admins',
+    'system:admin',
+    'cluster-admin',
+    'system:masters'
+  ];
+  
+  return groups.some(group => adminGroups.includes(group));
+};
 
 const getGroupUserList = async (
   fastify: KubeFastifyInstance,
@@ -89,7 +116,23 @@ export const isUserAdmin = async (
   fastify: KubeFastifyInstance,
   username: string,
   namespace: string,
+  request?: any,
 ): Promise<boolean> => {
+  // Check BYOIDC header-based admin detection first if request is provided
+  if (request && request.headers && request.headers[BYOIDC_GROUPS_HEADER]) {
+    try {
+      const isAdminFromHeaders = isUserAdminFromHeaders(request);
+      if (isAdminFromHeaders) {
+        fastify.log.debug('User is admin based on BYOIDC groups header');
+        return true;
+      }
+    } catch (e) {
+      fastify.log.warn(`BYOIDC header-based admin check failed, falling back to OpenShift API: ${e.message}`);
+      // Fall through to OpenShift API fallback
+    }
+  }
+
+  // Fallback to traditional OpenShift admin detection
   const isAdmin: boolean = await isUserClusterRole(fastify, username, namespace);
   return isAdmin || (await getGroupsConfig(fastify, fastify.kube.customObjectsApi, username));
 };

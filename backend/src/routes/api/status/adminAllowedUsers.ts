@@ -69,7 +69,7 @@ export const getAllowedUsers = async (
   const { namespace } = request.params;
   const userInfo = await getUserInfo(fastify, request);
   const currentUser = userInfo.userName;
-  const isAdmin = await isUserAdmin(fastify, currentUser, namespace);
+  const isAdmin = await isUserAdmin(fastify, currentUser, namespace, request);
   if (!isAdmin) {
     // Privileged call -- return nothing
     fastify.log.warn(
