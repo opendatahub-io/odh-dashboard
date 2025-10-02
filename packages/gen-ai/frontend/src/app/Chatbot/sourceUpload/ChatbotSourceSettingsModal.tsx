@@ -53,6 +53,9 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
   const { namespace } = React.useContext(GenAiContext);
 
   const maxChunkLengthLabelHelpRef = React.useRef(null);
+  const vectorDatabaseLabelHelpRef = React.useRef(null);
+  const chunkOverlapLabelHelpRef = React.useRef(null);
+  const delimiterLabelHelpRef = React.useRef(null);
   const [vectorStores, vectorStoresLoaded, vectorStoresError, refreshVectorStores] =
     useFetchVectorStores(namespace?.name);
 
@@ -206,7 +209,28 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
           <>
             <ModalBody>
               <Form id="source-settings-form" isWidthLimited>
-                <FormGroup label="Vector database" fieldId="source-settings-form-vectorStore">
+                <FormGroup
+                  label="Vector database"
+                  labelHelp={
+                    <Popover
+                      triggerRef={vectorDatabaseLabelHelpRef}
+                      headerContent={<div>Vector database</div>}
+                      bodyContent={
+                        <div>
+                          The vector database where your document embeddings will be stored and
+                          searched. This database enables semantic search capabilities for your RAG
+                          system.
+                        </div>
+                      }
+                    >
+                      <FormGroupLabelHelp
+                        ref={vectorDatabaseLabelHelpRef}
+                        aria-label="More info for vector database"
+                      />
+                    </Popover>
+                  }
+                  fieldId="source-settings-form-vectorStore"
+                >
                   <TextInput
                     type="text"
                     id="source-settings-form-vectorStore"
@@ -251,7 +275,28 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
                         }
                       />
                     </FormGroup>
-                    <FormGroup label="Chunk overlap" fieldId="source-settings-form-chunkOverlap">
+                    <FormGroup
+                      label="Chunk overlap"
+                      labelHelp={
+                        <Popover
+                          triggerRef={chunkOverlapLabelHelpRef}
+                          headerContent={<div>Chunk overlap</div>}
+                          bodyContent={
+                            <div>
+                              The number of characters that consecutive chunks should overlap. This
+                              helps maintain context continuity across chunk boundaries and improves
+                              retrieval accuracy.
+                            </div>
+                          }
+                        >
+                          <FormGroupLabelHelp
+                            ref={chunkOverlapLabelHelpRef}
+                            aria-label="More info for chunk overlap"
+                          />
+                        </Popover>
+                      }
+                      fieldId="source-settings-form-chunkOverlap"
+                    >
                       <TextInput
                         type="number"
                         id="source-settings-form-chunkOverlap"
@@ -265,7 +310,28 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
                         }
                       />
                     </FormGroup>
-                    <FormGroup label="Delimiter" fieldId="source-settings-form-delimiter">
+                    <FormGroup
+                      label="Delimiter"
+                      labelHelp={
+                        <Popover
+                          triggerRef={delimiterLabelHelpRef}
+                          headerContent={<div>Delimiter</div>}
+                          bodyContent={
+                            <div>
+                              A character or string used to split the document into chunks. Common
+                              delimiters include newlines (\n), periods (.), or custom separators.
+                              Leave empty to use automatic chunking.
+                            </div>
+                          }
+                        >
+                          <FormGroupLabelHelp
+                            ref={delimiterLabelHelpRef}
+                            aria-label="More info for delimiter"
+                          />
+                        </Popover>
+                      }
+                      fieldId="source-settings-form-delimiter"
+                    >
                       <TextInput
                         type="text"
                         id="source-settings-form-delimiter"
