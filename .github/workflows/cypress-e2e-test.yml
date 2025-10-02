@@ -278,70 +278,34 @@ jobs:
           echo "Test tag: ${{ matrix.test-tag }}"
           echo "Start time: $(date)"
           echo "Port: $CYPRESS_PORT"
-          echo "BASE_URL format: http://localhost:[PORT]"
           
           # Verify the port is accessible before running tests
           if curl -s -f http://localhost:$CYPRESS_PORT/ > /dev/null; then
-            echo "✓ Server is accessible on configured port"
+            echo "Server is accessible on configured port"
           else
-            echo "✗ WARNING: Server is NOT accessible on configured port"
+            echo "WARNING: Server is NOT accessible on configured port"
           fi
           
-          # Run tests against dynamic port
-          BASE_URL=http://localhost:$CYPRESS_PORT npm run cypress:run:electron -- \
-            --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true \
-            --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos" \
-            2>&1 | tee /tmp/cypress-run-${{ matrix.test-tag }}.log
+          # Run tests - match OLD workflow format EXACTLY (no line breaks, no tee)
+          BASE_URL=http://localhost:$CYPRESS_PORT npm run cypress:run:electron -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
       
       - name: Post-test diagnostics on failure
         if: failure() && steps.run-tests.outcome == 'failure'
         run: |
-          echo "=== POST-FAILURE DIAGNOSTICS ==="
-          echo ""
           echo "Test failed for: ${{ matrix.test-tag }}"
           echo "Failure time: $(date)"
-          echo ""
+          echo "Port: $CYPRESS_PORT"
           
-          echo "--- Checking for specific error patterns ---"
-          if grep -qi "timed out waiting for the browser" /tmp/cypress-run-${{ matrix.test-tag }}.log 2>/dev/null; then
-            echo "✗ FOUND: 'Timed out waiting for the browser to connect' error"
-            echo "  Number of occurrences:"
-            grep -i "timed out waiting for the browser" /tmp/cypress-run-${{ matrix.test-tag }}.log | wc -l
-            echo "  Retry attempts:"
-            grep -i "retrying" /tmp/cypress-run-${{ matrix.test-tag }}.log | wc -l
-          else
-            echo "✓ No browser connection timeout found"
-          fi
-          
-          if grep -qi "DevTools.*disconnect\|CDP.*error\|protocol error" /tmp/cypress-run-${{ matrix.test-tag }}.log 2>/dev/null; then
-            echo "✗ FOUND: DevTools/CDP protocol errors"
-          fi
-          
-          if grep -qi "ECONNREFUSED\|ETIMEDOUT\|ENOTFOUND" /tmp/cypress-run-${{ matrix.test-tag }}.log 2>/dev/null; then
-            echo "✗ FOUND: Network connection errors"
-          fi
-          echo ""
-          
-          echo "--- System state at failure ---"
-          echo "Cypress/Electron processes still running (count):"
+          echo "Cypress/Electron processes still running:"
           ps aux | grep -E "(cypress|Cypress|electron|Electron)" | grep -v grep | wc -l || echo "0"
-          echo ""
-          echo "File descriptors in use:"
-          lsof -u $(whoami) 2>/dev/null | wc -l || echo "Unable to check"
-          echo ""
+          
           echo "Server still running on port $CYPRESS_PORT?"
           if lsof -i:$CYPRESS_PORT >/dev/null 2>&1; then
-            echo "Yes, server is still running"
-            echo "Server response test:"
-            timeout 3 curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" http://localhost:$CYPRESS_PORT/ || echo "Server not responding"
+            echo "Yes"
+            timeout 3 curl -s -o /dev/null -w "HTTP %{http_code}\n" http://localhost:$CYPRESS_PORT/ || echo "Not responding"
           else
-            echo "No server on port $CYPRESS_PORT"
+            echo "No"
           fi
-          echo ""
-          
-          echo "--- Last 40 lines of Cypress output (sanitized) ---"
-          tail -40 /tmp/cypress-run-${{ matrix.test-tag }}.log 2>/dev/null | sed 's/https:\/\/[^/]*\.[^/]*\.[^/]*\.[^/]*/https:\/\/[REDACTED]/g' || echo "Log file not found"
-          echo ""
 
       - name: Cleanup server for this job
         if: always()
