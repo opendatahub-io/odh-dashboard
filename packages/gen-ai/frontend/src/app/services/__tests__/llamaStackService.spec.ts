@@ -248,9 +248,7 @@ describe('llamaStackService', () => {
       const mockError = {
         response: {
           data: {
-            error: {
-              message: 'File upload failed',
-            },
+            message: 'File upload failed',
           },
         },
       };

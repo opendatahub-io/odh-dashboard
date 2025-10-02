@@ -149,11 +149,14 @@ export type VectorStoreFile = {
   attributes: {
     description?: string;
   };
+  bytes?: number;
   chunking_strategy: ChunkingStrategyResult;
   created_at: number;
+  filename?: string;
   id: string;
   last_error?: FileError;
   object: string;
+  purpose?: string;
   status: 'pending' | 'completed' | 'failed';
   usage_bytes: number;
   vector_store_id: string;
@@ -162,6 +165,18 @@ export type VectorStoreFile = {
 export type FileUploadResult = {
   file_id: string;
   vector_store_file: VectorStoreFile;
+};
+
+export type FileModel = {
+  id: string;
+  object: string;
+  bytes: number;
+  created_at: number;
+  filename: string;
+  purpose: string;
+  status: string;
+  expires_at: number;
+  status_details: string;
 };
 
 // Roles must be 'user' and 'assistant' according to the Llama Stack API
