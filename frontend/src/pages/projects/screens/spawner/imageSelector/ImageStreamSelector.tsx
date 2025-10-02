@@ -73,7 +73,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
             isCompatibleWithIdentifier(identifier, imageStream),
           )
         }
-        content={'hardware profile'}
+        content="hardware profile"
       />
     </MenuItem>
   );
@@ -95,7 +95,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
           <ImageStreamDropdownLabel
             displayName={displayName}
             compatible={compatible}
-            content={'hardware profile'}
+            content="hardware profile"
           />
         ),
       };
