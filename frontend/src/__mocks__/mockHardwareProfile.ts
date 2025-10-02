@@ -70,7 +70,7 @@ export const mockHardwareProfile = ({
   annotations,
   labels,
 }: MockResourceConfigType): HardwareProfileKind => ({
-  apiVersion: 'infrastructure.opendatahub.io/v1alpha1',
+  apiVersion: 'infrastructure.opendatahub.io/v1',
   kind: 'HardwareProfile',
   metadata: {
     creationTimestamp: '2023-03-17T16:12:41Z',
@@ -140,7 +140,7 @@ export const mockNewHardwareProfile = (
   } = config;
 
   return {
-    apiVersion: 'infrastructure.opendatahub.io/v1alpha1',
+    apiVersion: 'infrastructure.opendatahub.io/v1',
     kind: 'HardwareProfile',
     metadata: {
       creationTimestamp: new Date().toISOString(),
