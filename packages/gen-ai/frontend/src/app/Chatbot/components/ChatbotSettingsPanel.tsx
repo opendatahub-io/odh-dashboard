@@ -12,6 +12,8 @@ import {
   Switch,
   Label,
   AlertGroup,
+  Flex,
+  FlexItem,
 } from '@patternfly/react-core';
 import { ChatbotSourceUploadPanel } from '~/app/Chatbot/sourceUpload/ChatbotSourceUploadPanel';
 import { ACCORDION_ITEMS } from '~/app/Chatbot/const';
@@ -143,36 +145,44 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
               onClick={() => accordionState.onAccordionToggle(ACCORDION_ITEMS.SOURCES)}
               id={ACCORDION_ITEMS.SOURCES}
             >
-              <div className="pf-v6-u-display-flex pf-v6-u-align-items-center pf-v6-u-justify-content-space-between pf-v6-u-w-100">
-                <Title headingLevel="h2" size="lg">
-                  RAG
-                </Title>
-                {/* Use div to prevent the click event from bubbling up to the accordion toggle */}
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
+              <Flex
+                justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                alignItems={{ default: 'alignItemsCenter' }}
+                style={{ width: '100%' }}
+              >
+                <FlexItem>
+                  <Title headingLevel="h2" size="lg">
+                    RAG
+                  </Title>
+                </FlexItem>
+                <FlexItem>
+                  {/* Use FlexItem to prevent the click event from bubbling up to the accordion toggle */}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
                       e.stopPropagation();
-                      e.preventDefault();
-                      sourceManagement.setIsRawUploaded(!sourceManagement.isRawUploaded);
-                    }
-                  }}
-                  aria-label="Toggle uploaded mode"
-                >
-                  <Switch
-                    id="no-label-switch-on"
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        sourceManagement.setIsRawUploaded(!sourceManagement.isRawUploaded);
+                      }
+                    }}
                     aria-label="Toggle uploaded mode"
-                    isChecked={sourceManagement.isRawUploaded}
-                    onChange={() =>
-                      sourceManagement.setIsRawUploaded(!sourceManagement.isRawUploaded)
-                    }
-                  />
-                </div>
-              </div>
+                  >
+                    <Switch
+                      id="no-label-switch-on"
+                      aria-label="Toggle uploaded mode"
+                      isChecked={sourceManagement.isRawUploaded}
+                      onChange={() =>
+                        sourceManagement.setIsRawUploaded(!sourceManagement.isRawUploaded)
+                      }
+                    />
+                  </div>
+                </FlexItem>
+              </Flex>
             </AccordionToggle>
             <AccordionContent id="sources-content">
               <Form>
@@ -211,16 +221,20 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
               onClick={() => accordionState.onAccordionToggle(ACCORDION_ITEMS.MCP_SERVERS)}
               id={ACCORDION_ITEMS.MCP_SERVERS}
             >
-              <div className="pf-v6-u-display-flex pf-v6-u-align-items-center">
-                <Title headingLevel="h2" size="lg">
-                  MCP servers
-                </Title>
+              <Flex alignItems={{ default: 'alignItemsCenter' }}>
+                <FlexItem>
+                  <Title headingLevel="h2" size="lg">
+                    MCP servers
+                  </Title>
+                </FlexItem>
                 {selectedServersCount > 0 && (
-                  <Label key={1} color="blue" className="pf-v6-u-ml-sm">
-                    {selectedServersCount}
-                  </Label>
+                  <FlexItem>
+                    <Label key={1} color="blue" className="pf-v6-u-ml-sm">
+                      {selectedServersCount}
+                    </Label>
+                  </FlexItem>
                 )}
-              </div>
+              </Flex>
             </AccordionToggle>
             <AccordionContent id="mcp-servers-content">
               <MCPServersPanelWithContext onSelectionChange={saveSelectedServersToPlayground} />
