@@ -25,11 +25,11 @@ interface UseFileManagementProps {
 const convertVectorStoreFileToFileModel = (vectorStoreFile: VectorStoreFile): FileModel => ({
   id: vectorStoreFile.id,
   object: vectorStoreFile.object,
-  bytes: vectorStoreFile.usage_bytes,
+  bytes: vectorStoreFile.bytes || vectorStoreFile.usage_bytes,
   // eslint-disable-next-line camelcase
   created_at: vectorStoreFile.created_at,
-  filename: `file-${vectorStoreFile.id}`, // Vector store files don't have original filenames
-  purpose: 'assistants',
+  filename: vectorStoreFile.filename || `file-${vectorStoreFile.id}`, // Use actual filename from API, fallback to ID
+  purpose: vectorStoreFile.purpose || 'assistants',
   status: vectorStoreFile.status,
   // eslint-disable-next-line camelcase
   expires_at: 0, // Vector store files don't have expiration

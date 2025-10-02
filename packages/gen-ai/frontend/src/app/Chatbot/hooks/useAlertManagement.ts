@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { ALERT_TIMEOUT_MS } from '~/app/Chatbot/const';
 
 export interface UseAlertManagementReturn {
   showSuccessAlert: boolean;
@@ -55,7 +56,7 @@ const useAlertManagement = (): UseAlertManagementReturn => {
     autoHideTimeouts.current.success = setTimeout(() => {
       setShowSuccessAlert(false);
       clearTimeoutRef('success');
-    }, 4000);
+    }, ALERT_TIMEOUT_MS);
   }, []);
 
   const showUploadSuccAlert = React.useCallback(() => {
@@ -73,7 +74,7 @@ const useAlertManagement = (): UseAlertManagementReturn => {
       autoHideTimeouts.current.upload = setTimeout(() => {
         setShowUploadSuccessAlert(false);
         clearTimeoutRef('upload');
-      }, 4000);
+      }, ALERT_TIMEOUT_MS);
     });
   }, []);
 
@@ -92,7 +93,7 @@ const useAlertManagement = (): UseAlertManagementReturn => {
       autoHideTimeouts.current.delete = setTimeout(() => {
         setShowDeleteSuccessAlert(false);
         clearTimeoutRef('delete');
-      }, 4000);
+      }, ALERT_TIMEOUT_MS);
     });
   }, []);
 
@@ -106,7 +107,7 @@ const useAlertManagement = (): UseAlertManagementReturn => {
       setShowErrorAlert(false);
       setErrorMessage(undefined);
       clearTimeoutRef('error');
-    }, 4000);
+    }, ALERT_TIMEOUT_MS);
   }, []);
 
   const hideSuccessAlert = React.useCallback(() => {

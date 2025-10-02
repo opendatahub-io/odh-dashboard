@@ -86,8 +86,8 @@ const useSourceManagement = ({
         return;
       }
 
-      // Check total file count limit (API files + current queue + new files)
-      const currentTotalFiles = uploadedFiles.length + filesWithSettings.length;
+      // Check total file count limit (only count successfully uploaded files from API)
+      const currentTotalFiles = uploadedFiles.length;
       const availableSlots = MAX_FILES_IN_VECTOR_STORE - currentTotalFiles;
 
       if (availableSlots <= 0) {
@@ -127,14 +127,7 @@ const useSourceManagement = ({
         }, 100);
       }
     },
-    [
-      uploadedFiles,
-      filesWithSettings,
-      MAX_FILE_SIZE,
-      MAX_FILES_IN_VECTOR_STORE,
-      onShowErrorAlert,
-      processNextFile,
-    ],
+    [uploadedFiles, MAX_FILE_SIZE, MAX_FILES_IN_VECTOR_STORE, onShowErrorAlert, processNextFile],
   );
 
   const removeUploadedSource = React.useCallback(

@@ -26,8 +26,8 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
-  // Check if we've reached the file limit
-  const currentFileCount = uploadedFilesCount + filesWithSettings.length;
+  // Check if we've reached the file limit (only count successfully uploaded files from API)
+  const currentFileCount = uploadedFilesCount;
   const isAtLimit = currentFileCount >= maxFilesAllowed;
 
   const handleDragOver = (e: React.DragEvent) => {

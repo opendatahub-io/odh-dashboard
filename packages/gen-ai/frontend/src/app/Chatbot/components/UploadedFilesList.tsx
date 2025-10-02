@@ -8,6 +8,8 @@ import {
   Button,
   Flex,
   FlexItem,
+  Split,
+  SplitItem,
   Spinner,
   EmptyState,
   EmptyStateBody,
@@ -147,24 +149,28 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
         <List isPlain>
           {files.map((file) => (
             <ListItem key={file.id}>
-              <Flex
-                alignItems={{ default: 'alignItemsCenter' }}
-                spaceItems={{ default: 'spaceItemsSm' }}
-              >
-                <FlexItem>
+              <Split hasGutter>
+                <SplitItem style={{ alignSelf: 'flex-start', paddingTop: '0.25rem' }}>
                   <FileIcon />
-                </FlexItem>
-                <FlexItem flex={{ default: 'flex_1' }}>
-                  <div>
-                    <div>
-                      <strong>{file.filename}</strong>
+                </SplitItem>
+                <SplitItem isFilled>
+                  <div style={{ minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontWeight: 'bold',
+                        wordBreak: 'break-word',
+                        lineHeight: '1.3',
+                      }}
+                      title={file.filename}
+                    >
+                      {file.filename}
                     </div>
-                    <div style={{ fontSize: '0.875rem', color: '#6a6e73' }}>
+                    <div style={{ fontSize: '0.875rem', color: '#6a6e73', marginTop: '0.25rem' }}>
                       {formatFileSize(file.bytes)} • Uploaded {formatDate(file.created_at)}
                     </div>
                   </div>
-                </FlexItem>
-                <FlexItem>
+                </SplitItem>
+                <SplitItem style={{ alignSelf: 'flex-start', paddingTop: '0.25rem' }}>
                   <Tooltip content="Delete file">
                     <Button
                       variant="plain"
@@ -175,8 +181,8 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
                       isDanger
                     />
                   </Tooltip>
-                </FlexItem>
-              </Flex>
+                </SplitItem>
+              </Split>
             </ListItem>
           ))}
         </List>

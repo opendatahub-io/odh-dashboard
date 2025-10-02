@@ -310,9 +310,7 @@ export const uploadSource = (
     })
     .then((response) => response.data.data)
     .catch((error) => {
-      throw new Error(
-        error.response?.data?.error?.message || error.message || 'Failed to upload source',
-      );
+      throw new Error(error.response?.data?.message || error.message || 'Failed to upload source');
     });
 };
 

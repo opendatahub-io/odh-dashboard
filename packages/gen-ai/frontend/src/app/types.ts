@@ -149,11 +149,14 @@ export type VectorStoreFile = {
   attributes: {
     description?: string;
   };
+  bytes?: number;
   chunking_strategy: ChunkingStrategyResult;
   created_at: number;
+  filename?: string;
   id: string;
   last_error?: FileError;
   object: string;
+  purpose?: string;
   status: 'pending' | 'completed' | 'failed';
   usage_bytes: number;
   vector_store_id: string;
