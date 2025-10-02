@@ -12,6 +12,7 @@ import {
 } from '@patternfly/chatbot';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
+import { DEFAULT_SYSTEM_INSTRUCTIONS } from './const';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
 import useAlertManagement from './hooks/useAlertManagement';
@@ -35,7 +36,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const { models, modelsLoaded, selectedModel, setSelectedModel, lastInput, setLastInput } =
     React.useContext(ChatbotContext);
 
-  const [systemInstruction, setSystemInstruction] = React.useState<string>('');
+  const [systemInstruction, setSystemInstruction] = React.useState<string>(
+    DEFAULT_SYSTEM_INSTRUCTIONS,
+  );
   const [isStreamingEnabled, setIsStreamingEnabled] = React.useState<boolean>(true);
   const [temperature, setTemperature] = React.useState<number>(0.1);
   const [topP, setTopP] = React.useState<number>(0.1);
