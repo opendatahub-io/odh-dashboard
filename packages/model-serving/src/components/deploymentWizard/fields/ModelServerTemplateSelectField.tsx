@@ -31,9 +31,10 @@ export type ModelServerOption = {
 };
 
 // Schema
-export const modelServerSelectFieldSchema = z.custom<ModelServerOption>((val) => {
+export const modelServerSelectFieldSchema = z.custom<ModelServerOption>((val: unknown) => {
   return !!(
     typeof val === 'object' &&
+    val &&
     'name' in val &&
     typeof val.name === 'string' &&
     val.name.length > 0

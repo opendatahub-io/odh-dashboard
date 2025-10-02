@@ -2,7 +2,7 @@ import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
 import type { WizardFormData } from '@odh-dashboard/model-serving/types/form-data';
 import { applyHardwareProfileConfig, applyReplicas } from './hardware';
-import { applyModelLocation } from './model';
+import { applyModelEnvVars, applyModelArgs, applyModelLocation } from './model';
 import { LLMD_SERVING_ID } from '../../extensions/extensions';
 import { LLMdDeployment, LLMInferenceServiceKind, LLMInferenceServiceModel } from '../types';
 
@@ -34,6 +34,8 @@ type CreateLLMdInferenceServiceParams = {
   hardwareProfileNamespace?: string;
   connectionName: string;
   replicas?: number;
+  runtimeArgs?: string[];
+  environmentVariables?: { name: string; value: string }[];
 };
 
 const assembleLLMdInferenceServiceKind = ({
@@ -45,6 +47,8 @@ const assembleLLMdInferenceServiceKind = ({
   hardwareProfileNamespace,
   connectionName,
   replicas = 1,
+  runtimeArgs,
+  environmentVariables,
 }: CreateLLMdInferenceServiceParams): LLMInferenceServiceKind => {
   let llmdInferenceService: LLMInferenceServiceKind = {
     apiVersion: 'serving.kserve.io/v1alpha1',
@@ -78,6 +82,8 @@ const assembleLLMdInferenceServiceKind = ({
     hardwareProfileNamespace ?? '',
   );
   llmdInferenceService = applyReplicas(llmdInferenceService, replicas);
+  llmdInferenceService = applyModelArgs(llmdInferenceService, runtimeArgs);
+  llmdInferenceService = applyModelEnvVars(llmdInferenceService, environmentVariables);
 
   return llmdInferenceService;
 };
@@ -100,6 +106,8 @@ export const deployLLMdDeployment = async (
       wizardData.hardwareProfileConfig.formData.selectedProfile?.metadata.namespace,
     connectionName: wizardData.modelLocationData.data?.connection ?? '',
     replicas: wizardData.numReplicas.data,
+    runtimeArgs: wizardData.runtimeArgs.data?.args,
+    environmentVariables: wizardData.environmentVariables.data?.variables,
   });
 
   const llmdInferenceService = await createLLMdInferenceServiceKind(
