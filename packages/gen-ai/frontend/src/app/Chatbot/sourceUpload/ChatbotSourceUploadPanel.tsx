@@ -32,21 +32,21 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
     setIsDragOver(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      handleSourceDrop(e as DropEvent, files);
+      await handleSourceDrop(e as DropEvent, files);
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any
-      handleSourceDrop(e as any, files);
+      await handleSourceDrop(e as any, files);
     }
   };
 
@@ -110,7 +110,7 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
 
         return (
           <UploadedFileItem
-            key={fileWithSettings.file.name}
+            key={fileWithSettings.id}
             file={fileWithSettings.file}
             progress={progress}
             status={fileWithSettings.status}

@@ -8,6 +8,7 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 export type FileStatus = 'pending' | 'configured' | 'uploading' | 'uploaded' | 'failed';
 
 export interface FileWithSettings {
+  id: string;
   file: File;
   settings: ChatbotSourceSettings | null;
   status: FileStatus;
@@ -94,13 +95,21 @@ const useSourceManagement = ({
       }
 
       // Add only unique files to filesWithSettings with pending status
-      const newFilesWithSettings: FileWithSettings[] = uniqueNewFiles.map((file) => ({
+      const newFilesWithSettings: FileWithSettings[] = uniqueNewFiles.map((file, index) => ({
+        id: `${file.name}-${file.size}-${file.lastModified}-${Date.now()}-${index}`,
         file,
         settings: null,
         status: 'pending',
       }));
 
-      setFilesWithSettings((prev) => [...prev, ...newFilesWithSettings]);
+      setFilesWithSettings((prev) => {
+        // Check for duplicates inside the state updater to prevent race conditions
+        const existingFileNames = prev.map((fileWithSettings) => fileWithSettings.file.name);
+        const trulyUniqueFiles = newFilesWithSettings.filter(
+          (newFileWithSettings) => !existingFileNames.includes(newFileWithSettings.file.name),
+        );
+        return [...prev, ...trulyUniqueFiles];
+      });
 
       // Process the first file in the queue
       if (uniqueNewFiles.length > 0) {
@@ -124,8 +133,13 @@ const useSourceManagement = ({
         setCurrentFileForSettings(null);
         setIsSourceSettingsOpen(false);
       }
+
+      // Process the next file in queue after state update
+      setTimeout(() => {
+        processNextFile();
+      }, 100);
     },
-    [currentFileForSettings],
+    [currentFileForSettings, processNextFile],
   );
 
   const handleSourceSettingsSubmit = React.useCallback(
@@ -206,7 +220,18 @@ const useSourceManagement = ({
   const handleModalClose = React.useCallback(() => {
     // Remove the current file if user closes modal without submitting
     if (currentFileForSettings) {
-      removeUploadedSource(currentFileForSettings.name);
+      // Only remove files that haven't been uploaded yet (pending/configured status)
+      const currentFileWithSettings = filesWithSettings.find(
+        (fileWithSettings) => fileWithSettings.file.name === currentFileForSettings.name,
+      );
+
+      if (
+        currentFileWithSettings &&
+        (currentFileWithSettings.status === 'pending' ||
+          currentFileWithSettings.status === 'configured')
+      ) {
+        removeUploadedSource(currentFileForSettings.name);
+      }
     }
 
     setIsSourceSettingsOpen(false);
@@ -216,7 +241,7 @@ const useSourceManagement = ({
     setTimeout(() => {
       processNextFile();
     }, 100);
-  }, [currentFileForSettings, removeUploadedSource, processNextFile]);
+  }, [currentFileForSettings, filesWithSettings, removeUploadedSource, processNextFile]);
 
   return {
     selectedSourceSettings,
