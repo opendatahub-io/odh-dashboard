@@ -1,5 +1,12 @@
 package models
 
+// MCPServer represents MCP server configuration
+type MCPServer struct {
+	ServerLabel string            `json:"server_label"`
+	ServerURL   string            `json:"server_url"`
+	Headers     map[string]string `json:"headers"`
+}
+
 // Tool represents a tool configuration
 type CodeExportTool struct {
 	Type           string   `json:"type"`
@@ -23,10 +30,11 @@ type VectorStoreConfig struct {
 type CodeExportRequest struct {
 	Input        string             `json:"input"`
 	Model        string             `json:"model"`
-	Instructions string             `json:"instructions"`
-	Stream       bool               `json:"stream"`
-	Temperature  float64            `json:"temperature"`
-	Tools        []CodeExportTool   `json:"tools"`
+	Temperature  *float64           `json:"temperature,omitempty"`
+	Instructions string             `json:"instructions,omitempty"`
+	Stream       bool               `json:"stream,omitempty"`
+	MCPServers   []MCPServer        `json:"mcp_servers,omitempty"`
+	Tools        []CodeExportTool   `json:"tools,omitempty"`
 	VectorStore  *VectorStoreConfig `json:"vector_store,omitempty"`
 	Files        []FileUpload       `json:"files,omitempty"`
 }
