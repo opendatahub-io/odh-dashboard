@@ -40,7 +40,6 @@ const applyRoutingToInferenceService = (
   inferenceService: InferenceServiceKind,
   externalRoute: boolean,
   isModelMesh?: boolean,
-  isKServeRaw?: boolean,
 ) => {
   const updateInferenceService = structuredClone(inferenceService);
   if (!updateInferenceService.metadata.labels) {
@@ -51,11 +50,8 @@ const applyRoutingToInferenceService = (
 
   // KServe
   if (!isModelMesh) {
-    if (isKServeRaw && externalRoute) {
+    if (externalRoute) {
       updateInferenceService.metadata.labels['networking.kserve.io/visibility'] = 'exposed';
-    } else if (!isKServeRaw && !externalRoute) {
-      // serverless
-      updateInferenceService.metadata.labels['networking.knative.dev/visibility'] = 'cluster-local';
     }
   }
 
@@ -116,14 +112,7 @@ export const assembleInferenceService = (
   annotations['openshift.io/display-name'] = data.name.trim();
   annotations['serving.kserve.io/deploymentMode'] = getInferenceServiceDeploymentMode(
     !!isModelMesh,
-    !!data.isKServeRawDeployment,
   );
-
-  if (!isModelMesh && !data.isKServeRawDeployment) {
-    annotations['serving.knative.openshift.io/enablePassthrough'] = 'true';
-    annotations['sidecar.istio.io/inject'] = 'true';
-    annotations['sidecar.istio.io/rewriteAppHTTPProbers'] = 'true';
-  }
 
   const dashboardNamespace = data.dashboardNamespace ?? '';
   if (!isModelMesh && podSpecOptions && podSpecOptions.selectedHardwareProfile) {
@@ -187,7 +176,6 @@ export const assembleInferenceService = (
     updatedInferenceService,
     externalRoute,
     isModelMesh,
-    data.isKServeRawDeployment,
   );
 
   if (!isModelMesh && podSpecOptions) {

@@ -107,10 +107,10 @@ describe('Verify model registry permissions can be managed', () => {
     { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
     () => {
       cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
-      cy.visitWithLogin(`/modelRegistry/${registryName}`, LDAP_CONTRIBUTOR_USER);
+      cy.visitWithLogin(`/ai-hub/registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
 
       cy.step('Verify contributor user can access model registry');
-      cy.url({ timeout: 30000 }).should('include', `/modelRegistry/${registryName}`);
+      cy.url({ timeout: 30000 }).should('include', `/ai-hub/registry/${registryName}`);
       cy.contains(registryName, { timeout: 30000 }).should('be.visible');
     },
   );
@@ -146,7 +146,7 @@ describe('Verify model registry permissions can be managed', () => {
     { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
     () => {
       cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
-      cy.visitWithLogin(`/modelRegistry/${registryName}`, LDAP_CONTRIBUTOR_USER);
+      cy.visitWithLogin(`/ai-hub/registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
 
       cy.step('Verify contributor user sees request access message');
       cy.contains('Request access to model registries', { timeout: 30000 }).should('be.visible');
@@ -193,10 +193,10 @@ describe('Verify model registry permissions can be managed', () => {
     { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
     () => {
       cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
-      cy.visitWithLogin(`/modelRegistry/${registryName}`, LDAP_CONTRIBUTOR_USER);
+      cy.visitWithLogin(`/ai-hub/registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
 
       cy.step('Verify user can access model registry through group membership');
-      cy.url({ timeout: 30000 }).should('include', `/modelRegistry/${registryName}`);
+      cy.url({ timeout: 30000 }).should('include', `/ai-hub/registry/${registryName}`);
       cy.contains(registryName, { timeout: 30000 }).should('be.visible');
     },
   );
@@ -232,7 +232,7 @@ describe('Verify model registry permissions can be managed', () => {
     { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
     () => {
       cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
-      cy.visitWithLogin(`/modelRegistry/${registryName}`, LDAP_CONTRIBUTOR_USER);
+      cy.visitWithLogin(`/ai-hub/registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
 
       cy.step('Verify user sees request access message after group removal');
       cy.contains('Request access to model registries', { timeout: 10000 }).should('be.visible');

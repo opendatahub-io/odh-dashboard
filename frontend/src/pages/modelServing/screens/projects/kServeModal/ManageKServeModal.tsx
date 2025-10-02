@@ -57,7 +57,6 @@ import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles
 import usePrefillModelDeployModal, {
   ModelDeployPrefillInfo,
 } from '#~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
-import { useKServeDeploymentMode } from '#~/pages/modelServing/useKServeDeploymentMode';
 import { SERVING_RUNTIME_SCOPE } from '#~/pages/modelServing/screens/const';
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import useModelServerSizeValidation from '#~/pages/modelServing/screens/projects/useModelServerSizeValidation.ts';
@@ -65,8 +64,6 @@ import usePvcs from '#~/pages/modelServing/usePvcs';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 import EnvironmentVariablesSection from './EnvironmentVariablesSection';
 import ServingRuntimeArgsSection from './ServingRuntimeArgsSection';
-import { KServeDeploymentModeDropdown } from './KServeDeploymentModeDropdown';
-import { NoAuthAlert } from './NoAuthAlert';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -107,8 +104,6 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   shouldFormHidden: hideForm,
   existingUriOption,
 }) => {
-  const { isRawAvailable, isServerlessAvailable } = useKServeDeploymentMode();
-
   const [createDataServingRuntime, setCreateDataServingRuntime] = useCreateServingRuntimeObject(
     editInfo?.servingRuntimeEditInfo,
   );
@@ -133,9 +128,6 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const [isConnectionValid, setIsConnectionValid] = React.useState(false);
   const [hasReplicaValidationErrors, setHasReplicaValidationErrors] = React.useState(false);
 
-  const isAuthAvailable =
-    useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status ||
-    createDataInferenceService.isKServeRawDeployment;
   const currentProjectName = projectContext?.currentProject.metadata.name;
   const namespace = currentProjectName || createDataInferenceService.project;
 
@@ -169,7 +161,6 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
 
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
-  const [alertVisible, setAlertVisible] = React.useState(true);
   const servingRuntimeParamsEnabled = useIsAreaAvailable(
     SupportedArea.SERVING_RUNTIME_PARAMS,
   ).status;
@@ -354,9 +345,6 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
         description="Configure properties for deploying your model"
       />
       <ModalBody>
-        {!isAuthAvailable && alertVisible && !isRawAvailable && (
-          <NoAuthAlert onClose={() => setAlertVisible(false)} />
-        )}
         <Form
           onSubmit={(e) => {
             e.preventDefault();
@@ -410,24 +398,6 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                   modelContext={servingRuntimeSelected?.spec.supportedModelFormats}
                   registeredModelFormat={modelDeployPrefillInfo?.modelFormat}
                 />
-                {isRawAvailable && isServerlessAvailable && (
-                  <KServeDeploymentModeDropdown
-                    isRaw={!!createDataInferenceService.isKServeRawDeployment}
-                    setIsRaw={(isRaw) => {
-                      setCreateDataInferenceService('isKServeRawDeployment', isRaw);
-                      if (isRaw) {
-                        setCreateDataInferenceService(
-                          'maxReplicas',
-                          createDataInferenceService.minReplicas,
-                        );
-                      }
-                    }}
-                    isDisabled={!!editInfo}
-                  />
-                )}
-                {!isAuthAvailable && alertVisible && isRawAvailable && (
-                  <NoAuthAlert onClose={() => setAlertVisible(false)} />
-                )}
                 <KServeAutoscalerReplicaSection
                   data={createDataInferenceService}
                   setData={setCreateDataInferenceService}
@@ -446,8 +416,6 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                   data={createDataInferenceService}
                   setData={setCreateDataInferenceService}
                   allowCreate={allowCreate}
-                  publicRoute
-                  showModelRoute={isAuthAvailable}
                 />
               </>
             )}

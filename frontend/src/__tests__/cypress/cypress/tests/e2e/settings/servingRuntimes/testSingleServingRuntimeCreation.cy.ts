@@ -71,7 +71,9 @@ describe('Verify Admins Can Import and Delete a Custom Single-Model Serving Runt
         .click()
         .then(() => {
           // Wait for URL to change, indicating page transition
-          cy.url().should('include', '/servingRuntimes', { timeout: 30000 });
+          cy.url().should('include', '/settings/model-resources-operations/serving-runtimes', {
+            timeout: 30000,
+          });
         });
 
       // Edit the created model serving platform and delete

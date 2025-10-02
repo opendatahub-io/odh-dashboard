@@ -181,7 +181,9 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
                   {
                     title: 'Edit',
                     onClick: () =>
-                      navigate(`/hardwareProfiles/edit/${hardwareProfile.metadata.name}`),
+                      navigate(
+                        `/settings/environment-setup/hardware-profiles/edit/${hardwareProfile.metadata.name}`,
+                      ),
                   },
                 ],
                 verbModelAccess('update', HardwareProfileModel),
@@ -191,7 +193,9 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
                   {
                     title: 'Duplicate',
                     onClick: () =>
-                      navigate(`/hardwareProfiles/duplicate/${hardwareProfile.metadata.name}`),
+                      navigate(
+                        `/settings/environment-setup/hardware-profiles/duplicate/${hardwareProfile.metadata.name}`,
+                      ),
                   },
                 ],
                 verbModelAccess('create', HardwareProfileModel),

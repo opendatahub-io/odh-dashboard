@@ -119,7 +119,7 @@ describe('Verify that models and versions can be archived and restored via model
       registerModelPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify the model was registered');
-      cy.url().should('include', '/modelRegistry');
+      cy.url().should('include', '/ai-hub/registry');
       cy.contains(testData.objectStorageModelName, { timeout: 10000 }).should('be.visible');
 
       cy.step('Register version v2.0 for the same model');
@@ -197,7 +197,7 @@ describe('Verify that models and versions can be archived and restored via model
 
       cy.step('Verify the version is restored');
       // Navigate back to versions and verify v1.0 is restored
-      cy.visit(`/modelRegistry/${registryName}`);
+      cy.visit(`/ai-hub/registry/${registryName}`);
       cy.contains(testData.objectStorageModelName).click();
       cy.findByTestId('model-versions-tab').click();
       modelRegistry
@@ -206,7 +206,7 @@ describe('Verify that models and versions can be archived and restored via model
         .should('be.visible');
 
       cy.step('Navigate back to model registry to archive the whole model');
-      cy.visit(`/modelRegistry/${registryName}`);
+      cy.visit(`/ai-hub/registry/${registryName}`);
 
       cy.step('Archive the entire model');
       // Find the model row and archive it
@@ -238,7 +238,7 @@ describe('Verify that models and versions can be archived and restored via model
 
       cy.step('Verify the model is restored');
       // Navigate back to models and verify the model is restored
-      cy.visit(`/modelRegistry/${registryName}`);
+      cy.visit(`/ai-hub/registry/${registryName}`);
       modelRegistry.getRow(testData.objectStorageModelName).findName().should('be.visible');
     },
   );

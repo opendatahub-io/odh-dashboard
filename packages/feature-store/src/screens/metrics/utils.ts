@@ -48,41 +48,41 @@ export const processMetricsData = (data: MetricsCountResponse): MetricCardItem[]
       count: counts.entities,
       description:
         'Entities are collections of related features and can be mapped to the domain of your use case.',
-      route: '/featureStore/entities',
+      route: '/develop-train/feature-store/entities',
     },
     {
       title: 'Data sources',
       count: counts.dataSources,
       description:
         'Data sources such as tables or data warehouses contain the raw data from which features are extracted.',
-      route: '/featureStore/dataSources',
+      route: '/develop-train/feature-store/data-sources',
     },
     {
       title: 'Datasets',
       count: counts.savedDatasets,
       description:
         'Datasets are point-in-time-correct snapshots of feature data used for training or validation.',
-      route: '/featureStore/dataSets',
+      route: '/develop-train/feature-store/datasets',
     },
     {
       title: 'Features',
       count: counts.features,
       description: 'A feature is a single data value used in model training or inference.',
-      route: '/featureStore/features',
+      route: '/develop-train/feature-store/features',
     },
     {
       title: 'Feature views',
       count: counts.featureViews,
       description:
         'Feature views define groups of related features and how to retrieve them from a source.',
-      route: '/featureStore/featureViews',
+      route: '/develop-train/feature-store/feature-views',
     },
     {
       title: 'Feature services',
       count: counts.featureServices,
       description:
         'A feature service is a logical group of features from one or more feature views.',
-      route: '/featureStore/featureServices',
+      route: '/develop-train/feature-store/feature-services',
     },
   ];
 };
@@ -104,9 +104,9 @@ export const getResourceRoute = (
     case resourceTypeMap.feature_services:
       return featureServiceRoute(resourceName, project);
     case resourceTypeMap.saved_datasets:
-      return `/featureStore/dataSets/${resourceName}?project=${project}`;
+      return `/develop-train/feature-store/datasets/${resourceName}?project=${project}`;
     case resourceTypeMap.data_sources:
-      return `/featureStore/dataSources/${resourceName}?project=${project}`;
+      return `/develop-train/feature-store/data-sources/${resourceName}?project=${project}`;
     case resourceTypeMap.features:
       return featureRoute(resourceName, project);
     default:

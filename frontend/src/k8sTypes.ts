@@ -78,6 +78,7 @@ export enum MetadataAnnotation {
   K8sDescription = 'kubernetes.io/description',
   OdhStorageClassConfig = 'opendatahub.io/sc-config',
   Description = 'description',
+  ConnectionName = 'opendatahub.io/connections',
 }
 
 type StorageClassAnnotations = Partial<{
@@ -501,7 +502,6 @@ export type SupportedModelFormats = {
 export enum DeploymentMode {
   ModelMesh = 'ModelMesh',
   RawDeployment = 'RawDeployment',
-  Serverless = 'Serverless',
 }
 
 export type InferenceServiceAnnotations = DisplayNameAnnotations &

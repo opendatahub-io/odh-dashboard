@@ -18,7 +18,6 @@ import ModelDeploymentWizard from './ModelDeploymentWizard';
 import { ModelDeploymentWizardData } from './useDeploymentWizard';
 import {
   getModelTypeFromDeployment,
-  setupModelLocationData,
   getTokenAuthenticationFromDeployment,
   getExternalRouteFromDeployment,
 } from './utils';
@@ -46,8 +45,8 @@ const ErrorContent: React.FC<{ error: Error }> = ({ error }) => {
         <EmptyStateBody>{error.message}</EmptyStateBody>
         <EmptyStateFooter>
           <EmptyStateActions>
-            <Button variant="primary" onClick={() => navigate(`/modelServing/`)}>
-              Return to model serving
+            <Button variant="primary" onClick={() => navigate(`/ai-hub/deployments/`)}>
+              Return to deployments
             </Button>
           </EmptyStateActions>
         </EmptyStateFooter>
@@ -127,7 +126,8 @@ const EditModelDeploymentContent: React.FC<{
       formDataExtension?.properties.extractHardwareProfileConfig(deployment) ?? undefined,
     modelFormat: formDataExtension?.properties.extractModelFormat(deployment) ?? undefined,
     numReplicas: formDataExtension?.properties.extractReplicas(deployment) ?? undefined,
-    modelLocationData: setupModelLocationData(), // TODO: Implement fully in next ticket RHOAIENG-32186
+    modelLocationData:
+      formDataExtension?.properties.extractModelLocationData(deployment) ?? undefined,
     externalRoute: getExternalRouteFromDeployment(deployment),
     tokenAuthentication: getTokenAuthenticationFromDeployment(deployment),
     runtimeArgs: formDataExtension?.properties.extractRuntimeArgs(deployment) ?? undefined,

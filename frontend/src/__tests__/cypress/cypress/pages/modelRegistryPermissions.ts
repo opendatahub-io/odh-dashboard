@@ -33,7 +33,7 @@ class ProjectsTab extends Contextual<HTMLElement> {
 
 class MRPermissions {
   visit(mrName: string, wait = true) {
-    cy.visitWithLogin(`/modelRegistrySettings/permissions/${mrName}`);
+    cy.visitWithLogin(`/settings/model-resources-operations/model-registry/permissions/${mrName}`);
     if (wait) {
       this.wait();
     }

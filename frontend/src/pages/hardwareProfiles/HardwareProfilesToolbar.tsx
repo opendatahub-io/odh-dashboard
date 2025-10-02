@@ -79,7 +79,7 @@ const HardwareProfilesToolbar: React.FC<HardwareProfilesToolbarProps> = ({
             <ToolbarItem>
               <Button
                 data-testid="create-hardware-profile"
-                onClick={() => navigate('/hardwareProfiles/create')}
+                onClick={() => navigate('/settings/environment-setup/hardware-profiles/create')}
               >
                 Create hardware profile
               </Button>

@@ -311,7 +311,7 @@ describe('Model Serving Global', () => {
     // Verify the empty state is visible
     modelServingGlobal.shouldBeEmpty();
 
-    cy.url().should('include', '/modelServing/test-project');
+    cy.url().should('include', '/deployments/test-project');
   });
 
   it('All projects with every type of serving listed', () => {
@@ -1194,6 +1194,36 @@ describe('Model Serving Global', () => {
         totalItems,
         firstElement: 'Test Inference Service-0',
         paginationVariant: 'bottom',
+      });
+    });
+
+    describe('redirect from v2 to v3 route', () => {
+      beforeEach(() => {
+        initIntercepts({});
+      });
+
+      it('root', () => {
+        cy.visitWithLogin('/modelServing');
+        cy.findByTestId('app-page-title').contains('Deployments');
+        cy.url().should('include', '/ai-hub/deployments');
+      });
+
+      it('metrics', () => {
+        cy.visitWithLogin('/modelServing/test-project/metrics/test-inference-service');
+        cy.findByTestId('app-page-title').contains('Test Inference Service metrics');
+        cy.url().should(
+          'include',
+          '/ai-hub/deployments/test-project/metrics/test-inference-service',
+        );
+      });
+
+      it('metrics performance', () => {
+        cy.visitWithLogin('/modelServing/test-project/metrics/test-inference-service/performance');
+        cy.findByTestId('app-page-title').contains('Test Inference Service metrics');
+        cy.url().should(
+          'include',
+          '/ai-hub/deployments/test-project/metrics/test-inference-service/performance',
+        );
       });
     });
   });

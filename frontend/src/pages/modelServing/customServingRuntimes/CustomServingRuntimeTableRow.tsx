@@ -72,7 +72,7 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
                   {
                     title: 'Duplicate',
                     onClick: () =>
-                      navigate('/servingRuntimes/addServingRuntime', {
+                      navigate('/settings/model-resources-operations/serving-runtimes/add', {
                         state: { template },
                       }),
                   },
@@ -81,12 +81,14 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
                   {
                     title: 'Edit',
                     onClick: () =>
-                      navigate(`/servingRuntimes/editServingRuntime/${servingRuntimeName}`),
+                      navigate(
+                        `/settings/model-resources-operations/serving-runtimes/edit/${servingRuntimeName}`,
+                      ),
                   },
                   {
                     title: 'Duplicate',
                     onClick: () =>
-                      navigate('/servingRuntimes/addServingRuntime', {
+                      navigate('/settings/model-resources-operations/serving-runtimes/add', {
                         state: { template },
                       }),
                   },

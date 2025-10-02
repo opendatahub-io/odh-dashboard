@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -93,6 +94,130 @@ func (app *App) LlamaStackCreateVectorStoreHandler(w http.ResponseWriter, r *htt
 	}
 
 	err = app.WriteJSON(w, http.StatusCreated, response, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+// LlamaStackDeleteVectorStoreHandler handles DELETE /gen-ai/api/v1/lsd/vectorstores/delete.
+func (app *App) LlamaStackDeleteVectorStoreHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ctx := r.Context()
+
+	// Get vector_store_id from query parameter
+	vectorStoreID := r.URL.Query().Get("vector_store_id")
+	if vectorStoreID == "" {
+		app.badRequestResponse(w, r, errors.New("vector_store_id query parameter is required"))
+		return
+	}
+
+	err := app.repositories.VectorStores.DeleteVectorStore(ctx, vectorStoreID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	// Return success response
+	response := llamastack.APIResponse{
+		Data: map[string]interface{}{
+			"id":      vectorStoreID,
+			"object":  "vector_store.deleted",
+			"deleted": true,
+		},
+	}
+
+	err = app.WriteJSON(w, http.StatusOK, response, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+type VectorStoreFilesListResponse = llamastack.APIResponse
+
+// LlamaStackListVectorStoreFilesHandler handles GET /gen-ai/api/v1/lsd/vectorstores/files.
+func (app *App) LlamaStackListVectorStoreFilesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ctx := r.Context()
+
+	// Get vector_store_id from query parameter
+	vectorStoreID := r.URL.Query().Get("vector_store_id")
+	if vectorStoreID == "" {
+		app.badRequestResponse(w, r, errors.New("vector_store_id query parameter is required"))
+		return
+	}
+
+	// Parse query parameters
+	params := llamastack.ListVectorStoreFilesParams{}
+
+	// Parse limit parameter
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if limit, err := strconv.ParseInt(limitStr, 10, 64); err == nil {
+			params.Limit = &limit
+		} else {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid limit parameter: %s", limitStr))
+			return
+		}
+	}
+
+	// Parse order parameter
+	if order := r.URL.Query().Get("order"); order != "" {
+		params.Order = order
+	}
+
+	// Parse filter parameter
+	if filter := r.URL.Query().Get("filter"); filter != "" {
+		params.Filter = filter
+	}
+
+	result, err := app.repositories.VectorStores.ListVectorStoreFiles(ctx, vectorStoreID, params)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	// Use envelope pattern for consistent response structure
+	response := VectorStoreFilesListResponse{
+		Data: result,
+	}
+
+	err = app.WriteJSON(w, http.StatusOK, response, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+// LlamaStackDeleteVectorStoreFileHandler handles DELETE /gen-ai/api/v1/lsd/vectorstores/files/delete.
+func (app *App) LlamaStackDeleteVectorStoreFileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ctx := r.Context()
+
+	// Get vector_store_id from query parameter
+	vectorStoreID := r.URL.Query().Get("vector_store_id")
+	if vectorStoreID == "" {
+		app.badRequestResponse(w, r, errors.New("vector_store_id query parameter is required"))
+		return
+	}
+
+	// Get file_id from query parameter
+	fileID := r.URL.Query().Get("file_id")
+	if fileID == "" {
+		app.badRequestResponse(w, r, errors.New("file_id query parameter is required"))
+		return
+	}
+
+	err := app.repositories.VectorStores.DeleteVectorStoreFile(ctx, vectorStoreID, fileID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	// Return success response
+	response := llamastack.APIResponse{
+		Data: map[string]interface{}{
+			"id":      fileID,
+			"object":  "vector_store.file.deleted",
+			"deleted": true,
+		},
+	}
+
+	err = app.WriteJSON(w, http.StatusOK, response, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

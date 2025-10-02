@@ -143,13 +143,19 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
               ? [
                   {
                     title: 'Edit',
-                    onClick: () => navigate(`/connectionTypes/edit/${obj.metadata.name}`),
+                    onClick: () =>
+                      navigate(
+                        `/settings/environment-setup/connection-types/edit/${obj.metadata.name}`,
+                      ),
                   },
                 ]
               : []),
             {
               title: 'Duplicate',
-              onClick: () => navigate(`/connectionTypes/duplicate/${obj.metadata.name}`),
+              onClick: () =>
+                navigate(
+                  `/settings/environment-setup/connection-types/duplicate/${obj.metadata.name}`,
+                ),
             },
             ...(!isOOTB(obj)
               ? [

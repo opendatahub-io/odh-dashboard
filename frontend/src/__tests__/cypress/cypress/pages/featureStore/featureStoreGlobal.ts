@@ -4,7 +4,9 @@ import { Contextual } from '#~/__tests__/cypress/cypress/pages/components/Contex
 class FeatureStoreGlobal {
   visit(project?: string) {
     cy.visitWithLogin(
-      `/featureStore${project ? `/${project}` : ''}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store${
+        project ? `/${project}` : ''
+      }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     this.wait();
   }
@@ -12,14 +14,14 @@ class FeatureStoreGlobal {
   visitFeatureViews(project: string) {
     const projectName = project;
     cy.visitWithLogin(
-      `/featureStore/featureViews/${projectName}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/feature-views/${projectName}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     this.waitForFeatureViews();
   }
 
   visitEntities(project?: string) {
     cy.visitWithLogin(
-      `/featureStore/entities${
+      `/develop-train/feature-store/entities${
         project ? `/${project}` : ''
       }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
@@ -28,7 +30,7 @@ class FeatureStoreGlobal {
 
   visitDataSources(project?: string) {
     cy.visitWithLogin(
-      `/featureStore/dataSources${
+      `/develop-train/feature-store/data-sources${
         project ? `/${project}` : ''
       }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
@@ -38,7 +40,7 @@ class FeatureStoreGlobal {
   visitFeatures(project?: string) {
     const projectName = project;
     cy.visitWithLogin(
-      `/featureStore/features${
+      `/develop-train/feature-store/features${
         projectName ? `/${projectName}` : ''
       }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
@@ -47,7 +49,7 @@ class FeatureStoreGlobal {
 
   visitDataSets(project?: string) {
     cy.visitWithLogin(
-      `/featureStore/dataSets${
+      `/develop-train/feature-store/datasets${
         project ? `/${project}` : ''
       }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
@@ -56,7 +58,7 @@ class FeatureStoreGlobal {
 
   visitDataSetDetails(project: string, dataSetName: string) {
     cy.visitWithLogin(
-      `/featureStore/dataSets/${project}/${dataSetName}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/datasets/${project}/${dataSetName}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     this.waitForDataSetDetails(dataSetName);
   }
@@ -64,14 +66,14 @@ class FeatureStoreGlobal {
   visitFeatureServices(project: string) {
     const projectName = project;
     cy.visitWithLogin(
-      `/featureStore/featureServices/${projectName}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/feature-services/${projectName}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     this.waitForFeatureServices();
   }
 
   visitOverview(project?: string) {
     cy.visitWithLogin(
-      `/featureStore/overview${
+      `/develop-train/feature-store/overview${
         project ? `/${project}` : ''
       }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
@@ -81,7 +83,7 @@ class FeatureStoreGlobal {
   visitFeatureServiceDetails(project: string, featureService: string) {
     const projectName = project;
     cy.visitWithLogin(
-      `/featureStore/featureServices/${projectName}/${featureService}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/feature-services/${projectName}/${featureService}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     this.waitForFeatureServiceDetails(featureService);
   }

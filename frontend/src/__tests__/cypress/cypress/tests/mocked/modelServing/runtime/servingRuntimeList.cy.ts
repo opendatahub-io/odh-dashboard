@@ -1071,13 +1071,10 @@ describe('Serving Runtime List', () => {
             namespace: 'test-project',
             labels: {
               'opendatahub.io/dashboard': 'true',
-              'networking.knative.dev/visibility': 'cluster-local',
             },
             annotations: {
               'openshift.io/display-name': 'Test Name',
-              'serving.knative.openshift.io/enablePassthrough': 'true',
-              'sidecar.istio.io/inject': 'true',
-              'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
+              'serving.kserve.io/deploymentMode': 'RawDeployment',
               'security.opendatahub.io/enable-auth': 'true',
             },
           },
@@ -1129,76 +1126,6 @@ describe('Serving Runtime List', () => {
       cy.get('@createRole.all').then((interceptions) => {
         expect(interceptions).to.have.length(2); //1 dry run request and 1 actual request
       });
-    });
-
-    it('Kserve auth should be hidden when auth is disabled', () => {
-      initIntercepts({
-        disableModelMeshConfig: false,
-        disableKServeConfig: false,
-        disableKServeAuthConfig: true,
-        servingRuntimes: [],
-        projectEnableModelMesh: false,
-      });
-
-      projectDetails.visitSection('test-project', 'model-server');
-
-      modelServingSection.findDeployModelButton().click();
-
-      kserveModal.shouldBeOpen();
-
-      // test that you can not submit on empty
-      kserveModal.findSubmitButton().should('be.disabled');
-
-      // test filling in minimum required fields
-      kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateSearchSelector().click();
-      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
-      kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
-      kserveModal.findSubmitButton().should('be.disabled');
-      // check external route, token should be checked and no alert
-      kserveModal.findAuthenticationCheckbox().should('not.exist');
-    });
-
-    it('show warning alert on modal, when authorino operator is not installed/enabled', () => {
-      initIntercepts({
-        disableModelMeshConfig: false,
-        disableKServeConfig: false,
-        disableKServeAuthConfig: false,
-        servingRuntimes: [],
-        projectEnableModelMesh: false,
-      });
-
-      projectDetails.visitSection('test-project', 'model-server');
-
-      modelServingSection.findDeployModelButton().click();
-
-      kserveModal.shouldBeOpen();
-      kserveModal.findAuthorinoNotEnabledAlert().should('exist');
-      kserveModal.findModelRouteCheckbox().should('not.be.checked');
-      kserveModal.findModelRouteCheckbox().check();
-      kserveModal.findTokenAuthAlert().should('exist');
-      kserveModal.findModelRouteCheckbox().uncheck();
-      kserveModal.findTokenAuthAlert().should('not.exist');
-    });
-
-    it('Kserve auth should be hidden when no required capabilities', () => {
-      initIntercepts({
-        disableModelMeshConfig: false,
-        disableKServeConfig: false,
-        disableKServeAuthConfig: false,
-        servingRuntimes: [],
-        requiredCapabilities: [],
-        projectEnableModelMesh: false,
-      });
-
-      projectDetails.visitSection('test-project', 'model-server');
-
-      modelServingSection.findDeployModelButton().click();
-
-      kserveModal.shouldBeOpen();
-
-      // check external route, token should be checked and no alert
-      kserveModal.findAuthenticationCheckbox().should('not.exist');
     });
 
     it('Kserve auth should be enabled if capabilities are prsent', () => {
@@ -1350,9 +1277,7 @@ describe('Serving Runtime List', () => {
           metadata: {
             annotations: {
               'openshift.io/display-name': 'Llama Service',
-              'serving.knative.openshift.io/enablePassthrough': 'true',
-              'sidecar.istio.io/inject': 'true',
-              'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
+              'serving.kserve.io/deploymentMode': 'RawDeployment',
             },
             generation: 1,
             labels: { name: 'llama-service', 'opendatahub.io/dashboard': 'true' },
@@ -1856,189 +1781,7 @@ describe('Serving Runtime List', () => {
       );
     });
 
-    it('Deploy KServe raw model (with serverless available)', () => {
-      initIntercepts({
-        disableModelMeshConfig: false,
-        disableKServeConfig: false,
-        disableServingRuntimeParams: false,
-        servingRuntimes: [],
-        requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
-        projectEnableModelMesh: false,
-      });
-      cy.interceptOdh(
-        'GET /api/config',
-        mockDashboardConfig({
-          disableKServeRaw: false,
-        }),
-      );
-
-      projectDetails.visitSection('test-project', 'model-server');
-
-      modelServingSection.findDeployModelButton().click();
-
-      kserveModal.shouldBeOpen();
-
-      // test that you can not submit on empty
-      kserveModal.findSubmitButton().should('be.disabled');
-
-      // test filling in minimum required fields
-      kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateSearchSelector().click();
-      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
-      kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
-      kserveModal.findSubmitButton().should('be.disabled');
-      // misc.
-      kserveModal.findModelRouteCheckbox().check();
-      kserveModal.findAuthenticationCheckbox().check();
-      kserveModal.findExternalRouteError().should('not.exist');
-      kserveModal.findServiceAccountNameInput().should('have.value', 'default-name');
-      kserveModal.findExistingConnectionOption().click();
-      kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
-      kserveModal
-        .findExistingConnectionSelect()
-        .findByRole('combobox')
-        .should('have.value', 'Test Secret');
-      kserveModal.findLocationPathInput().type('test-model/');
-      kserveModal.findSubmitButton().should('be.enabled');
-      // raw
-      kserveModal.findDeploymentModeSelect().should('contain.text', 'Knative Serverless');
-
-      // Test Knative Serverless mode replica settings
-      kserveModal.findMinReplicasInput().should('have.value', '1');
-      kserveModal.findMinReplicasPlusButton().should('be.disabled');
-      kserveModal.findMaxReplicasInput().should('have.value', '1');
-      kserveModal.findMaxReplicasMinusButton().should('be.disabled');
-      kserveModal.findMaxReplicasPlusButton().click();
-      kserveModal.findMaxReplicasInput().should('have.value', '2');
-      kserveModal.findMinReplicasPlusButton().click();
-      kserveModal.findMinReplicasInput().should('have.value', '2');
-
-      // Test max replicas error message
-      kserveModal.findMaxReplicasInput().clear().type('1');
-      kserveModal.findMaxReplicasErrorMessage().should('exist');
-      kserveModal.findMaxReplicasInput().type('6');
-      kserveModal.findMaxReplicasErrorMessage().should('not.exist');
-
-      // Test min replicas error message
-      kserveModal.findMaxReplicasInput().clear().type('6');
-      kserveModal.findMinReplicasInput().clear().type('8');
-      kserveModal.findMinReplicasErrorMessage().should('exist');
-      kserveModal.findSubmitButton().should('be.disabled');
-      kserveModal.findMinReplicasInput().clear().type('4');
-      kserveModal.findMinReplicasErrorMessage().should('not.exist');
-      kserveModal.findSubmitButton().should('be.enabled');
-
-      // Test max limit of 99
-      kserveModal.findMaxReplicasInput().clear().type('100');
-      kserveModal.findMaxReplicasInput().should('have.value', '99');
-      kserveModal.findMaxReplicasPlusButton().should('be.disabled');
-      kserveModal.findDeploymentModeSelect().findSelectOption('KServe RawDeployment').click();
-
-      // test submitting form, the modal should close to indicate success.
-      kserveModal.findSubmitButton().click();
-      kserveModal.shouldBeOpen(false);
-
-      // dry run request
-      cy.wait('@createServingRuntime').then((interception) => {
-        expect(interception.request.url).to.include('?dryRun=All');
-        expect(interception.request.body).to.containSubset({
-          metadata: {
-            name: 'test-name',
-            annotations: {
-              'openshift.io/display-name': 'test-name',
-              'opendatahub.io/apiProtocol': 'REST',
-              'opendatahub.io/template-name': 'template-2',
-              'opendatahub.io/template-display-name': 'Caikit',
-              'opendatahub.io/accelerator-name': '',
-            },
-            namespace: 'test-project',
-          },
-          spec: {
-            protocolVersions: ['grpc-v1'],
-            supportedModelFormats: [
-              { autoSelect: true, name: 'openvino_ir', version: 'opset1' },
-              { autoSelect: true, name: 'onnx', version: '1' },
-            ],
-          },
-        });
-      });
-
-      // Actual request
-      cy.wait('@createServingRuntime').then((interception) => {
-        expect(interception.request.url).not.to.include('?dryRun=All');
-      });
-
-      // the serving runtime should have been created
-      cy.get('@createServingRuntime.all').then((interceptions) => {
-        expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
-      });
-
-      cy.wait('@createInferenceService').then((interception) => {
-        expect(interception.request.url).to.include('?dryRun=All');
-        expect(interception.request.body).to.containSubset({
-          apiVersion: 'serving.kserve.io/v1beta1',
-          kind: 'InferenceService',
-          metadata: {
-            name: 'test-name',
-            namespace: 'test-project',
-            annotations: {
-              'openshift.io/display-name': 'Test Name',
-              'serving.kserve.io/deploymentMode': DeploymentMode.RawDeployment,
-              'security.opendatahub.io/enable-auth': 'true',
-            },
-            labels: {
-              'opendatahub.io/dashboard': 'true',
-              'networking.kserve.io/visibility': 'exposed',
-            },
-          },
-          spec: {
-            predictor: {
-              minReplicas: 4,
-              maxReplicas: 4,
-              model: {
-                modelFormat: { name: 'onnx', version: '1' },
-                runtime: 'test-name',
-                storage: { key: 'test-secret', path: 'test-model/' },
-                resources: {
-                  requests: { cpu: '1', memory: '4Gi' },
-                  limits: { cpu: '2', memory: '8Gi' },
-                },
-              },
-            },
-          },
-        });
-      });
-
-      //dry run request
-      cy.wait('@createRole').then((interception) => {
-        expect(interception.request.url).to.include('?dryRun=All');
-        expect(interception.request.body).to.containSubset({
-          metadata: {
-            name: 'test-name-view-role',
-            namespace: 'test-project',
-            ownerReferences: [],
-          },
-          rules: [
-            {
-              verbs: ['get'],
-              apiGroups: ['serving.kserve.io'],
-              resources: ['inferenceservices'],
-              resourceNames: ['test-name'],
-            },
-          ],
-        });
-      });
-
-      //Actual request
-      cy.wait('@createRole').then((interception) => {
-        expect(interception.request.url).not.to.include('?dryRun=All');
-      });
-
-      cy.get('@createRole.all').then((interceptions) => {
-        expect(interceptions).to.have.length(2); //1 dry run request and 1 actual request
-      });
-    });
-
+    /** @deprecated -- maybe we need to remove this test -- surely it's covered by others */
     it('Deploy KServe raw model (with serverless disabled)', () => {
       initIntercepts({
         disableModelMeshConfig: false,
@@ -2346,14 +2089,10 @@ describe('Serving Runtime List', () => {
             namespace: 'test-project',
             annotations: {
               'openshift.io/display-name': 'Test Name',
-              'serving.kserve.io/deploymentMode': DeploymentMode.Serverless,
-              'serving.knative.openshift.io/enablePassthrough': 'true',
-              'sidecar.istio.io/inject': 'true',
-              'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
+              'serving.kserve.io/deploymentMode': DeploymentMode.RawDeployment,
             },
             labels: {
               'opendatahub.io/dashboard': 'true',
-              'networking.knative.dev/visibility': 'cluster-local',
             },
           },
           spec: {
@@ -2460,14 +2199,10 @@ describe('Serving Runtime List', () => {
           metadata: {
             annotations: {
               'openshift.io/display-name': 'Test Name',
-              'serving.knative.openshift.io/enablePassthrough': 'true',
-              'serving.kserve.io/deploymentMode': DeploymentMode.Serverless,
-              'sidecar.istio.io/inject': 'true',
-              'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
+              'serving.kserve.io/deploymentMode': DeploymentMode.RawDeployment,
             },
             labels: {
               'opendatahub.io/dashboard': 'true',
-              'networking.knative.dev/visibility': 'cluster-local',
             },
             name: 'test-name',
             namespace: 'test-project',
@@ -3235,7 +2970,6 @@ describe('Serving Runtime List', () => {
             displayName: 'Llama Caikit',
             url: 'http://llama-caikit.test-project.svc.cluster.local',
             activeModelState: 'Loaded',
-            isKserveRaw: true,
           }),
         ],
       });
@@ -3501,7 +3235,7 @@ describe('Serving Runtime List', () => {
             displayName: 'Loaded model',
             isModelMesh: false,
             kserveInternalUrl: 'http://test.kserve.svc.cluster.local',
-            kserveInternalLabel: true,
+            hasExternalRoute: false,
             activeModelState: 'Loaded',
           }),
         ],

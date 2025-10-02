@@ -60,9 +60,7 @@ import { getServingRuntimeFromTemplate } from '#~/pages/modelServing/customServi
 import { useNIMPVC } from '#~/pages/modelServing/screens/projects/NIMServiceModal/useNIMPVC';
 import AuthServingRuntimeSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
 import { useNIMTemplateName } from '#~/pages/modelServing/screens/projects/useNIMTemplateName';
-import { KServeDeploymentModeDropdown } from '#~/pages/modelServing/screens/projects/kServeModal/KServeDeploymentModeDropdown';
 import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
-import { useKServeDeploymentMode } from '#~/pages/modelServing/useKServeDeploymentMode';
 import StorageClassSelect from '#~/pages/projects/screens/spawner/storage/StorageClassSelect';
 import { useDefaultStorageClass } from '#~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
@@ -70,7 +68,6 @@ import { useGetStorageClassConfig } from '#~/pages/projects/screens/spawner/stor
 import useModelServerSizeValidation from '#~/pages/modelServing/screens/projects/useModelServerSizeValidation.ts';
 import { getKServeContainerEnvVarStrs } from '#~/pages/modelServing/utils';
 import EnvironmentVariablesSection from '#~/pages/modelServing/screens/projects/kServeModal/EnvironmentVariablesSection';
-import { NoAuthAlert } from './NoAuthAlert';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
 const NIM_NGC_SECRET_NAME = 'ngc-secret';
@@ -104,7 +101,6 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   projectContext,
   editInfo,
 }) => {
-  const { isRawAvailable, isServerlessAvailable } = useKServeDeploymentMode();
   const { storageClasses, storageClassesLoaded, selectedStorageClassConfig } =
     useGetStorageClassConfig();
 
@@ -131,10 +127,6 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     editInfo?.inferenceServiceEditInfo,
   );
 
-  const isAuthAvailable =
-    useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status ||
-    createDataInferenceService.isKServeRawDeployment;
-
   const servingRuntimeParamsEnabled = useIsAreaAvailable(
     SupportedArea.SERVING_RUNTIME_PARAMS,
   ).status;
@@ -155,7 +147,6 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
 
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
-  const [alertVisible, setAlertVisible] = React.useState(true);
   const { pvcSize, setPvcSize, pvc } = useNIMPVC(
     editInfo?.inferenceServiceEditInfo?.metadata.namespace,
     editInfo?.servingRuntimeEditInfo?.servingRuntime,
@@ -276,7 +267,6 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     podSpecOptionsState.acceleratorProfile.resetFormData();
     podSpecOptionsState.hardwareProfile.resetFormData();
     podSpecOptionsState.modelSize.setSelectedSize(podSpecOptionsState.modelSize.sizes[0]);
-    setAlertVisible(true);
     setPvcMode('create-new');
     setExistingPvcName('');
     setModelPath(DEFAULT_MODEL_PATH);
@@ -409,9 +399,6 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
           }}
         >
           <Stack hasGutter>
-            {!isAuthAvailable && alertVisible && !isRawAvailable && (
-              <NoAuthAlert onClose={() => setAlertVisible(false)} />
-            )}
             <StackItem>
               <ProjectSection projectName={getProjectName()} />
             </StackItem>
@@ -460,20 +447,6 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
                 namespace={namespace} // Add this prop
               />
             </StackItem>
-            {isRawAvailable && isServerlessAvailable && (
-              <StackItem>
-                <KServeDeploymentModeDropdown
-                  isRaw={!!createDataInferenceService.isKServeRawDeployment}
-                  setIsRaw={(isRaw) =>
-                    setCreateDataInferenceService('isKServeRawDeployment', isRaw)
-                  }
-                  isDisabled={!!editInfo}
-                />
-              </StackItem>
-            )}
-            {!isAuthAvailable && alertVisible && isRawAvailable && (
-              <NoAuthAlert onClose={() => setAlertVisible(false)} />
-            )}
             <StackItem>
               <KServeAutoscalerReplicaSection
                 data={createDataInferenceService}
@@ -493,8 +466,6 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
               data={createDataInferenceService}
               setData={setCreateDataInferenceService}
               allowCreate={allowCreate}
-              publicRoute
-              showModelRoute={isAuthAvailable}
             />
             {servingRuntimeParamsEnabled && (
               <EnvironmentVariablesSection

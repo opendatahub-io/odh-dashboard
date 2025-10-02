@@ -243,6 +243,11 @@ export interface AAModelResponse {
   endpoints: string[];
   status: 'Running' | 'Stop';
   display_name: string;
+  sa_token: {
+    name: string;
+    token_name: string;
+    token: string;
+  };
 }
 
 export interface AIModel extends AAModelResponse {

@@ -49,7 +49,7 @@ func TestAttachLlamaStackClient(t *testing.T) {
 			// Verify the mock client is attached and is functional
 			mockClient := client.(*lsmocks.MockLlamaStackClient)
 			models, _ := mockClient.ListModels(r.Context())
-			assert.Len(t, models, 2)
+			assert.Len(t, models, 3)
 			w.WriteHeader(http.StatusOK)
 		})(rr, req, nil)
 

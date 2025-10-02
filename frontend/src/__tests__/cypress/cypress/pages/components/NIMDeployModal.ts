@@ -33,26 +33,32 @@ class NIMDeployModal extends Modal {
     return cy.get('[data-testid="model-server-replicas"] input');
   }
 
+  /** @deprecated until KEDA is supported, min/max replicas are unavailable */
   findMinReplicasInput() {
     return this.find().findByTestId('min-replicas').find('input');
   }
 
+  /** @deprecated until KEDA is supported, min/max replicas are unavailable */
   findMaxReplicasInput() {
     return this.find().findByTestId('max-replicas').find('input');
   }
 
+  /** @deprecated until KEDA is supported, min/max replicas are unavailable */
   findMinReplicasPlusButton() {
     return this.find().findByTestId('min-replicas').findByRole('button', { name: 'Plus' });
   }
 
+  /** @deprecated until KEDA is supported, min/max replicas are unavailable */
   findMinReplicasMinusButton() {
     return this.find().findByTestId('min-replicas').findByRole('button', { name: 'Minus' });
   }
 
+  /** @deprecated until KEDA is supported, min/max replicas are unavailable */
   findMaxReplicasPlusButton() {
     return this.find().findByTestId('max-replicas').findByRole('button', { name: 'Plus' });
   }
 
+  /** @deprecated until KEDA is supported, min/max replicas are unavailable */
   findMaxReplicasMinusButton() {
     return this.find().findByTestId('max-replicas').findByRole('button', { name: 'Minus' });
   }

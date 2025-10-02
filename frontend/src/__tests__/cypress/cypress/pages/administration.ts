@@ -4,7 +4,7 @@ import { TableRow } from './components/table';
 
 class NotebookController {
   visit() {
-    cy.visitWithLogin('/notebookController/spawner');
+    cy.visitWithLogin('/notebook-controller/spawner');
     this.wait();
   }
 

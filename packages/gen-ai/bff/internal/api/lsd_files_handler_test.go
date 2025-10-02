@@ -15,6 +15,8 @@ import (
 
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
+	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/opendatahub-io/gen-ai/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
@@ -107,9 +109,10 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		assert.NoError(t, err)
 		req.Header.Set("Content-Type", contentType)
 
-		// Simulate AttachLlamaStackClient middleware: create client and add to context
+		// Simulate AttachNamespace and AttachLlamaStackClient middleware
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
 		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
-		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
 		app.LlamaStackUploadFileHandler(rr, req, nil)
@@ -142,9 +145,10 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		assert.NoError(t, err)
 		req.Header.Set("Content-Type", contentType)
 
-		// Simulate AttachLlamaStackClient middleware: create client and add to context
+		// Simulate AttachNamespace and AttachLlamaStackClient middleware
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
 		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
-		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
 		app.LlamaStackUploadFileHandler(rr, req, nil)
@@ -178,9 +182,10 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		assert.NoError(t, err)
 		req.Header.Set("Content-Type", contentType)
 
-		// Simulate AttachLlamaStackClient middleware: create client and add to context
+		// Simulate AttachNamespace and AttachLlamaStackClient middleware
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
 		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
-		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
 		app.LlamaStackUploadFileHandler(rr, req, nil)
@@ -207,9 +212,10 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		assert.NoError(t, err)
 		req.Header.Set("Content-Type", contentType)
 
-		// Simulate AttachLlamaStackClient middleware: create client and add to context
+		// Simulate AttachNamespace and AttachLlamaStackClient middleware
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
 		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
-		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
 		app.LlamaStackUploadFileHandler(rr, req, nil)
@@ -239,9 +245,10 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		assert.NoError(t, err)
 		req.Header.Set("Content-Type", contentType)
 
-		// Simulate AttachLlamaStackClient middleware: create client and add to context
+		// Simulate AttachNamespace and AttachLlamaStackClient middleware
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
 		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
-		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
 		app.LlamaStackUploadFileHandler(rr, req, nil)
@@ -292,9 +299,10 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		assert.NoError(t, err)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 
-		// Simulate AttachLlamaStackClient middleware: create client and add to context
+		// Simulate AttachNamespace and AttachLlamaStackClient middleware
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
 		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
-		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
 		app.LlamaStackUploadFileHandler(rr, req, nil)
@@ -313,5 +321,160 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		assert.Contains(t, response, "data")
 		data := response["data"].(map[string]interface{})
 		assert.Equal(t, "file-mock123abc456def", data["file_id"])
+	})
+}
+
+func TestLlamaStackListFilesHandler(t *testing.T) {
+	// Create test app with mock client (lightweight approach)
+	llamaStackClientFactory := lsmocks.NewMockClientFactory()
+	app := App{
+		config: config.EnvConfig{
+			Port: 4000,
+		},
+		llamaStackClientFactory: llamaStackClientFactory,
+		repositories:            repositories.NewRepositories(),
+	}
+
+	t.Run("successful list files", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, constants.FilesListPath+"?namespace=default", nil)
+
+		// Simulate AttachNamespace and AttachLlamaStackClient middleware
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackListFilesHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		responseBody, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response map[string]interface{}
+		err = json.Unmarshal(responseBody, &response)
+		assert.NoError(t, err)
+
+		// Verify envelope structure
+		assert.Contains(t, response, "data")
+		data := response["data"].([]interface{})
+		assert.Len(t, data, 2) // Mock returns 2 files
+
+		// Verify first file structure
+		firstFile := data[0].(map[string]interface{})
+		assert.Equal(t, "file-mock123abc456def", firstFile["id"])
+		assert.Equal(t, "file", firstFile["object"])
+		assert.Equal(t, "mock_document.txt", firstFile["filename"])
+	})
+
+	t.Run("list files with query parameters", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, constants.FilesListPath+"?namespace=default&limit=10&order=desc&purpose=assistants", nil)
+
+		// Simulate AttachNamespace and AttachLlamaStackClient middleware
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackListFilesHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		responseBody, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response map[string]interface{}
+		err = json.Unmarshal(responseBody, &response)
+		assert.NoError(t, err)
+
+		// Verify envelope structure
+		assert.Contains(t, response, "data")
+		data := response["data"].([]interface{})
+		assert.Len(t, data, 2) // Mock returns 2 files regardless of parameters
+	})
+
+	t.Run("invalid limit parameter", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, constants.FilesListPath+"?namespace=default&limit=invalid", nil)
+		// Simulate AttachNamespace and AttachLlamaStackClient middleware
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackListFilesHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+}
+
+func TestLlamaStackDeleteFileHandler(t *testing.T) {
+	// Create test app with mock client (lightweight approach)
+	llamaStackClientFactory := lsmocks.NewMockClientFactory()
+	app := App{
+		config: config.EnvConfig{
+			Port: 4000,
+		},
+		llamaStackClientFactory: llamaStackClientFactory,
+		repositories:            repositories.NewRepositories(),
+	}
+
+	t.Run("successful delete file", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodDelete, constants.FilesDeletePath+"?namespace=default&file_id=file-test123", nil)
+		// Simulate AttachNamespace and AttachLlamaStackClient middleware
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackDeleteFileHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		responseBody, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response map[string]interface{}
+		err = json.Unmarshal(responseBody, &response)
+		assert.NoError(t, err)
+
+		// Verify envelope structure
+		assert.Contains(t, response, "data")
+		data := response["data"].(map[string]interface{})
+		assert.Equal(t, "file-test123", data["id"])
+		assert.Equal(t, "file", data["object"])
+		assert.Equal(t, true, data["deleted"])
+	})
+
+	t.Run("missing file_id parameter", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodDelete, constants.FilesDeletePath+"?namespace=default", nil)
+		// Simulate AttachNamespace and AttachLlamaStackClient middleware
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackDeleteFileHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("missing LlamaStack client in context", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodDelete, constants.FilesDeletePath+"?namespace=default&file_id=file-test123", nil)
+		// Simulate AttachNamespace middleware but skip AttachLlamaStackClient
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackDeleteFileHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
 }

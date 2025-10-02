@@ -71,14 +71,17 @@ describe('Manage runs', () => {
     manageRunsPage.findBreadcrumb().findByRole('link', { name: 'Compare runs' }).click();
     cy.location('pathname').should(
       'equal',
-      `/experiments/${projectName}/${experimentId}/compareRuns`,
+      `/develop-train/experiments/${projectName}/${experimentId}/compare-runs`,
     );
     cy.location('search').should('equal', '?compareRuns=test-run-1,test-run-2');
   });
 
   it('navigates to experiment runs page when the experiment name breadcrumb is clicked', () => {
     manageRunsPage.findBreadcrumb().findByRole('link', { name: 'Default' }).click();
-    cy.location('pathname').should('equal', `/experiments/${projectName}/${experimentId}/runs`);
+    cy.location('pathname').should(
+      'equal',
+      `/develop-train/experiments/${projectName}/${experimentId}/runs`,
+    );
   });
 
   it('navigates to experiment list page when the project name breadcrumb is clicked', () => {
@@ -86,7 +89,7 @@ describe('Manage runs', () => {
       .findBreadcrumb()
       .findByRole('link', { name: 'Experiments in Test project' })
       .click();
-    cy.location('pathname').should('equal', `/experiments/${projectName}`);
+    cy.location('pathname').should('equal', `/develop-train/experiments/${projectName}`);
   });
 
   it('navigates to "Compare runs" page with updated run IDs when "Update" toolbar action is clicked', () => {
@@ -102,7 +105,7 @@ describe('Manage runs', () => {
     manageRunsTable.findUpdateButton().click();
     cy.location('pathname').should(
       'equal',
-      `/experiments/${projectName}/${experimentId}/compareRuns`,
+      `/develop-train/experiments/${projectName}/${experimentId}/compare-runs`,
     );
     cy.location('search').should('equal', '?compareRuns=test-run-1,test-run-2,test-run-3');
   });

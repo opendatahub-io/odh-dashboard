@@ -133,7 +133,7 @@ describe('MR Permissions', () => {
   it('redirect if no modelregistry', () => {
     initIntercepts({ isEmpty: true });
     modelRegistryPermissions.visit('example-mr');
-    cy.url().should('include', `/modelRegistrySettings`);
+    cy.url().should('include', `/settings/model-resources-operations/model-registry`);
   });
 
   describe('Users table', () => {
@@ -527,5 +527,15 @@ describe('MR Permissions', () => {
       projectTable.getTableRow('Test Project').findKebabAction('Delete').click();
       cy.wait('@deleteProject');
     });
+  });
+
+  it('redirect from v2 to v3 route', () => {
+    initIntercepts({ isEmpty: false });
+    cy.visitWithLogin('/modelRegistrySettings/permissions/example-mr');
+    cy.findByTestId('app-page-title').contains('Manage example-mr permissions');
+    cy.url().should(
+      'include',
+      '/settings/model-resources-operations/model-registry/permissions/example-mr',
+    );
   });
 });

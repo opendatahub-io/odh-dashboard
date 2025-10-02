@@ -18,7 +18,10 @@ const LMEvalNoProjects: React.FC = () => {
         To view model evaluations, first create a project.
       </EmptyStateBody>
       <EmptyStateFooter>
-        <NewProjectButton closeOnCreate onProjectCreated={() => navigate('/modelEvaluations')} />
+        <NewProjectButton
+          closeOnCreate
+          onProjectCreated={() => navigate('/develop-train/evaluations')}
+        />
       </EmptyStateFooter>
     </EmptyState>
   );

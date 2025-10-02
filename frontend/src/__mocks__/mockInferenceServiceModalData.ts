@@ -26,7 +26,6 @@ export const mockInferenceServiceModalData = ({
   externalRoute = false,
   tokenAuth = false,
   tokens = [],
-  isKServeRawDeployment,
   dashboardNamespace = 'opendatahub',
   labels = undefined,
 }: MockResourceConfigType): CreatingInferenceServiceObject => ({
@@ -42,7 +41,6 @@ export const mockInferenceServiceModalData = ({
   externalRoute,
   tokenAuth,
   tokens,
-  isKServeRawDeployment,
   dashboardNamespace,
   labels,
 });

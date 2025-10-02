@@ -45,10 +45,10 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
   });
 
   it(
-    'Verify User Can Create, Run and Delete A DS Pipeline From DS Project Details Page Using Custom Pip Mirror',
+    'Verify User Can Create, Run and Delete A Pipeline From DS Project Details Page Using Custom Pip Mirror',
     { tags: ['@Smoke', '@SmokeSet1', '@ODS-2206', '@Pipelines', '@Dashboard'] },
     () => {
-      cy.step(`Navigate to DSP ${projectName}`);
+      cy.step(`Navigate to Pipelines ${projectName}`);
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
@@ -69,7 +69,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
 
       // Get the pipeline ID and version ID from the URL
       cy.url().then((currentUrl) => {
-        const regex = /\/pipelines\/[^/]+\/([^/]+)\/([^/]+)\/view/;
+        const regex = /\/develop-train\/pipelines\/definitions\/[^/]+\/([^/]+)\/([^/]+)\/view/;
         const match = currentUrl.match(regex);
 
         if (match) {

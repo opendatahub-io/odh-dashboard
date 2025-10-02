@@ -54,10 +54,13 @@ const PipelinesSdkRedirects: React.FC = () => {
           errorMessage={error?.message}
           actions={
             <>
-              <Button variant="link" onClick={() => navigate('/pipelines')}>
+              <Button
+                variant="link"
+                onClick={() => navigate('/develop-train/pipelines/definitions')}
+              >
                 Go to Pipeline definitions
               </Button>
-              <Button variant="link" onClick={() => navigate('/experiments')}>
+              <Button variant="link" onClick={() => navigate('/develop-train/experiments')}>
                 Go to Experiments
               </Button>
             </>

@@ -30,6 +30,6 @@ describe('Home page Resources section', () => {
     const homeResourceSection = homePage.getHomeResourceSection();
     homeResourceSection.findGoToResourceLink().scrollIntoView();
     homeResourceSection.findGoToResourceLink().click();
-    verifyRelativeURL('/resources');
+    verifyRelativeURL('/learning-resources');
   });
 });

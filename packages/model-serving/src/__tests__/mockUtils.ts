@@ -138,6 +138,11 @@ export const mockDeploymentWizardState = (
           connections: [],
           setSelectedConnection: jest.fn(),
           selectedConnection: undefined,
+          isLoadingSecretData: true,
+          project: null,
+          connectionsLoaded: true,
+          connectionTypes: [],
+          connectionTypesLoaded: true,
         },
         k8sNameDesc: {
           data: mockK8sNameDescriptionFieldData(),

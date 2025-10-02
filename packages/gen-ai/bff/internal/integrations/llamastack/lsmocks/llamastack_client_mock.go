@@ -11,6 +11,7 @@ import (
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/packages/ssestream"
 	"github.com/openai/openai-go/v2/responses"
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 )
 
@@ -26,6 +27,14 @@ func NewMockLlamaStackClient() *MockLlamaStackClient {
 
 // ListModels returns mock model data
 func (m *MockLlamaStackClient) ListModels(ctx context.Context) ([]openai.Model, error) {
+	// Check namespace from context - return no models for mock-test-namespace-3
+	// This allows testing "Add to playground" button for all AAmodels
+	if namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string); ok {
+		if namespace == "mock-test-namespace-3" {
+			return []openai.Model{}, nil
+		}
+	}
+
 	return []openai.Model{
 		{
 			ID:      "ollama/llama3.2:3b",
@@ -35,6 +44,12 @@ func (m *MockLlamaStackClient) ListModels(ctx context.Context) ([]openai.Model, 
 		},
 		{
 			ID:      "ollama/all-minilm:l6-v2",
+			Object:  "model",
+			Created: 1755721063,
+			OwnedBy: "llama_stack",
+		},
+		{
+			ID:      "mistral-7b-instruct",
 			Object:  "model",
 			Created: 1755721063,
 			OwnedBy: "llama_stack",
@@ -64,6 +79,11 @@ func (m *MockLlamaStackClient) ListVectorStores(ctx context.Context, params llam
 				"provider_id":           "milvus",
 				"provider_vector_db_id": "vs_mock123",
 			},
+			ExpiresAfter: openai.VectorStoreExpiresAfter{
+				Anchor: "last_active_at",
+				Days:   0,
+			},
+			ExpiresAt: 0,
 		},
 	}, nil
 }
@@ -95,6 +115,11 @@ func (m *MockLlamaStackClient) CreateVectorStore(ctx context.Context, params lla
 			"provider_id":           "milvus",
 			"provider_vector_db_id": mockID,
 		},
+		ExpiresAfter: openai.VectorStoreExpiresAfter{
+			Anchor: "last_active_at",
+			Days:   0,
+		},
+		ExpiresAt: 0,
 	}, nil
 }
 
@@ -114,6 +139,18 @@ func (m *MockLlamaStackClient) UploadFile(ctx context.Context, params llamastack
 			CreatedAt:     1755721386,
 			VectorStoreID: params.VectorStoreID,
 			Status:        "completed",
+			LastError: openai.VectorStoreFileLastError{
+				Code:    "",
+				Message: "",
+			},
+			Attributes: map[string]openai.VectorStoreFileAttributeUnion{},
+			ChunkingStrategy: openai.FileChunkingStrategyUnion{
+				Type: "auto",
+				Static: openai.StaticFileChunkingStrategy{
+					ChunkOverlapTokens: 0,
+					MaxChunkSizeTokens: 0,
+				},
+			},
 		}
 	}
 
@@ -464,4 +501,106 @@ func (m *MockLlamaStackClient) CreateResponseStream(ctx context.Context, params 
 	}
 
 	return nil, mockError
+}
+
+// DeleteVectorStore returns success for mock deletion
+func (m *MockLlamaStackClient) DeleteVectorStore(ctx context.Context, vectorStoreID string) error {
+	if vectorStoreID == "" {
+		return fmt.Errorf("vectorStoreID is required")
+	}
+	// Mock deletion always succeeds
+	return nil
+}
+
+// ListFiles returns mock file data
+func (m *MockLlamaStackClient) ListFiles(ctx context.Context, params llamastack.ListFilesParams) ([]openai.FileObject, error) {
+	return []openai.FileObject{
+		{
+			ID:        "file-mock123abc456def",
+			Object:    "file",
+			Bytes:     1024,
+			CreatedAt: 1755721386,
+			Filename:  "mock_document.txt",
+			Purpose:   "assistants",
+		},
+		{
+			ID:        "file-mock789ghi012jkl",
+			Object:    "file",
+			Bytes:     2048,
+			CreatedAt: 1755721400,
+			Filename:  "mock_data.pdf",
+			Purpose:   "assistants",
+		},
+	}, nil
+}
+
+// DeleteFile returns success for mock deletion
+func (m *MockLlamaStackClient) DeleteFile(ctx context.Context, fileID string) error {
+	if fileID == "" {
+		return fmt.Errorf("fileID is required")
+	}
+	// Mock deletion always succeeds
+	return nil
+}
+
+// ListVectorStoreFiles returns mock vector store file data
+func (m *MockLlamaStackClient) ListVectorStoreFiles(ctx context.Context, vectorStoreID string, params llamastack.ListVectorStoreFilesParams) ([]openai.VectorStoreFile, error) {
+	if vectorStoreID == "" {
+		return nil, fmt.Errorf("vectorStoreID is required")
+	}
+
+	return []openai.VectorStoreFile{
+		{
+			ID:            "file-mock123abc456def",
+			Object:        "vector_store.file",
+			UsageBytes:    0,
+			CreatedAt:     1755721386,
+			VectorStoreID: vectorStoreID,
+			Status:        "completed",
+			LastError: openai.VectorStoreFileLastError{
+				Code:    "",
+				Message: "",
+			},
+			Attributes: map[string]openai.VectorStoreFileAttributeUnion{},
+			ChunkingStrategy: openai.FileChunkingStrategyUnion{
+				Type: "auto",
+				Static: openai.StaticFileChunkingStrategy{
+					ChunkOverlapTokens: 0,
+					MaxChunkSizeTokens: 0,
+				},
+			},
+		},
+		{
+			ID:            "file-mock789ghi012jkl",
+			Object:        "vector_store.file",
+			UsageBytes:    0,
+			CreatedAt:     1755721400,
+			VectorStoreID: vectorStoreID,
+			Status:        "completed",
+			LastError: openai.VectorStoreFileLastError{
+				Code:    "",
+				Message: "",
+			},
+			Attributes: map[string]openai.VectorStoreFileAttributeUnion{},
+			ChunkingStrategy: openai.FileChunkingStrategyUnion{
+				Type: "auto",
+				Static: openai.StaticFileChunkingStrategy{
+					ChunkOverlapTokens: 0,
+					MaxChunkSizeTokens: 0,
+				},
+			},
+		},
+	}, nil
+}
+
+// DeleteVectorStoreFile returns success for mock deletion
+func (m *MockLlamaStackClient) DeleteVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) error {
+	if vectorStoreID == "" {
+		return fmt.Errorf("vectorStoreID is required")
+	}
+	if fileID == "" {
+		return fmt.Errorf("fileID is required")
+	}
+	// Mock deletion always succeeds
+	return nil
 }

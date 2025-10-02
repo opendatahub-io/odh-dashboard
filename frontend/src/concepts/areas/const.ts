@@ -229,7 +229,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
 export const DataScienceStackComponentMap: Record<string, string> = {
   [DataScienceStackComponent.CODE_FLARE]: 'CodeFlare',
   [DataScienceStackComponent.DASHBOARD]: 'Dashboard',
-  [DataScienceStackComponent.DS_PIPELINES]: 'Data science pipelines',
+  [DataScienceStackComponent.DS_PIPELINES]: 'Pipelines',
   [DataScienceStackComponent.KUEUE]: 'Kueue',
   [DataScienceStackComponent.MODEL_REGISTRY]: 'Model registry',
   [DataScienceStackComponent.FEAST_OPERATOR]: 'Feast operator',

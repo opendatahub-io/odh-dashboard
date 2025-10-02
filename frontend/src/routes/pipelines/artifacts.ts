@@ -1,4 +1,4 @@
-export const artifactsRootPath = '/artifacts';
+export const artifactsRootPath = '/develop-train/pipelines/artifacts';
 export const globArtifactsAll = `${artifactsRootPath}/*`;
 
 export const artifactsBaseRoute = (namespace: string | undefined): string =>

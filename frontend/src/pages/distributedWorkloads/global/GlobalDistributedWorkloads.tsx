@@ -67,7 +67,9 @@ const GlobalDistributedWorkloads: React.FC<GlobalDistributedWorkloadsProps> = ({
       empty={false}
       headerContent={
         <ProjectSelectorNavigator
-          getRedirectPath={(ns: string) => `/distributedWorkloads/${activeTab.path}/${ns}`}
+          getRedirectPath={(ns: string) =>
+            `/observe-monitor/workload-metrics/${activeTab.path}/${ns}`
+          }
           showTitle
         />
       }

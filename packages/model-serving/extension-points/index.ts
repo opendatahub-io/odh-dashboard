@@ -15,6 +15,7 @@ import type { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelSe
 import type { ToggleState } from '@odh-dashboard/internal/components/StateActionToggle';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
 import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import type { ModelLocationData } from '../src/components/deploymentWizard/fields/modelLocationFields/types';
 import type { UseModelDeploymentWizardState } from '../src/components/deploymentWizard/useDeploymentWizard';
 
 export type DeploymentStatus = {
@@ -148,6 +149,7 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
     extractAiAssetData: CodeRef<
       (deployment: D) => { saveAsAiAsset: boolean; useCase: string } | null
     >;
+    extractModelLocationData: CodeRef<(deployment: D) => ModelLocationData | null>;
   }
 >;
 export const isModelServingDeploymentFormDataExtension = <D extends Deployment = Deployment>(
@@ -185,7 +187,7 @@ export const isModelServingDeploymentsTableExtension = <D extends Deployment = D
   extension.type === 'model-serving.deployments-table';
 
 export type ModelServingDeleteModal<D extends Deployment = Deployment> = Extension<
-  'model-serving.platform/delete-modal',
+  'model-serving.platform/delete-deployment',
   {
     platform: D['modelServingPlatformId'];
     onDelete: CodeRef<(deployment: D) => Promise<void>>;
@@ -197,7 +199,7 @@ export type ModelServingDeleteModal<D extends Deployment = Deployment> = Extensi
 export const isModelServingDeleteModal = <D extends Deployment = Deployment>(
   extension: Extension,
 ): extension is ModelServingDeleteModal<D> =>
-  extension.type === 'model-serving.platform/delete-modal';
+  extension.type === 'model-serving.platform/delete-deployment';
 
 export type ModelServingMetricsExtension<D extends Deployment = Deployment> = Extension<
   'model-serving.metrics',

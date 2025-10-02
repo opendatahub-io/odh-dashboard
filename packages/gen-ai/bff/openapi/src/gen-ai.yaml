@@ -15,6 +15,10 @@ security:
   - Bearer: []
 
 paths:
+  # =============================================================================
+  # UTILITY ENDPOINTS
+  # =============================================================================
+  
   /healthcheck:
     summary: BFF service health check
     description: >-
@@ -32,6 +36,99 @@ paths:
       summary: BFF Health Check
       description: Returns BFF service status and version information.
       security: []
+
+
+  /gen-ai/api/v1/namespaces:
+    summary: List Kubernetes cluster namespaces
+    description: >-
+      Lists all namespaces in the Kubernetes cluster.
+      Returns namespace information including name and display name.
+      Requires valid Kubernetes authentication token.
+    get:
+      tags:
+        - Kubernetes
+      security:
+        - Bearer: []
+      responses:
+        '200':
+          $ref: '#/components/responses/NamespacesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: listNamespaces
+      summary: List All Namespaces
+      description: Gets a list of all namespaces in the Kubernetes cluster.
+
+  /gen-ai/api/v1/code-exporter:
+    summary: Export Python code for Llama Stack integration
+    description: >-
+      Generates Python code based on provided configuration parameters.
+      Creates code templates for client configuration and integration.
+      Requires namespace parameter for proper multi-tenant isolation.
+    post:
+      tags:
+        - CodeExporter
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace for the generated code
+          required: true
+          schema:
+            type: string
+            example: "default"
+      requestBody:
+        required: true
+        description: Code generation configuration
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CodeExportRequest"
+            example:
+              clientName: "my-llamastack-client"
+              models: ["llama-3-2-3b-instruct", "granite-embedding-125m"]
+              includeExamples: true
+      responses:
+        '200':
+          $ref: '#/components/responses/CodeExportResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: exportCode
+      summary: Export Code
+      description: Generates Python code for Llama Stack integration.
+
+  /gen-ai/api/v1/user:
+    summary: Get current user information
+    description: >-
+      Retrieves information about the currently authenticated user.
+      Returns user details including identity and permissions.
+    get:
+      tags:
+        - Identity
+      security:
+        - Bearer: []
+      responses:
+        '200':
+          $ref: '#/components/responses/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getCurrentUser
+      summary: Get Current User
+      description: Returns information about the currently authenticated user.
+
+  # =============================================================================
+  # LLAMASTACK DISTRIBUTION (LSD) ENDPOINTS
+  # =============================================================================
 
   /gen-ai/api/v1/lsd/models:
     summary: List available AI models
@@ -65,15 +162,93 @@ paths:
       summary: List All Models
       description: Gets a list of all available AI models from Llama Stack.
 
-  /gen-ai/api/v1/aaa/models:
-    summary: List AI Assets models
+  /gen-ai/api/v1/lsd/status:
+    summary: Get LlamaStack Distribution status
     description: >-
-      Lists all available AI Assets models from Kubernetes InferenceServices.
+      Retrieves the status of LlamaStack Distribution (LSD) in the specified namespace.
+      Returns LSD information including name, phase, version, and distribution configuration.
+      Requires valid Kubernetes authentication token and namespace parameter.
+    get:
+      tags:
+        - LlamaStackDistribution
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace to query for LSD resources
+          required: true
+          schema:
+            type: string
+            example: 'default'
+      responses:
+        '200':
+          $ref: '#/components/responses/LlamaStackDistributionStatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getLlamaStackDistributionStatus
+      summary: Get LSD Status
+      description: Gets the status of LlamaStack Distribution in the specified namespace.
+
+  /gen-ai/api/v1/lsd/install:
+    summary: Install LlamaStack Distribution
+    description: >-
+      Installs a new LlamaStack Distribution (LSD) in the specified namespace with the provided models.
+      Creates both the LSD custom resource and a ConfigMap containing the run.yaml configuration.
+      The ConfigMap is configured with the specified models and their endpoints.
+      Requires valid Kubernetes authentication token and namespace parameter.
+    post:
+      tags:
+        - LlamaStackDistribution
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace where the LSD will be installed
+          required: true
+          schema:
+            type: string
+            example: "default"
+      requestBody:
+        required: true
+        description: Installation request with list of models to include
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LlamaStackDistributionInstallRequest"
+            example:
+              models: ["llama-3-2-3b-instruct", "granite-embedding-125m"]
+      responses:
+        '200':
+          $ref: "#/components/responses/LlamaStackDistributionInstallResponse"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: installLlamaStackDistribution
+      summary: Install LSD
+      description: Installs a new LlamaStack Distribution with the specified models.
+
+  # =============================================================================
+  # AI AVAILABLE ASSETS (AAA) ENDPOINTS
+  # =============================================================================
+
+  /gen-ai/api/v1/aaa/models:
+    summary: List AI Available Assets models
+    description: >-
+      Lists all available AI Available Assets models from Kubernetes InferenceServices.
       Returns models with their serving runtime, API protocol, version, and status information.
       Requires namespace parameter for proper multi-tenant isolation.
     get:
       tags:
-        - Models
+        - AIAssets
       security:
         - Bearer: []
       parameters:
@@ -94,8 +269,12 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
       operationId: listAAModels
-      summary: List AI Assets Models
-      description: Gets a list of all available AI Assets models from Kubernetes InferenceServices.
+      summary: List AI Available Assets Models
+      description: Gets a list of all available AI Available Assets models from Kubernetes InferenceServices.
+
+  # =============================================================================
+  # MODEL AS A SERVICE (MAAS) ENDPOINTS
+  # =============================================================================
 
   /gen-ai/api/v1/maas/models:
     summary: List available MaaS models
@@ -318,6 +497,104 @@ paths:
       summary: Create Vector Store
       description: Creates a new vector store for document storage and RAG. Only the name field is required.
 
+  /gen-ai/api/v1/lsd/vectorstores/delete:
+    summary: Delete vector store
+    description: >-
+      Deletes a vector store by ID. This operation will permanently remove the vector store
+      and all associated files and embeddings. Requires namespace parameter for proper 
+      multi-tenant isolation.
+    delete:
+      tags:
+        - VectorStores
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace containing the vector store
+          required: true
+          schema:
+            type: string
+            example: "default"
+        - name: vector_store_id
+          in: query
+          description: ID of the vector store to delete
+          required: true
+          schema:
+            type: string
+            example: "vs_abc123"
+      responses:
+        '200':
+          $ref: '#/components/responses/DeleteResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: deleteVectorStore
+      summary: Delete Vector Store
+      description: Permanently deletes a vector store and all its contents.
+
+  /gen-ai/api/v1/lsd/files:
+    summary: List files
+    description: >-
+      Lists all files with optional filtering by purpose, limit, and sorting.
+      Requires namespace parameter for proper multi-tenant isolation.
+    get:
+      tags:
+        - Files
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace to query for files
+          required: true
+          schema:
+            type: string
+            example: "default"
+        - name: limit
+          in: query
+          description: Number of files to return (1-10000, default 20)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10000
+            default: 20
+            example: 50
+        - name: order
+          in: query
+          description: Sort order by creation timestamp
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            example: desc
+        - name: purpose
+          in: query
+          description: Filter files by purpose
+          required: false
+          schema:
+            type: string
+            enum: [assistants, batch, fine-tune, vision, user_data, evals]
+            example: assistants
+      responses:
+        '200':
+          $ref: '#/components/responses/FilesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: listFiles
+      summary: List Files
+      description: Gets a list of files with optional filtering and pagination.
+
   /gen-ai/api/v1/lsd/files/upload:
     summary: Upload files to vector stores with chunking control
     description: >-
@@ -357,6 +634,159 @@ paths:
       operationId: uploadFile
       summary: Upload File to Vector Store
       description: Uploads a file and adds it to the specified vector store for RAG functionality. Supports custom chunking strategies for optimal document processing.
+
+  /gen-ai/api/v1/lsd/files/delete:
+    summary: Delete file
+    description: >-
+      Deletes a file by ID. This operation will permanently remove the file from storage.
+      Note that this does not automatically remove the file from vector stores it may be associated with.
+      Requires namespace parameter for proper multi-tenant isolation.
+    delete:
+      tags:
+        - Files
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace containing the file
+          required: true
+          schema:
+            type: string
+            example: "default"
+        - name: file_id
+          in: query
+          description: ID of the file to delete
+          required: true
+          schema:
+            type: string
+            example: "file-abc123"
+      responses:
+        '200':
+          $ref: '#/components/responses/DeleteResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: deleteFile
+      summary: Delete File
+      description: Permanently deletes a file from storage.
+
+  /gen-ai/api/v1/lsd/vectorstores/files:
+    summary: List files in vector store
+    description: >-
+      Lists all files in a specific vector store with optional filtering by status, limit, and sorting.
+      Requires namespace parameter for proper multi-tenant isolation.
+    get:
+      tags:
+        - VectorStores
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace containing the vector store
+          required: true
+          schema:
+            type: string
+            example: "default"
+        - name: vector_store_id
+          in: query
+          description: ID of the vector store to list files from
+          required: true
+          schema:
+            type: string
+            example: "vs_abc123"
+        - name: limit
+          in: query
+          description: Number of files to return (1-100, default 20)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+            example: 10
+        - name: order
+          in: query
+          description: Sort order by creation timestamp
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            example: desc
+        - name: filter
+          in: query
+          description: Filter files by processing status
+          required: false
+          schema:
+            type: string
+            enum: [in_progress, completed, failed, cancelled]
+            example: completed
+      responses:
+        '200':
+          $ref: '#/components/responses/VectorStoreFilesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: listVectorStoreFiles
+      summary: List Vector Store Files
+      description: Gets a list of files in a vector store with optional filtering and pagination.
+
+  /gen-ai/api/v1/lsd/vectorstores/files/delete:
+    summary: Remove file from vector store
+    description: >-
+      Removes a file from a specific vector store. This operation removes the file association
+      and embeddings from the vector store but does not delete the original file from storage.
+      Requires namespace parameter for proper multi-tenant isolation.
+    delete:
+      tags:
+        - VectorStores
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace containing the vector store
+          required: true
+          schema:
+            type: string
+            example: "default"
+        - name: vector_store_id
+          in: query
+          description: ID of the vector store to remove file from
+          required: true
+          schema:
+            type: string
+            example: "vs_abc123"
+        - name: file_id
+          in: query
+          description: ID of the file to remove from vector store
+          required: true
+          schema:
+            type: string
+            example: "file-abc123"
+      responses:
+        '200':
+          $ref: '#/components/responses/DeleteResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: deleteVectorStoreFile
+      summary: Remove File from Vector Store
+      description: Removes a file from a vector store without deleting the original file.
 
   /gen-ai/api/v1/lsd/responses:
     summary: Create AI responses with clean LlamaStack structure
@@ -407,174 +837,10 @@ paths:
         The output array preserves LlamaStack's structure but filters out unnecessary metadata for optimal performance.
         MCP tools support multiple tools per request with individual authentication tokens provided in each tool's headers.
 
-  /gen-ai/api/v1/code-exporter:
-    summary: Generate Python code for Llama Stack integration
-    description: >-
-      Generates Python code templates for integrating with Llama Stack services.
-      Supports custom configuration including model selection, instructions, streaming, and tool configurations.
-      Returns executable Python code wrapped in a JSON envelope structure.
-      Requires namespace parameter for proper multi-tenant isolation.
-    post:
-      tags:
-        - CodeExporter
-      security:
-        - Bearer: []
-      parameters:
-        - name: namespace
-          in: query
-          description: Kubernetes namespace for code generation context
-          required: true
-          schema:
-            type: string
-            example: 'default'
-      requestBody:
-        description: Code generation request with configuration parameters
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CodeExportRequest'
-        required: true
-      responses:
-        '200':
-          $ref: '#/components/responses/CodeExportResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-      operationId: exportCode
-      summary: Export Python Code
-      description: Generates Python code based on provided configuration parameters.
 
-  /gen-ai/api/v1/namespaces:
-    summary: List Kubernetes cluster namespaces
-    description: >-
-      Lists all namespaces in the Kubernetes cluster.
-      Returns namespace information including name and display name.
-      Requires valid Kubernetes authentication token.
-    get:
-      tags:
-        - Kubernetes
-      security:
-        - Bearer: []
-      responses:
-        '200':
-          $ref: '#/components/responses/NamespacesResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-      operationId: listNamespaces
-      summary: List All Namespaces
-      description: Gets a list of all namespaces in the Kubernetes cluster.
-
-  /gen-ai/api/v1/lsd/status:
-    summary: Get LlamaStack Distribution status
-    description: >-
-      Retrieves the status of LlamaStack Distribution (LSD) in the specified namespace.
-      Returns LSD information including name, phase, version, and distribution configuration.
-      Requires valid Kubernetes authentication token and namespace parameter.
-      Returns 400 for missing parameters or other validation errors.
-      Returns 401 for missing or invalid authentication tokens.
-      Returns 404 if the LSD CRD is not installed, the namespace doesn't exist, or no LSD resources are found.
-    get:
-      tags:
-        - Kubernetes
-      security:
-        - Bearer: []
-      parameters:
-        - name: namespace
-          in: query
-          description: Kubernetes namespace to query for LSD resources
-          required: true
-          schema:
-            type: string
-            example: 'default'
-      responses:
-        '200':
-          $ref: '#/components/responses/LlamaStackDistributionStatusResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-      operationId: getLlamaStackDistributionStatus
-      summary: Get LSD Status
-      description: Gets the status of LlamaStack Distribution in the specified namespace.
-
-  /gen-ai/api/v1/lsd/install:
-    summary: Install LlamaStack Distribution
-    description: >-
-      Installs a new LlamaStack Distribution (LSD) in the specified namespace with the provided models.
-      Creates both the LSD custom resource and a ConfigMap containing the run.yaml configuration.
-      The ConfigMap is configured with the specified models and their endpoints.
-      Requires valid Kubernetes authentication token and namespace parameter.
-      Returns 400 for missing parameters, invalid JSON, or empty models list.
-      Returns 401 for missing or invalid authentication tokens.
-      Returns 500 for internal server errors during resource creation.
-    post:
-      tags:
-        - Kubernetes
-      security:
-        - Bearer: []
-      parameters:
-        - name: namespace
-          in: query
-          description: Kubernetes namespace where the LSD will be installed
-          required: true
-          schema:
-            type: string
-            example: 'default'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LlamaStackDistributionInstallRequest'
-            description: Installation request with list of models to include
-            example:
-              models: ['llama-3-2-3b-instruct', 'granite-embedding-125m']
-      responses:
-        '200':
-          $ref: '#/components/responses/LlamaStackDistributionInstallResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-      operationId: installLlamaStackDistribution
-      summary: Install LSD
-      description: Installs a new LlamaStack Distribution with the specified models.
-
-  /gen-ai/api/v1/user:
-    summary: Get current user information
-    description: >-
-      Retrieves the current authenticated user information from the Kubernetes cluster.
-      Returns the username associated with the provided authentication token.
-      Always returns HTTP 200 with user information or empty userId if user cannot be determined.
-      Requires valid Kubernetes authentication token.
-    get:
-      tags:
-        - Identity
-      security:
-        - Bearer: []
-      responses:
-        '200':
-          $ref: '#/components/responses/UserResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-      operationId: getCurrentUser
-      summary: Get Current User
-      description: Gets the current authenticated user information from the Kubernetes cluster.
+  # =============================================================================
+  # MODEL CONTEXT PROTOCOL (MCP) ENDPOINTS
+  # =============================================================================
 
   /gen-ai/api/v1/mcp/tools:
     summary: Get tools from MCP server by URL
@@ -689,12 +955,12 @@ paths:
   /gen-ai/api/v1/aaa/mcps:
     get:
       tags:
-        - MCP Servers
+        - AIAssets
       operationId: getMCPServersList
-      summary: Get Enhanced List of Available MCP Servers
+      summary: Get Enhanced List of Available MCP Servers from AI Available Assets
       description: >-
-        Retrieves an enhanced list of available MCP (Model Context Protocol) servers from the ConfigMap.
-        Returns a flattened server array with comprehensive metadata.
+        Retrieves an enhanced list of available MCP (Model Context Protocol) servers from AI Available Assets.
+        Returns a flattened server array with comprehensive metadata from the ConfigMap.
       parameters:
         - $ref: '#/components/parameters/NamespaceParam'
       responses:
@@ -933,10 +1199,12 @@ components:
         - status
         - last_active_at
         - metadata
+        - expires_after
+        - expires_at
       properties:
         id:
           type: string
-          example: 'vs_abc123-def456'
+          example: 'vs_333f2135-fdc5-4bf4-bf9c-0bd5d30cd346'
           description: Unique vector store identifier
         object:
           type: string
@@ -945,16 +1213,16 @@ components:
         created_at:
           type: integer
           format: int64
-          example: 1755616759
+          example: 1758623649
           description: Unix timestamp when vector store was created
         name:
           type: string
-          example: 'Support Documents'
+          example: 'vector-demo-7635d0b1'
           description: Human-readable name (max 256 characters)
         usage_bytes:
           type: integer
           format: int64
-          example: 1024
+          example: 0
           description: Storage usage in bytes
         file_counts:
           $ref: '#/components/schemas/FileCounts'
@@ -966,17 +1234,38 @@ components:
         last_active_at:
           type: integer
           format: int64
-          example: 1755616759
+          example: 1758623649
           description: Unix timestamp of last activity
         metadata:
           type: object
-          additionalProperties:
-            type: string
-          example:
-            provider_id: 'milvus'
-            provider_vector_db_id: 'vs_abc123-def456'
-            description: 'Customer support documents'
-          description: Key-value metadata (max 16 pairs, keys ≤64 chars, values ≤512 chars)
+          properties:
+            provider_id:
+              type: string
+              example: 'milvus'
+              description: Vector database provider
+            provider_vector_db_id:
+              type: string
+              example: 'vs_333f2135-fdc5-4bf4-bf9c-0bd5d30cd346'
+              description: Provider-specific vector database ID
+        expires_after:
+          type: object
+          required:
+            - anchor
+            - days
+          properties:
+            anchor:
+              type: string
+              example: 'last_active_at'
+              description: Expiration anchor point
+            days:
+              type: integer
+              example: 0
+              description: Days until expiration
+        expires_at:
+          type: integer
+          format: int64
+          example: 0
+          description: Unix timestamp when vector store expires
 
     FileCounts:
       type: object
@@ -1168,6 +1457,142 @@ components:
           description: File attributes and metadata
         last_error:
           $ref: '#/components/schemas/FileError'
+
+    FileModel:
+      type: object
+      required:
+        - id
+        - object
+        - bytes
+        - created_at
+        - filename
+        - purpose
+        - status
+        - expires_at
+        - status_details
+      properties:
+        id:
+          type: string
+          example: 'file-5950801bb252406d9adf08587d72fe10'
+          description: Unique file identifier
+        object:
+          type: string
+          example: 'file'
+          description: Object type
+        bytes:
+          type: integer
+          format: int64
+          example: 14522
+          description: File size in bytes
+        created_at:
+          type: integer
+          format: int64
+          example: 1758797542
+          description: Unix timestamp when file was created
+        filename:
+          type: string
+          example: 'document.pdf'
+          description: Original filename
+        purpose:
+          type: string
+          enum: [assistants, batch, fine-tune, vision, user_data, evals]
+          example: 'assistants'
+          description: Intended use case for the file
+        status:
+          type: string
+          example: ''
+          description: File processing status (empty string when no specific status)
+        expires_at:
+          type: integer
+          format: int64
+          example: 1790333542
+          description: Unix timestamp when file expires
+        status_details:
+          type: string
+          example: ''
+          description: Additional status information (empty string when no details)
+
+    VectorStoreFileModel:
+      type: object
+      required:
+        - id
+        - object
+        - usage_bytes
+        - created_at
+        - vector_store_id
+        - status
+        - last_error
+        - attributes
+        - chunking_strategy
+      properties:
+        id:
+          type: string
+          example: 'file-5950801bb252406d9adf08587d72fe10'
+          description: Unique file identifier
+        object:
+          type: string
+          example: 'vector_store.file'
+          description: Object type
+        usage_bytes:
+          type: integer
+          format: int64
+          example: 0
+          description: File size in bytes within vector store
+        created_at:
+          type: integer
+          format: int64
+          example: 1758797542
+          description: Unix timestamp when file was added to vector store
+        vector_store_id:
+          type: string
+          example: 'vs_333f2135-fdc5-4bf4-bf9c-0bd5d30cd346'
+          description: Parent vector store ID
+        status:
+          type: string
+          enum: [in_progress, completed, failed, cancelled]
+          example: 'completed'
+          description: File processing status in vector store
+        last_error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              example: ''
+              description: Error code if file processing failed (empty string when no error)
+            message:
+              type: string
+              example: ''
+              description: Error message if file processing failed (empty string when no error)
+        attributes:
+          type: object
+          example: {}
+          description: File attributes and metadata
+        chunking_strategy:
+          type: object
+          required:
+            - type
+          properties:
+            type:
+              type: string
+              enum: [auto, static]
+              example: 'auto'
+              description: Chunking strategy type
+            static:
+              type: object
+              properties:
+                chunk_overlap_tokens:
+                  type: integer
+                  example: 0
+                  description: Token overlap between chunks (only for static chunking)
+                max_chunk_size_tokens:
+                  type: integer
+                  example: 0
+                  description: Maximum tokens per chunk (only for static chunking)
+              description: Static chunking configuration (present for both auto and static types)
+          description: Strategy used for chunking the file
 
     # Chat Context Schema
     ChatContextMessage:
@@ -2283,6 +2708,28 @@ components:
             properties:
               data:
                 $ref: '#/components/schemas/VectorStoresData'
+          example:
+            data:
+              - id: 'vs_333f2135-fdc5-4bf4-bf9c-0bd5d30cd346'
+                object: 'vector_store'
+                created_at: 1758623649
+                name: 'vector-demo-7635d0b1'
+                usage_bytes: 0
+                file_counts:
+                  in_progress: 0
+                  completed: 2
+                  failed: 0
+                  cancelled: 0
+                  total: 2
+                status: 'completed'
+                last_active_at: 1758623649
+                metadata:
+                  provider_id: 'milvus'
+                  provider_vector_db_id: 'vs_333f2135-fdc5-4bf4-bf9c-0bd5d30cd346'
+                expires_after:
+                  anchor: 'last_active_at'
+                  days: 0
+                expires_at: 0
 
     VectorStoreResponse:
       description: Created vector store
@@ -2315,6 +2762,138 @@ components:
                   vector_store_id: 'vs_abc123'
                   status: 'completed'
 
+    FilesResponse:
+      description: List of files with pagination support
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FileModel'
+            example:
+              data:
+                - id: 'file-cd700ae4b20a4b479e408193c739e438'
+                  object: 'file'
+                  bytes: 14522
+                  created_at: 1758797477
+                  filename: 'matias_schimuneck_superstar.pdf'
+                  purpose: 'assistants'
+                  status: ''
+                  expires_at: 1790333477
+                  status_details: ''
+                - id: 'file-211843103da6456d8df157f9f08789e9'
+                  object: 'file'
+                  bytes: 73144
+                  created_at: 1758797363
+                  filename: 'redbankfinancial_faq.pdf'
+                  purpose: 'assistants'
+                  status: ''
+                  expires_at: 1790333363
+                  status_details: ''
+
+    VectorStoreFilesResponse:
+      description: List of files in a vector store with pagination support
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VectorStoreFileModel'
+            example:
+              data:
+                - id: 'file-5950801bb252406d9adf08587d72fe10'
+                  object: 'vector_store.file'
+                  usage_bytes: 0
+                  created_at: 1758797542
+                  vector_store_id: 'vs_333f2135-fdc5-4bf4-bf9c-0bd5d30cd346'
+                  status: 'completed'
+                  last_error:
+                    code: ''
+                    message: ''
+                  attributes: {}
+                  chunking_strategy:
+                    type: 'auto'
+                    static:
+                      chunk_overlap_tokens: 0
+                      max_chunk_size_tokens: 0
+                - id: 'file-e300254d63484f738156677da78e1982'
+                  object: 'vector_store.file'
+                  usage_bytes: 0
+                  created_at: 1758623649
+                  vector_store_id: 'vs_333f2135-fdc5-4bf4-bf9c-0bd5d30cd346'
+                  status: 'completed'
+                  last_error:
+                    code: ''
+                    message: ''
+                  attributes: {}
+                  chunking_strategy:
+                    type: 'auto'
+                    static:
+                      chunk_overlap_tokens: 0
+                      max_chunk_size_tokens: 0
+
+    DeleteResponse:
+      description: Successful deletion response
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                type: object
+                required:
+                  - id
+                  - object
+                  - deleted
+                properties:
+                  id:
+                    type: string
+                    description: ID of the deleted resource
+                    example: 'file-5950801bb252406d9adf08587d72fe10'
+                  object:
+                    type: string
+                    description: Type of deleted resource
+                    enum: ['file', 'vector_store.deleted', 'vector_store.file.deleted']
+                    example: 'file'
+                  deleted:
+                    type: boolean
+                    description: Confirmation of deletion
+                    example: true
+          examples:
+            file_deletion:
+              summary: File deletion response
+              value:
+                data:
+                  id: 'file-5950801bb252406d9adf08587d72fe10'
+                  object: 'file'
+                  deleted: true
+            vectorstore_deletion:
+              summary: Vector store deletion response
+              value:
+                data:
+                  id: 'vs_2ec4d2d2-b1bf-4b9f-a128-a043178da11c'
+                  object: 'vector_store.deleted'
+                  deleted: true
+            vectorstore_file_deletion:
+              summary: Vector store file deletion response
+              value:
+                data:
+                  id: 'file-1381d13448be43e2bfca95b14bf107d1'
+                  object: 'vector_store.file.deleted'
+                  deleted: true
+
     CodeExportResponse:
       description: Generated Python code for Llama Stack integration
       content:
@@ -2326,7 +2905,7 @@ components:
             properties:
               data:
                 $ref: '#/components/schemas/CodeExportData'
-            example:
+          example:
               data:
                 code: |
                   # Llama Stack Quickstart Script
@@ -2400,19 +2979,19 @@ components:
                 nullable: true
             example:
               data:
-                name: 'lsd-genai-playground'
-                httpStatus: '200'
-            examples:
-              installation_success:
-                summary: Successful installation
-                value:
-                  data:
-                    name: 'lsd-genai-playground'
-                    httpStatus: '200'
-              installation_error:
-                summary: Installation failed
-                value:
-                  data: null
+                name: "lsd-genai-playground"
+                httpStatus: "200"
+          examples:
+            installation_success:
+              summary: Successful installation
+              value:
+                data:
+                  name: "lsd-genai-playground"
+                  httpStatus: "200"
+            installation_error:
+              summary: Installation failed
+              value:
+                data: null
 
     MCPToolsResponse:
       description: Comprehensive tools information from MCP server specified by URL
@@ -2735,47 +3314,60 @@ components:
             userId: 'user@example.com'
 
 tags:
+  # =============================================================================
+  # UTILITY OPERATIONS
+  # =============================================================================
   - name: HealthCheck
     description: BFF service health check operations
-  - name: Models
-    description: |
-      AI model discovery and management
-
-      **LlamaStack Models** (`/models`): Queries LlamaStack service for available models
-      **AI Assets Models** (`/aa/models`): Queries Kubernetes InferenceServices with GenAI labels
-
-      Both endpoints require namespace parameter for proper multi-tenant isolation.
-  - name: VectorStores
-    description: |
-      Vector store management for RAG functionality
-
-      Requires namespace parameter. Uses namespace-specific LlamaStack service discovery.
-  - name: Files
-    description: |
-      File upload and vector store integration
-
-      Requires namespace parameter. Uses namespace-specific LlamaStack service discovery.
-  - name: Responses
-    description: |
-      AI response generation with comprehensive parameter support
-
-      Requires namespace parameter. Uses namespace-specific LlamaStack service discovery.
-  - name: CodeExporter
-    description: |
-      Code generation for Llama Stack integration
-
-      Requires namespace parameter. Generates code templates for client configuration.
-  - name: MaaS
-    description: |
-      Model as a Service (MaaS) operations
-
-      **Models** (`/maas/models`): Lists available MaaS models with ready status and service URLs
-      **Tokens** (`/maas/tokens`): Manages authentication tokens for MaaS service access
-
-      MaaS endpoints operate independently and do not require namespace parameters.
   - name: Kubernetes
     description: Kubernetes cluster operations and namespace management
   - name: Identity
     description: User identity and authentication operations
-  - name: MCP Servers
+  - name: CodeExporter
+    description: Code generation for Llama Stack integration
+
+  # =============================================================================
+  # LLAMASTACK DISTRIBUTION (LSD) OPERATIONS
+  # =============================================================================
+  - name: Models
+    description: AI model discovery and management from LlamaStack Distribution
+  - name: LlamaStackDistribution
+    description: |
+      LlamaStack Distribution management operations
+  - name: Responses
+    description: |
+      AI response generation with comprehensive parameter support
+
+  # =============================================================================
+  # VECTOR STORE OPERATIONS
+  # =============================================================================
+  - name: VectorStores
+    description: |
+      Vector store management for RAG functionality
+
+  # =============================================================================
+  # FILE MANAGEMENT OPERATIONS
+  # =============================================================================
+  - name: Files
+    description: |
+      File upload and vector store integration
+
+  # =============================================================================
+  # AI AVAILABLE ASSETS (AAA) OPERATIONS
+  # =============================================================================
+  - name: AAA
+    description: |
+      AI Available Assets model management
+
+  # =============================================================================
+  # MODEL AS A SERVICE (MAAS) OPERATIONS
+  # =============================================================================
+  - name: MaaS
+    description: |
+      Model as a Service operations
+
+  # =============================================================================
+  # MODEL CONTEXT PROTOCOL (MCP) OPERATIONS
+  # =============================================================================
+  - name: MCP
     description: Model Context Protocol (MCP) server management and tool discovery

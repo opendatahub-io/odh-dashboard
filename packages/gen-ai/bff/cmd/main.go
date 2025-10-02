@@ -43,6 +43,9 @@ func main() {
 	// MaaS configuration
 	flag.StringVar(&cfg.MaaSURL, "maas-url", getEnvAsString("MAAS_URL", ""), "MaaS server URL for proxying requests")
 
+	// Filter models configuration
+	flag.Func("filtered-model-keywords", "Filter models by keywords (comma-separated list)", newKeywordParser(&cfg.FilteredModelKeywords, getEnvAsString("FILTERED_MODEL_KEYWORDS", "")))
+
 	flag.Parse()
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{

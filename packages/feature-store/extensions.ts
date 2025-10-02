@@ -40,9 +40,9 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension | NavSe
       properties: {
         id: 'featureStore-overview',
         title: 'Overview',
-        href: '/featureStore/overview',
+        href: '/develop-train/feature-store/overview',
         section: 'feature-store',
-        path: '/featureStore/overview/*',
+        path: '/develop-train/feature-store/overview/*',
       },
     },
     {
@@ -53,9 +53,9 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension | NavSe
       properties: {
         id: 'featureStore-entities',
         title: 'Entities',
-        href: '/featureStore/entities',
+        href: '/develop-train/feature-store/entities',
         section: 'feature-store',
-        path: '/featureStore/entities/*',
+        path: '/develop-train/feature-store/entities/*',
       },
     },
     {
@@ -64,11 +64,11 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension | NavSe
         required: [PLUGIN_FEATURE_STORE],
       },
       properties: {
-        id: 'featureStore-dataSets',
+        id: 'featureStore-datasets',
         title: 'Datasets',
-        href: '/featureStore/dataSets',
+        href: '/develop-train/feature-store/datasets',
         section: 'feature-store',
-        path: '/featureStore/dataSets/*',
+        path: '/develop-train/feature-store/datasets/*',
       },
     },
     {
@@ -77,11 +77,11 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension | NavSe
         required: [PLUGIN_FEATURE_STORE],
       },
       properties: {
-        id: 'featureStore-dataSources',
+        id: 'featureStore-data-sources',
         title: 'Data sources',
-        href: '/featureStore/dataSources',
+        href: '/develop-train/feature-store/data-sources',
         section: 'feature-store',
-        path: '/featureStore/dataSources/*',
+        path: '/develop-train/feature-store/data-sources/*',
       },
     },
     {
@@ -92,9 +92,9 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension | NavSe
       properties: {
         id: 'featureStore-features',
         title: 'Features',
-        href: '/featureStore/features',
+        href: '/develop-train/feature-store/features',
         section: 'feature-store',
-        path: '/featureStore/features/*',
+        path: '/develop-train/feature-store/features/*',
       },
     },
     {
@@ -103,11 +103,11 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension | NavSe
         required: [PLUGIN_FEATURE_STORE],
       },
       properties: {
-        id: 'featureStore-featureViews',
+        id: 'featureStore-feature-views',
         title: 'Feature views',
-        href: '/featureStore/featureViews',
+        href: '/develop-train/feature-store/feature-views',
         section: 'feature-store',
-        path: '/featureStore/featureViews/*',
+        path: '/develop-train/feature-store/feature-views/*',
       },
     },
     {
@@ -116,11 +116,11 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension | NavSe
         required: [PLUGIN_FEATURE_STORE],
       },
       properties: {
-        id: 'featureStore-featureServices',
+        id: 'featureStore-feature-services',
         title: 'Feature services',
-        href: '/featureStore/featureServices',
+        href: '/develop-train/feature-store/feature-services',
         section: 'feature-store',
-        path: '/featureStore/featureServices/*',
+        path: '/develop-train/feature-store/feature-services/*',
       },
     },
     {
@@ -129,7 +129,7 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension | NavSe
         required: [PLUGIN_FEATURE_STORE],
       },
       properties: {
-        path: '/featureStore/*',
+        path: '/develop-train/feature-store/*',
         component: () => import('./src/FeatureStoreRoutes'),
       },
     },

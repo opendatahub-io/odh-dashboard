@@ -62,7 +62,7 @@ const useSpawnerNotebookModalState = (
       } else if (!startShown) {
         // We are running -- but we want to make sure we only redirect if the modal is not open
         // Last moments of spawning a notebook & before we send them to JL
-        navigate('/notebookController', { replace: true });
+        navigate('/notebook-controller', { replace: true });
       }
     }
   }, [notebook, navigate, startShown, isNotebookRunning, createInProgress, workbenchNamespace]);

@@ -21,7 +21,7 @@ class ModelServingToolbar extends Contextual<HTMLElement> {
 }
 class ModelServingGlobal {
   visit(project?: string) {
-    cy.visitWithLogin(`/modelServing${project ? `/${project}` : ''}`);
+    cy.visitWithLogin(`/ai-hub/deployments${project ? `/${project}` : ''}`);
     this.wait();
   }
 
@@ -424,14 +424,6 @@ class ServingRuntimeModal extends ServingModal {
 
   constructor(private edit = false) {
     super(`${edit ? 'Edit' : 'Add'} model server`);
-  }
-
-  findAuthorinoNotEnabledAlert() {
-    return this.find().findByTestId('no-authorino-installed-alert');
-  }
-
-  findTokenAuthAlert() {
-    return this.find().findByTestId('token-authentication-prerequisite-alert');
   }
 
   findSubmitButton() {
