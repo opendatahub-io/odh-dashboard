@@ -16,7 +16,7 @@ import { ChatbotSourceUploadPanel } from '~/app/Chatbot/sourceUpload/ChatbotSour
 import { ACCORDION_ITEMS } from '~/app/Chatbot/const';
 import useAccordionState from '~/app/Chatbot/hooks/useAccordionState';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
-import useFileManagement from '~/app/Chatbot/hooks/useFileManagement';
+import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
 import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
 import MCPServersPanelWithContext from '~/app/Chatbot/mcp/MCPServersPanelWithContext';
 import UploadedFilesList from './UploadedFilesList';
@@ -32,6 +32,7 @@ interface ChatbotSettingsPanelProps {
     errorAlert: React.ReactElement | undefined;
   };
   sourceManagement: UseSourceManagementReturn;
+  fileManagement: UseFileManagementReturn;
   systemInstruction: string;
   onSystemInstructionChange: (value: string) => void;
   isStreamingEnabled: boolean;
@@ -48,6 +49,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   onModelChange,
   alerts,
   sourceManagement,
+  fileManagement,
   systemInstruction,
   onSystemInstructionChange,
   isStreamingEnabled,
@@ -60,16 +62,6 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
 }) => {
   const accordionState = useAccordionState();
   const { selectedServersCount, saveSelectedServersToPlayground } = useMCPSelectionContext();
-
-  // File management hook for displaying uploaded files
-  const fileManagement = useFileManagement({
-    onShowSuccessAlert: () => {
-      // File deleted successfully - could show alert if needed
-    },
-    onShowErrorAlert: () => {
-      // File deletion failed - could show alert if needed
-    },
-  });
 
   // Assign the refresh function to the ref so it can be called from parent
   React.useEffect(() => {

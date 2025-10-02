@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { DropEvent } from '@patternfly/react-core';
 import { uploadSource } from '~/app/services/llamaStackService';
-import { ChatbotSourceSettings } from '~/app/types';
+import { ChatbotSourceSettings, FileModel } from '~/app/types';
 import { GenAiContext } from '~/app/context/GenAiContext';
 
 export type FileStatus = 'pending' | 'configured' | 'uploading' | 'uploaded' | 'failed';
@@ -32,12 +32,14 @@ interface UseSourceManagementProps {
   onShowSuccessAlert: () => void;
   onShowErrorAlert: () => void;
   onFileUploadComplete?: () => void;
+  uploadedFiles?: FileModel[];
 }
 
 const useSourceManagement = ({
   onShowSuccessAlert,
   onShowErrorAlert,
   onFileUploadComplete,
+  uploadedFiles = [],
 }: UseSourceManagementProps): UseSourceManagementReturn => {
   const { namespace } = React.useContext(GenAiContext);
   const [selectedSourceSettings, setSelectedSourceSettings] =
@@ -70,8 +72,24 @@ const useSourceManagement = ({
 
   const handleSourceDrop = React.useCallback(
     async (event: DropEvent, source: File[]) => {
-      // Add files to filesWithSettings with pending status
-      const newFilesWithSettings: FileWithSettings[] = source.map((file) => ({
+      // Filter out files that are already uploaded (check against API files)
+      const uploadedFileNames = uploadedFiles.map((file) => file.filename);
+      const newFiles = source.filter((file) => !uploadedFileNames.includes(file.name));
+
+      // Also filter out files that are already in the current queue
+      const currentFileNames = filesWithSettings.map(
+        (fileWithSettings) => fileWithSettings.file.name,
+      );
+      const uniqueNewFiles = newFiles.filter((file) => !currentFileNames.includes(file.name));
+
+      if (uniqueNewFiles.length === 0) {
+        // All files are duplicates, show error
+        onShowErrorAlert();
+        return;
+      }
+
+      // Add only unique files to filesWithSettings with pending status
+      const newFilesWithSettings: FileWithSettings[] = uniqueNewFiles.map((file) => ({
         file,
         settings: null,
         status: 'pending',
@@ -80,14 +98,14 @@ const useSourceManagement = ({
       setFilesWithSettings((prev) => [...prev, ...newFilesWithSettings]);
 
       // Process the first file in the queue
-      if (source.length > 0) {
+      if (uniqueNewFiles.length > 0) {
         // Small delay to allow state to update before processing
         setTimeout(() => {
           processNextFile();
         }, 100);
       }
     },
-    [processNextFile],
+    [processNextFile, uploadedFiles, filesWithSettings, onShowErrorAlert],
   );
 
   const removeUploadedSource = React.useCallback(

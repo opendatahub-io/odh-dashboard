@@ -17,6 +17,7 @@ import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettings
 import useSourceManagement from './hooks/useSourceManagement';
 import useAlertManagement from './hooks/useAlertManagement';
 import useChatbotMessages from './hooks/useChatbotMessages';
+import useFileManagement from './hooks/useFileManagement';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
@@ -55,13 +56,20 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   // Create a ref to store the file refresh function
   const fileRefreshRef = React.useRef<(() => void) | null>(null);
 
+  // File management hook for displaying uploaded files
+  const fileManagement = useFileManagement({
+    onShowSuccessAlert: alertManagement.onShowSuccessAlert,
+    onShowErrorAlert: alertManagement.onShowErrorAlert,
+  });
+
   const sourceManagement = useSourceManagement({
     onShowSuccessAlert: alertManagement.onShowSuccessAlert,
     onShowErrorAlert: alertManagement.onShowErrorAlert,
     onFileUploadComplete: () => {
       // Refresh the uploaded files list when a file upload completes
-      fileRefreshRef.current?.();
+      fileManagement.refreshFiles();
     },
+    uploadedFiles: fileManagement.files,
   });
 
   const chatbotMessages = useChatbotMessages({
@@ -99,6 +107,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       onModelChange={setSelectedModel}
       alerts={{ successAlert, errorAlert }}
       sourceManagement={sourceManagement}
+      fileManagement={fileManagement}
       systemInstruction={systemInstruction}
       onSystemInstructionChange={setSystemInstruction}
       isStreamingEnabled={isStreamingEnabled}

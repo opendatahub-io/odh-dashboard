@@ -7,7 +7,7 @@ import { UploadedFileItem } from './UploadedFileItem';
 type ChatbotSourceUploadPanelProps = {
   successAlert?: React.ReactElement;
   errorAlert?: React.ReactElement;
-  handleSourceDrop: (event: DropEvent, sources: File[]) => void;
+  handleSourceDrop: (event: DropEvent, sources: File[]) => void | Promise<void>;
   removeUploadedSource: (sourceName: string) => void;
   filesWithSettings: FileWithSettings[];
 };
