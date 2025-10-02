@@ -69,6 +69,37 @@ func (m *TokenKubernetesClientMock) GetNamespaces(ctx context.Context, identity 
 func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]models.AAModel, error) {
 	// Return different mock AA models based on namespace
 	switch namespace {
+	case "mock-test-namespace-1":
+		// Return only LLMInferenceService models for testing llm-d architecture
+		return []models.AAModel{
+			{
+				ModelName:      "llm-d-codestral-22b",
+				ServingRuntime: "Distributed Inference Server with llm-d",
+				APIProtocol:    "REST",
+				Version:        "",
+				Description:    "Mistral Codestral 22B model optimized for code generation with llm-d prefill/decode separation",
+				Usecase:        "Code generation, Software development",
+				Endpoints: []string{
+					fmt.Sprintf("internal: http://llm-d-codestral-22b.%s.svc.cluster.local:80", namespace),
+					fmt.Sprintf("external: https://llm-d-codestral-22b-%s.example.com", namespace),
+				},
+				Status:      "Running",
+				DisplayName: "LLM-D Codestral 22B",
+			},
+			{
+				ModelName:      "llm-d-deepseek-coder-33b",
+				ServingRuntime: "Distributed Inference Server with llm-d",
+				APIProtocol:    "REST",
+				Version:        "",
+				Description:    "DeepSeek Coder 33B model with llm-d architecture for high-performance code completion",
+				Usecase:        "Code completion, Programming assistance",
+				Endpoints: []string{
+					fmt.Sprintf("internal: http://llm-d-deepseek-coder-33b.%s.svc.cluster.local:80", namespace),
+				},
+				Status:      "Running",
+				DisplayName: "LLM-D DeepSeek Coder 33B",
+			},
+		}, nil
 	case "mock-test-namespace-2", "mock-test-namespace-3":
 		aaModels := []models.AAModel{
 			{
@@ -142,80 +173,57 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 			},
 		}
 
-		// Use mock helper methods to populate SA tokens
-		for i := range aaModels {
-			serviceAccountName, secretName := m.findServiceAccountAndSecretForInferenceService(ctx, aaModels[i].ModelName)
-			tokenValue, tokenName := m.extractTokenAndDisplayNameFromSecret(ctx, namespace, secretName)
-			aaModels[i].SAToken = models.SAToken{
-				Name:      serviceAccountName,
-				TokenName: tokenName,
-				Token:     tokenValue,
-			}
+		// LLMInferenceService examples (llm-d architecture)
+		llmDModels := []models.AAModel{
+			{
+				ModelName:      "llm-d-llama-3.1-70b",
+				ServingRuntime: "Distributed Inference Server with llm-d",
+				APIProtocol:    "REST",
+				Version:        "",
+				Description:    "Meta Llama 3.1 70B model served with llm-d disaggregated architecture for high throughput",
+				Usecase:        "Large-scale inference, High throughput",
+				Endpoints: []string{
+					fmt.Sprintf("internal: http://llm-d-llama-3.1-70b.%s.svc.cluster.local:80", namespace),
+					fmt.Sprintf("external: https://llm-d-llama-3.1-70b-%s.example.com", namespace),
+				},
+				Status:      "Running",
+				DisplayName: "LLM-D Llama 3.1 70B",
+			},
+			{
+				ModelName:      "llm-d-mixtral-8x7b",
+				ServingRuntime: "Distributed Inference Server with llm-d",
+				APIProtocol:    "REST",
+				Version:        "",
+				Description:    "Mistral Mixtral 8x7B MoE model with llm-d prefill/decode separation for optimal performance",
+				Usecase:        "Mixture of Experts, High efficiency",
+				Endpoints: []string{
+					fmt.Sprintf("internal: http://llm-d-mixtral-8x7b.%s.svc.cluster.local:80", namespace),
+					fmt.Sprintf("external: https://llm-d-mixtral-8x7b-%s.example.com", namespace),
+				},
+				Status:      "Running",
+				DisplayName: "LLM-D Mixtral 8x7B",
+			},
+			{
+				ModelName:      "llm-d-qwen2.5-72b",
+				ServingRuntime: "Distributed Inference Server with llm-d",
+				APIProtocol:    "REST",
+				Version:        "",
+				Description:    "Alibaba Qwen 2.5 72B model optimized with llm-d architecture for enterprise workloads",
+				Usecase:        "Enterprise AI, Multilingual",
+				Endpoints: []string{
+					fmt.Sprintf("internal: http://llm-d-qwen2.5-72b.%s.svc.cluster.local:80", namespace),
+				},
+				Status:      "Running",
+				DisplayName: "LLM-D Qwen 2.5 72B",
+			},
 		}
 
+		// Append LLM-D models to the existing models
+		aaModels = append(aaModels, llmDModels...)
 		return aaModels, nil
 	default:
 		return []models.AAModel{}, nil
 	}
-}
-
-// Mock implementation of findServiceAccountAndSecretForInferenceService
-func (m *TokenKubernetesClientMock) findServiceAccountAndSecretForInferenceService(_ context.Context, isvcName string) (string, string) {
-	// Mock service account names based on the model name
-	var serviceAccountName, secretName string
-
-	switch isvcName {
-	case "granite-7b-code":
-		serviceAccountName = "granite-sa"
-		secretName = "granite-sa-token"
-	case "llama-3.1-8b-instruct":
-		serviceAccountName = "llama-sa"
-		secretName = "llama-sa-token"
-	case "mistral-7b-instruct":
-		serviceAccountName = "mistral-sa"
-		secretName = "mistral-sa-token"
-	case "ollama/llama3.2:3b":
-		serviceAccountName = "ollama-sa"
-		secretName = "ollama-sa-token"
-	case "ollama/all-minilm:l6-v2":
-		serviceAccountName = "embedding-sa"
-		secretName = "embedding-sa-token"
-	default:
-		serviceAccountName = "default"
-		secretName = "default-token"
-	}
-
-	return serviceAccountName, secretName
-}
-
-// Mock implementation of extractTokenAndDisplayNameFromSecret
-func (m *TokenKubernetesClientMock) extractTokenAndDisplayNameFromSecret(_ context.Context, _, secretName string) (string, string) {
-	// Mock token values and display names based on secret name
-	tokenValue := ""
-	tokenName := ""
-
-	switch secretName {
-	case "granite-sa-token":
-		tokenValue = "eyJhbGciOiJSUzI1NiIsImtpZCI6Ik1yNS1BVWliZkJpaTdOZDFqQmViYXhib1hXMCJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tYWJjMTIzIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQubmFtZSI6ImRlZmF1bHQiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiIxMjM0NTY3OC05YWJjLWRlZjAtZ2hpai0xMjM0NTY3ODkwYWJjIiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50OmRlZmF1bHQ6ZGVmYXVsdCJ9.mock-token-signature"
-		tokenName = "granite-sa"
-	case "llama-sa-token":
-		tokenValue = "eyJhbGciOiJSUzI1NiIsImtpZCI6Ik1yNS1BVWliZkJpaTdOZDFqQmViYXhib1hXMCJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tZGVmNDU2Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQubmFtZSI6ImRlZmF1bHQiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiIxMjM0NTY3OC05YWJjLWRlZjAtZ2hpai0xMjM0NTY3ODkwYWJjIiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50OmRlZmF1bHQ6ZGVmYXVsdCJ9.mock-token-signature-def456"
-		tokenName = "llama-sa"
-	case "mistral-sa-token":
-		tokenValue = "eyJhbGciOiJSUzI1NiIsImtpZCI6Ik1yNS1BVWliZkJpaTdOZDFqQmViYXhib1hXMCJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tZ2hpNzg5Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQubmFtZSI6ImRlZmF1bHQiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiIxMjM0NTY3OC05YWJjLWRlZjAtZ2hpai0xMjM0NTY3ODkwYWJjIiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50OmRlZmF1bHQ6ZGVmYXVsdCJ9.mock-token-signature-ghi789"
-		tokenName = "mistral-sa"
-	case "ollama-sa-token":
-		tokenValue = "eyJhbGciOiJSUzI1NiIsImtpZCI6Ik1yNS1BVWliZkJpaTdOZDFqQmViYXhib1hXMCJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tamtsMDEyIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQubmFtZSI6ImRlZmF1bHQiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiIxMjM0NTY3OC05YWJjLWRlZjAtZ2hpai0xMjM0NTY3ODkwYWJjIiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50OmRlZmF1bHQ6ZGVmYXVsdCJ9.mock-token-signature-jkl012"
-		tokenName = "ollama-sa"
-	case "embedding-sa-token":
-		tokenValue = "eyJhbGciOiJSUzI1NiIsImtpZCI6Ik1yNS1BVWliZkJpaTdOZDFqQmViYXhib1hXMCJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tbW5vMzQ1Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQubmFtZSI6ImRlZmF1bHQiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiIxMjM0NTY3OC05YWJjLWRlZjAtZ2hpai0xMjM0NTY3ODkwYWJjIiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50OmRlZmF1bHQ6ZGVmYXVsdCJ9.mock-token-signature-mno345"
-		tokenName = "embedding-sa"
-	default:
-		tokenValue = "eyJhbGciOiJSUzI1NiIsImtpZCI6Ik1yNS1BVWliZkJpaTdOZDFqQmViYXhib1hXMCJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tYWJjMTIzIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQubmFtZSI6ImRlZmF1bHQiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiIxMjM0NTY3OC05YWJjLWRlZjAtZ2hpai0xMjM0NTY3ODkwYWJjIiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50OmRlZmF1bHQ6ZGVmYXVsdCJ9.mock-token-signature"
-		tokenName = "default-sa"
-	}
-
-	return tokenValue, tokenName
 }
 
 // IsClusterAdmin returns mock admin status for testing

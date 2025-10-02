@@ -50,3 +50,16 @@ func (r *ResponsesRepository) CreateResponseStream(ctx context.Context, params l
 func (r *ResponsesRepository) GetClient(ctx context.Context) (llamastack.LlamaStackClientInterface, error) {
 	return helper.GetContextLlamaStackClient(ctx)
 }
+
+// GetResponse retrieves a response by ID for validation purposes
+func (r *ResponsesRepository) GetResponse(ctx context.Context, responseID string) (*responses.Response, error) {
+	// Get ready-to-use LlamaStack client from context using helper
+	client, err := helper.GetContextLlamaStackClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Repository layer can add transformation logic here if needed
+	// For now, direct passthrough from client to handler
+	return client.GetResponse(ctx, responseID)
+}

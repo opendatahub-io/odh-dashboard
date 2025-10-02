@@ -492,4 +492,211 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 
 		assert.Contains(t, string(body), "server_url is required")
 	})
+
+	t.Run("should create response with previous response ID", func(t *testing.T) {
+		// Create a mock client that returns a valid response for GetResponse
+		mockClient := lsmocks.NewMockLlamaStackClient()
+		llamaStackClientFactory.SetMockClient(mockClient)
+
+		// Mock the GetResponse call to return a valid response
+		mockClient.SetGetResponseResult("prev-response-123", &lsmocks.MockResponse{
+			ID:     "prev-response-123",
+			Model:  "llama-3.1-8b",
+			Status: "completed",
+		})
+
+		payload := CreateResponseRequest{
+			Input:              "Continue our conversation",
+			Model:              "llama-3.1-8b",
+			PreviousResponseID: "prev-response-123",
+		}
+
+		req, err := createJSONRequest(payload)
+		assert.NoError(t, err)
+
+		// Simulate AttachLlamaStackClient middleware: create client and add to context
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackCreateResponseHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusCreated, rr.Code)
+
+		body, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response map[string]interface{}
+		err = json.Unmarshal(body, &response)
+		assert.NoError(t, err)
+		assert.Contains(t, response, "data")
+
+		// Verify the response data includes the previous response ID
+		data := response["data"].(map[string]interface{})
+		assert.Equal(t, "prev-response-123", data["previous_response_id"])
+	})
+
+	t.Run("should reject invalid previous response ID", func(t *testing.T) {
+		// Create a mock client that returns an error for GetResponse
+		mockClient := lsmocks.NewMockLlamaStackClient()
+		llamaStackClientFactory.SetMockClient(mockClient)
+
+		// Mock the GetResponse call to return an error
+		mockClient.SetGetResponseError("invalid-response-id", assert.AnError)
+
+		payload := CreateResponseRequest{
+			Input:              "Continue our conversation",
+			Model:              "llama-3.1-8b",
+			PreviousResponseID: "invalid-response-id",
+		}
+
+		req, err := createJSONRequest(payload)
+		assert.NoError(t, err)
+
+		// Simulate AttachLlamaStackClient middleware: create client and add to context
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackCreateResponseHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+		body, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		assert.Contains(t, string(body), "invalid previous response ID")
+	})
+
+	t.Run("should handle empty previous response ID", func(t *testing.T) {
+		payload := CreateResponseRequest{
+			Input:              "Hello, how are you?",
+			Model:              "llama-3.1-8b",
+			PreviousResponseID: "", // Empty string should be valid
+		}
+
+		req, err := createJSONRequest(payload)
+		assert.NoError(t, err)
+
+		// Simulate AttachLlamaStackClient middleware: create client and add to context
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackCreateResponseHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusCreated, rr.Code)
+
+		body, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response map[string]interface{}
+		err = json.Unmarshal(body, &response)
+		assert.NoError(t, err)
+		assert.Contains(t, response, "data")
+
+		// Verify the response data does not include previous_response_id when empty
+		data := response["data"].(map[string]interface{})
+		_, hasPreviousID := data["previous_response_id"]
+		assert.False(t, hasPreviousID)
+	})
+
+	t.Run("should reject request with both chat_context and previous_response_id", func(t *testing.T) {
+		payload := CreateResponseRequest{
+			Input: "Continue our conversation",
+			Model: "llama-3.1-8b",
+			ChatContext: []ChatContextMessage{
+				{
+					Role:    "user",
+					Content: "Hello",
+				},
+				{
+					Role:    "assistant",
+					Content: "Hi there!",
+				},
+			},
+			PreviousResponseID: "prev-response-123",
+		}
+
+		req, err := createJSONRequest(payload)
+		assert.NoError(t, err)
+
+		// Simulate AttachLlamaStackClient middleware: create client and add to context
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackCreateResponseHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+		body, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		assert.Contains(t, string(body), "chat_context and previous_response_id cannot be used together")
+	})
+
+	t.Run("should pass previous_response_id to LlamaStack client", func(t *testing.T) {
+		// Create a mock client that returns a valid response for GetResponse
+		mockClient := lsmocks.NewMockLlamaStackClient()
+		llamaStackClientFactory.SetMockClient(mockClient)
+
+		// Mock the GetResponse call to return a valid response
+		mockClient.SetGetResponseResult("prev-response-123", &lsmocks.MockResponse{
+			ID:     "prev-response-123",
+			Model:  "llama-3.1-8b",
+			Status: "completed",
+		})
+
+		payload := CreateResponseRequest{
+			Input:              "Continue our conversation",
+			Model:              "llama-3.1-8b",
+			PreviousResponseID: "prev-response-123",
+		}
+
+		req, err := createJSONRequest(payload)
+		assert.NoError(t, err)
+
+		// Simulate AttachLlamaStackClient middleware: create client and add to context
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackCreateResponseHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusCreated, rr.Code)
+
+		body, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response map[string]interface{}
+		err = json.Unmarshal(body, &response)
+		assert.NoError(t, err)
+		assert.Contains(t, response, "data")
+
+		// Verify the response data includes the previous response ID
+		data := response["data"].(map[string]interface{})
+		assert.Equal(t, "prev-response-123", data["previous_response_id"])
+
+		// Verify the response text acknowledges the previous response ID
+		// This confirms that the PreviousResponseID was passed to the mock client
+		output := data["output"].([]interface{})
+		assert.Greater(t, len(output), 0)
+		firstOutput := output[0].(map[string]interface{})
+		content := firstOutput["content"].([]interface{})
+		assert.Greater(t, len(content), 0)
+		firstContent := content[0].(map[string]interface{})
+		text := firstContent["text"].(string)
+		assert.Contains(t, text, "Continuing from previous response prev-response-123")
+	})
 }

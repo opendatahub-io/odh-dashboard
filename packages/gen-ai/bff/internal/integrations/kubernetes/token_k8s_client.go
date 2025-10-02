@@ -261,6 +261,60 @@ func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *inte
 		GenAIAssetLabelKey: "true",
 	})
 
+	// Convert InferenceServices to AAModel structs
+	aaModelsFromInfSvc, err := kc.getAAModelsFromInferenceService(ctx, namespace, labelSelector)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert LLMInferenceServices to AAModel structs
+	aaModelsFromLLMInfSvc, err := kc.getAAModelsFromLLMInferenceService(ctx, namespace, labelSelector)
+	if err != nil {
+		return nil, err
+	}
+
+	// Combine both lists
+	var allAAModels []models.AAModel
+	allAAModels = append(allAAModels, aaModelsFromInfSvc...)
+	allAAModels = append(allAAModels, aaModelsFromLLMInfSvc...)
+
+	kc.Logger.Info("successfully fetched AAModels", "count", len(allAAModels), "namespace", namespace, "inferenceServices", len(aaModelsFromInfSvc), "llmInferenceServices", len(aaModelsFromLLMInfSvc))
+	return allAAModels, nil
+}
+
+func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.Context, namespace string, labelSelector labels.Selector) ([]models.AAModel, error) {
+	var llmInferenceServiceList kservev1alpha1.LLMInferenceServiceList
+	listOptions := &client.ListOptions{
+		Namespace:     namespace,
+		LabelSelector: labelSelector,
+	}
+
+	err := kc.Client.List(ctx, &llmInferenceServiceList, listOptions)
+	if err != nil {
+		kc.Logger.Error("failed to list LLMInferenceServices", "error", err, "namespace", namespace)
+		return nil, fmt.Errorf("failed to list LLMInferenceServices: %w", err)
+	}
+
+	var aaModels []models.AAModel
+	for _, llmSvc := range llmInferenceServiceList.Items {
+
+		aaModel := models.AAModel{
+			ModelName:      llmSvc.Name,
+			Description:    kc.extractDescriptionFromLLMInferenceService(&llmSvc),
+			ServingRuntime: "Distributed Inference Server with llm-d",
+			APIProtocol:    "REST",
+			Usecase:        kc.extractUseCaseFromLLMInferenceService(&llmSvc),
+			Endpoints:      kc.extractEndpointsFromLLMInferenceService(&llmSvc),
+			Status:         kc.extractStatusFromLLMInferenceService(&llmSvc),
+			DisplayName:    kc.extractDisplayNameFromLLMInferenceService(&llmSvc),
+		}
+		aaModels = append(aaModels, aaModel)
+	}
+	return aaModels, nil
+}
+
+// getAAModelsFromInferenceService converts a list of InferenceServices to AAModel structs
+func (kc *TokenKubernetesClient) getAAModelsFromInferenceService(ctx context.Context, namespace string, labelSelector labels.Selector) ([]models.AAModel, error) {
 	var inferenceServiceList kservev1beta1.InferenceServiceList
 	listOptions := &client.ListOptions{
 		Namespace:     namespace,
@@ -272,8 +326,6 @@ func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *inte
 		kc.Logger.Error("failed to list InferenceServices", "error", err, "namespace", namespace)
 		return nil, fmt.Errorf("failed to list InferenceServices: %w", err)
 	}
-
-	// Convert InferenceServices to AAModel structs
 	var aaModels []models.AAModel
 	for _, isvc := range inferenceServiceList.Items {
 		// Extract serving runtime name from the InferenceService
@@ -299,8 +351,6 @@ func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *inte
 		}
 		aaModels = append(aaModels, aaModel)
 	}
-
-	kc.Logger.Info("successfully fetched AAModels", "count", len(aaModels), "namespace", namespace)
 	return aaModels, nil
 }
 
@@ -543,6 +593,70 @@ func (kc *TokenKubernetesClient) extractTokenAndDisplayNameFromSecret(ctx contex
 	}
 
 	return tokenValue, tokenName
+}
+
+// Helper method to extract description from LLMInferenceService annotations
+func (kc *TokenKubernetesClient) extractDescriptionFromLLMInferenceService(llmSvc *kservev1alpha1.LLMInferenceService) string {
+	if llmSvc == nil || llmSvc.Annotations == nil {
+		return ""
+	}
+	return llmSvc.Annotations[InferenceServiceDescriptionAnnotation]
+}
+
+// Helper method to extract use case from LLMInferenceService annotations
+func (kc *TokenKubernetesClient) extractUseCaseFromLLMInferenceService(llmSvc *kservev1alpha1.LLMInferenceService) string {
+	if llmSvc == nil || llmSvc.Annotations == nil {
+		return ""
+	}
+	return llmSvc.Annotations[InferenceServiceUseCaseAnnotation]
+}
+
+// Helper method to extract endpoints from LLMInferenceService
+func (kc *TokenKubernetesClient) extractEndpointsFromLLMInferenceService(llmSvc *kservev1alpha1.LLMInferenceService) []string {
+	endpoints := []string{}
+
+	// Extract internal endpoint from Address
+	if llmSvc.Status.Address != nil && llmSvc.Status.Address.URL != nil {
+		internal := llmSvc.Status.Address.URL.String()
+		endpoints = append(endpoints, fmt.Sprintf("internal: %s", internal))
+	}
+
+	// Extract external endpoint from URL
+	if llmSvc.Status.URL != nil {
+		external := llmSvc.Status.URL.String()
+		if strings.Contains(external, ".svc.cluster.local") {
+			return endpoints
+		}
+		// Only add if it's different from internal and not internal service
+		if len(endpoints) == 0 || !strings.Contains(endpoints[0], external) {
+			endpoints = append(endpoints, fmt.Sprintf("external: %s", external))
+		}
+	}
+	return endpoints
+}
+
+// Helper method to extract status from LLMInferenceService
+func (kc *TokenKubernetesClient) extractStatusFromLLMInferenceService(llmSvc *kservev1alpha1.LLMInferenceService) string {
+	// Simply check if the overall service is ready
+	for _, condition := range llmSvc.Status.Conditions {
+		if condition.Type == "Ready" && condition.Status == "True" {
+			return "Running"
+		}
+	}
+	return "Stop"
+}
+
+// Helper method to extract display name from LLMInferenceService annotations
+func (kc *TokenKubernetesClient) extractDisplayNameFromLLMInferenceService(llmSvc *kservev1alpha1.LLMInferenceService) string {
+	if llmSvc == nil || llmSvc.Annotations == nil {
+		return ""
+	}
+	// If display name is not present, use the LLM inference service name
+	displayName := llmSvc.Annotations[DisplayNameAnnotation]
+	if displayName == "" {
+		return llmSvc.Name
+	}
+	return displayName
 }
 
 func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []string) (*lsdapi.LlamaStackDistribution, error) {

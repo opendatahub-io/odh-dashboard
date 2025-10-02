@@ -47,11 +47,12 @@ type StreamingEvent struct {
 
 // ResponseData represents the response structure for both streaming and non-streaming
 type ResponseData struct {
-	ID        string       `json:"id"`
-	Model     string       `json:"model"`
-	Status    string       `json:"status"`
-	CreatedAt int64        `json:"created_at"`
-	Output    []OutputItem `json:"output,omitempty"`
+	ID                 string       `json:"id"`
+	Model              string       `json:"model"`
+	Status             string       `json:"status"`
+	CreatedAt          int64        `json:"created_at"`
+	Output             []OutputItem `json:"output,omitempty"`
+	PreviousResponseID string       `json:"previous_response_id,omitempty"` // Reference to previous response in conversation thread
 }
 
 // OutputItem represents an output item with essential fields
@@ -98,13 +99,14 @@ type CreateResponseRequest struct {
 	Input string `json:"input"`
 	Model string `json:"model"`
 
-	VectorStoreIDs []string             `json:"vector_store_ids,omitempty"` // Enables RAG
-	ChatContext    []ChatContextMessage `json:"chat_context,omitempty"`     // Conversation history
-	Temperature    *float64             `json:"temperature,omitempty"`      // Controls creativity (0.0-2.0)
-	TopP           *float64             `json:"top_p,omitempty"`            // Controls randomness (0.0-1.0)
-	Instructions   string               `json:"instructions,omitempty"`     // System message/behavior
-	Stream         bool                 `json:"stream,omitempty"`           // Enable streaming response
-	MCPServers     []MCPServer          `json:"mcp_servers,omitempty"`      // MCP server configurations
+	VectorStoreIDs     []string             `json:"vector_store_ids,omitempty"`     // Enables RAG
+	ChatContext        []ChatContextMessage `json:"chat_context,omitempty"`         // Conversation history
+	Temperature        *float64             `json:"temperature,omitempty"`          // Controls creativity (0.0-2.0)
+	TopP               *float64             `json:"top_p,omitempty"`                // Controls randomness (0.0-1.0)
+	Instructions       string               `json:"instructions,omitempty"`         // System message/behavior
+	Stream             bool                 `json:"stream,omitempty"`               // Enable streaming response
+	MCPServers         []MCPServer          `json:"mcp_servers,omitempty"`          // MCP server configurations
+	PreviousResponseID string               `json:"previous_response_id,omitempty"` // Link to previous response for conversation continuity
 }
 
 // convertToStreamingEvent converts a LlamaStack event to our clean StreamingEvent schema
@@ -210,16 +212,31 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		}
 	}
 
+	// Validate that chat_context and previous_response_id are not used together
+	if len(createRequest.ChatContext) > 0 && createRequest.PreviousResponseID != "" {
+		app.badRequestResponse(w, r, errors.New("chat_context and previous_response_id cannot be used together. Use either chat_context for manual conversation history or previous_response_id for automatic conversation threading"))
+		return
+	}
+
+	// Validate previous response ID if provided
+	if createRequest.PreviousResponseID != "" {
+		if err := app.validatePreviousResponse(ctx, createRequest.PreviousResponseID); err != nil {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid previous response ID: %w", err))
+			return
+		}
+	}
+
 	// Convert to client params (only working parameters)
 	params := llamastack.CreateResponseParams{
-		Input:          createRequest.Input,
-		Model:          createRequest.Model,
-		VectorStoreIDs: createRequest.VectorStoreIDs,
-		ChatContext:    chatContext,
-		Temperature:    createRequest.Temperature,
-		TopP:           createRequest.TopP,
-		Instructions:   createRequest.Instructions,
-		Tools:          mcpServerParams,
+		Input:              createRequest.Input,
+		Model:              createRequest.Model,
+		VectorStoreIDs:     createRequest.VectorStoreIDs,
+		ChatContext:        chatContext,
+		Temperature:        createRequest.Temperature,
+		TopP:               createRequest.TopP,
+		Instructions:       createRequest.Instructions,
+		Tools:              mcpServerParams,
+		PreviousResponseID: createRequest.PreviousResponseID,
 	}
 
 	// Handle streaming vs non-streaming responses
@@ -331,6 +348,11 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 	// Convert to clean response data
 	responseData := convertToResponseData(llamaResponse)
 
+	// Add previous response ID to response data if provided
+	if params.PreviousResponseID != "" {
+		responseData.PreviousResponseID = params.PreviousResponseID
+	}
+
 	apiResponse := llamastack.APIResponse{
 		Data: responseData,
 	}
@@ -339,4 +361,19 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+// validatePreviousResponse validates that a previous response ID exists and is accessible
+func (app *App) validatePreviousResponse(ctx context.Context, responseID string) error {
+	if responseID == "" {
+		return nil // Empty ID is valid (no previous response)
+	}
+
+	// Use the repository to validate the response exists
+	_, err := app.repositories.Responses.GetResponse(ctx, responseID)
+	if err != nil {
+		return fmt.Errorf("previous response not found or not accessible: %w", err)
+	}
+
+	return nil
 }
