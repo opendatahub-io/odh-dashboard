@@ -209,13 +209,13 @@ jobs:
           export HTPASSWD_CLUSTER_ADMIN_AUTH_TYPE HTPASSWD_CLUSTER_ADMIN_USERNAME HTPASSWD_CLUSTER_ADMIN_PASSWORD
           export LDAP_CONTRIBUTOR_AUTH_TYPE LDAP_CONTRIBUTOR_USERNAME LDAP_CONTRIBUTOR_PASSWORD
           
-          HTPASSWD_JSON=$(jq -n \
+          HTPASSWD_JSON=$(jq -n -c \
             --arg auth_type "$HTPASSWD_CLUSTER_ADMIN_AUTH_TYPE" \
             --arg username "$HTPASSWD_CLUSTER_ADMIN_USERNAME" \
             --arg password "$HTPASSWD_CLUSTER_ADMIN_PASSWORD" \
             '{"AUTH_TYPE": $auth_type, "USERNAME": $username, "PASSWORD": $password}')
           
-          LDAP_JSON=$(jq -n \
+          LDAP_JSON=$(jq -n -c \
             --arg auth_type "$LDAP_CONTRIBUTOR_AUTH_TYPE" \
             --arg username "$LDAP_CONTRIBUTOR_USERNAME" \
             --arg password "$LDAP_CONTRIBUTOR_PASSWORD" \
