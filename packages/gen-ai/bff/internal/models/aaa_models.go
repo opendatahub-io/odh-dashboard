@@ -2,6 +2,7 @@ package models
 
 type AAModel struct {
 	ModelName      string   `json:"model_name"`
+	ModelID        string   `json:"model_id"`
 	ServingRuntime string   `json:"serving_runtime"`
 	APIProtocol    string   `json:"api_protocol"`
 	Version        string   `json:"version"`

@@ -1153,6 +1153,7 @@ components:
       type: object
       required:
         - model_name
+        - model_id
         - serving_runtime
         - api_protocol
         - version
@@ -1163,6 +1164,10 @@ components:
           type: string
           example: 'llama-32-3b-instruct'
           description: Name of the AI model
+        model_id:
+          type: string
+          example: 'llama-32-3b-instruct'
+          description: Unique identifier for the AI model
         serving_runtime:
           type: string
           example: 'OpenVINO Model Server'
