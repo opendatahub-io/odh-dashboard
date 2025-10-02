@@ -110,7 +110,7 @@ class ClusterStorageModal extends Modal {
     return this.findWorkbenchTable()
       .find(`[data-label=Name]`)
       .eq(row)
-      .findByTestId('typeahead-menu-toggle');
+      .findByTestId('cluster-storage-workbench-select');
   }
 
   findWorkbenchSelectValueField(row: number) {

@@ -47,11 +47,15 @@ export const handleSecretOwnerReferencePatch = (
     !dryRun &&
     modelLocationData?.type !== ModelLocationType.EXISTING
   ) {
-    // Patch the secret but don't wait for it
+    // Patch the secret with owner ref but don't wait for it
     (async () => {
       try {
         const secret = await getSecret(inferenceService.metadata.namespace, secretName);
         const uid = inferenceService.metadata.uid ?? '';
+        if (!uid) {
+          console.warn('UID is not present, skipping owner reference patch', uid);
+          return;
+        }
         await patchSecretWithInferenceServiceOwnerReference(secret, inferenceService, uid);
       } catch (err) {
         console.warn('Skipping owner reference patch, secret not ready yet', err);
