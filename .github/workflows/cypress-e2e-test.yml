@@ -113,11 +113,6 @@ jobs:
 
       - name: Login to OpenShift cluster
         run: |
-          if [ -z "${{ secrets.OC_SERVER }}" ]; then
-            echo "⚠️  OpenShift secrets not available - skipping cluster login"
-            exit 0
-          fi
-
           TEST_VARS_FILE="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
           OC_USERNAME=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
           OC_PASSWORD=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
@@ -286,9 +281,18 @@ jobs:
           export CY_RESULTS_DIR="${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}"
           mkdir -p "$CY_RESULTS_DIR"
           
-          echo "Running E2E tests on port $CYPRESS_PORT"
+          echo "Running E2E tests"
           echo "Test tag: ${{ matrix.test-tag }}"
           echo "Start time: $(date)"
+          echo "Port: $CYPRESS_PORT"
+          echo "BASE_URL format: http://localhost:[PORT]"
+          
+          # Verify the port is accessible before running tests
+          if curl -s -f http://localhost:$CYPRESS_PORT/ > /dev/null; then
+            echo "✓ Server is accessible on configured port"
+          else
+            echo "✗ WARNING: Server is NOT accessible on configured port"
+          fi
           
           # Run tests against dynamic port
           BASE_URL=http://localhost:$CYPRESS_PORT npm run cypress:run:electron -- \
