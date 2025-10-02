@@ -971,8 +971,20 @@ class ModelServingWizard extends Wizard {
     return this.findModelLocationSelect().findSelectOption(name);
   }
 
+  findExistingConnectionSelect() {
+    return cy.findByTestId('typeahead-menu-toggle');
+  }
+
+  findOCIModelURI() {
+    return cy.findByTestId('model-uri');
+  }
+
   findUrilocationInput() {
     return cy.findByTestId('field URI');
+  }
+
+  findUrilocationInputError() {
+    return cy.findByTestId('uri-form-field-helper-text');
   }
 
   findExternalRouteCheckbox() {
@@ -1063,6 +1075,38 @@ class ModelServingWizard extends Wizard {
 
   findUseCaseInput() {
     return cy.findByTestId('use-case-input');
+  }
+
+  findCPURequestedInput() {
+    return cy.findByTestId('cpu-requests-input').find('input');
+  }
+
+  findCPURequestedButton(type: 'Plus' | 'Minus') {
+    return cy.findByTestId('cpu-requests-input').findByRole('button', { name: type });
+  }
+
+  findCPULimitInput() {
+    return cy.findByTestId('cpu-limits-input').find('input');
+  }
+
+  findCPULimitButton(type: 'Plus' | 'Minus') {
+    return cy.findByTestId('cpu-limits-input').findByRole('button', { name: type });
+  }
+
+  findMemoryRequestedInput() {
+    return cy.findByTestId('memory-requests-input').find('input');
+  }
+
+  findMemoryRequestedButton(type: 'Plus' | 'Minus') {
+    return cy.findByTestId('memory-requests-input').findByRole('button', { name: type });
+  }
+
+  findMemoryLimitInput() {
+    return cy.findByTestId('memory-limits-input').find('input');
+  }
+
+  findMemoryLimitButton(type: 'Plus' | 'Minus') {
+    return cy.findByTestId('memory-limits-input').findByRole('button', { name: type });
   }
 }
 

@@ -832,6 +832,66 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
   });
 
+  it('Verify cpu and memory request and limits values when editing KServe model', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockInferenceServiceK8sResource({
+          modelType: ServingRuntimeModelType.PREDICTIVE,
+          hasExternalRoute: true,
+          hardwareProfileName: 'large-profile',
+          hardwareProfileNamespace: 'opendatahub',
+          description: 'test-description',
+          resources: {
+            requests: {
+              cpu: '4',
+              memory: '8Gi',
+            },
+            limits: {
+              cpu: '8',
+              memory: '16Gi',
+            },
+          },
+          storageUri: 'https://test',
+        }),
+      ]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+    );
+
+    // TODO: visit directly when plugin is enabled
+    cy.visitWithLogin(
+      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
+    );
+    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
+
+    // Step 1: Model source
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+    // Step 2: Model deployment
+    hardwareProfileSection.findSelect().should('contain.text', 'Large Profile');
+    hardwareProfileSection.findCustomizeButton().should('exist');
+    modelServingWizardEdit.findCPURequestedInput().should('have.value', '4');
+    modelServingWizardEdit.findCPULimitInput().should('have.value', '8');
+    modelServingWizardEdit.findMemoryRequestedInput().should('have.value', '8');
+    modelServingWizardEdit.findMemoryLimitInput().should('have.value', '16');
+
+    modelServingWizardEdit.findCPURequestedButton('Plus').click();
+    modelServingWizardEdit.findCPULimitButton('Minus').click();
+    modelServingWizardEdit.findMemoryRequestedButton('Plus').click();
+    modelServingWizardEdit.findMemoryLimitButton('Minus').click();
+
+    modelServingWizardEdit.findCPURequestedInput().should('have.value', '5');
+    modelServingWizardEdit.findCPULimitInput().should('have.value', '7');
+    modelServingWizardEdit.findMemoryRequestedInput().should('have.value', '9');
+    modelServingWizardEdit.findMemoryLimitInput().should('have.value', '15');
+
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+  });
+
   describe('redirect from v2 to v3 route', () => {
     // TODO: visit directly when plugin is enabled
     const featureFlagParam = '?devFeatureFlags=Model+Serving+Plugin%3Dtrue';
