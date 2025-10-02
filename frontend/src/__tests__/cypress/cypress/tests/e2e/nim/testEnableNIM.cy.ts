@@ -24,7 +24,7 @@ import {
  * The test is designed to work in both ODH and RHOAI environments,
  * automatically handling cases where NIM is not included by default.
  */
-describe('[Product Bug: RHOAIENG-34177] Verify NIM enable flow', () => {
+describe('Verify NIM enable flow', () => {
   before(() => {
     cy.step('Clean up any existing NIM account before test');
     deleteNIMAccount();
@@ -32,7 +32,7 @@ describe('[Product Bug: RHOAIENG-34177] Verify NIM enable flow', () => {
 
   it(
     'Enable and validate NIM flow',
-    { tags: ['@NIM', '@Sanity', '@SanitySet3', '@NonConcurrent', '@Bug'] },
+    { tags: ['@NIM', '@Sanity', '@SanitySet3', '@NonConcurrent'] },
     function enableAndValidateNIMFlow() {
       cy.step('Login to the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
