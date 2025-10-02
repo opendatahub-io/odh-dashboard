@@ -571,6 +571,63 @@ func (m *MockLlamaStackClient) ListFiles(ctx context.Context, params llamastack.
 	}, nil
 }
 
+// GetFile returns mock file details by ID
+func (m *MockLlamaStackClient) GetFile(ctx context.Context, fileID string) (*openai.FileObject, error) {
+	if fileID == "" {
+		return nil, fmt.Errorf("fileID is required")
+	}
+
+	// Return mock file details based on ID
+	mockFiles := map[string]openai.FileObject{
+		"file-mock123abc456def": {
+			ID:        "file-mock123abc456def",
+			Object:    "file",
+			Bytes:     1024,
+			CreatedAt: 1755721386,
+			Filename:  "mock_document.txt",
+			Purpose:   "assistants",
+		},
+		"file-mock789ghi012jkl": {
+			ID:        "file-mock789ghi012jkl",
+			Object:    "file",
+			Bytes:     2048,
+			CreatedAt: 1755721400,
+			Filename:  "mock_data.pdf",
+			Purpose:   "assistants",
+		},
+		"file-f76dd7ebee5c48048f3b97b44dff6b97": {
+			ID:        "file-f76dd7ebee5c48048f3b97b44dff6b97",
+			Object:    "file",
+			Bytes:     14522,
+			CreatedAt: 1759415698,
+			Filename:  "test_document_1.pdf",
+			Purpose:   "assistants",
+		},
+		"file-7376f43495fa4b4a8f6dbe93bbe9f187": {
+			ID:        "file-7376f43495fa4b4a8f6dbe93bbe9f187",
+			Object:    "file",
+			Bytes:     14522,
+			CreatedAt: 1759415696,
+			Filename:  "test_document_2.pdf",
+			Purpose:   "assistants",
+		},
+	}
+
+	if file, exists := mockFiles[fileID]; exists {
+		return &file, nil
+	}
+
+	// Return generic mock file for unknown IDs
+	return &openai.FileObject{
+		ID:        fileID,
+		Object:    "file",
+		Bytes:     1024,
+		CreatedAt: 1759412258,
+		Filename:  "unknown_file.txt",
+		Purpose:   "assistants",
+	}, nil
+}
+
 // DeleteFile returns success for mock deletion
 func (m *MockLlamaStackClient) DeleteFile(ctx context.Context, fileID string) error {
 	if fileID == "" {

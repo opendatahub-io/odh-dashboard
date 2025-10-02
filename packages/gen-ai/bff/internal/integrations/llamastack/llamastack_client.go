@@ -522,6 +522,20 @@ func (c *LlamaStackClient) ListFiles(ctx context.Context, params ListFilesParams
 	return filesPage.Data, nil
 }
 
+// GetFile retrieves a file by ID.
+func (c *LlamaStackClient) GetFile(ctx context.Context, fileID string) (*openai.FileObject, error) {
+	if fileID == "" {
+		return nil, fmt.Errorf("fileID is required")
+	}
+
+	file, err := c.client.Files.Get(ctx, fileID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get file: %w", err)
+	}
+
+	return file, nil
+}
+
 // DeleteFile deletes a file by ID.
 func (c *LlamaStackClient) DeleteFile(ctx context.Context, fileID string) error {
 	if fileID == "" {
