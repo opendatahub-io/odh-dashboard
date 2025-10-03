@@ -186,9 +186,6 @@ const useSourceManagement = ({
           // Refresh the uploaded files list
           onFileUploadComplete?.();
         } catch (error) {
-          // eslint-disable-next-line no-console
-          console.error('Upload failed:', error);
-
           // Update the file status to failed
           setFilesWithSettings((prev) =>
             prev.map((fileWithSettings) =>
