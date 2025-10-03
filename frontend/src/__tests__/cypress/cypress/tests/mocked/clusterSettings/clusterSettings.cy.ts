@@ -120,7 +120,7 @@ describe('Cluster Settings', () => {
         pvcSize: 20,
         cullerTimeout: 31536000,
         userTrackingEnabled: true,
-        notebookTolerationSettings: { enabled: false, key: 'NotebooksOnlyChange' },
+        notebookTolerationSettings: { enabled: false, key: 'NotebooksOnly' },
         modelServingPlatformEnabled: {
           kServe: true,
           modelMesh: false,
