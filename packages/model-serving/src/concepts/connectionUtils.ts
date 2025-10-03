@@ -2,6 +2,8 @@ import {
   createSecret,
   getSecret,
   patchSecretWithOwnerReference,
+  patchSecretWithProtocolAnnotation,
+  hasProtocolAnnotation,
 } from '@odh-dashboard/internal/api/index';
 import { SecretKind } from '@odh-dashboard/internal/k8sTypes';
 import {
@@ -9,43 +11,11 @@ import {
   getConnectionProtocolType,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { useResolvedDeploymentExtension } from './extensionUtils';
 import { CreateConnectionData } from '../components/deploymentWizard/fields/CreateConnectionInputFields';
-import {
-  Deployment,
-  ModelServingConnectionCreation,
-  isModelServingConnectionCreation,
-} from '../../extension-points';
 import {
   ModelLocationData,
   ModelLocationType,
 } from '../components/deploymentWizard/fields/modelLocationFields/types';
-
-export const useConnectionCreation = (
-  deployment?: Deployment,
-): {
-  handleConnectionCreation?: (
-    createConnectionData: CreateConnectionData,
-    project: string,
-    modelLocationData?: ModelLocationData,
-    secretName?: string,
-    dryRun?: boolean,
-  ) => Promise<SecretKind | undefined>;
-  loaded: boolean;
-  errors: Error[];
-} => {
-  const [extension, loaded, errors] =
-    useResolvedDeploymentExtension<ModelServingConnectionCreation>(
-      isModelServingConnectionCreation,
-      deployment,
-    );
-
-  return {
-    handleConnectionCreation: extension?.properties.handleConnectionCreation,
-    loaded,
-    errors,
-  };
-};
 
 export const handleConnectionCreation = async (
   createConnectionData: CreateConnectionData,
@@ -54,8 +24,27 @@ export const handleConnectionCreation = async (
   secretName?: string,
   dryRun?: boolean,
 ): Promise<SecretKind | undefined> => {
-  // Don't do anything if the connection already exists
-  if (modelLocationData?.type === ModelLocationType.EXISTING || !modelLocationData) {
+  if (!modelLocationData) {
+    return Promise.resolve(undefined);
+  }
+  const protocolType = modelLocationData.connectionTypeObject
+    ? getConnectionProtocolType(modelLocationData.connectionTypeObject)
+    : 'uri';
+
+  // If the connection already exists, patch the protocol annotation if it needs it, but don't wait for it
+  if (modelLocationData.type === ModelLocationType.EXISTING) {
+    getSecret(project, modelLocationData.connection ?? '')
+      .then((secret) => {
+        if (!hasProtocolAnnotation(secret)) {
+          patchSecretWithProtocolAnnotation(secret, protocolType).catch((err) => {
+            console.warn('Failed to patch protocol annotation:', err);
+          });
+        }
+      })
+      .catch((err) => {
+        console.warn('Failed to get secret for protocol annotation:', err);
+      });
+
     return Promise.resolve(undefined);
   }
 
@@ -82,10 +71,6 @@ export const handleConnectionCreation = async (
   );
 
   // Apply protocol annotation based on base connection type
-  const protocolType = modelLocationData.connectionTypeObject
-    ? getConnectionProtocolType(modelLocationData.connectionTypeObject)
-    : 'uri';
-
   const annotatedConnection = {
     ...newConnection,
     metadata: {
@@ -102,7 +87,16 @@ export const handleConnectionCreation = async (
     // Remove dashboard resource label so it doesn't show in connections list
     annotatedConnection.metadata.labels['opendatahub.io/dashboard'] = 'false';
   }
-  return createSecret(annotatedConnection, { dryRun: dryRun ?? false });
+  const secret = await createSecret(annotatedConnection, { dryRun: dryRun ?? false });
+
+  if (!dryRun) {
+    return getSecret(project, secret.metadata.name).catch((e) => {
+      console.error('Secret was created but not found:', e);
+      throw e;
+    });
+  }
+
+  return secret;
 };
 
 export const handleSecretOwnerReferencePatch = async (
@@ -116,7 +110,8 @@ export const handleSecretOwnerReferencePatch = async (
   if (
     !createConnectionData.saveConnection &&
     !dryRun &&
-    modelLocationData.type !== ModelLocationType.EXISTING
+    modelLocationData.type !== ModelLocationType.EXISTING &&
+    resource.metadata.namespace
   ) {
     // Patch the secret with owner ref but don't wait for it
     try {

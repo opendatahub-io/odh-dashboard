@@ -12,9 +12,8 @@ import { ModelSourceStepContent } from './steps/ModelSourceStep';
 import { AdvancedSettingsStepContent } from './steps/AdvancedOptionsStep';
 import { ModelDeploymentStepContent } from './steps/ModelDeploymentStep';
 import { useDeployMethod } from './useDeployMethod';
+import { useConnectionCreation } from './useConnectionCreation';
 import { WizardFooterWithDisablingNext } from '../generic/WizardFooterWithDisablingNext';
-import { isModelServingConnectionCreation } from '../../../extension-points';
-import { useResolvedDeploymentExtension } from '../../concepts/extensionUtils';
 
 type ModelDeploymentWizardProps = {
   title: string;
@@ -34,10 +33,6 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [connectionExtension, connectionExtensionLoaded] = useResolvedDeploymentExtension(
-    isModelServingConnectionCreation,
-  );
-
   const exitWizard = React.useCallback(() => {
     navigate(getDeploymentWizardExitRoute(location.pathname));
   }, [navigate, location.pathname]);
@@ -46,22 +41,21 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   const validation = useModelDeploymentWizardValidation(wizardState.state);
 
   const { deployMethod, deployMethodLoaded } = useDeployMethod(wizardState.state);
-  const secretName =
-    wizardState.state.createConnectionData.data.nameDesc?.name ||
-    wizardState.state.modelLocationData.data?.connection ||
-    getGeneratedSecretName();
+  const { connectionMethod, connectionMethodLoaded } = useConnectionCreation(wizardState.state);
 
-  if (
-    !wizardState.state.createConnectionData.data.nameDesc?.name ||
-    !wizardState.state.createConnectionData.data.nameDesc.k8sName.value
-  ) {
+  const secretName = React.useMemo(() => {
+    const name =
+      wizardState.state.modelLocationData.data?.connection ??
+      wizardState.state.createConnectionData.data.nameDesc?.name ??
+      getGeneratedSecretName();
+
     wizardState.state.createConnectionData.setData({
       ...wizardState.state.createConnectionData.data,
       nameDesc: {
-        name: secretName,
+        name,
         description: wizardState.state.createConnectionData.data.nameDesc?.description || '',
         k8sName: {
-          value: secretName,
+          value: name,
           state: {
             immutable: false,
             invalidCharacters: false,
@@ -72,7 +66,11 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         },
       },
     });
-  }
+    return name;
+  }, [
+    wizardState.state.createConnectionData.data.nameDesc?.name,
+    wizardState.state.modelLocationData.data?.connection,
+  ]);
 
   const onSave = React.useCallback(() => {
     // Use existing validation to prevent submission with invalid data
@@ -81,7 +79,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       !validation.isModelDeploymentStepValid ||
       !deployMethodLoaded ||
       !deployMethod ||
-      !connectionExtensionLoaded
+      !connectionMethodLoaded
     ) {
       return;
     }
@@ -98,7 +96,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       : undefined;
 
     Promise.all([
-      connectionExtension?.properties.handleConnectionCreation(
+      connectionMethod?.properties.handleConnectionCreation(
         wizardState.state.createConnectionData.data,
         project.metadata.name,
         wizardState.state.modelLocationData.data,
@@ -115,7 +113,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       ),
     ]).then(() => {
       Promise.all([
-        connectionExtension?.properties.handleConnectionCreation(
+        connectionMethod?.properties.handleConnectionCreation(
           wizardState.state.createConnectionData.data,
           project.metadata.name,
           wizardState.state.modelLocationData.data,
@@ -136,7 +134,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         }
 
         Promise.all([
-          connectionExtension?.properties.handleSecretOwnerReferencePatch(
+          connectionMethod?.properties.handleSecretOwnerReferencePatch(
             wizardState.state.createConnectionData.data,
             deploymentResult.model,
             wizardState.state.modelLocationData.data,
@@ -154,6 +152,8 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     project.metadata.name,
     deployMethodLoaded,
     deployMethod,
+    connectionMethodLoaded,
+    connectionMethod,
     wizardState.state,
     validation.isModelSourceStepValid,
     validation.isModelDeploymentStepValid,
