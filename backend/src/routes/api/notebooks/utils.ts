@@ -8,7 +8,6 @@ import {
   generateNotebookNameFromUsername,
   getNamespaces,
   getNotebook,
-  getRoute,
   updateNotebook,
 } from '../../../utils/notebookUtils';
 
@@ -16,21 +15,16 @@ export const getNotebookStatus = async (
   fastify: KubeFastifyInstance,
   namespace: string,
   name: string,
-): Promise<{ notebook: Notebook; isRunning: boolean; podUID: string; notebookLink: string }> => {
+): Promise<{ notebook: Notebook; isRunning: boolean; podUID: string }> => {
   const notebook = await getNotebook(fastify, namespace, name);
   const hasStopAnnotation = !!notebook.metadata.annotations?.['kubeflow-resource-stopped'];
   const [isRunning, podUID] = hasStopAnnotation
     ? [false, '']
     : await listNotebookStatus(fastify, namespace, name);
-  const route = await getRoute(fastify, namespace, name).catch((e) => {
-    fastify.log.warn(`Failed getting route ${notebook.metadata.name}: ${e.message}`);
-    return undefined;
-  });
   return {
     notebook,
     isRunning,
     podUID,
-    notebookLink: route ? `https://${route.spec.host}/notebook/${namespace}/${name}` : '',
   };
 };
 

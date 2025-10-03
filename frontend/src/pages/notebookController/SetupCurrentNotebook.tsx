@@ -3,6 +3,7 @@ import { NotebookRunningState } from '#~/types';
 import useWatchNotebooksForUsers from '#~/utilities/useWatchNotebooksForUsers';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { useSpecificNotebookUserState } from '#~/utilities/notebookControllerUtils';
+import { getRoutePathForWorkbench } from '#~/concepts/notebooks/utils';
 import { NotebookContextStorage, SetNotebookState } from './notebookControllerContextTypes';
 import useNamespaces from './useNamespaces';
 
@@ -27,9 +28,10 @@ const SetupCurrentNotebook: React.FC<SetupCurrentNotebookProps> = ({
     ? notebooks[username]
     : undefined;
   const notebook = notebookRunningState?.notebook;
+  const workbenchName = notebook?.metadata.name ?? '';
   const isCurrentlyRunning = notebookRunningState?.isRunning;
   const currentPodUID = notebookRunningState?.podUID;
-  const currentLink = notebookRunningState?.notebookLink;
+  const currentLink = workbenchName && getRoutePathForWorkbench(workbenchNamespace, workbenchName);
 
   React.useEffect(() => {
     if (notebook !== undefined && isCurrentlyRunning !== undefined) {
