@@ -18,7 +18,10 @@ import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles
 import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 import ScopedLabel from '#~/components/ScopedLabel';
 import { ScopedType } from '#~/pages/modelServing/screens/const';
-import { getHardwareProfileDisplayName } from '#~/pages/hardwareProfiles/utils.ts';
+import {
+  getHardwareProfileDisplayName,
+  isHardwareProfileEnabled,
+} from '#~/pages/hardwareProfiles/utils.ts';
 import { getProjectModelServingPlatform } from '#~/pages/modelServing/screens/projects/utils.ts';
 import { ServingRuntimePlatform } from '#~/types.ts';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses.ts';
@@ -43,10 +46,7 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
   const isModelMesh = currentProjectServingPlatform === ServingRuntimePlatform.MULTI;
 
   // todo: deal with the accelProfile below......
-  const {
-    acceleratorProfile: { initialState: initialAcceleratorProfileState },
-    hardwareProfile,
-  } = useModelServingPodSpecOptionsState(obj, isvc, isModelMesh);
+  const { hardwareProfile } = useModelServingPodSpecOptionsState(obj, isvc, isModelMesh);
 
   const resources = isvc?.spec.predictor.model?.resources || obj.spec.containers[0].resources;
   const sizes = getModelServingSizes(dashboardConfig);
@@ -100,7 +100,11 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
                       </ScopedLabel>
                     )}
                 </FlexItem>
-                <Flex>{''}</Flex>
+                <Flex>
+                  {!isHardwareProfileEnabled(hardwareProfile.initialHardwareProfile)
+                    ? '(disabled)'
+                    : ''}
+                </Flex>
               </Flex>
             ) : hardwareProfile.formData.useExistingSettings ? (
               'Unknown'

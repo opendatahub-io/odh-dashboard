@@ -15,7 +15,6 @@ import { useAppDispatch } from '#~/redux/hooks';
 import PVCSizeSettings from '#~/pages/clusterSettings/PVCSizeSettings';
 import CullerSettings from '#~/pages/clusterSettings/CullerSettings';
 import TelemetrySettings from '#~/pages/clusterSettings/TelemetrySettings';
-import TolerationSettings from '#~/pages/clusterSettings/TolerationSettings';
 import ModelServingPlatformSettings from '#~/pages/clusterSettings/ModelServingPlatformSettings';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';

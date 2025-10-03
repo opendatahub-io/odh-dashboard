@@ -95,7 +95,6 @@ type HandlersProps = {
   requiredCapabilities?: StackCapability[];
   DscComponents?: DataScienceClusterKindStatus['components'];
   disableProjectScoped?: boolean;
-  disableHardwareProfiles?: boolean;
 };
 
 const initIntercepts = ({
@@ -107,7 +106,6 @@ const initIntercepts = ({
   disableKServeRaw = true,
   projectEnableModelMesh,
   disableProjectScoped = true,
-  disableHardwareProfiles = true,
   servingRuntimes = [
     mockServingRuntimeK8sResourceLegacy({ tolerations: [], nodeSelector: {} }),
     mockServingRuntimeK8sResource({
@@ -166,7 +164,6 @@ const initIntercepts = ({
       disableServingRuntimeParams,
       disableKServeRaw,
       disableProjectScoped,
-      disableHardwareProfiles,
     }),
   );
   // mock NIM because the model serving plugin has broader error detection
@@ -1289,7 +1286,6 @@ describe('Serving Runtime List', () => {
         projectEnableModelMesh: true,
         disableKServeConfig: false,
         disableModelMeshConfig: false,
-        disableHardwareProfiles: false,
         disableAccelerator: false,
         disableProjectScoped: false,
         servingRuntimes: [
@@ -1310,7 +1306,6 @@ describe('Serving Runtime List', () => {
         projectEnableModelMesh: true,
         disableKServeConfig: false,
         disableModelMeshConfig: false,
-        disableHardwareProfiles: false,
         disableProjectScoped: false,
         inferenceServices: [
           mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
@@ -1344,7 +1339,6 @@ describe('Serving Runtime List', () => {
         projectEnableModelMesh: true,
         disableKServeConfig: false,
         disableModelMeshConfig: false,
-        disableHardwareProfiles: false,
         disableProjectScoped: false,
         servingRuntimes: [
           mockServingRuntimeK8sResource({

@@ -348,12 +348,7 @@ describe('Workbench image settings', () => {
       ]),
     );
 
-    cy.interceptOdh(
-      'GET /api/config',
-      mockDashboardConfig({
-        disableHardwareProfiles: false,
-      }),
-    );
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
 
     cy.interceptK8s(
       'PUT',

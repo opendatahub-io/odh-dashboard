@@ -39,7 +39,6 @@ type HandlersProps = {
   modelMeshInstalled?: boolean;
   kServeInstalled?: boolean;
   disableProjectScoped?: boolean;
-  disableHardwareProfiles?: boolean;
   isEmpty?: boolean;
 };
 
@@ -68,14 +67,12 @@ const initIntercepts = ({
   modelMeshInstalled = true,
   kServeInstalled = true,
   disableProjectScoped = true,
-  disableHardwareProfiles = true,
   isEmpty = false,
 }: HandlersProps) => {
   initDeployPrefilledModelIntercepts({
     modelMeshInstalled,
     kServeInstalled,
     disableProjectScoped,
-    disableHardwareProfiles,
     isEmpty,
   });
 
@@ -417,8 +414,8 @@ describe.skip('Deploy model version', () => {
   });
 
   it('Display project specific hardware profile while deploying', () => {
-    initIntercepts({ disableProjectScoped: false, disableHardwareProfiles: false });
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    initIntercepts({ disableProjectScoped: false});
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version 4');
     modelVersionRow.findKebabAction('Deploy').click();
     modelVersionDeployModal.selectProjectByName('KServe project');
