@@ -177,6 +177,7 @@ func (app *App) Routes() http.Handler {
 
 	// Vector Store Files (LlamaStack)
 	apiRouter.GET(constants.VectorStoreFilesListPath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackListVectorStoreFilesHandler))))
+	apiRouter.POST(constants.VectorStoreFilesUploadPath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackUploadFileHandler)))) // Alias to FilesUploadPath
 	apiRouter.DELETE(constants.VectorStoreFilesDeletePath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackDeleteVectorStoreFileHandler))))
 
 	// Code Exporter (Template-only)

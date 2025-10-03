@@ -8,6 +8,7 @@ import {
   CodeExportResponse,
   CreateResponseRequest,
   FileUploadResult,
+  FileModel,
   LlamaModel,
   LlamaModelType,
   LlamaStackDistributionModel,
@@ -20,6 +21,7 @@ import {
   OutputItem,
   SimplifiedResponseData,
   VectorStore,
+  VectorStoreFile,
 } from '~/app/types';
 import { URL_PREFIX, extractMCPToolCallData } from '~/app/utilities';
 
@@ -144,6 +146,137 @@ export const createVectorStore = (vectorName: string, namespace: string): Promis
 };
 
 /**
+ * Fetches files from a specific vector store
+ * @param namespace - The namespace containing the vector store
+ * @param vectorStoreId - The ID of the vector store to get files from
+ * @param limit - Optional limit for number of files to return (default: 20)
+ * @param order - Optional sort order by creation timestamp (asc/desc, default: desc)
+ * @param filter - Optional filter by file status (completed, in_progress, failed, cancelled)
+ * @returns Promise<VectorStoreFile[]> - Array of files in the vector store
+ * @throws Error - When the API request fails or returns an error response
+ */
+export const listVectorStoreFiles = (
+  namespace: string,
+  vectorStoreId: string,
+  limit?: number,
+  order?: 'asc' | 'desc',
+  filter?: string,
+): Promise<VectorStoreFile[]> => {
+  const params = new URLSearchParams();
+  params.append('namespace', namespace);
+  params.append('vector_store_id', vectorStoreId);
+  if (limit) {
+    params.append('limit', limit.toString());
+  }
+  if (order) {
+    params.append('order', order);
+  }
+  if (filter) {
+    params.append('filter', filter);
+  }
+
+  const url = `${URL_PREFIX}/api/v1/lsd/vectorstores/files?${params.toString()}`;
+  return axiosInstance
+    .get(url)
+    .then((response) => response.data.data)
+    .catch((error) => {
+      throw new Error(
+        error.response?.data?.error?.message ||
+          error.message ||
+          'Failed to fetch vector store files',
+      );
+    });
+};
+
+/**
+ * Deletes a file from a vector store
+ * @param namespace - The namespace containing the vector store
+ * @param vectorStoreId - The ID of the vector store containing the file
+ * @param fileId - The ID of the file to delete
+ * @returns Promise<{deleted: boolean, id: string, object: string}> - Delete confirmation response
+ * @throws Error - When the API request fails or returns an error response
+ */
+export const deleteVectorStoreFile = (
+  namespace: string,
+  vectorStoreId: string,
+  fileId: string,
+): Promise<{ deleted: boolean; id: string; object: string }> => {
+  const params = new URLSearchParams();
+  params.append('namespace', namespace);
+  params.append('vector_store_id', vectorStoreId);
+  params.append('file_id', fileId);
+
+  const url = `${URL_PREFIX}/api/v1/lsd/vectorstores/files/delete?${params.toString()}`;
+  return axiosInstance
+    .delete(url)
+    .then((response) => response.data.data)
+    .catch((error) => {
+      throw new Error(
+        error.response?.data?.error?.message ||
+          error.message ||
+          'Failed to delete vector store file',
+      );
+    });
+};
+
+/**
+ * Fetches all uploaded files from the Llama Stack API
+ * @param namespace - The namespace to fetch files from
+ * @param limit - Optional limit for number of files to return (default: 20)
+ * @param order - Optional sort order by creation timestamp (asc/desc, default: desc)
+ * @param purpose - Optional filter by file purpose (e.g., "assistants")
+ * @returns Promise<FileModel[]> - Array of uploaded files with their metadata
+ * @throws Error - When the API request fails or returns an error response
+ */
+export const listFiles = (
+  namespace: string,
+  limit?: number,
+  order?: 'asc' | 'desc',
+  purpose?: string,
+): Promise<FileModel[]> => {
+  const params = new URLSearchParams();
+  params.append('namespace', namespace);
+  if (limit) {
+    params.append('limit', limit.toString());
+  }
+  if (order) {
+    params.append('order', order);
+  }
+  if (purpose) {
+    params.append('purpose', purpose);
+  }
+
+  const url = `${URL_PREFIX}/api/v1/lsd/files?${params.toString()}`;
+  return axiosInstance
+    .get(url)
+    .then((response) => response.data.data)
+    .catch((error) => {
+      throw new Error(
+        error.response?.data?.error?.message || error.message || 'Failed to fetch files',
+      );
+    });
+};
+
+/**
+ * Deletes a file from the Llama Stack API
+ * @param fileId - The ID of the file to delete
+ * @param namespace - The namespace containing the file
+ * @returns Promise<void> - A promise that resolves when the file is deleted
+ * @throws Error - When the API request fails or returns an error response
+ */
+export const deleteFile = (fileId: string, namespace: string): Promise<void> => {
+  const url = `${URL_PREFIX}/api/v1/lsd/files/delete?namespace=${namespace}&file_id=${fileId}`;
+  return axiosInstance
+    .delete(url)
+    .then(() => undefined)
+    .catch((error) => {
+      throw new Error(
+        error.response?.data?.error?.message || error.message || 'Failed to delete file',
+      );
+    });
+};
+
+/**
  * Uploads a source to the Llama Stack API
  * @param file - The file to upload
  * @param settings - The settings for the source
@@ -177,9 +310,7 @@ export const uploadSource = (
     })
     .then((response) => response.data.data)
     .catch((error) => {
-      throw new Error(
-        error.response?.data?.error?.message || error.message || 'Failed to upload source',
-      );
+      throw new Error(error.response?.data?.message || error.message || 'Failed to upload source');
     });
 };
 

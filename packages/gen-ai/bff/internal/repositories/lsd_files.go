@@ -46,6 +46,20 @@ func (r *FilesRepository) ListFiles(ctx context.Context, params llamastack.ListF
 	return client.ListFiles(ctx, params)
 }
 
+// GetFile retrieves a file by ID.
+// The LlamaStack client is expected to be in the context (created by AttachLlamaStackClient middleware).
+func (r *FilesRepository) GetFile(ctx context.Context, fileID string) (*openai.FileObject, error) {
+	// Get ready-to-use LlamaStack client from context using helper
+	client, err := helper.GetContextLlamaStackClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Repository layer can add transformation logic here if needed
+	// For now, direct passthrough from client to handler
+	return client.GetFile(ctx, fileID)
+}
+
 // DeleteFile deletes a file by ID.
 // The LlamaStack client is expected to be in the context (created by AttachLlamaStackClient middleware).
 func (r *FilesRepository) DeleteFile(ctx context.Context, fileID string) error {

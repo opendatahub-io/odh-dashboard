@@ -16,6 +16,7 @@ import {
   StorageClassModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import {
+  mock403ErrorWithDetails,
   mockK8sResourceList,
   mockNotebookK8sResource,
   mockProjectK8sResource,
@@ -248,6 +249,20 @@ describe('Workbench Hardware Profiles', () => {
           hardwareProfileNamespace: 'test-project',
         }),
       ]),
+    );
+
+    // Mock the individual hardware profile resource fetch
+    cy.interceptK8s(
+      {
+        model: HardwareProfileModel,
+        ns: 'test-project',
+        name: 'large-profile-1',
+      },
+      mockHardwareProfile({
+        name: 'large-profile-1',
+        displayName: 'Large Profile-1',
+        namespace: 'test-project',
+      }),
     );
 
     projectDetails.visit(projectName);
@@ -785,6 +800,303 @@ describe('Workbench Hardware Profiles', () => {
       expectedOrder.forEach((profileName, index) => {
         cy.findAllByRole('option').eq(index).should('contain', profileName);
       });
+    });
+  });
+
+  describe('Hardware profiles column state labels in the workbenches table', () => {
+    it('should show "Deleted" label when hardware profile is deleted', () => {
+      initIntercepts({ disableHardwareProfiles: false });
+
+      // Mock notebook with hardware profile annotation
+      cy.interceptK8sList(
+        {
+          model: NotebookModel,
+          ns: 'test-project',
+        },
+        mockK8sResourceList([
+          mockNotebookK8sResource({
+            hardwareProfileName: 'deleted-profile',
+            displayName: 'Test Notebook',
+          }),
+        ]),
+      );
+
+      // Mock the hardware profile as deleted (404 error)
+      cy.interceptK8s(
+        {
+          model: HardwareProfileModel,
+          ns: 'opendatahub',
+          name: 'deleted-profile',
+        },
+        {
+          statusCode: 404,
+          body: {
+            kind: 'Status',
+            apiVersion: 'v1',
+            code: 404,
+            message: 'hardwareprofiles.infrastructure.opendatahub.io "deleted-profile" not found',
+            reason: 'NotFound',
+            status: 'Failure',
+          },
+        },
+      );
+
+      projectDetails.visit(projectName);
+      projectDetails.findSectionTab('workbenches').click();
+
+      // Verify "Deleted" label appears in hardware profile column
+      workbenchPage
+        .getNotebookRow('Test Notebook')
+        .findHardwareProfileColumn()
+        .should('contain', 'Deleted');
+
+      // Verify "Deleted" popover shows correct message
+      workbenchPage.getNotebookRow('Test Notebook').findHardwareProfileDeletedLabel().click();
+      workbenchPage
+        .getNotebookRow('Test Notebook')
+        .findHardwareProfileDeletedPopover()
+        .title()
+        .should('be.visible');
+      workbenchPage
+        .getNotebookRow('Test Notebook')
+        .findHardwareProfileDeletedPopover()
+        .body()
+        .should('be.visible');
+    });
+
+    it('should show "Disabled" label when hardware profile is disabled', () => {
+      initIntercepts({ disableHardwareProfiles: false });
+
+      // Mock notebook with hardware profile annotation
+      cy.interceptK8sList(
+        {
+          model: NotebookModel,
+          ns: 'test-project',
+        },
+        mockK8sResourceList([
+          mockNotebookK8sResource({
+            hardwareProfileName: 'disabled-profile',
+            displayName: 'Test Notebook',
+          }),
+        ]),
+      );
+
+      // Mock disabled hardware profile
+      cy.interceptK8s(
+        {
+          model: HardwareProfileModel,
+          ns: 'opendatahub',
+          name: 'disabled-profile',
+        },
+        mockHardwareProfile({
+          name: 'disabled-profile',
+          displayName: 'Disabled Profile',
+          annotations: {
+            'opendatahub.io/disabled': 'true',
+          },
+          identifiers: [
+            {
+              displayName: 'CPU',
+              identifier: 'cpu',
+              minCount: '1',
+              maxCount: '2',
+              defaultCount: '1',
+            },
+            {
+              displayName: 'Memory',
+              identifier: 'memory',
+              minCount: '2Gi',
+              maxCount: '4Gi',
+              defaultCount: '2Gi',
+            },
+          ],
+        }),
+      );
+
+      projectDetails.visit(projectName);
+      projectDetails.findSectionTab('workbenches').click();
+
+      // Verify "Disabled" label appears in hardware profile column
+      workbenchPage
+        .getNotebookRow('Test Notebook')
+        .findHardwareProfileColumn()
+        .should('contain', 'Disabled');
+
+      // Verify "Disabled" popover shows correct message
+      workbenchPage.getNotebookRow('Test Notebook').findHardwareProfileDisabledLabel().click();
+      cy.findByTestId('hardware-profile-status-disabled-popover-title').should('be.visible');
+      cy.findByTestId('hardware-profile-status-disabled-popover-body').should('be.visible');
+    });
+
+    it('should show "Updated" label when hardware profile spec has changed', () => {
+      initIntercepts({ disableHardwareProfiles: false });
+
+      // Mock notebook with hardware profile annotation and spec snapshot
+      cy.interceptK8sList(
+        {
+          model: NotebookModel,
+          ns: 'test-project',
+        },
+        mockK8sResourceList([
+          mockNotebookK8sResource({
+            hardwareProfileName: 'updated-profile',
+            displayName: 'Test Notebook',
+            opts: {
+              metadata: {
+                annotations: {
+                  'opendatahub.io/hardware-profile-name': 'updated-profile',
+                  'opendatahub.io/hardware-profile-resource-version': '104110942',
+                },
+              },
+            },
+          }),
+        ]),
+      );
+
+      // Mock hardware profile with different spec (updated)
+      cy.interceptK8s(
+        {
+          model: HardwareProfileModel,
+          ns: 'opendatahub',
+          name: 'updated-profile',
+        },
+        mockHardwareProfile({
+          name: 'updated-profile',
+          displayName: 'Updated Profile',
+          annotations: {
+            'opendatahub.io/disabled': 'false',
+          },
+          identifiers: [
+            {
+              displayName: 'CPU',
+              identifier: 'cpu',
+              minCount: '2',
+              maxCount: '4',
+              defaultCount: '2',
+            },
+            {
+              displayName: 'Memory',
+              identifier: 'memory',
+              minCount: '4Gi',
+              maxCount: '8Gi',
+              defaultCount: '4Gi',
+            },
+          ],
+          resourceVersion: '104110943',
+        }),
+      );
+
+      projectDetails.visit(projectName);
+      projectDetails.findSectionTab('workbenches').click();
+
+      // Verify "Updated" label appears in hardware profile column
+      workbenchPage
+        .getNotebookRow('Test Notebook')
+        .findHardwareProfileColumn()
+        .should('contain', 'Updated');
+
+      // Verify "Updated" popover shows correct message
+      workbenchPage.getNotebookRow('Test Notebook').findHardwareProfileUpdatedLabel().click();
+      cy.findByTestId('hardware-profile-status-updated-popover-title').should('be.visible');
+      cy.findByTestId('hardware-profile-status-updated-popover-body').should('be.visible');
+    });
+
+    it('should show binding state labels for running workbenches', () => {
+      initIntercepts({ disableHardwareProfiles: false });
+
+      // Mock running notebook with deleted hardware profile
+      cy.interceptK8sList(
+        {
+          model: NotebookModel,
+          ns: 'test-project',
+        },
+        mockK8sResourceList([
+          mockNotebookK8sResource({
+            hardwareProfileName: 'deleted-profile',
+            displayName: 'Running Notebook',
+            opts: {
+              metadata: {
+                annotations: {
+                  'opendatahub.io/hardware-profile-name': 'deleted-profile',
+                  // No stop annotation = running
+                },
+              },
+            },
+          }),
+        ]),
+      );
+
+      // Mock the hardware profile as deleted (404 error)
+      cy.interceptK8s(
+        {
+          model: HardwareProfileModel,
+          ns: 'opendatahub',
+          name: 'deleted-profile',
+        },
+        {
+          statusCode: 404,
+          body: {
+            kind: 'Status',
+            apiVersion: 'v1',
+            code: 404,
+            message: 'hardwareprofiles.infrastructure.opendatahub.io "deleted-profile" not found',
+            reason: 'NotFound',
+            status: 'Failure',
+          },
+        },
+      );
+
+      projectDetails.visit(projectName);
+      projectDetails.findSectionTab('workbenches').click();
+
+      // Verify "Deleted" label appears
+      workbenchPage
+        .getNotebookRow('Running Notebook')
+        .findHardwareProfileDeletedLabel()
+        .should('exist');
+
+      // Verify popover mentions running workbench
+      workbenchPage.getNotebookRow('Running Notebook').findHardwareProfileDeletedLabel().click();
+      cy.findByTestId('hardware-profile-status-deleted-popover-body').should('be.visible');
+    });
+
+    it('should show error icon with popover when hardware profile fails to load (non-404 error)', () => {
+      initIntercepts({ disableHardwareProfiles: false });
+
+      cy.interceptK8sList(
+        {
+          model: NotebookModel,
+          ns: 'test-project',
+        },
+        mockK8sResourceList([
+          mockNotebookK8sResource({
+            hardwareProfileName: 'error-profile',
+            hardwareProfileNamespace: 'opendatahub',
+            displayName: 'Test Notebook',
+          }),
+        ]),
+      );
+
+      // Mock the hardware profile with a 403 error (forbidden)
+      cy.interceptK8s(
+        {
+          model: HardwareProfileModel,
+          ns: 'opendatahub',
+          name: 'error-profile',
+        },
+        mock403ErrorWithDetails({}),
+      );
+
+      projectDetails.visit(projectName);
+      projectDetails.findSectionTab('workbenches').click();
+
+      // Verify error icon appears
+      const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+      const errorIcon = notebookRow.findHardwareProfileErrorIcon();
+      errorIcon.should('exist');
+      errorIcon.trigger('mouseenter');
+      const errorPopoverTitle = notebookRow.findHardwareProfileErrorPopover();
+      errorPopoverTitle.should('be.visible');
     });
   });
 });

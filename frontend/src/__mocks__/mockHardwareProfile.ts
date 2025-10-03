@@ -20,13 +20,14 @@ type MockResourceConfigType = {
   description?: string;
   enabled?: boolean;
   nodeSelector?: NodeSelector;
-  schedulingType?: SchedulingType;
+  schedulingType?: SchedulingType | '';
   localQueueName?: string;
   priorityClass?: string;
   tolerations?: Toleration[];
   annotations?: Record<string, string>;
   warning?: WarningNotification;
   labels?: Record<string, string>;
+  resourceVersion?: string;
 };
 
 /*
@@ -69,6 +70,7 @@ export const mockHardwareProfile = ({
   nodeSelector,
   annotations,
   labels,
+  resourceVersion = '1309350',
 }: MockResourceConfigType): HardwareProfileKind => ({
   apiVersion: 'infrastructure.opendatahub.io/v1alpha1',
   kind: 'HardwareProfile',
@@ -77,7 +79,7 @@ export const mockHardwareProfile = ({
     generation: 1,
     name,
     namespace,
-    resourceVersion: '1309350',
+    resourceVersion,
     uid,
     annotations: {
       ...annotations,
@@ -88,21 +90,23 @@ export const mockHardwareProfile = ({
   },
   spec: {
     identifiers,
-    scheduling: {
-      type: schedulingType,
-      ...(schedulingType === SchedulingType.QUEUE && {
-        kueue: {
-          localQueueName,
-          priorityClass,
-        },
-      }),
-      ...(schedulingType === SchedulingType.NODE && {
-        node: {
-          ...(nodeSelector ? { nodeSelector } : {}),
-          tolerations,
-        },
-      }),
-    },
+    ...(schedulingType && {
+      scheduling: {
+        type: schedulingType,
+        ...(schedulingType === SchedulingType.QUEUE && {
+          kueue: {
+            localQueueName,
+            priorityClass,
+          },
+        }),
+        ...(schedulingType === SchedulingType.NODE && {
+          node: {
+            ...(nodeSelector ? { nodeSelector } : {}),
+            tolerations,
+          },
+        }),
+      },
+    }),
   },
 });
 
@@ -340,3 +344,42 @@ export const mockProjectScopedHardwareProfiles = [
     ],
   }),
 ];
+
+export const mockDefaultHardwareProfile = mockHardwareProfile({
+  name: 'default-profile',
+  namespace: 'opendatahub',
+  displayName: 'default-profile',
+  description:
+    'Provides a baseline hardware profile with 2 CPUs and 4Gi memory by default, adjustable up to 4 CPUs and 8Gi memory.',
+  identifiers: [
+    {
+      displayName: 'CPU',
+      identifier: 'cpu',
+      minCount: '1',
+      maxCount: '4',
+      defaultCount: '2',
+      resourceType: IdentifierResourceType.CPU,
+    },
+    {
+      displayName: 'Memory',
+      identifier: 'memory',
+      minCount: '2Gi',
+      maxCount: '8Gi',
+      defaultCount: '4Gi',
+      resourceType: IdentifierResourceType.MEMORY,
+    },
+  ],
+  annotations: {
+    'internal.config.kubernetes.io/previousKinds': 'HardwareProfile',
+    'internal.config.kubernetes.io/previousNames': 'default-profile',
+    'internal.config.kubernetes.io/previousNamespaces': 'opendatahub',
+    'opendatahub.io/dashboard-feature-visibility': '[]',
+    'opendatahub.io/disabled': 'false',
+    'opendatahub.io/managed': 'false',
+  },
+  labels: {
+    'app.kubernetes.io/part-of': 'hardwareprofile',
+    'app.opendatahub.io/hardwareprofile': 'true',
+  },
+  schedulingType: '',
+});

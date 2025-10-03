@@ -131,6 +131,7 @@ export type NotebookAnnotations = Partial<{
   'opendatahub.io/workbench-image-namespace': string | null; // namespace of the
   'opendatahub.io/accelerator-profile-namespace': string | undefined; // the namespace of the accelerator profile used
   'opendatahub.io/connections': string | undefined; // the connections attached to the notebook
+  'opendatahub.io/hardware-profile-resource-version': string; // resource version of hardware profile when assigned
 }>;
 
 export type DashboardLabels = {
@@ -513,6 +514,7 @@ export type InferenceServiceAnnotations = DisplayNameAnnotations &
     'sidecar.istio.io/rewriteAppHTTPProbers': 'true';
     'opendatahub.io/hardware-profile-name': string;
     'opendatahub.io/hardware-profile-namespace': string;
+    'opendatahub.io/hardware-profile-resource-version': string;
   }>;
 
 export type InferenceServiceLabels = Partial<{

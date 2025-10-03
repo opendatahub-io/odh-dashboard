@@ -94,6 +94,7 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
               </ToolbarItem>
             </Flex>
           }
+          defaultSortColumn={1}
           enablePagination
           data={filteredModels}
           columns={chatbotConfigurationColumns}

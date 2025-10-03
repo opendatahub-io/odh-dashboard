@@ -53,9 +53,9 @@ func TestLlamaStackModelsHandler(t *testing.T) {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
-		// Verify mock returns 2 models
+		// Verify mock returns 3 models
 		models := response.Data.([]interface{})
-		assert.Len(t, models, 2)
+		assert.Len(t, models, 3)
 	})
 
 	t.Run("should have correct response structure", func(t *testing.T) {
@@ -85,7 +85,7 @@ func TestLlamaStackModelsHandler(t *testing.T) {
 		assert.Contains(t, response, "data")
 
 		dataField := response["data"].([]interface{})
-		assert.Len(t, dataField, 2)
+		assert.Len(t, dataField, 3)
 
 		// Verify first model structure (OpenAI Model format)
 		firstModel := dataField[0].(map[string]interface{})
@@ -194,9 +194,9 @@ func TestLlamaStackModelsHandlerWithFilteredModelKeywords(t *testing.T) {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
-		// Verify mock returns 1 models all mini and mistral should be filtered out
+		// Verify mock returns 2 models all mini and mistral should be filtered out
 		models := response.Data.([]interface{})
-		assert.Len(t, models, 1)
+		assert.Len(t, models, 2)
 
 		// Verify first model structure and values
 		firstModel := models[0].(map[string]interface{})
