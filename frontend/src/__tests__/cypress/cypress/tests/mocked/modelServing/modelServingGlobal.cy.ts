@@ -1411,7 +1411,6 @@ describe('Model Serving Global', () => {
       });
 
       initIntercepts({
-        disableHardwareProfiles: false,
         inferenceServices: [mockInferenceService],
       });
 
