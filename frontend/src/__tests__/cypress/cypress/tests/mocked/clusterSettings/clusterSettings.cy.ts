@@ -4,7 +4,6 @@ import {
   clusterSettings,
   cullerSettings,
   modelServingSettings,
-  notebookTolerationSettings,
   pvcSizeSettings,
   telemetrySettings,
 } from '#~/__tests__/cypress/cypress/pages/clusterSettings';
@@ -39,7 +38,22 @@ describe('Cluster Settings', () => {
         installedComponents: { [StackComponent.K_SERVE]: true, [StackComponent.MODEL_MESH]: true },
       }),
     );
-    cy.interceptOdh('GET /api/cluster-settings', mockClusterSettings({}));
+    cy.interceptOdh(
+      'GET /api/cluster-settings',
+      mockClusterSettings({
+        modelServingPlatformEnabled: {
+          kServe: true,
+          modelMesh: false,
+        },
+        notebookTolerationSettings: {
+          enabled: false,
+          key: 'NotebooksOnly',
+        },
+        userTrackingEnabled: false,
+        pvcSize: 20,
+        cullerTimeout: 31536000,
+      }),
+    );
     cy.interceptOdh('PUT /api/cluster-settings', { success: true }).as('clusterSettings');
 
     clusterSettings.visit();
@@ -81,28 +95,27 @@ describe('Cluster Settings', () => {
     telemetrySettings.findEnabledCheckbox().click();
     telemetrySettings.findSubmitButton().should('be.enabled');
     telemetrySettings.findEnabledCheckbox().click();
+
     telemetrySettings.findSubmitButton().should('be.disabled');
 
-    // check notebook toleration field
-    notebookTolerationSettings.findKeyError().should('not.exist');
-    notebookTolerationSettings.findKeyInput().clear();
-    notebookTolerationSettings.findKeyError().should('exist');
-    notebookTolerationSettings.findSubmitButton().should('be.disabled');
-    notebookTolerationSettings.findKeyInput().type('NotebooksOnlyChange');
-    notebookTolerationSettings.findKeyError().should('not.exist');
-    notebookTolerationSettings.findEnabledCheckbox().click();
-    notebookTolerationSettings.findSubmitButton().should('be.enabled');
+    // actually enable it this time
+    telemetrySettings.findEnabledCheckbox().click();
+    telemetrySettings.findSubmitButton().should('be.enabled');
 
-    notebookTolerationSettings.findSubmitButton().click();
+    // Click the submit button to trigger the API call
+    telemetrySettings.findSubmitButton().click();
 
     cy.wait('@clusterSettings').then((interception) => {
-      expect(interception.request.body).to.eql(
-        mockClusterSettings({
-          pvcSize: 20,
-          cullerTimeout: 31536000,
-          notebookTolerationSettings: { enabled: false, key: 'NotebooksOnlyChange' },
-        }),
-      );
+      expect(interception.request.body).to.eql({
+        pvcSize: 20,
+        cullerTimeout: 31536000,
+        userTrackingEnabled: true,
+        notebookTolerationSettings: { enabled: false, key: 'NotebooksOnly' },
+        modelServingPlatformEnabled: {
+          kServe: true,
+          modelMesh: false,
+        },
+      });
     });
   });
 

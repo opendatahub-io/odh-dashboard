@@ -68,7 +68,6 @@ type HandlersProps = {
   disableKServeMetrics?: boolean;
   disableServingRuntimeParamsConfig?: boolean;
   disableProjectScoped?: boolean;
-  disableHardwareProfiles?: boolean;
   servingRuntimesTemplates?: TemplateKind[];
 };
 
@@ -83,7 +82,6 @@ const initIntercepts = ({
   disableKServeMetrics,
   disableServingRuntimeParamsConfig,
   disableProjectScoped = true,
-  disableHardwareProfiles = true,
 }: HandlersProps) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
@@ -102,7 +100,6 @@ const initIntercepts = ({
       disableKServeMetrics,
       disableServingRuntimeParams: disableServingRuntimeParamsConfig,
       disableProjectScoped,
-      disableHardwareProfiles,
     }),
   );
 
@@ -751,7 +748,6 @@ describe('Model Serving Global', () => {
       projectEnableModelMesh: false,
       disableServingRuntimeParamsConfig: false,
       disableProjectScoped: false,
-      disableHardwareProfiles: false,
     });
     modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().should('be.enabled');
@@ -792,7 +788,6 @@ describe('Model Serving Global', () => {
       projectEnableModelMesh: false,
       disableServingRuntimeParamsConfig: false,
       disableProjectScoped: false,
-      disableHardwareProfiles: false,
       inferenceServices: [
         mockInferenceServiceK8sResource({
           namespace: 'test-project',
@@ -829,7 +824,6 @@ describe('Model Serving Global', () => {
       projectEnableModelMesh: false,
       disableServingRuntimeParamsConfig: false,
       disableProjectScoped: false,
-      disableHardwareProfiles: true,
     });
     modelServingGlobal.visit('test-project');
     modelServingGlobal.clickDeployModelButtonWithRetry();
@@ -1231,7 +1225,7 @@ describe('Model Serving Global', () => {
 
   describe('Model Serving Hardware Profile Binding State Labels', () => {
     it('should show "Deleted" label when hardware profile is deleted', () => {
-      initIntercepts({ disableHardwareProfiles: false });
+      initIntercepts({});
       // Mock inference service with non-existent hardware profile annotation
       cy.interceptK8sList(
         {
@@ -1292,7 +1286,6 @@ describe('Model Serving Global', () => {
 
       // Set up proper intercepts with hardware profiles enabled
       initIntercepts({
-        disableHardwareProfiles: false,
         inferenceServices: [mockInferenceService],
       });
 
@@ -1357,7 +1350,6 @@ describe('Model Serving Global', () => {
 
       // Set up proper intercepts with hardware profiles enabled
       initIntercepts({
-        disableHardwareProfiles: false,
         inferenceServices: [mockInferenceService],
       });
 
@@ -1419,7 +1411,6 @@ describe('Model Serving Global', () => {
       });
 
       initIntercepts({
-        disableHardwareProfiles: false,
         inferenceServices: [mockInferenceService],
       });
 

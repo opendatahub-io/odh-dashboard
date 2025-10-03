@@ -219,18 +219,11 @@ describe('useModelServingPodSpecOptionsState', () => {
 
     expect(state.podSpecOptions).toEqual({
       resources: {
-        requests: {
-          cpu: DEFAULT_MODEL_SIZES[0].resources.requests?.cpu,
-          memory: DEFAULT_MODEL_SIZES[0].resources.requests?.memory,
-        },
-        limits: {
-          cpu: DEFAULT_MODEL_SIZES[0].resources.limits?.cpu,
-          memory: DEFAULT_MODEL_SIZES[0].resources.limits?.memory,
-        },
+        requests: {},
+        limits: {},
       },
-      tolerations: [],
+      tolerations: undefined,
       nodeSelector: undefined,
-      selectedAcceleratorProfile: undefined,
       selectedHardwareProfile: undefined,
     });
   });
