@@ -29,6 +29,7 @@ import { getRegisterCatalogModelRoute } from '~/app/routes/modelCatalog/catalogM
 import { ModelCatalogDeployButton } from '~/odh/components/ModelCatalogDeployButton';
 import { CatalogModelDetailsParams } from '~/app/modelCatalogTypes';
 import { useCatalogModelArtifacts } from '~/app/hooks/modelCatalog/useCatalogModelArtifacts';
+import { modelCatalogUrl } from '~/app/routes/modelCatalog/catalogModel';
 
 const ModelDetailsPage: React.FC = () => {
   const params = useParams<CatalogModelDetailsParams>();
@@ -108,7 +109,7 @@ const ModelDetailsPage: React.FC = () => {
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem>
-            <Link to="/model-catalog">Catalog</Link>
+            <Link to={modelCatalogUrl()}>Catalog</Link>
           </BreadcrumbItem>
           <BreadcrumbItem isActive>{getModelName(model?.name || '') || 'Details'}</BreadcrumbItem>
         </Breadcrumb>
@@ -151,7 +152,7 @@ const ModelDetailsPage: React.FC = () => {
       emptyStatePage={
         !model ? (
           <div>
-            Details not found. Return to <Link to="/model-catalog">Model catalog</Link>
+            Details not found. Return to <Link to={modelCatalogUrl()}>Model catalog</Link>
           </div>
         ) : undefined
       }
