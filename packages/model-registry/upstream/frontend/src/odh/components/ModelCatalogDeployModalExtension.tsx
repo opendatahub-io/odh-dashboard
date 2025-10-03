@@ -5,7 +5,7 @@ import { isModelCatalogDeployModalExtension } from '~/odh/extension-points';
 import { CatalogModel, CatalogModelDetailsParams } from '~/app/modelCatalogTypes';
 import { getDeployButtonState } from '~/odh/utils';
 import { useCatalogModelArtifacts } from '~/app/hooks/modelCatalog/useCatalogModelArtifacts';
-import { decodeParams } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import { decodeParams, getModelArtifactUri } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 
 type ModelCatalogDeployModalExtensionProps = {
   model: CatalogModel;
@@ -43,7 +43,7 @@ const ModelCatalogDeployModalExtension: React.FC<ModelCatalogDeployModalExtensio
     decodedParams.sourceId || '',
     encodeURIComponent(`${decodedParams.modelName}`),
   );
-  const uri = artifacts.items.length > 0 ? artifacts.items[0].uri : '';
+  const uri = artifacts.items.length > 0 ? getModelArtifactUri(artifacts.items) : '';
   const loaded = isModalAvailable && artifactLoaded && !artifactsLoadError;
 
 

@@ -25,9 +25,9 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       id: 'modelCatalog',
       title: 'Catalog',
-      href: '/ai-hub/catalog',
+      href: '/model-catalog',
       section: 'ai-hub',
-      path: '/ai-hub/catalog/*',
+      path: '/model-catalog/*',
       group: '1_aihub',
     },
   },
@@ -39,9 +39,9 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       id: 'modelRegistry',
       title: 'Registry',
-      href: '/ai-hub/registry',
+      href: '/model-registry',
       section: 'ai-hub',
-      path: '/ai-hub/registry/*',
+      path: '/model-registry/*',
       group: '1_aihub',
     },
   },
@@ -53,9 +53,9 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       id: 'modelRegistry-kf',
       title: 'Model registry (KF)',
-      href: '/ai-hub/registry',
+      href: '/model-registry',
       section: 'ai-hub',
-      path: '/ai-hub/registry/*',
+      path: '/model-registry/*',
     },
   },
   {
@@ -79,7 +79,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       required: [SupportedArea.MODEL_REGISTRY],
     },
     properties: {
-      path: '/ai-hub/registry/*',
+      path: '/model-registry/*',
       component: () => import('./ModelRegistryWrapper'),
     },
   },
@@ -89,7 +89,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       required: [SupportedArea.MODEL_CATALOG],
     },
     properties: {
-      path: '/ai-hub/catalog/*',
+      path: '/model-catalog/*',
       component: () => import('./ModelCatalogWrapper'),
     },
   },

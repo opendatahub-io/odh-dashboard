@@ -1061,7 +1061,7 @@ describe('Project Details', () => {
       projectDetails.findBackToRegistryButton().click();
       cy.url().should(
         'include',
-        '/ai-hub/registry/modelregistry-sample/registeredModels/1/versions/2',
+        '/model-registry/modelregistry-sample/registeredModels/1/versions/2',
       );
     });
 
@@ -1082,7 +1082,7 @@ describe('Project Details', () => {
         .click();
       cy.url().should(
         'include',
-        '/ai-hub/registry/modelregistry-sample/registeredModels/1/versions/2',
+        '/model-registry/modelregistry-sample/registeredModels/1/versions/2',
       );
     });
 
@@ -1103,7 +1103,7 @@ describe('Project Details', () => {
       projectDetails.findBackToRegistryButton().click();
       cy.url().should(
         'include',
-        '/ai-hub/registry/modelregistry-sample/registeredModels/1/versions/2',
+        '/model-registry/modelregistry-sample/registeredModels/1/versions/2',
       );
     });
 

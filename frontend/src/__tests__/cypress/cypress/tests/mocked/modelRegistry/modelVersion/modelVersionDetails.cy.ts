@@ -302,7 +302,7 @@ describe('Model version details', () => {
         .should('have.text', 'test-catalog-model (test-catalog-tag)');
       modelVersionDetails.findRegisteredFromCatalog().click();
       verifyRelativeURL(
-        '/ai-hub/catalog/test-catalog-source/test-catalog-repo/test-catalog-model/test-catalog-tag',
+        '/model-catalog/test-catalog-source/test-catalog-repo/test-catalog-model/test-catalog-tag',
       );
     });
 
