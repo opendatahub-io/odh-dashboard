@@ -83,12 +83,7 @@ module.exports = {
                   ] = `${config.name}@http://${host}:${port}${config.remoteEntry}`;
                   return acc;
                 }, {})
-              : mfConfig.reduce((acc, config) => {
-                  acc[
-                    `@mf/${config.name}`
-                  ] = `${config.name}@/_mf/${config.name}${config.remoteEntry}`;
-                  return acc;
-                }, {}),
+              : undefined,
             shared: {
               react: { singleton: true, requiredVersion: deps.react, eager: true },
               'react-dom': { singleton: true, requiredVersion: deps['react-dom'], eager: true },

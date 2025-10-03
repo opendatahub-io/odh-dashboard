@@ -22,7 +22,8 @@ const DASHBOARD_CONFIG = process.env.DASHBOARD_CONFIG || 'odh-dashboard-config';
 const EXT_CLUSTER = process.env.EXT_CLUSTER;
 const INTERNAL_DASHBOARD_VERSION = process.env.INTERNAL_DASHBOARD_VERSION || '';
 const CONSOLE_LINK_DOMAIN = process.env.CONSOLE_LINK_DOMAIN;
-const MF_CONFIG = process.env.MF_CONFIG;
+const MF_REMOTES =
+  process.env.MF_REMOTES || document.getElementById('mf-remotes-json')?.textContent;
 
 export {
   DEV_MODE,
@@ -42,7 +43,7 @@ export {
   EXT_CLUSTER,
   INTERNAL_DASHBOARD_VERSION,
   CONSOLE_LINK_DOMAIN,
-  MF_CONFIG,
+  MF_REMOTES,
 };
 
 export const DOC_TYPE_TOOLTIPS = {
