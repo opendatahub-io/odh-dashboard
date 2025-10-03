@@ -9,8 +9,11 @@ import useRegisteredModelById from '~/app/hooks/useRegisteredModelById';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import ModelVersionsHeaderActions from '~/app/pages/modelRegistry/screens/ModelVersions/ModelVersionsHeaderActions';
 import { ModelState } from '~/app/types';
-import { registeredModelArchiveDetailsUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
-import ModelVersionsTabs from '~/app/pages/modelRegistry/screens/ModelVersions/ModelVersionsTabs';
+import {
+  modelRegistryUrl,
+  registeredModelArchiveDetailsUrl,
+} from '~/app/pages/modelRegistry/screens/routeUtils';
+import ModelVersionsTabs from './ModelVersionsTabs';
 import { KnownLabels } from '~/odh/k8sTypes';
 import { MRDeploymentsContextProvider } from '~/odh/components/MRDeploymentsContextProvider';
 
@@ -53,7 +56,7 @@ const ModelVersionsContent: React.FC<ModelVersionsProps> = ({ tab, ...pageProps 
         <Breadcrumb>
           <BreadcrumbItem
             render={() => (
-              <Link to="/model-registry">Model registry - {preferredModelRegistry?.name}</Link>
+              <Link to={modelRegistryUrl()}>Model registry - {preferredModelRegistry?.name}</Link>
             )}
           />
           <BreadcrumbItem data-testid="breadcrumb-model" isActive>
