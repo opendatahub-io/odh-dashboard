@@ -322,40 +322,57 @@ jobs:
 
       - name: Set test configuration
         run: |
-          # CRITICAL: Always use localhost with dynamic port for test execution
-          # The cluster URLs are used by webpack proxy, not by Cypress navigation
-          echo "Setting test URLs to localhost:$CYPRESS_PORT"
-          sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:$CYPRESS_PORT|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
-          sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:$CYPRESS_PORT|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          # For forked PRs, use default URLs from local test-vars.yml
+          if [ -n "${{ secrets.OCP_CONSOLE_URL }}" ]; then
+            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: ${{ secrets.OCP_CONSOLE_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          fi
+          if [ -n "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
+            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: ${{ secrets.ODH_DASHBOARD_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          fi
+
+          # For forked PRs, set default URLs if secrets are not available
+          if [ -z "${{ secrets.OCP_CONSOLE_URL }}" ]; then
+            echo "⚠️  OCP_CONSOLE_URL secret not available (forked PR) - using localhost"
+            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:$CYPRESS_PORT|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          fi
+          if [ -z "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
+            echo "⚠️  ODH_DASHBOARD_URL secret not available (forked PR) - using localhost"
+            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:$CYPRESS_PORT|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          fi
 
           export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
 
       - name: Start Cypress Server
         run: |
-          echo "Cleaning up any existing processes on port $CYPRESS_PORT..."
+          echo "🧹 Cleaning up any existing processes..."
+          pkill -f "webpack.*serve" || echo "No webpack processes found"
           lsof -ti:$CYPRESS_PORT | xargs kill -9 2>/dev/null || echo "No processes on port $CYPRESS_PORT"
           sleep 2
           
-          echo "Starting webpack dev server on port $CYPRESS_PORT with cluster proxy..."
+          echo "🚀 Starting webpack dev server with cluster proxy..."
           cd frontend && ODH_PORT=$CYPRESS_PORT npm run start:dev:ext &
           
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
-          echo "Started webpack dev server with PID: $SERVER_PID on port $CYPRESS_PORT"
+          echo "Started webpack dev server with PID: $SERVER_PID"
           
-          echo "Giving server 15 seconds to initialize..."
+          # Give the server extra time to start in CI
+          echo "⏳ Giving server 15 seconds to initialize..."
           sleep 15
 
       - name: Wait for Server Ready
         run: |
-          echo "Waiting for localhost:$CYPRESS_PORT to be ready..."
+          echo "⏳ Waiting for localhost:$CYPRESS_PORT to be ready..."
+          # Use HTTP check instead of TCP since server is clearly running
           npx wait-on http://localhost:$CYPRESS_PORT --timeout 120000
           echo "✅ Server is responding to HTTP!"
           
-          echo "Verifying application loads properly..."
+          # Verify the application actually loads with more details
+          echo "🔍 Verifying application loads properly..."
           for i in {1..10}; do
-            echo "Attempt $i/10: Testing application..."
+            echo "🔄 Attempt $i/10: Testing application..."
             
+            # Check if basic page loads
             if curl -s -f http://localhost:$CYPRESS_PORT/ > /tmp/response.html 2>/dev/null; then
               echo "✅ HTTP 200 response received"
               
@@ -379,11 +396,13 @@ jobs:
             fi
           done
           
-          echo "Final application verification..."
+          # Final verification with detailed debugging
+          echo "🔍 Final application verification..."
           if curl -s -f http://localhost:$CYPRESS_PORT/ | grep -q "Data Science Projects\|ODH\|Open Data Hub\|Dashboard"; then
-            echo "Server is ready and application is loaded"
+            echo "✅ Server is ready and application is loaded!"
             
-            echo "Testing API endpoint..."
+            # Test API endpoint
+            echo "🔍 Testing API endpoint..."
             if curl -s -f http://localhost:$CYPRESS_PORT/api/status > /dev/null; then
               echo "✅ API proxy is working!"
             else
@@ -394,15 +413,15 @@ jobs:
             echo ""
             echo "📊 Debugging information:"
             echo "🔄 Server process status:"
-            ps aux | grep -E '(webpack|node.*4010)' | head -5 || echo "No matching processes found"
+            ps aux | grep -E "(webpack|node.*$CYPRESS_PORT)" | head -5 || echo "No matching processes found"
             
             echo ""
             echo "🌐 Network connectivity test:"
-            curl -I http://localhost:4010/ 2>&1 || echo "Connection failed"
+            curl -I http://localhost:$CYPRESS_PORT/ 2>&1 || echo "Connection failed"
             
             echo ""
             echo "📄 Raw response (first 1000 chars):"
-            curl -s http://localhost:4010/ 2>/dev/null | head -c 1000 || echo "Failed to get response"
+            curl -s http://localhost:$CYPRESS_PORT/ 2>/dev/null | head -c 1000 || echo "Failed to get response"
             
             echo ""
             echo "🔍 Looking for webpack output in background..."
@@ -441,11 +460,13 @@ jobs:
           echo "🚫 Skipping tags: @Bug,@Maintain,@NonConcurrent"
           echo "📋 Test group: ${{ matrix.test-tag }}"
 
-          echo "Using Chrome browser"
+          # Use Jenkins-style command format for proper tag filtering
+          echo "🔄 Using Chrome browser"
 
+          # Create results directory
           mkdir -p "$CY_RESULTS_DIR"
 
-          # Run tests with dynamic port
+          # Run tests against dynamic port
           BASE_URL=http://localhost:$CYPRESS_PORT npm run cypress:run:chrome -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Test tag name
@@ -487,10 +508,10 @@ jobs:
     steps:
       - name: Stop Cypress Servers
         run: |
-          echo "Stopping webpack dev servers..."
+          echo "🛑 Stopping webpack dev server..."
           pkill -f "webpack.*serve" || echo "No webpack processes found"
           # Clean up ports 4010-4030 (used by parallel jobs)
           for port in 4010 4020 4030; do
             lsof -ti:$port | xargs kill -9 2>/dev/null || true
           done
-          echo "Server cleanup completed"
+          echo "✅ Server cleanup completed"
