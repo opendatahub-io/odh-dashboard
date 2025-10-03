@@ -1225,7 +1225,7 @@ describe('Model Serving Global', () => {
 
   describe('Model Serving Hardware Profile Binding State Labels', () => {
     it('should show "Deleted" label when hardware profile is deleted', () => {
-      initIntercepts({ disableHardwareProfiles: false });
+      initIntercepts({});
       // Mock inference service with non-existent hardware profile annotation
       cy.interceptK8sList(
         {
@@ -1286,7 +1286,6 @@ describe('Model Serving Global', () => {
 
       // Set up proper intercepts with hardware profiles enabled
       initIntercepts({
-        disableHardwareProfiles: false,
         inferenceServices: [mockInferenceService],
       });
 
@@ -1351,7 +1350,6 @@ describe('Model Serving Global', () => {
 
       // Set up proper intercepts with hardware profiles enabled
       initIntercepts({
-        disableHardwareProfiles: false,
         inferenceServices: [mockInferenceService],
       });
 
