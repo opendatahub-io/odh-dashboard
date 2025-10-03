@@ -32,27 +32,50 @@ describe('Cluster Settings', () => {
     cy.interceptK8sList({ model: DataScienceClusterModel }, mockK8sResourceList([mockDsc({})]));
   });
 
-  it('Edit cluster settings', () => {
+  it.only('Edit cluster settings', () => {
     cy.interceptOdh(
       'GET /api/dsc/status',
       mockDscStatus({
         installedComponents: { [StackComponent.K_SERVE]: true, [StackComponent.MODEL_MESH]: true },
       }),
     );
-    cy.interceptOdh('GET /api/cluster-settings', mockClusterSettings({}));
+    cy.interceptOdh(
+      'GET /api/cluster-settings',
+      mockClusterSettings({
+        modelServingPlatformEnabled: {
+          kServe: true,
+          modelMesh: false,
+        },
+        notebookTolerationSettings: {
+          enabled: false,
+          key: 'NotebooksOnly',
+        },
+        userTrackingEnabled: false,
+        pvcSize: 20,
+        cullerTimeout: 31536000,
+      }),
+    );
     cy.interceptOdh('PUT /api/cluster-settings', { success: true }).as('clusterSettings');
 
     clusterSettings.visit();
 
     // check serving platform field
     modelServingSettings.findSinglePlatformCheckbox().should('be.checked');
+    console.log('a22sbb');
     modelServingSettings.findSubmitButton().should('be.disabled');
+    console.log('b');
     modelServingSettings.findAlert().should('not.exist');
+    console.log('c');
     modelServingSettings.findSinglePlatformCheckbox().uncheck();
+    console.log('d');
     modelServingSettings.findSubmitButton().should('be.enabled');
+    console.log('e');
     modelServingSettings.findAlert().should(be.warning);
+    console.log('f');
     modelServingSettings.findSinglePlatformCheckbox().check();
+    console.log('g');
     modelServingSettings.findAlert().should('not.exist');
+    console.log('h');
     modelServingSettings.findSubmitButton().should('be.disabled');
 
     // check PVC size field
@@ -101,6 +124,11 @@ describe('Cluster Settings', () => {
           pvcSize: 20,
           cullerTimeout: 31536000,
           notebookTolerationSettings: { enabled: false, key: 'NotebooksOnlyChange' },
+          modelServingPlatformEnabled: {
+            kServe: true,
+            modelMesh: false,
+          },
+          userTrackingEnabled: false,
         }),
       );
     });
