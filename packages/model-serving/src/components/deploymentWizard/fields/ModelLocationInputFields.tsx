@@ -37,6 +37,7 @@ export type ModelLocationDataField = {
   connections: Connection[];
   connectionsLoaded: boolean;
   connectionTypes: ConnectionTypeConfigMapObj[];
+  connectionTypesLoaded: boolean;
   selectedConnection: Connection | undefined;
   setSelectedConnection: (connection: Connection | undefined) => void;
   isLoadingSecretData: boolean;
@@ -165,6 +166,7 @@ export const useModelLocationData = (
     connections,
     connectionsLoaded,
     connectionTypes,
+    connectionTypesLoaded,
     selectedConnection,
     setSelectedConnection: updateSelectedConnection,
     isLoadingSecretData: !isStableState,
