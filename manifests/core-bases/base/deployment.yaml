@@ -69,29 +69,28 @@ spec:
             - mountPath: /etc/ssl/certs/odh-ca-bundle.crt
               name: odh-ca-cert
               subPath: odh-ca-bundle.crt
-        - name: oauth-proxy
+        - name: kube-rbac-proxy
           args:
-            - --https-address=:8443
-            - --provider=openshift
+            - --secure-listen-address=0.0.0.0:8443
             - --upstream=http://localhost:8080
-            - --tls-cert=/etc/tls/private/tls.crt
-            - --tls-key=/etc/tls/private/tls.key
-            - --client-id=dashboard-oauth-client
-            - --client-secret-file=/etc/oauth/client/secret
-            - --scope=user:full
-            - --cookie-secret-file=/etc/oauth/config/cookie_secret
-            - --cookie-expire=23h0m0s
-            - --pass-access-token
-            - '--openshift-delegate-urls={"/": {"resource": "projects", "verb": "list"}}'
-            - --skip-auth-regex=^/metrics
-          image: $(oauth-proxy-image)
+            - --config-file=/etc/kube-rbac-proxy/config-file.yaml
+            - --tls-cert-file=/etc/tls/private/tls.crt
+            - --tls-private-key-file=/etc/tls/private/tls.key
+            - --auth-header-fields-enabled=true
+            - --auth-header-user-field-name=X-Auth-Request-User
+            - --auth-header-groups-field-name=X-Auth-Request-Groups
+            - --proxy-endpoints-port=8444
+            - --v=10
+          image: $(kube-rbac-proxy)
           ports:
             - containerPort: 8443
               name: dashboard-ui
+            - containerPort: 8444
+              name: proxy-health
           livenessProbe:
             httpGet:
-              path: /oauth/healthz
-              port: 8443
+              path: /healthz
+              port: 8444
               scheme: HTTPS
             initialDelaySeconds: 30
             timeoutSeconds: 1
@@ -100,8 +99,8 @@ spec:
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /oauth/healthz
-              port: 8443
+              path: /healthz
+              port: 8444
               scheme: HTTPS
             initialDelaySeconds: 5
             timeoutSeconds: 1
@@ -118,10 +117,8 @@ spec:
           volumeMounts:
             - mountPath: /etc/tls/private
               name: proxy-tls
-            - mountPath: /etc/oauth/config
-              name: oauth-config
-            - mountPath: /etc/oauth/client
-              name: oauth-client
+            - mountPath: /etc/kube-rbac-proxy
+              name: kube-rbac-proxy-config
             - mountPath: /etc/pki/tls/certs/odh-trusted-ca-bundle.crt
               name: odh-trusted-ca-cert
               subPath: odh-trusted-ca-bundle.crt
@@ -138,12 +135,9 @@ spec:
         - name: proxy-tls
           secret:
             secretName: dashboard-proxy-tls
-        - name: oauth-config
-          secret:
-            secretName: dashboard-oauth-config-generated
-        - name: oauth-client
-          secret:
-            secretName: dashboard-oauth-client-generated
+        - name: kube-rbac-proxy-config
+          configMap:
+            name: kube-rbac-proxy-config
         - name: odh-trusted-ca-cert
           configMap:
             name: odh-trusted-ca-bundle
