@@ -322,11 +322,30 @@ jobs:
 
       - name: Set test configuration
         run: |
-          # ALWAYS override URLs to localhost for test execution
-          # Webpack proxy handles cluster connections, Cypress navigates to localhost
-          echo "Setting test URLs to localhost:$CYPRESS_PORT for Cypress"
-          sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:$CYPRESS_PORT|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
-          sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:$CYPRESS_PORT|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          # For forked PRs, use default URLs from local test-vars.yml
+          if [ -n "${{ secrets.OCP_CONSOLE_URL }}" ]; then
+            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: ${{ secrets.OCP_CONSOLE_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          fi
+          if [ -n "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
+            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: ${{ secrets.ODH_DASHBOARD_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          fi
+
+          # For forked PRs, set default URLs if secrets are not available
+          if [ -z "${{ secrets.OCP_CONSOLE_URL }}" ]; then
+            echo "⚠️  OCP_CONSOLE_URL secret not available (forked PR) - using localhost"
+            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:$CYPRESS_PORT|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          fi
+          if [ -z "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
+            echo "⚠️  ODH_DASHBOARD_URL secret not available (forked PR) - using localhost"
+            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:$CYPRESS_PORT|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          fi
+          
+          # DEBUG: Show what URLs are actually set
+          echo "DEBUG: URLs in test-variables.yml:"
+          grep "OCP_CONSOLE_URL:" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml || echo "Not found"
+          grep "ODH_DASHBOARD_URL:" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml || echo "Not found"
+          echo "DEBUG: CYPRESS_PORT=$CYPRESS_PORT"
+          echo "DEBUG: BASE_URL will be: http://localhost:$CYPRESS_PORT"
 
           export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
 
