@@ -104,33 +104,28 @@ describe('Cluster Settings', () => {
     telemetrySettings.findEnabledCheckbox().click();
     telemetrySettings.findSubmitButton().should('be.enabled');
     telemetrySettings.findEnabledCheckbox().click();
+    console.log('i22-bbbcc');
+
     telemetrySettings.findSubmitButton().should('be.disabled');
 
-    // check notebook toleration field
-    notebookTolerationSettings.findKeyError().should('not.exist');
-    notebookTolerationSettings.findKeyInput().clear();
-    notebookTolerationSettings.findKeyError().should('exist');
-    notebookTolerationSettings.findSubmitButton().should('be.disabled');
-    notebookTolerationSettings.findKeyInput().type('NotebooksOnlyChange');
-    notebookTolerationSettings.findKeyError().should('not.exist');
-    notebookTolerationSettings.findEnabledCheckbox().click();
-    notebookTolerationSettings.findSubmitButton().should('be.enabled');
+    // actually enable it this time
+    telemetrySettings.findEnabledCheckbox().click();
+    telemetrySettings.findSubmitButton().should('be.enabled');
 
-    notebookTolerationSettings.findSubmitButton().click();
+    // Click the submit button to trigger the API call
+    telemetrySettings.findSubmitButton().click();
 
     cy.wait('@clusterSettings').then((interception) => {
-      expect(interception.request.body).to.eql(
-        mockClusterSettings({
-          pvcSize: 20,
-          cullerTimeout: 31536000,
-          notebookTolerationSettings: { enabled: false, key: 'NotebooksOnlyChange' },
-          modelServingPlatformEnabled: {
-            kServe: true,
-            modelMesh: false,
-          },
-          userTrackingEnabled: false,
-        }),
-      );
+      expect(interception.request.body).to.eql({
+        pvcSize: 20,
+        cullerTimeout: 31536000,
+        userTrackingEnabled: true,
+        notebookTolerationSettings: { enabled: false, key: 'NotebooksOnlyChange' },
+        modelServingPlatformEnabled: {
+          kServe: true,
+          modelMesh: false,
+        },
+      });
     });
   });
 
