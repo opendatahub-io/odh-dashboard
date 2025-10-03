@@ -15,6 +15,7 @@ jest.mock('~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationTab
 
 const createAIModel = (overrides: Partial<AIModel>): AIModel => ({
   model_name: 'model-name',
+  model_id: overrides.model_name || 'model-name',
   display_name: 'Display Name',
   description: 'desc',
   endpoints: [],
@@ -63,8 +64,8 @@ describe('ChatbotConfigurationModal preSelectedModels', () => {
 
   test('uses existing models only when provided (mapped by id ↔ model_name)', () => {
     const existing: LlamaModel[] = [
-      { id: 'mA', object: 'model', created: Date.now(), owned_by: 'x' },
-      { id: 'mC', object: 'model', created: Date.now(), owned_by: 'x' },
+      { id: 'pA/mA', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mA' },
+      { id: 'pA/mC', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mC' },
     ];
 
     renderModal({ allModels, existingModels: existing });
@@ -74,9 +75,9 @@ describe('ChatbotConfigurationModal preSelectedModels', () => {
 
   test('uses only available existing models (Running status)', () => {
     const existing: LlamaModel[] = [
-      { id: 'mA', object: 'model', created: Date.now(), owned_by: 'x' },
-      { id: 'mC', object: 'model', created: Date.now(), owned_by: 'x' },
-      { id: 'mD', object: 'model', created: Date.now(), owned_by: 'x' },
+      { id: 'pA/mA', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mA' },
+      { id: 'pA/mC', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mC' },
+      { id: 'pA/mD', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mD' },
     ];
 
     renderModal({ allModels, existingModels: existing });
@@ -86,8 +87,8 @@ describe('ChatbotConfigurationModal preSelectedModels', () => {
 
   test('merges extraSelectedModels and existingModels with duplicates by model_name', () => {
     const existing: LlamaModel[] = [
-      { id: 'mA', object: 'model', created: Date.now(), owned_by: 'x' },
-      { id: 'mC', object: 'model', created: Date.now(), owned_by: 'x' },
+      { id: 'pA/mA', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mA' },
+      { id: 'pA/mC', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mC' },
     ];
     const extra = [aiB];
 
@@ -98,8 +99,8 @@ describe('ChatbotConfigurationModal preSelectedModels', () => {
 
   test('merges extraSelectedModels and existingModels with duplicates by model_name', () => {
     const existing: LlamaModel[] = [
-      { id: 'mA', object: 'model', created: Date.now(), owned_by: 'x' },
-      { id: 'mC', object: 'model', created: Date.now(), owned_by: 'x' },
+      { id: 'pA/mA', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mA' },
+      { id: 'pA/mC', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mC' },
     ];
     const extra = [aiB, aiA]; // includes mA to validate dedupe preference for extra
 

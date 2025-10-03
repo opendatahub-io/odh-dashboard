@@ -34,8 +34,8 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
 
   const preSelectedModels = React.useMemo(() => {
     if (existingModels && existingModels.length > 0) {
-      const existingModelsSet = new Set(existingModels.map((model) => model.id));
-      const existingAIModels = allModels.filter((model) => existingModelsSet.has(model.model_name));
+      const existingModelsSet = new Set(existingModels.map((model) => model.modelId));
+      const existingAIModels = allModels.filter((model) => existingModelsSet.has(model.model_id));
 
       if (extraSelectedModels && extraSelectedModels.length > 0) {
         const extraSelectedModelsSet = new Set(

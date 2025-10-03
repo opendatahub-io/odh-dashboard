@@ -7,6 +7,7 @@ import {
   MenuToggleElement,
 } from '@patternfly/react-core';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
+import { getLlamaModelDisplayName } from '~/app/utilities';
 
 interface ModelDetailsDropdownProps {
   selectedModel: string;
@@ -17,7 +18,7 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
   selectedModel,
   onModelChange,
 }) => {
-  const { models } = React.useContext(ChatbotContext);
+  const { models, aiModels } = React.useContext(ChatbotContext);
   const [isOpen, setIsOpen] = React.useState(false);
 
   const placeholder = models.length === 0 ? 'No models available' : 'Select a model';
@@ -46,7 +47,7 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
           onClick={() => setIsOpen(!isOpen)}
           isExpanded={isOpen}
         >
-          {selectedModel || placeholder}
+          {getLlamaModelDisplayName(selectedModel, aiModels) || placeholder}
         </MenuToggle>
       )}
       shouldFocusToggleOnSelect
@@ -54,7 +55,7 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
       <DropdownList style={{ maxHeight: '300px', overflowY: 'auto' }}>
         {models.map((option) => (
           <DropdownItem value={option.id} key={option.id}>
-            {option.id}
+            {getLlamaModelDisplayName(option.id, aiModels)}
           </DropdownItem>
         ))}
       </DropdownList>

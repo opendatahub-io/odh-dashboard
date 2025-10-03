@@ -1,10 +1,14 @@
 export type LlamaModelType = 'llm' | 'embedding';
 
-export type LlamaModel = {
+export type LlamaModelResponse = {
   id: string;
   object: string;
   created: number;
   owned_by: string;
+};
+
+export type LlamaModel = LlamaModelResponse & {
+  modelId: string;
 };
 
 export type FileCounts = {
@@ -250,6 +254,7 @@ export type LlamaStackDistributionModel = {
 
 export interface AAModelResponse {
   model_name: string;
+  model_id: string;
   serving_runtime: string;
   api_protocol: string;
   version: string;

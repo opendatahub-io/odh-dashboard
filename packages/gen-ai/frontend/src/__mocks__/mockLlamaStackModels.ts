@@ -1,8 +1,8 @@
 /* eslint-disable camelcase */
 
-import { LlamaModel } from '~/app/types';
+import { LlamaModelResponse } from '~/app/types';
 
-export const mockLlamaModels: LlamaModel[] = [
+export const mockLlamaModels: LlamaModelResponse[] = [
   {
     id: 'ollama/llama3.2:3b',
     object: 'model',

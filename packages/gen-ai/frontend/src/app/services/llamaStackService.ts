@@ -22,6 +22,7 @@ import {
   SimplifiedResponseData,
   VectorStore,
   VectorStoreFile,
+  LlamaModelResponse,
 } from '~/app/types';
 import { URL_PREFIX, extractMCPToolCallData } from '~/app/utilities';
 
@@ -73,7 +74,7 @@ const transformBackendResponse = (backendResponse: BackendResponseData): Simplif
  * @returns Promise<LlamaModel[]> - Array of available models with their metadata
  * @throws Error - When the API request fails or returns an error response
  */
-export const getModels = (namespace: string): Promise<LlamaModel[]> => {
+export const getModels = (namespace: string): Promise<LlamaModelResponse[]> => {
   const url = `${URL_PREFIX}/api/v1/lsd/models?namespace=${namespace}`;
   return axiosInstance
     .get(url)
