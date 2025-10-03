@@ -79,6 +79,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     isStreamingEnabled,
     temperature,
     topP,
+    currentVectorStoreId: fileManagement.currentVectorStoreId,
   });
 
   // Create alert components
