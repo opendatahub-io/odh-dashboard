@@ -230,3 +230,26 @@ export const patchSecretWithOwnerReference = (
       },
     ],
   });
+
+export const patchSecretWithProtocolAnnotation = (
+  secret: SecretKind,
+  protocol: string,
+): Promise<SecretKind> =>
+  k8sPatchResource({
+    model: SecretModel,
+    queryOptions: { name: secret.metadata.name, ns: secret.metadata.namespace },
+    patches: [
+      {
+        op: 'add',
+        path: '/metadata/annotations',
+        value: {
+          ...(secret.metadata.annotations || {}),
+          'opendatahub.io/connection-type-protocol': protocol,
+        },
+      },
+    ],
+  });
+
+export const hasProtocolAnnotation = (resource: SecretKind): boolean => {
+  return !!resource.metadata.annotations?.['opendatahub.io/connection-type-protocol'];
+};

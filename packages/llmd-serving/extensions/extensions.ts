@@ -75,6 +75,7 @@ const extensions: (
     type: 'model-serving.deployment/connection-creation',
     properties: {
       platform: LLMD_SERVING_ID,
+      isActive: true,
       handleConnectionCreation: () =>
         import('@odh-dashboard/model-serving/concepts/connectionUtils').then(
           (m) => m.handleConnectionCreation,

@@ -1029,7 +1029,6 @@ class ModelServingWizard extends Wizard {
   }
 
   findExistingConnectionSelectOption(name: string) {
-    this.findExistingConnectionSelect().click();
     cy.findByRole('listbox');
     return cy.findByText(name);
   }

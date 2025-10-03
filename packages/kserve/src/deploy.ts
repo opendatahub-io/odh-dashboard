@@ -279,10 +279,12 @@ const addConnectionDataToInferenceService = (
   }
 
   // Adds storage URI for PVC
-  if (isPVCUri(String(modelLocationData?.fieldValues.URI))) {
-    updatedInferenceService.spec.predictor.model.storageUri = String(
-      modelLocationData?.fieldValues.URI,
-    );
+  if (
+    modelLocationData?.fieldValues.URI &&
+    typeof modelLocationData.fieldValues.URI === 'string' &&
+    isPVCUri(modelLocationData.fieldValues.URI)
+  ) {
+    updatedInferenceService.spec.predictor.model.storageUri = modelLocationData.fieldValues.URI;
   }
   // Handle additional fields based on connection type
   if (modelLocationData?.connectionTypeObject) {
@@ -304,7 +306,7 @@ const addConnectionDataToInferenceService = (
     ) {
       // For OCI add storage URI
       updatedInferenceService.spec.predictor.model.storageUri =
-        modelLocationData.additionalFields.modelUri ?? String(modelLocationData.fieldValues.URI);
+        modelLocationData.additionalFields.modelUri;
     }
   }
   return updatedInferenceService;

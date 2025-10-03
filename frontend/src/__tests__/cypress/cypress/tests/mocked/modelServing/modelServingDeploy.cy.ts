@@ -339,7 +339,7 @@ describe('Model Serving Deploy Wizard', () => {
       .click();
     modelServingWizard.findModelLocationSelect().should('exist');
     modelServingWizard.findModelLocationSelectOption('Existing connection').should('exist').click();
-    modelServingWizard.findExistingConnectionSelect().should('exist');
+    modelServingWizard.findExistingConnectionSelect().should('exist').click();
     modelServingWizard
       .findExistingConnectionSelectOption('Test URI Secret')
       .should('exist')
@@ -634,7 +634,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
     modelServingWizard.findModelLocationSelect().should('exist');
     modelServingWizard.findModelLocationSelectOption('Existing connection').should('exist').click();
-    modelServingWizard.findExistingConnectionSelect().should('exist');
+    modelServingWizard.findExistingConnectionSelect().should('exist').click();
     modelServingWizard
       .findExistingConnectionSelectOption('Test URI Secret')
       .should('exist')

@@ -298,6 +298,8 @@ export type ModelServingConnectionCreation<D extends Deployment = Deployment> = 
   'model-serving.deployment/connection-creation',
   {
     platform: D['modelServingPlatformId'];
+    isActive: CodeRef<(wizardData: WizardFormData['state']) => boolean> | true;
+    priority?: number;
     handleConnectionCreation: CodeRef<
       (
         createConnectionData: CreateConnectionData,
