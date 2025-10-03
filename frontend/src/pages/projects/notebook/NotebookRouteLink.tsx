@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { Button, ButtonVariant, Flex, FlexItem, Icon, Tooltip } from '@patternfly/react-core';
-import { ExclamationCircleIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { Button, ButtonVariant, Flex, FlexItem } from '@patternfly/react-core';
+import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import {
   t_global_font_size_body_default as DefaultFontSize,
   t_global_font_size_body_sm as SmallFontSize,
@@ -8,8 +8,7 @@ import {
 import { NotebookKind } from '#~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import useRouteForNotebook from '#~/concepts/notebooks/apiHooks/useRouteForNotebook';
-import { FAST_POLL_INTERVAL } from '#~/utilities/const';
+import { getRoutePathForWorkbench } from '#~/concepts/notebooks/utils';
 import { hasStopAnnotation } from './utils';
 
 type NotebookRouteLinkProps = {
@@ -33,18 +32,9 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
   isLarge,
   buttonStyle,
 }) => {
-  const {
-    data: routeLink,
-    loaded,
-    error,
-  } = useRouteForNotebook(
-    notebook.metadata.name,
-    notebook.metadata.namespace,
-    isRunning,
-    FAST_POLL_INTERVAL,
-  );
+  const routeLink = getRoutePathForWorkbench(notebook.metadata.namespace, notebook.metadata.name);
   const isStopped = hasStopAnnotation(notebook);
-  const canLink = loaded && !!routeLink && !error && !isStopped && isRunning;
+  const canLink = !isStopped && isRunning;
 
   return (
     <Flex className={className} spaceItems={{ default: 'spaceItemsXs' }}>
@@ -55,10 +45,10 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
           data-testid="notebook-route-link"
           isDisabled={!canLink}
           isAriaDisabled={!canLink}
-          href={error || !routeLink ? undefined : routeLink}
+          href={!canLink ? undefined : routeLink}
           target="_blank"
           variant={variant || 'link'}
-          icon={!error && <ExternalLinkAltIcon />}
+          icon={<ExternalLinkAltIcon />}
           iconPosition="end"
           aria-label={ariaLabel}
           style={{
@@ -75,15 +65,6 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
           {label ?? getDisplayNameFromK8sResource(notebook)}
         </Button>
       </FlexItem>
-      {error && (
-        <FlexItem>
-          <Tooltip content={error.message}>
-            <Icon role="button" aria-label="error icon" status="danger" tabIndex={0}>
-              <ExclamationCircleIcon />
-            </Icon>
-          </Tooltip>
-        </FlexItem>
-      )}
     </Flex>
   );
 };

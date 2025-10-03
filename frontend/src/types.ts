@@ -415,33 +415,6 @@ export type NotebookRunningState = {
   notebook: Notebook | null;
   isRunning: boolean;
   podUID: string;
-  notebookLink: string;
-};
-
-export type Route = {
-  apiVersion?: string;
-  kind?: string;
-  metadata: {
-    name: string;
-    namespace: string;
-    annotations?: { [key: string]: string };
-  };
-  spec: {
-    host: string;
-    port: {
-      targetPort: string;
-    };
-    tls: {
-      insecureEdgeTerminationPolicy: string;
-      termination: string;
-    };
-    to: {
-      kind: string;
-      name: string;
-      weight: number;
-    };
-    wildcardPolicy: string;
-  };
 };
 
 export type BYONImage = {

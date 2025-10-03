@@ -467,32 +467,6 @@ export type NotebookList = {
   items: Notebook[];
 } & K8sResourceCommon;
 
-export type Route = {
-  apiVersion?: string;
-  kind?: string;
-  metadata: {
-    name: string;
-    namespace: string;
-    annotations?: { [key: string]: string };
-  };
-  spec: {
-    host: string;
-    port: {
-      targetPort: string;
-    };
-    tls: {
-      insecureEdgeTerminationPolicy: string;
-      termination: string;
-    };
-    to: {
-      kind: string;
-      name: string;
-      weight: number;
-    };
-    wildcardPolicy: string;
-  };
-};
-
 export type ODHSegmentKey = {
   segmentKey: string;
 };
