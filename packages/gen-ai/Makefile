@@ -1,4 +1,21 @@
 # Makefile for gen-ai development
+DEFAULT_ENV_FILE := .env
+ifneq ("$(wildcard $(DEFAULT_ENV_FILE))","")
+include ${DEFAULT_ENV_FILE}
+export $(shell sed 's/=.*//' ${DEFAULT_ENV_FILE})
+endif
+
+DEV_ENV_FILE := .env.development
+ifneq ("$(wildcard $(DEV_ENV_FILE))","")
+include ${DEV_ENV_FILE}
+export $(shell sed 's/=.*//' ${DEV_ENV_FILE})
+endif
+
+ENV_FILE := .env.local
+ifneq ("$(wildcard $(ENV_FILE))","")
+include ${ENV_FILE}
+export $(shell sed 's/=.*//' ${ENV_FILE})
+endif
 
 .PHONY: help dev-install-dependencies dev-frontend dev-bff dev-start clean clean-all
 
@@ -16,7 +33,7 @@ dev-bff-mock: ## Run only the bff in development mode
 
 .PHONY: dev-bff
 dev-bff:
-	cd bff && make run
+	cd bff && LLAMA_STACK_URL=${LLAMA_STACK_URL} AUTH_TOKEN=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " make run STATIC_ASSETS_DIR=../frontend/dist
 
 
 .PHONY: dev-frontend

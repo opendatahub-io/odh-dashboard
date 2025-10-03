@@ -8,6 +8,7 @@ import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import StateActionToggle from '@odh-dashboard/internal/components/StateActionToggle';
+import { DeploymentHardwareProfileCell } from '@odh-dashboard/internal/concepts/hardwareProfiles/DeploymentHardwareProfileCell';
 import { DeploymentRowExpandedSection } from './DeploymentsTableRowExpandedSection';
 import DeploymentLastDeployed from '../DeploymentLastDeployed';
 import DeploymentStatus from '../DeploymentStatus';
@@ -116,6 +117,7 @@ export const DeploymentRow: React.FC<{
             <Content component={ContentVariants.small}>Not defined</Content>
           )}
         </Td>
+        <DeploymentHardwareProfileCell deployment={deployment} />
         <Td dataLabel="Last deployed">
           <DeploymentLastDeployed deployment={deployment} />
         </Td>

@@ -10,16 +10,19 @@ import {
   FormGroup,
   Title,
   Switch,
-  FlexItem,
-  Flex,
   Label,
+  AlertGroup,
+  Flex,
+  FlexItem,
 } from '@patternfly/react-core';
 import { ChatbotSourceUploadPanel } from '~/app/Chatbot/sourceUpload/ChatbotSourceUploadPanel';
 import { ACCORDION_ITEMS } from '~/app/Chatbot/const';
 import useAccordionState from '~/app/Chatbot/hooks/useAccordionState';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
+import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
 import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
 import MCPServersPanelWithContext from '~/app/Chatbot/mcp/MCPServersPanelWithContext';
+import UploadedFilesList from './UploadedFilesList';
 import ModelDetailsDropdown from './ModelDetailsDropdown';
 import SystemPromptFormGroup from './SystemInstructionFormGroup';
 import ModelParameterFormGroup from './ModelParameterFormGroup';
@@ -28,10 +31,12 @@ interface ChatbotSettingsPanelProps {
   selectedModel: string;
   onModelChange: (value: string) => void;
   alerts: {
-    successAlert: React.ReactElement | undefined;
+    uploadSuccessAlert: React.ReactElement | undefined;
+    deleteSuccessAlert: React.ReactElement | undefined;
     errorAlert: React.ReactElement | undefined;
   };
   sourceManagement: UseSourceManagementReturn;
+  fileManagement: UseFileManagementReturn;
   systemInstruction: string;
   onSystemInstructionChange: (value: string) => void;
   isStreamingEnabled: boolean;
@@ -47,6 +52,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   onModelChange,
   alerts,
   sourceManagement,
+  fileManagement,
   systemInstruction,
   onSystemInstructionChange,
   isStreamingEnabled,
@@ -121,7 +127,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
               </Form>
             </AccordionContent>
           </AccordionItem>
-          {/* Sources Accordion Item */}
+          {/* RAG Accordion Item */}
           <AccordionItem
             isExpanded={accordionState.expandedAccordionItems.includes(ACCORDION_ITEMS.SOURCES)}
           >
@@ -129,9 +135,18 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
               onClick={() => accordionState.onAccordionToggle(ACCORDION_ITEMS.SOURCES)}
               id={ACCORDION_ITEMS.SOURCES}
             >
-              <Flex alignItems={{ default: 'alignItemsCenter' }}>
+              <Flex
+                justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                alignItems={{ default: 'alignItemsCenter' }}
+                style={{ width: '100%' }}
+              >
                 <FlexItem>
-                  {/* Use div to prevent the click event from bubbling up to the accordion toggle */}
+                  <Title headingLevel="h2" size="lg">
+                    RAG
+                  </Title>
+                </FlexItem>
+                <FlexItem>
+                  {/* Use FlexItem to prevent the click event from bubbling up to the accordion toggle */}
                   <div
                     role="button"
                     tabIndex={0}
@@ -157,24 +172,32 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                     />
                   </div>
                 </FlexItem>
-                <FlexItem>
-                  <Title headingLevel="h2" size="lg">
-                    Sources
-                  </Title>
-                </FlexItem>
               </Flex>
             </AccordionToggle>
             <AccordionContent id="sources-content">
               <Form>
                 <FormGroup fieldId="sources">
                   <ChatbotSourceUploadPanel
-                    successAlert={alerts.successAlert}
+                    successAlert={alerts.uploadSuccessAlert}
                     errorAlert={alerts.errorAlert}
                     handleSourceDrop={sourceManagement.handleSourceDrop}
-                    selectedSource={sourceManagement.selectedSource}
-                    selectedSourceSettings={sourceManagement.selectedSourceSettings}
                     removeUploadedSource={sourceManagement.removeUploadedSource}
-                    setSelectedSourceSettings={sourceManagement.setSelectedSourceSettings}
+                    filesWithSettings={sourceManagement.filesWithSettings}
+                    uploadedFilesCount={fileManagement.files.length}
+                    maxFilesAllowed={10}
+                  />
+                </FormGroup>
+                <FormGroup fieldId="uploaded-files" className="pf-v6-u-mt-md">
+                  <AlertGroup hasAnimations isToast isLiveRegion>
+                    {alerts.deleteSuccessAlert}
+                  </AlertGroup>
+                  <UploadedFilesList
+                    files={fileManagement.files}
+                    isLoading={fileManagement.isLoading}
+                    isDeleting={fileManagement.isDeleting}
+                    error={fileManagement.error}
+                    onRefresh={fileManagement.refreshFiles}
+                    onDeleteFile={fileManagement.deleteFileById}
                   />
                 </FormGroup>
               </Form>
@@ -188,16 +211,20 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
               onClick={() => accordionState.onAccordionToggle(ACCORDION_ITEMS.MCP_SERVERS)}
               id={ACCORDION_ITEMS.MCP_SERVERS}
             >
-              <div className="pf-v6-u-display-flex pf-v6-u-align-items-center">
-                <Title headingLevel="h2" size="lg">
-                  MCP servers
-                </Title>
+              <Flex alignItems={{ default: 'alignItemsCenter' }}>
+                <FlexItem>
+                  <Title headingLevel="h2" size="lg">
+                    MCP servers
+                  </Title>
+                </FlexItem>
                 {selectedServersCount > 0 && (
-                  <Label key={1} color="blue" className="pf-v6-u-ml-sm">
-                    {selectedServersCount}
-                  </Label>
+                  <FlexItem>
+                    <Label key={1} color="blue" className="pf-v6-u-ml-sm">
+                      {selectedServersCount}
+                    </Label>
+                  </FlexItem>
                 )}
-              </div>
+              </Flex>
             </AccordionToggle>
             <AccordionContent id="mcp-servers-content">
               <MCPServersPanelWithContext onSelectionChange={saveSelectedServersToPlayground} />

@@ -62,6 +62,11 @@ func (m *TokenKubernetesClientMock) GetNamespaces(ctx context.Context, identity 
 				Name: "mock-test-namespace-3",
 			},
 		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "mock-test-namespace-4",
+			},
+		},
 	}, nil
 }
 
@@ -74,6 +79,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 		return []models.AAModel{
 			{
 				ModelName:      "llm-d-codestral-22b",
+				ModelID:        "llm-d-codestral-22b",
 				ServingRuntime: "Distributed Inference Server with llm-d",
 				APIProtocol:    "REST",
 				Version:        "",
@@ -88,6 +94,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 			},
 			{
 				ModelName:      "llm-d-deepseek-coder-33b",
+				ModelID:        "llm-d-deepseek-coder-33b",
 				ServingRuntime: "Distributed Inference Server with llm-d",
 				APIProtocol:    "REST",
 				Version:        "",
@@ -104,6 +111,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 		aaModels := []models.AAModel{
 			{
 				ModelName:      "granite-7b-code",
+				ModelID:        "granite-7b-code",
 				ServingRuntime: "OpenVINO Model Server",
 				APIProtocol:    "v2",
 				Version:        "v2025.1",
@@ -118,6 +126,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 			},
 			{
 				ModelName:      "llama-3.1-8b-instruct",
+				ModelID:        "llama-3.1-8b-instruct",
 				ServingRuntime: "TorchServe",
 				APIProtocol:    "v1",
 				Version:        "v2025.1",
@@ -132,6 +141,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 			},
 			{
 				ModelName:      "mistral-7b-instruct",
+				ModelID:        "mistral-7b-instruct",
 				ServingRuntime: "TorchServe",
 				APIProtocol:    "v1",
 				Version:        "v2025.1",
@@ -145,6 +155,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 			},
 			{
 				ModelName:      "ollama/llama3.2:3b",
+				ModelID:        "ollama/llama3.2:3b",
 				ServingRuntime: "Ollama",
 				APIProtocol:    "v1",
 				Version:        "v2025.1",
@@ -159,6 +170,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 			},
 			{
 				ModelName:      "ollama/all-minilm:l6-v2",
+				ModelID:        "ollama/all-minilm:l6-v2",
 				ServingRuntime: "Ollama",
 				APIProtocol:    "v1",
 				Version:        "v2025.1",
@@ -177,6 +189,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 		llmDModels := []models.AAModel{
 			{
 				ModelName:      "llm-d-llama-3.1-70b",
+				ModelID:        "llm-d-llama-3.1-70b",
 				ServingRuntime: "Distributed Inference Server with llm-d",
 				APIProtocol:    "REST",
 				Version:        "",
@@ -191,6 +204,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 			},
 			{
 				ModelName:      "llm-d-mixtral-8x7b",
+				ModelID:        "llm-d-mixtral-8x7b",
 				ServingRuntime: "Distributed Inference Server with llm-d",
 				APIProtocol:    "REST",
 				Version:        "",
@@ -205,6 +219,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 			},
 			{
 				ModelName:      "llm-d-qwen2.5-72b",
+				ModelID:        "llm-d-qwen2.5-72b",
 				ServingRuntime: "Distributed Inference Server with llm-d",
 				APIProtocol:    "REST",
 				Version:        "",
@@ -292,6 +307,28 @@ func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Conte
 								"mock-distribution": "mock-image:latest",
 							},
 						},
+					},
+				},
+			},
+		}, nil
+	}
+
+	if namespace == "mock-test-namespace-4" {
+		return &lsdapi.LlamaStackDistributionList{
+			Items: []lsdapi.LlamaStackDistribution{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "mock-lsd",
+						Namespace: namespace,
+						Annotations: map[string]string{
+							"openshift.io/display-name": "mock-lsd-display-name",
+						},
+						Labels: map[string]string{
+							"opendatahub.io/dashboard": "true",
+						},
+					},
+					Status: lsdapi.LlamaStackDistributionStatus{
+						Phase: lsdapi.LlamaStackDistributionPhaseFailed,
 					},
 				},
 			},

@@ -2,18 +2,16 @@ import * as React from 'react';
 import { Alert, AlertActionCloseButton } from '@patternfly/react-core';
 import { ALERT_TIMEOUT_MS } from '~/app/Chatbot/const';
 
-interface SourceUploadErrorAlertProps {
+interface SourceDeleteSuccessAlertProps {
   isVisible: boolean;
   alertKey: number;
   onClose: () => void;
-  errorMessage?: string;
 }
 
-const SourceUploadErrorAlert: React.FunctionComponent<SourceUploadErrorAlertProps> = ({
+const SourceDeleteSuccessAlert: React.FunctionComponent<SourceDeleteSuccessAlertProps> = ({
   isVisible,
   alertKey,
   onClose,
-  errorMessage = 'Please try again.',
 }) => {
   if (!isVisible) {
     return null;
@@ -21,17 +19,17 @@ const SourceUploadErrorAlert: React.FunctionComponent<SourceUploadErrorAlertProp
 
   return (
     <Alert
-      key={`source-upload-error-${alertKey}`}
+      key={`source-delete-success-${alertKey}`}
       isInline
-      variant="danger"
-      title="Failed to upload source"
+      variant="success"
+      title="Source deleted"
       timeout={ALERT_TIMEOUT_MS}
       actionClose={<AlertActionCloseButton onClose={onClose} />}
       onTimeout={onClose}
     >
-      <p>{errorMessage}</p>
+      <p>The source has been successfully deleted from your vector store.</p>
     </Alert>
   );
 };
 
-export default SourceUploadErrorAlert;
+export default SourceDeleteSuccessAlert;

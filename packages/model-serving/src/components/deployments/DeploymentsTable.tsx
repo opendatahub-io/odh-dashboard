@@ -42,6 +42,11 @@ const genericColumns: SortableData<Deployment>[] = [
     sortable: false,
   },
   {
+    field: 'hardwareProfile',
+    label: 'Hardware profile',
+    sortable: false,
+  },
+  {
     label: 'Last deployed',
     field: 'lastDeployed',
     sortable: deploymentLastDeployedSort,

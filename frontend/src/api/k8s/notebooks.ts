@@ -141,6 +141,8 @@ export const assembleNotebook = (
         'notebooks.opendatahub.io/last-image-version-git-commit-selection':
           image.imageVersion?.annotations?.['opendatahub.io/notebook-build-commit'] ?? '',
         'opendatahub.io/connections': connectionsAnnotation ?? '',
+        'opendatahub.io/hardware-profile-resource-version':
+          selectedHardwareProfile?.metadata.resourceVersion || '',
       },
       name: notebookId,
       namespace: projectName,

@@ -300,6 +300,7 @@ func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.
 
 		aaModel := models.AAModel{
 			ModelName:      llmSvc.Name,
+			ModelID:        *llmSvc.Spec.Model.Name,
 			Description:    kc.extractDescriptionFromLLMInferenceService(&llmSvc),
 			ServingRuntime: "Distributed Inference Server with llm-d",
 			APIProtocol:    "REST",
@@ -339,6 +340,7 @@ func (kc *TokenKubernetesClient) getAAModelsFromInferenceService(ctx context.Con
 
 		aaModel := models.AAModel{
 			ModelName:      isvc.Name,
+			ModelID:        isvc.Name,
 			ServingRuntime: kc.extractServingRuntimeFromAnnotations(servingRuntime),
 			APIProtocol:    kc.extractAPIProtocolFromAnnotations(servingRuntime),
 			Version:        kc.extractVersionFromAnnotations(servingRuntime),

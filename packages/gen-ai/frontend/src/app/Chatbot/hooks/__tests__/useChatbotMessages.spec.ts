@@ -110,6 +110,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           topP: 0.9,
+          currentVectorStoreId: null,
         }),
       );
 
@@ -138,6 +139,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           topP: 0.9,
+          currentVectorStoreId: null,
         }),
       );
 
@@ -175,6 +177,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           topP: 0.9,
+          currentVectorStoreId: null,
         }),
       );
 
@@ -201,6 +204,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           topP: 0.9,
+          currentVectorStoreId: null,
         }),
       );
 
@@ -240,6 +244,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           topP: 0.9,
+          currentVectorStoreId: null,
         }),
       );
 
@@ -269,6 +274,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           topP: 0.9,
+          currentVectorStoreId: null,
         }),
       );
 
@@ -314,6 +320,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           topP: 0.9,
+          currentVectorStoreId: null,
         }),
       );
 
@@ -342,6 +349,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           topP: 0.9,
+          currentVectorStoreId: null,
         }),
       );
 
@@ -365,6 +373,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           topP: 0.9,
+          currentVectorStoreId: null,
         }),
       );
 
@@ -381,6 +390,47 @@ describe('useChatbotMessages', () => {
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(mockCreateResponse).not.toHaveBeenCalled();
     });
+
+    it('should use currentVectorStoreId when RAG is enabled and selectedSourceSettings is null', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          modelId: mockModelId,
+          selectedSourceSettings: null,
+          systemInstruction: '',
+          isRawUploaded: true,
+          isStreamingEnabled: false,
+          temperature: 0.7,
+          topP: 0.9,
+          currentVectorStoreId: 'vs_current_store_123',
+        }),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Test message');
+      });
+
+      expect(result.current.messages).toHaveLength(3); // initial + user + bot response
+      expect(mockCreateResponse).toHaveBeenCalledWith(
+        {
+          input: 'Test message',
+          model: 'test-model-id',
+          vector_store_ids: ['vs_current_store_123'],
+          chat_context: [
+            {
+              role: 'assistant',
+              content: 'Send a message to test your configuration',
+            },
+          ],
+          instructions: '',
+          stream: false,
+          temperature: 0.7,
+          top_p: 0.9,
+        },
+        'test-namespace',
+      );
+    });
   });
 
   describe('conversation context functionality', () => {
@@ -396,6 +446,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           topP: 0.9,
+          currentVectorStoreId: null,
         }),
       );
 
@@ -448,6 +499,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           topP: 0.9,
+          currentVectorStoreId: null,
         }),
       );
 
@@ -477,6 +529,7 @@ describe('useChatbotMessages', () => {
             isStreamingEnabled: false,
             temperature: 0.7,
             topP: 0.9,
+            currentVectorStoreId: null,
           }),
         { initialProps: { modelId: 'model-1' } },
       );
@@ -525,6 +578,7 @@ describe('useChatbotMessages', () => {
             isStreamingEnabled: false,
             temperature: 0.7,
             topP: 0.9,
+            currentVectorStoreId: null,
           }),
         { initialProps: { systemInstruction: 'Be concise.' } },
       );

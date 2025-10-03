@@ -43,8 +43,9 @@ const ChatbotConfigurationState: React.FC<ChatbotConfigurationStateProps> = ({
           <ExclamationCircleIcon />
         </Icon>
       );
-      title = 'Failed to configure playground';
-      description = 'Please try again';
+      title = 'Playground setup failed';
+      description =
+        'There was an issue with one or more of the models added to your playground configuration.You can update the configuration to change your model selection and try again, or delete the playground.';
       break;
     default:
       icon = <Spinner size="xl" />;
