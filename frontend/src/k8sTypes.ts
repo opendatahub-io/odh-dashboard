@@ -1279,7 +1279,6 @@ export type DashboardCommonConfig = {
   disableKServeRaw: boolean;
   disableModelMesh: boolean;
   disableAcceleratorProfiles: boolean;
-  disableHardwareProfiles: boolean;
   disableDistributedWorkloads: boolean;
   disableModelCatalog: boolean;
   disableModelRegistry: boolean;
