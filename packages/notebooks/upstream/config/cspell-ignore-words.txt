@@ -1,0 +1,10 @@
+scipy
+kubeflow
+mochawesome
+jovyan
+millicores
+workspacekind
+workspacekinds
+healthcheck
+pficon
+svgs
