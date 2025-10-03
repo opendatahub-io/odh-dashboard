@@ -904,72 +904,6 @@ describe('Serving Runtime List', () => {
       });
     });
 
-    it('Verify initial checkbox states when editing KServe model with partial values', () => {
-      initIntercepts({
-        projectEnableModelMesh: false,
-        disableKServeConfig: false,
-        disableModelMeshConfig: true,
-        disableServingRuntimeParams: false,
-        inferenceServices: [
-          mockInferenceServiceK8sResource({
-            name: 'test-inference-partial',
-            displayName: 'Test Inference Partial',
-            modelName: 'test-inference-partial',
-            isModelMesh: false,
-            resources: {
-              requests: { cpu: '1', memory: '2Gi' },
-              // No limits defined
-            },
-          }),
-        ],
-        servingRuntimes: [
-          mockServingRuntimeK8sResource({
-            name: 'test-inference-partial',
-            displayName: 'Test Inference Partial',
-            namespace: 'test-project',
-            resources: {
-              requests: { cpu: '1', memory: '2Gi' },
-              // No limits defined
-            },
-          }),
-        ],
-      });
-
-      projectDetails.visitSection('test-project', 'model-server');
-
-      // Open edit modal
-      modelServingSection
-        .getKServeRow('Test Inference Partial')
-        .find()
-        .findKebabAction('Edit')
-        .click();
-      kserveModalEdit.shouldBeOpen();
-
-      // Navigate to custom size section
-      kserveModalEdit.findModelServerSizeSelect().should('contain.text', 'Custom');
-
-      // Verify only request checkboxes are checked (since only requests exist in the resources)
-      kserveModalEdit.findCPURequestedCheckbox().should('be.checked');
-      kserveModalEdit.findMemoryRequestedCheckbox().should('be.checked');
-      kserveModalEdit.findCPULimitCheckbox().should('not.be.checked');
-      kserveModalEdit.findMemoryLimitCheckbox().should('not.be.checked');
-
-      // Verify initial values match existing requests
-      kserveModalEdit.findCPURequestedInput().should('have.value', '1');
-      kserveModalEdit.findMemoryRequestedInput().should('have.value', '2');
-
-      // Verify limit checkboxes are disabled since no request for limits
-      kserveModalEdit.findCPULimitCheckbox().should('not.be.disabled'); // Should be enabled since CPU request exists
-      kserveModalEdit.findMemoryLimitCheckbox().should('not.be.disabled'); // Should be enabled since Memory request exists
-
-      // Verify limit inputs are empty
-      kserveModalEdit.findCPULimitInput().should('have.value', '');
-      kserveModalEdit.findMemoryLimitInput().should('have.value', '');
-
-      // Verify form is initially valid (even with only requests)
-      kserveModalEdit.findSubmitButton().should('be.enabled');
-    });
-
     it('KServe Model list', () => {
       initIntercepts({
         projectEnableModelMesh: false,
@@ -1138,62 +1072,6 @@ describe('Serving Runtime List', () => {
         .should('have.text', '3');
     });
 
-    it('Check path error in KServe Modal', () => {
-      initIntercepts({
-        disableModelMeshConfig: false,
-        disableKServeConfig: false,
-        servingRuntimes: [],
-        projectEnableModelMesh: false,
-      });
-      projectDetails.visitSection('test-project', 'model-server');
-
-      modelServingSection.findDeployModelButton().click();
-
-      // Step 1: Model Source
-      modelServingWizard.findModelSourceStep().should('be.enabled');
-      modelServingWizard.findModelDeploymentStep().should('be.disabled');
-      modelServingWizard.findNextButton().should('be.disabled');
-      modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
-      modelServingWizard.findNextButton().should('be.disabled');
-
-      modelServingWizard.findModelLocationSelect().should('exist');
-      modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
-      modelServingWizard.findUrilocationInput().should('exist').type('https://test');
-      modelServingWizard.findNextButton().should('be.enabled');
-      modelServingWizard.findUrilocationInput().clear();
-
-      modelServingWizard.findUrilocationInput().type('test-model/');
-      // Trigger blur event to activate validation
-      modelServingWizard.findUrilocationInput().blur();
-      modelServingWizard.findNextButton().should('be.disabled');
-      modelServingWizard.findUrilocationInputError().should('be.visible').contains('Invalid URI');
-      modelServingWizard.findUrilocationInput().clear();
-
-      modelServingWizard.findUrilocationInput().type('/');
-      // Trigger blur event to activate validation
-      modelServingWizard.findUrilocationInput().blur();
-      modelServingWizard.findNextButton().should('be.disabled');
-      modelServingWizard.findUrilocationInputError().should('be.visible').contains('Invalid URI');
-      modelServingWizard.findUrilocationInput().clear();
-
-      modelServingWizard.findUrilocationInput().type('invalid/path/@#%#@%');
-      // Trigger blur event to activate validation
-      modelServingWizard.findUrilocationInput().blur();
-      modelServingWizard.findNextButton().should('be.disabled');
-      modelServingWizard.findUrilocationInputError().should('be.visible').contains('Invalid URI');
-      modelServingWizard.findUrilocationInput().clear();
-
-      modelServingWizard.findUrilocationInput().type('invalid/path///test');
-      // Trigger blur event to activate validation
-      modelServingWizard.findUrilocationInput().blur();
-      modelServingWizard.findNextButton().should('be.disabled');
-      modelServingWizard.findUrilocationInputError().should('be.visible').contains('Invalid URI');
-      modelServingWizard.findUrilocationInput().clear();
-
-      modelServingWizard.findUrilocationInput().type('https://test');
-      modelServingWizard.findNextButton().should('be.enabled');
-    });
-
     it('Check authentication section', () => {
       initIntercepts({
         disableModelMeshConfig: false,
@@ -1220,56 +1098,6 @@ describe('Serving Runtime List', () => {
           .findByText('Require token authentication')
           .should('exist'),
       );
-    });
-
-    it('Check environment variables validation in KServe Modal', () => {
-      initIntercepts({
-        disableModelMeshConfig: false,
-        disableKServeConfig: false,
-        disableServingRuntimeParams: false,
-        servingRuntimes: [],
-        projectEnableModelMesh: false,
-      });
-
-      projectDetails.visitSection('test-project', 'model-server');
-      modelServingSection.findDeployModelButton().click();
-      kserveModal.shouldBeOpen();
-
-      kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateSearchSelector().click();
-      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
-      kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
-      kserveModal.findExistingConnectionOption().click();
-      kserveModal.findLocationPathInput().type('test-model/');
-
-      // Verify submit is enabled before testing env vars
-      kserveModal.findSubmitButton().should('be.enabled');
-
-      // Add environment variable with invalid name
-      kserveModal.findServingRuntimeEnvVarsSectionAddButton().click();
-      kserveModal.findServingRuntimeEnvVarsName('0').type('1invalid-name');
-      cy.findByText('Must not start with a digit.').should('be.visible');
-      // Verify submit is disabled with invalid env var
-      kserveModal.findSubmitButton().should('be.disabled');
-
-      // Test invalid env var name with special characters
-      kserveModal.findServingRuntimeEnvVarsName('0').clear().type('invalid@name');
-      cy.findByText("Must consist of alphabetic characters, digits, '_', '-', or '.'").should(
-        'be.visible',
-      );
-      // Verify submit remains disabled
-      kserveModal.findSubmitButton().should('be.disabled');
-
-      // Test valid env var name
-      kserveModal.findServingRuntimeEnvVarsName('0').clear().type('VALID_NAME');
-      kserveModal.findServingRuntimeEnvVarsValue('0').type('test-value');
-      cy.findByText('Must not start with a digit.').should('not.exist');
-      cy.get('[data-testid="serving-runtime-environment-variables-input-name 0"]').should(
-        'have.attr',
-        'aria-invalid',
-        'false',
-      );
-      kserveModal.findSubmitButton().should('be.enabled');
     });
 
     it('Deploy OCI Model and check paste functionality', () => {

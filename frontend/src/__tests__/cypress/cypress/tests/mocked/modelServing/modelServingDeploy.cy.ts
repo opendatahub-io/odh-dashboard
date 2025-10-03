@@ -755,6 +755,160 @@ describe('Model Serving Deploy Wizard', () => {
     });
   });
 
+  it('Kserve auth should be enabled if capabilities are present', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+    );
+
+    // TODO: visit directly when plugin is enabled
+    cy.visitWithLogin(
+      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
+    );
+    modelServingGlobal.findDeployModelButton().click();
+
+    // Step 1: Model Source
+    modelServingWizard.findModelSourceStep().should('be.enabled');
+    modelServingWizard.findModelDeploymentStep().should('be.disabled');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.findGlobalScopedTemplateOption('Caikit').should('exist').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // check external route, token should be checked and no alert
+    modelServingWizard.findTokenAuthenticationCheckbox().should('exist');
+    modelServingWizard.findTokenWarningAlert().should('be.visible');
+  });
+
+  it('Check path error in KServe Modal', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+    );
+
+    // TODO: visit directly when plugin is enabled
+    cy.visitWithLogin(
+      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
+    );
+
+    modelServingGlobal.findDeployModelButton().click();
+
+    // Step 1: Model Source
+    modelServingWizard.findModelSourceStep().should('be.enabled');
+    modelServingWizard.findModelDeploymentStep().should('be.disabled');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
+    modelServingWizard.findNextButton().should('be.disabled');
+
+    modelServingWizard.findModelLocationSelect().should('exist');
+    modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
+    modelServingWizard.findUrilocationInput().should('exist').type('https://test');
+    modelServingWizard.findNextButton().should('be.enabled');
+    modelServingWizard.findUrilocationInput().clear();
+
+    modelServingWizard.findUrilocationInput().type('test-model/');
+    // Trigger blur event to activate validation
+    modelServingWizard.findUrilocationInput().blur();
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findUrilocationInputError().should('be.visible').contains('Invalid URI');
+    modelServingWizard.findUrilocationInput().clear();
+
+    modelServingWizard.findUrilocationInput().type('/');
+    // Trigger blur event to activate validation
+    modelServingWizard.findUrilocationInput().blur();
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findUrilocationInputError().should('be.visible').contains('Invalid URI');
+    modelServingWizard.findUrilocationInput().clear();
+
+    modelServingWizard.findUrilocationInput().type('invalid/path/@#%#@%');
+    // Trigger blur event to activate validation
+    modelServingWizard.findUrilocationInput().blur();
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findUrilocationInputError().should('be.visible').contains('Invalid URI');
+    modelServingWizard.findUrilocationInput().clear();
+
+    modelServingWizard.findUrilocationInput().type('invalid/path///test');
+    // Trigger blur event to activate validation
+    modelServingWizard.findUrilocationInput().blur();
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findUrilocationInputError().should('be.visible').contains('Invalid URI');
+    modelServingWizard.findUrilocationInput().clear();
+
+    modelServingWizard.findUrilocationInput().type('https://test');
+    modelServingWizard.findNextButton().should('be.enabled');
+  });
+
+  it('Check environment variables validation in KServe Modal', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+    );
+
+    // TODO: visit directly when plugin is enabled
+    cy.visitWithLogin(
+      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
+    );
+    modelServingGlobal.findDeployModelButton().click();
+
+    // Step 1: Model Source
+    modelServingWizard.findModelSourceStep().should('be.enabled');
+    modelServingWizard.findModelDeploymentStep().should('be.disabled');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.findGlobalScopedTemplateOption('Caikit').should('exist').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Verify submit is enabled before testing env vars
+    modelServingWizard.findNextButton().should('be.enabled');
+
+    // Add environment variable with invalid name
+    modelServingWizard.findEnvVariablesCheckbox().click();
+    modelServingWizard.findEnvVariableName('0').type('1invalid-name');
+    cy.findByText(
+      'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
+    ).should('be.visible');
+    // Verify submit is disabled with invalid env var
+    modelServingWizard.findNextButton().should('be.disabled');
+
+    // Test invalid env var name with special characters
+    modelServingWizard.findEnvVariableName('0').clear().type('invalid@name');
+    cy.findByText(
+      'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
+    ).should('be.visible');
+    // Verify submit is disabled with invalid env var
+    modelServingWizard.findNextButton().should('be.disabled');
+
+    // Test valid env var name
+    modelServingWizard.findEnvVariableName('0').clear().type('VALID_NAME');
+    modelServingWizard.findEnvVariableName('0').clear().type('test-value');
+    cy.findByText(
+      'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
+    ).should('not.exist');
+    // Verify submit is enabled with valid env var
+    modelServingWizard.findNextButton().should('be.enabled');
+  });
+
   it('Edit an existing deployment', () => {
     initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
     cy.interceptK8sList(
