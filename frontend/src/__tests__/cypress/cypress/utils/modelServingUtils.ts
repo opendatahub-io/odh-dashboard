@@ -30,13 +30,11 @@ export const initDeployPrefilledModelIntercepts = ({
   modelMeshInstalled = true,
   kServeInstalled = true,
   disableProjectScoped = true,
-  disableHardwareProfiles = true,
   isEmpty = false,
 }: {
   modelMeshInstalled?: boolean;
   kServeInstalled?: boolean;
   disableProjectScoped?: boolean;
-  disableHardwareProfiles?: boolean;
   isEmpty?: boolean;
 }): void => {
   cy.interceptOdh(
@@ -45,7 +43,6 @@ export const initDeployPrefilledModelIntercepts = ({
       disableModelRegistry: false,
       disableModelCatalog: false,
       disableProjectScoped,
-      disableHardwareProfiles,
     }),
   );
 

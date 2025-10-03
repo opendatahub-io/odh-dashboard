@@ -58,7 +58,6 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
   servingRuntimeSelected,
   resetModelFormat,
 }) => {
-  const isHardwareProfilesAvailable = true;
   const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
 
   const [searchServingRuntime, setSearchServingRuntime] = React.useState('');

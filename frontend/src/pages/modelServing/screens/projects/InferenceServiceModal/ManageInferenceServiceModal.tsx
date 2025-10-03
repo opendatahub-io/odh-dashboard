@@ -175,8 +175,8 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
   return (
     <Modal variant="medium" isOpen onClose={() => onClose(false)}>
       <ModalHeader
-        title={editInfo ? 'Edit model' : 'Deploy model 22a'}
-        description="Configure properties for deploying your model 22a"
+        title={editInfo ? 'Edit model' : 'Deploy model'}
+        description="Configure properties for deploying your model"
       />
       <ModalBody>
         <Form>
