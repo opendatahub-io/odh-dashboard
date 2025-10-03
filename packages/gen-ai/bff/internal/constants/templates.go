@@ -41,8 +41,9 @@ files_to_upload = [
 ]
 {{- end }}
 
-from llama_stack_client import LlamaStackClient
 import os
+
+from llama_stack_client import LlamaStackClient
 
 client = LlamaStackClient(base_url=LLAMA_STACK_URL)
 {{- if .VectorStore }}
@@ -54,8 +55,9 @@ vector_store = client.vector_stores.create(
     embedding_dimension={{.VectorStore.EmbeddingDimension}}{{- end }}{{- if .VectorStore.ProviderID }},
     provider_id="{{.VectorStore.ProviderID}}"{{- end }}
 )
-{{- end }}{{- if .Tools }}
+{{- end }}{{- if or .Tools .MCPServers }}
 tools = [
+  {{- if .Tools }}
   {{- range .Tools }}
     {
       "type": "{{.Type}}",
@@ -67,6 +69,21 @@ tools = [
         {{- end }}
       ]
     },
+  {{- end }}
+  {{- end }}
+  {{- if .MCPServers }}
+  {{- range .MCPServers }}
+    {
+      "type": "mcp",
+      "server_label": "{{.ServerLabel}}",
+      "server_url": "{{.ServerURL}}"{{- if .Headers }},
+      "headers": {
+        {{- range $key, $value := .Headers }}
+        "{{$key}}": "{{$value}}",
+        {{- end }}
+      }{{- end }}
+    },
+  {{- end }}
   {{- end }}
 ]
 {{- end }}
@@ -85,9 +102,9 @@ for file_info in files_to_upload:
 config = {
     "input": input_text,
     "model": model_name{{- if .Temperature }},
-    "temperature": temperature{{- end }}{{- if .Stream }},
-    "stream": stream_enabled{{- end }}{{- if .Instructions }},
-    "instructions": system_instructions{{- end }}{{- if .Tools }},
+    "temperature": temperature{{- end }}{{- if .Instructions }},
+    "instructions": system_instructions{{- end }}{{- if .Stream }},
+    "stream": stream_enabled{{- end }}{{- if or .Tools .MCPServers }},
     "tools": tools{{- end }}
 }
 
