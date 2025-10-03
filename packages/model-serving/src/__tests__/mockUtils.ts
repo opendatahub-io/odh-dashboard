@@ -11,8 +11,8 @@ import type { Extension, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
 import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/internal/__mocks__/mockK8sNameDescriptionFieldData';
 import { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
-import { UseModelDeploymentWizardState } from '../components/deploymentWizard/useDeploymentWizard';
 import { ModelServingPlatform } from '../concepts/useProjectServingPlatform';
+import type { UseModelDeploymentWizardState } from '../components/deploymentWizard/useDeploymentWizard';
 
 export const mockModelServingPlatform = ({
   id = 'kserve',
@@ -159,6 +159,7 @@ export const mockDeploymentWizardState = (
           setFormData: jest.fn(),
           resetFormData: jest.fn(),
           profilesLoaded: true,
+          profilesLoadError: undefined,
         },
         modelFormatState: {
           modelFormatOptions: [],
@@ -167,6 +168,7 @@ export const mockDeploymentWizardState = (
           isVisible: false,
           error: undefined,
           loaded: true,
+          templatesFilteredForModelType: [],
         },
         externalRoute: {
           data: undefined,
@@ -200,12 +202,7 @@ export const mockDeploymentWizardState = (
         modelServer: {
           data: undefined,
           setData: jest.fn(),
-          projectTemplates: [],
-          modelServerTemplates: [],
-          modelFormat: undefined,
-          modelType: undefined,
-          projectName: undefined,
-          isEditing: false,
+          options: [],
         },
       },
     },

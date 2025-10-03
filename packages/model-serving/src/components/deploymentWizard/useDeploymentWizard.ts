@@ -28,9 +28,11 @@ import {
   useAvailableAiAssetsFields,
 } from './fields/AvailableAiAssetsFields';
 import {
-  ModelServerSelectFieldData,
   useModelServerSelectField,
+  type ModelServerOption,
 } from './fields/ModelServerTemplateSelectField';
+import { isModelServerTemplateField, type WizardFormData } from './types';
+import { useWizardFieldsFromExtensions } from '../../concepts/extensionUtils';
 
 export type ModelDeploymentWizardData = {
   modelTypeField?: ModelTypeFieldData;
@@ -43,35 +45,20 @@ export type ModelDeploymentWizardData = {
   hardwareProfile?: Parameters<typeof useHardwareProfileConfig>;
   modelFormat?: SupportedModelFormats;
   modelLocationData?: ModelLocationData;
-  modelServer?: ModelServerSelectFieldData;
+  modelServer?: ModelServerOption;
   isEditing?: boolean;
   connections?: LabeledConnection[];
   initSelectedConnection?: LabeledConnection | undefined;
   AiAssetData?: AvailableAiAssetsFieldsData;
-  // Add more field handlers as needed
 };
 
-export type UseModelDeploymentWizardState = {
-  initialData?: ModelDeploymentWizardData;
-  state: {
-    modelType: ReturnType<typeof useModelTypeField>;
-    k8sNameDesc: ReturnType<typeof useK8sNameDescriptionFieldData>;
-    hardwareProfileConfig: ReturnType<typeof useHardwareProfileConfig>;
-    modelFormatState: ReturnType<typeof useModelFormatField>;
-    modelLocationData: ReturnType<typeof useModelLocationData>;
-    externalRoute: ReturnType<typeof useExternalRouteField>;
-    tokenAuthentication: ReturnType<typeof useTokenAuthenticationField>;
-    numReplicas: ReturnType<typeof useNumReplicasField>;
-    runtimeArgs: ReturnType<typeof useRuntimeArgsField>;
-    environmentVariables: ReturnType<typeof useEnvironmentVariablesField>;
-    AiAssetData: ReturnType<typeof useAvailableAiAssetsFields>;
-    modelServer: ReturnType<typeof useModelServerSelectField>;
-  };
-};
+export type UseModelDeploymentWizardState = WizardFormData;
 
 export const useModelDeploymentWizard = (
   initialData?: ModelDeploymentWizardData,
 ): UseModelDeploymentWizardState => {
+  const [fields] = useWizardFieldsFromExtensions();
+
   // Step 1: Model Source
   const modelType = useModelTypeField(initialData?.modelTypeField);
   const { namespace } = useParams();
@@ -102,19 +89,24 @@ export const useModelDeploymentWizard = (
           newFormat !== prevFormat &&
           prevFormat !== undefined
         ) {
-          modelServer.setData({ name: '', namespace: '', scope: '' });
+          modelServer.setData(null);
         }
       },
       [modelType.data],
     ),
   );
+  const modelServerTemplateFields = React.useMemo(() => {
+    return fields.filter(isModelServerTemplateField);
+  }, [fields]);
   const modelServer = useModelServerSelectField(
+    modelServerTemplateFields,
     initialData?.modelServer,
     currentProject?.metadata.name,
     modelFormatState.templatesFilteredForModelType,
     modelType.data === ServingRuntimeModelType.GENERATIVE // Don't pass model format for generative models
       ? undefined
       : modelFormatState.modelFormat,
+    modelType.data,
   );
 
   // Step 3: Advanced Options - Individual Fields

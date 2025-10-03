@@ -9,10 +9,10 @@ import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
 import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import type { WizardFormData } from '@odh-dashboard/model-serving/types/form-data';
 import { KServeDeployment } from './deployments';
 import { setUpTokenAuth } from './deployUtils';
 import { createServingRuntime } from './deployServer';
-import { UseModelDeploymentWizardState } from '../../model-serving/src/components/deploymentWizard/useDeploymentWizard';
 import { ExternalRouteFieldData } from '../../model-serving/src/components/deploymentWizard/fields/ExternalRouteField';
 import { TokenAuthenticationFieldData } from '../../model-serving/src/components/deploymentWizard/fields/TokenAuthenticationField';
 import { NumReplicasFieldData } from '../../model-serving/src/components/deploymentWizard/fields/NumReplicasField';
@@ -39,7 +39,7 @@ export type CreatingInferenceServiceObject = {
 };
 
 export const deployKServeDeployment = async (
-  wizardData: UseModelDeploymentWizardState['state'],
+  wizardData: WizardFormData['state'],
   projectName: string,
   existingDeployment?: KServeDeployment,
   serverResource?: ServingRuntimeKind,

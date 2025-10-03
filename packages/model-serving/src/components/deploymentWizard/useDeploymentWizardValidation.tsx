@@ -3,7 +3,7 @@ import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormVa
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { useValidation } from '@odh-dashboard/internal/utilities/useValidation';
 import { hardwareProfileValidationSchema } from '@odh-dashboard/internal/concepts/hardwareProfiles/validationUtils';
-import type { UseModelDeploymentWizardState } from './useDeploymentWizard';
+import type { WizardFormData } from './types';
 import { modelSourceStepSchema, type ModelSourceStepData } from './steps/ModelSourceStep';
 import { modelFormatFieldSchema } from './fields/ModelFormatField';
 import { externalRouteFieldSchema, type ExternalRouteFieldData } from './fields/ExternalRouteField';
@@ -37,7 +37,7 @@ export type ModelDeploymentWizardValidation = {
 };
 
 export const useModelDeploymentWizardValidation = (
-  state: UseModelDeploymentWizardState['state'],
+  state: WizardFormData['state'],
 ): ModelDeploymentWizardValidation => {
   // Step 1: Model Source
   const modelSourceStepValidationData: Partial<ModelSourceStepData> = React.useMemo(
@@ -67,11 +67,7 @@ export const useModelDeploymentWizardValidation = (
   );
 
   const modelServerValidation = useZodFormValidation(
-    {
-      name: state.modelServer.data?.name,
-      namespace: state.modelServer.data?.namespace,
-      scope: state.modelServer.data?.scope,
-    },
+    state.modelServer.data,
     modelServerSelectFieldSchema,
   );
 
