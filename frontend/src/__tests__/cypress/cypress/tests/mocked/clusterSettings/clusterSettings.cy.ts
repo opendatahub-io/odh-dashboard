@@ -4,7 +4,6 @@ import {
   clusterSettings,
   cullerSettings,
   modelServingSettings,
-  notebookTolerationSettings,
   pvcSizeSettings,
   telemetrySettings,
 } from '#~/__tests__/cypress/cypress/pages/clusterSettings';
@@ -32,7 +31,7 @@ describe('Cluster Settings', () => {
     cy.interceptK8sList({ model: DataScienceClusterModel }, mockK8sResourceList([mockDsc({})]));
   });
 
-  it.only('Edit cluster settings', () => {
+  it('Edit cluster settings', () => {
     cy.interceptOdh(
       'GET /api/dsc/status',
       mockDscStatus({
@@ -61,21 +60,13 @@ describe('Cluster Settings', () => {
 
     // check serving platform field
     modelServingSettings.findSinglePlatformCheckbox().should('be.checked');
-    console.log('a22sbb');
     modelServingSettings.findSubmitButton().should('be.disabled');
-    console.log('b');
     modelServingSettings.findAlert().should('not.exist');
-    console.log('c');
     modelServingSettings.findSinglePlatformCheckbox().uncheck();
-    console.log('d');
     modelServingSettings.findSubmitButton().should('be.enabled');
-    console.log('e');
     modelServingSettings.findAlert().should(be.warning);
-    console.log('f');
     modelServingSettings.findSinglePlatformCheckbox().check();
-    console.log('g');
     modelServingSettings.findAlert().should('not.exist');
-    console.log('h');
     modelServingSettings.findSubmitButton().should('be.disabled');
 
     // check PVC size field
@@ -104,7 +95,6 @@ describe('Cluster Settings', () => {
     telemetrySettings.findEnabledCheckbox().click();
     telemetrySettings.findSubmitButton().should('be.enabled');
     telemetrySettings.findEnabledCheckbox().click();
-    console.log('i22-bbbcc');
 
     telemetrySettings.findSubmitButton().should('be.disabled');
 
