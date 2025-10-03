@@ -17,7 +17,11 @@ import {
   Skeleton,
 } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { decodeParams, getModelName } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import {
+  decodeParams,
+  getModelName,
+  hasModelArtifacts,
+} from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import ModelDetailsTabs from '~/app/pages/modelCatalog/screens/ModelDetailsTabs';
 import { useCatalogModel } from '~/app/hooks/modelCatalog/useCatalogModel';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
@@ -72,7 +76,7 @@ const ModelDetailsPage: React.FC = () => {
 
     if (!artifactLoaded) {
       return (
-        <Button variant="primary" data-testid="register-model-button" isLoading>
+        <Button variant="primary" data-testid="register-model-button" isLoading isAriaDisabled>
           Register model
         </Button>
       );
@@ -84,7 +88,7 @@ const ModelDetailsPage: React.FC = () => {
         'To request a new model registry, or to request permission to access an existing model registry, contact your administrator.',
         variant
       )
-    ) : artifacts.items.length === 0 ? (
+    ) : artifacts.items.length === 0 || !hasModelArtifacts(artifacts.items) ? (
       registerButtonPopover('', 'Model location is unavailable', variant)
     ) : (
       <Button
@@ -172,7 +176,14 @@ const ModelDetailsPage: React.FC = () => {
         )
       }
     >
-      {model && <ModelDetailsTabs model={model} decodedParams={decodedParams} />}
+      {model && (
+        <ModelDetailsTabs
+          model={model}
+          artifacts={artifacts}
+          artifactLoaded={artifactLoaded}
+          artifactsLoadError={artifactsLoadError}
+        />
+      )}
     </ApplicationsPage>
   );
 };
