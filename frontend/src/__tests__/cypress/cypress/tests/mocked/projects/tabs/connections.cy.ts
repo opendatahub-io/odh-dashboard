@@ -126,6 +126,7 @@ describe('Connections', () => {
         kind: 'Secret',
         metadata: {
           annotations: {
+            'opendatahub.io/connection-type-protocol': 'uri',
             'opendatahub.io/connection-type-ref': 'test',
             'openshift.io/description': '',
             'openshift.io/display-name': 'new connection',
@@ -176,6 +177,7 @@ describe('Connections', () => {
           namespace: 'test-project',
           labels: { 'opendatahub.io/dashboard': 'true', 'opendatahub.io/managed': 'true' },
           annotations: {
+            'opendatahub.io/connection-type-protocol': 's3',
             'openshift.io/display-name': 'whitespace connection',
             'openshift.io/description': '',
             'opendatahub.io/connection-type': 's3',
@@ -200,6 +202,7 @@ describe('Connections', () => {
       mockConnectionTypeConfigMap({
         name: 'postgres',
         fields: [
+          ...mockModelServingFields,
           {
             name: 'field A',
             type: ConnectionTypeFieldType.ShortText,
@@ -229,6 +232,7 @@ describe('Connections', () => {
         kind: 'Secret',
         metadata: {
           annotations: {
+            'opendatahub.io/connection-type-protocol': 's3',
             'opendatahub.io/connection-type': 's3',
             'opendatahub.io/connection-type-ref': 'postgres',
             'openshift.io/description': '',
@@ -321,6 +325,7 @@ describe('Connections', () => {
           namespace: 'test-project',
           labels: { 'opendatahub.io/dashboard': 'true' },
           annotations: {
+            'opendatahub.io/connection-type-protocol': 'oci',
             'openshift.io/display-name': 'new oci connection',
             'openshift.io/description': '',
             'opendatahub.io/connection-type-ref': 'oci-v1',

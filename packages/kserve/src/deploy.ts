@@ -1,6 +1,7 @@
 import {
   InferenceServiceKind,
   KnownLabels,
+  MetadataAnnotation,
   ServingRuntimeKind,
   SupportedModelFormats,
 } from '@odh-dashboard/internal/k8sTypes';
@@ -10,16 +11,22 @@ import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import type { WizardFormData } from '@odh-dashboard/model-serving/types/form-data';
+import {
+  isModelServingCompatible,
+  ModelServingCompatibleTypes,
+} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+import { isPVCUri } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
 import { KServeDeployment } from './deployments';
 import { setUpTokenAuth } from './deployUtils';
 import { createServingRuntime } from './deployServer';
+import { ModelLocationData } from '../../model-serving/src/components/deploymentWizard/fields/modelLocationFields/types';
 import { ExternalRouteFieldData } from '../../model-serving/src/components/deploymentWizard/fields/ExternalRouteField';
 import { TokenAuthenticationFieldData } from '../../model-serving/src/components/deploymentWizard/fields/TokenAuthenticationField';
 import { NumReplicasFieldData } from '../../model-serving/src/components/deploymentWizard/fields/NumReplicasField';
 import { RuntimeArgsFieldData } from '../../model-serving/src/components/deploymentWizard/fields/RuntimeArgsField';
 import { EnvironmentVariablesFieldData } from '../../model-serving/src/components/deploymentWizard/fields/EnvironmentVariablesField';
 import { AvailableAiAssetsFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/AvailableAiAssetsFields';
-import { ModelLocationData } from '../../model-serving/src/components/deploymentWizard/fields/modelLocationFields/types';
+import { CreateConnectionData } from '../../model-serving/src/components/deploymentWizard/fields/CreateConnectionInputFields';
 
 export type CreatingInferenceServiceObject = {
   project: string;
@@ -27,6 +34,7 @@ export type CreatingInferenceServiceObject = {
   k8sName: string;
   description: string;
   modelLocationData?: ModelLocationData;
+  createConnectionData?: CreateConnectionData;
   modelType: ServingRuntimeModelType;
   hardwareProfile: HardwareProfileConfig;
   modelFormat: SupportedModelFormats;
@@ -60,6 +68,7 @@ export const deployKServeDeployment = async (
     k8sName: wizardData.k8sNameDesc.data.k8sName.value,
     description: wizardData.k8sNameDesc.data.description,
     modelLocationData: wizardData.modelLocationData.data,
+    createConnectionData: wizardData.createConnectionData.data,
     modelType: wizardData.modelType.data,
     hardwareProfile: wizardData.hardwareProfileConfig.formData,
     modelFormat: wizardData.modelFormatState.modelFormat,
@@ -112,6 +121,7 @@ export const deployKServeDeployment = async (
 const assembleInferenceService = (
   data: CreatingInferenceServiceObject,
   existingInferenceService?: InferenceServiceKind,
+  dryRun?: boolean,
 ): InferenceServiceKind => {
   const {
     project,
@@ -123,7 +133,7 @@ const assembleInferenceService = (
     environmentVariables,
   } = data;
   const inferenceService: InferenceServiceKind = existingInferenceService
-    ? { ...existingInferenceService }
+    ? structuredClone(existingInferenceService)
     : {
         apiVersion: 'serving.kserve.io/v1beta1',
         kind: 'InferenceService',
@@ -149,7 +159,7 @@ const assembleInferenceService = (
       };
 
   const annotations = { ...inferenceService.metadata.annotations };
-  const updatedAnnotations = applyAnnotations(annotations, data);
+  const updatedAnnotations = applyAnnotations(annotations, data, dryRun);
 
   inferenceService.metadata.annotations = updatedAnnotations;
 
@@ -185,7 +195,9 @@ const assembleInferenceService = (
       value: envVar.value,
     }));
   }
-  return inferenceService;
+
+  const updatedInferenceService = addConnectionDataToInferenceService(data, inferenceService);
+  return updatedInferenceService;
 };
 
 const createInferenceService = (
@@ -193,7 +205,7 @@ const createInferenceService = (
   inferenceService?: InferenceServiceKind,
   dryRun?: boolean,
 ): Promise<InferenceServiceKind> => {
-  const assembledInferenceService = assembleInferenceService(data, inferenceService);
+  const assembledInferenceService = assembleInferenceService(data, inferenceService, dryRun);
 
   return k8sCreateResource<InferenceServiceKind>(
     applyK8sAPIOptions(
@@ -209,9 +221,18 @@ const createInferenceService = (
 const applyAnnotations = (
   annotations: Record<string, string>,
   data: CreatingInferenceServiceObject,
+  dryRun?: boolean,
 ) => {
-  const { name, description, modelType, hardwareProfile, tokenAuth, AiAssetData } = data;
-  const updatedAnnotations = { ...annotations };
+  const {
+    name,
+    description,
+    modelType,
+    hardwareProfile,
+    tokenAuth,
+    AiAssetData,
+    createConnectionData,
+  } = data;
+  const updatedAnnotations = structuredClone(annotations);
   updatedAnnotations['openshift.io/display-name'] = name.trim();
   if (description) {
     updatedAnnotations['openshift.io/description'] = description;
@@ -239,5 +260,54 @@ const applyAnnotations = (
       updatedAnnotations['opendatahub.io/genai-use-case'] = AiAssetData.useCase;
     }
   }
+  if (createConnectionData?.nameDesc?.name && !dryRun) {
+    updatedAnnotations[MetadataAnnotation.ConnectionName] = createConnectionData.nameDesc.name;
+  }
   return updatedAnnotations;
+};
+
+// For connection data structurally specific to KServe
+const addConnectionDataToInferenceService = (
+  data: CreatingInferenceServiceObject,
+  inferenceService: InferenceServiceKind,
+): InferenceServiceKind => {
+  const { modelLocationData } = data;
+  const updatedInferenceService = structuredClone(inferenceService);
+
+  if (!updatedInferenceService.spec.predictor.model || !inferenceService.spec.predictor.model) {
+    updatedInferenceService.spec.predictor.model = {};
+  }
+
+  // Adds storage URI for PVC
+  if (
+    modelLocationData?.fieldValues.URI &&
+    typeof modelLocationData.fieldValues.URI === 'string' &&
+    isPVCUri(modelLocationData.fieldValues.URI)
+  ) {
+    updatedInferenceService.spec.predictor.model.storageUri = modelLocationData.fieldValues.URI;
+  }
+  // Handle additional fields based on connection type
+  if (modelLocationData?.connectionTypeObject) {
+    if (
+      isModelServingCompatible(
+        modelLocationData.connectionTypeObject,
+        ModelServingCompatibleTypes.S3ObjectStorage,
+      )
+    ) {
+      // For S3, add storage path
+      updatedInferenceService.spec.predictor.model.storage = {
+        path: modelLocationData.additionalFields.modelPath,
+      };
+    } else if (
+      isModelServingCompatible(
+        modelLocationData.connectionTypeObject,
+        ModelServingCompatibleTypes.OCI,
+      )
+    ) {
+      // For OCI add storage URI
+      updatedInferenceService.spec.predictor.model.storageUri =
+        modelLocationData.additionalFields.modelUri;
+    }
+  }
+  return updatedInferenceService;
 };

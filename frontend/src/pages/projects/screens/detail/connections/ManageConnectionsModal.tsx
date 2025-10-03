@@ -19,6 +19,7 @@ import {
   getDefaultValues,
   isConnectionTypeDataField,
   parseConnectionSecretValues,
+  getConnectionProtocolType,
 } from '#~/concepts/connectionTypes/utils';
 import usePersistentData from './usePersistentData';
 
@@ -97,6 +98,9 @@ export const ManageConnectionModal: React.FC<Props> = ({
       !Object.values(connectionErrors).find((e) => !!e),
     [connectionTypeName, selectedConnectionType, nameDescData, connectionValues, connectionErrors],
   );
+  const protocolType = selectedConnectionType
+    ? getConnectionProtocolType(selectedConnectionType)
+    : 'uri';
 
   const { changeSelectionType } = usePersistentData({
     setConnectionValues,
@@ -172,15 +176,18 @@ export const ManageConnectionModal: React.FC<Props> = ({
               setIsSaving(false);
               return;
             }
+            const assembledConnection = assembleConnectionSecret(
+              project.metadata.name,
+              connectionTypeName,
+              nameDescData,
+              connectionValues,
+            );
+            assembledConnection.metadata.annotations = {
+              ...assembledConnection.metadata.annotations,
+              'opendatahub.io/connection-type-protocol': protocolType,
+            };
 
-            onSubmit(
-              assembleConnectionSecret(
-                project.metadata.name,
-                connectionTypeName,
-                nameDescData,
-                connectionValues,
-              ),
-            )
+            onSubmit(assembledConnection)
               .then(() => {
                 onClose(true);
               })

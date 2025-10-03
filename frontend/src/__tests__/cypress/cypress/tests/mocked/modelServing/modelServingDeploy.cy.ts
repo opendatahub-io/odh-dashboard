@@ -33,6 +33,7 @@ import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
 } from '../../../../../../__mocks__/mockConnectionType';
+import { mockURISecretK8sResource } from '../../../../../../__mocks__/mockSecretK8sResource';
 
 const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) => {
   cy.interceptOdh(
@@ -80,6 +81,18 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'opendatahub' },
     mockK8sResourceList(mockGlobalScopedHardwareProfiles),
+  );
+
+  cy.interceptK8sList(
+    { model: SecretModel, ns: 'test-project' },
+    mockK8sResourceList([
+      mockURISecretK8sResource({ namespace: 'test-project' }),
+      mockURISecretK8sResource({
+        namespace: 'test-project',
+        name: 'test-uri-secret-2',
+        displayName: 'Test URI Secret 2',
+      }),
+    ]),
   );
 
   cy.interceptK8sList(
@@ -145,7 +158,10 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
     },
     {
       statusCode: 200,
-      body: mockInferenceServiceK8sResource({ name: 'test-model', modelType }),
+      body: mockInferenceServiceK8sResource({
+        name: 'test-model',
+        modelType,
+      }),
     },
   ).as('createInferenceService');
 
@@ -322,8 +338,14 @@ describe('Model Serving Deploy Wizard', () => {
       .should('exist')
       .click();
     modelServingWizard.findModelLocationSelect().should('exist');
-    modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
-    modelServingWizard.findUrilocationInput().should('exist').type('https://test');
+    modelServingWizard.findModelLocationSelectOption('Existing connection').should('exist').click();
+    modelServingWizard.findExistingConnectionSelect().should('exist').click();
+    modelServingWizard
+      .findExistingConnectionSelectOption('Test URI Secret')
+      .should('exist')
+      .click();
+
+    modelServingWizard.findSaveConnectionCheckbox().should('not.exist');
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
@@ -611,8 +633,14 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelTypeSelectOption('Generative AI model (e.g. LLM)').should('exist');
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
     modelServingWizard.findModelLocationSelect().should('exist');
-    modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
-    modelServingWizard.findUrilocationInput().should('exist').type('https://test');
+    modelServingWizard.findModelLocationSelectOption('Existing connection').should('exist').click();
+    modelServingWizard.findExistingConnectionSelect().should('exist').click();
+    modelServingWizard
+      .findExistingConnectionSelectOption('Test URI Secret')
+      .should('exist')
+      .click();
+    modelServingWizard.findExistingConnectionValue().should('have.value', 'Test URI Secret');
+    modelServingWizard.findSaveConnectionCheckbox().should('not.exist');
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
@@ -763,6 +791,7 @@ describe('Model Serving Deploy Wizard', () => {
         mockInferenceServiceK8sResource({
           modelType: ServingRuntimeModelType.PREDICTIVE,
           hasExternalRoute: true,
+          secretName: 'test-uri-secret',
           hardwareProfileName: 'large-profile',
           hardwareProfileNamespace: 'opendatahub',
           description: 'test-description',
@@ -776,7 +805,6 @@ describe('Model Serving Deploy Wizard', () => {
               memory: '16Gi',
             },
           },
-          storageUri: 'https://test',
         }),
       ]),
     );
@@ -793,7 +821,10 @@ describe('Model Serving Deploy Wizard', () => {
 
     // Step 1: Model source
     modelServingWizardEdit.findModelLocationSelect().should('exist');
-    modelServingWizardEdit.findUrilocationInput().should('have.value', 'https://test');
+    modelServingWizardEdit.findModelLocationSelectOption('Existing connection').should('exist');
+    modelServingWizardEdit.findExistingConnectionSelect().should('exist');
+    modelServingWizardEdit.findExistingConnectionValue().should('have.value', 'Test URI Secret');
+    modelServingWizardEdit.findSaveConnectionCheckbox().should('not.exist');
     modelServingWizardEdit.findModelSourceStep().should('be.enabled');
     modelServingWizardEdit.findNextButton().should('be.enabled');
 

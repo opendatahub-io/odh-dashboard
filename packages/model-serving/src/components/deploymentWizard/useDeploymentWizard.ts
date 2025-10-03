@@ -32,6 +32,10 @@ import {
   type ModelServerOption,
 } from './fields/ModelServerTemplateSelectField';
 import { isModelServerTemplateField, type WizardFormData } from './types';
+import {
+  useCreateConnectionData,
+  type CreateConnectionData,
+} from './fields/CreateConnectionInputFields';
 import { useWizardFieldsFromExtensions } from '../../concepts/extensionUtils';
 
 export type ModelDeploymentWizardData = {
@@ -50,6 +54,7 @@ export type ModelDeploymentWizardData = {
   connections?: LabeledConnection[];
   initSelectedConnection?: LabeledConnection | undefined;
   AiAssetData?: AvailableAiAssetsFieldsData;
+  createConnectionData?: CreateConnectionData;
 };
 
 export type UseModelDeploymentWizardState = WizardFormData;
@@ -67,6 +72,11 @@ export const useModelDeploymentWizard = (
   const modelLocationData = useModelLocationData(
     currentProject ?? null,
     initialData?.modelLocationData,
+  );
+  const createConnectionData = useCreateConnectionData(
+    currentProject ?? null,
+    initialData?.createConnectionData,
+    modelLocationData.data,
   );
 
   // Step 2: Model Deployment
@@ -137,6 +147,7 @@ export const useModelDeploymentWizard = (
       hardwareProfileConfig,
       modelFormatState,
       modelLocationData,
+      createConnectionData,
       externalRoute,
       tokenAuthentication,
       numReplicas,

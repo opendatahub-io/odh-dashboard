@@ -5,6 +5,8 @@ import {
   k8sListResource,
   k8sUpdateResource,
   K8sStatus,
+  k8sPatchResource,
+  K8sResourceCommon,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { K8sAPIOptions, KnownLabels, SecretKind } from '#~/k8sTypes';
 import { SecretModel } from '#~/api/models';
@@ -202,3 +204,52 @@ export const deleteSecret = (
       opts,
     ),
   );
+
+export const patchSecretWithOwnerReference = (
+  secret: SecretKind,
+  resource: K8sResourceCommon & { metadata: { name: string } },
+  uid: string,
+): Promise<SecretKind> =>
+  k8sPatchResource({
+    model: SecretModel,
+    queryOptions: { name: secret.metadata.name, ns: secret.metadata.namespace },
+    patches: [
+      {
+        op: 'add',
+        path: '/metadata/ownerReferences',
+        value: [
+          ...(secret.metadata.ownerReferences || []),
+          {
+            uid,
+            name: resource.metadata.name,
+            apiVersion: resource.apiVersion,
+            kind: resource.kind,
+            blockOwnerDeletion: false,
+          },
+        ],
+      },
+    ],
+  });
+
+export const patchSecretWithProtocolAnnotation = (
+  secret: SecretKind,
+  protocol: string,
+): Promise<SecretKind> =>
+  k8sPatchResource({
+    model: SecretModel,
+    queryOptions: { name: secret.metadata.name, ns: secret.metadata.namespace },
+    patches: [
+      {
+        op: 'add',
+        path: '/metadata/annotations',
+        value: {
+          ...(secret.metadata.annotations || {}),
+          'opendatahub.io/connection-type-protocol': protocol,
+        },
+      },
+    ],
+  });
+
+export const hasProtocolAnnotation = (resource: SecretKind): boolean => {
+  return !!resource.metadata.annotations?.['opendatahub.io/connection-type-protocol'];
+};
