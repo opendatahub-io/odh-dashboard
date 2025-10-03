@@ -59,7 +59,7 @@ class ModelRegistry {
   }
 
   visit() {
-    cy.visitWithLogin(`/ai-hub/registry`);
+    cy.visitWithLogin(`/model-registry`);
     this.wait();
   }
 

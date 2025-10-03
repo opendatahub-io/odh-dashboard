@@ -145,13 +145,13 @@ describe('v2Redirect', () => {
 
       const element = buildV2RedirectElement({
         from: '/modelCatalog/*',
-        to: '/ai-hub/catalog/*',
+        to: '/model-catalog/*',
       });
 
       render(element);
 
       expect(getNavigateProps()).toEqual({
-        to: '/ai-hub/catalog/Red%20Hat/rhelai1/granite-8b-code-instruct/1%252E3%252E0',
+        to: '/model-catalog/Red%20Hat/rhelai1/granite-8b-code-instruct/1%252E3%252E0',
         state: null,
         replace: true,
       });

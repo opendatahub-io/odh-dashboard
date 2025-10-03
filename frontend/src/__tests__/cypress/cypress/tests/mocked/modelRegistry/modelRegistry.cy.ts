@@ -291,7 +291,7 @@ describe('Model Registry core', () => {
       },
       { data: { userId: 'user@example.com', clusterAdmin: true } },
     );
-    cy.visitWithLogin('/ai-hub/registry/modelregistry-sample');
+    cy.visitWithLogin('/model-registry/modelregistry-sample');
 
     appChrome.findNavSection('AI hub').should('exist');
 
@@ -327,7 +327,7 @@ describe('Model Registry core', () => {
       },
       { data: { userId: 'user@example.com', clusterAdmin: true } },
     );
-    cy.visitWithLogin('/ai-hub/registry/modelregistry-sample');
+    cy.visitWithLogin('/model-registry/modelregistry-sample');
     appChrome.findNavSection('AI hub').should('exist');
 
     // Check for non-admin specific content
@@ -354,7 +354,7 @@ describe.skip('Register Model button', () => {
 
     // TODO: Fix this function
     // modelRegistry.visit();
-    cy.visitWithLogin('/ai-hub/registry/modelregistry-sample');
+    cy.visitWithLogin('/model-registry/modelregistry-sample');
     appChrome.findNavSection('AI hub').should('exist');
     modelRegistry.shouldModelRegistrySelectorExist();
   });

@@ -21,12 +21,12 @@ class RegisterModelPage {
 
   visit() {
     const preferredModelRegistry = 'modelregistry-sample';
-    cy.visitWithLogin(`/ai-hub/registry/${preferredModelRegistry}/registerModel`);
+    cy.visitWithLogin(`/model-registry/${preferredModelRegistry}/registerModel`);
     this.wait();
   }
 
   visitWithRegistry(registryName: string) {
-    cy.visitWithLogin(`/ai-hub/registry/${registryName}/registerModel`);
+    cy.visitWithLogin(`/model-registry/${registryName}/registerModel`);
     this.waitWithRegistry(registryName);
   }
 
