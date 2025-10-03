@@ -266,6 +266,19 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
       body: mock404Error({}),
     },
   ).as('getRole');
+
+  cy.interceptK8s(
+    'GET',
+    {
+      model: RoleBindingModel,
+      ns: 'test-project',
+      name: 'test-model-view',
+    },
+    {
+      statusCode: 404,
+      body: mock404Error({}),
+    },
+  ).as('getRoleBinding');
 };
 
 describe('Model Serving Deploy Wizard', () => {
