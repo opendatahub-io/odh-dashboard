@@ -1,7 +1,8 @@
 name: E2E Direct Commit PR Tests
 
 on:
-  [push, pull_request]
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
@@ -13,7 +14,14 @@ env:
   DO_NOT_TRACK: 1
 
 jobs:
+  check-comment:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-e2e-tests-gh') }}
+    steps:
+      - run: echo "E2E tests requested via /run-e2e-tests-gh comment"
+
   get-test-tags:
+    needs: [check-comment]
     runs-on: self-hosted
     outputs:
       test-tags: ${{ steps.set-tags.outputs.test-tags }}
@@ -34,6 +42,15 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.issue.number }}/head
+
+      - name: Calculate unique port for this job
+        run: |
+          # Simple port allocation: 4010, 4020, 4030 for each parallel job
+          CYPRESS_PORT=$((4010 + (${{ strategy.job-index }} * 10)))
+          echo "CYPRESS_PORT=$CYPRESS_PORT" >> $GITHUB_ENV
+          echo "Allocated port $CYPRESS_PORT for ${{ matrix.test-tag }}"
 
       - name: Cache npm dependencies
         uses: actions/cache@v4
@@ -73,242 +90,336 @@ jobs:
 
       - name: Check and Install OpenShift CLI
         run: |
-          echo "Checking if OpenShift CLI (oc) is installed..."
+          echo "🔍 Checking if OpenShift CLI (oc) is installed..."
 
           # Check if oc is already installed
           if command -v oc &> /dev/null; then
-            echo "OpenShift CLI (oc) is already installed"
+            echo "✅ OpenShift CLI (oc) is already installed"
             oc version --client
           else
-            echo "OpenShift CLI (oc) not found, installing..."
-            echo "Installing oc CLI for Linux..."
+            echo "❌ OpenShift CLI (oc) not found, installing..."
+            echo "📦 Installing oc CLI for Linux..."
 
             OC_TARBALL="${{ runner.temp }}/oc.tar.gz"
 
             # Check if tarball was cached
             if [ -f "$OC_TARBALL" ]; then
-              echo "Using cached OpenShift CLI tarball"
+              echo "✅ Using cached OpenShift CLI tarball"
             else
-              echo "Downloading OpenShift CLI tarball..."
+              echo "📥 Downloading OpenShift CLI tarball..."
               curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz -o "$OC_TARBALL"
             fi
 
             # Extract and install oc
-            echo "Extracting OpenShift CLI..."
+            echo "📦 Extracting OpenShift CLI..."
             tar -xzf "$OC_TARBALL"
             sudo mv oc /usr/local/bin/
             sudo chmod +x /usr/local/bin/oc
 
             # Verify installation
-            echo "OpenShift CLI installed successfully"
+            echo "✅ OpenShift CLI installed successfully"
             oc version --client
           fi
 
           # Final verification
-          echo "Final oc version check:"
-          oc version --client || echo "Could not determine oc version"
+          echo "🎯 Final oc version check:"
+          oc version --client || echo "⚠️  Could not determine oc version"
 
       - name: Install Cypress Dependencies
         run: |
-          echo "Installing Cypress system dependencies for Fedora..."
+          echo "🔧 Installing Cypress system dependencies for Fedora (based on Cypress docs)..."
 
+          # Use the simplified approach from Cypress documentation for Amazon Linux 2023 (Fedora-compatible)
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            echo "Installing minimal Cypress dependencies for Linux..."
+            echo "📦 Installing minimal Cypress dependencies for Linux..."
 
+            # Based on Cypress docs for Amazon Linux 2023 - Fedora compatible
             echo "Installing core dependencies..."
-            sudo dnf install -y xorg-x11-server-Xvfb gtk3-devel nss alsa-lib
+            sudo dnf install -y xorg-x11-server-Xvfb gtk3-devel nss alsa-lib lsof
 
+            # Add the missing ATK packages that Cypress actually needs
             echo "Installing ATK dependencies..."
             sudo dnf install -y atk atk-devel at-spi2-atk
 
+            # Add additional GUI libraries that might be needed
             echo "Installing additional GUI libraries..."
             sudo dnf install -y libgbm libgbm-devel libnotify libnotify-devel
 
+            # Update library cache
             sudo ldconfig
 
-            echo "Verifying installations..."
+            # Verify installations
+            echo "🔍 Verifying installations..."
             if command -v Xvfb &> /dev/null; then
-              echo "Xvfb installed"
+              echo "✅ Xvfb installed"
             else
-              echo "Xvfb missing"
+              echo "❌ Xvfb missing"
             fi
 
             if ldconfig -p | grep -q libnss3; then
-              echo "NSS libraries installed"
+              echo "✅ NSS libraries installed"
             else
-              echo "NSS libraries missing"
+              echo "❌ NSS libraries missing"
             fi
 
             if ldconfig -p | grep -q libatk; then
-              echo "ATK libraries installed"
+              echo "✅ ATK libraries installed (fixes libatk-1.0.so.0 error)"
+              echo "📋 ATK libraries found:"
+              ldconfig -p | grep libatk
             else
-              echo "ATK libraries missing"
+              echo "❌ ATK libraries missing - checking what we have..."
+              sudo dnf list installed | grep -i atk || echo "No ATK packages found"
+              find /usr/lib* -name "*libatk*" 2>/dev/null || echo "No ATK libraries found in filesystem"
             fi
 
-            echo "Cypress dependencies installation completed"
+            echo "🎯 Cypress dependencies installation completed"
           fi
+
+      - name: Debug available secrets
+        run: |
+          echo "🔍 DEBUG: Checking available secrets..."
+          echo "Event name: ${{ github.event_name }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Repository owner: ${{ github.repository_owner }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Base ref: ${{ github.base_ref }}"
+          echo "Head ref: ${{ github.head_ref }}"
+
+          # Check for specific secrets without revealing values
+          if [ -n "${{ secrets.GITLAB_TOKEN }}" ]; then
+            echo "✅ GITLAB_TOKEN: Available (length: ${#GITLAB_TOKEN})"
+          else
+            echo "❌ GITLAB_TOKEN: Not available or empty"
+          fi
+
+          if [ -n "${{ secrets.GITLAB_TEST_VARS_URL }}" ]; then
+            echo "✅ GITLAB_TEST_VARS_URL: Available (length: ${#GITLAB_TEST_VARS_URL})"
+          else
+            echo "❌ GITLAB_TEST_VARS_URL: Not available or empty"
+          fi
+
+          # Check other potentially relevant secrets
+          if [ -n "${{ secrets.OC_SERVER }}" ]; then
+            echo "✅ OC_SERVER: Available"
+          else
+            echo "❌ OC_SERVER: Not available"
+          fi
+
+          if [ -n "${{ secrets.OCP_CONSOLE_URL }}" ]; then
+            echo "✅ OCP_CONSOLE_URL: Available"
+          else
+            echo "❌ OCP_CONSOLE_URL: Not available"
+          fi
+
+          if [ -n "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
+            echo "✅ ODH_DASHBOARD_URL: Available"
+          else
+            echo "❌ ODH_DASHBOARD_URL: Not available"
+          fi
+
+          # List all available secrets (names only)
+          echo "📋 Available secrets in this environment:"
+          env | grep -E '^[^=]+=' | sed 's/=.*//' | grep -i secret || echo "No SECRET variables found"
 
       - name: Download test configuration
         run: |
-          echo "Attempting to download test configuration..."
+          # Debug: Show what we're working with
+          echo "🔧 DEBUG: Attempting to download test configuration..."
+          echo "GITLAB_TOKEN present: $([ -n "${{ secrets.GITLAB_TOKEN }}" ] && echo 'YES' || echo 'NO')"
+          echo "GITLAB_TEST_VARS_URL present: $([ -n "${{ secrets.GITLAB_TEST_VARS_URL }}" ] && echo 'YES' || echo 'NO')"
 
+          # Try to download test-variables.yml from GitLab securely
           if [ -n "${{ secrets.GITLAB_TOKEN }}" ] && [ -n "${{ secrets.GITLAB_TEST_VARS_URL }}" ]; then
-            echo "Secrets available, downloading from GitLab..."
+            echo "🔄 Both secrets are available, attempting download..."
+            echo "Token length: ${#GITLAB_TOKEN}"
+            echo "URL length: ${#GITLAB_TEST_VARS_URL}"
 
+            # Debug: Show first few characters of secrets (safely)
+            if [ -n "${{ secrets.GITLAB_TOKEN }}" ]; then
+              echo "Token starts with: ${{ secrets.GITLAB_TOKEN }}" | cut -c1-10
+            fi
+            if [ -n "${{ secrets.GITLAB_TEST_VARS_URL }}" ]; then
+              echo "URL starts with: ${{ secrets.GITLAB_TEST_VARS_URL }}" | cut -c1-20
+            fi
+
+            # Try with SSL verification disabled (for self-signed certs)
             if curl -f -k -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
                         "${{ secrets.GITLAB_TEST_VARS_URL }}" \
                         -o ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml; then
-              echo "Successfully downloaded test configuration from GitLab"
+              echo "✅ Successfully downloaded test configuration from GitLab"
+              ls -la ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
             else
-              echo "Failed to download from GitLab"
+              echo "❌ Failed to download from GitLab"
+              echo "Curl exit code: $?"
+
+              # Try to get more details about the failure
+              echo "Trying without -f to see error details..."
+              curl -k -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
+                  "${{ secrets.GITLAB_TEST_VARS_URL }}" \
+                  -o /tmp/test-response 2>&1 || echo "Curl failed with: $?"
+
+              if [ -f /tmp/test-response ]; then
+                echo "GitLab API Response:"
+                head -10 /tmp/test-response
+              fi
+
               exit 1
             fi
           else
-            echo "GitLab secrets not available"
+            echo "⚠️  GitLab secrets not available - cannot download test configuration"
+            echo "💡 This workflow requires GITLAB_TOKEN and GITLAB_TEST_VARS_URL secrets to be configured"
+            echo "💡 For forked PRs, these secrets need to be available in the upstream repository"
+            echo ""
+            echo "🔍 DEBUG INFO:"
+            echo "- Repository: ${{ github.repository }}"
+            echo "- Event: ${{ github.event_name }}"
+            echo "- Is fork: $([ '${{ github.repository_owner }}' != 'opendatahub-io' ] && echo 'YES' || echo 'NO')"
+            echo "- Base repo: ${{ github.base_ref && github.repository || 'N/A' }}"
+            echo ""
+            echo "💡 POSSIBLE SOLUTIONS:"
+            echo "1. Ensure secrets are configured in upstream repo (opendatahub-io/odh-dashboard)"
+            "2. For testing, secrets need to be available when PR is merged"
+            "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
             exit 1
           fi
 
       - name: Login to OpenShift cluster
         run: |
+          # For forked PRs, skip OpenShift login since secrets are not available
           if [ -z "${{ secrets.OC_SERVER }}" ]; then
-            echo "OpenShift secrets not available - skipping cluster login"
+            echo "⚠️  OpenShift secrets not available (forked PR) - skipping cluster login"
+            echo "💡 Tests will run in mock mode or against local test environment"
             exit 0
           fi
 
+          # Read credentials from downloaded test-variables.yml
           TEST_VARS_FILE="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
 
+          # Extract OC_USERNAME from OCP_ADMIN_USER section
           OC_USERNAME=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
+
+          # Extract OC_PASSWORD from OCP_ADMIN_USER section
           OC_PASSWORD=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
 
+          # Mask sensitive data in logs
           echo "::add-mask::$OC_PASSWORD"
           echo "::add-mask::$OC_USERNAME"
 
+          # Extract TEST_USER_3_AUTH_TYPE from TEST_USER_3 section
           TEST_USER_3_AUTH_TYPE=$(grep -A 10 "^TEST_USER_3:" "$TEST_VARS_FILE" | grep "AUTH_TYPE:" | head -1 | sed 's/.*AUTH_TYPE: //' | tr -d ' ')
+
+          # Extract TEST_USER_3_USERNAME from TEST_USER_3 section
           TEST_USER_3_USERNAME=$(grep -A 10 "^TEST_USER_3:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
+
+          # Extract TEST_USER_3_PASSWORD from TEST_USER_3 section
           TEST_USER_3_PASSWORD=$(grep -A 10 "^TEST_USER_3:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
 
-          HTPASSWD_CLUSTER_ADMIN_AUTH_TYPE=$(grep -A 10 "^HTPASSWD_CLUSTER_ADMIN_USER:" "$TEST_VARS_FILE" | grep "AUTH_TYPE:" | head -1 | sed 's/.*AUTH_TYPE: //' | tr -d ' ')
-          HTPASSWD_CLUSTER_ADMIN_USERNAME=$(grep -A 10 "^HTPASSWD_CLUSTER_ADMIN_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
-          HTPASSWD_CLUSTER_ADMIN_PASSWORD=$(grep -A 10 "^HTPASSWD_CLUSTER_ADMIN_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
-
-          LDAP_CONTRIBUTOR_AUTH_TYPE=$(grep -A 10 "^LDAP_CONTRIBUTOR_USER:" "$TEST_VARS_FILE" | grep "AUTH_TYPE:" | head -1 | sed 's/.*AUTH_TYPE: //' | tr -d ' ')
-          LDAP_CONTRIBUTOR_USERNAME=$(grep -A 10 "^LDAP_CONTRIBUTOR_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
-          LDAP_CONTRIBUTOR_PASSWORD=$(grep -A 10 "^LDAP_CONTRIBUTOR_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
-
+          # Mask TEST_USER_3 credentials in logs (must happen after extraction)
           echo "::add-mask::$TEST_USER_3_USERNAME"
           echo "::add-mask::$TEST_USER_3_PASSWORD"
-          echo "::add-mask::$HTPASSWD_CLUSTER_ADMIN_USERNAME"
-          echo "::add-mask::$HTPASSWD_CLUSTER_ADMIN_PASSWORD"
-          echo "::add-mask::$LDAP_CONTRIBUTOR_USERNAME"
-          echo "::add-mask::$LDAP_CONTRIBUTOR_PASSWORD"
 
+          # Export TEST_USER_3 credentials as environment variables for Cypress
           echo "TEST_USER_3_AUTH_TYPE=$TEST_USER_3_AUTH_TYPE" >> $GITHUB_ENV
           echo "TEST_USER_3_USERNAME=$TEST_USER_3_USERNAME" >> $GITHUB_ENV
           echo "TEST_USER_3_PASSWORD=$TEST_USER_3_PASSWORD" >> $GITHUB_ENV
           
-          export HTPASSWD_CLUSTER_ADMIN_AUTH_TYPE HTPASSWD_CLUSTER_ADMIN_USERNAME HTPASSWD_CLUSTER_ADMIN_PASSWORD
-          export LDAP_CONTRIBUTOR_AUTH_TYPE LDAP_CONTRIBUTOR_USERNAME LDAP_CONTRIBUTOR_PASSWORD
-          
-          HTPASSWD_JSON=$(jq -n -c \
-            --arg auth_type "$HTPASSWD_CLUSTER_ADMIN_AUTH_TYPE" \
-            --arg username "$HTPASSWD_CLUSTER_ADMIN_USERNAME" \
-            --arg password "$HTPASSWD_CLUSTER_ADMIN_PASSWORD" \
-            '{"AUTH_TYPE": $auth_type, "USERNAME": $username, "PASSWORD": $password}')
-          
-          LDAP_JSON=$(jq -n -c \
-            --arg auth_type "$LDAP_CONTRIBUTOR_AUTH_TYPE" \
-            --arg username "$LDAP_CONTRIBUTOR_USERNAME" \
-            --arg password "$LDAP_CONTRIBUTOR_PASSWORD" \
-            '{"AUTH_TYPE": $auth_type, "USERNAME": $username, "PASSWORD": $password}')
-          
-          echo "HTPASSWD_CLUSTER_ADMIN_USER=$HTPASSWD_JSON" >> $GITHUB_ENV
-          echo "LDAP_CONTRIBUTOR_USER=$LDAP_JSON" >> $GITHUB_ENV
-          
           echo "Logging in to OpenShift cluster..."
           oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="${{ secrets.OC_SERVER }}" --insecure-skip-tls-verify
 
-          echo "Setting up OpenShift configuration for Cypress tests..."
+          # Export OpenShift configuration for Cypress tests
+          echo "🔧 Setting up OpenShift configuration for Cypress tests..."
           export KUBECONFIG="$HOME/.kube/config"
           echo "KUBECONFIG=$KUBECONFIG" >> $GITHUB_ENV
 
       - name: Set test configuration
         run: |
-          if [ -n "${{ secrets.OCP_CONSOLE_URL }}" ]; then
-            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: ${{ secrets.OCP_CONSOLE_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
-          fi
-          if [ -n "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
-            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: ${{ secrets.ODH_DASHBOARD_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
-          fi
-
-          if [ -z "${{ secrets.OCP_CONSOLE_URL }}" ]; then
-            echo "OCP_CONSOLE_URL secret not available - using localhost"
-            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:4010|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
-          fi
-          if [ -z "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
-            echo "ODH_DASHBOARD_URL secret not available - using localhost"
-            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:4010|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
-          fi
+          # CRITICAL: Always use localhost with dynamic port for test execution
+          # The cluster URLs are used by webpack proxy, not by Cypress navigation
+          echo "Setting test URLs to localhost:$CYPRESS_PORT"
+          sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:$CYPRESS_PORT|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:$CYPRESS_PORT|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
 
           export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
 
       - name: Start Cypress Server
         run: |
-          echo "Cleaning up any existing processes..."
-          pkill -f "webpack.*serve" || echo "No webpack processes found"
-          pkill -f "node.*4010" || echo "No node processes on port 4010"
+          echo "Cleaning up any existing processes on port $CYPRESS_PORT..."
+          lsof -ti:$CYPRESS_PORT | xargs kill -9 2>/dev/null || echo "No processes on port $CYPRESS_PORT"
           sleep 2
           
-          echo "Starting webpack dev server with cluster proxy..."
-          cd frontend && npm run start:dev:ext &
+          echo "Starting webpack dev server on port $CYPRESS_PORT with cluster proxy..."
+          cd frontend && ODH_PORT=$CYPRESS_PORT npm run start:dev:ext &
           
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
-          echo "Started webpack dev server with PID: $SERVER_PID"
+          echo "Started webpack dev server with PID: $SERVER_PID on port $CYPRESS_PORT"
           
           echo "Giving server 15 seconds to initialize..."
           sleep 15
 
       - name: Wait for Server Ready
         run: |
-          echo "Waiting for localhost:4010 to be ready..."
-          npx wait-on http://localhost:4010 --timeout 120000
-          echo "Server is responding to HTTP"
+          echo "Waiting for localhost:$CYPRESS_PORT to be ready..."
+          npx wait-on http://localhost:$CYPRESS_PORT --timeout 120000
+          echo "✅ Server is responding to HTTP!"
           
           echo "Verifying application loads properly..."
           for i in {1..10}; do
             echo "Attempt $i/10: Testing application..."
             
-            if curl -s -f http://localhost:4010/ > /tmp/response.html 2>/dev/null; then
-              echo "HTTP 200 response received"
+            if curl -s -f http://localhost:$CYPRESS_PORT/ > /tmp/response.html 2>/dev/null; then
+              echo "✅ HTTP 200 response received"
               
+              # Check for dashboard content
               if grep -q "Data Science Projects\|ODH\|Open Data Hub\|Dashboard" /tmp/response.html; then
-                echo "Found dashboard content"
+                echo "✅ Found dashboard content!"
                 break
               else
-                echo "Page loads but no dashboard content yet..."
+                echo "⚠️  Page loads but no dashboard content yet..."
+                echo "📄 Response contains: $(head -c 200 /tmp/response.html | tr '\n' ' ')"
               fi
             else
-              echo "HTTP request failed"
+              echo "❌ HTTP request failed"
+              curl_exit_code=$?
+              echo "Curl exit code: $curl_exit_code"
             fi
             
             if [ $i -lt 10 ]; then
-              echo "Waiting 8 seconds before retry..."
+              echo "⏳ Waiting 8 seconds before retry..."
               sleep 8
             fi
           done
           
           echo "Final application verification..."
-          if curl -s -f http://localhost:4010/ | grep -q "Data Science Projects\|ODH\|Open Data Hub\|Dashboard"; then
+          if curl -s -f http://localhost:$CYPRESS_PORT/ | grep -q "Data Science Projects\|ODH\|Open Data Hub\|Dashboard"; then
             echo "Server is ready and application is loaded"
             
             echo "Testing API endpoint..."
-            if curl -s -f http://localhost:4010/api/status > /dev/null; then
-              echo "API proxy is working"
+            if curl -s -f http://localhost:$CYPRESS_PORT/api/status > /dev/null; then
+              echo "✅ API proxy is working!"
             else
-              echo "API endpoint test failed, but frontend is working"
+              echo "⚠️  API endpoint test failed, but frontend is working"
             fi
           else
-            echo "Application failed to load properly"
+            echo "❌ Application failed to load properly"
+            echo ""
+            echo "📊 Debugging information:"
+            echo "🔄 Server process status:"
+            ps aux | grep -E '(webpack|node.*4010)' | head -5 || echo "No matching processes found"
+            
+            echo ""
+            echo "🌐 Network connectivity test:"
+            curl -I http://localhost:4010/ 2>&1 || echo "Connection failed"
+            
+            echo ""
+            echo "📄 Raw response (first 1000 chars):"
+            curl -s http://localhost:4010/ 2>/dev/null | head -c 1000 || echo "Failed to get response"
+            
+            echo ""
+            echo "🔍 Looking for webpack output in background..."
+            # Check if there are any relevant log files or output
+            ls -la /tmp/ | grep -E "(webpack|error|log)" || echo "No relevant temp files found"
+            
             exit 1
           fi
 
@@ -316,29 +427,37 @@ jobs:
         run: |
           cd frontend
 
-          echo "Running E2E tests..."
+          echo "🧪 Running commit-based E2E tests..."
           echo "Event: ${{ github.event_name }}"
           echo "Branch: ${{ github.ref_name }}"
           echo "Commit: ${{ github.sha }}"
 
+          # Run real E2E tests (not mock mode)
+          echo "🚀 Running real E2E tests against live dashboard"
+
+          # Run tests with matrix tag using Jenkins-style command format
           export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
           export CY_RESULTS_DIR="${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}"
 
+          # Ensure OpenShift configuration is available to Cypress process
           if [ -n "$KUBECONFIG" ]; then
-            echo "OpenShift configuration available: $KUBECONFIG"
-            oc whoami || echo "oc whoami failed, but continuing with tests"
+            echo "🔧 OpenShift configuration available: $KUBECONFIG"
+            # Verify oc command works in this context
+            oc whoami || echo "⚠️  oc whoami failed, but continuing with tests"
           else
-            echo "No KUBECONFIG set, OpenShift commands may fail"
+            echo "⚠️  No KUBECONFIG set, OpenShift commands may fail"
           fi
 
-          echo "Running tests with tags: ${{ matrix.test-tag }}"
-          echo "Skipping tags: @Bug,@Maintain,@NonConcurrent"
+          echo "🎯 Running tests with tags: ${{ matrix.test-tag }}"
+          echo "🚫 Skipping tags: @Bug,@Maintain,@NonConcurrent"
+          echo "📋 Test group: ${{ matrix.test-tag }}"
 
           echo "Using Chrome browser"
 
           mkdir -p "$CY_RESULTS_DIR"
 
-          BASE_URL=http://localhost:4010 npm run cypress:run:chrome -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+          # Run tests with dynamic port
+          BASE_URL=http://localhost:$CYPRESS_PORT npm run cypress:run:chrome -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Test tag name
         if: ${{ always() }}
@@ -361,13 +480,16 @@ jobs:
       - name: Log test completion
         if: always()
         run: |
-          echo "E2E Test completed"
+          echo "🏁 E2E Test completed!"
           echo "Status: ${{ job.status }}"
           echo "Event: ${{ github.event_name }}"
           echo "Branch: ${{ github.ref_name }}"
           echo "Test Tag: ${{ matrix.test-tag }}"
           echo "Commit: ${{ github.sha }}"
           echo "Run ID: ${{ github.run_id }}"
+          echo ""
+          echo "📊 Test artifacts uploaded to:"
+          echo "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
   cleanup-server:
     needs: [e2e-tests]
@@ -376,11 +498,10 @@ jobs:
     steps:
       - name: Stop Cypress Servers
         run: |
-          echo "Stopping webpack dev server..."
-          if [ -n "$SERVER_PID" ]; then
-            kill $SERVER_PID || echo "Failed to kill SERVER_PID"
-          fi
+          echo "Stopping webpack dev servers..."
           pkill -f "webpack.*serve" || echo "No webpack processes found"
-          pkill -f "node.*4010" || echo "No node processes on port 4010"
+          # Clean up ports 4010-4030 (used by parallel jobs)
+          for port in 4010 4020 4030; do
+            lsof -ti:$port | xargs kill -9 2>/dev/null || true
+          done
           echo "Server cleanup completed"
-
