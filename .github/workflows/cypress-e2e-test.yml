@@ -345,7 +345,7 @@ jobs:
           sleep 2
           
           echo "🚀 Starting webpack dev server with cluster proxy..."
-          cd frontend && _ODH_PORT=$CYPRESS_PORT npm run start:dev:ext &
+          cd frontend && ODH_PORT=$CYPRESS_PORT npm run start:dev:ext &
           
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
