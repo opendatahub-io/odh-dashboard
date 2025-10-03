@@ -22,7 +22,6 @@ import useStopNotebookModalAvailability from '#~/pages/projects/notebook/useStop
 import { useAppContext } from '#~/app/AppContext';
 import StopNotebookConfirmModal from '#~/pages/projects/notebook/StopNotebookConfirmModal';
 import { useNotebookKindPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import HardwareProfileTableColumn from '#~/concepts/hardwareProfiles/HardwareProfileTableColumn';
 import StateActionToggle from '#~/components/StateActionToggle';
 import { NotebookImageStatus } from './const';
@@ -197,14 +196,12 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
             alignItems={{ default: 'alignItemsCenter' }}
           >
             <FlexItem>
-
-                <HardwareProfileTableColumn
-                  namespace={obj.notebook.metadata.namespace}
-                  resource={obj.notebook}
-                  containerResources={podSpecOptionsState.podSpecOptions.resources}
-                  isActive={obj.isRunning || obj.isStarting}
-                />
-
+              <HardwareProfileTableColumn
+                namespace={obj.notebook.metadata.namespace}
+                resource={obj.notebook}
+                containerResources={podSpecOptionsState.podSpecOptions.resources}
+                isActive={obj.isRunning || obj.isStarting}
+              />
             </FlexItem>
           </Flex>
         </Td>
