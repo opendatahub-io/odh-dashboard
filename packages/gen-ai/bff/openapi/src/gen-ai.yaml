@@ -496,7 +496,9 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       operationId: createVectorStore
       summary: Create Vector Store
-      description: Creates a new vector store for document storage and RAG. Only the name field is required.
+      description: >-
+        Creates a new vector store for document storage and RAG. Only the name field is required. 
+        DEPRECATED: This endpoint is temporarily unavailable in version 3.0 and will be reintroduced in a future release.
 
   /gen-ai/api/v1/lsd/vectorstores/delete:
     summary: Delete vector store
@@ -504,7 +506,10 @@ paths:
       Deletes a vector store by ID. This operation will permanently remove the vector store
       and all associated files and embeddings. Requires namespace parameter for proper 
       multi-tenant isolation.
+      DEPRECATED: This endpoint is temporarily unavailable in version 3.0 and will be 
+      reintroduced in a future release.
     delete:
+      deprecated: true
       tags:
         - VectorStores
       security:
@@ -595,7 +600,9 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       operationId: listFiles
       summary: List Files
-      description: Gets a list of files with optional filtering and pagination.
+      description: >-
+        Gets a list of files with optional filtering and pagination. 
+        DEPRECATED: This endpoint is temporarily unavailable in version 3.0 and will be reintroduced in a future release.
 
   /gen-ai/api/v1/lsd/files/upload:
     summary: Upload files to vector stores with chunking control
@@ -792,7 +799,10 @@ paths:
       TEMPORARY: This endpoint performs cascading delete (vectorstore removal + file deletion) 
       until proper file lifecycle management and sharing is implemented.
       Requires namespace parameter for proper multi-tenant isolation.
+      DEPRECATED: This endpoint is temporarily unavailable in version 3.0 and will be 
+      reintroduced in a future release.
     delete:
+      deprecated: true
       tags:
         - VectorStores
       security:
