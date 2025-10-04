@@ -19,6 +19,7 @@ import {
 } from '~/app/pages/modelRegistry/screens/routeUtils';
 import { ModelState, ModelVersion, RegisteredModel } from '~/app/types';
 import { isModelRegistryTableColumnExtension } from '~/odh/extension-points/table';
+import DeployModalExtension from '~/odh/components/DeployModalExtension';
 
 type ExtendedRegisteredModelTableRowProps = {
   registeredModel: RegisteredModel;
@@ -43,8 +44,10 @@ const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowP
   const rmUrl = registeredModelUrl(rm.id, preferredModelRegistry?.name);
 
   const columnExtensions = useExtensions(isModelRegistryTableColumnExtension);
+  // Check if deployments column extension is available as a proxy for model serving being enabled
+  const isModelServingEnabled = columnExtensions.length > 0;
 
-  const actions: IAction[] = [
+  const baseActions: IAction[] = [
     {
       title: 'Overview',
       onClick: () => {
@@ -65,7 +68,29 @@ const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowP
         );
       },
     },
+    ...(!isArchiveRow && isModelServingEnabled
+      ? [
+          {
+            title: 'Deployments',
+            onClick: () => {
+              navigate(`${rmUrl}/deployments`);
+            },
+          },
+        ]
+      : []),
+  ];
 
+  const latestVersionActionsHeader: IAction[] = [
+    { isSeparator: true },
+    {
+      title: 'Latest version actions',
+      isDisabled: true,
+      className:
+        'pf-v6-u-font-size-sm pf-v6-u-color-200 pf-v6-u-text-transform-uppercase pf-v6-u-p-xs',
+    },
+  ];
+
+  const archiveRestoreActions: IAction[] = [
     { isSeparator: true },
     ...(isArchiveRow
       ? [
@@ -78,10 +103,10 @@ const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowP
           {
             title: 'Archive model',
             onClick: () => {
-                            if (!hasDeploys) {
-                              setIsArchiveModalOpen(true);
-                            }
-                          },
+              if (!hasDeploys) {
+                setIsArchiveModalOpen(true);
+              }
+            },
             isAriaDisabled: hasDeploys,
             tooltipProps: hasDeploys
               ? { content: 'Models with deployed versions cannot be archived.' }
@@ -163,7 +188,38 @@ const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowP
         </Content>
       </Td>
       <Td isActionCell>
-        <ActionsColumn items={actions} />
+        {latestModelVersion && !isArchiveRow ? (
+          <DeployModalExtension
+            mv={latestModelVersion}
+            render={(buttonState, onOpenModal, isModalAvailable) =>
+              isModalAvailable ? (
+                <ActionsColumn
+                  items={[
+                    ...baseActions,
+                    ...latestVersionActionsHeader,
+                    {
+                      title: (
+                        <>
+                          Deploy <strong>{latestModelVersion.name}</strong>
+                        </>
+                      ),
+                      onClick: onOpenModal,
+                      isAriaDisabled: !buttonState.enabled,
+                      tooltipProps: buttonState.tooltip
+                        ? { content: buttonState.tooltip }
+                        : undefined,
+                    },
+                    ...archiveRestoreActions,
+                  ]}
+                />
+              ) : (
+                <ActionsColumn items={[...baseActions, ...archiveRestoreActions]} />
+              )
+            }
+          />
+        ) : (
+          <ActionsColumn items={[...baseActions, ...archiveRestoreActions]} />
+        )}
         {isArchiveModalOpen ? (
           <ArchiveRegisteredModelModal
             onCancel={() => setIsArchiveModalOpen(false)}
