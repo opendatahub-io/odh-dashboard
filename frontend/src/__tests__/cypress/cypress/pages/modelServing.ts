@@ -1024,6 +1024,10 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('typeahead-menu-toggle');
   }
 
+  findLocationPathInput() {
+    return cy.findByTestId('folder-path');
+  }
+
   findOCIModelURI() {
     return cy.findByTestId('model-uri');
   }

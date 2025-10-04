@@ -32,7 +32,10 @@ import { mockGlobalScopedHardwareProfiles } from '#~/__mocks__/mockHardwareProfi
 import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
+  mockOciConnectionTypeConfigMap,
 } from '../../../../../../__mocks__/mockConnectionType';
+import { mockCustomSecretK8sResource } from '../../../../../../__mocks__/mockSecretK8sResource';
+import { mockPVCK8sResource } from '../../../../../../__mocks__/mockPVCK8sResource';
 
 const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) => {
   cy.interceptOdh(
@@ -75,6 +78,7 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
       category: ['existing-category'],
       fields: mockModelServingFields,
     }),
+    mockOciConnectionTypeConfigMap(),
   ]).as('getConnectionTypes');
 
   cy.interceptK8sList(
@@ -1044,6 +1048,275 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findMemoryLimitInput().should('have.value', '15');
 
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
+  });
+
+  it('Deploy OCI Model and check paste functionality', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+    );
+
+    cy.interceptK8sList(
+      SecretModel,
+      mockK8sResourceList([
+        mockCustomSecretK8sResource({
+          type: 'kubernetes.io/dockerconfigjson',
+          namespace: 'test-project',
+          name: 'test-secret',
+          annotations: {
+            'opendatahub.io/connection-type': 'oci-v1',
+            'openshift.io/display-name': 'Test Secret',
+          },
+          data: {
+            '.dockerconfigjson':
+              'eyJhdXRocyI6IHsidGVzdC5pbyI6IHsiYXV0aCI6ICJibGFoYmxhaGJsYWgifX19Cg==',
+            OCI_HOST: 'dGVzdC5pby9vcmdhbml6YXRpb24K',
+            ACCESS_TYPE: 'WyJQdWxsIl0',
+          },
+        }),
+      ]),
+    );
+
+    // TODO: visit directly when plugin is enabled
+    cy.visitWithLogin(
+      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
+    );
+    modelServingGlobal.findDeployModelButton().click();
+    // Step 1: Model Source
+    modelServingWizard.findModelSourceStep().should('be.enabled');
+    modelServingWizard.findModelDeploymentStep().should('be.disabled');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
+    modelServingWizard.findModelLocationSelectOption('Existing connection').should('exist').click();
+    modelServingWizard
+      .findExistingConnectionSelect()
+      .findByRole('combobox')
+      .should('have.value', 'Test Secret');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findOCIModelURI().click();
+    modelServingWizard.findOCIModelURI().trigger('paste', {
+      clipboardData: {
+        getData: () => 'https://test.io/organization/test-model:latest',
+      },
+    });
+    // add validation for the model uri
+    modelServingWizard.findNextButton().should('be.enabled').click();
+    modelServingWizard.findModelDeploymentNameInput().type('test-model');
+    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    modelServingWizard.findSubmitButton().should('be.enabled').click();
+
+    // dry run request for ServingRuntime
+    cy.wait('@createServingRuntime').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'test-model',
+          annotations: {
+            'opendatahub.io/apiProtocol': 'REST',
+            'opendatahub.io/runtime-version': '1.0.0',
+            'opendatahub.io/template-display-name': 'OpenVINO',
+            'openshift.io/display-name': 'OpenVINO',
+          },
+          labels: { 'opendatahub.io/dashboard': 'true' },
+          namespace: 'test-project',
+        },
+      });
+      expect(interception.request.body.spec).to.containSubset({
+        supportedModelFormats: [{ name: 'openvino_ir', version: 'opset1' }],
+      });
+    });
+
+    // dry run request for InferenceService
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        apiVersion: 'serving.kserve.io/v1beta1',
+        kind: 'InferenceService',
+        metadata: {
+          name: 'test-model',
+          namespace: 'test-project',
+          annotations: {
+            'openshift.io/display-name': 'test-model',
+            'opendatahub.io/model-type': 'predictive',
+          },
+          labels: {
+            'opendatahub.io/dashboard': 'true',
+          },
+        },
+        spec: {
+          predictor: {
+            minReplicas: 1,
+            maxReplicas: 1,
+            model: {
+              modelFormat: { name: 'openvino_ir', version: 'opset1' },
+              runtime: 'test-model',
+            },
+          },
+        },
+      });
+    });
+
+    // Actual request for ServingRuntime
+    cy.wait('@createServingRuntime').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    // Actual request for InferenceService
+    cy.wait('@createInferenceService').then((interception) => {
+      console.log(
+        'createInferenceService actual response:',
+        JSON.stringify(interception.request.body, null, 2),
+      );
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    // Verify both requests were made
+    cy.get('@createServingRuntime.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
+
+    cy.get('@createInferenceService.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
+  });
+
+  it('Deploy model with PVC', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+    );
+
+    cy.intercept(
+      'GET',
+      '**/namespaces/test-project/persistentvolumeclaims?labelSelector=opendatahub.io%2Fdashboard%3Dtrue',
+      mockK8sResourceList([
+        mockPVCK8sResource({
+          name: 'test-pvc',
+          namespace: 'test-project',
+          displayName: 'Test PVC',
+          storageClassName: 'openshift-default-sc',
+          annotations: {
+            'dashboard.opendatahub.io/model-name': 'test-model',
+            'dashboard.opendatahub.io/model-path': 'test-path',
+          },
+          labels: {
+            'opendatahub.io/dashboard': 'true',
+          },
+        }),
+      ]),
+    );
+
+    // TODO: visit directly when plugin is enabled
+    cy.visitWithLogin(
+      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
+    );
+    modelServingGlobal.findDeployModelButton().click();
+    // Step 1: Model Source
+    modelServingWizard.findModelSourceStep().should('be.enabled');
+    modelServingWizard.findModelDeploymentStep().should('be.disabled');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
+    modelServingWizard.findModelLocationSelectOption('Existing connection').should('exist').click();
+    cy.pause();
+    //kserveModal.findLocationPathInput().should('have.value', 'test-path');
+    modelServingWizard.findNextButton().should('be.enabled').click();
+    modelServingWizard.findModelDeploymentNameInput().type('test-model');
+    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    modelServingWizard.findSubmitButton().should('be.enabled').click();
+
+    // dry run request for ServingRuntime
+    cy.wait('@createServingRuntime').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'test-model',
+          annotations: {
+            'opendatahub.io/apiProtocol': 'REST',
+            'opendatahub.io/runtime-version': '1.0.0',
+            'opendatahub.io/template-display-name': 'OpenVINO',
+            'openshift.io/display-name': 'OpenVINO',
+          },
+          labels: { 'opendatahub.io/dashboard': 'true' },
+          namespace: 'test-project',
+        },
+      });
+      expect(interception.request.body.spec).to.containSubset({
+        supportedModelFormats: [{ name: 'openvino_ir', version: 'opset1' }],
+      });
+    });
+
+    // dry run request for InferenceService
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        apiVersion: 'serving.kserve.io/v1beta1',
+        kind: 'InferenceService',
+        metadata: {
+          name: 'test-model',
+          namespace: 'test-project',
+          annotations: {
+            'openshift.io/display-name': 'test-model',
+            'opendatahub.io/model-type': 'predictive',
+          },
+          labels: {
+            'opendatahub.io/dashboard': 'true',
+          },
+        },
+        spec: {
+          predictor: {
+            minReplicas: 1,
+            maxReplicas: 1,
+            model: {
+              modelFormat: { name: 'openvino_ir', version: 'opset1' },
+              runtime: 'test-model',
+            },
+          },
+        },
+      });
+    });
+
+    // Actual request for ServingRuntime
+    cy.wait('@createServingRuntime').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    // Actual request for InferenceService
+    cy.wait('@createInferenceService').then((interception) => {
+      console.log(
+        'createInferenceService actual response:',
+        JSON.stringify(interception.request.body, null, 2),
+      );
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    // Verify both requests were made
+    cy.get('@createServingRuntime.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
+
+    cy.get('@createInferenceService.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
   });
 
   describe('redirect from v2 to v3 route', () => {
