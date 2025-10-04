@@ -84,7 +84,7 @@ const data: HardwareProfileKind['spec'] & {
 };
 
 const assembleHardwareProfileResult: HardwareProfileKind = {
-  apiVersion: 'infrastructure.opendatahub.io/v1alpha1',
+  apiVersion: 'infrastructure.opendatahub.io/v1',
   kind: 'HardwareProfile',
   metadata: {
     name: 'test-1',

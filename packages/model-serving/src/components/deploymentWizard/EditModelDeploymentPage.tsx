@@ -26,10 +26,7 @@ import {
   ModelDeploymentsContext,
   ModelDeploymentsProvider,
 } from '../../concepts/ModelDeploymentsContext';
-import {
-  ModelServingPlatform,
-  useProjectServingPlatform,
-} from '../../concepts/useProjectServingPlatform';
+import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
 import { useAvailableClusterPlatforms } from '../../concepts/useAvailableClusterPlatforms';
 import { useResolvedDeploymentExtension } from '../../concepts/extensionUtils';
 
@@ -95,7 +92,7 @@ const EditModelDeploymentPage: React.FC = () => {
 
   return (
     <ModelDeploymentsProvider projects={[currentProject]}>
-      <EditModelDeploymentContent project={currentProject} modelServingPlatform={activePlatform} />
+      <EditModelDeploymentContent project={currentProject} />
     </ModelDeploymentsProvider>
   );
 };
@@ -104,8 +101,7 @@ export default EditModelDeploymentPage;
 
 const EditModelDeploymentContent: React.FC<{
   project: ProjectKind;
-  modelServingPlatform: ModelServingPlatform;
-}> = ({ project, modelServingPlatform }) => {
+}> = ({ project }) => {
   const { name: deploymentName } = useParams();
   const { deployments, loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
   const { dashboardNamespace } = useDashboardNamespace();
@@ -124,16 +120,27 @@ const EditModelDeploymentContent: React.FC<{
     k8sNameDesc: setupDefaults({ initialData: deployment.model }),
     hardwareProfile:
       formDataExtension?.properties.extractHardwareProfileConfig(deployment) ?? undefined,
-    modelFormat: formDataExtension?.properties.extractModelFormat(deployment) ?? undefined,
+    modelFormat:
+      typeof formDataExtension?.properties.extractModelFormat === 'function'
+        ? formDataExtension.properties.extractModelFormat(deployment) ?? undefined
+        : undefined,
     numReplicas: formDataExtension?.properties.extractReplicas(deployment) ?? undefined,
     modelLocationData:
       formDataExtension?.properties.extractModelLocationData(deployment) ?? undefined,
     externalRoute: getExternalRouteFromDeployment(deployment),
     tokenAuthentication: getTokenAuthenticationFromDeployment(deployment),
-    runtimeArgs: formDataExtension?.properties.extractRuntimeArgs(deployment) ?? undefined,
+    runtimeArgs:
+      typeof formDataExtension?.properties.extractRuntimeArgs === 'function'
+        ? formDataExtension.properties.extractRuntimeArgs(deployment) ?? undefined
+        : undefined,
     environmentVariables:
-      formDataExtension?.properties.extractEnvironmentVariables(deployment) ?? undefined,
-    AiAssetData: formDataExtension?.properties.extractAiAssetData(deployment) ?? undefined,
+      typeof formDataExtension?.properties.extractEnvironmentVariables === 'function'
+        ? formDataExtension.properties.extractEnvironmentVariables(deployment) ?? undefined
+        : undefined,
+    AiAssetData:
+      typeof formDataExtension?.properties.extractAiAssetData === 'function'
+        ? formDataExtension.properties.extractAiAssetData(deployment) ?? undefined
+        : undefined,
     modelServer: {
       name: deployment.server?.metadata.annotations?.['opendatahub.io/template-name'] || '',
       namespace:
@@ -172,7 +179,6 @@ const EditModelDeploymentContent: React.FC<{
       primaryButtonText="Update deployment"
       existingData={formData ? { ...formData, isEditing: true } : { isEditing: true }}
       project={project}
-      modelServingPlatform={modelServingPlatform}
     />
   );
 };

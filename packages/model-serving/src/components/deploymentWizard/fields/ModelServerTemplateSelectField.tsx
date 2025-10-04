@@ -3,10 +3,7 @@ import { z } from 'zod';
 import { Flex, FlexItem, FormGroup, Label, MenuItem, Truncate } from '@patternfly/react-core';
 import type { SupportedModelFormats, TemplateKind } from '@odh-dashboard/internal/k8sTypes';
 import { isCompatibleWithIdentifier } from '@odh-dashboard/internal/pages/projects/screens/spawner/spawnerUtils';
-import {
-  ScopedType,
-  SERVING_RUNTIME_SCOPE,
-} from '@odh-dashboard/internal/pages/modelServing/screens/const';
+import { ScopedType } from '@odh-dashboard/internal/pages/modelServing/screens/const';
 import ProjectScopedPopover from '@odh-dashboard/internal/components/ProjectScopedPopover';
 import ProjectScopedIcon from '@odh-dashboard/internal/components/searchSelector/ProjectScopedIcon';
 import {
@@ -14,7 +11,6 @@ import {
   ProjectScopedSearchDropdown,
 } from '@odh-dashboard/internal/components/searchSelector/ProjectScopedSearchDropdown';
 import ProjectScopedToggleContent from '@odh-dashboard/internal/components/searchSelector/ProjectScopedToggleContent';
-import ServerVersionLabel from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeVersionLabel';
 import {
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeFromTemplate,
@@ -22,35 +18,47 @@ import {
 } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import ServingRuntimeVersionLabel from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeVersionLabel';
 import { ModelTypeFieldData } from './ModelTypeSelectField';
+import type { ModelServerTemplateField } from '../types';
+
+export type ModelServerOption = {
+  name: string;
+  label?: string;
+  namespace?: string;
+  scope?: string;
+  template?: TemplateKind;
+};
 
 // Schema
-export const modelServerSelectFieldSchema = z.object({
-  name: z.string().min(1),
-  namespace: z.string().min(1),
-  scope: z.string().min(1),
+export const modelServerSelectFieldSchema = z.custom<ModelServerOption>((val: unknown) => {
+  return !!(
+    typeof val === 'object' &&
+    val &&
+    'name' in val &&
+    typeof val.name === 'string' &&
+    val.name.length > 0
+  );
 });
 
-export type ModelServerSelectFieldData = z.infer<typeof modelServerSelectFieldSchema>;
-export const isValidModelServer = (
-  value: ModelServerSelectFieldData,
-): value is ModelServerSelectFieldData => value.name.length > 0;
+export type ModelServerSelectFieldData = ModelServerOption;
 
 // Hooks
 export type ModelServerSelectField = {
-  data: ModelServerSelectFieldData | undefined;
-  setData: (data: ModelServerSelectFieldData) => void;
-  projectTemplates: TemplateKind[];
-  modelServerTemplates: TemplateKind[];
+  data?: ModelServerOption | null;
+  setData: (data: ModelServerOption | null) => void;
+  options: ModelServerOption[];
 };
 
 export const useModelServerSelectField = (
-  existingData?: ModelServerSelectFieldData,
+  platformExtensionData?: ModelServerTemplateField[],
+  existingData?: ModelServerOption,
   projectName?: string,
   modelServerTemplates?: TemplateKind[],
   modelFormat?: SupportedModelFormats,
+  modelType?: ModelTypeFieldData,
 ): ModelServerSelectField => {
-  const [modelServer, setModelServer] = React.useState<ModelServerSelectFieldData | undefined>(
+  const [modelServer, setModelServer] = React.useState<ModelServerOption | undefined | null>(
     existingData,
   );
   const { dashboardNamespace } = useDashboardNamespace();
@@ -76,33 +84,62 @@ export const useModelServerSelectField = (
     [modelServerTemplates, modelFormat],
   );
 
-  // Auto-select when there's only one template available
-  React.useEffect(() => {
-    if (modelServerTemplatesFiltered?.length === 1) {
-      setModelServer({
-        name: modelServerTemplatesFiltered[0].metadata.name,
-        namespace: modelServerTemplatesFiltered[0].metadata.namespace,
-        scope:
-          modelServerTemplatesFiltered[0].metadata.namespace === dashboardNamespace
-            ? SERVING_RUNTIME_SCOPE.Global
-            : SERVING_RUNTIME_SCOPE.Project,
-      });
+  const options = React.useMemo(() => {
+    const result: ModelServerOption[] = [];
+
+    const extensionOptions =
+      platformExtensionData
+        ?.filter((field) => modelType && field.isActive(modelType))
+        .flatMap((field) => field.modelServerTemplates) || [];
+    result.push(...extensionOptions);
+
+    const globalOptions =
+      modelServerTemplatesFiltered?.filter((template) => {
+        return template.metadata.namespace === dashboardNamespace;
+      }) || [];
+    result.push(
+      ...globalOptions.map((template) => ({
+        name: template.metadata.name,
+        label: getServingRuntimeDisplayNameFromTemplate(template),
+        scope: 'global',
+        template,
+      })),
+    );
+
+    const projectOptions =
+      modelServerTemplatesFiltered?.filter((template) => {
+        return template.metadata.namespace === projectName;
+      }) || [];
+    result.push(
+      ...projectOptions.map((template) => ({
+        name: template.metadata.name,
+        label: getServingRuntimeDisplayNameFromTemplate(template),
+        scope: 'project',
+        template,
+      })),
+    );
+
+    return result;
+  }, [
+    platformExtensionData,
+    modelType,
+    modelServerTemplatesFiltered,
+    dashboardNamespace,
+    projectName,
+  ]);
+
+  const updatedModelServer = React.useMemo(() => {
+    // auto-select when there's only one template available
+    if (options.length === 1) {
+      return options[0];
     }
-  }, [modelServerTemplatesFiltered, dashboardNamespace]);
-
-  const globalModelServerTemplates = modelServerTemplatesFiltered?.filter((template) => {
-    return template.metadata.namespace === dashboardNamespace;
-  });
-
-  const projectTemplatesFiltered = modelServerTemplatesFiltered?.filter((template) => {
-    return template.metadata.namespace === projectName;
-  });
+    return modelServer;
+  }, [options, modelServer]);
 
   return {
-    data: modelServer,
+    data: updatedModelServer,
     setData: setModelServer,
-    projectTemplates: projectTemplatesFiltered || [],
-    modelServerTemplates: globalModelServerTemplates || [],
+    options,
   };
 };
 
@@ -110,86 +147,85 @@ export const useModelServerSelectField = (
 type ModelServerTemplateSelectFieldProps = {
   modelServerState: ModelServerSelectField;
   profileIdentifiers: string[];
-  modelServerTemplates: TemplateKind[];
-  projectTemplates: TemplateKind[];
   modelFormat?: SupportedModelFormats;
   modelType?: ModelTypeFieldData;
-  projectName?: string;
   isEditing?: boolean;
 };
 
 const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldProps> = ({
   modelServerState,
   profileIdentifiers,
-  modelServerTemplates,
-  projectTemplates,
   modelFormat,
   modelType,
-  projectName,
   isEditing,
 }) => {
+  const { options } = modelServerState;
   const [searchServer, setSearchServer] = React.useState('');
 
   const selectedTemplate = React.useMemo(() => {
-    const allModelServerTemplates = modelServerTemplates.concat(projectTemplates);
+    return options.find((o) => o.name === modelServerState.data?.name);
+  }, [options, modelServerState.data]);
 
-    return allModelServerTemplates.find(
-      (template) =>
-        template.metadata.name === modelServerState.data?.name &&
-        template.metadata.namespace === modelServerState.data.namespace,
-    );
-  }, [modelServerTemplates, projectTemplates, modelServerState.data]);
-
-  const getServingRuntimeDropdownLabel = (template: TemplateKind) => (
+  const getServingRuntimeDropdownLabel = (option: ModelServerOption) => (
     <>
       <FlexItem>
-        <Truncate content={getServingRuntimeDisplayNameFromTemplate(template) || ''} />
+        <Truncate content={option.label || ''} />
       </FlexItem>
-      {getServingRuntimeVersion(template) && (
+      {option.template && getServingRuntimeVersion(option.template) && (
         <FlexItem>
-          <ServerVersionLabel version={getServingRuntimeVersion(template)} isCompact />
+          <ServingRuntimeVersionLabel
+            version={getServingRuntimeVersion(option.template)}
+            isCompact
+          />
         </FlexItem>
       )}
-      <FlexItem align={{ default: 'alignRight' }}>
-        {profileIdentifiers.some((identifier) =>
-          isCompatibleWithIdentifier(identifier, template.objects[0]),
-        ) && <Label color="blue">Compatible with hardware profile</Label>}
-      </FlexItem>
+      {option.template && (
+        <FlexItem align={{ default: 'alignRight' }}>
+          {profileIdentifiers.some((identifier) =>
+            isCompatibleWithIdentifier(identifier, option.template?.objects[0]),
+          ) && <Label color="blue">Compatible with hardware profile</Label>}
+        </FlexItem>
+      )}
     </>
   );
 
-  const renderMenuItem = (template: TemplateKind, index: number, scope: 'project' | 'global') => (
+  const renderMenuItem = (
+    option: ModelServerOption,
+    index: number,
+    scope: 'project' | 'global',
+  ) => (
     <MenuItem
-      key={`${index}-${scope}-serving-runtime-${template.metadata.name}`}
-      data-testid={`servingRuntime ${template.metadata.name}`}
+      key={`${index}-${scope}-serving-runtime-${option.name}`}
+      data-testid={`servingRuntime ${option.name}`}
       isSelected={
-        modelServerState.data?.name === template.metadata.name &&
-        modelServerState.data.namespace === template.metadata.namespace
+        modelServerState.data?.name === option.name &&
+        modelServerState.data.namespace === option.namespace
       }
       onClick={() =>
         modelServerState.setData({
-          name: template.metadata.name,
-          namespace: template.metadata.namespace,
+          name: option.name,
+          label: option.label,
+          namespace: option.namespace,
           scope,
+          template: option.template,
         })
       }
       icon={<ProjectScopedIcon isProject={scope === 'project'} alt="" />}
     >
       <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-        {getServingRuntimeDropdownLabel(template)}
+        {getServingRuntimeDropdownLabel(option)}
       </Flex>
     </MenuItem>
   );
-
-  const filteredProjectScopedTemplates = projectTemplates.filter((template: TemplateKind) =>
-    getServingRuntimeDisplayNameFromTemplate(template)
-      .toLocaleLowerCase()
-      .includes(searchServer.toLocaleLowerCase()),
+  const filteredProjectScopedTemplates = options.filter(
+    (option) =>
+      option.scope === 'project' &&
+      option.label?.toLocaleLowerCase().includes(searchServer.toLocaleLowerCase()),
   );
-  const filteredScopedTemplates = modelServerTemplates.filter((template) =>
-    getServingRuntimeDisplayNameFromTemplate(template)
-      .toLocaleLowerCase()
-      .includes(searchServer.toLocaleLowerCase()),
+  const filteredScopedTemplates = options.filter(
+    (option) =>
+      (option.scope === 'global' || option.scope === undefined) &&
+      option.label?.toLocaleLowerCase().includes(searchServer.toLocaleLowerCase()),
   );
 
   return (
@@ -198,7 +234,7 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
       fieldId="serving-runtime-template-selection"
       isRequired
       labelHelp={
-        projectTemplates.length > 0 ? (
+        options.filter((option) => option.scope === 'project').length > 0 ? (
           <ProjectScopedPopover title="Serving runtime" item="serving runtimes" />
         ) : undefined
       }
@@ -206,9 +242,7 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
       <ProjectScopedSearchDropdown
         isDisabled={
           modelType === ServingRuntimeModelType.PREDICTIVE
-            ? !modelFormat ||
-              modelServerTemplates.concat(projectTemplates).length === 1 ||
-              isEditing
+            ? !modelFormat || options.length === 1 || isEditing
             : isEditing
         }
         projectScopedItems={filteredProjectScopedTemplates}
@@ -219,10 +253,8 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
         onSearchClear={() => setSearchServer('')}
         toggleContent={
           <ProjectScopedToggleContent
-            displayName={
-              selectedTemplate?.objects[0].metadata.annotations?.['openshift.io/display-name']
-            }
-            isProject={selectedTemplate?.metadata.namespace === projectName}
+            displayName={selectedTemplate?.label}
+            isProject={selectedTemplate?.scope === 'project'}
             projectLabel={ScopedType.Project}
             globalLabel={ScopedType.Global}
             fallback="Select one"
@@ -235,9 +267,9 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
             color={isEditing ? 'grey' : 'blue'}
             labelTestId="serving-runtime-template-label"
             additionalContent={
-              getServingRuntimeVersion(selectedTemplate) && (
-                <ServerVersionLabel
-                  version={getServingRuntimeVersion(selectedTemplate)}
+              getServingRuntimeVersion(selectedTemplate?.template) && (
+                <ServingRuntimeVersionLabel
+                  version={getServingRuntimeVersion(selectedTemplate?.template)}
                   isCompact
                   isEditing={isEditing}
                 />

@@ -245,13 +245,6 @@ describe('ModelFormatField', () => {
       jest.clearAllMocks();
     });
 
-    it('should not render when not visible', () => {
-      const { container } = render(
-        <ModelFormatField modelFormatState={{ ...defaultModelFormatState, isVisible: false }} />,
-      );
-      expect(container.firstChild).toBeNull();
-    });
-
     it('should render select field when visible', () => {
       render(<ModelFormatField modelFormatState={defaultModelFormatState} />);
       expect(screen.getByLabelText(/Model framework/)).toBeInTheDocument();

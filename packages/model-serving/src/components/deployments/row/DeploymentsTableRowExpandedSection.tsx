@@ -112,7 +112,10 @@ export const DeploymentRowExpandedSection: React.FC<{
     deployment,
   );
   const modelFormat = React.useMemo(
-    () => formDataExtension?.properties.extractModelFormat(deployment),
+    () =>
+      typeof formDataExtension?.properties.extractModelFormat === 'function'
+        ? formDataExtension.properties.extractModelFormat(deployment)
+        : null,
     [formDataExtension, deployment],
   );
   const replicas = React.useMemo(

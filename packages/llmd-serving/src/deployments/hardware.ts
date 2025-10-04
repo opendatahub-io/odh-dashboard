@@ -1,6 +1,20 @@
 import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { HardwareProfileFeatureVisibility } from '@odh-dashboard/internal/k8sTypes';
-import type { LLMdDeployment } from '../types';
+import type { LLMdDeployment, LLMInferenceServiceKind } from '../types';
+
+export const applyHardwareProfileConfig = (
+  llmdInferenceService: LLMInferenceServiceKind,
+  hardwareProfileName: string,
+  hardwareProfileNamespace: string,
+): LLMInferenceServiceKind => {
+  const result = structuredClone(llmdInferenceService);
+  result.metadata.annotations = {
+    ...result.metadata.annotations,
+    'opendatahub.io/hardware-profile-name': hardwareProfileName,
+    'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
+  };
+  return result;
+};
 
 export const extractHardwareProfileConfig = (
   llmdDeployment: LLMdDeployment,
@@ -22,6 +36,15 @@ export const extractHardwareProfileConfig = (
     namespace,
     hardwareProfileNamespace,
   ];
+};
+
+export const applyReplicas = (
+  llmdInferenceService: LLMInferenceServiceKind,
+  replicas: number,
+): LLMInferenceServiceKind => {
+  const result = structuredClone(llmdInferenceService);
+  result.spec.replicas = replicas;
+  return result;
 };
 
 export const extractReplicas = (llmdDeployment: LLMdDeployment): number | null => {

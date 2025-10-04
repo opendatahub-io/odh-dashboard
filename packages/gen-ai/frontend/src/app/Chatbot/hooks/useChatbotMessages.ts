@@ -40,6 +40,7 @@ interface UseChatbotMessagesProps {
   isStreamingEnabled: boolean;
   temperature: number;
   topP: number;
+  currentVectorStoreId: string | null;
 }
 
 const useChatbotMessages = ({
@@ -51,6 +52,7 @@ const useChatbotMessages = ({
   isStreamingEnabled,
   temperature,
   topP,
+  currentVectorStoreId,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<MessageProps[]>([initialBotMessage()]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
@@ -137,12 +139,15 @@ const useChatbotMessages = ({
 
       const mcpServers = getSelectedServersForAPICallback();
 
+      // Determine vector store ID to use for RAG
+      const vectorStoreIdToUse = selectedSourceSettings?.vectorStore || currentVectorStoreId;
+
       const responsesPayload: CreateResponseRequest = {
         input: message,
         model: modelId,
         ...(isRawUploaded &&
-          selectedSourceSettings && {
-            vector_store_ids: [selectedSourceSettings.vectorStore],
+          vectorStoreIdToUse && {
+            vector_store_ids: [vectorStoreIdToUse],
           }),
         chat_context: messages
           .map((msg) => ({

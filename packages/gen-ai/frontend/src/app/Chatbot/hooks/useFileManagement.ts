@@ -14,6 +14,7 @@ export interface UseFileManagementReturn {
   refreshFiles: () => Promise<void>;
   deleteFileById: (fileId: string) => Promise<void>;
   isDeleting: boolean;
+  currentVectorStoreId: string | null;
 }
 
 interface UseFileManagementProps {
@@ -127,6 +128,7 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
     refreshFiles,
     deleteFileById,
     isDeleting,
+    currentVectorStoreId,
   };
 };
 

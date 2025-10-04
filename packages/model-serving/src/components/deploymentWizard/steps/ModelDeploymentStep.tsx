@@ -39,18 +39,17 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
           hardwareProfileConfig={wizardState.state.hardwareProfileConfig}
           isEditing={wizardState.initialData?.isEditing}
         />
-        <ModelFormatField
-          modelFormatState={wizardState.state.modelFormatState}
-          isEditing={wizardState.initialData?.isEditing}
-        />
+        {wizardState.state.modelFormatState.isVisible && (
+          <ModelFormatField
+            modelFormatState={wizardState.state.modelFormatState}
+            isEditing={wizardState.initialData?.isEditing}
+          />
+        )}
         <ModelServerTemplateSelectField
           modelServerState={wizardState.state.modelServer}
           profileIdentifiers={profileIdentifiers}
-          modelServerTemplates={wizardState.state.modelServer.modelServerTemplates}
-          projectTemplates={wizardState.state.modelServer.projectTemplates}
           modelFormat={wizardState.state.modelFormatState.modelFormat}
           modelType={wizardState.state.modelType.data}
-          projectName={projectName}
           isEditing={wizardState.initialData?.isEditing}
         />
         <NumReplicasField replicaState={wizardState.state.numReplicas} />

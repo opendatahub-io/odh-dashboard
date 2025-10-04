@@ -73,8 +73,10 @@ spec:
                       type: boolean
                     disableAcceleratorProfiles:
                       type: boolean
+                      description: 'DEPRECATED: Accelerator Profiles are replaced by Hardware Profiles. This field will be removed in a future version.'
                     disableHardwareProfiles:
                       type: boolean
+                      description: "DEPRECATED: Hardware Profiles are GA and cannot be disabled via this field. This field will be removed in a future version."
                     disableDistributedWorkloads:
                       type: boolean
                     disableModelCatalog:
@@ -97,6 +99,11 @@ spec:
                       type: boolean
                     disableFeatureStore:
                       type: boolean
+                  x-kubernetes-validations:
+                    - rule: '!has(self.disableAcceleratorProfiles) || self.disableAcceleratorProfiles == oldSelf.disableAcceleratorProfiles'
+                      message: 'DEPRECATED: spec.dashboardConfig.disableAcceleratorProfiles must be removed or left unchanged.'
+                    - rule: '!has(self.disableHardwareProfiles) || self.disableHardwareProfiles == oldSelf.disableHardwareProfiles'
+                      message: 'DEPRECATED: spec.dashboardConfig.disableHardwareProfiles must be removed or left unchanged.'
                 # TODO: Remove before going to v1
                 groupsConfig:
                   description: 'Ignored -- See "Auth" Resource'
@@ -112,8 +119,9 @@ spec:
                   x-kubernetes-validations:
                     - rule: self == oldSelf
                       message: Can no longer modify group configurations here, see the Auth resource instead
-                # Hardware Profiles going GA will help remove these
+                # Remove notebookSizes in a future version
                 notebookSizes:
+                  description: 'DEPRECATED: Please use Hardware Profiles instead. This field will be removed in a future version.'
                   type: array
                   items:
                     type: object
@@ -140,8 +148,12 @@ spec:
                                 type: string
                               memory:
                                 type: string
-                # Hardware Profiles going GA will help remove these
+                  x-kubernetes-validations:
+                    - rule: self == oldSelf
+                      message: 'This field is DEPRECATED and must either be removed or left unchanged. Please use Hardware Profiles instead.'
+                # Remove modelServerSizes in a future version
                 modelServerSizes:
+                  description: 'DEPRECATED: Please use Hardware Profiles instead. This field will be removed in a future version.'
                   type: array
                   items:
                     type: object
@@ -168,6 +180,9 @@ spec:
                                 type: string
                               memory:
                                 type: string
+                  x-kubernetes-validations:
+                    - rule: self == oldSelf
+                      message: 'This field is DEPRECATED and must either be removed or left unchanged. Please use Hardware Profiles instead.'
                 # May get impacted by Notebooks 2.0
                 notebookController:
                   description: 'Jupyter tile configurations'
@@ -186,12 +201,16 @@ spec:
                     pvcSize:
                       type: string
                     notebookTolerationSettings:
+                      description: 'DEPRECATED: Please use Hardware Profiles to set tolerations instead. This field will be removed in a future version.'
                       type: object
                       properties:
                         enabled:
                           type: boolean
                         key:
                           type: string
+                      x-kubernetes-validations:
+                        - rule: self == oldSelf
+                          message: 'This field is DEPRECATED and must either be removed or left unchanged. Please use Hardware Profiles to set tolerations instead.'
                     storageClassName:
                       type: string
                 # Likely needs a better spot to exist -- hard to do granular permissions

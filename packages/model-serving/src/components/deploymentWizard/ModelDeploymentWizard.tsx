@@ -8,12 +8,10 @@ import { getDeploymentWizardExitRoute } from './utils';
 import { useModelDeploymentWizard, type ModelDeploymentWizardData } from './useDeploymentWizard';
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
 import { ModelSourceStepContent } from './steps/ModelSourceStep';
-import { WizardFooterWithDisablingNext } from './WizardFooterWithDisablingNext';
 import { AdvancedSettingsStepContent } from './steps/AdvancedOptionsStep';
 import { ModelDeploymentStepContent } from './steps/ModelDeploymentStep';
-import { isModelServingDeploy } from '../../../extension-points';
-import { useResolvedPlatformExtension } from '../../concepts/extensionUtils';
-import { ModelServingPlatform } from '../../concepts/useProjectServingPlatform';
+import { useDeployMethod } from './useDeployMethod';
+import { WizardFooterWithDisablingNext } from '../generic/WizardFooterWithDisablingNext';
 
 type ModelDeploymentWizardProps = {
   title: string;
@@ -21,7 +19,6 @@ type ModelDeploymentWizardProps = {
   primaryButtonText: string;
   existingData?: ModelDeploymentWizardData;
   project: ProjectKind;
-  modelServingPlatform: ModelServingPlatform;
 };
 
 const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
@@ -30,15 +27,9 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   primaryButtonText,
   existingData,
   project,
-  modelServingPlatform,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-
-  const [deployExtension, deployExtensionLoaded] = useResolvedPlatformExtension(
-    isModelServingDeploy,
-    modelServingPlatform,
-  );
 
   const exitWizard = React.useCallback(() => {
     navigate(getDeploymentWizardExitRoute(location.pathname));
@@ -47,12 +38,15 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   const wizardState = useModelDeploymentWizard(existingData);
   const validation = useModelDeploymentWizardValidation(wizardState.state);
 
+  const { deployMethod, deployMethodLoaded } = useDeployMethod(wizardState.state);
+
   const onSave = React.useCallback(() => {
     // Use existing validation to prevent submission with invalid data
     if (
       !validation.isModelSourceStepValid ||
       !validation.isModelDeploymentStepValid ||
-      !deployExtensionLoaded
+      !deployMethodLoaded ||
+      !deployMethod
     ) {
       return;
     }
@@ -69,7 +63,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       : undefined;
 
     Promise.all([
-      deployExtension?.properties.deploy(
+      deployMethod.properties.deploy(
         wizardState.state,
         project.metadata.name,
         undefined,
@@ -79,7 +73,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       ),
     ]).then(() => {
       Promise.all([
-        deployExtension?.properties.deploy(
+        deployMethod.properties.deploy(
           wizardState.state,
           project.metadata.name,
           undefined,
@@ -94,8 +88,8 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   }, [
     exitWizard,
     project.metadata.name,
-    deployExtensionLoaded,
-    deployExtension,
+    deployMethodLoaded,
+    deployMethod,
     wizardState.state,
     validation.isModelSourceStepValid,
     validation.isModelDeploymentStepValid,
