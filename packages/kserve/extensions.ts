@@ -139,6 +139,8 @@ const extensions: (
     type: 'model-serving.deployment/deploy',
     properties: {
       platform: KSERVE_ID,
+      isActive: true,
+      priority: 0,
       deploy: () => import('./src/deploy').then((m) => m.deployKServeDeployment),
     },
   },

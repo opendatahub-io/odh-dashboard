@@ -21,7 +21,7 @@ export const useInferenceServicesForConnection = (
     (inferenceService) =>
       // Known issue: this only works for OCI, S3, and PVC connections
       inferenceService.spec.predictor.model?.storage?.key === connectionName ||
-      inferenceService.spec.predictor.imagePullSecrets?.[0].name === connectionName ||
+      inferenceService.spec.predictor.imagePullSecrets?.[0]?.name === connectionName ||
       getPVCNameFromURI(inferenceService.spec.predictor.model?.storageUri ?? '') ===
         connection.metadata.name,
   );

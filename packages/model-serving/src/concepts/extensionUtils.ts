@@ -2,7 +2,8 @@ import React from 'react';
 import { useResolvedExtensions, useExtensions } from '@odh-dashboard/plugin-core';
 import { Extension, ExtensionPredicate, ResolvedExtension } from '@openshift/dynamic-plugin-sdk';
 import { ModelServingPlatform } from './useProjectServingPlatform';
-import type { Deployment } from '../../extension-points';
+import type { DeploymentWizardField } from '../components/deploymentWizard/types';
+import { isDeploymentWizardFieldExtension, type Deployment } from '../../extension-points';
 
 export type PlatformExtension = Extension & { properties: { platform: string } };
 
@@ -65,5 +66,23 @@ export const useResolvedDeploymentExtension = <T extends PlatformExtension>(
       errors.map((error) => (error instanceof Error ? error : new Error(String(error)))),
     ],
     [resolvedExtensions, deployment?.modelServingPlatformId, loaded, errors],
+  );
+};
+
+// for deployment wizard
+
+export const useWizardFieldsFromExtensions = (): [DeploymentWizardField[], boolean, Error[]] => {
+  const [extensions, loaded, errors] = useResolvedExtensions(isDeploymentWizardFieldExtension);
+  const fields = React.useMemo(() => {
+    return extensions.map((ext) => ext.properties.field);
+  }, [extensions]);
+
+  return React.useMemo(
+    () => [
+      fields,
+      loaded,
+      errors.map((error) => (error instanceof Error ? error : new Error(String(error)))),
+    ],
+    [fields, loaded, errors],
   );
 };

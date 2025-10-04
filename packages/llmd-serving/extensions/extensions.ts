@@ -1,5 +1,7 @@
 import type {
   DeployedModelServingDetails,
+  DeploymentWizardFieldExtension,
+  ModelServingDeploy,
   ModelServingDeploymentFormDataExtension,
   ModelServingPlatformWatchDeploymentsExtension,
   ModelServingDeleteModal,
@@ -13,6 +15,8 @@ const extensions: (
   | DeployedModelServingDetails<LLMdDeployment>
   | ModelServingDeploymentFormDataExtension<LLMdDeployment>
   | ModelServingDeleteModal<LLMdDeployment>
+  | ModelServingDeploy<LLMdDeployment>
+  | DeploymentWizardFieldExtension<LLMdDeployment>
 )[] = [
   {
     type: 'model-serving.platform/watch-deployments',
@@ -47,6 +51,22 @@ const extensions: (
       onDelete: () => import('../src/deployments').then((m) => m.deleteDeployment),
       title: 'Delete model deployment?',
       submitButtonLabel: 'Delete model deployment',
+    },
+  },
+  {
+    type: 'model-serving.deployment/deploy',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      priority: 100,
+      isActive: () => import('../src/deployments/deploy').then((m) => m.isLLMdDeployActive),
+      deploy: () => import('../src/deployments/deploy').then((m) => m.deployLLMdDeployment),
+    },
+  },
+  {
+    type: 'model-serving.deployment/wizard-field',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      field: () => import('../src/wizardFields/modelServerField').then((m) => m.modelServerField),
     },
   },
 ];
