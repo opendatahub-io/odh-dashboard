@@ -128,7 +128,6 @@ describe('Administration Tab', () => {
       mockAllowedUsers({}),
       mockAllowedUsers({ username: 'regularuser1', lastActivity: 'Now' }),
     ];
-    cy.interceptK8s(RouteModel, mockRouteK8sResource({})).as('getWorkbenchURL');
     initIntercepts({ allowedUsers });
     cy.interceptOdh(
       'GET /api/notebooks/openshift-ai-notebooks/:username/status',
@@ -142,8 +141,6 @@ describe('Administration Tab', () => {
     notebookController.visit();
     notebookController.findAdministrationTab().click();
 
-    cy.wait('@getWorkbenchURL');
-
     const userRow = administration.getRow('regularuser1');
     userRow.shouldHavePrivilege('User');
     userRow.shouldHaveLastActivity('Just now');
@@ -153,11 +150,7 @@ describe('Administration Tab', () => {
     stopNotebookModal.findStopNotebookServerButton().should('be.enabled');
     stopNotebookModal
       .findNotebookRouteLink()
-      .should(
-        'have.attr',
-        'href',
-        `https://${mockRouteK8sResource({}).spec.host}/notebook/test-project/test-notebook`,
-      );
+      .should('have.attr', 'href', `/notebook/test-project/test-notebook`);
     stopNotebookModal.findStopNotebookServerButton().click();
 
     cy.wait('@stopNotebookServer').then((interception) => {
@@ -229,11 +222,7 @@ describe('Administration Tab', () => {
     stopNotebookModal.findStopNotebookTitle().should('have.text', 'Stop workbench?');
     stopNotebookModal
       .findNotebookRouteLink()
-      .should(
-        'have.attr',
-        'href',
-        `https://${mockRouteK8sResource({}).spec.host}/notebook/test-project/test-notebook`,
-      );
+      .should('have.attr', 'href', `/notebook/test-project/test-notebook`);
     stopNotebookModal.findStopNotebookServerButton().click();
 
     cy.wait('@stopNotebookServer');
