@@ -398,6 +398,10 @@ class InferenceServiceModal extends ServingModal {
     return this.find().findByTestId('folder-path-error');
   }
 
+  findPVCPathPrefix() {
+    return cy.findByTestId('pvc-path-prefix');
+  }
+
   findConfigurationParamsSection() {
     return this.find().findByTestId('configuration-params');
   }
@@ -1026,6 +1030,10 @@ class ModelServingWizard extends Wizard {
 
   findLocationPathInput() {
     return cy.findByTestId('folder-path');
+  }
+
+  findPVCPathPrefix() {
+    return cy.findByTestId('pvc-path-prefix');
   }
 
   findOCIModelURI() {

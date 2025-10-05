@@ -34,7 +34,6 @@ import {
   kserveModal,
   kserveModalEdit,
   modelServingSection,
-  modelServingWizard,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import { projectDetails } from '#~/__tests__/cypress/cypress/pages/projects';
 import { be } from '#~/__tests__/cypress/cypress/utils/should';
@@ -73,6 +72,8 @@ import {
 } from '#~/__mocks__/mockHardwareProfile';
 import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
 import { acceleratorProfileSection } from '#~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
+import { STOP_MODAL_PREFERENCE_KEY } from '#~/pages/modelServing/useStopModalPreference';
+import { mockOdhApplication } from '#~/__mocks__/mockOdhApplication';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -95,10 +96,7 @@ type HandlersProps = {
   DscComponents?: DataScienceClusterKindStatus['components'];
   disableProjectScoped?: boolean;
   disableHardwareProfiles?: boolean;
-  disableDeploymentWizard?: boolean;
 };
-import { STOP_MODAL_PREFERENCE_KEY } from '#~/pages/modelServing/useStopModalPreference';
-import { mockOdhApplication } from '#~/__mocks__/mockOdhApplication';
 
 const initIntercepts = ({
   disableKServeConfig,
@@ -110,7 +108,6 @@ const initIntercepts = ({
   projectEnableModelMesh,
   disableProjectScoped = true,
   disableHardwareProfiles = true,
-  disableDeploymentWizard = false,
   servingRuntimes = [
     mockServingRuntimeK8sResourceLegacy({ tolerations: [], nodeSelector: {} }),
     mockServingRuntimeK8sResource({
@@ -170,7 +167,6 @@ const initIntercepts = ({
       disableKServeRaw,
       disableProjectScoped,
       disableHardwareProfiles,
-      disableDeploymentWizard,
     }),
   );
   // mock NIM because the model serving plugin has broader error detection
@@ -847,60 +843,6 @@ describe('Serving Runtime List', () => {
   });
 
   describe('KServe', () => {
-    it('Do not deploy KServe model when user cannot edit namespace (only one serving platform enabled)', () => {
-      // If only one platform is enabled, project platform selection has not happened yet and patching the namespace with the platform happens at deploy time.
-      initIntercepts({
-        disableModelMeshConfig: true,
-        disableKServeConfig: false,
-        servingRuntimes: [],
-        rejectAddSupportServingPlatformProject: true,
-      });
-
-      projectDetails.visitSection('test-project', 'model-server');
-
-      modelServingSection.findDeployModelButton().click();
-
-      // test filling in minimum required fields
-      modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
-      modelServingWizard.findUrilocationInput().should('exist').type('https://test');
-      modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
-      modelServingWizard.findNextButton().should('be.enabled').click();
-      modelServingWizard.findModelDeploymentNameInput().type('test-model');
-      modelServingWizard
-        .findModelFormatSelectOption('openvino_ir - opset1')
-        .should('exist')
-        .click();
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-      modelServingWizard.findGlobalScopedTemplateOption('Caikit').should('exist').click();
-      modelServingWizard.findNextButton().should('be.enabled').click();
-      modelServingWizard.findNextButton().should('be.enabled').click();
-
-      // test submitting form, an error should appear
-      modelServingWizard.findSubmitButton().should('be.enabled').click();
-
-      // dry run request
-      cy.wait('@createServingRuntime').then((interception) => {
-        expect(interception.request.url).to.include('?dryRun=All');
-      });
-
-      // dry run request
-      cy.wait('@createInferenceService').then((interception) => {
-        expect(interception.request.url).to.include('?dryRun=All');
-      });
-
-      cy.findByText('Error creating model server'); // TO:DO: No Error message is being shown
-
-      // the serving runtime should NOT have been created
-      cy.get('@createServingRuntime.all').then((interceptions) => {
-        expect(interceptions).to.have.length(1); // 1 dry-run request only
-      });
-
-      // the inference service should NOT have been created
-      cy.get('@createInferenceService.all').then((interceptions) => {
-        expect(interceptions).to.have.length(1); // 1 dry-run request only
-      });
-    });
-
     it('KServe Model list', () => {
       initIntercepts({
         projectEnableModelMesh: false,
@@ -1095,117 +1037,6 @@ describe('Serving Runtime List', () => {
           .findByText('Require token authentication')
           .should('exist'),
       );
-    });
-
-    it('Deploy model with PVC', () => {
-      initIntercepts({
-        disableModelMeshConfig: false,
-        disableKServeConfig: false,
-        disableServingRuntimeParams: false,
-        requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
-        projectEnableModelMesh: false,
-      });
-      cy.intercept(
-        'GET',
-        '**/namespaces/test-project/persistentvolumeclaims?labelSelector=opendatahub.io%2Fdashboard%3Dtrue',
-        mockK8sResourceList([
-          mockPVCK8sResource({
-            name: 'test-pvc',
-            namespace: 'test-project',
-            displayName: 'Test PVC',
-            storageClassName: 'openshift-default-sc',
-            annotations: {
-              'dashboard.opendatahub.io/model-name': 'test-model',
-              'dashboard.opendatahub.io/model-path': 'test-path',
-            },
-            labels: {
-              'opendatahub.io/dashboard': 'true',
-            },
-          }),
-        ]),
-      );
-
-      projectDetails.visitSection('test-project', 'model-server');
-      modelServingSection.findDeployModelButton().click();
-
-      kserveModal.shouldBeOpen();
-
-      kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateSearchSelector().click();
-      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
-      kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
-      // Auto-selects the only pvc
-      kserveModal.findPVCConnectionOption().scrollIntoView().should('be.visible').click();
-      kserveModal.findLocationPathInput().should('have.value', 'test-path');
-      kserveModal.findSubmitButton().should('be.enabled');
-      kserveModal.findSubmitButton().click();
-      kserveModal.shouldBeOpen(false);
-
-      // dry run request
-      cy.wait('@createServingRuntime').then((interception) => {
-        expect(interception.request.url).to.include('?dryRun=All');
-        expect(interception.request.body).to.containSubset({
-          metadata: {
-            name: 'test-name',
-            annotations: {
-              'openshift.io/display-name': 'test-name',
-              'opendatahub.io/apiProtocol': 'REST',
-              'opendatahub.io/template-display-name': 'Caikit',
-              'opendatahub.io/template-name': 'template-2',
-            },
-            namespace: 'test-project',
-          },
-          spec: {
-            protocolVersions: ['grpc-v1'],
-            supportedModelFormats: [
-              { autoSelect: true, name: 'openvino_ir', version: 'opset1' },
-              { autoSelect: true, name: 'onnx', version: '1' },
-            ],
-          },
-        });
-      });
-      // Actual request
-      cy.wait('@createServingRuntime').then((interception) => {
-        expect(interception.request.url).not.to.include('?dryRun=All');
-      });
-
-      // the serving runtime should have been created
-      cy.get('@createServingRuntime.all').then((interceptions) => {
-        expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
-      });
-      cy.wait('@createInferenceService').then((interception) => {
-        expect(interception.request.url).to.include('?dryRun=All');
-        expect(interception.request.body).to.containSubset({
-          apiVersion: 'serving.kserve.io/v1beta1',
-          kind: 'InferenceService',
-          metadata: {
-            annotations: {
-              'openshift.io/display-name': 'Test Name',
-              'serving.kserve.io/deploymentMode': DeploymentMode.RawDeployment,
-            },
-            labels: {
-              'opendatahub.io/dashboard': 'true',
-            },
-            name: 'test-name',
-            namespace: 'test-project',
-          },
-          spec: {
-            predictor: {
-              minReplicas: 1,
-              maxReplicas: 1,
-              model: {
-                modelFormat: { name: 'onnx', version: '1' },
-                resources: {
-                  requests: { cpu: '1', memory: '4Gi' },
-                  limits: { cpu: '2', memory: '8Gi' },
-                },
-                runtime: 'test-name',
-                storageUri: 'pvc://test-pvc/test-path',
-              },
-            },
-          },
-        });
-      });
     });
   });
 
