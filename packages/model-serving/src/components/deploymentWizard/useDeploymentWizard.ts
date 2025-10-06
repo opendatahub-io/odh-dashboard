@@ -17,6 +17,10 @@ import {
   useTokenAuthenticationField,
   type TokenAuthenticationFieldData,
 } from './fields/TokenAuthenticationField';
+import {
+  useAnonymousAccessField,
+  type AnonymousAccessFieldData,
+} from './fields/AnonymousAccessField';
 import { useNumReplicasField, type NumReplicasFieldData } from './fields/NumReplicasField';
 import { useRuntimeArgsField, type RuntimeArgsFieldData } from './fields/RuntimeArgsField';
 import {
@@ -42,6 +46,7 @@ export type ModelDeploymentWizardData = {
   modelTypeField?: ModelTypeFieldData;
   k8sNameDesc?: K8sNameDescriptionFieldData;
   externalRoute?: ExternalRouteFieldData;
+  anonymousAccess?: AnonymousAccessFieldData;
   tokenAuthentication?: TokenAuthenticationFieldData;
   numReplicas?: NumReplicasFieldData;
   runtimeArgs?: RuntimeArgsFieldData;
@@ -149,6 +154,7 @@ export const useModelDeploymentWizard = (
 
   // Step 3: Advanced Options - Individual Fields
   const externalRoute = useExternalRouteField(initialData?.externalRoute ?? undefined);
+  const anonymousAccess = useAnonymousAccessField(initialData?.anonymousAccess ?? undefined);
 
   const tokenAuthentication = useTokenAuthenticationField(
     initialData?.tokenAuthentication ?? undefined,
@@ -178,6 +184,7 @@ export const useModelDeploymentWizard = (
       },
       createConnectionData,
       externalRoute,
+      anonymousAccess,
       tokenAuthentication,
       numReplicas,
       runtimeArgs,

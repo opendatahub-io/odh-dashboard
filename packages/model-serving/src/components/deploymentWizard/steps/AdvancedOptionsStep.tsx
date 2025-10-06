@@ -15,6 +15,7 @@ import { RuntimeArgsField } from '../fields/RuntimeArgsField';
 import { EnvironmentVariablesField } from '../fields/EnvironmentVariablesField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { AvailableAiAssetsFieldsComponent } from '../fields/AvailableAiAssetsFields';
+import { AnonymousAccessField } from '../fields/AnonymousAccessField';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -33,6 +34,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
 }) => {
   const externalRouteData = wizardState.state.externalRoute.data;
   const tokenAuthData = wizardState.state.tokenAuthentication.data;
+  const anonymousAccessData = wizardState.state.anonymousAccess.data;
 
   // TODO: Clean up the stuff below related to KServe. Maybe move to an extension?
   const selectedModelServer =
@@ -101,7 +103,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
           />
           <StackItem>
             <FormGroup
-              label="External route"
+              label="Model access"
               data-testid="external-route-section"
               fieldId="model-access"
             >
@@ -109,6 +111,11 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                 isChecked={externalRouteData}
                 allowCreate={allowCreate}
                 onChange={handleExternalRouteChange}
+              />
+              <AnonymousAccessField
+                isChecked={anonymousAccessData}
+                allowCreate={allowCreate}
+                onChange={wizardState.state.anonymousAccess.setData}
               />
             </FormGroup>
           </StackItem>
