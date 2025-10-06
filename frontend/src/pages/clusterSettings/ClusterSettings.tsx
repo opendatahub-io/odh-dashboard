@@ -4,8 +4,13 @@ import { AlertVariant, Button, Stack, StackItem } from '@patternfly/react-core';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { useAppContext } from '#~/app/AppContext';
 import { fetchClusterSettings, updateClusterSettings } from '#~/services/clusterSettingsService';
-import { ClusterSettingsType, ModelServingPlatformEnabled } from '#~/types';
+import {
+  ClusterSettingsType,
+  ModelServingPlatformEnabled,
+  NotebookTolerationFormSettings,
+} from '#~/types';
 import { addNotification } from '#~/redux/actions/actions';
+import { useCheckJupyterEnabled } from '#~/utilities/notebookControllerUtils';
 import { useAppDispatch } from '#~/redux/hooks';
 import PVCSizeSettings from '#~/pages/clusterSettings/PVCSizeSettings';
 import CullerSettings from '#~/pages/clusterSettings/CullerSettings';
@@ -19,6 +24,7 @@ import {
   DEFAULT_PVC_SIZE,
   DEFAULT_CULLER_TIMEOUT,
   MIN_CULLER_TIMEOUT,
+  DEFAULT_TOLERATION_VALUE,
 } from './const';
 
 const ClusterSettings: React.FC = () => {
@@ -31,6 +37,12 @@ const ClusterSettings: React.FC = () => {
   const [cullerTimeout, setCullerTimeout] = React.useState(DEFAULT_CULLER_TIMEOUT);
   const { dashboardConfig } = useAppContext();
   const modelServingEnabled = useIsAreaAvailable(SupportedArea.MODEL_SERVING).status;
+  const isJupyterEnabled = useCheckJupyterEnabled();
+
+  const notebookTolerationSettings: NotebookTolerationFormSettings = {
+    enabled: false,
+    key: isJupyterEnabled ? DEFAULT_TOLERATION_VALUE : '',
+  };
 
   const [modelServingEnabledPlatforms, setModelServingEnabledPlatforms] =
     React.useState<ModelServingPlatformEnabled>(clusterSettings.modelServingPlatformEnabled);
@@ -56,9 +68,21 @@ const ClusterSettings: React.FC = () => {
         pvcSize,
         cullerTimeout,
         userTrackingEnabled,
+        notebookTolerationSettings: {
+          enabled: notebookTolerationSettings.enabled,
+          key: notebookTolerationSettings.key,
+        },
         modelServingPlatformEnabled: modelServingEnabledPlatforms,
       }),
-    [clusterSettings, pvcSize, cullerTimeout, userTrackingEnabled, modelServingEnabledPlatforms],
+    [
+      clusterSettings,
+      pvcSize,
+      cullerTimeout,
+      userTrackingEnabled,
+      notebookTolerationSettings.enabled,
+      notebookTolerationSettings.key,
+      modelServingEnabledPlatforms,
+    ],
   );
 
   const handleSaveButtonClicked = () => {
@@ -66,6 +90,10 @@ const ClusterSettings: React.FC = () => {
       pvcSize,
       cullerTimeout,
       userTrackingEnabled,
+      notebookTolerationSettings: {
+        enabled: notebookTolerationSettings.enabled,
+        key: notebookTolerationSettings.key,
+      },
       modelServingPlatformEnabled: modelServingEnabledPlatforms,
     };
 
@@ -167,7 +195,11 @@ const ClusterSettings: React.FC = () => {
           <Button
             data-testid="submit-cluster-settings"
             isDisabled={
-              saving || !pvcSize || cullerTimeout < MIN_CULLER_TIMEOUT || !isSettingsChanged
+              saving ||
+              !pvcSize ||
+              cullerTimeout < MIN_CULLER_TIMEOUT ||
+              !isSettingsChanged ||
+              !!notebookTolerationSettings.error
             }
             variant="primary"
             isLoading={saving}

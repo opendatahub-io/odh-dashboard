@@ -110,7 +110,15 @@ const initIntercepts = ({
 
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'test-project' },
-    mockK8sResourceList(mockProjectScopedHardwareProfiles),
+    mockK8sResourceList(
+      mockProjectScopedHardwareProfiles.map((profile) => ({
+        ...profile,
+        metadata: {
+          ...profile.metadata,
+          name: `project-${profile.metadata.name}`,
+        },
+      })),
+    ),
   ).as('hardwareProfiles');
 
   cy.interceptK8sList(
@@ -119,17 +127,17 @@ const initIntercepts = ({
       [
         mockServingRuntimeTemplateK8sResource({
           name: 'template-1',
-          displayName: 'Multi Platform',
+          displayName: 'Project Multi Platform',
           platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
         }),
         mockServingRuntimeTemplateK8sResource({
           name: 'template-2',
-          displayName: 'OpenVINO',
+          displayName: 'Project OpenVINO',
           platforms: [ServingRuntimePlatform.SINGLE],
         }),
         mockServingRuntimeTemplateK8sResource({
           name: 'template-3',
-          displayName: 'Caikit',
+          displayName: 'Project Caikit',
           platforms: [ServingRuntimePlatform.SINGLE],
           supportedModelFormats: [
             {
@@ -226,7 +234,15 @@ const initIntercepts = ({
 
   cy.interceptK8sList(
     { model: AcceleratorProfileModel, ns: 'test-project' },
-    mockK8sResourceList(mockProjectScopedAcceleratorProfiles),
+    mockK8sResourceList(
+      mockProjectScopedAcceleratorProfiles.map((profile) => ({
+        ...profile,
+        metadata: {
+          ...profile.metadata,
+          name: `project-${profile.metadata.name}`,
+        },
+      })),
+    ),
   ).as('acceleratorProfiles');
 
   cy.interceptOdh('GET /api/connection-types', [
@@ -678,6 +694,24 @@ describe('Model Serving Global', () => {
       disableServingRuntimeParamsConfig: false,
       disableProjectScoped: false,
     });
+
+    // Disable hardware profiles and accelerator profiles for this test to avoid duplicate global-scoped-label elements
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList([]),
+    );
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'test-project' },
+      mockK8sResourceList([]),
+    );
+    cy.interceptK8sList(
+      { model: AcceleratorProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList([]),
+    );
+    cy.interceptK8sList(
+      { model: AcceleratorProfileModel, ns: 'test-project' },
+      mockK8sResourceList([]),
+    );
     modelServingGlobal.visit('test-project');
 
     modelServingGlobal.clickDeployModelButtonWithRetry();
@@ -688,7 +722,7 @@ describe('Model Serving Global', () => {
 
     // Check for project specific serving runtimes
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    kserveModal.findProjectScopedTemplateOption('Multi Platform').click();
+    kserveModal.findProjectScopedTemplateOption('Project Multi Platform').click();
     kserveModal.findProjectScopedLabel().should('exist');
 
     // Check for global specific serving runtimes
@@ -708,7 +742,7 @@ describe('Model Serving Global', () => {
     kserveModal.findModelFrameworkSelect().should('have.text', 'Select a framework');
 
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    kserveModal.findProjectScopedTemplateOption('Caikit').click();
+    kserveModal.findProjectScopedTemplateOption('Project Caikit').click();
     kserveModal.findModelFrameworkSelect().should('be.disabled');
     kserveModal.findModelFrameworkSelect().should('have.text', 'openvino_ir - opset1');
   });
@@ -790,7 +824,7 @@ describe('Model Serving Global', () => {
       inferenceServices: [
         mockInferenceServiceK8sResource({
           namespace: 'test-project',
-          hardwareProfileName: 'large-profile-1',
+          hardwareProfileName: 'project-large-profile-1',
           hardwareProfileNamespace: 'test-project',
           resources: {
             requests: {
