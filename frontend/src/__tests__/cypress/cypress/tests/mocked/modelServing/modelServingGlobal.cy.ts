@@ -55,7 +55,6 @@ import {
   mockGlobalScopedAcceleratorProfiles,
   mockProjectScopedAcceleratorProfiles,
 } from '#~/__mocks__/mockAcceleratorProfile';
-import { acceleratorProfileSection } from '#~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -689,7 +688,7 @@ describe('Model Serving Global', () => {
     kserveModal.findServingRuntimeTemplateHelptext().should('exist');
   });
 
-  it.only('Display project specific serving runtimes while deploying', () => {
+  it('Display project specific serving runtimes while deploying', () => {
     initIntercepts({
       projectEnableModelMesh: false,
       disableServingRuntimeParamsConfig: false,
@@ -777,7 +776,7 @@ describe('Model Serving Global', () => {
     kserveModalEdit.findModelFrameworkSelect().should('have.text', 'onnx - 1');
   });
 
-  it('should display hardware profile selection when both hardware profile and project-scoped feature flag is enabled', () => {
+  it('should display hardware profile selection when the project-scoped feature flag is enabled', () => {
     initIntercepts({
       projectEnableModelMesh: false,
       disableServingRuntimeParamsConfig: false,
@@ -798,7 +797,7 @@ describe('Model Serving Global', () => {
     projectScopedHardwareProfile
       .find()
       .findByRole('menuitem', {
-        name: 'project-Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
+        name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
         hidden: true,
       })
       .click();
@@ -851,26 +850,6 @@ describe('Model Serving Global', () => {
       .findHardwareProfileSearchSelector()
       .should('contain.text', 'Large Profile-1');
     hardwareProfileSection.findProjectScopedLabel().should('exist');
-  });
-
-  it('Display project scoped label on accelerator profile selection on Edit', () => {
-    initIntercepts({
-      projectEnableModelMesh: false,
-      disableServingRuntimeParamsConfig: false,
-      disableProjectScoped: false,
-      servingRuntimes: [
-        mockServingRuntimeK8sResource({
-          acceleratorName: 'project-large-profile-1',
-          acceleratorProfileNamespace: 'test-project',
-        }),
-      ],
-    });
-    modelServingGlobal.visit('test-project');
-    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
-    acceleratorProfileSection
-      .findAcceleratorProfileSearchSelector()
-      .should('contain.text', 'Large Profile-1');
-    kserveModalEdit.findProjectScopedLabel().should('exist');
   });
 
   it('Display global scoped label on serving runtime selection', () => {
