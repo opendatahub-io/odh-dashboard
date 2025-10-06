@@ -1001,7 +1001,6 @@ describe('Model Serving Deploy Wizard', () => {
 
     // Test valid env var name
     modelServingWizard.findEnvVariableName('0').clear().type('VALID_NAME');
-    modelServingWizard.findEnvVariableName('0').clear().type('test-value');
     cy.findByText(
       'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
     ).should('not.exist');
