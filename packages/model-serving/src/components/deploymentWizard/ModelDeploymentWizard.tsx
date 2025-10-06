@@ -1,11 +1,11 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Wizard, WizardStep } from '@patternfly/react-core';
+import { Spinner, Wizard, WizardStep } from '@patternfly/react-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
+import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { getDeploymentWizardExitRoute } from './utils';
-import { useModelDeploymentWizard, type ModelDeploymentWizardData } from './useDeploymentWizard';
+import { ModelDeploymentWizardData, useModelDeploymentWizard } from './useDeploymentWizard';
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
 import { ModelSourceStepContent } from './steps/ModelSourceStep';
 import { AdvancedSettingsStepContent } from './steps/AdvancedOptionsStep';
@@ -99,24 +99,36 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     <ApplicationsPage title={title} description={description} loaded empty={false}>
       <Wizard onClose={exitWizard} onSave={onSave} footer={<WizardFooterWithDisablingNext />}>
         <WizardStep name="Source model" id="source-model-step">
-          <ModelSourceStepContent wizardState={wizardState} validation={validation.modelSource} />
+          {wizardState.loaded.modelSourceLoaded ? (
+            <ModelSourceStepContent wizardState={wizardState} validation={validation.modelSource} />
+          ) : (
+            <Spinner />
+          )}
         </WizardStep>
         <WizardStep
           name="Model deployment"
           id="model-deployment-step"
           isDisabled={!validation.isModelSourceStepValid}
         >
-          <ModelDeploymentStepContent
-            projectName={project.metadata.name}
-            wizardState={wizardState}
-          />
+          {wizardState.loaded.modelDeploymentLoaded ? (
+            <ModelDeploymentStepContent
+              projectName={project.metadata.name}
+              wizardState={wizardState}
+            />
+          ) : (
+            <Spinner />
+          )}
         </WizardStep>
         <WizardStep
           name="Advanced settings (optional)"
           id="advanced-options-step"
           isDisabled={!validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid}
         >
-          <AdvancedSettingsStepContent wizardState={wizardState} project={project} />
+          {wizardState.loaded.advancedOptionsLoaded ? (
+            <AdvancedSettingsStepContent wizardState={wizardState} project={project} />
+          ) : (
+            <Spinner />
+          )}
         </WizardStep>
         <WizardStep
           name="Summary"
@@ -128,7 +140,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
             !validation.isAdvancedSettingsStepValid
           }
         >
-          Review step content
+          {wizardState.loaded.summaryLoaded ? 'Review step content' : <Spinner />}
         </WizardStep>
       </Wizard>
     </ApplicationsPage>
