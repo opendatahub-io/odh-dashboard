@@ -69,6 +69,7 @@ const ModelParameterFormGroup: React.FunctionComponent<ModelParameterFormGroupPr
         <TextInput
           id={`${fieldId}-input`}
           type="number"
+          aria-label={`${fieldId} input field`}
           value={value}
           onChange={(_event, newValue) => {
             const parsed = parseFloat(newValue);

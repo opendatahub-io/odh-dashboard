@@ -72,7 +72,9 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
   return (
     <Stack hasGutter>
       <StackItem>
-        <Title headingLevel="h4">Available models</Title>
+        <Title headingLevel="h2" size="md">
+          Available models
+        </Title>
       </StackItem>
       <StackItem>
         <Table
