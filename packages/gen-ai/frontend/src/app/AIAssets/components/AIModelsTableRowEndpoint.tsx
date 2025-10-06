@@ -25,6 +25,7 @@ const AIModelsTableRowEndpoint: React.FC<AIModelsTableRowEndpointProps> = ({
   if (!endpoint) {
     return (
       <Popover
+        aria-label={`No ${isExternal ? 'external' : 'internal'} endpoint for ${model.model_name}`}
         bodyContent={
           <>
             No {isExternal ? 'external' : 'internal'} endpoint has been configured for this model.
@@ -39,6 +40,7 @@ const AIModelsTableRowEndpoint: React.FC<AIModelsTableRowEndpointProps> = ({
   return (
     <Popover
       position="right"
+      aria-label={`${isExternal ? 'external' : 'internal'} endpoint URL for ${model.model_name}`}
       bodyContent={
         <Flex>
           <FlexItem>

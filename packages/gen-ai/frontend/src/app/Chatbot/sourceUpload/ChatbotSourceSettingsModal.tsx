@@ -204,6 +204,7 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
           }
           descriptorId="source-settings-modal-box-description-form"
           labelId="source-settings-form-modal-title"
+          aria-label={title}
         />
         {vectorStores.length !== 0 ? (
           <>
@@ -215,6 +216,7 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
                     <Popover
                       triggerRef={vectorDatabaseLabelHelpRef}
                       headerContent={<div>Vector database</div>}
+                      headerComponent="h2"
                       bodyContent={
                         <div>
                           The vector database where your document embeddings will be stored and
@@ -248,6 +250,7 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
                         <Popover
                           triggerRef={maxChunkLengthLabelHelpRef}
                           headerContent={<div>Maximum chunk length</div>}
+                          headerComponent="h2"
                           bodyContent={
                             <div>
                               The maximum length of a chunk of text to be used for embedding.
@@ -281,6 +284,7 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
                         <Popover
                           triggerRef={chunkOverlapLabelHelpRef}
                           headerContent={<div>Chunk overlap</div>}
+                          headerComponent="h2"
                           bodyContent={
                             <div>
                               The number of characters that consecutive chunks should overlap. This
@@ -316,6 +320,7 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
                         <Popover
                           triggerRef={delimiterLabelHelpRef}
                           headerContent={<div>Delimiter</div>}
+                          headerComponent="h2"
                           bodyContent={
                             <div>
                               A character or string used to split the document into chunks. Common
