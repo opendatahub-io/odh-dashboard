@@ -16,8 +16,16 @@ import type { AllowedUser } from '#~/pages/notebookController/screens/admin/type
 import { testPagination } from '#~/__tests__/cypress/cypress/utils/pagination';
 import { mockStartNotebookData } from '#~/__mocks__/mockStartNotebookData';
 import { mockRouteK8sResource } from '#~/__mocks__/mockRouteK8sResource';
-import { RouteModel, ImageStreamModel } from '#~/__tests__/cypress/cypress/utils/models';
+import {
+  RouteModel,
+  ImageStreamModel,
+  HardwareProfileModel,
+} from '#~/__tests__/cypress/cypress/utils/models';
 import { mockImageStreamK8sResourceList } from '#~/__mocks__/mockImageStreamK8sResource';
+import {
+  mockGlobalScopedHardwareProfiles,
+  mockProjectScopedHardwareProfiles,
+} from '#~/__mocks__/mockHardwareProfile';
 
 const groupSubjects: RoleBindingSubject[] = [
   {
@@ -48,6 +56,14 @@ const initIntercepts = ({
   cy.interceptK8sList(
     { model: ImageStreamModel, ns: 'opendatahub' },
     mockK8sResourceList(mockImageStreamK8sResourceList()),
+  );
+  cy.interceptK8sList(
+    { model: HardwareProfileModel, ns: 'opendatahub' },
+    mockK8sResourceList(mockGlobalScopedHardwareProfiles),
+  );
+  cy.interceptK8sList(
+    { model: HardwareProfileModel, ns: 'test-project' },
+    mockK8sResourceList(mockProjectScopedHardwareProfiles),
   );
 };
 
