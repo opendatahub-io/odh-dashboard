@@ -4,7 +4,12 @@ import {
   ModelServingCompatibleTypes,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { ModelLocationData, ModelLocationType } from '@odh-dashboard/model-serving/types/form-data';
+import {
+  getPVCNameFromURI,
+  isPVCUri,
+} from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
 import type { LLMdContainer, LLMInferenceServiceKind, LLMdDeployment } from '../types';
+import { AvailableAiAssetsFieldsData } from '../../../model-serving/src/components/deploymentWizard/fields/AvailableAiAssetsFields';
 
 export const applyModelLocation = (
   llmdInferenceService: LLMInferenceServiceKind,
@@ -134,20 +139,105 @@ export const extractEnvironmentVariables = (
   };
 };
 
-export const extractModelLocationData = (
-  llmdDeployment: LLMdDeployment,
-): ModelLocationData | null => {
+export const getModelLocationUri = (deployment: LLMInferenceServiceKind): string | undefined => {
+  return deployment.spec.model.uri;
+};
+
+const extractAdditionalFields = (deployment: LLMInferenceServiceKind): Record<string, string> => {
+  const additionalFields: Record<string, string> = {};
+  const { model } = deployment.spec;
+
+  const connectionType = getConnectionTypeFromUri(model.uri);
+  if (connectionType === ModelServingCompatibleTypes.S3ObjectStorage) {
+    additionalFields.modelPath =
+      deployment.metadata.annotations?.['opendatahub.io/connection-path'] || '';
+  }
+
+  if (connectionType === ModelServingCompatibleTypes.OCI) {
+    additionalFields.modelUri = model.uri || '';
+  }
+
+  return additionalFields;
+};
+
+export const extractModelLocationData = (deployment: {
+  model: LLMInferenceServiceKind;
+}): ModelLocationData => {
+  const uri = getModelLocationUri(deployment.model);
+  if (uri && isPVCUri(uri)) {
+    return {
+      type: ModelLocationType.PVC,
+      fieldValues: { URI: uri },
+      additionalFields: {
+        pvcConnection: getPVCNameFromURI(uri),
+      },
+    };
+  }
+  const imagePullSecrets = deployment.model.spec.template?.containers?.find(
+    (container) => container.name === 'imagePullSecrets',
+  );
   const connectionName =
-    llmdDeployment.model.metadata.annotations?.[MetadataAnnotation.ConnectionName];
+    deployment.model.metadata.annotations?.[MetadataAnnotation.ConnectionName] ||
+    imagePullSecrets?.name;
+
+  const additionalFields = extractAdditionalFields(deployment.model);
 
   if (connectionName) {
     return {
       type: ModelLocationType.EXISTING,
       connection: connectionName,
       fieldValues: {},
-      additionalFields: {},
+      additionalFields,
     };
   }
 
-  return null;
+  return {
+    type: ModelLocationType.NEW,
+    fieldValues: { URI: uri },
+    additionalFields,
+  };
+};
+
+export const getConnectionTypeFromUri = (uri: string): ModelServingCompatibleTypes => {
+  const uriProtocol = uri.split('://')[0];
+  switch (uriProtocol) {
+    case 's3':
+      return ModelServingCompatibleTypes.S3ObjectStorage;
+    case 'oci':
+      return ModelServingCompatibleTypes.OCI;
+    default:
+      return ModelServingCompatibleTypes.URI;
+  }
+};
+
+export const extractAiAssetData = (
+  llmdInferenceService: LLMdDeployment,
+): AvailableAiAssetsFieldsData => {
+  return {
+    saveAsAiAsset:
+      llmdInferenceService.model.metadata.annotations?.['opendatahub.io/genai-asset'] === 'true',
+    useCase:
+      llmdInferenceService.model.metadata.annotations?.['opendatahub.io/genai-use-case'] || '',
+  };
+};
+
+export const applyAiAvailableAssetAnnotations = (
+  llmdInferenceService: LLMInferenceServiceKind,
+  aiAssetData: AvailableAiAssetsFieldsData,
+): LLMInferenceServiceKind => {
+  const result = structuredClone(llmdInferenceService);
+  const annotations = {
+    ...result.metadata.annotations,
+  };
+  if (aiAssetData.saveAsAiAsset) {
+    annotations['opendatahub.io/genai-asset'] = 'true';
+    if (aiAssetData.useCase) {
+      annotations['opendatahub.io/genai-use-case'] = aiAssetData.useCase;
+    }
+  } else {
+    delete annotations['opendatahub.io/genai-asset'];
+    delete annotations['opendatahub.io/genai-use-case'];
+  }
+  result.metadata.annotations = annotations;
+  return result;
 };

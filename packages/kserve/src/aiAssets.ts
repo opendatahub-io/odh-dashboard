@@ -1,8 +1,9 @@
 import { KServeDeployment } from './deployments';
+import { AvailableAiAssetsFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/AvailableAiAssetsFields';
 
 export const extractModelAvailabilityData = (
   kserveDeployment: KServeDeployment,
-): { saveAsAiAsset: boolean; useCase: string } => {
+): AvailableAiAssetsFieldsData => {
   return {
     saveAsAiAsset:
       kserveDeployment.model.metadata.annotations?.['opendatahub.io/genai-asset'] === 'true',
