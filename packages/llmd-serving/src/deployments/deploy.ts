@@ -36,6 +36,7 @@ type CreateLLMdInferenceServiceParams = {
   replicas?: number;
   runtimeArgs?: string[];
   environmentVariables?: { name: string; value: string }[];
+  anonymousAccess?: boolean;
 };
 
 const assembleLLMdInferenceServiceKind = ({
@@ -49,6 +50,7 @@ const assembleLLMdInferenceServiceKind = ({
   replicas = 1,
   runtimeArgs,
   environmentVariables,
+  anonymousAccess,
 }: CreateLLMdInferenceServiceParams): LLMInferenceServiceKind => {
   let llmdInferenceService: LLMInferenceServiceKind = {
     apiVersion: 'serving.kserve.io/v1alpha1',
@@ -60,6 +62,7 @@ const assembleLLMdInferenceServiceKind = ({
         ...(displayName && { 'openshift.io/display-name': displayName }),
         ...(description && { 'openshift.io/description': description }),
         'opendatahub.io/model-type': 'generative',
+        ...(anonymousAccess && { 'security.opendatahub.io/enable-auth': 'false' }),
       },
     },
     spec: {
@@ -108,6 +111,7 @@ export const deployLLMdDeployment = async (
     replicas: wizardData.numReplicas.data,
     runtimeArgs: wizardData.runtimeArgs.data?.args,
     environmentVariables: wizardData.environmentVariables.data?.variables,
+    anonymousAccess: wizardData.anonymousAccess.data,
   });
 
   const llmdInferenceService = await createLLMdInferenceServiceKind(

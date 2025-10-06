@@ -16,6 +16,7 @@ import { EnvironmentVariablesField } from '../fields/EnvironmentVariablesField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { AvailableAiAssetsFieldsComponent } from '../fields/AvailableAiAssetsFields';
 import { AnonymousAccessField } from '../fields/AnonymousAccessField';
+import { isLLMdDeployActive } from '../../../../../llmd-serving/src/deployments/deploy';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -35,6 +36,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
   const externalRouteData = wizardState.state.externalRoute.data;
   const tokenAuthData = wizardState.state.tokenAuthentication.data;
   const anonymousAccessData = wizardState.state.anonymousAccess.data;
+  const isLLMdDeploy = isLLMdDeployActive(wizardState.state);
 
   // TODO: Clean up the stuff below related to KServe. Maybe move to an extension?
   const selectedModelServer =
@@ -107,16 +109,19 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
               data-testid="external-route-section"
               fieldId="model-access"
             >
-              <ExternalRouteField
-                isChecked={externalRouteData}
-                allowCreate={allowCreate}
-                onChange={handleExternalRouteChange}
-              />
-              <AnonymousAccessField
-                isChecked={anonymousAccessData}
-                allowCreate={allowCreate}
-                onChange={wizardState.state.anonymousAccess.setData}
-              />
+              {isLLMdDeploy ? (
+                <AnonymousAccessField
+                  isChecked={anonymousAccessData}
+                  allowCreate={allowCreate}
+                  onChange={wizardState.state.anonymousAccess.setData}
+                />
+              ) : (
+                <ExternalRouteField
+                  isChecked={externalRouteData}
+                  allowCreate={allowCreate}
+                  onChange={handleExternalRouteChange}
+                />
+              )}
             </FormGroup>
           </StackItem>
           <StackItem>

@@ -20,6 +20,7 @@ import {
   getModelTypeFromDeployment,
   getTokenAuthenticationFromDeployment,
   getExternalRouteFromDeployment,
+  getAnonymousAccessFromDeployment,
 } from './utils';
 import { Deployment, isModelServingDeploymentFormDataExtension } from '../../../extension-points';
 import {
@@ -119,15 +120,23 @@ const EditModelDeploymentContent: React.FC<{
     modelTypeField: getModelTypeFromDeployment(deployment),
     k8sNameDesc: setupDefaults({ initialData: deployment.model }),
     hardwareProfile:
-      formDataExtension?.properties.extractHardwareProfileConfig(deployment) ?? undefined,
+      typeof formDataExtension?.properties.extractHardwareProfileConfig === 'function'
+        ? formDataExtension.properties.extractHardwareProfileConfig(deployment) ?? undefined
+        : undefined,
     modelFormat:
       typeof formDataExtension?.properties.extractModelFormat === 'function'
         ? formDataExtension.properties.extractModelFormat(deployment) ?? undefined
         : undefined,
-    numReplicas: formDataExtension?.properties.extractReplicas(deployment) ?? undefined,
+    numReplicas:
+      typeof formDataExtension?.properties.extractReplicas === 'function'
+        ? formDataExtension.properties.extractReplicas(deployment) ?? undefined
+        : undefined,
     modelLocationData:
-      formDataExtension?.properties.extractModelLocationData(deployment) ?? undefined,
+      typeof formDataExtension?.properties.extractModelLocationData === 'function'
+        ? formDataExtension.properties.extractModelLocationData(deployment) ?? undefined
+        : undefined,
     externalRoute: getExternalRouteFromDeployment(deployment),
+    anonymousAccess: getAnonymousAccessFromDeployment(deployment),
     tokenAuthentication: getTokenAuthenticationFromDeployment(deployment),
     runtimeArgs:
       typeof formDataExtension?.properties.extractRuntimeArgs === 'function'

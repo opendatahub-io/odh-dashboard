@@ -195,7 +195,6 @@ const applyAnnotations = (
   updatedAnnotations['opendatahub.io/hardware-profile-namespace'] =
     hardwareProfile.selectedProfile?.metadata.namespace || '';
 
-  // Handle authentication annotations
   if (anonymousAccess) {
     updatedAnnotations['security.opendatahub.io/enable-auth'] = 'false';
   } else if (tokenAuth && tokenAuth.length > 0) {
