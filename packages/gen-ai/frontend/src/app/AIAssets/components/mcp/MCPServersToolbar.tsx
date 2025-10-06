@@ -5,7 +5,7 @@ import { PlayIcon, FilterIcon, SyncAltIcon } from '@patternfly/react-icons';
 import DashboardSearchField, {
   SearchType,
 } from 'mod-arch-shared/dist/components/DashboardSearchField';
-import { PLAYGROUND_URL_PREFIX } from '~/app/utilities/const';
+import { chatPlaygroundRootPath } from '~/app/utilities';
 
 interface MCPServersToolbarProps {
   filterValue: string;
@@ -33,7 +33,7 @@ const MCPServersToolbar: React.FC<MCPServersToolbarProps> = ({
   const handleTryInPlayground = React.useCallback(() => {
     // Save selections to playground and navigate
     onTryInPlayground(selectedServerIds);
-    navigate(PLAYGROUND_URL_PREFIX);
+    navigate(chatPlaygroundRootPath);
   }, [selectedServerIds, onTryInPlayground, navigate]);
 
   return (
