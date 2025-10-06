@@ -49,12 +49,15 @@ const ReplicasItem = ({ replicas }: { replicas?: number | null }) => {
   );
 };
 
-const ModelSizeItem = ({ resources }: { resources: ContainerResources }) => {
+const ModelSizeItem = ({ resources }: { resources?: ContainerResources }) => {
   const { dashboardConfig } = useAppContext();
   const sizes = useDeepCompareMemoize(getModelServingSizes(dashboardConfig));
-  const existingSizeName = useDeepCompareMemoize(getResourceSize(sizes, resources).name);
+  const existingSizeName = useDeepCompareMemoize(
+    resources ? getResourceSize(sizes, resources).name : undefined,
+  );
 
-  const { requests, limits } = resources;
+  const { requests, limits } = resources || {};
+
   return (
     <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '250px' }}>
       <DescriptionListGroup>
@@ -63,12 +66,16 @@ const ModelSizeItem = ({ resources }: { resources: ContainerResources }) => {
           <List isPlain>
             <ListItem>{existingSizeName || 'Custom'}</ListItem>
             <ListItem>
-              {`${requests?.cpu ?? ''} CPUs, ${formatMemory(
+              {requests?.cpu ?? 'Unknown'} CPUs, {formatMemory(requests?.memory ?? 'Unknown')}{' '}
+              Memory requested
+              {/* {`${requests?.cpu ?? ''} CPUs, ${formatMemory(
                 requests?.memory ?? '',
-              )} Memory requested`}
+              )} Memory requested`} */}
             </ListItem>
             <ListItem>
-              {`${limits?.cpu ?? ''} CPUs, ${formatMemory(limits?.memory ?? '')} Memory limit`}
+              {limits?.cpu ?? 'Unknown'} CPUs, {formatMemory(limits?.memory ?? 'Unknown')} Memory
+              limit
+              {/* {`${limits?.cpu ?? ''} CPUs, ${formatMemory(limits?.memory ?? '')} Memory limit`} */}
             </ListItem>
           </List>
         </DescriptionListDescription>
@@ -139,7 +146,7 @@ export const DeploymentRowExpandedSection: React.FC<{
           <Stack hasGutter>
             {modelFormat && <FrameworkItem framework={modelFormat} />}
             <ReplicasItem replicas={replicas} />
-            {hardwareProfileConfig?.[1] && <ModelSizeItem resources={hardwareProfileConfig[1]} />}
+            <ModelSizeItem resources={hardwareProfileConfig?.[1]} />
             {hardwareProfileConfig && (
               <HardwareProfileNameValue
                 project={deployment.model.metadata.namespace}

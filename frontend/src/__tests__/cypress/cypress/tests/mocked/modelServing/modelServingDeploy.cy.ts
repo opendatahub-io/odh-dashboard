@@ -27,12 +27,12 @@ import {
   ServingRuntimeModel,
   TemplateModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
-import { ServingRuntimeModelType, ServingRuntimePlatform } from '#~/types';
+import { ServingRuntimeModelType } from '#~/types';
 import { mockGlobalScopedHardwareProfiles } from '#~/__mocks__/mockHardwareProfile';
 import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
-} from '../../../../../../__mocks__/mockConnectionType';
+} from '#~/__mocks__/mockConnectionType';
 
 const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) => {
   cy.interceptOdh(
@@ -89,13 +89,11 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
         mockServingRuntimeTemplateK8sResource({
           name: 'template-2',
           displayName: 'OpenVINO',
-          platforms: [ServingRuntimePlatform.SINGLE],
           modelTypes: [ServingRuntimeModelType.PREDICTIVE],
         }),
         mockServingRuntimeTemplateK8sResource({
           name: 'template-3',
           displayName: 'Caikit',
-          platforms: [ServingRuntimePlatform.SINGLE],
           modelTypes: [ServingRuntimeModelType.PREDICTIVE],
           supportedModelFormats: [
             {
@@ -107,7 +105,6 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
         mockServingRuntimeTemplateK8sResource({
           name: 'template-4',
           displayName: 'vLLM AMD',
-          platforms: [ServingRuntimePlatform.SINGLE],
           modelTypes: [ServingRuntimeModelType.GENERATIVE],
           supportedModelFormats: [
             {
@@ -118,7 +115,6 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
         mockServingRuntimeTemplateK8sResource({
           name: 'template-5',
           displayName: 'vLLM NVIDIA',
-          platforms: [ServingRuntimePlatform.SINGLE],
           modelTypes: [ServingRuntimeModelType.GENERATIVE],
           supportedModelFormats: [
             {
@@ -277,18 +273,13 @@ describe('Model Serving Deploy Wizard', () => {
       mockK8sResourceList([mockServingRuntimeK8sResource({})]),
     );
 
-    // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin(
-      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
-    );
+    modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
     cy.findByRole('heading', { name: 'Deploy a model' }).should('exist');
     cy.findByRole('button', { name: 'Cancel' }).click();
     cy.url().should('include', '/deployments/test-project');
 
-    cy.visitWithLogin(
-      '/projects/test-project?section=model-server&devFeatureFlags=Model+Serving+Plugin%3Dtrue',
-    );
+    modelServingSection.visit('test-project');
     modelServingSection.findDeployModelButton().click();
     cy.findByRole('heading', { name: 'Deploy a model' }).should('exist');
     cy.findByRole('button', { name: 'Cancel' }).click();
@@ -306,10 +297,7 @@ describe('Model Serving Deploy Wizard', () => {
       mockK8sResourceList([mockServingRuntimeK8sResource({})]),
     );
 
-    // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin(
-      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
-    );
+    modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
 
     // Step 1: Model source
@@ -599,9 +587,7 @@ describe('Model Serving Deploy Wizard', () => {
     );
 
     // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin(
-      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
-    );
+    modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
 
     // Step 1: Model source
@@ -785,10 +771,7 @@ describe('Model Serving Deploy Wizard', () => {
       mockK8sResourceList([mockServingRuntimeK8sResource({})]),
     );
 
-    // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin(
-      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
-    );
+    modelServingGlobal.visit('test-project');
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
 
     // Step 1: Model source
@@ -834,19 +817,18 @@ describe('Model Serving Deploy Wizard', () => {
 
   describe('redirect from v2 to v3 route', () => {
     // TODO: visit directly when plugin is enabled
-    const featureFlagParam = '?devFeatureFlags=Model+Serving+Plugin%3Dtrue';
     beforeEach(() => {
       initIntercepts({});
     });
 
     it('deploy create', () => {
-      cy.visitWithLogin(`/modelServing/test-project/deploy/create${featureFlagParam}`);
+      cy.visitWithLogin(`/modelServing/test-project/deploy/create`);
       cy.findByTestId('app-page-title').contains('Deploy a model');
       cy.url().should('include', '/ai-hub/deployments/test-project/deploy/create');
     });
 
     it('deploy edit', () => {
-      cy.visitWithLogin(`/modelServing/test-project/deploy/edit/test-model${featureFlagParam}`);
+      cy.visitWithLogin(`/modelServing/test-project/deploy/edit/test-model`);
       cy.findByTestId('app-page-title').contains('Edit model deployment');
       cy.url().should('include', '/ai-hub/deployments/test-project/deploy/edit/test-model');
     });
