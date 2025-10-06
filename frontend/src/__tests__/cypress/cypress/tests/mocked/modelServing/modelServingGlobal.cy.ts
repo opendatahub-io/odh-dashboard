@@ -20,7 +20,6 @@ import {
   modelServingSection,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import {
-  AcceleratorProfileModel,
   HardwareProfileModel,
   InferenceServiceModel,
   ProjectModel,
@@ -51,10 +50,6 @@ import {
 } from '#~/__mocks__/mockHardwareProfile';
 import { initInterceptsForAllProjects } from '#~/__tests__/cypress/cypress/utils/servingUtils';
 import { nimDeployModal } from '#~/__tests__/cypress/cypress/pages/components/NIMDeployModal';
-import {
-  mockGlobalScopedAcceleratorProfiles,
-  mockProjectScopedAcceleratorProfiles,
-} from '#~/__mocks__/mockAcceleratorProfile';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -217,17 +212,6 @@ const initIntercepts = ({
       { namespace: 'opendatahub' },
     ),
   );
-
-  // Mock accelerator profiles
-  cy.interceptK8sList(
-    { model: AcceleratorProfileModel, ns: 'opendatahub' },
-    mockK8sResourceList(mockGlobalScopedAcceleratorProfiles),
-  ).as('acceleratorProfiles');
-
-  cy.interceptK8sList(
-    { model: AcceleratorProfileModel, ns: 'test-project' },
-    mockK8sResourceList(mockProjectScopedAcceleratorProfiles),
-  ).as('acceleratorProfiles');
 
   cy.interceptOdh('GET /api/connection-types', [
     mockConnectionTypeConfigMap({
@@ -861,22 +845,7 @@ describe('Model Serving Global', () => {
       projectEnableModelMesh: false,
       disableServingRuntimeParamsConfig: false,
       disableProjectScoped: false,
-      servingRuntimes: [
-        mockServingRuntimeK8sResource({
-          hardwareProfileName: 'large-profile-1',
-          hardwareProfileNamespace: 'test-project',
-          resources: {
-            requests: {
-              cpu: '4',
-              memory: '8Gi',
-            },
-            limits: {
-              cpu: '4',
-              memory: '8Gi',
-            },
-          },
-        }),
-      ],
+      servingRuntimes: [mockServingRuntimeK8sResource({})],
       inferenceServices: [
         mockInferenceServiceK8sResource({
           hardwareProfileName: 'large-profile-1',
@@ -908,21 +877,7 @@ describe('Model Serving Global', () => {
       projectEnableModelMesh: false,
       disableServingRuntimeParamsConfig: false,
       disableProjectScoped: false,
-      servingRuntimes: [
-        mockServingRuntimeK8sResource({
-          hardwareProfileName: 'large-profile-2',
-          resources: {
-            requests: {
-              cpu: '10',
-              memory: '20Gi',
-            },
-            limits: {
-              cpu: '20',
-              memory: '40Gi',
-            },
-          },
-        }),
-      ],
+      servingRuntimes: [mockServingRuntimeK8sResource({})],
     });
     modelServingGlobal.visit('test-project');
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
