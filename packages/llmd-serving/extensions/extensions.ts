@@ -42,6 +42,10 @@ const extensions: (
       extractModelFormat: () =>
         import('../src/deployments/model').then((m) => m.extractModelFormat),
       extractReplicas: () => import('../src/deployments/hardware').then((m) => m.extractReplicas),
+      extractModelLocationData: () =>
+        import('../src/deployments/model').then((m) => m.extractModelLocationData),
+      extractAiAssetData: () =>
+        import('../src/deployments/model').then((m) => m.extractAiAssetData),
     },
   },
   {

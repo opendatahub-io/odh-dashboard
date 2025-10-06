@@ -91,6 +91,13 @@ export const useModelLocationData = (
         if (!connectionName) {
           return;
         }
+        if (
+          modelLocationData?.type === ModelLocationType.EXISTING &&
+          modelLocationData.connection !== connectionName
+        ) {
+          setIsStableState(true);
+          return;
+        }
 
         const secret = connections.find((c) => c.metadata.name === existingData.connection);
         if (!secret) {
