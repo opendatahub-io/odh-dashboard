@@ -6,7 +6,8 @@
   "scripts": {
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
-    "update-subtree": "package-subtree --package=@odh-dashboard/notebooks"
+    "update-subtree": "package-subtree --package=@odh-dashboard/notebooks",
+    "install:module": "npm install --prefix upstream"
   },
   "subtree": {
     "repo": "https://github.com/kubeflow/notebooks.git",
