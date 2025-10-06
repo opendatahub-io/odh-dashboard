@@ -146,10 +146,8 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                   </Title>
                 </FlexItem>
                 <FlexItem>
-                  {/* Use FlexItem to prevent the click event from bubbling up to the accordion toggle */}
+                  {/* Use div to prevent the click event from bubbling up to the accordion toggle */}
                   <div
-                    role="button"
-                    tabIndex={0}
                     onClick={(e) => {
                       e.stopPropagation();
                     }}
@@ -160,7 +158,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                         sourceManagement.setIsRawUploaded(!sourceManagement.isRawUploaded);
                       }
                     }}
-                    aria-label="Toggle uploaded mode"
+                    role="presentation"
                   >
                     <Switch
                       id="no-label-switch-on"
