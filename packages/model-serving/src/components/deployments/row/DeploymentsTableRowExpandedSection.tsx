@@ -68,14 +68,10 @@ const ModelSizeItem = ({ resources }: { resources?: ContainerResources }) => {
             <ListItem>
               {requests?.cpu ?? 'Unknown'} CPUs, {formatMemory(requests?.memory ?? 'Unknown')}{' '}
               Memory requested
-              {/* {`${requests?.cpu ?? ''} CPUs, ${formatMemory(
-                requests?.memory ?? '',
-              )} Memory requested`} */}
             </ListItem>
             <ListItem>
               {limits?.cpu ?? 'Unknown'} CPUs, {formatMemory(limits?.memory ?? 'Unknown')} Memory
               limit
-              {/* {`${limits?.cpu ?? ''} CPUs, ${formatMemory(limits?.memory ?? '')} Memory limit`} */}
             </ListItem>
           </List>
         </DescriptionListDescription>

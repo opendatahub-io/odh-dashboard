@@ -586,7 +586,6 @@ describe('Model Serving Deploy Wizard', () => {
       mockK8sResourceList([mockServingRuntimeK8sResource({})]),
     );
 
-    // TODO: visit directly when plugin is enabled
     modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
 
@@ -816,7 +815,6 @@ describe('Model Serving Deploy Wizard', () => {
   });
 
   describe('redirect from v2 to v3 route', () => {
-    // TODO: visit directly when plugin is enabled
     beforeEach(() => {
       initIntercepts({});
     });
