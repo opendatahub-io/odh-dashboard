@@ -2,6 +2,7 @@ import * as React from 'react';
 import { FetchStateCallbackPromise, FetchStateObject, useFetchState } from 'mod-arch-core';
 import { getModels } from '~/app/services/llamaStackService';
 import { LlamaModel } from '~/app/types';
+import { splitLlamaModelId } from '~/app/utilities/utils';
 
 const useFetchLlamaModels = (
   selectedProject?: string,
@@ -14,7 +15,11 @@ const useFetchLlamaModels = (
     if (lsdNotReady) {
       return Promise.reject(new Error('LSD is not ready'));
     }
-    return getModels(selectedProject);
+    const models = await getModels(selectedProject);
+    return models.map((model) => ({
+      ...model,
+      modelId: splitLlamaModelId(model.id).id,
+    }));
   }, [selectedProject, lsdNotReady]);
 
   const [data, loaded, error, refresh] = useFetchState(fetchLlamaModels, [], {

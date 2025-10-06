@@ -28,7 +28,6 @@ import AIModelTableRow from './AIModelTableRow';
 type AIModelsTableProps = {
   models: AIModel[];
   playgroundModels: LlamaModel[];
-  onTryInPlayground: (model: AIModel) => void;
   lsdStatus: LlamaStackDistributionModel | null;
 };
 
@@ -47,12 +46,7 @@ export const AIModelStatusPopoverContent: React.ReactNode = (
   </Content>
 );
 
-const AIModelsTable: React.FC<AIModelsTableProps> = ({
-  models,
-  playgroundModels,
-  onTryInPlayground,
-  lsdStatus,
-}) => {
+const AIModelsTable: React.FC<AIModelsTableProps> = ({ models, playgroundModels, lsdStatus }) => {
   const { filterData, onFilterUpdate, onClearFilters, filteredModels } = useAIModelsFilter(models);
 
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = React.useState(false);
@@ -239,7 +233,6 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
           model={model}
           models={models}
           playgroundModels={playgroundModels}
-          onTryInPlayground={onTryInPlayground}
         />
       )}
     />

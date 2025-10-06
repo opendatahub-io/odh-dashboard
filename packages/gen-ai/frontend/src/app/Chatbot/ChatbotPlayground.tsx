@@ -10,6 +10,7 @@ import {
   MessageBar,
   MessageBox,
 } from '@patternfly/chatbot';
+import { useLocation } from 'react-router-dom';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from './const';
@@ -35,8 +36,15 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   setIsViewCodeModalOpen,
 }) => {
   const { username } = useUserContext();
-  const { models, modelsLoaded, selectedModel, setSelectedModel, lastInput, setLastInput } =
-    React.useContext(ChatbotContext);
+  const {
+    models,
+    modelsLoaded,
+    aiModels,
+    selectedModel,
+    setSelectedModel,
+    lastInput,
+    setLastInput,
+  } = React.useContext(ChatbotContext);
 
   const [systemInstruction, setSystemInstruction] = React.useState<string>(
     DEFAULT_SYSTEM_INSTRUCTIONS,
@@ -45,11 +53,21 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const [temperature, setTemperature] = React.useState<number>(0.1);
   const [topP, setTopP] = React.useState<number>(0.1);
 
+  const location = useLocation();
+  const selectedAAModel = location.state?.model;
+
   React.useEffect(() => {
     if (modelsLoaded && models.length > 0 && !selectedModel) {
-      setSelectedModel(models[0]?.id);
+      if (selectedAAModel) {
+        setSelectedModel(selectedAAModel);
+        // Clear the location state after setting the selected model
+        // so that when refreshing the page, the selected model is not passed again
+        window.history.replaceState({}, '');
+      } else {
+        setSelectedModel(models[0].id);
+      }
     }
-  }, [modelsLoaded, models, selectedModel, setSelectedModel]);
+  }, [modelsLoaded, models, selectedModel, setSelectedModel, aiModels, selectedAAModel]);
 
   // Custom hooks for managing different aspects of the chatbot
   const alertManagement = useAlertManagement();

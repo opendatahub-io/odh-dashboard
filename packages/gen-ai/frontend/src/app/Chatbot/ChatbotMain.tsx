@@ -11,7 +11,7 @@ import {
   EmptyStateActions,
 } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import ChatbotEmptyState from '~/app/EmptyStates/NoData';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -26,7 +26,6 @@ const ChatbotMain: React.FunctionComponent = () => {
     lsdStatus,
     lsdStatusLoaded,
     lsdStatusError,
-    setSelectedModel,
     refresh,
     aiModels,
     aiModelsLoaded,
@@ -40,14 +39,6 @@ const ChatbotMain: React.FunctionComponent = () => {
   const [isViewCodeModalOpen, setIsViewCodeModalOpen] = React.useState(false);
   const [configurationModalOpen, setConfigurationModalOpen] = React.useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
-  const location = useLocation();
-  const selectedAAModel = location.state?.model;
-
-  React.useEffect(() => {
-    if (selectedAAModel) {
-      setSelectedModel(selectedAAModel);
-    }
-  }, [selectedAAModel, setSelectedModel]);
 
   return (
     <>
