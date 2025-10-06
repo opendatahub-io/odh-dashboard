@@ -13,8 +13,7 @@
   "exports": {
     "./extensions": "./extensions/index.ts",
     "./extension-points": "./extension-points/index.ts",
-    "./types/form-data": "./src/components/deploymentWizard/types.ts",
-    "./concepts/connectionUtils": "./src/concepts/connectionUtils.ts"
+    "./types/form-data": "./src/components/deploymentWizard/types.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",

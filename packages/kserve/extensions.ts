@@ -13,7 +13,6 @@ import type {
   ModelServingPlatformFetchDeploymentStatus,
   ModelServingDeploymentFormDataExtension,
   ModelServingDeploy,
-  ModelServingConnectionCreation,
 } from '@odh-dashboard/model-serving/extension-points';
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/index';
@@ -32,7 +31,6 @@ const extensions: (
   | ModelServingStartStopAction<KServeDeployment>
   | ModelServingPlatformFetchDeploymentStatus<KServeDeployment>
   | ModelServingDeploy<KServeDeployment>
-  | ModelServingConnectionCreation<KServeDeployment>
 )[] = [
   {
     type: 'model-serving.platform',
@@ -144,21 +142,6 @@ const extensions: (
       isActive: true,
       priority: 0,
       deploy: () => import('./src/deploy').then((m) => m.deployKServeDeployment),
-    },
-  },
-  {
-    type: 'model-serving.deployment/connection-creation',
-    properties: {
-      platform: KSERVE_ID,
-      isActive: true,
-      handleConnectionCreation: () =>
-        import('@odh-dashboard/model-serving/concepts/connectionUtils').then(
-          (m) => m.handleConnectionCreation,
-        ),
-      handleSecretOwnerReferencePatch: () =>
-        import('@odh-dashboard/model-serving/concepts/connectionUtils').then(
-          (m) => m.handleSecretOwnerReferencePatch,
-        ),
     },
   },
 ];
