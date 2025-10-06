@@ -50,6 +50,22 @@ export class HardwareProfileSection {
     return cy.findByTestId('hardware-profile-customize-form');
   }
 
+  findCPURequestsInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findCustomizeForm().findByTestId('cpu-requests-input').findByLabelText('Input');
+  }
+
+  findCPULimitsInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
+    return this.findCustomizeForm().findByTestId('cpu-limits-input').find('input');
+  }
+
+  findMemoryRequestsInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
+    return this.findCustomizeForm().findByTestId('memory-requests-input').find('input');
+  }
+
+  findMemoryLimitsInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
+    return this.findCustomizeForm().findByTestId('memory-limits-input').find('input');
+  }
+
   selectProfile(name: string): void {
     this.findSelect().click();
     cy.findByRole('option', { name }).click();

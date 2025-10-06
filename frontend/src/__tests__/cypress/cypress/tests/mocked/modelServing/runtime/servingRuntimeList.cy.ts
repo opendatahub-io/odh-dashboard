@@ -1,7 +1,3 @@
-import {
-  mockAcceleratorProfile,
-  mockProjectScopedAcceleratorProfiles,
-} from '#~/__mocks__/mockAcceleratorProfile';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
@@ -46,12 +42,11 @@ import type {
   ServingRuntimeKind,
 } from '#~/k8sTypes';
 import { DeploymentMode } from '#~/k8sTypes';
-import { ServingRuntimePlatform, TolerationEffect, TolerationOperator } from '#~/types';
+import { ServingRuntimePlatform } from '#~/types';
 import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { StackCapability } from '#~/concepts/areas/types';
 import { mockDsciStatus } from '#~/__mocks__/mockDsciStatus';
 import {
-  AcceleratorProfileModel,
   HardwareProfileModel,
   InferenceServiceModel,
   NotebookModel,
@@ -74,14 +69,12 @@ import {
   mockProjectScopedHardwareProfiles,
 } from '#~/__mocks__/mockHardwareProfile';
 import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
-import { acceleratorProfileSection } from '#~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
   disableKServeAuthConfig?: boolean;
   disableServingRuntimeParams?: boolean;
   disableModelMeshConfig?: boolean;
-  disableAccelerator?: boolean;
   disableKServeRaw?: boolean;
   projectEnableModelMesh?: boolean;
   servingRuntimes?: ServingRuntimeKind[];
@@ -105,7 +98,6 @@ const initIntercepts = ({
   disableKServeAuthConfig,
   disableServingRuntimeParams = true,
   disableModelMeshConfig,
-  disableAccelerator,
   disableKServeRaw = true,
   projectEnableModelMesh,
   disableProjectScoped = true,
@@ -395,32 +387,6 @@ const initIntercepts = ({
     ServingRuntimeModel,
     mockServingRuntimeK8sResource({ name: 'test-model-legacy' }),
   ).as('editModelServer');
-  cy.interceptK8sList(
-    AcceleratorProfileModel,
-    mockK8sResourceList([
-      mockAcceleratorProfile({
-        name: 'migrated-gpu',
-        namespace: 'opendatahub',
-        displayName: 'NVIDIA GPU',
-        enabled: !disableAccelerator,
-        identifier: 'nvidia.com/gpu',
-        description: 'Lorem, ipsum dolor sit amet consectetur adipisicing elit. Saepe, quis',
-      }),
-      mockAcceleratorProfile({
-        name: 'small-profile',
-        displayName: 'Small Profile',
-        namespace: 'test-project',
-        enabled: !disableAccelerator,
-        tolerations: [
-          {
-            effect: TolerationEffect.NO_SCHEDULE,
-            key: 'NotebooksOnlyChange',
-            operator: TolerationOperator.EXISTS,
-          },
-        ],
-      }),
-    ]),
-  );
   cy.interceptK8sList(
     TemplateModel,
     mockK8sResourceList(
@@ -891,132 +857,111 @@ describe('Serving Runtime List', () => {
       kserveModal.findServingRuntimeEnvVarsName('0').type('test-name');
       kserveModal.findServingRuntimeEnvVarsValue('0').type('test-value');
 
-      // Checking model server custom size validation behavior
-      kserveModal.findModelServerSizeSelect().findSelectOption('Custom').click();
+      // Select a hardware profile
+      hardwareProfileSection.findSelect().should('exist');
+      hardwareProfileSection.selectProfile(
+        'Small Profile CPU: Request = 1 Cores; Limit = 1 Cores; Memory: Request = 2 GiB; Limit = 2 GiB',
+      );
+
+      hardwareProfileSection.findCustomizeButton().click();
 
       // Test that initial values are set and form is valid
-      kserveModal.findCPURequestedInput().should('have.value', '1');
-      kserveModal.findCPULimitInput().should('have.value', '1');
-      kserveModal.findMemoryRequestedInput().should('have.value', '1');
-      kserveModal.findMemoryLimitInput().should('have.value', '1');
+      hardwareProfileSection.findCPURequestsInput().should('have.value', '1');
+      hardwareProfileSection.findCPULimitsInput().should('have.value', '1');
+      hardwareProfileSection.findMemoryRequestsInput().should('have.value', '2');
+      hardwareProfileSection.findMemoryLimitsInput().should('have.value', '2');
       kserveModal.findSubmitButton().should('be.enabled');
 
-      // Test validation: CPU request cannot exceed CPU limit
-      kserveModal.findCPURequestedInput().clear().type('3');
-      kserveModal.findSubmitButton().should('be.disabled');
-      cy.findByText('CPU requested must be less than or equal to CPU limit').should('be.visible');
-
-      // Test validation: Memory request cannot exceed memory limit
-      kserveModal.findCPURequestedInput().clear().type('1');
-      kserveModal.findMemoryRequestedInput().clear().type('3');
-      kserveModal.findSubmitButton().should('be.disabled');
-      cy.findByText('Memory requested must be less than or equal to memory limit').should(
-        'be.visible',
+      // Test validation: CPU request exceeds maximum (causes limit validation to fail)
+      hardwareProfileSection.findCPURequestsInput().clear().type('2').blur();
+      // Check that validation error appears (multiple fields may show this, so use getAllByText)
+      cy.findAllByText('Limit must be greater than or equal to request').should(
+        'have.length.at.least',
+        1,
       );
-
-      // Test validation: CPU limit cannot be less than CPU request
-      kserveModal.findMemoryRequestedInput().clear().type('1');
-      kserveModal.findCPURequestedInput().clear().type('2');
-      kserveModal.findCPULimitInput().clear().type('1');
-      kserveModal.findSubmitButton().should('be.disabled');
-      cy.findByText('CPU limit must be greater than or equal to CPU requested').should(
-        'be.visible',
-      );
-
-      // Test validation: Memory limit cannot be less than memory request
-      kserveModal.findCPULimitInput().clear().type('2');
-      kserveModal.findMemoryRequestedInput().clear().type('2');
-      kserveModal.findMemoryLimitInput().clear().type('1');
-      kserveModal.findSubmitButton().should('be.disabled');
-      cy.findByText('Memory limit must be greater than or equal to memory requested').should(
-        'be.visible',
-      );
-
-      // Test validation: Empty input fields show validation errors
-      kserveModal.findMemoryLimitInput().clear().type('2');
-
-      // Test empty CPU request
-      kserveModal.findCPURequestedInput().clear();
       kserveModal.findSubmitButton().should('be.disabled');
 
-      // Test empty CPU limit
-      kserveModal.findCPURequestedInput().clear().type('1');
-      kserveModal.findCPULimitInput().clear();
+      // Test validation: Memory request exceeds maximum
+      hardwareProfileSection.findCPURequestsInput().clear().type('1');
+      hardwareProfileSection.findMemoryRequestsInput().clear().type('5');
       kserveModal.findSubmitButton().should('be.disabled');
+      cy.findAllByText('Must not exceed 4 GiB').should('have.length.at.least', 1);
 
-      // Test empty Memory request
-      kserveModal.findCPULimitInput().clear().type('2');
-      kserveModal.findMemoryRequestedInput().clear();
+      // Test validation: CPU limit exceeds maximum
+      hardwareProfileSection.findMemoryRequestsInput().clear().type('2');
+      hardwareProfileSection.findCPULimitsInput().clear().type('3');
       kserveModal.findSubmitButton().should('be.disabled');
+      // cy.findByText('Must not exceed 1 Cores').should('be.visible');
+      cy.findAllByText('Must not exceed 2 Cores').should('have.length.at.least', 1);
 
-      // Test empty Memory limit
-      kserveModal.findMemoryRequestedInput().clear().type('2');
-      kserveModal.findMemoryLimitInput().clear();
+      // Test validation: Memory limit exceeds maximum
+      hardwareProfileSection.findCPULimitsInput().clear().type('1');
+      hardwareProfileSection.findMemoryLimitsInput().clear().type('5');
       kserveModal.findSubmitButton().should('be.disabled');
+      // cy.findByText('Must not exceed 2 GiB').should('be.visible');
+      cy.findAllByText('Must not exceed 4 GiB').should('have.length.at.least', 1);
 
-      // Test checkbox dependency: limit checkboxes are disabled when request checkboxes are unchecked
-      kserveModal.findCPULimitInput().clear().type('2');
-      kserveModal.findMemoryLimitInput().clear().type('4');
+      // Test validation: CPU request below minimum
+      hardwareProfileSection.findMemoryLimitsInput().clear().type('2');
+      hardwareProfileSection.findCPURequestsInput().clear().type('0');
+      kserveModal.findSubmitButton().should('be.disabled');
+      // cy.findByText('Must be at least 1 Cores').should('be.visible');
+      cy.findAllByText('Must be at least 1 Cores').should('have.length.at.least', 1);
 
-      // Uncheck CPU request checkbox - CPU limit checkbox should become disabled
-      kserveModal.findCPURequestedCheckbox().uncheck();
-      kserveModal.findCPULimitCheckbox().should('be.disabled');
+      // Test validation: Memory request below minimum
+      hardwareProfileSection.findCPURequestsInput().clear().type('1');
+      hardwareProfileSection.findMemoryRequestsInput().clear().type('1');
+      kserveModal.findSubmitButton().should('be.disabled');
+      // cy.findByText('Must be at least 2 GiB').should('be.visible');
+      cy.findAllByText('Must be at least 2 GiB').should('have.length.at.least', 1);
 
-      // Uncheck Memory request checkbox - Memory limit checkbox should become disabled
-      kserveModal.findMemoryRequestedCheckbox().uncheck();
-      kserveModal.findMemoryLimitCheckbox().should('be.disabled');
+      // Test validation: CPU limit below minimum
+      hardwareProfileSection.findMemoryRequestsInput().clear().type('2');
+      hardwareProfileSection.findCPULimitsInput().clear().type('0');
+      kserveModal.findSubmitButton().should('be.disabled');
+      // cy.findByText('Must be at least 1 Cores').should('be.visible');
+      cy.findAllByText('Must be at least 1 Cores').should('have.length.at.least', 1);
 
-      // Test checkbox value storage: verify previous values and units are restored
-      // First ensure all checkboxes are checked before setting values
-      kserveModal.findCPURequestedCheckbox().check();
-      kserveModal.findCPULimitCheckbox().check();
-      kserveModal.findMemoryRequestedCheckbox().check();
-      kserveModal.findMemoryLimitCheckbox().check();
+      // Test validation: Memory limit below minimum
+      hardwareProfileSection.findCPULimitsInput().clear().type('1');
+      hardwareProfileSection.findMemoryLimitsInput().clear().type('1');
+      kserveModal.findSubmitButton().should('be.disabled');
+      // cy.findByText('Must be at least 2 GiB').should('be.visible');
+      cy.findAllByText('Must be at least 2 GiB').should('have.length.at.least', 1);
 
-      // Set specific values with units
-      kserveModal.findCPURequestedInput().clear().type('3');
-      kserveModal.findCPULimitInput().clear().type('6');
-      kserveModal.findMemoryRequestedInput().clear().type('8');
-      kserveModal.findMemoryLimitInput().clear().type('16');
+      // Test validation: Empty CPU request
+      hardwareProfileSection.findMemoryLimitsInput().clear().type('2');
+      hardwareProfileSection.findCPURequestsInput().clear();
+      kserveModal.findSubmitButton().should('be.disabled');
+      // cy.findByText('CPU must be provided').should('be.visible');
+      cy.findAllByText('CPU must be provided').should('have.length.at.least', 1);
 
-      // Verify values are set correctly
-      kserveModal.findCPURequestedInput().should('have.value', '3');
-      kserveModal.findCPULimitInput().should('have.value', '6');
-      kserveModal.findMemoryRequestedInput().should('have.value', '8');
-      kserveModal.findMemoryLimitInput().should('have.value', '16');
+      // Test validation: Empty CPU limit
+      hardwareProfileSection.findCPURequestsInput().clear().type('1');
+      hardwareProfileSection.findCPULimitsInput().clear();
+      kserveModal.findSubmitButton().should('be.disabled');
+      // cy.findByText('CPU must be provided').should('be.visible');
+      cy.findAllByText('CPU must be provided').should('have.length.at.least', 1);
 
-      // Uncheck CPU request checkbox (should also clear CPU limit)
-      kserveModal.findCPURequestedCheckbox().uncheck();
-      kserveModal.findCPURequestedInput().should('have.value', '');
-      kserveModal.findCPULimitInput().should('have.value', '');
+      // Test validation: Empty Memory request
+      hardwareProfileSection.findCPULimitsInput().clear().type('1');
+      hardwareProfileSection.findMemoryRequestsInput().clear();
+      kserveModal.findSubmitButton().should('be.disabled');
+      // cy.findByText('Memory must be provided').should('be.visible');
+      cy.findAllByText('Memory must be provided').should('have.length.at.least', 1);
 
-      // Uncheck Memory request checkbox (should also clear Memory limit)
-      kserveModal.findMemoryRequestedCheckbox().uncheck();
-      kserveModal.findMemoryRequestedInput().should('have.value', '');
-      kserveModal.findMemoryLimitInput().should('have.value', '');
-
-      // Re-check CPU request checkbox - should restore previous value
-      kserveModal.findCPURequestedCheckbox().check();
-      kserveModal.findCPURequestedInput().should('have.value', '3');
-      kserveModal.findCPULimitCheckbox().should('not.be.checked');
-      kserveModal.findCPULimitCheckbox().check();
-      kserveModal.findCPULimitInput().should('have.value', '6');
-
-      // Re-check Memory request checkbox - should restore previous value and unit
-      kserveModal.findMemoryRequestedCheckbox().check();
-      kserveModal.findMemoryRequestedInput().should('have.value', '8');
-      kserveModal.findMemoryLimitCheckbox().should('not.be.checked');
-      kserveModal.findMemoryLimitCheckbox().check();
-      kserveModal.findMemoryLimitInput().should('have.value', '16');
+      // Test validation: Empty Memory limit
+      hardwareProfileSection.findMemoryRequestsInput().clear().type('2');
+      hardwareProfileSection.findMemoryLimitsInput().clear();
+      kserveModal.findSubmitButton().should('be.disabled');
+      // cy.findByText('Memory must be provided').should('be.visible');
+      cy.findAllByText('Memory must be provided').should('have.length.at.least', 1);
 
       // Reset to valid values
-      kserveModal.findCPURequestedInput().clear().type('1');
-      kserveModal.findCPULimitInput().clear().type('2');
-      kserveModal.findMemoryRequestedInput().clear().type('2');
-      kserveModal.findMemoryLimitInput().clear().type('4');
-      kserveModal.findSubmitButton().should('be.enabled');
-
-      kserveModal.findModelServerSizeSelect().findSelectOption(/Small/).click();
+      hardwareProfileSection.findCPURequestsInput().clear().type('1');
+      hardwareProfileSection.findCPULimitsInput().clear().type('1');
+      hardwareProfileSection.findMemoryRequestsInput().clear().type('2');
+      hardwareProfileSection.findMemoryLimitsInput().clear().type('2');
       kserveModal.findSubmitButton().should('be.enabled');
 
       // test submitting form, the modal should close to indicate success.
@@ -1073,6 +1018,9 @@ describe('Serving Runtime List', () => {
               'openshift.io/display-name': 'Test Name',
               'serving.kserve.io/deploymentMode': 'RawDeployment',
               'security.opendatahub.io/enable-auth': 'true',
+              'opendatahub.io/hardware-profile-name': 'small-profile',
+              'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+              'opendatahub.io/hardware-profile-resource-version': '1309350',
             },
           },
           spec: {
@@ -1086,8 +1034,8 @@ describe('Serving Runtime List', () => {
                 args: ['--arg=value'],
                 env: [{ name: 'test-name', value: 'test-value' }],
                 resources: {
-                  requests: { cpu: '1', memory: '4Gi' },
-                  limits: { cpu: '2', memory: '8Gi' },
+                  requests: { cpu: '1', memory: '2Gi' },
+                  limits: { cpu: '1', memory: '2Gi' },
                 },
               },
             },
@@ -1275,6 +1223,9 @@ describe('Serving Runtime List', () => {
             annotations: {
               'openshift.io/display-name': 'Llama Service',
               'serving.kserve.io/deploymentMode': 'RawDeployment',
+              'opendatahub.io/hardware-profile-name': 'small-profile',
+              'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+              'opendatahub.io/hardware-profile-resource-version': '1309350',
             },
             generation: 1,
             labels: { name: 'llama-service', 'opendatahub.io/dashboard': 'true' },
@@ -1292,8 +1243,8 @@ describe('Serving Runtime List', () => {
                 args: ['--arg=value1'],
                 env: [{ name: 'test-name1', value: 'test-value' }],
                 resources: {
-                  requests: { cpu: '1', memory: '4Gi' },
-                  limits: { cpu: '2', memory: '8Gi' },
+                  requests: { cpu: '1', memory: '2Gi' },
+                  limits: { cpu: '1', memory: '2Gi' },
                 },
               },
             },
@@ -1311,12 +1262,13 @@ describe('Serving Runtime List', () => {
       });
     });
 
-    it('Verify initial checkbox states and values when editing KServe model', () => {
+    it('Verify hardware profile customization when editing KServe model', () => {
       initIntercepts({
         projectEnableModelMesh: false,
         disableKServeConfig: false,
         disableModelMeshConfig: true,
         disableServingRuntimeParams: false,
+        disableProjectScoped: false,
         inferenceServices: [
           mockInferenceServiceK8sResource({
             name: 'test-inference-edit',
@@ -1324,9 +1276,11 @@ describe('Serving Runtime List', () => {
             modelName: 'test-inference-edit',
             isModelMesh: false,
             resources: {
-              requests: { cpu: '2', memory: '4Gi' },
-              limits: { cpu: '4', memory: '8Gi' },
+              requests: { cpu: '1', memory: '2Gi' },
+              limits: { cpu: '1', memory: '2Gi' },
             },
+            hardwareProfileName: 'small-profile',
+            hardwareProfileNamespace: 'opendatahub',
           }),
         ],
         servingRuntimes: [
@@ -1334,10 +1288,6 @@ describe('Serving Runtime List', () => {
             name: 'test-inference-edit',
             displayName: 'Test Inference Edit',
             namespace: 'test-project',
-            resources: {
-              requests: { cpu: '2', memory: '4Gi' },
-              limits: { cpu: '4', memory: '8Gi' },
-            },
           }),
         ],
       });
@@ -1352,75 +1302,68 @@ describe('Serving Runtime List', () => {
         .click();
       kserveModalEdit.shouldBeOpen();
 
-      // Navigate to custom size section to verify initial checkbox states
-      kserveModalEdit.findModelServerSizeSelect().should('contain.text', 'Custom');
+      // cy.wait('@hardwareProfiles');
 
-      // Verify all checkboxes are initially checked (since all values exist)
-      kserveModalEdit.findCPURequestedCheckbox().should('be.checked');
-      kserveModalEdit.findCPULimitCheckbox().should('be.checked');
-      kserveModalEdit.findMemoryRequestedCheckbox().should('be.checked');
-      kserveModalEdit.findMemoryLimitCheckbox().should('be.checked');
+      // Wait for hardware profile section to load and select profile
+      hardwareProfileSection.findHardwareProfileSearchSelector().should('exist').click();
+      hardwareProfileSection
+        .getGlobalScopedHardwareProfile()
+        .find()
+        .findByRole('menuitem', {
+          name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
+          hidden: true,
+        })
+        .click();
 
-      // Verify initial values match the existing resources
-      kserveModalEdit.findCPURequestedInput().should('have.value', '2');
-      kserveModalEdit.findCPULimitInput().should('have.value', '4');
-      kserveModalEdit.findMemoryRequestedInput().should('have.value', '4');
-      kserveModalEdit.findMemoryLimitInput().should('have.value', '8');
+      // Open customize form to view/edit resources
+      hardwareProfileSection.findCustomizeButton().click();
+
+      // Verify initial values match Small Profile defaults
+      hardwareProfileSection.findCPURequestsInput().should('have.value', '1');
+      hardwareProfileSection.findCPULimitsInput().should('have.value', '1');
+      hardwareProfileSection.findMemoryRequestsInput().should('have.value', '2');
+      hardwareProfileSection.findMemoryLimitsInput().should('have.value', '2');
 
       // Verify form is initially valid
       kserveModalEdit.findSubmitButton().should('be.enabled');
 
-      // Test that unchecking CPU request disables CPU limit checkbox
-      kserveModalEdit.findCPURequestedCheckbox().uncheck();
-      kserveModalEdit.findCPULimitCheckbox().should('be.disabled');
-      kserveModalEdit.findCPURequestedInput().should('have.value', '');
-      kserveModalEdit.findCPULimitInput().should('have.value', '');
+      // Test validation: CPU exceeds maximum (Small Profile max is 1)
+      hardwareProfileSection.findCPURequestsInput().clear().type('2');
+      kserveModalEdit.findSubmitButton().should('be.disabled');
+      cy.findAllByText('Limit must be greater than or equal to request').should(
+        'have.length.at.least',
+        1,
+      );
 
-      // Test that re-checking CPU request restores request value and enables CPU limit checkbox (but doesn't auto-check it)
-      kserveModalEdit.findCPURequestedCheckbox().check();
-      kserveModalEdit.findCPULimitCheckbox().should('not.be.disabled');
-      kserveModalEdit.findCPURequestedInput().should('have.value', '2');
-      kserveModalEdit.findCPULimitCheckbox().should('not.be.checked'); // Limit checkbox should not be auto-checked
-      kserveModalEdit.findCPULimitInput().should('have.value', ''); // Limit input should remain empty
+      // Test validation: Memory exceeds maximum (Small Profile max is 2Gi)
+      hardwareProfileSection.findCPURequestsInput().clear().type('1');
+      hardwareProfileSection.findMemoryRequestsInput().clear().type('5');
+      kserveModalEdit.findSubmitButton().should('be.disabled');
+      cy.findAllByText('Must not exceed 4 GiB').should('have.length.at.least', 1);
 
-      // Manually check the CPU limit checkbox to restore its value
-      kserveModalEdit.findCPULimitCheckbox().check();
-      kserveModalEdit.findCPULimitInput().should('have.value', '4');
-
-      // Test memory checkbox behavior follows same pattern
-      kserveModalEdit.findMemoryRequestedCheckbox().uncheck();
-      kserveModalEdit.findMemoryLimitCheckbox().should('be.disabled');
-      kserveModalEdit.findMemoryRequestedInput().should('have.value', '');
-      kserveModalEdit.findMemoryLimitInput().should('have.value', '');
-      kserveModalEdit.findMemoryRequestedCheckbox().check();
-      kserveModalEdit.findMemoryLimitCheckbox().should('not.be.disabled');
-      kserveModalEdit.findMemoryRequestedInput().should('have.value', '4');
-      kserveModalEdit.findMemoryLimitCheckbox().should('not.be.checked'); // Memory limit checkbox should not be auto-checked
-      kserveModalEdit.findMemoryLimitInput().should('have.value', ''); // Memory limit input should remain empty
-
-      // Manually check the memory limit checkbox to restore its value
-      kserveModalEdit.findMemoryLimitCheckbox().check();
-      kserveModalEdit.findMemoryLimitInput().should('have.value', '8');
-
-      // Verify form is valid again after restoring all values
+      // Reset to valid Small Profile values
+      hardwareProfileSection.findMemoryRequestsInput().clear().type('2');
       kserveModalEdit.findSubmitButton().should('be.enabled');
     });
 
-    it('Verify initial checkbox states when editing KServe model with partial values', () => {
+    it('Verify hardware profile with partial resources when editing KServe model', () => {
       initIntercepts({
         projectEnableModelMesh: false,
         disableKServeConfig: false,
         disableModelMeshConfig: true,
         disableServingRuntimeParams: false,
+        disableProjectScoped: false,
         inferenceServices: [
           mockInferenceServiceK8sResource({
             name: 'test-inference-partial',
             displayName: 'Test Inference Partial',
             modelName: 'test-inference-partial',
             isModelMesh: false,
+            hardwareProfileName: 'small-profile',
+            hardwareProfileNamespace: 'opendatahub',
             resources: {
               requests: { cpu: '1', memory: '2Gi' },
-              // No limits defined
+              limits: { cpu: '1', memory: '2Gi' },
             },
           }),
         ],
@@ -1429,9 +1372,11 @@ describe('Serving Runtime List', () => {
             name: 'test-inference-partial',
             displayName: 'Test Inference Partial',
             namespace: 'test-project',
+            hardwareProfileName: 'small-profile',
+            hardwareProfileNamespace: 'opendatahub',
             resources: {
               requests: { cpu: '1', memory: '2Gi' },
-              // No limits defined
+              limits: { cpu: '1', memory: '2Gi' },
             },
           }),
         ],
@@ -1447,28 +1392,21 @@ describe('Serving Runtime List', () => {
         .click();
       kserveModalEdit.shouldBeOpen();
 
-      // Navigate to custom size section
-      kserveModalEdit.findModelServerSizeSelect().should('contain.text', 'Custom');
+      // Verify hardware profile shows Small Profile
+      hardwareProfileSection
+        .findHardwareProfileSearchSelector()
+        .should('contain.text', 'Small Profile');
 
-      // Verify only request checkboxes are checked (since only requests exist in the resources)
-      kserveModalEdit.findCPURequestedCheckbox().should('be.checked');
-      kserveModalEdit.findMemoryRequestedCheckbox().should('be.checked');
-      kserveModalEdit.findCPULimitCheckbox().should('not.be.checked');
-      kserveModalEdit.findMemoryLimitCheckbox().should('not.be.checked');
+      // Open customize form
+      hardwareProfileSection.findCustomizeButton().click();
 
-      // Verify initial values match existing requests
-      kserveModalEdit.findCPURequestedInput().should('have.value', '1');
-      kserveModalEdit.findMemoryRequestedInput().should('have.value', '2');
+      // Verify initial values match the existing resources
+      hardwareProfileSection.findCPURequestsInput().should('have.value', '1');
+      hardwareProfileSection.findCPULimitsInput().should('have.value', '1');
+      hardwareProfileSection.findMemoryRequestsInput().should('have.value', '2');
+      hardwareProfileSection.findMemoryLimitsInput().should('have.value', '2');
 
-      // Verify limit checkboxes are disabled since no request for limits
-      kserveModalEdit.findCPULimitCheckbox().should('not.be.disabled'); // Should be enabled since CPU request exists
-      kserveModalEdit.findMemoryLimitCheckbox().should('not.be.disabled'); // Should be enabled since Memory request exists
-
-      // Verify limit inputs are empty
-      kserveModalEdit.findCPULimitInput().should('have.value', '');
-      kserveModalEdit.findMemoryLimitInput().should('have.value', '');
-
-      // Verify form is initially valid (even with only requests)
+      // Verify form is initially valid
       kserveModalEdit.findSubmitButton().should('be.enabled');
     });
 
@@ -1872,6 +1810,9 @@ describe('Serving Runtime List', () => {
               'openshift.io/display-name': 'Test Name',
               'serving.kserve.io/deploymentMode': DeploymentMode.RawDeployment,
               'security.opendatahub.io/enable-auth': 'true',
+              'opendatahub.io/hardware-profile-name': 'small-profile',
+              'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+              'opendatahub.io/hardware-profile-resource-version': '1309350',
             },
             labels: {
               'opendatahub.io/dashboard': 'true',
@@ -1887,8 +1828,8 @@ describe('Serving Runtime List', () => {
                 runtime: 'test-name',
                 storage: { key: 'test-secret', path: 'test-model/' },
                 resources: {
-                  requests: { cpu: '1', memory: '4Gi' },
-                  limits: { cpu: '2', memory: '8Gi' },
+                  requests: { cpu: '1', memory: '2Gi' },
+                  limits: { cpu: '1', memory: '2Gi' },
                 },
               },
             },
@@ -2087,6 +2028,9 @@ describe('Serving Runtime List', () => {
             annotations: {
               'openshift.io/display-name': 'Test Name',
               'serving.kserve.io/deploymentMode': DeploymentMode.RawDeployment,
+              'opendatahub.io/hardware-profile-name': 'small-profile',
+              'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+              'opendatahub.io/hardware-profile-resource-version': '1309350',
             },
             labels: {
               'opendatahub.io/dashboard': 'true',
@@ -2102,8 +2046,8 @@ describe('Serving Runtime List', () => {
                 runtime: 'test-name',
                 storageUri: 'oci://test.io/organization/test-model:latest',
                 resources: {
-                  requests: { cpu: '1', memory: '4Gi' },
-                  limits: { cpu: '2', memory: '8Gi' },
+                  requests: { cpu: '1', memory: '2Gi' },
+                  limits: { cpu: '1', memory: '2Gi' },
                 },
               },
             },
@@ -2197,6 +2141,9 @@ describe('Serving Runtime List', () => {
             annotations: {
               'openshift.io/display-name': 'Test Name',
               'serving.kserve.io/deploymentMode': DeploymentMode.RawDeployment,
+              'opendatahub.io/hardware-profile-name': 'small-profile',
+              'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+              'opendatahub.io/hardware-profile-resource-version': '1309350',
             },
             labels: {
               'opendatahub.io/dashboard': 'true',
@@ -2211,8 +2158,8 @@ describe('Serving Runtime List', () => {
               model: {
                 modelFormat: { name: 'onnx', version: '1' },
                 resources: {
-                  requests: { cpu: '1', memory: '4Gi' },
-                  limits: { cpu: '2', memory: '8Gi' },
+                  requests: { cpu: '1', memory: '2Gi' },
+                  limits: { cpu: '1', memory: '2Gi' },
                 },
                 runtime: 'test-name',
                 storageUri: 'pvc://test-pvc/test-path',
@@ -2346,134 +2293,11 @@ describe('Serving Runtime List', () => {
       });
     });
 
-    it('should display accelerator profile selection when both accelerator profile and project-scoped feature flag is enabled for Model mesh, while adding model server', () => {
-      initIntercepts({
-        projectEnableModelMesh: true,
-        disableKServeConfig: false,
-        disableModelMeshConfig: false,
-        disableProjectScoped: false,
-        inferenceServices: [
-          mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
-          mockInferenceServiceK8sResource({
-            name: 'another-inference-service',
-            displayName: 'Another Inference Service',
-            deleted: true,
-            isModelMesh: true,
-          }),
-          mockInferenceServiceK8sResource({
-            name: 'ovms-testing',
-            displayName: 'OVMS ONNX',
-            isModelMesh: true,
-          }),
-        ],
-      });
-
-      cy.interceptK8sList(
-        { model: AcceleratorProfileModel, ns: 'test-project' },
-        mockK8sResourceList(mockProjectScopedAcceleratorProfiles),
-      ).as('acceleratorProfiles');
-
-      projectDetails.visitSection('test-project', 'model-server');
-      modelServingSection.findAddModelServerButton().click();
-      createServingRuntimeModal.shouldBeOpen();
-
-      // verify available project-scoped accelerator profile
-      acceleratorProfileSection.findAcceleratorProfileSearchSelector().should('exist');
-      acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
-
-      const projectScopedAcceleratorProfile =
-        acceleratorProfileSection.getProjectScopedAcceleratorProfile();
-      projectScopedAcceleratorProfile
-        .find()
-        .findByRole('menuitem', { name: 'Small Profile nvidia.com/gpu', hidden: true })
-        .click();
-      acceleratorProfileSection.findProjectScopedLabel().should('exist');
-
-      // verify available global-scoped hardware profile
-      acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
-      const globalScopedHardwareProfile =
-        acceleratorProfileSection.getGlobalScopedAcceleratorProfile();
-      globalScopedHardwareProfile
-        .find()
-        .findByRole('menuitem', {
-          name: 'NVIDIA GPU Lorem, ipsum dolor sit amet consectetur adipisicing elit. Saepe, quis nvidia.com/gpu',
-          hidden: true,
-        })
-        .click();
-      acceleratorProfileSection.findGlobalScopedLabel().should('exist');
-    });
-
-    it('should display accelerator profile selection when both accelerator profile and project-scoped feature flag is enabled for Model mesh, while editing model server', () => {
-      initIntercepts({
-        projectEnableModelMesh: true,
-        disableKServeConfig: false,
-        disableModelMeshConfig: false,
-        disableAccelerator: false,
-        disableProjectScoped: false,
-        servingRuntimes: [
-          mockServingRuntimeK8sResource({
-            name: 'test-model',
-            namespace: 'test-project',
-            auth: true,
-            route: true,
-            acceleratorName: 'small-profile',
-          }),
-        ],
-      });
-
-      cy.interceptK8sList(
-        { model: AcceleratorProfileModel, ns: 'test-project' },
-        mockK8sResourceList(mockProjectScopedAcceleratorProfiles),
-      ).as('acceleratorProfiles');
-
-      projectDetails.visitSection('test-project', 'model-server');
-
-      // click on the toggle button and open edit model server
-      modelServingSection
-        .getModelMeshRow('OVMS Model Serving')
-        .find()
-        .findKebabAction('Edit model server')
-        .click();
-
-      editServingRuntimeModal.shouldBeOpen();
-      // cy.wait('@acceleratorProfile');
-      acceleratorProfileSection
-        .findAcceleratorProfileSearchSelector()
-        .should('contain.text', 'Small Profile');
-      acceleratorProfileSection.findProjectScopedLabel().should('exist');
-    });
-
-    it('Check project-scoped accelerator when enabled and selected', () => {
-      initIntercepts({
-        projectEnableModelMesh: true,
-        disableKServeConfig: false,
-        disableModelMeshConfig: false,
-        disableAccelerator: false,
-        disableProjectScoped: false,
-        servingRuntimes: [
-          mockServingRuntimeK8sResource({
-            name: 'test-model',
-            namespace: 'test-project',
-            auth: true,
-            route: true,
-            acceleratorName: 'small-profile',
-          }),
-        ],
-      });
-
-      projectDetails.visitSection('test-project', 'model-server');
-      modelServingSection.findModelServer().click();
-      modelServingSection
-        .findAcceleratorSection()
-        .should('have.text', 'AcceleratorSmall Profile Project-scoped');
-    });
-
     it('should not display hardware profile section when project is model mesh enabled and hardware profile flag is enabled', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
         disableModelMeshConfig: false,
-        disableAccelerator: false,
         disableProjectScoped: false,
         servingRuntimes: [
           mockServingRuntimeK8sResource({
@@ -2941,7 +2765,6 @@ describe('Serving Runtime List', () => {
         projectEnableModelMesh: false,
         disableKServeConfig: false,
         disableModelMeshConfig: true,
-        disableAccelerator: true,
         requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
       });
       projectDetails.visitSection('test-project', 'model-server');
@@ -2956,7 +2779,6 @@ describe('Serving Runtime List', () => {
         projectEnableModelMesh: false,
         disableKServeConfig: false,
         disableModelMeshConfig: true,
-        disableAccelerator: true,
         disableKServeRaw: false,
         inferenceServices: [
           mockInferenceServiceK8sResource({
@@ -3065,6 +2887,7 @@ describe('Serving Runtime List', () => {
         projectEnableModelMesh: false,
         disableKServeConfig: false,
         disableModelMeshConfig: true,
+        disableProjectScoped: false,
         inferenceServices: [
           mockInferenceServiceK8sResource({
             name: 'llama-service',
@@ -3073,14 +2896,16 @@ describe('Serving Runtime List', () => {
             isModelMesh: false,
             resources: {
               limits: {
-                cpu: '2',
-                memory: '8Gi',
+                cpu: '1',
+                memory: '2Gi',
               },
               requests: {
                 cpu: '1',
-                memory: '4Gi',
+                memory: '2Gi',
               },
             },
+            hardwareProfileName: 'small-profile',
+            hardwareProfileNamespace: 'opendatahub',
           }),
         ],
         servingRuntimes: [
@@ -3100,14 +2925,17 @@ describe('Serving Runtime List', () => {
       kserveRow
         .findDescriptionListItem('Model server size')
         .next('dd')
-        .should('contain.text', 'Small');
+        .should('contain.text', 'Custom');
 
       // click on the toggle button and open edit model server
       kserveRow.find().findKebabAction('Edit').click();
 
       kserveModalEdit.shouldBeOpen();
 
-      kserveModalEdit.findModelServerSizeSelect().invoke('text').should('equal', 'Small');
+      // // Verify hardware profile shows Small Profile
+      hardwareProfileSection
+        .findHardwareProfileSearchSelector()
+        .should('contain.text', 'Small Profile');
     });
 
     it('Check model size rendered with InferenceService custom size', () => {
@@ -3115,6 +2943,7 @@ describe('Serving Runtime List', () => {
         projectEnableModelMesh: false,
         disableKServeConfig: false,
         disableModelMeshConfig: true,
+        disableProjectScoped: false,
         inferenceServices: [
           mockInferenceServiceK8sResource({
             name: 'llama-service',
@@ -3158,7 +2987,10 @@ describe('Serving Runtime List', () => {
 
       kserveModalEdit.shouldBeOpen();
 
-      kserveModalEdit.findModelServerSizeSelect().invoke('text').should('equal', 'Custom');
+      // Verify hardware profile shows Use existing settings (custom size)
+      hardwareProfileSection
+        .findHardwareProfileSearchSelector()
+        .should('contain.text', 'Use existing settings');
     });
   });
 

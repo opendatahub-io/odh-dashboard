@@ -770,7 +770,7 @@ describe('Workbench Hardware Profiles', () => {
 
   describe('Hardware profiles column state labels in the workbenches table', () => {
     it('should show "Deleted" label when hardware profile is deleted', () => {
-      initIntercepts({ disableHardwareProfiles: false });
+      initIntercepts({});
 
       // Mock notebook with hardware profile annotation
       cy.interceptK8sList(
@@ -830,7 +830,7 @@ describe('Workbench Hardware Profiles', () => {
     });
 
     it('should show "Disabled" label when hardware profile is disabled', () => {
-      initIntercepts({ disableHardwareProfiles: false });
+      initIntercepts({});
 
       // Mock notebook with hardware profile annotation
       cy.interceptK8sList(
@@ -894,7 +894,7 @@ describe('Workbench Hardware Profiles', () => {
     });
 
     it('should show "Updated" label when hardware profile spec has changed', () => {
-      initIntercepts({ disableHardwareProfiles: false });
+      initIntercepts({});
 
       // Mock notebook with hardware profile annotation and spec snapshot
       cy.interceptK8sList(
@@ -967,7 +967,7 @@ describe('Workbench Hardware Profiles', () => {
     });
 
     it('should show binding state labels for running workbenches', () => {
-      initIntercepts({ disableHardwareProfiles: false });
+      initIntercepts({});
 
       // Mock running notebook with deleted hardware profile
       cy.interceptK8sList(
@@ -1026,7 +1026,7 @@ describe('Workbench Hardware Profiles', () => {
     });
 
     it('should show error icon with popover when hardware profile fails to load (non-404 error)', () => {
-      initIntercepts({ disableHardwareProfiles: false });
+      initIntercepts({});
 
       cy.interceptK8sList(
         {

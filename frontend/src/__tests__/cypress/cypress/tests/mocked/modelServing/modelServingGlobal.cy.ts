@@ -20,7 +20,6 @@ import {
   modelServingSection,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import {
-  AcceleratorProfileModel,
   HardwareProfileModel,
   InferenceServiceModel,
   ProjectModel,
@@ -51,11 +50,6 @@ import {
 } from '#~/__mocks__/mockHardwareProfile';
 import { initInterceptsForAllProjects } from '#~/__tests__/cypress/cypress/utils/servingUtils';
 import { nimDeployModal } from '#~/__tests__/cypress/cypress/pages/components/NIMDeployModal';
-import {
-  mockGlobalScopedAcceleratorProfiles,
-  mockProjectScopedAcceleratorProfiles,
-} from '#~/__mocks__/mockAcceleratorProfile';
-import { acceleratorProfileSection } from '#~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -105,13 +99,13 @@ const initIntercepts = ({
 
   // Mock hardware profiles
   cy.interceptK8sList(
-    { model: HardwareProfileModel, ns: 'opendatahub' },
-    mockK8sResourceList(mockGlobalScopedHardwareProfiles),
+    { model: HardwareProfileModel, ns: 'test-project' },
+    mockK8sResourceList(mockProjectScopedHardwareProfiles),
   ).as('hardwareProfiles');
 
   cy.interceptK8sList(
-    { model: HardwareProfileModel, ns: 'test-project' },
-    mockK8sResourceList(mockProjectScopedHardwareProfiles),
+    { model: HardwareProfileModel, ns: 'opendatahub' },
+    mockK8sResourceList(mockGlobalScopedHardwareProfiles),
   ).as('hardwareProfiles');
 
   cy.interceptK8sList(
@@ -218,17 +212,6 @@ const initIntercepts = ({
       { namespace: 'opendatahub' },
     ),
   );
-
-  // Mock accelerator profiles
-  cy.interceptK8sList(
-    { model: AcceleratorProfileModel, ns: 'opendatahub' },
-    mockK8sResourceList(mockGlobalScopedAcceleratorProfiles),
-  ).as('acceleratorProfiles');
-
-  cy.interceptK8sList(
-    { model: AcceleratorProfileModel, ns: 'test-project' },
-    mockK8sResourceList(mockProjectScopedAcceleratorProfiles),
-  ).as('acceleratorProfiles');
 
   cy.interceptOdh('GET /api/connection-types', [
     mockConnectionTypeConfigMap({
@@ -819,7 +802,7 @@ describe('Model Serving Global', () => {
     hardwareProfileSection.findProjectScopedLabel().should('exist');
   });
 
-  it('should display accelerator profile selection when both accelerator profile and project-scoped feature flag is enabled', () => {
+  it('should display hardware profile selection when project-scoped feature flag is enabled', () => {
     initIntercepts({
       projectEnableModelMesh: false,
       disableServingRuntimeParamsConfig: false,
@@ -829,72 +812,78 @@ describe('Model Serving Global', () => {
     modelServingGlobal.clickDeployModelButtonWithRetry();
     kserveModal.findModelNameInput().should('exist');
 
-    // Verify accelerator profile section exists
-    acceleratorProfileSection.findAcceleratorProfileSearchSelector().should('exist');
-    acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
+    // Verify hardware profile section exists
+    hardwareProfileSection.findHardwareProfileSearchSelector().should('exist');
+    hardwareProfileSection.findHardwareProfileSearchSelector().click();
 
-    // verify available project-scoped accelerator profile
-    const projectScopedAcceleratorProfile =
-      acceleratorProfileSection.getProjectScopedAcceleratorProfile();
-    projectScopedAcceleratorProfile
+    // verify available project-scoped hardware profile
+    const projectScopedHardwareProfile = hardwareProfileSection.getProjectScopedHardwareProfile();
+    projectScopedHardwareProfile
       .find()
       .findByRole('menuitem', {
-        name: 'Small Profile nvidia.com/gpu',
+        name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
         hidden: true,
       })
       .click();
-    kserveModal.findProjectScopedLabel().should('exist');
+    hardwareProfileSection.findProjectScopedLabel().should('exist');
 
-    // verify available global-scoped accelerator profile
-    acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
-    const globalScopedAcceleratorProfile =
-      acceleratorProfileSection.getGlobalScopedAcceleratorProfile();
-    globalScopedAcceleratorProfile
+    // verify available global-scoped hardware profile
+    hardwareProfileSection.findHardwareProfileSearchSelector().click();
+    const globalScopedHardwareProfile = hardwareProfileSection.getGlobalScopedHardwareProfile();
+    globalScopedHardwareProfile
       .find()
       .findByRole('menuitem', {
-        name: 'Small Profile Global nvidia.com/gpu',
+        name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
         hidden: true,
       })
       .click();
-    kserveModal.findGlobalScopedLabel().should('exist');
+    hardwareProfileSection.findGlobalScopedLabel().should('exist');
   });
 
-  it('Display project scoped label on accelerator profile selection on Edit', () => {
+  it('Display project scoped label on hardware profile selection on Edit', () => {
     initIntercepts({
       projectEnableModelMesh: false,
       disableServingRuntimeParamsConfig: false,
       disableProjectScoped: false,
-      servingRuntimes: [
-        mockServingRuntimeK8sResource({
-          acceleratorName: 'large-profile-1',
-          acceleratorProfileNamespace: 'test-project',
+      servingRuntimes: [mockServingRuntimeK8sResource({})],
+      inferenceServices: [
+        mockInferenceServiceK8sResource({
+          hardwareProfileName: 'large-profile-1',
+          hardwareProfileNamespace: 'test-project',
+          resources: {
+            requests: {
+              cpu: '4',
+              memory: '8Gi',
+            },
+            limits: {
+              cpu: '4',
+              memory: '8Gi',
+            },
+          },
         }),
       ],
     });
+
     modelServingGlobal.visit('test-project');
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
-    acceleratorProfileSection
-      .findAcceleratorProfileSearchSelector()
+    hardwareProfileSection
+      .findHardwareProfileSearchSelector()
       .should('contain.text', 'Large Profile-1');
-    kserveModalEdit.findProjectScopedLabel().should('exist');
+    hardwareProfileSection.findProjectScopedLabel().should('exist');
   });
 
-  it('Display Existing settings for deleted accelerator profile selection on Edit', () => {
+  it('Display Existing settings for deleted hardware profile selection on Edit', () => {
     initIntercepts({
       projectEnableModelMesh: false,
       disableServingRuntimeParamsConfig: false,
       disableProjectScoped: false,
-      servingRuntimes: [
-        mockServingRuntimeK8sResource({
-          acceleratorName: 'large-profile-2',
-        }),
-      ],
+      servingRuntimes: [mockServingRuntimeK8sResource({})],
     });
     modelServingGlobal.visit('test-project');
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
-    acceleratorProfileSection
-      .findAcceleratorProfileSearchSelector()
-      .should('contain.text', 'Existing settings');
+    hardwareProfileSection
+      .findHardwareProfileSearchSelector()
+      .should('contain.text', 'Use existing settings');
   });
 
   it('Display global scoped label on serving runtime selection', () => {
@@ -1225,7 +1214,7 @@ describe('Model Serving Global', () => {
 
   describe('Model Serving Hardware Profile Binding State Labels', () => {
     it('should show "Deleted" label when hardware profile is deleted', () => {
-      initIntercepts({ disableHardwareProfiles: false });
+      initIntercepts({});
       // Mock inference service with non-existent hardware profile annotation
       cy.interceptK8sList(
         {
@@ -1286,7 +1275,6 @@ describe('Model Serving Global', () => {
 
       // Set up proper intercepts with hardware profiles enabled
       initIntercepts({
-        disableHardwareProfiles: false,
         inferenceServices: [mockInferenceService],
       });
 
@@ -1351,7 +1339,6 @@ describe('Model Serving Global', () => {
 
       // Set up proper intercepts with hardware profiles enabled
       initIntercepts({
-        disableHardwareProfiles: false,
         inferenceServices: [mockInferenceService],
       });
 
@@ -1413,7 +1400,6 @@ describe('Model Serving Global', () => {
       });
 
       initIntercepts({
-        disableHardwareProfiles: false,
         inferenceServices: [mockInferenceService],
       });
 
