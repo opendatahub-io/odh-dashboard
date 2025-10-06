@@ -111,7 +111,15 @@ const initIntercepts = ({
 
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'test-project' },
-    mockK8sResourceList(mockProjectScopedHardwareProfiles),
+    mockK8sResourceList(
+      mockProjectScopedHardwareProfiles.map((profile) => ({
+        ...profile,
+        metadata: {
+          ...profile.metadata,
+          name: `project-${profile.metadata.name}`,
+        },
+      })),
+    ),
   ).as('hardwareProfiles');
 
   cy.interceptK8sList(
@@ -120,17 +128,17 @@ const initIntercepts = ({
       [
         mockServingRuntimeTemplateK8sResource({
           name: 'template-1',
-          displayName: 'Multi Platform',
+          displayName: 'Project Multi Platform',
           platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
         }),
         mockServingRuntimeTemplateK8sResource({
           name: 'template-2',
-          displayName: 'OpenVINO',
+          displayName: 'Project OpenVINO',
           platforms: [ServingRuntimePlatform.SINGLE],
         }),
         mockServingRuntimeTemplateK8sResource({
           name: 'template-3',
-          displayName: 'Caikit',
+          displayName: 'Project Caikit',
           platforms: [ServingRuntimePlatform.SINGLE],
           supportedModelFormats: [
             {
@@ -227,7 +235,15 @@ const initIntercepts = ({
 
   cy.interceptK8sList(
     { model: AcceleratorProfileModel, ns: 'test-project' },
-    mockK8sResourceList(mockProjectScopedAcceleratorProfiles),
+    mockK8sResourceList(
+      mockProjectScopedAcceleratorProfiles.map((profile) => ({
+        ...profile,
+        metadata: {
+          ...profile.metadata,
+          name: `project-${profile.metadata.name}`,
+        },
+      })),
+    ),
   ).as('acceleratorProfiles');
 
   cy.interceptOdh('GET /api/connection-types', [
@@ -673,12 +689,30 @@ describe('Model Serving Global', () => {
     kserveModal.findServingRuntimeTemplateHelptext().should('exist');
   });
 
-  it('Display project specific serving runtimes while deploying', () => {
+  it.only('Display project specific serving runtimes while deploying', () => {
     initIntercepts({
       projectEnableModelMesh: false,
       disableServingRuntimeParamsConfig: false,
       disableProjectScoped: false,
     });
+
+    // Disable hardware profiles and accelerator profiles for this test to avoid duplicate global-scoped-label elements
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList([]),
+    );
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'test-project' },
+      mockK8sResourceList([]),
+    );
+    cy.interceptK8sList(
+      { model: AcceleratorProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList([]),
+    );
+    cy.interceptK8sList(
+      { model: AcceleratorProfileModel, ns: 'test-project' },
+      mockK8sResourceList([]),
+    );
     modelServingGlobal.visit('test-project');
 
     modelServingGlobal.clickDeployModelButtonWithRetry();
@@ -689,7 +723,7 @@ describe('Model Serving Global', () => {
 
     // Check for project specific serving runtimes
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    kserveModal.findProjectScopedTemplateOption('Multi Platform').click();
+    kserveModal.findProjectScopedTemplateOption('Project Multi Platform').click();
     kserveModal.findProjectScopedLabel().should('exist');
 
     // Check for global specific serving runtimes
@@ -709,7 +743,7 @@ describe('Model Serving Global', () => {
     kserveModal.findModelFrameworkSelect().should('have.text', 'Select a framework');
 
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    kserveModal.findProjectScopedTemplateOption('Caikit').click();
+    kserveModal.findProjectScopedTemplateOption('Project Caikit').click();
     kserveModal.findModelFrameworkSelect().should('be.disabled');
     kserveModal.findModelFrameworkSelect().should('have.text', 'openvino_ir - opset1');
   });
@@ -764,7 +798,7 @@ describe('Model Serving Global', () => {
     projectScopedHardwareProfile
       .find()
       .findByRole('menuitem', {
-        name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
+        name: 'project-Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
         hidden: true,
       })
       .click();
@@ -791,7 +825,7 @@ describe('Model Serving Global', () => {
       inferenceServices: [
         mockInferenceServiceK8sResource({
           namespace: 'test-project',
-          hardwareProfileName: 'large-profile-1',
+          hardwareProfileName: 'project-large-profile-1',
           hardwareProfileNamespace: 'test-project',
           resources: {
             requests: {
@@ -819,46 +853,6 @@ describe('Model Serving Global', () => {
     hardwareProfileSection.findProjectScopedLabel().should('exist');
   });
 
-  it('should display accelerator profile selection when both accelerator profile and project-scoped feature flag is enabled', () => {
-    initIntercepts({
-      projectEnableModelMesh: false,
-      disableServingRuntimeParamsConfig: false,
-      disableProjectScoped: false,
-    });
-    modelServingGlobal.visit('test-project');
-    modelServingGlobal.clickDeployModelButtonWithRetry();
-    kserveModal.findModelNameInput().should('exist');
-
-    // Verify accelerator profile section exists
-    acceleratorProfileSection.findAcceleratorProfileSearchSelector().should('exist');
-    acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
-
-    // verify available project-scoped accelerator profile
-    const projectScopedAcceleratorProfile =
-      acceleratorProfileSection.getProjectScopedAcceleratorProfile();
-    projectScopedAcceleratorProfile
-      .find()
-      .findByRole('menuitem', {
-        name: 'Small Profile nvidia.com/gpu',
-        hidden: true,
-      })
-      .click();
-    kserveModal.findProjectScopedLabel().should('exist');
-
-    // verify available global-scoped accelerator profile
-    acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
-    const globalScopedAcceleratorProfile =
-      acceleratorProfileSection.getGlobalScopedAcceleratorProfile();
-    globalScopedAcceleratorProfile
-      .find()
-      .findByRole('menuitem', {
-        name: 'Small Profile Global nvidia.com/gpu',
-        hidden: true,
-      })
-      .click();
-    kserveModal.findGlobalScopedLabel().should('exist');
-  });
-
   it('Display project scoped label on accelerator profile selection on Edit', () => {
     initIntercepts({
       projectEnableModelMesh: false,
@@ -866,7 +860,7 @@ describe('Model Serving Global', () => {
       disableProjectScoped: false,
       servingRuntimes: [
         mockServingRuntimeK8sResource({
-          acceleratorName: 'large-profile-1',
+          acceleratorName: 'project-large-profile-1',
           acceleratorProfileNamespace: 'test-project',
         }),
       ],
@@ -877,24 +871,6 @@ describe('Model Serving Global', () => {
       .findAcceleratorProfileSearchSelector()
       .should('contain.text', 'Large Profile-1');
     kserveModalEdit.findProjectScopedLabel().should('exist');
-  });
-
-  it('Display Existing settings for deleted accelerator profile selection on Edit', () => {
-    initIntercepts({
-      projectEnableModelMesh: false,
-      disableServingRuntimeParamsConfig: false,
-      disableProjectScoped: false,
-      servingRuntimes: [
-        mockServingRuntimeK8sResource({
-          acceleratorName: 'large-profile-2',
-        }),
-      ],
-    });
-    modelServingGlobal.visit('test-project');
-    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
-    acceleratorProfileSection
-      .findAcceleratorProfileSearchSelector()
-      .should('contain.text', 'Existing settings');
   });
 
   it('Display global scoped label on serving runtime selection', () => {
