@@ -1,3 +1,4 @@
+import { mockHardwareProfile } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
 import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
 import { mockK8sResourceList, mockNotebookK8sResource } from '#~/__mocks__';
 import type { RoleBindingSubject } from '#~/k8sTypes';
@@ -22,10 +23,6 @@ import {
   HardwareProfileModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { mockImageStreamK8sResourceList } from '#~/__mocks__/mockImageStreamK8sResource';
-import {
-  mockGlobalScopedHardwareProfiles,
-  mockProjectScopedHardwareProfiles,
-} from '#~/__mocks__/mockHardwareProfile';
 
 const groupSubjects: RoleBindingSubject[] = [
   {
@@ -57,13 +54,10 @@ const initIntercepts = ({
     { model: ImageStreamModel, ns: 'opendatahub' },
     mockK8sResourceList(mockImageStreamK8sResourceList()),
   );
+
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'opendatahub' },
-    mockK8sResourceList(mockGlobalScopedHardwareProfiles),
-  );
-  cy.interceptK8sList(
-    { model: HardwareProfileModel, ns: 'test-project' },
-    mockK8sResourceList(mockProjectScopedHardwareProfiles),
+    mockK8sResourceList([mockHardwareProfile({})]),
   );
 };
 

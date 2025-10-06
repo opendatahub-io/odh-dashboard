@@ -38,22 +38,7 @@ describe('Cluster Settings', () => {
         installedComponents: { [StackComponent.K_SERVE]: true, [StackComponent.MODEL_MESH]: true },
       }),
     );
-    cy.interceptOdh(
-      'GET /api/cluster-settings',
-      mockClusterSettings({
-        modelServingPlatformEnabled: {
-          kServe: true,
-          modelMesh: false,
-        },
-        notebookTolerationSettings: {
-          enabled: false,
-          key: 'NotebooksOnly',
-        },
-        userTrackingEnabled: false,
-        pvcSize: 20,
-        cullerTimeout: 31536000,
-      }),
-    );
+    cy.interceptOdh('GET /api/cluster-settings', mockClusterSettings({}));
     cy.interceptOdh('PUT /api/cluster-settings', { success: true }).as('clusterSettings');
 
     clusterSettings.visit();
@@ -95,27 +80,21 @@ describe('Cluster Settings', () => {
     telemetrySettings.findEnabledCheckbox().click();
     telemetrySettings.findSubmitButton().should('be.enabled');
     telemetrySettings.findEnabledCheckbox().click();
-
     telemetrySettings.findSubmitButton().should('be.disabled');
 
-    // actually enable it this time
+    // Enable tracking before submitting so there's a change to save
     telemetrySettings.findEnabledCheckbox().click();
     telemetrySettings.findSubmitButton().should('be.enabled');
-
-    // Click the submit button to trigger the API call
     telemetrySettings.findSubmitButton().click();
 
     cy.wait('@clusterSettings').then((interception) => {
-      expect(interception.request.body).to.eql({
-        pvcSize: 20,
-        cullerTimeout: 31536000,
-        userTrackingEnabled: true,
-        notebookTolerationSettings: { enabled: false, key: 'NotebooksOnly' },
-        modelServingPlatformEnabled: {
-          kServe: true,
-          modelMesh: false,
-        },
-      });
+      expect(interception.request.body).to.eql(
+        mockClusterSettings({
+          pvcSize: 20,
+          cullerTimeout: 31536000,
+          userTrackingEnabled: true,
+        }),
+      );
     });
   });
 
