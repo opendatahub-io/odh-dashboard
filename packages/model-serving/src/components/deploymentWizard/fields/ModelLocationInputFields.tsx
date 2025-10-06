@@ -21,6 +21,7 @@ import {
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import useServingConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections';
 import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
+import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
 import { ExistingConnectionField } from './modelLocationFields/ExistingConnectionField';
 import {
   ConnectionTypeRefs,
@@ -50,7 +51,11 @@ export const useModelLocationData = (
     existingData,
   );
   const [connectionTypes, connectionTypesLoaded] = useWatchConnectionTypes(true);
-  const [connections, connectionsLoaded] = useServingConnections(project?.metadata.name);
+  const [connections, connectionsLoaded] = useServingConnections(
+    project?.metadata.name,
+    true,
+    true,
+  );
 
   const [isStableState, setIsStableState] = React.useState(
     connectionTypesLoaded && connectionsLoaded,
@@ -100,7 +105,8 @@ export const useModelLocationData = (
         const connectionTypeRef = getConnectionTypeRef(secret);
         const connectionType = connectionTypes.find((ct) => ct.metadata.name === connectionTypeRef);
         const values = parseConnectionSecretValues(secret, connectionType);
-        const hasOwnerRef = !!secret.metadata.ownerReferences?.length;
+        const isGeneratedSecret = isGeneratedSecretName(secret.metadata.name);
+        const hasOwnerRef = !!secret.metadata.ownerReferences?.length || isGeneratedSecret;
 
         const newState = {
           type: hasOwnerRef ? ModelLocationType.NEW : ModelLocationType.EXISTING,
