@@ -97,10 +97,16 @@ describe('A model can be deployed with token auth', () => {
 
       // Verify the model created
       cy.step('Verify that the Model is running');
-      checkInferenceServiceState(testData.singleModelName, projectName, {
-        checkReady: true,
-        checkLatestDeploymentReady: true,
-      });
+      // For KServe Raw deployments, we only need to check Ready condition
+      // LatestDeploymentReady is specific to Serverless deployments
+      checkInferenceServiceState(
+        testData.singleModelName,
+        projectName,
+        {
+          checkReady: true,
+        },
+        'RawDeployment',
+      );
 
       // Verify the model is not accessible without a token
       cy.step('Verify the model is not accessible without a token');
