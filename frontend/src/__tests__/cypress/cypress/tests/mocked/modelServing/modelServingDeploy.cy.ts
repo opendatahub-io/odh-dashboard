@@ -38,7 +38,13 @@ import {
 import { mockCustomSecretK8sResource } from '../../../../../../__mocks__/mockSecretK8sResource';
 import { mockPVCK8sResource } from '../../../../../../__mocks__/mockPVCK8sResource';
 
-const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) => {
+const initIntercepts = ({
+  modelType,
+  rejectAddSupportServingPlatformProject = false,
+}: {
+  modelType?: ServingRuntimeModelType;
+  rejectAddSupportServingPlatformProject?: boolean;
+}) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
@@ -57,6 +63,13 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
       disableDeploymentWizard: false,
     }),
   );
+  // used by addSupportServingPlatformProject
+  cy.interceptOdh(
+    'GET /api/namespaces/:namespace/:context',
+    { path: { namespace: 'test-project', context: '*' } },
+    rejectAddSupportServingPlatformProject ? { statusCode: 401 } : { applied: true },
+  );
+
   cy.interceptOdh('GET /api/components', null, []);
   cy.interceptOdh('GET /api/connection-types', [
     mockConnectionTypeConfigMap({
@@ -764,7 +777,10 @@ describe('Model Serving Deploy Wizard', () => {
 
   it('Do not deploy KServe model when user cannot edit namespace (only one serving platform enabled)', () => {
     // If only one platform is enabled, project platform selection has not happened yet and patching the namespace with the platform happens at deploy time.
-    initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
+    initIntercepts({
+      modelType: ServingRuntimeModelType.PREDICTIVE,
+      rejectAddSupportServingPlatformProject: true,
+    });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
       mockK8sResourceList([mockInferenceServiceK8sResource({})]),
@@ -778,7 +794,7 @@ describe('Model Serving Deploy Wizard', () => {
     cy.visitWithLogin(
       '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
     );
-
+    modelServingGlobal.findDeployModelButton().click();
     // test filling in minimum required fields
     modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
     modelServingWizard.findUrilocationInput().should('exist').type('https://test');
@@ -804,7 +820,7 @@ describe('Model Serving Deploy Wizard', () => {
       expect(interception.request.url).to.include('?dryRun=All');
     });
 
-    // TO:DO Add error message validation - cy.findByText('Error creating model server');
+    // Add error message validation - cy.findByText('Error creating model server');
 
     // the serving runtime should NOT have been created
     cy.get('@createServingRuntime.all').then((interceptions) => {
@@ -838,15 +854,25 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelSourceStep().should('be.enabled');
     modelServingWizard.findModelDeploymentStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
+    modelServingWizard.findUrilocationInput().should('exist').type('https://test');
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
+    // Step 2: Model Deployment
+    modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
     modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
-
+    // Step 3: Advanced Options
     // check external route, token should be checked and no alert
     modelServingWizard.findTokenAuthenticationCheckbox().should('exist');
+    modelServingWizard.findExternalRouteCheckbox().should('exist').click();
+    modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
+    cy.findAllByText(
+      'The actual tokens will be created and displayed when the model server is configured.',
+    ).should('be.visible');
+    modelServingWizard.findTokenAuthenticationCheckbox().should('exist').click();
     modelServingWizard.findTokenWarningAlert().should('be.visible');
   });
 
@@ -880,7 +906,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findUrilocationInput().should('exist').type('https://test');
     // Trigger blur event to activate validation
     modelServingWizard.findUrilocationInput().blur();
-    modelServingWizard.findUrilocationInputError().should('not.be.visible');
+    modelServingWizard.findUrilocationInputError().should('not.exist');
     modelServingWizard.findNextButton().should('be.enabled');
     modelServingWizard.findUrilocationInput().clear();
 
@@ -941,7 +967,10 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelDeploymentStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
+    modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
+    modelServingWizard.findUrilocationInput().should('exist').type('https://test');
     modelServingWizard.findNextButton().should('be.enabled').click();
+    modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
     modelServingWizard.findGlobalScopedTemplateOption('Caikit').should('exist').click();
@@ -952,6 +981,7 @@ describe('Model Serving Deploy Wizard', () => {
 
     // Add environment variable with invalid name
     modelServingWizard.findEnvVariablesCheckbox().click();
+    modelServingWizard.findAddVariableButton().click();
     modelServingWizard.findEnvVariableName('0').type('1invalid-name');
     cy.findByText(
       'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
