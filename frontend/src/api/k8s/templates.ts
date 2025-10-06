@@ -22,7 +22,6 @@ import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 export const assembleServingRuntimeTemplate = (
   body: string,
   namespace: string,
-  platforms: ServingRuntimePlatform[],
   apiProtocol: ServingRuntimeAPIProtocol | undefined,
   modelTypes: ServingRuntimeModelType[],
   templateName?: string,
@@ -45,7 +44,7 @@ export const assembleServingRuntimeTemplate = (
         'opendatahub.io/dashboard': 'true',
       },
       annotations: {
-        'opendatahub.io/modelServingSupport': JSON.stringify(platforms),
+        'opendatahub.io/modelServingSupport': `["${ServingRuntimePlatform.SINGLE}"]`,
         ...(modelTypes.length > 0 && {
           'opendatahub.io/model-type': JSON.stringify(modelTypes),
         }),
