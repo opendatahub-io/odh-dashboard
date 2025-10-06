@@ -27,7 +27,7 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_3' as const;
 const uuid = generateTestUUID();
 
-describe('Verify Model Creation and Validation using the UI', () => {
+describe('[Product Bug: RHOAIENG-35572] Verify Model Creation and Validation using the UI', () => {
   retryableBefore(() =>
     // Setup: Load test data and ensure clean state
     loadDSPFixture('e2e/dataScienceProjects/testSingleModelContributorCreation.yaml').then(
@@ -61,7 +61,15 @@ describe('Verify Model Creation and Validation using the UI', () => {
   it(
     'Verify that a Non Admin can Serve and Query a Model using the UI',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@ODS-2552', '@Dashboard', '@Modelserving', '@NonConcurrent'],
+      tags: [
+        '@Smoke',
+        '@SmokeSet3',
+        '@ODS-2552',
+        '@Dashboard',
+        '@Modelserving',
+        '@NonConcurrent',
+        '@Bug',
+      ],
     },
     () => {
       cy.log('Model Name:', modelName);
@@ -96,10 +104,16 @@ describe('Verify Model Creation and Validation using the UI', () => {
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
-      checkInferenceServiceState(testData.singleModelName, projectName, {
-        checkReady: true,
-        checkLatestDeploymentReady: true,
-      });
+      // For KServe Raw deployments, we only need to check Ready condition
+      // LatestDeploymentReady is specific to Serverless deployments
+      checkInferenceServiceState(
+        testData.singleModelName,
+        projectName,
+        {
+          checkReady: true,
+        },
+        'RawDeployment',
+      );
       cy.reload();
       modelServingSection.findModelMetricsLink(testData.singleModelName);
       // Note reload is required as status tooltip was not found due to a stale element

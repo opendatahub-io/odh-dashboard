@@ -24,7 +24,7 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('Verify Admin Single Model Creation and Validation using the UI', () => {
+describe('[Product Bug: RHOAIENG-35572] Verify Admin Single Model Creation and Validation using the UI', () => {
   retryableBefore(() =>
     // Setup: Load test data and ensure clean state
     loadDSPFixture('e2e/dataScienceProjects/testSingleModelAdminCreation.yaml').then(
@@ -56,7 +56,15 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
   it(
     'Verify that an Admin can Serve, Query a Single Model using both the UI and External links',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@ODS-2626', '@Dashboard', '@Modelserving', '@NonConcurrent'],
+      tags: [
+        '@Smoke',
+        '@SmokeSet3',
+        '@ODS-2626',
+        '@Dashboard',
+        '@Modelserving',
+        '@NonConcurrent',
+        '@Bug',
+      ],
     },
     () => {
       cy.log('Model Name:', modelName);
@@ -97,10 +105,16 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
-      checkInferenceServiceState(testData.singleModelAdminName, projectName, {
-        checkReady: true,
-        checkLatestDeploymentReady: true,
-      });
+      // For KServe Raw deployments, we only need to check Ready condition
+      // LatestDeploymentReady is specific to Serverless deployments
+      checkInferenceServiceState(
+        testData.singleModelAdminName,
+        projectName,
+        {
+          checkReady: true,
+        },
+        'RawDeployment',
+      );
       // Note reload is required as status tooltip was not found due to a stale element
       cy.reload();
       modelServingSection.findModelMetricsLink(testData.singleModelAdminName);
