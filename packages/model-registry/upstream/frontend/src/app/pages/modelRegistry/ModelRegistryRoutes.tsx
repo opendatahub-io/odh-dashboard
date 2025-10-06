@@ -34,8 +34,9 @@ const ModelRegistryRoutes: React.FC = () => {
         }
       >
         <Route index element={<ModelRegistry empty={false} />} />
-        <Route path="registeredModels/:registeredModelId">
+        <Route path="registered-models/:registeredModelId">
           <Route index element={<Navigate to={ModelVersionsTab.OVERVIEW} replace />} />
+
           <Route
             path={ModelVersionsTab.VERSIONS}
             element={<ModelVersions tab={ModelVersionsTab.VERSIONS} empty={false} />}
@@ -45,7 +46,7 @@ const ModelRegistryRoutes: React.FC = () => {
             element={<ModelVersions tab={ModelVersionsTab.OVERVIEW} empty={false} />}
           />
           {generateDetailsTabExtensionRoutes({ tabExtensions: detailsTabExtensions })}
-          <Route path="registerVersion" element={<RegisterVersion />} />
+          <Route path="register/version" element={<RegisterVersion />} />
           <Route path="versions/:modelVersionId">
             <Route index element={<Navigate to={ModelVersionDetailsTab.DETAILS} replace />} />
             <Route
@@ -73,7 +74,7 @@ const ModelRegistryRoutes: React.FC = () => {
           </Route>
           <Route path="*" element={<Navigate to="." />} />
         </Route>
-        <Route path="registeredModels/archive">
+        <Route path="registered-models/archive">
           <Route index element={<RegisteredModelsArchive empty={false} />} />
           <Route path=":registeredModelId">
             <Route index element={<Navigate to={ModelVersionsTab.OVERVIEW} replace />} />
@@ -105,8 +106,8 @@ const ModelRegistryRoutes: React.FC = () => {
           </Route>
           <Route path="*" element={<Navigate to="." />} />
         </Route>
-        <Route path="registerModel" element={<RegisterModel />} />
-        <Route path="registerVersion" element={<RegisterVersion />} />
+        <Route path="register/model" element={<RegisterModel />} />
+        <Route path="register/version" element={<RegisterVersion />} />
         <Route path="*" element={<Navigate to="." />} />
       </Route>
     </Routes>
