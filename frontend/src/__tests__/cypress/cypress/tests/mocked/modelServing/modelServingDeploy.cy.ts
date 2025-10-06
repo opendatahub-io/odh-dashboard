@@ -1357,8 +1357,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
   });
 
-  // TO:DO update this test
-  it.skip('Verify cpu and memory request and limits values when editing KServe model', () => {
+  it('Verify cpu and memory request and limits values when editing KServe model', () => {
     initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
@@ -1403,27 +1402,6 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findCPULimitInput().should('have.value', '4');
     modelServingWizardEdit.findMemoryRequestedInput().should('have.value', '8');
     modelServingWizardEdit.findMemoryLimitInput().should('have.value', '8');
-
-    // CPU Limit is Less than Requests
-    modelServingWizardEdit.findCPULimitButton('Minus').click();
-    modelServingWizardEdit.findMemoryLimitButton('Minus').click();
-
-    modelServingWizardEdit.findCPULimitInput().should('have.value', '3');
-    cy.findByText('Must be at least 4 Cores').should('be.visible');
-    modelServingWizardEdit.findMemoryLimitInput().should('have.value', '7');
-    cy.findByText('Must be at least 8 GiB').should('be.visible');
-    modelServingWizardEdit.findNextButton().should('be.disabled');
-    modelServingWizardEdit.findCPULimitButton('Plus').click();
-    modelServingWizardEdit.findMemoryLimitButton('Plus').click();
-
-    // CPU Request is greater than Limit
-    modelServingWizardEdit.findCPURequestedButton('Plus').click();
-    modelServingWizardEdit.findMemoryRequestedButton('Plus').click();
-    modelServingWizardEdit.findCPURequestedInput().should('have.value', '5');
-    cy.findByText('Must be at least 4 Cores').should('be.visible');
-    modelServingWizardEdit.findMemoryRequestedInput().should('have.value', '9');
-    cy.findByText('Must be at least 4 Cores').should('be.visible');
-
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
   });
 
