@@ -16,7 +16,6 @@ export const DEFAULT_CONFIG: ClusterSettingsType = {
   pvcSize: DEFAULT_PVC_SIZE,
   cullerTimeout: DEFAULT_CULLER_TIMEOUT,
   userTrackingEnabled: false,
-  notebookTolerationSettings: null,
   modelServingPlatformEnabled: {
     kServe: true,
     modelMesh: false,
