@@ -43,8 +43,6 @@ interface ChatbotSettingsPanelProps {
   onStreamingToggle: (enabled: boolean) => void;
   temperature: number;
   onTemperatureChange: (value: number) => void;
-  topP: number;
-  onTopPChange: (value: number) => void;
 }
 
 const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> = ({
@@ -59,8 +57,6 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   onStreamingToggle,
   temperature,
   onTemperatureChange,
-  topP,
-  onTopPChange,
 }) => {
   const accordionState = useAccordionState();
   const { selectedServersCount, saveSelectedServersToPlayground } = useMCPSelectionContext();
@@ -106,15 +102,6 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                   value={temperature}
                   onChange={onTemperatureChange}
                 />
-
-                <ModelParameterFormGroup
-                  fieldId="top-p"
-                  label="Top P"
-                  helpText="This controls nucleus sampling for more focused responses."
-                  value={topP}
-                  onChange={onTopPChange}
-                />
-
                 <FormGroup fieldId="streaming">
                   <Switch
                     id="streaming-switch"
