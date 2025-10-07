@@ -995,21 +995,11 @@ func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.C
 
 	// When routes are enabled, the Status.URL is the route URL, not the internal URL so we use the Address.URL
 	internalURL := targetISVC.Status.Address.URL.URL()
-	currentPort := internalURL.Port()
-	hostname := internalURL.Hostname()
 
-	// Auth Inference Services should always have the auth annotation and include the 8443 port
-	if targetISVC.Annotations["security.opendatahub.io/enable-auth"] == "true" {
-		if currentPort != "8443" {
-			internalURL.Host = hostname + ":8443"
-		}
-	} else {
-		// For non-auth services, ensure http scheme and 8080 port
+	if targetISVC.Annotations["security.opendatahub.io/enable-auth"] != "true" {
+		// For non-auth services, ensure http scheme
 		if internalURL.Scheme == "https" {
 			internalURL.Scheme = "http"
-		}
-		if currentPort != "8080" {
-			internalURL.Host = hostname + ":8080"
 		}
 	}
 
