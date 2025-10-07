@@ -16,12 +16,9 @@ import { Bullseye } from '@patternfly/react-core';
 import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDscStatus';
 
 const ModelRegistryWrapperContent: React.FC = () => {
-  const {
-    configSettings,
-    userSettings,
-    loaded,
-    loadError,
-  } = useSettings();
+  const { configSettings, userSettings, loaded, loadError } = useSettings();
+  // Check if admin status was passed via window global (set by main ODH dashboard)
+  const isAdmin = userSettings?.clusterAdmin || false;
   if (loadError) {
     return <div>Error: {loadError.message}</div>;
   }
@@ -35,16 +32,16 @@ const ModelRegistryWrapperContent: React.FC = () => {
         user: userSettings,
       }}
     >
-        <ThemeProvider theme={Theme.Patternfly}>
-          <BrowserStorageContextProvider>
-            <NotificationContextProvider>
-              <ModelRegistrySelectorContextProvider>
-                <ModelRegistryRoutes />
-              </ModelRegistrySelectorContextProvider>
-            </NotificationContextProvider>
-          </BrowserStorageContextProvider>
-        </ThemeProvider>
-      </AppContext.Provider>
+      <ThemeProvider theme={Theme.Patternfly}>
+        <BrowserStorageContextProvider>
+          <NotificationContextProvider>
+            <ModelRegistrySelectorContextProvider>
+              <ModelRegistryRoutes isAdminUser={isAdmin} />
+            </ModelRegistrySelectorContextProvider>
+          </NotificationContextProvider>
+        </BrowserStorageContextProvider>
+      </ThemeProvider>
+    </AppContext.Provider>
   ) : null;
 };
 
