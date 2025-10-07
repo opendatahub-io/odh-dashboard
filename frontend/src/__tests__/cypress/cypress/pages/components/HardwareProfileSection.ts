@@ -103,6 +103,26 @@ export class HardwareProfileSection {
     return new HardwareProfileGroup(() => cy.findByTestId('global-scoped-hardware-profiles'));
   }
 
+  selectGlobalScopedProfile(profileName: string | RegExp): void {
+    this.getGlobalScopedHardwareProfile()
+      .find()
+      .findByRole('menuitem', {
+        name: profileName,
+        hidden: true,
+      })
+      .click();
+  }
+
+  selectProjectScopedProfile(profileName: string | RegExp): void {
+    this.getProjectScopedHardwareProfile()
+      .find()
+      .findByRole('menuitem', {
+        name: profileName,
+        hidden: true,
+      })
+      .click();
+  }
+
   verifyProfileDetails(resources: ContainerResources): void {
     this.findDetailsPopover().click();
     this.findDetails().within(() => {
