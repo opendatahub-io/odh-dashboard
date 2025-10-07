@@ -13,7 +13,7 @@ import {
 import { useLocation } from 'react-router-dom';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
-import { DEFAULT_SYSTEM_INSTRUCTIONS } from './const';
+import { DEFAULT_SYSTEM_INSTRUCTIONS, FILE_UPLOAD_CONFIG, ERROR_MESSAGES } from './const';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
 import useAlertManagement from './hooks/useAlertManagement';
@@ -183,9 +183,53 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                       setLastInput(message);
                     }
                   }}
-                  hasAttachButton={false}
+                  hasAttachButton
                   isSendButtonDisabled={chatbotMessages.isMessageSendButtonDisabled}
                   data-testid="chatbot-message-bar"
+                  onAttach={async (acceptedFiles, fileRejections, event) => {
+                    try {
+                      // Use the existing source upload functionality
+                      await sourceManagement.handleSourceDrop(event, acceptedFiles);
+                    } catch (error) {
+                      // Handle any unexpected errors during file processing
+                      const errorMessage =
+                        error instanceof Error ? error.message : 'Unknown error occurred';
+                      alertManagement.onShowErrorAlert(`Failed to process files: ${errorMessage}`);
+                    }
+                  }}
+                  onAttachRejected={(fileRejections) => {
+                    // Handle file rejection errors with specific error types
+                    const errorMessages = fileRejections
+                      .map((rejection) => {
+                        const fileErrors = rejection.errors.map((error) => {
+                          switch (error.code) {
+                            case 'file-too-large':
+                              return ERROR_MESSAGES.FILE_TOO_LARGE;
+                            case 'too-many-files':
+                              return ERROR_MESSAGES.TOO_MANY_FILES;
+                            case 'file-invalid-type':
+                              return `File type not supported. Accepted types: ${FILE_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS}`;
+                            default:
+                              return error.message;
+                          }
+                        });
+                        return `${rejection.file.name}: ${fileErrors.join(', ')}`;
+                      })
+                      .join('; ');
+
+                    alertManagement.onShowErrorAlert(
+                      `${ERROR_MESSAGES.FILE_UPLOAD_REJECTED}: ${errorMessages}`,
+                    );
+                  }}
+                  allowedFileTypes={FILE_UPLOAD_CONFIG.ALLOWED_FILE_TYPES}
+                  maxSize={FILE_UPLOAD_CONFIG.MAX_FILE_SIZE}
+                  maxFiles={FILE_UPLOAD_CONFIG.MAX_FILES_IN_VECTOR_STORE}
+                  buttonProps={{
+                    attach: {
+                      tooltipContent: `Upload files (${FILE_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS}, max ${FILE_UPLOAD_CONFIG.MAX_FILE_SIZE / (1024 * 1024)}MB)`,
+                      inputTestId: 'chatbot-attach-input',
+                    },
+                  }}
                 />
                 <ChatbotFootnote {...{ label: 'Bot uses AI. Check for mistakes.' }} />
               </ChatbotFooter>

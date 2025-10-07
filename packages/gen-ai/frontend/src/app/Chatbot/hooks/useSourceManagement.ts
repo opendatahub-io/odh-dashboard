@@ -5,6 +5,7 @@ import { DropEvent } from '@patternfly/react-core';
 import { uploadSource } from '~/app/services/llamaStackService';
 import { ChatbotSourceSettings, FileModel } from '~/app/types';
 import { GenAiContext } from '~/app/context/GenAiContext';
+import { FILE_UPLOAD_CONFIG } from '~/app/Chatbot/const';
 
 export type FileStatus = 'pending' | 'configured' | 'uploading' | 'uploaded' | 'failed';
 
@@ -45,9 +46,8 @@ const useSourceManagement = ({
 }: UseSourceManagementProps): UseSourceManagementReturn => {
   const { namespace } = React.useContext(GenAiContext);
 
-  // Constants
-  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
-  const MAX_FILES_IN_VECTOR_STORE = 10; // Maximum number of files allowed in vector store
+  // Use constants from shared configuration
+  const { MAX_FILE_SIZE, MAX_FILES_IN_VECTOR_STORE } = FILE_UPLOAD_CONFIG;
   const [selectedSourceSettings, setSelectedSourceSettings] =
     React.useState<ChatbotSourceSettings | null>(null);
   const [isRawUploaded, setIsRawUploaded] = React.useState(false);

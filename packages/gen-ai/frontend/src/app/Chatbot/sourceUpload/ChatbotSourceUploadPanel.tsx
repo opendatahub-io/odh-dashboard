@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { AlertGroup, Button, type DropEvent } from '@patternfly/react-core';
 import { FileIcon } from '@patternfly/react-icons';
 import { FileWithSettings } from '~/app/Chatbot/hooks/useSourceManagement';
+import { FILE_UPLOAD_CONFIG } from '~/app/Chatbot/const';
 import { UploadedFileItem } from './UploadedFileItem';
 
 type ChatbotSourceUploadPanelProps = {
@@ -21,7 +22,7 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
   removeUploadedSource,
   filesWithSettings,
   uploadedFilesCount = 0,
-  maxFilesAllowed = 10,
+  maxFilesAllowed = FILE_UPLOAD_CONFIG.MAX_FILES_IN_VECTOR_STORE,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -106,12 +107,13 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
             </Button>
           </div>
           <div className="pf-v6-c-multiple-file-upload__info">
-            Accepted file types: PDF, DOC, CSV (max 10MB per file)
+            Accepted file types: PDF, DOC, CSV (max{' '}
+            {FILE_UPLOAD_CONFIG.MAX_FILE_SIZE / (1024 * 1024)}MB per file)
           </div>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".pdf,.doc,.docx,.csv"
+            accept={FILE_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS}
             multiple
             onChange={handleFileSelect}
             disabled={isAtLimit}
