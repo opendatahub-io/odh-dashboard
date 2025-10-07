@@ -501,11 +501,14 @@ jobs:
           echo "- baseUrl should resolve to: http://localhost:$CYPRESS_PORT (from BASE_URL env var or test config)"
           echo "- Test config file: $CY_TEST_CONFIG"
 
+          # Set BASE_URL environment variable BEFORE Cypress starts
+          export BASE_URL=http://localhost:$CYPRESS_PORT
+
           echo "🔍 DEBUG: Environment variables for Cypress:"
           echo "BASE_URL: $BASE_URL"
           echo "CY_TEST_CONFIG: $CY_TEST_CONFIG"
 
-          BASE_URL=http://localhost:$CYPRESS_PORT npm run cypress:run:chrome -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos",experimentalMemoryManagement=true,numTestsKeptInMemory=0
+          npm run cypress:run:chrome -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos",experimentalMemoryManagement=true,numTestsKeptInMemory=0
 
       - name: Test tag name
         if: ${{ always() }}
