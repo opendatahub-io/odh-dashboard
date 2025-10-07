@@ -63,12 +63,11 @@ describe('assembleServingRuntimeTemplate', () => {
   it('should assemble serving runtime template with templateName', () => {
     const servingRuntimeMock = JSON.stringify(createServingRuntime('template-1'));
     const servingRuntimeTemplatesMock = mockServingRuntimeTemplateK8sResource({
-      platforms: [ServingRuntimePlatform.MULTI],
+      platforms: [ServingRuntimePlatform.SINGLE],
     });
     const result = assembleServingRuntimeTemplate(
       servingRuntimeMock,
       namespace,
-      [ServingRuntimePlatform.MULTI],
       ServingRuntimeAPIProtocol.REST,
       [ServingRuntimeModelType.PREDICTIVE, ServingRuntimeModelType.GENERATIVE],
       'template-1',
@@ -81,13 +80,12 @@ describe('assembleServingRuntimeTemplate', () => {
     const servingRuntimeMock = JSON.stringify(createServingRuntime('template-123'));
     const servingRuntimeTemplatesMock = mockServingRuntimeTemplateK8sResource({
       name: 'template-123',
-      platforms: [ServingRuntimePlatform.MULTI],
+      platforms: [ServingRuntimePlatform.SINGLE],
     });
 
     const result = assembleServingRuntimeTemplate(
       servingRuntimeMock,
       namespace,
-      [ServingRuntimePlatform.MULTI],
       ServingRuntimeAPIProtocol.REST,
       [ServingRuntimeModelType.PREDICTIVE, ServingRuntimeModelType.GENERATIVE],
     );
@@ -100,7 +98,6 @@ describe('assembleServingRuntimeTemplate', () => {
       assembleServingRuntimeTemplate(
         servingRuntimeMock,
         namespace,
-        [ServingRuntimePlatform.MULTI],
         ServingRuntimeAPIProtocol.REST,
         [ServingRuntimeModelType.PREDICTIVE],
       );

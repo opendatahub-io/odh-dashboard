@@ -56,7 +56,7 @@ describe('Custom serving runtimes', () => {
     servingRuntimes.getRowById('template-1').shouldBeSingleModel(true);
     servingRuntimes.getRowById('template-2').shouldBeSingleModel(true);
     servingRuntimes.getRowById('template-3').shouldBeMultiModel(true);
-    servingRuntimes.getRowById('template-4').shouldBeMultiModel(true);
+    servingRuntimes.getRowById('template-4').shouldBeSingleModel(true);
   });
 
   it('should display api protocol in table row', () => {
@@ -80,15 +80,7 @@ describe('Custom serving runtimes', () => {
     servingRuntimes.findAddButton().click();
     servingRuntimes.findAppTitle().should('contain', 'Add serving runtime');
 
-    // Check serving runtime dropdown list
-    servingRuntimes.shouldDisplayServingRuntimeValues([
-      'Single-model serving platform',
-      'Multi-model serving platform',
-    ]);
-    servingRuntimes.findSelectServingPlatformButton().click();
-
     servingRuntimes.findSubmitButton().should('be.disabled');
-    servingRuntimes.selectPlatform('Single-model serving platform');
     servingRuntimes.shouldDisplayAPIProtocolValues([
       ServingRuntimeAPIProtocol.REST,
       ServingRuntimeAPIProtocol.GRPC,
@@ -146,81 +138,6 @@ describe('Custom serving runtimes', () => {
 
     servingRuntimes.getRowById('template-new').find().should('exist');
     servingRuntimes.getRowById('template-new').shouldBeSingleModel(true);
-  });
-
-  it('should add a new multi model serving runtime', () => {
-    cy.interceptOdh(
-      'POST /api/servingRuntimes/',
-      { query: { dryRun: 'All' } },
-      mockServingRuntimeK8sResource({}),
-    ).as('createMultiModelServingRuntime');
-    cy.interceptOdh('POST /api/templates/', mockServingRuntimeTemplateK8sResource({})).as(
-      'createTemplate',
-    );
-
-    servingRuntimes.findAddButton().click();
-    servingRuntimes.findAppTitle().should('contain', 'Add serving runtime');
-
-    // Check serving runtime dropdown list
-    servingRuntimes.shouldDisplayServingRuntimeValues([
-      'Single-model serving platform',
-      'Multi-model serving platform',
-    ]);
-    servingRuntimes.findSelectServingPlatformButton().click();
-
-    servingRuntimes.findSubmitButton().should('be.disabled');
-    servingRuntimes.selectPlatform('Multi-model serving platform');
-    servingRuntimes.findSelectAPIProtocolButton().should('not.be.enabled');
-    servingRuntimes.findSelectAPIProtocolButton().should('include.text', 'REST');
-    servingRuntimes.findStartFromScratchButton().click();
-    servingRuntimes.uploadYaml(addfilePath);
-    servingRuntimes.findSubmitButton().should('be.enabled');
-    servingRuntimes.findSubmitButton().click();
-
-    cy.wait('@createMultiModelServingRuntime').then((interception) => {
-      expect(interception.request.url).to.include('?dryRun=All');
-      expect(interception.request.body.metadata).to.eql({
-        name: 'template-new',
-        annotations: { 'openshift.io/display-name': 'New OVMS Server' },
-        labels: { 'opendatahub.io/dashboard': 'true' },
-        namespace: 'opendatahub',
-      });
-    });
-
-    cy.wait('@createTemplate').then((interception) => {
-      expect(interception.request.body).to.containSubset({
-        metadata: {
-          annotations: {
-            'opendatahub.io/modelServingSupport': '["multi"]',
-            'opendatahub.io/apiProtocol': 'REST',
-          },
-        },
-        objects: [
-          {
-            metadata: {
-              name: 'template-new',
-              annotations: { 'openshift.io/display-name': 'New OVMS Server' },
-              labels: { 'opendatahub.io/dashboard': 'true' },
-            },
-          },
-        ],
-      });
-    });
-
-    servingRuntimes.findAppTitle().should('contain', 'Serving runtimes');
-
-    cy.wsK8s(
-      'ADDED',
-      TemplateModel,
-      mockServingRuntimeTemplateK8sResource({
-        name: 'template-new',
-        displayName: 'New OVMS Server',
-        platforms: [ServingRuntimePlatform.MULTI],
-      }),
-    );
-
-    servingRuntimes.getRowById('template-new').find().should('exist');
-    servingRuntimes.getRowById('template-new').shouldBeMultiModel(true);
   });
 
   it('should duplicate a serving runtime', () => {
@@ -329,11 +246,6 @@ describe('Custom serving runtimes', () => {
               annotations: { 'openshift.io/display-name': 'Updated Multi Platform' },
             },
           },
-        },
-        {
-          op: 'replace',
-          path: '/metadata/annotations/opendatahub.io~1modelServingSupport',
-          value: '["single"]',
         },
         {
           op: 'replace',
