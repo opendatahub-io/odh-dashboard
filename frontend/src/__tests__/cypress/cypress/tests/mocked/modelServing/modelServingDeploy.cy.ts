@@ -297,18 +297,13 @@ describe('Model Serving Deploy Wizard', () => {
       mockK8sResourceList([mockServingRuntimeK8sResource({})]),
     );
 
-    // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin(
-      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
-    );
+    modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
     cy.findByRole('heading', { name: 'Deploy a model' }).should('exist');
     cy.findByRole('button', { name: 'Cancel' }).click();
     cy.url().should('include', '/deployments/test-project');
 
-    cy.visitWithLogin(
-      '/projects/test-project?section=model-server&devFeatureFlags=Model+Serving+Plugin%3Dtrue',
-    );
+    modelServingSection.visit('test-project');
     modelServingSection.findDeployModelButton().click();
     cy.findByRole('heading', { name: 'Deploy a model' }).should('exist');
     cy.findByRole('button', { name: 'Cancel' }).click();
@@ -326,12 +321,8 @@ describe('Model Serving Deploy Wizard', () => {
       mockK8sResourceList([mockServingRuntimeK8sResource({})]),
     );
 
-    // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin(
-      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
-    );
+    modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
-
     // Step 1: Model source
     modelServingWizard.findModelSourceStep().should('be.enabled');
     modelServingWizard.findModelDeploymentStep().should('be.disabled');
@@ -618,12 +609,8 @@ describe('Model Serving Deploy Wizard', () => {
       mockK8sResourceList([mockServingRuntimeK8sResource({})]),
     );
 
-    // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin(
-      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
-    );
+    modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
-
     // Step 1: Model source
     modelServingWizard.findModelSourceStep().should('be.enabled');
     modelServingWizard.findModelDeploymentStep().should('be.disabled');
@@ -790,10 +777,7 @@ describe('Model Serving Deploy Wizard', () => {
       mockK8sResourceList([mockServingRuntimeK8sResource({})]),
     );
 
-    // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin(
-      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
-    );
+    modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
     // test filling in minimum required fields
     modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
@@ -833,7 +817,7 @@ describe('Model Serving Deploy Wizard', () => {
     });
   });
 
-  it('Kserve auth should be enabled if capabilities are present', () => {
+  it('Check Kserve Auth Section', () => {
     initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
@@ -844,12 +828,8 @@ describe('Model Serving Deploy Wizard', () => {
       mockK8sResourceList([mockServingRuntimeK8sResource({})]),
     );
 
-    // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin(
-      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
-    );
+    modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
-
     // Step 1: Model Source
     modelServingWizard.findModelSourceStep().should('be.enabled');
     modelServingWizard.findModelDeploymentStep().should('be.disabled');
@@ -876,7 +856,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findTokenWarningAlert().should('be.visible');
   });
 
-  it('Check path error in KServe Modal', () => {
+  it('Check path error in KServe Wizard', () => {
     initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
@@ -887,13 +867,8 @@ describe('Model Serving Deploy Wizard', () => {
       mockK8sResourceList([mockServingRuntimeK8sResource({})]),
     );
 
-    // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin(
-      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
-    );
-
+    modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
-
     // Step 1: Model Source
     modelServingWizard.findModelSourceStep().should('be.enabled');
     modelServingWizard.findModelDeploymentStep().should('be.disabled');
@@ -945,7 +920,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.enabled');
   });
 
-  it('Check environment variables validation in KServe Modal', () => {
+  it('Check environment variables validation in KServe Wizard', () => {
     initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
@@ -956,12 +931,8 @@ describe('Model Serving Deploy Wizard', () => {
       mockK8sResourceList([mockServingRuntimeK8sResource({})]),
     );
 
-    // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin(
-      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
-    );
+    modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
-
     // Step 1: Model Source
     modelServingWizard.findModelSourceStep().should('be.enabled');
     modelServingWizard.findModelDeploymentStep().should('be.disabled');
@@ -1040,10 +1011,7 @@ describe('Model Serving Deploy Wizard', () => {
       ]),
     );
 
-    // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin(
-      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
-    );
+    modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
     // Step 1: Model Source
     modelServingWizard.findModelSourceStep().should('be.enabled');
@@ -1178,10 +1146,7 @@ describe('Model Serving Deploy Wizard', () => {
       ]),
     );
 
-    // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin(
-      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
-    );
+    modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
     // Step 1: Model Source
     modelServingWizard.findModelSourceStep().should('be.enabled');
@@ -1311,10 +1276,7 @@ describe('Model Serving Deploy Wizard', () => {
       mockK8sResourceList([mockServingRuntimeK8sResource({})]),
     );
 
-    // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin(
-      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
-    );
+    modelServingGlobal.visit('test-project');
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
 
     // Step 1: Model source
@@ -1388,17 +1350,14 @@ describe('Model Serving Deploy Wizard', () => {
       mockK8sResourceList([mockServingRuntimeK8sResource({})]),
     );
 
-    // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin(
-      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
-    );
+    modelServingGlobal.visit('test-project');
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
     // Step 1: Model source
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
     hardwareProfileSection.findSelect().should('contain.text', 'Large Profile');
-    hardwareProfileSection.findCustomizeButton().should('exist');
+    hardwareProfileSection.findCustomizeButton().should('exist').click();
     modelServingWizardEdit.findCPURequestedInput().should('have.value', '6');
     modelServingWizardEdit.findCPULimitInput().should('have.value', '6');
     modelServingWizardEdit.findMemoryRequestedInput().should('have.value', '10');
