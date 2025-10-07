@@ -1017,10 +1017,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findBackButton().should('be.disabled');
     modelServingWizard.findCancelButton().should('be.enabled');
     modelServingWizard.findModelLocationSelectOption('Existing connection').should('exist').click();
-    modelServingWizard
-      .findExistingConnectionSelect()
-      .findByRole('combobox')
-      .should('have.value', 'Test Secret');
+    modelServingWizard.findExistingConnectionValue().should('have.value', 'Test Secret');
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findOCIModelURI().click();
     modelServingWizard.findOCIModelURI().trigger('paste', {
@@ -1153,10 +1150,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelLocationSelectOption('Cluster storage').should('exist').click();
-    modelServingWizard
-      .findExistingConnectionSelect()
-      .findByRole('combobox')
-      .should('have.value', 'Test PVC');
+    modelServingWizard.findExistingConnectionValue().should('have.value', 'Test PVC');
     modelServingWizard.findPVCPathPrefix().should('contain.text', 'pvc://test-pvc/');
     modelServingWizard.findLocationPathInput().should('have.value', 'test-path');
     modelServingWizard.findNextButton().should('be.enabled').click();
