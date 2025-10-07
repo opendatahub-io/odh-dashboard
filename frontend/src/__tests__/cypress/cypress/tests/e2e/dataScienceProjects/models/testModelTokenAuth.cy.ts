@@ -25,7 +25,7 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('A model can be deployed with token auth', () => {
+describe('[Product Bug: RHOAIENG-35577] A model can be deployed with token auth', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
     return loadDSPFixture('e2e/dataScienceProjects/testModelTokenAuth.yaml').then(
@@ -56,7 +56,7 @@ describe('A model can be deployed with token auth', () => {
 
   it(
     'Verify that a model can be deployed with token auth',
-    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing'] },
+    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@Bug'] },
     () => {
       cy.log('Model Name:', modelName);
       cy.step(`Log into the application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
@@ -97,10 +97,16 @@ describe('A model can be deployed with token auth', () => {
 
       // Verify the model created
       cy.step('Verify that the Model is running');
-      checkInferenceServiceState(testData.singleModelName, projectName, {
-        checkReady: true,
-        checkLatestDeploymentReady: true,
-      });
+      // For KServe Raw deployments, we only need to check Ready condition
+      // LatestDeploymentReady is specific to Serverless deployments
+      checkInferenceServiceState(
+        testData.singleModelName,
+        projectName,
+        {
+          checkReady: true,
+        },
+        'RawDeployment',
+      );
 
       // Verify the model is not accessible without a token
       cy.step('Verify the model is not accessible without a token');

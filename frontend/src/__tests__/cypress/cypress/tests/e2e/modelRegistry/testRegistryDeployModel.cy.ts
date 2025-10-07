@@ -182,10 +182,16 @@ describe('Verify models can be deployed from model registry', () => {
       cy.contains('Started', { timeout: 120000 }).should('be.visible');
 
       cy.step('Verify the model is deployed and started in backend');
-      checkInferenceServiceState(`${modelName}-v10`, projectName, {
-        checkReady: true,
-        checkLatestDeploymentReady: true,
-      });
+      // For KServe Raw deployments, we only need to check Ready condition
+      // LatestDeploymentReady is specific to Serverless deployments
+      checkInferenceServiceState(
+        `${modelName}-v10`,
+        projectName,
+        {
+          checkReady: true,
+        },
+        'RawDeployment',
+      );
     },
   );
 });

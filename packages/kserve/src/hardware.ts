@@ -1,5 +1,9 @@
 import { extractHardwareProfileConfigFromInferenceService } from '@odh-dashboard/internal/concepts/hardwareProfiles/useServingHardwareProfileConfig';
-import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import type {
+  HardwareProfileConfig,
+  useHardwareProfileConfig,
+} from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import type { InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
 import type { KServeDeployment } from './deployments';
 
 export const extractHardwareProfileConfig = (
@@ -40,12 +44,20 @@ export const extractEnvironmentVariables = (
 };
 
 export const applyHardwareProfileToDeployment = (
-  kserveDeployment: KServeDeployment,
-  // TODO: use parameters to assemble hardware profile config for the deployment action
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  parameters: ReturnType<typeof useHardwareProfileConfig>,
-): KServeDeployment => {
-  return kserveDeployment;
+  inferenceService: InferenceServiceKind,
+  hardwareProfile: HardwareProfileConfig,
+): InferenceServiceKind => {
+  const result = structuredClone(inferenceService);
+  const hardwareProfileName = hardwareProfile.selectedProfile?.metadata.name ?? '';
+  const hardwareProfileNamespace = hardwareProfile.selectedProfile?.metadata.namespace ?? '';
+
+  result.metadata.annotations = {
+    ...result.metadata.annotations,
+    'opendatahub.io/hardware-profile-name': hardwareProfileName,
+    'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
+  };
+
+  return result;
 };
 
 export const extractAiAssetData = (
@@ -56,4 +68,14 @@ export const extractAiAssetData = (
       kserveDeployment.model.metadata.annotations?.['opendatahub.io/genai-asset'] === 'true',
     useCase: kserveDeployment.model.metadata.annotations?.['opendatahub.io/genai-use-case'] || '',
   };
+};
+
+export const applyReplicas = (
+  inferenceService: InferenceServiceKind,
+  numReplicas: number,
+): InferenceServiceKind => {
+  const result = structuredClone(inferenceService);
+  result.spec.predictor.minReplicas = numReplicas;
+  result.spec.predictor.maxReplicas = numReplicas;
+  return result;
 };

@@ -9,6 +9,9 @@ import {
   chatPlaygroundRootPath,
   genAiAiAssetsRoute,
   genAiChatPlaygroundRoute,
+  aiAssetsRootPath,
+  globChatPlaygroundAll,
+  globAiAssetsAll,
 } from '~/app/utilities/routes';
 
 import '@patternfly/chatbot/dist/css/main.css';
@@ -35,13 +38,13 @@ export const useNavData = (): NavDataItem[] => [
     children: [
       {
         label: 'Playground',
-        path: '/gen-ai/playground/*',
-        href: '/gen-ai/playground',
+        path: globChatPlaygroundAll,
+        href: chatPlaygroundRootPath,
       },
       {
         label: 'AI asset endpoints',
-        path: '/gen-ai/assets/*',
-        href: '/gen-ai/assets',
+        path: globAiAssetsAll,
+        href: aiAssetsRootPath,
       },
     ],
   },

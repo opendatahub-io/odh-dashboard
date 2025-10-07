@@ -3,9 +3,12 @@ import { Button, Truncate, Label, ButtonVariant } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import { CheckCircleIcon, ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { ResourceNameTooltip, TableRowTitleDescription, TruncatedText } from 'mod-arch-shared';
+import { useNavigate } from 'react-router-dom';
 import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
 import { convertAIModelToK8sResource } from '~/app/utilities/utils';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
+import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
+import { GenAiContext } from '~/app/context/GenAiContext';
 import AIModelsTableRowEndpoint from './AIModelsTableRowEndpoint';
 
 type AIModelTableRowProps = {
@@ -13,7 +16,6 @@ type AIModelTableRowProps = {
   model: AIModel;
   models: AIModel[];
   playgroundModels: LlamaModel[];
-  onTryInPlayground: (model: AIModel) => void;
 };
 
 const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
@@ -21,10 +23,10 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
   model,
   models,
   playgroundModels,
-  onTryInPlayground,
 }) => {
-  const playgroundModelIds = new Set(playgroundModels.map((m) => m.id));
-  const isPlaygroundModel = playgroundModelIds.has(model.model_name);
+  const navigate = useNavigate();
+  const { namespace } = React.useContext(GenAiContext);
+  const enabledModel = playgroundModels.find((m) => m.modelId === model.model_id);
   const [isConfigurationModalOpen, setIsConfigurationModalOpen] = React.useState(false);
 
   return (
@@ -66,8 +68,17 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
           )}
         </Td>
         <Td dataLabel="Playground">
-          {isPlaygroundModel ? (
-            <Button variant={ButtonVariant.secondary} onClick={() => onTryInPlayground(model)}>
+          {enabledModel ? (
+            <Button
+              variant={ButtonVariant.secondary}
+              onClick={() =>
+                navigate(genAiChatPlaygroundRoute(namespace?.name), {
+                  state: {
+                    model: enabledModel.id,
+                  },
+                })
+              }
+            >
               Try in playground
             </Button>
           ) : (
