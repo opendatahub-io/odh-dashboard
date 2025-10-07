@@ -1043,7 +1043,7 @@ class ModelServingWizard extends Wizard {
   }
 
   findExistingConnectionSelect() {
-    return cy.findByTestId('existing-connection-select');
+    return cy.findByTestId('typeahead-menu-toggle');
   }
 
   findExistingConnectionValue() {
