@@ -39,6 +39,13 @@ jobs:
           CYPRESS_PORT=$((4010 + (${{ strategy.job-index }} * 10)))
           echo "CYPRESS_PORT=$CYPRESS_PORT" >> $GITHUB_ENV
           echo "Allocated port $CYPRESS_PORT for ${{ matrix.test-tag }}"
+          
+          # Stagger job starts to avoid simultaneous Cypress/Chrome initialization conflicts
+          STAGGER_DELAY=$((${{ strategy.job-index }} * 10))
+          if [ $STAGGER_DELAY -gt 0 ]; then
+            echo "Staggering start by ${STAGGER_DELAY}s to avoid resource conflicts..."
+            sleep $STAGGER_DELAY
+          fi
 
       - name: Cache npm dependencies
         uses: actions/cache@v4
@@ -326,6 +333,7 @@ jobs:
           cp ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml "$TEST_VARS_FILE"
           
           echo "Setting test URLs to localhost:$CYPRESS_PORT in $TEST_VARS_FILE"
+          # Set BOTH URLs to localhost with dynamic port (matching working pipeline approach)
           sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:$CYPRESS_PORT|" "$TEST_VARS_FILE"
           sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:$CYPRESS_PORT|" "$TEST_VARS_FILE"
           
@@ -339,10 +347,14 @@ jobs:
 
       - name: Start Cypress Server
         run: |
-          echo "🧹 Cleaning up any existing processes..."
-          pkill -f "webpack.*serve" || echo "No webpack processes found"
+          echo "🧹 Cleaning up any existing processes on port $CYPRESS_PORT..."
+          # Kill any processes using this specific port (critical for self-hosted runners)
           lsof -ti:$CYPRESS_PORT | xargs kill -9 2>/dev/null || echo "No processes on port $CYPRESS_PORT"
-          sleep 2
+          # Kill webpack processes
+          pkill -f "webpack.*serve" || echo "No webpack processes found"
+          # Kill any zombie Cypress processes (they can hold thousands of connections and block new runs)
+          pkill -9 -f "Cypress" 2>/dev/null || echo "No Cypress processes found"
+          sleep 3
           
           echo "🚀 Starting webpack dev server with cluster proxy..."
           cd frontend && ODH_PORT=$CYPRESS_PORT npm run start:dev:ext &
@@ -456,10 +468,16 @@ jobs:
           echo "📋 Test group: ${{ matrix.test-tag }}"
 
           echo "🔄 Using Chrome browser"
+          echo "🌐 DEBUG: Cypress will connect to BASE_URL: $BASE_URL"
+          echo "📄 DEBUG: Using test config file: $CY_TEST_CONFIG"
+          if [ -f "$CY_TEST_CONFIG" ]; then
+            echo "📄 DEBUG: Test config contents:"
+            grep -E "(ODH_DASHBOARD_URL|OCP_CONSOLE_URL|BASE_URL)" "$CY_TEST_CONFIG" || echo "No URL configs found"
+          fi
 
           mkdir -p "$CY_RESULTS_DIR"
 
-          BASE_URL=http://localhost:$CYPRESS_PORT npm run cypress:run:chrome -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+          BASE_URL=http://localhost:$CYPRESS_PORT npm run cypress:run:chrome -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos",experimentalMemoryManagement=true,numTestsKeptInMemory=0
 
       - name: Test tag name
         if: ${{ always() }}
@@ -500,8 +518,15 @@ jobs:
     steps:
       - name: Stop Cypress Servers
         run: |
-          echo "🛑 Stopping webpack dev server..."
+          echo "🛑 Stopping webpack dev server and browsers..."
+          # Kill Chrome/Chromium processes
+          pkill -9 chrome 2>/dev/null || echo "No chrome processes found"
+          pkill -9 chromium 2>/dev/null || echo "No chromium processes found"
+          # Kill webpack processes
           pkill -f "webpack.*serve" || echo "No webpack processes found"
+          # Kill Cypress processes
+          pkill -9 cypress 2>/dev/null || echo "No cypress processes found"
+          # Clean up ports
           for port in 4010 4020 4030; do
             lsof -ti:$port | xargs kill -9 2>/dev/null || true
           done
