@@ -15,7 +15,7 @@ import {
   EmptyStateBody,
   Tooltip,
 } from '@patternfly/react-core';
-import { FileIcon, SyncAltIcon, TimesIcon } from '@patternfly/react-icons';
+import { FileIcon, TimesIcon } from '@patternfly/react-icons';
 import { FileModel } from '~/app/types';
 import DeleteFileModal from './DeleteFileModal';
 
@@ -24,7 +24,6 @@ interface UploadedFilesListProps {
   isLoading: boolean;
   isDeleting: boolean;
   error: string | null;
-  onRefresh: () => void;
   onDeleteFile: (fileId: string) => void;
 }
 
@@ -45,7 +44,6 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
   isLoading,
   isDeleting,
   error,
-  onRefresh,
   onDeleteFile,
 }) => {
   const [fileToDelete, setFileToDelete] = React.useState<FileModel | null>(null);
@@ -73,16 +71,7 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
       <Card>
         <CardTitle>
           <Flex>
-            <FlexItem>Uploaded Files</FlexItem>
-            <FlexItem align={{ default: 'alignRight' }}>
-              <Button
-                variant="plain"
-                icon={<SyncAltIcon />}
-                onClick={onRefresh}
-                isDisabled={isLoading}
-                aria-label="Refresh files"
-              />
-            </FlexItem>
+            <FlexItem>Uploaded files</FlexItem>
           </Flex>
         </CardTitle>
         <CardBody>
@@ -99,16 +88,7 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
       <Card>
         <CardTitle>
           <Flex>
-            <FlexItem>Uploaded Files</FlexItem>
-            <FlexItem align={{ default: 'alignRight' }}>
-              <Button
-                variant="plain"
-                icon={<SyncAltIcon />}
-                onClick={onRefresh}
-                isDisabled={isLoading}
-                aria-label="Refresh files"
-              />
-            </FlexItem>
+            <FlexItem>Uploaded files</FlexItem>
           </Flex>
         </CardTitle>
         <CardBody>
@@ -134,15 +114,6 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
       <CardTitle>
         <Flex>
           <FlexItem>Uploaded files</FlexItem>
-          <FlexItem align={{ default: 'alignRight' }}>
-            <Button
-              variant="plain"
-              icon={<SyncAltIcon />}
-              onClick={onRefresh}
-              isDisabled={isLoading}
-              aria-label="Refresh files"
-            />
-          </FlexItem>
         </Flex>
       </CardTitle>
       <CardBody>
