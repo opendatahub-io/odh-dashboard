@@ -30,7 +30,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       id: 'gen-ai-studio',
       title: 'Gen AI studio',
       group: '4_gen_ai_studio',
-      iconRef: () => import('./GenAiStudioIcon'),
+      iconRef: () => import('./GenAiStudioNavIcon'),
     },
   },
   {

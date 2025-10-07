@@ -1,0 +1,7 @@
+:root {
+  --gen-ai-header-icon-bg: var(--pf-t--color--teal--10);
+}
+
+.pf-v6-theme-dark {
+  --gen-ai-header-icon-bg: var(--pf-t--color--teal--50);
+}

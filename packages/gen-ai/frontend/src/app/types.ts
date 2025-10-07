@@ -292,3 +292,5 @@ export type {
   MCPErrorDetails,
   MCPServerUIStatus,
 } from './types/mcp';
+
+export type IconType = React.ComponentType<{ style?: React.CSSProperties }>;
