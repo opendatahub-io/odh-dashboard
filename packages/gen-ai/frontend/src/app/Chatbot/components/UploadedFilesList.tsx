@@ -15,7 +15,7 @@ import {
   EmptyStateBody,
   Tooltip,
 } from '@patternfly/react-core';
-import { FileIcon, TrashIcon, SyncAltIcon } from '@patternfly/react-icons';
+import { FileIcon, SyncAltIcon, TimesIcon } from '@patternfly/react-icons';
 import { FileModel } from '~/app/types';
 import DeleteFileModal from './DeleteFileModal';
 
@@ -133,7 +133,7 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
     <Card>
       <CardTitle>
         <Flex>
-          <FlexItem>Uploaded Files ({files.length})</FlexItem>
+          <FlexItem>Uploaded files</FlexItem>
           <FlexItem align={{ default: 'alignRight' }}>
             <Button
               variant="plain"
@@ -150,37 +150,39 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
           {files.map((file) => (
             <ListItem key={file.id}>
               <Split hasGutter>
-                <SplitItem style={{ alignSelf: 'flex-start', paddingTop: '0.25rem' }}>
+                <SplitItem>
                   <FileIcon />
                 </SplitItem>
                 <SplitItem isFilled>
-                  <div style={{ minWidth: 0 }}>
+                  <div className="pf-u-min-width-0">
                     <div
-                      style={{
-                        fontWeight: 'bold',
-                        wordBreak: 'break-word',
-                        lineHeight: '1.3',
-                      }}
+                      className="pf-u-font-weight-bold pf-u-word-break-word"
                       title={file.filename}
                     >
-                      {file.filename}
-                    </div>
-                    <div style={{ fontSize: '0.875rem', color: '#6a6e73', marginTop: '0.25rem' }}>
-                      {formatFileSize(file.bytes)} • Uploaded {formatDate(file.created_at)}
+                      {file.filename} {formatFileSize(file.bytes)}
                     </div>
                   </div>
                 </SplitItem>
-                <SplitItem style={{ alignSelf: 'flex-start', paddingTop: '0.25rem' }}>
-                  <Tooltip content="Delete file">
-                    <Button
-                      variant="plain"
-                      icon={<TrashIcon />}
-                      onClick={() => handleDeleteClick(file)}
-                      isDisabled={isDeleting}
-                      aria-label={`Delete ${file.filename}`}
-                      isDanger
-                    />
-                  </Tooltip>
+                <SplitItem>
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                    <FlexItem>
+                      <div className="pf-u-font-size-sm pf-u-color-200">
+                        {formatDate(file.created_at)}
+                      </div>
+                    </FlexItem>
+                    <FlexItem>
+                      <Tooltip content="Delete file">
+                        <Button
+                          variant="plain"
+                          icon={<TimesIcon />}
+                          onClick={() => handleDeleteClick(file)}
+                          isDisabled={isDeleting}
+                          aria-label={`Delete ${file.filename}`}
+                          isDanger
+                        />
+                      </Tooltip>
+                    </FlexItem>
+                  </Flex>
                 </SplitItem>
               </Split>
             </ListItem>

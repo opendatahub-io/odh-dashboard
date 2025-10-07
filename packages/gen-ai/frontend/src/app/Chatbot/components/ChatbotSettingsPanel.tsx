@@ -64,7 +64,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   return (
     <DrawerPanelContent isResizable defaultSize="400px" minSize="300px">
       <DrawerPanelBody>
-        <Accordion asDefinitionList={false} isBordered>
+        <Accordion asDefinitionList={false}>
           {/* Model Details Accordion Item */}
           <AccordionItem
             isExpanded={accordionState.expandedAccordionItems.includes(

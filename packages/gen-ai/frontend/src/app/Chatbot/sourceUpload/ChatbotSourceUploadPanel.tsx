@@ -97,9 +97,7 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
             <div className="pf-v6-c-multiple-file-upload__title-icon">
               <FileIcon aria-hidden="true" />
             </div>
-            <div className="pf-v6-c-multiple-file-upload__title-text">
-              Drag and drop files here or upload
-            </div>
+            <div className="pf-v6-c-multiple-file-upload__title-text">Add files</div>
           </div>
           <div className="pf-v6-c-multiple-file-upload__upload">
             <Button variant="secondary" onClick={handleUploadClick} isDisabled={isAtLimit}>
@@ -107,8 +105,8 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
             </Button>
           </div>
           <div className="pf-v6-c-multiple-file-upload__info">
-            Accepted file types: PDF, DOC, CSV (max{' '}
-            {FILE_UPLOAD_CONFIG.MAX_FILE_SIZE / (1024 * 1024)}MB per file)
+            Upload up to 10 PDF, DOC or CSV files. Maximum size{' '}
+            {FILE_UPLOAD_CONFIG.MAX_FILE_SIZE / (1024 * 1024)} mb per file.
           </div>
           <input
             ref={fileInputRef}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Divider, Grid, GridItem, Progress, ProgressVariant } from '@patternfly/react-core';
-import { FileIcon } from '@patternfly/react-icons';
+import { FileIcon, TimesIcon } from '@patternfly/react-icons';
 import { FileStatus } from '~/app/Chatbot/hooks/useSourceManagement';
 import { formatFileSize } from './utils';
 
@@ -55,8 +55,12 @@ export const UploadedFileItem: React.FC<UploadedFileItemProps> = ({
           </GridItem>
 
           {/* Second column: Progress with file name and size in title */}
-          <GridItem span={11} className="pf-v6-u-px-sm">
+          <GridItem span={10} className="pf-v6-u-px-sm">
             <Progress value={getProgressValue()} title={title} variant={getProgressVariant()} />
+          </GridItem>
+
+          <GridItem span={1}>
+            <TimesIcon className="pf-v6-u-color-200" />
           </GridItem>
         </Grid>
       </div>

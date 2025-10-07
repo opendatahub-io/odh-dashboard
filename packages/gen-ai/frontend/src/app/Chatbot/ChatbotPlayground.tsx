@@ -183,7 +183,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                       setLastInput(message);
                     }
                   }}
-                  hasAttachButton
+                  hasAttachButton={false}
                   isSendButtonDisabled={chatbotMessages.isMessageSendButtonDisabled}
                   data-testid="chatbot-message-bar"
                   onAttach={async (acceptedFiles, fileRejections, event) => {
