@@ -28,13 +28,13 @@ import {
   ServingRuntimeModel,
   TemplateModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
-import { ServingRuntimeModelType, ServingRuntimePlatform } from '#~/types';
+import { ServingRuntimeModelType } from '#~/types';
 import { mockGlobalScopedHardwareProfiles } from '#~/__mocks__/mockHardwareProfile';
 import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
   mockOciConnectionTypeConfigMap,
-} from '../../../../../../__mocks__/mockConnectionType';
+} from '#~/__mocks__/mockConnectionType';
 import { mockCustomSecretK8sResource } from '../../../../../../__mocks__/mockSecretK8sResource';
 import { mockPVCK8sResource } from '../../../../../../__mocks__/mockPVCK8sResource';
 
@@ -107,13 +107,11 @@ const initIntercepts = ({
         mockServingRuntimeTemplateK8sResource({
           name: 'template-2',
           displayName: 'OpenVINO',
-          platforms: [ServingRuntimePlatform.SINGLE],
           modelTypes: [ServingRuntimeModelType.PREDICTIVE],
         }),
         mockServingRuntimeTemplateK8sResource({
           name: 'template-3',
           displayName: 'Caikit',
-          platforms: [ServingRuntimePlatform.SINGLE],
           modelTypes: [ServingRuntimeModelType.PREDICTIVE],
           supportedModelFormats: [
             {
@@ -125,7 +123,6 @@ const initIntercepts = ({
         mockServingRuntimeTemplateK8sResource({
           name: 'template-4',
           displayName: 'vLLM AMD',
-          platforms: [ServingRuntimePlatform.SINGLE],
           modelTypes: [ServingRuntimeModelType.GENERATIVE],
           supportedModelFormats: [
             {
@@ -136,7 +133,6 @@ const initIntercepts = ({
         mockServingRuntimeTemplateK8sResource({
           name: 'template-5',
           displayName: 'vLLM NVIDIA',
-          platforms: [ServingRuntimePlatform.SINGLE],
           modelTypes: [ServingRuntimeModelType.GENERATIVE],
           supportedModelFormats: [
             {
@@ -1391,20 +1387,18 @@ describe('Model Serving Deploy Wizard', () => {
   });
 
   describe('redirect from v2 to v3 route', () => {
-    // TODO: visit directly when plugin is enabled
-    const featureFlagParam = '?devFeatureFlags=Model+Serving+Plugin%3Dtrue';
     beforeEach(() => {
       initIntercepts({});
     });
 
     it('deploy create', () => {
-      cy.visitWithLogin(`/modelServing/test-project/deploy/create${featureFlagParam}`);
+      cy.visitWithLogin(`/modelServing/test-project/deploy/create`);
       cy.findByTestId('app-page-title').contains('Deploy a model');
       cy.url().should('include', '/ai-hub/deployments/test-project/deploy/create');
     });
 
     it('deploy edit', () => {
-      cy.visitWithLogin(`/modelServing/test-project/deploy/edit/test-model${featureFlagParam}`);
+      cy.visitWithLogin(`/modelServing/test-project/deploy/edit/test-model`);
       cy.findByTestId('app-page-title').contains('Edit model deployment');
       cy.url().should('include', '/ai-hub/deployments/test-project/deploy/edit/test-model');
     });

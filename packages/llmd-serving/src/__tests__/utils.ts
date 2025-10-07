@@ -35,6 +35,8 @@ export const mockLLMInferenceServiceK8sResource = ({
   metadata: {
     annotations: {
       'openshift.io/display-name': displayName,
+      'opendatahub.io/hardware-profile-name': 'small-profile',
+      'opendatahub.io/hardware-profile-namespace': 'opendatahub',
     },
     creationTimestamp,
     ...(deleted ? { deletionTimestamp: new Date().toUTCString() } : {}),

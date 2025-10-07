@@ -687,8 +687,10 @@ class ModelMeshRow extends ModelServingRow {
 }
 
 class KServeRow extends ModelMeshRow {
-  findToggleButton() {
-    return this.find().findByTestId('kserve-model-row-item').find('button');
+  findToggleButton(platform?: string) {
+    return this.find()
+      .findByTestId(`${platform || 'kserve'}-model-row-item`)
+      .find('button');
   }
 
   findDescriptionListItem(itemName: string) {
@@ -835,10 +837,6 @@ class ModelServingSection {
 
   find() {
     return cy.findByTestId('section-model-server');
-  }
-
-  findDescriptionListItem(itemName: string) {
-    return this.find().next('tr').find(`dt:contains("${itemName}")`);
   }
 
   private findKServeTable() {
@@ -1024,10 +1022,6 @@ class ModelServingWizard extends Wizard {
     return this.findModelLocationSelect().findSelectOption(name);
   }
 
-  findExistingConnectionSelect() {
-    return cy.findByTestId('typeahead-menu-toggle');
-  }
-
   findLocationPathInput() {
     return cy.findByTestId('folder-path');
   }
@@ -1046,6 +1040,19 @@ class ModelServingWizard extends Wizard {
 
   findUrilocationInputError() {
     return cy.findByTestId('uri-form-field-helper-text');
+  }
+
+  findExistingConnectionSelect() {
+    return cy.findByTestId('existing-connection-select');
+  }
+
+  findExistingConnectionValue() {
+    return this.findExistingConnectionSelect().findByRole('combobox');
+  }
+
+  findExistingConnectionSelectOption(name: string) {
+    cy.findByRole('listbox');
+    return cy.findByText(name);
   }
 
   findExternalRouteCheckbox() {
