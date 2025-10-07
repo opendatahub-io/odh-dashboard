@@ -1,173 +1,110 @@
 import * as React from 'react';
-import {
-  Button,
-  Truncate,
-  Label,
-  Popover,
-  ClipboardCopy,
-  ButtonVariant,
-  Content,
-  Flex,
-  FlexItem,
-  ContentVariants,
-} from '@patternfly/react-core';
+import { Button, Truncate, Label, ButtonVariant } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
-import { CheckCircleIcon, PlusCircleIcon, InfoCircleIcon } from '@patternfly/react-icons';
-import { TableRowTitleDescription } from 'mod-arch-shared';
-import { AIModel } from '~/app/types';
+import { CheckCircleIcon, ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
+import { ResourceNameTooltip, TableRowTitleDescription, TruncatedText } from 'mod-arch-shared';
+import { useNavigate } from 'react-router-dom';
+import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
+import { convertAIModelToK8sResource } from '~/app/utilities/utils';
+import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
+import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
+import { GenAiContext } from '~/app/context/GenAiContext';
+import AIModelsTableRowEndpoint from './AIModelsTableRowEndpoint';
 
 type AIModelTableRowProps = {
+  lsdStatus: LlamaStackDistributionModel | null;
   model: AIModel;
-  onTryInPlayground: (model: AIModel) => void;
+  models: AIModel[];
+  playgroundModels: LlamaModel[];
 };
 
-const AIModelTableRow: React.FC<AIModelTableRowProps> = ({ model, onTryInPlayground }) => (
-  <Tr>
-    <Td dataLabel="Model deployment name">
-      <TableRowTitleDescription
-        title={
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            {model.model_name}
-            <Popover
-              position="right"
-              bodyContent={
-                <Flex>
-                  <FlexItem>
-                    <Content component={ContentVariants.small}>
-                      Resource names and types are used to find your resources in OpenShift.
-                    </Content>
-                  </FlexItem>
-                  <FlexItem>
-                    <Flex>
-                      <FlexItem>
-                        <Content
-                          style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
-                        >
-                          Resource name
-                        </Content>
-                      </FlexItem>
-                      <FlexItem>
-                        <ClipboardCopy
-                          hoverTip="Copy"
-                          clickTip="Copied"
-                          style={{ fontFamily: 'monospace' }}
-                          aria-label={`Resource name for ${model.model_name}`}
-                        >
-                          {model.model_name}
-                        </ClipboardCopy>
-                      </FlexItem>
-                    </Flex>
-                  </FlexItem>
-                  <FlexItem>
-                    <Flex direction={{ default: 'column' }}>
-                      <FlexItem>
-                        <Content
-                          style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
-                        >
-                          Resource type
-                        </Content>
-                      </FlexItem>
-                      <FlexItem>
-                        <Content style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                          InferenceService
-                        </Content>
-                      </FlexItem>
-                    </Flex>
-                  </FlexItem>
-                </Flex>
+const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
+  lsdStatus,
+  model,
+  models,
+  playgroundModels,
+}) => {
+  const navigate = useNavigate();
+  const { namespace } = React.useContext(GenAiContext);
+  const enabledModel = playgroundModels.find((m) => m.modelId === model.model_id);
+  const [isConfigurationModalOpen, setIsConfigurationModalOpen] = React.useState(false);
+
+  return (
+    <>
+      <Tr>
+        <Td dataLabel="Model deployment name">
+          <>
+            <TableRowTitleDescription
+              title={
+                <ResourceNameTooltip resource={convertAIModelToK8sResource(model)} wrap>
+                  {model.display_name}
+                </ResourceNameTooltip>
+              }
+            />
+            {/* The shared TableRowTitleDescription component only accepts a string for the description
+         * so we need to use the TruncatedText component to truncate the description
+         and take it out of the TableRowTitleDescription component */}
+            <TruncatedText maxLines={2} content={model.description} style={{ cursor: 'help' }} />
+          </>
+        </Td>
+        <Td dataLabel="Internal endpoint">
+          <AIModelsTableRowEndpoint model={model} />
+        </Td>
+        <Td dataLabel="External endpoint">
+          <AIModelsTableRowEndpoint model={model} isExternal />
+        </Td>
+        <Td dataLabel="Use Case">
+          <Truncate content={model.usecase} />
+        </Td>
+        <Td dataLabel="Status">
+          {model.status === 'Running' ? (
+            <Label color="green" icon={<CheckCircleIcon />}>
+              Active
+            </Label>
+          ) : (
+            <Label color="red" icon={<ExclamationCircleIcon />}>
+              Inactive
+            </Label>
+          )}
+        </Td>
+        <Td dataLabel="Playground">
+          {enabledModel ? (
+            <Button
+              variant={ButtonVariant.secondary}
+              onClick={() =>
+                navigate(genAiChatPlaygroundRoute(namespace?.name), {
+                  state: {
+                    model: enabledModel.id,
+                  },
+                })
               }
             >
-              <Button
-                variant={ButtonVariant.plain}
-                aria-label={`Resource information for ${model.model_name}`}
-              >
-                <InfoCircleIcon />
-              </Button>
-            </Popover>
-          </div>
-        }
-        description={model.description}
-      />
-    </Td>
-    <Td dataLabel="Internal endpoint">
-      {model.internalEndpoint ? (
-        <Popover
-          position="right"
-          headerContent={
-            <div style={{ padding: '16px 16px 0 16px' }}>
-              <div style={{ margin: 0, fontSize: 'var(--pf-t--global--font--size--h3)' }}>
-                Internal Endpoint URL
-              </div>
-            </div>
-          }
-          bodyContent={
-            <div style={{ padding: '0 16px 16px 16px' }}>
-              <ClipboardCopy
-                hoverTip="Copy"
-                clickTip="Copied"
-                aria-label={`Internal endpoint URL for ${model.model_name}`}
-              >
-                {model.internalEndpoint}
-              </ClipboardCopy>
-            </div>
-          }
-        >
-          <Button variant={ButtonVariant.link}>View</Button>
-        </Popover>
-      ) : (
-        '—'
+              Try in playground
+            </Button>
+          ) : (
+            <Button
+              variant={ButtonVariant.link}
+              icon={<PlusCircleIcon />}
+              onClick={() => setIsConfigurationModalOpen(true)}
+              isDisabled={model.status !== 'Running'}
+            >
+              Add to playground
+            </Button>
+          )}
+        </Td>
+      </Tr>
+      {isConfigurationModalOpen && (
+        <ChatbotConfigurationModal
+          onClose={() => setIsConfigurationModalOpen(false)}
+          lsdStatus={lsdStatus}
+          allModels={models}
+          existingModels={playgroundModels}
+          extraSelectedModels={[model]}
+          redirectToPlayground
+        />
       )}
-    </Td>
-    <Td dataLabel="External endpoint">
-      {model.externalEndpoint ? (
-        <Popover
-          position="right"
-          headerContent={
-            <div style={{ padding: '16px 16px 0 16px' }}>
-              <div style={{ margin: 0, fontSize: 'var(--pf-t--global--font--size--h3)' }}>
-                External Endpoint URL
-              </div>
-            </div>
-          }
-          bodyContent={
-            <div style={{ padding: '0 16px 16px 16px' }}>
-              <ClipboardCopy
-                hoverTip="Copy"
-                clickTip="Copied"
-                style={{ fontFamily: 'monospace' }}
-                aria-label={`External endpoint URL for ${model.model_name}`}
-              >
-                {model.externalEndpoint}
-              </ClipboardCopy>
-            </div>
-          }
-        >
-          <Button variant={ButtonVariant.link}>View</Button>
-        </Popover>
-      ) : (
-        '—'
-      )}
-    </Td>
-    <Td dataLabel="Use Case">
-      <Truncate content={model.usecase} />
-    </Td>
-    <Td dataLabel="Status">
-      <Label color="green" icon={<CheckCircleIcon />}>
-        Active
-      </Label>
-    </Td>
-    <Td dataLabel="Playground">
-      {model.playgroundStatus === 'available' ? (
-        <Button variant={ButtonVariant.secondary} onClick={() => onTryInPlayground(model)}>
-          Try in playground
-        </Button>
-      ) : (
-        <Button variant={ButtonVariant.link} icon={<PlusCircleIcon />} isDisabled>
-          Add to playground
-        </Button>
-      )}
-    </Td>
-  </Tr>
-);
+    </>
+  );
+};
 
 export default AIModelTableRow;

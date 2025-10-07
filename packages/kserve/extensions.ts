@@ -6,9 +6,7 @@ import type {
   ModelServingPlatformExtension,
   ModelServingDeleteModal,
   ModelServingPlatformWatchDeploymentsExtension,
-  ModelServingDeploymentsExpandedInfo,
   ModelServingMetricsExtension,
-  ModelServingDeploymentResourcesExtension,
   ModelServingAuthExtension,
   DeployedModelServingDetails,
   ModelServingStartStopAction,
@@ -25,10 +23,8 @@ export const KSERVE_ID = 'kserve';
 const extensions: (
   | ModelServingPlatformExtension<KServeDeployment>
   | ModelServingPlatformWatchDeploymentsExtension<KServeDeployment>
-  | ModelServingDeploymentResourcesExtension<KServeDeployment>
   | ModelServingDeploymentFormDataExtension<KServeDeployment>
   | ModelServingAuthExtension<KServeDeployment>
-  | ModelServingDeploymentsExpandedInfo<KServeDeployment>
   | ModelServingDeleteModal<KServeDeployment>
   | ModelServingMetricsExtension<KServeDeployment>
   | DeployedModelServingDetails<KServeDeployment>
@@ -76,13 +72,6 @@ const extensions: (
     },
   },
   {
-    type: 'model-serving.deployment/resources',
-    properties: {
-      platform: KSERVE_ID,
-      useResources: () => import('./src/useKServeResources').then((m) => m.useKServeResources),
-    },
-  },
-  {
     type: 'model-serving.auth',
     properties: {
       platform: KSERVE_ID,
@@ -91,16 +80,7 @@ const extensions: (
     },
   },
   {
-    type: 'model-serving.deployments-table/expanded-info',
-    properties: {
-      platform: KSERVE_ID,
-      useReplicas: () => import('./src/deploymentExpandedDetails').then((m) => m.useKserveReplicas),
-      useFramework: () =>
-        import('./src/deploymentExpandedDetails').then((m) => m.useKserveFramework),
-    },
-  },
-  {
-    type: 'model-serving.platform/delete-modal',
+    type: 'model-serving.platform/delete-deployment',
     properties: {
       platform: KSERVE_ID,
       onDelete: () => import('./src/deployments').then((m) => m.deleteDeployment),
@@ -144,19 +124,23 @@ const extensions: (
     properties: {
       platform: KSERVE_ID,
       extractHardwareProfileConfig: () =>
-        import('./src/useKServeResources').then((m) => m.extractHardwareProfileConfig),
+        import('./src/hardware').then((m) => m.extractHardwareProfileConfig),
       extractModelFormat: () => import('./src/modelFormat').then((m) => m.extractKServeModelFormat),
-      extractReplicas: () => import('./src/useKServeResources').then((m) => m.extractReplicas),
-      extractRuntimeArgs: () =>
-        import('./src/useKServeResources').then((m) => m.extractRuntimeArgs),
+      extractReplicas: () => import('./src/hardware').then((m) => m.extractReplicas),
+      extractRuntimeArgs: () => import('./src/hardware').then((m) => m.extractRuntimeArgs),
       extractEnvironmentVariables: () =>
-        import('./src/useKServeResources').then((m) => m.extractEnvironmentVariables),
+        import('./src/hardware').then((m) => m.extractEnvironmentVariables),
+      extractAiAssetData: () => import('./src/aiAssets').then((m) => m.extractAiAssetData),
+      extractModelLocationData: () =>
+        import('./src/modelLocationData').then((m) => m.extractKServeModelLocationData),
     },
   },
   {
     type: 'model-serving.deployment/deploy',
     properties: {
       platform: KSERVE_ID,
+      isActive: true,
+      priority: 0,
       deploy: () => import('./src/deploy').then((m) => m.deployKServeDeployment),
     },
   },

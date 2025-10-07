@@ -13,11 +13,11 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { setupDefaults } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
+import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
 import { ModelDeploymentWizardData } from './useDeploymentWizard';
 import {
   getModelTypeFromDeployment,
-  setupModelLocationData,
   getTokenAuthenticationFromDeployment,
   getExternalRouteFromDeployment,
 } from './utils';
@@ -26,10 +26,7 @@ import {
   ModelDeploymentsContext,
   ModelDeploymentsProvider,
 } from '../../concepts/ModelDeploymentsContext';
-import {
-  ModelServingPlatform,
-  useProjectServingPlatform,
-} from '../../concepts/useProjectServingPlatform';
+import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
 import { useAvailableClusterPlatforms } from '../../concepts/useAvailableClusterPlatforms';
 import { useResolvedDeploymentExtension } from '../../concepts/extensionUtils';
 
@@ -45,8 +42,8 @@ const ErrorContent: React.FC<{ error: Error }> = ({ error }) => {
         <EmptyStateBody>{error.message}</EmptyStateBody>
         <EmptyStateFooter>
           <EmptyStateActions>
-            <Button variant="primary" onClick={() => navigate(`/modelServing/`)}>
-              Return to model serving
+            <Button variant="primary" onClick={() => navigate(`/ai-hub/deployments/`)}>
+              Return to deployments
             </Button>
           </EmptyStateActions>
         </EmptyStateFooter>
@@ -95,7 +92,7 @@ const EditModelDeploymentPage: React.FC = () => {
 
   return (
     <ModelDeploymentsProvider projects={[currentProject]}>
-      <EditModelDeploymentContent project={currentProject} modelServingPlatform={activePlatform} />
+      <EditModelDeploymentContent project={currentProject} />
     </ModelDeploymentsProvider>
   );
 };
@@ -104,10 +101,10 @@ export default EditModelDeploymentPage;
 
 const EditModelDeploymentContent: React.FC<{
   project: ProjectKind;
-  modelServingPlatform: ModelServingPlatform;
-}> = ({ project, modelServingPlatform }) => {
+}> = ({ project }) => {
   const { name: deploymentName } = useParams();
   const { deployments, loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
+  const { dashboardNamespace } = useDashboardNamespace();
 
   const existingDeployment = React.useMemo(() => {
     return deployments?.find((d: Deployment) => d.model.metadata.name === deploymentName);
@@ -123,14 +120,37 @@ const EditModelDeploymentContent: React.FC<{
     k8sNameDesc: setupDefaults({ initialData: deployment.model }),
     hardwareProfile:
       formDataExtension?.properties.extractHardwareProfileConfig(deployment) ?? undefined,
-    modelFormat: formDataExtension?.properties.extractModelFormat(deployment) ?? undefined,
+    modelFormat:
+      typeof formDataExtension?.properties.extractModelFormat === 'function'
+        ? formDataExtension.properties.extractModelFormat(deployment) ?? undefined
+        : undefined,
     numReplicas: formDataExtension?.properties.extractReplicas(deployment) ?? undefined,
-    modelLocationData: setupModelLocationData(), // TODO: Implement fully in next ticket RHOAIENG-32186
+    modelLocationData:
+      formDataExtension?.properties.extractModelLocationData(deployment) ?? undefined,
     externalRoute: getExternalRouteFromDeployment(deployment),
     tokenAuthentication: getTokenAuthenticationFromDeployment(deployment),
-    runtimeArgs: formDataExtension?.properties.extractRuntimeArgs(deployment) ?? undefined,
+    runtimeArgs:
+      typeof formDataExtension?.properties.extractRuntimeArgs === 'function'
+        ? formDataExtension.properties.extractRuntimeArgs(deployment) ?? undefined
+        : undefined,
     environmentVariables:
-      formDataExtension?.properties.extractEnvironmentVariables(deployment) ?? undefined,
+      typeof formDataExtension?.properties.extractEnvironmentVariables === 'function'
+        ? formDataExtension.properties.extractEnvironmentVariables(deployment) ?? undefined
+        : undefined,
+    aiAssetData:
+      typeof formDataExtension?.properties.extractAiAssetData === 'function'
+        ? formDataExtension.properties.extractAiAssetData(deployment) ?? undefined
+        : undefined,
+    modelServer: {
+      name: deployment.server?.metadata.annotations?.['opendatahub.io/template-name'] || '',
+      namespace:
+        deployment.server?.metadata.annotations?.['opendatahub.io/serving-runtime-scope'] ===
+        'global'
+          ? dashboardNamespace
+          : deployment.server?.metadata.namespace || '',
+      scope:
+        deployment.server?.metadata.annotations?.['opendatahub.io/serving-runtime-scope'] || '',
+    },
   });
 
   const formData = React.useMemo(() => {
@@ -157,9 +177,8 @@ const EditModelDeploymentContent: React.FC<{
       title="Edit model deployment"
       description="Update your model deployment configuration."
       primaryButtonText="Update deployment"
-      existingData={formData}
+      existingData={formData ? { ...formData, isEditing: true } : { isEditing: true }}
       project={project}
-      modelServingPlatform={modelServingPlatform}
     />
   );
 };

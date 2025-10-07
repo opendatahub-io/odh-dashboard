@@ -29,7 +29,10 @@ import {
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { ServingRuntimeModelType, ServingRuntimePlatform } from '#~/types';
 import { mockGlobalScopedHardwareProfiles } from '#~/__mocks__/mockHardwareProfile';
-import { mockConnectionTypeConfigMap } from '../../../../../../__mocks__/mockConnectionType';
+import {
+  mockConnectionTypeConfigMap,
+  mockModelServingFields,
+} from '../../../../../../__mocks__/mockConnectionType';
 
 const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) => {
   cy.interceptOdh(
@@ -65,6 +68,12 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
           properties: {},
         },
       ],
+    }),
+    mockConnectionTypeConfigMap({
+      displayName: 'S3',
+      name: 's3',
+      category: ['existing-category'],
+      fields: mockModelServingFields,
     }),
   ]).as('getConnectionTypes');
 
@@ -139,6 +148,18 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
       body: mockInferenceServiceK8sResource({ name: 'test-model', modelType }),
     },
   ).as('createInferenceService');
+
+  cy.interceptK8s(
+    'POST',
+    {
+      model: ServingRuntimeModel,
+      ns: 'test-project',
+    },
+    {
+      statusCode: 200,
+      body: mockServingRuntimeK8sResource({}),
+    },
+  ).as('createServingRuntime');
 
   cy.interceptK8s(
     'POST',
@@ -257,11 +278,13 @@ describe('Model Serving Deploy Wizard', () => {
     );
 
     // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin('/modelServing/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue');
+    cy.visitWithLogin(
+      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
+    );
     modelServingGlobal.findDeployModelButton().click();
     cy.findByRole('heading', { name: 'Deploy a model' }).should('exist');
     cy.findByRole('button', { name: 'Cancel' }).click();
-    cy.url().should('include', '/modelServing/test-project');
+    cy.url().should('include', '/deployments/test-project');
 
     cy.visitWithLogin(
       '/projects/test-project?section=model-server&devFeatureFlags=Model+Serving+Plugin%3Dtrue',
@@ -284,7 +307,9 @@ describe('Model Serving Deploy Wizard', () => {
     );
 
     // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin('/modelServing/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue');
+    cy.visitWithLogin(
+      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
+    );
     modelServingGlobal.findDeployModelButton().click();
 
     // Step 1: Model source
@@ -307,11 +332,13 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findModelDeploymentDescriptionInput().type('test-description');
-    modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
     hardwareProfileSection.findSelect().should('contain.text', 'Small');
 
     // hardwareProfileSection.findGlobalScopedLabel().should('exist');
     modelServingWizard.findModelFormatSelect().should('not.exist');
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().should('exist');
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.findGlobalScopedTemplateOption('vLLM NVIDIA').should('exist').click();
 
     modelServingWizard.findNumReplicasInput().should('exist');
     modelServingWizard.findNumReplicasInputField().should('have.value', '1');
@@ -328,6 +355,15 @@ describe('Model Serving Deploy Wizard', () => {
     // Step 3: Advanced Options
     // Model access & Token authentication
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+    // AI Asset
+    modelServingWizard.findSaveAiAssetCheckbox().should('exist');
+    modelServingWizard.findSaveAiAssetCheckbox().should('not.be.checked');
+    modelServingWizard.findUseCaseInput().should('not.exist');
+    modelServingWizard.findSaveAiAssetCheckbox().click();
+    modelServingWizard.findUseCaseInput().should('exist');
+    modelServingWizard.findUseCaseInput().should('be.enabled');
+    modelServingWizard.findUseCaseInput().type('test');
+
     modelServingWizard.findExternalRouteCheckbox().click();
     modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
     modelServingWizard.findTokenAuthenticationCheckbox().click();
@@ -348,6 +384,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 4: Summary
+
     modelServingWizard.findSubmitButton().should('be.enabled').click();
 
     // dry run request
@@ -366,6 +403,8 @@ describe('Model Serving Deploy Wizard', () => {
           'opendatahub.io/hardware-profile-name': 'small-profile',
           'opendatahub.io/model-type': 'generative',
           'security.opendatahub.io/enable-auth': 'true',
+          'opendatahub.io/genai-asset': 'true',
+          'opendatahub.io/genai-use-case': 'test',
         },
       },
       spec: {
@@ -416,7 +455,37 @@ describe('Model Serving Deploy Wizard', () => {
       expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
     });
 
-    //dry run request
+    cy.wait('@createServingRuntime').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'test-model',
+          annotations: {
+            'opendatahub.io/apiProtocol': 'REST',
+            'opendatahub.io/runtime-version': '1.0.0',
+            'opendatahub.io/template-display-name': 'vLLM NVIDIA',
+            'openshift.io/display-name': 'vLLM NVIDIA',
+          },
+          labels: { 'opendatahub.io/dashboard': 'true' },
+          namespace: 'test-project',
+        },
+      });
+      expect(interception.request.body.spec).to.containSubset({
+        supportedModelFormats: [{ name: 'vLLM' }],
+      });
+    });
+
+    // Actual request
+    cy.wait('@createServingRuntime').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    // the serving runtime should have been created
+    cy.get('@createServingRuntime.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
+
+    // dry run request
     cy.wait('@createServiceAccount').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
       expect(interception.request.body).to.containSubset({
@@ -530,7 +599,9 @@ describe('Model Serving Deploy Wizard', () => {
     );
 
     // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin('/modelServing/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue');
+    cy.visitWithLogin(
+      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
+    );
     modelServingGlobal.findDeployModelButton().click();
 
     // Step 1: Model source
@@ -557,11 +628,18 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelFormatSelect().should('exist');
     modelServingWizard.findModelFormatSelectOption('vLLM').should('not.exist');
     modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().should('exist');
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 3: Advanced Options
     // Model access & Token authentication
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+
+    modelServingWizard.findSaveAiAssetCheckbox().should('not.exist');
+    modelServingWizard.findUseCaseInput().should('not.exist');
+
     modelServingWizard.findExternalRouteCheckbox().click();
     modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
     modelServingWizard.findTokenAuthenticationCheckbox().click();
@@ -578,6 +656,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 4: Summary
+
     modelServingWizard.findSubmitButton().should('be.enabled').click();
 
     // dry run request
@@ -643,6 +722,37 @@ describe('Model Serving Deploy Wizard', () => {
     cy.get('@createInferenceService.all').then((interceptions) => {
       expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
     });
+
+    // dry run request
+    cy.wait('@createServingRuntime').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'test-model',
+          annotations: {
+            'opendatahub.io/apiProtocol': 'REST',
+            'opendatahub.io/runtime-version': '1.0.0',
+            'opendatahub.io/template-display-name': 'OpenVINO',
+            'openshift.io/display-name': 'OpenVINO',
+          },
+          labels: { 'opendatahub.io/dashboard': 'true' },
+          namespace: 'test-project',
+        },
+      });
+      expect(interception.request.body.spec).to.containSubset({
+        supportedModelFormats: [{ name: 'openvino_ir', version: 'opset1' }],
+      });
+    });
+
+    // Actual request
+    cy.wait('@createServingRuntime').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    // the serving runtime should have been created
+    cy.get('@createServingRuntime.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
   });
 
   it('Edit an existing deployment', () => {
@@ -652,6 +762,7 @@ describe('Model Serving Deploy Wizard', () => {
       mockK8sResourceList([
         mockInferenceServiceK8sResource({
           modelType: ServingRuntimeModelType.PREDICTIVE,
+          hasExternalRoute: true,
           hardwareProfileName: 'large-profile',
           hardwareProfileNamespace: 'opendatahub',
           description: 'test-description',
@@ -665,8 +776,8 @@ describe('Model Serving Deploy Wizard', () => {
               memory: '16Gi',
             },
           },
+          storageUri: 'https://test',
         }),
-        mockInferenceServiceK8sResource({ storageUri: 'https://test' }),
       ]),
     );
     cy.interceptK8sList(
@@ -675,20 +786,21 @@ describe('Model Serving Deploy Wizard', () => {
     );
 
     // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin('/modelServing/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue');
+    cy.visitWithLogin(
+      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
+    );
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
 
     // Step 1: Model source
+    modelServingWizardEdit.findModelLocationSelect().should('exist');
+    modelServingWizardEdit.findUrilocationInput().should('have.value', 'https://test');
     modelServingWizardEdit.findModelSourceStep().should('be.enabled');
     modelServingWizardEdit.findNextButton().should('be.enabled');
 
-    // Need to update this when you extract model type from deployment
     modelServingWizardEdit
-      .findModelTypeSelectOption('Predictive model')
-      .should('have.attr', 'aria-selected', 'true');
-
-    modelServingWizardEdit.findModelLocationSelect().should('exist');
-    modelServingWizardEdit.findUrilocationInput().should('have.value', 'https://test');
+      .findModelTypeSelect()
+      .should('have.text', 'Predictive model')
+      .should('be.disabled');
 
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
@@ -706,7 +818,10 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findModelDeploymentNameInput().type('test-model');
     hardwareProfileSection.findSelect().should('be.visible');
     hardwareProfileSection.findSelect().should('contain.text', 'Large Profile');
-
+    modelServingWizardEdit.findServingRuntimeTemplateSearchSelector().should('exist');
+    modelServingWizardEdit
+      .findServingRuntimeTemplateSearchSelector()
+      .should('contain.text', 'OpenVINO');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
     // Step 3: Advanced options
@@ -715,5 +830,25 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findTokenAuthenticationCheckbox().click();
     modelServingWizardEdit.findServiceAccountByIndex(0).should('have.value', 'default-name');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
+  });
+
+  describe('redirect from v2 to v3 route', () => {
+    // TODO: visit directly when plugin is enabled
+    const featureFlagParam = '?devFeatureFlags=Model+Serving+Plugin%3Dtrue';
+    beforeEach(() => {
+      initIntercepts({});
+    });
+
+    it('deploy create', () => {
+      cy.visitWithLogin(`/modelServing/test-project/deploy/create${featureFlagParam}`);
+      cy.findByTestId('app-page-title').contains('Deploy a model');
+      cy.url().should('include', '/ai-hub/deployments/test-project/deploy/create');
+    });
+
+    it('deploy edit', () => {
+      cy.visitWithLogin(`/modelServing/test-project/deploy/edit/test-model${featureFlagParam}`);
+      cy.findByTestId('app-page-title').contains('Edit model deployment');
+      cy.url().should('include', '/ai-hub/deployments/test-project/deploy/edit/test-model');
+    });
   });
 });

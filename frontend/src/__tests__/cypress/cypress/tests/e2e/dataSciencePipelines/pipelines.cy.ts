@@ -33,7 +33,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
     'An admin User can Import and Run a Pipeline',
     { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@Pipelines'] },
     () => {
-      cy.step('Navigate to DSP ${projectName}');
+      cy.step('Navigate to Pipelines ${projectName}');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);

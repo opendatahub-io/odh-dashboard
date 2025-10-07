@@ -1,5 +1,12 @@
 import React from 'react';
-import { ImageStreamKind, AcceleratorProfileKind, HardwareProfileKind } from '#~/k8sTypes';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
+import {
+  ImageStreamKind,
+  AcceleratorProfileKind,
+  HardwareProfileKind,
+  NotebookKind,
+} from '#~/k8sTypes';
 import { getCompatibleIdentifiers } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import {
   Toleration,
@@ -10,6 +17,7 @@ import {
 } from '#~/types';
 import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 import { splitValueUnit, CPU_UNITS, MEMORY_UNITS_FOR_PARSING } from '#~/utilities/valueUnits';
+import { ResourceType } from './types';
 
 export const formatToleration = (toleration: Toleration): string => {
   const parts = [`Key = ${toleration.key}`];
@@ -173,4 +181,8 @@ export const getProfileScore = (profile: HardwareProfileKind): number => {
   });
 
   return score;
+};
+
+export const resourceTypeOf = (r: NotebookKind | ModelResourceType): ResourceType => {
+  return r.kind === 'Notebook' ? 'workbench' : 'deployment';
 };

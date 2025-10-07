@@ -1,6 +1,6 @@
 class EnabledPage {
   visit() {
-    cy.visitWithLogin('/enabled');
+    cy.visitWithLogin('/applications/enabled');
     this.wait();
   }
 

@@ -13,7 +13,7 @@ const DistributedWorkloadsNoProjects: React.FC = () => {
       <EmptyStateFooter>
         <NewProjectButton
           closeOnCreate
-          onProjectCreated={() => navigate('/distributedWorkloads')}
+          onProjectCreated={() => navigate('/observe-monitor/workload-metrics')}
         />
       </EmptyStateFooter>
     </EmptyState>

@@ -475,7 +475,7 @@ describe('Workbench image settings', () => {
           displayName: 'Test Hardware Profile Not Visible',
           annotations: {
             'opendatahub.io/dashboard-feature-visibility': JSON.stringify([
-              HardwareProfileFeatureVisibility.PIPELINES,
+              HardwareProfileFeatureVisibility.MODEL_SERVING,
             ]),
           },
           identifiers: [
@@ -717,5 +717,31 @@ describe('Workbench image settings', () => {
     importNotebookImageModal.find().should('exist');
     importNotebookImageModal.findCloseButton().click();
     importNotebookImageModal.find().should('not.exist');
+  });
+
+  describe('redirect from v2 to v3 route', () => {
+    it('root', () => {
+      cy.visitWithLogin('/workbenchImages');
+      cy.findByTestId('app-page-title').contains('Workbench images');
+      cy.url().should('include', '/settings/environment-setup/workbench-images');
+    });
+
+    it('hardware profile create', () => {
+      cy.visitWithLogin('/workbenchImages/hardwareProfile/create');
+      cy.findByTestId('app-page-title').contains('Create hardware profile');
+      cy.url().should(
+        'include',
+        '/settings/environment-setup/workbench-images/hardware-profile/create',
+      );
+    });
+
+    it('accelerator profile create', () => {
+      cy.visitWithLogin('/workbenchImages/acceleratorProfile/create');
+      cy.findByTestId('app-page-title').contains('Create accelerator profile');
+      cy.url().should(
+        'include',
+        '/settings/environment-setup/workbench-images/accelerator-profile/create',
+      );
+    });
   });
 });

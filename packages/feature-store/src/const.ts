@@ -6,10 +6,10 @@ export const FEATURE_STORE_UI_LABEL_VALUE = 'enabled';
 
 export enum FeatureStoreObject {
   ENTITIES = 'entities',
-  FEATURE_VIEWS = 'featureViews',
-  FEATURE_SERVICES = 'featureServices',
-  DATA_SETS = 'dataSets',
-  DATA_SOURCES = 'dataSources',
+  FEATURE_VIEWS = 'feature-views',
+  FEATURE_SERVICES = 'feature-services',
+  DATA_SETS = 'datasets',
+  DATA_SOURCES = 'data-sources',
   OVERVIEW = 'overview',
   FEATURES = 'features',
 }

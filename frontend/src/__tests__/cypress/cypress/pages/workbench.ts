@@ -267,6 +267,37 @@ class NotebookRow extends TableRow {
       cy.findByTestId('notebook-image-version-popover').click(),
     );
   }
+
+  findHardwareProfileColumn() {
+    return this.find().findByTestId('hardware-profile-table-column');
+  }
+
+  findHardwareProfileDeletedLabel() {
+    return this.findHardwareProfileColumn().findByTestId('hardware-profile-status-deleted');
+  }
+
+  findHardwareProfileDisabledLabel() {
+    return this.findHardwareProfileColumn().findByTestId('hardware-profile-status-disabled');
+  }
+
+  findHardwareProfileUpdatedLabel() {
+    return this.findHardwareProfileColumn().findByTestId('hardware-profile-status-updated');
+  }
+
+  findHardwareProfileDeletedPopover() {
+    return {
+      title: () => cy.findByTestId('hardware-profile-status-deleted-popover-title'),
+      body: () => cy.findByTestId('hardware-profile-status-deleted-popover-body'),
+    };
+  }
+
+  findHardwareProfileErrorIcon() {
+    return this.find().findByTestId('hardware-profile-column-error-icon');
+  }
+
+  findHardwareProfileErrorPopover() {
+    return cy.findByTestId('hardware-profile-column-error-popover');
+  }
 }
 
 class AttachExistingStorageModal extends Modal {

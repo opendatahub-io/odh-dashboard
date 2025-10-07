@@ -112,7 +112,7 @@ describe('Settings - User Management - Unauthorized Permission Change', () => {
 
       cy.step('Attempt to access User Management');
       // Try to access the settings page directly
-      cy.visit('/groupSettings', { failOnStatusCode: false });
+      cy.visit('/settings/user-management', { failOnStatusCode: false });
 
       // Verify we get the not found page
       cy.step('Verify unauthorized access shows not found page');

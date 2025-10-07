@@ -28,7 +28,7 @@ const GlobalModelsPage: React.FC = () => {
 
   React.useEffect(() => {
     if (!namespace && preferredProject) {
-      navigate(`/modelServing/${preferredProject.metadata.name}`, { replace: true });
+      navigate(`/ai-hub/deployments/${preferredProject.metadata.name}`, { replace: true });
     }
   }, [namespace, preferredProject, navigate]);
 

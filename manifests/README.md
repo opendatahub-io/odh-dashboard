@@ -75,3 +75,15 @@ git diff --no-index before-odh-test.yaml after-odh-test.yaml > output-odh.diff
 ```
 
 Viewing the diffs will help you understand what changed.
+
+## Automated Validation
+
+The repository includes a GitHub Actions workflow (`.github/workflows/validate-kustomize.yml`) that automatically validates manifest changes using Kustomize. This workflow:
+
+- **Triggers automatically** on pushes and pull requests that modify files in the `manifests/` directory
+- **Validates all deployment types** in parallel:
+  - RHOAI Add-on (`manifests/rhoai/addon`)
+  - RHOAI On-Prem (`manifests/rhoai/onprem`)
+  - ODH (`manifests/odh`)
+
+This validation ensures that any manifest changes don't break the Kustomize build process before they're merged. If you see validation failures in CI, you can run the same `kustomize build` commands locally to debug the issue.

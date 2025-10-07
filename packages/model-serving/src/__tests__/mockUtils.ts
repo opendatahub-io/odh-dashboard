@@ -6,8 +6,13 @@ import {
   useExtensions,
   type UseResolvedExtensionsResult,
 } from '@odh-dashboard/plugin-core';
+import * as _ from 'lodash-es';
 import type { Extension, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
+import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/internal/__mocks__/mockK8sNameDescriptionFieldData';
+import { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
+import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { ModelServingPlatform } from '../concepts/useProjectServingPlatform';
+import type { UseModelDeploymentWizardState } from '../components/deploymentWizard/useDeploymentWizard';
 
 export const mockModelServingPlatform = ({
   id = 'kserve',
@@ -115,3 +120,97 @@ export const mockExtensions = (
 
   return { mockUseResolvedExtensions, mockUseExtensions };
 };
+
+export const mockDeploymentWizardState = (
+  overrides: RecursivePartial<UseModelDeploymentWizardState> = {},
+): UseModelDeploymentWizardState =>
+  _.merge(
+    {
+      initialData: undefined,
+      state: {
+        modelType: {
+          data: ServingRuntimeModelType.GENERATIVE,
+          setData: jest.fn(),
+        },
+        modelLocationData: {
+          data: undefined,
+          setData: jest.fn(),
+          connections: [],
+          setSelectedConnection: jest.fn(),
+          selectedConnection: undefined,
+          isLoadingSecretData: true,
+          project: null,
+          connectionsLoaded: true,
+          connectionTypes: [],
+          connectionTypesLoaded: true,
+        },
+        k8sNameDesc: {
+          data: mockK8sNameDescriptionFieldData(),
+          onDataChange: jest.fn(),
+        },
+        hardwareProfileConfig: {
+          formData: {
+            selectedProfile: undefined,
+            useExistingSettings: false,
+            resources: undefined,
+          },
+          initialHardwareProfile: undefined,
+          isFormDataValid: true,
+          setFormData: jest.fn(),
+          resetFormData: jest.fn(),
+          profilesLoaded: true,
+          profilesLoadError: undefined,
+        },
+        modelFormatState: {
+          modelFormatOptions: [],
+          modelFormat: undefined,
+          setModelFormat: jest.fn(),
+          isVisible: false,
+          error: undefined,
+          loaded: true,
+          templatesFilteredForModelType: [],
+        },
+        externalRoute: {
+          data: undefined,
+          setData: jest.fn(),
+          updateField: jest.fn(),
+        },
+        tokenAuthentication: {
+          data: undefined,
+          setData: jest.fn(),
+          updateField: jest.fn(),
+        },
+        runtimeArgs: {
+          data: undefined,
+          setData: jest.fn(),
+        },
+        environmentVariables: {
+          data: undefined,
+          setData: jest.fn(),
+        },
+        numReplicas: {
+          data: undefined,
+          setReplicas: jest.fn(),
+        },
+        aiAssetData: {
+          data: {
+            saveAsAiAsset: false,
+            useCase: '',
+          },
+          setData: jest.fn(),
+        },
+        modelServer: {
+          data: undefined,
+          setData: jest.fn(),
+          options: [],
+        },
+      },
+      loaded: {
+        modelSourceLoaded: true,
+        modelDeploymentLoaded: true,
+        advancedOptionsLoaded: true,
+        summaryLoaded: true,
+      },
+    },
+    overrides,
+  );

@@ -55,7 +55,9 @@ const AcceleratorProfilesTableRow: React.FC<AcceleratorProfilesTableRowType> = (
             {
               title: 'Edit',
               onClick: () =>
-                navigate(`/acceleratorProfiles/edit/${acceleratorProfile.metadata.name}`),
+                navigate(
+                  `/settings/environment-setup/accelerator-profiles/edit/${acceleratorProfile.metadata.name}`,
+                ),
             },
             { isSeparator: true },
             {

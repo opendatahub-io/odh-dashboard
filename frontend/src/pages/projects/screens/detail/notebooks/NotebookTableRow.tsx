@@ -23,7 +23,7 @@ import { useAppContext } from '#~/app/AppContext';
 import StopNotebookConfirmModal from '#~/pages/projects/notebook/StopNotebookConfirmModal';
 import { useNotebookKindPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import NotebookTableRowHardwareProfile from '#~/pages/projects/screens/detail/notebooks/NotebookTableRowHardwareProfile';
+import HardwareProfileTableColumn from '#~/concepts/hardwareProfiles/HardwareProfileTableColumn';
 import StateActionToggle from '#~/components/StateActionToggle';
 import { NotebookImageStatus } from './const';
 import { NotebookImageDisplayName } from './NotebookImageDisplayName';
@@ -203,11 +203,11 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
           >
             <FlexItem>
               {isHardwareProfileAvailable ? (
-                <NotebookTableRowHardwareProfile
+                <HardwareProfileTableColumn
                   namespace={obj.notebook.metadata.namespace}
-                  loaded={podSpecOptionsState.hardwareProfile.profilesLoaded}
-                  loadError={podSpecOptionsState.hardwareProfile.profilesLoadError}
-                  hardwareProfile={podSpecOptionsState.hardwareProfile.initialHardwareProfile}
+                  resource={obj.notebook}
+                  containerResources={podSpecOptionsState.podSpecOptions.resources}
+                  isActive={obj.isRunning || obj.isStarting}
                 />
               ) : (
                 notebookSize?.name ?? <i>{lastDeployedSize.name}</i>

@@ -52,7 +52,11 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
         ) : (
           <Button
             variant="link"
-            onClick={() => navigate(`/modelRegistrySettings/permissions/${mr.metadata.name}`)}
+            onClick={() =>
+              navigate(
+                `/settings/model-resources-operations/model-registry/permissions/${mr.metadata.name}`,
+              )
+            }
           >
             Manage permissions
           </Button>

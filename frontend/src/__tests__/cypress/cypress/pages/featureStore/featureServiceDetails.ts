@@ -3,7 +3,7 @@ import { Contextual } from '#~/__tests__/cypress/cypress/pages/components/Contex
 class FeatureServiceDetails {
   visit(project: string, featureServiceName: string) {
     cy.visitWithLogin(
-      `/featureStore/featureServices/${project}/${featureServiceName}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/feature-services/${project}/${featureServiceName}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     this.wait(featureServiceName);
   }

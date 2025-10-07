@@ -15,7 +15,11 @@ import type { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelSe
 import type { ToggleState } from '@odh-dashboard/internal/components/StateActionToggle';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
 import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
-import type { UseModelDeploymentWizardState } from '../src/components/deploymentWizard/useDeploymentWizard';
+import type { ModelLocationData } from '../src/components/deploymentWizard/fields/modelLocationFields/types';
+import type {
+  WizardFormData,
+  DeploymentWizardField,
+} from '../src/components/deploymentWizard/types';
 
 export type DeploymentStatus = {
   state: ModelDeploymentState;
@@ -132,18 +136,6 @@ export const isModelServingPlatformWatchDeployments = <D extends Deployment = De
 ): extension is ModelServingPlatformWatchDeploymentsExtension<D> =>
   extension.type === 'model-serving.platform/watch-deployments';
 
-export type ModelServingDeploymentResourcesExtension<D extends Deployment = Deployment> = Extension<
-  'model-serving.deployment/resources',
-  {
-    platform: D['modelServingPlatformId'];
-    useResources: CodeRef<(deployment: D) => ModelServingPodSpecOptionsState | null>;
-  }
->;
-export const isModelServingDeploymentResourcesExtension = <D extends Deployment = Deployment>(
-  extension: Extension,
-): extension is ModelServingDeploymentResourcesExtension<D> =>
-  extension.type === 'model-serving.deployment/resources';
-
 export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deployment> = Extension<
   'model-serving.deployment/form-data',
   {
@@ -151,12 +143,16 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
     extractHardwareProfileConfig: CodeRef<
       (deployment: D) => Parameters<typeof useHardwareProfileConfig> | null
     >;
-    extractModelFormat: CodeRef<(deployment: D) => SupportedModelFormats | null>;
+    extractModelFormat?: CodeRef<(deployment: D) => SupportedModelFormats | null>;
     extractReplicas: CodeRef<(deployment: D) => number | null>;
     extractRuntimeArgs: CodeRef<(deployment: D) => { enabled: boolean; args: string[] } | null>;
     extractEnvironmentVariables: CodeRef<
       (deployment: D) => { enabled: boolean; variables: { name: string; value: string }[] } | null
     >;
+    extractAiAssetData: CodeRef<
+      (deployment: D) => { saveAsAiAsset: boolean; useCase: string } | null
+    >;
+    extractModelLocationData: CodeRef<(deployment: D) => ModelLocationData | null>;
   }
 >;
 export const isModelServingDeploymentFormDataExtension = <D extends Deployment = Deployment>(
@@ -193,21 +189,8 @@ export const isModelServingDeploymentsTableExtension = <D extends Deployment = D
 ): extension is ModelServingDeploymentsTableExtension<D> =>
   extension.type === 'model-serving.deployments-table';
 
-export type ModelServingDeploymentsExpandedInfo<D extends Deployment = Deployment> = Extension<
-  'model-serving.deployments-table/expanded-info',
-  {
-    platform: D['modelServingPlatformId'];
-    useFramework: CodeRef<(deployment: D) => string | null>;
-    useReplicas: CodeRef<(deployment: D) => number | null>;
-  }
->;
-export const isModelServingDeploymentsExpandedInfo = <D extends Deployment = Deployment>(
-  extension: Extension,
-): extension is ModelServingDeploymentsExpandedInfo<D> =>
-  extension.type === 'model-serving.deployments-table/expanded-info';
-
 export type ModelServingDeleteModal<D extends Deployment = Deployment> = Extension<
-  'model-serving.platform/delete-modal',
+  'model-serving.platform/delete-deployment',
   {
     platform: D['modelServingPlatformId'];
     onDelete: CodeRef<(deployment: D) => Promise<void>>;
@@ -219,7 +202,7 @@ export type ModelServingDeleteModal<D extends Deployment = Deployment> = Extensi
 export const isModelServingDeleteModal = <D extends Deployment = Deployment>(
   extension: Extension,
 ): extension is ModelServingDeleteModal<D> =>
-  extension.type === 'model-serving.platform/delete-modal';
+  extension.type === 'model-serving.platform/delete-deployment';
 
 export type ModelServingMetricsExtension<D extends Deployment = Deployment> = Extension<
   'model-serving.metrics',
@@ -278,11 +261,15 @@ export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
   'model-serving.deployment/deploy',
   {
     platform: D['modelServingPlatformId'];
+    isActive: CodeRef<(wizardData: WizardFormData['state']) => boolean> | true;
+    priority?: number;
     deploy: CodeRef<
       (
-        wizardData: UseModelDeploymentWizardState['state'],
+        wizardData: WizardFormData['state'],
         projectName: string,
         existingDeployment?: D,
+        serverResource?: D['server'],
+        serverResourceTemplateName?: string,
         dryRun?: boolean,
       ) => Promise<D>
     >;
@@ -292,3 +279,16 @@ export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
 export const isModelServingDeploy = <D extends Deployment = Deployment>(
   extension: Extension,
 ): extension is ModelServingDeploy<D> => extension.type === 'model-serving.deployment/deploy';
+
+// Deployment Wizard Fields
+export type DeploymentWizardFieldExtension<D extends Deployment = Deployment> = Extension<
+  'model-serving.deployment/wizard-field',
+  {
+    platform: D['modelServingPlatformId'];
+    field: CodeRef<DeploymentWizardField>;
+  }
+>;
+export const isDeploymentWizardFieldExtension = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is DeploymentWizardFieldExtension<D> =>
+  extension.type === 'model-serving.deployment/wizard-field';

@@ -3,7 +3,7 @@ import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { getId } from '~/app/utilities/utils';
 
 // Alert and notification constants
-export const ALERT_TIMEOUT_MS = 4000;
+export const ALERT_TIMEOUT_MS = 8000;
 
 // Accordion item identifiers
 export const ACCORDION_ITEMS = {

@@ -10,6 +10,7 @@ type ServingRuntimeReplicaSectionProps = {
   infoContent?: string;
 };
 
+/** @deprecated -- no more MM */
 const ServingRuntimeReplicaSection: React.FC<ServingRuntimeReplicaSectionProps> = ({
   data,
   setData,
@@ -20,7 +21,6 @@ const ServingRuntimeReplicaSection: React.FC<ServingRuntimeReplicaSectionProps> 
       infoContent={infoContent}
       onChange={(value) => setData('numReplicas', value)}
       value={data.numReplicas}
-      showMinMax
       maxValue={data.numReplicas}
     />
   </FormSection>

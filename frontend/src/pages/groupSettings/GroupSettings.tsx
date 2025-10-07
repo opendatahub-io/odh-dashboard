@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {
   Alert,
-  AlertActionCloseButton,
   Button,
   HelperText,
   HelperTextItem,
@@ -16,7 +15,10 @@ import { MultiSelection, SelectionOptions } from '#~/components/MultiSelection';
 import { useWatchGroups } from '#~/concepts/userConfigs/useWatchGroups';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
-import { GroupsConfigField } from '#~/concepts/userConfigs/groupTypes';
+import { GroupsConfigField, GroupStatus } from '#~/concepts/userConfigs/groupTypes';
+
+const CREATE_PREFIX = 'Define new group: ';
+const newGroupMessage = (value: string): string => `${CREATE_PREFIX}"${value}"`;
 
 const GroupSettings: React.FC = () => {
   const {
@@ -30,8 +32,8 @@ const GroupSettings: React.FC = () => {
     setIsGroupSettingsChanged,
   } = useWatchGroups();
 
-  const adminDesc = `Select the OpenShift groups that contain all ${ODH_PRODUCT_NAME} administrators.`;
-  const userDesc = `Select the OpenShift groups that contain all ${ODH_PRODUCT_NAME} users.`;
+  const adminDesc = `Select the groups that contain all ${ODH_PRODUCT_NAME} administrators.`;
+  const userDesc = `Select the groups that contain all ${ODH_PRODUCT_NAME} users.`;
 
   const handleSaveButtonClicked = async () => {
     if (isLoading) {
@@ -41,25 +43,24 @@ const GroupSettings: React.FC = () => {
   };
 
   const handleMenuItemSelection = (newState: SelectionOptions[], field: GroupsConfigField) => {
+    const processGroup = (opt: SelectionOptions): GroupStatus => ({
+      id: String(opt.id),
+      // Handle the create option situation -- show different in dropdown but not in selection
+      name: opt.name.startsWith(CREATE_PREFIX) ? String(opt.id) : opt.name,
+      enabled: opt.selected || false,
+    });
+
     switch (field) {
       case GroupsConfigField.ADMIN:
         setGroupSettings({
           ...groupSettings,
-          adminGroups: newState.map((opt) => ({
-            id: opt.id,
-            name: opt.name,
-            enabled: opt.selected || false,
-          })),
+          adminGroups: newState.map(processGroup),
         });
         break;
       case GroupsConfigField.USER:
         setGroupSettings({
           ...groupSettings,
-          allowedGroups: newState.map((opt) => ({
-            id: opt.id,
-            name: opt.name,
-            enabled: opt.selected || false,
-          })),
+          allowedGroups: newState.map(processGroup),
         });
         break;
     }
@@ -69,7 +70,7 @@ const GroupSettings: React.FC = () => {
   return (
     <ApplicationsPage
       title={<TitleWithIcon title="User management" objectType={ProjectObjectType.permissions} />}
-      description={`Define OpenShift group membership for ${ODH_PRODUCT_NAME} administrators and users.`}
+      description={`Define group membership for ${ODH_PRODUCT_NAME} administrators and users.`}
       loaded={loaded}
       empty={false}
       loadError={loadError}
@@ -105,27 +106,15 @@ const GroupSettings: React.FC = () => {
               selectionRequired
               noSelectedOptionsMessage="One or more group must be selected"
               popperProps={{ appendTo: document.body }}
+              isCreatable
+              createOptionMessage={newGroupMessage}
+              isCreateOptionOnTop
             />
-            {groupSettings.errorAdmin ? (
-              <Alert
-                isInline
-                variant="warning"
-                title="Group error"
-                actionClose={
-                  <AlertActionCloseButton
-                    onClose={() => setGroupSettings({ ...groupSettings, errorAdmin: undefined })}
-                  />
-                }
-              >
-                <p>{groupSettings.errorAdmin}</p>
-              </Alert>
-            ) : (
-              <HelperText>
-                <HelperTextItem>
-                  View, edit, or create groups in OpenShift under User Management
-                </HelperTextItem>
-              </HelperText>
-            )}
+            <HelperText>
+              <HelperTextItem>
+                Select from existing groups, or specify a new group name.
+              </HelperTextItem>
+            </HelperText>
           </SettingSection>
         </StackItem>
         <StackItem>
@@ -146,27 +135,15 @@ const GroupSettings: React.FC = () => {
               selectionRequired
               noSelectedOptionsMessage="One or more group must be selected"
               popperProps={{ appendTo: document.body }}
+              isCreatable
+              createOptionMessage={newGroupMessage}
+              isCreateOptionOnTop
             />
-            {groupSettings.errorUser ? (
-              <Alert
-                isInline
-                variant="warning"
-                title="Group error"
-                actionClose={
-                  <AlertActionCloseButton
-                    onClose={() => setGroupSettings({ ...groupSettings, errorUser: undefined })}
-                  />
-                }
-              >
-                <p>{groupSettings.errorUser}</p>
-              </Alert>
-            ) : (
-              <HelperText>
-                <HelperTextItem>
-                  View, edit, or create groups in OpenShift under User Management
-                </HelperTextItem>
-              </HelperText>
-            )}
+            <HelperText>
+              <HelperTextItem>
+                Select from existing groups, or specify a new group name.
+              </HelperTextItem>
+            </HelperText>
           </SettingSection>
         </StackItem>
         <StackItem>

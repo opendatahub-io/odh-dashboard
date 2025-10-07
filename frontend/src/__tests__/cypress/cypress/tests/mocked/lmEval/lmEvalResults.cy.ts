@@ -97,7 +97,7 @@ describe('LM Eval Results', () => {
 
     lmEvalList.getRow(COMPLETE_EVALUATION).clickEvaluationLink();
 
-    verifyRelativeURL(`/modelEvaluations/${TEST_PROJECT}/${COMPLETE_EVALUATION}`);
+    verifyRelativeURL(`/develop-train/evaluations/${TEST_PROJECT}/${COMPLETE_EVALUATION}`);
     lmEvalResultsPage.verifyPageTitle(COMPLETE_EVALUATION);
     lmEvalResultsPage.verifyBreadcrumbNavigation();
   });
@@ -158,7 +158,7 @@ describe('LM Eval Results', () => {
 
     lmEvalResultsPage.findBreadcrumbItem('Evaluations').click();
 
-    verifyRelativeURL('/modelEvaluations');
+    verifyRelativeURL('/develop-train/evaluations');
     lmEvalPage.findPageTitle().should('have.text', 'Evaluations');
   });
 

@@ -172,4 +172,12 @@ describe('LMEval Form', () => {
       .clickCancelButton()
       .shouldNavigateToModelEvaluationsHome();
   });
+
+  it('redirect from v2 to v3 route', () => {
+    setupBasicMocks(namespace);
+    cy.interceptK8sList({ model: InferenceServiceModel, ns: namespace }, mockK8sResourceList([]));
+    cy.visitWithLogin(`/modelEvaluations/${namespace}/evaluate`);
+    cy.findByTestId('app-page-title').contains('Start an evaluation run');
+    cy.url().should('include', `/develop-train/evaluations/${namespace}/evaluate`);
+  });
 });

@@ -24,7 +24,9 @@ const EmptyConnectionTypes: React.FC = () => (
         <Button
           data-testid="add-connection-type"
           variant="primary"
-          component={(props) => <Link {...props} to="/connectionTypes/create" />}
+          component={(props) => (
+            <Link {...props} to="/settings/environment-setup/connection-types/create" />
+          )}
         >
           Create connection type
         </Button>

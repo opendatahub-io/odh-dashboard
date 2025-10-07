@@ -95,13 +95,19 @@ make run STATIC_ASSETS_DIR=../frontend/dist
 make run ALLOWED_ORIGINS="http://localhost:3000,http://localhost:8080"
 ```
 
-## Running the BFF with mock llama stack client
+## Running the BFF with mock clients
 
-In order for easy development it is possible to run the BFF in such a way that it will return mock data from endpoints that call out to the llamastack service in production.
+In order for easy development it is possible to run the BFF in such a way that it will return mock data from endpoints that call out to external services in production.
 
 ```bash
 # Run the BFF with mock llama stack client
 make run MOCK_LS_CLIENT=true
+
+# Run the BFF with mock MaaS client
+make run MOCK_MAAS_CLIENT=true
+
+# Run the BFF with all mock clients for full offline development
+make dev-bff-mock
 ```
 
 ## Building and Running with Docker
@@ -154,6 +160,7 @@ The BFF supports the following configuration options:
 - `LOG_LEVEL`: Logging level (default: "DEBUG")
 - `ALLOWED_ORIGINS`: CORS allowed origins (default: none)
 - `LLAMA_STACK_URL`: **Base URL for the Llama Stack API.** All requests to `/api/llama-stack/*` will be proxied to this URL. Example: `http://llama-stack-service:8080`
+- `MAAS_URL`: **Base URL for the MaaS (Model as a Service) API.** Used for MaaS model and token management. Example: `http://maas-service:8080`
 
 These can be set as environment variables when running the container:
 
@@ -163,6 +170,7 @@ docker run -p 8080:8080 \
   -e LOG_LEVEL=INFO \
   -e ALLOWED_ORIGINS="*" \
   -e LLAMA_STACK_URL=http://llama-stack-service:8080 \
+  -e MAAS_URL=http://maas-service:8080 \
   gen-ai
 ```
 

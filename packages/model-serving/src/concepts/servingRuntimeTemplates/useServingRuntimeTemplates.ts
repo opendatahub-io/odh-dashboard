@@ -3,7 +3,7 @@ import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/p
 import { useTemplates } from '@odh-dashboard/internal/api/index';
 import useTemplateOrder from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/useTemplateOrder';
 import useTemplateDisablement from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/useTemplateDisablement';
-import type { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
+import { ServingRuntimePlatform, type CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import type { TemplateKind } from '@odh-dashboard/internal/k8sTypes';
 import {
   getSortedTemplates,
@@ -65,8 +65,12 @@ export const useServingRuntimeTemplates = (
       return [];
     }
     const sortedTemplates = getSortedTemplates(templates, order);
-    const filteredTemplates = sortedTemplates.filter((template) =>
-      getTemplateEnabled(template, disablement),
+    const filteredTemplates = sortedTemplates.filter(
+      (template) =>
+        getTemplateEnabled(template, disablement) &&
+        template.metadata.annotations?.['opendatahub.io/modelServingSupport']?.includes(
+          ServingRuntimePlatform.SINGLE,
+        ),
     );
 
     return filteredTemplates;

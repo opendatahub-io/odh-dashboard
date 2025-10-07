@@ -78,6 +78,7 @@ export enum MetadataAnnotation {
   K8sDescription = 'kubernetes.io/description',
   OdhStorageClassConfig = 'opendatahub.io/sc-config',
   Description = 'description',
+  ConnectionName = 'opendatahub.io/connections',
 }
 
 type StorageClassAnnotations = Partial<{
@@ -129,6 +130,8 @@ export type NotebookAnnotations = Partial<{
   'opendatahub.io/hardware-profile-namespace': string | null; // the namespace of the hardware profile used
   'opendatahub.io/workbench-image-namespace': string | null; // namespace of the
   'opendatahub.io/accelerator-profile-namespace': string | undefined; // the namespace of the accelerator profile used
+  'opendatahub.io/connections': string | undefined; // the connections attached to the notebook
+  'opendatahub.io/hardware-profile-resource-version': string; // resource version of hardware profile when assigned
 }>;
 
 export type DashboardLabels = {
@@ -500,7 +503,6 @@ export type SupportedModelFormats = {
 export enum DeploymentMode {
   ModelMesh = 'ModelMesh',
   RawDeployment = 'RawDeployment',
-  Serverless = 'Serverless',
 }
 
 export type InferenceServiceAnnotations = DisplayNameAnnotations &
@@ -512,6 +514,7 @@ export type InferenceServiceAnnotations = DisplayNameAnnotations &
     'sidecar.istio.io/rewriteAppHTTPProbers': 'true';
     'opendatahub.io/hardware-profile-name': string;
     'opendatahub.io/hardware-profile-namespace': string;
+    'opendatahub.io/hardware-profile-resource-version': string;
   }>;
 
 export type InferenceServiceLabels = Partial<{
@@ -1375,7 +1378,6 @@ export type LMEvalKind = K8sResourceCommon & {
 export enum HardwareProfileFeatureVisibility {
   WORKBENCH = 'workbench',
   MODEL_SERVING = 'model-serving',
-  PIPELINES = 'pipelines',
 }
 
 export type HardwareProfileKind = K8sResourceCommon & {

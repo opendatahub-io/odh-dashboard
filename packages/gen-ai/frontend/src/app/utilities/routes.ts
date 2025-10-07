@@ -1,7 +1,7 @@
 const globNamespace = ':namespace';
 export const globNamespaceAll = `/${globNamespace}?/*`;
 
-export const genAiRootPath = '/gen-ai';
+export const genAiRootPath = '/gen-ai-studio';
 export const globGenAiAll = `${genAiRootPath}/*`;
 
 export const chatPlaygroundRootPath = `${genAiRootPath}/playground`;

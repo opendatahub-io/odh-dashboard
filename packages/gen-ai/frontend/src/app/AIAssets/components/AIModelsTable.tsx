@@ -16,14 +16,10 @@ import {
   FlexItem,
   Popover,
   Content,
-  EmptyState,
-  EmptyStateVariant,
-  EmptyStateBody,
-  EmptyStateFooter,
 } from '@patternfly/react-core';
-import { CloseIcon, FilterIcon, SearchIcon } from '@patternfly/react-icons';
-import { Table } from 'mod-arch-shared';
-import { AIModel } from '~/app/types';
+import { CloseIcon, FilterIcon } from '@patternfly/react-icons';
+import { DashboardEmptyTableView, Table } from 'mod-arch-shared';
+import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
 import { aiModelColumns } from '~/app/AIAssets/data/columns';
 import useAIModelsFilter from '~/app/AIAssets/hooks/useAIModelsFilter';
 import { AIAssetsFilterOptions, aiAssetsFilterOptions } from '~/app/AIAssets/data/filterOptions';
@@ -31,10 +27,26 @@ import AIModelTableRow from './AIModelTableRow';
 
 type AIModelsTableProps = {
   models: AIModel[];
-  onTryInPlayground: (model: AIModel) => void;
+  playgroundModels: LlamaModel[];
+  lsdStatus: LlamaStackDistributionModel | null;
 };
 
-const AIModelsTable: React.FC<AIModelsTableProps> = ({ models, onTryInPlayground }) => {
+export const AIModelStatusPopoverContent: React.ReactNode = (
+  <Content component="ol">
+    <Content component="li">
+      Go to your <strong>model deployments</strong> page
+    </Content>
+    <Content component="li">
+      Select &apos;<strong>Edit</strong>&apos; to update your deployment
+    </Content>
+    <Content component="li">
+      Check the box: &apos;
+      <strong>Make this deployment available as an AI Asset</strong>&apos;
+    </Content>
+  </Content>
+);
+
+const AIModelsTable: React.FC<AIModelsTableProps> = ({ models, playgroundModels, lsdStatus }) => {
   const { filterData, onFilterUpdate, onClearFilters, filteredModels } = useAIModelsFilter(models);
 
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = React.useState(false);
@@ -145,20 +157,7 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({ models, onTryInPlayground
                 </div>
               }
               bodyContent={
-                <div style={{ padding: '0 16px 16px 16px' }}>
-                  <Content component="ol">
-                    <Content component="li">
-                      Go to your <strong>model deployments</strong> page
-                    </Content>
-                    <Content component="li">
-                      Select &apos;<strong>Edit</strong>&apos; to update your deployment
-                    </Content>
-                    <Content component="li">
-                      Check the box: &apos;
-                      <strong>Make this deployment available as an AI Asset</strong>&apos;
-                    </Content>
-                  </Content>
-                </div>
+                <div style={{ padding: '0 16px 16px 16px' }}>{AIModelStatusPopoverContent}</div>
               }
             >
               <Button variant={ButtonVariant.link} data-testid="dont-see-model-button">
@@ -224,28 +223,17 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({ models, onTryInPlayground
       columns={aiModelColumns}
       disableRowRenderSupport
       enablePagination
-      emptyTableView={
-        <EmptyState
-          titleText={
-            <span>
-              <SearchIcon />
-              No models found
-            </span>
-          }
-          variant={EmptyStateVariant.sm}
-        >
-          <EmptyStateBody>No models match your filter criteria.</EmptyStateBody>
-          <EmptyStateFooter>
-            <Button variant={ButtonVariant.link} onClick={onClearFilters}>
-              Clear filters
-            </Button>
-          </EmptyStateFooter>
-        </EmptyState>
-      }
+      emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
       toolbarContent={toolbarContent}
       onClearFilters={onClearFilters}
       rowRenderer={(model) => (
-        <AIModelTableRow key={model.id} model={model} onTryInPlayground={onTryInPlayground} />
+        <AIModelTableRow
+          lsdStatus={lsdStatus}
+          key={model.model_name}
+          model={model}
+          models={models}
+          playgroundModels={playgroundModels}
+        />
       )}
     />
   );

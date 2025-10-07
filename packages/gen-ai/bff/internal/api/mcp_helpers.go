@@ -10,7 +10,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	kubernetes "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp"
-	"github.com/opendatahub-io/gen-ai/internal/models/genaiassets"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
 // parseMCPEndpointParams extracts and validates query parameters common to MCP endpoints
@@ -79,7 +79,7 @@ func (app *App) findMCPServerConfig(
 	identity *integrations.RequestIdentity,
 	decodedURL string,
 	dashboardNamespace string,
-) (genaiassets.MCPServerConfig, error) {
+) (models.MCPServerConfig, error) {
 	servers, err := app.repositories.MCPClient.GetMCPServersFromConfig(
 		k8sClient,
 		ctx,
@@ -88,7 +88,7 @@ func (app *App) findMCPServerConfig(
 		constants.MCPServerName,
 	)
 	if err != nil {
-		return genaiassets.MCPServerConfig{}, fmt.Errorf("failed to get MCP server configurations: %w", err)
+		return models.MCPServerConfig{}, fmt.Errorf("failed to get MCP server configurations: %w", err)
 	}
 
 	for _, server := range servers {
@@ -97,7 +97,7 @@ func (app *App) findMCPServerConfig(
 		}
 	}
 
-	return genaiassets.MCPServerConfig{}, fmt.Errorf("MCP server not found for URL: %s", decodedURL)
+	return models.MCPServerConfig{}, fmt.Errorf("MCP server not found for URL: %s", decodedURL)
 }
 
 // handleMCPClientError maps MCP client errors to appropriate HTTP status codes

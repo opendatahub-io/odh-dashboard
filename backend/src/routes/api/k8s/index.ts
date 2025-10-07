@@ -1,5 +1,5 @@
 import { FastifyReply } from 'fastify';
-import { PassThroughData, passThroughText, passThroughResource } from './pass-through';
+import { PassThroughData, passThroughText, passThroughResource } from '../../../utils/pass-through';
 import { KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { logRequestDetails } from '../../../utils/fileUtils';
 

@@ -1,32 +1,10 @@
-import {
-  PatchUtils,
-  V1ResourceAttributes,
-  V1SelfSubjectAccessReview,
-} from '@kubernetes/client-node';
+import { PatchUtils, V1SelfSubjectAccessReview } from '@kubernetes/client-node';
 import { NamespaceApplicationCase } from './const';
 import { K8sStatus, KnownLabels, KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { createCustomError } from '../../../utils/requestUtils';
-import { isK8sStatus, passThroughResource } from '../k8s/pass-through';
+import { isK8sStatus } from '../../../utils/pass-through';
 import { getDashboardConfig } from '../../../utils/resourceUtils';
-
-export const createSelfSubjectAccessReview = (
-  fastify: KubeFastifyInstance,
-  request: OauthFastifyRequest,
-  resourceAttributes: V1ResourceAttributes,
-): Promise<V1SelfSubjectAccessReview | K8sStatus> => {
-  const kc = fastify.kube.config;
-  const cluster = kc.getCurrentCluster();
-  const selfSubjectAccessReviewObject: V1SelfSubjectAccessReview = {
-    apiVersion: 'authorization.k8s.io/v1',
-    kind: 'SelfSubjectAccessReview',
-    spec: { resourceAttributes },
-  };
-  return passThroughResource<V1SelfSubjectAccessReview>(fastify, request, {
-    url: `${cluster.server}/apis/authorization.k8s.io/v1/selfsubjectaccessreviews`,
-    method: 'POST',
-    requestData: JSON.stringify(selfSubjectAccessReviewObject),
-  });
-};
+import { createSelfSubjectAccessReview } from '../../../utils/authUtils';
 
 const checkAdminNamespacePermission = (
   fastify: KubeFastifyInstance,

@@ -21,7 +21,7 @@ class ModelServingToolbar extends Contextual<HTMLElement> {
 }
 class ModelServingGlobal {
   visit(project?: string) {
-    cy.visitWithLogin(`/modelServing${project ? `/${project}` : ''}`);
+    cy.visitWithLogin(`/ai-hub/deployments${project ? `/${project}` : ''}`);
     this.wait();
   }
 
@@ -93,6 +93,10 @@ class ModelServingGlobal {
     return this.findModelsTable().find(`[data-label=Name]`).contains(name).parents('tr');
   }
 
+  getInferenceServiceRow(name: string) {
+    return new InferenceServiceRow(() => this.getModelRow(name));
+  }
+
   findRows() {
     return this.findModelsTable().find('[data-label=Name]').parents('tr');
   }
@@ -118,7 +122,7 @@ class ModelServingGlobal {
   }
 
   findServingRuntime(name: string) {
-    return this.findModelsTable().find(`[data-label=Serving Runtime]`).contains(name);
+    return this.findModelsTable().find(`[data-label=Serving runtime]`).contains(name);
   }
 
   findTokenCopyButton(index: number) {
@@ -426,14 +430,6 @@ class ServingRuntimeModal extends ServingModal {
     super(`${edit ? 'Edit' : 'Add'} model server`);
   }
 
-  findAuthorinoNotEnabledAlert() {
-    return this.find().findByTestId('no-authorino-installed-alert');
-  }
-
-  findTokenAuthAlert() {
-    return this.find().findByTestId('token-authentication-prerequisite-alert');
-  }
-
   findSubmitButton() {
     return this.findFooter().findByTestId('modal-submit-button');
   }
@@ -619,7 +615,7 @@ mixin(KServeModal, [ServingRuntimeModal, InferenceServiceModal]);
 
 class ModelServingRow extends TableRow {
   shouldHaveServingRuntime(servingRuntime: string) {
-    this.find().find('[data-label="Serving Runtime"]').contains(servingRuntime);
+    this.find().find('[data-label="Serving runtime"]').contains(servingRuntime);
     return this;
   }
 
@@ -637,6 +633,22 @@ class ModelServingRow extends TableRow {
 
   findInternalServicePopover() {
     return cy.findByTestId('internal-service-popover');
+  }
+
+  findExternalServiceButton() {
+    return this.find().findByTestId('internal-external-service-button');
+  }
+
+  findExternalServicePopover() {
+    return cy.findByTestId('external-service-popover');
+  }
+
+  findAPIProtocol() {
+    return this.find().find(`[data-label="API protocol"]`);
+  }
+
+  findLastDeployed() {
+    return this.find().find(`[data-label="Last deployed"]`);
   }
 
   findConfirmStopModal() {
@@ -753,7 +765,7 @@ class InferenceServiceRow extends TableRow {
   }
 
   findServingRuntime() {
-    return this.find().find(`[data-label="Serving Runtime"]`);
+    return this.find().find(`[data-label="Serving runtime"]`);
   }
 
   findProject() {
@@ -763,9 +775,60 @@ class InferenceServiceRow extends TableRow {
   findStatusLabel(label: string) {
     return this.find().findByTestId('model-status-text').should('include.text', label);
   }
+
+  findHardwareProfileColumn() {
+    return this.find().findByTestId('hardware-profile-table-column');
+  }
+
+  findHardwareProfileDeletedLabel() {
+    return this.findHardwareProfileColumn().findByTestId('hardware-profile-status-deleted');
+  }
+
+  findHardwareProfileDisabledLabel() {
+    return this.findHardwareProfileColumn().findByTestId('hardware-profile-status-disabled');
+  }
+
+  findHardwareProfileUpdatedLabel() {
+    return this.findHardwareProfileColumn().findByTestId('hardware-profile-status-updated');
+  }
+
+  findHardwareProfileDeletedPopover() {
+    return {
+      title: () => cy.findByTestId('hardware-profile-status-deleted-popover-title'),
+      body: () => cy.findByTestId('hardware-profile-status-deleted-popover-body'),
+    };
+  }
+
+  findHardwareProfileDisabledPopover() {
+    return {
+      title: () => cy.findByTestId('hardware-profile-status-disabled-popover-title'),
+      body: () => cy.findByTestId('hardware-profile-status-disabled-popover-body'),
+    };
+  }
+
+  findHardwareProfileUpdatedPopover() {
+    return {
+      title: () => cy.findByTestId('hardware-profile-status-updated-popover-title'),
+      body: () => cy.findByTestId('hardware-profile-status-updated-popover-body'),
+    };
+  }
+
+  findHardwareProfileErrorIcon() {
+    return this.find().findByTestId('hardware-profile-column-error-icon');
+  }
+
+  findHardwareProfileErrorPopover() {
+    return cy.findByTestId('hardware-profile-column-error-popover');
+  }
 }
 
 class ModelServingSection {
+  visit(project: string) {
+    cy.visitWithLogin(`/projects/${project}?section=model-server`);
+    cy.findByTestId(`section-model-server`);
+    cy.testA11y();
+  }
+
   find() {
     return cy.findByTestId('section-model-server');
   }
@@ -901,6 +964,54 @@ class ModelServingWizard extends Wizard {
     return this.findModelFormatSelect().findSelectOption(name);
   }
 
+  findServingRuntimeTemplateSearchSelector() {
+    return cy.findByTestId('serving-runtime-template-selection-toggle');
+  }
+
+  findServingRuntimeTemplateSearchInput() {
+    return cy.findByTestId('serving-runtime-template-selection-search').find('input');
+  }
+
+  findGlobalScopedTemplateOption(name: string) {
+    return this.getGlobalScopedServingRuntime()
+      .find()
+      .findByRole('menuitem', { name: new RegExp(name), hidden: true });
+  }
+
+  findProjectScopedTemplateOption(name: string) {
+    return this.getProjectScopedServingRuntime()
+      .find()
+      .findByRole('menuitem', { name: new RegExp(name), hidden: true });
+  }
+
+  getGlobalServingRuntimesLabel() {
+    return cy.get('body').contains('Global serving runtimes');
+  }
+
+  getProjectScopedServingRuntimesLabel() {
+    return cy.get('body').contains('Project-scoped serving runtimes');
+  }
+
+  findProjectScopedLabel() {
+    return cy.findByTestId('project-scoped-serving-runtime-template-label');
+  }
+
+  findGlobalScopedLabel() {
+    return cy.findByTestId('global-scoped-serving-runtime-template-label');
+  }
+
+  getProjectScopedServingRuntime() {
+    return new ServingRuntimeGroup(() => cy.findByTestId('project-scoped-serving-runtimes'));
+  }
+
+  getGlobalScopedServingRuntime() {
+    return new ServingRuntimeGroup(() => cy.findByTestId('global-scoped-serving-runtimes'));
+  }
+
+  findServingRuntimeVersionLabel() {
+    return cy.findByTestId('serving-runtime-version-label');
+  }
+
   findModelLocationSelect() {
     return cy.findByTestId('model-location-select');
   }
@@ -993,6 +1104,14 @@ class ModelServingWizard extends Wizard {
 
   findEnvVariableValue(value: string) {
     return cy.findByTestId(`env-var-value-${value}`);
+  }
+
+  findSaveAiAssetCheckbox() {
+    return cy.findByTestId('save-as-ai-asset-checkbox');
+  }
+
+  findUseCaseInput() {
+    return cy.findByTestId('use-case-input');
   }
 }
 

@@ -42,12 +42,14 @@ type ModelTypeSelectFieldProps = {
   setModelType?: (value: ModelTypeFieldData) => void;
   validationProps?: FieldValidationProps;
   validationIssues?: ZodIssue[];
+  isEditing?: boolean;
 };
 export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
   modelType,
   setModelType,
   validationProps,
   validationIssues = [],
+  isEditing,
 }) => (
   <FormGroup fieldId="model-type-select" label="Model type" isRequired>
     <SimpleSelect
@@ -71,6 +73,7 @@ export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
       value={modelType}
       toggleProps={{ style: { minWidth: '250px' } }}
       dataTestId="model-type-select"
+      isDisabled={isEditing}
     />
     <ZodErrorHelperText zodIssue={validationIssues} />
   </FormGroup>

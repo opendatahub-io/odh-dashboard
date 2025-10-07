@@ -81,7 +81,7 @@ export const useResourcesSection = (): React.ReactNode => {
               // Should not use component="a" due to no href
               isInline
               variant="link"
-              onClick={() => navigate('/resources')}
+              onClick={() => navigate('/learning-resources')}
             >
               Go to <b>Learning resources</b>
             </Button>

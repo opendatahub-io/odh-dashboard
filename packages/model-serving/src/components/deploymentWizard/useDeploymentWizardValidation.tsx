@@ -3,7 +3,7 @@ import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormVa
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { useValidation } from '@odh-dashboard/internal/utilities/useValidation';
 import { hardwareProfileValidationSchema } from '@odh-dashboard/internal/concepts/hardwareProfiles/validationUtils';
-import type { UseModelDeploymentWizardState } from './useDeploymentWizard';
+import type { WizardFormData } from './types';
 import { modelSourceStepSchema, type ModelSourceStepData } from './steps/ModelSourceStep';
 import { modelFormatFieldSchema } from './fields/ModelFormatField';
 import { externalRouteFieldSchema, type ExternalRouteFieldData } from './fields/ExternalRouteField';
@@ -17,6 +17,10 @@ import {
   environmentVariablesFieldSchema,
   type EnvironmentVariablesFieldData,
 } from './fields/EnvironmentVariablesField';
+import {
+  ModelServerSelectFieldData,
+  modelServerSelectFieldSchema,
+} from './fields/ModelServerTemplateSelectField';
 
 export type ModelDeploymentWizardValidation = {
   modelSource: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
@@ -26,13 +30,14 @@ export type ModelDeploymentWizardValidation = {
   numReplicas: ReturnType<typeof useZodFormValidation<NumReplicasFieldData>>;
   runtimeArgs: ReturnType<typeof useZodFormValidation<RuntimeArgsFieldData>>;
   environmentVariables: ReturnType<typeof useZodFormValidation<EnvironmentVariablesFieldData>>;
+  modelServer: ReturnType<typeof useZodFormValidation<ModelServerSelectFieldData>>;
   isModelSourceStepValid: boolean;
   isModelDeploymentStepValid: boolean;
   isAdvancedSettingsStepValid: boolean;
 };
 
 export const useModelDeploymentWizardValidation = (
-  state: UseModelDeploymentWizardState['state'],
+  state: WizardFormData['state'],
 ): ModelDeploymentWizardValidation => {
   // Step 1: Model Source
   const modelSourceStepValidationData: Partial<ModelSourceStepData> = React.useMemo(
@@ -59,6 +64,11 @@ export const useModelDeploymentWizardValidation = (
       format: state.modelFormatState.modelFormat,
     },
     modelFormatFieldSchema,
+  );
+
+  const modelServerValidation = useZodFormValidation(
+    state.modelServer.data,
+    modelServerSelectFieldSchema,
   );
 
   // Step 3: Advanced Options
@@ -94,17 +104,16 @@ export const useModelDeploymentWizardValidation = (
     isK8sNameDescriptionDataValid(state.k8sNameDesc.data) &&
     Object.keys(hardwareProfileValidation.getAllValidationIssues()).length === 0 &&
     Object.keys(modelFormatValidation.getAllValidationIssues()).length === 0 &&
-    numReplicasValidation.getFieldValidation(undefined, true).length === 0;
+    numReplicasValidation.getFieldValidation(undefined, true).length === 0 &&
+    modelServerValidation.getFieldValidation(undefined, true).length === 0;
   const isAdvancedSettingsStepValid =
     externalRouteValidation.getFieldValidation(undefined, true).length === 0 &&
-    tokenAuthenticationValidation.getFieldValidation(undefined, true).length === 0 &&
-    runtimeArgsValidation.getFieldValidation(undefined, true).length === 0 &&
-    environmentVariablesValidation.getFieldValidation(undefined, true).length === 0;
-
+    tokenAuthenticationValidation.getFieldValidation(undefined, true).length === 0;
   return {
     modelSource: modelSourceStepValidation,
     hardwareProfile: hardwareProfileValidation,
     externalRoute: externalRouteValidation,
+    modelServer: modelServerValidation,
     tokenAuthentication: tokenAuthenticationValidation,
     numReplicas: numReplicasValidation,
     runtimeArgs: runtimeArgsValidation,

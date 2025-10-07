@@ -6,67 +6,39 @@ import {
   EmptyStateVariant,
   EmptyStateBody,
   Spinner,
-  Tooltip,
   EmptyStateFooter,
   Content,
+  EmptyStateActions,
 } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { CodeIcon } from '@patternfly/react-icons';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import ChatbotEmptyState from '~/app/EmptyStates/NoData';
-import { deleteLSD, installLSD } from '~/app/services/llamaStackService';
 import { GenAiContext } from '~/app/context/GenAiContext';
-import useFetchAIModels from '~/app/hooks/useFetchAIModels';
+import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
+import DeletePlaygroundModal from '~/app/Chatbot/components/DeletePlaygroundModal';
 import ChatbotHeader from './ChatbotHeader';
 import ChatbotPlayground from './ChatbotPlayground';
-import ChatbotConfigurationModal from './components/ChatbotConfigurationModal';
+import ChatbotHeaderActions from './ChatbotHeaderActions';
 
 const ChatbotMain: React.FunctionComponent = () => {
   const {
     lsdStatus,
     lsdStatusLoaded,
     lsdStatusError,
-    selectedModel,
-    lastInput,
     refresh,
-    setSelectedModel,
+    aiModels,
+    aiModelsLoaded,
+    aiModelsError,
+    models,
   } = React.useContext(ChatbotContext);
   const { namespace } = React.useContext(GenAiContext);
-  const {
-    data: aiModels,
-    loaded: aiModelsLoaded,
-    error: aiModelsError,
-  } = useFetchAIModels(namespace?.name);
+
   const navigate = useNavigate();
 
   const [isViewCodeModalOpen, setIsViewCodeModalOpen] = React.useState(false);
   const [configurationModalOpen, setConfigurationModalOpen] = React.useState(false);
-
-  const location = useLocation();
-  const selectedAAModel = location.state?.model;
-
-  const isViewCodeDisabled = !lastInput || !selectedModel;
-
-  React.useEffect(() => {
-    if (selectedAAModel) {
-      setSelectedModel(selectedAAModel);
-    }
-  }, [selectedAAModel, setSelectedModel]);
-
-  // Get disabled reason for popover
-  const getDisabledReason = () => {
-    if (!lastInput && !selectedModel) {
-      return 'Please input a message and select a model to generate code';
-    }
-    if (!lastInput) {
-      return 'Please input a message to generate code';
-    }
-    if (!selectedModel) {
-      return 'Please select a model to generate code';
-    }
-    return '';
-  };
+  const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
 
   return (
     <>
@@ -104,7 +76,7 @@ const ChatbotMain: React.FunctionComponent = () => {
               }
               actionButtonText="Go to Model Deployments"
               handleActionButtonClick={() => {
-                navigate(`/modelServing/${namespace?.name}`);
+                navigate(`/ai-hub/deployments/${namespace?.name}`);
               }}
             />
           ) : (
@@ -113,48 +85,18 @@ const ChatbotMain: React.FunctionComponent = () => {
               description="Create a playground to chat with the generative models deployed in this project. Experiment with model output using a simple RAG simulation, custom prompt and MCP servers."
               actionButtonText="Configure playground"
               handleActionButtonClick={() => {
-                if (namespace?.name) {
-                  installLSD(
-                    namespace.name,
-                    aiModels.map((model) => model.model_name),
-                  )
-                    .then(() => {
-                      setConfigurationModalOpen(true);
-                    })
-                    .catch((e) => {
-                      // TODO: Figure out how to handle errors here
-                      // eslint-disable-next-line no-console
-                      console.error('Failed to configure playground', e.message);
-                    });
-                }
+                setConfigurationModalOpen(true);
               }}
             />
           )
         }
         loadError={lsdStatusError || aiModelsError}
         headerAction={
-          lsdStatus?.phase === 'Ready' &&
-          (isViewCodeDisabled ? (
-            <Tooltip content={getDisabledReason()}>
-              <Button
-                variant="secondary"
-                aria-label="View generated code (disabled)"
-                icon={<CodeIcon />}
-                isAriaDisabled={isViewCodeDisabled}
-              >
-                View Code
-              </Button>
-            </Tooltip>
-          ) : (
-            <Button
-              variant="secondary"
-              aria-label="View generated code"
-              icon={<CodeIcon />}
-              onClick={() => setIsViewCodeModalOpen(true)}
-            >
-              View Code
-            </Button>
-          ))
+          <ChatbotHeaderActions
+            onViewCode={() => setIsViewCodeModalOpen(true)}
+            onConfigurePlayground={() => setConfigurationModalOpen(true)}
+            onDeletePlayground={() => setDeleteModalOpen(true)}
+          />
         }
       >
         {lsdStatus?.phase === 'Ready' ? (
@@ -165,22 +107,36 @@ const ChatbotMain: React.FunctionComponent = () => {
         ) : lsdStatus?.phase === 'Failed' ? (
           <EmptyState
             headingLevel="h4"
-            titleText="Failed to configure playground"
+            titleText="Playground setup failed"
             variant={EmptyStateVariant.lg}
             status="danger"
           >
-            <EmptyStateBody>Please delete the playground and try again</EmptyStateBody>
+            <EmptyStateBody>
+              There was an issue with one or more of the models added to your playground
+              configuration.You can update the configuration to change your model selection and try
+              again, or delete the playground.
+            </EmptyStateBody>
             <EmptyStateFooter>
-              <Button
-                variant="primary"
-                onClick={() => {
-                  if (namespace?.name) {
-                    deleteLSD(namespace.name, lsdStatus.name).then(refresh);
-                  }
-                }}
-              >
-                Delete playground
-              </Button>
+              <EmptyStateActions>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setConfigurationModalOpen(true);
+                  }}
+                >
+                  Update configuration
+                </Button>
+              </EmptyStateActions>
+              <EmptyStateActions>
+                <Button
+                  variant="link"
+                  onClick={() => {
+                    setDeleteModalOpen(true);
+                  }}
+                >
+                  Delete playground
+                </Button>
+              </EmptyStateActions>
             </EmptyStateFooter>
           </EmptyState>
         ) : (
@@ -196,6 +152,16 @@ const ChatbotMain: React.FunctionComponent = () => {
           onClose={() => {
             setConfigurationModalOpen(false);
             refresh();
+          }}
+          allModels={aiModels}
+          lsdStatus={lsdStatus}
+          existingModels={models}
+        />
+      )}
+      {deleteModalOpen && (
+        <DeletePlaygroundModal
+          onCancel={() => {
+            setDeleteModalOpen(false);
           }}
         />
       )}

@@ -235,13 +235,15 @@ export const assembleNotebook = async (
         'opendatahub.io/dashboard': 'true',
       },
       annotations: {
-        'notebooks.opendatahub.io/oauth-logout-url': `${url}/notebookController/${translatedUsername}/home`,
+        'notebooks.opendatahub.io/oauth-logout-url': `${url}/notebook-controller/${translatedUsername}/home`,
         'notebooks.opendatahub.io/last-size-selection': lastSizeSelection,
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'opendatahub.io/username': username,
         'kubeflow-resource-stopped': null,
         'opendatahub.io/accelerator-name': selectedAcceleratorProfile?.metadata.name || '',
         'opendatahub.io/hardware-profile-name': selectedHardwareProfile?.metadata.name || '',
+        'opendatahub.io/hardware-profile-namespace':
+          selectedHardwareProfile?.metadata.namespace || '',
       },
       name: name,
       namespace: namespace,
@@ -265,7 +267,7 @@ export const assembleNotebook = async (
                   --ServerApp.password=''
                   --ServerApp.base_url=/notebook/${namespace}/${name}
                   --ServerApp.quit_button=False
-                  --ServerApp.tornado_settings={"user":"${translatedUsername}","hub_host":"${url}","hub_prefix":"/notebookController/${translatedUsername}"}`,
+                  --ServerApp.tornado_settings={"user":"${translatedUsername}","hub_host":"${url}","hub_prefix":"/notebook-controller/${translatedUsername}"}`,
                 },
                 {
                   name: 'JUPYTER_IMAGE',
@@ -310,8 +312,8 @@ export const assembleNotebook = async (
             },
           ],
           volumes,
-          tolerations,
-          nodeSelector,
+          tolerations: !selectedHardwareProfile ? tolerations : null,
+          nodeSelector: !selectedHardwareProfile ? nodeSelector : null,
         },
       },
     },

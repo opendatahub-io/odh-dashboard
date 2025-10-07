@@ -66,7 +66,7 @@ const FeatureServiceDetails = (): React.ReactElement => {
               <FeatureStoreBreadcrumb
                 pageName="Feature services"
                 projectName={currentProject || ''}
-                linkTo={`${featureStoreRootRoute()}/featureServices`}
+                linkTo={`${featureStoreRootRoute()}/feature-services`}
                 dataTestId="feature-service-details-breadcrumb-link"
               />
               <BreadcrumbItem data-testid="breadcrumb-feature-service-name" isActive>

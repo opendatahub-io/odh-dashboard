@@ -67,13 +67,6 @@ jest.mock('#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState', () 
   useModelServingPodSpecOptionsState: jest.fn(),
 }));
 
-jest.mock('#~/pages/modelServing/useKServeDeploymentMode', () => ({
-  useKServeDeploymentMode: jest.fn(() => ({
-    isRawAvailable: true,
-    isServerlessAvailable: true,
-  })),
-}));
-
 jest.mock('#~/pages/projects/screens/spawner/storage/StorageClassSelect', () => ({
   __esModule: true,
   default: jest.fn((props) => {
@@ -155,16 +148,6 @@ jest.mock('../../kServeModal/KServeAutoscalerReplicaSection', () => ({
 jest.mock('../../ServingRuntimeModal/AuthServingRuntimeSection', () => ({
   __esModule: true,
   default: jest.fn(() => <div data-testid="auth-serving-runtime-section">Auth Section</div>),
-}));
-
-jest.mock('../../kServeModal/KServeDeploymentModeDropdown', () => ({
-  KServeDeploymentModeDropdown: jest.fn(() => (
-    <div data-testid="deployment-mode-dropdown">Deployment Mode</div>
-  )),
-}));
-
-jest.mock('../NoAuthAlert', () => ({
-  NoAuthAlert: jest.fn(() => <div data-testid="no-auth-alert">No Auth Alert</div>),
 }));
 
 jest.mock('#~/concepts/dashboard/DashboardModalFooter', () => ({
@@ -296,7 +279,6 @@ describe('ManageNIMServingModal', () => {
     name: 'test-model',
     project: 'test-project',
     k8sName: 'test-model',
-    isKServeRawDeployment: false,
     format: { name: 'test-model-format' },
   };
 
@@ -396,7 +378,6 @@ describe('ManageNIMServingModal', () => {
       expect(screen.getByTestId('autoscaler-replica-section')).toBeInTheDocument();
       expect(screen.getByTestId('serving-runtime-size-section')).toBeInTheDocument();
       expect(screen.getByTestId('auth-serving-runtime-section')).toBeInTheDocument();
-      expect(screen.getByTestId('deployment-mode-dropdown')).toBeInTheDocument();
     });
 
     it('renders storage class select when storage classes are available', () => {
@@ -538,15 +519,6 @@ describe('ManageNIMServingModal', () => {
   });
 
   describe('Authentication', () => {
-    it('shows NoAuthAlert when auth is not available and not raw deployment', () => {
-      const { useIsAreaAvailable } = require('#~/concepts/areas');
-      useIsAreaAvailable.mockReturnValue({ status: false });
-
-      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
-
-      expect(screen.getByTestId('no-auth-alert')).toBeInTheDocument();
-    });
-
     it('does not show NoAuthAlert when auth is available', () => {
       const { useIsAreaAvailable } = require('#~/concepts/areas');
       useIsAreaAvailable.mockReturnValue({ status: true });
@@ -554,20 +526,6 @@ describe('ManageNIMServingModal', () => {
       render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
 
       expect(screen.queryByTestId('no-auth-alert')).not.toBeInTheDocument();
-    });
-  });
-
-  describe('Deployment Mode', () => {
-    it('shows deployment mode dropdown when both raw and serverless are available', () => {
-      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
-
-      expect(screen.getByTestId('deployment-mode-dropdown')).toBeInTheDocument();
-    });
-
-    it('disables deployment mode dropdown when editing', () => {
-      render(<ManageNIMServingModal onClose={mockOnClose} editInfo={mockEditInfo} />);
-
-      expect(screen.getByTestId('deployment-mode-dropdown')).toBeInTheDocument();
     });
   });
 
@@ -717,7 +675,6 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
     name: 'test-model',
     project: 'test-project',
     k8sName: 'test-model',
-    isKServeRawDeployment: false,
     format: { name: 'test-model-format' },
   };
 

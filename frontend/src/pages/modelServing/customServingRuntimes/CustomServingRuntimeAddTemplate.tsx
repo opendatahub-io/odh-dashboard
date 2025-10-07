@@ -171,7 +171,13 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
       }
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to="/servingRuntimes">Serving runtimes</Link>} />
+          <BreadcrumbItem
+            render={() => (
+              <Link to="/settings/model-resources-operations/serving-runtimes">
+                Serving runtimes
+              </Link>
+            )}
+          />
           {existingTemplate && (
             <BreadcrumbItem>
               {getServingRuntimeDisplayNameFromTemplate(existingTemplate)}
@@ -277,7 +283,7 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
                   onClickFunc
                     .then(() => {
                       refreshData();
-                      navigate(`/servingRuntimes`);
+                      navigate(`/settings/model-resources-operations/serving-runtimes`);
                     })
                     .catch((err) => {
                       setError(err);
@@ -293,7 +299,7 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
                 isDisabled={loading}
                 variant="link"
                 id="cancel-button"
-                onClick={() => navigate(`/servingRuntimes`)}
+                onClick={() => navigate(`/settings/model-resources-operations/serving-runtimes`)}
               >
                 Cancel
               </Button>

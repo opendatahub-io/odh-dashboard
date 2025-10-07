@@ -122,7 +122,7 @@ describe('Verify models can be deployed from model registry', () => {
       registerModelPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify the model was registered');
-      cy.url().should('include', '/modelRegistry');
+      cy.url().should('include', '/ai-hub/registry');
       cy.contains(modelName, { timeout: 10000 }).should('be.visible');
 
       cy.step('Verify the model exists in the database');
@@ -182,10 +182,16 @@ describe('Verify models can be deployed from model registry', () => {
       cy.contains('Started', { timeout: 120000 }).should('be.visible');
 
       cy.step('Verify the model is deployed and started in backend');
-      checkInferenceServiceState(`${modelName}-v10`, projectName, {
-        checkReady: true,
-        checkLatestDeploymentReady: true,
-      });
+      // For KServe Raw deployments, we only need to check Ready condition
+      // LatestDeploymentReady is specific to Serverless deployments
+      checkInferenceServiceState(
+        `${modelName}-v10`,
+        projectName,
+        {
+          checkReady: true,
+        },
+        'RawDeployment',
+      );
     },
   );
 });

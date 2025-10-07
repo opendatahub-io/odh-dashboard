@@ -27,9 +27,16 @@ type EnvConfig struct {
 	MockLSClient    bool
 	MockK8sClient   bool
 	MockMCPClient   bool
+	MockMaaSClient  bool
 
 	// Llama Stack Configuration
 	LlamaStackURL string
+
+	// MaaS (Model as a Service) Configuration
+	MaaSURL string
+
+	// Filter models configuration
+	FilteredModelKeywords []string
 
 	// ─── AUTH ───────────────────────────────────────────────────
 	// Specifies the authentication method used by the server.

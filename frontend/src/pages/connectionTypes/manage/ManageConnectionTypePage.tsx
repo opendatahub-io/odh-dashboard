@@ -139,7 +139,7 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
     validation.validationResult.success;
 
   const onCancel = () => {
-    navigate('/connectionTypes');
+    navigate('/settings/environment-setup/connection-types');
   };
 
   const pageName = isEdit ? 'Edit connection type' : 'Create connection type';
@@ -184,11 +184,14 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
                   <AlertActionLink
                     data-testid="duplicate-connection-type"
                     onClick={() => {
-                      navigate(`/connectionTypes/duplicate/${prefill.metadata.name}`, {
-                        state: {
-                          connectionType: connectionTypeObj,
+                      navigate(
+                        `/settings/environment-setup/connection-types/duplicate/${prefill.metadata.name}`,
+                        {
+                          state: {
+                            connectionType: connectionTypeObj,
+                          },
                         },
-                      });
+                      );
                     }}
                   >
                     Duplicate
@@ -342,7 +345,7 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
             <CreateConnectionTypeFooter
               onSave={() =>
                 onSave(connectionTypeObj).then(() => {
-                  navigate('/connectionTypes');
+                  navigate('/settings/environment-setup/connection-types');
                 })
               }
               onCancel={onCancel}

@@ -3,6 +3,11 @@ import type { RouteExtension } from '@odh-dashboard/plugin-core/extension-points
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '#~/concepts/areas/types';
 
+const createRedirectComponent = (args: { from: string; to: string }) => () =>
+  import('#~/utilities/v2Redirect').then((module) => ({
+    default: () => module.buildV2RedirectElement(args),
+  }));
+
 const ADMIN_USER = 'ADMIN_USER';
 
 const extensions: RouteExtension[] = [
@@ -22,8 +27,18 @@ const extensions: RouteExtension[] = [
       required: [SupportedArea.HOME],
     },
     properties: {
+      path: '/applications/enabled',
       component: () => import('#~/pages/enabledApplications/EnabledApplications'),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.HOME],
+    },
+    properties: {
       path: '/enabled',
+      component: createRedirectComponent({ from: '/enabled', to: '/applications/enabled' }),
     },
   },
   {
@@ -46,15 +61,29 @@ const extensions: RouteExtension[] = [
   {
     type: 'app.route',
     properties: {
-      path: '/explore',
+      path: '/applications/explore',
       component: () => import('#~/pages/exploreApplication/ExploreApplications'),
     },
   },
   {
     type: 'app.route',
     properties: {
-      path: '/resources',
+      path: '/explore',
+      component: createRedirectComponent({ from: '/explore', to: '/applications/explore' }),
+    },
+  },
+  {
+    type: 'app.route',
+    properties: {
+      path: '/learning-resources',
       component: () => import('#~/pages/learningCenter/LearningCenter'),
+    },
+  },
+  {
+    type: 'app.route',
+    properties: {
+      path: '/resources',
+      component: createRedirectComponent({ from: '/resources', to: '/learning-resources' }),
     },
   },
   {
@@ -67,8 +96,18 @@ const extensions: RouteExtension[] = [
   {
     type: 'app.route',
     properties: {
-      path: '/notebookController/*',
+      path: '/notebook-controller/*',
       component: () => import('#~/pages/notebookController/NotebookController'),
+    },
+  },
+  {
+    type: 'app.route',
+    properties: {
+      path: '/notebookController/*',
+      component: createRedirectComponent({
+        from: '/notebookController/*',
+        to: '/notebook-controller/*',
+      }),
     },
   },
   {
@@ -81,8 +120,18 @@ const extensions: RouteExtension[] = [
   {
     type: 'app.route',
     properties: {
-      path: '/modelServing/*',
+      path: '/ai-hub/deployments/*',
       component: () => import('#~/pages/modelServing/ModelServingRoutes'),
+    },
+    flags: {
+      disallowed: [SupportedArea.PLUGIN_MODEL_SERVING],
+    },
+  },
+  {
+    type: 'app.route',
+    properties: {
+      path: '/modelServing/*',
+      component: createRedirectComponent({ from: '/modelServing/*', to: '/ai-hub/deployments/*' }),
     },
     flags: {
       disallowed: [SupportedArea.PLUGIN_MODEL_SERVING],
@@ -107,36 +156,96 @@ const extensions: RouteExtension[] = [
   {
     type: 'app.route',
     properties: {
-      path: '/pipelines/*',
+      path: '/develop-train/pipelines/definitions/*',
       component: () => import('#~/pages/pipelines/GlobalPipelinesRoutes'),
     },
   },
   {
     type: 'app.route',
     properties: {
-      path: '/pipelineRuns/*',
+      path: '/pipelines/*',
+      component: createRedirectComponent({
+        from: '/pipelines/*',
+        to: '/develop-train/pipelines/definitions/*',
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    properties: {
+      path: '/develop-train/pipelines/runs/*',
       component: () => import('#~/pages/pipelines/GlobalPipelineRunsRoutes'),
     },
   },
   {
     type: 'app.route',
     properties: {
-      path: '/experiments/*',
+      path: '/pipelineRuns/*',
+      component: createRedirectComponent({
+        from: '/pipelineRuns/*',
+        to: '/develop-train/pipelines/runs/*',
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    properties: {
+      path: '/develop-train/experiments/*',
       component: () => import('#~/pages/pipelines/GlobalPipelineExperimentsRoutes'),
     },
   },
   {
     type: 'app.route',
     properties: {
-      path: '/artifacts/*',
+      path: '/experiments/*',
+      component: createRedirectComponent({
+        from: '/experiments/*',
+        to: '/develop-train/experiments/*',
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    properties: {
+      path: '/develop-train/pipelines/artifacts/*',
       component: () => import('#~/pages/pipelines/GlobalArtifactsRoutes'),
     },
   },
   {
     type: 'app.route',
     properties: {
-      path: '/executions/*',
+      path: '/artifacts/*',
+      component: createRedirectComponent({
+        from: '/artifacts/*',
+        to: '/develop-train/pipelines/artifacts/*',
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    properties: {
+      path: '/develop-train/pipelines/executions/*',
       component: () => import('#~/pages/pipelines/GlobalPipelineExecutionsRoutes'),
+    },
+  },
+  {
+    type: 'app.route',
+    properties: {
+      path: '/executions/*',
+      component: createRedirectComponent({
+        from: '/executions/*',
+        to: '/develop-train/pipelines/executions/*',
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.FINE_TUNING],
+    },
+    properties: {
+      path: '/ai-hub/model-customization/*',
+      component: () => import('#~/pages/pipelines/GlobalModelCustomizationRoutes'),
     },
   },
   {
@@ -146,14 +255,27 @@ const extensions: RouteExtension[] = [
     },
     properties: {
       path: '/modelCustomization/*',
-      component: () => import('#~/pages/pipelines/GlobalModelCustomizationRoutes'),
+      component: createRedirectComponent({
+        from: '/modelCustomization/*',
+        to: '/ai-hub/model-customization/*',
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    properties: {
+      path: '/observe-monitor/workload-metrics/*',
+      component: () => import('#~/pages/distributedWorkloads/GlobalDistributedWorkloadsRoutes'),
     },
   },
   {
     type: 'app.route',
     properties: {
       path: '/distributedWorkloads/*',
-      component: () => import('#~/pages/distributedWorkloads/GlobalDistributedWorkloadsRoutes'),
+      component: createRedirectComponent({
+        from: '/distributedWorkloads/*',
+        to: '/observe-monitor/workload-metrics/*',
+      }),
     },
   },
   {
@@ -162,7 +284,7 @@ const extensions: RouteExtension[] = [
       required: [ADMIN_USER],
     },
     properties: {
-      path: '/workbenchImages/*',
+      path: '/settings/environment-setup/workbench-images/*',
       component: () => import('#~/pages/BYONImages/BYONImageRoutes'),
     },
   },
@@ -172,7 +294,20 @@ const extensions: RouteExtension[] = [
       required: [ADMIN_USER],
     },
     properties: {
-      path: '/clusterSettings',
+      path: '/workbenchImages/*',
+      component: createRedirectComponent({
+        from: '/workbenchImages/*',
+        to: '/settings/environment-setup/workbench-images/*',
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [ADMIN_USER],
+    },
+    properties: {
+      path: '/settings/cluster/general',
       component: () => import('#~/pages/clusterSettings/ClusterSettings'),
     },
   },
@@ -182,7 +317,20 @@ const extensions: RouteExtension[] = [
       required: [ADMIN_USER],
     },
     properties: {
-      path: '/acceleratorProfiles/*',
+      path: '/clusterSettings',
+      component: createRedirectComponent({
+        from: '/clusterSettings',
+        to: '/settings/cluster/general',
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [ADMIN_USER],
+    },
+    properties: {
+      path: '/settings/environment-setup/accelerator-profiles/*',
       component: () => import('#~/pages/acceleratorProfiles/AcceleratorProfilesRoutes'),
     },
   },
@@ -192,7 +340,20 @@ const extensions: RouteExtension[] = [
       required: [ADMIN_USER],
     },
     properties: {
-      path: '/servingRuntimes/*',
+      path: '/acceleratorProfiles/*',
+      component: createRedirectComponent({
+        from: '/acceleratorProfiles/*',
+        to: '/settings/environment-setup/accelerator-profiles/*',
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [ADMIN_USER],
+    },
+    properties: {
+      path: '/settings/model-resources-operations/serving-runtimes/*',
       component: () =>
         import('#~/pages/modelServing/customServingRuntimes/CustomServingRuntimeRoutes'),
     },
@@ -203,7 +364,20 @@ const extensions: RouteExtension[] = [
       required: [ADMIN_USER],
     },
     properties: {
-      path: '/connectionTypes/*',
+      path: '/servingRuntimes/*',
+      component: createRedirectComponent({
+        from: '/servingRuntimes/*',
+        to: '/settings/model-resources-operations/serving-runtimes/*',
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [ADMIN_USER],
+    },
+    properties: {
+      path: '/settings/environment-setup/connection-types/*',
       component: () => import('#~/pages/connectionTypes/ConnectionTypeRoutes'),
     },
   },
@@ -213,7 +387,20 @@ const extensions: RouteExtension[] = [
       required: [ADMIN_USER],
     },
     properties: {
-      path: '/storageClasses/*',
+      path: '/connectionTypes/*',
+      component: createRedirectComponent({
+        from: '/connectionTypes/*',
+        to: '/settings/environment-setup/connection-types/*',
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [ADMIN_USER],
+    },
+    properties: {
+      path: '/settings/cluster/storage-classes/*',
       component: () => import('#~/pages/storageClasses/StorageClassesPage'),
     },
   },
@@ -223,7 +410,20 @@ const extensions: RouteExtension[] = [
       required: [ADMIN_USER],
     },
     properties: {
-      path: '/modelRegistrySettings/*',
+      path: '/storageClasses/*',
+      component: createRedirectComponent({
+        from: '/storageClasses/*',
+        to: '/settings/cluster/storage-classes/*',
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [ADMIN_USER],
+    },
+    properties: {
+      path: '/settings/model-resources-operations/model-registry/*',
       component: () => import('#~/pages/modelRegistrySettings/ModelRegistrySettingsRoutes'),
     },
   },
@@ -233,15 +433,61 @@ const extensions: RouteExtension[] = [
       required: [ADMIN_USER],
     },
     properties: {
-      path: '/groupSettings',
+      path: '/modelRegistrySettings/*',
+      component: createRedirectComponent({
+        from: '/modelRegistrySettings/*',
+        to: '/settings/model-resources-operations/model-registry/*',
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [ADMIN_USER],
+    },
+    properties: {
+      path: '/settings/user-management',
       component: () => import('#~/pages/groupSettings/GroupSettings'),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [ADMIN_USER],
+    },
+    properties: {
+      path: '/groupSettings',
+      component: createRedirectComponent({
+        from: '/groupSettings',
+        to: '/settings/user-management',
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    properties: {
+      path: '/settings/environment-setup/hardware-profiles/*',
+      component: () => import('#~/pages/hardwareProfiles/HardwareProfilesRoutes'),
     },
   },
   {
     type: 'app.route',
     properties: {
       path: '/hardwareProfiles/*',
-      component: () => import('#~/pages/hardwareProfiles/HardwareProfilesRoutes'),
+      component: createRedirectComponent({
+        from: '/hardwareProfiles/*',
+        to: '/settings/environment-setup/hardware-profiles/*',
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.LM_EVAL],
+    },
+    properties: {
+      path: '/develop-train/evaluations/*',
+      component: () => import('#~/pages/lmEval/LMEvalRoutes'),
     },
   },
   {
@@ -251,7 +497,10 @@ const extensions: RouteExtension[] = [
     },
     properties: {
       path: '/modelEvaluations/*',
-      component: () => import('#~/pages/lmEval/LMEvalRoutes'),
+      component: createRedirectComponent({
+        from: '/modelEvaluations/*',
+        to: '/develop-train/evaluations/*',
+      }),
     },
   },
 ];

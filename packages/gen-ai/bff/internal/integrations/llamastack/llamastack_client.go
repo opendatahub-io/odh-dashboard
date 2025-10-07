@@ -47,16 +47,40 @@ type ListVectorStoresParams struct {
 	Order string
 }
 
+// ListFilesParams contains parameters for listing files.
+type ListFilesParams struct {
+	// Limit specifies the number of objects to return (range: 1-10000, default: 20).
+	Limit *int64
+	// Order specifies the sort order by created_at timestamp ("asc" or "desc").
+	Order string
+	// Purpose specifies the intended use case to filter by.
+	Purpose string
+}
+
+// ListVectorStoreFilesParams contains parameters for listing files in a vector store.
+type ListVectorStoreFilesParams struct {
+	// Limit specifies the number of objects to return (range: 1-100, default: 20).
+	Limit *int64
+	// Order specifies the sort order by created_at timestamp ("asc" or "desc").
+	Order string
+	// Filter specifies the filter on file status ("in_progress", "completed", "failed", "cancelled").
+	Filter string
+}
+
 // ListVectorStores retrieves vector stores with optional filtering parameters.
+// When limit is not specified or set to 100, it automatically paginates to fetch all vectorstores.
 func (c *LlamaStackClient) ListVectorStores(ctx context.Context, params ListVectorStoresParams) ([]openai.VectorStore, error) {
 	apiParams := openai.VectorStoreListParams{}
 
+	// Set limit to maximum (100) to minimize API calls
+	limit := int64(100)
 	if params.Limit != nil {
 		if *params.Limit < 1 || *params.Limit > 100 {
 			return nil, fmt.Errorf("limit must be between 1 and 100, got: %d", *params.Limit)
 		}
-		apiParams.Limit = openai.Int(*params.Limit)
+		limit = *params.Limit
 	}
+	apiParams.Limit = openai.Int(limit)
 
 	if params.Order != "" {
 		if params.Order != "asc" && params.Order != "desc" {
@@ -65,12 +89,33 @@ func (c *LlamaStackClient) ListVectorStores(ctx context.Context, params ListVect
 		apiParams.Order = openai.VectorStoreListParamsOrder(params.Order)
 	}
 
-	vectorStoresPage, err := c.client.VectorStores.List(ctx, apiParams)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list vector stores: %w", err)
+	// Collect all vectorstores across pages
+	allVectorStores := []openai.VectorStore{}
+
+	for {
+		vectorStoresPage, err := c.client.VectorStores.List(ctx, apiParams)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list vector stores: %w", err)
+		}
+
+		allVectorStores = append(allVectorStores, vectorStoresPage.Data...)
+
+		// Check if there are more pages using HasMore flag
+		if !vectorStoresPage.HasMore {
+			break
+		}
+
+		// Get the last item's ID for pagination cursor
+		if len(vectorStoresPage.Data) > 0 {
+			lastItem := vectorStoresPage.Data[len(vectorStoresPage.Data)-1]
+			apiParams.After = openai.String(lastItem.ID)
+		} else {
+			// No data but HasMore is true - shouldn't happen, but break to avoid infinite loop
+			break
+		}
 	}
 
-	return vectorStoresPage.Data, nil
+	return allVectorStores, nil
 }
 
 // CreateVectorStoreParams contains parameters for creating vector stores.
@@ -281,6 +326,8 @@ type CreateResponseParams struct {
 	Instructions string
 	// Tools contains MCP server configurations for tool-enabled responses.
 	Tools []MCPServerParam
+	// PreviousResponseID links this response to a previous response for conversation continuity.
+	PreviousResponseID string
 }
 
 // prepareResponseParams validates input parameters and prepares the API parameters for response creation.
@@ -397,6 +444,11 @@ func (c *LlamaStackClient) prepareResponseParams(params CreateResponseParams) (*
 		apiParams.Tools = tools
 	}
 
+	// Set previous response ID if provided
+	if params.PreviousResponseID != "" {
+		apiParams.PreviousResponseID = openai.String(params.PreviousResponseID)
+	}
+
 	return apiParams, nil
 }
 
@@ -424,4 +476,163 @@ func (c *LlamaStackClient) CreateResponseStream(ctx context.Context, params Crea
 
 	stream := c.client.Responses.NewStreaming(ctx, *apiParams)
 	return stream, nil
+}
+
+// DeleteVectorStore deletes a vector store by ID.
+func (c *LlamaStackClient) DeleteVectorStore(ctx context.Context, vectorStoreID string) error {
+	if vectorStoreID == "" {
+		return fmt.Errorf("vectorStoreID is required")
+	}
+
+	_, err := c.client.VectorStores.Delete(ctx, vectorStoreID)
+	if err != nil {
+		return fmt.Errorf("failed to delete vector store: %w", err)
+	}
+
+	return nil
+}
+
+// GetResponse retrieves a response by ID for validation purposes.
+func (c *LlamaStackClient) GetResponse(ctx context.Context, responseID string) (*responses.Response, error) {
+	if responseID == "" {
+		return nil, fmt.Errorf("responseID is required")
+	}
+
+	response, err := c.client.Responses.Get(ctx, responseID, responses.ResponseGetParams{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get response: %w", err)
+	}
+
+	return response, nil
+}
+
+// ListFiles retrieves files with optional filtering parameters.
+func (c *LlamaStackClient) ListFiles(ctx context.Context, params ListFilesParams) ([]openai.FileObject, error) {
+	apiParams := openai.FileListParams{}
+
+	if params.Limit != nil {
+		if *params.Limit < 1 || *params.Limit > 10000 {
+			return nil, fmt.Errorf("limit must be between 1 and 10000, got: %d", *params.Limit)
+		}
+		apiParams.Limit = openai.Int(*params.Limit)
+	}
+
+	if params.Order != "" {
+		if params.Order != "asc" && params.Order != "desc" {
+			return nil, fmt.Errorf("order must be 'asc' or 'desc', got: %s", params.Order)
+		}
+		apiParams.Order = openai.FileListParamsOrder(params.Order)
+	}
+
+	if params.Purpose != "" {
+		validPurposes := []string{"assistants", "batch", "fine-tune", "vision", "user_data", "evals"}
+		purposeValid := false
+		for _, valid := range validPurposes {
+			if params.Purpose == valid {
+				purposeValid = true
+				break
+			}
+		}
+		if !purposeValid {
+			return nil, fmt.Errorf("purpose must be one of %v, got: %s", validPurposes, params.Purpose)
+		}
+		apiParams.Purpose = openai.String(params.Purpose)
+	}
+
+	filesPage, err := c.client.Files.List(ctx, apiParams)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list files: %w", err)
+	}
+
+	return filesPage.Data, nil
+}
+
+// GetFile retrieves a file by ID.
+func (c *LlamaStackClient) GetFile(ctx context.Context, fileID string) (*openai.FileObject, error) {
+	if fileID == "" {
+		return nil, fmt.Errorf("fileID is required")
+	}
+
+	file, err := c.client.Files.Get(ctx, fileID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get file: %w", err)
+	}
+
+	return file, nil
+}
+
+// DeleteFile deletes a file by ID.
+func (c *LlamaStackClient) DeleteFile(ctx context.Context, fileID string) error {
+	if fileID == "" {
+		return fmt.Errorf("fileID is required")
+	}
+
+	_, err := c.client.Files.Delete(ctx, fileID)
+	if err != nil {
+		return fmt.Errorf("failed to delete file: %w", err)
+	}
+
+	return nil
+}
+
+// ListVectorStoreFiles retrieves files in a vector store with optional filtering parameters.
+func (c *LlamaStackClient) ListVectorStoreFiles(ctx context.Context, vectorStoreID string, params ListVectorStoreFilesParams) ([]openai.VectorStoreFile, error) {
+	if vectorStoreID == "" {
+		return nil, fmt.Errorf("vectorStoreID is required")
+	}
+
+	apiParams := openai.VectorStoreFileListParams{}
+
+	if params.Limit != nil {
+		if *params.Limit < 1 || *params.Limit > 100 {
+			return nil, fmt.Errorf("limit must be between 1 and 100, got: %d", *params.Limit)
+		}
+		apiParams.Limit = openai.Int(*params.Limit)
+	}
+
+	if params.Order != "" {
+		if params.Order != "asc" && params.Order != "desc" {
+			return nil, fmt.Errorf("order must be 'asc' or 'desc', got: %s", params.Order)
+		}
+		apiParams.Order = openai.VectorStoreFileListParamsOrder(params.Order)
+	}
+
+	if params.Filter != "" {
+		validFilters := []string{"in_progress", "completed", "failed", "cancelled"}
+		filterValid := false
+		for _, valid := range validFilters {
+			if params.Filter == valid {
+				filterValid = true
+				break
+			}
+		}
+		if !filterValid {
+			return nil, fmt.Errorf("filter must be one of %v, got: %s", validFilters, params.Filter)
+		}
+		apiParams.Filter = openai.VectorStoreFileListParamsFilter(params.Filter)
+	}
+
+	filesPage, err := c.client.VectorStores.Files.List(ctx, vectorStoreID, apiParams)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list vector store files: %w", err)
+	}
+
+	return filesPage.Data, nil
+}
+
+// DeleteVectorStoreFile removes a file from a vector store.
+func (c *LlamaStackClient) DeleteVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) error {
+	if vectorStoreID == "" {
+		return fmt.Errorf("vectorStoreID is required")
+	}
+	if fileID == "" {
+		return fmt.Errorf("fileID is required")
+	}
+
+	_, err := c.client.VectorStores.Files.Delete(ctx, vectorStoreID, fileID)
+	if err != nil {
+		return fmt.Errorf("failed to delete file from vector store: %w", err)
+	}
+
+	return nil
 }

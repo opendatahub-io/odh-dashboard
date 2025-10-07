@@ -95,6 +95,12 @@ describe('create', () => {
 
     createConnectionTypePage.findFooterError().should('contain.text', 'returned error message');
   });
+
+  it('redirect from v2 to v3 route', () => {
+    cy.visitWithLogin('/connectionTypes/create');
+    cy.findAllByText('Create connection type').should('exist');
+    cy.url().should('include', '/settings/environment-setup/connection-types/create');
+  });
 });
 
 describe('duplicate', () => {
@@ -160,6 +166,12 @@ describe('duplicate', () => {
     row2.findDefault().should('have.text', 'This is the default value');
     row2.findRequired().should('be.checked');
   });
+
+  it('redirect from v2 to v3 route', () => {
+    cy.visitWithLogin('/connectionTypes/duplicate/existing');
+    cy.findAllByText('Create connection type').should('exist');
+    cy.url().should('include', '/settings/environment-setup/connection-types/duplicate/existing');
+  });
 });
 
 describe('edit', () => {
@@ -210,7 +222,7 @@ describe('edit', () => {
     createConnectionTypePage.findConnectionTypeDesc().fill('new description');
     createConnectionTypePage.findDuplicateConnectionTypeButton().click();
 
-    cy.url().should('include', '/connectionTypes/duplicate/existing');
+    cy.url().should('include', '/connection-types/duplicate/existing');
 
     createConnectionTypePage.findConnectionTypeName().should('have.value', 'Copy of existing');
     createConnectionTypePage.findConnectionTypeDesc().should('have.value', 'new description');
@@ -318,5 +330,16 @@ describe('edit', () => {
       'header2',
       'field1',
     ]);
+  });
+
+  it('redirect from v2 to v3 route', () => {
+    cy.interceptOdh(
+      'GET /api/connection-types/:name',
+      { path: { name: 'existing' } },
+      toConnectionTypeConfigMap(existing),
+    );
+    cy.visitWithLogin('/connectionTypes/edit/existing');
+    cy.findAllByText('Edit connection type').should('exist');
+    cy.url().should('include', '/settings/environment-setup/connection-types/edit/existing');
   });
 });

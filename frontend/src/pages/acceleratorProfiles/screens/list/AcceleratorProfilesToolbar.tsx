@@ -48,7 +48,7 @@ const AcceleratorProfilesToolbar: React.FC<AcceleratorProfilesToolbarProps> = ({
         <ToolbarItem>
           <Button
             data-testid="create-accelerator-profile"
-            onClick={() => navigate(`/acceleratorProfiles/create`)}
+            onClick={() => navigate(`/settings/environment-setup/accelerator-profiles/create`)}
           >
             Create accelerator profile
           </Button>

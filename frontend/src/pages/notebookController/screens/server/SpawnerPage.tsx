@@ -417,7 +417,7 @@ const SpawnerPage: React.FC = () => {
                   if (impersonatedUsername) {
                     setImpersonating();
                   } else {
-                    navigate(isHomeAvailable ? '/enabled' : '/');
+                    navigate(isHomeAvailable ? '/applications/enabled' : '/');
                   }
                 }}
               >

@@ -3,7 +3,7 @@ import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
 import { argoAlert } from '#~/__tests__/cypress/cypress/pages/pipelines/argoAlert';
 
 describe('Argo Alert', () => {
-  it('should display Data Science Pipelines enablement failed alert', () => {
+  it('should display Pipelines enablement failed alert', () => {
     cy.interceptOdh(
       'GET /api/dsc/status',
       mockDscStatus({

@@ -62,6 +62,7 @@ const getUserActivityFromNotebook = async (
     );
 };
 
+/** @deprecated -- Jupyter Tile reliance; group and user fetching is incompatible with OpenShift Console growth */
 export const getAllowedUsers = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest<{ Params: { namespace: string } }>,
@@ -69,7 +70,7 @@ export const getAllowedUsers = async (
   const { namespace } = request.params;
   const userInfo = await getUserInfo(fastify, request);
   const currentUser = userInfo.userName;
-  const isAdmin = await isUserAdmin(fastify, currentUser, namespace);
+  const isAdmin = await isUserAdmin(fastify, request);
   if (!isAdmin) {
     // Privileged call -- return nothing
     fastify.log.warn(
@@ -81,6 +82,7 @@ export const getAllowedUsers = async (
   const activityMap = await getUserActivityFromNotebook(fastify, namespace);
 
   const withNotebookUsers = Object.keys(activityMap);
+  // TODO: Move away from this group listing design...
   const adminUsers = await getAdminUserList(fastify);
   const allowedUsers = await getAllowedUserList(fastify);
   // get cluster admins that have a notebook

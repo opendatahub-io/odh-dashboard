@@ -52,7 +52,7 @@ const AcceleratorProfiles: React.FC = () => {
             <Button
               data-testid="display-accelerator-modal-button"
               variant={ButtonVariant.primary}
-              onClick={() => navigate('/acceleratorProfiles/create')}
+              onClick={() => navigate('/settings/environment-setup/accelerator-profiles/create')}
             >
               Add new accelerator profile
             </Button>

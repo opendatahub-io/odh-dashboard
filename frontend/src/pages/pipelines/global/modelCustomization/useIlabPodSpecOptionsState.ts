@@ -1,11 +1,7 @@
 import React from 'react';
 import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 import { ContainerResources, NodeSelector, Toleration } from '#~/types';
-import {
-  AcceleratorProfileKind,
-  HardwareProfileFeatureVisibility,
-  HardwareProfileKind,
-} from '#~/k8sTypes';
+import { AcceleratorProfileKind, HardwareProfileKind } from '#~/k8sTypes';
 import useAcceleratorProfileFormState from '#~/utilities/useAcceleratorProfileFormState';
 import { useHardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
@@ -63,9 +59,7 @@ export const useIlabPodSpecOptionsState = (
   }, [ilabPipelineVersion]);
 
   const acceleratorProfile = useAcceleratorProfileFormState();
-  const hardwareProfile = useHardwareProfileConfig(undefined, undefined, undefined, undefined, [
-    HardwareProfileFeatureVisibility.PIPELINES,
-  ]);
+  const hardwareProfile = useHardwareProfileConfig();
 
   const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
 

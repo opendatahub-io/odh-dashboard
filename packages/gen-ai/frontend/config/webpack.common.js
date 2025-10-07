@@ -23,6 +23,7 @@ module.exports = (env) => ({
     rules: [
       {
         test: /\.(tsx|ts|jsx)?$/,
+        exclude: [/node_modules\/(?!@odh-dashboard)/, /__tests__/, /__mocks__/],
         use: [
           env === 'development'
             ? { loader: 'swc-loader' }

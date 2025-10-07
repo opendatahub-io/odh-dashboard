@@ -54,8 +54,8 @@ export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
     info: {
       popover: (
         <>
-          Visible features indicate where the hardware profile can be used: in <b>workbenches</b>,
-          during <b>model serving</b>, and in <b>Data Science Pipelines</b>.
+          Visible features indicate where the hardware profile can be used: in <b>workbenches</b>{' '}
+          and during <b>model deployment</b>.
         </>
       ),
       popoverProps: {
@@ -161,3 +161,5 @@ export const DEFAULT_HARDWARE_PROFILE_FORM_DATA: HardwareProfileFormData = {
 
 export const CPU_MEMORY_MISSING_WARNING =
   'It is not recommended to remove the last CPU or Memory resource. Resources that use this hardware profile will schedule, but will be very unstable due to not having any lower or upper resource bounds.';
+
+export const DEFAULT_PROFILE_NAME = 'default-profile';

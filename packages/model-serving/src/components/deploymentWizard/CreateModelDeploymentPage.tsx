@@ -12,22 +12,20 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
-import { useAvailableClusterPlatforms } from '../../concepts/useAvailableClusterPlatforms';
-import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
+import { useModelDeploymentWizard } from './useDeploymentWizard';
 import { ModelDeploymentsProvider } from '../../concepts/ModelDeploymentsContext';
 
 const CreateModelDeploymentPage: React.FC = () => {
+  const wizardState = useModelDeploymentWizard();
+  const { connectionsLoaded } = wizardState.state.modelLocationData;
+
   const { namespace } = useParams();
   const navigate = useNavigate();
 
   const { projects, loaded: projectsLoaded } = React.useContext(ProjectsContext);
   const currentProject = projects.find(byName(namespace));
 
-  const { clusterPlatforms, clusterPlatformsLoaded, clusterPlatformsError } =
-    useAvailableClusterPlatforms();
-  const { activePlatform } = useProjectServingPlatform(currentProject, clusterPlatforms);
-
-  if (!projectsLoaded || !clusterPlatformsLoaded) {
+  if (!projectsLoaded || !connectionsLoaded) {
     return (
       <Bullseye>
         <Spinner />
@@ -35,7 +33,7 @@ const CreateModelDeploymentPage: React.FC = () => {
     );
   }
 
-  if (!currentProject || !activePlatform || clusterPlatformsError) {
+  if (!currentProject) {
     return (
       <Bullseye>
         <EmptyState
@@ -46,8 +44,8 @@ const CreateModelDeploymentPage: React.FC = () => {
           <EmptyStateBody>{`Project ${namespace ?? ''} not found.`}</EmptyStateBody>
           <EmptyStateFooter>
             <EmptyStateActions>
-              <Button variant="primary" onClick={() => navigate(`/modelServing/`)}>
-                Return to model serving
+              <Button variant="primary" onClick={() => navigate(`/ai-hub/deployments/`)}>
+                Return to deployments
               </Button>
             </EmptyStateActions>
           </EmptyStateFooter>
@@ -63,7 +61,6 @@ const CreateModelDeploymentPage: React.FC = () => {
         description="Configure and deploy your model."
         primaryButtonText="Deploy model"
         project={currentProject}
-        modelServingPlatform={activePlatform}
       />
     </ModelDeploymentsProvider>
   );

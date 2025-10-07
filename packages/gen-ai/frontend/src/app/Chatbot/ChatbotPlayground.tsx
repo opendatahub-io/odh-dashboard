@@ -10,15 +10,19 @@ import {
   MessageBar,
   MessageBox,
 } from '@patternfly/chatbot';
+import { useLocation } from 'react-router-dom';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
+import { DEFAULT_SYSTEM_INSTRUCTIONS } from './const';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
 import useAlertManagement from './hooks/useAlertManagement';
 import useChatbotMessages from './hooks/useChatbotMessages';
+import useFileManagement from './hooks/useFileManagement';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
+import SourceDeleteSuccessAlert from './components/alerts/SourceDeleteSuccessAlert';
 import { ChatbotMessages } from './ChatbotMessagesList';
 import ViewCodeModal from './components/ViewCodeModal';
 
@@ -32,25 +36,56 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   setIsViewCodeModalOpen,
 }) => {
   const { username } = useUserContext();
-  const { models, modelsLoaded, selectedModel, setSelectedModel, lastInput, setLastInput } =
-    React.useContext(ChatbotContext);
+  const {
+    models,
+    modelsLoaded,
+    aiModels,
+    selectedModel,
+    setSelectedModel,
+    lastInput,
+    setLastInput,
+  } = React.useContext(ChatbotContext);
 
-  const [systemInstruction, setSystemInstruction] = React.useState<string>('');
+  const [systemInstruction, setSystemInstruction] = React.useState<string>(
+    DEFAULT_SYSTEM_INSTRUCTIONS,
+  );
   const [isStreamingEnabled, setIsStreamingEnabled] = React.useState<boolean>(true);
   const [temperature, setTemperature] = React.useState<number>(0.1);
   const [topP, setTopP] = React.useState<number>(0.1);
 
+  const location = useLocation();
+  const selectedAAModel = location.state?.model;
+
   React.useEffect(() => {
     if (modelsLoaded && models.length > 0 && !selectedModel) {
-      setSelectedModel(models[0]?.id);
+      if (selectedAAModel) {
+        setSelectedModel(selectedAAModel);
+        // Clear the location state after setting the selected model
+        // so that when refreshing the page, the selected model is not passed again
+        window.history.replaceState({}, '');
+      } else {
+        setSelectedModel(models[0].id);
+      }
     }
-  }, [modelsLoaded, models, selectedModel, setSelectedModel]);
+  }, [modelsLoaded, models, selectedModel, setSelectedModel, aiModels, selectedAAModel]);
 
   // Custom hooks for managing different aspects of the chatbot
   const alertManagement = useAlertManagement();
-  const sourceManagement = useSourceManagement({
-    onShowSuccessAlert: alertManagement.onShowSuccessAlert,
+
+  // File management hook for displaying uploaded files
+  const fileManagement = useFileManagement({
+    onShowDeleteSuccessAlert: alertManagement.onShowDeleteSuccessAlert,
     onShowErrorAlert: alertManagement.onShowErrorAlert,
+  });
+
+  const sourceManagement = useSourceManagement({
+    onShowSuccessAlert: alertManagement.onShowUploadSuccessAlert,
+    onShowErrorAlert: alertManagement.onShowErrorAlert,
+    onFileUploadComplete: () => {
+      // Refresh the uploaded files list when a file upload completes
+      fileManagement.refreshFiles();
+    },
+    uploadedFiles: fileManagement.files,
   });
 
   const chatbotMessages = useChatbotMessages({
@@ -62,22 +97,32 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     isStreamingEnabled,
     temperature,
     topP,
+    currentVectorStoreId: fileManagement.currentVectorStoreId,
   });
 
   // Create alert components
-  const successAlert = (
+  const uploadSuccessAlert = (
     <SourceUploadSuccessAlert
-      isVisible={alertManagement.showSuccessAlert}
-      alertKey={alertManagement.alertKey}
-      onClose={alertManagement.onHideSuccessAlert}
+      isVisible={alertManagement.showUploadSuccessAlert}
+      alertKey={alertManagement.uploadAlertKey}
+      onClose={alertManagement.onHideUploadSuccessAlert}
+    />
+  );
+
+  const deleteSuccessAlert = (
+    <SourceDeleteSuccessAlert
+      isVisible={alertManagement.showDeleteSuccessAlert}
+      alertKey={alertManagement.deleteAlertKey}
+      onClose={alertManagement.onHideDeleteSuccessAlert}
     />
   );
 
   const errorAlert = (
     <SourceUploadErrorAlert
       isVisible={alertManagement.showErrorAlert}
-      alertKey={alertManagement.alertKey}
+      alertKey={alertManagement.errorAlertKey}
       onClose={alertManagement.onHideErrorAlert}
+      errorMessage={alertManagement.errorMessage}
     />
   );
 
@@ -86,8 +131,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     <ChatbotSettingsPanel
       selectedModel={selectedModel}
       onModelChange={setSelectedModel}
-      alerts={{ successAlert, errorAlert }}
+      alerts={{ uploadSuccessAlert, deleteSuccessAlert, errorAlert }}
       sourceManagement={sourceManagement}
+      fileManagement={fileManagement}
       systemInstruction={systemInstruction}
       onSystemInstructionChange={setSystemInstruction}
       isStreamingEnabled={isStreamingEnabled}
@@ -103,10 +149,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     <>
       <ChatbotSourceSettingsModal
         isOpen={sourceManagement.isSourceSettingsOpen}
-        onToggle={() =>
-          sourceManagement.setIsSourceSettingsOpen(!sourceManagement.isSourceSettingsOpen)
-        }
+        onToggle={sourceManagement.handleModalClose}
         onSubmitSettings={sourceManagement.handleSourceSettingsSubmit}
+        filename={sourceManagement.currentFileForSettings?.name}
       />
       <ViewCodeModal
         isOpen={isViewCodeModalOpen}

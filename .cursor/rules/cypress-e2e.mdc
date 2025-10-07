@@ -235,6 +235,238 @@ pageObject.findStatusText().should('contain', 'Running');
 - Use descriptive step names for troubleshooting
 - Capture relevant system state on failures
 
+## Test Quarantine Management
+
+### When to Quarantine Tests
+
+**Tests should be quarantined when**:
+- Test is consistently flaky across multiple runs
+- Test has a known product bug that blocks reliable execution
+- Test depends on unreliable external dependencies
+- Test has intermittent failures that cannot be immediately resolved
+- Test needs automation improvements before being production-ready
+
+**Do NOT quarantine tests for**:
+- One-time failures that cannot be reproduced
+- Failures due to test environment issues (fix the environment instead)
+- Tests that just need minor updates or fixes (fix them instead)
+
+### How to Quarantine a Test
+
+When quarantining a test, add TWO markers to clearly identify it:
+
+**1. Add Product/Automation Bug prefix to describe block**:
+```typescript
+// For product bugs (issue in the application code):
+describe('[Product Bug: RHOAIENG-12345] Feature Name', () => {
+  // test code
+});
+
+// For automation bugs (issue in the test itself):
+describe('[Automation Bug: RHOAIENG-12345] Feature Name', () => {
+  // test code
+});
+```
+
+**2. Add @Bug or @Maintain tag to test tags**:
+```typescript
+it(
+  'should test specific behavior',
+  {
+    tags: [
+      '@Smoke',
+      '@SmokeSet1',
+      '@Dashboard',
+      '@Bug',  // Add this tag for quarantine
+    ],
+  },
+  () => {
+    // test implementation
+  },
+);
+```
+
+**Alternative tag**: Use `@Maintain` for tests that need automation improvements:
+```typescript
+tags: ['@Smoke', '@Dashboard', '@Maintain']
+```
+
+**Complete quarantine example**:
+```typescript
+describe('[Product Bug: RHOAIENG-33609] Verify Jupyter Notebook Launch', () => {
+  it(
+    'should launch notebook from project page',
+    { 
+      tags: ['@Smoke', '@Dashboard', '@Bug'] 
+    },
+    () => {
+      // test implementation
+    },
+  );
+});
+```
+
+### Quarantine Validation Process
+
+**Before removing tests from quarantine, verify**:
+
+1. **Cross-Cluster Validation** (MANDATORY):
+   - Test must pass on **both RHOAI and ODH cluster types**
+   - Run test on at least 2 different cluster instances
+   - Document cluster types and test run results
+
+2. **Multiple Run Validation**:
+   - Test must pass consistently across 3+ consecutive runs
+   - No intermittent failures in recent test history
+   - Test execution time should be stable
+
+3. **Issue Resolution**:
+   - JIRA ticket referenced in quarantine is resolved/closed
+   - Product bug is fixed (for `[Product Bug]` cases)
+   - Test automation is improved (for `[Automation Bug]` cases)
+
+4. **Test Quality Check**:
+   - Test follows all Cypress E2E standards
+   - No arbitrary waits or brittle selectors
+   - Proper cleanup and error handling
+
+### How to Remove Tests from Quarantine
+
+**Step-by-step process**:
+
+1. **Verify test stability**:
+   - Run tests on both RHOAI and ODH clusters
+   - Check Jenkins/CI test results for consistency
+   - Confirm JIRA issue is resolved
+
+2. **Create a branch for quarantine removal**:
+   ```bash
+   git checkout -b removeTestsQuarantineYYYYMMDD
+   ```
+
+3. **Remove quarantine markers** (both required):
+   - **Remove bug prefix from describe block**:
+   ```typescript
+   // Before:
+   describe('[Product Bug: RHOAIENG-12345] Feature Name', () => {
+   
+   // After:
+   describe('Feature Name', () => {
+   ```
+   
+   - **Remove @Bug/@Maintain tag from tags array**:
+   ```typescript
+   // Before:
+   tags: ['@Smoke', '@Dashboard', '@Bug']
+   
+   // After:
+   tags: ['@Smoke', '@Dashboard']
+   ```
+
+4. **Verify no quarantine markers remain**:
+   ```bash
+   # Check for any remaining quarantine markers
+   grep -r "@Bug\|@Maintain\|\[Product Bug\|\[Automation Bug" \
+     frontend/src/__tests__/cypress/cypress/tests/e2e/
+   ```
+
+5. **Run linting**:
+   ```bash
+   cd frontend
+   npm run test:lint
+   npm run test:fix
+   ```
+
+6. **Stage changes and review**:
+   ```bash
+   git status
+   git diff
+   # Review all changes carefully before committing
+   ```
+
+7. **Commit with descriptive message**:
+   ```bash
+   git add .
+   git commit -m "test(e2e): Remove tests from quarantine - RHOAIENG-XXXXX
+   
+   Tests validated stable across RHOAI and ODH clusters:
+   - testFeatureName1.cy.ts
+   - testFeatureName2.cy.ts
+   - testFeatureName3.cy.ts
+   
+   All tests passed consistently on both cluster types
+   over multiple runs. Product bugs resolved."
+   ```
+
+### Quarantine Removal Checklist
+
+Before removing tests from quarantine:
+- [ ] Test passes on RHOAI cluster (minimum 3 consecutive runs)
+- [ ] Test passes on ODH cluster (minimum 3 consecutive runs)
+- [ ] JIRA issue referenced in quarantine is resolved
+- [ ] Test follows all Cypress E2E standards
+- [ ] No flakiness observed in recent test runs
+- [ ] Removed `[Product Bug: ...]` or `[Automation Bug: ...]` prefix from describe
+- [ ] Removed `@Bug` or `@Maintain` tag from test tags
+- [ ] Verified no remaining quarantine markers with grep
+- [ ] Ran linting and fixed all errors
+- [ ] Reviewed all changes with git diff
+- [ ] Created descriptive commit message documenting validation
+
+### Example: Complete Quarantine Removal
+
+**Before (quarantined)**:
+```typescript
+describe('[Product Bug: RHOAIENG-33609] Verify Notebook Launch', () => {
+  it(
+    'should launch notebook successfully',
+    { 
+      tags: [
+        '@Smoke',
+        '@SmokeSet1',
+        '@Dashboard',
+        '@Notebooks',
+        '@Bug',  // Quarantine marker
+      ] 
+    },
+    () => {
+      // test code
+    },
+  );
+});
+```
+
+**After (removed from quarantine)**:
+```typescript
+describe('Verify Notebook Launch', () => {
+  it(
+    'should launch notebook successfully',
+    { 
+      tags: [
+        '@Smoke',
+        '@SmokeSet1',
+        '@Dashboard',
+        '@Notebooks',
+        // @Bug removed - test is stable
+      ] 
+    },
+    () => {
+      // test code
+    },
+  );
+});
+```
+
+### Quarantine Management Best Practices
+
+1. **Document clearly**: Always include JIRA ticket in quarantine prefix
+2. **Track quarantined tests**: Maintain awareness of which tests are quarantined and why
+3. **Regular review**: Periodically review quarantined tests for removal eligibility
+4. **Fix root causes**: Prioritize fixing underlying issues over long-term quarantine
+5. **Cross-cluster testing**: Always validate on both RHOAI and ODH before removal
+6. **Batch removals**: When removing multiple tests, do it in a single focused PR
+7. **Clear communication**: Document validation results in commit messages and PRs
+
 ## Implementation Checklist
 
 Before writing any test:

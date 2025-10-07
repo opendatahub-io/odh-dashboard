@@ -1,7 +1,7 @@
 import { clusterStorage } from '#~/__tests__/cypress/cypress/pages/clusterStorage';
 
 /**
- * Find the "Add cluster storage" button in the DSP details Cluster Storage tab.
+ * Find the "Add cluster storage" button in the Pipelines details Cluster Storage tab.
  * It can be in two different positions:
  * 1. When there are no Cluster Storage
  * 2. When there are already at least 1 Cluster Storage

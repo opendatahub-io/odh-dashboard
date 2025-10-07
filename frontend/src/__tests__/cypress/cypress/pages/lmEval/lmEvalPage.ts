@@ -1,9 +1,9 @@
 class LMEvalPage {
   visit(projectName?: string, wait = true) {
     if (projectName) {
-      cy.visitWithLogin(`/modelEvaluations/${projectName}`);
+      cy.visitWithLogin(`/develop-train/evaluations/${projectName}`);
     } else {
-      cy.visitWithLogin('/modelEvaluations');
+      cy.visitWithLogin('/develop-train/evaluations');
     }
     if (wait) {
       this.wait();

@@ -37,7 +37,7 @@ class ModelRegistrySettings {
   keySelect = new SearchSelector('existing-ca-key-selector');
 
   visit(wait = true) {
-    cy.visitWithLogin('/modelRegistrySettings');
+    cy.visitWithLogin('/settings/model-resources-operations/model-registry');
     if (wait) {
       this.wait();
     }

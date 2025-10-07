@@ -4,7 +4,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { Deployment } from '../../../../extension-points';
 import { mockExtensions } from '../../../__tests__/mockUtils';
-import { DeploymentRow } from '../DeploymentsTableRow';
+import { DeploymentRow } from '../row/DeploymentsTableRow';
 
 jest.mock('@odh-dashboard/plugin-core');
 
@@ -14,6 +14,14 @@ jest.mock('../../../concepts/useModelDeploymentNotification', () => ({
     watchDeployment: jest.fn(),
   }),
 }));
+
+// Mock the DeploymentHardwareProfileCell component
+jest.mock(
+  '@odh-dashboard/internal/concepts/hardwareProfiles/DeploymentHardwareProfileCell',
+  () => ({
+    DeploymentHardwareProfileCell: () => <td>Hardware Profile</td>,
+  }),
+);
 
 const mockDeployment = (partial: Partial<Deployment> = {}) => ({
   modelServingPlatformId: 'test-platform',

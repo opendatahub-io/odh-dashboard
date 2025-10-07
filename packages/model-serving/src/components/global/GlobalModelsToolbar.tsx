@@ -58,7 +58,7 @@ const GlobalModelsToolbar: React.FC<GlobalModelsToolbarProps> = ({
               project={currentProject ?? null}
               createRoute={
                 currentProject?.metadata.name
-                  ? getDeploymentWizardRoute(`/modelServing/${currentProject.metadata.name}`)
+                  ? getDeploymentWizardRoute(`/ai-hub/deployments/${currentProject.metadata.name}`)
                   : undefined
               }
             />

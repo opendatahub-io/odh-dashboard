@@ -48,7 +48,7 @@ const ModelServingGlobal: React.FC = () => {
       loaded={servingRuntimesLoaded && inferenceServicesLoaded}
       headerContent={
         <ModelServingProjectSelection
-          getRedirectPath={(namespace: string) => `/modelServing/${namespace}`}
+          getRedirectPath={(namespace: string) => `/ai-hub/deployments/${namespace}`}
         />
       }
       provideChildrenPadding
@@ -60,7 +60,7 @@ const ModelServingGlobal: React.FC = () => {
             onCancel={() => {
               const redirectProject = preferredProject ?? projects?.[0];
               if (redirectProject) {
-                navigate(`/modelServing/${redirectProject.metadata.name}`);
+                navigate(`/ai-hub/deployments/${redirectProject.metadata.name}`);
               }
             }}
           />

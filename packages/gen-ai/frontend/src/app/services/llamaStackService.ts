@@ -1,9 +1,6 @@
 /* eslint-disable camelcase */
-/* eslint-disable no-relative-import-paths/no-relative-import-paths */
 import { isAxiosError } from 'axios';
-
-import axiosInstance from '../utilities/axios';
-import { extractMCPToolCallData } from '../utilities';
+import axiosInstance from '~/app/utilities/axios';
 import {
   BackendResponseData,
   ChatbotSourceSettings,
@@ -11,6 +8,7 @@ import {
   CodeExportResponse,
   CreateResponseRequest,
   FileUploadResult,
+  FileModel,
   LlamaModel,
   LlamaModelType,
   LlamaStackDistributionModel,
@@ -23,8 +21,10 @@ import {
   OutputItem,
   SimplifiedResponseData,
   VectorStore,
-} from '../types';
-import { URL_PREFIX } from '../utilities/const';
+  VectorStoreFile,
+  LlamaModelResponse,
+} from '~/app/types';
+import { URL_PREFIX, extractMCPToolCallData } from '~/app/utilities';
 
 /**
  * Extracts text content from the backend response output array
@@ -74,8 +74,8 @@ const transformBackendResponse = (backendResponse: BackendResponseData): Simplif
  * @returns Promise<LlamaModel[]> - Array of available models with their metadata
  * @throws Error - When the API request fails or returns an error response
  */
-export const getModels = (namespace: string): Promise<LlamaModel[]> => {
-  const url = `${URL_PREFIX}/api/v1/models?namespace=${namespace}`;
+export const getModels = (namespace: string): Promise<LlamaModelResponse[]> => {
+  const url = `${URL_PREFIX}/api/v1/lsd/models?namespace=${namespace}`;
   return axiosInstance
     .get(url)
     .then((response) => response.data.data)
@@ -96,7 +96,7 @@ export const getModels = (namespace: string): Promise<LlamaModel[]> => {
 //Should be fixed by updating the API to return only the models of the specified type.
 //Leaving this here as a reminder for now as it is not being used anywhere.
 export const getModelsByType = (modelType: LlamaModelType): Promise<LlamaModel[]> => {
-  const url = `${URL_PREFIX}/api/v1/models?model_type=${modelType}`;
+  const url = `${URL_PREFIX}/api/v1/aaa/models?model_type=${modelType}`;
   return axiosInstance
     .get(url)
     .then((response) => response.data.data ?? [])
@@ -114,7 +114,7 @@ export const getModelsByType = (modelType: LlamaModelType): Promise<LlamaModel[]
  * @throws Error - When the API request fails or returns an error response
  */
 export const getVectorStores = (namespace: string): Promise<VectorStore[]> => {
-  const url = `${URL_PREFIX}/api/v1/vectorstores?namespace=${namespace}`;
+  const url = `${URL_PREFIX}/api/v1/lsd/vectorstores?namespace=${namespace}`;
   return axiosInstance
     .get(url)
     .then((response) => response.data.data)
@@ -133,7 +133,7 @@ export const getVectorStores = (namespace: string): Promise<VectorStore[]> => {
  * @throws Error - When the API request fails or returns an error response
  */
 export const createVectorStore = (vectorName: string, namespace: string): Promise<VectorStore> => {
-  const url = `${URL_PREFIX}/api/v1/vectorstores?namespace=${namespace}`;
+  const url = `${URL_PREFIX}/api/v1/lsd/vectorstores?namespace=${namespace}`;
   return axiosInstance
     .post(url, {
       name: vectorName,
@@ -142,6 +142,137 @@ export const createVectorStore = (vectorName: string, namespace: string): Promis
     .catch((error) => {
       throw new Error(
         error.response?.data?.error?.message || error.message || 'Failed to create vector store',
+      );
+    });
+};
+
+/**
+ * Fetches files from a specific vector store
+ * @param namespace - The namespace containing the vector store
+ * @param vectorStoreId - The ID of the vector store to get files from
+ * @param limit - Optional limit for number of files to return (default: 20)
+ * @param order - Optional sort order by creation timestamp (asc/desc, default: desc)
+ * @param filter - Optional filter by file status (completed, in_progress, failed, cancelled)
+ * @returns Promise<VectorStoreFile[]> - Array of files in the vector store
+ * @throws Error - When the API request fails or returns an error response
+ */
+export const listVectorStoreFiles = (
+  namespace: string,
+  vectorStoreId: string,
+  limit?: number,
+  order?: 'asc' | 'desc',
+  filter?: string,
+): Promise<VectorStoreFile[]> => {
+  const params = new URLSearchParams();
+  params.append('namespace', namespace);
+  params.append('vector_store_id', vectorStoreId);
+  if (limit) {
+    params.append('limit', limit.toString());
+  }
+  if (order) {
+    params.append('order', order);
+  }
+  if (filter) {
+    params.append('filter', filter);
+  }
+
+  const url = `${URL_PREFIX}/api/v1/lsd/vectorstores/files?${params.toString()}`;
+  return axiosInstance
+    .get(url)
+    .then((response) => response.data.data)
+    .catch((error) => {
+      throw new Error(
+        error.response?.data?.error?.message ||
+          error.message ||
+          'Failed to fetch vector store files',
+      );
+    });
+};
+
+/**
+ * Deletes a file from a vector store
+ * @param namespace - The namespace containing the vector store
+ * @param vectorStoreId - The ID of the vector store containing the file
+ * @param fileId - The ID of the file to delete
+ * @returns Promise<{deleted: boolean, id: string, object: string}> - Delete confirmation response
+ * @throws Error - When the API request fails or returns an error response
+ */
+export const deleteVectorStoreFile = (
+  namespace: string,
+  vectorStoreId: string,
+  fileId: string,
+): Promise<{ deleted: boolean; id: string; object: string }> => {
+  const params = new URLSearchParams();
+  params.append('namespace', namespace);
+  params.append('vector_store_id', vectorStoreId);
+  params.append('file_id', fileId);
+
+  const url = `${URL_PREFIX}/api/v1/lsd/vectorstores/files/delete?${params.toString()}`;
+  return axiosInstance
+    .delete(url)
+    .then((response) => response.data.data)
+    .catch((error) => {
+      throw new Error(
+        error.response?.data?.error?.message ||
+          error.message ||
+          'Failed to delete vector store file',
+      );
+    });
+};
+
+/**
+ * Fetches all uploaded files from the Llama Stack API
+ * @param namespace - The namespace to fetch files from
+ * @param limit - Optional limit for number of files to return (default: 20)
+ * @param order - Optional sort order by creation timestamp (asc/desc, default: desc)
+ * @param purpose - Optional filter by file purpose (e.g., "assistants")
+ * @returns Promise<FileModel[]> - Array of uploaded files with their metadata
+ * @throws Error - When the API request fails or returns an error response
+ */
+export const listFiles = (
+  namespace: string,
+  limit?: number,
+  order?: 'asc' | 'desc',
+  purpose?: string,
+): Promise<FileModel[]> => {
+  const params = new URLSearchParams();
+  params.append('namespace', namespace);
+  if (limit) {
+    params.append('limit', limit.toString());
+  }
+  if (order) {
+    params.append('order', order);
+  }
+  if (purpose) {
+    params.append('purpose', purpose);
+  }
+
+  const url = `${URL_PREFIX}/api/v1/lsd/files?${params.toString()}`;
+  return axiosInstance
+    .get(url)
+    .then((response) => response.data.data)
+    .catch((error) => {
+      throw new Error(
+        error.response?.data?.error?.message || error.message || 'Failed to fetch files',
+      );
+    });
+};
+
+/**
+ * Deletes a file from the Llama Stack API
+ * @param fileId - The ID of the file to delete
+ * @param namespace - The namespace containing the file
+ * @returns Promise<void> - A promise that resolves when the file is deleted
+ * @throws Error - When the API request fails or returns an error response
+ */
+export const deleteFile = (fileId: string, namespace: string): Promise<void> => {
+  const url = `${URL_PREFIX}/api/v1/lsd/files/delete?namespace=${namespace}&file_id=${fileId}`;
+  return axiosInstance
+    .delete(url)
+    .then(() => undefined)
+    .catch((error) => {
+      throw new Error(
+        error.response?.data?.error?.message || error.message || 'Failed to delete file',
       );
     });
 };
@@ -159,7 +290,7 @@ export const uploadSource = (
   settings: ChatbotSourceSettings,
   namespace: string,
 ): Promise<FileUploadResult> => {
-  const url = `${URL_PREFIX}/api/v1/files/upload?namespace=${namespace}`;
+  const url = `${URL_PREFIX}/api/v1/lsd/files/upload?namespace=${namespace}`;
 
   // Create FormData for multipart/form-data upload
   const formData = new FormData();
@@ -180,15 +311,13 @@ export const uploadSource = (
     })
     .then((response) => response.data.data)
     .catch((error) => {
-      throw new Error(
-        error.response?.data?.error?.message || error.message || 'Failed to upload source',
-      );
+      throw new Error(error.response?.data?.message || error.message || 'Failed to upload source');
     });
 };
 
 /**
  * Request to generate AI responses with RAG and conversation context.
- * @param request - CreateResponseRequest payload for /gen-ai/api/v1/responses.
+ * @param request - CreateResponseRequest payload for /gen-ai/api/v1/lsd/responses.
  * @param namespace - The namespace to generate responses in
  * @param onStreamData - Optional callback for streaming data chunks
  * @returns Promise<SimplifiedResponseData> - The generated response object.
@@ -199,7 +328,7 @@ export const createResponse = (
   namespace: string,
   onStreamData?: (chunk: string) => void,
 ): Promise<SimplifiedResponseData> => {
-  const url = `${URL_PREFIX}/api/v1/responses?namespace=${namespace}`;
+  const url = `${URL_PREFIX}/api/v1/lsd/responses?namespace=${namespace}`;
 
   if (request.stream && onStreamData) {
     // Handle streaming response using fetch with text/event-stream
@@ -338,7 +467,7 @@ export const exportCode = (
 };
 
 export const getLSDstatus = (project: string): Promise<LlamaStackDistributionModel> => {
-  const url = `${URL_PREFIX}/api/v1/llamastack-distribution/status?namespace=${project}`;
+  const url = `${URL_PREFIX}/api/v1/lsd/status?namespace=${project}`;
   return axiosInstance
     .get(url)
     .then((response) => response.data.data)
@@ -356,7 +485,7 @@ export const getLSDstatus = (project: string): Promise<LlamaStackDistributionMod
  * @throws Error - When the API request fails or returns an error response
  */
 export const getAAModels = (namespace: string): Promise<AAModelResponse[]> => {
-  const url = `${URL_PREFIX}/api/v1/aa/models?namespace=${namespace}`;
+  const url = `${URL_PREFIX}/api/v1/aaa/models?namespace=${namespace}`;
   return axiosInstance
     .get(url)
     .then((response) => response.data.data ?? [])
@@ -371,7 +500,7 @@ export const installLSD = (
   project: string,
   models: string[],
 ): Promise<LlamaStackDistributionModel> => {
-  const url = `${URL_PREFIX}/api/v1/llamastack-distribution/install?namespace=${project}`;
+  const url = `${URL_PREFIX}/api/v1/lsd/install?namespace=${project}`;
   return axiosInstance
     .post(url, { models })
     .then((response) => response.data.data)
@@ -383,7 +512,7 @@ export const installLSD = (
 };
 
 export const deleteLSD = (project: string, lsdName: string): Promise<string> => {
-  const url = `${URL_PREFIX}/api/v1/llamastack-distribution/delete?namespace=${project}`;
+  const url = `${URL_PREFIX}/api/v1/lsd/delete?namespace=${project}`;
   return axiosInstance
     .delete(url, {
       data: { name: lsdName },
@@ -407,7 +536,7 @@ export const getMCPServers = (namespace: string): Promise<MCPServersResponse> =>
     throw new Error('Namespace parameter is required');
   }
 
-  const url = `${URL_PREFIX}/api/v1/aa/mcps`;
+  const url = `${URL_PREFIX}/api/v1/aaa/mcps`;
   return axiosInstance
     .get<{ data: MCPServersResponse }>(url, {
       params: { namespace: namespace.trim() },

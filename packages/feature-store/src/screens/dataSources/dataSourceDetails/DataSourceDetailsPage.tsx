@@ -59,7 +59,7 @@ const DataSourceDetailsPage = (): React.ReactElement => {
       </EmptyStateBody>
       <EmptyStateFooter>
         <EmptyStateActions>
-          <Link to={`${featureStoreRootRoute()}/dataSources`}>Go to Data sources</Link>
+          <Link to={`${featureStoreRootRoute()}/data-sources`}>Go to Data sources</Link>
         </EmptyStateActions>
       </EmptyStateFooter>
     </EmptyState>
@@ -95,7 +95,7 @@ const DataSourceDetailsPage = (): React.ReactElement => {
               <FeatureStoreBreadcrumb
                 pageName="Data sources"
                 projectName={currentProject || ''}
-                linkTo={`${featureStoreRootRoute()}/dataSources`}
+                linkTo={`${featureStoreRootRoute()}/data-sources`}
                 dataTestId="data-source-details-breadcrumb-link"
               />
               <BreadcrumbItem

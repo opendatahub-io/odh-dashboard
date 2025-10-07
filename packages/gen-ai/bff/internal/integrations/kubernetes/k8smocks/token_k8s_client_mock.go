@@ -7,7 +7,7 @@ import (
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
-	"github.com/opendatahub-io/gen-ai/internal/models/genaiassets"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -62,17 +62,56 @@ func (m *TokenKubernetesClientMock) GetNamespaces(ctx context.Context, identity 
 				Name: "mock-test-namespace-3",
 			},
 		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "mock-test-namespace-4",
+			},
+		},
 	}, nil
 }
 
 // GetAAModels returns mock AA models for testing, namespace-scoped
-func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]genaiassets.AAModel, error) {
+func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]models.AAModel, error) {
 	// Return different mock AA models based on namespace
 	switch namespace {
-	case "mock-test-namespace-2":
-		return []genaiassets.AAModel{
+	case "mock-test-namespace-1":
+		// Return only LLMInferenceService models for testing llm-d architecture
+		return []models.AAModel{
+			{
+				ModelName:      "llm-d-codestral-22b",
+				ModelID:        "llm-d-codestral-22b",
+				ServingRuntime: "Distributed Inference Server with llm-d",
+				APIProtocol:    "REST",
+				Version:        "",
+				Description:    "Mistral Codestral 22B model optimized for code generation with llm-d prefill/decode separation",
+				Usecase:        "Code generation, Software development",
+				Endpoints: []string{
+					fmt.Sprintf("internal: http://llm-d-codestral-22b.%s.svc.cluster.local:80", namespace),
+					fmt.Sprintf("external: https://llm-d-codestral-22b-%s.example.com", namespace),
+				},
+				Status:      "Running",
+				DisplayName: "LLM-D Codestral 22B",
+			},
+			{
+				ModelName:      "llm-d-deepseek-coder-33b",
+				ModelID:        "llm-d-deepseek-coder-33b",
+				ServingRuntime: "Distributed Inference Server with llm-d",
+				APIProtocol:    "REST",
+				Version:        "",
+				Description:    "DeepSeek Coder 33B model with llm-d architecture for high-performance code completion",
+				Usecase:        "Code completion, Programming assistance",
+				Endpoints: []string{
+					fmt.Sprintf("internal: http://llm-d-deepseek-coder-33b.%s.svc.cluster.local:80", namespace),
+				},
+				Status:      "Running",
+				DisplayName: "LLM-D DeepSeek Coder 33B",
+			},
+		}, nil
+	case "mock-test-namespace-2", "mock-test-namespace-3":
+		aaModels := []models.AAModel{
 			{
 				ModelName:      "granite-7b-code",
+				ModelID:        "granite-7b-code",
 				ServingRuntime: "OpenVINO Model Server",
 				APIProtocol:    "v2",
 				Version:        "v2025.1",
@@ -82,10 +121,12 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://granite-7b-code.%s.svc.cluster.local:8080", namespace),
 					fmt.Sprintf("external: https://granite-7b-code-%s.example.com", namespace),
 				},
-				Status: "Running",
+				Status:      "Running",
+				DisplayName: "Granite 7B code",
 			},
 			{
 				ModelName:      "llama-3.1-8b-instruct",
+				ModelID:        "llama-3.1-8b-instruct",
 				ServingRuntime: "TorchServe",
 				APIProtocol:    "v1",
 				Version:        "v2025.1",
@@ -95,10 +136,12 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://llama-3.1-8b-instruct.%s.svc.cluster.local:8080", namespace),
 					fmt.Sprintf("external: https://llama-3.1-8b-instruct-%s.example.com", namespace),
 				},
-				Status: "Running",
+				Status:      "Running",
+				DisplayName: "Llama 3.1 8B instruct",
 			},
 			{
 				ModelName:      "mistral-7b-instruct",
+				ModelID:        "mistral-7b-instruct",
 				ServingRuntime: "TorchServe",
 				APIProtocol:    "v1",
 				Version:        "v2025.1",
@@ -107,10 +150,12 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Endpoints: []string{
 					fmt.Sprintf("internal: http://mistral-7b-instruct.%s.svc.cluster.local:8080", namespace),
 				},
-				Status: "Running",
+				Status:      "Stop",
+				DisplayName: "Mistral 7B instruct",
 			},
 			{
 				ModelName:      "ollama/llama3.2:3b",
+				ModelID:        "ollama/llama3.2:3b",
 				ServingRuntime: "Ollama",
 				APIProtocol:    "v1",
 				Version:        "v2025.1",
@@ -120,10 +165,12 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://llama3.2-3b.%s.svc.cluster.local:11434", namespace),
 					fmt.Sprintf("external: https://llama3.2-3b-%s.example.com", namespace),
 				},
-				Status: "Running",
+				Status:      "Running",
+				DisplayName: "Ollama Llama 3.2 3B",
 			},
 			{
 				ModelName:      "ollama/all-minilm:l6-v2",
+				ModelID:        "ollama/all-minilm:l6-v2",
 				ServingRuntime: "Ollama",
 				APIProtocol:    "v1",
 				Version:        "v2025.1",
@@ -133,11 +180,64 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 					fmt.Sprintf("internal: http://all-minilm-l6-v2.%s.svc.cluster.local:11434", namespace),
 					fmt.Sprintf("external: https://all-minilm-l6-v2-%s.example.com", namespace),
 				},
-				Status: "Stop",
+				Status:      "Running",
+				DisplayName: "Ollama All MiniLM L6 v2",
 			},
-		}, nil
+		}
+
+		// LLMInferenceService examples (llm-d architecture)
+		llmDModels := []models.AAModel{
+			{
+				ModelName:      "llm-d-llama-3.1-70b",
+				ModelID:        "llm-d-llama-3.1-70b",
+				ServingRuntime: "Distributed Inference Server with llm-d",
+				APIProtocol:    "REST",
+				Version:        "",
+				Description:    "Meta Llama 3.1 70B model served with llm-d disaggregated architecture for high throughput",
+				Usecase:        "Large-scale inference, High throughput",
+				Endpoints: []string{
+					fmt.Sprintf("internal: http://llm-d-llama-3.1-70b.%s.svc.cluster.local:80", namespace),
+					fmt.Sprintf("external: https://llm-d-llama-3.1-70b-%s.example.com", namespace),
+				},
+				Status:      "Running",
+				DisplayName: "LLM-D Llama 3.1 70B",
+			},
+			{
+				ModelName:      "llm-d-mixtral-8x7b",
+				ModelID:        "llm-d-mixtral-8x7b",
+				ServingRuntime: "Distributed Inference Server with llm-d",
+				APIProtocol:    "REST",
+				Version:        "",
+				Description:    "Mistral Mixtral 8x7B MoE model with llm-d prefill/decode separation for optimal performance",
+				Usecase:        "Mixture of Experts, High efficiency",
+				Endpoints: []string{
+					fmt.Sprintf("internal: http://llm-d-mixtral-8x7b.%s.svc.cluster.local:80", namespace),
+					fmt.Sprintf("external: https://llm-d-mixtral-8x7b-%s.example.com", namespace),
+				},
+				Status:      "Running",
+				DisplayName: "LLM-D Mixtral 8x7B",
+			},
+			{
+				ModelName:      "llm-d-qwen2.5-72b",
+				ModelID:        "llm-d-qwen2.5-72b",
+				ServingRuntime: "Distributed Inference Server with llm-d",
+				APIProtocol:    "REST",
+				Version:        "",
+				Description:    "Alibaba Qwen 2.5 72B model optimized with llm-d architecture for enterprise workloads",
+				Usecase:        "Enterprise AI, Multilingual",
+				Endpoints: []string{
+					fmt.Sprintf("internal: http://llm-d-qwen2.5-72b.%s.svc.cluster.local:80", namespace),
+				},
+				Status:      "Running",
+				DisplayName: "LLM-D Qwen 2.5 72B",
+			},
+		}
+
+		// Append LLM-D models to the existing models
+		aaModels = append(aaModels, llmDModels...)
+		return aaModels, nil
 	default:
-		return []genaiassets.AAModel{}, nil
+		return []models.AAModel{}, nil
 	}
 }
 
@@ -154,59 +254,111 @@ func (m *TokenKubernetesClientMock) GetUser(ctx context.Context, identity *integ
 
 // GetLlamaStackDistributions returns mock LSD list for testing
 func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*lsdapi.LlamaStackDistributionList, error) {
-	// Return empty list for mock-test-namespace-1 to test empty state
-	if namespace == "mock-test-namespace-1" {
+	// Special case: mock-test-namespace-1 should always return empty list for testing empty state
+	if namespace == "mock-test-namespace-1" || namespace == "mock-test-namespace-3" {
 		return &lsdapi.LlamaStackDistributionList{
 			Items: []lsdapi.LlamaStackDistribution{},
 		}, nil
 	}
 
-	// For all other namespaces, return mock LSD data
-	return &lsdapi.LlamaStackDistributionList{
-		Items: []lsdapi.LlamaStackDistribution{
-			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "mock-lsd",
-					Annotations: map[string]string{
-						"openshift.io/display-name": "mock-lsd-display-name",
-					},
-					Labels: map[string]string{
-						"opendatahub.io/dashboard": "true",
-					},
-				},
-				Status: lsdapi.LlamaStackDistributionStatus{
-					Phase: lsdapi.LlamaStackDistributionPhaseReady,
-					Version: lsdapi.VersionInfo{
-						LlamaStackServerVersion: "v0.2.0",
-					},
-					ServiceURL: "http://mock-lsd.test-namespace.svc.cluster.local:8321",
-					DistributionConfig: lsdapi.DistributionConfig{
-						ActiveDistribution: "mock-distribution",
-						Providers: []lsdapi.ProviderInfo{
-							{
-								ProviderID:   "mock-provider",
-								ProviderType: "mock-type",
-								API:          "mock-api",
-							},
+	// For other namespaces, first try to query the real cluster for LSD resources
+	var lsdList lsdapi.LlamaStackDistributionList
+	err := m.Client.List(ctx, &lsdList, client.InNamespace(namespace))
+	if err != nil {
+		return nil, fmt.Errorf("failed to list LlamaStackDistributions: %w", err)
+	}
+
+	// If we found real LSD resources in the cluster, return them
+	if len(lsdList.Items) > 0 {
+		return &lsdList, nil
+	}
+
+	// For namespaces that should return mock LSD data (for testing existing LSD scenarios)
+	if namespace == "mock-test-namespace-2" || namespace == "test-namespace" {
+		return &lsdapi.LlamaStackDistributionList{
+			Items: []lsdapi.LlamaStackDistribution{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "mock-lsd",
+						Namespace: namespace,
+						Annotations: map[string]string{
+							"openshift.io/display-name": "mock-lsd-display-name",
 						},
-						AvailableDistributions: map[string]string{
-							"mock-distribution": "mock-image:latest",
+						Labels: map[string]string{
+							"opendatahub.io/dashboard": "true",
+						},
+					},
+					Status: lsdapi.LlamaStackDistributionStatus{
+						Phase: lsdapi.LlamaStackDistributionPhaseReady,
+						Version: lsdapi.VersionInfo{
+							LlamaStackServerVersion: "v0.2.0",
+						},
+						ServiceURL: "http://mock-lsd.test-namespace.svc.cluster.local:8321",
+						DistributionConfig: lsdapi.DistributionConfig{
+							ActiveDistribution: "mock-distribution",
+							Providers: []lsdapi.ProviderInfo{
+								{
+									ProviderID:   "mock-provider",
+									ProviderType: "mock-type",
+									API:          "mock-api",
+								},
+							},
+							AvailableDistributions: map[string]string{
+								"mock-distribution": "mock-image:latest",
+							},
 						},
 					},
 				},
 			},
-		},
+		}, nil
+	}
+
+	if namespace == "mock-test-namespace-4" {
+		return &lsdapi.LlamaStackDistributionList{
+			Items: []lsdapi.LlamaStackDistribution{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "mock-lsd",
+						Namespace: namespace,
+						Annotations: map[string]string{
+							"openshift.io/display-name": "mock-lsd-display-name",
+						},
+						Labels: map[string]string{
+							"opendatahub.io/dashboard": "true",
+						},
+					},
+					Status: lsdapi.LlamaStackDistributionStatus{
+						Phase: lsdapi.LlamaStackDistributionPhaseFailed,
+					},
+				},
+			},
+		}, nil
+	}
+
+	// For all other namespaces, return empty list (no existing LSDs)
+	return &lsdapi.LlamaStackDistributionList{
+		Items: []lsdapi.LlamaStackDistribution{},
 	}, nil
 }
 
 func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []string) (*lsdapi.LlamaStackDistribution, error) {
+	// Check if LSD already exists in the namespace
+	existingLSDList, err := m.GetLlamaStackDistributions(ctx, identity, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check for existing LlamaStackDistribution: %w", err)
+	}
+
+	if len(existingLSDList.Items) > 0 {
+		return nil, fmt.Errorf("LlamaStackDistribution already exists in namespace %s", namespace)
+	}
+
 	// First ensure the namespace exists
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
 		},
 	}
-	err := m.Client.Create(ctx, ns)
+	err = m.Client.Create(ctx, ns)
 	if err != nil && !errors.IsAlreadyExists(err) {
 		return nil, fmt.Errorf("failed to create namespace %s: %w", namespace, err)
 	}
@@ -394,19 +546,19 @@ func (m *TokenKubernetesClientMock) DeleteLlamaStackDistribution(ctx context.Con
 		return nil, fmt.Errorf("no LlamaStackDistribution found in namespace %s with OpenDataHubDashboardLabelKey annotation", namespace)
 	}
 
-	// Find the LSD with matching display name annotation
+	// Find the LSD with matching k8s name
 	var targetLSD *lsdapi.LlamaStackDistribution
 	for i := range lsdList.Items {
 		lsd := &lsdList.Items[i]
-		if displayName, exists := lsd.Annotations["openshift.io/display-name"]; exists && displayName == name {
+		if lsd.Name == name {
 			targetLSD = lsd
 			break
 		}
 	}
 
-	// If no LSD with matching display name found, return error
+	// If no LSD with matching k8s name found, return error
 	if targetLSD == nil {
-		return nil, fmt.Errorf("LlamaStackDistribution with display name '%s' not found in namespace %s", name, namespace)
+		return nil, fmt.Errorf("LlamaStackDistribution with name '%s' not found in namespace %s", name, namespace)
 	}
 
 	// Delete the LSD using the actual resource name

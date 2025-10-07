@@ -10,6 +10,7 @@ import {
   mockRouteK8sResource,
   buildMockRunKF,
   buildMockRecurringRunKF,
+  buildMockPipelineVersion,
 } from '#~/__mocks__';
 import {
   activeRunsTable,
@@ -261,7 +262,9 @@ describe('Experiments', () => {
     });
 
     it('navigates to the runs page when clicking an experiment name', () => {
-      verifyRelativeURL(`/experiments/${projectName}/${mockExperiment.experiment_id}/runs`);
+      verifyRelativeURL(
+        `/develop-train/experiments/${projectName}/${mockExperiment.experiment_id}/runs`,
+      );
       cy.findByLabelText('Breadcrumb').findByRole('link', {
         name: `Experiments in ${projectName}`,
       });
@@ -312,20 +315,201 @@ describe('Experiments', () => {
       cy.findByLabelText('Breadcrumb')
         .findByRole('link', { name: `Experiments in ${projectName}` })
         .click();
-      verifyRelativeURL(`/experiments/${projectName}`);
+      verifyRelativeURL(`/develop-train/experiments/${projectName}`);
       pipelineRunsGlobal.findProjectNavigatorLink().should('exist');
     });
 
     it('navigates back to experiment runs page from "Create run" page breadcrumb', () => {
       pipelineRunsGlobal.findCreateRunButton().click();
       cy.findByLabelText('Breadcrumb').findByText(mockExperiment.display_name).click();
-      verifyRelativeURL(`/experiments/${projectName}/${mockExperiment.experiment_id}/runs`);
+      verifyRelativeURL(
+        `/develop-train/experiments/${projectName}/${mockExperiment.experiment_id}/runs`,
+      );
     });
 
     it('has "Experiment" value pre-filled when on the "Schedule run" page', () => {
       pipelineRunsGlobal.findSchedulesTab().click();
       pipelineRunsGlobal.findScheduleRunButton().click();
       cy.findByLabelText('Experiment').contains(mockExperiment.display_name);
+    });
+  });
+
+  describe('redirect from v2 to v3 route', () => {
+    const experiment = mockExperiments[0];
+    const mockPipelineVersion = buildMockPipelineVersion({
+      pipeline_id: initialMockPipeline.pipeline_id,
+    });
+
+    const pipelineVersionRef = {
+      pipeline_id: initialMockPipeline.pipeline_id,
+      pipeline_version_id: mockPipelineVersion.pipeline_version_id,
+    };
+
+    const mockRecurringRun = buildMockRecurringRunKF({
+      pipeline_version_reference: pipelineVersionRef,
+      experiment_id: experiment.experiment_id,
+    });
+
+    beforeEach(() => {
+      initIntercepts();
+      experimentsTabs.mockGetExperiments(projectName, mockExperiments);
+      cy.interceptOdh(
+        'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId',
+        {
+          path: {
+            namespace: projectName,
+            pipelineId: initialMockPipeline.pipeline_id,
+            serviceName: 'dspa',
+            pipelineVersionId: mockPipelineVersion.pipeline_version_id,
+          },
+        },
+        mockPipelineVersion,
+      );
+      cy.interceptOdh(
+        'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
+        {
+          path: {
+            namespace: projectName,
+            serviceName: 'dspa',
+            runId: mockActiveRuns.run_id,
+          },
+        },
+        mockActiveRuns,
+      );
+      cy.interceptOdh(
+        'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
+        {
+          path: { namespace: projectName, serviceName: 'dspa' },
+        },
+        { recurringRuns: [mockRecurringRun] },
+      );
+      cy.interceptOdh(
+        'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
+        {
+          path: {
+            namespace: projectName,
+            serviceName: 'dspa',
+            recurringRunId: mockRecurringRun.recurring_run_id,
+          },
+        },
+        mockRecurringRun,
+      );
+    });
+
+    it('root', () => {
+      cy.visitWithLogin('/experiments');
+      cy.findByTestId('app-page-title').contains('Experiments');
+      cy.url().should('include', '/develop-train/experiments');
+    });
+
+    it('active', () => {
+      cy.visitWithLogin(`/experiments/${projectName}/active`);
+      cy.findByTestId('app-page-title').contains('Experiments');
+      cy.url().should('include', `/develop-train/experiments/${projectName}/active`);
+    });
+
+    it('archived', () => {
+      cy.visitWithLogin(`/experiments/${projectName}/archived`);
+      cy.findByTestId('app-page-title').contains('Experiments');
+      cy.url().should('include', `/develop-train/experiments/${projectName}/archived`);
+    });
+
+    it('runs', () => {
+      cy.visitWithLogin(`/experiments/${projectName}/${experiment.experiment_id}/runs`);
+      cy.findByTestId('app-page-title').contains('Runs');
+      cy.url().should(
+        'include',
+        `/develop-train/experiments/${projectName}/${experiment.experiment_id}/runs`,
+      );
+    });
+
+    it('runs active', () => {
+      cy.visitWithLogin(`/experiments/${projectName}/${experiment.experiment_id}/runs/active`);
+      cy.findByTestId('app-page-title').contains('Runs');
+      cy.url().should(
+        'include',
+        `/develop-train/experiments/${projectName}/${experiment.experiment_id}/runs/active`,
+      );
+    });
+
+    it('runs archived', () => {
+      cy.visitWithLogin(`/experiments/${projectName}/${experiment.experiment_id}/runs/archived`);
+      cy.findByTestId('app-page-title').contains('Runs');
+      cy.url().should(
+        'include',
+        `/develop-train/experiments/${projectName}/${experiment.experiment_id}/runs/archived`,
+      );
+    });
+
+    it('runs create', () => {
+      cy.visitWithLogin(`/experiments/${projectName}/${experiment.experiment_id}/runs/create`);
+      cy.findByTestId('app-page-title').contains('Create run');
+      cy.url().should(
+        'include',
+        `/develop-train/experiments/${projectName}/${experiment.experiment_id}/runs/create`,
+      );
+    });
+
+    it('run details', () => {
+      cy.visitWithLogin(
+        `/experiments/${projectName}/${experiment.experiment_id}/runs/${mockActiveRuns.run_id}`,
+      );
+      cy.findByTestId('app-page-title').contains(mockActiveRuns.display_name);
+      cy.url().should(
+        'include',
+        `/develop-train/experiments/${projectName}/${experiment.experiment_id}/runs/${mockActiveRuns.run_id}`,
+      );
+    });
+
+    it('run duplicate', () => {
+      cy.visitWithLogin(
+        `/experiments/${projectName}/${experiment.experiment_id}/runs/duplicate/${mockActiveRuns.run_id}`,
+      );
+      cy.findByTestId('app-page-title').contains('Duplicate run');
+      cy.url().should(
+        'include',
+        `/develop-train/experiments/${projectName}/${experiment.experiment_id}/runs/duplicate/${mockActiveRuns.run_id}`,
+      );
+    });
+
+    it('schedules', () => {
+      cy.visitWithLogin(`/experiments/${projectName}/${experiment.experiment_id}/schedules`);
+      cy.findByTestId('app-page-title').contains('Runs');
+      cy.url().should(
+        'include',
+        `/develop-train/experiments/${projectName}/${experiment.experiment_id}/schedules`,
+      );
+    });
+
+    it('schedules create', () => {
+      cy.visitWithLogin(`/experiments/${projectName}/${experiment.experiment_id}/schedules/create`);
+      cy.findByTestId('app-page-title').contains('Create schedule');
+      cy.url().should(
+        'include',
+        `/develop-train/experiments/${projectName}/${experiment.experiment_id}/schedules/create`,
+      );
+    });
+
+    it('schedules duplicate', () => {
+      cy.visitWithLogin(
+        `/experiments/${projectName}/${experiment.experiment_id}/schedules/duplicate/${mockRecurringRun.recurring_run_id}`,
+      );
+      cy.findByTestId('app-page-title').contains('Duplicate schedule');
+      cy.url().should(
+        'include',
+        `/develop-train/experiments/${projectName}/${experiment.experiment_id}/schedules/duplicate/${mockRecurringRun.recurring_run_id}`,
+      );
+    });
+
+    it('schedule details', () => {
+      cy.visitWithLogin(
+        `/experiments/${projectName}/${experiment.experiment_id}/schedules/${mockRecurringRun.recurring_run_id}`,
+      );
+      cy.findByTestId('app-page-title').contains(mockRecurringRun.display_name);
+      cy.url().should(
+        'include',
+        `/develop-train/experiments/${projectName}/${experiment.experiment_id}/schedules/${mockRecurringRun.recurring_run_id}`,
+      );
     });
   });
 });
@@ -374,7 +558,7 @@ describe('Runs page for archived experiment', () => {
 
   it('navigates to the runs page when clicking an experiment name', () => {
     verifyRelativeURL(
-      `/experiments/${projectName}/${mockArchivedExperiment.experiment_id}/runs/archived`,
+      `/develop-train/experiments/${projectName}/${mockArchivedExperiment.experiment_id}/runs/archived`,
     );
     cy.findByLabelText('Breadcrumb').findByRole('link', { name: `Experiments in ${projectName}` });
   });

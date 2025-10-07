@@ -15,7 +15,7 @@ import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import { getInferenceServiceDeploymentMode } from '#~/pages/modelServing/screens/projects/utils';
 import { parseCommandLine } from '#~/api/k8s/utils';
 import { ModelServingPodSpecOptions } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
-import { getModelServingProjects } from './projects';
+import { getModelServingProjects } from '#~/api';
 
 const applyAuthToInferenceService = (
   inferenceService: InferenceServiceKind,
@@ -40,7 +40,6 @@ const applyRoutingToInferenceService = (
   inferenceService: InferenceServiceKind,
   externalRoute: boolean,
   isModelMesh?: boolean,
-  isKServeRaw?: boolean,
 ) => {
   const updateInferenceService = structuredClone(inferenceService);
   if (!updateInferenceService.metadata.labels) {
@@ -51,11 +50,8 @@ const applyRoutingToInferenceService = (
 
   // KServe
   if (!isModelMesh) {
-    if (isKServeRaw && externalRoute) {
+    if (externalRoute) {
       updateInferenceService.metadata.labels['networking.kserve.io/visibility'] = 'exposed';
-    } else if (!isKServeRaw && !externalRoute) {
-      // serverless
-      updateInferenceService.metadata.labels['networking.knative.dev/visibility'] = 'cluster-local';
     }
   }
 
@@ -116,14 +112,7 @@ export const assembleInferenceService = (
   annotations['openshift.io/display-name'] = data.name.trim();
   annotations['serving.kserve.io/deploymentMode'] = getInferenceServiceDeploymentMode(
     !!isModelMesh,
-    !!data.isKServeRawDeployment,
   );
-
-  if (!isModelMesh && !data.isKServeRawDeployment) {
-    annotations['serving.knative.openshift.io/enablePassthrough'] = 'true';
-    annotations['sidecar.istio.io/inject'] = 'true';
-    annotations['sidecar.istio.io/rewriteAppHTTPProbers'] = 'true';
-  }
 
   const dashboardNamespace = data.dashboardNamespace ?? '';
   if (!isModelMesh && podSpecOptions && podSpecOptions.selectedHardwareProfile) {
@@ -134,6 +123,8 @@ export const assembleInferenceService = (
     } else {
       annotations['opendatahub.io/hardware-profile-namespace'] = dashboardNamespace;
     }
+    annotations['opendatahub.io/hardware-profile-resource-version'] =
+      podSpecOptions.selectedHardwareProfile.metadata.resourceVersion || '';
   }
 
   const labels = { ...updatedInferenceService.metadata.labels, ...data.labels };
@@ -187,7 +178,6 @@ export const assembleInferenceService = (
     updatedInferenceService,
     externalRoute,
     isModelMesh,
-    data.isKServeRawDeployment,
   );
 
   if (!isModelMesh && podSpecOptions) {

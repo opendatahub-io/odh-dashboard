@@ -52,7 +52,7 @@ describe('Verify Unauthorized User Is Not Able To Spawn Jupyter Notebook', () =>
       header.findUnauthorizedErrorSection().contains('Access permissions needed').should('exist');
 
       cy.step('Verify that Jupyter Notebooks are also not accessible');
-      cy.visit(`/notebookController/spawner`);
+      cy.visit(`/notebook-controller/spawner`);
       header.findUnauthorizedErrorSection().should('be.visible');
       header.findUnauthorizedErrorSection().contains('Access permissions needed').should('exist');
     },

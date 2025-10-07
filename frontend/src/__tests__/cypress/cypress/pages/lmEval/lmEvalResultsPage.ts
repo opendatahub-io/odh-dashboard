@@ -1,6 +1,6 @@
 class LMEvalResultsPage {
   visit(namespace: string, evaluationName: string) {
-    cy.visitWithLogin(`/modelEvaluations/${namespace}/${evaluationName}`);
+    cy.visitWithLogin(`/develop-train/evaluations/${namespace}/${evaluationName}`);
     this.wait();
   }
 

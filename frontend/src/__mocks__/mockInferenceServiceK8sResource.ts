@@ -26,7 +26,6 @@ type MockResourceConfigType = {
   resources?: ContainerResources;
   kserveInternalUrl?: string;
   statusPredictor?: Record<string, string>;
-  kserveInternalLabel?: boolean;
   additionalLabels?: Record<string, string>;
   args?: string[];
   env?: Array<{
@@ -34,18 +33,19 @@ type MockResourceConfigType = {
     value?: string;
     valueFrom?: { secretKeyRef: { name: string; key: string } };
   }>;
-  isKserveRaw?: boolean;
   tolerations?: Toleration[];
   nodeSelector?: NodeSelector;
   isNonDashboardItem?: boolean;
   hardwareProfileName?: string;
   hardwareProfileNamespace?: string;
+  hardwareProfileResourceVersion?: string;
   creationTimestamp?: string;
   lastTransitionTime?: string;
   isReady?: boolean;
   predictorAnnotations?: Record<string, string>;
   storageUri?: string;
   modelType?: ServingRuntimeModelType;
+  hasExternalRoute?: boolean;
 };
 
 type InferenceServicek8sError = K8sStatus & {
@@ -108,22 +108,22 @@ export const mockInferenceServiceK8sResource = ({
   resources,
   statusPredictor = undefined,
   kserveInternalUrl = '',
-  kserveInternalLabel = false,
   additionalLabels = {},
   args = [],
   env = [],
-  isKserveRaw = false,
   tolerations,
   nodeSelector,
   isNonDashboardItem = false,
   hardwareProfileName = '',
   hardwareProfileNamespace = undefined,
+  hardwareProfileResourceVersion = undefined,
   creationTimestamp = '2023-03-17T16:12:41Z',
   lastTransitionTime = '2023-03-17T16:12:41Z',
   isReady = false,
   predictorAnnotations = undefined,
   storageUri = undefined,
   modelType,
+  hasExternalRoute = false,
 }: MockResourceConfigType): InferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1beta1',
   kind: 'InferenceService',
@@ -133,20 +133,15 @@ export const mockInferenceServiceK8sResource = ({
       ...(description && { 'openshift.io/description': description }),
       'serving.kserve.io/deploymentMode': isModelMesh
         ? DeploymentMode.ModelMesh
-        : isKserveRaw
-        ? DeploymentMode.RawDeployment
-        : DeploymentMode.Serverless,
-      ...(!isModelMesh &&
-        !isKserveRaw && {
-          'serving.knative.openshift.io/enablePassthrough': 'true',
-          'sidecar.istio.io/inject': 'true',
-          'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
-        }),
+        : DeploymentMode.RawDeployment,
       ...(hardwareProfileName && {
         [`opendatahub.io/hardware-profile-name`]: hardwareProfileName,
       }),
       ...(hardwareProfileNamespace && {
         'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
+      }),
+      ...(hardwareProfileResourceVersion && {
+        'opendatahub.io/hardware-profile-resource-version': hardwareProfileResourceVersion,
       }),
       ...(modelType && { 'opendatahub.io/model-type': modelType }),
     },
@@ -157,7 +152,7 @@ export const mockInferenceServiceK8sResource = ({
       name,
       ...additionalLabels,
       ...(isNonDashboardItem ? {} : { [KnownLabels.DASHBOARD_RESOURCE]: 'true' }),
-      ...(kserveInternalLabel && { 'networking.knative.dev/visibility': 'cluster-local' }),
+      ...(hasExternalRoute ? { 'networking.kserve.io/visibility': 'exposed' } : {}),
     },
     name,
     namespace,

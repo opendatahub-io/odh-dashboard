@@ -75,7 +75,7 @@ class HardwareProfileRow extends TableRow {
 
 class HardwareProfile {
   visit() {
-    cy.visitWithLogin('/hardwareProfiles');
+    cy.visitWithLogin('/settings/environment-setup/hardware-profiles');
     this.wait();
   }
 
@@ -403,8 +403,8 @@ class CreateHardwareProfile extends ManageHardwareProfile {
   visit(identifiers?: string) {
     cy.visitWithLogin(
       identifiers
-        ? `/hardwareProfiles/create${`?identifiers=${identifiers}`}`
-        : '/hardwareProfiles/create',
+        ? `/settings/environment-setup/hardware-profiles/create${`?identifiers=${identifiers}`}`
+        : '/settings/environment-setup/hardware-profiles/create',
     );
     this.wait();
   }
@@ -417,7 +417,7 @@ class CreateHardwareProfile extends ManageHardwareProfile {
 
 class EditHardwareProfile extends ManageHardwareProfile {
   visit(name: string) {
-    cy.visitWithLogin(`/hardwareProfiles/edit/${name}`);
+    cy.visitWithLogin(`/settings/environment-setup/hardware-profiles/edit/${name}`);
     cy.testA11y();
   }
 
@@ -436,7 +436,7 @@ class EditHardwareProfile extends ManageHardwareProfile {
 
 class DuplicateHardwareProfile extends ManageHardwareProfile {
   visit(name: string) {
-    cy.visitWithLogin(`/hardwareProfiles/duplicate/${name}`);
+    cy.visitWithLogin(`/settings/environment-setup/hardware-profiles/duplicate/${name}`);
     cy.testA11y();
   }
 

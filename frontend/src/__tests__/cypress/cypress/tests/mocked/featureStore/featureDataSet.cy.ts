@@ -281,7 +281,7 @@ describe('Feature DataSets for all projects', () => {
 
     featureDataSetsTable.findTable().should('be.visible');
     featureDataSetsTable.findRow('test_dataset').clickDataSetLink().click();
-    cy.url().should('include', '/featureStore/dataSets/credit_scoring_local');
+    cy.url().should('include', '/feature-store/datasets/credit_scoring_local');
     featureDataSetDetails
       .shouldHaveSourceFeatureService('test-feature-service')
       .shouldHaveStorage('fileStorage')
@@ -297,13 +297,13 @@ describe('Feature DataSets for all projects', () => {
     featureStoreGlobal.visitDataSets();
     featureDataSetsTable.findTable().should('be.visible');
     featureDataSetsTable.findRow('test_dataset').clickDataSetLink().click();
-    cy.url().should('include', '/featureStore/dataSets/credit_scoring_local');
+    cy.url().should('include', '/feature-store/datasets/credit_scoring_local');
 
     featureDataSetDetails.findBreadcrumbLink().should('be.visible');
     featureDataSetDetails.findBreadcrumbItem().should('contain.text', 'test_dataset');
     featureDataSetDetails.findBreadcrumbLink().click();
 
-    cy.url().should('include', '/featureStore/dataSets');
+    cy.url().should('include', '/feature-store/datasets');
     featureStoreGlobal.findHeading().should('have.text', 'Datasets');
     featureDataSetsTable.findTable().should('be.visible');
   });
@@ -372,7 +372,7 @@ describe('Feature DataSets', () => {
     ).as('getDataSetNotFound');
 
     cy.visit(
-      `/featureStore/dataSets/${fsProjectName}/nonexistent?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/datasets/${fsProjectName}/nonexistent?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     cy.findByText(`DataSet nonexistent does not exist in project ${fsProjectName}`).should(
       'be.visible',
@@ -390,7 +390,7 @@ describe('DataSet Details', () => {
     mockDataSetDetailsIntercept();
 
     cy.visit(
-      `/featureStore/dataSets/${fsProjectName}/test_dataset?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/datasets/${fsProjectName}/test_dataset?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     cy.wait('@getDataSetDetails');
     featureDataSetDetails
@@ -427,7 +427,7 @@ describe('DataSet Details', () => {
     ).as('getBigQueryDataSet');
 
     cy.visit(
-      `/featureStore/dataSets/${fsProjectName}/credit_scoring_dataset?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/datasets/${fsProjectName}/credit_scoring_dataset?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     cy.wait('@getBigQueryDataSet');
 
@@ -457,7 +457,7 @@ describe('DataSet Details', () => {
     ).as('getRedshiftDataSet');
 
     cy.visit(
-      `/featureStore/dataSets/${fsProjectName2}/fraud_detection_dataset?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/datasets/${fsProjectName2}/fraud_detection_dataset?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     cy.wait('@getRedshiftDataSet');
 
@@ -472,7 +472,7 @@ describe('DataSet Details', () => {
     mockDataSetDetailsIntercept();
 
     cy.visit(
-      `/featureStore/dataSets/${fsProjectName}/test_dataset?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/datasets/${fsProjectName}/test_dataset?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     cy.wait('@getDataSetDetails');
 
@@ -506,7 +506,7 @@ describe('DataSet Details', () => {
     );
 
     cy.visit(
-      `/featureStore/dataSets/${fsProjectName}/test_dataset?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/datasets/${fsProjectName}/test_dataset?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     cy.wait('@getDataSetDetails');
 
@@ -516,7 +516,7 @@ describe('DataSet Details', () => {
 
     cy.url().should(
       'include',
-      '/featureStore/featureServices/credit_scoring_local/test-feature-service',
+      '/feature-store/feature-services/credit_scoring_local/test-feature-service',
     );
     featureServiceDetails.shouldHaveTitle('test-feature-service');
   });
@@ -526,7 +526,7 @@ describe('DataSet Details', () => {
     mockFeatureDetailsIntercept();
 
     cy.visit(
-      `/featureStore/dataSets/${fsProjectName}/test_dataset?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+      `/develop-train/feature-store/datasets/${fsProjectName}/test_dataset?devFeatureFlags=Feature+store+plugin%3Dtrue`,
     );
     cy.wait('@getDataSetDetails');
 
@@ -540,7 +540,7 @@ describe('DataSet Details', () => {
 
     cy.url().should(
       'include',
-      '/featureStore/features/credit_scoring_local/credit_history/credit_card_due',
+      '/feature-store/features/credit_scoring_local/credit_history/credit_card_due',
     );
 
     featureDetails.shouldHaveApplicationsPageDescription('Credit card due amount');

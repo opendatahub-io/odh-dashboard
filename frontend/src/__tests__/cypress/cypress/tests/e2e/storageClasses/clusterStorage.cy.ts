@@ -11,7 +11,7 @@ import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHoo
 
 const dspName = 'qe-cluster-storage-sc-dsp';
 
-describe('Regular Users can make use of the Storage Classes in the Cluster Storage tab from DSP ', () => {
+describe('Regular Users can make use of the Storage Classes in the Cluster Storage tab from Pipelines ', () => {
   retryableBefore(() => {
     provisionClusterStorageSCFeature(dspName, LDAP_CONTRIBUTOR_USER.USERNAME);
   });

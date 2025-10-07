@@ -38,7 +38,6 @@ import {
 } from '#~/api';
 import { containsOnlySlashes, isS3PathValid, removeLeadingSlash } from '#~/utilities/string';
 import { getNIMData, getNIMResource } from '#~/pages/modelServing/screens/projects/nimUtils';
-import { useKServeDeploymentMode } from '#~/pages/modelServing/useKServeDeploymentMode';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import { ModelServingPodSpecOptions } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import {
@@ -54,32 +53,21 @@ export const isServingRuntimeTokenEnabled = (servingRuntime: ServingRuntimeKind)
 export const isServingRuntimeRouteEnabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['enable-route'] === 'true';
 
-export const isInferenceServiceKServeRaw = (inferenceService: InferenceServiceKind): boolean =>
-  inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] ===
-  DeploymentMode.RawDeployment;
-
 export const isInferenceServiceTokenEnabled = (inferenceService: InferenceServiceKind): boolean =>
   inferenceService.metadata.annotations?.['security.opendatahub.io/enable-auth'] === 'true';
 
 export const isInferenceServiceRouteEnabled = (inferenceService: InferenceServiceKind): boolean =>
-  isInferenceServiceKServeRaw(inferenceService)
-    ? inferenceService.metadata.labels?.['networking.kserve.io/visibility'] === 'exposed'
-    : inferenceService.metadata.labels?.['networking.knative.dev/visibility'] !== 'cluster-local';
+  inferenceService.metadata.labels?.['networking.kserve.io/visibility'] === 'exposed';
 
 export const isGpuDisabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['opendatahub.io/disable-gpu'] === 'true';
 
-export const getInferenceServiceDeploymentMode = (
-  modelMesh: boolean,
-  kserveRaw: boolean,
-): DeploymentMode => {
+/** @deprecated -- model mesh is removed */
+export const getInferenceServiceDeploymentMode = (modelMesh: boolean): DeploymentMode => {
   if (modelMesh) {
     return DeploymentMode.ModelMesh;
   }
-  if (kserveRaw) {
-    return DeploymentMode.RawDeployment;
-  }
-  return DeploymentMode.Serverless;
+  return DeploymentMode.RawDeployment;
 };
 
 export const getInferenceServiceFromServingRuntime = (
@@ -190,12 +178,10 @@ export const useCreateInferenceServiceObject = (
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>,
   resetDefaults: () => void,
 ] => {
-  const { defaultMode } = useKServeDeploymentMode();
   const { dashboardNamespace } = useDashboardNamespace();
 
   const createInferenceServiceState = useGenericObjectState<CreatingInferenceServiceObject>({
     ...defaultInferenceService,
-    isKServeRawDeployment: defaultMode === DeploymentMode.RawDeployment,
     dashboardNamespace,
   });
 
@@ -205,7 +191,6 @@ export const useCreateInferenceServiceObject = (
     existingData?.metadata.annotations?.['openshift.io/display-name'] ||
     existingData?.metadata.name ||
     '';
-  const existingIsKServeRaw = !!existingData && isInferenceServiceKServeRaw(existingData);
   const existingStorage =
     useDeepCompareMemoize(existingData?.spec.predictor.model?.storage) || undefined;
   const existingUri =
@@ -234,7 +219,6 @@ export const useCreateInferenceServiceObject = (
       setCreateData('name', existingName);
       setCreateData('servingRuntimeName', existingServingRuntime);
       setCreateData('project', existingProject);
-      setCreateData('isKServeRawDeployment', existingIsKServeRaw);
       setCreateData('storage', {
         type:
           existingUri && !existingImagePullSecrets
@@ -278,7 +262,6 @@ export const useCreateInferenceServiceObject = (
     existingTokens,
     existingServingRuntimeArgs,
     existingServingRuntimeEnvVars,
-    existingIsKServeRaw,
     existingImagePullSecrets,
     existingPvcConnection,
   ]);

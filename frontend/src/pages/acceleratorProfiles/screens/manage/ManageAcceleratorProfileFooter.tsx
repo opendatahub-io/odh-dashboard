@@ -37,7 +37,7 @@ export const ManageAcceleratorProfileFooter: React.FC<ManageAcceleratorProfileFo
     setIsLoading(true);
     createAcceleratorProfile(state, dashboardNamespace)
       .then(() => {
-        if (redirectPath !== '/acceleratorProfiles') {
+        if (redirectPath !== '/settings/environment-setup/accelerator-profiles') {
           notification.success(
             'Accelerator profile has been created.',
             <Stack hasGutter>
@@ -45,7 +45,11 @@ export const ManageAcceleratorProfileFooter: React.FC<ManageAcceleratorProfileFo
                 A new accelerator profile <strong>{state.displayName}</strong> has been created.
               </StackItem>
               <StackItem>
-                <Button isInline variant="link" onClick={() => navigate(`/acceleratorProfiles`)}>
+                <Button
+                  isInline
+                  variant="link"
+                  onClick={() => navigate(`/settings/environment-setup/accelerator-profiles`)}
+                >
                   View profile details
                 </Button>
               </StackItem>

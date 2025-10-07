@@ -59,7 +59,7 @@ class GroupSettingSection extends Contextual<HTMLElement> {
 }
 class UserManagement {
   visit(wait = true) {
-    cy.visitWithLogin('/groupSettings');
+    cy.visitWithLogin('/settings/user-management');
     if (wait) {
       this.wait();
     }

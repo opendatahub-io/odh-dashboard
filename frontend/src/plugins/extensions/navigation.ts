@@ -65,11 +65,11 @@ const extensions: NavExtension[] = [
   //     required: [SupportedArea.MODEL_CATALOG],
   //   },
   //   properties: {
-  // id: 'modelCatalog',
-  // title: 'Catalog',
-  // href: '/modelCatalog',
-  // section: 'ai-hub',
-  // path: '/modelCatalog/*',
+  //     id: 'modelCatalog',
+  //     title: 'Catalog',
+  //     href: '/modelCatalog',
+  //     section: 'ai-hub',
+  //     path: '/modelCatalog/*',
   //   },
   // },
   {
@@ -98,9 +98,9 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'pipeline-definitions',
       title: 'Pipeline definitions',
-      href: '/pipelines',
+      href: '/develop-train/pipelines/definitions',
       section: 'pipelines',
-      path: '/pipelines/*',
+      path: '/develop-train/pipelines/definitions/*',
     },
   },
   {
@@ -111,9 +111,9 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'runs',
       title: 'Runs',
-      href: '/pipelineRuns',
+      href: '/develop-train/pipelines/runs',
       section: 'pipelines',
-      path: '/pipelineRuns/*',
+      path: '/develop-train/pipelines/runs/*',
     },
   },
   {
@@ -124,9 +124,9 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'artifacts',
       title: 'Artifacts',
-      href: '/artifacts',
+      href: '/develop-train/pipelines/artifacts',
       section: 'pipelines',
-      path: '/artifacts/*',
+      path: '/develop-train/pipelines/artifacts/*',
     },
   },
   {
@@ -137,9 +137,9 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'executions',
       title: 'Executions',
-      href: '/executions',
+      href: '/develop-train/pipelines/executions',
       section: 'pipelines',
-      path: '/executions/*',
+      path: '/develop-train/pipelines/executions/*',
     },
   },
   {
@@ -150,9 +150,9 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'lm-eval',
       title: 'Evaluations',
-      href: '/modelEvaluations',
+      href: '/develop-train/evaluations',
       section: 'develop-and-train',
-      path: '/modelEvaluations/*',
+      path: '/develop-train/evaluations/*',
     },
   },
   {
@@ -163,9 +163,9 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'experiments',
       title: 'Experiments',
-      href: '/experiments',
+      href: '/develop-train/experiments',
       section: 'develop-and-train',
-      path: '/experiments/*',
+      path: '/develop-train/experiments/*',
     },
   },
 
@@ -186,8 +186,8 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'workloadMetrics',
       title: 'Workload metrics',
-      href: '/distributedWorkloads',
-      path: '/distributedWorkloads/*',
+      href: '/observe-monitor/workload-metrics',
+      path: '/observe-monitor/workload-metrics/*',
       section: 'observe-and-monitor',
     },
   },
@@ -197,7 +197,7 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'learning-resources',
       title: 'Learning resources',
-      href: '/resources',
+      href: '/learning-resources',
       group: '7_other',
       iconRef: () => import('#~/images/icons/LearningResourcesIcon'),
     },
@@ -220,7 +220,7 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'apps-installed',
       title: 'Enabled',
-      href: '/enabled',
+      href: '/applications/enabled',
       section: 'applications',
     },
   },
@@ -241,7 +241,7 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'apps-explore',
       title: 'Explore',
-      href: '/explore',
+      href: '/applications/explore',
       section: 'applications',
     },
   },
@@ -272,7 +272,7 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'settings-general-cluster-settings',
       title: 'General settings',
-      href: '/clusterSettings',
+      href: '/settings/cluster/general',
       section: 'cluster-settings',
     },
   },
@@ -284,9 +284,9 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'settings-storage-classes',
       title: 'Storage classes',
-      href: '/storageClasses',
+      href: '/settings/cluster/storage-classes',
       section: 'cluster-settings',
-      path: '/storageClasses/*',
+      path: '/settings/cluster/storage-classes/*',
     },
   },
   {
@@ -306,9 +306,9 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'settings-workbench-images',
       title: 'Workbench images',
-      href: '/workbenchImages',
+      href: '/settings/environment-setup/workbench-images',
       section: 'settings-environment-setup',
-      path: '/workbenchImages/*',
+      path: '/settings/environment-setup/workbench-images/*',
     },
   },
   {
@@ -320,9 +320,9 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'settings-accelerator-profiles',
       title: 'Accelerator profiles',
-      href: '/acceleratorProfiles',
+      href: '/settings/environment-setup/accelerator-profiles',
       section: 'settings-environment-setup',
-      path: '/acceleratorProfiles/*',
+      path: '/settings/environment-setup/accelerator-profiles/*',
     },
   },
   {
@@ -333,9 +333,9 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'settings-hardware-profiles',
       title: 'Hardware profiles',
-      href: '/hardwareProfiles',
+      href: '/settings/environment-setup/hardware-profiles',
       section: 'settings-environment-setup',
-      path: '/hardwareProfiles/*',
+      path: '/settings/environment-setup/hardware-profiles/*',
       statusProviderId: 'hardware-profiles.status',
       accessReview: {
         group: 'dashboard.opendatahub.io',
@@ -352,9 +352,9 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'settings-connection-types',
       title: 'Connection types',
-      href: '/connectionTypes',
+      href: '/settings/environment-setup/connection-types',
       section: 'settings-environment-setup',
-      path: '/connectionTypes/*',
+      path: '/settings/environment-setup/connection-types/*',
     },
   },
   {
@@ -374,9 +374,9 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'settings-custom-serving-runtimes',
       title: 'Serving runtimes',
-      href: '/servingRuntimes',
+      href: '/settings/model-resources-operations/serving-runtimes',
       section: 'settings-model-resources-and-operations',
-      path: '/servingRuntimes/*',
+      path: '/settings/model-resources-operations/serving-runtimes/*',
     },
   },
   {
@@ -387,9 +387,9 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'settings-model-registry',
       title: 'Model registry settings',
-      href: '/modelRegistrySettings',
+      href: '/settings/model-resources-operations/model-registry',
       section: 'settings-model-resources-and-operations',
-      path: '/modelRegistrySettings/*',
+      path: '/settings/model-resources-operations/model-registry/*',
     },
   },
 
@@ -401,7 +401,7 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'settings-group-settings',
       title: 'User management',
-      href: '/groupSettings',
+      href: '/settings/user-management',
       section: 'settings',
       accessReview: {
         group: 'services.platform.opendatahub.io',

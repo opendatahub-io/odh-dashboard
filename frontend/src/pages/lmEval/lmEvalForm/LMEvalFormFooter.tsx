@@ -28,7 +28,7 @@ const LMEvalFormFooter: React.FC<LMEvalFormFooterProps> = ({ data, namespace }) 
     setError(null);
     createModelEvaluation(data, namespace)
       .then(() => {
-        navigate('/modelEvaluations');
+        navigate('/develop-train/evaluations');
       })
       .catch((err) => {
         setError(err);
@@ -65,7 +65,7 @@ const LMEvalFormFooter: React.FC<LMEvalFormFooterProps> = ({ data, namespace }) 
               variant="link"
               data-testid="lm-evaluation-cancel-button"
               onClick={() => {
-                navigate('/modelEvaluations');
+                navigate('/develop-train/evaluations');
               }}
             >
               Cancel

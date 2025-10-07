@@ -76,7 +76,7 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
             const tab = tabs.find(({ id }) => id === tabId);
             if (tab) {
               const namespaceSuffix = namespace ? `/${namespace}` : '';
-              navigate(`/distributedWorkloads/${tab.path}${namespaceSuffix}`);
+              navigate(`/observe-monitor/workload-metrics/${tab.path}${namespaceSuffix}`);
             }
           }}
           aria-label="Workload metrics page tabs"

@@ -57,6 +57,7 @@ const accessReviewResource: AccessReviewResourceAttributes = {
 export const modelServerAddedName = 'Model Server Added';
 export const modelServerEditName = 'Model Server Modified';
 
+/** @deprecated -- no MM */
 const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   onClose,
   currentProject,
@@ -231,7 +232,6 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
               data={createData}
               setData={setCreateData}
               allowCreate={allowCreate}
-              publicRoute
             />
           </Stack>
         </Form>

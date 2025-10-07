@@ -1,0 +1,71 @@
+name: Validate manifests with Kustomize
+
+on:
+  push:
+    paths:
+      - 'manifests/**'
+  pull_request:
+    paths:
+      - 'manifests/**'
+  workflow_dispatch: {}
+
+concurrency:
+  group: kustomize-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  kustomize-build:
+    name: Build ${{ matrix.target.name }}
+    runs-on: ubuntu-latest
+    env:
+      # Pin the kustomize version and expose it to steps and cache key
+      KUSTOMIZE_VERSION: v5.4.1
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - name: RHOAI Add-on
+            path: manifests/rhoai/addon
+          - name: RHOAI On-Prem
+            path: manifests/rhoai/onprem
+          - name: ODH
+            path: manifests/odh
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            manifests
+
+      - name: Cache kustomize
+        id: cache-kustomize
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/kustomize/${{ env.KUSTOMIZE_VERSION }}
+          key: kustomize-${{ runner.os }}-${{ env.KUSTOMIZE_VERSION }}
+
+      - name: Install kustomize
+        shell: bash
+        run: |
+          set -euo pipefail
+          INSTALL_DIR="$HOME/.cache/kustomize/${KUSTOMIZE_VERSION}"
+          mkdir -p "$INSTALL_DIR"
+          if [ ! -x "$INSTALL_DIR/kustomize" ]; then
+            echo "Downloading kustomize ${KUSTOMIZE_VERSION}"
+            curl -fsSL --retry 5 --retry-delay 2 --retry-connrefused -o /tmp/kustomize.tar.gz \
+              "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
+            tar -xzf /tmp/kustomize.tar.gz -C "$INSTALL_DIR"
+            chmod +x "$INSTALL_DIR/kustomize"
+          else
+            echo "Using cached kustomize ${KUSTOMIZE_VERSION}"
+          fi
+          # Add to PATH for subsequent steps
+          echo "$INSTALL_DIR" >> "$GITHUB_PATH"
+          kustomize version
+
+      - name: Kustomize build
+        run: |
+          echo "Building ${{ matrix.target.path }}"
+          # Send rendered manifests to stdout sink to keep logs tidy; warnings still show on stderr.
+          kustomize build "${{ matrix.target.path }}" > /dev/null
+        shell: bash

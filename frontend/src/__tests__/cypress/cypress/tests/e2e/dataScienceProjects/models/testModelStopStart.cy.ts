@@ -25,7 +25,7 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('[Product Bug: RHOAIENG-32764] A model can be stopped and started', () => {
+describe('A model can be stopped and started', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
     return loadDSPFixture('e2e/dataScienceProjects/testModelStopStart.yaml').then(
@@ -58,7 +58,7 @@ describe('[Product Bug: RHOAIENG-32764] A model can be stopped and started', () 
   it(
     'Verify that a model can be stopped and started',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent', '@Bug'],
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent'],
     },
     () => {
       cy.log('Model Name:', modelName);
@@ -93,10 +93,16 @@ describe('[Product Bug: RHOAIENG-32764] A model can be stopped and started', () 
 
       //Verify the model created and is running
       cy.step('Verify that the Model is running');
-      checkInferenceServiceState(testData.singleModelName, projectName, {
-        checkReady: true,
-        checkLatestDeploymentReady: true,
-      });
+      // For KServe Raw deployments, we only need to check Ready condition
+      // LatestDeploymentReady is specific to Serverless deployments
+      checkInferenceServiceState(
+        testData.singleModelName,
+        projectName,
+        {
+          checkReady: true,
+        },
+        'RawDeployment',
+      );
 
       //Stop the model with the modal
       cy.step('Stop the model');
@@ -117,12 +123,17 @@ describe('[Product Bug: RHOAIENG-32764] A model can be stopped and started', () 
         .should('match', /Stopping|Stopped/);
 
       //Verify the model is stopped
-      checkInferenceServiceState(testData.singleModelName, projectName, {
-        checkReady: false,
-        checkLatestDeploymentReady: false,
-        checkStopped: true,
-        requireLoadedState: false,
-      });
+      // For stopped models in RawDeployment mode, we check the Stopped condition
+      checkInferenceServiceState(
+        testData.singleModelName,
+        projectName,
+        {
+          checkReady: false,
+          checkStopped: true,
+          requireLoadedState: false,
+        },
+        'RawDeployment',
+      );
       kServeRow.findStatusLabel('Stopped', MODEL_STATUS_TIMEOUT).should('exist');
 
       //Restart the model
@@ -131,10 +142,16 @@ describe('[Product Bug: RHOAIENG-32764] A model can be stopped and started', () 
       kServeRow.findStatusLabel('Starting').should('exist');
 
       //Verify the model is running again
-      checkInferenceServiceState(testData.singleModelName, projectName, {
-        checkReady: true,
-        checkLatestDeploymentReady: true,
-      });
+      // For KServe Raw deployments, we only need to check Ready condition
+      // LatestDeploymentReady is specific to Serverless deployments
+      checkInferenceServiceState(
+        testData.singleModelName,
+        projectName,
+        {
+          checkReady: true,
+        },
+        'RawDeployment',
+      );
       kServeRow
         .findStatusLabel()
         .invoke('text')

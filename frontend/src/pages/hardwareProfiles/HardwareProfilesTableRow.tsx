@@ -28,6 +28,7 @@ import {
   createHardwareProfileWarningTitle,
   getHardwareProfileDescription,
   getHardwareProfileDisplayName,
+  isDefaultHardwareProfile,
   validateProfileWarning,
 } from '#~/pages/hardwareProfiles/utils';
 import { HardwareProfileModel } from '#~/api';
@@ -66,6 +67,28 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
   }, [hardwareProfile.metadata.annotations]);
 
   const hardwareProfileWarnings = validateProfileWarning(hardwareProfile);
+
+  const renderFeatureVisibility = () => {
+    if (useCases.length === 0) {
+      return <i>All features</i>;
+    }
+
+    const validUseCases = useCases.filter((v) => HardwareProfileFeatureVisibilityTitles[v]);
+
+    if (validUseCases.length === 0) {
+      return '-';
+    }
+
+    return (
+      <LabelGroup>
+        {validUseCases.map((v) => (
+          <Label key={v} data-testid={`label-${v}`}>
+            {HardwareProfileFeatureVisibilityTitles[v]}
+          </Label>
+        ))}
+      </LabelGroup>
+    );
+  };
 
   const { kueue, node } = hardwareProfile.spec.scheduling ?? {};
   const localQueueName = kueue?.localQueueName;
@@ -133,19 +156,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
             }
           />
         </Td>
-        <Td dataLabel="Features">
-          {useCases.length === 0 ? (
-            <i>All features</i>
-          ) : (
-            <LabelGroup>
-              {useCases.map((v) => (
-                <Label key={v} data-testid={`label-${v}`}>
-                  {HardwareProfileFeatureVisibilityTitles[v]}
-                </Label>
-              ))}
-            </LabelGroup>
-          )}
-        </Td>
+        <Td dataLabel="Features">{renderFeatureVisibility()}</Td>
         <Td dataLabel="Enabled">
           <HardwareProfileEnableToggle hardwareProfile={hardwareProfile} />
         </Td>
@@ -171,7 +182,9 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
                   {
                     title: 'Edit',
                     onClick: () =>
-                      navigate(`/hardwareProfiles/edit/${hardwareProfile.metadata.name}`),
+                      navigate(
+                        `/settings/environment-setup/hardware-profiles/edit/${hardwareProfile.metadata.name}`,
+                      ),
                   },
                 ],
                 verbModelAccess('update', HardwareProfileModel),
@@ -181,22 +194,28 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
                   {
                     title: 'Duplicate',
                     onClick: () =>
-                      navigate(`/hardwareProfiles/duplicate/${hardwareProfile.metadata.name}`),
+                      navigate(
+                        `/settings/environment-setup/hardware-profiles/duplicate/${hardwareProfile.metadata.name}`,
+                      ),
                   },
                 ],
                 verbModelAccess('create', HardwareProfileModel),
               ),
               ...useKebabAccessAllowed([], verbModelAccess('create', HardwareProfileModel)),
-              ...useKebabAccessAllowed(
-                [
-                  { isSeparator: true },
-                  {
-                    title: 'Delete',
-                    onClick: () => handleDelete(hardwareProfile),
-                  },
-                ],
-                verbModelAccess('delete', HardwareProfileModel),
-              ),
+              ...(!isDefaultHardwareProfile(hardwareProfile)
+                ? [
+                    ...useKebabAccessAllowed(
+                      [
+                        { isSeparator: true },
+                        {
+                          title: 'Delete',
+                          onClick: () => handleDelete(hardwareProfile),
+                        },
+                      ],
+                      verbModelAccess('delete', HardwareProfileModel),
+                    ),
+                  ]
+                : []),
             ]}
           />
         </Td>

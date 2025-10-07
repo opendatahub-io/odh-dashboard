@@ -20,12 +20,12 @@ const LaunchJupyterButton: React.FC = () => {
     >
       <Button
         data-testid="launch-standalone-notebook-server"
-        href="/notebookController"
+        href="/notebook-controller"
         component="a"
         variant={ButtonVariant.secondary}
         onClick={(e) => {
           e.preventDefault();
-          navigate('/notebookController');
+          navigate('/notebook-controller');
         }}
       >
         Start basic workbench

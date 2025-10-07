@@ -8,7 +8,7 @@ import { Modal } from './components/Modal';
 
 class StorageClassesPage {
   visit() {
-    cy.visitWithLogin('/storageClasses');
+    cy.visitWithLogin('/settings/cluster/storage-classes');
     this.wait();
   }
 

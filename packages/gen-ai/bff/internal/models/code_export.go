@@ -1,7 +1,7 @@
 package models
 
 // Tool represents a tool configuration
-type Tool struct {
+type CodeExportTool struct {
 	Type           string   `json:"type"`
 	VectorStoreIDs []string `json:"vector_store_ids"`
 }
@@ -26,7 +26,7 @@ type CodeExportRequest struct {
 	Instructions string             `json:"instructions"`
 	Stream       bool               `json:"stream"`
 	Temperature  float64            `json:"temperature"`
-	Tools        []Tool             `json:"tools"`
+	Tools        []CodeExportTool   `json:"tools"`
 	VectorStore  *VectorStoreConfig `json:"vector_store,omitempty"`
 	Files        []FileUpload       `json:"files,omitempty"`
 }

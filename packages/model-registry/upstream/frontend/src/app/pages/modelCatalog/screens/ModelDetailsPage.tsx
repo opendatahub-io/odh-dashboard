@@ -17,7 +17,11 @@ import {
   Skeleton,
 } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { decodeParams, getModelName } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import {
+  decodeParams,
+  getModelName,
+  hasModelArtifacts,
+} from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import ModelDetailsTabs from '~/app/pages/modelCatalog/screens/ModelDetailsTabs';
 import { useCatalogModel } from '~/app/hooks/modelCatalog/useCatalogModel';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
@@ -25,6 +29,7 @@ import { getRegisterCatalogModelRoute } from '~/app/routes/modelCatalog/catalogM
 import { ModelCatalogDeployButton } from '~/odh/components/ModelCatalogDeployButton';
 import { CatalogModelDetailsParams } from '~/app/modelCatalogTypes';
 import { useCatalogModelArtifacts } from '~/app/hooks/modelCatalog/useCatalogModelArtifacts';
+import { modelCatalogUrl } from '~/app/routes/modelCatalog/catalogModel';
 
 const ModelDetailsPage: React.FC = () => {
   const params = useParams<CatalogModelDetailsParams>();
@@ -72,7 +77,7 @@ const ModelDetailsPage: React.FC = () => {
 
     if (!artifactLoaded) {
       return (
-        <Button variant="primary" data-testid="register-model-button" isLoading>
+        <Button variant="primary" data-testid="register-model-button" isLoading isAriaDisabled>
           Register model
         </Button>
       );
@@ -84,7 +89,7 @@ const ModelDetailsPage: React.FC = () => {
         'To request a new model registry, or to request permission to access an existing model registry, contact your administrator.',
         variant
       )
-    ) : artifacts.items.length === 0 ? (
+    ) : artifacts.items.length === 0 || !hasModelArtifacts(artifacts.items) ? (
       registerButtonPopover('', 'Model location is unavailable', variant)
     ) : (
       <Button
@@ -104,7 +109,7 @@ const ModelDetailsPage: React.FC = () => {
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem>
-            <Link to="/model-catalog">Catalog</Link>
+            <Link to={modelCatalogUrl()}>Catalog</Link>
           </BreadcrumbItem>
           <BreadcrumbItem isActive>{getModelName(model?.name || '') || 'Details'}</BreadcrumbItem>
         </Breadcrumb>
@@ -147,7 +152,7 @@ const ModelDetailsPage: React.FC = () => {
       emptyStatePage={
         !model ? (
           <div>
-            Details not found. Return to <Link to="/model-catalog">Model catalog</Link>
+            Details not found. Return to <Link to={modelCatalogUrl()}>Model catalog</Link>
           </div>
         ) : undefined
       }
@@ -172,7 +177,14 @@ const ModelDetailsPage: React.FC = () => {
         )
       }
     >
-      {model && <ModelDetailsTabs model={model} decodedParams={decodedParams} />}
+      {model && (
+        <ModelDetailsTabs
+          model={model}
+          artifacts={artifacts}
+          artifactLoaded={artifactLoaded}
+          artifactsLoadError={artifactsLoadError}
+        />
+      )}
     </ApplicationsPage>
   );
 };

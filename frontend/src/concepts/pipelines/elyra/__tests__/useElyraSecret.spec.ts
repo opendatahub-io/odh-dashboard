@@ -4,12 +4,6 @@ import { standardUseFetchState, testHook } from '@odh-dashboard/jest-config/hook
 import useElyraSecret from '#~/concepts/pipelines/elyra/useElyraSecret';
 import { mockSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
 import { SecretKind } from '#~/k8sTypes';
-import { generateElyraSecret } from '#~/concepts/pipelines/elyra/utils';
-import {
-  ELYRA_SECRET_DATA_ENDPOINT,
-  ELYRA_SECRET_DATA_KEY,
-} from '#~/concepts/pipelines/elyra/const';
-import { AwsKeys } from '#~/pages/projects/dataConnections/const';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sGetResource: jest.fn(),
@@ -98,30 +92,5 @@ describe('useElyraSecret', () => {
     expect(renderResult).hookToStrictEqual(standardUseFetchState(null, false, new Error('error2')));
     expect(renderResult).hookToHaveUpdateCount(3);
     expect(renderResult).hookToBeStable([true, true, false, true]);
-  });
-});
-
-describe('generateElyraSecret', () => {
-  it('should have correct public_api_endpoint', () => {
-    const elyraSecret = generateElyraSecret(
-      {
-        bucket: 'test-bucket',
-        host: 'test-host',
-        scheme: 'test-scheme',
-        region: 'test-region',
-        s3CredentialsSecret: {
-          accessKey: AwsKeys.ACCESS_KEY_ID,
-          secretKey: AwsKeys.SECRET_ACCESS_KEY,
-          secretName: 'test-secret',
-        },
-      },
-      mockSecretK8sResource({}),
-      'test-route',
-    );
-    expect(
-      JSON.parse(elyraSecret.stringData?.[ELYRA_SECRET_DATA_KEY] ?? '').metadata[
-        ELYRA_SECRET_DATA_ENDPOINT
-      ],
-    ).toBe(`${location.origin}/experiments/test-project/`);
   });
 });

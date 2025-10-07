@@ -4,6 +4,7 @@ import { Namespace } from 'mod-arch-core';
 import { useNavigate } from 'react-router-dom';
 import ModelsEmptyState from '~/app/EmptyStates/NoData';
 import { LlamaModel, AIModel } from '~/app/types';
+import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
 import AIModelsTable from './components/AIModelsTable';
 
 type AIAssetsModelsTabProps = {
@@ -22,25 +23,7 @@ const AIAssetsModelsTab: React.FC<AIAssetsModelsTabProps> = ({
   error,
 }) => {
   const navigate = useNavigate();
-  // Determine which AI Assets models are available in the playground
-  const modelsWithPlaygroundStatus = React.useMemo(() => {
-    const playgroundModelIds = new Set(playgroundModels.map((model: LlamaModel) => model.id));
-
-    return models.map((model: AIModel) => ({
-      ...model,
-      playgroundStatus: playgroundModelIds.has(model.model_name) ? 'available' : 'not-available',
-    }));
-  }, [models, playgroundModels]);
-
-  const handleTryInPlayground = (model: AIModel) => {
-    // Navigate to playground with the selected model
-    const playgroundUrl = `/gen-ai/playground/${namespace?.name}`;
-    navigate(playgroundUrl, {
-      state: {
-        model: model.model_name,
-      },
-    });
-  };
+  const { data: lsdStatus } = useFetchLSDStatus(namespace?.name);
 
   if (!loaded) {
     return (
@@ -50,7 +33,7 @@ const AIAssetsModelsTab: React.FC<AIAssetsModelsTabProps> = ({
     );
   }
 
-  if (error || modelsWithPlaygroundStatus.length === 0) {
+  if (error || models.length === 0) {
     return (
       <ModelsEmptyState
         title="To begin you must deploy a model"
@@ -79,14 +62,14 @@ const AIAssetsModelsTab: React.FC<AIAssetsModelsTabProps> = ({
         }
         actionButtonText="Go to Deployments"
         handleActionButtonClick={() => {
-          navigate(`/modelServing/${namespace?.name}`);
+          navigate(`/ai-hub/deployments/${namespace?.name}`);
         }}
       />
     );
   }
 
   return (
-    <AIModelsTable models={modelsWithPlaygroundStatus} onTryInPlayground={handleTryInPlayground} />
+    <AIModelsTable models={models} playgroundModels={playgroundModels} lsdStatus={lsdStatus} />
   );
 };
 

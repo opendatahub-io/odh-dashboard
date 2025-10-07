@@ -14,7 +14,7 @@ import {
 
 describe('Storage classes', () => {
   it('shows "page not found" and does not show nav item as a non-admin user', () => {
-    cy.visitWithLogin('/storageClasses');
+    cy.visitWithLogin('/settings/cluster/storage-classes');
     storageClassesPage.findNavItem().should('not.exist');
     pageNotfound.findPage().should('be.visible');
   });
@@ -770,6 +770,12 @@ describe('Storage classes', () => {
         .and('contain.text', 'cinder.csi.openstack.org')
         .and('contain.text', 'recommended access modes are: RWO')
         .and('contain.text', 'You have selected unsupported modes: RWX');
+    });
+
+    it('redirect from v2 to v3 route', () => {
+      cy.visitWithLogin('/storageClasses');
+      cy.findByTestId('app-page-title').contains('Storage classes');
+      cy.url().should('include', '/settings/cluster/storage-classes');
     });
   });
 });

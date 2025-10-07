@@ -1,14 +1,18 @@
 import React from 'react';
 import { Namespace } from 'mod-arch-core';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
-import { LlamaModel, LlamaStackDistributionModel } from '~/app/types';
+import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
 import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
+import useFetchAIModels from '~/app/hooks/useFetchAIModels';
 
 type ChatbotContextProps = {
-  models: LlamaModel[];
   lsdStatus: LlamaStackDistributionModel | null;
   modelsLoaded: boolean;
   lsdStatusLoaded: boolean;
+  aiModels: AIModel[];
+  aiModelsLoaded: boolean;
+  aiModelsError: Error | undefined;
+  models: LlamaModel[];
   modelsError: Error | undefined;
   lsdStatusError: Error | undefined;
   refresh: () => void;
@@ -24,10 +28,13 @@ type ChatbotContextProviderProps = {
 };
 
 export const ChatbotContext = React.createContext<ChatbotContextProps>({
-  models: [],
   lsdStatus: null,
   modelsLoaded: false,
   lsdStatusLoaded: false,
+  aiModels: [],
+  aiModelsLoaded: false,
+  aiModelsError: undefined,
+  models: [],
   modelsError: undefined,
   lsdStatusError: undefined,
   refresh: () => undefined,
@@ -50,6 +57,12 @@ export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
     error: lsdStatusError,
     refresh: lsdStatusRefresh,
   } = useFetchLSDStatus(namespace?.name, activelyRefreshing);
+
+  const {
+    data: aiModels,
+    loaded: aiModelsLoaded,
+    error: aiModelsError,
+  } = useFetchAIModels(namespace?.name);
 
   const {
     data: models,
@@ -77,10 +90,13 @@ export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
 
   const contextValue = React.useMemo(
     () => ({
-      models,
       lsdStatus,
       modelsLoaded,
       lsdStatusLoaded,
+      aiModels,
+      aiModelsLoaded,
+      aiModelsError,
+      models,
       modelsError,
       lsdStatusError,
       refresh,
@@ -90,10 +106,13 @@ export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
       setLastInput,
     }),
     [
-      models,
       lsdStatus,
-      modelsLoaded,
       lsdStatusLoaded,
+      aiModels,
+      aiModelsLoaded,
+      aiModelsError,
+      models,
+      modelsLoaded,
       modelsError,
       lsdStatusError,
       selectedModel,

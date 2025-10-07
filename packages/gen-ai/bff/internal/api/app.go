@@ -12,6 +12,8 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp"
@@ -33,6 +35,7 @@ type App struct {
 	openAPI                 *OpenAPIHandler
 	kubernetesClientFactory k8s.KubernetesClientFactory
 	llamaStackClientFactory llamastack.LlamaStackClientFactory
+	maasClientFactory       maas.MaaSClientFactory
 	mcpClientFactory        mcp.MCPClientFactory
 	dashboardNamespace      string
 }
@@ -56,6 +59,16 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	} else {
 		logger.Info("Using real LlamaStack client factory", "url", cfg.LlamaStackURL)
 		llamaStackClientFactory = llamastack.NewRealClientFactory()
+	}
+
+	// Initialize MaaS client factory - clients will be created per request
+	var maasClientFactory maas.MaaSClientFactory
+	if cfg.MockMaaSClient {
+		logger.Info("Using mock MaaS client factory")
+		maasClientFactory = maasmocks.NewMockClientFactory()
+	} else {
+		logger.Info("Using real MaaS client factory", "url", cfg.MaaSURL)
+		maasClientFactory = maas.NewRealClientFactory()
 	}
 
 	// Initialize OpenAPI handler
@@ -109,6 +122,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		openAPI:                 openAPIHandler,
 		kubernetesClientFactory: k8sFactory,
 		llamaStackClientFactory: llamaStackClientFactory,
+		maasClientFactory:       maasClientFactory,
 		mcpClientFactory:        mcpFactory,
 		dashboardNamespace:      dashboardNamespace,
 	}
@@ -154,9 +168,17 @@ func (app *App) Routes() http.Handler {
 	// Vector Stores (LlamaStack)
 	apiRouter.GET(constants.VectorStoresListPath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackListVectorStoresHandler))))
 	apiRouter.POST(constants.VectorStoresListPath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackCreateVectorStoreHandler))))
+	apiRouter.DELETE(constants.VectorStoresDeletePath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackDeleteVectorStoreHandler))))
 
-	// Files Upload (LlamaStack)
+	// Files (LlamaStack)
+	apiRouter.GET(constants.FilesListPath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackListFilesHandler))))
 	apiRouter.POST(constants.FilesUploadPath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackUploadFileHandler))))
+	apiRouter.DELETE(constants.FilesDeletePath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackDeleteFileHandler))))
+
+	// Vector Store Files (LlamaStack)
+	apiRouter.GET(constants.VectorStoreFilesListPath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackListVectorStoreFilesHandler))))
+	apiRouter.POST(constants.VectorStoreFilesUploadPath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackUploadFileHandler)))) // Alias to FilesUploadPath
+	apiRouter.DELETE(constants.VectorStoreFilesDeletePath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackDeleteVectorStoreFileHandler))))
 
 	// Code Exporter (Template-only)
 	apiRouter.POST(constants.CodeExporterPath, app.RequireAccessToService(app.AttachNamespace(app.CodeExporterHandler)))
@@ -185,6 +207,15 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(constants.MCPToolsPath, app.RequireAccessToService(app.MCPToolsHandler))
 	apiRouter.GET(constants.MCPStatusPath, app.RequireAccessToService(app.MCPStatusHandler))
 	apiRouter.GET(constants.MCPServersListPath, app.RequireAccessToService(app.MCPListHandler))
+
+	// MaaS API routes
+
+	// Models (MaaS)
+	apiRouter.GET(constants.MaaSModelsPath, app.RequireAccessToService(app.AttachMaaSClient(app.MaaSModelsHandler)))
+
+	// Tokens (MaaS)
+	apiRouter.POST(constants.MaaSTokensPath, app.RequireAccessToService(app.AttachMaaSClient(app.MaaSIssueTokenHandler)))
+	apiRouter.DELETE(constants.MaaSTokensPath, app.RequireAccessToService(app.AttachMaaSClient(app.MaaSRevokeAllTokensHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()

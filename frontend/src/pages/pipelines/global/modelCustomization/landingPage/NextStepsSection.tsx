@@ -63,7 +63,7 @@ export const NextStepsSection: React.FC = () => {
           specified output location. If you registered it in an {ODH_PRODUCT_NAME} model registry,
           the tuned model will be output as a new version of the base model. View it nested under
           the base model on the{' '}
-          <Link data-testid="go-to-model-registry" to="/modelRegistry">
+          <Link data-testid="go-to-model-registry" to="/ai-hub/registry">
             Model registry page
           </Link>
           .

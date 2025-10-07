@@ -209,4 +209,41 @@ describe('Accelerator Profile', () => {
     cy.wait('@disableAcceleratorProfile');
     acceleratorProfile.getRow('Test Accelerator').findEnabled().should('not.be.checked');
   });
+
+  describe('redirect from v2 to v3 route', () => {
+    beforeEach(() => {
+      initIntercepts({});
+      cy.interceptK8s(
+        'GET',
+        {
+          model: AcceleratorProfileModel,
+          ns: 'opendatahub',
+          name: 'test-ap',
+        },
+        mockAcceleratorProfile({
+          name: 'test-ap',
+          displayName: 'test-ap',
+          namespace: 'opendatahub',
+        }),
+      );
+    });
+
+    it('root', () => {
+      cy.visitWithLogin('/acceleratorProfiles');
+      cy.findByTestId('app-page-title').contains('Accelerator profiles');
+      cy.url().should('include', '/settings/environment-setup/accelerator-profiles');
+    });
+
+    it('create', () => {
+      cy.visitWithLogin('/acceleratorProfiles/create');
+      cy.findByTestId('app-page-title').contains('Create accelerator profile');
+      cy.url().should('include', '/settings/environment-setup/accelerator-profiles/create');
+    });
+
+    it('edit', () => {
+      cy.visitWithLogin('/acceleratorProfiles/edit/test-ap');
+      cy.findByTestId('app-page-title').contains('Edit');
+      cy.url().should('include', '/settings/environment-setup/accelerator-profiles/edit/test-ap');
+    });
+  });
 });

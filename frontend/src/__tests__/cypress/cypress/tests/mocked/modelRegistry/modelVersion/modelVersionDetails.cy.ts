@@ -302,7 +302,7 @@ describe('Model version details', () => {
         .should('have.text', 'test-catalog-model (test-catalog-tag)');
       modelVersionDetails.findRegisteredFromCatalog().click();
       verifyRelativeURL(
-        '/modelCatalog/test-catalog-source/test-catalog-repo/test-catalog-model/test-catalog-tag',
+        '/ai-hub/catalog/test-catalog-source/test-catalog-repo/test-catalog-model/test-catalog-tag',
       );
     });
 
@@ -325,7 +325,7 @@ describe('Model version details', () => {
       modelVersionDetails.findDescription().should('have.text', 'Description of model version');
       modelVersionDetails.findPipelineRunLink().should('have.text', 'Run pipeline-run-test in');
       modelVersionDetails.findPipelineRunLink().click();
-      verifyRelativeURL('/pipelineRuns/test-project/runs/pipelinerun1');
+      verifyRelativeURL('/develop-train/pipelines/runs/test-project/runs/pipelinerun1');
     });
 
     // TODO: Unskip when pipeline is in model version details.

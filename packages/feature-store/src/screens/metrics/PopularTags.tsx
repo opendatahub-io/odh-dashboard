@@ -75,7 +75,7 @@ const PopularTagCard = ({ tag }: { tag: PopularTag }) => {
       </CardBody>
       <CardFooter>
         <Link
-          to="/featureStore/featureViews"
+          to="/develop-train/feature-store/feature-views"
           aria-label={`View all ${tag.total_feature_views} feature views for ${tag.tag_key}: ${tag.tag_value}`}
         >
           View all ({tag.total_feature_views})

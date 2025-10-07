@@ -1,4 +1,4 @@
-[k8s pass through API]: ../backend/src/routes/api/k8s/pass-through.ts
+[k8s pass through API]: ../backend/src/utils/pass-through.ts
 [CONTRIBUTING]: ../CONTRIBUTING.md
 [@openshift/dynamic-plugin-sdk]: https://www.npmjs.com/package/@openshift/dynamic-plugin-sdk
 [@openshift/dynamic-plugin-sdk-utils]: https://www.npmjs.com/package/@openshift/dynamic-plugin-sdk-utils

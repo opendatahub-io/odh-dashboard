@@ -6,7 +6,7 @@ class GlobalDistributedWorkloads {
   projectDropdown = new SearchSelector('project-selector');
 
   visit(wait = true) {
-    cy.visitWithLogin(`/distributedWorkloads`);
+    cy.visitWithLogin(`/observe-monitor/workload-metrics`);
     if (wait) {
       this.wait();
     }

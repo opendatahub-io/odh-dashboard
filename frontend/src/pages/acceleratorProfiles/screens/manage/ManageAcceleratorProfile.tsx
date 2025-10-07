@@ -24,7 +24,7 @@ type ManageAcceleratorProfileProps = {
 
 const ManageAcceleratorProfile: React.FC<ManageAcceleratorProfileProps> = ({
   existingAcceleratorProfile,
-  contextPath = '/acceleratorProfiles',
+  contextPath = '/settings/environment-setup/accelerator-profiles',
   homepageTitle = 'Accelerator profiles',
 }) => {
   const [state, setState] = useGenericObjectState<AcceleratorProfileFormData>({

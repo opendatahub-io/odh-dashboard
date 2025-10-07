@@ -11,6 +11,7 @@ import {
   splitValueUnit,
   UnitOption,
 } from '#~/utilities/valueUnits';
+import { DEFAULT_PROFILE_NAME } from '#~/pages/hardwareProfiles/const.tsx';
 import { DEFAULT_CPU_IDENTIFIER, DEFAULT_MEMORY_IDENTIFIER } from './nodeResource/const';
 import { hasCPUandMemory } from './manage/ManageNodeResourceSection';
 import { createHardwareProfileWarningSchema } from './manage/validationUtils';
@@ -199,6 +200,12 @@ export const isHardwareProfileValid = (hardwareProfile: HardwareProfileKind): bo
 export const getHardwareProfileDisplayName = (hardwareProfile: HardwareProfileKind): string =>
   hardwareProfile.metadata.annotations?.[DisplayNameAnnotation.ODH_DISP_NAME] ||
   hardwareProfile.metadata.name;
+
+export const getHardwareProfileCrName = (hardwareProfile: HardwareProfileKind): string =>
+  hardwareProfile.metadata.name;
+
+export const isDefaultHardwareProfile = (hardwareProfile: HardwareProfileKind): boolean =>
+  getHardwareProfileCrName(hardwareProfile) === DEFAULT_PROFILE_NAME;
 
 export const getHardwareProfileDescription = (
   hardwareProfile: HardwareProfileKind,
