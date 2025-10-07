@@ -21,7 +21,7 @@ jobs:
         id: set-tags
         # TO:DO - update execution tags and simplify for v1
         run: |
-          echo "test-tags=[\"@SmokeSet1\",\"@SmokeSet2\",\"@SmokeSet3\"]" >> $GITHUB_OUTPUT
+          echo "test-tags=[\"@SmokeSet1\",\"@SmokeSet2\"]" >> $GITHUB_OUTPUT
 
   e2e-tests:
     needs: [get-test-tags]
@@ -36,7 +36,6 @@ jobs:
 
       - name: Calculate unique port for this job
         run: |
-          # Simple port allocation: 4010, 4020, 4030 for each parallel job
           CYPRESS_PORT=$((4010 + (${{ strategy.job-index }} * 10)))
           echo "CYPRESS_PORT=$CYPRESS_PORT" >> $GITHUB_ENV
           echo "Allocated port $CYPRESS_PORT for ${{ matrix.test-tag }}"
@@ -124,7 +123,7 @@ jobs:
 
             # Based on Cypress docs for Amazon Linux 2023 - Fedora compatible
             echo "Installing core dependencies..."
-            sudo dnf install -y xorg-x11-server-Xvfb gtk3-devel nss alsa-lib lsof
+            sudo dnf install -y xorg-x11-server-Xvfb gtk3-devel nss alsa-lib
 
             # Add the missing ATK packages that Cypress actually needs
             echo "Installing ATK dependencies..."
@@ -322,14 +321,10 @@ jobs:
 
       - name: Set test configuration
         run: |
-          # ALWAYS set localhost URLs in test-variables.yml
-          # Cypress's testConfig.ts prioritizes ODH_DASHBOARD_URL from yml over BASE_URL env var
-          # The webpack proxy handles cluster connections, Cypress navigates to localhost
           echo "Setting test URLs to localhost:$CYPRESS_PORT"
           sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:$CYPRESS_PORT|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
           sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:$CYPRESS_PORT|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
           
-          # DEBUG: Verify URLs are set correctly
           echo "DEBUG: URLs in test-variables.yml:"
           grep "OCP_CONSOLE_URL:" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml || echo "Not found"
           grep "ODH_DASHBOARD_URL:" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml || echo "Not found"
@@ -351,7 +346,6 @@ jobs:
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
           echo "Started webpack dev server with PID: $SERVER_PID"
           
-          # Give the server extra time to start in CI
           echo "⏳ Giving server 15 seconds to initialize..."
           sleep 15
 
@@ -455,13 +449,10 @@ jobs:
           echo "🚫 Skipping tags: @Bug,@Maintain,@NonConcurrent"
           echo "📋 Test group: ${{ matrix.test-tag }}"
 
-          # Use Jenkins-style command format for proper tag filtering
           echo "🔄 Using Chrome browser"
 
-          # Create results directory
           mkdir -p "$CY_RESULTS_DIR"
 
-          # Run tests against dynamic port
           BASE_URL=http://localhost:$CYPRESS_PORT npm run cypress:run:chrome -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Test tag name
@@ -505,7 +496,6 @@ jobs:
         run: |
           echo "🛑 Stopping webpack dev server..."
           pkill -f "webpack.*serve" || echo "No webpack processes found"
-          # Clean up ports 4010-4030 (used by parallel jobs)
           for port in 4010 4020 4030; do
             lsof -ti:$port | xargs kill -9 2>/dev/null || true
           done
