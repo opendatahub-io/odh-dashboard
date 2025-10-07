@@ -29,7 +29,7 @@ const MCPServerTableRow: React.FC<MCPServerTableRowProps> = ({
         <div className="pf-v6-u-font-weight-bold">
           <Truncate content={server.name} />
         </div>
-        <TruncatedText maxLines={3} content={server.description} className="pf-v6-u-w-75" />
+        <TruncatedText className="pf-v6-u-w-75" maxLines={3} content={server.description} />
       </div>
     </Td>
     <Td dataLabel="Status" className="pf-v6-u-align-content-center">
