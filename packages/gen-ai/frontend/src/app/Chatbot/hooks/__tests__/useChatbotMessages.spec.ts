@@ -109,7 +109,6 @@ describe('useChatbotMessages', () => {
           isRawUploaded: true,
           isStreamingEnabled: false,
           temperature: 0.7,
-          topP: 0.9,
           currentVectorStoreId: null,
         }),
       );
@@ -138,7 +137,6 @@ describe('useChatbotMessages', () => {
           isRawUploaded: true,
           isStreamingEnabled: false,
           temperature: 0.7,
-          topP: 0.9,
           currentVectorStoreId: null,
         }),
       );
@@ -176,7 +174,6 @@ describe('useChatbotMessages', () => {
           isRawUploaded: true,
           isStreamingEnabled: false,
           temperature: 0.7,
-          topP: 0.9,
           currentVectorStoreId: null,
         }),
       );
@@ -203,7 +200,6 @@ describe('useChatbotMessages', () => {
           isRawUploaded: true,
           isStreamingEnabled: false,
           temperature: 0.7,
-          topP: 0.9,
           currentVectorStoreId: null,
         }),
       );
@@ -226,7 +222,6 @@ describe('useChatbotMessages', () => {
           instructions: '',
           stream: false,
           temperature: 0.7,
-          top_p: 0.9,
         },
         'test-namespace',
       );
@@ -243,7 +238,6 @@ describe('useChatbotMessages', () => {
           isRawUploaded: true,
           isStreamingEnabled: false,
           temperature: 0.7,
-          topP: 0.9,
           currentVectorStoreId: null,
         }),
       );
@@ -273,7 +267,6 @@ describe('useChatbotMessages', () => {
           isRawUploaded: false,
           isStreamingEnabled: false,
           temperature: 0.7,
-          topP: 0.9,
           currentVectorStoreId: null,
         }),
       );
@@ -302,7 +295,6 @@ describe('useChatbotMessages', () => {
           instructions: '',
           stream: false,
           temperature: 0.7,
-          top_p: 0.9,
         },
         'test-namespace',
       );
@@ -319,7 +311,6 @@ describe('useChatbotMessages', () => {
           isRawUploaded: true,
           isStreamingEnabled: false,
           temperature: 0.7,
-          topP: 0.9,
           currentVectorStoreId: null,
         }),
       );
@@ -348,7 +339,6 @@ describe('useChatbotMessages', () => {
           isRawUploaded: true,
           isStreamingEnabled: false,
           temperature: 0.7,
-          topP: 0.9,
           currentVectorStoreId: null,
         }),
       );
@@ -372,7 +362,6 @@ describe('useChatbotMessages', () => {
           isRawUploaded: true,
           isStreamingEnabled: false,
           temperature: 0.7,
-          topP: 0.9,
           currentVectorStoreId: null,
         }),
       );
@@ -402,7 +391,6 @@ describe('useChatbotMessages', () => {
           isRawUploaded: true,
           isStreamingEnabled: false,
           temperature: 0.7,
-          topP: 0.9,
           currentVectorStoreId: 'vs_current_store_123',
         }),
       );
@@ -426,7 +414,6 @@ describe('useChatbotMessages', () => {
           instructions: '',
           stream: false,
           temperature: 0.7,
-          top_p: 0.9,
         },
         'test-namespace',
       );
@@ -445,7 +432,6 @@ describe('useChatbotMessages', () => {
           isRawUploaded: true,
           isStreamingEnabled: false,
           temperature: 0.7,
-          topP: 0.9,
           currentVectorStoreId: null,
         }),
       );
@@ -498,7 +484,6 @@ describe('useChatbotMessages', () => {
           isRawUploaded: true,
           isStreamingEnabled: false,
           temperature: 0.7,
-          topP: 0.9,
           currentVectorStoreId: null,
         }),
       );
@@ -528,7 +513,6 @@ describe('useChatbotMessages', () => {
             isRawUploaded: true,
             isStreamingEnabled: false,
             temperature: 0.7,
-            topP: 0.9,
             currentVectorStoreId: null,
           }),
         { initialProps: { modelId: 'model-1' } },
@@ -577,7 +561,6 @@ describe('useChatbotMessages', () => {
             isRawUploaded: true,
             isStreamingEnabled: false,
             temperature: 0.7,
-            topP: 0.9,
             currentVectorStoreId: null,
           }),
         { initialProps: { systemInstruction: 'Be concise.' } },
