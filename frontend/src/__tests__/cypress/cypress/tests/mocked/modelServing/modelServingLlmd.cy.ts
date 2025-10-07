@@ -264,21 +264,6 @@ describe('Model Serving LLMD', () => {
     it('should create an LLMD deployment', () => {
       initIntercepts({});
 
-      // todo use existing connection
-      // cy.interceptK8sList(
-      //   SecretModel,
-      //   mockK8sResourceList([
-      //     mockSecretK8sResource({
-      //       namespace: 'test-project',
-      //       name: 'cool-hf-model',
-      //       displayName: 'cool hf model',
-      //       connectionType: 'URI - v1',
-      //       data: { URI: 'hf://coolmodel/coolmodel' },
-      //     }),
-      //     mockSecretK8sResource({}),
-      //   ]),
-      // );
-
       // Visit the model serving page
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
