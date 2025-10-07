@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core';
+import { Divider, Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core';
 import {
   Chatbot,
   ChatbotContent,
@@ -157,6 +157,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         systemInstruction={systemInstruction}
       />
       <Drawer isExpanded isInline position="right">
+        <Divider />
         <DrawerContent panelContent={settingsPanelContent}>
           <DrawerContentBody>
             <Chatbot displayMode={ChatbotDisplayMode.embedded} data-testid="chatbot">
