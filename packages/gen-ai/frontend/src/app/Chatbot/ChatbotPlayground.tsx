@@ -51,7 +51,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   );
   const [isStreamingEnabled, setIsStreamingEnabled] = React.useState<boolean>(true);
   const [temperature, setTemperature] = React.useState<number>(0.1);
-  const [topP, setTopP] = React.useState<number>(0.1);
 
   const location = useLocation();
   const selectedAAModel = location.state?.model;
@@ -96,7 +95,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     username,
     isStreamingEnabled,
     temperature,
-    topP,
     currentVectorStoreId: fileManagement.currentVectorStoreId,
   });
 
@@ -140,8 +138,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       onStreamingToggle={setIsStreamingEnabled}
       temperature={temperature}
       onTemperatureChange={setTemperature}
-      topP={topP}
-      onTopPChange={setTopP}
     />
   );
 

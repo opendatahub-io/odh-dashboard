@@ -65,35 +65,4 @@ describe('ModelParameterFormGroup', () => {
 
     expect(mockOnChange).toHaveBeenCalled();
   });
-
-  it('respects custom props and renders with correct attributes', () => {
-    const customProps = {
-      ...defaultProps,
-      fieldId: 'top-p',
-      label: 'Top P',
-      min: 0.1,
-      max: 2.0,
-      step: 0.05,
-      value: 0.8,
-    };
-
-    render(<ModelParameterFormGroup {...customProps} />);
-
-    // Check custom label
-    expect(screen.getByText('Top P')).toBeInTheDocument();
-
-    // Check slider attributes
-    const slider = screen.getByRole('slider');
-    expect(slider).toHaveAttribute('aria-valuemin', '0.1');
-    expect(slider).toHaveAttribute('aria-valuemax', '2');
-    expect(slider).toHaveAttribute('aria-valuenow', '0.8');
-
-    // Check text input attributes
-    const textInput = screen.getByRole('spinbutton');
-    expect(textInput).toHaveAttribute('id', 'top-p-input');
-    expect(textInput).toHaveAttribute('min', '0.1');
-    expect(textInput).toHaveAttribute('max', '2');
-    expect(textInput).toHaveAttribute('step', '0.05');
-    expect(textInput).toHaveValue(0.8);
-  });
 });
