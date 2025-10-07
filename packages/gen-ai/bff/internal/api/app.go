@@ -160,25 +160,25 @@ func (app *App) Routes() http.Handler {
 	// LlamaStack API routes
 
 	// Models (LlamaStack)
-	apiRouter.GET(constants.ModelsListPath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackModelsHandler))))
+	apiRouter.GET(constants.ModelsListPath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.AttachLlamaStackClient(app.LlamaStackModelsHandler)))))
 
 	// Responses (LlamaStack)
-	apiRouter.POST(constants.ResponsesPath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackCreateResponseHandler))))
+	apiRouter.POST(constants.ResponsesPath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.AttachLlamaStackClient(app.LlamaStackCreateResponseHandler)))))
 
 	// Vector Stores (LlamaStack)
-	apiRouter.GET(constants.VectorStoresListPath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackListVectorStoresHandler))))
-	apiRouter.POST(constants.VectorStoresListPath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackCreateVectorStoreHandler))))
-	apiRouter.DELETE(constants.VectorStoresDeletePath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackDeleteVectorStoreHandler))))
+	apiRouter.GET(constants.VectorStoresListPath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.AttachLlamaStackClient(app.LlamaStackListVectorStoresHandler)))))
+	apiRouter.POST(constants.VectorStoresListPath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.AttachLlamaStackClient(app.LlamaStackCreateVectorStoreHandler)))))
+	apiRouter.DELETE(constants.VectorStoresDeletePath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.AttachLlamaStackClient(app.LlamaStackDeleteVectorStoreHandler)))))
 
 	// Files (LlamaStack)
-	apiRouter.GET(constants.FilesListPath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackListFilesHandler))))
-	apiRouter.POST(constants.FilesUploadPath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackUploadFileHandler))))
-	apiRouter.DELETE(constants.FilesDeletePath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackDeleteFileHandler))))
+	apiRouter.GET(constants.FilesListPath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.AttachLlamaStackClient(app.LlamaStackListFilesHandler)))))
+	apiRouter.POST(constants.FilesUploadPath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.AttachLlamaStackClient(app.LlamaStackUploadFileHandler)))))
+	apiRouter.DELETE(constants.FilesDeletePath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.AttachLlamaStackClient(app.LlamaStackDeleteFileHandler)))))
 
 	// Vector Store Files (LlamaStack)
-	apiRouter.GET(constants.VectorStoreFilesListPath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackListVectorStoreFilesHandler))))
-	apiRouter.POST(constants.VectorStoreFilesUploadPath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackUploadFileHandler)))) // Alias to FilesUploadPath
-	apiRouter.DELETE(constants.VectorStoreFilesDeletePath, app.RequireAccessToService(app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackDeleteVectorStoreFileHandler))))
+	apiRouter.GET(constants.VectorStoreFilesListPath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.AttachLlamaStackClient(app.LlamaStackListVectorStoreFilesHandler)))))
+	apiRouter.POST(constants.VectorStoreFilesUploadPath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.AttachLlamaStackClient(app.LlamaStackUploadFileHandler))))) // Alias to FilesUploadPath
+	apiRouter.DELETE(constants.VectorStoreFilesDeletePath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.AttachLlamaStackClient(app.LlamaStackDeleteVectorStoreFileHandler)))))
 
 	// Code Exporter (Template-only)
 	apiRouter.POST(constants.CodeExporterPath, app.RequireAccessToService(app.AttachNamespace(app.CodeExporterHandler)))
@@ -195,13 +195,13 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(constants.UserPath, app.RequireAccessToService(app.GetCurrentUserHandler))
 
 	// Llama Stack Distribution status endpoint
-	apiRouter.GET(constants.LlamaStackDistributionStatusPath, app.RequireAccessToService(app.AttachNamespace(app.LlamaStackDistributionStatusHandler)))
+	apiRouter.GET(constants.LlamaStackDistributionStatusPath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.LlamaStackDistributionStatusHandler))))
 
 	// Llama Stack Distribution install endpoint
-	apiRouter.POST(constants.LlamaStackDistributionInstallPath, app.RequireAccessToService(app.AttachNamespace(app.LlamaStackDistributionInstallHandler)))
+	apiRouter.POST(constants.LlamaStackDistributionInstallPath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.LlamaStackDistributionInstallHandler))))
 
 	// Llama Stack Distribution delete endpoint
-	apiRouter.DELETE(constants.LlamaStackDistributionDeletePath, app.RequireAccessToService(app.AttachNamespace(app.LlamaStackDistributionDeleteHandler)))
+	apiRouter.DELETE(constants.LlamaStackDistributionDeletePath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.LlamaStackDistributionDeleteHandler))))
 
 	// MCP Client endpoints
 	apiRouter.GET(constants.MCPToolsPath, app.RequireAccessToService(app.MCPToolsHandler))

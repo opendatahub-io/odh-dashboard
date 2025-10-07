@@ -297,3 +297,53 @@ func (app *App) AttachMaaSClient(next func(http.ResponseWriter, *http.Request, h
 		next(w, r, ps)
 	}
 }
+
+// RequireLlamaStackAccess middleware performs a SubjectAccessReview to check if the user
+// has permission to list LlamaStackDistribution resources in the namespace before allowing access to LLS endpoints.
+func (app *App) RequireLlamaStackAccess(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		// If authentication is disabled, skip SAR check
+		if app.config.AuthMethod == config.AuthMethodDisabled {
+			next(w, r, ps)
+			return
+		}
+
+		ctx := r.Context()
+		identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+		if !ok || identity == nil {
+			app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+			return
+		}
+
+		// Get namespace from context (set by AttachNamespace middleware)
+		namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+		if !ok || namespace == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
+			return
+		}
+
+		// Get Kubernetes client to perform SAR
+		k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+		if err != nil {
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+			return
+		}
+
+		// Perform SubjectAccessReview to check if user can list LlamaStackDistribution resources
+		allowed, err := k8sClient.CanListLlamaStackDistributions(ctx, identity, namespace)
+		if err != nil {
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to check LlamaStackDistribution permissions: %w", err))
+			return
+		}
+
+		if !allowed {
+			app.forbiddenResponse(w, r, "user does not have permission to access LlamaStack services in this namespace")
+			return
+		}
+
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Debug("User authorized to access LlamaStack services", "namespace", namespace)
+
+		next(w, r, ps)
+	}
+}
