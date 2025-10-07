@@ -22,6 +22,9 @@ export interface UseSourceManagementReturn {
   isRawUploaded: boolean;
   filesWithSettings: FileWithSettings[];
   currentFileForSettings: File | null;
+  pendingFiles: File[];
+  isUploading: boolean;
+  uploadProgress: { current: number; total: number };
   setIsRawUploaded: (isRawUploaded: boolean) => void;
   handleSourceDrop: (event: DropEvent, source: File[]) => Promise<void>;
   removeUploadedSource: (fileName: string) => void;
@@ -54,27 +57,33 @@ const useSourceManagement = ({
   const [isSourceSettingsOpen, setIsSourceSettingsOpen] = React.useState(false);
   const [filesWithSettings, setFilesWithSettings] = React.useState<FileWithSettings[]>([]);
   const [currentFileForSettings, setCurrentFileForSettings] = React.useState<File | null>(null);
+  const [pendingFiles, setPendingFiles] = React.useState<File[]>([]);
+  const [isUploading, setIsUploading] = React.useState(false);
+  const [uploadProgress, setUploadProgress] = React.useState({ current: 0, total: 0 });
 
-  // Helper function to find the next pending file
-  const findNextPendingFile = React.useCallback((files: FileWithSettings[]): File | null => {
-    const pendingFile = files.find((fileWithSettings) => fileWithSettings.status === 'pending');
-    return pendingFile ? pendingFile.file : null;
+  // Helper function to find all pending files
+  const findPendingFiles = React.useCallback((files: FileWithSettings[]): File[] => {
+    return files
+      .filter((fileWithSettings) => fileWithSettings.status === 'pending')
+      .map((fileWithSettings) => fileWithSettings.file);
   }, []);
 
-  // Helper function to process the next file in queue
-  const processNextFile = React.useCallback(() => {
+  // Helper function to process pending files
+  const processPendingFiles = React.useCallback(() => {
     setFilesWithSettings((currentFiles) => {
-      const nextFile = findNextPendingFile(currentFiles);
-      if (nextFile) {
-        setCurrentFileForSettings(nextFile);
+      const pendingFilesList = findPendingFiles(currentFiles);
+      if (pendingFilesList.length > 0) {
+        setPendingFiles(pendingFilesList);
+        setCurrentFileForSettings(pendingFilesList[0]); // Set first file for display purposes
         setIsSourceSettingsOpen(true);
       } else {
+        setPendingFiles([]);
         setCurrentFileForSettings(null);
         setIsSourceSettingsOpen(false);
       }
       return currentFiles;
     });
-  }, [findNextPendingFile]);
+  }, [findPendingFiles]);
 
   const handleSourceDrop = React.useCallback(
     async (event: DropEvent, source: File[]) => {
@@ -119,15 +128,21 @@ const useSourceManagement = ({
         return [...prev, ...newFilesWithSettings];
       });
 
-      // Process the first file in the queue
+      // Process all pending files
       if (filesToUpload.length > 0) {
         // Small delay to allow state to update before processing
         setTimeout(() => {
-          processNextFile();
+          processPendingFiles();
         }, 100);
       }
     },
-    [uploadedFiles, MAX_FILE_SIZE, MAX_FILES_IN_VECTOR_STORE, onShowErrorAlert, processNextFile],
+    [
+      uploadedFiles,
+      MAX_FILE_SIZE,
+      MAX_FILES_IN_VECTOR_STORE,
+      onShowErrorAlert,
+      processPendingFiles,
+    ],
   );
 
   const removeUploadedSource = React.useCallback(
@@ -142,12 +157,12 @@ const useSourceManagement = ({
         setIsSourceSettingsOpen(false);
       }
 
-      // Process the next file in queue after state update
+      // Process remaining pending files after state update
       setTimeout(() => {
-        processNextFile();
+        processPendingFiles();
       }, 100);
     },
-    [currentFileForSettings, processNextFile],
+    [currentFileForSettings, processPendingFiles],
   );
 
   const handleSourceSettingsSubmit = React.useCallback(
@@ -155,98 +170,127 @@ const useSourceManagement = ({
       setSelectedSourceSettings(settings);
       setIsSourceSettingsOpen(false);
 
-      if (settings && currentFileForSettings) {
-        try {
-          if (!namespace?.name) {
-            throw new Error('Namespace is required for file upload');
+      if (settings && pendingFiles.length > 0) {
+        if (!namespace?.name) {
+          onShowErrorAlert('Namespace is required for file upload');
+          return;
+        }
+
+        setIsUploading(true);
+        setUploadProgress({ current: 0, total: pendingFiles.length });
+
+        // Update all pending files status to uploading
+        setFilesWithSettings((prev) =>
+          prev.map((fileWithSettings) =>
+            pendingFiles.some((pendingFile) => pendingFile.name === fileWithSettings.file.name)
+              ? { ...fileWithSettings, settings, status: 'uploading' }
+              : fileWithSettings,
+          ),
+        );
+
+        // Upload files sequentially to avoid API overload
+        let successCount = 0;
+        let failureCount = 0;
+        const errors: string[] = [];
+
+        for (let i = 0; i < pendingFiles.length; i++) {
+          const file = pendingFiles[i];
+          setUploadProgress({ current: i + 1, total: pendingFiles.length });
+
+          try {
+            await uploadSource(file, settings, namespace.name);
+
+            // Update this specific file status to uploaded
+            setFilesWithSettings((prev) =>
+              prev.map((fileWithSettings) =>
+                fileWithSettings.file.name === file.name
+                  ? { ...fileWithSettings, status: 'uploaded' }
+                  : fileWithSettings,
+              ),
+            );
+            successCount++;
+          } catch (error) {
+            // Update this specific file status to failed
+            setFilesWithSettings((prev) =>
+              prev.map((fileWithSettings) =>
+                fileWithSettings.file.name === file.name
+                  ? { ...fileWithSettings, status: 'failed' }
+                  : fileWithSettings,
+              ),
+            );
+            failureCount++;
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            errors.push(`${file.name}: ${errorMessage}`);
           }
+        }
 
-          // Update the file status to uploading
-          setFilesWithSettings((prev) =>
-            prev.map((fileWithSettings) =>
-              fileWithSettings.file.name === currentFileForSettings.name
-                ? { ...fileWithSettings, settings, status: 'uploading' }
-                : fileWithSettings,
-            ),
-          );
+        setIsUploading(false);
+        setUploadProgress({ current: 0, total: 0 });
 
-          await uploadSource(currentFileForSettings, settings, namespace.name);
-
-          // Update the file status to uploaded
-          setFilesWithSettings((prev) =>
-            prev.map((fileWithSettings) =>
-              fileWithSettings.file.name === currentFileForSettings.name
-                ? { ...fileWithSettings, status: 'uploaded' }
-                : fileWithSettings,
-            ),
-          );
-
+        // Show appropriate success/error messages
+        if (successCount > 0 && failureCount === 0) {
           onShowSuccessAlert();
-
-          // Refresh the uploaded files list
-          onFileUploadComplete?.();
-        } catch (error) {
-          // Update the file status to failed
-          setFilesWithSettings((prev) =>
-            prev.map((fileWithSettings) =>
-              fileWithSettings.file.name === currentFileForSettings.name
-                ? { ...fileWithSettings, status: 'failed' }
-                : fileWithSettings,
-            ),
+        } else if (successCount > 0 && failureCount > 0) {
+          onShowErrorAlert(
+            `${successCount} file(s) uploaded successfully, ${failureCount} failed. Errors: ${errors.join('; ')}`,
           );
+        } else {
+          onShowErrorAlert(`All uploads failed. Errors: ${errors.join('; ')}`);
+        }
 
-          // Extract error message from the error object
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-          onShowErrorAlert(errorMessage);
-        }
+        // Refresh the uploaded files list
+        onFileUploadComplete?.();
       } else if (!settings) {
-        // User cancelled - remove the file
-        if (currentFileForSettings) {
-          removeUploadedSource(currentFileForSettings.name);
-        }
+        // User cancelled - remove all pending files
+        pendingFiles.forEach((file) => {
+          removeUploadedSource(file.name);
+        });
       }
 
-      // Process the next file in queue
+      // Clear pending files and process any remaining
+      setPendingFiles([]);
       setTimeout(() => {
-        processNextFile();
+        processPendingFiles();
       }, 100);
     },
     [
-      currentFileForSettings,
+      pendingFiles,
       onShowSuccessAlert,
       onShowErrorAlert,
       onFileUploadComplete,
       namespace?.name,
       removeUploadedSource,
-      processNextFile,
+      processPendingFiles,
     ],
   );
 
   const handleModalClose = React.useCallback(() => {
-    // Remove the current file if user closes modal without submitting
-    if (currentFileForSettings) {
+    // Remove all pending files if user closes modal without submitting
+    if (pendingFiles.length > 0) {
       // Only remove files that haven't been uploaded yet (pending/configured status)
-      const currentFileWithSettings = filesWithSettings.find(
-        (fileWithSettings) => fileWithSettings.file.name === currentFileForSettings.name,
-      );
+      pendingFiles.forEach((file) => {
+        const fileWithSettings = filesWithSettings.find(
+          (fileWithSettingsItem) => fileWithSettingsItem.file.name === file.name,
+        );
 
-      if (
-        currentFileWithSettings &&
-        (currentFileWithSettings.status === 'pending' ||
-          currentFileWithSettings.status === 'configured')
-      ) {
-        removeUploadedSource(currentFileForSettings.name);
-      }
+        if (
+          fileWithSettings &&
+          (fileWithSettings.status === 'pending' || fileWithSettings.status === 'configured')
+        ) {
+          removeUploadedSource(file.name);
+        }
+      });
     }
 
     setIsSourceSettingsOpen(false);
     setCurrentFileForSettings(null);
+    setPendingFiles([]);
 
-    // Process the next file in queue
+    // Process any remaining pending files
     setTimeout(() => {
-      processNextFile();
+      processPendingFiles();
     }, 100);
-  }, [currentFileForSettings, filesWithSettings, removeUploadedSource, processNextFile]);
+  }, [pendingFiles, filesWithSettings, removeUploadedSource, processPendingFiles]);
 
   return {
     selectedSourceSettings,
@@ -254,6 +298,9 @@ const useSourceManagement = ({
     isRawUploaded,
     filesWithSettings,
     currentFileForSettings,
+    pendingFiles,
+    isUploading,
+    uploadProgress,
     setIsRawUploaded,
     handleSourceDrop,
     removeUploadedSource,

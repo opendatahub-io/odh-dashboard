@@ -13,6 +13,7 @@ import {
   ModalHeader,
   ModalVariant,
   Popover,
+  Progress,
   Spinner,
   Stack,
   TextInput,
@@ -29,6 +30,9 @@ type ChatbotSourceSettingsModalProps = {
   onToggle: () => void;
   onSubmitSettings: (settings: ChatbotSourceSettings | null) => Promise<void>;
   filename?: string;
+  pendingFiles?: File[];
+  isUploading?: boolean;
+  uploadProgress?: { current: number; total: number };
 };
 
 const DEFAULT_SOURCE_SETTINGS: ChatbotSourceSettings = {
@@ -48,6 +52,9 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
   onToggle,
   onSubmitSettings,
   filename,
+  pendingFiles = [],
+  isUploading = false,
+  uploadProgress = { current: 0, total: 0 },
 }) => {
   const [fields, setFields] = React.useState<ChatbotSourceSettings>(DEFAULT_SOURCE_SETTINGS);
   const { namespace } = React.useContext(GenAiContext);
@@ -72,7 +79,19 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
   // Vector store creation state
   const [vectorStoreForm, setVectorStoreForm] = React.useState(DEFAULT_VECTOR_STORE_FORM);
   const [isCreatingVectorStore, setIsCreatingVectorStore] = React.useState(false);
-  const title = filename ? `RAG input settings - ${filename}` : 'RAG input settings';
+
+  // Generate title based on number of files
+  const getTitle = () => {
+    if (pendingFiles.length > 1) {
+      return `RAG input settings - ${pendingFiles.length} files`;
+    }
+    if (filename) {
+      return `RAG input settings - ${filename}`;
+    }
+    return 'RAG input settings';
+  };
+
+  const title = getTitle();
   const vectorStoreName = vectorStores.find(
     (vectorStore) => vectorStore.id === fields.vectorStore,
   )?.name;
@@ -199,7 +218,9 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
           title={title}
           description={
             vectorStores.length !== 0
-              ? 'Review the embedding settings that will be used to process your RAG source'
+              ? pendingFiles.length > 1
+                ? `Review the embedding settings that will be applied to all ${pendingFiles.length} files`
+                : 'Review the embedding settings that will be used to process your RAG source'
               : 'No vector databases found. Please create a vector database first.'
           }
           descriptorId="source-settings-modal-box-description-form"
@@ -209,6 +230,21 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
         {vectorStores.length !== 0 ? (
           <>
             <ModalBody>
+              {isUploading && uploadProgress.total > 0 && (
+                <Stack hasGutter>
+                  <Alert
+                    isInline
+                    variant="info"
+                    title={`Uploading files... ${uploadProgress.current} of ${uploadProgress.total}`}
+                  >
+                    <Progress
+                      value={(uploadProgress.current / uploadProgress.total) * 100}
+                      title="Upload Progress"
+                      size="sm"
+                    />
+                  </Alert>
+                </Stack>
+              )}
               <Form id="source-settings-form" isWidthLimited>
                 <FormGroup
                   label="Vector database"
@@ -353,7 +389,8 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
               <Button
                 key="upload"
                 variant="primary"
-                isDisabled={!fields.vectorStore || !vectorStoreName}
+                isDisabled={!fields.vectorStore || !vectorStoreName || isUploading}
+                isLoading={isUploading}
                 onClick={async () => {
                   try {
                     await onSubmitSettings(fields);
@@ -362,7 +399,11 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
                   }
                 }}
               >
-                Upload
+                {isUploading
+                  ? `Uploading... ${uploadProgress.current}/${uploadProgress.total}`
+                  : pendingFiles.length > 1
+                    ? `Upload ${pendingFiles.length} files`
+                    : 'Upload'}
               </Button>
               <Button
                 key="cancel"
