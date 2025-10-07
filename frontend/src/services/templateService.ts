@@ -3,11 +3,7 @@ import YAML from 'yaml';
 import axios from '#~/utilities/axios';
 import { assembleServingRuntimeTemplate } from '#~/api';
 import { ServingRuntimeKind, TemplateKind } from '#~/k8sTypes';
-import {
-  ServingRuntimeAPIProtocol,
-  ServingRuntimePlatform,
-  ServingRuntimeModelType,
-} from '#~/types';
+import { ServingRuntimeAPIProtocol, ServingRuntimeModelType } from '#~/types';
 import { addTypesToK8sListedResources } from '#~/utilities/addTypesToK8sListedResources';
 
 export const listTemplatesBackend = async (
@@ -35,18 +31,11 @@ const dryRunServingRuntimeForTemplateCreationBackend = (
 export const createServingRuntimeTemplateBackend = async (
   body: string,
   namespace: string,
-  platforms: ServingRuntimePlatform[],
   apiProtocol: ServingRuntimeAPIProtocol | undefined,
   modelTypes: ServingRuntimeModelType[],
 ): Promise<TemplateKind> => {
   try {
-    const template = assembleServingRuntimeTemplate(
-      body,
-      namespace,
-      platforms,
-      apiProtocol,
-      modelTypes,
-    );
+    const template = assembleServingRuntimeTemplate(body, namespace, apiProtocol, modelTypes);
     const servingRuntime = template.objects[0];
     const servingRuntimeName = servingRuntime.metadata.name;
 
@@ -73,7 +62,6 @@ export const updateServingRuntimeTemplateBackend = (
   existingTemplate: TemplateKind,
   body: string,
   namespace: string,
-  platforms: ServingRuntimePlatform[],
   apiProtocol: ServingRuntimeAPIProtocol | undefined,
   modelTypes: ServingRuntimeModelType[],
 ): Promise<TemplateKind> => {
@@ -100,19 +88,6 @@ export const updateServingRuntimeTemplateBackend = (
             path: '/objects/0',
             value: servingRuntime,
           },
-          existingTemplate.metadata.annotations?.['opendatahub.io/modelServingSupport']
-            ? {
-                op: 'replace',
-                path: '/metadata/annotations/opendatahub.io~1modelServingSupport',
-                value: JSON.stringify(platforms),
-              }
-            : {
-                op: 'add',
-                path: '/metadata/annotations',
-                value: {
-                  'opendatahub.io/modelServingSupport': JSON.stringify(platforms),
-                },
-              },
           ...(existingTemplate.metadata.annotations?.['opendatahub.io/model-type']
             ? [
                 runtimeModelTypeValue
