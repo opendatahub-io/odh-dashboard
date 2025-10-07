@@ -321,16 +321,21 @@ jobs:
 
       - name: Set test configuration
         run: |
-          echo "Setting test URLs to localhost:$CYPRESS_PORT"
-          sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:$CYPRESS_PORT|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
-          sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:$CYPRESS_PORT|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          # Create unique test-variables file for this matrix job to avoid race conditions
+          TEST_VARS_FILE="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables-${{ matrix.test-tag }}.yml"
+          cp ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml "$TEST_VARS_FILE"
           
-          echo "DEBUG: URLs in test-variables.yml:"
-          grep "OCP_CONSOLE_URL:" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml || echo "Not found"
-          grep "ODH_DASHBOARD_URL:" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml || echo "Not found"
+          echo "Setting test URLs to localhost:$CYPRESS_PORT in $TEST_VARS_FILE"
+          sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:$CYPRESS_PORT|" "$TEST_VARS_FILE"
+          sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:$CYPRESS_PORT|" "$TEST_VARS_FILE"
+          
+          echo "DEBUG: URLs in test-variables for ${{ matrix.test-tag }}:"
+          grep "OCP_CONSOLE_URL:" "$TEST_VARS_FILE" || echo "Not found"
+          grep "ODH_DASHBOARD_URL:" "$TEST_VARS_FILE" || echo "Not found"
           echo "DEBUG: CYPRESS_PORT=$CYPRESS_PORT"
+          echo "DEBUG: TEST_VARS_FILE=$TEST_VARS_FILE"
 
-          export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
+          echo "CY_TEST_CONFIG=$TEST_VARS_FILE" >> $GITHUB_ENV
 
       - name: Start Cypress Server
         run: |
@@ -432,9 +437,10 @@ jobs:
           # Run real E2E tests (not mock mode)
           echo "🚀 Running real E2E tests against live dashboard"
 
-          # Run tests with matrix tag using Jenkins-style command format
-          export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
+          # Run tests with matrix tag using unique test-variables file
           export CY_RESULTS_DIR="${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}"
+          
+          echo "DEBUG: Using test config: $CY_TEST_CONFIG"
 
           # Ensure OpenShift configuration is available to Cypress process
           if [ -n "$KUBECONFIG" ]; then
