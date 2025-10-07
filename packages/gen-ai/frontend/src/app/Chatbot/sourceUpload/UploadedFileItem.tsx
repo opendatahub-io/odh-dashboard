@@ -37,13 +37,18 @@ export const UploadedFileItem: React.FC<UploadedFileItemProps> = ({
       case 'uploaded':
         return ProgressVariant.success;
       case 'failed':
-        return ProgressVariant.danger;
+        return undefined; // Don't show progress bar for failed uploads
       default:
         return undefined;
     }
   };
 
   const getProgressValue = () => (status === 'uploaded' ? 100 : progress);
+
+  // For failed uploads, don't show anything at all - the toast notification is enough
+  if (status === 'failed') {
+    return null;
+  }
 
   return (
     <div>
