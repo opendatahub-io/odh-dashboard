@@ -477,6 +477,34 @@ jobs:
 
           mkdir -p "$CY_RESULTS_DIR"
 
+          # Export additional debug environment variables for Cypress connection debugging
+          export DEBUG=cypress:launcher,cypress:server:cors,cypress:server:proxy
+          export CYPRESS_DEBUG=true
+
+          echo "🔍 DEBUG: Checking server connectivity before Cypress launch..."
+          echo "Testing direct connection to http://localhost:$CYPRESS_PORT"
+          if curl -s -f --max-time 10 http://localhost:$CYPRESS_PORT/ > /dev/null 2>&1; then
+            echo "✅ Server responds successfully to HTTP requests"
+            # Test specific endpoints that Cypress might use
+            if curl -s -f --max-time 5 http://localhost:$CYPRESS_PORT/favicon.ico > /dev/null 2>&1; then
+              echo "✅ Static assets are accessible"
+            else
+              echo "⚠️  Static assets may not be accessible"
+            fi
+          else
+            echo "❌ Server does not respond to HTTP requests"
+            echo "🔍 Connection test details:"
+            curl -I --max-time 5 http://localhost:$CYPRESS_PORT/ 2>&1 | head -5 || echo "No response received"
+          fi
+
+          echo "🔍 DEBUG: Cypress will use these settings:"
+          echo "- baseUrl should resolve to: http://localhost:$CYPRESS_PORT (from BASE_URL env var or test config)"
+          echo "- Test config file: $CY_TEST_CONFIG"
+
+          echo "🔍 DEBUG: Environment variables for Cypress:"
+          echo "BASE_URL: $BASE_URL"
+          echo "CY_TEST_CONFIG: $CY_TEST_CONFIG"
+
           BASE_URL=http://localhost:$CYPRESS_PORT npm run cypress:run:chrome -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos",experimentalMemoryManagement=true,numTestsKeptInMemory=0
 
       - name: Test tag name
