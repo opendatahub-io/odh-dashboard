@@ -61,7 +61,7 @@ const AIModelsTableRowEndpoint: React.FC<AIModelsTableRowEndpointProps> = ({
               </FlexItem>
             </Flex>
           </FlexItem>
-          {isExternal && (
+          {isExternal && model.sa_token.token && (
             <FlexItem>
               <Flex direction={{ default: 'column' }}>
                 <FlexItem>
