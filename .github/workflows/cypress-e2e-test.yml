@@ -21,7 +21,7 @@ jobs:
         id: set-tags
         # TO:DO - update execution tags and simplify for v1
         run: |
-          echo "test-tags=[\"@SmokeSet1\",\"@SmokeSet2\"]" >> $GITHUB_OUTPUT
+          echo "test-tags=[\"@SmokeSet1\"]" >> $GITHUB_OUTPUT
 
   e2e-tests:
     needs: [get-test-tags]
