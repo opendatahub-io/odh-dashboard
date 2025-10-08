@@ -1,15 +1,48 @@
 import { MetadataAnnotation, type SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
+import {
+  isModelServingCompatible,
+  ModelServingCompatibleTypes,
+} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import type { LLMdContainer, LLMInferenceServiceKind } from '../types';
+import { ModelLocationData } from '../../../model-serving/src/components/deploymentWizard/fields/modelLocationFields/types';
 
 export const applyModelLocation = (
   llmdInferenceService: LLMInferenceServiceKind,
-  modelLocation: string,
+  modelLocationData: ModelLocationData,
+  secretName?: string,
+  // will also need to pass in createConnectionData
 ): LLMInferenceServiceKind => {
   const result = structuredClone(llmdInferenceService);
   result.metadata.annotations = {
     ...result.metadata.annotations,
-    [MetadataAnnotation.ConnectionName]: modelLocation,
+    [MetadataAnnotation.ConnectionName]: modelLocationData.connection ?? secretName ?? '', // TODO add saveConnectionData once 1C merges
   };
+  // Adds path annotation for S3
+  if (
+    modelLocationData.additionalFields.modelPath &&
+    isModelServingCompatible(
+      modelLocationData.connectionTypeObject ?? [],
+      ModelServingCompatibleTypes.S3ObjectStorage,
+    )
+  ) {
+    result.metadata.annotations['opendatahub.io/connection-path'] =
+      modelLocationData.additionalFields.modelPath;
+  } else {
+    delete result.metadata.annotations['opendatahub.io/connection-path'];
+  }
+  // Adds uri for OCI
+  if (
+    modelLocationData.additionalFields.modelUri &&
+    isModelServingCompatible(
+      modelLocationData.connectionTypeObject ?? [],
+      ModelServingCompatibleTypes.OCI,
+    )
+  ) {
+    result.spec.model = {
+      ...result.spec.model,
+      uri: modelLocationData.additionalFields.modelUri,
+    };
+  }
   return result;
 };
 
