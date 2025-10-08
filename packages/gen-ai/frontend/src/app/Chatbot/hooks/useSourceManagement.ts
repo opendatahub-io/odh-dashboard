@@ -110,9 +110,10 @@ const useSourceManagement = ({
       const skippedCount = validSizeFiles.length - filesToUpload.length;
 
       if (skippedCount > 0) {
-        const remainingSlots = availableSlots;
+        // const remainingSlots = availableSlots;
         onShowErrorAlert(
-          `Only ${remainingSlots} file${remainingSlots === 1 ? '' : 's'} can be uploaded. ${skippedCount} file${skippedCount === 1 ? ' was' : 's were'} skipped to stay within the ${MAX_FILES_IN_VECTOR_STORE} file limit.`,
+          // `Only ${remainingSlots} file${remainingSlots === 1 ? '' : 's'} can be uploaded. ${skippedCount} file${skippedCount === 1 ? ' was' : 's were'} skipped to stay within the ${MAX_FILES_IN_VECTOR_STORE} file limit.`,
+          `You have reached your max files uploaded. ${skippedCount} file${skippedCount === 1 ? '' : 's'}  will not be uploaded.`,
         );
       }
 

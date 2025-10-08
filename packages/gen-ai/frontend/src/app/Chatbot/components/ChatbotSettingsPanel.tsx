@@ -181,7 +181,6 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                     isLoading={fileManagement.isLoading}
                     isDeleting={fileManagement.isDeleting}
                     error={fileManagement.error}
-                    onRefresh={fileManagement.refreshFiles}
                     onDeleteFile={fileManagement.deleteFileById}
                   />
                 </FormGroup>

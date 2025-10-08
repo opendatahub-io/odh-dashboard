@@ -24,7 +24,7 @@ const SourceUploadErrorAlert: React.FunctionComponent<SourceUploadErrorAlertProp
       key={`source-upload-error-${alertKey}`}
       isInline
       variant="danger"
-      title="Failed to upload source"
+      title="Upload Error"
       timeout={ALERT_TIMEOUT_MS}
       actionClose={<AlertActionCloseButton onClose={onClose} />}
       onTimeout={onClose}
