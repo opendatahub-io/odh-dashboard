@@ -49,33 +49,38 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   const { deployMethod, deployMethodLoaded } = useDeployMethod(wizardState.state);
 
   const secretName = React.useMemo(() => {
-    const name =
+    return (
       wizardState.state.modelLocationData.data?.connection ??
       wizardState.state.createConnectionData.data.nameDesc?.name ??
-      getGeneratedSecretName();
+      getGeneratedSecretName()
+    );
+  }, [
+    wizardState.state.modelLocationData.data?.connection,
+    wizardState.state.createConnectionData.data.nameDesc?.name,
+  ]);
 
-    wizardState.state.createConnectionData.setData({
-      ...wizardState.state.createConnectionData.data,
-      nameDesc: {
-        name,
-        description: wizardState.state.createConnectionData.data.nameDesc?.description || '',
-        k8sName: {
-          value: name,
-          state: {
-            immutable: false,
-            invalidCharacters: false,
-            invalidLength: false,
-            maxLength: 0,
-            touched: false,
+  React.useEffect(() => {
+    const current = wizardState.state.createConnectionData.data.nameDesc;
+    if (current?.name !== secretName) {
+      wizardState.state.createConnectionData.setData({
+        ...wizardState.state.createConnectionData.data,
+        nameDesc: {
+          name: secretName,
+          description: current?.description || '',
+          k8sName: {
+            value: secretName,
+            state: {
+              immutable: false,
+              invalidCharacters: false,
+              invalidLength: false,
+              maxLength: 0,
+              touched: false,
+            },
           },
         },
-      },
-    });
-    return name;
-  }, [
-    wizardState.state.createConnectionData.data.nameDesc?.name,
-    wizardState.state.modelLocationData.data?.connection,
-  ]);
+      });
+    }
+  }, [secretName]);
 
   const onSave = React.useCallback(() => {
     // Use existing validation to prevent submission with invalid data
@@ -117,9 +122,9 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         true,
       ),
     ]).then(([dryRunSecret]) => {
-      const realSecretName = wizardState.state.createConnectionData.data.saveConnection
-        ? dryRunSecret?.metadata.name ?? secretName
-        : secretName;
+      // We calculate the secret name being used in handleConnectionCreation and ensure the same name is used in the deploy and secret creation calls
+      const realSecretName = dryRunSecret?.metadata.name ?? secretName;
+
       return handleConnectionCreation(
         wizardState.state.createConnectionData.data,
         project.metadata.name,
@@ -128,6 +133,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         false,
         wizardState.state.modelLocationData.selectedConnection,
       ).then((newSecret) => {
+        // This just takes the name from the secret that was created and uses realSecretName as a fallback but they should be the same
         const actualSecretName = newSecret?.metadata.name ?? realSecretName;
         Promise.all([
           deployMethod.properties.deploy(

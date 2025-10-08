@@ -8,6 +8,8 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { K8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/types';
+import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
+import { translateDisplayNameForK8s } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { ModelLocationData, ModelLocationType } from './modelLocationFields/types';
 
 export type CreateConnectionData = {
@@ -78,15 +80,17 @@ export const CreateConnectionInputFields: React.FC<CreateConnectionInputFieldsPr
   modelLocationData,
 }) => {
   const internalNameDesc = React.useMemo(() => {
+    const isGeneratedSecret = isGeneratedSecretName(createConnectionData.nameDesc?.name || '');
     return {
-      name: createConnectionData.nameDesc?.name || '',
+      name: isGeneratedSecret ? '' : createConnectionData.nameDesc?.name || '',
       description: createConnectionData.nameDesc?.description || '',
-      k8sName: createConnectionData.nameDesc?.k8sName.value || '',
+      k8sName: isGeneratedSecret ? '' : createConnectionData.nameDesc?.k8sName.value || '',
     };
   }, [createConnectionData.nameDesc]);
 
   const { data: kServeNameDesc, onDataChange: setKserveNameDesc } = useK8sNameDescriptionFieldData({
     initialData: internalNameDesc,
+    editableK8sName: false,
   });
 
   const showK8sNameDescriptionField = React.useMemo(() => {
@@ -158,18 +162,37 @@ export const CreateConnectionInputFields: React.FC<CreateConnectionInputFieldsPr
               dataTestId="save-connection-name-desc"
               data={kServeNameDesc}
               onDataChange={(key, value) => {
-                setKserveNameDesc(key, value);
-                setCreateConnectionData({
-                  ...createConnectionData,
-                  nameDesc: {
-                    name: key === 'name' ? value : kServeNameDesc.name,
-                    description: key === 'description' ? value : kServeNameDesc.description,
-                    k8sName:
-                      key === 'k8sName'
-                        ? { value, state: kServeNameDesc.k8sName.state }
-                        : kServeNameDesc.k8sName,
-                  },
-                });
+                if (key === 'name') {
+                  // Translate the name to a k8s name
+                  const k8sValue = translateDisplayNameForK8s(value);
+                  const nextNameDesc = {
+                    name: value,
+                    description: kServeNameDesc.description,
+                    k8sName: {
+                      value: k8sValue,
+                      state: {
+                        ...kServeNameDesc.k8sName.state,
+                        touched: false,
+                      },
+                    },
+                  };
+                  setKserveNameDesc('name', value);
+                  setKserveNameDesc('k8sName', k8sValue);
+                  setCreateConnectionData({
+                    ...createConnectionData,
+                    nameDesc: nextNameDesc,
+                  });
+                } else if (key === 'description') {
+                  const nextNameDesc = {
+                    ...kServeNameDesc,
+                    description: value,
+                  };
+                  setKserveNameDesc('description', value);
+                  setCreateConnectionData({
+                    ...createConnectionData,
+                    nameDesc: nextNameDesc,
+                  });
+                }
               }}
             />
           )}

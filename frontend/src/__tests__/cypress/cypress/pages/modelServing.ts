@@ -1030,6 +1030,10 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('pvc-path-prefix');
   }
 
+  findPVCSelectValue() {
+    return cy.findByTestId('pvc-connection-selector').findByRole('combobox');
+  }
+
   findOCIModelURI() {
     return cy.findByTestId('model-uri');
   }

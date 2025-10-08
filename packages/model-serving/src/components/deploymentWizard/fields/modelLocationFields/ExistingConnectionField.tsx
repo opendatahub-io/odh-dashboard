@@ -87,7 +87,6 @@ export const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = (
       <Flex direction={{ default: 'row' }} spaceItems={{ default: 'spaceItemsSm' }}>
         <FlexItem>
           <TypeaheadSelect
-            dataTestId="existing-connection-select"
             toggleWidth="450px"
             selectOptions={options}
             onSelect={(_, value) => {

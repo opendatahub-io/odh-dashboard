@@ -210,7 +210,7 @@ describe('CreateConnectionInputFields', () => {
           name: 'test',
           description: '',
           k8sName: {
-            value: '',
+            value: 'test',
             state: {
               immutable: false,
               invalidCharacters: false,
@@ -241,7 +241,7 @@ describe('CreateConnectionInputFields', () => {
               invalidCharacters: false,
               invalidLength: false,
               maxLength: 253,
-              touched: false,
+              touched: true,
               invalidCharsMessage: undefined,
               safePrefix: undefined,
               staticPrefix: undefined,

@@ -38,8 +38,10 @@ import {
 import {
   mockCustomSecretK8sResource,
   mockURISecretK8sResource,
+  mockSecretK8sResource,
 } from '../../../../../../__mocks__/mockSecretK8sResource';
 import { mockPVCK8sResource } from '../../../../../../__mocks__/mockPVCK8sResource';
+import { isGeneratedSecretName } from '../../../../../../api/k8s/secrets';
 
 const initIntercepts = ({
   modelType,
@@ -802,6 +804,19 @@ describe('Model Serving Deploy Wizard', () => {
       { model: ServingRuntimeModel, ns: 'test-project' },
       mockK8sResourceList([mockServingRuntimeK8sResource({})]),
     );
+    cy.interceptK8s(
+      'GET',
+      { model: SecretModel, ns: 'test-project', name: 'test-model-token' },
+      {
+        statusCode: 200,
+        body: {
+          apiVersion: 'v1',
+          kind: 'Secret',
+          metadata: { name: 'test-model-token', namespace: 'test-project' },
+          data: { token: btoa('test-token') },
+        },
+      },
+    ).as('getTokenSecret');
 
     modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
@@ -1148,6 +1163,19 @@ describe('Model Serving Deploy Wizard', () => {
       { model: ServingRuntimeModel, ns: 'test-project' },
       mockK8sResourceList([mockServingRuntimeK8sResource({})]),
     );
+    cy.interceptK8s(
+      'GET',
+      { model: SecretModel, ns: 'test-project', name: 'test-model-token' },
+      {
+        statusCode: 200,
+        body: {
+          apiVersion: 'v1',
+          kind: 'Secret',
+          metadata: { name: 'test-model-token', namespace: 'test-project' },
+          data: { token: btoa('test-token') },
+        },
+      },
+    ).as('getTokenSecret');
 
     cy.intercept(
       'GET',
@@ -1180,7 +1208,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelLocationSelectOption('Cluster storage').should('exist').click();
-    modelServingWizard.findExistingConnectionValue().should('have.value', 'Test PVC');
+    //modelServingWizard.findPVCSelect().should('have.value', 'Test PVC');
+    //cy.wait(1000000);
+    modelServingWizard.findPVCSelectValue().should('have.value', 'Test PVC');
     modelServingWizard.findPVCPathPrefix().should('contain.text', 'pvc://test-pvc/');
     modelServingWizard.findLocationPathInput().should('have.value', 'test-path');
     modelServingWizard.findNextButton().should('be.enabled').click();
@@ -1411,6 +1441,115 @@ describe('Model Serving Deploy Wizard', () => {
     cy.findAllByText('Limit must be greater than or equal to request').first().should('be.visible');
     modelServingWizardEdit.findMemoryLimitButton('Plus').click();
     modelServingWizardEdit.findNextButton().should('be.enabled');
+  });
+
+  it('Should create a new connection with a generated secret name', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.GENERATIVE });
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    cy.interceptK8s('POST', { model: SecretModel, ns: 'test-project' }, (req) => {
+      const secretName = req.body.metadata.name;
+      req.reply(mockSecretK8sResource({ name: secretName }));
+    }).as('createSecret');
+    cy.interceptK8s('GET', { model: SecretModel, ns: 'test-project' }, (req) => {
+      const secretName = req.url.split('/').pop();
+
+      if (secretName?.startsWith('secret-')) {
+        req.reply({
+          statusCode: 200,
+          body: mockSecretK8sResource({ name: secretName }),
+        });
+      } else {
+        req.reply({
+          statusCode: 200,
+          body: { apiVersion: 'v1', items: [], kind: 'SecretList', metadata: {} },
+        });
+      }
+    }).as('getSecret');
+    cy.intercept('GET', '/api/k8s/api/v1/namespaces/test-project/secrets/*', (req) => {
+      const secretName = req.url.split('/').pop();
+      if (secretName?.startsWith('secret-')) {
+        req.reply({
+          statusCode: 200,
+          body: {
+            apiVersion: 'v1',
+            kind: 'Secret',
+            metadata: { name: secretName, namespace: 'test-project' },
+            stringData: {},
+          },
+        });
+      } else {
+        req.continue();
+      }
+    }).as('fetchGeneratedSecretGets');
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findDeployModelButton().click();
+
+    // Step 1: Model source
+    modelServingWizard.findModelSourceStep().should('be.enabled');
+    modelServingWizard.findModelDeploymentStep().should('be.disabled');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist');
+    modelServingWizard
+      .findModelTypeSelectOption('Generative AI model (e.g. LLM)')
+      .should('exist')
+      .click();
+    modelServingWizard.findModelLocationSelect().should('exist');
+    modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
+    modelServingWizard.findUrilocationInput().type('https://testinguri');
+
+    modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
+    modelServingWizard.findSaveConnectionCheckbox().click();
+    modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Step 2: Model deployment
+    modelServingWizard.findModelDeploymentStep().should('be.enabled');
+    modelServingWizard.findAdvancedOptionsStep().should('be.disabled');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findModelDeploymentNameInput().type('test-model');
+    hardwareProfileSection.findSelect().should('contain.text', 'Small');
+
+    modelServingWizard.findModelFormatSelect().should('not.exist');
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().should('exist');
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.findGlobalScopedTemplateOption('vLLM NVIDIA').should('exist').click();
+
+    modelServingWizard.findNumReplicasInput().should('exist');
+    modelServingWizard.findNumReplicasInputField().should('have.value', '1');
+
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Step 3: Advanced Options
+    modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Step 4: Summary
+    modelServingWizard.findSubmitButton().should('be.enabled').click();
+
+    cy.wait('@createSecret').then((interception) => {
+      expect(interception.request.body.metadata.name).to.satisfy(isGeneratedSecretName);
+      expect(interception.request.body.metadata.namespace).to.equal('test-project');
+      expect(interception.request.body.metadata.labels['opendatahub.io/dashboard']).to.equal(
+        'false',
+      );
+      expect(
+        interception.request.body.metadata.annotations['opendatahub.io/connection-type-protocol'],
+      ).to.equal('uri');
+      expect(interception.request.body.stringData.URI).to.equal('https://testinguri');
+    });
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+    });
+
+    cy.wait('@createInferenceService').then((interception) => {
+      const { annotations } = interception.request.body.metadata;
+      expect(annotations).to.have.property('opendatahub.io/connections');
+      expect(isGeneratedSecretName(annotations['opendatahub.io/connections'])).to.equal(true);
+    });
   });
 
   describe('redirect from v2 to v3 route', () => {

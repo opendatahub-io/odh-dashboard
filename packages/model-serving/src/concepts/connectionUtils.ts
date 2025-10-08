@@ -9,6 +9,7 @@ import {
   getGeneratedSecretName,
 } from '@odh-dashboard/internal/api/index';
 import { SecretKind } from '@odh-dashboard/internal/k8sTypes';
+import { translateDisplayNameForK8s } from '@odh-dashboard/internal/concepts/k8s/utils';
 import {
   assembleConnectionSecret,
   getConnectionProtocolType,
@@ -29,7 +30,6 @@ export const handleConnectionCreation = async (
   dryRun?: boolean,
   selectedConnection?: Connection,
 ): Promise<SecretKind | undefined> => {
-  console.log('handleConnectionCreation', secretName);
   if (!modelLocationData) {
     return Promise.resolve(undefined);
   }
@@ -56,27 +56,24 @@ export const handleConnectionCreation = async (
   }
 
   const connectionTypeName = modelLocationData.connectionTypeObject?.metadata.name ?? 'uri-v1';
-
   const actualSecretName = (() => {
-    // If user wants to save the connection, always use the provided or existing name
-    if (createConnectionData.saveConnection) {
-      return secretName ?? createConnectionData.nameDesc?.name ?? '';
-    }
-
-    if (!isGeneratedSecretName(secretName ?? '')) {
+    if (dryRun && !createConnectionData.saveConnection) {
+      // Always generate a new name for non-saved secrets
       return getGeneratedSecretName();
     }
-
-    return getGeneratedSecretName();
+    // Otherwise, reuse whatever was passed or saved
+    return secretName ?? createConnectionData.nameDesc?.name ?? getGeneratedSecretName();
   })();
+
+  const description = createConnectionData.nameDesc?.description ?? '';
   const newConnection = assembleConnectionSecret(
     project,
     connectionTypeName,
     createConnectionData.nameDesc ?? {
       name: actualSecretName,
-      description: '',
+      description,
       k8sName: {
-        value: actualSecretName,
+        value: translateDisplayNameForK8s(actualSecretName),
         state: {
           immutable: false,
           invalidCharacters: false,
@@ -89,7 +86,7 @@ export const handleConnectionCreation = async (
     modelLocationData.fieldValues,
   );
 
-  // Apply protocol annotation based on base connection type
+  // Apply annotations
   const annotatedConnection = {
     ...newConnection,
     metadata: {
@@ -98,6 +95,11 @@ export const handleConnectionCreation = async (
       annotations: {
         ...newConnection.metadata.annotations,
         'opendatahub.io/connection-type-protocol': protocolType,
+        // Add display name annotation if it differs from the k8s name and the user is saving the connection
+        ...(createConnectionData.nameDesc?.name !== createConnectionData.nameDesc?.k8sName.value &&
+        createConnectionData.saveConnection
+          ? { 'opendatahub.io/display-name': createConnectionData.nameDesc?.name }
+          : {}),
       },
     },
   };
@@ -108,27 +110,30 @@ export const handleConnectionCreation = async (
     annotatedConnection.metadata.labels['opendatahub.io/dashboard'] = 'false';
   }
 
-  if (!dryRun) {
-    const oldSecretName = selectedConnection?.metadata.name;
-    const newSecretName = actualSecretName;
-    if (oldSecretName && oldSecretName !== newSecretName) {
-      try {
-        const existingSecret = await getSecret(project, oldSecretName);
+  if (dryRun) {
+    const dryRunCreatedSecret = await createSecret(annotatedConnection, { dryRun: true });
 
-        // Only delete if it was a generated secret
-        if (isGeneratedSecretName(existingSecret.metadata.name)) {
-          await deleteSecret(project, existingSecret.metadata.name);
-        }
-      } catch {
-        console.error('Old secret not found, skipping delete');
-      }
-    }
-
-    const createdSecret = await createSecret(annotatedConnection);
-    const finalSecret = await getSecret(project, createdSecret.metadata.name);
-    return finalSecret;
+    return dryRunCreatedSecret;
   }
-  return undefined;
+
+  const oldSecretName = selectedConnection?.metadata.name;
+  const newSecretName = actualSecretName;
+  if (oldSecretName && oldSecretName !== newSecretName) {
+    try {
+      const existingSecret = await getSecret(project, oldSecretName);
+
+      // Only delete if it was a generated secret
+      if (isGeneratedSecretName(existingSecret.metadata.name)) {
+        await deleteSecret(project, existingSecret.metadata.name);
+      }
+    } catch {
+      console.error('Old secret not found, skipping delete');
+    }
+  }
+
+  const createdSecret = await createSecret(annotatedConnection);
+  const finalSecret = await getSecret(project, createdSecret.metadata.name);
+  return finalSecret;
 };
 
 export const handleSecretOwnerReferencePatch = async (
