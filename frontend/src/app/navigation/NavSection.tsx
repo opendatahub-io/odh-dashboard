@@ -40,38 +40,83 @@ export const NavSection: React.FC<Props> = ({
     [id, extensions],
   );
 
-  const [accessReviewExtensions, isAccessReviewExtensionsLoaded] = useAccessReviewExtensions(
-    navExtensions,
+  const { descendantExtensions, parentById } = React.useMemo(() => {
+    const parentByIdMap = new Map<string, string | undefined>();
+    navExtensions.forEach((child) => parentByIdMap.set(child.properties.id, id));
+
+    const collectDescendants = (
+      roots: LoadedExtension<NavExtension>[],
+    ): LoadedExtension<NavExtension>[] => {
+      return roots.flatMap((ext) => {
+        if (isNavSectionExtension(ext)) {
+          const currentSectionId = ext.properties.id;
+          const children = extensions.filter(
+            (candidate) => candidate.properties.section === currentSectionId,
+          );
+          children.forEach((child) => parentByIdMap.set(child.properties.id, currentSectionId));
+          return [ext, ...collectDescendants(children)];
+        }
+        return [ext];
+      });
+    };
+
+    return {
+      descendantExtensions: collectDescendants(navExtensions),
+      parentById: parentByIdMap,
+    };
+  }, [navExtensions, extensions, id]);
+
+  const [allowedDescendants, isAllowedLoaded] = useAccessReviewExtensions(
+    descendantExtensions,
     (e) => (isHrefNavItemExtension(e) ? e.properties.accessReview : undefined),
   );
 
-  const navExtensionIsActive = React.useCallback(
-    (e: LoadedExtension<NavExtension>) => {
-      if (isHrefNavItemExtension(e)) {
-        return !!matchPath(e.properties.path ?? e.properties.href, pathname);
+  const { visibleHrefIds, visibleSectionIds } = React.useMemo(() => {
+    const hrefIds = new Set<string>();
+    const sectionIds = new Set<string>();
+
+    const addAncestorSections = (childId: string): void => {
+      const parentId = parentById.get(childId);
+      if (parentId) {
+        sectionIds.add(parentId);
+        addAncestorSections(parentId);
       }
-      if (isNavSectionExtension(e)) {
-        const childExtensions = extensions.filter(
-          (childExt) => e.properties.id === childExt.properties.section,
-        );
-        return childExtensions.some((childExt): boolean => {
-          if (isHrefNavItemExtension(childExt)) {
-            return !!matchPath(childExt.properties.path ?? childExt.properties.href, pathname);
-          }
-          if (isNavSectionExtension(childExt)) {
-            return navExtensionIsActive(childExt);
-          }
-          return false;
-        });
+    };
+
+    allowedDescendants.forEach((ext) => {
+      if (isHrefNavItemExtension(ext)) {
+        const hrefId = ext.properties.id;
+        hrefIds.add(hrefId);
+        addAncestorSections(hrefId);
       }
-      return false;
-    },
-    [pathname, extensions],
+    });
+
+    return { visibleHrefIds: hrefIds, visibleSectionIds: sectionIds };
+  }, [allowedDescendants, parentById]);
+
+  const visibleChildren = React.useMemo(
+    () =>
+      navExtensions.filter((e) => {
+        if (isHrefNavItemExtension(e)) {
+          return visibleHrefIds.has(e.properties.id);
+        }
+        if (isNavSectionExtension(e)) {
+          return visibleSectionIds.has(e.properties.id);
+        }
+        return false;
+      }),
+    [navExtensions, visibleHrefIds, visibleSectionIds],
   );
 
   const isActive = React.useMemo(
-    () => isAccessReviewExtensionsLoaded && accessReviewExtensions.some(navExtensionIsActive),
-    [accessReviewExtensions, navExtensionIsActive, isAccessReviewExtensionsLoaded],
+    () =>
+      isAllowedLoaded &&
+      allowedDescendants.some(
+        (e) =>
+          isHrefNavItemExtension(e) &&
+          !!matchPath(e.properties.path ?? e.properties.href, pathname),
+      ),
+    [isAllowedLoaded, allowedDescendants, pathname],
   );
 
   const [isExpanded, setIsExpanded] = React.useState(isActive);
@@ -96,7 +141,7 @@ export const NavSection: React.FC<Props> = ({
   );
 
   // Section is empty
-  if (!isAccessReviewExtensionsLoaded || accessReviewExtensions.length === 0) {
+  if (!isAllowedLoaded || visibleChildren.length === 0) {
     return null;
   }
 
@@ -114,7 +159,7 @@ export const NavSection: React.FC<Props> = ({
       onExpand={(e, expandedState) => setIsExpanded(expandedState)}
       buttonProps={dataAttributes}
     >
-      {accessReviewExtensions.map((extension) => (
+      {visibleChildren.map((extension) => (
         <NavItem
           key={extension.uid}
           extension={extension}
