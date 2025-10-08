@@ -100,3 +100,8 @@ mv $(1) $(1)-$(3) ;\
 } ;\
 ln -sf $(1)-$(3) $(1)
 endef
+
+# Dev
+.PHONY: dev-start-federated
+dev-start-federated: 
+	PORT=9105 DEPLOYMENT_MODE=federated npm run start:dev

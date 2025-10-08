@@ -21,24 +21,22 @@ const modularArchConfig: ModularArchConfig = {
   mandatoryNamespace: MANDATORY_NAMESPACE,
 };
 
-const NotebooksWrapper: React.FC = () => {
-  return (
-    <ModularArchContextProvider config={modularArchConfig}>
-      <ThemeProvider theme={Theme.Patternfly}>
-        <BrowserStorageContextProvider>
-          <NotificationContextProvider>
-            <AppContextProvider>
-              <NotebookContextProvider>
-                <NamespaceContextProvider>
-                  <AppRoutes />
-                  <ToastNotifications />
-                </NamespaceContextProvider>
-              </NotebookContextProvider>
-            </AppContextProvider>
-          </NotificationContextProvider>
-        </BrowserStorageContextProvider>
-      </ThemeProvider>
-    </ModularArchContextProvider>
-  );
-};
+const NotebooksWrapper: React.FC = () => (
+  <ModularArchContextProvider config={modularArchConfig}>
+    <ThemeProvider theme={Theme.Patternfly}>
+      <BrowserStorageContextProvider>
+        <NotificationContextProvider>
+          <AppContextProvider>
+            <NotebookContextProvider>
+              <NamespaceContextProvider>
+                <AppRoutes />
+                <ToastNotifications />
+              </NamespaceContextProvider>
+            </NotebookContextProvider>
+          </AppContextProvider>
+        </NotificationContextProvider>
+      </BrowserStorageContextProvider>
+    </ThemeProvider>
+  </ModularArchContextProvider>
+);
 export default NotebooksWrapper;

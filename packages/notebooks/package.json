@@ -7,7 +7,10 @@
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "update-subtree": "package-subtree --package=@odh-dashboard/notebooks",
-    "install:module": "npm install --prefix upstream"
+    "install:module": "npm install --prefix upstream",
+    "start:dev": "cd upstream && PORT=9105 DEPLOYMENT_MODE=federated npm run start:dev",
+    "start:dev:ext": "cd upstream && DEPLOYMENT_MODE=federated PORT=9105 npm run start:dev",
+    "start:dev:wait": "npx wait-on -i 1000 http://localhost:9105"
   },
   "subtree": {
     "repo": "https://github.com/kubeflow/notebooks.git",
@@ -28,7 +31,7 @@
     ],
     "local": {
       "host": "localhost",
-      "port": 9000
+      "port": 9105
     },
     "service": {
       "name": "odh-dashboard",
