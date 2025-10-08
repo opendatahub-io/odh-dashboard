@@ -37,17 +37,15 @@ export const applyOpenShiftYaml = (
 ): Cypress.Chainable<CommandLineResult> => {
   const ns = namespace ? `-n ${namespace}` : '';
   // Create a temporary file to avoid logging sensitive content
-  const tempFileName = `/tmp/cypress-yaml-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.yaml`;
-  
-  // Write YAML content to temp file, apply it, then clean up
-  const ocCommand = `cat > ${tempFileName} << 'CYPRESS_YAML_EOF'
-${yamlContent}
-CYPRESS_YAML_EOF
-oc apply ${ns} -f ${tempFileName}
-rm -f ${tempFileName}`;
+  const tempFileName = `/tmp/cypress-yaml-${Date.now()}-${Math.random()
+    .toString(36)
+    .substr(2, 9)}.yaml`;
 
-  // We return the result of execWithOutput to benefit from its logging and error handling
-  return execWithOutput(ocCommand);
+  // Write YAML content to temp file using Node.js fs to avoid logging
+  return cy.writeFile(tempFileName, yamlContent).then(() => {
+    const ocCommand = `oc apply ${ns} -f ${tempFileName} && rm -f ${tempFileName}`;
+    return execWithOutput(ocCommand);
+  });
 };
 
 /**
