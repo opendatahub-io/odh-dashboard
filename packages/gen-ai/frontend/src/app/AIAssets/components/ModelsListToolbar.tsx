@@ -25,7 +25,6 @@ type ModelsListToolbarProps = {
   filterColors?: Record<string, AssetsFilterColors>;
   infoPopover?: React.ReactNode;
   onClearFilters: () => void;
-  testId?: string;
 };
 
 const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
@@ -35,7 +34,6 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
   filterColors,
   infoPopover,
   onClearFilters,
-  testId = 'models-table-toolbar',
 }) => {
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = React.useState(false);
   const [currentFilterType, setCurrentFilterType] = React.useState<string>(() => {
@@ -64,7 +62,7 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
     filterColors?.[filterType] ?? AssetsFilterColors.NAME;
 
   return (
-    <Toolbar data-testid={testId}>
+    <Toolbar data-testid="models-table-toolbar">
       <ToolbarContent>
         <ToolbarGroup variant="filter-group">
           <ToolbarItem>

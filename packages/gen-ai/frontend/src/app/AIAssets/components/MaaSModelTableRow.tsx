@@ -17,7 +17,11 @@ const MaaSModelTableRow: React.FC<MaaSModelTableRowProps> = ({ model }) => (
         title={
           <>
             {model.id}
-            <Label style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }} color="orange">
+            <Label
+              style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}
+              color="orange"
+              aria-label="Model as a Service"
+            >
               MaaS
             </Label>
           </>
@@ -29,11 +33,19 @@ const MaaSModelTableRow: React.FC<MaaSModelTableRowProps> = ({ model }) => (
     </Td>
     <Td dataLabel="Status">
       {model.ready ? (
-        <Label color="green" icon={<CheckCircleIcon />}>
+        <Label
+          color="green"
+          icon={<CheckCircleIcon aria-label="Active status" />}
+          aria-label={`${model.id} status: Active`}
+        >
           Active
         </Label>
       ) : (
-        <Label color="red" icon={<ExclamationCircleIcon />}>
+        <Label
+          color="red"
+          icon={<ExclamationCircleIcon aria-label="Inactive status" />}
+          aria-label={`${model.id} status: Inactive`}
+        >
           Inactive
         </Label>
       )}

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, ButtonVariant, Popover, Content } from '@patternfly/react-core';
+import { Button, ButtonVariant, Popover, Content, Stack, StackItem } from '@patternfly/react-core';
 import { DashboardEmptyTableView, Table } from 'mod-arch-shared';
 import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
 import { aiModelColumns } from '~/app/AIAssets/data/columns';
@@ -22,24 +22,26 @@ export const AIModelStatusPopover: React.ReactNode = (
   <Popover
     position="bottom"
     showClose
-    headerContent={
-      <div style={{ padding: '16px 16px 0 16px' }}>To make a model deployment available:</div>
-    }
+    aria-label="Information about making model deployments available"
+    headerComponent="h2"
+    headerContent={<Content>To make a model deployment available:</Content>}
     bodyContent={
-      <div style={{ padding: '0 16px 16px 16px' }}>
-        <Content component="ol">
-          <Content component="li">
-            Go to your <strong>model deployments</strong> page
+      <Stack hasGutter>
+        <StackItem>
+          <Content component="ol">
+            <Content component="li">
+              Go to your <strong>model deployments</strong> page
+            </Content>
+            <Content component="li">
+              Select &apos;<strong>Edit</strong>&apos; to update your deployment
+            </Content>
+            <Content component="li">
+              Check the box: &apos;
+              <strong>Make this deployment available as an AI Asset</strong>&apos;
+            </Content>
           </Content>
-          <Content component="li">
-            Select &apos;<strong>Edit</strong>&apos; to update your deployment
-          </Content>
-          <Content component="li">
-            Check the box: &apos;
-            <strong>Make this deployment available as an AI Asset</strong>&apos;
-          </Content>
-        </Content>
-      </div>
+        </StackItem>
+      </Stack>
     }
   >
     <Button variant={ButtonVariant.link} data-testid="dont-see-model-button">
@@ -73,7 +75,6 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({ models, playgroundModels,
           filterColors={aiFilterColors}
           infoPopover={AIModelStatusPopover}
           onClearFilters={onClearFilters}
-          testId="ai-models-table-toolbar"
         />
       }
       onClearFilters={onClearFilters}
