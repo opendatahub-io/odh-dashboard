@@ -96,11 +96,13 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
           </StackItem>
         </Stack>
         <Stack hasGutter>
-          <AvailableAiAssetsFieldsComponent
-            data={wizardState.state.aiAssetData.data}
-            setData={wizardState.state.aiAssetData.setData}
-            wizardData={wizardState}
-          />
+          {wizardState.state.aiAssetData.showField && (
+            <AvailableAiAssetsFieldsComponent
+              data={wizardState.state.aiAssetData.data}
+              setData={wizardState.state.aiAssetData.setData}
+              showSaveAsMaaS={wizardState.state.aiAssetData.showSaveAsMaaS}
+            />
+          )}
           {isExternalRouteVisible && (
             <StackItem>
               <FormGroup

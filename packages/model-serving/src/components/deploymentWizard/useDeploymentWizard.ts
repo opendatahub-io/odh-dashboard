@@ -43,7 +43,7 @@ import {
   useCreateConnectionData,
   type CreateConnectionData,
 } from './fields/CreateConnectionInputFields';
-import { useWizardFieldsFromExtensions } from '../../concepts/extensionUtils';
+import { useExtensionStateModifier } from './dynamicFormUtils';
 
 export type ModelDeploymentWizardData = {
   modelTypeField?: ModelTypeFieldData;
@@ -85,8 +85,6 @@ export type UseModelDeploymentWizardState = WizardFormData & {
 export const useModelDeploymentWizard = (
   initialData?: ModelDeploymentWizardData,
 ): UseModelDeploymentWizardState => {
-  const [fields] = useWizardFieldsFromExtensions();
-
   // Step 1: Model Source
   const modelType = useModelTypeField(initialData?.modelTypeField);
   const { namespace } = useParams();
@@ -141,31 +139,22 @@ export const useModelDeploymentWizard = (
       [modelType.data],
     ),
   );
-  const modelServerTemplateFields = React.useMemo(() => {
-    return fields.filter(isModelServerTemplateField);
-  }, [fields]);
 
-  const externalRouteFields = React.useMemo(() => {
-    return fields.filter(isExternalRouteField);
-  }, [fields]);
-
-  const tokenAuthFields = React.useMemo(() => {
-    return fields.filter(isTokenAuthField);
-  }, [fields]);
-
-  const fieldExtensions = {
-    externalRouteFields,
-    tokenAuthFields,
-  };
-  const modelServer = useModelServerSelectField(
-    modelServerTemplateFields,
-    initialData?.modelServer,
-    currentProject?.metadata.name,
-    modelFormatState.templatesFilteredForModelType,
-    modelType.data === ServingRuntimeModelType.GENERATIVE // Don't pass model format for generative models
-      ? undefined
-      : modelFormatState.modelFormat,
-    modelType.data,
+  const modelServer = useExtensionStateModifier(
+    'modelServerTemplate',
+    useModelServerSelectField,
+    [
+      initialData?.modelServer,
+      currentProject?.metadata.name,
+      modelFormatState.templatesFilteredForModelType,
+      modelType.data === ServingRuntimeModelType.GENERATIVE // Don't pass model format for generative models
+        ? undefined
+        : modelFormatState.modelFormat,
+      modelType.data,
+    ],
+    {
+      modelType,
+    },
   );
 
   const numReplicas = useNumReplicasField(initialData?.numReplicas ?? undefined);
@@ -176,6 +165,16 @@ export const useModelDeploymentWizard = (
   }, [modelFormatState.loaded, hardwareProfileConfig.profilesLoaded]);
 
   // Step 3: Advanced Options - Individual Fields
+  const aiAssetData = useExtensionStateModifier(
+    'modelAvailability',
+    useAvailableAiAssetsFields,
+    [initialData?.aiAssetData, modelType.data],
+    {
+      modelType,
+      modelServer,
+    },
+  );
+  
   const externalRoute = useExternalRouteField(
     initialData?.externalRoute ?? undefined,
     externalRouteFields,
@@ -188,10 +187,6 @@ export const useModelDeploymentWizard = (
     tokenAuthFields,
     modelType.data,
     modelServer.data || undefined,
-  );
-  const aiAssetData = useAvailableAiAssetsFields(
-    initialData?.aiAssetData ?? undefined,
-    modelType.data,
   );
 
   const runtimeArgs = useRuntimeArgsField(initialData?.runtimeArgs ?? undefined);

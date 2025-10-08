@@ -5,16 +5,18 @@ import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ModelTypeFieldData } from './ModelTypeSelectField';
-import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 
 export type AvailableAiAssetsFieldsData = {
   saveAsAiAsset: boolean;
+  saveAsMaaS: boolean;
   useCase?: string;
 };
 
 export type AvailableAiAssetsFields = {
   data: AvailableAiAssetsFieldsData;
   setData: (data: AvailableAiAssetsFieldsData) => void;
+  showField: boolean;
+  showSaveAsMaaS: boolean;
 };
 
 export const isValidAvailableAiAssetsFieldsData = (): boolean => {
@@ -33,6 +35,7 @@ export const useAvailableAiAssetsFields = (
   const [data, setData] = React.useState<AvailableAiAssetsFieldsData>(
     existingData ?? {
       saveAsAiAsset: false,
+      saveAsMaaS: false,
       useCase: '',
     },
   );
@@ -41,43 +44,33 @@ export const useAvailableAiAssetsFields = (
     if (modelType && modelType !== ServingRuntimeModelType.GENERATIVE) {
       return {
         saveAsAiAsset: false,
+        saveAsMaaS: false,
         useCase: '',
       };
     }
     return data;
   }, [data, modelType]);
+
   return {
     data: AiAssetData,
     setData,
+    showField: modelType === ServingRuntimeModelType.GENERATIVE,
+    showSaveAsMaaS: false,
   };
 };
 
 type AvailableAiAssetsFieldsComponentProps = {
   data: AvailableAiAssetsFieldsData;
   setData: (data: AvailableAiAssetsFieldsData) => void;
-  wizardData: UseModelDeploymentWizardState;
+  showSaveAsMaaS: boolean;
 };
 
 export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsComponentProps> = ({
   data,
   setData,
-  wizardData,
+  showSaveAsMaaS,
 }) => {
-  const resetAiAssetData = React.useCallback(
-    (save: boolean) => {
-      setData({
-        saveAsAiAsset: save,
-        useCase: '',
-      });
-    },
-    [setData],
-  );
-  const showSaveAsAiAsset = React.useMemo(() => {
-    if (wizardData.state.modelType.data === ServingRuntimeModelType.GENERATIVE) return true;
-    return false;
-  }, [wizardData.state.modelType.data]);
-
-  return showSaveAsAiAsset ? (
+  return (
     <StackItem>
       <FormGroup
         label="AI Asset"
@@ -99,9 +92,20 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
               data-testid="save-as-ai-asset-checkbox"
               label="Make this deployment available as an AI asset"
               isChecked={data.saveAsAiAsset}
-              onChange={(_, checked) => resetAiAssetData(checked)}
+              onChange={(_, checked) => setData({ ...data, saveAsAiAsset: checked })}
             />
           </StackItem>
+          {showSaveAsMaaS && (
+            <StackItem>
+              <Checkbox
+                id="save-as-maas-checkbox"
+                data-testid="save-as-maas-checkbox"
+                label="Make this deployment available as a MaaS asset"
+                isChecked={data.saveAsMaaS}
+                onChange={(_, checked) => setData({ ...data, saveAsMaaS: checked })}
+              />
+            </StackItem>
+          )}
           {data.saveAsAiAsset && (
             <StackItem>
               <FormGroup label="Use case">
@@ -117,5 +121,5 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
         </Stack>
       </FormGroup>
     </StackItem>
-  ) : null;
+  );
 };
