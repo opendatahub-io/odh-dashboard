@@ -4,7 +4,6 @@ import {
   clusterSettings,
   cullerSettings,
   modelServingSettings,
-  notebookTolerationSettings,
   pvcSizeSettings,
   telemetrySettings,
 } from '#~/__tests__/cypress/cypress/pages/clusterSettings';
@@ -83,24 +82,17 @@ describe('Cluster Settings', () => {
     telemetrySettings.findEnabledCheckbox().click();
     telemetrySettings.findSubmitButton().should('be.disabled');
 
-    // check notebook toleration field
-    notebookTolerationSettings.findKeyError().should('not.exist');
-    notebookTolerationSettings.findKeyInput().clear();
-    notebookTolerationSettings.findKeyError().should('exist');
-    notebookTolerationSettings.findSubmitButton().should('be.disabled');
-    notebookTolerationSettings.findKeyInput().type('NotebooksOnlyChange');
-    notebookTolerationSettings.findKeyError().should('not.exist');
-    notebookTolerationSettings.findEnabledCheckbox().click();
-    notebookTolerationSettings.findSubmitButton().should('be.enabled');
-
-    notebookTolerationSettings.findSubmitButton().click();
+    // Enable tracking before submitting so there's a change to save
+    telemetrySettings.findEnabledCheckbox().click();
+    telemetrySettings.findSubmitButton().should('be.enabled');
+    telemetrySettings.findSubmitButton().click();
 
     cy.wait('@clusterSettings').then((interception) => {
       expect(interception.request.body).to.eql(
         mockClusterSettings({
           pvcSize: 20,
           cullerTimeout: 31536000,
-          notebookTolerationSettings: { enabled: false, key: 'NotebooksOnlyChange' },
+          userTrackingEnabled: true,
         }),
       );
     });

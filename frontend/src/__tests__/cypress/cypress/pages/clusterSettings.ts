@@ -91,27 +91,8 @@ class TelemetrySettings extends ClusterSettings {
   }
 }
 
-class NotebookTolerationSettings extends ClusterSettings {
-  findNotebookPodTolerationsText() {
-    return cy.findByText('Workbench pod tolerations', { exact: true });
-  }
-
-  findEnabledCheckbox() {
-    return cy.findByTestId('tolerations-enabled-checkbox');
-  }
-
-  findKeyInput() {
-    return cy.findByTestId('toleration-key-input');
-  }
-
-  findKeyError() {
-    return cy.findByTestId('toleration-helper-text-error');
-  }
-}
-
 export const clusterSettings = new ClusterSettings();
 export const modelServingSettings = new ModelSergingSettings();
 export const pvcSizeSettings = new PVCSizeSettings();
 export const cullerSettings = new CullterSettings();
 export const telemetrySettings = new TelemetrySettings();
-export const notebookTolerationSettings = new NotebookTolerationSettings();

@@ -241,16 +241,8 @@ describe('useNotebookPodSpecOptionsState', () => {
 
     expect(state.podSpecOptions).toEqual({
       resources: expect.any(Object),
-      tolerations: [
-        {
-          key: 'NotebooksOnlyChange',
-          operator: 'Exists',
-          effect: 'NoSchedule',
-        },
-      ],
-      nodeSelector: {},
-      lastSizeSelection: expect.any(String),
-      selectedAcceleratorProfile: undefined,
+      tolerations: undefined,
+      nodeSelector: undefined,
       selectedHardwareProfile: undefined,
     });
   });

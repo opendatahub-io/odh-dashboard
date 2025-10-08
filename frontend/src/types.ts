@@ -107,7 +107,6 @@ export type ClusterSettingsType = {
   userTrackingEnabled: boolean;
   pvcSize: number;
   cullerTimeout: number;
-  notebookTolerationSettings: TolerationSettings | null;
   modelServingPlatformEnabled: ModelServingPlatformEnabled;
 };
 

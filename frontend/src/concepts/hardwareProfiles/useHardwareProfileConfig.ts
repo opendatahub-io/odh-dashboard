@@ -4,7 +4,6 @@ import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import useGenericObjectState from '#~/utilities/useGenericObjectState';
 import { ContainerResources, NodeSelector, Toleration } from '#~/types';
 import { isCpuLimitLarger, isMemoryLimitLarger } from '#~/utilities/valueUnits';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import { isHardwareProfileEnabled } from '#~/pages/hardwareProfiles/utils.ts';
 import { useDashboardNamespace } from '#~/redux/selectors';
@@ -133,11 +132,7 @@ export const useHardwareProfileConfig = (
     profilesLoadError = dashboardProfilesLoadError || projectScopedProfilesLoadError;
   }
 
-  const hardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
-  const isFormDataValid = React.useMemo(
-    () => (hardwareProfilesAvailable ? isHardwareProfileConfigValid(formData) : true),
-    [formData, hardwareProfilesAvailable],
-  );
+  const isFormDataValid = React.useMemo(() => isHardwareProfileConfigValid(formData), [formData]);
 
   const { dashboardNamespace } = useDashboardNamespace();
 

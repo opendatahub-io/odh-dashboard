@@ -315,7 +315,6 @@ const extensions: NavExtension[] = [
     type: 'app.navigation/href',
     flags: {
       required: [SupportedArea.ACCELERATOR_PROFILES, ADMIN_USER],
-      disallowed: [SupportedArea.HARDWARE_PROFILES],
     },
     properties: {
       id: 'settings-accelerator-profiles',
@@ -327,9 +326,6 @@ const extensions: NavExtension[] = [
   },
   {
     type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.HARDWARE_PROFILES],
-    },
     properties: {
       id: 'settings-hardware-profiles',
       title: 'Hardware profiles',

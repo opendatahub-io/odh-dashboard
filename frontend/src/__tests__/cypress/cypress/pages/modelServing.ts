@@ -165,11 +165,15 @@ class ServingModal extends Modal {
   }
 
   findProjectScopedLabel() {
-    return this.find().findByTestId('project-scoped-label');
+    return this.findServingRuntimeTemplateSearchSelector()
+      .parent()
+      .findByTestId('project-scoped-label');
   }
 
   findGlobalScopedLabel() {
-    return this.find().findByTestId('global-scoped-label');
+    return this.findServingRuntimeTemplateSearchSelector()
+      .parent()
+      .findByTestId('global-scoped-label');
   }
 
   getProjectScopedServingRuntime() {

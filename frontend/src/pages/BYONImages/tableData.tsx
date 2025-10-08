@@ -22,16 +22,6 @@ export const columns: SortableData<BYONImage>[] = [
     },
   },
   {
-    field: 'recommendedAccelerators',
-    label: 'Recommended accelerators',
-    sortable: (a, b) =>
-      a.recommendedAcceleratorIdentifiers.length - b.recommendedAcceleratorIdentifiers.length,
-    info: {
-      popover: 'Accelerators are used to speed up the execution of workbenches.',
-    },
-    width: 30,
-  },
-  {
     field: 'recommendedHardwareProfiles',
     label: 'Recommended hardware profiles',
     sortable: (a, b) =>

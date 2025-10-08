@@ -60,7 +60,6 @@ type HandlersProps = {
   mockPodList?: PodKind[];
   envFrom?: EnvironmentFromVariable[];
   disableProjectScoped?: boolean;
-  disableHardwareProfiles?: boolean;
   notebooks?: NotebookKind[];
   acceleratorProfiles?: {
     global: AcceleratorProfileKind[];
@@ -88,7 +87,6 @@ const initIntercepts = ({
   ],
   mockPodList = [mockPodK8sResource({})],
   disableProjectScoped = true,
-  disableHardwareProfiles = true,
   notebooks = [
     mockNotebookK8sResource({
       lastImageSelection: 'test-imagestream:1.2',
@@ -195,7 +193,6 @@ const initIntercepts = ({
     mockDashboardConfig({
       notebookSizes,
       disableProjectScoped,
-      disableHardwareProfiles,
     }),
   );
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
@@ -761,7 +758,6 @@ describe('Workbench page', () => {
   it('Display accelerator profile selection when both accelerator profile and project-scoped feature flag is enabled', () => {
     initIntercepts({
       disableProjectScoped: false,
-      disableHardwareProfiles: true,
     });
     workbenchPage.visit('test-project');
     workbenchPage.findCreateButton().click();
@@ -785,7 +781,6 @@ describe('Workbench page', () => {
   it('Should show correct message when no accelerator profiles available', () => {
     initIntercepts({
       disableProjectScoped: false,
-      disableHardwareProfiles: true,
       acceleratorProfiles: {
         global: [],
         project: [],

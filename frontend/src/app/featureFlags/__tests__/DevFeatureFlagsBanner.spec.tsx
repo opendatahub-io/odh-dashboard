@@ -67,7 +67,6 @@ describe('DevFeatureFlagsBanner', () => {
       <DevFeatureFlagsBanner
         isBannerVisible
         dashboardConfig={{
-          disableAcceleratorProfiles: false,
           disableHome: false,
           disableProjects: false,
           disableModelServing: false,
@@ -78,7 +77,6 @@ describe('DevFeatureFlagsBanner', () => {
         setDevFeatureFlagQueryVisible={() => undefined}
         devFeatureFlags={{
           disableHome: true,
-          disableHardwareProfiles: true,
         }}
       />,
       renderOptions(),
@@ -89,18 +87,6 @@ describe('DevFeatureFlagsBanner', () => {
 
     // Test Active tab
     expect(result.getByTestId('activeFlagTab')).toBeInTheDocument();
-
-    // Check tech preview flags
-    expect(result.getByTestId('disableHardwareProfiles-checkbox')).toBeChecked();
-    expect(result.getByTestId('disableHardwareProfiles-value').textContent).toBe(
-      'true (overridden)',
-    );
-
-    // Click a tech preview flag
-    act(() => {
-      result.getByTestId('disableHardwareProfiles-checkbox').click();
-    });
-    expect(setFeatureFlagFn).toHaveBeenCalledWith('disableHardwareProfiles', false);
 
     // Check temp dev flags (disable Kueue is on by default)
     expect(result.getByTestId('disableKueue-checkbox')).toBeChecked();
@@ -176,9 +162,8 @@ describe('DevFeatureFlagsBanner', () => {
     expect(resetFn).toHaveBeenCalled();
 
     // Verify total number of flag changes
-    expect(setFeatureFlagFn).toHaveBeenCalledTimes(6);
+    expect(setFeatureFlagFn).toHaveBeenCalledTimes(5);
     expect(setFeatureFlagFn.mock.calls).toEqual([
-      ['disableHardwareProfiles', false],
       ['disableKueue', false],
       ['disableHome', false],
       ['disableProjects', true],

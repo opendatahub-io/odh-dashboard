@@ -417,7 +417,7 @@ describe.skip('Deploy model version', () => {
   });
 
   it('Display project specific hardware profile while deploying', () => {
-    initIntercepts({ disableProjectScoped: false, disableHardwareProfiles: false });
+    initIntercepts({ disableProjectScoped: false });
     cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version 4');
     modelVersionRow.findKebabAction('Deploy').click();

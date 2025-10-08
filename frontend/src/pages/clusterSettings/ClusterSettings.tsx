@@ -4,18 +4,12 @@ import { AlertVariant, Button, Stack, StackItem } from '@patternfly/react-core';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { useAppContext } from '#~/app/AppContext';
 import { fetchClusterSettings, updateClusterSettings } from '#~/services/clusterSettingsService';
-import {
-  ClusterSettingsType,
-  ModelServingPlatformEnabled,
-  NotebookTolerationFormSettings,
-} from '#~/types';
+import { ClusterSettingsType, ModelServingPlatformEnabled } from '#~/types';
 import { addNotification } from '#~/redux/actions/actions';
-import { useCheckJupyterEnabled } from '#~/utilities/notebookControllerUtils';
 import { useAppDispatch } from '#~/redux/hooks';
 import PVCSizeSettings from '#~/pages/clusterSettings/PVCSizeSettings';
 import CullerSettings from '#~/pages/clusterSettings/CullerSettings';
 import TelemetrySettings from '#~/pages/clusterSettings/TelemetrySettings';
-import TolerationSettings from '#~/pages/clusterSettings/TolerationSettings';
 import ModelServingPlatformSettings from '#~/pages/clusterSettings/ModelServingPlatformSettings';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
@@ -25,7 +19,6 @@ import {
   DEFAULT_PVC_SIZE,
   DEFAULT_CULLER_TIMEOUT,
   MIN_CULLER_TIMEOUT,
-  DEFAULT_TOLERATION_VALUE,
 } from './const';
 
 const ClusterSettings: React.FC = () => {
@@ -38,13 +31,7 @@ const ClusterSettings: React.FC = () => {
   const [cullerTimeout, setCullerTimeout] = React.useState(DEFAULT_CULLER_TIMEOUT);
   const { dashboardConfig } = useAppContext();
   const modelServingEnabled = useIsAreaAvailable(SupportedArea.MODEL_SERVING).status;
-  const isJupyterEnabled = useCheckJupyterEnabled();
-  const isHardwareProfileEnabled = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
-  const [notebookTolerationSettings, setNotebookTolerationSettings] =
-    React.useState<NotebookTolerationFormSettings>({
-      enabled: false,
-      key: isJupyterEnabled ? DEFAULT_TOLERATION_VALUE : '',
-    });
+
   const [modelServingEnabledPlatforms, setModelServingEnabledPlatforms] =
     React.useState<ModelServingPlatformEnabled>(clusterSettings.modelServingPlatformEnabled);
 
@@ -54,6 +41,9 @@ const ClusterSettings: React.FC = () => {
     fetchClusterSettings()
       .then((fetchedClusterSettings: ClusterSettingsType) => {
         setClusterSettings(fetchedClusterSettings);
+        setPvcSize(fetchedClusterSettings.pvcSize);
+        setCullerTimeout(fetchedClusterSettings.cullerTimeout);
+        setUserTrackingEnabled(fetchedClusterSettings.userTrackingEnabled);
         setModelServingEnabledPlatforms(fetchedClusterSettings.modelServingPlatformEnabled);
         setLoaded(true);
         setLoadError(undefined);
@@ -69,21 +59,9 @@ const ClusterSettings: React.FC = () => {
         pvcSize,
         cullerTimeout,
         userTrackingEnabled,
-        notebookTolerationSettings: {
-          enabled: notebookTolerationSettings.enabled,
-          key: notebookTolerationSettings.key,
-        },
         modelServingPlatformEnabled: modelServingEnabledPlatforms,
       }),
-    [
-      clusterSettings,
-      pvcSize,
-      cullerTimeout,
-      userTrackingEnabled,
-      notebookTolerationSettings.enabled,
-      notebookTolerationSettings.key,
-      modelServingEnabledPlatforms,
-    ],
+    [clusterSettings, pvcSize, cullerTimeout, userTrackingEnabled, modelServingEnabledPlatforms],
   );
 
   const handleSaveButtonClicked = () => {
@@ -91,10 +69,6 @@ const ClusterSettings: React.FC = () => {
       pvcSize,
       cullerTimeout,
       userTrackingEnabled,
-      notebookTolerationSettings: {
-        enabled: notebookTolerationSettings.enabled,
-        key: notebookTolerationSettings.key,
-      },
       modelServingPlatformEnabled: modelServingEnabledPlatforms,
     };
 
@@ -192,24 +166,11 @@ const ClusterSettings: React.FC = () => {
             />
           </StackItem>
         )}
-        {isJupyterEnabled && !isHardwareProfileEnabled && (
-          <StackItem>
-            <TolerationSettings
-              initialValue={clusterSettings.notebookTolerationSettings}
-              tolerationSettings={notebookTolerationSettings}
-              setTolerationSettings={setNotebookTolerationSettings}
-            />
-          </StackItem>
-        )}
         <StackItem>
           <Button
             data-testid="submit-cluster-settings"
             isDisabled={
-              saving ||
-              !pvcSize ||
-              cullerTimeout < MIN_CULLER_TIMEOUT ||
-              !isSettingsChanged ||
-              !!notebookTolerationSettings.error
+              saving || !pvcSize || cullerTimeout < MIN_CULLER_TIMEOUT || !isSettingsChanged
             }
             variant="primary"
             isLoading={saving}

@@ -1,5 +1,4 @@
 import React from 'react';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import {
   FineTunePageSections,
   fineTunePageSectionTitles,
@@ -11,7 +10,6 @@ import { HardwareFormData } from '#~/concepts/pipelines/content/modelCustomizati
 import TrainingNodeInput from '#~/pages/pipelines/global/modelCustomization/trainingHardwareSection/TrainingNodeInput';
 import TrainingStorageClassSelect from '#~/pages/pipelines/global/modelCustomization/trainingHardwareSection/TrainingStorageClassSelect';
 import TrainingHardwareProfileFormSection from './TrainingHardwareProfileFormSection';
-import { TrainingAcceleratorFormSection } from './TrainingAcceleratorFormSection';
 
 type TrainingHardwareSectionProps = {
   ilabPipelineVersion: PipelineVersionKF | null;
@@ -32,8 +30,6 @@ const TrainingHardwareSection: React.FC<TrainingHardwareSectionProps> = ({
   setHardwareFormData,
   projectName,
 }) => {
-  const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
-
   const podSpecOptionsState = useIlabPodSpecOptionsState(ilabPipelineVersion, setHardwareFormData);
 
   return (
@@ -42,25 +38,19 @@ const TrainingHardwareSection: React.FC<TrainingHardwareSectionProps> = ({
       title={fineTunePageSectionTitles[FineTunePageSections.TRAINING_HARDWARE]}
       description={
         <>
-          Select {isHardwareProfilesAvailable ? 'a hardware' : 'an accelerator'} profile to match
-          the hardware requirements of your workload to available node resources. The hardware
-          resources will be used for the SDG, training, and evaluation run phases.
+          Select a hardware profile to match the hardware requirements of your workload to available
+          node resources. The hardware resources will be used for the SDG, training, and evaluation
+          run phases.
         </>
       }
       data-testid={FineTunePageSections.TRAINING_HARDWARE}
     >
-      {isHardwareProfilesAvailable ? (
-        <TrainingHardwareProfileFormSection
-          data={podSpecOptionsState.hardwareProfile.formData}
-          setData={podSpecOptionsState.hardwareProfile.setFormData}
-          projectName={projectName}
-        />
-      ) : (
-        <TrainingAcceleratorFormSection
-          projectName={projectName}
-          podSpecOptionsState={podSpecOptionsState}
-        />
-      )}
+      <TrainingHardwareProfileFormSection
+        data={podSpecOptionsState.hardwareProfile.formData}
+        setData={podSpecOptionsState.hardwareProfile.setFormData}
+        projectName={projectName}
+      />
+
       <TrainingNodeInput data={trainingNode} setData={setTrainingNode} />
       <TrainingStorageClassSelect data={storageClass} setData={setStorageClass} />
     </FormSection>
