@@ -14,7 +14,8 @@
 // ***********************************************************
 
 // Import commands.ts using ES2015 syntax:
-import './commands/common';
+import './commands';
+import { getOcToken } from '../utils/oc_commands/auth';
 
 // Alternatively you can use CommonJS syntax:
 // require('./commands')
@@ -24,6 +25,31 @@ Cypress.on('uncaught:exception', () => {
   // returning false here prevents Cypress from
   // failing the test on uncaught exceptions
   return false;
+});
+
+// Setup global configuration
+Cypress.Keyboard.defaults({
+  keystrokeDelay: 0,
+});
+
+// Setup authentication for E2E tests (not needed in mock mode)
+before(() => {
+  if (!Cypress.env('MOCK')) {
+    cy.log('Setting up authentication for E2E tests');
+    getOcToken().then((token) => {
+      if (token) {
+        Cypress.env('AUTH_TOKEN', token);
+        cy.intercept('**/api/v1/**', (req) => {
+          // eslint-disable-next-line no-param-reassign
+          req.headers.Authorization = `Bearer ${token}`;
+        }).as('apiWithAuth');
+        cy.log('OpenShift token loaded - API requests will include Authorization header');
+        cy.log(`Token preview: ${token.substring(0, 20)}...`);
+      } else {
+        cy.log('No OpenShift token found - run "oc login" first');
+      }
+    });
+  }
 });
 
 // Add custom global configurations here
