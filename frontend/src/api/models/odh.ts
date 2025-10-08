@@ -50,7 +50,7 @@ export const ModelRegistryModel: K8sModelCommon = {
 };
 
 export const TrustyAIApplicationsModel: K8sModelCommon = {
-  apiVersion: 'v1alpha1',
+  apiVersion: 'v1',
   apiGroup: 'trustyai.opendatahub.io',
   kind: 'TrustyAIService',
   plural: 'trustyaiservices',
