@@ -31,12 +31,12 @@ import {
   useModelServerSelectField,
   type ModelServerOption,
 } from './fields/ModelServerTemplateSelectField';
-import { isModelServerTemplateField, type WizardFormData } from './types';
+import { type WizardFormData } from './types';
 import {
   useCreateConnectionData,
   type CreateConnectionData,
 } from './fields/CreateConnectionInputFields';
-import { useWizardFieldsFromExtensions } from '../../concepts/extensionUtils';
+import { useExtensionStateModifier } from './dynamicFormUtils';
 
 export type ModelDeploymentWizardData = {
   modelTypeField?: ModelTypeFieldData;
@@ -70,8 +70,6 @@ export type UseModelDeploymentWizardState = WizardFormData & {
 export const useModelDeploymentWizard = (
   initialData?: ModelDeploymentWizardData,
 ): UseModelDeploymentWizardState => {
-  const [fields] = useWizardFieldsFromExtensions();
-
   // Step 1: Model Source
   const modelType = useModelTypeField(initialData?.modelTypeField);
   const { namespace } = useParams();
@@ -126,18 +124,22 @@ export const useModelDeploymentWizard = (
       [modelType.data],
     ),
   );
-  const modelServerTemplateFields = React.useMemo(() => {
-    return fields.filter(isModelServerTemplateField);
-  }, [fields]);
-  const modelServer = useModelServerSelectField(
-    modelServerTemplateFields,
-    initialData?.modelServer,
-    currentProject?.metadata.name,
-    modelFormatState.templatesFilteredForModelType,
-    modelType.data === ServingRuntimeModelType.GENERATIVE // Don't pass model format for generative models
-      ? undefined
-      : modelFormatState.modelFormat,
-    modelType.data,
+
+  const modelServer = useExtensionStateModifier(
+    'modelServerTemplate',
+    useModelServerSelectField,
+    [
+      initialData?.modelServer,
+      currentProject?.metadata.name,
+      modelFormatState.templatesFilteredForModelType,
+      modelType.data === ServingRuntimeModelType.GENERATIVE // Don't pass model format for generative models
+        ? undefined
+        : modelFormatState.modelFormat,
+      modelType.data,
+    ],
+    {
+      modelType,
+    },
   );
 
   const numReplicas = useNumReplicasField(initialData?.numReplicas ?? undefined);
@@ -153,9 +155,14 @@ export const useModelDeploymentWizard = (
   const tokenAuthentication = useTokenAuthenticationField(
     initialData?.tokenAuthentication ?? undefined,
   );
-  const aiAssetData = useAvailableAiAssetsFields(
-    initialData?.aiAssetData ?? undefined,
-    modelType.data,
+  const aiAssetData = useExtensionStateModifier(
+    'modelAvailability',
+    useAvailableAiAssetsFields,
+    [initialData?.aiAssetData, modelType.data],
+    {
+      modelType,
+      modelServer,
+    },
   );
 
   const runtimeArgs = useRuntimeArgsField(initialData?.runtimeArgs ?? undefined);

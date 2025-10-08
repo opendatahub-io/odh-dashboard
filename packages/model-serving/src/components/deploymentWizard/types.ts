@@ -1,10 +1,6 @@
-import type { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import type { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import type {
-  ModelServerOption,
-  useModelServerSelectField,
-} from './fields/ModelServerTemplateSelectField';
+import type { useModelServerSelectField } from './fields/ModelServerTemplateSelectField';
 import type { useModelTypeField } from './fields/ModelTypeSelectField';
 import type { useExternalRouteField } from './fields/ExternalRouteField';
 import type { ModelDeploymentWizardData } from './useDeploymentWizard';
@@ -16,41 +12,6 @@ import type { useNumReplicasField } from './fields/NumReplicasField';
 import type { useRuntimeArgsField } from './fields/RuntimeArgsField';
 import type { useTokenAuthenticationField } from './fields/TokenAuthenticationField';
 import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
-
-// extensible fields
-
-export type DeploymentWizardFieldId = 'modelType' | 'modelServerTemplate';
-
-export interface DeploymentWizardFieldBase {
-  id: DeploymentWizardFieldId;
-  type: 'modifier' | 'replacement' | 'addition';
-}
-
-export interface ModelServerTemplateField extends DeploymentWizardFieldBase {
-  id: 'modelServerTemplate';
-  type: 'modifier';
-  modelServerTemplates: ModelServerOption[];
-  isActive: (modelType: ServingRuntimeModelType) => boolean;
-}
-
-// Future field types can be added here easily:
-// export interface ModelTypeField extends DeploymentWizardFieldBase {
-//   id: 'modelType';
-//   type: 'replacement';
-//   isActive: (someOtherParam: string) => boolean;
-// }
-
-// Union type approach - just add new field types to this union
-export type DeploymentWizardField = ModelServerTemplateField;
-// | ModelTypeField  // Add future field types here
-// | SomeOtherField;
-
-export const isModelServerTemplateField = (
-  field: DeploymentWizardField,
-): field is ModelServerTemplateField => {
-  // return field.id === 'modelServerTemplate';
-  return true; // Currently only ModelServerTemplateField exists
-};
 
 // wizard form data
 
@@ -71,4 +32,59 @@ export type WizardFormData = {
     modelServer: ReturnType<typeof useModelServerSelectField>;
     createConnectionData: ReturnType<typeof useCreateConnectionData>;
   };
+};
+
+// extensible fields
+
+export type DeploymentWizardFieldId = 'modelAvailability' | 'modelServerTemplate';
+
+export interface DeploymentWizardFieldBase {
+  id: DeploymentWizardFieldId;
+  type: 'modifier' | 'replacement' | 'addition';
+  isActive: (data: Partial<WizardFormData['state']>) => boolean;
+}
+
+export interface ModifierField<T extends (...args: Parameters<T>) => ReturnType<T>>
+  extends DeploymentWizardFieldBase {
+  id: DeploymentWizardFieldId;
+  type: 'modifier';
+  modifier: (stateInput: Parameters<T>, stateOutput: ReturnType<T>) => ReturnType<T>;
+}
+export const isModifierField = <T extends (...args: Parameters<T>) => ReturnType<T>>(
+  field: DeploymentWizardFieldBase,
+): field is ModifierField<T> => {
+  return field.type === 'modifier';
+};
+
+// actual fields
+
+export interface ModelServerTemplateField extends ModifierField<typeof useModelServerSelectField> {
+  id: 'modelServerTemplate';
+  modifier: (
+    stateInput: Parameters<typeof useModelServerSelectField>,
+    stateOutput: ReturnType<typeof useModelServerSelectField>,
+  ) => ReturnType<typeof useModelServerSelectField>;
+}
+
+export interface ModelAvailabilityField extends ModifierField<typeof useAvailableAiAssetsFields> {
+  id: 'modelAvailability';
+  modifier: (
+    stateInput: Parameters<typeof useAvailableAiAssetsFields>,
+    stateOutput: ReturnType<typeof useAvailableAiAssetsFields>,
+  ) => ReturnType<typeof useAvailableAiAssetsFields>;
+}
+
+// union type
+
+export type DeploymentWizardField = ModelServerTemplateField | ModelAvailabilityField;
+
+export const isModelServerTemplateField = (
+  field: DeploymentWizardField,
+): field is ModelServerTemplateField => {
+  return field.id === 'modelServerTemplate';
+};
+export const isModelAvailabilityField = (
+  field: DeploymentWizardField,
+): field is ModelAvailabilityField => {
+  return field.id === 'modelAvailability';
 };

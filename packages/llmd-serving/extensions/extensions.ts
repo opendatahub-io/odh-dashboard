@@ -69,6 +69,13 @@ const extensions: (
       field: () => import('../src/wizardFields/modelServerField').then((m) => m.modelServerField),
     },
   },
+  {
+    type: 'model-serving.deployment/wizard-field',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      field: () => import('../src/wizardFields/modelAvailablilty').then((m) => m.modelServerField),
+    },
+  },
 ];
 
 export default extensions;
