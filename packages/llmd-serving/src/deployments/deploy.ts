@@ -6,6 +6,10 @@ import { applyModelEnvVars, applyModelArgs, applyModelLocation } from './model';
 import { setUpTokenAuth } from './deployUtils';
 import { LLMD_SERVING_ID } from '../../extensions/extensions';
 import { LLMdDeployment, LLMInferenceServiceKind, LLMInferenceServiceModel } from '../types';
+import {
+  ModelLocationData,
+  ModelLocationType,
+} from '../../../model-serving/src/components/deploymentWizard/fields/modelLocationFields/types';
 
 const applyTokenAuthentication = (
   llmdInferenceService: LLMInferenceServiceKind,
@@ -44,6 +48,7 @@ const createLLMdInferenceServiceKind = async (
 type CreateLLMdInferenceServiceParams = {
   projectName: string;
   k8sName: string;
+  modelLocationData: ModelLocationData;
   displayName?: string;
   description?: string;
   hardwareProfileName?: string;
@@ -58,11 +63,11 @@ type CreateLLMdInferenceServiceParams = {
 const assembleLLMdInferenceServiceKind = ({
   projectName,
   k8sName,
+  modelLocationData,
   displayName,
   description,
   hardwareProfileName,
   hardwareProfileNamespace,
-  connectionName,
   replicas = 1,
   runtimeArgs,
   environmentVariables,
@@ -93,7 +98,7 @@ const assembleLLMdInferenceServiceKind = ({
     },
   };
 
-  llmdInferenceService = applyModelLocation(llmdInferenceService, connectionName);
+  llmdInferenceService = applyModelLocation(llmdInferenceService, modelLocationData);
   llmdInferenceService = applyHardwareProfileConfig(
     llmdInferenceService,
     hardwareProfileName ?? '',
@@ -123,6 +128,11 @@ export const deployLLMdDeployment = async (
     hardwareProfileName: wizardData.hardwareProfileConfig.formData.selectedProfile?.metadata.name,
     hardwareProfileNamespace:
       wizardData.hardwareProfileConfig.formData.selectedProfile?.metadata.namespace,
+    modelLocationData: wizardData.modelLocationData.data ?? {
+      type: ModelLocationType.NEW,
+      fieldValues: {},
+      additionalFields: {},
+    },
     connectionName: wizardData.modelLocationData.data?.connection ?? '',
     replicas: wizardData.numReplicas.data,
     runtimeArgs: wizardData.runtimeArgs.data?.args,
