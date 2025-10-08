@@ -77,12 +77,18 @@ export const CreateConnectionInputFields: React.FC<CreateConnectionInputFieldsPr
   project,
   modelLocationData,
 }) => {
+  const internalNameDesc = React.useMemo(() => {
+    return {
+      name: createConnectionData.nameDesc?.name || '',
+      description: createConnectionData.nameDesc?.description || '',
+      k8sName: createConnectionData.nameDesc?.k8sName.value || '',
+    };
+  }, [createConnectionData.nameDesc]);
+
   const { data: kServeNameDesc, onDataChange: setKserveNameDesc } = useK8sNameDescriptionFieldData({
-    initialData: {
-      name: '',
-      description: '',
-    },
+    initialData: internalNameDesc,
   });
+
   const showK8sNameDescriptionField = React.useMemo(() => {
     if (
       !modelLocationData?.type ||
@@ -155,7 +161,14 @@ export const CreateConnectionInputFields: React.FC<CreateConnectionInputFieldsPr
                 setKserveNameDesc(key, value);
                 setCreateConnectionData({
                   ...createConnectionData,
-                  nameDesc: { ...kServeNameDesc, [key]: value },
+                  nameDesc: {
+                    name: key === 'name' ? value : kServeNameDesc.name,
+                    description: key === 'description' ? value : kServeNameDesc.description,
+                    k8sName:
+                      key === 'k8sName'
+                        ? { value, state: kServeNameDesc.k8sName.state }
+                        : kServeNameDesc.k8sName,
+                  },
                 });
               }}
             />

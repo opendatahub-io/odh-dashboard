@@ -4,6 +4,9 @@ import {
   patchSecretWithOwnerReference,
   patchSecretWithProtocolAnnotation,
   hasProtocolAnnotation,
+  deleteSecret,
+  isGeneratedSecretName,
+  getGeneratedSecretName,
 } from '@odh-dashboard/internal/api/index';
 import { SecretKind } from '@odh-dashboard/internal/k8sTypes';
 import {
@@ -11,6 +14,7 @@ import {
   getConnectionProtocolType,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import { CreateConnectionData } from '../components/deploymentWizard/fields/CreateConnectionInputFields';
 import {
   ModelLocationData,
@@ -23,7 +27,9 @@ export const handleConnectionCreation = async (
   modelLocationData?: ModelLocationData,
   secretName?: string,
   dryRun?: boolean,
+  selectedConnection?: Connection,
 ): Promise<SecretKind | undefined> => {
+  console.log('handleConnectionCreation', secretName);
   if (!modelLocationData) {
     return Promise.resolve(undefined);
   }
@@ -33,31 +39,44 @@ export const handleConnectionCreation = async (
 
   // If the connection already exists, patch the protocol annotation if it needs it, but don't wait for it
   if (modelLocationData.type === ModelLocationType.EXISTING) {
-    getSecret(project, modelLocationData.connection ?? '')
-      .then((secret) => {
-        if (!hasProtocolAnnotation(secret)) {
-          patchSecretWithProtocolAnnotation(secret, protocolType).catch((err) => {
-            console.warn('Failed to patch protocol annotation:', err);
-          });
-        }
-      })
-      .catch((err) => {
-        console.warn('Failed to get secret for protocol annotation:', err);
-      });
-
+    if (!dryRun) {
+      getSecret(project, modelLocationData.connection ?? '')
+        .then((secret) => {
+          if (!hasProtocolAnnotation(secret)) {
+            patchSecretWithProtocolAnnotation(secret, protocolType).catch((err) => {
+              console.warn('Failed to patch protocol annotation:', err);
+            });
+          }
+        })
+        .catch((err) => {
+          console.warn('Failed to get secret for protocol annotation:', err);
+        });
+    }
     return Promise.resolve(undefined);
   }
 
-  const connectionTypeName = modelLocationData.connectionTypeObject?.metadata.name ?? 'uri';
+  const connectionTypeName = modelLocationData.connectionTypeObject?.metadata.name ?? 'uri-v1';
 
+  const actualSecretName = (() => {
+    // If user wants to save the connection, always use the provided or existing name
+    if (createConnectionData.saveConnection) {
+      return secretName ?? createConnectionData.nameDesc?.name ?? '';
+    }
+
+    if (!isGeneratedSecretName(secretName ?? '')) {
+      return getGeneratedSecretName();
+    }
+
+    return getGeneratedSecretName();
+  })();
   const newConnection = assembleConnectionSecret(
     project,
     connectionTypeName,
     createConnectionData.nameDesc ?? {
-      name: secretName ?? '',
+      name: actualSecretName,
       description: '',
       k8sName: {
-        value: secretName ?? '',
+        value: actualSecretName,
         state: {
           immutable: false,
           invalidCharacters: false,
@@ -75,6 +94,7 @@ export const handleConnectionCreation = async (
     ...newConnection,
     metadata: {
       ...newConnection.metadata,
+      name: actualSecretName,
       annotations: {
         ...newConnection.metadata.annotations,
         'opendatahub.io/connection-type-protocol': protocolType,
@@ -87,16 +107,28 @@ export const handleConnectionCreation = async (
     // Remove dashboard resource label so it doesn't show in connections list
     annotatedConnection.metadata.labels['opendatahub.io/dashboard'] = 'false';
   }
-  const secret = await createSecret(annotatedConnection, { dryRun: dryRun ?? false });
 
   if (!dryRun) {
-    return getSecret(project, secret.metadata.name).catch((e) => {
-      console.error('Secret was created but not found:', e);
-      throw e;
-    });
-  }
+    const oldSecretName = selectedConnection?.metadata.name;
+    const newSecretName = actualSecretName;
+    if (oldSecretName && oldSecretName !== newSecretName) {
+      try {
+        const existingSecret = await getSecret(project, oldSecretName);
 
-  return secret;
+        // Only delete if it was a generated secret
+        if (isGeneratedSecretName(existingSecret.metadata.name)) {
+          await deleteSecret(project, existingSecret.metadata.name);
+        }
+      } catch {
+        console.error('Old secret not found, skipping delete');
+      }
+    }
+
+    const createdSecret = await createSecret(annotatedConnection);
+    const finalSecret = await getSecret(project, createdSecret.metadata.name);
+    return finalSecret;
+  }
+  return undefined;
 };
 
 export const handleSecretOwnerReferencePatch = async (

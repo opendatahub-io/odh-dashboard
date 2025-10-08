@@ -60,19 +60,23 @@ export const useModelLocationData = (
   const [isStableState, setIsStableState] = React.useState(
     connectionTypesLoaded && connectionsLoaded,
   );
+  const [prefillApplied, setPrefillApplied] = React.useState(false);
   React.useEffect(() => {
     if (!project?.metadata.name || !connectionsLoaded || !connectionTypesLoaded) {
       return;
     }
+    if (prefillApplied) return;
     if (!existingData) {
       // new deployment
       setIsStableState(true);
+      setPrefillApplied(true);
       return;
     }
 
     const fetchConnectionData = async () => {
       if (existingData.type === ModelLocationType.PVC) {
         setIsStableState(true);
+        setPrefillApplied(true);
         return;
       }
       if (existingData.type === ModelLocationType.NEW) {
@@ -87,6 +91,7 @@ export const useModelLocationData = (
           });
         }
         setIsStableState(true);
+        setPrefillApplied(true);
         return;
       }
 
@@ -125,6 +130,7 @@ export const useModelLocationData = (
         };
 
         setModelLocationData(newState);
+        setPrefillApplied(true);
       } catch (e) {
         console.error('Failed to fetch secret data:', e);
       } finally {
@@ -151,6 +157,7 @@ export const useModelLocationData = (
 
   const updateSelectedConnection = React.useCallback(
     (connection: Connection | undefined) => {
+      setPrefillApplied(true);
       if (!connection) {
         setUserSelectedConnection(undefined);
         return;

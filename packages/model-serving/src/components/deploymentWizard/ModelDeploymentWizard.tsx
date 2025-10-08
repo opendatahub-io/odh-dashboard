@@ -5,6 +5,7 @@ import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { getGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
+import { Deployment } from 'extension-points';
 import { getDeploymentWizardExitRoute } from './utils';
 import { ModelDeploymentWizardData, useModelDeploymentWizard } from './useDeploymentWizard';
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
@@ -24,6 +25,7 @@ type ModelDeploymentWizardProps = {
   primaryButtonText: string;
   existingData?: ModelDeploymentWizardData;
   project: ProjectKind;
+  existingDeployment?: Deployment;
 };
 
 const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
@@ -32,6 +34,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   primaryButtonText,
   existingData,
   project,
+  existingDeployment,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -103,48 +106,59 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         wizardState.state.modelLocationData.data,
         secretName,
         true,
+        wizardState.state.modelLocationData.selectedConnection,
       ),
       deployMethod.properties.deploy(
         wizardState.state,
         project.metadata.name,
-        undefined,
+        existingDeployment,
         serverResource,
         serverResourceTemplateName,
         true,
       ),
-    ]).then(() => {
-      Promise.all([
-        handleConnectionCreation(
-          wizardState.state.createConnectionData.data,
-          project.metadata.name,
-          wizardState.state.modelLocationData.data,
-          secretName,
-          false,
-        ),
-        deployMethod.properties.deploy(
-          wizardState.state,
-          project.metadata.name,
-          undefined,
-          serverResource,
-          serverResourceTemplateName,
-          false,
-        ),
-      ]).then(([, deploymentResult]) => {
-        if (!wizardState.state.modelLocationData.data) {
-          return;
-        }
-
+    ]).then(([dryRunSecret]) => {
+      const realSecretName = wizardState.state.createConnectionData.data.saveConnection
+        ? dryRunSecret?.metadata.name ?? secretName
+        : secretName;
+      return handleConnectionCreation(
+        wizardState.state.createConnectionData.data,
+        project.metadata.name,
+        wizardState.state.modelLocationData.data,
+        realSecretName,
+        false,
+        wizardState.state.modelLocationData.selectedConnection,
+      ).then((newSecret) => {
+        const actualSecretName = newSecret?.metadata.name ?? realSecretName;
         Promise.all([
-          handleSecretOwnerReferencePatch(
+          deployMethod.properties.deploy(
+            wizardState.state,
+            project.metadata.name,
+            existingDeployment,
+            serverResource,
+            serverResourceTemplateName,
+            false,
+            actualSecretName,
+          ),
+        ]).then(([deploymentResult]) => {
+          if (!wizardState.state.modelLocationData.data) {
+            return;
+          }
+
+          return handleSecretOwnerReferencePatch(
             wizardState.state.createConnectionData.data,
             deploymentResult.model,
             wizardState.state.modelLocationData.data,
-            secretName,
+            actualSecretName,
             deploymentResult.model.metadata.uid ?? '',
             false,
-          ),
-        ]).then(() => {
-          exitWizard();
+          )
+            .then(() => {
+              exitWizard();
+            })
+            .catch((error) => {
+              console.error('Deployment or patching failed,', error);
+              exitWizard();
+            });
         });
       });
     });

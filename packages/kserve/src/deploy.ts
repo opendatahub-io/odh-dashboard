@@ -12,6 +12,7 @@ export const deployKServeDeployment = async (
   serverResource?: ServingRuntimeKind,
   serverResourceTemplateName?: string,
   dryRun?: boolean,
+  secretName?: string,
 ): Promise<KServeDeployment> => {
   const inferenceServiceData: CreatingInferenceServiceObject = {
     project: projectName,
@@ -31,26 +32,28 @@ export const deployKServeDeployment = async (
     aiAssetData: wizardData.aiAssetData.data,
   };
 
-  const servingRuntime = serverResource
-    ? await createServingRuntime(
-        {
-          project: projectName,
-          name: wizardData.k8sNameDesc.data.k8sName.value,
-          servingRuntime: serverResource,
-          scope: wizardData.modelServer.data?.scope || '',
-          templateName: serverResourceTemplateName,
-        },
-        dryRun,
-      )
-    : undefined;
+  const servingRuntime =
+    serverResource && !existingDeployment
+      ? await createServingRuntime(
+          {
+            project: projectName,
+            name: wizardData.k8sNameDesc.data.k8sName.value,
+            servingRuntime: serverResource,
+            scope: wizardData.modelServer.data?.scope || '',
+            templateName: serverResourceTemplateName,
+          },
+          dryRun,
+        )
+      : undefined;
 
   const inferenceService = await createInferenceService(
     inferenceServiceData,
     existingDeployment?.model,
     dryRun,
+    secretName,
   );
 
-  if (inferenceServiceData.tokenAuth) {
+  if (inferenceServiceData.tokenAuth && !existingDeployment) {
     await setUpTokenAuth(
       inferenceServiceData,
       inferenceServiceData.k8sName,

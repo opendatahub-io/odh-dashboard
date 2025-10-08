@@ -172,7 +172,10 @@ export const useModelDeploymentWizard = (
       k8sNameDesc,
       hardwareProfileConfig,
       modelFormatState,
-      modelLocationData,
+      modelLocationData: {
+        ...modelLocationData,
+        selectedConnection: modelLocationData.selectedConnection,
+      },
       createConnectionData,
       externalRoute,
       tokenAuthentication,
