@@ -14,8 +14,8 @@
 // ***********************************************************
 
 // Import commands.ts using ES2015 syntax:
-import './commands';
-import { getOcToken } from '../utils/oc_commands/auth';
+import '~/__tests__/cypress/cypress/support/commands';
+import { getOcToken } from '~/__tests__/cypress/cypress/utils/oc_commands/auth';
 
 // Alternatively you can use CommonJS syntax:
 // require('./commands')
