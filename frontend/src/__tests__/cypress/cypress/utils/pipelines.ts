@@ -21,7 +21,6 @@ export const provisionProjectForPipelines = (
   bucketKey: 'BUCKET_2' | 'BUCKET_3',
   customDataConnectionYamlPath?: string,
 ): void => {
-  cy.log(`Provisioning project with bucket key: ${bucketKey}`);
 
   const bucketConfig = AWS_BUCKETS[bucketKey];
 

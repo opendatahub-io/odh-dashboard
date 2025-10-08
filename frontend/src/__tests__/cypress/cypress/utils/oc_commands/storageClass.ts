@@ -20,7 +20,6 @@ export const createStorageClass = (
   yamlFilePath = 'resources/yaml/storage_class.yaml',
 ): Cypress.Chainable<CommandLineResult> =>
   cy.fixture(yamlFilePath).then((yamlContent) => {
-    cy.log(yamlContent);
     const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, storageClassReplacements);
     return applyOpenShiftYaml(modifiedYamlContent);
   });
