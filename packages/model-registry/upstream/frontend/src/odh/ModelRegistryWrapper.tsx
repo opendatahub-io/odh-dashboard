@@ -17,7 +17,6 @@ import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDs
 
 const ModelRegistryWrapperContent: React.FC = () => {
   const { configSettings, userSettings, loaded, loadError } = useSettings();
-  // Check if admin status was passed via window global (set by main ODH dashboard)
   const isAdmin = userSettings?.clusterAdmin || false;
   if (loadError) {
     return <div>Error: {loadError.message}</div>;
