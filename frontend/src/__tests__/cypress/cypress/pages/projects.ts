@@ -80,6 +80,14 @@ class ProjectRow extends TableRow {
   findNotebookLink(notebookName: string) {
     return this.findNotebookTable().findByRole('link', { name: notebookName });
   }
+
+  findDisabledNotebookLink(notebookName: string) {
+    return this.findNotebookTable().findByTestId('notebook-route-link').contains(notebookName);
+  }
+
+  getDisabledNotebookRow(notebookName: string) {
+    return new ProjectNotebookRow(() => this.findDisabledNotebookLink(notebookName).parents('tr'));
+  }
 }
 
 class ProjectListPage {

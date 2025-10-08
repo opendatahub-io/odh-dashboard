@@ -348,8 +348,14 @@ describe('Projects details', () => {
         },
       ]);
     });
-    notebookRow.findNotebookStatusText().should('have.text', 'Stopped');
-    notebookRow.findNotebookRouteLink().should('have.attr', 'aria-disabled', 'true');
+    projectTableRow
+      .getDisabledNotebookRow('Test Notebook')
+      .findNotebookStatusText()
+      .should('have.text', 'Stopped');
+    projectTableRow
+      .getDisabledNotebookRow('Test Notebook')
+      .findNotebookRouteLink()
+      .should('have.attr', 'aria-disabled', 'true');
   });
 
   describe('Workbench disabled', () => {
