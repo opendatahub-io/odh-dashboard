@@ -8,6 +8,15 @@ import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
 import { InferenceServiceModel } from '@odh-dashboard/internal/api/index';
 import { k8sCreateResource, k8sUpdateResource } from '@openshift/dynamic-plugin-sdk-utils';
+import type { AvailableAiAssetsFieldsData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/AvailableAiAssetsFields';
+import type { EnvironmentVariablesFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/EnvironmentVariablesField';
+import type { ExternalRouteFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ExternalRouteField';
+import type { NumReplicasFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/NumReplicasField';
+import type { RuntimeArgsFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/RuntimeArgsField';
+import type { TokenAuthenticationFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/TokenAuthenticationField';
+import type { ModelLocationData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/modelLocationFields/types';
+import { CreateConnectionData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/CreateConnectionInputFields';
+import { ModelLocationType } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/modelLocationFields/types';
 import {
   applyAiAvailableAssetAnnotations,
   applyAuth,
@@ -17,15 +26,6 @@ import {
   applyRuntimeArgs,
 } from './deployUtils';
 import { applyHardwareProfileToDeployment, applyReplicas } from './hardware';
-import type { AvailableAiAssetsFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/AvailableAiAssetsFields';
-import type { EnvironmentVariablesFieldData } from '../../model-serving/src/components/deploymentWizard/fields/EnvironmentVariablesField';
-import type { ExternalRouteFieldData } from '../../model-serving/src/components/deploymentWizard/fields/ExternalRouteField';
-import type { NumReplicasFieldData } from '../../model-serving/src/components/deploymentWizard/fields/NumReplicasField';
-import type { RuntimeArgsFieldData } from '../../model-serving/src/components/deploymentWizard/fields/RuntimeArgsField';
-import type { TokenAuthenticationFieldData } from '../../model-serving/src/components/deploymentWizard/fields/TokenAuthenticationField';
-import type { ModelLocationData } from '../../model-serving/src/components/deploymentWizard/fields/modelLocationFields/types';
-import { CreateConnectionData } from '../../model-serving/src/components/deploymentWizard/fields/CreateConnectionInputFields';
-import { ModelLocationType } from '../../model-serving/src/components/deploymentWizard/fields/modelLocationFields/types';
 
 export type CreatingInferenceServiceObject = {
   project: string;
