@@ -36,7 +36,7 @@ export interface UseSourceManagementReturn {
 
 interface UseSourceManagementProps {
   onShowSuccessAlert: () => void;
-  onShowErrorAlert: (message?: string) => void;
+  onShowErrorAlert: (message?: string, title?: string) => void;
   onFileUploadComplete?: () => void;
   uploadedFiles?: FileModel[];
 }
@@ -102,6 +102,7 @@ const useSourceManagement = ({
       if (availableSlots <= 0) {
         onShowErrorAlert(
           `Cannot upload more files. The vector store already contains the maximum of ${MAX_FILES_IN_VECTOR_STORE} files.`,
+          'File Upload Error',
         );
         return;
       }
@@ -112,8 +113,8 @@ const useSourceManagement = ({
       if (skippedCount > 0) {
         // const remainingSlots = availableSlots;
         onShowErrorAlert(
-          // `Only ${remainingSlots} file${remainingSlots === 1 ? '' : 's'} can be uploaded. ${skippedCount} file${skippedCount === 1 ? ' was' : 's were'} skipped to stay within the ${MAX_FILES_IN_VECTOR_STORE} file limit.`,
           `You have reached your max files uploaded. ${skippedCount} file${skippedCount === 1 ? '' : 's'}  will not be uploaded.`,
+          'Max Files Exceeded',
         );
       }
 
@@ -173,7 +174,7 @@ const useSourceManagement = ({
 
       if (settings && pendingFiles.length > 0) {
         if (!namespace?.name) {
-          onShowErrorAlert('Namespace is required for file upload');
+          onShowErrorAlert('Namespace is required for file upload', 'File Upload Error');
           return;
         }
 
@@ -234,9 +235,10 @@ const useSourceManagement = ({
         } else if (successCount > 0 && failureCount > 0) {
           onShowErrorAlert(
             `${successCount} file(s) uploaded successfully, ${failureCount} failed. Errors: ${errors.join('; ')}`,
+            'File Upload Error',
           );
         } else {
-          onShowErrorAlert(`All uploads failed. Errors: ${errors.join('; ')}`);
+          onShowErrorAlert(`All uploads failed. Errors: ${errors.join('; ')}`, 'File Upload Error');
         }
 
         // Refresh the uploaded files list

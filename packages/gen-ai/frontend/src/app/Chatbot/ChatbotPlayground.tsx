@@ -121,6 +121,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       alertKey={alertManagement.errorAlertKey}
       onClose={alertManagement.onHideErrorAlert}
       errorMessage={alertManagement.errorMessage}
+      title={alertManagement.errorTitle}
     />
   );
 
@@ -197,7 +198,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                       // Handle any unexpected errors during file processing
                       const errorMessage =
                         error instanceof Error ? error.message : 'Unknown error occurred';
-                      alertManagement.onShowErrorAlert(`Failed to process files: ${errorMessage}`);
+                      alertManagement.onShowErrorAlert(
+                        `Failed to process files: ${errorMessage}`,
+                        'File Upload Error',
+                      );
                     }
                   }}
                   onAttachRejected={(fileRejections) => {
@@ -222,6 +226,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 
                     alertManagement.onShowErrorAlert(
                       `${ERROR_MESSAGES.FILE_UPLOAD_REJECTED}: ${errorMessages}`,
+                      'File Upload Error',
                     );
                   }}
                   allowedFileTypes={FILE_UPLOAD_CONFIG.ALLOWED_FILE_TYPES}

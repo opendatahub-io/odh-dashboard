@@ -32,10 +32,16 @@ const formatFileSize = (bytes: number): string => {
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 };
 
-const formatDate = (timestamp: number): string => new Date(timestamp * 1000).toLocaleDateString();
+const formatDate = (timestamp: number): string => {
+  const date = new Date(timestamp * 1000);
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${month}-${day}-${year}`;
+};
 
 const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
   files,
@@ -129,14 +135,20 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
                   >
                     {file.filename}
                   </div>
-                  <div className="pf-u-font-size-sm pf-u-color-200">
-                    {formatFileSize(file.bytes)}
+                  <div
+                    className="pf-u-font-size-sm"
+                    style={{ color: 'var(--pf-t--global--border--color--on-secondary)' }}
+                  >
+                    {formatDate(file.created_at)}
                   </div>
                 </div>
               </GridItem>
-              <GridItem span={3}>
-                <div className="pf-u-font-size-sm pf-u-color-200">
-                  {formatDate(file.created_at)}
+              <GridItem span={3} style={{ textAlign: 'right' }}>
+                <div
+                  className="pf-u-font-size-sm"
+                  style={{ color: 'var(--pf-t--global--border--color--on-secondary)' }}
+                >
+                  {formatFileSize(file.bytes)}
                 </div>
               </GridItem>
               <GridItem span={1}>

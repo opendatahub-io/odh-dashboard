@@ -7,6 +7,7 @@ interface SourceUploadErrorAlertProps {
   alertKey: number;
   onClose: () => void;
   errorMessage?: string;
+  title?: string;
 }
 
 const SourceUploadErrorAlert: React.FunctionComponent<SourceUploadErrorAlertProps> = ({
@@ -14,6 +15,7 @@ const SourceUploadErrorAlert: React.FunctionComponent<SourceUploadErrorAlertProp
   alertKey,
   onClose,
   errorMessage = 'Please try again.',
+  title = 'Upload Error',
 }) => {
   if (!isVisible) {
     return null;
@@ -24,7 +26,7 @@ const SourceUploadErrorAlert: React.FunctionComponent<SourceUploadErrorAlertProp
       key={`source-upload-error-${alertKey}`}
       isInline
       variant="danger"
-      title="Upload Error"
+      title={title}
       timeout={ALERT_TIMEOUT_MS}
       actionClose={<AlertActionCloseButton onClose={onClose} />}
       onTimeout={onClose}

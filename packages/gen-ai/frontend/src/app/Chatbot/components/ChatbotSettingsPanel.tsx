@@ -62,7 +62,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const { selectedServersCount, saveSelectedServersToPlayground } = useMCPSelectionContext();
 
   return (
-    <DrawerPanelContent isResizable defaultSize="400px" minSize="300px">
+    <DrawerPanelContent isResizable defaultSize="460px" minSize="300px">
       <DrawerPanelBody>
         <Accordion asDefinitionList={false}>
           {/* Model Details Accordion Item */}
