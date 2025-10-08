@@ -36,12 +36,12 @@ import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
-import { ModelLocationData } from '@odh-dashboard/model-serving/types/form-data';
+import type { ModelLocationData } from '@odh-dashboard/model-serving/types/form-data';
+import type { AvailableAiAssetsFieldsData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/AvailableAiAssetsFields';
+import type { RuntimeArgsFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/RuntimeArgsField';
+import type { EnvironmentVariablesFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/EnvironmentVariablesField';
+import type { CreateConnectionData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/CreateConnectionInputFields';
 import type { CreatingInferenceServiceObject } from './deployModel';
-import type { AvailableAiAssetsFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/AvailableAiAssetsFields';
-import type { RuntimeArgsFieldData } from '../../model-serving/src/components/deploymentWizard/fields/RuntimeArgsField';
-import type { EnvironmentVariablesFieldData } from '../../model-serving/src/components/deploymentWizard/fields/EnvironmentVariablesField';
-import { CreateConnectionData } from '../../model-serving/src/components/deploymentWizard/fields/CreateConnectionInputFields';
 
 const is404 = (error: unknown): boolean => {
   return getGenericErrorCode(error) === 404;

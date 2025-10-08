@@ -12,6 +12,13 @@ import {
   type ModelLocationData,
   ModelLocationType,
 } from '@odh-dashboard/model-serving/types/form-data';
+import type { AvailableAiAssetsFieldsData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/AvailableAiAssetsFields';
+import type { EnvironmentVariablesFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/EnvironmentVariablesField';
+import type { ExternalRouteFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ExternalRouteField';
+import type { NumReplicasFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/NumReplicasField';
+import type { RuntimeArgsFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/RuntimeArgsField';
+import type { TokenAuthenticationFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/TokenAuthenticationField';
+import type { CreateConnectionData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/CreateConnectionInputFields';
 import {
   applyAiAvailableAssetAnnotations,
   applyAuth,
@@ -21,13 +28,6 @@ import {
   applyRuntimeArgs,
 } from './deployUtils';
 import { applyHardwareProfileToDeployment, applyReplicas } from './hardware';
-import type { AvailableAiAssetsFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/AvailableAiAssetsFields';
-import type { EnvironmentVariablesFieldData } from '../../model-serving/src/components/deploymentWizard/fields/EnvironmentVariablesField';
-import type { ExternalRouteFieldData } from '../../model-serving/src/components/deploymentWizard/fields/ExternalRouteField';
-import type { NumReplicasFieldData } from '../../model-serving/src/components/deploymentWizard/fields/NumReplicasField';
-import type { RuntimeArgsFieldData } from '../../model-serving/src/components/deploymentWizard/fields/RuntimeArgsField';
-import type { TokenAuthenticationFieldData } from '../../model-serving/src/components/deploymentWizard/fields/TokenAuthenticationField';
-import { CreateConnectionData } from '../../model-serving/src/components/deploymentWizard/fields/CreateConnectionInputFields';
 
 export type CreatingInferenceServiceObject = {
   project: string;
