@@ -20,7 +20,6 @@ import {
   getModelTypeFromDeployment,
   getTokenAuthenticationFromDeployment,
   getExternalRouteFromDeployment,
-  getAnonymousAccessFromDeployment,
 } from './utils';
 import { Deployment, isModelServingDeploymentFormDataExtension } from '../../../extension-points';
 import {
@@ -136,7 +135,6 @@ const EditModelDeploymentContent: React.FC<{
         ? formDataExtension.properties.extractModelLocationData(deployment) ?? undefined
         : undefined,
     externalRoute: getExternalRouteFromDeployment(deployment),
-    anonymousAccess: getAnonymousAccessFromDeployment(deployment),
     tokenAuthentication: getTokenAuthenticationFromDeployment(deployment),
     runtimeArgs:
       typeof formDataExtension?.properties.extractRuntimeArgs === 'function'

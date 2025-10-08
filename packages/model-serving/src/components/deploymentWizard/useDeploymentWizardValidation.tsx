@@ -8,10 +8,6 @@ import { modelSourceStepSchema, type ModelSourceStepData } from './steps/ModelSo
 import { modelFormatFieldSchema } from './fields/ModelFormatField';
 import { externalRouteFieldSchema, type ExternalRouteFieldData } from './fields/ExternalRouteField';
 import {
-  anonymousAccessFieldSchema,
-  type AnonymousAccessFieldData,
-} from './fields/AnonymousAccessField';
-import {
   tokenAuthenticationFieldSchema,
   type TokenAuthenticationFieldData,
 } from './fields/TokenAuthenticationField';
@@ -31,7 +27,6 @@ export type ModelDeploymentWizardValidation = {
   modelSource: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
   hardwareProfile: ReturnType<typeof useValidation>;
   externalRoute: ReturnType<typeof useZodFormValidation<ExternalRouteFieldData>>;
-  anonymousAccess: ReturnType<typeof useZodFormValidation<AnonymousAccessFieldData>>;
   tokenAuthentication: ReturnType<typeof useZodFormValidation<TokenAuthenticationFieldData>>;
   numReplicas: ReturnType<typeof useZodFormValidation<NumReplicasFieldData>>;
   runtimeArgs: ReturnType<typeof useZodFormValidation<RuntimeArgsFieldData>>;
@@ -84,11 +79,6 @@ export const useModelDeploymentWizardValidation = (
     externalRouteFieldSchema,
   );
 
-  const anonymousAccessValidation = useZodFormValidation(
-    state.anonymousAccess.data,
-    anonymousAccessFieldSchema,
-  );
-
   const tokenAuthenticationValidation = useZodFormValidation(
     state.tokenAuthentication.data,
     tokenAuthenticationFieldSchema,
@@ -120,14 +110,12 @@ export const useModelDeploymentWizardValidation = (
     modelServerValidation.getFieldValidation(undefined, true).length === 0;
   const isAdvancedSettingsStepValid =
     externalRouteValidation.getFieldValidation(undefined, true).length === 0 &&
-    anonymousAccessValidation.getFieldValidation(undefined, true).length === 0 &&
     tokenAuthenticationValidation.getFieldValidation(undefined, true).length === 0 &&
     !hasInvalidEnvironmentVariableNames(state.environmentVariables.data);
   return {
     modelSource: modelSourceStepValidation,
     hardwareProfile: hardwareProfileValidation,
     externalRoute: externalRouteValidation,
-    anonymousAccess: anonymousAccessValidation,
     modelServer: modelServerValidation,
     tokenAuthentication: tokenAuthenticationValidation,
     numReplicas: numReplicasValidation,

@@ -7,7 +7,15 @@ import {
   ServingRuntimeKind,
 } from '@odh-dashboard/internal/k8sTypes';
 import { isServingRuntimeKind } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
-import { Form, Title, Stack, StackItem, Alert, FormGroup } from '@patternfly/react-core';
+import {
+  Form,
+  Title,
+  Stack,
+  StackItem,
+  Alert,
+  FormGroup,
+  getUniqueId,
+} from '@patternfly/react-core';
 import { useAccessReview } from '../../../../../../frontend/src/api';
 import { ExternalRouteField } from '../fields/ExternalRouteField';
 import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
@@ -15,8 +23,6 @@ import { RuntimeArgsField } from '../fields/RuntimeArgsField';
 import { EnvironmentVariablesField } from '../fields/EnvironmentVariablesField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { AvailableAiAssetsFieldsComponent } from '../fields/AvailableAiAssetsFields';
-import { AnonymousAccessField } from '../fields/AnonymousAccessField';
-import { isLLMdDeployActive } from '../../../../../llmd-serving/src/deployments/deploy';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -35,8 +41,44 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
 }) => {
   const externalRouteData = wizardState.state.externalRoute.data;
   const tokenAuthData = wizardState.state.tokenAuthentication.data;
-  const anonymousAccessData = wizardState.state.anonymousAccess.data;
-  const isLLMdDeploy = isLLMdDeployActive(wizardState.state);
+
+  const extensionContext = React.useMemo(() => {
+    if (!wizardState.state.modelType.data) return null;
+    return {
+      modelType: wizardState.state.modelType.data,
+      selectedModelServer: wizardState.state.modelServer.data || undefined,
+    };
+  }, [wizardState.state.modelType.data, wizardState.state.modelServer.data]);
+
+  const activeExternalRouteField = wizardState.fieldExtensions.externalRouteFields.find(
+    (field) => extensionContext && field.isActive(extensionContext),
+  );
+  const activeTokenAuthField = wizardState.fieldExtensions.tokenAuthFields.find(
+    (field) => extensionContext && field.isActive(extensionContext),
+  );
+  const isExternalRouteVisible = activeExternalRouteField?.isVisible ?? true;
+  const shouldAutoCheckTokens = activeTokenAuthField?.initialValue ?? false;
+  const hasAutoCheckedRef = React.useRef(false);
+
+  React.useMemo(() => {
+    if (shouldAutoCheckTokens && !hasAutoCheckedRef.current) {
+      if (!tokenAuthData || tokenAuthData.length === 0) {
+        wizardState.state.tokenAuthentication.setData([
+          {
+            uuid: getUniqueId('ml'),
+            name: 'default-name',
+            error: '',
+          },
+        ]);
+      }
+      if (!isExternalRouteVisible && externalRouteData) {
+        wizardState.state.externalRoute.setData(false);
+      }
+      hasAutoCheckedRef.current = true;
+    } else if (!shouldAutoCheckTokens) {
+      hasAutoCheckedRef.current = false;
+    }
+  }, [shouldAutoCheckTokens, tokenAuthData, isExternalRouteVisible, externalRouteData]);
 
   // TODO: Clean up the stuff below related to KServe. Maybe move to an extension?
   const selectedModelServer =
@@ -103,27 +145,21 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
             setData={wizardState.state.aiAssetData.setData}
             wizardData={wizardState}
           />
-          <StackItem>
-            <FormGroup
-              label="Model access"
-              data-testid="external-route-section"
-              fieldId="model-access"
-            >
-              {isLLMdDeploy ? (
-                <AnonymousAccessField
-                  isChecked={anonymousAccessData}
-                  allowCreate={allowCreate}
-                  onChange={wizardState.state.anonymousAccess.setData}
-                />
-              ) : (
+          {isExternalRouteVisible && (
+            <StackItem>
+              <FormGroup
+                label="Model access"
+                data-testid="external-route-section"
+                fieldId="model-access"
+              >
                 <ExternalRouteField
                   isChecked={externalRouteData}
                   allowCreate={allowCreate}
                   onChange={handleExternalRouteChange}
                 />
-              )}
-            </FormGroup>
-          </StackItem>
+              </FormGroup>
+            </StackItem>
+          )}
           <StackItem>
             <FormGroup
               label="Token authentication"
@@ -138,17 +174,31 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
             </FormGroup>
           </StackItem>
 
-          {externalRouteData && (!tokenAuthData || tokenAuthData.length === 0) && (
+          {shouldAutoCheckTokens && (!tokenAuthData || tokenAuthData.length === 0) && (
             <StackItem>
               <Alert
-                id="external-route-no-token-alert"
-                data-testid="external-route-no-token-alert"
+                id="llmd-no-auth-alert"
+                data-testid="llmd-no-auth-alert"
                 variant="warning"
                 isInline
                 title="Making models available by external routes without requiring authorization can lead to security vulnerabilities."
               />
             </StackItem>
           )}
+
+          {isExternalRouteVisible &&
+            externalRouteData &&
+            (!tokenAuthData || tokenAuthData.length === 0) && (
+              <StackItem>
+                <Alert
+                  id="external-route-no-token-alert"
+                  data-testid="external-route-no-token-alert"
+                  variant="warning"
+                  isInline
+                  title="Making models available by external routes without requiring authorization can lead to security vulnerabilities."
+                />
+              </StackItem>
+            )}
 
           <StackItem>
             <FormGroup

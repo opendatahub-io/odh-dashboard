@@ -3,6 +3,7 @@ import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
 import type { WizardFormData } from '@odh-dashboard/model-serving/types/form-data';
 import { applyHardwareProfileConfig, applyReplicas } from './hardware';
 import { applyModelEnvVars, applyModelArgs, applyModelLocation } from './model';
+import { setUpTokenAuth } from './deployUtils';
 import { LLMD_SERVING_ID } from '../../extensions/extensions';
 import { LLMdDeployment, LLMInferenceServiceKind, LLMInferenceServiceModel } from '../types';
 
@@ -36,7 +37,7 @@ type CreateLLMdInferenceServiceParams = {
   replicas?: number;
   runtimeArgs?: string[];
   environmentVariables?: { name: string; value: string }[];
-  anonymousAccess?: boolean;
+  tokenAuthentication?: { name: string; uuid: string; error?: string }[];
 };
 
 const assembleLLMdInferenceServiceKind = ({
@@ -50,7 +51,7 @@ const assembleLLMdInferenceServiceKind = ({
   replicas = 1,
   runtimeArgs,
   environmentVariables,
-  anonymousAccess,
+  tokenAuthentication,
 }: CreateLLMdInferenceServiceParams): LLMInferenceServiceKind => {
   let llmdInferenceService: LLMInferenceServiceKind = {
     apiVersion: 'serving.kserve.io/v1alpha1',
@@ -62,7 +63,10 @@ const assembleLLMdInferenceServiceKind = ({
         ...(displayName && { 'openshift.io/display-name': displayName }),
         ...(description && { 'openshift.io/description': description }),
         'opendatahub.io/model-type': 'generative',
-        ...(anonymousAccess && { 'security.opendatahub.io/enable-auth': 'false' }),
+        // Set auth annotation to false only when no token authentication
+        ...(!tokenAuthentication || tokenAuthentication.length === 0
+          ? { 'security.opendatahub.io/enable-auth': 'false' }
+          : {}),
       },
     },
     spec: {
@@ -111,13 +115,25 @@ export const deployLLMdDeployment = async (
     replicas: wizardData.numReplicas.data,
     runtimeArgs: wizardData.runtimeArgs.data?.args,
     environmentVariables: wizardData.environmentVariables.data?.variables,
-    anonymousAccess: wizardData.anonymousAccess.data,
+    tokenAuthentication: wizardData.tokenAuthentication.data,
   });
 
   const llmdInferenceService = await createLLMdInferenceServiceKind(
     llmdInferenceServiceKind,
     dryRun,
   );
+
+  if (wizardData.tokenAuthentication.data && wizardData.tokenAuthentication.data.length > 0) {
+    await setUpTokenAuth(
+      wizardData.tokenAuthentication.data,
+      wizardData.k8sNameDesc.data.k8sName.value,
+      projectName,
+      true,
+      llmdInferenceService,
+      undefined,
+      { dryRun },
+    );
+  }
 
   return {
     modelServingPlatformId: LLMD_SERVING_ID,

@@ -213,6 +213,10 @@ export const mockDeploymentWizardState = (
           options: [],
         },
       },
+      fieldExtensions: {
+        externalRouteFields: [],
+        tokenAuthFields: [],
+      },
       loaded: {
         modelSourceLoaded: true,
         modelDeploymentLoaded: true,
