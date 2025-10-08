@@ -21,7 +21,6 @@ export const provisionProjectForPipelines = (
   bucketKey: 'BUCKET_2' | 'BUCKET_3',
   customDataConnectionYamlPath?: string,
 ): void => {
-
   const bucketConfig = AWS_BUCKETS[bucketKey];
 
   // Provision a Project
