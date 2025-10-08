@@ -76,16 +76,16 @@ describe('getTemplateEnabledForPlatform', () => {
 });
 
 describe('getEnabledPlatformsFromTemplate', () => {
-  it('should return only MULTI if annotation is empty', () => {
+  it('should return only SINGLE if annotation is empty', () => {
     const teamplateAllPlatforms = mockServingRuntimeTemplateK8sResource({
       platforms: [],
     });
     expect(getEnabledPlatformsFromTemplate(teamplateAllPlatforms)).toEqual([
-      ServingRuntimePlatform.MULTI,
+      ServingRuntimePlatform.SINGLE,
     ]);
   });
 
-  it('should return only MULTI if no annotation', () => {
+  it('should return only SINGLE if no annotation', () => {
     const teamplateAllPlatforms = mockServingRuntimeTemplateK8sResource({
       platforms: [],
     });
@@ -93,7 +93,7 @@ describe('getEnabledPlatformsFromTemplate', () => {
     delete teamplateAllPlatforms.metadata.annotations?.['opendatahub.io/modelServingSupport'];
 
     expect(getEnabledPlatformsFromTemplate(teamplateAllPlatforms)).toEqual([
-      ServingRuntimePlatform.MULTI,
+      ServingRuntimePlatform.SINGLE,
     ]);
   });
 

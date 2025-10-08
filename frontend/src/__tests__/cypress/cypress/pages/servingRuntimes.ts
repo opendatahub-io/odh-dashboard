@@ -98,29 +98,14 @@ class ServingRuntimes {
     return cy.findByRole('button', { name: 'Cancel' });
   }
 
-  findSelectServingPlatformButton() {
-    return cy.findByTestId('custom-serving-runtime-selection');
-  }
-
   findSelectAPIProtocolButton() {
     return cy.findByTestId('custom-serving-api-protocol-selection');
-  }
-
-  shouldDisplayServingRuntimeValues(values: string[]) {
-    this.findSelectServingPlatformButton().click();
-    values.forEach((value) => cy.findByRole('option', { name: value }).should('exist'));
-    return this;
   }
 
   shouldDisplayAPIProtocolValues(values: ServingRuntimeAPIProtocol[]) {
     this.findSelectAPIProtocolButton().click();
     values.forEach((value) => cy.findByRole('option', { name: value }).should('exist'));
     return this;
-  }
-
-  selectPlatform(value: string) {
-    this.findSelectServingPlatformButton().click();
-    cy.findByRole('option', { name: value }).click();
   }
 
   selectAPIProtocol(value: string) {

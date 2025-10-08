@@ -30,7 +30,7 @@ export const mockServingRuntimeTemplateK8sResource = ({
   replicas = 1,
   isModelmesh = false,
   apiProtocol = ServingRuntimeAPIProtocol.REST,
-  platforms,
+  platforms = [ServingRuntimePlatform.SINGLE],
   modelTypes = [ServingRuntimeModelType.PREDICTIVE, ServingRuntimeModelType.GENERATIVE],
   preInstalled = false,
   containerName = 'ovms',

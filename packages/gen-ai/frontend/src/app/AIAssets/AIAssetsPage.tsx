@@ -14,6 +14,7 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import { useMCPServers } from '~/app/hooks/useMCPServers';
 import useFetchAIModels from '~/app/hooks/useFetchAIModels';
+import AiAssetEndpointsIcon from '~/app/images/icons/AiAssetEndpointsIcon';
 import AIAssetsModelsTab from './AIAssetsModelsTab';
 import AIAssetsMCPTabWithContext from './AIAssetsMCPTabWithContext';
 
@@ -36,7 +37,13 @@ export const AIAssetsPage: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title={<GenAiCoreHeader title="AI asset endpoints" getRedirectPath={genAiAiAssetsRoute} />}
+      title={
+        <GenAiCoreHeader
+          title="AI asset endpoints"
+          getRedirectPath={genAiAiAssetsRoute}
+          icon={AiAssetEndpointsIcon}
+        />
+      }
       description="Browse endpoints for available models and MCP servers."
       loaded
       empty={false}

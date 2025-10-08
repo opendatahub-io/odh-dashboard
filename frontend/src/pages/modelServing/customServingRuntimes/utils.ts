@@ -164,8 +164,7 @@ export const getEnabledPlatformsFromTemplate = (
   template: TemplateKind,
 ): ServingRuntimePlatform[] => {
   if (!template.metadata.annotations?.['opendatahub.io/modelServingSupport']) {
-    // By default, old Custom Serving Runtimes with no annotation will only be supported in modelmesh
-    return [ServingRuntimePlatform.MULTI];
+    return [ServingRuntimePlatform.SINGLE];
   }
 
   try {
@@ -173,11 +172,11 @@ export const getEnabledPlatformsFromTemplate = (
       template.metadata.annotations['opendatahub.io/modelServingSupport'],
     );
     if (platforms.length === 0) {
-      return [ServingRuntimePlatform.MULTI];
+      return [ServingRuntimePlatform.SINGLE];
     }
     return platforms;
   } catch (e) {
-    return [ServingRuntimePlatform.MULTI];
+    return [ServingRuntimePlatform.SINGLE];
   }
 };
 
