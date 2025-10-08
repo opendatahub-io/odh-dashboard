@@ -14,6 +14,7 @@ import (
 
 	"github.com/opendatahub-io/gen-ai/internal/api"
 	"github.com/opendatahub-io/gen-ai/internal/config"
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 )
 
 func main() {
@@ -72,7 +73,7 @@ func main() {
 
 	// Start the server in a goroutine
 	go func() {
-		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", (certFile != "" && keyFile != ""))
+		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", (certFile != "" && keyFile != ""), "path_prefix", cfg.PathPrefix, "swagger_ui", constants.SwaggerUIPath)
 		var err error
 		if certFile != "" && keyFile != "" {
 			// Configure TLS if both cert and key files are provided
