@@ -1,88 +1,17 @@
-import { execSync } from 'child_process';
-import { FastifyInstance } from 'fastify';
+import { FastifyReply, FastifyRequest } from 'fastify';
+import { getModuleFederationConfigs, type ModuleFederationConfig } from '@odh-dashboard/app-config';
 import { registerProxy } from '../utils/proxy';
 import { KubeFastifyInstance } from '../types';
 import { DEV_MODE } from '../utils/constants';
 import { errorHandler } from '../utils';
 
-type ModuleFederationConfig = {
-  name: string;
-  remoteEntry: string;
-  tls?: boolean;
-  authorize?: boolean;
-  proxy: {
-    path: string;
-    pathRewrite?: string;
-  }[];
-  local?: {
-    host?: string;
-    port?: number;
-  };
-  service: {
-    name: string;
-    namespace?: string;
-    port: number;
-  };
-};
-
-/**
- * Get all workspace packages using npm query from frontend directory
- * @returns {Array} Array of workspace package objects
- */
-const getWorkspacePackages = (fastify: FastifyInstance): any[] => {
-  try {
-    const stdout = execSync('npm query .workspace --json', {
-      encoding: 'utf8',
-    });
-    return JSON.parse(stdout);
-  } catch (error) {
-    fastify.log.warn(`Error querying workspaces with npm query: ${errorHandler(error)}`);
-    return [];
-  }
-};
-
-export const getModuleFederationConfig = (
-  fastify: FastifyInstance,
-): ModuleFederationConfig[] | null => {
-  if (process.env.MODULE_FEDERATION_CONFIG) {
-    try {
-      return JSON.parse(process.env.MODULE_FEDERATION_CONFIG);
-    } catch (e) {
-      fastify.log.error(e, `Failed to parse module federation config from ENV: ${errorHandler(e)}`);
-    }
-  } else if (DEV_MODE) {
-    // in DEV_MODE, read the module federation config from workspace packages
-    return readModuleFederationConfigFromPackages(fastify);
-  }
-  return null;
-};
-
-const readModuleFederationConfigFromPackages = (
-  fastify: FastifyInstance,
-): ModuleFederationConfig[] | null => {
-  const configs: ModuleFederationConfig[] = [];
-
-  try {
-    const workspacePackages = getWorkspacePackages(fastify);
-
-    for (const pkg of workspacePackages) {
-      const federatedConfigProperty = pkg['module-federation'];
-      if (federatedConfigProperty) {
-        configs.push(federatedConfigProperty);
-      }
-    }
-  } catch (e) {
-    fastify.log.error(
-      e,
-      `Failed to process workspace packages for module federation: ${errorHandler(e)}`,
-    );
-  }
-
-  return configs;
-};
-
 export default async (fastify: KubeFastifyInstance): Promise<void> => {
-  const mfConfig = getModuleFederationConfig(fastify);
+  let mfConfig: ModuleFederationConfig[] = [];
+  try {
+    mfConfig = getModuleFederationConfigs(DEV_MODE);
+  } catch (e) {
+    fastify.log.error(e, errorHandler(e));
+  }
   if (mfConfig && mfConfig.length > 0) {
     fastify.log.info(
       `Module federation configured for: ${mfConfig.map((mf) => mf.name).join(', ')}`,
@@ -153,4 +82,10 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
   } else {
     fastify.log.info(`Module federation is not configured`);
   }
+
+  // Fallback to 404 for all module federation requests.
+  fastify.get('/_mf/*', async (_: FastifyRequest, reply: FastifyReply) => {
+    reply.code(404).send();
+    return reply;
+  });
 };
