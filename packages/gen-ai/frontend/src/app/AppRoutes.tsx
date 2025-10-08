@@ -5,6 +5,8 @@ import { AIAssetsPage } from '~/app/AIAssets/AIAssetsPage';
 import { NotFound } from '~/app/EmptyStates/NotFound';
 import { NavDataItem } from '~/app/standalone/types';
 import GenAiCoreLoader from '~/app/GenAiCoreLoader';
+import PlaygroundIcon from '~/app/images/icons/PlaygroundIcon';
+import AiAssetEndpointsIcon from '~/app/images/icons/AiAssetEndpointsIcon';
 import {
   chatPlaygroundRootPath,
   genAiAiAssetsRoute,
@@ -56,7 +58,11 @@ const AppRoutes = (): React.ReactElement => (
     <Route
       path="/playground"
       element={
-        <GenAiCoreLoader title="Playground" getInvalidRedirectPath={genAiChatPlaygroundRoute} />
+        <GenAiCoreLoader
+          title="Playground"
+          icon={PlaygroundIcon}
+          getInvalidRedirectPath={genAiChatPlaygroundRoute}
+        />
       }
     >
       <Route path=":namespace" element={<ChatbotPage />} />
@@ -64,7 +70,11 @@ const AppRoutes = (): React.ReactElement => (
     <Route
       path="/assets"
       element={
-        <GenAiCoreLoader title="AI asset endpoints" getInvalidRedirectPath={genAiAiAssetsRoute} />
+        <GenAiCoreLoader
+          title="AI asset endpoints"
+          icon={AiAssetEndpointsIcon}
+          getInvalidRedirectPath={genAiAiAssetsRoute}
+        />
       }
     >
       <Route path=":namespace" element={<AIAssetsPage />} />

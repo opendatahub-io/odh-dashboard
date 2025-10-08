@@ -609,8 +609,15 @@ func (m *TokenKubernetesClientMock) GetConfigMap(ctx context.Context, identity *
 			"github-copilot": `{
   "url": "https://api.githubcopilot.com/mcp",
   "description": "GitHub Copilot MCP server with advanced kubectl tools.",
-  "logo": "https://github.com/images/modules/logos_page/GitHub-Mark.png"
-}`,
+			"logo": "https://github.com/images/modules/logos_page/GitHub-Mark.png"
+		}`,
 		},
 	}, nil
+}
+
+// CanListLlamaStackDistributions returns mock permission check for testing
+func (m *TokenKubernetesClientMock) CanListLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
+	// For testing purposes, always return true to allow LlamaStackDistribution listing
+	// In real scenarios, this would perform a SubjectAccessReview
+	return true, nil
 }

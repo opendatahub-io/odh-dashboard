@@ -39,7 +39,6 @@ interface UseChatbotMessagesProps {
   username?: string;
   isStreamingEnabled: boolean;
   temperature: number;
-  topP: number;
   currentVectorStoreId: string | null;
 }
 
@@ -51,7 +50,6 @@ const useChatbotMessages = ({
   username,
   isStreamingEnabled,
   temperature,
-  topP,
   currentVectorStoreId,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<MessageProps[]>([initialBotMessage()]);
@@ -159,7 +157,6 @@ const useChatbotMessages = ({
         instructions: systemInstruction,
         stream: isStreamingEnabled,
         temperature,
-        top_p: topP,
         ...(mcpServers.length > 0 && { mcp_servers: mcpServers }),
       };
 

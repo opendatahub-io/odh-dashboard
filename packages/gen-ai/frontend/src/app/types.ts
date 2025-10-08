@@ -82,7 +82,6 @@ export type CreateResponseRequest = {
   vector_store_ids?: string[];
   chat_context?: ChatContextMessage[];
   temperature?: number;
-  top_p?: number;
   instructions?: string;
   stream?: boolean;
   mcp_servers?: MCPServerConfig[];
@@ -293,3 +292,5 @@ export type {
   MCPErrorDetails,
   MCPServerUIStatus,
 } from './types/mcp';
+
+export type IconType = React.ComponentType<{ style?: React.CSSProperties }>;
