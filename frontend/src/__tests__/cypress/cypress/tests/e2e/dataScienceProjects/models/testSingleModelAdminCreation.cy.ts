@@ -81,7 +81,7 @@ describe('[Product Bug: RHOAIENG-35572] Verify Admin Single Model Creation and V
       // Navigate to Model Serving tab and Deploy a Single Model
       cy.step('Navigate to Model Serving and click to Deploy a Single Model');
       projectDetails.findSectionTab('model-server').click();
-      modelServingGlobal.findSingleServingModelButton().click();
+      //modelServingGlobal.findSingleServingModelButton().click();
       modelServingGlobal.findDeployModelButton().click();
 
       // Launch a Single Serving Model and select the required entries

@@ -129,24 +129,19 @@ describe('Verify a model can be deployed from a PVC', () => {
       projectDetails.findSectionTab('model-server').click();
       modelServingGlobal.findDeployModelButton().click();
       // Step 1: Model Source
-      modelServingWizard.findModelLocationSelectOption('Cluster storage').should('exist').click();
+      modelServingWizard.findModelLocationSelectOption('Cluster storage').click();
       // There's only one PVC so it's automatically selected
       modelServingWizard.findExistingConnectionValue().should('not.be.empty');
-      modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
-      modelServingWizard.findNextButton().should('be.enabled').click();
+      modelServingWizard.findModelTypeSelectOption('Predictive model').click();
+      modelServingWizard.findNextButton().click();
       // Step 2: Model Deployment
       modelServingWizard.findModelDeploymentNameInput().type(modelName);
-      modelServingWizard
-        .findModelFormatSelectOption('openvino_ir - opset1')
-        .should('exist')
-        .click();
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-      modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
-      modelServingWizard.findNextButton().should('be.enabled').click();
+      modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
+      modelServingWizard.findNextButton().click();
       //Step 3: Advanced Options
-      modelServingWizard.findNextButton().should('be.enabled').click();
+      modelServingWizard.findNextButton().click();
       //Step 4: Summary
-      modelServingWizard.findSubmitButton().should('be.enabled').click();
+      modelServingWizard.findSubmitButton().click();
       modelServingWizard.shouldBeOpen(false);
 
       //Verify the model created and is running

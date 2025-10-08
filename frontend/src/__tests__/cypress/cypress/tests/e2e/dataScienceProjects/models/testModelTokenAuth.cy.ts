@@ -1,9 +1,9 @@
 import { projectListPage, projectDetails } from '#~/__tests__/cypress/cypress/pages/projects';
 import {
   modelServingGlobal,
-  inferenceServiceModal,
   modelServingSection,
   kserveModalEdit,
+  modelServingWizard,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import type { DataScienceProjectData } from '#~/__tests__/cypress/cypress/types';
 import { loadDSPFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
@@ -71,29 +71,32 @@ describe('[Product Bug: RHOAIENG-35577] A model can be deployed with token auth'
       // Navigate to Model Serving tab and Deploy a model
       cy.step('Navigate to Model Serving and click to Deploy a model');
       projectDetails.findSectionTab('model-server').click();
-      modelServingGlobal.findSingleServingModelButton().click();
       modelServingGlobal.findDeployModelButton().click();
 
       // Launch a model
       cy.step('Launch a Single Serving Model using Openvino');
-      inferenceServiceModal.findModelNameInput().type(testData.singleModelName);
-      inferenceServiceModal.findServingRuntimeTemplateSearchSelector().click();
-      inferenceServiceModal.findGlobalScopedTemplateOption('OpenVINO Model Server').click();
-      inferenceServiceModal.findModelFrameworkSelect().click();
-      inferenceServiceModal.findOpenVinoIROpSet13().click();
-
+      // Step 1: Model Source
+      modelServingWizard.findModelLocationSelectOption('Existing connection').click();
+      modelServingWizard.findLocationPathInput().type(modelFilePath);
+      modelServingWizard.findModelTypeSelectOption('Predictive model').click();
+      modelServingWizard.findNextButton().click();
+      // Step 2: Model Deployment
+      modelServingWizard.findModelDeploymentNameInput().type(modelName);
+      modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
+      modelServingWizard.findNextButton().click();
+      //Step 3: Advanced Options
       // Enable Model access through an external route
       cy.step('Enable Model access through an external route');
-      inferenceServiceModal.findDeployedModelRouteCheckbox().click();
-      inferenceServiceModal.findDeployedModelRouteCheckbox().should('be.checked');
-      inferenceServiceModal.findServiceAccountIndex(0).clear();
-      inferenceServiceModal.findServiceAccountIndex(0).type('secret');
-      inferenceServiceModal.findAddServiceAccountButton().click();
-      inferenceServiceModal.findServiceAccountIndex(1).clear();
-      inferenceServiceModal.findServiceAccountIndex(1).type('secret2');
-      inferenceServiceModal.findLocationPathInput().type(modelFilePath);
-      inferenceServiceModal.findSubmitButton().click();
-      inferenceServiceModal.shouldBeOpen(false);
+      modelServingWizard.findExternalRouteCheckbox().click();
+      modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
+      modelServingWizard.findServiceAccountByIndex(0).clear();
+      modelServingWizard.findServiceAccountByIndex(0).type('secret');
+      modelServingWizard.findAddServiceAccountButton().click();
+      modelServingWizard.findServiceAccountByIndex(1).clear();
+      modelServingWizard.findServiceAccountByIndex(1).type('secret2');
+      modelServingWizard.findNextButton().click();
+      //Step 4: Summary
+      modelServingWizard.findSubmitButton().click();
 
       // Verify the model created
       cy.step('Verify that the Model is running');
