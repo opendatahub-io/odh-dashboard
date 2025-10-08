@@ -4,33 +4,17 @@ import {
   createSecret,
   deleteSecret,
 } from '@odh-dashboard/internal/api/k8s/secrets';
-import {
-  assembleServiceAccount,
-  createServiceAccount,
-  getServiceAccount,
-} from '@odh-dashboard/internal/api/k8s/serviceAccounts';
-import { getRole, createRole } from '@odh-dashboard/internal/api/k8s/roles';
-import {
-  generateRoleBindingServiceAccount,
-  getRoleBinding,
-  createRoleBinding,
-} from '@odh-dashboard/internal/api/k8s/roleBindings';
+import { assembleServiceAccount } from '@odh-dashboard/internal/api/k8s/serviceAccounts';
+import { generateRoleBindingServiceAccount } from '@odh-dashboard/internal/api/k8s/roleBindings';
 import { addOwnerReference } from '@odh-dashboard/internal/api/k8sUtils';
-import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
-import {
-  SecretKind,
-  K8sAPIOptions,
-  RoleBindingKind,
-  ServiceAccountKind,
-  RoleKind,
-  KnownLabels,
-} from '@odh-dashboard/internal/k8sTypes';
+import { SecretKind, K8sAPIOptions, RoleKind, KnownLabels } from '@odh-dashboard/internal/k8sTypes';
 import { getTokenNames } from '@odh-dashboard/internal/pages/modelServing/utils';
+import {
+  createServiceAccountIfMissing,
+  createRoleIfMissing,
+  createRoleBindingIfMissing,
+} from '../../../kserve/src/deployUtils';
 import { LLMInferenceServiceKind } from '../types';
-
-const is404 = (error: unknown): boolean => {
-  return getGenericErrorCode(error) === 404;
-};
 
 export const generateRoleLLMInferenceService = (
   roleName: string,
@@ -58,49 +42,6 @@ export const generateRoleLLMInferenceService = (
   };
   return role;
 };
-
-export const createServiceAccountIfMissing = async (
-  serviceAccount: ServiceAccountKind,
-  namespace: string,
-  opts?: K8sAPIOptions,
-): Promise<ServiceAccountKind> =>
-  getServiceAccount(serviceAccount.metadata.name, namespace).catch((e: unknown) => {
-    if (is404(e)) {
-      return createServiceAccount(serviceAccount, opts);
-    }
-    return Promise.reject(e);
-  });
-
-export const createRoleIfMissing = async (
-  role: RoleKind,
-  namespace: string,
-  opts?: K8sAPIOptions,
-): Promise<RoleKind> =>
-  getRole(namespace, role.metadata.name).catch((e: unknown) => {
-    if (is404(e)) {
-      return createRole(role, opts);
-    }
-    return Promise.reject(e);
-  });
-
-export const createRoleBindingIfMissing = async (
-  rolebinding: RoleBindingKind,
-  namespace: string,
-  opts?: K8sAPIOptions,
-): Promise<RoleBindingKind> =>
-  getRoleBinding(namespace, rolebinding.metadata.name).catch((e: unknown) => {
-    if (is404(e)) {
-      return createRoleBinding(rolebinding, opts).catch((error: unknown) => {
-        if (is404(error) && opts?.dryRun) {
-          // If dryRun is enabled and the user is not Cluster Admin it seems that there's a k8s error
-          // that raises a 404 trying to find the role, which is missing since it's a dryRun.
-          return Promise.resolve(rolebinding);
-        }
-        return Promise.reject(error);
-      });
-    }
-    return Promise.reject(e);
-  });
 
 export const createSecrets = async (
   tokenAuth: { name: string; uuid: string; error?: string }[] | undefined,

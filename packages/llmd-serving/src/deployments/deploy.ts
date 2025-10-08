@@ -7,6 +7,20 @@ import { setUpTokenAuth } from './deployUtils';
 import { LLMD_SERVING_ID } from '../../extensions/extensions';
 import { LLMdDeployment, LLMInferenceServiceKind, LLMInferenceServiceModel } from '../types';
 
+const applyTokenAuthentication = (
+  llmdInferenceService: LLMInferenceServiceKind,
+  tokenAuthentication?: { name: string; uuid: string; error?: string }[],
+): LLMInferenceServiceKind => {
+  const result = structuredClone(llmdInferenceService);
+  result.metadata.annotations = {
+    ...result.metadata.annotations,
+    ...(!tokenAuthentication || tokenAuthentication.length === 0
+      ? { 'security.opendatahub.io/enable-auth': 'false' }
+      : {}),
+  };
+  return result;
+};
+
 export const isLLMdDeployActive = (wizardData: WizardFormData['state']): boolean => {
   return wizardData.modelServer.data?.name === LLMD_SERVING_ID;
 };
@@ -63,10 +77,6 @@ const assembleLLMdInferenceServiceKind = ({
         ...(displayName && { 'openshift.io/display-name': displayName }),
         ...(description && { 'openshift.io/description': description }),
         'opendatahub.io/model-type': 'generative',
-        // Set auth annotation to false only when no token authentication
-        ...(!tokenAuthentication || tokenAuthentication.length === 0
-          ? { 'security.opendatahub.io/enable-auth': 'false' }
-          : {}),
       },
     },
     spec: {
@@ -91,6 +101,7 @@ const assembleLLMdInferenceServiceKind = ({
   llmdInferenceService = applyReplicas(llmdInferenceService, replicas);
   llmdInferenceService = applyModelArgs(llmdInferenceService, runtimeArgs);
   llmdInferenceService = applyModelEnvVars(llmdInferenceService, environmentVariables);
+  llmdInferenceService = applyTokenAuthentication(llmdInferenceService, tokenAuthentication);
 
   return llmdInferenceService;
 };

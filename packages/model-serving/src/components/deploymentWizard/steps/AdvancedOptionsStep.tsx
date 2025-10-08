@@ -60,7 +60,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
   const shouldAutoCheckTokens = activeTokenAuthField?.initialValue ?? false;
   const hasAutoCheckedRef = React.useRef(false);
 
-  React.useMemo(() => {
+  React.useEffect(() => {
     if (shouldAutoCheckTokens && !hasAutoCheckedRef.current) {
       if (!tokenAuthData || tokenAuthData.length === 0) {
         wizardState.state.tokenAuthentication.setData([
@@ -78,7 +78,14 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
     } else if (!shouldAutoCheckTokens) {
       hasAutoCheckedRef.current = false;
     }
-  }, [shouldAutoCheckTokens, tokenAuthData, isExternalRouteVisible, externalRouteData]);
+  }, [
+    shouldAutoCheckTokens,
+    tokenAuthData,
+    isExternalRouteVisible,
+    externalRouteData,
+    wizardState.state.tokenAuthentication,
+    wizardState.state.externalRoute,
+  ]);
 
   // TODO: Clean up the stuff below related to KServe. Maybe move to an extension?
   const selectedModelServer =
@@ -174,25 +181,12 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
             </FormGroup>
           </StackItem>
 
-          {shouldAutoCheckTokens && (!tokenAuthData || tokenAuthData.length === 0) && (
-            <StackItem>
-              <Alert
-                id="llmd-no-auth-alert"
-                data-testid="llmd-no-auth-alert"
-                variant="warning"
-                isInline
-                title="Making models available by external routes without requiring authorization can lead to security vulnerabilities."
-              />
-            </StackItem>
-          )}
-
-          {isExternalRouteVisible &&
-            externalRouteData &&
+          {(shouldAutoCheckTokens || (isExternalRouteVisible && externalRouteData)) &&
             (!tokenAuthData || tokenAuthData.length === 0) && (
               <StackItem>
                 <Alert
-                  id="external-route-no-token-alert"
-                  data-testid="external-route-no-token-alert"
+                  id="no-auth-alert"
+                  data-testid="no-auth-alert"
                   variant="warning"
                   isInline
                   title="Making models available by external routes without requiring authorization can lead to security vulnerabilities."
