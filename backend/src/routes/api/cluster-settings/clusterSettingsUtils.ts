@@ -5,7 +5,7 @@ import { rolloutDeployment } from '../../../utils/deployment';
 import { KubeFastifyInstance, ClusterSettings } from '../../../types';
 import { getDashboardConfig } from '../../../utils/resourceUtils';
 import { setDashboardConfig } from '../config/configUtils';
-import { checkJupyterEnabled } from '../../../utils/componentUtils';
+import { checkJupyterEnabled } from '../../../utils/resourceUtils';
 
 const nbcCfg = 'notebook-controller-culler-config';
 const segmentKeyCfg = 'odh-segment-key-config';

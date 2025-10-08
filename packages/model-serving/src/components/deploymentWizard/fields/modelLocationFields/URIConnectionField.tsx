@@ -16,7 +16,7 @@ import {
   trimInputOnBlur,
   trimInputOnPaste,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
-import { FieldMode } from '@odh-dashboard/internal/concepts/connectionTypes/fields/types.js';
+import { FieldMode } from '@odh-dashboard/internal/concepts/connectionTypes/fields/types';
 
 const validateUrl = (url?: string) => {
   if (!url) {
