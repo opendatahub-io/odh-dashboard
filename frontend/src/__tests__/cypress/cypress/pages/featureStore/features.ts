@@ -29,6 +29,17 @@ class FeaturesTable extends Contextual<HTMLElement> {
     return this;
   }
 
+  shouldHaveExpectedColumns(expectedColumns: string[]) {
+    this.findRows()
+      .first()
+      .within(() => {
+        expectedColumns.forEach((columnName) => {
+          cy.get(`[data-label="${columnName}"]`).should('exist');
+        });
+      });
+    return this;
+  }
+
   findToolbar() {
     return new FeatureToolbar(() => cy.findByTestId('feature-store-table-toolbar'));
   }

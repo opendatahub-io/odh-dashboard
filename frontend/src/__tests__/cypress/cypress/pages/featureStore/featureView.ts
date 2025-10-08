@@ -20,12 +20,32 @@ class FeatureViewsTable extends Contextual<HTMLElement> {
     return this.findTable().find('tbody tr');
   }
 
+  findColumn(columnName: string) {
+    return this.findTable().find(`[data-label="${columnName}"]`);
+  }
+
+  shouldHaveColumn(columnName: string) {
+    this.findColumn(columnName).should('exist');
+    return this;
+  }
+
   shouldHaveFeatureViewCount(count: number) {
     if (count === 0) {
       this.findEmptyState().should('exist');
     } else {
       this.findRows().should('have.length', count);
     }
+    return this;
+  }
+
+  shouldHaveExpectedColumns(expectedColumns: string[]) {
+    this.findRows()
+      .first()
+      .within(() => {
+        expectedColumns.forEach((columnName) => {
+          cy.get(`[data-label="${columnName}"]`).should('exist');
+        });
+      });
     return this;
   }
 
@@ -57,6 +77,14 @@ class FeatureViewTableRow extends TableRow {
     return this.findFeatureViewName().find('a');
   }
 
+  findProject() {
+    return this.find().find('[data-label="Project"]');
+  }
+
+  findFeatureViewDescription() {
+    return this.find().findByTestId('table-row-title-description');
+  }
+
   findTags() {
     return this.find().find('[data-label="Tags"]');
   }
@@ -81,6 +109,40 @@ class FeatureViewTableRow extends TableRow {
     return this.find().find('[data-label="Store type"]');
   }
 
+  findFeatureServicesCount() {
+    return this.find().find('[data-label="Feature Services"]');
+  }
+
+  shouldHaveCreatedDate(date: string) {
+    this.findCreatedDate().should('contain.text', date);
+    return this;
+  }
+
+  shouldHaveFeatureServicesCount(count: number) {
+    this.findFeatureServicesCount().should('contain.text', count.toString());
+    return this;
+  }
+
+  shouldHaveUpdatedDate(date: string) {
+    this.findUpdatedDate().should('contain.text', date);
+    return this;
+  }
+
+  shouldHaveFeatureViewDescription(description: string) {
+    this.findFeatureViewDescription().should('contain.text', description);
+    return this;
+  }
+
+  shouldHaveProject(project: string) {
+    this.findProject().should('contain.text', project);
+    return this;
+  }
+
+  shouldHaveStoreType(storeType: string) {
+    this.findStoreType().should('contain.text', storeType);
+    return this;
+  }
+
   shouldHaveFeatureViewName(name: string) {
     this.findFeatureViewName().should('contain.text', name);
     return this;
@@ -88,6 +150,11 @@ class FeatureViewTableRow extends TableRow {
 
   shouldHaveTag(tag: string) {
     this.findTags().should('contain.text', tag);
+    return this;
+  }
+
+  shouldHaveTagsVisible() {
+    this.findTags().should('be.visible');
     return this;
   }
 
@@ -109,3 +176,34 @@ class FeatureViewTableRow extends TableRow {
 export const featureViewsTable = new FeatureViewsTable(() =>
   cy.findByTestId('feature-views-table'),
 );
+
+class FeatureViewsPage extends Contextual<HTMLElement> {
+  findBreadcrumbLink() {
+    return cy.findByTestId('feature-view-details-breadcrumb-link');
+  }
+
+  findBreadcrumbItem() {
+    return cy.findByTestId('breadcrumb-version-name');
+  }
+
+  findPageTitle() {
+    return cy.findByTestId('app-page-title');
+  }
+
+  shouldHaveBreadcrumbLink(link: string) {
+    this.findBreadcrumbLink().should('contain.text', link);
+    return this;
+  }
+
+  shouldHaveBreadcrumbItem(item: string) {
+    this.findBreadcrumbItem().should('contain.text', item);
+    return this;
+  }
+
+  shouldHaveFeatureViewsPageTitle(title: string) {
+    this.findPageTitle().should('contain.text', title);
+    return this;
+  }
+}
+
+export const featureViewsPage = new FeatureViewsPage(() => cy.findByTestId('feature-views-page'));
