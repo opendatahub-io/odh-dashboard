@@ -44,7 +44,7 @@ const ExtendedRegisteredModelTable: React.FC<ExtendedRegisteredModelTableProps> 
             popover:
               'This is the total number of deployments that you have permission to access across all versions of the model.',
             popoverProps: {
-              position: 'left',
+              position: 'top',
             },
           },
         });

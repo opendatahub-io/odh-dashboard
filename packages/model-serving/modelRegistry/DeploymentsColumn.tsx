@@ -4,7 +4,7 @@ import { Button, Tooltip } from '@patternfly/react-core';
 import { ModelRegistriesContext } from '@odh-dashboard/internal/concepts/modelRegistry/context/ModelRegistriesContext';
 import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
 import type { RegisteredModel } from '@mf/modelRegistry/compiled-types/src/app/types';
-
+import { registeredModelDeploymentsUrl } from '../../model-registry/upstream/frontend/src/app/pages/modelRegistry/screens/routeUtils';
 import { ModelDeploymentsContext } from '../src/concepts/ModelDeploymentsContext';
 
 const DeploymentsColumn: React.FC<{ registeredModel: RegisteredModel }> = ({ registeredModel }) => {
@@ -29,21 +29,11 @@ const DeploymentsColumn: React.FC<{ registeredModel: RegisteredModel }> = ({ reg
   if (deploymentCount === 0) {
     return <span>-</span>;
   }
-  const handleDeploymentsClick = () => {
-    navigate(
-      `/ai-hub/registry/${preferredModelRegistry?.metadata.name || ''}/registered-models/${
-        registeredModel.id
-      }/deployments`,
-    );
-  };
 
   return (
     <div>
       <Link
-        to={`/ai-hub/registry/${preferredModelRegistry?.metadata.name || ''}/registered-models/${
-          registeredModel.id
-        }/deployments`}
-        onClick={handleDeploymentsClick}
+        to={registeredModelDeploymentsUrl(registeredModel, preferredModelRegistry?.metadata.name)}
       >
         {deploymentCount} {deploymentCount === 1 ? 'deployment' : 'deployments'}
       </Link>
@@ -52,7 +42,11 @@ const DeploymentsColumn: React.FC<{ registeredModel: RegisteredModel }> = ({ reg
           variant="link"
           isInline
           aria-label="View deployments"
-          onClick={handleDeploymentsClick}
+          onClick={() =>
+            navigate(
+              registeredModelDeploymentsUrl(registeredModel, preferredModelRegistry?.metadata.name),
+            )
+          }
           style={{ marginLeft: '8px', padding: '0' }}
         />
       </Tooltip>
