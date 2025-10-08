@@ -477,9 +477,10 @@ jobs:
 
           mkdir -p "$CY_RESULTS_DIR"
 
-          # Export additional debug environment variables for Cypress connection debugging
-          export DEBUG=cypress:launcher,cypress:server:cors,cypress:server:proxy
+          # Export comprehensive Cypress debugging as recommended by senior dev
+          export DEBUG=cypress:*
           export CYPRESS_DEBUG=true
+          export CYPRESS_VERIFY_TIMEOUT=100000
 
           echo "🔍 DEBUG: Checking server connectivity before Cypress launch..."
           echo "Testing direct connection to http://localhost:$CYPRESS_PORT"
