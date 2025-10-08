@@ -1,6 +1,6 @@
 import {
-  inferenceServiceModal,
   modelServingGlobal,
+  modelServingWizard,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import { AWS_BUCKETS } from '#~/__tests__/cypress/cypress/utils/s3Buckets';
 import {
@@ -127,17 +127,27 @@ describe('Verify a model can be deployed from a PVC', () => {
       // Deploy the model
       cy.step('Deploy the model');
       projectDetails.findSectionTab('model-server').click();
-      modelServingGlobal.findSingleServingModelButton().click();
       modelServingGlobal.findDeployModelButton().click();
-      inferenceServiceModal.findModelNameInput().type(modelName);
-      inferenceServiceModal.findServingRuntimeTemplateSearchSelector().click();
-      inferenceServiceModal.findGlobalScopedTemplateOption('OpenVINO Model Server').click();
-      inferenceServiceModal.findModelFrameworkSelect().click();
-      inferenceServiceModal.findOpenVinoIROpSet13().click();
+      // Step 1: Model Source
+      modelServingWizard.findModelLocationSelectOption('Cluster storage').should('exist').click();
       // There's only one PVC so it's automatically selected
-      inferenceServiceModal.findExistingPVCConnectionOption().click();
-      inferenceServiceModal.findSubmitButton().should('be.enabled').click();
-      inferenceServiceModal.shouldBeOpen(false);
+      modelServingWizard.findExistingConnectionValue().should('not.be.empty');
+      modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+      // Step 2: Model Deployment
+      modelServingWizard.findModelDeploymentNameInput().type(modelName);
+      modelServingWizard
+        .findModelFormatSelectOption('openvino_ir - opset1')
+        .should('exist')
+        .click();
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+      //Step 3: Advanced Options
+      modelServingWizard.findNextButton().should('be.enabled').click();
+      //Step 4: Summary
+      modelServingWizard.findSubmitButton().should('be.enabled').click();
+      modelServingWizard.shouldBeOpen(false);
 
       //Verify the model created and is running
       cy.step('Verify that the Model is running');

@@ -1,7 +1,6 @@
 import {
   modelServingGlobal,
   modelServingSection,
-  inferenceServiceModal,
   modelServingWizard,
 } from '#~/__tests__/cypress/cypress/pages/modelServing.ts';
 import { projectDetails, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
@@ -21,7 +20,6 @@ import { MODEL_STATUS_TIMEOUT } from '#~/__tests__/cypress/cypress/support/timeo
 let testData: DataScienceProjectData;
 let projectName: string;
 let modelName: string;
-let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
@@ -74,20 +72,32 @@ describe('A model can be stopped and started', () => {
       // Navigate to Model Serving section and Deploy a Model
       cy.step('Navigate to Model Serving and deploy a Model');
       projectDetails.findSectionTab('model-server').click();
-      modelServingGlobal.findSingleServingModelButton().click();
       modelServingGlobal.findDeployModelButton().click();
 
       // Deploy a Model
       cy.step('Deploy a Model');
-      modelServingWizard.findModelLocationSelectOption('Exisiting connection').click();
-      inferenceServiceModal.findLocationPathInput().type(modelFilePath);
-      modelServingWizard.findModelTypeSelectOption('Predictive model').click();
+      // Step 1: Model Source
+      modelServingWizard
+        .findModelLocationSelectOption('Exisiting connection')
+        .should('exist')
+        .click();
+      modelServingWizard.findExistingConnectionValue().should('not.be.empty');
+      modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
       modelServingWizard.findNextButton().should('be.enabled').click();
+      // Step 2: Model Deployment
       modelServingWizard.findModelDeploymentNameInput().type(modelName);
-      modelServingWizard.findModelFormatSelectOption('OpenVINO Model Server').click();
+      modelServingWizard
+        .findModelFormatSelectOption('openvino_ir - opset1')
+        .should('exist')
+        .click();
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
       modelServingWizard.findNextButton().should('be.enabled').click();
+      //Step 3: Advanced Options
       modelServingWizard.findNextButton().should('be.enabled').click();
+      //Step 4: Summary
       modelServingWizard.findSubmitButton().should('be.enabled').click();
+      modelServingWizard.shouldBeOpen(false);
       modelServingSection.findModelServerDeployedName(testData.singleModelName);
       const kServeRow = modelServingSection.getKServeRow(testData.singleModelName);
 
