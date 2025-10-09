@@ -49,6 +49,10 @@ const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowP
 
   const baseActions: IAction[] = [
     {
+      title: 'View model information',
+      isDisabled: true,
+    },
+    {
       title: 'Overview',
       onClick: () => {
         navigate(
@@ -85,8 +89,6 @@ const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowP
     {
       title: 'Latest version actions',
       isDisabled: true,
-      className:
-        'pf-v6-u-font-size-sm pf-v6-u-color-200 pf-v6-u-text-transform-uppercase pf-v6-u-p-xs',
     },
   ];
 
