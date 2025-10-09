@@ -11,6 +11,5 @@ export const createS3LoaderPod = (
 ): Cypress.Chainable<CommandLineResult> =>
   cy.fixture(yamlFilePath).then((yamlContent) => {
     const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, replacements);
-    cy.log('Creating S3 copy pod with YAML:', modifiedYamlContent);
     return applyOpenShiftYaml(modifiedYamlContent);
   });
