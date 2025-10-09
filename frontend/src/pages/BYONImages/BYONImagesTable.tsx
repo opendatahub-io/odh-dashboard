@@ -2,8 +2,6 @@ import React from 'react';
 import { BYONImage } from '#~/types';
 import { Table } from '#~/components/table';
 import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
-import { useDashboardNamespace } from '#~/redux/selectors';
-import useAcceleratorProfiles from '#~/pages/notebookController/screens/server/useAcceleratorProfiles';
 import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import ManageBYONImageModal from './BYONImageModal/ManageBYONImageModal';
@@ -40,8 +38,6 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
   const [editImage, setEditImage] = React.useState<BYONImage>();
   const [deleteImage, setDeleteImage] = React.useState<BYONImage>();
 
-  const { dashboardNamespace } = useDashboardNamespace();
-  const acceleratorProfiles = useAcceleratorProfiles(dashboardNamespace);
   const hardwareProfiles = useHardwareProfilesByFeatureVisibility([
     HardwareProfileFeatureVisibility.WORKBENCH,
   ]);
@@ -75,7 +71,6 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
             obj={image}
             onEditImage={(i) => setEditImage(i)}
             onDeleteImage={(i) => setDeleteImage(i)}
-            acceleratorProfiles={acceleratorProfiles}
             hardwareProfiles={hardwareProfiles}
           />
         )}

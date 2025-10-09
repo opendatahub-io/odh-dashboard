@@ -8,8 +8,6 @@ import {
 } from '@patternfly/react-core';
 import { BYONImage } from '#~/types';
 import { relativeTime } from '#~/utilities/time';
-import { AcceleratorProfileKind } from '#~/k8sTypes';
-import { FetchState } from '#~/utilities/useFetchState';
 import BYONImageHardwareProfiles from '#~/pages/BYONImages/BYONImageHardwareProfiles';
 import { TableRowTitleDescription } from '#~/components/table';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
@@ -21,7 +19,6 @@ import BYONImageDependenciesList from './BYONImageDependenciesList';
 type BYONImagesTableRowProps = {
   obj: BYONImage;
   rowIndex: number;
-  acceleratorProfiles?: FetchState<AcceleratorProfileKind[]>;
   hardwareProfiles: ReturnType<typeof useHardwareProfilesByFeatureVisibility>;
   onEditImage: (obj: BYONImage) => void;
   onDeleteImage: (obj: BYONImage) => void;
