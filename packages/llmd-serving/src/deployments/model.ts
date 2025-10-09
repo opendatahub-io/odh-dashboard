@@ -10,13 +10,18 @@ export const applyModelLocation = (
   llmdInferenceService: LLMInferenceServiceKind,
   modelLocationData: ModelLocationData,
   secretName?: string,
+  dryRun?: boolean,
   // will also need to pass in createConnectionData
 ): LLMInferenceServiceKind => {
   const result = structuredClone(llmdInferenceService);
   result.metadata.annotations = {
     ...result.metadata.annotations,
-    [MetadataAnnotation.ConnectionName]: modelLocationData.connection ?? secretName ?? '', // TODO add saveConnectionData once 1C merges
   };
+  if (!dryRun) {
+    // Only add the connection name in the actual request (dry run will fail if the connection doesn't exist yet)
+    result.metadata.annotations[MetadataAnnotation.ConnectionName] =
+      modelLocationData.connection ?? secretName ?? ''; // TODO add saveConnectionData once 1C merges
+  }
   // Adds path annotation for S3
   if (
     modelLocationData.additionalFields.modelPath &&

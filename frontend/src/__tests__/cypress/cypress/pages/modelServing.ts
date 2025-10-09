@@ -1067,6 +1067,10 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('save-connection-checkbox');
   }
 
+  findModelPathInput() {
+    return cy.findByTestId('folder-path');
+  }
+
   findExternalRouteCheckbox() {
     return cy.findByTestId('model-access-checkbox');
   }
