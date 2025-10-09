@@ -2,7 +2,7 @@ module github.com/opendatahub-io/gen-ai
 
 go 1.24.6
 
-toolchain go1.24.7
+toolchain go1.25.2
 
 require (
 	github.com/getkin/kin-openapi v0.132.0
