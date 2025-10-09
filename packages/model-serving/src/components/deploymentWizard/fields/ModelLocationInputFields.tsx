@@ -97,13 +97,6 @@ export const useModelLocationData = (
         if (!connectionName) {
           return;
         }
-        if (
-          modelLocationData?.type === ModelLocationType.EXISTING &&
-          modelLocationData.connection !== connectionName
-        ) {
-          setIsStableState(true);
-          return;
-        }
 
         if (
           modelLocationData?.type === ModelLocationType.EXISTING &&

@@ -11,6 +11,7 @@ import {
   modelServingGlobal,
   modelServingSection,
   modelServingWizard,
+  modelServingWizardEdit,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import {
   HardwareProfileModel,
@@ -363,6 +364,87 @@ describe('Model Serving LLMD', () => {
       });
 
       cy.get('@createLLMInferenceService.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+      });
+    });
+    it('should edit an LLMD deployment', () => {
+      initIntercepts({
+        llmInferenceServices: [
+          mockLLMInferenceServiceK8sResource({
+            name: 'test-llmd-model',
+            displayName: 'Test LLM Inference Service',
+            replicas: 2,
+            modelType: ServingRuntimeModelType.GENERATIVE,
+          }),
+        ],
+      });
+      cy.intercept('PUT', '**/llminferenceservices/test-llmd-model*', (req) => {
+        req.reply({ statusCode: 200, body: req.body });
+      }).as('updateLLMInferenceService');
+
+      // Visit the model serving page
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.getModelRow('Test LLM Inference Service').findKebabAction('Edit').click();
+
+      // Step 1: Model source
+      modelServingWizardEdit.findModelLocationSelectOption('URI - v1').click();
+      modelServingWizardEdit.findUrilocationInput().clear().type('hf://updated-uri');
+
+      modelServingWizardEdit
+        .findModelTypeSelect()
+        .should('be.disabled')
+        .should('have.text', 'Generative AI model (e.g. LLM)');
+      modelServingWizardEdit.findSaveConnectionCheckbox().should('be.checked');
+      modelServingWizardEdit.findSaveConnectionCheckbox().click();
+      modelServingWizardEdit.findSaveConnectionCheckbox().should('not.be.checked');
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+      // Step 2: Model deployment
+      modelServingWizardEdit.findNextButton().should('be.disabled');
+      modelServingWizardEdit.findModelDeploymentNameInput().clear().type('test-llmd-model-2');
+      modelServingWizardEdit.findModelDeploymentDescriptionInput().type('test-llmd-description-2');
+
+      hardwareProfileSection.findSelect().should('exist');
+      hardwareProfileSection.findSelect().should('contain.text', 'Small');
+      hardwareProfileSection.selectProfile(
+        'Large Profile Compatible CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
+      );
+      modelServingWizardEdit.findServingRuntimeTemplateSearchSelector().should('be.disabled');
+
+      modelServingWizardEdit.findNumReplicasInputField().should('have.value', '2');
+      modelServingWizardEdit.findNumReplicasPlusButton().click();
+      modelServingWizardEdit.findNumReplicasInputField().should('have.value', '3');
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+      // Step 3: Advanced Options
+      modelServingWizardEdit.findNextButton().should('be.enabled');
+      // test "Allow anonymous access" stuff
+      modelServingWizardEdit.findRuntimeArgsCheckbox().click();
+      modelServingWizardEdit.findRuntimeArgsTextBox().type('--arg=value1');
+      modelServingWizardEdit.findEnvVariableName('0').clear().type('MY_ENV');
+      modelServingWizardEdit.findEnvVariableValue('0').clear().type('MY_VALUE');
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+      // Step 4: Summary
+      modelServingWizardEdit.findSubmitButton().should('be.enabled').click();
+
+      cy.wait('@updateLLMInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body.metadata.annotations).to.containSubset({
+          'openshift.io/display-name': 'test-llmd-model-2',
+          'openshift.io/description': 'test-llmd-description-2',
+        });
+        expect(interception.request.body.spec.replicas).to.equal(3);
+        expect(interception.request.body.spec.template.containers).to.containSubset([
+          { name: 'main', args: ['--arg=value1'], env: [{ name: 'MY_ENV', value: 'MY_VALUE' }] },
+        ]);
+      });
+
+      cy.wait('@updateLLMInferenceService').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
+      cy.get('@updateLLMInferenceService.all').then((interceptions) => {
         expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
       });
     });

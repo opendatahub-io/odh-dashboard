@@ -233,6 +233,8 @@ export const applyAiAvailableAssetAnnotations = (
     annotations['opendatahub.io/genai-asset'] = 'true';
     if (aiAssetData.useCase) {
       annotations['opendatahub.io/genai-use-case'] = aiAssetData.useCase;
+    } else {
+      delete annotations['opendatahub.io/genai-use-case'];
     }
   } else {
     delete annotations['opendatahub.io/genai-asset'];

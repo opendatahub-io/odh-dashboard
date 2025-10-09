@@ -50,3 +50,26 @@ export const applyReplicas = (
 export const extractReplicas = (llmdDeployment: LLMdDeployment): number | null => {
   return llmdDeployment.model.spec.replicas ?? null;
 };
+
+export const extractRuntimeArgs = (
+  deployment: LLMdDeployment,
+): { enabled: boolean; args: string[] } => {
+  const args = deployment.model.spec.template?.containers?.[0]?.args || [];
+  return {
+    enabled: args.length > 0,
+    args,
+  };
+};
+
+export const extractEnvironmentVariables = (
+  deployment: LLMdDeployment,
+): { enabled: boolean; variables: { name: string; value: string }[] } => {
+  const envVars = deployment.model.spec.template?.containers?.[0]?.env || [];
+  return {
+    enabled: envVars.length > 0,
+    variables: envVars.map((envVar) => ({
+      name: envVar.name,
+      value: envVar.value?.toString() || '',
+    })),
+  };
+};

@@ -3,7 +3,7 @@
   "name": "@odh-dashboard/llmd-serving",
   "description": "Support for LLM-d model serving deployments via kserve",
   "version": "0.0.0",
-  "scripts__options": {
+  "scripts": {
     "lint": "eslint .",
     "test-unit": "jest --silent",
     "test-unit-coverage": "jest --silent --coverage",

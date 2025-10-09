@@ -1,5 +1,6 @@
 import { type LLMInferenceServiceKind } from '@odh-dashboard/llmd-serving/types';
 import { genUID } from '@odh-dashboard/internal/__mocks__/mockUtils';
+import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 
 type MockLLMInferenceServiceConfigType = {
   name?: string;
@@ -15,6 +16,7 @@ type MockLLMInferenceServiceConfigType = {
   url?: string;
   additionalLabels?: Record<string, string>;
   isNonDashboardItem?: boolean;
+  modelType?: ServingRuntimeModelType;
 };
 
 export const mockLLMInferenceServiceK8sResource = ({
@@ -37,6 +39,7 @@ export const mockLLMInferenceServiceK8sResource = ({
       'openshift.io/display-name': displayName,
       'opendatahub.io/hardware-profile-name': 'small-profile',
       'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+      'opendatahub.io/model-type': ServingRuntimeModelType.GENERATIVE,
     },
     creationTimestamp,
     ...(deleted ? { deletionTimestamp: new Date().toUTCString() } : {}),
