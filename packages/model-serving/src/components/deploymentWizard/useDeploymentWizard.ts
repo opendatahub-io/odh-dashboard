@@ -24,9 +24,9 @@ import {
   type EnvironmentVariablesFieldData,
 } from './fields/EnvironmentVariablesField';
 import {
-  AvailableAiAssetsFieldsData,
-  useAvailableAiAssetsFields,
-} from './fields/AvailableAiAssetsFields';
+  ModelAvailabilityFieldsData,
+  useModelAvailabilityFields,
+} from './fields/ModelAvailabilityFields';
 import {
   useModelServerSelectField,
   type ModelServerOption,
@@ -53,7 +53,7 @@ export type ModelDeploymentWizardData = {
   isEditing?: boolean;
   connections?: LabeledConnection[];
   initSelectedConnection?: LabeledConnection | undefined;
-  aiAssetData?: AvailableAiAssetsFieldsData;
+  aiAssetData?: ModelAvailabilityFieldsData;
   createConnectionData?: CreateConnectionData;
   // Add more field handlers as needed
 };
@@ -155,9 +155,9 @@ export const useModelDeploymentWizard = (
   const tokenAuthentication = useTokenAuthenticationField(
     initialData?.tokenAuthentication ?? undefined,
   );
-  const aiAssetData = useExtensionStateModifier(
+  const modelAvailability = useExtensionStateModifier(
     'modelAvailability',
-    useAvailableAiAssetsFields,
+    useModelAvailabilityFields,
     [initialData?.aiAssetData, modelType.data],
     {
       modelType,
@@ -189,7 +189,7 @@ export const useModelDeploymentWizard = (
       numReplicas,
       runtimeArgs,
       environmentVariables,
-      aiAssetData,
+      modelAvailability,
       modelServer,
     },
     loaded: {

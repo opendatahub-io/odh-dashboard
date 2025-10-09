@@ -4,7 +4,7 @@ import type { useModelServerSelectField } from './fields/ModelServerTemplateSele
 import type { useModelTypeField } from './fields/ModelTypeSelectField';
 import type { useExternalRouteField } from './fields/ExternalRouteField';
 import type { ModelDeploymentWizardData } from './useDeploymentWizard';
-import type { useAvailableAiAssetsFields } from './fields/AvailableAiAssetsFields';
+import type { useModelAvailabilityFields } from './fields/ModelAvailabilityFields';
 import type { useEnvironmentVariablesField } from './fields/EnvironmentVariablesField';
 import type { useModelFormatField } from './fields/ModelFormatField';
 import type { useModelLocationData } from './fields/ModelLocationInputFields';
@@ -28,7 +28,7 @@ export type WizardFormData = {
     numReplicas: ReturnType<typeof useNumReplicasField>;
     runtimeArgs: ReturnType<typeof useRuntimeArgsField>;
     environmentVariables: ReturnType<typeof useEnvironmentVariablesField>;
-    aiAssetData: ReturnType<typeof useAvailableAiAssetsFields>;
+    modelAvailability: ReturnType<typeof useModelAvailabilityFields>;
     modelServer: ReturnType<typeof useModelServerSelectField>;
     createConnectionData: ReturnType<typeof useCreateConnectionData>;
   };
@@ -38,18 +38,17 @@ export type WizardFormData = {
 
 export type DeploymentWizardFieldId = 'modelAvailability' | 'modelServerTemplate';
 
-export interface DeploymentWizardFieldBase {
+export type DeploymentWizardFieldBase = {
   id: DeploymentWizardFieldId;
   type: 'modifier' | 'replacement' | 'addition';
   isActive: (data: Partial<WizardFormData['state']>) => boolean;
-}
+};
 
-export interface ModifierField<T extends (...args: Parameters<T>) => ReturnType<T>>
-  extends DeploymentWizardFieldBase {
-  id: DeploymentWizardFieldId;
-  type: 'modifier';
-  modifier: (stateInput: Parameters<T>, stateOutput: ReturnType<T>) => ReturnType<T>;
-}
+export type ModifierField<T extends (...args: Parameters<T>) => ReturnType<T>> =
+  DeploymentWizardFieldBase & {
+    type: 'modifier';
+    modifier: (stateInput: Parameters<T>, stateOutput: ReturnType<T>) => ReturnType<T>;
+  };
 export const isModifierField = <T extends (...args: Parameters<T>) => ReturnType<T>>(
   field: DeploymentWizardFieldBase,
 ): field is ModifierField<T> => {
@@ -58,21 +57,12 @@ export const isModifierField = <T extends (...args: Parameters<T>) => ReturnType
 
 // actual fields
 
-export interface ModelServerTemplateField extends ModifierField<typeof useModelServerSelectField> {
+export type ModelServerTemplateField = ModifierField<typeof useModelServerSelectField> & {
   id: 'modelServerTemplate';
-  modifier: (
-    stateInput: Parameters<typeof useModelServerSelectField>,
-    stateOutput: ReturnType<typeof useModelServerSelectField>,
-  ) => ReturnType<typeof useModelServerSelectField>;
-}
-
-export interface ModelAvailabilityField extends ModifierField<typeof useAvailableAiAssetsFields> {
+};
+export type ModelAvailabilityField = ModifierField<typeof useModelAvailabilityFields> & {
   id: 'modelAvailability';
-  modifier: (
-    stateInput: Parameters<typeof useAvailableAiAssetsFields>,
-    stateOutput: ReturnType<typeof useAvailableAiAssetsFields>,
-  ) => ReturnType<typeof useAvailableAiAssetsFields>;
-}
+};
 
 // union type
 

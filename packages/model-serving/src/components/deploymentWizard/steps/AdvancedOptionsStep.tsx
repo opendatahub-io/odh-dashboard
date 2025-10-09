@@ -14,7 +14,7 @@ import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
 import { RuntimeArgsField } from '../fields/RuntimeArgsField';
 import { EnvironmentVariablesField } from '../fields/EnvironmentVariablesField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
-import { AvailableAiAssetsFieldsComponent } from '../fields/AvailableAiAssetsFields';
+import { AvailableAiAssetsFieldsComponent } from '../fields/ModelAvailabilityFields';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -94,11 +94,11 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
           </StackItem>
         </Stack>
         <Stack hasGutter>
-          {wizardState.state.aiAssetData.showField && (
+          {wizardState.state.modelAvailability.showField && (
             <AvailableAiAssetsFieldsComponent
-              data={wizardState.state.aiAssetData.data}
-              setData={wizardState.state.aiAssetData.setData}
-              showSaveAsMaaS={wizardState.state.aiAssetData.showSaveAsMaaS}
+              data={wizardState.state.modelAvailability.data}
+              setData={wizardState.state.modelAvailability.setData}
+              showSaveAsMaaS={wizardState.state.modelAvailability.showSaveAsMaaS}
             />
           )}
           <StackItem>
