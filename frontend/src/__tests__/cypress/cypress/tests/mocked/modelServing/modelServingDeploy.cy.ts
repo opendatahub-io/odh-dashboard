@@ -810,6 +810,9 @@ describe('Model Serving Deploy Wizard', () => {
     // test filling in minimum required fields
     modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
     modelServingWizard.findUrilocationInput().should('exist').type('https://test');
+    modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
+    modelServingWizard.findSaveConnectionCheckbox().click();
+    modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
@@ -864,6 +867,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
     modelServingWizard.findUrilocationInput().should('exist').type('https://test');
+    modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
+    modelServingWizard.findSaveConnectionCheckbox().click();
+    modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
     // Step 2: Model Deployment
@@ -906,6 +912,11 @@ describe('Model Serving Deploy Wizard', () => {
 
     modelServingWizard.findModelLocationSelect().should('exist');
     modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
+
+    modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
+    modelServingWizard.findSaveConnectionCheckbox().click();
+    modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
+
     modelServingWizard.findUrilocationInput().should('exist').type('https://test');
     // Trigger blur event to activate validation
     modelServingWizard.findUrilocationInput().blur();
@@ -968,6 +979,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
     modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
     modelServingWizard.findUrilocationInput().should('exist').type('https://test');
+    modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
+    modelServingWizard.findSaveConnectionCheckbox().click();
+    modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
     modelServingWizard.findNextButton().should('be.enabled').click();
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
@@ -1391,6 +1405,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingGlobal.visit('test-project');
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
     // Step 1: Model source
+    modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
+    modelServingWizard.findSaveConnectionCheckbox().click();
+    modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment

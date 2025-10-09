@@ -57,8 +57,12 @@ export const useCreateConnectionData = (
 export const isValidCreateConnectionData = (data: CreateConnectionData): boolean => {
   // If not saving the connection, then it is valid
   if (!data.saveConnection) return true;
-  // If saving the connection, then the name is required
-  return data.nameDesc?.name !== undefined;
+  // If saving the connection, then the name is required (don't count placeholder generated secret names)
+  return (
+    data.nameDesc?.name !== undefined &&
+    !isGeneratedSecretName(data.nameDesc.name) &&
+    data.nameDesc.name !== ''
+  );
 };
 
 export const createConnectionDataSchema = z.custom<CreateConnectionData>((val) => {

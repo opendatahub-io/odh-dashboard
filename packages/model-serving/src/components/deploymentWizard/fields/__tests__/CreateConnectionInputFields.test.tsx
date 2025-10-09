@@ -27,7 +27,10 @@ describe('CreateConnectionInputFields', () => {
   describe('Schema validation', () => {
     it('should validate complete data', () => {
       const result = createConnectionInputFieldsSchema.safeParse({
-        createConnectionData: { saveConnection: true, nameDesc: mockK8sNameDescriptionFieldData() },
+        createConnectionData: {
+          saveConnection: true,
+          nameDesc: mockK8sNameDescriptionFieldData({ name: 'test' }),
+        },
       });
       expect(result.success).toBe(true);
     });
@@ -43,7 +46,7 @@ describe('CreateConnectionInputFields', () => {
       expect(
         isValidCreateConnectionData({
           saveConnection: true,
-          nameDesc: mockK8sNameDescriptionFieldData(),
+          nameDesc: mockK8sNameDescriptionFieldData({ name: 'test' }),
         }),
       ).toBe(true);
     });

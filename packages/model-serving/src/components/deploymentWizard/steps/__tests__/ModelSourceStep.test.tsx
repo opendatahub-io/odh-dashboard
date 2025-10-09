@@ -82,7 +82,7 @@ describe('ModelSourceStep', () => {
         },
         createConnectionData: {
           saveConnection: true,
-          nameDesc: mockK8sNameDescriptionFieldData(),
+          nameDesc: mockK8sNameDescriptionFieldData({ name: 'test' }),
         },
       };
       const result = modelSourceStepSchema.safeParse(validData);
