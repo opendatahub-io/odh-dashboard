@@ -28,9 +28,10 @@ jobs:
     steps:
       - name: Set default test tags
         id: set-tags
-        # TO:DO - update execution tags and simplify for v1
+        # Created 2 new tags - @ci-dashboard-set-1 and @ci-dashboard-set-2
+        # ToDO: Use turbo to run tests according to PR changes.
         run: |
-          echo "test-tags=[\"@SmokeSet1\",\"@SmokeSet2\",\"@SmokeSet3\"]" >> $GITHUB_OUTPUT
+          echo "test-tags=[\"@ci-dashboard-set-1\",\"@ci-dashboard-set-2\"]" >> $GITHUB_OUTPUT
 
   e2e-tests:
     needs: [get-test-tags]
