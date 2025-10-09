@@ -7,7 +7,6 @@ import {
 } from '#~/__mocks__';
 import { mockRegisteredModelList } from '#~/__mocks__/mockRegisteredModelsList';
 import {
-  AcceleratorProfileModel,
   SecretModel,
   ServiceModel,
   ServingRuntimeModel,
@@ -25,10 +24,6 @@ import { kserveModal } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import { mockModelArtifact } from '#~/__mocks__/mockModelArtifact';
 import { initDeployPrefilledModelIntercepts } from '#~/__tests__/cypress/cypress/utils/modelServingUtils';
 import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
-import {
-  mockGlobalScopedAcceleratorProfiles,
-  mockProjectScopedAcceleratorProfiles,
-} from '#~/__mocks__/mockAcceleratorProfile';
 import { acceleratorProfileSection } from '#~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
@@ -202,17 +197,6 @@ const initIntercepts = ({
     },
     mockModelArtifactList({}),
   );
-
-  // Mock accelerator profiles
-  cy.interceptK8sList(
-    { model: AcceleratorProfileModel, ns: 'opendatahub' },
-    mockK8sResourceList(mockGlobalScopedAcceleratorProfiles),
-  ).as('acceleratorProfiles');
-
-  cy.interceptK8sList(
-    { model: AcceleratorProfileModel, ns: 'test-project' },
-    mockK8sResourceList(mockProjectScopedAcceleratorProfiles),
-  ).as('acceleratorProfiles');
 };
 
 // TODO: Fix these tests
@@ -327,6 +311,7 @@ describe.skip('Deploy model version', () => {
     cy.findByText('oci://registry.redhat.io/rhel/private:test').should('exist');
   });
 
+  // note:  accelerator profiles are removed as of 3.0
   it('Display project specific serving runtimes while deploying', () => {
     initIntercepts({ disableProjectScoped: false });
     cy.interceptK8sList(
@@ -427,6 +412,7 @@ describe.skip('Deploy model version', () => {
     // Read visible menu options from the open PF v6 menu and verify expected text
   });
 
+  // note: when fixing this test; note that the accelerator profiles are removed as of 3.0
   it('Display project specific accelerator profile while deploying', () => {
     initIntercepts({ disableProjectScoped: false });
     cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
