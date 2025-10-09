@@ -32,7 +32,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
   return (
     <>
       <Tr>
-        <Td dataLabel="Model">
+        <Td dataLabel="Model deployment name">
           <>
             <TableRowTitleDescription title={<AIModelsTableRowInfo model={model} />} />
             {/* The shared TableRowTitleDescription component only accepts a string for the description

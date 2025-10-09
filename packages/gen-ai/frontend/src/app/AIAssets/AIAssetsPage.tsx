@@ -15,12 +15,15 @@ import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import { useMCPServers } from '~/app/hooks/useMCPServers';
 import useFetchAIModels from '~/app/hooks/useFetchAIModels';
 import AiAssetEndpointsIcon from '~/app/images/icons/AiAssetEndpointsIcon';
+import useFetchMaaSModels from '~/app/hooks/useFetchMaaSModels';
 import AIAssetsModelsTab from './AIAssetsModelsTab';
 import AIAssetsMCPTabWithContext from './AIAssetsMCPTabWithContext';
+import AIAssetsMaaSTab from './AIAssetsMaaSTab';
 
 enum AIAssetsPageTabKey {
   MODELS = 'models',
   MCP_SERVERS = 'mcpservers',
+  MAAS_MODELS = 'maasmodels',
 }
 
 export const AIAssetsPage: React.FC = () => {
@@ -28,11 +31,17 @@ export const AIAssetsPage: React.FC = () => {
   const { namespace } = React.useContext(GenAiContext);
   const { data: playgroundModels } = useFetchLlamaModels(namespace?.name);
   const { data: models, loaded, error } = useFetchAIModels(namespace?.name);
+  const {
+    data: maasModels,
+    loaded: maasModelsLoaded,
+    error: maasModelsError,
+  } = useFetchMaaSModels();
   const { servers: mcpServers, serversLoaded: mcpServersLoaded } = useMCPServers(
     namespace?.name || '',
     { autoCheckStatuses: false },
   );
   const modelsCount = models.length;
+  const maasModelsCount = maasModels.length;
   const mcpServersCount = mcpServers.length;
 
   return (
@@ -69,6 +78,16 @@ export const AIAssetsPage: React.FC = () => {
             aria-label="MCP Servers tab"
             tabContentId="mcpservers-tab-content"
           />
+          <Tab
+            eventKey={AIAssetsPageTabKey.MAAS_MODELS}
+            title={
+              <TabTitleText>
+                Models as a service {maasModelsLoaded && `(${maasModelsCount})`}
+              </TabTitleText>
+            }
+            aria-label="Models as a service tab"
+            tabContentId="maasmodels-tab-content"
+          />
         </Tabs>
       </PageSection>
       <PageSection>
@@ -96,6 +115,22 @@ export const AIAssetsPage: React.FC = () => {
         >
           <TabContentBody>
             {activeTabKey === AIAssetsPageTabKey.MCP_SERVERS && <AIAssetsMCPTabWithContext />}
+          </TabContentBody>
+        </TabContent>
+        <TabContent
+          id="maasmodels-tab-content"
+          activeKey={activeTabKey}
+          eventKey={AIAssetsPageTabKey.MAAS_MODELS}
+          hidden={activeTabKey !== AIAssetsPageTabKey.MAAS_MODELS}
+        >
+          <TabContentBody>
+            {activeTabKey === AIAssetsPageTabKey.MAAS_MODELS && (
+              <AIAssetsMaaSTab
+                models={maasModels}
+                loaded={maasModelsLoaded}
+                error={maasModelsError}
+              />
+            )}
           </TabContentBody>
         </TabContent>
       </PageSection>
