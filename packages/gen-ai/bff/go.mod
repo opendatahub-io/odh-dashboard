@@ -14,7 +14,7 @@ require (
 	github.com/modelcontextprotocol/go-sdk v0.3.1
 	github.com/onsi/ginkgo/v2 v2.23.3
 	github.com/onsi/gomega v1.36.3
-	github.com/openai/openai-go/v2 v2.4.0
+	github.com/openai/openai-go/v2 v2.7.1
 	github.com/rs/cors v1.11.1
 	github.com/stretchr/testify v1.10.0
 	k8s.io/api v0.33.4
