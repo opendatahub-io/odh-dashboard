@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v3"
 )
 
 type Envelope[D any, M any] struct {

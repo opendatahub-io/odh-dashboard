@@ -3,9 +3,9 @@ package llamastack
 import (
 	"context"
 
-	"github.com/openai/openai-go/v2"
-	"github.com/openai/openai-go/v2/packages/ssestream"
-	"github.com/openai/openai-go/v2/responses"
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/packages/ssestream"
+	"github.com/openai/openai-go/v3/responses"
 )
 
 // LlamaStackClientInterface defines the interface for LlamaStack client operations

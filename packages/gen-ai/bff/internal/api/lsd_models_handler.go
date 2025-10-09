@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v3"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 )
 

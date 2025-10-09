@@ -3,7 +3,7 @@ package repositories
 import (
 	"context"
 
-	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v3"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 )
 
