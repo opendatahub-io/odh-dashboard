@@ -1,6 +1,5 @@
 import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import ManageAcceleratorProfile from '#~/pages/acceleratorProfiles/screens/manage/ManageAcceleratorProfile';
 import BYONImages from '#~/pages/BYONImages/BYONImages';
 import ManageHardwareProfile from '#~/pages/hardwareProfiles/manage/ManageHardwareProfile';
 import { buildV2RedirectRoutes } from '#~/utilities/v2Redirect';
@@ -13,15 +12,6 @@ const BYONImageRoutes: React.FC = () => (
       path="hardware-profile/create"
       element={
         <ManageHardwareProfile
-          homepageTitle="Workbench images"
-          contextPath="/settings/environment-setup/workbench-images"
-        />
-      }
-    />
-    <Route
-      path="accelerator-profile/create"
-      element={
-        <ManageAcceleratorProfile
           homepageTitle="Workbench images"
           contextPath="/settings/environment-setup/workbench-images"
         />
