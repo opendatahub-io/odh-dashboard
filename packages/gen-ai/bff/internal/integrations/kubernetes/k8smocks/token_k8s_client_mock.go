@@ -621,3 +621,37 @@ func (m *TokenKubernetesClientMock) CanListLlamaStackDistributions(ctx context.C
 	// In real scenarios, this would perform a SubjectAccessReview
 	return true, nil
 }
+
+// GetModelProviderInfo returns mock model provider configuration
+func (m *TokenKubernetesClientMock) GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*k8s.ModelProviderInfo, error) {
+	// Return mock provider info based on common model IDs
+	mockConfigs := map[string]*k8s.ModelProviderInfo{
+		"vllm-inference-1/llama-32-3b-instruct": {
+			ModelID:      "vllm-inference-1/llama-32-3b-instruct",
+			ProviderID:   "vllm-inference-1",
+			ProviderType: "remote::vllm",
+			URL:          "http://llama-32-3b-instruct-predictor.team-crimson.svc.cluster.local/v1",
+			APIToken:     "fake",
+		},
+		"llama-3-2-3b-instruct": {
+			ModelID:      "llama-3-2-3b-instruct",
+			ProviderID:   "vllm-inference-1",
+			ProviderType: "remote::vllm",
+			URL:          "http://llama-32-3b-instruct-predictor.team-crimson.svc.cluster.local/v1",
+			APIToken:     "fake",
+		},
+	}
+
+	if config, exists := mockConfigs[modelID]; exists {
+		return config, nil
+	}
+
+	// Return generic mock config for unknown models
+	return &k8s.ModelProviderInfo{
+		ModelID:      modelID,
+		ProviderID:   "vllm-inference-1",
+		ProviderType: "remote::vllm",
+		URL:          "http://mock-predictor.default.svc.cluster.local/v1",
+		APIToken:     "fake",
+	}, nil
+}

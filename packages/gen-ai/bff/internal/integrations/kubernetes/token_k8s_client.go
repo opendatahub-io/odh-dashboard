@@ -1141,3 +1141,168 @@ func (kc *TokenKubernetesClient) DeleteLlamaStackDistribution(ctx context.Contex
 	kc.Logger.Info("successfully deleted LlamaStackDistribution", "namespace", namespace, "name", targetLSD.Name, "displayName", name)
 	return targetLSD, nil
 }
+
+// GetModelProviderInfo retrieves provider configuration for a model from LSD configmap
+func (kc *TokenKubernetesClient) GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*ModelProviderInfo, error) {
+	// Get LlamaStackDistribution
+	lsdList, err := kc.GetLlamaStackDistributions(ctx, identity, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get LlamaStackDistributions: %w", err)
+	}
+
+	if len(lsdList.Items) == 0 {
+		return nil, fmt.Errorf("no LlamaStackDistribution found in namespace %s", namespace)
+	}
+
+	lsd := lsdList.Items[0]
+
+	// Get configmap name
+	configMapName := "llama-stack-config"
+	if lsd.Spec.Server.UserConfig != nil && lsd.Spec.Server.UserConfig.ConfigMapName != "" {
+		configMapName = lsd.Spec.Server.UserConfig.ConfigMapName
+	}
+
+	// Retrieve configmap
+	configMap, err := kc.GetConfigMap(ctx, identity, namespace, configMapName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get configmap: %w", err)
+	}
+
+	runYAML, ok := configMap.Data["run.yaml"]
+	if !ok {
+		return nil, fmt.Errorf("run.yaml not found in configmap")
+	}
+
+	// Parse model and provider info from YAML
+	return kc.parseModelProviderFromYAML(runYAML, modelID)
+}
+
+// parseModelProviderFromYAML parses the run.yaml to extract model provider configuration
+func (kc *TokenKubernetesClient) parseModelProviderFromYAML(runYAML string, modelID string) (*ModelProviderInfo, error) {
+	lines := strings.Split(runYAML, "\n")
+
+	// Simple YAML parsing - find model section and its provider_id
+	var providerID string
+	inModelsSection := false
+	inCurrentModel := false
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+
+		if strings.HasPrefix(trimmed, "models:") {
+			inModelsSection = true
+			continue
+		}
+
+		if inModelsSection && strings.HasPrefix(line, "  - ") {
+			inCurrentModel = true
+			continue
+		}
+
+		if inCurrentModel && strings.Contains(trimmed, "model_id:") {
+			parts := strings.SplitN(trimmed, ":", 2)
+			if len(parts) == 2 {
+				foundModelID := strings.TrimSpace(parts[1])
+				if foundModelID == modelID {
+					// Found our model, continue to find provider_id
+					for _, nextLine := range lines {
+						if strings.Contains(nextLine, "provider_id:") {
+							providerParts := strings.SplitN(nextLine, ":", 2)
+							if len(providerParts) == 2 {
+								providerID = strings.TrimSpace(providerParts[1])
+								break
+							}
+						}
+					}
+					break
+				}
+			}
+			inCurrentModel = false
+		}
+
+		if strings.HasPrefix(line, "providers:") {
+			inModelsSection = false
+		}
+	}
+
+	if providerID == "" {
+		return nil, fmt.Errorf("provider not found for model %s", modelID)
+	}
+
+	// Now find the provider configuration
+	inProvidersSection := false
+	inInferenceSection := false
+	inTargetProvider := false
+	var url, apiToken, providerType string
+
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+
+		if strings.HasPrefix(trimmed, "providers:") {
+			inProvidersSection = true
+			continue
+		}
+
+		if inProvidersSection && strings.HasPrefix(trimmed, "inference:") {
+			inInferenceSection = true
+			continue
+		}
+
+		if inInferenceSection && strings.HasPrefix(line, "  - provider_id:") {
+			parts := strings.SplitN(trimmed, ":", 2)
+			if len(parts) == 2 && strings.TrimSpace(parts[1]) == providerID {
+				inTargetProvider = true
+				continue
+			} else {
+				inTargetProvider = false
+			}
+		}
+
+		if inTargetProvider {
+			if strings.Contains(trimmed, "provider_type:") {
+				parts := strings.SplitN(trimmed, ":", 2)
+				if len(parts) == 2 {
+					providerType = strings.TrimSpace(parts[1])
+				}
+			}
+			if strings.Contains(trimmed, "url:") {
+				parts := strings.SplitN(trimmed, ":", 2)
+				if len(parts) >= 2 {
+					// Reconstruct URL (may contain colons)
+					urlValue := strings.Join(parts[1:], ":")
+					url = cleanEnvVar(strings.TrimSpace(urlValue))
+				}
+			}
+			if strings.Contains(trimmed, "api_token:") {
+				parts := strings.SplitN(trimmed, ":", 2)
+				if len(parts) == 2 {
+					apiToken = cleanEnvVar(strings.TrimSpace(parts[1]))
+				}
+			}
+
+			// Check if we're done with this provider
+			if i+1 < len(lines) && strings.HasPrefix(lines[i+1], "  - provider_id:") {
+				break
+			}
+		}
+	}
+
+	return &ModelProviderInfo{
+		ModelID:      modelID,
+		ProviderID:   providerID,
+		ProviderType: providerType,
+		URL:          url,
+		APIToken:     apiToken,
+	}, nil
+}
+
+// cleanEnvVar removes environment variable placeholders like ${env.VAR:=default}
+func cleanEnvVar(value string) string {
+	if strings.HasPrefix(value, "${env.") && strings.Contains(value, ":=") {
+		parts := strings.SplitN(value, ":=", 2)
+		if len(parts) == 2 {
+			return strings.TrimSuffix(parts[1], "}")
+		}
+	}
+	return value
+}

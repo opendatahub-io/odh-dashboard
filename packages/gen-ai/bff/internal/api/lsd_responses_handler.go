@@ -8,6 +8,8 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 )
@@ -226,6 +228,33 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		}
 	}
 
+	// Retrieve model provider configuration for custom headers
+	var providerData map[string]interface{}
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+	if ok && identity != nil {
+		namespace := ctx.Value(constants.NamespaceQueryParameterKey)
+		if namespace != nil {
+			k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+			if err == nil {
+				providerInfo, err := k8sClient.GetModelProviderInfo(ctx, identity, namespace.(string), createRequest.Model)
+				if err != nil {
+					// Log error but continue - provider data is optional
+					app.logger.Warn("Failed to retrieve model provider info for custom headers",
+						"model", createRequest.Model,
+						"error", err)
+				} else if providerInfo != nil && providerInfo.APIToken != "" && providerInfo.APIToken != "fake" {
+					// Inject vllm_api_token from model provider configuration
+					providerData = map[string]interface{}{
+						"vllm_api_token": providerInfo.APIToken,
+					}
+					app.logger.Debug("Injecting provider data for model",
+						"model", createRequest.Model,
+						"provider_id", providerInfo.ProviderID)
+				}
+			}
+		}
+	}
+
 	// Convert to client params (only working parameters)
 	params := llamastack.CreateResponseParams{
 		Input:              createRequest.Input,
@@ -237,6 +266,7 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		Instructions:       createRequest.Instructions,
 		Tools:              mcpServerParams,
 		PreviousResponseID: createRequest.PreviousResponseID,
+		ProviderData:       providerData,
 	}
 
 	// Handle streaming vs non-streaming responses
