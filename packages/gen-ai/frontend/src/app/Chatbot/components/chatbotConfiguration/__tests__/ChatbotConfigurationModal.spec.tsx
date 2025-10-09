@@ -4,7 +4,6 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AIModel, LlamaModel } from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
-
 // Mock the table to surface the selectedModels prop for easy assertions
 jest.mock('~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationTable', () => ({
   __esModule: true,
@@ -31,7 +30,6 @@ const createAIModel = (overrides: Partial<AIModel>): AIModel => ({
   },
   ...overrides,
 });
-
 const renderModal = (props: {
   allModels: AIModel[];
   existingModels?: LlamaModel[];
