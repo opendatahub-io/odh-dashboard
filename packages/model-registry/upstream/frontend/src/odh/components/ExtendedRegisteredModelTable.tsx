@@ -27,7 +27,6 @@ const ExtendedRegisteredModelTable: React.FC<ExtendedRegisteredModelTableProps> 
 
   const { extendedColumns, defaultSortColumnIndex } = React.useMemo(() => {
     const columns = [...rmColumns];
-    const originalLastModifiedIndex = columns.findIndex((col) => col.field === 'last_modified');
 
     if (columnExtensionsLoaded && columnExtensions.length > 0) {
       // Insert placeholder columns for extension components
@@ -51,13 +50,12 @@ const ExtendedRegisteredModelTable: React.FC<ExtendedRegisteredModelTableProps> 
       });
     }
 
-    // Calculate the new index of the "last_modified" column after insertions
+    // Find the index of the "last_modified" column after any insertions
     const lastModifiedIndex = columns.findIndex((col) => col.field === 'last_modified');
-    const defaultSortIndex = lastModifiedIndex >= 0 ? lastModifiedIndex : originalLastModifiedIndex;
 
     return {
       extendedColumns: columns,
-      defaultSortColumnIndex: defaultSortIndex,
+      defaultSortColumnIndex: lastModifiedIndex,
     };
   }, [columnExtensions, columnExtensionsLoaded]);
 
