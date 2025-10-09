@@ -29,7 +29,7 @@ const HardwareProfileNameValue = ({
   const { dashboardNamespace } = useDashboardNamespace();
   const hardwareProfileName = hardwareProfileConfig[0];
   const hardwareProfileNamespace = hardwareProfileConfig[6];
-  const [hardwareProfile, profileLoaded] = useHardwareProfile(
+  const [hardwareProfile, profileLoaded, profileLoadError] = useHardwareProfile(
     hardwareProfileNamespace || dashboardNamespace,
     hardwareProfileName,
   );
@@ -39,7 +39,9 @@ const HardwareProfileNameValue = ({
       <DescriptionListGroup>
         <DescriptionListTerm>Hardware profile</DescriptionListTerm>
         <DescriptionListDescription data-testid="hardware-section">
-          {!profileLoaded ? (
+          {!hardwareProfileName || profileLoadError ? (
+            'Unknown'
+          ) : !profileLoaded ? (
             'Loading...'
           ) : hardwareProfile ? (
             <Flex gap={{ default: 'gapSm' }}>
