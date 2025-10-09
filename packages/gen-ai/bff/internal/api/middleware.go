@@ -177,7 +177,7 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 		if app.config.MockLSClient {
 			logger.Debug("MOCK MODE: creating mock LlamaStack client for namespace", "namespace", namespace)
 			// In mock mode, use empty URL since mock factory ignores it
-			llamaStackClient = app.llamaStackClientFactory.CreateClient("")
+			llamaStackClient = app.llamaStackClientFactory.CreateClient("", app.config.InsecureSkipVerify, app.rootCAs)
 		} else {
 			var serviceURL string
 			// Use environment variable if explicitly set (developer override)
@@ -233,7 +233,7 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 				"serviceURL", serviceURL)
 
 			// Create LlamaStack client per-request using app factory (consistent with K8s pattern)
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(serviceURL)
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(serviceURL, app.config.InsecureSkipVerify, app.rootCAs)
 		}
 
 		// Attach ready-to-use client to context
@@ -262,7 +262,7 @@ func (app *App) AttachMaaSClient(next func(http.ResponseWriter, *http.Request, h
 		if app.config.MockMaaSClient {
 			logger.Debug("MOCK MODE: creating mock MaaS client")
 			// In mock mode, use empty URL since mock factory ignores it
-			maasClient = app.maasClientFactory.CreateClient("", "")
+			maasClient = app.maasClientFactory.CreateClient("", "", app.config.InsecureSkipVerify, app.rootCAs)
 		} else {
 			var serviceURL string
 			// Use environment variable if explicitly set
@@ -287,7 +287,7 @@ func (app *App) AttachMaaSClient(next func(http.ResponseWriter, *http.Request, h
 				"hasAuthToken", identity.Token != "")
 
 			// Create MaaS client per-request using app factory with auth token from RequestIdentity
-			maasClient = app.maasClientFactory.CreateClient(serviceURL, identity.Token)
+			maasClient = app.maasClientFactory.CreateClient(serviceURL, identity.Token, app.config.InsecureSkipVerify, app.rootCAs)
 		}
 
 		// Attach ready-to-use client to context

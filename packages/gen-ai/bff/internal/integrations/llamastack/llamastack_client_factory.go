@@ -2,6 +2,7 @@ package llamastack
 
 import (
 	"context"
+	"crypto/x509"
 
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/packages/ssestream"
@@ -27,7 +28,7 @@ type LlamaStackClientInterface interface {
 
 // LlamaStackClientFactory interface for creating LlamaStack clients
 type LlamaStackClientFactory interface {
-	CreateClient(baseURL string) LlamaStackClientInterface
+	CreateClient(baseURL string, insecureSkipVerify bool, rootCAs *x509.CertPool) LlamaStackClientInterface
 }
 
 // RealClientFactory creates real LlamaStack clients
@@ -38,7 +39,7 @@ func NewRealClientFactory() LlamaStackClientFactory {
 	return &RealClientFactory{}
 }
 
-// CreateClient creates a new real LlamaStack client with the given base URL
-func (f *RealClientFactory) CreateClient(baseURL string) LlamaStackClientInterface {
-	return NewLlamaStackClient(baseURL)
+// CreateClient creates a new real LlamaStack client with the given parameters
+func (f *RealClientFactory) CreateClient(baseURL string, insecureSkipVerify bool, rootCAs *x509.CertPool) LlamaStackClientInterface {
+	return NewLlamaStackClient(baseURL, insecureSkipVerify, rootCAs)
 }

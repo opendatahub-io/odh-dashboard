@@ -2,6 +2,7 @@ package maas
 
 import (
 	"context"
+	"crypto/x509"
 
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
@@ -15,7 +16,7 @@ type MaaSClientInterface interface {
 
 // MaaSClientFactory interface for creating MaaS clients
 type MaaSClientFactory interface {
-	CreateClient(baseURL string, authToken string) MaaSClientInterface
+	CreateClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) MaaSClientInterface
 }
 
 // RealClientFactory creates real MaaS clients
@@ -26,7 +27,7 @@ func NewRealClientFactory() MaaSClientFactory {
 	return &RealClientFactory{}
 }
 
-// CreateClient creates a new real MaaS client with the given base URL and auth token
-func (f *RealClientFactory) CreateClient(baseURL string, authToken string) MaaSClientInterface {
-	return NewHTTPMaaSClient(baseURL, authToken)
+// CreateClient creates a new real MaaS client with the given parameters
+func (f *RealClientFactory) CreateClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) MaaSClientInterface {
+	return NewHTTPMaaSClient(baseURL, authToken, insecureSkipVerify, rootCAs)
 }

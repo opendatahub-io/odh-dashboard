@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -22,16 +23,18 @@ type MCPClientFactory interface {
 
 // SimpleClientFactory creates stateless MCP clients
 type SimpleClientFactory struct {
-	Logger    *slog.Logger
-	Header    string
-	Prefix    string
-	MCPConfig *MCPClientConfig
+	Logger             *slog.Logger
+	Header             string
+	Prefix             string
+	MCPConfig          *MCPClientConfig
+	InsecureSkipVerify bool
+	RootCAs            *x509.CertPool
 }
 
 // NewMCPClientFactory creates a new MCP client factory
-func NewMCPClientFactory(cfg config.EnvConfig, logger *slog.Logger) (MCPClientFactory, error) {
+func NewMCPClientFactory(cfg config.EnvConfig, logger *slog.Logger, insecureSkipVerify bool, rootCAs *x509.CertPool) (MCPClientFactory, error) {
 	mcpConfig := createMCPConfigFromEnv()
-	return NewSimpleClientFactoryWithConfig(logger, cfg, mcpConfig), nil
+	return NewSimpleClientFactoryWithTLS(logger, cfg, mcpConfig, insecureSkipVerify, rootCAs), nil
 }
 
 // createMCPConfigFromEnv creates MCP configuration from environment variables
@@ -57,6 +60,18 @@ func NewSimpleClientFactoryWithConfig(logger *slog.Logger, cfg config.EnvConfig,
 		Header:    cfg.AuthTokenHeader,
 		Prefix:    cfg.AuthTokenPrefix,
 		MCPConfig: mcpConfig,
+	}
+}
+
+// NewSimpleClientFactoryWithTLS creates a factory with custom MCP configuration and TLS settings
+func NewSimpleClientFactoryWithTLS(logger *slog.Logger, cfg config.EnvConfig, mcpConfig *MCPClientConfig, insecureSkipVerify bool, rootCAs *x509.CertPool) *SimpleClientFactory {
+	return &SimpleClientFactory{
+		Logger:             logger,
+		Header:             cfg.AuthTokenHeader,
+		Prefix:             cfg.AuthTokenPrefix,
+		MCPConfig:          mcpConfig,
+		InsecureSkipVerify: insecureSkipVerify,
+		RootCAs:            rootCAs,
 	}
 }
 
@@ -128,7 +143,13 @@ func (f *SimpleClientFactory) ValidateRequestIdentity(identity *integrations.Req
 // GetClient creates a new MCP client instance
 func (f *SimpleClientFactory) GetClient(ctx context.Context) (MCPClientInterface, error) {
 	if f.MCPConfig != nil {
-		return NewSimpleMCPClientWithConfig(f.Logger, f.MCPConfig), nil
+		// Update transport options with TLS settings
+		f.MCPConfig.InsecureSkipVerify = f.InsecureSkipVerify
+		transportOpts := f.MCPConfig.ToTransportOptions()
+		transportOpts.RootCAs = f.RootCAs
+		// Create config with updated transport options
+		configWithTLS := *f.MCPConfig
+		return NewSimpleMCPClientWithConfigAndTLS(f.Logger, &configWithTLS, transportOpts), nil
 	}
 	return NewSimpleMCPClient(f.Logger), nil
 }

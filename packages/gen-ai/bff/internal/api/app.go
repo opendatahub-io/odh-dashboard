@@ -2,9 +2,11 @@ package api
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 	"path"
 	"strings"
 
@@ -38,10 +40,46 @@ type App struct {
 	maasClientFactory       maas.MaaSClientFactory
 	mcpClientFactory        mcp.MCPClientFactory
 	dashboardNamespace      string
+	rootCAs                 *x509.CertPool
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
-	logger.Info("Initializing app with config", slog.Any("config", cfg))
+	logger.Debug("Initializing app with config", slog.Any("config", cfg))
+	var rootCAs *x509.CertPool
+
+	// Initialize CA pool if bundle paths are provided
+	if len(cfg.BundlePaths) > 0 {
+		// Start with system certs if available
+		if pool, err := x509.SystemCertPool(); err == nil {
+			rootCAs = pool
+		} else {
+			rootCAs = x509.NewCertPool()
+		}
+		var loadedAny bool
+		for _, p := range cfg.BundlePaths {
+			p = strings.TrimSpace(p)
+			if p == "" {
+				continue
+			}
+			// Read and append each PEM bundle; ignore errors per file, log at debug
+			pemBytes, readErr := os.ReadFile(p)
+			if readErr != nil {
+				logger.Debug("CA bundle not readable, skipping", slog.String("path", p), slog.Any("error", readErr))
+				continue
+			}
+			if ok := rootCAs.AppendCertsFromPEM(pemBytes); !ok {
+				logger.Debug("No certs appended from PEM bundle", slog.String("path", p))
+				continue
+			}
+			loadedAny = true
+			logger.Info("Added CA bundle", slog.String("path", p))
+		}
+		if !loadedAny {
+			// If none were loaded successfully, keep rootCAs nil to fall back to default transport behavior
+			rootCAs = nil
+			logger.Warn("No CA certificates loaded from bundle-paths; falling back to system defaults")
+		}
+	}
 
 	// Detect dashboard namespace
 	dashboardNamespace, err := helper.GetCurrentNamespace()
@@ -109,7 +147,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		mcpFactory = mcpmocks.NewMockedMCPClientFactory(cfg, logger)
 	} else {
 		var err error
-		mcpFactory, err = mcp.NewMCPClientFactory(cfg, logger)
+		mcpFactory, err = mcp.NewMCPClientFactory(cfg, logger, cfg.InsecureSkipVerify, rootCAs)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create MCP client factory: %w", err)
 		}
@@ -125,6 +163,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		maasClientFactory:       maasClientFactory,
 		mcpClientFactory:        mcpFactory,
 		dashboardNamespace:      dashboardNamespace,
+		rootCAs:                 rootCAs,
 	}
 	return app, nil
 }
