@@ -804,19 +804,6 @@ describe('Model Serving Deploy Wizard', () => {
       { model: ServingRuntimeModel, ns: 'test-project' },
       mockK8sResourceList([mockServingRuntimeK8sResource({})]),
     );
-    cy.interceptK8s(
-      'GET',
-      { model: SecretModel, ns: 'test-project', name: 'test-model-token' },
-      {
-        statusCode: 200,
-        body: {
-          apiVersion: 'v1',
-          kind: 'Secret',
-          metadata: { name: 'test-model-token', namespace: 'test-project' },
-          data: { token: btoa('test-token') },
-        },
-      },
-    ).as('getTokenSecret');
 
     modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
@@ -1208,8 +1195,6 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelLocationSelectOption('Cluster storage').should('exist').click();
-    //modelServingWizard.findPVCSelect().should('have.value', 'Test PVC');
-    //cy.wait(1000000);
     modelServingWizard.findPVCSelectValue().should('have.value', 'Test PVC');
     modelServingWizard.findPVCPathPrefix().should('contain.text', 'pvc://test-pvc/');
     modelServingWizard.findLocationPathInput().should('have.value', 'test-path');

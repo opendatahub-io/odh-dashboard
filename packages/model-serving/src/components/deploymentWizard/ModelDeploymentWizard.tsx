@@ -6,17 +6,13 @@ import { getServingRuntimeFromTemplate } from '@odh-dashboard/internal/pages/mod
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { getGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
 import { Deployment } from 'extension-points';
-import { getDeploymentWizardExitRoute } from './utils';
+import { getDeploymentWizardExitRoute, DeployModel } from './utils';
 import { ModelDeploymentWizardData, useModelDeploymentWizard } from './useDeploymentWizard';
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
 import { ModelSourceStepContent } from './steps/ModelSourceStep';
 import { AdvancedSettingsStepContent } from './steps/AdvancedOptionsStep';
 import { ModelDeploymentStepContent } from './steps/ModelDeploymentStep';
 import { useDeployMethod } from './useDeployMethod';
-import {
-  handleConnectionCreation,
-  handleSecretOwnerReferencePatch,
-} from '../../concepts/connectionUtils';
 import { WizardFooterWithDisablingNext } from '../generic/WizardFooterWithDisablingNext';
 
 type ModelDeploymentWizardProps = {
@@ -80,9 +76,9 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         },
       });
     }
-  }, [secretName]);
+  }, [secretName, wizardState.state.createConnectionData]);
 
-  const onSave = React.useCallback(() => {
+  const onSave = React.useCallback(async () => {
     // Use existing validation to prevent submission with invalid data
     if (
       !validation.isModelSourceStepValid ||
@@ -104,78 +100,26 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         )
       : undefined;
 
-    Promise.all([
-      handleConnectionCreation(
-        wizardState.state.createConnectionData.data,
-        project.metadata.name,
-        wizardState.state.modelLocationData.data,
-        secretName,
-        true,
-        wizardState.state.modelLocationData.selectedConnection,
-      ),
-      deployMethod.properties.deploy(
-        wizardState.state,
-        project.metadata.name,
-        existingDeployment,
-        serverResource,
-        serverResourceTemplateName,
-        true,
-      ),
-    ]).then(([dryRunSecret]) => {
-      // We calculate the secret name being used in handleConnectionCreation and ensure the same name is used in the deploy and secret creation calls
-      const realSecretName = dryRunSecret?.metadata.name ?? secretName;
-
-      return handleConnectionCreation(
-        wizardState.state.createConnectionData.data,
-        project.metadata.name,
-        wizardState.state.modelLocationData.data,
-        realSecretName,
-        false,
-        wizardState.state.modelLocationData.selectedConnection,
-      ).then((newSecret) => {
-        // This just takes the name from the secret that was created and uses realSecretName as a fallback but they should be the same
-        const actualSecretName = newSecret?.metadata.name ?? realSecretName;
-        Promise.all([
-          deployMethod.properties.deploy(
-            wizardState.state,
-            project.metadata.name,
-            existingDeployment,
-            serverResource,
-            serverResourceTemplateName,
-            false,
-            actualSecretName,
-          ),
-        ]).then(([deploymentResult]) => {
-          if (!wizardState.state.modelLocationData.data) {
-            return;
-          }
-
-          return handleSecretOwnerReferencePatch(
-            wizardState.state.createConnectionData.data,
-            deploymentResult.model,
-            wizardState.state.modelLocationData.data,
-            actualSecretName,
-            deploymentResult.model.metadata.uid ?? '',
-            false,
-          )
-            .then(() => {
-              exitWizard();
-            })
-            .catch((error) => {
-              console.error('Deployment or patching failed,', error);
-              exitWizard();
-            });
-        });
-      });
-    });
+    DeployModel(
+      wizardState,
+      project,
+      secretName,
+      exitWizard,
+      deployMethod.properties.deploy,
+      existingDeployment,
+      serverResource,
+      serverResourceTemplateName,
+    );
   }, [
+    deployMethod,
+    deployMethodLoaded,
+    existingDeployment,
     exitWizard,
     project.metadata.name,
-    deployMethodLoaded,
-    deployMethod,
-    wizardState.state,
-    validation.isModelSourceStepValid,
+    secretName,
     validation.isModelDeploymentStepValid,
+    validation.isModelSourceStepValid,
+    wizardState.state,
   ]);
 
   return (
