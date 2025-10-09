@@ -1,12 +1,10 @@
 import React from 'react';
 import { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { useParams } from 'react-router-dom';
-import { K8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/types';
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { extractK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
 import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
-import { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { useModelFormatField } from './fields/ModelFormatField';
 import { useModelTypeField, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
@@ -45,26 +43,6 @@ import {
 } from './fields/CreateConnectionInputFields';
 import { useExtensionStateModifier } from './dynamicFormUtils';
 
-export type ModelDeploymentWizardData = {
-  modelTypeField?: ModelTypeFieldData;
-  k8sNameDesc?: K8sNameDescriptionFieldData;
-  externalRoute?: ExternalRouteFieldData;
-  tokenAuthentication?: TokenAuthenticationFieldData;
-  numReplicas?: NumReplicasFieldData;
-  runtimeArgs?: RuntimeArgsFieldData;
-  environmentVariables?: EnvironmentVariablesFieldData;
-  hardwareProfile?: Parameters<typeof useHardwareProfileConfig>;
-  modelFormat?: SupportedModelFormats;
-  modelLocationData?: ModelLocationData;
-  modelServer?: ModelServerOption;
-  isEditing?: boolean;
-  connections?: LabeledConnection[];
-  initSelectedConnection?: LabeledConnection | undefined;
-  aiAssetData?: ModelAvailabilityFieldsData;
-  createConnectionData?: CreateConnectionData;
-  // Add more field handlers as needed
-};
-
 export type UseModelDeploymentWizardState = WizardFormData & {
   loaded: {
     modelSourceLoaded: boolean;
@@ -83,7 +61,7 @@ export type UseModelDeploymentWizardState = WizardFormData & {
 };
 
 export const useModelDeploymentWizard = (
-  initialData?: ModelDeploymentWizardData,
+  initialData?: InitialWizardFormData,
 ): UseModelDeploymentWizardState => {
   // Step 1: Model Source
   const modelType = useModelTypeField(initialData?.modelTypeField);
@@ -168,7 +146,7 @@ export const useModelDeploymentWizard = (
   const modelAvailability = useExtensionStateModifier(
     'modelAvailability',
     useModelAvailabilityFields,
-    [initialData?.aiAssetData, modelType.data],
+    [initialData?.modelAvailability, modelType.data],
     {
       modelType,
       modelServer,

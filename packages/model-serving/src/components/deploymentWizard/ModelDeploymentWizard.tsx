@@ -7,19 +7,20 @@ import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { getGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
 import { Deployment } from 'extension-points';
 import { getDeploymentWizardExitRoute, deployModel } from './utils';
-import { ModelDeploymentWizardData, useModelDeploymentWizard } from './useDeploymentWizard';
+import { useModelDeploymentWizard } from './useDeploymentWizard';
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
 import { ModelSourceStepContent } from './steps/ModelSourceStep';
 import { AdvancedSettingsStepContent } from './steps/AdvancedOptionsStep';
 import { ModelDeploymentStepContent } from './steps/ModelDeploymentStep';
 import { useDeployMethod } from './useDeployMethod';
+import type { InitialWizardFormData } from './types';
 import { WizardFooterWithDisablingNext } from '../generic/WizardFooterWithDisablingNext';
 
 type ModelDeploymentWizardProps = {
   title: string;
   description?: string;
   primaryButtonText: string;
-  existingData?: ModelDeploymentWizardData;
+  existingData?: InitialWizardFormData;
   project: ProjectKind;
   existingDeployment?: Deployment;
 };

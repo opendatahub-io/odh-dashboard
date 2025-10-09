@@ -70,20 +70,3 @@ export const useExtensionStateModifier = <
     return originalOutput;
   }, [extensionFields, fieldId, hookArgs, originalOutput, formData]);
 };
-
-/**
- * Wraps a component in an effect that will call the callback when the component is unmounted.
- * This should help overuse of useEffect to where it is not needed.
- */
-export const OnUnRender: React.FC<{
-  children: React.ReactNode;
-  callback: () => void;
-}> = ({ children, callback }) => {
-  React.useEffect(() => {
-    return () => {
-      callback();
-    };
-  }, [callback]);
-
-  return children;
-};

@@ -73,7 +73,11 @@ const extensions: (
     type: 'model-serving.deployment/wizard-field',
     properties: {
       platform: LLMD_SERVING_ID,
-      field: () => import('../src/wizardFields/modelAvailablilty').then((m) => m.modelServerField),
+      field: () =>
+        import('../src/wizardFields/modelAvailablilty').then((m) => m.modelAvailabilityField),
+    },
+    flags: {
+      required: ['model-as-service'],
     },
   },
   {

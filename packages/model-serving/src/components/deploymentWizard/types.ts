@@ -10,23 +10,6 @@ import type { useExternalRouteField } from './fields/ExternalRouteField';
 import type { ModelDeploymentWizardData } from './useDeploymentWizard';
 import type { useModelAvailabilityFields } from './fields/ModelAvailabilityFields';
 import type { useEnvironmentVariablesField } from './fields/EnvironmentVariablesField';
-import type { K8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/types';
-import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
-import type { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
-import type {
-  ModelServerOption,
-  useModelServerSelectField,
-} from './fields/ModelServerTemplateSelectField';
-import type { ModelTypeFieldData, useModelTypeField } from './fields/ModelTypeSelectField';
-import type { ExternalRouteFieldData, useExternalRouteField } from './fields/ExternalRouteField';
-import type {
-  ModelAvailabilityFieldsData,
-  useModelAvailabilityFields,
-} from './fields/ModelAvailabilityFields';
-import type {
-  EnvironmentVariablesFieldData,
-  useEnvironmentVariablesField,
-} from './fields/EnvironmentVariablesField';
 import type { useModelFormatField } from './fields/ModelFormatField';
 import type { useModelLocationData } from './fields/ModelLocationInputFields';
 import type { NumReplicasFieldData, useNumReplicasField } from './fields/NumReplicasField';

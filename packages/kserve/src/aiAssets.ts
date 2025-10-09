@@ -1,6 +1,6 @@
 import { KServeDeployment } from './deployments';
 
-export const extractAiAssetData = (
+export const extractModelAvailabilityData = (
   kserveDeployment: KServeDeployment,
 ): { saveAsAiAsset: boolean; useCase: string } => {
   return {

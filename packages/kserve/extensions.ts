@@ -130,7 +130,8 @@ const extensions: (
       extractRuntimeArgs: () => import('./src/hardware').then((m) => m.extractRuntimeArgs),
       extractEnvironmentVariables: () =>
         import('./src/hardware').then((m) => m.extractEnvironmentVariables),
-      extractAiAssetData: () => import('./src/aiAssets').then((m) => m.extractAiAssetData),
+      extractModelAvailabilityData: () =>
+        import('./src/aiAssets').then((m) => m.extractModelAvailabilityData),
       extractModelLocationData: () =>
         import('./src/modelLocationData').then((m) => m.extractKServeModelLocationData),
     },
