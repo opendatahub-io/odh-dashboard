@@ -60,3 +60,6 @@ export const HARDWARE_PROFILE_BINDING_CONFIG: Record<
     },
   },
 };
+
+export const HARDWARE_PROFILE_SELECTION_HELP =
+  'Selecting a hardware profile allows you to match the hardware requirements of your workload to available node resources.';
