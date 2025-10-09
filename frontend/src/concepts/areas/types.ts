@@ -106,6 +106,7 @@ export enum StackComponent {
   TRAINING_OPERATOR = 'trainingoperator',
   MODEL_REGISTRY = 'model-registry-operator',
   FEAST_OPERATOR = 'feastoperator',
+  LLAMA_STACK_OPERATOR = 'llamastackoperator',
 }
 
 /** The possible component names that are used as keys in the `components` object of the DSC Status.

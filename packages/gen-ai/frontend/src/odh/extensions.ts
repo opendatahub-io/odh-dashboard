@@ -1,3 +1,4 @@
+import { StackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import type {
   NavExtension,
   RouteExtension,
@@ -18,6 +19,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     type: 'app.area',
     properties: {
       id: PLUGIN_GEN_AI,
+      requiredComponents: [StackComponent.LLAMA_STACK_OPERATOR],
       devFlags: ['Gen AI plugin'],
     },
   },
