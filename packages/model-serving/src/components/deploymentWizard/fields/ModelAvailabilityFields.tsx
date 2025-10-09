@@ -15,11 +15,10 @@ import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ModelTypeFieldData } from './ModelTypeSelectField';
-import { OnUnRender } from '../dynamicFormUtils';
 
 export type ModelAvailabilityFieldsData = {
   saveAsAiAsset: boolean;
-  saveAsMaaS: boolean;
+  saveAsMaaS?: boolean;
   useCase?: string;
 };
 
@@ -27,7 +26,7 @@ export type ModelAvailabilityFields = {
   data: ModelAvailabilityFieldsData;
   setData: (data: ModelAvailabilityFieldsData) => void;
   showField: boolean;
-  showSaveAsMaaS: boolean;
+  showSaveAsMaaS?: boolean;
 };
 
 export const isValidModelAvailabilityFieldsData = (): boolean => {
@@ -46,7 +45,7 @@ export const useModelAvailabilityFields = (
   const [data, setData] = React.useState<ModelAvailabilityFieldsData>(
     existingData ?? {
       saveAsAiAsset: false,
-      saveAsMaaS: false,
+      saveAsMaaS: undefined,
       useCase: '',
     },
   );
@@ -55,7 +54,7 @@ export const useModelAvailabilityFields = (
     if (modelType && modelType !== ServingRuntimeModelType.GENERATIVE) {
       return {
         saveAsAiAsset: false,
-        saveAsMaaS: false,
+        saveAsMaaS: undefined,
         useCase: '',
       };
     }
@@ -66,14 +65,13 @@ export const useModelAvailabilityFields = (
     data: AiAssetData,
     setData,
     showField: modelType === ServingRuntimeModelType.GENERATIVE,
-    showSaveAsMaaS: false, // Hide by default, unless an extension modifies it
   };
 };
 
 type AvailableAiAssetsFieldsComponentProps = {
   data: ModelAvailabilityFieldsData;
   setData: (data: ModelAvailabilityFieldsData) => void;
-  showSaveAsMaaS: boolean;
+  showSaveAsMaaS?: boolean;
 };
 
 export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsComponentProps> = ({
@@ -127,26 +125,22 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
             />
           </StackItem>
           {showSaveAsMaaS && (
-            <OnUnRender callback={() => setData({ ...data, saveAsMaaS: false })}>
-              <StackItem>
-                <Checkbox
-                  id="save-as-maas-checkbox"
-                  data-testid="save-as-maas-checkbox"
-                  label={
-                    <Flex>
-                      <FlexItem>Make this deployment available as a MaaS asset</FlexItem>
-                      <Label isCompact color="yellow" variant="outline">
-                        Developer Preview
-                      </Label>
-                    </Flex>
-                  }
-                  isChecked={data.saveAsMaaS}
-                  onChange={(_, checked) =>
-                    setDataWithClearUseCase({ ...data, saveAsMaaS: checked })
-                  }
-                />
-              </StackItem>
-            </OnUnRender>
+            <StackItem>
+              <Checkbox
+                id="save-as-maas-checkbox"
+                data-testid="save-as-maas-checkbox"
+                label={
+                  <Flex>
+                    <FlexItem>Make this deployment available as a MaaS asset</FlexItem>
+                    <Label isCompact color="yellow" variant="outline">
+                      Developer Preview
+                    </Label>
+                  </Flex>
+                }
+                isChecked={data.saveAsMaaS}
+                onChange={(_, checked) => setDataWithClearUseCase({ ...data, saveAsMaaS: checked })}
+              />
+            </StackItem>
           )}
           {(data.saveAsAiAsset || (showSaveAsMaaS && data.saveAsMaaS)) && (
             <StackItem>

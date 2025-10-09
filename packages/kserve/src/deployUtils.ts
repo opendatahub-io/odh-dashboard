@@ -37,7 +37,7 @@ import {
   ModelServingCompatibleTypes,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import type { CreatingInferenceServiceObject } from './deployModel';
-import type { AvailableAiAssetsFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/AvailableAiAssetsFields';
+import type { ModelAvailabilityFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/ModelAvailabilityFields';
 import type { RuntimeArgsFieldData } from '../../model-serving/src/components/deploymentWizard/fields/RuntimeArgsField';
 import type { EnvironmentVariablesFieldData } from '../../model-serving/src/components/deploymentWizard/fields/EnvironmentVariablesField';
 import { CreateConnectionData } from '../../model-serving/src/components/deploymentWizard/fields/CreateConnectionInputFields';
@@ -199,7 +199,7 @@ export const applyAuth = (
 
 export const applyAiAvailableAssetAnnotations = (
   inferenceService: InferenceServiceKind,
-  aiAvailableAsset: AvailableAiAssetsFieldsData,
+  aiAvailableAsset: ModelAvailabilityFieldsData,
 ): InferenceServiceKind => {
   const result = structuredClone(inferenceService);
   result.metadata.annotations = {

@@ -1,62 +1,24 @@
 import React from 'react';
 import { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { useParams } from 'react-router-dom';
-import { K8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/types';
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { extractK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
 import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
-import { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { useModelFormatField } from './fields/ModelFormatField';
-import { ModelLocationData } from './fields/modelLocationFields/types';
-import { useModelTypeField, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
+import { useModelTypeField } from './fields/ModelTypeSelectField';
 import { useModelLocationData } from './fields/ModelLocationInputFields';
-import { useExternalRouteField, type ExternalRouteFieldData } from './fields/ExternalRouteField';
-import {
-  useTokenAuthenticationField,
-  type TokenAuthenticationFieldData,
-} from './fields/TokenAuthenticationField';
-import { useNumReplicasField, type NumReplicasFieldData } from './fields/NumReplicasField';
-import { useRuntimeArgsField, type RuntimeArgsFieldData } from './fields/RuntimeArgsField';
-import {
-  useEnvironmentVariablesField,
-  type EnvironmentVariablesFieldData,
-} from './fields/EnvironmentVariablesField';
-import {
-  ModelAvailabilityFieldsData,
-  useModelAvailabilityFields,
-} from './fields/ModelAvailabilityFields';
-import {
-  useModelServerSelectField,
-  type ModelServerOption,
-} from './fields/ModelServerTemplateSelectField';
-import { type WizardFormData } from './types';
-import {
-  useCreateConnectionData,
-  type CreateConnectionData,
-} from './fields/CreateConnectionInputFields';
+import { useExternalRouteField } from './fields/ExternalRouteField';
+import { useTokenAuthenticationField } from './fields/TokenAuthenticationField';
+import { useNumReplicasField } from './fields/NumReplicasField';
+import { useRuntimeArgsField } from './fields/RuntimeArgsField';
+import { useEnvironmentVariablesField } from './fields/EnvironmentVariablesField';
+import { useModelAvailabilityFields } from './fields/ModelAvailabilityFields';
+import { useModelServerSelectField } from './fields/ModelServerTemplateSelectField';
+import { type InitialWizardFormData, type WizardFormData } from './types';
+import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
 import { useExtensionStateModifier } from './dynamicFormUtils';
-
-export type ModelDeploymentWizardData = {
-  modelTypeField?: ModelTypeFieldData;
-  k8sNameDesc?: K8sNameDescriptionFieldData;
-  externalRoute?: ExternalRouteFieldData;
-  tokenAuthentication?: TokenAuthenticationFieldData;
-  numReplicas?: NumReplicasFieldData;
-  runtimeArgs?: RuntimeArgsFieldData;
-  environmentVariables?: EnvironmentVariablesFieldData;
-  hardwareProfile?: Parameters<typeof useHardwareProfileConfig>;
-  modelFormat?: SupportedModelFormats;
-  modelLocationData?: ModelLocationData;
-  modelServer?: ModelServerOption;
-  isEditing?: boolean;
-  connections?: LabeledConnection[];
-  initSelectedConnection?: LabeledConnection | undefined;
-  aiAssetData?: ModelAvailabilityFieldsData;
-  createConnectionData?: CreateConnectionData;
-  // Add more field handlers as needed
-};
 
 export type UseModelDeploymentWizardState = WizardFormData & {
   loaded: {
@@ -68,7 +30,7 @@ export type UseModelDeploymentWizardState = WizardFormData & {
 };
 
 export const useModelDeploymentWizard = (
-  initialData?: ModelDeploymentWizardData,
+  initialData?: InitialWizardFormData,
 ): UseModelDeploymentWizardState => {
   // Step 1: Model Source
   const modelType = useModelTypeField(initialData?.modelTypeField);
@@ -158,7 +120,7 @@ export const useModelDeploymentWizard = (
   const modelAvailability = useExtensionStateModifier(
     'modelAvailability',
     useModelAvailabilityFields,
-    [initialData?.aiAssetData, modelType.data],
+    [initialData?.modelAvailability, modelType.data],
     {
       modelType,
       modelServer,

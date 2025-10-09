@@ -5,6 +5,7 @@ import { applyHardwareProfileConfig, applyReplicas } from './hardware';
 import { applyModelEnvVars, applyModelArgs, applyModelLocation } from './model';
 import { LLMD_SERVING_ID } from '../../extensions/extensions';
 import { LLMdDeployment, LLMInferenceServiceKind, LLMInferenceServiceModel } from '../types';
+import { applyModelAvailabilityData } from '../wizardFields/modelAvailablilty';
 
 export const isLLMdDeployActive = (wizardData: WizardFormData['state']): boolean => {
   return wizardData.modelServer.data?.name === LLMD_SERVING_ID;
@@ -36,6 +37,7 @@ type CreateLLMdInferenceServiceParams = {
   replicas?: number;
   runtimeArgs?: string[];
   environmentVariables?: { name: string; value: string }[];
+  modelAvailability?: WizardFormData['state']['modelAvailability']['data'];
 };
 
 const assembleLLMdInferenceServiceKind = ({
@@ -49,6 +51,7 @@ const assembleLLMdInferenceServiceKind = ({
   replicas = 1,
   runtimeArgs,
   environmentVariables,
+  modelAvailability,
 }: CreateLLMdInferenceServiceParams): LLMInferenceServiceKind => {
   let llmdInferenceService: LLMInferenceServiceKind = {
     apiVersion: 'serving.kserve.io/v1alpha1',
@@ -84,6 +87,7 @@ const assembleLLMdInferenceServiceKind = ({
   llmdInferenceService = applyReplicas(llmdInferenceService, replicas);
   llmdInferenceService = applyModelArgs(llmdInferenceService, runtimeArgs);
   llmdInferenceService = applyModelEnvVars(llmdInferenceService, environmentVariables);
+  llmdInferenceService = applyModelAvailabilityData(llmdInferenceService, modelAvailability);
 
   return llmdInferenceService;
 };
@@ -108,6 +112,7 @@ export const deployLLMdDeployment = async (
     replicas: wizardData.numReplicas.data,
     runtimeArgs: wizardData.runtimeArgs.data?.args,
     environmentVariables: wizardData.environmentVariables.data?.variables,
+    modelAvailability: wizardData.modelAvailability.data,
   });
 
   const llmdInferenceService = await createLLMdInferenceServiceKind(

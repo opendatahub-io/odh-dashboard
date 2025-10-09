@@ -1,22 +1,60 @@
 import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import type { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import type { useModelServerSelectField } from './fields/ModelServerTemplateSelectField';
-import type { useModelTypeField } from './fields/ModelTypeSelectField';
-import type { useExternalRouteField } from './fields/ExternalRouteField';
-import type { ModelDeploymentWizardData } from './useDeploymentWizard';
-import type { useModelAvailabilityFields } from './fields/ModelAvailabilityFields';
-import type { useEnvironmentVariablesField } from './fields/EnvironmentVariablesField';
+import type { K8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/types';
+import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
+import type { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import type {
+  ModelServerOption,
+  useModelServerSelectField,
+} from './fields/ModelServerTemplateSelectField';
+import type { ModelTypeFieldData, useModelTypeField } from './fields/ModelTypeSelectField';
+import type { ExternalRouteFieldData, useExternalRouteField } from './fields/ExternalRouteField';
+import type {
+  ModelAvailabilityFieldsData,
+  useModelAvailabilityFields,
+} from './fields/ModelAvailabilityFields';
+import type {
+  EnvironmentVariablesFieldData,
+  useEnvironmentVariablesField,
+} from './fields/EnvironmentVariablesField';
 import type { useModelFormatField } from './fields/ModelFormatField';
 import type { useModelLocationData } from './fields/ModelLocationInputFields';
-import type { useNumReplicasField } from './fields/NumReplicasField';
-import type { useRuntimeArgsField } from './fields/RuntimeArgsField';
-import type { useTokenAuthenticationField } from './fields/TokenAuthenticationField';
-import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
+import type { NumReplicasFieldData, useNumReplicasField } from './fields/NumReplicasField';
+import type { RuntimeArgsFieldData, useRuntimeArgsField } from './fields/RuntimeArgsField';
+import type {
+  TokenAuthenticationFieldData,
+  useTokenAuthenticationField,
+} from './fields/TokenAuthenticationField';
+import type { ModelLocationData } from './fields/modelLocationFields/types';
+import {
+  useCreateConnectionData,
+  type CreateConnectionData,
+} from './fields/CreateConnectionInputFields';
 
 // wizard form data
 
+export type InitialWizardFormData = {
+  modelTypeField?: ModelTypeFieldData;
+  k8sNameDesc?: K8sNameDescriptionFieldData;
+  externalRoute?: ExternalRouteFieldData;
+  tokenAuthentication?: TokenAuthenticationFieldData;
+  numReplicas?: NumReplicasFieldData;
+  runtimeArgs?: RuntimeArgsFieldData;
+  environmentVariables?: EnvironmentVariablesFieldData;
+  hardwareProfile?: Parameters<typeof useHardwareProfileConfig>;
+  modelFormat?: SupportedModelFormats;
+  modelLocationData?: ModelLocationData;
+  modelServer?: ModelServerOption;
+  isEditing?: boolean;
+  connections?: LabeledConnection[];
+  initSelectedConnection?: LabeledConnection | undefined;
+  modelAvailability?: ModelAvailabilityFieldsData;
+  createConnectionData?: CreateConnectionData;
+  // Add more field handlers as needed
+};
+
 export type WizardFormData = {
-  initialData?: ModelDeploymentWizardData;
+  initialData?: InitialWizardFormData;
   state: {
     modelType: ReturnType<typeof useModelTypeField>;
     k8sNameDesc: ReturnType<typeof useK8sNameDescriptionFieldData>;
