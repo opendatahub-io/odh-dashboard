@@ -6,7 +6,7 @@ import { getServingRuntimeFromTemplate } from '@odh-dashboard/internal/pages/mod
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { getGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
 import { Deployment } from 'extension-points';
-import { getDeploymentWizardExitRoute, DeployModel } from './utils';
+import { getDeploymentWizardExitRoute, deployModel } from './utils';
 import { ModelDeploymentWizardData, useModelDeploymentWizard } from './useDeploymentWizard';
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
 import { ModelSourceStepContent } from './steps/ModelSourceStep';
@@ -100,7 +100,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         )
       : undefined;
 
-    DeployModel(
+    deployModel(
       wizardState,
       project,
       secretName,

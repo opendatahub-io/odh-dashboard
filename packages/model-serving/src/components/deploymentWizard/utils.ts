@@ -72,7 +72,7 @@ export const getTokenAuthenticationFromDeployment = (
   return tokens;
 };
 
-export const DeployModel = async (
+export const deployModel = async (
   wizardState: WizardFormData,
   project: ProjectKind,
   secretName: string,
