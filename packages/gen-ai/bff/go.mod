@@ -10,7 +10,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/kserve/kserve v0.16.0-rc0
-	github.com/llamastack/llama-stack-k8s-operator v0.2.0
+	github.com/llamastack/llama-stack-k8s-operator v0.3.0
 	github.com/modelcontextprotocol/go-sdk v0.3.1
 	github.com/onsi/ginkgo/v2 v2.23.3
 	github.com/onsi/gomega v1.36.3
