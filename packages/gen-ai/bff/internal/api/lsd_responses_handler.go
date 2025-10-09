@@ -6,12 +6,15 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
 // Supported streaming event types that we want to process for the Gen AI API
@@ -242,14 +245,87 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 					app.logger.Warn("Failed to retrieve model provider info for custom headers",
 						"model", createRequest.Model,
 						"error", err)
-				} else if providerInfo != nil && providerInfo.APIToken != "" && providerInfo.APIToken != "fake" {
-					// Inject vllm_api_token from model provider configuration
-					providerData = map[string]interface{}{
-						"vllm_api_token": providerInfo.APIToken,
+				} else if providerInfo != nil {
+					// Check if this is a MaaS model (provider_id starts with "maas-")
+					isMaaSModel := strings.HasPrefix(providerInfo.ProviderID, "maas-")
+
+					if isMaaSModel {
+						app.logger.Debug("Detected MaaS model, checking token cache",
+							"model", createRequest.Model,
+							"provider_id", providerInfo.ProviderID,
+							"provider_type", providerInfo.ProviderType,
+							"url", providerInfo.URL)
+
+						// Get username from Kubernetes token
+						username, err := k8sClient.GetUser(ctx, identity)
+						if err != nil {
+							app.logger.Warn("Failed to get username from token, skipping cache",
+								"model", createRequest.Model,
+								"error", err)
+							// Continue without caching - graceful degradation
+						} else if username == "" {
+							app.logger.Warn("Empty username returned, skipping cache",
+								"model", createRequest.Model)
+						} else {
+							// Check cache for existing token
+							var maasToken string
+							cachedValue, found := app.memoryStore.Get(namespace.(string), username, "access_tokens", createRequest.Model)
+
+							if found {
+								// Cache HIT - use cached token
+								app.logger.Debug("Using cached MaaS token",
+									"model", createRequest.Model,
+									"username", username)
+								maasToken = cachedValue.(string)
+							} else {
+								// Cache MISS - request new token from MaaS API
+								app.logger.Debug("Cache miss, requesting new MaaS token",
+									"model", createRequest.Model,
+									"username", username)
+
+								tokenResponse, err := app.repositories.MaaSModels.IssueToken(ctx, models.MaaSTokenRequest{
+									TTL: "30m", // 30 minutes as requested
+								})
+								if err != nil {
+									app.logger.Warn("Failed to issue MaaS token, proceeding without custom headers",
+										"model", createRequest.Model,
+										"error", err)
+									// Continue without token - graceful degradation
+								} else {
+									maasToken = tokenResponse.Token
+
+									// Store in cache with 30-minute TTL
+									cacheErr := app.memoryStore.Set(namespace.(string), username, "access_tokens", createRequest.Model, maasToken, 30*time.Minute)
+									if cacheErr != nil {
+										app.logger.Warn("Failed to cache MaaS token",
+											"model", createRequest.Model,
+											"error", cacheErr)
+									} else {
+										app.logger.Debug("Cached new MaaS token",
+											"model", createRequest.Model,
+											"username", username,
+											"expiresAt", tokenResponse.ExpiresAt)
+									}
+								}
+							}
+
+							// Inject MaaS provider data as custom headers (if we have a token)
+							if maasToken != "" {
+								providerData = map[string]interface{}{
+									"api_token": maasToken,
+									"url":       providerInfo.URL,
+								}
+
+								app.logger.Debug("Injected MaaS provider data",
+									"model", createRequest.Model,
+									"provider_id", providerInfo.ProviderID)
+							}
+						}
+					} else {
+						app.logger.Debug("Non-MaaS model detected, skipping custom headers",
+							"model", createRequest.Model,
+							"provider_id", providerInfo.ProviderID)
 					}
-					app.logger.Debug("Injecting provider data for model",
-						"model", createRequest.Model,
-						"provider_id", providerInfo.ProviderID)
 				}
 			}
 		}

@@ -1177,16 +1177,22 @@ func (kc *TokenKubernetesClient) GetModelProviderInfo(ctx context.Context, ident
 	return kc.parseModelProviderFromYAML(runYAML, modelID)
 }
 
-// parseModelProviderFromYAML parses the run.yaml to extract model provider configuration
+// parseModelProviderFromYAML parses the LlamaStack configuration YAML to extract model provider configuration
+// This is a two-step process:
+// 1. Find the model in the models section and get its provider_id
+// 2. Find that provider_id in the providers.inference section and get provider_type and url
 func (kc *TokenKubernetesClient) parseModelProviderFromYAML(runYAML string, modelID string) (*ModelProviderInfo, error) {
 	lines := strings.Split(runYAML, "\n")
 
-	// Simple YAML parsing - find model section and its provider_id
+	// STEP 1: Find the model in the models section and extract its provider_id
+	// Example:
+	//   models:
+	//     - model_id: llama-32-3b-instruct
+	//       provider_id: vllm-inference-1  <-- We need this
 	var providerID string
 	inModelsSection := false
-	inCurrentModel := false
 
-	for _, line := range lines {
+	for i, line := range lines {
 		trimmed := strings.TrimSpace(line)
 
 		if strings.HasPrefix(trimmed, "models:") {
@@ -1194,20 +1200,34 @@ func (kc *TokenKubernetesClient) parseModelProviderFromYAML(runYAML string, mode
 			continue
 		}
 
-		if inModelsSection && strings.HasPrefix(line, "  - ") {
-			inCurrentModel = true
+		if !inModelsSection {
 			continue
 		}
 
-		if inCurrentModel && strings.Contains(trimmed, "model_id:") {
+		// Exit models section if we hit another top-level section
+		if strings.HasPrefix(line, "shields:") || strings.HasPrefix(line, "vector_dbs:") || strings.HasPrefix(line, "providers:") {
+			break
+		}
+
+		// Check if this line contains model_id
+		if strings.Contains(trimmed, "model_id:") {
 			parts := strings.SplitN(trimmed, ":", 2)
 			if len(parts) == 2 {
 				foundModelID := strings.TrimSpace(parts[1])
 				if foundModelID == modelID {
-					// Found our model, continue to find provider_id
-					for _, nextLine := range lines {
-						if strings.Contains(nextLine, "provider_id:") {
-							providerParts := strings.SplitN(nextLine, ":", 2)
+					// Found our model, now find provider_id in the lines following this model
+					// Stop when we hit the next model entry (  - ) or exit the models section
+					for j := i + 1; j < len(lines); j++ {
+						nextLine := lines[j]
+						nextTrimmed := strings.TrimSpace(nextLine)
+
+						// Stop if we hit another model or exit models section
+						if strings.HasPrefix(nextLine, "  - ") || strings.HasPrefix(nextLine, "shields:") || strings.HasPrefix(nextLine, "vector_dbs:") {
+							break
+						}
+
+						if strings.Contains(nextTrimmed, "provider_id:") {
+							providerParts := strings.SplitN(nextTrimmed, ":", 2)
 							if len(providerParts) == 2 {
 								providerID = strings.TrimSpace(providerParts[1])
 								break
@@ -1217,11 +1237,6 @@ func (kc *TokenKubernetesClient) parseModelProviderFromYAML(runYAML string, mode
 					break
 				}
 			}
-			inCurrentModel = false
-		}
-
-		if strings.HasPrefix(line, "providers:") {
-			inModelsSection = false
 		}
 	}
 
@@ -1229,11 +1244,19 @@ func (kc *TokenKubernetesClient) parseModelProviderFromYAML(runYAML string, mode
 		return nil, fmt.Errorf("provider not found for model %s", modelID)
 	}
 
-	// Now find the provider configuration
+	// STEP 2: Find the provider configuration in providers.inference section
+	// Example:
+	//   providers:
+	//     inference:
+	//       - provider_id: vllm-inference-1     <-- Match this with the provider_id from step 1
+	//         provider_type: remote::vllm       <-- Extract this
+	//         config:
+	//           url: http://...                 <-- Extract this from config
 	inProvidersSection := false
 	inInferenceSection := false
 	inTargetProvider := false
-	var url, apiToken, providerType string
+	inConfigSection := false
+	var url, providerType string
 
 	for i, line := range lines {
 		trimmed := strings.TrimSpace(line)
@@ -1255,6 +1278,7 @@ func (kc *TokenKubernetesClient) parseModelProviderFromYAML(runYAML string, mode
 				continue
 			} else {
 				inTargetProvider = false
+				inConfigSection = false
 			}
 		}
 
@@ -1265,18 +1289,20 @@ func (kc *TokenKubernetesClient) parseModelProviderFromYAML(runYAML string, mode
 					providerType = strings.TrimSpace(parts[1])
 				}
 			}
-			if strings.Contains(trimmed, "url:") {
+
+			// Detect config section
+			if strings.Contains(trimmed, "config:") {
+				inConfigSection = true
+				continue
+			}
+
+			// Extract URL from config section only
+			if inConfigSection && strings.Contains(trimmed, "url:") {
 				parts := strings.SplitN(trimmed, ":", 2)
 				if len(parts) >= 2 {
-					// Reconstruct URL (may contain colons)
+					// Reconstruct URL (may contain colons like http://...)
 					urlValue := strings.Join(parts[1:], ":")
 					url = cleanEnvVar(strings.TrimSpace(urlValue))
-				}
-			}
-			if strings.Contains(trimmed, "api_token:") {
-				parts := strings.SplitN(trimmed, ":", 2)
-				if len(parts) == 2 {
-					apiToken = cleanEnvVar(strings.TrimSpace(parts[1]))
 				}
 			}
 
@@ -1292,7 +1318,6 @@ func (kc *TokenKubernetesClient) parseModelProviderFromYAML(runYAML string, mode
 		ProviderID:   providerID,
 		ProviderType: providerType,
 		URL:          url,
-		APIToken:     apiToken,
 	}, nil
 }
 

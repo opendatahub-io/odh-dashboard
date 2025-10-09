@@ -3,15 +3,26 @@ package kubernetes
 import (
 	"context"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/testutil"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	authv1 "k8s.io/api/authorization/v1"
 	"k8s.io/client-go/rest"
 )
+
+// loadTestData loads test fixture files from the testdata directory
+func loadTestData(t *testing.T, filename string) string {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join("testdata", filename))
+	require.NoError(t, err, "failed to load test data file: %s", filename)
+	return string(data)
+}
 
 func TestCanListLlamaStackDistributions(t *testing.T) {
 	t.Run("should create proper SAR request for LlamaStackDistribution resources", func(t *testing.T) {
@@ -135,4 +146,131 @@ func TestCanListLlamaStackDistributionsSARStructure(t *testing.T) {
 		assert.Equal(t, "llamastackdistributions", sar.Spec.ResourceAttributes.Resource)
 		assert.Equal(t, "test-namespace", sar.Spec.ResourceAttributes.Namespace)
 	})
+}
+
+func TestParseModelProviderFromYAML(t *testing.T) {
+	// Load test data from testdata directory
+	mockLlamaStackConfigYAML := loadTestData(t, "llama_stack_config.yaml")
+
+	// Create a TokenKubernetesClient instance for testing
+	kc := &TokenKubernetesClient{}
+
+	tests := []struct {
+		name                 string
+		modelID              string
+		expectedProviderID   string
+		expectedProviderType string
+		expectedURL          string
+		expectError          bool
+	}{
+		{
+			name:                 "Extract vLLM model (non-MaaS)",
+			modelID:              "llama-32-3b-instruct",
+			expectedProviderID:   "vllm-inference-1",
+			expectedProviderType: "remote::vllm",
+			expectedURL:          "http://llama-32-3b-instruct-predictor.crimson-show.svc.cluster.local/v1",
+			expectError:          false,
+		},
+		{
+			name:                 "Extract embedding model",
+			modelID:              "granite-embedding-125m",
+			expectedProviderID:   "sentence-transformers",
+			expectedProviderType: "inline::sentence-transformers",
+			expectedURL:          "", // No URL in config for this provider
+			expectError:          false,
+		},
+		{
+			name:                 "Extract MaaS model (watsonx)",
+			modelID:              "granite-3.1-8b-instruct",
+			expectedProviderID:   "maas-watsonx",
+			expectedProviderType: "remote::watsonx",
+			expectedURL:          "https://us-south.ml.cloud.ibm.com/ml/v1",
+			expectError:          false,
+		},
+		{
+			name:        "Non-existent model",
+			modelID:     "non-existent-model",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := kc.parseModelProviderFromYAML(mockLlamaStackConfigYAML, tt.modelID)
+
+			if tt.expectError {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+				return
+			}
+
+			require.NoError(t, err)
+			require.NotNil(t, result)
+
+			// Verify extracted fields
+			assert.Equal(t, tt.modelID, result.ModelID, "ModelID should match")
+			assert.Equal(t, tt.expectedProviderID, result.ProviderID, "ProviderID should match")
+			assert.Equal(t, tt.expectedProviderType, result.ProviderType, "ProviderType should match")
+			assert.Equal(t, tt.expectedURL, result.URL, "URL should match")
+		})
+	}
+}
+
+func TestParseModelProviderFromYAML_EnvVarCleaning(t *testing.T) {
+	// Load test data from testdata directory
+	mockLlamaStackConfigYAML := loadTestData(t, "llama_stack_config.yaml")
+
+	kc := &TokenKubernetesClient{}
+
+	// Test that environment variable placeholders are cleaned
+	result, err := kc.parseModelProviderFromYAML(mockLlamaStackConfigYAML, "llama-32-3b-instruct")
+
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	// URL should have env var cleaned (${env.VLLM_MAX_TOKENS:=4096} should not appear)
+	assert.NotContains(t, result.URL, "${env.", "URL should not contain environment variable placeholders")
+	assert.NotContains(t, result.URL, ":=", "URL should not contain default value syntax")
+}
+
+func TestParseModelProviderFromYAML_MaaSDetection(t *testing.T) {
+	// Load test data from testdata directory
+	mockLlamaStackConfigYAML := loadTestData(t, "llama_stack_config.yaml")
+
+	kc := &TokenKubernetesClient{}
+
+	tests := []struct {
+		name    string
+		modelID string
+		isMaaS  bool
+	}{
+		{
+			name:    "vLLM model is not MaaS",
+			modelID: "llama-32-3b-instruct",
+			isMaaS:  false,
+		},
+		{
+			name:    "Sentence transformers model is not MaaS",
+			modelID: "granite-embedding-125m",
+			isMaaS:  false,
+		},
+		{
+			name:    "Watsonx model is MaaS",
+			modelID: "granite-3.1-8b-instruct",
+			isMaaS:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := kc.parseModelProviderFromYAML(mockLlamaStackConfigYAML, tt.modelID)
+
+			require.NoError(t, err)
+			require.NotNil(t, result)
+
+			// Check if provider_id starts with "maas-"
+			isMaaS := len(result.ProviderID) >= 5 && result.ProviderID[:5] == "maas-"
+			assert.Equal(t, tt.isMaaS, isMaaS, "MaaS detection should match expected value")
+		})
+	}
 }

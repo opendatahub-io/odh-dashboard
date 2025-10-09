@@ -17,7 +17,6 @@ type ModelProviderInfo struct {
 	ProviderID   string
 	ProviderType string
 	URL          string
-	APIToken     string
 }
 
 type KubernetesClientInterface interface {

@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/gen-ai/internal/cache"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
@@ -38,6 +39,7 @@ type App struct {
 	maasClientFactory       maas.MaaSClientFactory
 	mcpClientFactory        mcp.MCPClientFactory
 	dashboardNamespace      string
+	memoryStore             cache.MemoryStore
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -115,6 +117,10 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		}
 	}
 
+	// Initialize shared memory store for caching (10 minute cleanup interval)
+	memStore := cache.NewMemoryStoreWithDefaults()
+	logger.Info("Initialized shared memory store")
+
 	app := &App{
 		config:                  cfg,
 		logger:                  logger,
@@ -125,6 +131,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		maasClientFactory:       maasClientFactory,
 		mcpClientFactory:        mcpFactory,
 		dashboardNamespace:      dashboardNamespace,
+		memoryStore:             memStore,
 	}
 	return app, nil
 }
