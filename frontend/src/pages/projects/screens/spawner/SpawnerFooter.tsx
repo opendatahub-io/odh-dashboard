@@ -63,20 +63,17 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     (currentNotebookState) => currentNotebookState.notebook.metadata.name === notebookName,
   );
 
-  const hardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
   const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
 
   const editNotebook = notebookState?.notebook;
   const { projectName } = startNotebookData;
   const navigate = useNavigate();
   const [createInProgress, setCreateInProgress] = React.useState(false);
-  const isHardwareProfileValid = hardwareProfilesAvailable
-    ? isHardwareProfileConfigValid({
-        selectedProfile: startNotebookData.podSpecOptions.selectedHardwareProfile,
-        useExistingSettings: false, // does not matter for validation
-        resources: startNotebookData.podSpecOptions.resources,
-      })
-    : true;
+  const isHardwareProfileValid = isHardwareProfileConfigValid({
+    selectedProfile: startNotebookData.podSpecOptions.selectedHardwareProfile,
+    useExistingSettings: false, // does not matter for validation
+    resources: startNotebookData.podSpecOptions.resources,
+  });
   const isButtonDisabled =
     createInProgress ||
     !checkRequiredFieldsForNotebookStart(startNotebookData, envVariables) ||
