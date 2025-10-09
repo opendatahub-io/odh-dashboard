@@ -148,6 +148,10 @@ describe('Model Serving LLMD', () => {
           }),
         ],
       });
+      cy.interceptK8s(
+        { model: HardwareProfileModel, ns: 'opendatahub', name: 'small-profile' },
+        mockGlobalScopedHardwareProfiles[0],
+      );
 
       // Visit the model serving page
       modelServingSection.visit('test-project');
