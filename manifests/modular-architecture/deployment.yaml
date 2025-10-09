@@ -137,7 +137,7 @@
       - '--auth-token-header=x-forwarded-access-token'
       - '--auth-token-prefix='
       - '--port=8143'
-      - '--cert-file=/etc/tls/private/tls.crt' # Gen AI should implement this 
+      - '--cert-file=/etc/tls/private/tls.crt'
       - '--key-file=/etc/tls/private/tls.key'
     securityContext:
       allowPrivilegeEscalation: false
