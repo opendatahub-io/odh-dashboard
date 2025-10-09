@@ -8,8 +8,8 @@ import { LDAP_CONTRIBUTOR_USER } from '#~/__tests__/cypress/cypress/utils/e2eUse
 import { projectListPage, projectDetails } from '#~/__tests__/cypress/cypress/pages/projects';
 import {
   modelServingGlobal,
-  inferenceServiceModal,
   modelServingSection,
+  modelServingWizard,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import {
   checkInferenceServiceState,
@@ -86,20 +86,25 @@ describe('[Product Bug: RHOAIENG-35572] Verify Model Creation and Validation usi
       // Navigate to Model Serving tab and Deploy a Single Model
       cy.step('Navigate to Model Serving and click to Deploy a Single Model');
       projectDetails.findSectionTab('model-server').click();
-      modelServingGlobal.findSingleServingModelButton().click();
       modelServingGlobal.findDeployModelButton().click();
 
       // Launch a Single Serving Model and select the required entries
       cy.step('Launch a Single Serving Model using Caikit TGIS ServingRuntime for KServe');
-      inferenceServiceModal.findModelNameInput().type(testData.singleModelName);
-      inferenceServiceModal.findServingRuntimeTemplateSearchSelector().click();
-      inferenceServiceModal
-        .findGlobalScopedTemplateOption('Caikit TGIS ServingRuntime for KServe')
+      // Step 1: Model Source
+      modelServingWizard.findModelLocationSelectOption('Existing connection').click();
+      modelServingWizard.findLocationPathInput().type(modelFilePath);
+      modelServingWizard.findModelTypeSelectOption('Predictive model').click();
+      modelServingWizard.findNextButton().click();
+      // Step 2: Model Deployment
+      modelServingWizard.findModelDeploymentNameInput().type(modelName);
+      modelServingWizard
+        .findModelFormatSelectOption('Caikit TGIS ServingRuntime for KServe')
         .click();
-
-      inferenceServiceModal.findLocationPathInput().type(modelFilePath);
-      inferenceServiceModal.findSubmitButton().click();
-      inferenceServiceModal.shouldBeOpen(false);
+      modelServingWizard.findNextButton().click();
+      //Step 3: Advanced Options
+      modelServingWizard.findNextButton().click();
+      //Step 4: Summary
+      modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(testData.singleModelName);
 
       //Verify the model created
