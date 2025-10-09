@@ -392,6 +392,16 @@ export const createResponse = (
                   if (line.startsWith('data: ')) {
                     try {
                       const data = JSON.parse(line.slice(6));
+
+                      // Check for error in the stream
+                      if (data.error) {
+                        reader.releaseLock();
+                        const errorMessage =
+                          data.error.message || 'An error occurred during streaming';
+                        reject(new Error(errorMessage));
+                        return;
+                      }
+
                       // Handle streaming deltas from response.output_text.delta events
                       if (data.delta && data.type === 'response.output_text.delta') {
                         fullContent += data.delta;

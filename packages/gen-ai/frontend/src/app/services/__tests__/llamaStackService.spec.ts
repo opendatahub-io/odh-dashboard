@@ -592,6 +592,79 @@ describe('llamaStackService', () => {
         ).rejects.toThrow('Network error');
       });
 
+      it('should handle streaming error from server', async () => {
+        const mockStreamData = jest.fn();
+
+        // Clear axios defaults to prevent interference with fetch headers
+        mockedAxios.defaults.headers.common = {};
+
+        const mockReader = {
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"delta": "Hello", "type": "response.output_text.delta"}\n',
+              ),
+            })
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"error":{"code":"500","message":"Streaming error occurred"}}\n',
+              ),
+            }),
+          releaseLock: jest.fn(),
+        };
+
+        const mockResponse = {
+          ok: true,
+          body: {
+            getReader: () => mockReader,
+          },
+        };
+
+        mockFetch.mockResolvedValueOnce(mockResponse);
+
+        await expect(
+          createResponse(streamingRequest, testNamespace, mockStreamData),
+        ).rejects.toThrow('Streaming error occurred');
+
+        expect(mockStreamData).toHaveBeenCalledWith('Hello');
+        expect(mockStreamData).toHaveBeenCalledTimes(1);
+        expect(mockReader.releaseLock).toHaveBeenCalled();
+      });
+
+      it('should handle streaming error without message', async () => {
+        const mockStreamData = jest.fn();
+
+        // Clear axios defaults to prevent interference with fetch headers
+        mockedAxios.defaults.headers.common = {};
+
+        const mockReader = {
+          read: jest.fn().mockResolvedValueOnce({
+            done: false,
+            value: new TextEncoder().encode('data: {"error":{"code":"500"}}\n'),
+          }),
+          releaseLock: jest.fn(),
+        };
+
+        const mockResponse = {
+          ok: true,
+          body: {
+            getReader: () => mockReader,
+          },
+        };
+
+        mockFetch.mockResolvedValueOnce(mockResponse);
+
+        await expect(
+          createResponse(streamingRequest, testNamespace, mockStreamData),
+        ).rejects.toThrow('An error occurred during streaming');
+
+        expect(mockStreamData).not.toHaveBeenCalled();
+        expect(mockReader.releaseLock).toHaveBeenCalled();
+      });
+
       it('should include axios headers in streaming request', async () => {
         const mockStreamData = jest.fn();
 
