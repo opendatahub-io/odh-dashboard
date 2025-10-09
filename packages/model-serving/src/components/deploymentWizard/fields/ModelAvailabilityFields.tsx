@@ -25,7 +25,7 @@ export type ModelAvailabilityFieldsData = {
 export type ModelAvailabilityFields = {
   data: ModelAvailabilityFieldsData;
   setData: (data: ModelAvailabilityFieldsData) => void;
-  showField: boolean;
+  showField?: boolean;
   showSaveAsMaaS?: boolean;
 };
 
@@ -80,11 +80,11 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
   showSaveAsMaaS,
 }) => {
   const setDataWithClearUseCase = React.useCallback(
-    (originalData: ModelAvailabilityFieldsData) => {
-      if (!data.saveAsAiAsset && !data.saveAsMaaS) {
-        setData({ ...originalData, useCase: '' });
+    (newData: ModelAvailabilityFieldsData) => {
+      if (!newData.saveAsAiAsset && !newData.saveAsMaaS) {
+        setData({ ...newData, useCase: '' });
       } else {
-        setData(originalData);
+        setData(newData);
       }
     },
     [setData],

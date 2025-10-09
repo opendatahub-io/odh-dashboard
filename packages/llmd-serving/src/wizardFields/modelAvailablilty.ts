@@ -4,7 +4,7 @@ import type {
   WizardFormData,
   InitialWizardFormData,
 } from '@odh-dashboard/model-serving/types/form-data';
-import type { LLMdDeployment, LLMInferenceServiceKind } from 'src/types';
+import type { LLMdDeployment, LLMInferenceServiceKind } from '../types';
 import { LLMD_SERVING_ID } from '../../extensions/extensions';
 
 export const MAAS_TIERS_ANNOTATION = 'alpha.maas.opendatahub.io/tiers';
@@ -56,9 +56,9 @@ export const applyModelAvailabilityData = (
     ...result.metadata.annotations,
     ...(modelAvailability?.saveAsAiAsset && {
       'opendatahub.io/genai-asset': 'true',
-      ...(modelAvailability.saveAsMaaS && {
-        [MAAS_TIERS_ANNOTATION]: maasTiersValue,
-      }),
+    }),
+    ...(modelAvailability?.saveAsMaaS && {
+      [MAAS_TIERS_ANNOTATION]: maasTiersValue,
     }),
     ...(modelAvailability?.useCase &&
       (modelAvailability.saveAsAiAsset || modelAvailability.saveAsMaaS) && {
