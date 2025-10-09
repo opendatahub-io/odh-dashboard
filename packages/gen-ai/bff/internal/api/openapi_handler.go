@@ -49,6 +49,21 @@ func NewOpenAPIHandler(logger *slog.Logger) (*OpenAPIHandler, error) {
 		return nil, err
 	}
 
+	// Add the current server to the servers list
+	if spec.Servers == nil {
+		spec.Servers = make([]*openapi3.Server, 0)
+	}
+
+	// Keep the local development server as first entry
+	if len(spec.Servers) == 0 {
+		spec.Servers = append(spec.Servers, &openapi3.Server{
+			URL:         "http://localhost:8080",
+			Description: "Local development server",
+		})
+	}
+
+	// Add current server URL dynamically - will be updated per request in HandleOpenAPIJSON
+
 	return &OpenAPIHandler{
 		logger:   logger,
 		spec:     spec,
@@ -68,8 +83,22 @@ func (h *OpenAPIHandler) HandleOpenAPIJSON(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// Create a copy of the spec to modify for this request
+	specCopy := *h.spec
+
+	// Add current server URL based on the request
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	currentServer := &openapi3.Server{
+		Description: "Current server",
+		URL:         fmt.Sprintf("%s://%s", scheme, r.Host),
+	}
+	specCopy.Servers = append(specCopy.Servers[:1], currentServer)
+
 	// Convert spec to JSON
-	jsonData, err := json.MarshalIndent(h.spec, "", "  ")
+	jsonData, err := json.MarshalIndent(&specCopy, "", "  ")
 	if err != nil {
 		h.logger.Error("Failed to marshal OpenAPI spec to JSON", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

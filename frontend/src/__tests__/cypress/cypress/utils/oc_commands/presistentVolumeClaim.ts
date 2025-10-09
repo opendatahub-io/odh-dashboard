@@ -23,6 +23,5 @@ export const createPersistentVolumeClaim = (
       yamlContent,
       persistentVolumeClaimReplacements,
     );
-    cy.log(modifiedYamlContent);
     return applyOpenShiftYaml(modifiedYamlContent);
   });

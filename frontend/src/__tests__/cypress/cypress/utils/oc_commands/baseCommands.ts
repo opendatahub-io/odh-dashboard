@@ -36,12 +36,16 @@ export const applyOpenShiftYaml = (
   namespace?: string,
 ): Cypress.Chainable<CommandLineResult> => {
   const ns = namespace ? `-n ${namespace}` : '';
-  // Using printf is safer for handling multi-line strings and special characters than echo.
-  // It avoids issues with shell interpretation of the YAML content.
-  const ocCommand = `printf '%s' "${yamlContent.replace(/"/g, '\\"')}" | oc apply ${ns} -f -`;
+  // Create a temporary file to avoid logging sensitive content
+  const tempFileName = `/tmp/cypress-yaml-${Date.now()}-${Math.random()
+    .toString(36)
+    .substr(2, 9)}.yaml`;
 
-  // We return the result of execWithOutput to benefit from its logging and error handling
-  return execWithOutput(ocCommand);
+  // Write YAML content to temp file using Node.js fs to avoid logging
+  return cy.writeFile(tempFileName, yamlContent).then(() => {
+    const ocCommand = `oc apply ${ns} -f ${tempFileName} && rm -f ${tempFileName}`;
+    return execWithOutput(ocCommand);
+  });
 };
 
 /**

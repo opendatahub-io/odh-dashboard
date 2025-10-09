@@ -1,35 +1,26 @@
 import * as React from 'react';
 import { FormGroup } from '@patternfly/react-core';
-import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '#~/types';
+import { ServingRuntimeAPIProtocol } from '#~/types';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { asEnumMember } from '#~/utilities/utils';
 
 type CustomServingRuntimeAPIProtocolSelectorProps = {
   selectedAPIProtocol: ServingRuntimeAPIProtocol | undefined;
   setSelectedAPIProtocol: (apiProtocol: ServingRuntimeAPIProtocol) => void;
-  selectedPlatforms: ServingRuntimePlatform[];
 };
 
 const CustomServingRuntimeAPIProtocolSelector: React.FC<
   CustomServingRuntimeAPIProtocolSelectorProps
-> = ({ selectedAPIProtocol, setSelectedAPIProtocol, selectedPlatforms }) => {
-  const isOnlyModelMesh =
-    selectedPlatforms.includes(ServingRuntimePlatform.MULTI) &&
-    !selectedPlatforms.includes(ServingRuntimePlatform.SINGLE);
-
+> = ({ selectedAPIProtocol, setSelectedAPIProtocol }) => {
   const options: SimpleSelectOption[] = [
     {
       key: ServingRuntimeAPIProtocol.REST,
       label: ServingRuntimeAPIProtocol.REST,
     },
-    ...(isOnlyModelMesh
-      ? []
-      : [
-          {
-            key: ServingRuntimeAPIProtocol.GRPC,
-            label: ServingRuntimeAPIProtocol.GRPC,
-          },
-        ]),
+    {
+      key: ServingRuntimeAPIProtocol.GRPC,
+      label: ServingRuntimeAPIProtocol.GRPC,
+    },
   ];
 
   return (
