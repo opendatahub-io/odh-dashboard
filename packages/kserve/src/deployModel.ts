@@ -21,7 +21,7 @@ import {
   applyRuntimeArgs,
 } from './deployUtils';
 import { applyHardwareProfileToDeployment, applyReplicas } from './hardware';
-import type { AvailableAiAssetsFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/AvailableAiAssetsFields';
+import type { ModelAvailabilityFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/ModelAvailabilityFields';
 import type { EnvironmentVariablesFieldData } from '../../model-serving/src/components/deploymentWizard/fields/EnvironmentVariablesField';
 import type { ExternalRouteFieldData } from '../../model-serving/src/components/deploymentWizard/fields/ExternalRouteField';
 import type { NumReplicasFieldData } from '../../model-serving/src/components/deploymentWizard/fields/NumReplicasField';
@@ -43,7 +43,7 @@ export type CreatingInferenceServiceObject = {
   numReplicas?: NumReplicasFieldData;
   runtimeArgs?: RuntimeArgsFieldData;
   environmentVariables?: EnvironmentVariablesFieldData;
-  aiAssetData?: AvailableAiAssetsFieldsData;
+  modelAvailability?: ModelAvailabilityFieldsData;
   createConnectionData?: CreateConnectionData;
 };
 
@@ -64,7 +64,7 @@ const assembleInferenceService = (
     modelFormat,
     hardwareProfile,
     numReplicas,
-    aiAssetData,
+    modelAvailability,
     externalRoute,
     tokenAuth,
     runtimeArgs,
@@ -120,7 +120,7 @@ const assembleInferenceService = (
 
   inferenceService = applyAiAvailableAssetAnnotations(
     inferenceService,
-    aiAssetData ?? {
+    modelAvailability ?? {
       saveAsAiAsset: false,
       useCase: '',
     },

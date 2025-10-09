@@ -29,7 +29,7 @@ export const deployKServeDeployment = async (
     numReplicas: wizardData.numReplicas.data,
     runtimeArgs: wizardData.runtimeArgs.data,
     environmentVariables: wizardData.environmentVariables.data,
-    aiAssetData: wizardData.aiAssetData.data,
+    modelAvailability: wizardData.modelAvailability.data,
   };
 
   const servingRuntime =
