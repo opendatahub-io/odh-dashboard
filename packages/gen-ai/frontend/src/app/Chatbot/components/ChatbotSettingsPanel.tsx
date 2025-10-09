@@ -15,6 +15,7 @@ import {
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ChatbotSourceUploadPanel } from '~/app/Chatbot/sourceUpload/ChatbotSourceUploadPanel';
 import { ACCORDION_ITEMS } from '~/app/Chatbot/const';
 import useAccordionState from '~/app/Chatbot/hooks/useAccordionState';
@@ -140,7 +141,13 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                   label="Temperature"
                   helpText="This controls the randomness of the model's output."
                   value={temperature}
-                  onChange={onTemperatureChange}
+                  onChange={(value) => {
+                    onTemperatureChange(value);
+                    fireMiscTrackingEvent('Playground Model Parameter Changed', {
+                      parameter: 'temperature',
+                      value,
+                    });
+                  }}
                   max={2}
                 />
                 <FormGroup fieldId="streaming">
@@ -199,9 +206,12 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                       id="no-label-switch-on"
                       aria-label="Toggle uploaded mode"
                       isChecked={sourceManagement.isRawUploaded}
-                      onChange={() =>
-                        sourceManagement.setIsRawUploaded(!sourceManagement.isRawUploaded)
-                      }
+                      onChange={(_, checked) => {
+                        sourceManagement.setIsRawUploaded(checked);
+                        fireMiscTrackingEvent('Playground RAG Toggle Selected', {
+                          isRag: checked,
+                        });
+                      }}
                     />
                   </div>
                 </FlexItem>

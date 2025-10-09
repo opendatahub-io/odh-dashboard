@@ -9,6 +9,7 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { getLlamaModelDisplayName, getLlamaModelStatus } from '~/app/utilities';
 
@@ -28,6 +29,9 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
   const onModelSelect = (value: string) => {
     setIsOpen(false);
     onModelChange(value);
+    fireMiscTrackingEvent('Playground Model Dropdown Option Selected', {
+      selectedModel: getLlamaModelDisplayName(value, aiModels),
+    });
   };
 
   return (
