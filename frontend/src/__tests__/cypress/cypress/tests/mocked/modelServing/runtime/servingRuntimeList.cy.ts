@@ -1763,8 +1763,8 @@ describe('Serving Runtime List', () => {
     });
   });
 
-  describe('Model size', () => {
-    it('Check model size rendered with InferenceService size', () => {
+  describe('Model size / hardware profiles', () => {
+    it('Check model size rendered with InferenceService size along with hardware profiles', () => {
       initIntercepts({
         projectEnableModelMesh: false,
         disableKServeConfig: false,
@@ -1814,13 +1814,13 @@ describe('Serving Runtime List', () => {
 
       kserveModalEdit.shouldBeOpen();
 
-      // // Verify hardware profile shows Small Profile
+      // Verify hardware profile shows Small Profile
       hardwareProfileSection
         .findHardwareProfileSearchSelector()
         .should('contain.text', 'Small Profile');
     });
 
-    it('Check model size rendered with InferenceService custom size', () => {
+    it('Check model size rendered with InferenceService custom size along with hardware profiles', () => {
       initIntercepts({
         projectEnableModelMesh: false,
         disableKServeConfig: false,

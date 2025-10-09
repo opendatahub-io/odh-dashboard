@@ -113,7 +113,6 @@ describe('NotebookServer', () => {
     notebookServer.findEventlog().click();
 
     cy.wait('@startNotebookServer').then((interception) => {
-      console.log('actual(sweet potato):', interception.request.body);
       const requestBody = interception.request.body;
 
       // Check top-level properties
