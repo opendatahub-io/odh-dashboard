@@ -1,14 +1,15 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, Tooltip } from '@patternfly/react-core';
-import { ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { ModelRegistriesContext } from '@odh-dashboard/internal/concepts/modelRegistry/context/ModelRegistriesContext';
 import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
 import type { RegisteredModel } from '@mf/modelRegistry/compiled-types/src/app/types';
-
+import { registeredModelDeploymentsUrl } from '../../model-registry/upstream/frontend/src/app/pages/modelRegistry/screens/routeUtils';
 import { ModelDeploymentsContext } from '../src/concepts/ModelDeploymentsContext';
 
 const DeploymentsColumn: React.FC<{ registeredModel: RegisteredModel }> = ({ registeredModel }) => {
   const { deployments, loaded } = React.useContext(ModelDeploymentsContext);
+  const { preferredModelRegistry } = React.useContext(ModelRegistriesContext);
   const navigate = useNavigate();
 
   if (!loaded) {
@@ -28,25 +29,24 @@ const DeploymentsColumn: React.FC<{ registeredModel: RegisteredModel }> = ({ reg
   if (deploymentCount === 0) {
     return <span>-</span>;
   }
-  const handleDeploymentsClick = () => {
-    navigate(`/ai-hub/deployments?registeredModelId=${registeredModel.id}`);
-  };
 
   return (
     <div>
       <Link
-        to={`/ai-hub/deployments?registeredModelId=${registeredModel.id}`}
-        onClick={handleDeploymentsClick}
-        style={{ textDecoration: 'none' }}
+        to={registeredModelDeploymentsUrl(registeredModel, preferredModelRegistry?.metadata.name)}
       >
         {deploymentCount} {deploymentCount === 1 ? 'deployment' : 'deployments'}
       </Link>
       <Tooltip content="View all deployments for this model">
         <Button
           variant="link"
-          icon={<ExternalLinkAltIcon />}
+          isInline
           aria-label="View deployments"
-          onClick={handleDeploymentsClick}
+          onClick={() =>
+            navigate(
+              registeredModelDeploymentsUrl(registeredModel, preferredModelRegistry?.metadata.name),
+            )
+          }
           style={{ marginLeft: '8px', padding: '0' }}
         />
       </Tooltip>

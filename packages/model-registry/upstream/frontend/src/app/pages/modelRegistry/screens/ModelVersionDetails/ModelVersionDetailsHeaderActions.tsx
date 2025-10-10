@@ -1,13 +1,5 @@
 import * as React from 'react';
-import {
-  Dropdown,
-  DropdownList,
-  MenuToggle,
-  ButtonVariant,
-  ActionList,
-  ActionListGroup,
-  ActionListItem,
-} from '@patternfly/react-core';
+import { Dropdown, DropdownList, MenuToggle, ButtonVariant } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ModelState, ModelVersion } from '~/app/types';
 import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
@@ -34,33 +26,29 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
   }
 
   return (
-    <ActionList className="pf-v5-u-display-flex">
-      <ActionListGroup className="pf-v5-u-flex-1">
-        <ActionListItem>
-          <Dropdown
-            isOpen={isOpenActionDropdown}
-            onSelect={() => setOpenActionDropdown(false)}
-            onOpenChange={(open) => setOpenActionDropdown(open)}
-            popperProps={{ position: 'right', appendTo: 'inline' }}
-            toggle={(toggleRef) => (
-              <MenuToggle
-                variant={ButtonVariant.secondary}
-                ref={toggleRef}
-                onClick={() => setOpenActionDropdown(!isOpenActionDropdown)}
-                isExpanded={isOpenActionDropdown}
-                aria-label="Model version details action toggle"
-                data-testid="model-version-details-action-button"
-              >
-                Actions
-              </MenuToggle>
-            )}
+    <>
+      <Dropdown
+        isOpen={isOpenActionDropdown}
+        onSelect={() => setOpenActionDropdown(false)}
+        onOpenChange={(open) => setOpenActionDropdown(open)}
+        popperProps={{ position: 'right', appendTo: 'inline' }}
+        toggle={(toggleRef) => (
+          <MenuToggle
+            variant={ButtonVariant.secondary}
+            ref={toggleRef}
+            onClick={() => setOpenActionDropdown(!isOpenActionDropdown)}
+            isExpanded={isOpenActionDropdown}
+            aria-label="Model version details action toggle"
+            data-testid="model-version-details-action-button"
           >
-            <DropdownList>
-              <ArchiveButtonDropdownItem mv={mv} setIsArchiveModalOpen={setIsArchiveModalOpen} />
-            </DropdownList>
-          </Dropdown>
-        </ActionListItem>
-      </ActionListGroup>
+            Actions
+          </MenuToggle>
+        )}
+      >
+        <DropdownList>
+          <ArchiveButtonDropdownItem mv={mv} setIsArchiveModalOpen={setIsArchiveModalOpen} />
+        </DropdownList>
+      </Dropdown>
       {isArchiveModalOpen && (
         <ArchiveModelVersionModal
           onCancel={() => setIsArchiveModalOpen(false)}
@@ -80,7 +68,7 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
           modelVersionName={mv.name}
         />
       )}
-    </ActionList>
+    </>
   );
 };
 

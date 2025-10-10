@@ -6,6 +6,10 @@ import {
   Flex,
   FlexItem,
   Title,
+  Toolbar,
+  ToolbarContent,
+  ToolbarGroup,
+  ToolbarItem,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
@@ -113,17 +117,18 @@ const ModelVersionsDetailsContent: React.FC<ModelVersionsDetailProps> = ({ tab, 
       headerAction={
         loaded &&
         mv && (
-          <Flex
-            spaceItems={{ default: 'spaceItemsMd' }}
-            alignItems={{ default: 'alignItemsFlexStart' }}
-          >
-            <MRDeployButton mv={mv} />
-            <FlexItem>
-              <ModelVersionsDetailsHeaderActions
-                mv={mv}
-              />
-            </FlexItem>
-          </Flex>
+          <Toolbar isSticky={false} inset={{ default: 'insetNone' }}>
+            <ToolbarContent>
+              <ToolbarGroup>
+                <ToolbarItem>
+                  <MRDeployButton mv={mv} />
+                </ToolbarItem>
+                <ToolbarItem>
+                  <ModelVersionsDetailsHeaderActions mv={mv} />
+                </ToolbarItem>
+              </ToolbarGroup>
+            </ToolbarContent>
+          </Toolbar>
         )
       }
       loadError={loadError}
@@ -148,7 +153,7 @@ const ModelVersionsDetailsContent: React.FC<ModelVersionsDetailProps> = ({ tab, 
 const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = (props) => {
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const { modelVersionId: mvId, registeredModelId: rmId } = useParams();
-  
+
   const labelSelectors = React.useMemo(() => {
     if (!mvId || !rmId) return undefined;
     return {
@@ -156,9 +161,12 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = (props) => {
       [KnownLabels.REGISTERED_MODEL_ID]: rmId,
     };
   }, [mvId, rmId]);
-  
+
   return (
-    <MRDeploymentsContextProvider labelSelectors={labelSelectors} mrName={preferredModelRegistry?.name}>
+    <MRDeploymentsContextProvider
+      labelSelectors={labelSelectors}
+      mrName={preferredModelRegistry?.name}
+    >
       <ModelVersionsDetailsContent {...props} />
     </MRDeploymentsContextProvider>
   );
