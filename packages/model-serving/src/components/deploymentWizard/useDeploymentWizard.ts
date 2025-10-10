@@ -36,6 +36,8 @@ import {
   isExternalRouteField,
   isTokenAuthField,
   type WizardFormData,
+  type ExternalRouteField,
+  type TokenAuthField,
 } from './types';
 import {
   useCreateConnectionData,
@@ -69,6 +71,10 @@ export type UseModelDeploymentWizardState = WizardFormData & {
     modelDeploymentLoaded: boolean;
     advancedOptionsLoaded: boolean;
     summaryLoaded: boolean;
+  };
+  fieldExtensions: {
+    externalRouteFields: ExternalRouteField[];
+    tokenAuthFields: TokenAuthField[];
   };
 };
 
@@ -142,6 +148,11 @@ export const useModelDeploymentWizard = (
   const tokenAuthFields = React.useMemo(() => {
     return fields.filter(isTokenAuthField);
   }, [fields]);
+
+  const fieldExtensions = {
+    externalRouteFields,
+    tokenAuthFields,
+  };
   const modelServer = useModelServerSelectField(
     modelServerTemplateFields,
     initialData?.modelServer,
@@ -204,9 +215,6 @@ export const useModelDeploymentWizard = (
       advancedOptionsLoaded: true, // TODO: Update if these get dependencies that we need to wait for
       summaryLoaded: true, // TODO: Update if these get dependencies that we need to wait for
     },
-    fieldExtensions: {
-      externalRouteFields,
-      tokenAuthFields,
-    },
+    fieldExtensions,
   };
 };

@@ -12,12 +12,13 @@ const applyTokenAuthentication = (
   tokenAuthentication?: { name: string; uuid: string; error?: string }[],
 ): LLMInferenceServiceKind => {
   const result = structuredClone(llmdInferenceService);
-  result.metadata.annotations = {
-    ...result.metadata.annotations,
-    ...(!tokenAuthentication || tokenAuthentication.length === 0
-      ? { 'security.opendatahub.io/enable-auth': 'false' }
-      : {}),
-  };
+  const annotations = { ...result.metadata.annotations };
+  if (!tokenAuthentication || tokenAuthentication.length === 0) {
+    annotations['security.opendatahub.io/enable-auth'] = 'false';
+  } else {
+    delete annotations['security.opendatahub.io/enable-auth'];
+  }
+  result.metadata.annotations = annotations;
   return result;
 };
 

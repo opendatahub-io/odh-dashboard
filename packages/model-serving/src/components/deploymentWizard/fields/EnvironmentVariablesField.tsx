@@ -57,6 +57,9 @@ export const hasInvalidEnvironmentVariableNames = (
   }
 
   return data.variables.some((variable) => {
+    if (variable.name.trim() === '') {
+      return true;
+    }
     const error = isValidEnvironmentVariables(variable.name);
     return error !== '';
   });
