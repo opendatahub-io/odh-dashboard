@@ -32,25 +32,14 @@ jobs:
     steps:
       - name: Calculate unique port for this workflow run
         run: |
-          # Generate unique port using run_id + matrix index to avoid conflicts
-          # Port range: 4000-4990 (100 possible base ports)
-          # Each matrix job gets +10 offset from base
-          BASE_PORT=$((4000 + ((${{ github.run_id }} % 100) * 10)))
-          
-          # Add matrix offset based on test tag to ensure jobs in same run use different ports
-          if [[ "${{ matrix.test-tag }}" == *"set-1"* ]]; then
-            MATRIX_OFFSET=0
-          elif [[ "${{ matrix.test-tag }}" == *"set-2"* ]]; then
-            MATRIX_OFFSET=1
-          else
-            MATRIX_OFFSET=2
-          fi
-          
-          CYPRESS_PORT=$((BASE_PORT + MATRIX_OFFSET))
-          
+          # TEMPORARY TEST: Use hardcoded port 4010 to match working pipeline
+          # If this works, the issue is with dynamic ports
+          # If this fails, the issue is something else
+          CYPRESS_PORT=4010
           echo "CYPRESS_PORT=$CYPRESS_PORT" >> $GITHUB_ENV
-          echo "📍 Workflow run ${{ github.run_id }} (tag: ${{ matrix.test-tag }}) will use port: $CYPRESS_PORT"
-          echo "🔢 Calculation: BASE=$BASE_PORT, OFFSET=$MATRIX_OFFSET, FINAL=$CYPRESS_PORT"
+          
+          echo "⚠️  TESTING: Using hardcoded port 4010 (matches working pipeline)"
+          echo "📍 This is a diagnostic test to isolate whether dynamic ports are the issue"
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -561,8 +550,8 @@ jobs:
           echo "🔍 Test config file exists?"
           ls -la "$CY_TEST_CONFIG" || echo "❌ Config file NOT found!"
           echo ""
-          echo "🔍 First 10 lines of test config:"
-          head -10 "$CY_TEST_CONFIG" || echo "❌ Cannot read config file!"
+          echo "🔍 Test config structure (sanitized):"
+          grep -E "^[A-Z_]+:" "$CY_TEST_CONFIG" | head -10 || echo "❌ Cannot read config file!"
           echo ""
           echo "🔍 Chrome version:"
           /opt/google/chrome/chrome --version || echo "Chrome version unknown"
