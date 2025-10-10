@@ -1289,3 +1289,193 @@ func (kc *TokenKubernetesClient) DeleteLlamaStackDistribution(ctx context.Contex
 	kc.Logger.Info("successfully deleted LlamaStackDistribution", "namespace", namespace, "name", targetLSD.Name, "displayName", name)
 	return targetLSD, nil
 }
+
+// GetModelProviderInfo retrieves provider configuration for a model from LSD configmap
+func (kc *TokenKubernetesClient) GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*ModelProviderInfo, error) {
+	// Get LlamaStackDistribution
+	lsdList, err := kc.GetLlamaStackDistributions(ctx, identity, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get LlamaStackDistributions: %w", err)
+	}
+
+	if len(lsdList.Items) == 0 {
+		return nil, fmt.Errorf("no LlamaStackDistribution found in namespace %s", namespace)
+	}
+
+	lsd := lsdList.Items[0]
+
+	// Get configmap name
+	configMapName := "llama-stack-config"
+	if lsd.Spec.Server.UserConfig != nil && lsd.Spec.Server.UserConfig.ConfigMapName != "" {
+		configMapName = lsd.Spec.Server.UserConfig.ConfigMapName
+	}
+
+	// Retrieve configmap
+	configMap, err := kc.GetConfigMap(ctx, identity, namespace, configMapName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get configmap: %w", err)
+	}
+
+	runYAML, ok := configMap.Data["run.yaml"]
+	if !ok {
+		return nil, fmt.Errorf("run.yaml not found in configmap")
+	}
+
+	// Parse model and provider info from YAML
+	return kc.parseModelProviderFromYAML(runYAML, modelID)
+}
+
+// parseModelProviderFromYAML parses the LlamaStack configuration YAML to extract model provider configuration
+// This is a two-step process:
+// 1. Find the model in the models section and get its provider_id
+// 2. Find that provider_id in the providers.inference section and get provider_type and url
+func (kc *TokenKubernetesClient) parseModelProviderFromYAML(runYAML string, modelID string) (*ModelProviderInfo, error) {
+	lines := strings.Split(runYAML, "\n")
+
+	// STEP 1: Find the model in the models section and extract its provider_id
+	// Example:
+	//   models:
+	//     - model_id: llama-32-3b-instruct
+	//       provider_id: vllm-inference-1  <-- We need this
+	var providerID string
+	inModelsSection := false
+
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+
+		if strings.HasPrefix(trimmed, "models:") {
+			inModelsSection = true
+			continue
+		}
+
+		if !inModelsSection {
+			continue
+		}
+
+		// Exit models section if we hit another top-level section
+		if strings.HasPrefix(line, "shields:") || strings.HasPrefix(line, "vector_dbs:") || strings.HasPrefix(line, "providers:") {
+			break
+		}
+
+		// Check if this line contains model_id
+		if strings.Contains(trimmed, "model_id:") {
+			parts := strings.SplitN(trimmed, ":", 2)
+			if len(parts) == 2 {
+				foundModelID := strings.TrimSpace(parts[1])
+				if foundModelID == modelID {
+					// Found our model, now find provider_id in the lines following this model
+					// Stop when we hit the next model entry (  - ) or exit the models section
+					for j := i + 1; j < len(lines); j++ {
+						nextLine := lines[j]
+						nextTrimmed := strings.TrimSpace(nextLine)
+
+						// Stop if we hit another model or exit models section
+						if strings.HasPrefix(nextLine, "  - ") || strings.HasPrefix(nextLine, "shields:") || strings.HasPrefix(nextLine, "vector_dbs:") {
+							break
+						}
+
+						if strings.Contains(nextTrimmed, "provider_id:") {
+							providerParts := strings.SplitN(nextTrimmed, ":", 2)
+							if len(providerParts) == 2 {
+								providerID = strings.TrimSpace(providerParts[1])
+								break
+							}
+						}
+					}
+					break
+				}
+			}
+		}
+	}
+
+	if providerID == "" {
+		return nil, fmt.Errorf("provider not found for model %s", modelID)
+	}
+
+	// STEP 2: Find the provider configuration in providers.inference section
+	// Example:
+	//   providers:
+	//     inference:
+	//       - provider_id: vllm-inference-1     <-- Match this with the provider_id from step 1
+	//         provider_type: remote::vllm       <-- Extract this
+	//         config:
+	//           url: http://...                 <-- Extract this from config
+	inProvidersSection := false
+	inInferenceSection := false
+	inTargetProvider := false
+	inConfigSection := false
+	var url, providerType string
+
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+
+		if strings.HasPrefix(trimmed, "providers:") {
+			inProvidersSection = true
+			continue
+		}
+
+		if inProvidersSection && strings.HasPrefix(trimmed, "inference:") {
+			inInferenceSection = true
+			continue
+		}
+
+		if inInferenceSection && strings.HasPrefix(line, "  - provider_id:") {
+			parts := strings.SplitN(trimmed, ":", 2)
+			if len(parts) == 2 && strings.TrimSpace(parts[1]) == providerID {
+				inTargetProvider = true
+				continue
+			} else {
+				inTargetProvider = false
+				inConfigSection = false
+			}
+		}
+
+		if inTargetProvider {
+			if strings.Contains(trimmed, "provider_type:") {
+				parts := strings.SplitN(trimmed, ":", 2)
+				if len(parts) == 2 {
+					providerType = strings.TrimSpace(parts[1])
+				}
+			}
+
+			// Detect config section
+			if strings.Contains(trimmed, "config:") {
+				inConfigSection = true
+				continue
+			}
+
+			// Extract URL from config section only
+			if inConfigSection && strings.Contains(trimmed, "url:") {
+				parts := strings.SplitN(trimmed, ":", 2)
+				if len(parts) >= 2 {
+					// Reconstruct URL (may contain colons like http://...)
+					urlValue := strings.Join(parts[1:], ":")
+					url = cleanEnvVar(strings.TrimSpace(urlValue))
+				}
+			}
+
+			// Check if we're done with this provider
+			if i+1 < len(lines) && strings.HasPrefix(lines[i+1], "  - provider_id:") {
+				break
+			}
+		}
+	}
+
+	return &ModelProviderInfo{
+		ModelID:      modelID,
+		ProviderID:   providerID,
+		ProviderType: providerType,
+		URL:          url,
+	}, nil
+}
+
+// cleanEnvVar removes environment variable placeholders like ${env.VAR:=default}
+func cleanEnvVar(value string) string {
+	if strings.HasPrefix(value, "${env.") && strings.Contains(value, ":=") {
+		parts := strings.SplitN(value, ":=", 2)
+		if len(parts) == 2 {
+			return strings.TrimSuffix(parts[1], "}")
+		}
+	}
+	return value
+}
