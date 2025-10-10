@@ -71,8 +71,6 @@ export const mockNotebookK8sResource = ({
           'notebooks.opendatahub.io/inject-auth': 'true',
           'notebooks.opendatahub.io/last-image-selection': lastImageSelection,
           'notebooks.opendatahub.io/last-size-selection': 'Small',
-          'notebooks.opendatahub.io/oauth-logout-url':
-            'http://localhost:4010/projects/project?notebookLogout=workbench',
           'opendatahub.io/username': user,
           'openshift.io/description': description,
           'openshift.io/display-name': displayName,
@@ -121,7 +119,7 @@ export const mockNotebookK8sResource = ({
                   {
                     name: 'NOTEBOOK_ARGS',
                     value:
-                      '--ServerApp.port=8888\n                  --ServerApp.token=\'\'\n                  --ServerApp.password=\'\'\n                  --ServerApp.base_url=/notebook/project/workbench\n                  --ServerApp.quit_button=False\n                  --ServerApp.tornado_settings={"user":"user","hub_host":"http://localhost:4010","hub_prefix":"/projects/project"}',
+                      "--ServerApp.port=8888\n                  --ServerApp.token=''\n                  --ServerApp.password=''\n                  --ServerApp.base_url=/notebook/project/workbench\n                  --ServerApp.quit_button=False",
                   },
                   {
                     name: 'JUPYTER_IMAGE',
