@@ -1,4 +1,5 @@
 import { execSync } from 'child_process';
+import { FastifyInstance } from 'fastify';
 import { registerProxy } from '../utils/proxy';
 import { KubeFastifyInstance } from '../types';
 import { DEV_MODE } from '../utils/constants';
@@ -28,7 +29,7 @@ type ModuleFederationConfig = {
  * Get all workspace packages using npm query from frontend directory
  * @returns {Array} Array of workspace package objects
  */
-const getWorkspacePackages = (fastify: KubeFastifyInstance): any[] => {
+const getWorkspacePackages = (fastify: FastifyInstance): any[] => {
   try {
     const stdout = execSync('npm query .workspace --json', {
       encoding: 'utf8',
@@ -40,8 +41,8 @@ const getWorkspacePackages = (fastify: KubeFastifyInstance): any[] => {
   }
 };
 
-const getModuleFederationConfig = (
-  fastify: KubeFastifyInstance,
+export const getModuleFederationConfig = (
+  fastify: FastifyInstance,
 ): ModuleFederationConfig[] | null => {
   if (process.env.MODULE_FEDERATION_CONFIG) {
     try {
@@ -57,7 +58,7 @@ const getModuleFederationConfig = (
 };
 
 const readModuleFederationConfigFromPackages = (
-  fastify: KubeFastifyInstance,
+  fastify: FastifyInstance,
 ): ModuleFederationConfig[] | null => {
   const configs: ModuleFederationConfig[] = [];
 
