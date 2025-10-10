@@ -31,7 +31,14 @@ import {
   useModelServerSelectField,
   type ModelServerOption,
 } from './fields/ModelServerTemplateSelectField';
-import { isModelServerTemplateField, type WizardFormData } from './types';
+import {
+  isModelServerTemplateField,
+  isExternalRouteField,
+  isTokenAuthField,
+  type WizardFormData,
+  type ExternalRouteField,
+  type TokenAuthField,
+} from './types';
 import {
   useCreateConnectionData,
   type CreateConnectionData,
@@ -64,6 +71,10 @@ export type UseModelDeploymentWizardState = WizardFormData & {
     modelDeploymentLoaded: boolean;
     advancedOptionsLoaded: boolean;
     summaryLoaded: boolean;
+  };
+  fieldExtensions: {
+    externalRouteFields: ExternalRouteField[];
+    tokenAuthFields: TokenAuthField[];
   };
 };
 
@@ -129,6 +140,19 @@ export const useModelDeploymentWizard = (
   const modelServerTemplateFields = React.useMemo(() => {
     return fields.filter(isModelServerTemplateField);
   }, [fields]);
+
+  const externalRouteFields = React.useMemo(() => {
+    return fields.filter(isExternalRouteField);
+  }, [fields]);
+
+  const tokenAuthFields = React.useMemo(() => {
+    return fields.filter(isTokenAuthField);
+  }, [fields]);
+
+  const fieldExtensions = {
+    externalRouteFields,
+    tokenAuthFields,
+  };
   const modelServer = useModelServerSelectField(
     modelServerTemplateFields,
     initialData?.modelServer,
@@ -191,5 +215,6 @@ export const useModelDeploymentWizard = (
       advancedOptionsLoaded: true, // TODO: Update if these get dependencies that we need to wait for
       summaryLoaded: true, // TODO: Update if these get dependencies that we need to wait for
     },
+    fieldExtensions,
   };
 };

@@ -302,7 +302,9 @@ describe('Model Serving LLMD', () => {
 
       // Step 3: Advanced Options
       modelServingWizard.findNextButton().should('be.enabled');
-      // test "Allow anonymous access" stuff
+      modelServingWizard.findExternalRouteCheckbox().should('not.exist');
+      modelServingWizard.findTokenAuthenticationCheckbox().click();
+      modelServingWizard.findTokenWarningAlert().should('exist');
       modelServingWizard.findRuntimeArgsCheckbox().click();
       modelServingWizard.findRuntimeArgsTextBox().type('--arg=value1');
       modelServingWizard.findEnvVariablesCheckbox().click();
@@ -326,6 +328,7 @@ describe('Model Serving LLMD', () => {
           'openshift.io/description': 'test-llmd-description',
           'opendatahub.io/hardware-profile-namespace': 'opendatahub',
           'opendatahub.io/model-type': 'generative',
+          'security.opendatahub.io/enable-auth': 'false',
           // 'opendatahub.io/connections': '', // todo
         });
         expect(interception.request.body.spec.model.uri).to.equal(''); // here, it will be filled in by the backend

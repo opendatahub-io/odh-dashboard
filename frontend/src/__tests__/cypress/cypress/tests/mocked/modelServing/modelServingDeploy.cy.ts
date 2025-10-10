@@ -1000,8 +1000,7 @@ describe('Model Serving Deploy Wizard', () => {
       'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
     ).should('be.visible');
     // Verify submit is disabled with invalid env var
-    // TODO: Uncomment when fixed
-    // modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findNextButton().should('be.disabled');
 
     // Test invalid env var name with special characters
     modelServingWizard.findEnvVariableName('0').clear().type('invalid@name');
@@ -1009,8 +1008,7 @@ describe('Model Serving Deploy Wizard', () => {
       'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
     ).should('be.visible');
     // Verify submit is disabled with invalid env var
-    // TODO: Uncomment when fixed
-    //modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findNextButton().should('be.disabled');
 
     // Test valid env var name
     modelServingWizard.findEnvVariableName('0').clear().type('VALID_NAME');
