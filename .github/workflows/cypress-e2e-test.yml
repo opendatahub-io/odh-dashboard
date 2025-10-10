@@ -329,11 +329,16 @@ jobs:
         run: |
           # IMPORTANT: Always use localhost with dynamic port for Cypress tests
           # The webpack dev server proxies API calls to the cluster
-          sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:${CYPRESS_PORT}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
-          sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:${CYPRESS_PORT}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          echo "🔧 Updating test-variables.yml to use localhost:${CYPRESS_PORT}..."
+          sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:${CYPRESS_PORT}|g" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:${CYPRESS_PORT}|g" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+
+          echo "📝 Verifying updated URLs:"
+          grep "ODH_DASHBOARD_URL:" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml | head -3
+          grep "OCP_CONSOLE_URL:" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml | head -3
 
           export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
-          echo "📝 Test config set to use localhost:${CYPRESS_PORT}"
+          echo "✅ Test config set to use localhost:${CYPRESS_PORT}"
 
       - name: Start Cypress Server
         run: |
