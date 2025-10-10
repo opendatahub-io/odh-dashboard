@@ -6,6 +6,7 @@ import {
   Deployment,
 } from '@odh-dashboard/model-serving/extension-points';
 import { useResolvedDeploymentExtension } from '../../concepts/extensionUtils';
+import AIAssetExpandableSection from '../shared/AIAssetExpandableSection';
 
 type DeleteModelServingModalProps = {
   onClose: (deleted: boolean) => void;
@@ -61,7 +62,10 @@ const DeleteModelServingModal: React.FC<DeleteModelServingModalProps> = ({
           error={error}
           deleteName={getDisplayNameFromK8sResource(deployment.model)}
         >
-          This action cannot be undone.
+          The <strong>{getDisplayNameFromK8sResource(deployment.model)}</strong> model deployment
+          will be deleted, and its dependent resources will stop working. This action cannot be
+          undone.
+          <AIAssetExpandableSection models={deployment.model} testIdPrefix="delete-ai-assets" />
         </DeleteModal>
       );
 };

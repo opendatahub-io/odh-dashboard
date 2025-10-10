@@ -175,6 +175,7 @@ export const DeploymentRow: React.FC<{
         <ModelServingStopModal
           modelName={getDisplayNameFromK8sResource(deployment.model)}
           title="Stop model deployment?"
+          deployment={deployment}
           onClose={(confirmStatus: boolean) => {
             setOpenConfirm(false);
             if (confirmStatus) {
