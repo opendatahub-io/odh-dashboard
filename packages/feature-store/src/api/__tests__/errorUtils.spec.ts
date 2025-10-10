@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { NotReadyError } from '@odh-dashboard/internal/utilities/useFetch';
 import { FeatureStoreError } from '../../types/global';
-import { handleFeatureStoreFailures } from '../errorUtils';
+import { handleFeatureStoreFailures, getFeatureStoreErrorMessage } from '../errorUtils';
 
 const mockConsoleError = jest.spyOn(console, 'error').mockImplementation(() => undefined);
 
@@ -43,22 +43,24 @@ describe('handleFeatureStoreFailures', () => {
     const featureStoreError: FeatureStoreError = {
       code: 'FEATURE_STORE_001',
       message: 'Feature store not found',
+      error_type: 'FeatureStoreNotFoundException',
     };
 
-    await expect(handleFeatureStoreFailures(Promise.resolve(featureStoreError))).rejects.toThrow(
-      'Feature store not found',
-    );
+    await expect(
+      handleFeatureStoreFailures(Promise.resolve(featureStoreError)),
+    ).rejects.toStrictEqual(featureStoreError);
   });
 
   it('should throw Error with message when promise rejects with FeatureStoreError', async () => {
     const featureStoreError: FeatureStoreError = {
       code: 'FEATURE_STORE_002',
       message: 'Invalid project configuration',
+      detail: 'The project configuration is missing required fields',
     };
 
-    await expect(handleFeatureStoreFailures(Promise.reject(featureStoreError))).rejects.toThrow(
-      new Error('Invalid project configuration'),
-    );
+    await expect(
+      handleFeatureStoreFailures(Promise.reject(featureStoreError)),
+    ).rejects.toStrictEqual(featureStoreError);
   });
 
   it('should re-throw NotReadyError when promise rejects with NotReadyError', async () => {
@@ -112,5 +114,70 @@ describe('handleFeatureStoreFailures', () => {
 
     // These errors occur before console.error is called, so no console calls expected
     expect(mockConsoleError).toHaveBeenCalledTimes(0);
+  });
+});
+
+describe('getFeatureStoreErrorMessage', () => {
+  it('should return fallback message when error is undefined', () => {
+    const result = getFeatureStoreErrorMessage(undefined, 'Fallback message');
+    expect(result).toBe('Fallback message');
+  });
+
+  it('should return detail field when error has detail property', () => {
+    const error = new Error('Generic error');
+    Object.assign(error, { detail: 'Entity not found in project' });
+
+    const result = getFeatureStoreErrorMessage(error, 'Fallback message');
+    expect(result).toBe('Entity not found in project');
+  });
+
+  it('should return error message when error has no detail property', () => {
+    const error = new Error('Standard error message');
+
+    const result = getFeatureStoreErrorMessage(error, 'Fallback message');
+    expect(result).toBe('Standard error message');
+  });
+
+  it('should return fallback message when error has no message or detail', () => {
+    const error = new Error();
+
+    const result = getFeatureStoreErrorMessage(error, 'Fallback message');
+    expect(result).toBe('Fallback message');
+  });
+
+  it('should prefer detail over message when both exist', () => {
+    const error = new Error('Generic error message');
+    Object.assign(error, { detail: 'Detailed error message' });
+
+    const result = getFeatureStoreErrorMessage(error, 'Fallback message');
+    expect(result).toBe('Detailed error message');
+  });
+
+  it('should handle FeatureStoreError with all fields', () => {
+    const error = new Error('Error message');
+    Object.assign(error, {
+      detail: 'Feature view not found in project banking',
+      status_code: 404,
+      error_type: 'FeastObjectNotFoundException',
+    });
+
+    const result = getFeatureStoreErrorMessage(error, 'Fallback message');
+    expect(result).toBe('Feature view not found in project banking');
+  });
+
+  it('should return message when detail is empty string', () => {
+    const error = new Error('Error message');
+    Object.assign(error, { detail: '' });
+
+    const result = getFeatureStoreErrorMessage(error, 'Fallback message');
+    expect(result).toBe('Error message');
+  });
+
+  it('should ignore detail if it is not a string', () => {
+    const error = new Error('Error message');
+    Object.assign(error, { detail: 123 }); // detail is a number
+
+    const result = getFeatureStoreErrorMessage(error, 'Fallback message');
+    expect(result).toBe('Error message');
   });
 });

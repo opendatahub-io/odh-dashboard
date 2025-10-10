@@ -222,3 +222,10 @@ rules:
       - watch
     resources:
       - llamastackdistributions
+  - apiGroups:
+      - feast.dev
+    verbs:
+      - get
+      - list
+    resources:
+      - featurestores
