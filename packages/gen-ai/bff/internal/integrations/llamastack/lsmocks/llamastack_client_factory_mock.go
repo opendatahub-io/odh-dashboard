@@ -20,7 +20,7 @@ func (f *MockClientFactory) SetMockClient(client *MockLlamaStackClient) {
 }
 
 // CreateClient creates a new mock LlamaStack client (ignores baseURL for mocks)
-func (f *MockClientFactory) CreateClient(baseURL string) llamastack.LlamaStackClientInterface {
+func (f *MockClientFactory) CreateClient(baseURL string, opts ...llamastack.ClientOption) llamastack.LlamaStackClientInterface {
 	if f.mockClient != nil {
 		return f.mockClient
 	}

@@ -27,7 +27,7 @@ type LlamaStackClientInterface interface {
 
 // LlamaStackClientFactory interface for creating LlamaStack clients
 type LlamaStackClientFactory interface {
-	CreateClient(baseURL string) LlamaStackClientInterface
+	CreateClient(baseURL string, opts ...ClientOption) LlamaStackClientInterface
 }
 
 // RealClientFactory creates real LlamaStack clients
@@ -38,7 +38,14 @@ func NewRealClientFactory() LlamaStackClientFactory {
 	return &RealClientFactory{}
 }
 
-// CreateClient creates a new real LlamaStack client with the given base URL
-func (f *RealClientFactory) CreateClient(baseURL string) LlamaStackClientInterface {
-	return NewLlamaStackClient(baseURL)
+// CreateClient creates a new real LlamaStack client with the given base URL and options
+func (f *RealClientFactory) CreateClient(baseURL string, opts ...ClientOption) LlamaStackClientInterface {
+	client := NewLlamaStackClient(baseURL)
+
+	// Apply any additional options
+	for _, opt := range opts {
+		opt(client)
+	}
+
+	return client
 }

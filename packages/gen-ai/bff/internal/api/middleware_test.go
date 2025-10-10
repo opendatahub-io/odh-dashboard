@@ -26,7 +26,7 @@ type CapturingMockClientFactory struct {
 	CapturedURL string
 }
 
-func (f *CapturingMockClientFactory) CreateClient(baseURL string) llamastack.LlamaStackClientInterface {
+func (f *CapturingMockClientFactory) CreateClient(baseURL string, opts ...llamastack.ClientOption) llamastack.LlamaStackClientInterface {
 	f.CapturedURL = baseURL
 	return lsmocks.NewMockLlamaStackClient()
 }
