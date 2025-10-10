@@ -101,14 +101,9 @@ describe(
         cy.step('Verify that the Model is running');
         // For KServe Raw deployments, we only need to check Ready condition
         // LatestDeploymentReady is specific to Serverless deployments
-        checkInferenceServiceState(
-          modelDeploymentName,
-          projectName,
-          {
-            checkReady: true,
-          },
-          'RawDeployment',
-        );
+        checkInferenceServiceState(modelDeploymentName, projectName, {
+          checkReady: true,
+        });
         modelServingSection.findModelMetricsLink(modelDeploymentName);
       },
     );
