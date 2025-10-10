@@ -1153,6 +1153,10 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('save-as-ai-asset-checkbox');
   }
 
+  findSaveAsMaaSCheckbox() {
+    return cy.findByTestId('save-as-maas-checkbox');
+  }
+
   findUseCaseInput() {
     return cy.findByTestId('use-case-input');
   }
