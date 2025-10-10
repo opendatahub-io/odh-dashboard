@@ -53,21 +53,29 @@ export const mockNimImages = (): ConfigMapKind =>
 type NimInferenceService = {
   namespace?: string;
   displayName?: string;
+  resources?: {
+    limits?: { cpu: string; memory: string };
+    requests?: { cpu: string; memory: string };
+  };
+  hardwareProfileName?: string;
+  hardwareProfileNamespace?: string;
+  hardwareProfileResourceVersion?: string;
 };
 
 export const mockNimInferenceService = ({
   displayName = 'Test Name',
   namespace = 'test-project',
+  resources = {
+    limits: { cpu: '16', memory: '64Gi' },
+    requests: { cpu: '8', memory: '32Gi' },
+  },
 }: NimInferenceService = {}): InferenceServiceKind => {
   const inferenceService = mockInferenceServiceK8sResource({
     name: 'test-name',
     modelName: 'test-name',
     displayName,
     namespace,
-    resources: {
-      limits: { cpu: '16', memory: '64Gi' },
-      requests: { cpu: '8', memory: '32Gi' },
-    },
+    resources,
   });
 
   delete inferenceService.metadata.labels?.name;
@@ -81,10 +89,6 @@ export const mockNimInferenceService = ({
   delete inferenceService.spec.predictor.model?.modelFormat?.version;
   delete inferenceService.spec.predictor.model?.storage;
   delete inferenceService.spec.predictor.imagePullSecrets;
-
-  if (!inferenceService.spec.predictor.tolerations) {
-    inferenceService.spec.predictor.tolerations = [];
-  }
 
   return inferenceService;
 };

@@ -2,9 +2,6 @@ import React from 'react';
 import { BYONImage } from '#~/types';
 import { Table } from '#~/components/table';
 import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
-import { useDashboardNamespace } from '#~/redux/selectors';
-import useAcceleratorProfiles from '#~/pages/notebookController/screens/server/useAcceleratorProfiles';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import ManageBYONImageModal from './BYONImageModal/ManageBYONImageModal';
@@ -41,13 +38,9 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
   const [editImage, setEditImage] = React.useState<BYONImage>();
   const [deleteImage, setDeleteImage] = React.useState<BYONImage>();
 
-  const { dashboardNamespace } = useDashboardNamespace();
-  const acceleratorProfiles = useAcceleratorProfiles(dashboardNamespace);
   const hardwareProfiles = useHardwareProfilesByFeatureVisibility([
     HardwareProfileFeatureVisibility.WORKBENCH,
   ]);
-
-  const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
 
   const onFilterUpdate = React.useCallback(
     (key: string, value: string | { label: string; value: string } | undefined) =>
@@ -67,11 +60,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
         data-testid="notebook-images-table"
         enablePagination
         data={filteredImages}
-        columns={
-          isHardwareProfileAvailable
-            ? columns.filter((column) => column.field !== 'recommendedAccelerators')
-            : columns.filter((column) => column.field !== 'recommendedHardwareProfiles')
-        }
+        columns={columns}
         defaultSortColumn={1}
         emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
         disableRowRenderSupport
@@ -82,7 +71,6 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
             obj={image}
             onEditImage={(i) => setEditImage(i)}
             onDeleteImage={(i) => setDeleteImage(i)}
-            acceleratorProfiles={acceleratorProfiles}
             hardwareProfiles={hardwareProfiles}
           />
         )}

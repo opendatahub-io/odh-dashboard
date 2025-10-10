@@ -16,10 +16,7 @@ import { LMEvalContext } from './LMEvalContext';
 import LMEvalLoading from './LMEvalLoading';
 import LMEvalListView from './lmEvalList/LMEvalListView';
 import EvaluateModelButton from './EvaluateModelButton';
-
-const title = 'Evaluations';
-const description =
-  'Select a project to view its model evaluation runs, or start a new evaluation run. Evaluation runs help determine a model’s performance by testing it against selected evaluation benchmarks called tasks.';
+import { evaluationsPageTitle, evaluationsPageDescription } from './consts';
 
 const LMEval = (): React.ReactElement => {
   const navigate = useNavigate();
@@ -50,8 +47,13 @@ const LMEval = (): React.ReactElement => {
     <ApplicationsPage
       empty={lmEvalData.length === 0}
       emptyStatePage={emptyState}
-      title={<TitleWithIcon title={title} objectType={ProjectObjectType.modelEvaluation} />}
-      description={description}
+      title={
+        <TitleWithIcon
+          title={evaluationsPageTitle}
+          objectType={ProjectObjectType.modelEvaluation}
+        />
+      }
+      description={evaluationsPageDescription}
       loadError={lmEvalLoadError}
       loaded={lmEvalLoaded}
       headerContent={
