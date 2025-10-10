@@ -395,7 +395,7 @@ export const createResponse = (
 
                       // Check for error in the stream
                       if (data.error) {
-                        reader.releaseLock();
+                        await reader.cancel('Streaming error');
                         const errorMessage =
                           data.error.message || 'An error occurred during streaming';
                         reject(new Error(errorMessage));

@@ -613,6 +613,7 @@ describe('llamaStackService', () => {
                 'data: {"error":{"code":"500","message":"Streaming error occurred"}}\n',
               ),
             }),
+          cancel: jest.fn().mockResolvedValueOnce(undefined),
           releaseLock: jest.fn(),
         };
 
@@ -631,7 +632,9 @@ describe('llamaStackService', () => {
 
         expect(mockStreamData).toHaveBeenCalledWith('Hello');
         expect(mockStreamData).toHaveBeenCalledTimes(1);
-        expect(mockReader.releaseLock).toHaveBeenCalled();
+        expect(mockReader.cancel).toHaveBeenCalledWith('Streaming error');
+        // releaseLock is still called once in the finally block, which is correct
+        expect(mockReader.releaseLock).toHaveBeenCalledTimes(1);
       });
 
       it('should handle streaming error without message', async () => {
@@ -645,6 +648,7 @@ describe('llamaStackService', () => {
             done: false,
             value: new TextEncoder().encode('data: {"error":{"code":"500"}}\n'),
           }),
+          cancel: jest.fn().mockResolvedValueOnce(undefined),
           releaseLock: jest.fn(),
         };
 
@@ -662,7 +666,9 @@ describe('llamaStackService', () => {
         ).rejects.toThrow('An error occurred during streaming');
 
         expect(mockStreamData).not.toHaveBeenCalled();
-        expect(mockReader.releaseLock).toHaveBeenCalled();
+        expect(mockReader.cancel).toHaveBeenCalledWith('Streaming error');
+        // releaseLock is still called once in the finally block, which is correct
+        expect(mockReader.releaseLock).toHaveBeenCalledTimes(1);
       });
 
       it('should include axios headers in streaming request', async () => {
