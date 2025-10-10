@@ -1,16 +1,12 @@
 import * as React from 'react';
 import { Bullseye, Content, Spinner } from '@patternfly/react-core';
 import ModelsEmptyState from '~/app/EmptyStates/NoData';
-import { MaaSModel } from '~/app/types';
-import MaaSModelsTable from './components/MaaSModelsTable';
+import useFetchMaaSModels from '~/app/hooks/useFetchMaaSModels';
+import MaaSModelsTable from '~/app/AIAssets/components/MaaSModelsTable';
 
-type AIAssetsMaaSTabProps = {
-  models: MaaSModel[];
-  loaded: boolean;
-  error?: Error;
-};
+const AIAssetsMaaSTab: React.FC = () => {
+  const { data: models = [], loaded, error } = useFetchMaaSModels();
 
-const AIAssetsMaaSTab: React.FC<AIAssetsMaaSTabProps> = ({ models, loaded, error }) => {
   if (!loaded) {
     return (
       <Bullseye>
