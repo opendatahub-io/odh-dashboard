@@ -3,8 +3,8 @@ import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
-import { ModelLocationData } from '@odh-dashboard/model-serving/types/form-data';
-import type { LLMdContainer, LLMInferenceServiceKind } from '../types';
+import { ModelLocationData, ModelLocationType } from '@odh-dashboard/model-serving/types/form-data';
+import type { LLMdContainer, LLMInferenceServiceKind, LLMdDeployment } from '../types';
 
 export const applyModelLocation = (
   llmdInferenceService: LLMInferenceServiceKind,
@@ -105,4 +105,49 @@ export const applyModelEnvVars = (
   const { result, mainContainer } = structuredCloneWithMainContainer(llmdInferenceService);
   mainContainer.env = modelEnvVars;
   return result;
+};
+
+export const extractRuntimeArgs = (
+  llmdDeployment: LLMdDeployment,
+): { enabled: boolean; args: string[] } | null => {
+  const args =
+    llmdDeployment.model.spec.template?.containers?.find((container) => container.name === 'main')
+      ?.args || [];
+  return {
+    enabled: args.length > 0,
+    args,
+  };
+};
+
+export const extractEnvironmentVariables = (
+  llmdDeployment: LLMdDeployment,
+): { enabled: boolean; variables: { name: string; value: string }[] } | null => {
+  const envVars =
+    llmdDeployment.model.spec.template?.containers?.find((container) => container.name === 'main')
+      ?.env || [];
+  return {
+    enabled: envVars.length > 0,
+    variables: envVars.map((envVar) => ({
+      name: envVar.name,
+      value: String(envVar.value || ''),
+    })),
+  };
+};
+
+export const extractModelLocationData = (
+  llmdDeployment: LLMdDeployment,
+): ModelLocationData | null => {
+  const connectionName =
+    llmdDeployment.model.metadata.annotations?.[MetadataAnnotation.ConnectionName];
+
+  if (connectionName) {
+    return {
+      type: ModelLocationType.EXISTING,
+      connection: connectionName,
+      fieldValues: {},
+      additionalFields: {},
+    };
+  }
+
+  return null;
 };

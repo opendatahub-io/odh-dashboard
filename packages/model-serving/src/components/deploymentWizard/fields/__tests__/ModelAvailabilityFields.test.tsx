@@ -43,7 +43,7 @@ describe('AvailableAiAssetsFields', () => {
       const { result } = renderHook(() => useModelAvailabilityFields());
       expect(result.current.data).toStrictEqual({
         saveAsAiAsset: false,
-        saveAsMaaS: false,
+        saveAsMaaS: undefined,
         useCase: '',
       });
     });
@@ -155,7 +155,7 @@ describe('AvailableAiAssetsFields', () => {
       // Data should be reset and field should be hidden
       expect(result.current.data).toStrictEqual({
         saveAsAiAsset: false,
-        saveAsMaaS: false,
+        saveAsMaaS: undefined,
         useCase: '',
       });
       expect(result.current.showField).toBe(false);
