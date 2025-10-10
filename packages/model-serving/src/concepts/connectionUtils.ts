@@ -98,6 +98,9 @@ export const handleConnectionCreation = async (
       },
     },
   };
+  if (!description || description === '') {
+    delete annotatedConnection.metadata.annotations['openshift.io/description'];
+  }
 
   // If not saving as connection
   if (!createConnectionData.saveConnection) {
