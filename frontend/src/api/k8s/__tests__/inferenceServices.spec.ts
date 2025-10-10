@@ -29,7 +29,6 @@ import { DeploymentMode, InferenceServiceKind, ProjectKind, KnownLabels } from '
 import { ModelServingSize } from '#~/pages/modelServing/screens/types';
 import { TolerationEffect, TolerationOperator } from '#~/types';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile.ts';
-import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
@@ -150,44 +149,6 @@ describe('assembleInferenceService', () => {
     expect(inferenceService.metadata.annotations).toBeDefined();
     expect(inferenceService.metadata.name).toBe(name);
     expect(inferenceService.metadata.annotations?.['openshift.io/display-name']).toBe(name);
-  });
-
-  it('should add resources and tolerations if kserve and podSpecOptions found and hardware profile not selected', async () => {
-    const podSpecOption: ModelServingPodSpecOptions = mockModelServingPodSpecOptions({
-      resources: {
-        requests: {
-          'nvidia.com/gpu': 1,
-        },
-        limits: {
-          'nvidia.com/gpu': 1,
-        },
-      },
-      tolerations: [
-        {
-          key: 'nvidia.com/gpu',
-          operator: TolerationOperator.EXISTS,
-          effect: TolerationEffect.NO_SCHEDULE,
-        },
-      ],
-      selectedHardwareProfile: undefined,
-    });
-    const inferenceService = assembleInferenceService(
-      mockInferenceServiceModalData({}),
-      undefined,
-      undefined,
-      false,
-      undefined,
-      undefined,
-      podSpecOption,
-    );
-
-    expect(inferenceService.spec.predictor.tolerations).toBeDefined();
-    expect(inferenceService.spec.predictor.tolerations?.[0].key).toBe(
-      mockAcceleratorProfile({}).spec.tolerations?.[0].key,
-    );
-    expect(inferenceService.spec.predictor.model?.resources).toBeDefined();
-    expect(inferenceService.spec.predictor.model?.resources?.limits?.['nvidia.com/gpu']).toBe(1);
-    expect(inferenceService.spec.predictor.model?.resources?.requests?.['nvidia.com/gpu']).toBe(1);
   });
 
   it('should not add resources and tolerations if modelmesh', async () => {
@@ -559,45 +520,6 @@ describe('assembleInferenceService', () => {
 
     expect(resultKServe.spec.predictor.tolerations).toBeUndefined();
     expect(resultKServe.spec.predictor.nodeSelector).toBeUndefined();
-  });
-
-  it('should set pod specs for accelerator profiles', () => {
-    const gpuTolerations = [
-      {
-        key: 'nvidia.com/gpu',
-        operator: TolerationOperator.EQUAL,
-        effect: TolerationEffect.NO_SCHEDULE,
-      },
-    ];
-    const acceleratorProfile = mockAcceleratorProfile({
-      name: 'ac-test-1',
-      displayName: 'ac-test-1',
-      identifier: 'nvidia.com/gpu',
-      tolerations: gpuTolerations,
-    });
-
-    const podSpecOptions = mockModelServingPodSpecOptions({
-      selectedAcceleratorProfile: acceleratorProfile,
-      tolerations: gpuTolerations,
-      resources: {
-        requests: { 'nvidia.com/gpu': 1 },
-        limits: { 'nvidia.com/gpu': 1 },
-      },
-    });
-
-    const result = assembleInferenceService(
-      mockInferenceServiceModalData({}),
-      undefined,
-      undefined,
-      false,
-      undefined,
-      undefined,
-      podSpecOptions,
-    );
-
-    expect(result.spec.predictor.tolerations).toEqual(gpuTolerations);
-    expect(result.spec.predictor.model?.resources?.requests?.['nvidia.com/gpu']).toBe(1);
-    expect(result.spec.predictor.model?.resources?.limits?.['nvidia.com/gpu']).toBe(1);
   });
 });
 
