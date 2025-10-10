@@ -25,6 +25,7 @@ export const applyModelLocation = (
   // Adds path annotation for S3
   if (
     modelLocationData.additionalFields.modelPath &&
+    modelLocationData.connectionTypeObject &&
     isModelServingCompatible(
       modelLocationData.connectionTypeObject ?? [],
       ModelServingCompatibleTypes.S3ObjectStorage,
@@ -38,6 +39,7 @@ export const applyModelLocation = (
   // Adds uri for OCI
   if (
     modelLocationData.additionalFields.modelUri &&
+    modelLocationData.connectionTypeObject &&
     isModelServingCompatible(
       modelLocationData.connectionTypeObject ?? [],
       ModelServingCompatibleTypes.OCI,

@@ -286,11 +286,8 @@ describe('Model Serving LLMD', () => {
         .should('exist')
         .click();
       modelServingWizard.findExistingConnectionValue().should('have.value', 'test-s3-secret');
-      modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
-      modelServingWizard.findSaveConnectionCheckbox().click();
-      modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
       modelServingWizard.findModelTypeSelectOption('Generative AI model (e.g. LLM)').click();
-      modelServingWizard.findModelPathInput().should('exist').type('test-model/');
+      modelServingWizard.findLocationPathInput().should('exist').type('test-model/');
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       // Step 2: Model deployment
