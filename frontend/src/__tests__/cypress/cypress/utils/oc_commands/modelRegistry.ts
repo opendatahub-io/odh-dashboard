@@ -258,6 +258,13 @@ export const checkModelRegistryAvailable = (registryName: string): Cypress.Chain
         cy.log(`Wait stderr: ${result.stderr}`);
       }
       return cy.wrap(result.code === 0);
+    })
+    .then((isAvailable) => {
+      if (isAvailable) {
+        // eslint-disable-next-line cypress/no-unnecessary-waiting
+        cy.wait(10000);
+      }
+      return cy.wrap(isAvailable);
     });
 };
 

@@ -74,7 +74,7 @@ describe('Verify models can be deployed from model registry', () => {
 
   it(
     'Registers a model and deploys it via model registry',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4'] },
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -122,7 +122,7 @@ describe('Verify models can be deployed from model registry', () => {
       registerModelPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify the model was registered');
-      cy.url().should('include', '/modelRegistry');
+      cy.url().should('include', '/model-registry');
       cy.contains(modelName, { timeout: 10000 }).should('be.visible');
 
       cy.step('Verify the model exists in the database');
@@ -176,8 +176,9 @@ describe('Verify models can be deployed from model registry', () => {
       cy.step('Submit the deployment');
       kserveModal.findSubmitButton().click();
 
-      // Check deployment status in model registry deployments view
-      modelRegistry.findDeploymentsTab().click();
+      // Check deployment link and verify status in deployments view
+      modelRegistry.navigate();
+      cy.contains('1 deployment').should('be.visible').click();
       cy.contains(modelName, { timeout: 30000 }).should('be.visible');
       cy.contains('Started', { timeout: 120000 }).should('be.visible');
 
