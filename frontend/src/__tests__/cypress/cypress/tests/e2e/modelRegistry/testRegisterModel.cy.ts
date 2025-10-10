@@ -68,7 +68,7 @@ describe('Verify models can be registered in a model registry', () => {
 
   it(
     'Registers models via model registry using object storage and URI',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Smoke', '@SmokeSet1'] },
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -116,7 +116,7 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify the object storage model was registered');
-      cy.url().should('include', '/modelRegistry');
+      cy.url().should('include', '/model-registry');
       cy.contains(objectStorageModelName, { timeout: 10000 }).should('be.visible');
 
       cy.step('Verify the object storage model exists in the database');
@@ -149,14 +149,14 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify the URI model was registered');
-      cy.url().should('include', '/modelRegistry');
+      cy.url().should('include', '/model-registry');
       cy.contains(testData.uriModelName, { timeout: 10000 }).should('be.visible');
 
       cy.step('Verify the URI model exists in the database');
       checkModelExistsInDatabase(testData.uriModelName).should('be.true');
 
       cy.step('Navigate back to model registry to verify both models');
-      cy.visitWithLogin(`/modelRegistry/${registryName}`, HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin(`/model-registry/${registryName}`, HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Verify both models are visible in the registry');
       cy.contains(objectStorageModelName, { timeout: 10000 }).should('be.visible');
@@ -166,7 +166,7 @@ describe('Verify models can be registered in a model registry', () => {
 
   it(
     'Registers a new version via versions view',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Smoke', '@SmokeSet1'] },
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -210,7 +210,7 @@ describe('Verify models can be registered in a model registry', () => {
       registerVersionPage.findSubmitButton().click();
 
       cy.step('Verify the new version was registered');
-      cy.url().should('include', '/versions');
+      cy.url().should('include', '/overview');
       cy.contains(testData.version2Name, { timeout: 10000 }).should('be.visible');
 
       cy.step('Verify the new version exists in the database');
