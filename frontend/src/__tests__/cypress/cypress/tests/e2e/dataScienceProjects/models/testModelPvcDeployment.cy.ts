@@ -127,7 +127,6 @@ describe('Verify a model can be deployed from a PVC', () => {
       // Deploy the model
       cy.step('Deploy the model');
       projectDetails.findSectionTab('model-server').click();
-      modelServingGlobal.findSingleServingModelButton().click();
       modelServingGlobal.findDeployModelButton().click();
       inferenceServiceModal.findModelNameInput().type(modelName);
       inferenceServiceModal.findServingRuntimeTemplateSearchSelector().click();

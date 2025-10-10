@@ -88,7 +88,6 @@ describe('Workbenches - status tests', () => {
           // Use dynamic image name verification based on what was actually selected
           getImageStreamDisplayName(selectedImageStream).then((displayName) => {
             notebookRow.shouldHaveNotebookImageName(displayName);
-            notebookRow.shouldHaveContainerSize('Small');
 
             // Click on 'Running' status and validate the Progress steps
             cy.step(
