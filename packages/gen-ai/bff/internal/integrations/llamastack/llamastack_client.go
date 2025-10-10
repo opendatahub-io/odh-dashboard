@@ -20,9 +20,12 @@ type LlamaStackClient struct {
 
 // NewLlamaStackClient creates a new client configured for Llama Stack.
 func NewLlamaStackClient(baseURL string) *LlamaStackClient {
+	// Create client with base options and no retries
 	client := openai.NewClient(
 		option.WithBaseURL(baseURL+"/v1/openai/v1"),
 		option.WithAPIKey("none"),
+		// Disable retries for streaming to prevent VLLM shared memory exhaustion
+		option.WithMaxRetries(0),
 	)
 
 	return &LlamaStackClient{

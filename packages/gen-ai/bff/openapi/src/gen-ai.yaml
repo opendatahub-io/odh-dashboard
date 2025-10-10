@@ -862,6 +862,22 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateResponseRequest'
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - request
+              properties:
+                request:
+                  type: string
+                  description: JSON string containing the CreateResponseRequest object
+                  example: '{"input":"What do the uploaded files say?","model":"llama-3.1-8b","temperature":0.7,"instructions":"You are a helpful AI assistant that analyzes documents."}'
+                files:
+                  type: array
+                  description: Files to use for in-context learning (not stored in vector store)
+                  items:
+                    type: string
+                    format: binary
         required: true
       responses:
         '201':
@@ -882,6 +898,13 @@ paths:
         When stream=true: Returns Server-Sent Events (SSE) stream with real-time token deltas and completion events.
         The output array preserves LlamaStack's structure but filters out unnecessary metadata for optimal performance.
         MCP tools support multiple tools per request with individual authentication tokens provided in each tool's headers.
+
+        File Upload Support:
+        - Supports direct file uploads for in-context learning without requiring vector store creation
+        - Use multipart/form-data with 'request' field containing JSON parameters and 'files' field for file uploads
+        - Supported file types: text/plain, text/markdown, application/json, application/pdf, application/vnd.ms-excel
+        - Maximum file size: 5MB per file, 20MB total
+        - Files are processed and included directly in the conversation context
 
 
   # =============================================================================
