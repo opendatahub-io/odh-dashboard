@@ -49,7 +49,7 @@ const extensions: (
       extractEnvironmentVariables: () =>
         import('../src/deployments/model').then((m) => m.extractEnvironmentVariables),
       extractModelAvailabilityData: () =>
-        import('../src/wizardFields/modelAvailablilty').then((m) => m.extractModelAvailabilityData),
+        import('../src/wizardFields/modelAvailability').then((m) => m.extractModelAvailabilityData),
       extractModelLocationData: () =>
         import('../src/deployments/model').then((m) => m.extractModelLocationData),
     },
@@ -84,7 +84,7 @@ const extensions: (
     properties: {
       platform: LLMD_SERVING_ID,
       field: () =>
-        import('../src/wizardFields/modelAvailablilty').then((m) => m.modelAvailabilityField),
+        import('../src/wizardFields/modelAvailability').then((m) => m.modelAvailabilityField),
     },
     flags: {
       required: [SupportedArea.MODEL_AS_SERVICE],

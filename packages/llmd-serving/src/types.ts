@@ -2,7 +2,7 @@ import type { K8sModelCommon, K8sResourceCommon } from '@openshift/dynamic-plugi
 import type { DisplayNameAnnotations, MetadataAnnotation } from '@odh-dashboard/internal/k8sTypes';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
 import type { PodContainer } from '@odh-dashboard/internal/types';
-import type { MAAS_TIERS_ANNOTATION } from './wizardFields/modelAvailablilty';
+import type { MAAS_TIERS_ANNOTATION } from './wizardFields/modelAvailability';
 
 export type LLMdContainer = { name: string; args?: string[] } & Partial<PodContainer>;
 

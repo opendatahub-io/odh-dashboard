@@ -10,7 +10,7 @@ import { applyModelEnvVars, applyModelArgs, applyModelLocation } from './model';
 import { setUpTokenAuth } from './deployUtils';
 import { LLMD_SERVING_ID } from '../../extensions/extensions';
 import { LLMdDeployment, LLMInferenceServiceKind, LLMInferenceServiceModel } from '../types';
-import { applyModelAvailabilityData } from '../wizardFields/modelAvailablilty';
+import { applyModelAvailabilityData } from '../wizardFields/modelAvailability';
 
 const applyTokenAuthentication = (
   llmdInferenceService: LLMInferenceServiceKind,
