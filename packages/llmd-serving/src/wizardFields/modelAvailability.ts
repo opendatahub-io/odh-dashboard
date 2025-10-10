@@ -31,8 +31,7 @@ export const extractModelAvailabilityData = (
 ): WizardFormData['state']['modelAvailability']['data'] => {
   return {
     saveAsAiAsset: deployment.model.metadata.annotations?.['opendatahub.io/genai-asset'] === 'true',
-    saveAsMaaS:
-      deployment.model.metadata.annotations?.[MAAS_TIERS_ANNOTATION] !== DEFAULT_MAAS_TIERS_VALUE,
+    saveAsMaaS: !!deployment.model.metadata.annotations?.[MAAS_TIERS_ANNOTATION],
     useCase: deployment.model.metadata.annotations?.['opendatahub.io/genai-use-case'],
   };
 };

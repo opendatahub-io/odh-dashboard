@@ -5,7 +5,7 @@ import { applyHardwareProfileConfig, applyReplicas } from './hardware';
 import { applyModelEnvVars, applyModelArgs, applyModelLocation } from './model';
 import { LLMD_SERVING_ID } from '../../extensions/extensions';
 import { LLMdDeployment, LLMInferenceServiceKind, LLMInferenceServiceModel } from '../types';
-import { applyModelAvailabilityData } from '../wizardFields/modelAvailablilty';
+import { applyModelAvailabilityData } from '../wizardFields/modelAvailability';
 
 export const isLLMdDeployActive = (wizardData: WizardFormData['state']): boolean => {
   return wizardData.modelServer.data?.name === LLMD_SERVING_ID;
