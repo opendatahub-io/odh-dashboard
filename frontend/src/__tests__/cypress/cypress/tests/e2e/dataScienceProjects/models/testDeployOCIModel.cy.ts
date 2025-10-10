@@ -26,7 +26,7 @@ let modelDeploymentName: string;
 const uuid = generateTestUUID();
 
 describe(
-  '[Product Bug: RHOAIENG-31085] A user can create an OCI connection and deploy a model with it',
+  'A user can create an OCI connection and deploy a model with it',
   { testIsolation: false },
   () => {
     let testData: DeployOCIModelData;
@@ -38,7 +38,10 @@ describe(
           testData = fixtureData;
           projectName = `${testData.projectName}-${uuid}`;
           connectionName = testData.connectionName;
-          secretDetailsFile = Cypress.env('OCI_SECRET_DETAILS_FILE');
+          // Create temporary file with secret content
+          const secretValue = Cypress.env('OCI_SECRET_VALUE');
+          secretDetailsFile = `/tmp/oci-secret-${uuid}.json`;
+          cy.writeFile(secretDetailsFile, secretValue);
           ociRegistryHost = testData.ociRegistryHost;
           modelDeploymentURI = Cypress.env('OCI_MODEL_URI');
           modelDeploymentName = testData.modelDeploymentName;
@@ -50,6 +53,9 @@ describe(
     });
 
     after(() => {
+      // Clean up temporary secret file
+      cy.task('deleteFile', secretDetailsFile, { log: false });
+
       // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
       // TODO: Review this timeout once RHOAIENG-19969 is resolved
       deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
@@ -58,7 +64,7 @@ describe(
     it(
       'Verify User Can Create an OCI Connection in DS Connections Page And Deploy the Model',
       {
-        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent', '@Bug'],
+        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent'],
       },
       () => {
         cy.step(`Navigate to DS Project ${projectName}`);
@@ -83,7 +89,6 @@ describe(
 
         cy.step('Deploy OCI Connection with KServe');
         projectDetails.findSectionTab('model-server').click();
-        modelServingGlobal.findSingleServingModelButton().click();
         modelServingGlobal.findDeployModelButton().click();
         inferenceServiceModal.findModelNameInput().type(modelDeploymentName);
         inferenceServiceModal.findServingRuntimeTemplateSearchSelector().click();
@@ -92,12 +97,14 @@ describe(
         inferenceServiceModal.findOpenVinoOnnx().click();
         inferenceServiceModal.findOCIModelURI().type(modelDeploymentURI);
         inferenceServiceModal.findSubmitButton().focus().click();
-        checkInferenceServiceState(modelDeploymentName, projectName);
-        // Note reload is required as status tooltip was not found due to a stale element
-        cy.reload();
+        //Verify the model created and is running
+        cy.step('Verify that the Model is running');
+        // For KServe Raw deployments, we only need to check Ready condition
+        // LatestDeploymentReady is specific to Serverless deployments
+        checkInferenceServiceState(modelDeploymentName, projectName, {
+          checkReady: true,
+        });
         modelServingSection.findModelMetricsLink(modelDeploymentName);
-        modelServingSection.findStatusTooltip().click({ force: true });
-        cy.contains('Model is deployed', { timeout: 120000 }).should('be.visible');
       },
     );
   },
