@@ -359,6 +359,10 @@ jobs:
           ulimit -n 65536 || echo "⚠️  Could not increase file descriptor limit"
           echo "📊 File descriptor limit: $(ulimit -n)"
           
+          echo "🧹 Cleaning up zombie Chrome processes (older than 2 hours)..."
+          # Find and kill old Chrome processes from previous failed runs
+          ps aux | grep 'chrome --test-type' | grep -v grep | awk '{if ($10 ~ /[0-9]+:[0-9]+/ && $10 !~ /^0:/) print $2}' | xargs -r kill -9 2>/dev/null || echo "No old Chrome processes found"
+          
           echo "🧹 Cleaning up any existing processes on port ${CYPRESS_PORT}..."
           lsof -ti:${CYPRESS_PORT} | xargs kill -9 2>/dev/null || echo "No processes on port ${CYPRESS_PORT}"
           pkill -f "webpack.*serve.*${CYPRESS_PORT}" 2>/dev/null || echo "No webpack processes for port ${CYPRESS_PORT}"
@@ -481,6 +485,19 @@ jobs:
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "📍 Working directory: $(pwd)"
           echo "📍 Webpack URL: $BASE_URL"
+          echo ""
+          echo "🔍 GitHub Actions Environment:"
+          echo "  CI=$CI"
+          echo "  GITHUB_ACTIONS=$GITHUB_ACTIONS"
+          echo "  RUNNER_NAME=$RUNNER_NAME"
+          echo ""
+          echo "🔍 Display/Graphics:"
+          env | grep -E "DISPLAY|XAUTH|WAYLAND" || echo "  None set (headless mode)"
+          echo ""
+          echo "🔍 Process Info:"
+          echo "  Parent PID: $PPID"
+          echo "  Current PID: $$"
+          ps -p $$ -o ppid,pid,cmd --no-headers
           echo "📊 Current user: $(whoami)"
           echo "📊 Process limits:"
           ulimit -a | grep -E "open files|processes|max memory"
@@ -490,18 +507,73 @@ jobs:
           lsof -i :4000-5000 2>/dev/null | grep LISTEN || echo "No ports listening in range"
           echo ""
           echo "📦 Existing Chrome processes:"
-          ps aux | grep -i chrome | grep -v grep | wc -l
+          CHROME_COUNT=$(ps aux | grep -i chrome | grep -v grep | wc -l)
+          echo "Total: $CHROME_COUNT"
+          if [ $CHROME_COUNT -gt 0 ]; then
+            echo "Checking for zombie processes (older than 1 hour CPU time):"
+            ps aux | grep 'chrome --test-type' | grep -v grep | awk '{if ($10 ~ /[0-9]+:[0-9]+/) print "PID:"$2" CPU:"$3"% MEM:"$4"% TIME:"$10}' | head -5
+          fi
           echo ""
           echo "🔌 Testing webpack connectivity:"
           curl -f -s -o /dev/null -w "HTTP Status: %{http_code}\n" http://localhost:${CYPRESS_PORT}/ || echo "❌ Webpack not responding!"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
 
+          # Monitor Chrome/Cypress connection in background
+          (
+            echo "🔍 Starting Chrome monitoring..."
+            for i in 10 20 30 45 60; do
+              sleep $i
+              echo ""
+              echo "🔍 [$i s] Chrome Status Check:"
+              
+              # Check if Chrome launched
+              CHROME_PIDS=$(pgrep -f "chrome --test-type.*$CYPRESS_PORT" 2>/dev/null)
+              if [ -n "$CHROME_PIDS" ]; then
+                CHROME_COUNT=$(echo "$CHROME_PIDS" | wc -l)
+                echo "  ✅ Chrome running: $CHROME_COUNT process(es)"
+                
+                # Check DevTools port
+                DEVTOOLS_PORT=$(lsof -i -n 2>/dev/null | grep chrome | grep LISTEN | grep -v "$CYPRESS_PORT" | awk '{print $9}' | cut -d: -f2 | head -1)
+                if [ -n "$DEVTOOLS_PORT" ]; then
+                  echo "  ✅ DevTools port open: $DEVTOOLS_PORT"
+                  
+                  # Test if we can connect to it
+                  if timeout 2 nc -z 127.0.0.1 $DEVTOOLS_PORT 2>/dev/null; then
+                    echo "  ✅ DevTools port is ACCESSIBLE"
+                  else
+                    echo "  ❌ DevTools port NOT accessible (Cypress can't connect!)"
+                  fi
+                else
+                  echo "  ❌ DevTools port NOT listening (Chrome debugging disabled?)"
+                fi
+              else
+                echo "  ❌ Chrome not running yet or already crashed"
+              fi
+              
+              # Stop monitoring after timeout period
+              [ $i -ge 60 ] && break
+            done
+          ) &
+          MONITOR_PID=$!
+          
+          # CRITICAL FIX: Unset CI variables that may interfere with Chrome DevTools
+          # Testing hypothesis: GitHub Actions environment prevents Chrome connection
+          unset CI
+          unset GITHUB_ACTIONS
+          
+          echo "🔧 Temporarily unset CI variables for Chrome compatibility"
+          echo "   CI is now: ${CI:-unset}"
+          echo "   GITHUB_ACTIONS is now: ${GITHUB_ACTIONS:-unset}"
+          echo ""
+          
           # Run tests with dynamic base URL set BEFORE Cypress starts
           # Capture output to monitor Chrome startup
+          # CRITICAL FIX: Increased browserLaunchTimeout from 30s (default) to 120s
           npm run cypress:run:chrome -- \
             --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true \
-            --config baseUrl="$BASE_URL",video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos" \
+            --config baseUrl="$BASE_URL",video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos",browserLaunchTimeout=120000 \
+            --browser-args="--disable-gpu --no-sandbox --disable-dev-shm-usage" \
             2>&1 | tee /tmp/cypress-run-${{ matrix.test-tag }}.log || CYPRESS_EXIT=$?
           
           # Capture the exit code
@@ -512,6 +584,50 @@ jobs:
           echo "🔍 POST-TEST DEBUGGING - What Happened?"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "📊 Cypress exit code: $CYPRESS_EXIT"
+          echo ""
+          
+          if [ $CYPRESS_EXIT -ne 0 ]; then
+            echo "❌ Test failed. Analyzing Cypress connection logs..."
+            echo ""
+            
+            # Show Chrome/browser connection errors (safe to print)
+            if grep -q "Timed out waiting.*browser" /tmp/cypress-run-${{ matrix.test-tag }}.log 2>/dev/null; then
+              echo "🚨 BROWSER TIMEOUT DETECTED!"
+              echo ""
+              echo "Chrome launch and connection details:"
+              # Show DevTools messages
+              grep -E "DevTools listening on|Chrome.*version|Browser.*launched|Launching browser|browser.*connect|ECONNREFUSED|connection refused" /tmp/cypress-run-${{ matrix.test-tag }}.log | head -20
+              echo ""
+              echo "Browser timeout messages:"
+              grep -A5 -B5 "Timed out waiting.*browser" /tmp/cypress-run-${{ matrix.test-tag }}.log | head -30
+            fi
+            
+            # Check for other connection errors
+            if grep -qE "ECONNREFUSED|ENOTFOUND|ETIMEDOUT|ERR_CONNECTION" /tmp/cypress-run-${{ matrix.test-tag }}.log 2>/dev/null; then
+              echo ""
+              echo "🔌 Network connection errors found:"
+              grep -E "ECONNREFUSED|ENOTFOUND|ETIMEDOUT|ERR_CONNECTION" /tmp/cypress-run-${{ matrix.test-tag }}.log | head -10
+            fi
+            
+            # Check for Chrome crash
+            if grep -qE "Chrome.*crashed|Chrome.*killed|Browser.*crashed" /tmp/cypress-run-${{ matrix.test-tag }}.log 2>/dev/null; then
+              echo ""
+              echo "💥 Chrome crash detected:"
+              grep -E "Chrome.*crashed|Chrome.*killed|Browser.*crashed" /tmp/cypress-run-${{ matrix.test-tag }}.log | head -10
+            fi
+            
+            echo ""
+            echo "Last 20 lines of Cypress output (may contain error details):"
+            tail -20 /tmp/cypress-run-${{ matrix.test-tag }}.log
+          else
+            echo "✅ Tests passed!"
+          fi
+          
+          # Stop the monitoring background process
+          if [ -n "$MONITOR_PID" ]; then
+            kill $MONITOR_PID 2>/dev/null || true
+          fi
+          echo ""
           echo ""
           
           if [ $CYPRESS_EXIT -ne 0 ]; then
