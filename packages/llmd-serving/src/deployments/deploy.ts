@@ -5,6 +5,10 @@ import { applyHardwareProfileConfig, applyReplicas } from './hardware';
 import { applyModelEnvVars, applyModelArgs, applyModelLocation } from './model';
 import { LLMD_SERVING_ID } from '../../extensions/extensions';
 import { LLMdDeployment, LLMInferenceServiceKind, LLMInferenceServiceModel } from '../types';
+import {
+  ModelLocationData,
+  ModelLocationType,
+} from '../../../model-serving/src/components/deploymentWizard/fields/modelLocationFields/types';
 
 export const isLLMdDeployActive = (wizardData: WizardFormData['state']): boolean => {
   return wizardData.modelServer.data?.name === LLMD_SERVING_ID;
@@ -28,6 +32,9 @@ const createLLMdInferenceServiceKind = async (
 type CreateLLMdInferenceServiceParams = {
   projectName: string;
   k8sName: string;
+  dryRun?: boolean;
+  modelLocationData: ModelLocationData;
+  secretName?: string;
   displayName?: string;
   description?: string;
   hardwareProfileName?: string;
@@ -40,12 +47,14 @@ type CreateLLMdInferenceServiceParams = {
 
 const assembleLLMdInferenceServiceKind = ({
   projectName,
+  dryRun,
   k8sName,
+  modelLocationData,
+  secretName,
   displayName,
   description,
   hardwareProfileName,
   hardwareProfileNamespace,
-  connectionName,
   replicas = 1,
   runtimeArgs,
   environmentVariables,
@@ -75,7 +84,12 @@ const assembleLLMdInferenceServiceKind = ({
     },
   };
 
-  llmdInferenceService = applyModelLocation(llmdInferenceService, connectionName);
+  llmdInferenceService = applyModelLocation(
+    llmdInferenceService,
+    modelLocationData,
+    secretName,
+    dryRun,
+  );
   llmdInferenceService = applyHardwareProfileConfig(
     llmdInferenceService,
     hardwareProfileName ?? '',
@@ -95,15 +109,23 @@ export const deployLLMdDeployment = async (
   serverResource?: LLMdDeployment['server'],
   serverResourceTemplateName?: string,
   dryRun?: boolean,
+  secretName?: string,
 ): Promise<LLMdDeployment> => {
   const llmdInferenceServiceKind = assembleLLMdInferenceServiceKind({
     projectName,
+    dryRun,
     k8sName: wizardData.k8sNameDesc.data.k8sName.value,
     displayName: wizardData.k8sNameDesc.data.name,
     description: wizardData.k8sNameDesc.data.description,
     hardwareProfileName: wizardData.hardwareProfileConfig.formData.selectedProfile?.metadata.name,
     hardwareProfileNamespace:
       wizardData.hardwareProfileConfig.formData.selectedProfile?.metadata.namespace,
+    modelLocationData: wizardData.modelLocationData.data ?? {
+      type: ModelLocationType.NEW,
+      fieldValues: {},
+      additionalFields: {},
+    },
+    secretName,
     connectionName: wizardData.modelLocationData.data?.connection ?? '',
     replicas: wizardData.numReplicas.data,
     runtimeArgs: wizardData.runtimeArgs.data?.args,
