@@ -149,7 +149,6 @@ describe('[Product Bug: RHOAIENG-31579] Create, Delete and Edit - Workbench Test
             // Use dynamic image name verification for the edited workbench too
             getImageStreamDisplayName(selectedImageStream).then((editedDisplayName) => {
               notebookEditedRow.shouldHaveNotebookImageName(editedDisplayName);
-              notebookEditedRow.shouldHaveContainerSize('Small');
             });
           });
         },

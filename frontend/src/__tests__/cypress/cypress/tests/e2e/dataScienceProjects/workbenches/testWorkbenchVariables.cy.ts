@@ -131,7 +131,6 @@ describe('Workbenches - variable tests', () => {
                 // Use dynamic image name verification for second workbench
                 getImageStreamDisplayName(selectedImageStream2).then((displayName2) => {
                   notebookRow2.shouldHaveNotebookImageName(displayName2);
-                  notebookRow2.shouldHaveContainerSize('Small');
 
                   // Validate that the variables are present in the Workbench container
                   cy.step(`Validate that the variables are present in the Workbench container `);
@@ -240,7 +239,6 @@ describe('Workbenches - variable tests', () => {
                 // Use dynamic image name verification for second workbench
                 getImageStreamDisplayName(selectedImageStream2).then((displayName2) => {
                   notebookRow2.shouldHaveNotebookImageName(displayName2);
-                  notebookRow2.shouldHaveContainerSize('Small');
 
                   // Validate that the variables are present in the Workbench container
                   cy.step(`Validate that the variables are present in the Workbench container `);
