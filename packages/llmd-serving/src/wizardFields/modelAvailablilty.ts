@@ -2,7 +2,6 @@ import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import type {
   ModelAvailabilityField,
   WizardFormData,
-  InitialWizardFormData,
 } from '@odh-dashboard/model-serving/types/form-data';
 import type { LLMdDeployment, LLMInferenceServiceKind } from '../types';
 import { LLMD_SERVING_ID } from '../../extensions/extensions';
@@ -29,7 +28,7 @@ export const modelAvailabilityField: ModelAvailabilityField = {
 
 export const extractModelAvailabilityData = (
   deployment: LLMdDeployment,
-): InitialWizardFormData['modelAvailability'] => {
+): WizardFormData['state']['modelAvailability']['data'] => {
   return {
     saveAsAiAsset: deployment.model.metadata.annotations?.['opendatahub.io/genai-asset'] === 'true',
     saveAsMaaS:

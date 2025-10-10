@@ -44,6 +44,14 @@ const extensions: (
       extractModelFormat: () =>
         import('../src/deployments/model').then((m) => m.extractModelFormat),
       extractReplicas: () => import('../src/deployments/hardware').then((m) => m.extractReplicas),
+      extractRuntimeArgs: () =>
+        import('../src/deployments/model').then((m) => m.extractRuntimeArgs),
+      extractEnvironmentVariables: () =>
+        import('../src/deployments/model').then((m) => m.extractEnvironmentVariables),
+      extractModelAvailabilityData: () =>
+        import('../src/wizardFields/modelAvailablilty').then((m) => m.extractModelAvailabilityData),
+      extractModelLocationData: () =>
+        import('../src/deployments/model').then((m) => m.extractModelLocationData),
     },
   },
   {
