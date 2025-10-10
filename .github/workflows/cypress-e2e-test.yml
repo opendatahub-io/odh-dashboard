@@ -336,22 +336,12 @@ jobs:
 
       - name: Set test configuration with dynamic port
         run: |
-          # Create unique test-variables file for this workflow run + matrix job
-          TEST_VARS_FILE="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables-${{ github.run_id }}-${{ matrix.test-tag }}.yml"
-          cp ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml "$TEST_VARS_FILE"
-          
-          # ALWAYS use localhost with dynamic port for dev server
-          # Webpack will proxy API calls to the real cluster (via OC login)
-          DYNAMIC_URL="http://localhost:${CYPRESS_PORT}"
-          
-          echo "🌐 Using localhost with port ${CYPRESS_PORT} (webpack will proxy to cluster)"
-          sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: $DYNAMIC_URL|" "$TEST_VARS_FILE"
-          sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: $DYNAMIC_URL|" "$TEST_VARS_FILE"
-
-          # Export the unique config file path
-          echo "CY_TEST_CONFIG=$TEST_VARS_FILE" >> $GITHUB_ENV
-          echo "📝 Test config file: $TEST_VARS_FILE"
-          echo "🌐 Dynamic URL: $DYNAMIC_URL"
+          # Use shared test-variables.yml like the working pipeline
+          # The baseUrl will be passed via Cypress --config, test-variables.yml is for credentials
+          export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
+          echo "CY_TEST_CONFIG=$CY_TEST_CONFIG" >> $GITHUB_ENV
+          echo "📝 Test config file: $CY_TEST_CONFIG (shared)"
+          echo "🌐 Dynamic port: ${CYPRESS_PORT} (passed via baseUrl)"
 
       - name: Start Cypress Server on dynamic port
         run: |
@@ -478,7 +468,7 @@ jobs:
 
           # Create results directory
           mkdir -p "$CY_RESULTS_DIR"
-          
+
           echo ""
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "🔍 PRE-TEST DEBUGGING - Chrome/Cypress Connection"
@@ -557,22 +547,48 @@ jobs:
           ) &
           MONITOR_PID=$!
           
-          # CRITICAL FIX: Unset CI variables that may interfere with Chrome DevTools
-          # Testing hypothesis: GitHub Actions environment prevents Chrome connection
-          unset CI
-          unset GITHUB_ACTIONS
-          
-          echo "🔧 Temporarily unset CI variables for Chrome compatibility"
-          echo "   CI is now: ${CI:-unset}"
-          echo "   GITHUB_ACTIONS is now: ${GITHUB_ACTIONS:-unset}"
+          # CRITICAL DEBUGGING: Show exact environment before Cypress runs
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🔬 EXACT ENVIRONMENT BEFORE CYPRESS LAUNCH"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "CY_TEST_CONFIG: $CY_TEST_CONFIG"
+          echo "KUBECONFIG: $KUBECONFIG"
+          echo "CYPRESS_PORT: $CYPRESS_PORT"
+          echo "BASE_URL: $BASE_URL"
+          echo "CI: ${CI:-unset}"
+          echo "GITHUB_ACTIONS: ${GITHUB_ACTIONS:-unset}"
+          echo ""
+          echo "🔍 Test config file exists?"
+          ls -la "$CY_TEST_CONFIG" || echo "❌ Config file NOT found!"
+          echo ""
+          echo "🔍 First 10 lines of test config:"
+          head -10 "$CY_TEST_CONFIG" || echo "❌ Cannot read config file!"
+          echo ""
+          echo "🔍 Chrome version:"
+          /opt/google/chrome/chrome --version || echo "Chrome version unknown"
+          echo ""
+          echo "🔍 Cypress cache:"
+          ls -la ~/.cache/Cypress/*/Cypress/Cypress 2>/dev/null | head -5 || echo "Cypress binary not found in cache"
+          echo ""
+          echo "🔍 Exact command we will run:"
+          echo '  BASE_URL="http://localhost:'${CYPRESS_PORT}'" npm run cypress:run:chrome -- \'
+          echo '    --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="'${{ matrix.test-tag }}'",grepFilterSpecs=true \'
+          echo '    --config video=true,screenshotsFolder="'$CY_RESULTS_DIR'/screenshots",videosFolder="'$CY_RESULTS_DIR'/videos"'
+          echo ""
+          echo "🔍 Comparison with working pipeline:"
+          echo "  Working: BASE_URL=http://localhost:4010 (static port)"
+          echo "  Us:      BASE_URL=http://localhost:${CYPRESS_PORT} (dynamic port)"
+          echo "  Working: Uses shared test-variables.yml"
+          echo "  Us:      Uses shared test-variables.yml (NOW MATCHING!)"
+          echo "  Working: No baseUrl in --config"
+          echo "  Us:      No baseUrl in --config (NOW MATCHING!)"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
           
-          # Run tests with dynamic base URL set BEFORE Cypress starts
-          # Capture output to monitor Chrome startup
-          # CRITICAL FIX: Increased browserLaunchTimeout from 30s (default) to 120s
-          npm run cypress:run:chrome -- \
+          # Run tests - EXACT format from working pipeline, just with dynamic port
+          BASE_URL="http://localhost:${CYPRESS_PORT}" npm run cypress:run:chrome -- \
             --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true \
-            --config baseUrl="$BASE_URL",video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos",browserLaunchTimeout=120000 \
+            --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos" \
             2>&1 | tee /tmp/cypress-run-${{ matrix.test-tag }}.log || CYPRESS_EXIT=$?
           
           # Capture the exit code
@@ -671,9 +687,6 @@ jobs:
           fi
           lsof -ti:${CYPRESS_PORT} | xargs kill -9 2>/dev/null || echo "No processes on port ${CYPRESS_PORT}"
           pkill -f "webpack.*serve.*${CYPRESS_PORT}" 2>/dev/null || echo "No webpack processes for port ${CYPRESS_PORT}"
-          
-          # Remove unique test config file
-          rm -f "${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables-${{ github.run_id }}-${{ matrix.test-tag }}.yml"
           rm -f /tmp/response-${CYPRESS_PORT}.html
           echo "✅ Cleanup completed for port ${CYPRESS_PORT}"
 
@@ -727,8 +740,5 @@ jobs:
               lsof -ti:$port | xargs kill -9 2>/dev/null || true
             fi
           done
-          
-          # Clean up any test-variables files
-          rm -f /home/fedora/actions-runner*/_work/odh-dashboard/odh-dashboard/frontend/src/__tests__/cypress/test-variables-*.yml 2>/dev/null || true
           
           echo "✅ Server cleanup completed"
