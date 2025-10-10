@@ -1,4 +1,6 @@
 import * as React from 'react';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import {
   deleteVectorStoreFile,
   getVectorStores,
@@ -37,6 +39,8 @@ const convertVectorStoreFileToFileModel = (vectorStoreFile: VectorStoreFile): Fi
   // eslint-disable-next-line camelcase
   status_details: vectorStoreFile.last_error?.message || '',
 });
+
+export const DELETE_EVENT_NAME = 'Playground RAG Delete File';
 
 const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagementReturn => {
   const { onShowDeleteSuccessAlert, onShowErrorAlert } = props;
@@ -103,10 +107,19 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
         await deleteVectorStoreFile(namespace.name, currentVectorStoreId, fileId);
         // Remove the deleted file from the local state
         setFiles((prevFiles) => prevFiles.filter((file) => file.id !== fileId));
+        fireFormTrackingEvent(DELETE_EVENT_NAME, {
+          outcome: TrackingOutcome.submit,
+          success: true,
+        });
         onShowDeleteSuccessAlert?.();
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to delete file';
         setError(errorMessage);
+        fireFormTrackingEvent(DELETE_EVENT_NAME, {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: errorMessage,
+        });
         onShowErrorAlert?.(errorMessage, 'File Delete Error');
       } finally {
         setIsDeleting(false);

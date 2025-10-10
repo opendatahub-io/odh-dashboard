@@ -1,4 +1,6 @@
 import * as React from 'react';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { deleteLSD } from '~/app/services/llamaStackService';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
@@ -7,6 +9,8 @@ import DeleteModal from '~/app/shared/DeleteModal';
 type DeletePlaygroundModalProps = {
   onCancel: () => void;
 };
+
+const DELETE_PLAYGROUND_EVENT_NAME = 'Playground Delete';
 
 const DeletePlaygroundModal: React.FC<DeletePlaygroundModalProps> = ({ onCancel }) => {
   const { namespace } = React.useContext(GenAiContext);
@@ -17,7 +21,13 @@ const DeletePlaygroundModal: React.FC<DeletePlaygroundModalProps> = ({ onCancel 
   return (
     <DeleteModal
       title="Delete playground?"
-      onClose={onCancel}
+      onClose={() => {
+        onCancel();
+        fireFormTrackingEvent(DELETE_PLAYGROUND_EVENT_NAME, {
+          outcome: TrackingOutcome.cancel,
+          namespace: namespace?.name,
+        });
+      }}
       deleting={isDeleting}
       error={error}
       onDelete={async () => {
@@ -26,9 +36,20 @@ const DeletePlaygroundModal: React.FC<DeletePlaygroundModalProps> = ({ onCancel 
           deleteLSD(namespace.name, lsdStatus.name)
             .then(() => {
               onCancel();
+              fireFormTrackingEvent(DELETE_PLAYGROUND_EVENT_NAME, {
+                outcome: TrackingOutcome.submit,
+                success: true,
+                namespace: namespace.name,
+              });
               refresh();
             })
             .catch((e) => {
+              fireFormTrackingEvent(DELETE_PLAYGROUND_EVENT_NAME, {
+                outcome: TrackingOutcome.submit,
+                success: false,
+                namespace: namespace.name,
+                error: e.message,
+              });
               setError(e);
             })
             .finally(() => {
