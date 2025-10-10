@@ -727,8 +727,80 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 		return nil, fmt.Errorf("LlamaStackDistribution already exists in namespace %s", namespace)
 	}
 
-	// Step 1: Create LlamaStackDistribution resource first
+	// Step 1: Collect existing service account token secrets for each model
+	type modelSecretInfo struct {
+		secretName string
+		tokenKey   string
+		hasToken   bool
+	}
 
+	modelSecrets := make(map[string]modelSecretInfo)
+
+	for _, model := range models {
+		if targetISVC, err := kc.findInferenceServiceByModelName(ctx, namespace, model); err == nil {
+			saToken := kc.extractSATokenFromInferenceService(targetISVC)
+			// Find the actual secret name and key used by the InferenceService
+			_, secretName := kc.findServiceAccountAndSecretForInferenceService(ctx, targetISVC)
+			modelSecrets[model] = modelSecretInfo{
+				secretName: secretName,
+				tokenKey:   "token", // Service account token secrets always use "token" as the key
+				hasToken:   saToken.Token != "",
+			}
+			kc.Logger.Info("found existing service account token secret", "model", model, "secretName", secretName, "hasToken", saToken.Token != "")
+		} else {
+			kc.Logger.Debug("could not find InferenceService for model, will use default", "model", model, "error", err)
+		}
+	}
+
+	// Step 2: Set up environment variables (including tokens from secret)
+	envVars := []corev1.EnvVar{
+		{
+			Name:  "VLLM_TLS_VERIFY",
+			Value: "false",
+		},
+		{
+			Name:  "MILVUS_DB_PATH",
+			Value: "~/.llama/milvus.db",
+		},
+		{
+			Name:  "FMS_ORCHESTRATOR_URL",
+			Value: "http://localhost",
+		},
+		{
+			Name:  "VLLM_MAX_TOKENS",
+			Value: "4096",
+		},
+	}
+
+	// Add token environment variables from existing secrets
+	for i, model := range models {
+		envVarName := fmt.Sprintf("VLLM_API_TOKEN_%d", i+1)
+
+		if secretInfo, exists := modelSecrets[model]; exists && secretInfo.hasToken {
+			// Reference the existing service account token secret
+			envVars = append(envVars, corev1.EnvVar{
+				Name: envVarName,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: secretInfo.secretName,
+						},
+						Key: secretInfo.tokenKey,
+					},
+				},
+			})
+			kc.Logger.Info("referencing existing service account token secret", "model", model, "envVar", envVarName, "secretName", secretInfo.secretName)
+		} else {
+			// Set default token for models without authentication
+			envVars = append(envVars, corev1.EnvVar{
+				Name:  envVarName,
+				Value: "fake",
+			})
+			kc.Logger.Debug("no token found for model, using default", "model", model, "envVar", envVarName)
+		}
+	}
+
+	// Step 2: Create LlamaStackDistribution resource first
 	configMapName := "llama-stack-config"
 	lsd := &lsdapi.LlamaStackDistribution{
 		ObjectMeta: metav1.ObjectMeta{
@@ -756,24 +828,7 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 							corev1.ResourceMemory: resource.MustParse("12Gi"),
 						},
 					},
-					Env: []corev1.EnvVar{
-						{
-							Name:  "VLLM_TLS_VERIFY",
-							Value: "false",
-						},
-						{
-							Name:  "MILVUS_DB_PATH",
-							Value: "~/.llama/milvus.db",
-						},
-						{
-							Name:  "FMS_ORCHESTRATOR_URL",
-							Value: "http://localhost",
-						},
-						{
-							Name:  "VLLM_MAX_TOKENS",
-							Value: "4096",
-						},
-					},
+					Env:  envVars,
 					Name: "llama-stack",
 					Port: 8321,
 				},
@@ -795,7 +850,7 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 
 	kc.Logger.Info("LlamaStackDistribution created successfully", "namespace", namespace, "lsdName", lsdName, "models", models)
 
-	// Step 2: Create ConfigMap with owner reference to the LSD
+	// Step 3: Create ConfigMap with owner reference to the LSD
 	if err := kc.createConfigMapWithOwnerReference(ctx, namespace, configMapName, lsdName, models, lsd); err != nil {
 		// If ConfigMap creation fails, we should clean up the LSD
 		kc.Logger.Error("failed to create ConfigMap with owner reference", "error", err)
@@ -882,6 +937,9 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 		endpointURL := modelDetails["endpoint_url"].(string)
 		metadata := modelDetails["metadata"].(map[string]interface{})
 
+		// Use the corresponding environment variable for this model's API token
+		apiTokenConfig := fmt.Sprintf("${env.VLLM_API_TOKEN_%d:=fake}", i+1)
+
 		// Convert metadata to YAML format
 		metadataYAML := ""
 		if len(metadata) > 0 {
@@ -889,6 +947,8 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			for key, value := range metadata {
 				metadataYAML += fmt.Sprintf("      %s: %v\n", key, value)
 			}
+			// Remove trailing newline
+			metadataYAML = strings.TrimSuffix(metadataYAML, "\n")
 		} else {
 			metadataYAML = "\n    metadata: {}"
 		}
@@ -906,8 +966,9 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
     config:
       url: %s
       max_tokens: ${env.VLLM_MAX_TOKENS:=4096}
+      api_token: %s
       tls_verify: ${env.VLLM_TLS_VERIFY:=true}
-`, providerID, endpointURL)
+`, providerID, endpointURL, apiTokenConfig)
 	}
 
 	config := fmt.Sprintf(`# Llama Stack Configuration
@@ -980,10 +1041,6 @@ providers:
   - provider_id: llm-as-judge
     provider_type: inline::llm-as-judge
     config: {}
-  - provider_id: braintrust
-    provider_type: inline::braintrust
-    config:
-      openai_api_key: ${env.OPENAI_API_KEY:=}
   telemetry:
   - provider_id: meta-reference
     provider_type: inline::meta-reference
@@ -1001,9 +1058,8 @@ providers:
     config: {}
 metadata_store:
   type: sqlite
-  db_path: /opt/app-root/src/.llama/distributions/rh/registry.db
-  type: sqlite
   db_path: /opt/app-root/src/.llama/distributions/rh/inference_store.db
+
 models:
   - metadata:
       embedding_dimension: 768
@@ -1011,6 +1067,7 @@ models:
     provider_id: sentence-transformers
     provider_model_id: ibm-granite/granite-embedding-125m-english
     model_type: embedding
+
 %s
 shields: []
 vector_dbs: []
