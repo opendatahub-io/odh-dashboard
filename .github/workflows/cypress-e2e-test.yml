@@ -1,36 +1,26 @@
 name: E2E Direct Commit PR Tests
 
-on:
-  issue_comment:
-    types: [created]
+on: [push, pull_request]
 
 permissions:
   contents: read
-  pull-requests: write
-  issues: write
 
 env:
   NODE_VERSION: 20.x
   DO_NOT_TRACK: 1
 
 jobs:
-  check-comment:
-    runs-on: ubuntu-latest
-    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-e2e-tests-gh') }}
-    steps:
-      - run: echo "E2E tests requested via /run-e2e-tests-gh comment"
-
   get-test-tags:
-    needs: [check-comment]
     runs-on: self-hosted
     outputs:
       test-tags: ${{ steps.set-tags.outputs.test-tags }}
     steps:
       - name: Set default test tags
         id: set-tags
-        # TO:DO - update execution tags and simplify for v1
+        # Created 2 new tags - @ci-dashboard-set-1 and @ci-dashboard-set-2
+        # ToDO: Use turbo to run tests according to PR changes.
         run: |
-          echo "test-tags=[\"@SmokeSet1\",\"@SmokeSet2\",\"@SmokeSet3\"]" >> $GITHUB_OUTPUT
+          echo "test-tags=[\"@ci-dashboard-set-1\",\"@ci-dashboard-set-2\"]" >> $GITHUB_OUTPUT
 
   e2e-tests:
     needs: [get-test-tags]
@@ -42,8 +32,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: refs/pull/${{ github.event.issue.number }}/head
 
       - name: Cache npm dependencies
         uses: actions/cache@v4
@@ -271,8 +259,8 @@ jobs:
             echo ""
             echo "💡 POSSIBLE SOLUTIONS:"
             echo "1. Ensure secrets are configured in upstream repo (opendatahub-io/odh-dashboard)"
-            "2. For testing, secrets need to be available when PR is merged"
-            "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
+            echo "2. For testing, secrets need to be available when PR is merged"
+            echo "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
             exit 1
           fi
 
@@ -439,13 +427,9 @@ jobs:
         run: |
           cd frontend
 
-          echo "🧪 Running commit-based E2E tests..."
           echo "Event: ${{ github.event_name }}"
           echo "Branch: ${{ github.ref_name }}"
           echo "Commit: ${{ github.sha }}"
-
-          # Run real E2E tests (not mock mode)
-          echo "🚀 Running real E2E tests against live dashboard"
 
           # Run tests with matrix tag using Jenkins-style command format
           export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
@@ -464,14 +448,11 @@ jobs:
           echo "🚫 Skipping tags: @Bug,@Maintain,@NonConcurrent"
           echo "📋 Test group: ${{ matrix.test-tag }}"
 
-          # Use Jenkins-style command format for proper tag filtering
-          echo "🔄 Using Electron browser (Chrome not available on Fedora)"
-
           # Create results directory
           mkdir -p "$CY_RESULTS_DIR"
 
           # Run tests against port 4010
-          BASE_URL=http://localhost:4010 npm run cypress:run:electron -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+          BASE_URL=http://localhost:4010 npm run cypress:run:chrome -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Test tag name
         if: ${{ always() }}
