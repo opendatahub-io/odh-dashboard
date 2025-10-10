@@ -4,12 +4,15 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/textproto"
 	"testing"
 
+	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
@@ -27,14 +30,21 @@ func createMultipartRequest(t *testing.T, payload interface{}, files map[string]
 	if err != nil {
 		return nil, err
 	}
-	err = writer.WriteField("request", string(jsonData))
+	part, err := writer.CreateFormField("request")
+	if err != nil {
+		return nil, err
+	}
+	_, err = part.Write(jsonData)
 	if err != nil {
 		return nil, err
 	}
 
 	// Add files
 	for filename, content := range files {
-		part, err := writer.CreateFormFile("files", filename)
+		h := make(textproto.MIMEHeader)
+		h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="files"; filename="%s"`, filename))
+		h.Set("Content-Type", "text/plain")
+		part, err := writer.CreatePart(h)
 		if err != nil {
 			return nil, err
 		}
@@ -753,6 +763,29 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		req, err := createMultipartRequest(t, payload, files)
 		assert.NoError(t, err)
 
+		// Create a mock client that returns a valid response
+		mockClient := lsmocks.NewMockLlamaStackClient()
+		llamaStackClientFactory.SetMockClient(mockClient)
+
+		// Mock the response
+		mockClient.SetCreateResponseResult(&lsmocks.MockResponse{
+			ID:     "resp_mock123",
+			Model:  "llama-3.1-8b",
+			Status: responses.ResponseStatusCompleted,
+			Output: []responses.ResponseOutputItemUnion{
+				{
+					Type: "message",
+					Role: "assistant",
+					Content: []responses.ResponseOutputMessageContentUnion{
+						{
+							Type: "text",
+							Text: "I've read the file test.txt which contains: This is a test file content.",
+						},
+					},
+				},
+			},
+		})
+
 		// Simulate AttachLlamaStackClient middleware
 		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, false, nil)
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
@@ -761,6 +794,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		rr := httptest.NewRecorder()
 		app.LlamaStackCreateResponseHandler(rr, req, nil)
 
+		t.Logf("Response body: %s", rr.Body.String())
 		assert.Equal(t, http.StatusCreated, rr.Code)
 
 		var response map[string]interface{}
@@ -825,6 +859,10 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		}
 
 		req, err := createMultipartRequest(t, payload, files)
+		assert.NoError(t, err)
+
+		// Parse the form first
+		err = req.ParseMultipartForm(32 << 20)
 		assert.NoError(t, err)
 
 		// Set unsupported content type
