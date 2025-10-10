@@ -1,36 +1,26 @@
 name: E2E Direct Commit PR Tests
 
-on:
-  issue_comment:
-    types: [created]
+on: [push, pull_request]
 
 permissions:
   contents: read
-  pull-requests: write
-  issues: write
 
 env:
   NODE_VERSION: 20.x
   DO_NOT_TRACK: 1
 
 jobs:
-  check-comment:
-    runs-on: ubuntu-latest
-    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-e2e-tests-gh') }}
-    steps:
-      - run: echo "E2E tests requested via /run-e2e-tests-gh comment"
-
   get-test-tags:
-    needs: [check-comment]
     runs-on: self-hosted
     outputs:
       test-tags: ${{ steps.set-tags.outputs.test-tags }}
     steps:
       - name: Set default test tags
         id: set-tags
-        # TO:DO - update execution tags and simplify for v1
+        # Created 2 new tags - @ci-dashboard-set-1 and @ci-dashboard-set-2
+        # ToDO: Use turbo to run tests according to PR changes.
         run: |
-          echo "test-tags=[\"@SmokeSet1\",\"@SmokeSet2\",\"@SmokeSet3\"]" >> $GITHUB_OUTPUT
+          echo "test-tags=[\"@ci-dashboard-set-1\",\"@ci-dashboard-set-2\"]" >> $GITHUB_OUTPUT
 
   e2e-tests:
     needs: [get-test-tags]
@@ -40,10 +30,29 @@ jobs:
       matrix:
         test-tag: ${{ fromJson(needs.get-test-tags.outputs.test-tags) }}
     steps:
+      - name: Calculate unique port for this workflow run
+        run: |
+          # Simple dynamic port: start at 4010 and add run_id % 10
+          # This gives us ports 4010-4019 cycling across runs
+          BASE_PORT=4010
+          PORT_OFFSET=$((${{ github.run_id }} % 10))
+          
+          # Add matrix offset to separate concurrent jobs
+          if [[ "${{ matrix.test-tag }}" == *"set-1"* ]]; then
+            MATRIX_OFFSET=0
+          elif [[ "${{ matrix.test-tag }}" == *"set-2"* ]]; then
+            MATRIX_OFFSET=20
+          else
+            MATRIX_OFFSET=40
+          fi
+          
+          CYPRESS_PORT=$((BASE_PORT + PORT_OFFSET + MATRIX_OFFSET))
+          echo "CYPRESS_PORT=$CYPRESS_PORT" >> $GITHUB_ENV
+          
+          echo "📍 Port for run ${{ github.run_id }} (tag: ${{ matrix.test-tag }}): $CYPRESS_PORT"
+
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: refs/pull/${{ github.event.issue.number }}/head
 
       - name: Cache npm dependencies
         uses: actions/cache@v4
@@ -227,14 +236,6 @@ jobs:
             echo "Token length: ${#GITLAB_TOKEN}"
             echo "URL length: ${#GITLAB_TEST_VARS_URL}"
 
-            # Debug: Show first few characters of secrets (safely)
-            if [ -n "${{ secrets.GITLAB_TOKEN }}" ]; then
-              echo "Token starts with: ${{ secrets.GITLAB_TOKEN }}" | cut -c1-10
-            fi
-            if [ -n "${{ secrets.GITLAB_TEST_VARS_URL }}" ]; then
-              echo "URL starts with: ${{ secrets.GITLAB_TEST_VARS_URL }}" | cut -c1-20
-            fi
-
             # Try with SSL verification disabled (for self-signed certs)
             if curl -f -k -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
                         "${{ secrets.GITLAB_TEST_VARS_URL }}" \
@@ -271,8 +272,8 @@ jobs:
             echo ""
             echo "💡 POSSIBLE SOLUTIONS:"
             echo "1. Ensure secrets are configured in upstream repo (opendatahub-io/odh-dashboard)"
-            "2. For testing, secrets need to be available when PR is merged"
-            "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
+            echo "2. For testing, secrets need to be available when PR is merged"
+            echo "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
             exit 1
           fi
 
@@ -326,39 +327,32 @@ jobs:
 
       - name: Set test configuration
         run: |
-          # For forked PRs, use default URLs from local test-vars.yml
-          if [ -n "${{ secrets.OCP_CONSOLE_URL }}" ]; then
-            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: ${{ secrets.OCP_CONSOLE_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
-          fi
-          if [ -n "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
-            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: ${{ secrets.ODH_DASHBOARD_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
-          fi
+          # IMPORTANT: Always use localhost with dynamic port for Cypress tests
+          # The webpack dev server proxies API calls to the cluster
+          echo "🔧 Updating test-variables.yml to use localhost:${CYPRESS_PORT}..."
+          sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:${CYPRESS_PORT}|g" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:${CYPRESS_PORT}|g" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
 
-          # For forked PRs, set default URLs if secrets are not available
-          if [ -z "${{ secrets.OCP_CONSOLE_URL }}" ]; then
-            echo "⚠️  OCP_CONSOLE_URL secret not available (forked PR) - using localhost"
-            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:4010|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
-          fi
-          if [ -z "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
-            echo "⚠️  ODH_DASHBOARD_URL secret not available (forked PR) - using localhost"
-            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:4010|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
-          fi
+          echo "📝 Verifying updated URLs:"
+          grep "ODH_DASHBOARD_URL:" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml | head -3
+          grep "OCP_CONSOLE_URL:" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml | head -3
 
           export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
+          echo "✅ Test config set to use localhost:${CYPRESS_PORT}"
 
       - name: Start Cypress Server
         run: |
           echo "🧹 Cleaning up any existing processes..."
           pkill -f "webpack.*serve" || echo "No webpack processes found"
-          pkill -f "node.*4010" || echo "No node processes on port 4010"
+          pkill -f "node.*${CYPRESS_PORT}" || echo "No node processes on port ${CYPRESS_PORT}"
           sleep 2
           
-          echo "🚀 Starting webpack dev server with cluster proxy..."
-          cd frontend && npm run start:dev:ext &
+          echo "🚀 Starting webpack dev server with cluster proxy on port ${CYPRESS_PORT}..."
+          cd frontend && ODH_PORT=${CYPRESS_PORT} npm run start:dev:ext &
           
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
-          echo "Started webpack dev server with PID: $SERVER_PID"
+          echo "Started webpack dev server with PID: $SERVER_PID on port ${CYPRESS_PORT}"
           
           # Give the server extra time to start in CI
           echo "⏳ Giving server 15 seconds to initialize..."
@@ -366,9 +360,9 @@ jobs:
 
       - name: Wait for Server Ready
         run: |
-          echo "⏳ Waiting for localhost:4010 to be ready..."
+          echo "⏳ Waiting for localhost:${CYPRESS_PORT} to be ready..."
           # Use HTTP check instead of TCP since server is clearly running
-          npx wait-on http://localhost:4010 --timeout 120000
+          npx wait-on http://localhost:${CYPRESS_PORT} --timeout 120000
           echo "✅ Server is responding to HTTP!"
           
           # Verify the application actually loads with more details
@@ -377,7 +371,7 @@ jobs:
             echo "🔄 Attempt $i/10: Testing application..."
             
             # Check if basic page loads
-            if curl -s -f http://localhost:4010/ > /tmp/response.html 2>/dev/null; then
+            if curl -s -f http://localhost:${CYPRESS_PORT}/ > /tmp/response.html 2>/dev/null; then
               echo "✅ HTTP 200 response received"
               
               # Check for dashboard content
@@ -402,12 +396,12 @@ jobs:
           
           # Final verification with detailed debugging
           echo "🔍 Final application verification..."
-          if curl -s -f http://localhost:4010/ | grep -q "Data Science Projects\|ODH\|Open Data Hub\|Dashboard"; then
+          if curl -s -f http://localhost:${CYPRESS_PORT}/ | grep -q "Data Science Projects\|ODH\|Open Data Hub\|Dashboard"; then
             echo "✅ Server is ready and application is loaded!"
             
             # Test API endpoint
             echo "🔍 Testing API endpoint..."
-            if curl -s -f http://localhost:4010/api/status > /dev/null; then
+            if curl -s -f http://localhost:${CYPRESS_PORT}/api/status > /dev/null; then
               echo "✅ API proxy is working!"
             else
               echo "⚠️  API endpoint test failed, but frontend is working"
@@ -417,15 +411,15 @@ jobs:
             echo ""
             echo "📊 Debugging information:"
             echo "🔄 Server process status:"
-            ps aux | grep -E '(webpack|node.*4010)' | head -5 || echo "No matching processes found"
+            ps aux | grep -E "(webpack|node.*${CYPRESS_PORT})" | head -5 || echo "No matching processes found"
             
             echo ""
             echo "🌐 Network connectivity test:"
-            curl -I http://localhost:4010/ 2>&1 || echo "Connection failed"
+            curl -I http://localhost:${CYPRESS_PORT}/ 2>&1 || echo "Connection failed"
             
             echo ""
             echo "📄 Raw response (first 1000 chars):"
-            curl -s http://localhost:4010/ 2>/dev/null | head -c 1000 || echo "Failed to get response"
+            curl -s http://localhost:${CYPRESS_PORT}/ 2>/dev/null | head -c 1000 || echo "Failed to get response"
             
             echo ""
             echo "🔍 Looking for webpack output in background..."
@@ -465,13 +459,13 @@ jobs:
           echo "📋 Test group: ${{ matrix.test-tag }}"
 
           # Use Jenkins-style command format for proper tag filtering
-          echo "🔄 Using Electron browser (Chrome not available on Fedora)"
+          echo "🔄 Using chrome browser"
 
           # Create results directory
           mkdir -p "$CY_RESULTS_DIR"
 
-          # Run tests against port 4010
-          BASE_URL=http://localhost:4010 npm run cypress:run:electron -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+          # Run tests against dynamic port (baseUrl is set in test-variables.yml)
+          npm run cypress:run:chrome -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Test tag name
         if: ${{ always() }}
@@ -517,5 +511,5 @@ jobs:
             kill $SERVER_PID || echo "Failed to kill SERVER_PID"
           fi
           pkill -f "webpack.*serve" || echo "No webpack processes found"
-          pkill -f "node.*4010" || echo "No node processes on port 4010"
+          pkill -f "node.*40[0-9][0-9]" || echo "No node processes on dynamic ports"
           echo "✅ Server cleanup completed"
