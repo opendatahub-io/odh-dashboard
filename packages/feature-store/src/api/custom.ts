@@ -19,10 +19,11 @@ import { GlobalSearchResponse } from '../types/search';
 
 export const listFeatureStoreProject =
   (hostPath: string) =>
-  (opts: K8sAPIOptions): Promise<ProjectList> =>
-    handleFeatureStoreFailures<ProjectList>(
-      proxyGET(hostPath, `/api/${FEATURE_STORE_API_VERSION}/projects`, opts),
+  (opts: K8sAPIOptions): Promise<ProjectList> => {
+    return handleFeatureStoreFailures<ProjectList>(
+      proxyGET(hostPath, `/api/${FEATURE_STORE_API_VERSION}/projects`, {}, opts),
     );
+  };
 
 export const getEntities =
   (hostPath: string) =>
@@ -33,8 +34,7 @@ export const getEntities =
         project,
       )}&include_relationships=true`;
     }
-
-    return handleFeatureStoreFailures<EntityList>(proxyGET(hostPath, endpoint, opts));
+    return handleFeatureStoreFailures<EntityList>(proxyGET(hostPath, endpoint, {}, opts));
   };
 
 export const getFeatureViews =
@@ -80,7 +80,7 @@ export const getFeatureViews =
     endpoint +=
       queryParams.length > 0 ? '&include_relationships=true' : '?include_relationships=true';
 
-    return handleFeatureStoreFailures<FeatureViewsList>(proxyGET(hostPath, endpoint, opts));
+    return handleFeatureStoreFailures<FeatureViewsList>(proxyGET(hostPath, endpoint, {}, opts));
   };
 
 export const getEntityByName =
@@ -90,7 +90,7 @@ export const getEntityByName =
       entityName,
     )}?include_relationships=true&project=${encodeURIComponent(project)}`;
 
-    return handleFeatureStoreFailures<Entity>(proxyGET(hostPath, endpoint, opts));
+    return handleFeatureStoreFailures<Entity>(proxyGET(hostPath, endpoint, {}, opts));
   };
 
 export const getFeatures =
@@ -102,7 +102,7 @@ export const getFeatures =
         project,
       )}`;
     }
-    return handleFeatureStoreFailures<FeaturesList>(proxyGET(hostPath, endpoint, opts));
+    return handleFeatureStoreFailures<FeaturesList>(proxyGET(hostPath, endpoint, {}, opts));
   };
 
 export const getFeatureByName =
@@ -117,7 +117,7 @@ export const getFeatureByName =
       project,
     )}&include_relationships=true`;
 
-    return handleFeatureStoreFailures<Features>(proxyGET(hostPath, endpoint, opts));
+    return handleFeatureStoreFailures<Features>(proxyGET(hostPath, endpoint, {}, opts));
   };
 
 export const getFeatureServices =
@@ -133,7 +133,7 @@ export const getFeatureServices =
       endpoint += `&feature_view=${encodeURIComponent(featureView)}`;
     }
 
-    return handleFeatureStoreFailures<FeatureServicesList>(proxyGET(hostPath, endpoint, opts));
+    return handleFeatureStoreFailures<FeatureServicesList>(proxyGET(hostPath, endpoint, {}, opts));
   };
 
 export const getFeatureServiceByName =
@@ -145,6 +145,7 @@ export const getFeatureServiceByName =
         `/api/${FEATURE_STORE_API_VERSION}/feature_services/${encodeURIComponent(
           featureServiceName,
         )}?project=${encodeURIComponent(project)}&include_relationships=true`,
+        {},
         opts,
       ),
     );
@@ -160,9 +161,16 @@ export const getFeatureViewByName =
 
     const endpoint = `/api/${FEATURE_STORE_API_VERSION}/feature_views/${encodeURIComponent(
       featureViewName,
-    )}?project=${encodeURIComponent(project)}&include_relationships=true`;
+    )}`;
 
-    return handleFeatureStoreFailures<FeatureView>(proxyGET(hostPath, endpoint, opts));
+    return handleFeatureStoreFailures<FeatureView>(
+      proxyGET(
+        hostPath,
+        `${endpoint}?project=${encodeURIComponent(project)}&include_relationships=true`,
+        {},
+        opts,
+      ),
+    );
   };
 
 export const getMetricsResourceCount =
@@ -176,7 +184,7 @@ export const getMetricsResourceCount =
       )}`;
     }
 
-    return handleFeatureStoreFailures<MetricsCountResponse>(proxyGET(hostPath, endpoint, opts));
+    return handleFeatureStoreFailures<MetricsCountResponse>(proxyGET(hostPath, endpoint, {}, opts));
   };
 
 export const getPopularTags =
@@ -196,7 +204,7 @@ export const getPopularTags =
       endpoint += `?${queryParams.join('&')}`;
     }
 
-    return handleFeatureStoreFailures<PopularTagsResponse>(proxyGET(hostPath, endpoint, opts));
+    return handleFeatureStoreFailures<PopularTagsResponse>(proxyGET(hostPath, endpoint, {}, opts));
   };
 
 export const getRecentlyVisitedResources =
@@ -216,7 +224,9 @@ export const getRecentlyVisitedResources =
       endpoint += `?${queryParams.join('&')}`;
     }
 
-    return handleFeatureStoreFailures<RecentlyVisitedResponse>(proxyGET(hostPath, endpoint, opts));
+    return handleFeatureStoreFailures<RecentlyVisitedResponse>(
+      proxyGET(hostPath, endpoint, {}, opts),
+    );
   };
 
 export const getLineageData =
@@ -230,7 +240,7 @@ export const getLineageData =
       project,
     )}`;
 
-    return handleFeatureStoreFailures<FeatureStoreLineage>(proxyGET(hostPath, endpoint, opts));
+    return handleFeatureStoreFailures<FeatureStoreLineage>(proxyGET(hostPath, endpoint, {}, opts));
   };
 
 export const getFeatureViewLineage =
@@ -240,7 +250,7 @@ export const getFeatureViewLineage =
       featureViewName,
     )}?project=${encodeURIComponent(project)}`;
 
-    return handleFeatureStoreFailures<FeatureViewLineage>(proxyGET(hostPath, endpoint, opts));
+    return handleFeatureStoreFailures<FeatureViewLineage>(proxyGET(hostPath, endpoint, {}, opts));
   };
 
 export const getSavedDatasets =
@@ -253,7 +263,7 @@ export const getSavedDatasets =
       )}&include_relationships=true`;
     }
 
-    return handleFeatureStoreFailures<DataSetList>(proxyGET(hostPath, endpoint, opts));
+    return handleFeatureStoreFailures<DataSetList>(proxyGET(hostPath, endpoint, {}, opts));
   };
 
 export const getDataSetByName =
@@ -268,9 +278,16 @@ export const getDataSetByName =
 
     const endpoint = `/api/${FEATURE_STORE_API_VERSION}/saved_datasets/${encodeURIComponent(
       dataSetName,
-    )}?project=${encodeURIComponent(project)}&include_relationships=true`;
+    )}`;
 
-    return handleFeatureStoreFailures<DataSet>(proxyGET(hostPath, endpoint, opts));
+    return handleFeatureStoreFailures<DataSet>(
+      proxyGET(
+        hostPath,
+        `${endpoint}?project=${encodeURIComponent(project)}&include_relationships=true`,
+        {},
+        opts,
+      ),
+    );
   };
 
 export const getDataSources =
@@ -282,7 +299,7 @@ export const getDataSources =
         project,
       )}&include_relationships=true`;
     }
-    return handleFeatureStoreFailures<DataSourceList>(proxyGET(hostPath, endpoint, opts));
+    return handleFeatureStoreFailures<DataSourceList>(proxyGET(hostPath, endpoint, {}, opts));
   };
 
 export const getDataSourceByName =
@@ -290,9 +307,16 @@ export const getDataSourceByName =
   (opts: K8sAPIOptions, project: string, dataSourceName: string): Promise<DataSource> => {
     const endpoint = `/api/${FEATURE_STORE_API_VERSION}/data_sources/${encodeURIComponent(
       dataSourceName,
-    )}?project=${encodeURIComponent(project)}&include_relationships=true`;
+    )}`;
 
-    return handleFeatureStoreFailures<DataSource>(proxyGET(hostPath, endpoint, opts));
+    return handleFeatureStoreFailures<DataSource>(
+      proxyGET(
+        hostPath,
+        `${endpoint}?project=${encodeURIComponent(project)}&include_relationships=true`,
+        {},
+        opts,
+      ),
+    );
   };
 
 export const getGlobalSearch =

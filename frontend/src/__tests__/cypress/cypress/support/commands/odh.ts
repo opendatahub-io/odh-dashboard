@@ -11,10 +11,15 @@ import type {
 } from '@odh-dashboard/feature-store/types/metrics';
 import type { DataSetList, DataSet } from '@odh-dashboard/feature-store/types/dataSets';
 import type { GlobalSearchResponse } from '@odh-dashboard/feature-store/types/search';
-import type { FeatureViewsList } from '@odh-dashboard/feature-store/types/featureView';
-import type { EntityList } from '@odh-dashboard/feature-store/types/entities';
+import type { FeatureView, FeatureViewsList } from '@odh-dashboard/feature-store/types/featureView';
+import type { Entity, EntityList } from '@odh-dashboard/feature-store/types/entities';
+import type { Features, FeaturesList } from '@odh-dashboard/feature-store/types/features';
 import type { ProjectList } from '@odh-dashboard/feature-store/types/featureStoreProjects';
 import type { DataSource, DataSourceList } from '@odh-dashboard/feature-store/types/dataSources';
+import type {
+  FeatureStoreLineage,
+  FeatureViewLineage,
+} from '@odh-dashboard/feature-store/types/lineage';
 import type { BaseMetricCreationResponse, BaseMetricListResponse } from '#~/api';
 import type {
   ModelArtifact,
@@ -907,9 +912,9 @@ declare global {
           response: OdhResponse<ModelVersion>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/projects',
+          type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/projects',
           options: {
-            path: { namespace: string; serviceName: string; apiVersion: string };
+            path: { namespace: string; projectName: string; apiVersion: string };
           },
           response: OdhResponse<ProjectList>,
         ) => Cypress.Chainable<null>) &
@@ -921,83 +926,182 @@ declare global {
           response: OdhResponse<FeatureStoreKind>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/service/featurestore/default/demo/api/v1/projects',
-          response: OdhResponse<ProjectList>,
-        ) => Cypress.Chainable<null>) &
-        ((
-          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/features',
+          type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/features/all',
           options: {
-            path: { namespace: string; serviceName: string; apiVersion: string };
+            path: { namespace: string; projectName: string; apiVersion: string };
           },
-          response: OdhResponse<FeatureViewsList>,
+          response: OdhResponse<FeaturesList>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/entities',
+          type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/features',
           options: {
-            path: { namespace: string; serviceName: string; apiVersion: string };
+            path: { namespace: string; projectName: string; apiVersion: string };
+            query?: { project: string };
+          },
+          response: OdhResponse<FeaturesList>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/entities/all',
+          options: {
+            path: { namespace: string; projectName: string; apiVersion: string };
           },
           response: OdhResponse<EntityList>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/feature_views',
-          options: { path: { namespace: string; serviceName: string; apiVersion: string } },
-          response: OdhResponse<FeatureViewsList>,
-        ) => Cypress.Chainable<null>) &
-        ((
-          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/feature_services',
+          type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/entities',
           options: {
-            path: { namespace: string; serviceName: string; apiVersion: string };
+            path: { namespace: string; projectName: string; apiVersion: string };
+            query?: { project: string };
           },
-          response: OdhResponse<FeatureServicesList>,
+          response: OdhResponse<EntityList>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/feature_services/:featureServiceName',
+          type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/entities/:entityName',
+          options: {
+            path: {
+              namespace: string;
+              projectName: string;
+              apiVersion: string;
+              entityName: string;
+            };
+            query?: { project: string };
+          },
+          response: OdhResponse<Entity>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/features/:featureViewName/:featureName',
           options: {
             path: {
               namespace: string;
               serviceName: string;
               apiVersion: string;
+              featureViewName: string;
+              featureName: string;
+            };
+            query?: { project: string };
+          },
+          response: OdhResponse<Features>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/feature_views/all',
+          options: { path: { namespace: string; serviceName: string; apiVersion: string } },
+          response: OdhResponse<FeatureViewsList>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/feature_views',
+          options: {
+            path: { namespace: string; projectName: string; apiVersion: string };
+            query?: {
+              project?: string;
+              feature_service?: string;
+              entity?: string;
+              feature?: string;
+              data_source?: string;
+            };
+          },
+          response: OdhResponse<FeatureViewsList>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/feature_views/:featureViewName',
+          options: {
+            path: {
+              namespace: string;
+              serviceName: string;
+              apiVersion: string;
+              featureViewName: string;
+            };
+            query?: { project: string };
+          },
+          response: OdhResponse<FeatureView>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/feature_services/all',
+          options: {
+            path: { namespace: string; projectName: string; apiVersion: string };
+          },
+          response: OdhResponse<FeatureServicesList>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/feature_services',
+          options: {
+            path: { namespace: string; projectName: string; apiVersion: string };
+            query?: { project?: string; feature_view?: string };
+          },
+          response: OdhResponse<FeatureServicesList>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/feature_services/:featureServiceName',
+          options: {
+            path: {
+              namespace: string;
+              projectName: string;
+              apiVersion: string;
               featureServiceName: string;
             };
+            query?: { project: string };
           },
           response: OdhResponse<FeatureService>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/metrics/recently_visited',
+          type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/metrics/recently_visited',
           options: {
-            path: { namespace: string; serviceName: string; apiVersion: string };
+            path: { namespace: string; projectName: string; apiVersion: string };
             query?: { project?: string; limit?: string };
           },
           response: OdhResponse<RecentlyVisitedResponse>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/metrics/popular_tags',
+          type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/metrics/popular_tags',
           options: {
-            path: { namespace: string; serviceName: string; apiVersion: string };
+            path: { namespace: string; projectName: string; apiVersion: string };
             query?: { project?: string; limit?: string };
           },
           response: OdhResponse<PopularTagsResponse>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/metrics/resource_counts',
+          type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/metrics/resource_counts',
           options: {
-            path: { namespace: string; serviceName: string; apiVersion: string };
+            path: { namespace: string; projectName: string; apiVersion: string };
             query?: { project?: string };
           },
           response: OdhResponse<MetricsCountResponse>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/data_sets',
+          type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/lineage/complete',
+          options: {
+            path: { namespace: string; projectName: string; apiVersion: string };
+            query?: { project: string };
+          },
+          response: OdhResponse<FeatureStoreLineage>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/lineage/objects/featureView/:featureViewName',
+          options: {
+            path: {
+              namespace: string;
+              serviceName: string;
+              apiVersion: string;
+              featureViewName: string;
+            };
+            query?: { project: string };
+          },
+          response: OdhResponse<FeatureViewLineage>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/saved_datasets/all',
           options: { path: { namespace: string; serviceName: string; apiVersion: string } },
           response: OdhResponse<DataSetList>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/saved_datasets',
-          options: { path: { namespace: string; serviceName: string; apiVersion: string } },
+          type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/saved_datasets',
+          options: {
+            path: { namespace: string; projectName: string; apiVersion: string };
+            query?: { project: string };
+          },
           response: OdhResponse<DataSetList>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/saved_datasets/:dataSetName',
+          type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/saved_datasets/:dataSetName',
           options: {
             path: {
               namespace: string;
@@ -1005,18 +1109,27 @@ declare global {
               apiVersion: string;
               dataSetName: string;
             };
+            query?: { project: string };
           },
           response: OdhResponse<DataSet>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/data_sources',
+          type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/data_sources/all',
           options: {
-            path: { namespace: string; serviceName: string; apiVersion: string };
+            path: { namespace: string; projectName: string; apiVersion: string };
           },
           response: OdhResponse<DataSourceList>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/data_sources/:dataSourceName',
+          type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/data_sources',
+          options: {
+            path: { namespace: string; projectName: string; apiVersion: string };
+            query?: { project: string };
+          },
+          response: OdhResponse<DataSourceList>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/data_sources/:dataSourceName',
           options: {
             path: {
               namespace: string;
@@ -1024,12 +1137,16 @@ declare global {
               apiVersion: string;
               dataSourceName: string;
             };
+            query?: { project: string };
           },
           response: OdhResponse<DataSource>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/search',
-          options: { path: { namespace: string; serviceName: string; apiVersion: string } },
+          type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/search',
+          options: {
+            path: { namespace: string; projectName: string; apiVersion: string };
+            query?: { query: string; projects: string; page?: string; limit?: string };
+          },
           response: OdhResponse<GlobalSearchResponse>,
         ) => Cypress.Chainable<null>);
     }

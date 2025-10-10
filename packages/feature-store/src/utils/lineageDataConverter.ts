@@ -19,9 +19,18 @@ export const convertFeatureStoreLineageToVisualizationData = (
 ): LineageData => {
   const nodes: LineageNode[] = [];
   const edges: LineageEdge[] = [];
+  const nodeIds = new Set<string>(); // Track which nodes exist
+
+  // Helper to add node only if it doesn't exist
+  const addNode = (node: LineageNode) => {
+    if (!nodeIds.has(node.id)) {
+      nodes.push(node);
+      nodeIds.add(node.id);
+    }
+  };
 
   featureStoreLineage.objects.entities.forEach((entity: Entity) => {
-    nodes.push({
+    addNode({
       id: `entity-${entity.spec.name}`,
       label: `Entity: ${entity.spec.name}`,
       fsObjectTypes: 'entity',
@@ -34,7 +43,7 @@ export const convertFeatureStoreLineageToVisualizationData = (
   });
 
   featureStoreLineage.objects.dataSources.forEach((dataSource: DataSource) => {
-    nodes.push({
+    addNode({
       id: `datasource-${dataSource.name}`,
       label: `${
         dataSource.type === 'BATCH_FILE'
@@ -71,7 +80,7 @@ export const convertFeatureStoreLineageToVisualizationData = (
         ? 'on_demand_feature_view'
         : 'stream_feature_view';
 
-    nodes.push({
+    addNode({
       id: `featureview-${name}`,
       label: `${
         type === 'batch_feature_view'
@@ -91,7 +100,7 @@ export const convertFeatureStoreLineageToVisualizationData = (
   });
 
   featureStoreLineage.objects.featureServices.forEach((featureService: FeatureService) => {
-    nodes.push({
+    addNode({
       id: `featureservice-${featureService.spec.name}`,
       label: `FeatureService: ${featureService.spec.name}`,
       fsObjectTypes: 'feature_service',
@@ -102,6 +111,63 @@ export const convertFeatureStoreLineageToVisualizationData = (
       layer: 3, // Position feature services in layer 3 (rightmost)
     });
   });
+
+  // Create missing nodes from relationships
+  // This handles cases where relationships reference objects not in the objects arrays
+  const createMissingNodesFromRelationships = () => {
+    // Quick check: if we have feature views and feature services in the objects arrays,
+    // we likely don't need to create missing nodes (optimization)
+    const hasFeatureViews = actualFeatureViews.length > 0;
+    const hasFeatureServices = featureStoreLineage.objects.featureServices.length > 0;
+
+    // If we have complete data (both feature views and services present), skip this step
+    if (hasFeatureViews && hasFeatureServices) {
+      return;
+    }
+
+    featureStoreLineage.relationships.forEach((relationship) => {
+      // Check source
+      if (relationship.source.name && relationship.source.type) {
+        const sourceId = mapObjectToNodeId(relationship.source);
+        if (sourceId && !nodeIds.has(sourceId)) {
+          const config = getObjectTypeConfig(relationship.source.type);
+          if (config) {
+            addNode({
+              id: sourceId,
+              label: `${config.labelPrefix}: ${relationship.source.name}`,
+              fsObjectTypes: config.fsObjectType,
+              entityType: config.entityType,
+              name: relationship.source.name,
+              truncateLength: 30,
+              layer: config.layer,
+            });
+          }
+        }
+      }
+
+      // Check target
+      if (relationship.target.name && relationship.target.type) {
+        const targetId = mapObjectToNodeId(relationship.target);
+        if (targetId && !nodeIds.has(targetId)) {
+          const config = getObjectTypeConfig(relationship.target.type);
+          if (config) {
+            addNode({
+              id: targetId,
+              label: `${config.labelPrefix}: ${relationship.target.name}`,
+              fsObjectTypes: config.fsObjectType,
+              entityType: config.entityType,
+              name: relationship.target.name,
+              truncateLength: 30,
+              layer: config.layer,
+            });
+          }
+        }
+      }
+    });
+  };
+
+  // Create missing nodes before processing edges
+  createMissingNodesFromRelationships();
 
   // Add invisible positioning edges to ensure proper layer ordering
   // These edges help DagreLayout position nodes correctly even when there are no direct relationships

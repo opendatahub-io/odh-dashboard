@@ -10,6 +10,7 @@ import useFeatures from '../../apiHooks/useFeatures';
 import FeatureStoreProjectSelectorNavigator from '../components/FeatureStoreProjectSelectorNavigator';
 import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
 import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
+import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied';
 
 const title = 'Features';
 const description =
@@ -47,6 +48,9 @@ const Features = (): React.ReactElement => {
     <ApplicationsPage
       empty={features.features.length === 0}
       emptyStatePage={emptyState}
+      loadErrorPage={
+        <FeatureStoreAccessDenied resourceType="features" projectName={currentProject} />
+      }
       title={
         <FeatureStorePageTitle
           title={

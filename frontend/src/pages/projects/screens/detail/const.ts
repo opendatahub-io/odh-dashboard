@@ -10,4 +10,5 @@ export const ProjectSectionTitles: ProjectSectionTitlesType = {
   [ProjectSectionID.PERMISSIONS]: 'Permissions',
   [ProjectSectionID.SETTINGS]: 'Settings',
   [ProjectSectionID.CHATBOT]: 'Chatbot',
+  [ProjectSectionID.FEATURE_STORE]: 'Feature Store',
 };

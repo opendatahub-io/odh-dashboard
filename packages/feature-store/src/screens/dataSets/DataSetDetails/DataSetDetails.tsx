@@ -20,6 +20,9 @@ import { useFeatureStoreProject } from '../../../FeatureStoreContext';
 import { featureStoreRootRoute } from '../../../routes';
 import FeatureStorePageTitle from '../../../components/FeatureStorePageTitle';
 import FeatureStoreBreadcrumb from '../../components/FeatureStoreBreadcrumb';
+import FeatureStoreAccessDenied from '../../../components/FeatureStoreAccessDenied';
+import { isNotFoundError } from '../../../utils';
+import { getFeatureStoreErrorMessage } from '../../../api/errorUtils';
 
 const DataSetDetails = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -43,28 +46,36 @@ const DataSetDetails = (): React.ReactElement => {
       </EmptyStateBody>
     </EmptyState>
   );
-  if (dataSetLoadError) {
-    return (
-      <EmptyState
-        headingLevel="h4"
-        icon={PathMissingIcon}
-        titleText="Error loading data set details"
-        variant={EmptyStateVariant.lg}
-        data-id="error-empty-state"
-      >
-        <EmptyStateBody>
-          {dataSetLoadError.message || 'The requested data set could not be found.'}
-        </EmptyStateBody>
-        <EmptyStateFooter>
-          <EmptyStateActions>
-            <Link to={`${featureStoreRootRoute()}/datasets`}>Go to Data Sets</Link>
-          </EmptyStateActions>
-        </EmptyStateFooter>
-      </EmptyState>
-    );
-  }
 
-  if (!dataSetLoaded) {
+  const errorState = (
+    <EmptyState
+      headingLevel="h6"
+      icon={PathMissingIcon}
+      titleText="Data set not found"
+      variant={EmptyStateVariant.lg}
+      data-testid="error-state-title"
+    >
+      <EmptyStateBody data-testid="error-state-body">
+        {getFeatureStoreErrorMessage(
+          dataSetLoadError,
+          'The requested data set could not be found.',
+        )}
+      </EmptyStateBody>
+      <EmptyStateFooter>
+        <EmptyStateActions>
+          <Link to={`${featureStoreRootRoute()}/datasets`}>Go to Data Sets</Link>
+        </EmptyStateActions>
+      </EmptyStateFooter>
+    </EmptyState>
+  );
+
+  const loadErrorState = isNotFoundError(dataSetLoadError) ? (
+    errorState
+  ) : (
+    <FeatureStoreAccessDenied resourceType="data set" projectName={currentProject} />
+  );
+
+  if (!dataSetLoaded && !dataSetLoadError) {
     return (
       <Bullseye>
         <Spinner />
@@ -79,6 +90,7 @@ const DataSetDetails = (): React.ReactElement => {
       title={dataSet.spec.name}
       description={dataSet.spec.description}
       loadError={dataSetLoadError}
+      loadErrorPage={dataSetLoadError ? loadErrorState : undefined}
       loaded={dataSetLoaded}
       provideChildrenPadding
       breadcrumb={

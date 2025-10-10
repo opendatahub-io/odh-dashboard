@@ -9,10 +9,12 @@ import FeatureStoreProjectSelectorNavigator from './screens/components/FeatureSt
 import FeatureStorePageTitle from './components/FeatureStorePageTitle';
 import FeatureStoreWarningAlert from './components/FeatureStoreWarningAlert';
 import { featureStoreRoute } from './routes';
-import { FeatureStoreTabs } from './const';
+import { FeatureStoreTabs, FeatureStoreObject } from './const';
 import Metrics from './screens/metrics/Metrics';
 import FeatureStoreLineage from './screens/lineage/FeatureStoreLineage';
 import FeatureStoreObjectIcon from './components/FeatureStoreObjectIcon';
+import IntegrationInstructionsPopover from './components/IntegrationInstructionsPopover';
+import { getFeatureStoreObjectDescription } from './utils';
 
 type FeatureStoreProps = Omit<
   React.ComponentProps<typeof ApplicationsPage>,
@@ -55,6 +57,12 @@ const FeatureStoreInner: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
             />
           }
         />
+      }
+      description={
+        <>
+          {getFeatureStoreObjectDescription(FeatureStoreObject.OVERVIEW)}{' '}
+          <IntegrationInstructionsPopover />
+        </>
       }
       headerContent={
         <Flex direction={{ default: 'column' }}>

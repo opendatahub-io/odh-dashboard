@@ -50,6 +50,28 @@ const initCommonIntercepts = () => {
     },
   );
 
+  cy.intercept('GET', '/api/featurestores', {
+    featureStores: [
+      {
+        name: fsName,
+        project: fsName,
+        registry: {
+          path: `feast-${fsName}-${k8sNamespace}-registry.${k8sNamespace}.svc.cluster.local:443`,
+        },
+        namespace: k8sNamespace,
+        status: {
+          conditions: [
+            {
+              type: 'Registry',
+              status: 'True',
+              lastTransitionTime: '2025-10-08T21:13:38.158Z',
+            },
+          ],
+        },
+      },
+    ],
+  });
+
   cy.interceptK8sList(
     ServiceModel,
     mockK8sResourceList([
@@ -62,9 +84,9 @@ const initCommonIntercepts = () => {
   );
 
   cy.interceptOdh(
-    'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/projects',
+    'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/projects',
     {
-      path: { namespace: k8sNamespace, serviceName: fsName, apiVersion: 'v1' },
+      path: { namespace: k8sNamespace, projectName: fsName, apiVersion: 'v1' },
     },
     {
       projects: [
@@ -86,7 +108,7 @@ const initCommonIntercepts = () => {
 const mockAllDataSetsIntercept = () => {
   cy.intercept(
     'GET',
-    `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/saved_datasets/all?include_relationships=true*`,
+    `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/saved_datasets/all?include_relationships=true*`,
     mockDataSets({
       savedDatasets: [
         mockDataSet({ project: fsProjectName }),
@@ -138,7 +160,7 @@ const mockAllDataSetsIntercept = () => {
 const mockProjectDataSetsIntercept = () => {
   cy.intercept(
     'GET',
-    `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/saved_datasets?project=${fsProjectName}&include_relationships=true*`,
+    `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/saved_datasets?project=${fsProjectName}&include_relationships=true*`,
     mockDataSets({
       savedDatasets: [
         mockDataSet(),
@@ -168,7 +190,7 @@ const mockProjectDataSetsIntercept = () => {
 const mockDataSetDetailsIntercept = () => {
   cy.intercept(
     'GET',
-    `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/saved_datasets/test_dataset?project=${fsProjectName}&include_relationships=true*`,
+    `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/saved_datasets/test_dataset?project=${fsProjectName}&include_relationships=true*`,
     mockDataSet({
       spec: {
         name: 'test_dataset',
@@ -209,7 +231,7 @@ const mockDataSetDetailsIntercept = () => {
 const mockFeatureDetailsIntercept = () => {
   cy.intercept(
     'GET',
-    `**/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/features/credit_history/credit_card_due**`,
+    `**/api/featurestores/${k8sNamespace}/${fsName}/api/v1/features/credit_history/credit_card_due**`,
     mockFeature({
       name: 'credit_card_due',
       featureView: 'credit_history',
@@ -237,7 +259,7 @@ describe('Feature DataSets for all projects', () => {
   it('should handle empty data sets list for all projects', () => {
     cy.intercept(
       'GET',
-      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/saved_datasets/all?include_relationships=true*`,
+      `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/saved_datasets/all?include_relationships=true*`,
       {
         savedDatasets: [],
         pagination: {
@@ -341,7 +363,7 @@ describe('Feature DataSets', () => {
   it('should handle empty data sets list', () => {
     cy.intercept(
       'GET',
-      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/saved_datasets?project=${fsProjectName}&include_relationships=true*`,
+      `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/saved_datasets?project=${fsProjectName}&include_relationships=true*`,
       {
         savedDatasets: [],
         pagination: {
@@ -364,10 +386,14 @@ describe('Feature DataSets', () => {
   it('should handle data set not found with proper error message', () => {
     cy.intercept(
       'GET',
-      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/saved_datasets/nonexistent?project=${fsProjectName}&include_relationships=true*`,
+      `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/saved_datasets/nonexistent?project=${fsProjectName}&include_relationships=true*`,
       {
         statusCode: 404,
-        body: { detail: `DataSet nonexistent does not exist in project ${fsProjectName}` },
+        body: {
+          status_code: 404,
+          detail: `DataSet nonexistent does not exist in project ${fsProjectName}`,
+          error_type: 'FeastObjectNotFoundException',
+        },
       },
     ).as('getDataSetNotFound');
 
@@ -411,7 +437,7 @@ describe('DataSet Details', () => {
   it('should display different storage types correctly for BigQuery storage', () => {
     cy.intercept(
       'GET',
-      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/saved_datasets/credit_scoring_dataset?project=${fsProjectName}&include_relationships=true*`,
+      `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/saved_datasets/credit_scoring_dataset?project=${fsProjectName}&include_relationships=true*`,
       mockDataSet({
         spec: {
           ...mockDataSet().spec,
@@ -439,7 +465,7 @@ describe('DataSet Details', () => {
   it('should display Redshift storage with schema and database for Redshift storage', () => {
     cy.intercept(
       'GET',
-      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/saved_datasets/fraud_detection_dataset?project=${fsProjectName2}&include_relationships=true*`,
+      `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/saved_datasets/fraud_detection_dataset?project=${fsProjectName2}&include_relationships=true*`,
       mockDataSet({
         spec: {
           ...mockDataSet().spec,
@@ -493,11 +519,11 @@ describe('DataSet Details', () => {
     mockDataSetDetailsIntercept();
 
     cy.interceptOdh(
-      'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/feature_services/:featureServiceName',
+      'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/feature_services/:featureServiceName',
       {
         path: {
           namespace: k8sNamespace,
-          serviceName: fsName,
+          projectName: fsName,
           apiVersion: 'v1',
           featureServiceName: 'test-feature-service',
         },

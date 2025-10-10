@@ -8,6 +8,7 @@ export enum ProjectSectionID {
   PERMISSIONS = 'permissions',
   SETTINGS = 'settings',
   CHATBOT = 'chatbot',
+  FEATURE_STORE = 'feature-store-integration',
 }
 
 export type ProjectSectionTitlesType = {

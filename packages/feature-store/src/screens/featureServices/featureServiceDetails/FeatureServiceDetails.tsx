@@ -5,11 +5,12 @@ import {
   EmptyState,
   Breadcrumb,
   BreadcrumbItem,
-  Bullseye,
-  Spinner,
+  EmptyStateFooter,
+  EmptyStateActions,
 } from '@patternfly/react-core';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { useParams } from 'react-router-dom';
+import { t_global_spacer_xs as ExtraSmallSpacerSize } from '@patternfly/react-tokens';
+import { PathMissingIcon, SearchIcon } from '@patternfly/react-icons';
+import { Link, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import FeatureServiceDetailsTabs from './FeatureServiceDetailsTabs';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
@@ -17,6 +18,9 @@ import useFeatureServiceByName from '../../../apiHooks/useFeatureServiceByName';
 import { featureStoreRootRoute } from '../../../routes';
 import FeatureStorePageTitle from '../../../components/FeatureStorePageTitle';
 import FeatureStoreBreadcrumb from '../../components/FeatureStoreBreadcrumb';
+import FeatureStoreAccessDenied from '../../../components/FeatureStoreAccessDenied';
+import { isNotFoundError } from '../../../utils';
+import { getFeatureStoreErrorMessage } from '../../../api/errorUtils';
 
 const FeatureServiceDetails = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -28,34 +32,57 @@ const FeatureServiceDetails = (): React.ReactElement => {
     error: featureServiceLoadError,
   } = useFeatureServiceByName(currentProject, featureServiceName);
 
-  if (featureServiceLoadError) {
-    return (
-      <EmptyState
-        headingLevel="h4"
-        icon={ExclamationCircleIcon}
-        titleText="Error loading feature details"
-        variant={EmptyStateVariant.lg}
-        data-id="error-empty-state"
-      >
-        <EmptyStateBody>{featureServiceLoadError.message}</EmptyStateBody>
-      </EmptyState>
-    );
-  }
+  const emptyState = (
+    <EmptyState
+      headingLevel="h6"
+      icon={SearchIcon}
+      titleText="No feature services"
+      variant={EmptyStateVariant.lg}
+      data-testid="empty-state-title"
+    >
+      <EmptyStateBody data-testid="empty-state-body">
+        No feature services have been found in this project.
+      </EmptyStateBody>
+    </EmptyState>
+  );
 
-  if (!featureServiceLoaded) {
-    return (
-      <Bullseye>
-        <Spinner />
-      </Bullseye>
-    );
-  }
+  const errorState = (
+    <EmptyState
+      headingLevel="h6"
+      icon={PathMissingIcon}
+      titleText="Feature service not found"
+      variant={EmptyStateVariant.lg}
+      data-testid="error-state-title"
+    >
+      <EmptyStateBody data-testid="error-state-body">
+        {getFeatureStoreErrorMessage(
+          featureServiceLoadError,
+          'The requested feature service could not be found.',
+        )}
+      </EmptyStateBody>
+      <EmptyStateFooter>
+        <EmptyStateActions>
+          <Link to={`${featureStoreRootRoute()}/feature-services`}>Go to Feature Services</Link>
+        </EmptyStateActions>
+      </EmptyStateFooter>
+    </EmptyState>
+  );
+
+  const loadErrorState = isNotFoundError(featureServiceLoadError) ? (
+    errorState
+  ) : (
+    <FeatureStoreAccessDenied resourceType="feature service" projectName={currentProject} />
+  );
 
   return (
     <ApplicationsPage
-      empty={false}
+      empty={!featureServiceLoaded}
+      emptyStatePage={emptyState}
       title={featureService.spec.name}
+      data-testid="feature-service-details-page"
       description={featureService.spec.description}
       loadError={featureServiceLoadError}
+      loadErrorPage={featureServiceLoadError ? loadErrorState : undefined}
       loaded={featureServiceLoaded}
       provideChildrenPadding
       breadcrumb={
@@ -69,7 +96,14 @@ const FeatureServiceDetails = (): React.ReactElement => {
                 linkTo={`${featureStoreRootRoute()}/feature-services`}
                 dataTestId="feature-service-details-breadcrumb-link"
               />
-              <BreadcrumbItem data-testid="breadcrumb-feature-service-name" isActive>
+              <BreadcrumbItem
+                data-testid="breadcrumb-feature-service-name"
+                isActive
+                style={{
+                  textDecoration: 'underline',
+                  textUnderlineOffset: ExtraSmallSpacerSize.var,
+                }}
+              >
                 {featureService.spec.name}
               </BreadcrumbItem>
             </Breadcrumb>

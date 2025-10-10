@@ -10,6 +10,7 @@ import { SearchIcon } from '@patternfly/react-icons';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import useFeatureViews from '../../apiHooks/useFeatureViews';
 import FeatureViewsListView from '../featureViews/FeatureViewsListView';
+import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied';
 
 type FeatureViewTabProps = {
   fsObject: {
@@ -34,27 +35,21 @@ const FeatureViewTab: React.FC<FeatureViewTabProps> = ({
     error: featureViewsLoadError,
   } = useFeatureViews({ project: currentProject, ...fsObject });
 
+  if (featureViewsLoadError) {
+    return (
+      <EmptyState headingLevel="h6" variant={EmptyStateVariant.lg} data-testid="error-state-title">
+        <EmptyStateBody data-testid="error-state-body">
+          <FeatureStoreAccessDenied resourceType="feature views" projectName={currentProject} />
+        </EmptyStateBody>
+      </EmptyState>
+    );
+  }
+
   if (!featureViewsLoaded) {
     return (
       <Bullseye>
         <Spinner size="xl" data-testid="loading-spinner" />
       </Bullseye>
-    );
-  }
-
-  if (featureViewsLoadError) {
-    return (
-      <EmptyState
-        headingLevel="h6"
-        icon={SearchIcon}
-        titleText="Error loading feature views"
-        variant={EmptyStateVariant.lg}
-        data-testid="error-state-title"
-      >
-        <EmptyStateBody data-testid="error-state-body">
-          Failed to load feature views for this {contextName}.
-        </EmptyStateBody>
-      </EmptyState>
     );
   }
 

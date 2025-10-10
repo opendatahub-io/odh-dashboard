@@ -9,6 +9,7 @@ import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import useFeatureViews from '../../apiHooks/useFeatureViews';
 import { featureStoreRoute } from '../../routes';
 import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
+import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied';
 
 const title = 'Feature views';
 const description =
@@ -40,6 +41,9 @@ const FeatureViews = (): React.ReactElement => {
     <ApplicationsPage
       empty={featureViews.featureViews.length === 0}
       emptyStatePage={emptyState}
+      loadErrorPage={
+        <FeatureStoreAccessDenied resourceType="feature views" projectName={currentProject} />
+      }
       title={
         <FeatureStorePageTitle
           title={

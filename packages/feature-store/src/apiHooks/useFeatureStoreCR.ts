@@ -1,15 +1,15 @@
 import React from 'react';
-import { FeatureStoreKind } from '@odh-dashboard/internal/k8sTypes';
-import { FeatureStoreCRContext } from '../contexts/FeatureStoreContext';
+import { FeatureStoreContext } from '../FeatureStoreContext';
+import { RegistryFeatureStore } from '../hooks/useRegistryFeatureStores';
 
 export type UseFeatureStoreCRResult = {
-  data: FeatureStoreKind | null;
+  data: RegistryFeatureStore | null;
   loaded: boolean;
   error: Error | undefined;
 };
 
 export const useFeatureStoreCR = (): UseFeatureStoreCRResult => {
-  const { activeFeatureStore, loaded, loadError } = React.useContext(FeatureStoreCRContext);
+  const { activeFeatureStore, loaded, loadError } = React.useContext(FeatureStoreContext);
 
   return React.useMemo(
     () => ({

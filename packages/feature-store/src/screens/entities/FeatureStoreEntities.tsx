@@ -9,6 +9,7 @@ import useFeatureStoreEntities from '../../apiHooks/useFeatureStoreEnitites';
 import { featureStoreRoute } from '../../routes';
 import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
 import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
+import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied';
 
 const title = 'Entities';
 const description =
@@ -39,6 +40,9 @@ const FeatureStoreEntities = (): React.ReactElement => {
     <ApplicationsPage
       empty={entities.entities.length === 0}
       emptyStatePage={emptyState}
+      loadErrorPage={
+        <FeatureStoreAccessDenied resourceType="entities" projectName={currentProject} />
+      }
       title={
         <FeatureStorePageTitle
           title={

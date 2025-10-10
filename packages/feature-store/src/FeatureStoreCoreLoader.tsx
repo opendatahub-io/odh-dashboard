@@ -17,13 +17,18 @@ import { FeatureStoreObject } from './const';
 import InvalidFeatureStoreProject from './screens/components/InvalidFeatureStoreProject';
 import { useFeatureStoreCR } from './apiHooks/useFeatureStoreCR';
 import { FeatureStoreContextProvider } from './FeatureStoreContext';
-import FeatureStoreCRContextProvider from './contexts/FeatureStoreContext';
 import { useFeatureStoreObject } from './apiHooks/useFeatureStoreObject';
 import useFeatureStoreProjects from './apiHooks/useFeatureStoreProjects';
-import { getFeatureStoreObjectDescription, getFeatureStoreObjectDisplayName } from './utils';
+import {
+  FeatureStoreObjectToTypeMap,
+  getFeatureStoreObjectDescription,
+  getFeatureStoreObjectDisplayName,
+} from './utils';
 import { featureStoreRoute } from './routes';
 import { FeatureStoreProject } from './types/featureStoreProjects';
 import SupportIcon from './icons/header-icons/SupportIcon';
+import FeatureStorePageTitle from './components/FeatureStorePageTitle';
+import FeatureStoreObjectIcon from './components/FeatureStoreObjectIcon';
 
 type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
 
@@ -84,8 +89,13 @@ const FeatureStoreContent: React.FC<{
     );
 
     const userTitle = 'Request access to a feature store repository';
-    const userDescription =
-      'Feature store repositories allow teams to organize and collaborate on resources within separate namespaces. To request access to a new or existing repository, contact your administrator.';
+    const userDescription = (
+      <>
+        Feature store repositories allow teams to organize and collaborate on resources within
+        separate namespaces. To request access to a new or existing repository, contact your
+        administrator.
+      </>
+    );
 
     const renderStateProps: ApplicationPageRenderState = {
       empty: true,
@@ -103,7 +113,18 @@ const FeatureStoreContent: React.FC<{
 
     return (
       <ApplicationsPage
-        title={getFeatureStoreObjectDisplayName(currentFeatureStoreObject)}
+        title={
+          <FeatureStorePageTitle
+            title={
+              <FeatureStoreObjectIcon
+                objectType={FeatureStoreObjectToTypeMap[currentFeatureStoreObject]}
+                title={getFeatureStoreObjectDisplayName(currentFeatureStoreObject)}
+                showBackground
+                useTypedColors
+              />
+            }
+          />
+        }
         description={getFeatureStoreObjectDescription(currentFeatureStoreObject)}
         {...renderStateProps}
         loaded
@@ -134,7 +155,18 @@ const FeatureStoreContent: React.FC<{
 
       return (
         <ApplicationsPage
-          title={getFeatureStoreObjectDisplayName(currentFeatureStoreObject)}
+          title={
+            <FeatureStorePageTitle
+              title={
+                <FeatureStoreObjectIcon
+                  objectType={FeatureStoreObjectToTypeMap[currentFeatureStoreObject]}
+                  title={getFeatureStoreObjectDisplayName(currentFeatureStoreObject)}
+                  showBackground
+                  useTypedColors
+                />
+              }
+            />
+          }
           description={getFeatureStoreObjectDescription(currentFeatureStoreObject)}
           {...renderStateProps}
           loaded
@@ -153,11 +185,9 @@ const FeatureStoreCoreLoader: React.FC<FeatureStoreCoreLoaderProps> =
     false,
   )(({ getInvalidRedirectPath }) => {
     return (
-      <FeatureStoreCRContextProvider>
-        <FeatureStoreContextProvider>
-          <FeatureStoreContent getInvalidRedirectPath={getInvalidRedirectPath} />
-        </FeatureStoreContextProvider>
-      </FeatureStoreCRContextProvider>
+      <FeatureStoreContextProvider>
+        <FeatureStoreContent getInvalidRedirectPath={getInvalidRedirectPath} />
+      </FeatureStoreContextProvider>
     );
   });
 
