@@ -19,14 +19,16 @@ import (
 type MockResponse struct {
 	ID     string
 	Model  string
-	Status string
+	Status responses.ResponseStatus
+	Output []responses.ResponseOutputItemUnion
 }
 
 // MockLlamaStackClient provides a mock implementation of the LlamaStackClient for testing
 type MockLlamaStackClient struct {
 	// Add fields here if you need to store state for testing
-	getResponseResults map[string]*MockResponse
-	getResponseErrors  map[string]error
+	getResponseResults   map[string]*MockResponse
+	getResponseErrors    map[string]error
+	createResponseResult *MockResponse
 }
 
 // NewMockLlamaStackClient creates a new mock client
@@ -34,6 +36,23 @@ func NewMockLlamaStackClient() *MockLlamaStackClient {
 	return &MockLlamaStackClient{
 		getResponseResults: make(map[string]*MockResponse),
 		getResponseErrors:  make(map[string]error),
+		createResponseResult: &MockResponse{
+			ID:     "resp_mock123",
+			Model:  "llama-3.1-8b",
+			Status: responses.ResponseStatusCompleted,
+			Output: []responses.ResponseOutputItemUnion{
+				{
+					Type: "message",
+					Role: "assistant",
+					Content: []responses.ResponseOutputMessageContentUnion{
+						{
+							Type: "text",
+							Text: "This is a mock response.",
+						},
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -45,6 +64,95 @@ func (m *MockLlamaStackClient) SetGetResponseResult(responseID string, mockRespo
 // SetGetResponseError sets an error for a given response ID
 func (m *MockLlamaStackClient) SetGetResponseError(responseID string, err error) {
 	m.getResponseErrors[responseID] = err
+}
+
+// SetCreateResponseResult sets the mock response for CreateResponse
+func (m *MockLlamaStackClient) SetCreateResponseResult(mockResponse *MockResponse) {
+	m.createResponseResult = mockResponse
+}
+
+// CreateResponse returns a mock response
+func (m *MockLlamaStackClient) CreateResponse(ctx context.Context, params llamastack.CreateResponseParams) (*responses.Response, error) {
+	if m.createResponseResult == nil {
+		return nil, fmt.Errorf("no mock response set")
+	}
+
+	// Create output items starting with the default ones
+	output := make([]responses.ResponseOutputItemUnion, 0)
+
+	// If MCP tools are provided, add MCP tool interactions
+	if len(params.Tools) > 0 {
+		// Add MCP list tools output
+		output = append(output, responses.ResponseOutputItemUnion{
+			Type:        "mcp_list_tools",
+			Role:        "assistant",
+			ServerLabel: params.Tools[0].ServerLabel,
+		})
+
+		// Add MCP tool call output
+		mcpOutput := `{"tag_name":"v1.95.0","name":"Mock Release","body":"This is a mock GitHub release","published_at":"2025-09-17T15:00:00Z","author":{"login":"mock-user","id":12345}}`
+		output = append(output, responses.ResponseOutputItemUnion{
+			Type:        "mcp_call",
+			Role:        "assistant",
+			ServerLabel: params.Tools[0].ServerLabel,
+			Name:        "get_latest_release",
+			Arguments:   `{"owner":"llamastack","repo":"llama-stack"}`,
+			Output:      mcpOutput,
+		})
+	}
+
+	// Build the message text based on various conditions
+	messageText := "This is a mock response."
+
+	// Add previous response ID to message if provided
+	if params.PreviousResponseID != "" {
+		messageText = "Continuing from previous response " + params.PreviousResponseID + ". " + messageText
+	}
+
+	// Add MCP tool results to message if tools are provided
+	if len(params.Tools) > 0 {
+		messageText = "Based on the GitHub MCP tool results, the latest release is v1.95.0. " + messageText
+	}
+
+	// Add file content to message if input contains file content
+	if strings.Contains(params.Input, "Context from uploaded files:") {
+		// Extract file content from input
+		lines := strings.Split(params.Input, "\n")
+		var fileContents []string
+		for _, line := range lines {
+			if strings.HasPrefix(line, "File: ") {
+				fileContents = append(fileContents, line)
+			} else if len(fileContents) > 0 && strings.HasPrefix(line, "Content:") {
+				fileContents = append(fileContents, line)
+			} else if len(fileContents) > 0 && !strings.HasPrefix(line, "User query:") {
+				fileContents = append(fileContents, line)
+			}
+		}
+		if len(fileContents) > 0 {
+			messageText = "I've read the files:\n" + strings.Join(fileContents, "\n") + "\n" + messageText
+		}
+	}
+
+	output = append(output, responses.ResponseOutputItemUnion{
+		Type: "message",
+		Role: "assistant",
+		Content: []responses.ResponseOutputMessageContentUnion{
+			{
+				Type: "text",
+				Text: messageText,
+			},
+		},
+	})
+
+	// Convert MockResponse to responses.Response, but use the model from the request
+	response := &responses.Response{
+		ID:     m.createResponseResult.ID,
+		Model:  params.Model,
+		Status: m.createResponseResult.Status,
+		Output: output,
+	}
+
+	return response, nil
 }
 
 // ListModels returns mock model data
@@ -183,119 +291,6 @@ func (m *MockLlamaStackClient) UploadFile(ctx context.Context, params llamastack
 	}
 
 	return result, nil
-}
-
-// CreateResponse returns a mock response with comprehensive parameter support
-func (m *MockLlamaStackClient) CreateResponse(ctx context.Context, params llamastack.CreateResponseParams) (*responses.Response, error) {
-	// Create base response text
-	responseText := "This is a mock response to your query: " + params.Input
-
-	// If previous response ID is provided, acknowledge it in the response
-	if params.PreviousResponseID != "" {
-		responseText = "Continuing from previous response " + params.PreviousResponseID + ". " + responseText
-	}
-
-	// If input contains file content (from in-context learning), acknowledge it
-	if strings.Contains(params.Input, "Context from uploaded files:") {
-		responseText = "Based on the provided file content, " + responseText
-	}
-
-	// Create output items
-	var outputItems []responses.ResponseOutputItemUnion
-
-	// If MCP tools are provided, simulate MCP tool interactions
-	if len(params.Tools) > 0 {
-		// Add mock MCP list tools output
-		outputItems = append(outputItems, responses.ResponseOutputItemUnion{
-			ID:          "mcp_list_mock123",
-			Type:        "mcp_list_tools",
-			Role:        "assistant",
-			ServerLabel: params.Tools[0].ServerLabel,
-		})
-
-		// Add mock MCP tool call with realistic GitHub API output
-		mcpOutput := `{"tag_name":"v1.95.0","name":"Mock Release","body":"This is a mock GitHub release with realistic data structure","published_at":"2025-09-17T15:00:00Z","author":{"login":"mock-user","id":12345}}`
-
-		outputItems = append(outputItems, responses.ResponseOutputItemUnion{
-			ID:          "call_mock456",
-			Type:        "mcp_call",
-			Role:        "assistant",
-			ServerLabel: params.Tools[0].ServerLabel,
-			Name:        "get_latest_release",
-			Arguments:   `{"owner":"llamastack","repo":"llama-stack"}`,
-			Output:      mcpOutput,
-		})
-
-		// Update response text to reflect MCP tool usage
-		responseText = "Based on the GitHub MCP tool results, the latest release is v1.95.0. " + responseText
-	}
-
-	// If vector stores are provided, simulate file search call
-	if len(params.VectorStoreIDs) > 0 {
-		// Add mock file search call result with search results
-		outputItems = append(outputItems, responses.ResponseOutputItemUnion{
-			ID:      "call_mock123",
-			Type:    "file_search_call",
-			Role:    "assistant",
-			Status:  "completed",
-			Queries: []string{params.Input},
-		})
-
-		// Manually set results using reflection since the exact type might not be exported
-		lastItem := &outputItems[len(outputItems)-1]
-		results := []map[string]interface{}{
-			{
-				"score":    0.8542,
-				"text":     "This is mock retrieved content that relates to your query: " + params.Input + ". This content comes from the vector store and provides context for the AI response.",
-				"filename": "mock_document.txt",
-			},
-		}
-
-		// Use JSON marshal/unmarshal to set the Results field correctly
-		if itemJSON, err := json.Marshal(map[string]interface{}{
-			"id":      lastItem.ID,
-			"type":    lastItem.Type,
-			"role":    lastItem.Role,
-			"status":  lastItem.Status,
-			"queries": lastItem.Queries,
-			"results": results,
-		}); err == nil {
-			var updatedItem responses.ResponseOutputItemUnion
-			if json.Unmarshal(itemJSON, &updatedItem) == nil {
-				outputItems[len(outputItems)-1] = updatedItem
-			}
-		}
-
-		// Update response text to indicate RAG usage
-		responseText = "Based on retrieved documents, this is a mock response to your query: " + params.Input
-	}
-
-	// Add message content
-	outputItems = append(outputItems, responses.ResponseOutputItemUnion{
-		ID:     "msg_mock123",
-		Type:   "message",
-		Role:   "assistant",
-		Status: "completed",
-		Content: []responses.ResponseOutputMessageContentUnion{
-			{
-				Type: "output_text",
-				Text: responseText,
-			},
-		},
-	})
-
-	// Create mock response with proper Output structure
-	mockResponse := &responses.Response{
-		ID:        "resp_mock123",
-		Object:    "response",
-		CreatedAt: 1234567890.0,
-		Model:     params.Model,
-		Status:    "completed",
-		Metadata:  map[string]string{},
-		Output:    outputItems,
-	}
-
-	return mockResponse, nil
 }
 
 // MockStreamError indicates mock streaming mode and provides response data
