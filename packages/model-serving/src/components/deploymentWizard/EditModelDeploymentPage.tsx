@@ -141,16 +141,25 @@ const EditModelDeploymentContent: React.FC<{
       typeof formDataExtension?.properties.extractAiAssetData === 'function'
         ? formDataExtension.properties.extractAiAssetData(deployment) ?? undefined
         : undefined,
-    modelServer: {
-      name: deployment.server?.metadata.annotations?.['opendatahub.io/template-name'] || '',
-      namespace:
-        deployment.server?.metadata.annotations?.['opendatahub.io/serving-runtime-scope'] ===
-        'global'
-          ? dashboardNamespace
-          : deployment.server?.metadata.namespace || '',
-      scope:
-        deployment.server?.metadata.annotations?.['opendatahub.io/serving-runtime-scope'] || '',
-    },
+    modelServer:
+      deployment.modelServingPlatformId === 'llmd-serving'
+        ? {
+            name: 'llmd-serving',
+            label: 'Distributed Inference Server with llm-d',
+          }
+        : deployment.server
+        ? {
+            name: deployment.server.metadata.annotations?.['opendatahub.io/template-name'] || '',
+            namespace:
+              deployment.server.metadata.annotations?.['opendatahub.io/serving-runtime-scope'] ===
+              'global'
+                ? dashboardNamespace
+                : deployment.server.metadata.namespace || '',
+            scope:
+              deployment.server.metadata.annotations?.['opendatahub.io/serving-runtime-scope'] ||
+              '',
+          }
+        : undefined,
   });
 
   const formData = React.useMemo(() => {
@@ -179,6 +188,7 @@ const EditModelDeploymentContent: React.FC<{
       primaryButtonText="Update deployment"
       existingData={formData ? { ...formData, isEditing: true } : { isEditing: true }}
       project={project}
+      existingDeployment={existingDeployment}
     />
   );
 };

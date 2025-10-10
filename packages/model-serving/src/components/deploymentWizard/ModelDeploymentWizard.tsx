@@ -4,6 +4,7 @@ import { Spinner, Wizard, WizardStep } from '@patternfly/react-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import { Deployment } from 'extension-points';
 import { getDeploymentWizardExitRoute } from './utils';
 import { ModelDeploymentWizardData, useModelDeploymentWizard } from './useDeploymentWizard';
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
@@ -19,6 +20,7 @@ type ModelDeploymentWizardProps = {
   primaryButtonText: string;
   existingData?: ModelDeploymentWizardData;
   project: ProjectKind;
+  existingDeployment?: Deployment;
 };
 
 const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
@@ -27,6 +29,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   primaryButtonText,
   existingData,
   project,
+  existingDeployment = undefined,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -66,7 +69,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       deployMethod.properties.deploy(
         wizardState.state,
         project.metadata.name,
-        undefined,
+        existingDeployment,
         serverResource,
         serverResourceTemplateName,
         true,
@@ -76,7 +79,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         deployMethod.properties.deploy(
           wizardState.state,
           project.metadata.name,
-          undefined,
+          existingDeployment,
           serverResource,
           serverResourceTemplateName,
           false,
