@@ -130,6 +130,8 @@ const useChatbotMessages = ({
       setIsStreamingWithoutContent(true);
     }
 
+    let botMessageId: string | undefined;
+
     try {
       if (!modelId) {
         throw new Error(ERROR_MESSAGES.NO_MODEL_OR_SOURCE);
@@ -166,7 +168,7 @@ const useChatbotMessages = ({
 
       if (isStreamingEnabled) {
         // Create initial bot message for streaming with loading state
-        const botMessageId = getId();
+        botMessageId = getId();
         const streamingBotMessage: MessageProps = {
           id: botMessageId,
           role: 'bot',
@@ -274,15 +276,26 @@ const useChatbotMessages = ({
         };
         setMessages((prevMessages) => [...prevMessages, botMessage]);
       }
-    } catch {
-      const botMessage: MessageProps = {
-        id: getId(),
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Sorry, I encountered an error while processing your request. Please try again.';
+
+      const botErrorMessage: MessageProps = {
+        id: isStreamingEnabled ? botMessageId : getId(),
         role: 'bot',
-        content: 'Sorry, I encountered an error while processing your request. Please try again.',
+        content: errorMessage,
         name: 'Bot',
         avatar: botAvatar,
       };
-      setMessages((prevMessages) => [...prevMessages, botMessage]);
+
+      setMessages((prevMessages) => {
+        if (isStreamingEnabled) {
+          return prevMessages.map((msg) => (msg.id === botMessageId ? botErrorMessage : msg));
+        }
+        return [...prevMessages, botErrorMessage];
+      });
     } finally {
       setIsMessageSendButtonDisabled(false);
       setIsLoading(false);
