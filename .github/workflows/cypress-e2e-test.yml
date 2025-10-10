@@ -1,6 +1,6 @@
 name: E2E Direct Commit PR Tests
 
-on: [push]
+on: [push, pull_request]
 
 permissions:
   contents: read
@@ -327,26 +327,13 @@ jobs:
 
       - name: Set test configuration
         run: |
-          # IMPORTANT: Use cluster URLs from secrets if available (tests run against proxied localhost)
+          # IMPORTANT: Always use localhost with dynamic port for Cypress tests
           # The webpack dev server proxies API calls to the cluster
-          if [ -n "${{ secrets.OCP_CONSOLE_URL }}" ]; then
-            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: ${{ secrets.OCP_CONSOLE_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
-          fi
-          if [ -n "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
-            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: ${{ secrets.ODH_DASHBOARD_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
-          fi
-
-          # For forked PRs without secrets, use localhost
-          if [ -z "${{ secrets.OCP_CONSOLE_URL }}" ]; then
-            echo "⚠️  OCP_CONSOLE_URL secret not available (forked PR) - using localhost"
-            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:4010|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
-          fi
-          if [ -z "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
-            echo "⚠️  ODH_DASHBOARD_URL secret not available (forked PR) - using localhost"
-            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:4010|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
-          fi
+          sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:${CYPRESS_PORT}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:${CYPRESS_PORT}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
 
           export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
+          echo "📝 Test config set to use localhost:${CYPRESS_PORT}"
 
       - name: Start Cypress Server
         run: |
@@ -472,9 +459,8 @@ jobs:
           # Create results directory
           mkdir -p "$CY_RESULTS_DIR"
 
-          # Run tests against dynamic port
-          # IMPORTANT: Pass baseUrl via --config to override test-variables.yml
-          BASE_URL=http://localhost:${CYPRESS_PORT} npm run cypress:run:chrome -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config baseUrl=http://localhost:${CYPRESS_PORT},video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+          # Run tests against dynamic port (baseUrl is set in test-variables.yml)
+          npm run cypress:run:chrome -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Test tag name
         if: ${{ always() }}
