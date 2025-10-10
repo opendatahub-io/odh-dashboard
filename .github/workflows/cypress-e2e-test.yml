@@ -573,7 +573,6 @@ jobs:
           npm run cypress:run:chrome -- \
             --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true \
             --config baseUrl="$BASE_URL",video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos",browserLaunchTimeout=120000 \
-            --browser-args="--disable-gpu --no-sandbox --disable-dev-shm-usage" \
             2>&1 | tee /tmp/cypress-run-${{ matrix.test-tag }}.log || CYPRESS_EXIT=$?
           
           # Capture the exit code
