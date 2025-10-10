@@ -352,6 +352,7 @@ func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.
 			Endpoints:      kc.extractEndpointsFromLLMInferenceService(&llmSvc),
 			Status:         kc.extractStatusFromLLMInferenceService(&llmSvc),
 			DisplayName:    kc.extractDisplayNameFromLLMInferenceService(&llmSvc),
+			SAToken:        kc.extractSATokenFromLLMInferenceService(&llmSvc),
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -713,6 +714,62 @@ func (kc *TokenKubernetesClient) extractDisplayNameFromLLMInferenceService(llmSv
 	return displayName
 }
 
+// Helper method to extract service account token information from LLMInferenceService
+func (kc *TokenKubernetesClient) extractSATokenFromLLMInferenceService(llmSvc *kservev1alpha1.LLMInferenceService) models.SAToken {
+	ctx := context.Background()
+
+	// Get the actual service account used by the LLMInferenceService pods
+	serviceAccountName, secretName := kc.findServiceAccountAndSecretForLLMInferenceService(ctx, llmSvc)
+
+	// Extract the actual token value and display name from the secret
+	tokenValue, tokenName := kc.extractTokenAndDisplayNameFromSecret(ctx, llmSvc.Namespace, secretName)
+
+	kc.Logger.Debug("extracted service account info",
+		"llmInferenceService", llmSvc.Name,
+		"serviceAccount", serviceAccountName,
+		"secretName", secretName,
+		"tokenName", tokenName,
+		"hasToken", tokenValue != "")
+
+	return models.SAToken{
+		Name:      serviceAccountName,
+		TokenName: tokenName,  // This is the display name from the secret
+		Token:     tokenValue, // This is the actual token value
+	}
+}
+
+// Helper method to find the actual service account and secret used by LLMInferenceService
+func (kc *TokenKubernetesClient) findServiceAccountAndSecretForLLMInferenceService(ctx context.Context, llmSvc *kservev1alpha1.LLMInferenceService) (string, string) {
+	// List service accounts in the namespace
+	var saList corev1.ServiceAccountList
+	err := kc.Client.List(ctx, &saList, client.InNamespace(llmSvc.Namespace))
+	if err != nil {
+		kc.Logger.Warn("failed to list service accounts", "error", err, "namespace", llmSvc.Namespace)
+		return "", ""
+	}
+
+	// Find service account with owner reference to this LLMInferenceService
+	for _, sa := range saList.Items {
+		for _, ownerRef := range sa.OwnerReferences {
+			if ownerRef.Kind == "LLMInferenceService" && ownerRef.Name == llmSvc.Name {
+				kc.Logger.Debug("found service account with owner reference",
+					"serviceAccount", sa.Name,
+					"llmInferenceService", llmSvc.Name)
+
+				// Find the secret associated with this service account
+				secretName := kc.findSecretForServiceAccount(ctx, llmSvc.Namespace, sa.Name)
+				return sa.Name, secretName
+			}
+		}
+	}
+
+	// If no service account found with owner reference, use default
+	kc.Logger.Debug("no service account found with owner reference, using default",
+		"llmInferenceService", llmSvc.Name)
+	secretName := kc.findSecretForServiceAccount(ctx, llmSvc.Namespace, "default")
+	return "default", secretName
+}
+
 func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []string) (*lsdapi.LlamaStackDistribution, error) {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
@@ -737,6 +794,7 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 	modelSecrets := make(map[string]modelSecretInfo)
 
 	for _, model := range models {
+		// First try to find InferenceService
 		if targetISVC, err := kc.findInferenceServiceByModelName(ctx, namespace, model); err == nil {
 			saToken := kc.extractSATokenFromInferenceService(targetISVC)
 			// Find the actual secret name and key used by the InferenceService
@@ -746,9 +804,20 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 				tokenKey:   "token", // Service account token secrets always use "token" as the key
 				hasToken:   saToken.Token != "",
 			}
-			kc.Logger.Info("found existing service account token secret", "model", model, "secretName", secretName, "hasToken", saToken.Token != "")
+			kc.Logger.Info("found existing InferenceService service account token secret", "model", model, "secretName", secretName, "hasToken", saToken.Token != "")
+			// If InferenceService not found, try LLMInferenceService
+		} else if targetLLMSvc, err := kc.findLLMInferenceServiceByModelName(ctx, namespace, model); err == nil {
+			saToken := kc.extractSATokenFromLLMInferenceService(targetLLMSvc)
+			// Find the actual secret name and key used by the LLMInferenceService
+			_, secretName := kc.findServiceAccountAndSecretForLLMInferenceService(ctx, targetLLMSvc)
+			modelSecrets[model] = modelSecretInfo{
+				secretName: secretName,
+				tokenKey:   "token", // Service account token secrets always use "token" as the key
+				hasToken:   saToken.Token != "",
+			}
+			kc.Logger.Info("found existing LLMInferenceService service account token secret", "model", model, "secretName", secretName, "hasToken", saToken.Token != "")
 		} else {
-			kc.Logger.Debug("could not find InferenceService for model, will use default", "model", model, "error", err)
+			kc.Logger.Debug("could not find InferenceService or LLMInferenceService for model, will use default", "model", model)
 		}
 	}
 
