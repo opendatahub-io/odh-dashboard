@@ -47,6 +47,28 @@ const initCommonIntercepts = () => {
     },
   );
 
+  cy.intercept('GET', '/api/featurestores', {
+    featureStores: [
+      {
+        name: fsName,
+        project: fsName,
+        registry: {
+          path: `feast-${fsName}-${k8sNamespace}-registry.${k8sNamespace}.svc.cluster.local:443`,
+        },
+        namespace: k8sNamespace,
+        status: {
+          conditions: [
+            {
+              type: 'Registry',
+              status: 'True',
+              lastTransitionTime: '2025-10-08T21:13:38.158Z',
+            },
+          ],
+        },
+      },
+    ],
+  });
+
   cy.interceptK8sList(
     ServiceModel,
     mockK8sResourceList([
@@ -59,9 +81,9 @@ const initCommonIntercepts = () => {
   );
 
   cy.interceptOdh(
-    'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/projects',
+    'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/projects',
     {
-      path: { namespace: k8sNamespace, serviceName: fsName, apiVersion: 'v1' },
+      path: { namespace: k8sNamespace, projectName: fsName, apiVersion: 'v1' },
     },
     {
       projects: [
@@ -83,7 +105,7 @@ const initCommonIntercepts = () => {
 const mockPopularTagsIntercept = () => {
   cy.intercept(
     'GET',
-    `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/metrics/popular_tags?project=${fsProjectName}&limit=4*`,
+    `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/metrics/popular_tags?project=${fsProjectName}&limit=4*`,
     mockPopularTags(),
   ).as('getPopularTags');
 };
@@ -91,7 +113,7 @@ const mockPopularTagsIntercept = () => {
 const mockRecentlyVisitedIntercept = () => {
   cy.intercept(
     'GET',
-    `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/metrics/recently_visited?project=${fsProjectName}*`,
+    `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/metrics/recently_visited?project=${fsProjectName}*`,
     mockRecentlyVisited(),
   ).as('getRecentlyVisited');
 };
@@ -99,16 +121,17 @@ const mockRecentlyVisitedIntercept = () => {
 const mockResourceCountsIntercept = () => {
   cy.intercept(
     'GET',
-    `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/metrics/resource_counts?project=${fsProjectName}*`,
+    `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/metrics/resource_counts?project=${fsProjectName}*`,
     mockResourceCounts(),
   ).as('getResourceCounts');
 };
 
 const mockFeatureViewsIntercept = () => {
   cy.interceptOdh(
-    'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/feature_views',
+    'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/feature_views',
     {
-      path: { namespace: k8sNamespace, serviceName: fsName, apiVersion: 'v1' },
+      path: { namespace: k8sNamespace, projectName: fsName, apiVersion: 'v1' },
+      query: { project: fsProjectName },
     },
     {
       featureViews: [
@@ -146,7 +169,7 @@ const mockFeatureViewsIntercept = () => {
 const mockFeatureViewDetailsIntercept = () => {
   cy.intercept(
     'GET',
-    `**/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/feature_views/driver_hourly_stats?project=${fsProjectName}&include_relationships=true*`,
+    `**/api/featurestores/${k8sNamespace}/${fsName}/api/v1/feature_views/driver_hourly_stats?project=${fsProjectName}&include_relationships=true*`,
     mockFeatureView({
       spec: {
         ...mockFeatureView().spec,
@@ -158,7 +181,7 @@ const mockFeatureViewDetailsIntercept = () => {
 
   cy.intercept(
     'GET',
-    `**/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/feature_views/driver_hourly_stats_fresh?project=${fsProjectName}&include_relationships=true*`,
+    `**/api/featurestores/${k8sNamespace}/${fsName}/api/v1/feature_views/driver_hourly_stats_fresh?project=${fsProjectName}&include_relationships=true*`,
     mockFeatureView({
       spec: {
         ...mockFeatureView().spec,
@@ -170,7 +193,7 @@ const mockFeatureViewDetailsIntercept = () => {
 
   cy.intercept(
     'GET',
-    `**/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/feature_views/transformed_conv_rate?project=${fsProjectName}&include_relationships=true*`,
+    `**/api/featurestores/${k8sNamespace}/${fsName}/api/v1/feature_views/transformed_conv_rate?project=${fsProjectName}&include_relationships=true*`,
     mockFeatureView({
       spec: {
         ...mockFeatureView().spec,
@@ -193,7 +216,7 @@ const mockEmptyStatesIntercept = (project = fsProjectName) => {
   // Mock empty resource counts
   cy.intercept(
     'GET',
-    `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/metrics/resource_counts?project=${project}*`,
+    `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/metrics/resource_counts?project=${project}*`,
     {
       project,
       counts: {
@@ -210,7 +233,7 @@ const mockEmptyStatesIntercept = (project = fsProjectName) => {
   // Mock empty popular tags
   cy.intercept(
     'GET',
-    `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/metrics/popular_tags?project=${project}&limit=4*`,
+    `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/metrics/popular_tags?project=${project}&limit=4*`,
     {
       popular_tags: [],
       metadata: {
@@ -224,7 +247,7 @@ const mockEmptyStatesIntercept = (project = fsProjectName) => {
   // Mock empty recently visited
   cy.intercept(
     'GET',
-    `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/metrics/recently_visited?project=${project}*`,
+    `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/metrics/recently_visited?project=${project}*`,
     {
       visits: [],
       pagination: {
@@ -306,7 +329,7 @@ describe('Feature Store Metrics Overview', () => {
   it('should handle empty recently visited resources state', () => {
     cy.intercept(
       'GET',
-      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/metrics/recently_visited?project=${fsProjectName}*`,
+      `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/metrics/recently_visited?project=${fsProjectName}*`,
       {
         visits: [],
         pagination: {
@@ -347,13 +370,14 @@ describe('Feature Store Metrics Overview', () => {
     featureStoreGlobal.visitOverview(fsProjectName);
     cy.wait('@getPopularTags');
 
+    cy.findByText('View all (2)').scrollIntoView();
     cy.findByText('View all (2)').should('be.visible');
   });
 
   it('should handle API errors gracefully', () => {
     cy.intercept(
       'GET',
-      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/metrics/popular_tags?project=${fsProjectName}&limit=4*`,
+      `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/metrics/popular_tags?project=${fsProjectName}&limit=4*`,
       {
         statusCode: 500,
         body: { detail: 'Internal server error' },

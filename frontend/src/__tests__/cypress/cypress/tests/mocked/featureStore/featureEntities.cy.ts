@@ -50,6 +50,28 @@ const initCommonIntercepts = () => {
     },
   );
 
+  cy.intercept('GET', '/api/featurestores', {
+    featureStores: [
+      {
+        name: fsName,
+        project: fsName,
+        registry: {
+          path: `feast-${fsName}-${k8sNamespace}-registry.${k8sNamespace}.svc.cluster.local:443`,
+        },
+        namespace: k8sNamespace,
+        status: {
+          conditions: [
+            {
+              type: 'Registry',
+              status: 'True',
+              lastTransitionTime: '2025-10-08T21:13:38.158Z',
+            },
+          ],
+        },
+      },
+    ],
+  });
+
   cy.interceptK8sList(
     ServiceModel,
     mockK8sResourceList([
@@ -62,9 +84,9 @@ const initCommonIntercepts = () => {
   );
 
   cy.interceptOdh(
-    'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/projects',
+    'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/projects',
     {
-      path: { namespace: k8sNamespace, serviceName: fsName, apiVersion: 'v1' },
+      path: { namespace: k8sNamespace, projectName: fsName, apiVersion: 'v1' },
     },
     {
       projects: [
@@ -86,7 +108,7 @@ const initCommonIntercepts = () => {
 const mockAllEntitiesIntercept = () => {
   cy.intercept(
     'GET',
-    `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/entities/all?include_relationships=true*`,
+    `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/entities/all?include_relationships=true*`,
     mockEntities({
       entities: [
         mockEntity({ project: fsProjectName }),
@@ -115,7 +137,7 @@ const mockAllEntitiesIntercept = () => {
 const mockProjectEntitiesIntercept = () => {
   cy.intercept(
     'GET',
-    `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/entities?project=${fsProjectName}&include_relationships=true*`,
+    `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/entities?project=${fsProjectName}&include_relationships=true*`,
     mockEntities({
       entities: [
         mockEntity(),
@@ -142,7 +164,7 @@ const mockProjectEntitiesIntercept = () => {
 const mockEntityDetailsIntercept = () => {
   cy.intercept(
     'GET',
-    `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/entities/user_id?include_relationships=true&project=${fsProjectName}*`,
+    `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/entities/user_id?include_relationships=true&project=${fsProjectName}*`,
     mockEntity({
       spec: {
         name: 'user_id',
@@ -169,7 +191,7 @@ const mockEntityDetailsIntercept = () => {
 const mockEntityFeatureViewsIntercept = () => {
   cy.intercept(
     'GET',
-    `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/feature_views?project=${fsProjectName}&entity=user_id*`,
+    `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/feature_views?project=${fsProjectName}&entity=user_id*`,
     {
       featureViews: [
         mockFeatureView({
@@ -344,7 +366,7 @@ describe('Feature Entities', () => {
   it('should handle empty entities list', () => {
     cy.intercept(
       'GET',
-      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/entities?project=${fsProjectName}&include_relationships=true*`,
+      `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/entities?project=${fsProjectName}&include_relationships=true*`,
       {
         entities: [],
         pagination: {
@@ -380,10 +402,14 @@ describe('Feature Entities', () => {
   it('should handle entity not found with proper error message', () => {
     cy.intercept(
       'GET',
-      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/entities/nonexistent?include_relationships=true&project=${fsProjectName}*`,
+      `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/entities/nonexistent?include_relationships=true&project=${fsProjectName}*`,
       {
         statusCode: 404,
-        body: { detail: `Entity nonexistent does not exist in project ${fsProjectName}` },
+        body: {
+          status_code: 404,
+          detail: `Entity nonexistent does not exist in project ${fsProjectName}`,
+          error_type: 'FeastObjectNotFoundException',
+        },
       },
     ).as('getEntityNotFound');
 
@@ -447,7 +473,7 @@ describe('Entity Feature Views Tab', () => {
   it('should display empty state when no feature views exist for entity', () => {
     cy.intercept(
       'GET',
-      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/feature_views?project=${fsProjectName}&entity=user_id*`,
+      `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/feature_views?project=${fsProjectName}&entity=user_id*`,
       {
         featureViews: [],
         relationships: {},
@@ -521,7 +547,7 @@ describe('Global Search in Feature Entities', () => {
 
     cy.intercept(
       'GET',
-      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/search*`,
+      `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/search*`,
       searchResponse,
     ).as('globalSearch');
 
@@ -542,7 +568,7 @@ describe('Global Search in Feature Entities', () => {
 
     cy.intercept(
       'GET',
-      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/search*`,
+      `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/search*`,
       searchResponse,
     ).as('globalSearch');
 
@@ -564,7 +590,7 @@ describe('Global Search in Feature Entities', () => {
 
     cy.intercept(
       'GET',
-      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/search*`,
+      `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/search*`,
       emptySearchResponse,
     ).as('emptyGlobalSearch');
 
@@ -580,7 +606,7 @@ describe('Global Search in Feature Entities', () => {
   });
 
   it('should show loading spinner during search', () => {
-    cy.intercept('GET', `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/search*`, {
+    cy.intercept('GET', `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/search*`, {
       delay: 1000,
       body: mockEmptySearchResponse('loading', fsProjectName),
     }).as('slowSearch');
@@ -598,7 +624,7 @@ describe('Global Search in Feature Entities', () => {
 
     cy.intercept(
       'GET',
-      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/search*`,
+      `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/search*`,
       searchResponse,
     ).as('globalSearch');
 

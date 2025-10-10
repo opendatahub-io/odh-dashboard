@@ -48,6 +48,28 @@ const initCommonIntercepts = () => {
     },
   );
 
+  cy.intercept('GET', '/api/featurestores', {
+    featureStores: [
+      {
+        name: fsName,
+        project: fsName,
+        registry: {
+          path: `feast-${fsName}-${k8sNamespace}-registry.${k8sNamespace}.svc.cluster.local:443`,
+        },
+        namespace: k8sNamespace,
+        status: {
+          conditions: [
+            {
+              type: 'Registry',
+              status: 'True',
+              lastTransitionTime: '2025-10-08T21:13:38.158Z',
+            },
+          ],
+        },
+      },
+    ],
+  });
+
   cy.interceptK8sList(
     ServiceModel,
     mockK8sResourceList([
@@ -60,9 +82,9 @@ const initCommonIntercepts = () => {
   );
 
   cy.interceptOdh(
-    'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/projects',
+    'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/projects',
     {
-      path: { namespace: k8sNamespace, serviceName: fsName, apiVersion: 'v1' },
+      path: { namespace: k8sNamespace, projectName: fsName, apiVersion: 'v1' },
     },
     {
       projects: [
@@ -84,7 +106,7 @@ const initCommonIntercepts = () => {
 const mockAllDataSourcesIntercept = () => {
   cy.intercept(
     'GET',
-    `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/data_sources/all?include_relationships=true*`,
+    `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/data_sources/all?include_relationships=true*`,
     {
       dataSources: [
         mockDataSource({ project: fsProjectName }),
@@ -142,7 +164,7 @@ const mockAllDataSourcesIntercept = () => {
 const mockProjectDataSourcesIntercept = () => {
   cy.intercept(
     'GET',
-    `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/data_sources?project=${fsProjectName}&include_relationships=true*`,
+    `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/data_sources?project=${fsProjectName}&include_relationships=true*`,
     {
       dataSources: [
         mockDataSource(),
@@ -186,7 +208,7 @@ const mockProjectDataSourcesIntercept = () => {
 const mockDataSourceDetailsIntercept = () => {
   cy.intercept(
     'GET',
-    `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/data_sources/loan_data?project=${fsProjectName}&include_relationships=true*`,
+    `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/data_sources/loan_data?project=${fsProjectName}&include_relationships=true*`,
     mockDataSource({
       name: 'loan_data',
       type: 'BATCH_FILE',
@@ -204,7 +226,7 @@ const mockDataSourceDetailsIntercept = () => {
 const mockDataSourceFeatureViewsIntercept = () => {
   cy.intercept(
     'GET',
-    `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/feature_views?project=${fsProjectName}&data_source=loan_data*`,
+    `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/feature_views?project=${fsProjectName}&data_source=loan_data*`,
     {
       featureViews: [
         mockFeatureView({
@@ -370,7 +392,7 @@ describe('Feature Data Sources', () => {
   it('should handle empty data sources list', () => {
     cy.intercept(
       'GET',
-      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/data_sources?project=${fsProjectName}&include_relationships=true*`,
+      `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/data_sources?project=${fsProjectName}&include_relationships=true*`,
       {
         dataSources: [],
         pagination: {
@@ -404,10 +426,14 @@ describe('Feature Data Sources', () => {
   it('should handle data source not found with proper error message', () => {
     cy.intercept(
       'GET',
-      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/data_sources/nonexistent?project=${fsProjectName}&include_relationships=true*`,
+      `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/data_sources/nonexistent?project=${fsProjectName}&include_relationships=true*`,
       {
         statusCode: 404,
-        body: { detail: `Data source nonexistent does not exist in project ${fsProjectName}` },
+        body: {
+          status_code: 404,
+          detail: `Data source nonexistent does not exist in project ${fsProjectName}`,
+          error_type: 'FeastObjectNotFoundException',
+        },
       },
     ).as('getDataSourceNotFound');
 
@@ -461,7 +487,7 @@ describe('Data Source Feature Views Tab', () => {
   it('should display empty state when no feature views exist for data source', () => {
     cy.intercept(
       'GET',
-      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/feature_views?project=${fsProjectName}&data_source=loan_data*`,
+      `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/feature_views?project=${fsProjectName}&data_source=loan_data*`,
       {
         featureViews: [],
         relationships: {},
@@ -537,7 +563,7 @@ describe('Data Source Details Tab', () => {
   it('should display file URL for file-based data sources', () => {
     cy.intercept(
       'GET',
-      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/data_sources/loan_data?project=${fsProjectName}&include_relationships=true*`,
+      `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/data_sources/loan_data?project=${fsProjectName}&include_relationships=true*`,
       mockDataSource({
         name: 'loan_data',
         type: 'BATCH_FILE',
@@ -562,7 +588,7 @@ describe('Data Source Details Tab', () => {
   it('should display batch data source for stream data sources', () => {
     cy.intercept(
       'GET',
-      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/data_sources/stream_data?project=${fsProjectName}&include_relationships=true*`,
+      `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/data_sources/stream_data?project=${fsProjectName}&include_relationships=true*`,
       mockDataSource({
         name: 'stream_data',
         type: 'STREAM_KAFKA',
@@ -599,7 +625,7 @@ describe('Data Source Schema Tab', () => {
   it('should display schema tab for REQUEST_SOURCE data sources', () => {
     cy.intercept(
       'GET',
-      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/data_sources/user_profile?project=${fsProjectName}&include_relationships=true*`,
+      `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/data_sources/user_profile?project=${fsProjectName}&include_relationships=true*`,
       mockDataSource({
         name: 'user_profile',
         type: 'REQUEST_SOURCE',
@@ -623,7 +649,7 @@ describe('Data Source Schema Tab', () => {
 
     cy.intercept(
       'GET',
-      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/feature_views?project=${fsProjectName}&data_source=user_profile*`,
+      `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/feature_views?project=${fsProjectName}&data_source=user_profile*`,
       {
         featureViews: [],
         relationships: {},

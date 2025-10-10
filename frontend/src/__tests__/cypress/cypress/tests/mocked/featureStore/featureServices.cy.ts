@@ -42,6 +42,28 @@ const initIntercept = () => {
     },
   );
 
+  cy.intercept('GET', '/api/featurestores', {
+    featureStores: [
+      {
+        name: fsName,
+        project: fsName,
+        registry: {
+          path: `feast-${fsName}-${k8sNamespace}-registry.${k8sNamespace}.svc.cluster.local:443`,
+        },
+        namespace: k8sNamespace,
+        status: {
+          conditions: [
+            {
+              type: 'Registry',
+              status: 'True',
+              lastTransitionTime: '2025-10-08T21:13:38.158Z',
+            },
+          ],
+        },
+      },
+    ],
+  });
+
   cy.interceptK8sList(
     ServiceModel,
     mockK8sResourceList([
@@ -54,9 +76,9 @@ const initIntercept = () => {
   );
 
   cy.interceptOdh(
-    'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/projects',
+    'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/projects',
     {
-      path: { namespace: k8sNamespace, serviceName: fsName, apiVersion: 'v1' },
+      path: { namespace: k8sNamespace, projectName: fsName, apiVersion: 'v1' },
     },
     {
       projects: [
@@ -75,9 +97,9 @@ const initIntercept = () => {
   );
 
   cy.interceptOdh(
-    'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/feature_services',
+    'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/feature_services',
     {
-      path: { namespace: k8sNamespace, serviceName: fsName, apiVersion: 'v1' },
+      path: { namespace: k8sNamespace, projectName: fsName, apiVersion: 'v1' },
     },
     {
       featureServices: [mockFeatureService({ name: 'credit_assessment_v1' })],
@@ -143,9 +165,9 @@ describe('Feature Services', () => {
   it('should display empty state when no feature services are available', () => {
     // Override the intercept to return empty feature services
     cy.interceptOdh(
-      'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/feature_services',
+      'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/feature_services',
       {
-        path: { namespace: k8sNamespace, serviceName: fsName, apiVersion: 'v1' },
+        path: { namespace: k8sNamespace, projectName: fsName, apiVersion: 'v1' },
       },
       {
         featureServices: [],
