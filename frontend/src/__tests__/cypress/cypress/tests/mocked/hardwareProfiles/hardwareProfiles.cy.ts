@@ -623,7 +623,7 @@ describe('hardware profiles - empty state', () => {
       mockSelfSubjectAccessReview({
         verb: 'create',
         resource: 'hardwareprofiles',
-        group: 'dashboard.opendatahub.io',
+        group: 'infrastructure.opendatahub.io',
         allowed: false,
       }),
     ).as('selfSubjectAccessReviewsCall');
