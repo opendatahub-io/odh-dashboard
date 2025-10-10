@@ -1,6 +1,6 @@
 name: E2E Direct Commit PR Tests
 
-on: [push]
+on: [push, pull_request]
 
 permissions:
   contents: read
@@ -355,6 +355,10 @@ jobs:
 
       - name: Start Cypress Server on dynamic port
         run: |
+          # Increase file descriptor limit for Chrome/Cypress
+          ulimit -n 65536 || echo "⚠️  Could not increase file descriptor limit"
+          echo "📊 File descriptor limit: $(ulimit -n)"
+          
           echo "🧹 Cleaning up any existing processes on port ${CYPRESS_PORT}..."
           lsof -ti:${CYPRESS_PORT} | xargs kill -9 2>/dev/null || echo "No processes on port ${CYPRESS_PORT}"
           pkill -f "webpack.*serve.*${CYPRESS_PORT}" 2>/dev/null || echo "No webpack processes for port ${CYPRESS_PORT}"
@@ -439,6 +443,9 @@ jobs:
 
       - name: Run E2E Tests with dynamic port
         run: |
+          # Ensure file descriptor limit is high for Chrome/Cypress
+          ulimit -n 65536 || echo "⚠️  Could not increase file descriptor limit"
+          
           cd frontend
 
           echo "Event: ${{ github.event_name }}"
@@ -446,6 +453,7 @@ jobs:
           echo "Commit: ${{ github.sha }}"
           echo "Port: ${CYPRESS_PORT}"
           echo "Config: ${CY_TEST_CONFIG}"
+          echo "📊 File descriptors: $(ulimit -n)"
 
           # Set Cypress environment
           export CY_RESULTS_DIR="${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}"
@@ -466,11 +474,78 @@ jobs:
 
           # Create results directory
           mkdir -p "$CY_RESULTS_DIR"
+          
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🔍 PRE-TEST DEBUGGING - Chrome/Cypress Connection"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📍 Working directory: $(pwd)"
+          echo "📍 Webpack URL: $BASE_URL"
+          echo "📊 Current user: $(whoami)"
+          echo "📊 Process limits:"
+          ulimit -a | grep -E "open files|processes|max memory"
+          echo ""
+          echo "🌐 Network state before tests:"
+          echo "Listening ports 4000-5000:"
+          lsof -i :4000-5000 2>/dev/null | grep LISTEN || echo "No ports listening in range"
+          echo ""
+          echo "📦 Existing Chrome processes:"
+          ps aux | grep -i chrome | grep -v grep | wc -l
+          echo ""
+          echo "🔌 Testing webpack connectivity:"
+          curl -f -s -o /dev/null -w "HTTP Status: %{http_code}\n" http://localhost:${CYPRESS_PORT}/ || echo "❌ Webpack not responding!"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
 
           # Run tests with dynamic base URL set BEFORE Cypress starts
+          # Capture output to monitor Chrome startup
           npm run cypress:run:chrome -- \
             --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true \
-            --config baseUrl="$BASE_URL",video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+            --config baseUrl="$BASE_URL",video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos" \
+            2>&1 | tee /tmp/cypress-run-${{ matrix.test-tag }}.log || CYPRESS_EXIT=$?
+          
+          # Capture the exit code
+          CYPRESS_EXIT=${CYPRESS_EXIT:-${PIPESTATUS[0]}}
+          
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🔍 POST-TEST DEBUGGING - What Happened?"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📊 Cypress exit code: $CYPRESS_EXIT"
+          echo ""
+          
+          if [ $CYPRESS_EXIT -ne 0 ]; then
+            echo "❌ Tests failed or timed out. Detailed debugging:"
+            echo ""
+            
+            echo "🔍 Chrome processes after failure:"
+            ps aux | grep chrome | grep -v grep || echo "No Chrome processes found"
+            echo ""
+            
+            echo "🔍 Chrome remote debugging ports:"
+            lsof -i -n | grep chrome | grep LISTEN || echo "No Chrome listening ports found"
+            echo ""
+            
+            echo "🔍 Searching for 'Timed out' in Cypress output:"
+            grep -i "timed out" /tmp/cypress-run-${{ matrix.test-tag }}.log || echo "No timeout messages found"
+            echo ""
+            
+            echo "🔍 Searching for 'browser' errors in Cypress output:"
+            grep -i "browser" /tmp/cypress-run-${{ matrix.test-tag }}.log | tail -20 || echo "No browser error messages found"
+            echo ""
+            
+            echo "🔍 DevTools connection attempts:"
+            grep -i "devtools\|ws://" /tmp/cypress-run-${{ matrix.test-tag }}.log || echo "No DevTools connection info found"
+            echo ""
+            
+            echo "🔍 Last 50 lines of Cypress output:"
+            tail -50 /tmp/cypress-run-${{ matrix.test-tag }}.log
+          fi
+          
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          
+          # Preserve the exit code
+          exit $CYPRESS_EXIT
 
       - name: Cleanup dynamic port resources
         if: always()
