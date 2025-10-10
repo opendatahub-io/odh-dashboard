@@ -7,10 +7,11 @@ import type { LLMdDeployment, LLMInferenceServiceKind } from '../types';
 import { LLMD_SERVING_ID } from '../../extensions/extensions';
 
 export const MAAS_TIERS_ANNOTATION = 'alpha.maas.opendatahub.io/tiers';
-const DEFAULT_MAAS_TIERS_VALUE = JSON.stringify({
-  gateway: 'maas-default-gateway',
-  tiers: [],
-});
+const DEFAULT_MAAS_TIERS_VALUE = '[]';
+const DEFAULT_MAAS_GATEWAY_REF = {
+  name: 'maas-default-gateway',
+  namespace: 'openshift-ingress',
+};
 
 export const modelAvailabilityField: ModelAvailabilityField = {
   id: 'modelAvailability',
@@ -45,6 +46,7 @@ export const applyModelAvailabilityData = (
   // if MaaS is already present, don't override it
   const maasTiersValue =
     result.metadata.annotations?.[MAAS_TIERS_ANNOTATION] || DEFAULT_MAAS_TIERS_VALUE;
+  const gatewayRefs = result.spec.router?.gateway?.refs ?? [DEFAULT_MAAS_GATEWAY_REF];
 
   delete result.metadata.annotations?.['opendatahub.io/genai-asset'];
   delete result.metadata.annotations?.['opendatahub.io/genai-use-case'];
@@ -63,6 +65,17 @@ export const applyModelAvailabilityData = (
         'opendatahub.io/genai-use-case': modelAvailability.useCase,
       }),
   };
+
+  delete result.spec.router?.gateway?.refs;
+  if (modelAvailability?.saveAsMaaS) {
+    result.spec.router = {
+      ...result.spec.router,
+      gateway: {
+        ...result.spec.router?.gateway,
+        refs: gatewayRefs,
+      },
+    };
+  }
 
   return result;
 };

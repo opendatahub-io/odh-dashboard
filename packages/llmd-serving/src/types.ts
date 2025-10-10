@@ -2,7 +2,7 @@ import type { K8sModelCommon, K8sResourceCommon } from '@openshift/dynamic-plugi
 import type { DisplayNameAnnotations, MetadataAnnotation } from '@odh-dashboard/internal/k8sTypes';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
 import type { PodContainer } from '@odh-dashboard/internal/types';
-import type { MAAS_TIERS_ANNOTATION } from './wizardFields/modelAvailability';
+import { MAAS_TIERS_ANNOTATION } from './wizardFields/modelAvailability';
 
 export type LLMdContainer = { name: string; args?: string[] } & Partial<PodContainer>;
 
@@ -27,7 +27,12 @@ export type LLMInferenceServiceKind = K8sResourceCommon & {
     };
     replicas?: number;
     router?: {
-      gateway?: object;
+      gateway?: {
+        refs?: {
+          name?: string;
+          namespace?: string;
+        }[];
+      };
       route?: object;
       scheduler?: object;
     };
