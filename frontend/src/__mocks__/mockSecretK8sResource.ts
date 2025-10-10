@@ -48,6 +48,7 @@ type MockResourceConfigType = {
   endPoint?: string;
   region?: string;
   uid?: string;
+  uri?: string;
 };
 
 export const mockSecretK8sResource = ({
@@ -79,4 +80,24 @@ export const mockSecretK8sResource = ({
       AWS_S3_ENDPOINT: endPoint,
       AWS_SECRET_ACCESS_KEY: 'c2RzZA==',
     },
+  });
+
+export const mockURISecretK8sResource = ({
+  name = 'test-uri-secret',
+  namespace = 'test-project',
+  displayName = 'Test URI Secret',
+  uri = 'https://test',
+}: MockResourceConfigType): SecretKind =>
+  mockCustomSecretK8sResource({
+    name,
+    namespace,
+    labels: {
+      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+      'opendatahub.io/connection-type': 'true',
+    },
+    annotations: {
+      'opendatahub.io/connection-type': 'uri-v1',
+      'openshift.io/display-name': displayName,
+    },
+    data: { URI: window.btoa(uri) },
   });

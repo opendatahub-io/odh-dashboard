@@ -13,18 +13,16 @@ import { isConnection } from '#~/concepts/connectionTypes/utils';
 const useConnections = (
   namespace?: string,
   fetchOptions?: Partial<FetchOptions>,
+  includeDashboardFalse = false,
 ): FetchStateObject<Connection[]> => {
   const callback = React.useCallback<FetchStateCallbackPromise<Connection[]>>(
     async (opts) => {
       if (!namespace) {
         return Promise.reject(new NotReadyError('No namespace'));
       }
+      const labelSelector = includeDashboardFalse ? '' : `${LABEL_SELECTOR_DASHBOARD_RESOURCE}`;
 
-      const secrets = await getSecretsByLabel(
-        `${LABEL_SELECTOR_DASHBOARD_RESOURCE}`,
-        namespace,
-        opts,
-      );
+      const secrets = await getSecretsByLabel(labelSelector, namespace, opts);
       const connections = secrets.filter((secret) => isConnection(secret));
 
       return connections;

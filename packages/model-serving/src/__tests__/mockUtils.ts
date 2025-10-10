@@ -144,6 +144,14 @@ export const mockDeploymentWizardState = (
           connectionTypes: [],
           connectionTypesLoaded: true,
         },
+        createConnectionData: {
+          data: {
+            saveConnection: true,
+            nameDesc: mockK8sNameDescriptionFieldData(),
+          },
+          setData: jest.fn(),
+          project: null,
+        },
         k8sNameDesc: {
           data: mockK8sNameDescriptionFieldData(),
           onDataChange: jest.fn(),
