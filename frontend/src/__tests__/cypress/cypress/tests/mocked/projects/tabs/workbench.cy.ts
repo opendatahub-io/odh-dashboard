@@ -1,4 +1,8 @@
 import {
+  mockGlobalScopedHardwareProfiles,
+  mockProjectScopedHardwareProfiles,
+} from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+import {
   mockCustomSecretK8sResource,
   mockDashboardConfig,
   mockDscStatus,
@@ -36,59 +40,35 @@ import {
   RouteModel,
   SecretModel,
   StorageClassModel,
-  AcceleratorProfileModel,
+  HardwareProfileModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
-import type { NotebookSize } from '#~/types';
-import {
-  mockAcceleratorProfile,
-  mockGlobalScopedAcceleratorProfiles,
-  mockProjectScopedAcceleratorProfiles,
-} from '#~/__mocks__/mockAcceleratorProfile';
 import { mockConnectionTypeConfigMap } from '#~/__mocks__/mockConnectionType';
-import type { AcceleratorProfileKind, NotebookKind, PodKind } from '#~/k8sTypes';
+import type { HardwareProfileKind, NotebookKind, PodKind } from '#~/k8sTypes';
 import type { EnvironmentFromVariable } from '#~/pages/projects/types';
 import { SpawnerPageSectionID } from '#~/pages/projects/screens/spawner/types';
-import { acceleratorProfileSection } from '#~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums.ts';
+import { hardwareProfileSection } from '../../../../pages/components/HardwareProfileSection.ts';
 
 const configYamlPath = '../../__mocks__/mock-upload-configmap.yaml';
 
 type HandlersProps = {
   isEmpty?: boolean;
-  notebookSizes?: NotebookSize[];
   mockPodList?: PodKind[];
   envFrom?: EnvironmentFromVariable[];
   disableProjectScoped?: boolean;
-  disableHardwareProfiles?: boolean;
   notebooks?: NotebookKind[];
-  acceleratorProfiles?: {
-    global: AcceleratorProfileKind[];
-    project: AcceleratorProfileKind[];
+  hardwareProfiles?: {
+    global: HardwareProfileKind[];
+    project: HardwareProfileKind[];
   };
 };
 
 const initIntercepts = ({
   isEmpty = false,
   envFrom,
-  notebookSizes = [
-    {
-      name: 'Medium',
-      resources: {
-        limits: {
-          cpu: '6',
-          memory: '24Gi',
-        },
-        requests: {
-          cpu: '3',
-          memory: '24Gi',
-        },
-      },
-    },
-  ],
   mockPodList = [mockPodK8sResource({})],
   disableProjectScoped = true,
-  disableHardwareProfiles = true,
   notebooks = [
     mockNotebookK8sResource({
       lastImageSelection: 'test-imagestream:1.2',
@@ -179,7 +159,7 @@ const initIntercepts = ({
       },
     }),
   ],
-  acceleratorProfiles,
+  hardwareProfiles,
 }: HandlersProps) => {
   cy.interceptK8sList(StorageClassModel, mockStorageClassList());
   cy.interceptOdh(
@@ -193,9 +173,7 @@ const initIntercepts = ({
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
-      notebookSizes,
       disableProjectScoped,
-      disableHardwareProfiles,
     }),
   );
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
@@ -481,41 +459,26 @@ const initIntercepts = ({
 
   cy.interceptK8s('POST', NotebookModel, mockNotebookK8sResource({})).as('createWorkbench');
 
-  if (acceleratorProfiles) {
+  if (hardwareProfiles) {
     cy.interceptK8sList(
-      { model: AcceleratorProfileModel, ns: 'opendatahub' },
-      mockK8sResourceList(acceleratorProfiles.global),
-    ).as('acceleratorProfiles');
+      { model: HardwareProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList(hardwareProfiles.global),
+    ).as('globalHardwareProfiles');
 
     cy.interceptK8sList(
-      { model: AcceleratorProfileModel, ns: 'test-project' },
-      mockK8sResourceList(acceleratorProfiles.project),
-    ).as('acceleratorProfiles');
+      { model: HardwareProfileModel, ns: 'test-project' },
+      mockK8sResourceList(hardwareProfiles.project),
+    ).as('projectHardwareProfiles');
   } else {
     cy.interceptK8sList(
-      AcceleratorProfileModel,
-      mockK8sResourceList([
-        mockAcceleratorProfile({
-          name: 'test-accelerator',
-          namespace: 'opendatahub',
-          displayName: 'Test Accelerator',
-          description: 'A test accelerator profile',
-          enabled: true,
-          identifier: 'test.com/accelerator',
-        }),
-      ]),
-    );
-
-    // Mock accelerator profiles
-    cy.interceptK8sList(
-      { model: AcceleratorProfileModel, ns: 'opendatahub' },
-      mockK8sResourceList(mockGlobalScopedAcceleratorProfiles),
-    ).as('acceleratorProfiles');
+      { model: HardwareProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList(mockGlobalScopedHardwareProfiles),
+    ).as('globalHardwareProfiles');
 
     cy.interceptK8sList(
-      { model: AcceleratorProfileModel, ns: 'test-project' },
-      mockK8sResourceList(mockProjectScopedAcceleratorProfiles),
-    ).as('acceleratorProfiles');
+      { model: HardwareProfileModel, ns: 'test-project' },
+      mockK8sResourceList(mockProjectScopedHardwareProfiles),
+    ).as('projectHardwareProfiles');
   }
 };
 
@@ -550,34 +513,6 @@ describe('Workbench page', () => {
   it('Create workbench', () => {
     initIntercepts({
       isEmpty: true,
-      notebookSizes: [
-        {
-          name: 'XSmall',
-          resources: {
-            limits: {
-              cpu: '0.5',
-              memory: '500Mi',
-            },
-            requests: {
-              cpu: '0.1',
-              memory: '100Mi',
-            },
-          },
-        },
-        {
-          name: 'Small',
-          resources: {
-            limits: {
-              cpu: '2',
-              memory: '8Gi',
-            },
-            requests: {
-              cpu: '1',
-              memory: '8Gi',
-            },
-          },
-        },
-      ],
     });
     workbenchPage.visit('test-project');
     workbenchPage.findCreateButton().click();
@@ -597,9 +532,8 @@ describe('Workbench page', () => {
         '2024.2 (12345) Latest Software: Python v3.8 Build date: 6/30/2023, 3:07:36 PM UTC',
       )
       .click();
-    createSpawnerPage.selectContainerSize(
-      'XSmall Limits: 0.5 CPU, 500MiB Memory Requests: 0.1 CPU, 100MiB Memory',
-    );
+    hardwareProfileSection.findSelect().should('exist').click();
+    hardwareProfileSection.selectProfileContaining('Small Profile');
     createSpawnerPage.findSubmitButton().should('be.enabled');
     createSpawnerPage.findAddVariableButton().click();
 
@@ -656,6 +590,8 @@ describe('Workbench page', () => {
           annotations: {
             'openshift.io/display-name': 'test-project',
             'openshift.io/description': 'test-description',
+            'opendatahub.io/hardware-profile-name': 'small-profile',
+            'opendatahub.io/hardware-profile-namespace': 'opendatahub',
           },
           name: 'test-project',
           namespace: 'test-project',
@@ -669,34 +605,6 @@ describe('Workbench page', () => {
     initIntercepts({
       disableProjectScoped: false,
       isEmpty: true,
-      notebookSizes: [
-        {
-          name: 'XSmall',
-          resources: {
-            limits: {
-              cpu: '0.5',
-              memory: '500Mi',
-            },
-            requests: {
-              cpu: '0.1',
-              memory: '100Mi',
-            },
-          },
-        },
-        {
-          name: 'Small',
-          resources: {
-            limits: {
-              cpu: '2',
-              memory: '8Gi',
-            },
-            requests: {
-              cpu: '1',
-              memory: '8Gi',
-            },
-          },
-        },
-      ],
     });
     cy.interceptK8sList(
       ImageStreamModel,
@@ -743,9 +651,8 @@ describe('Workbench page', () => {
       .findByRole('menuitem', { name: 'Project-scoped test image', hidden: true })
       .click();
     createSpawnerPage.findProjectScopedLabel().should('exist');
-    createSpawnerPage.selectContainerSize(
-      'XSmall Limits: 0.5 CPU, 500MiB Memory Requests: 0.1 CPU, 100MiB Memory',
-    );
+    hardwareProfileSection.findHardwareProfileSearchSelector().should('exist').click();
+    hardwareProfileSection.selectProjectScopedProfile(/Large Profile-1/);
     createSpawnerPage.findSubmitButton().should('be.enabled');
 
     // Check for global specific serving runtimes
@@ -758,35 +665,34 @@ describe('Workbench page', () => {
     createSpawnerPage.findGlobalScopedLabel().should('exist');
   });
 
-  it('Display accelerator profile selection when both accelerator profile and project-scoped feature flag is enabled', () => {
+  it('Display project-scoped hardware profile selection', () => {
     initIntercepts({
       disableProjectScoped: false,
-      disableHardwareProfiles: true,
     });
     workbenchPage.visit('test-project');
     workbenchPage.findCreateButton().click();
     createSpawnerPage.findSubmitButton().should('be.disabled');
     verifyRelativeURL('/projects/test-project/spawner');
 
-    // Verify accelerator profile section exists
-    acceleratorProfileSection.findAcceleratorProfileSearchSelector().should('exist');
-    acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
+    // Verify hardware profile section exists
+    hardwareProfileSection.findHardwareProfileSearchSelector().should('exist').click();
 
-    // verify available project-scoped accelerator profile
-    createSpawnerPage.findAcceleratorProfile('Small Profile nvidia.com/gpu').click();
-    createSpawnerPage.findProjectScopedLabel().should('exist');
+    // verify available project-scoped hardware profile
+    hardwareProfileSection.selectProjectScopedProfile(/Small Profile/);
+    hardwareProfileSection.findHardwareProfileSearchSelector().click();
+    hardwareProfileSection.selectProjectScopedProfile(/Large Profile-1/);
 
-    // verify available global-scoped accelerator profile
-    acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
-    createSpawnerPage.findAcceleratorProfile('Small Profile Global nvidia.com/gpu').click();
-    createSpawnerPage.findGlobalScopedLabel().should('exist');
+    // verify available global-scoped hardware profile
+    hardwareProfileSection.findHardwareProfileSearchSelector().click();
+    hardwareProfileSection.selectGlobalScopedProfile(/Small Profile/);
+    hardwareProfileSection.findHardwareProfileSearchSelector().click();
+    hardwareProfileSection.selectGlobalScopedProfile(/Large Profile/);
   });
 
-  it('Should show correct message when no accelerator profiles available', () => {
+  it('Should show correct message when no hardware profiles available', () => {
     initIntercepts({
       disableProjectScoped: false,
-      disableHardwareProfiles: true,
-      acceleratorProfiles: {
+      hardwareProfiles: {
         global: [],
         project: [],
       },
@@ -797,50 +703,22 @@ describe('Workbench page', () => {
     createSpawnerPage.findSubmitButton().should('be.disabled');
     verifyRelativeURL('/projects/test-project/spawner');
 
-    // Verify accelerator profile section exists
-    acceleratorProfileSection.findSelect().should('exist');
-    acceleratorProfileSection.findSelect().should('be.disabled');
+    // Verify hardware profile section exists
+    hardwareProfileSection.findSelect().should('exist');
+    hardwareProfileSection.findSelect().should('be.disabled');
 
-    // verify no accelerator profiles
-    acceleratorProfileSection
+    // verify no hardware profiles
+    hardwareProfileSection
       .findSelect()
       .should(
         'contain.text',
-        'No enabled or valid accelerator profiles are available. Contact your administrator',
+        'No enabled or valid hardware profiles are available. Contact your administrator.',
       );
   });
 
   it('Create workbench with numbers', () => {
     initIntercepts({
       isEmpty: true,
-      notebookSizes: [
-        {
-          name: 'XSmall',
-          resources: {
-            limits: {
-              cpu: '0.5',
-              memory: '500Mi',
-            },
-            requests: {
-              cpu: '0.1',
-              memory: '100Mi',
-            },
-          },
-        },
-        {
-          name: 'Small',
-          resources: {
-            limits: {
-              cpu: '2',
-              memory: '8Gi',
-            },
-            requests: {
-              cpu: '1',
-              memory: '8Gi',
-            },
-          },
-        },
-      ],
     });
     workbenchPage.visit('test-project');
     workbenchPage.findCreateButton().click();
@@ -850,9 +728,8 @@ describe('Workbench page', () => {
     createSpawnerPage.k8sNameDescription.findDescriptionInput().fill('test-description');
     //to check scrollable dropdown selection
     createSpawnerPage.findNotebookImage('test-9').click();
-    createSpawnerPage.selectContainerSize(
-      'XSmall Limits: 0.5 CPU, 500MiB Memory Requests: 0.1 CPU, 100MiB Memory',
-    );
+    hardwareProfileSection.findSelect().should('exist').click();
+    hardwareProfileSection.selectProfileContaining('Small Profile');
     createSpawnerPage.findSubmitButton().should('be.enabled');
 
     createSpawnerPage.findSubmitButton().click();
@@ -869,6 +746,8 @@ describe('Workbench page', () => {
           annotations: {
             'openshift.io/display-name': '1234',
             'openshift.io/description': 'test-description',
+            'opendatahub.io/hardware-profile-name': 'small-profile',
+            'opendatahub.io/hardware-profile-namespace': 'opendatahub',
           },
           name: 'wb-1234',
           namespace: 'test-project',
@@ -1067,34 +946,6 @@ describe('Workbench page', () => {
   it('Display project-scoped label for a notebook in workbenches table', () => {
     initIntercepts({
       disableProjectScoped: false,
-      notebookSizes: [
-        {
-          name: 'XSmall',
-          resources: {
-            limits: {
-              cpu: '0.5',
-              memory: '500Mi',
-            },
-            requests: {
-              cpu: '0.1',
-              memory: '100Mi',
-            },
-          },
-        },
-        {
-          name: 'Small',
-          resources: {
-            limits: {
-              cpu: '2',
-              memory: '8Gi',
-            },
-            requests: {
-              cpu: '1',
-              memory: '8Gi',
-            },
-          },
-        },
-      ],
       notebooks: [
         mockNotebookK8sResource({
           lastImageSelection: 'test-imagestream:1.2',
@@ -1107,6 +958,8 @@ describe('Workbench page', () => {
               },
               annotations: {
                 'opendatahub.io/image-display-name': 'Test image',
+                'opendatahub.io/hardware-profile-name': 'small-profile',
+                'opendatahub.io/hardware-profile-namespace': 'opendatahub',
               },
             },
           },
@@ -1122,50 +975,56 @@ describe('Workbench page', () => {
         }),
       ]),
     );
+    cy.interceptK8s(
+      {
+        model: HardwareProfileModel,
+        ns: 'opendatahub',
+        name: 'small-profile',
+      },
+      mockGlobalScopedHardwareProfiles[0],
+    );
     workbenchPage.visit('test-project');
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
     notebookRow.find().findByText('Test Image').should('exist');
     notebookRow.findProjectScopedLabel().should('exist');
-    notebookRow.shouldHaveContainerSize('Small');
+    notebookRow.shouldHaveHardwareProfile('Small');
     notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
     notebookRow.findNotebookRouteLink().should('not.have.attr', 'aria-disabled');
   });
 
   it('list workbench and table sorting', () => {
     initIntercepts({
-      notebookSizes: [
-        {
-          name: 'XSmall',
-          resources: {
-            limits: {
-              cpu: '0.5',
-              memory: '500Mi',
-            },
-            requests: {
-              cpu: '0.1',
-              memory: '100Mi',
-            },
-          },
-        },
-        {
-          name: 'Small',
-          resources: {
-            limits: {
-              cpu: '2',
-              memory: '8Gi',
-            },
-            requests: {
-              cpu: '1',
-              memory: '8Gi',
+      notebooks: [
+        mockNotebookK8sResource({
+          lastImageSelection: 'test-imagestream:1.2',
+          opts: {
+            metadata: {
+              name: 'test-notebook',
+              labels: {
+                'opendatahub.io/notebook-image': 'true',
+              },
+              annotations: {
+                'opendatahub.io/image-display-name': 'Test image',
+                'opendatahub.io/hardware-profile-name': 'small-profile',
+                'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+              },
             },
           },
-        },
+        }),
       ],
     });
+    cy.interceptK8s(
+      {
+        model: HardwareProfileModel,
+        ns: 'opendatahub',
+        name: 'small-profile',
+      },
+      mockGlobalScopedHardwareProfiles[0],
+    );
     workbenchPage.visit('test-project');
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
     notebookRow.shouldHaveNotebookImageName('Test Image');
-    notebookRow.shouldHaveContainerSize('Small');
+    notebookRow.shouldHaveHardwareProfile('Small');
     notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
     notebookRow.findNotebookRouteLink().should('not.have.attr', 'aria-disabled');
 
@@ -1285,35 +1144,37 @@ describe('Workbench page', () => {
 
   it('Edit workbench', () => {
     initIntercepts({
-      notebookSizes: [
-        {
-          name: 'XSmall',
+      notebooks: [
+        mockNotebookK8sResource({
+          lastImageSelection: 'test-imagestream:1.2',
           resources: {
-            limits: {
-              cpu: '0.5',
-              memory: '500Mi',
-            },
-            requests: {
-              cpu: '0.1',
-              memory: '100Mi',
+            requests: { cpu: '4', memory: '8Gi' },
+            limits: { cpu: '4', memory: '8Gi' },
+          },
+          opts: {
+            metadata: {
+              name: 'test-notebook',
+              labels: {
+                'opendatahub.io/notebook-image': 'true',
+              },
+              annotations: {
+                'opendatahub.io/image-display-name': 'Test image',
+                'opendatahub.io/hardware-profile-name': 'large-profile',
+                'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+              },
             },
           },
-        },
-        {
-          name: 'Small',
-          resources: {
-            limits: {
-              cpu: '2',
-              memory: '8Gi',
-            },
-            requests: {
-              cpu: '1',
-              memory: '8Gi',
-            },
-          },
-        },
+        }),
       ],
     });
+    cy.interceptK8s(
+      {
+        model: HardwareProfileModel,
+        ns: 'opendatahub',
+        name: 'large-profile',
+      },
+      mockGlobalScopedHardwareProfiles[1],
+    );
     cy.interceptK8sList(
       PVCModel,
       mockK8sResourceList([mockPVCK8sResource({ name: 'test-notebook' })]),
@@ -1322,7 +1183,7 @@ describe('Workbench page', () => {
     editSpawnerPage.findAlertMessage().should('not.exist');
     editSpawnerPage.k8sNameDescription.findDisplayNameInput().should('have.value', 'Test Notebook');
     editSpawnerPage.shouldHaveNotebookImageSelectInput('Test Image');
-    editSpawnerPage.shouldHaveContainerSizeInput('Small');
+    hardwareProfileSection.findSelect().should('contain.text', 'Large Profile');
     editSpawnerPage
       .getStorageTable()
       .getRowById(0)
@@ -1330,11 +1191,6 @@ describe('Workbench page', () => {
       .should('have.text', 'Test Storage');
     editSpawnerPage.findSubmitButton().should('be.enabled');
     editSpawnerPage.k8sNameDescription.findDisplayNameInput().fill('Updated Notebook');
-
-    // Add a test for editing accelerator profile
-    editSpawnerPage.findAcceleratorProfileSelect().click();
-    editSpawnerPage.findAcceleratorProfileSelect().findSelectOption('None').click();
-    editSpawnerPage.findAcceleratorProfileSelect().should('contain', 'None');
 
     cy.interceptK8s('PUT', NotebookModel, mockNotebookK8sResource({})).as('editWorkbenchDryRun');
     cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('editWorkbench');
@@ -1348,6 +1204,8 @@ describe('Workbench page', () => {
           annotations: {
             'openshift.io/display-name': 'Updated Notebook',
             'opendatahub.io/image-display-name': 'Test Image',
+            'opendatahub.io/hardware-profile-name': 'large-profile',
+            'opendatahub.io/hardware-profile-namespace': 'opendatahub',
           },
           name: 'test-notebook',
           namespace: 'test-project',
@@ -1385,35 +1243,39 @@ describe('Workbench page', () => {
   it('Edit workbench with project-scoped images', () => {
     initIntercepts({
       disableProjectScoped: false,
-      notebookSizes: [
-        {
-          name: 'XSmall',
+      notebooks: [
+        mockNotebookK8sResource({
+          lastImageSelection: 'test-imagestream:1.2',
           resources: {
-            limits: {
-              cpu: '0.5',
-              memory: '500Mi',
-            },
-            requests: {
-              cpu: '0.1',
-              memory: '100Mi',
+            requests: { cpu: '1', memory: '2Gi' },
+            limits: { cpu: '1', memory: '2Gi' },
+          },
+          opts: {
+            metadata: {
+              name: 'test-notebook',
+              namespace: 'test-project',
+              labels: {
+                'opendatahub.io/notebook-image': 'true',
+              },
+              annotations: {
+                'opendatahub.io/image-display-name': 'Test image',
+                'opendatahub.io/hardware-profile-name': 'small-profile',
+                'opendatahub.io/hardware-profile-namespace': 'test-project',
+              },
             },
           },
-        },
-        {
-          name: 'Small',
-          resources: {
-            limits: {
-              cpu: '2',
-              memory: '8Gi',
-            },
-            requests: {
-              cpu: '1',
-              memory: '8Gi',
-            },
-          },
-        },
+        }),
       ],
     });
+
+    cy.interceptK8s(
+      {
+        model: HardwareProfileModel,
+        ns: 'test-project',
+        name: 'small-profile',
+      },
+      mockProjectScopedHardwareProfiles[0],
+    );
 
     cy.interceptK8sList(
       ImageStreamModel,
@@ -1445,16 +1307,17 @@ describe('Workbench page', () => {
     editSpawnerPage.findNotebookImageSearchInput().should('be.visible').type('Project');
     editSpawnerPage.findNotebookImageSearchInput().clear();
 
-    // Check for project specific serving runtimes
     const projectScopedNotebookImage = editSpawnerPage.getProjectScopedNotebookImages();
     projectScopedNotebookImage
       .find()
       .findByRole('menuitem', { name: 'Project scoped test image', hidden: true })
       .click();
-    editSpawnerPage.findProjectScopedLabel().should('exist');
-    editSpawnerPage.selectContainerSize(
-      'XSmall Limits: 0.5 CPU, 500MiB Memory Requests: 0.1 CPU, 100MiB Memory',
-    );
+
+    cy.findAllByTestId('project-scoped-label').should('have.length', 2);
+
+    hardwareProfileSection
+      .findHardwareProfileSearchSelector()
+      .should('contain.text', 'Small Profile');
 
     cy.interceptK8s('PUT', NotebookModel, mockNotebookK8sResource({})).as('editWorkbenchDryRun');
     cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('editWorkbench');
@@ -1469,6 +1332,8 @@ describe('Workbench page', () => {
             'openshift.io/display-name': 'Updated Notebook',
             'opendatahub.io/image-display-name': 'Project scoped test image',
             'opendatahub.io/workbench-image-namespace': 'test-project',
+            'opendatahub.io/hardware-profile-name': 'small-profile',
+            'opendatahub.io/hardware-profile-namespace': 'test-project',
           },
           name: 'test-notebook',
           namespace: 'test-project',
@@ -1655,35 +1520,41 @@ describe('Workbench page', () => {
     });
   });
 
-  it('Handle deleted notebook sizes in workbenches table', () => {
+  it('Handle custom hardware profile resources in workbenches table', () => {
     initIntercepts({
-      notebookSizes: [
-        {
-          name: 'XSmall',
+      notebooks: [
+        mockNotebookK8sResource({
+          lastImageSelection: 'test-imagestream:1.2',
           resources: {
-            limits: {
-              cpu: '0.5',
-              memory: '500Mi',
-            },
-            requests: {
-              cpu: '0.1',
-              memory: '100Mi',
+            requests: { cpu: '3', memory: '6Gi' },
+            limits: { cpu: '3', memory: '6Gi' },
+          },
+          opts: {
+            metadata: {
+              name: 'test-notebook',
+              labels: {
+                'opendatahub.io/notebook-image': 'true',
+              },
+              annotations: {
+                'opendatahub.io/image-display-name': 'Test image',
+              },
             },
           },
-        },
+        }),
       ],
     });
     workbenchPage.visit('test-project');
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
     notebookRow.shouldHaveNotebookImageName('Test Image');
-    notebookRow.shouldHaveContainerSize('Custom');
+    notebookRow.shouldHaveHardwareProfile('Custom');
     notebookRow.findKebabAction('Edit workbench').click();
-    editSpawnerPage.shouldHaveContainerSizeInput('Keep custom size');
+
+    hardwareProfileSection.findSelect().should('contain.text', 'Use existing settings');
     cy.go('back');
     workbenchPage.findCreateButton().click();
     verifyRelativeURL('/projects/test-project/spawner');
-    // Custom container size dropdown option should not be present for create workbench
-    createSpawnerPage.findContainerSizeInput('Keep custom size').should('not.exist');
+    hardwareProfileSection.findSelect().click();
+    cy.findByRole('option', { name: /Use existing settings/ }).should('not.exist');
   });
 
   it('Validate that updating invalid workbench will navigate to the new page with an error message', () => {

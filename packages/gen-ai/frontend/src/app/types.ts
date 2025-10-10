@@ -274,6 +274,25 @@ export interface AIModel extends AAModelResponse {
   internalEndpoint?: string;
   externalEndpoint?: string;
 }
+
+export interface MaaSModel {
+  id: string;
+  object: string;
+  created: number;
+  owned_by: string;
+  ready: boolean;
+  url: string;
+}
+
+export interface MaaSTokenRequest {
+  expiration?: string;
+}
+
+export interface MaaSTokenResponse {
+  token: string;
+  expiresAt: number;
+}
+
 export type {
   MCPServerFromAPI,
   MCPConfigMapInfo,

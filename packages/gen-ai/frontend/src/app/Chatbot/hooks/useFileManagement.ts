@@ -19,7 +19,7 @@ export interface UseFileManagementReturn {
 
 interface UseFileManagementProps {
   onShowDeleteSuccessAlert?: () => void;
-  onShowErrorAlert?: (message?: string) => void;
+  onShowErrorAlert?: (message?: string, title?: string) => void;
 }
 
 // Helper function to convert VectorStoreFile to FileModel format
@@ -84,7 +84,7 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch files';
       setError(errorMessage);
-      onShowErrorAlert?.(errorMessage);
+      onShowErrorAlert?.(errorMessage, 'File Fetch Error');
     } finally {
       setIsLoading(false);
     }
@@ -107,7 +107,7 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to delete file';
         setError(errorMessage);
-        onShowErrorAlert?.(errorMessage);
+        onShowErrorAlert?.(errorMessage, 'File Delete Error');
       } finally {
         setIsDeleting(false);
       }

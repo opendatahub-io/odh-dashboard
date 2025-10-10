@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { Navigate, Route } from 'react-router-dom';
 import ProjectsRoutes from '#~/concepts/projects/ProjectsRoutes';
+import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '#~/concepts/design/utils';
 import GlobalPipelineCoreLoader from '#~/pages/pipelines/global/GlobalPipelineCoreLoader';
 import {
   ExperimentListTabs,
@@ -38,7 +40,12 @@ const GlobalPipelineExperimentsRoutes: React.FC = () => (
       path="/:namespace?/*"
       element={
         <GlobalPipelineCoreLoader
-          title={experimentsPageTitle}
+          title={
+            <TitleWithIcon
+              title={experimentsPageTitle}
+              objectType={ProjectObjectType.pipelineExperiment}
+            />
+          }
           description={experimentsPageDescription}
           getInvalidRedirectPath={experimentsBaseRoute}
         />

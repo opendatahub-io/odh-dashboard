@@ -62,9 +62,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const { selectedServersCount, saveSelectedServersToPlayground } = useMCPSelectionContext();
 
   return (
-    <DrawerPanelContent isResizable defaultSize="400px" minSize="300px">
+    <DrawerPanelContent isResizable defaultSize="460px" minSize="300px">
       <DrawerPanelBody>
-        <Accordion asDefinitionList={false} isBordered>
+        <Accordion asDefinitionList={false}>
           {/* Model Details Accordion Item */}
           <AccordionItem
             isExpanded={accordionState.expandedAccordionItems.includes(
@@ -181,7 +181,6 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                     isLoading={fileManagement.isLoading}
                     isDeleting={fileManagement.isDeleting}
                     error={fileManagement.error}
-                    onRefresh={fileManagement.refreshFiles}
                     onDeleteFile={fileManagement.deleteFileById}
                   />
                 </FormGroup>

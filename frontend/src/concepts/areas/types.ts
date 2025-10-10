@@ -37,8 +37,6 @@ export enum SupportedArea {
   BYON = 'bring-your-own-notebook',
   CLUSTER_SETTINGS = 'cluster-settings',
   USER_MANAGEMENT = 'user-management',
-  ACCELERATOR_PROFILES = 'accelerator-profiles',
-  HARDWARE_PROFILES = 'hardware-profiles',
   STORAGE_CLASSES = 'storage-classes',
   ADMIN_CONNECTION_TYPES = 'connection-types',
   FINE_TUNING = 'fine-tuning',
