@@ -7,7 +7,7 @@ import { ModelServingCompatibleTypes } from '@odh-dashboard/internal/concepts/co
 import {
   ModelLocationData,
   ModelLocationType,
-} from '../../model-serving/src/components/deploymentWizard/fields/modelLocationFields/types';
+} from '@odh-dashboard/model-serving/components/deploymentWizard/fields/modelLocationFields/types';
 
 export const getModelLocationUri = (deployment: InferenceServiceKind): string | undefined => {
   return deployment.spec.predictor.model?.storageUri;

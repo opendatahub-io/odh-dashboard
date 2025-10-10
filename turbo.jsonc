@@ -6,7 +6,8 @@
   "tasks": {
     "includeDependenciesAsInputs": {},
     "build": {
-      "cache": false
+      "cache": false,
+      "dependsOn": ["^build"]
     },
     "lint": {
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/packages/eslint-config/**/*"]

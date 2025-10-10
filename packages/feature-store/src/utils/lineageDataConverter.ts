@@ -3,7 +3,7 @@ import {
   LineageData,
   LineageEdge,
   LineageNode,
-} from '@odh-dashboard/internal/components/lineage/types.js';
+} from '@odh-dashboard/internal/components/lineage/types';
 import { LineageEntityType } from './featureStoreObjects';
 import { FeatureStoreLineage, LineageFeatureView, FeatureViewLineage } from '../types/lineage';
 import { Entity } from '../types/entities';

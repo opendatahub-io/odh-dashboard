@@ -19,7 +19,7 @@ USER default
 
 RUN npm cache clean --force
 
-RUN npm ci --omit=optional --ignore-scripts
+RUN npm ci --ignore-scripts
 
 ENV TURBO_TELEMETRY_DISABLED=1
 RUN npm run build
@@ -40,6 +40,8 @@ COPY --chown=default:root --from=builder /usr/src/app/frontend/public /usr/src/a
 COPY --chown=default:root --from=builder /usr/src/app/backend/package.json /usr/src/app/backend/package.json
 COPY --chown=default:root --from=builder /usr/src/app/backend/node_modules /usr/src/app/backend/node_modules
 COPY --chown=default:root --from=builder /usr/src/app/backend/dist /usr/src/app/backend/dist
+COPY --chown=default:root --from=builder /usr/src/app/packages/app-config/package.json /usr/src/app/packages/app-config/package.json
+COPY --chown=default:root --from=builder /usr/src/app/packages/app-config/dist /usr/src/app/packages/app-config/dist
 COPY --chown=default:root --from=builder /usr/src/app/package.json /usr/src/app/package.json
 COPY --chown=default:root --from=builder /usr/src/app/package-lock.json /usr/src/app/package-lock.json
 COPY --chown=default:root --from=builder /usr/src/app/node_modules /usr/src/app/node_modules
