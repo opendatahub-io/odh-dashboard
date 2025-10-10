@@ -58,13 +58,6 @@ describe('[Product Bug: RHOAIENG-31579] Create, Delete and Edit - Workbench Test
         s3AccessKey = AWS_BUCKETS.AWS_ACCESS_KEY_ID;
         s3SecretKey = AWS_BUCKETS.AWS_SECRET_ACCESS_KEY;
 
-        cy.log('S3 Configuration:');
-        cy.log(`Bucket Name: ${s3Config.NAME}`);
-        cy.log(`Bucket Region: ${s3Config.REGION}`);
-        cy.log(`Bucket Endpoint: ${s3Config.ENDPOINT}`);
-        cy.log(`Access Key ID: ${s3AccessKey.substring(0, 5)}...`);
-        cy.log(`Secret Access Key: ${s3SecretKey.substring(0, 5)}...`);
-
         if (!editTestNamespace) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
         }

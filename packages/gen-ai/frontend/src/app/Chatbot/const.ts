@@ -40,9 +40,25 @@ export const initialBotMessage = (): MessageProps => ({
   avatar: botAvatar,
 });
 
+// File upload constants
+export const FILE_UPLOAD_CONFIG = {
+  MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB in bytes
+  MAX_FILES_IN_VECTOR_STORE: 10, // Maximum number of files allowed in vector store
+  ALLOWED_FILE_TYPES: {
+    'application/pdf': ['.pdf'],
+    'application/msword': ['.doc'],
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+    'text/csv': ['.csv'],
+  },
+  ACCEPTED_EXTENSIONS: '.pdf,.doc,.docx,.csv',
+} as const;
+
 // Error handling constants
 export const ERROR_MESSAGES = {
   NO_MODEL_OR_SOURCE: 'No model or source settings selected',
+  FILE_UPLOAD_REJECTED: 'File upload rejected',
+  FILE_TOO_LARGE: 'File size exceeds 10MB',
+  TOO_MANY_FILES: 'Maximum number of files exceeded',
 } as const;
 
 export const DEFAULT_SYSTEM_INSTRUCTIONS = `You are a helpful AI assistant. You are designed to answer questions in a concise and professional manner.

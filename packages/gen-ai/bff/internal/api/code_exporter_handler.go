@@ -21,13 +21,9 @@ func (app *App) CodeExporterHandler(w http.ResponseWriter, r *http.Request, _ ht
 		return
 	}
 
-	// Validate required fields
-	if configRequest.Input == "" {
-		app.badRequestResponse(w, r, errors.New("input is required"))
-		return
-	}
-	if configRequest.Model == "" {
-		app.badRequestResponse(w, r, errors.New("model is required"))
+	// Validate all parameters
+	if err := app.validateCodeExportRequest(configRequest); err != nil {
+		app.badRequestResponse(w, r, err)
 		return
 	}
 
@@ -66,4 +62,32 @@ func (app *App) generatePythonCode(config models.CodeExportRequest, templateRepo
 	}
 
 	return result, nil
+}
+
+// validateCodeExportRequest validates all parameters in the code export request
+func (app *App) validateCodeExportRequest(config models.CodeExportRequest) error {
+	// Validate required fields
+	if config.Input == "" {
+		return errors.New("input is required")
+	}
+	if config.Model == "" {
+		return errors.New("model is required")
+	}
+
+	// Validate temperature range (0.0-2.0)
+	if config.Temperature != nil && (*config.Temperature < 0.0 || *config.Temperature > 2.0) {
+		return errors.New("temperature must be between 0.0 and 2.0")
+	}
+
+	// Validate MCP servers
+	for i, server := range config.MCPServers {
+		if server.ServerLabel == "" {
+			return fmt.Errorf("MCP server %d: server_label is required", i)
+		}
+		if server.ServerURL == "" {
+			return fmt.Errorf("MCP server %d: server_url is required", i)
+		}
+	}
+
+	return nil
 }

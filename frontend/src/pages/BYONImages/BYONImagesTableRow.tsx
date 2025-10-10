@@ -8,9 +8,6 @@ import {
 } from '@patternfly/react-core';
 import { BYONImage } from '#~/types';
 import { relativeTime } from '#~/utilities/time';
-import { AcceleratorProfileKind } from '#~/k8sTypes';
-import { FetchState } from '#~/utilities/useFetchState';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import BYONImageHardwareProfiles from '#~/pages/BYONImages/BYONImageHardwareProfiles';
 import { TableRowTitleDescription } from '#~/components/table';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
@@ -18,26 +15,23 @@ import ImageErrorStatus from './ImageErrorStatus';
 import BYONImageStatusToggle from './BYONImageStatusToggle';
 import { convertBYONImageToK8sResource } from './utils';
 import BYONImageDependenciesList from './BYONImageDependenciesList';
-import { BYONImageAccelerators } from './BYONImageAccelerators';
 
 type BYONImagesTableRowProps = {
   obj: BYONImage;
   rowIndex: number;
-  acceleratorProfiles: FetchState<AcceleratorProfileKind[]>;
   hardwareProfiles: ReturnType<typeof useHardwareProfilesByFeatureVisibility>;
   onEditImage: (obj: BYONImage) => void;
   onDeleteImage: (obj: BYONImage) => void;
 };
 
+// todo: remove AccelProfiles from here TODO
 const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
   obj,
   rowIndex,
-  acceleratorProfiles,
   hardwareProfiles,
   onEditImage,
   onDeleteImage,
 }) => {
-  const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
   const [isExpanded, setExpanded] = React.useState(false);
   const columnModifier =
     obj.software.length > 0 && obj.packages.length > 0
@@ -70,15 +64,9 @@ const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
         <Td dataLabel="Enable" modifier="nowrap">
           <BYONImageStatusToggle image={obj} />
         </Td>
-        {isHardwareProfileAvailable ? (
-          <Td dataLabel="Recommended hardware profiles">
-            <BYONImageHardwareProfiles image={obj} hardwareProfiles={hardwareProfiles} />
-          </Td>
-        ) : (
-          <Td dataLabel="Recommended accelerators">
-            <BYONImageAccelerators image={obj} acceleratorProfiles={acceleratorProfiles} />
-          </Td>
-        )}
+        <Td dataLabel="Recommended hardware profiles">
+          <BYONImageHardwareProfiles image={obj} hardwareProfiles={hardwareProfiles} />
+        </Td>
         <Td dataLabel="Provider">{obj.provider}</Td>
         <Td dataLabel="Imported">
           <span style={{ whiteSpace: 'nowrap' }}>
@@ -139,5 +127,4 @@ const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
     </Tbody>
   );
 };
-
 export default BYONImagesTableRow;

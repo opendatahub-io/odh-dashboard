@@ -165,11 +165,15 @@ class ServingModal extends Modal {
   }
 
   findProjectScopedLabel() {
-    return this.find().findByTestId('project-scoped-label');
+    return this.findServingRuntimeTemplateSearchSelector()
+      .parent()
+      .findByTestId('project-scoped-label');
   }
 
   findGlobalScopedLabel() {
-    return this.find().findByTestId('global-scoped-label');
+    return this.findServingRuntimeTemplateSearchSelector()
+      .parent()
+      .findByTestId('global-scoped-label');
   }
 
   getProjectScopedServingRuntime() {
@@ -396,6 +400,10 @@ class InferenceServiceModal extends ServingModal {
 
   findLocationPathInputError() {
     return this.find().findByTestId('folder-path-error');
+  }
+
+  findPVCPathPrefix() {
+    return cy.findByTestId('pvc-path-prefix');
   }
 
   findConfigurationParamsSection() {
@@ -1018,12 +1026,28 @@ class ModelServingWizard extends Wizard {
     return this.findModelLocationSelect().findSelectOption(name);
   }
 
+  findLocationPathInput() {
+    return cy.findByTestId('folder-path');
+  }
+
+  findPVCPathPrefix() {
+    return cy.findByTestId('pvc-path-prefix');
+  }
+
+  findOCIModelURI() {
+    return cy.findByTestId('model-uri');
+  }
+
   findUrilocationInput() {
     return cy.findByTestId('field URI');
   }
 
+  findUrilocationInputError() {
+    return cy.findByTestId('uri-form-field-helper-text');
+  }
+
   findExistingConnectionSelect() {
-    return cy.findByTestId('existing-connection-select');
+    return cy.findByTestId('typeahead-menu-toggle');
   }
 
   findExistingConnectionValue() {
@@ -1123,6 +1147,38 @@ class ModelServingWizard extends Wizard {
 
   findUseCaseInput() {
     return cy.findByTestId('use-case-input');
+  }
+
+  findCPURequestedInput() {
+    return cy.findByTestId('cpu-requests-input').find('input');
+  }
+
+  findCPURequestedButton(type: 'Plus' | 'Minus') {
+    return cy.findByTestId('cpu-requests-input').findByRole('button', { name: type });
+  }
+
+  findCPULimitInput() {
+    return cy.findByTestId('cpu-limits-input').find('input');
+  }
+
+  findCPULimitButton(type: 'Plus' | 'Minus') {
+    return cy.findByTestId('cpu-limits-input').findByRole('button', { name: type });
+  }
+
+  findMemoryRequestedInput() {
+    return cy.findByTestId('memory-requests-input').find('input');
+  }
+
+  findMemoryRequestedButton(type: 'Plus' | 'Minus') {
+    return cy.findByTestId('memory-requests-input').findByRole('button', { name: type });
+  }
+
+  findMemoryLimitInput() {
+    return cy.findByTestId('memory-limits-input').find('input');
+  }
+
+  findMemoryLimitButton(type: 'Plus' | 'Minus') {
+    return cy.findByTestId('memory-limits-input').findByRole('button', { name: type });
   }
 }
 

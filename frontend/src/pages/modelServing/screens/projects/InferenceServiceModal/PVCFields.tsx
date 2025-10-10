@@ -130,7 +130,7 @@ export const PVCFields: React.FC<PVCFieldsProps> = ({
       <StackItem>
         <FormGroup label="Model path" isRequired>
           <InputGroup>
-            <InputGroupText>pvc://{selectedPVCName}/</InputGroupText>
+            <InputGroupText data-testid="pvc-path-prefix">pvc://{selectedPVCName}/</InputGroupText>
             <InputGroupItem isFill>
               <TextInput
                 id="folder-path"

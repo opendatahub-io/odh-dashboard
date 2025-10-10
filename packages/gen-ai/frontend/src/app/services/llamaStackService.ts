@@ -13,6 +13,9 @@ import {
   LlamaModelType,
   LlamaStackDistributionModel,
   AAModelResponse,
+  MaaSModel,
+  MaaSTokenRequest,
+  MaaSTokenResponse,
   MCPConnectionStatus,
   MCPErrorResponse,
   MCPServersResponse,
@@ -492,6 +495,60 @@ export const getAAModels = (namespace: string): Promise<AAModelResponse[]> => {
     .catch((error) => {
       throw new Error(
         error.response?.data?.error?.message || error.message || 'Failed to fetch AA models',
+      );
+    });
+};
+
+/**
+ * Fetches all available MaaS (Model as a Service) models
+ * @returns Promise<MaaSModel[]> - Array of available MaaS models with their metadata
+ * @throws Error - When the API request fails or returns an error response
+ */
+export const getMaaSModels = (): Promise<MaaSModel[]> => {
+  const url = `${URL_PREFIX}/api/v1/maas/models`;
+  return axiosInstance
+    .get(url)
+    .then((response) => response.data.data ?? [])
+    .catch((error) => {
+      throw new Error(
+        error.response?.data?.error?.message || error.message || 'Failed to fetch MaaS models',
+      );
+    });
+};
+
+/**
+ * Generates a new MaaS API token
+ * @param expiration - Optional expiration duration in Go format (e.g., "2h", "30m", "1h30m"). Defaults to 4h if not provided.
+ * @returns Promise<MaaSTokenResponse> - The generated token and expiration timestamp
+ * @throws Error - When the API request fails or returns an error response
+ */
+export const generateMaaSToken = (expiration?: string): Promise<MaaSTokenResponse> => {
+  const url = `${URL_PREFIX}/api/v1/maas/tokens`;
+  const requestBody: MaaSTokenRequest = expiration ? { expiration } : {};
+
+  return axiosInstance
+    .post(url, requestBody)
+    .then((response) => response.data)
+    .catch((error) => {
+      throw new Error(
+        error.response?.data?.error?.message || error.message || 'Failed to generate MaaS token',
+      );
+    });
+};
+
+/**
+ * Revokes all MaaS API tokens for the current user
+ * @returns Promise<void> - Promise that resolves when tokens are revoked
+ * @throws Error - When the API request fails or returns an error response
+ */
+export const revokeMaaSTokens = (): Promise<void> => {
+  const url = `${URL_PREFIX}/api/v1/maas/tokens`;
+  return axiosInstance
+    .delete(url)
+    .then(() => undefined)
+    .catch((error) => {
+      throw new Error(
+        error.response?.data?.error?.message || error.message || 'Failed to revoke MaaS tokens',
       );
     });
 };
