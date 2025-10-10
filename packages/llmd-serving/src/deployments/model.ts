@@ -20,7 +20,7 @@ export const applyModelLocation = (
   if (!dryRun) {
     // Only add the connection name in the actual request (dry run will fail if the connection doesn't exist yet)
     result.metadata.annotations[MetadataAnnotation.ConnectionName] =
-      modelLocationData.connection ?? secretName ?? ''; // TODO add saveConnectionData once 1C merges
+      modelLocationData.connection ?? secretName ?? '';
   }
   // Adds path annotation for S3
   if (

@@ -34,6 +34,7 @@ type CreateLLMdInferenceServiceParams = {
   k8sName: string;
   dryRun?: boolean;
   modelLocationData: ModelLocationData;
+  secretName?: string;
   displayName?: string;
   description?: string;
   hardwareProfileName?: string;
@@ -49,6 +50,7 @@ const assembleLLMdInferenceServiceKind = ({
   dryRun,
   k8sName,
   modelLocationData,
+  secretName,
   displayName,
   description,
   hardwareProfileName,
@@ -85,7 +87,7 @@ const assembleLLMdInferenceServiceKind = ({
   llmdInferenceService = applyModelLocation(
     llmdInferenceService,
     modelLocationData,
-    undefined, // TODO add secret name once 1C merges
+    secretName,
     dryRun,
   );
   llmdInferenceService = applyHardwareProfileConfig(
@@ -107,6 +109,7 @@ export const deployLLMdDeployment = async (
   serverResource?: LLMdDeployment['server'],
   serverResourceTemplateName?: string,
   dryRun?: boolean,
+  secretName?: string,
 ): Promise<LLMdDeployment> => {
   const llmdInferenceServiceKind = assembleLLMdInferenceServiceKind({
     projectName,
@@ -122,6 +125,7 @@ export const deployLLMdDeployment = async (
       fieldValues: {},
       additionalFields: {},
     },
+    secretName,
     connectionName: wizardData.modelLocationData.data?.connection ?? '',
     replicas: wizardData.numReplicas.data,
     runtimeArgs: wizardData.runtimeArgs.data?.args,
