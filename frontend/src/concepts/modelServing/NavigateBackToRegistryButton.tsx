@@ -1,7 +1,8 @@
 import { Button, EmptyStateActions, type ButtonProps } from '@patternfly/react-core';
 import React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { modelVersionUrl } from '#~/../../packages/model-registry/upstream/frontend/src/app/pages/modelRegistry/screens/routeUtils';
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
+import { modelVersionUrl } from '../../../../packages/model-registry/upstream/frontend/src/app/pages/modelRegistry/screens/routeUtils';
 
 /**
  * Shown when the selected project for deploying the registered model doesn't have a platform selected.
