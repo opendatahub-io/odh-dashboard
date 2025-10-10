@@ -22,6 +22,8 @@ export type FeatureStoreError = {
   code?: string;
   message?: string;
   detail?: string;
+  error_type?: string;
+  status_code?: number;
 };
 
 export type MaterializationInterval = {

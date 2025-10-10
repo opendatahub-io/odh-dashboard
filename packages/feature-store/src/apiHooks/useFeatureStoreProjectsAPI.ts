@@ -16,13 +16,13 @@ const useFeatureStoreProjectsAPI = (
       if (!apiState.apiAvailable) {
         return Promise.reject(new Error('API not yet available'));
       }
-
       return apiState.api.listFeatureStoreProject(opts);
     },
     [apiState.api, apiState.apiAvailable],
   );
 
-  return useFetch(call, DEFAULT_PROJECT_LIST, { initialPromisePurity: true });
+  const result = useFetch(call, DEFAULT_PROJECT_LIST, { initialPromisePurity: true });
+  return result;
 };
 
 export default useFeatureStoreProjectsAPI;
