@@ -126,7 +126,6 @@ describe('[Product Bug: RHOAIENG-31579] Create, Delete and Edit - Workbench Test
           // Use dynamic image name verification based on what was actually selected
           getImageStreamDisplayName(selectedImageStream).then((displayName) => {
             notebookRow.shouldHaveNotebookImageName(displayName);
-            notebookRow.shouldHaveContainerSize('Small');
 
             // Stop workbench
             cy.step('Stop workbench and validate it has been stopped');

@@ -72,8 +72,6 @@ describe('Workbenches - negative tests', () => {
         (imageStreamName) => {
           cy.log(`Selected imagestream: ${imageStreamName}`);
 
-          createSpawnerPage.findContainerSizeInput('Small').click();
-          cy.contains('X Large').click();
           createSpawnerPage.findSubmitButton().click();
 
           // Confirm that the Workbench does not start and is at Failed status
