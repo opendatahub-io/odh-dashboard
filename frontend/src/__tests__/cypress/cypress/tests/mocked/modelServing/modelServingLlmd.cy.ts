@@ -275,6 +275,11 @@ describe('Model Serving LLMD', () => {
       // Step 1: Model source
       modelServingWizard.findModelLocationSelectOption('URI - v1').click();
       modelServingWizard.findUrilocationInput().type('hf://coolmodel/coolmodel');
+
+      modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
+      modelServingWizard.findSaveConnectionCheckbox().click();
+      modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
+
       modelServingWizard.findModelTypeSelectOption('Generative AI model (e.g. LLM)').click();
       modelServingWizard.findNextButton().should('be.enabled').click();
 

@@ -179,6 +179,7 @@ const EditModelDeploymentContent: React.FC<{
       primaryButtonText="Update deployment"
       existingData={formData ? { ...formData, isEditing: true } : { isEditing: true }}
       project={project}
+      existingDeployment={existingDeployment}
     />
   );
 };

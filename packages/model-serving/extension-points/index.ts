@@ -271,6 +271,7 @@ export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
         serverResource?: D['server'],
         serverResourceTemplateName?: string,
         dryRun?: boolean,
+        secretName?: string,
       ) => Promise<D>
     >;
   }
