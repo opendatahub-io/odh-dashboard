@@ -2,6 +2,7 @@ package integrations
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -23,6 +24,7 @@ type HTTPClient struct {
 	client  *http.Client
 	baseURL string
 	logger  *slog.Logger
+	Headers http.Header
 }
 
 type ErrorResponse struct {
@@ -39,14 +41,18 @@ func (e *HTTPError) Error() string {
 	return fmt.Sprintf("HTTP %d: %s - %s", e.StatusCode, e.Code, e.Message)
 }
 
-func NewHTTPClient(logger *slog.Logger, baseURL string) (HTTPClientInterface, error) {
-
+func NewHTTPClient(logger *slog.Logger, baseURL string, headers http.Header, insecureSkipVerify bool, rootCAs *x509.CertPool) (HTTPClientInterface, error) {
+	tlsCfg := &tls.Config{InsecureSkipVerify: insecureSkipVerify}
+	if rootCAs != nil {
+		tlsCfg.RootCAs = rootCAs
+	}
 	return &HTTPClient{
 		client: &http.Client{Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			TLSClientConfig: tlsCfg,
 		}},
 		baseURL: baseURL,
 		logger:  logger,
+		Headers: headers,
 	}, nil
 }
 
@@ -58,6 +64,8 @@ func (c *HTTPClient) GET(url string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	c.applyHeaders(req)
 
 	logUpstreamReq(c.logger, requestId, req)
 
@@ -93,6 +101,8 @@ func (c *HTTPClient) POST(url string, body io.Reader) ([]byte, error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+
+	c.applyHeaders(req)
 
 	logUpstreamReq(c.logger, requestId, req)
 
@@ -146,6 +156,8 @@ func (c *HTTPClient) PATCH(url string, body io.Reader) ([]byte, error) {
 	requestId := uuid.NewString()
 	req.Header.Set("Content-Type", "application/json")
 
+	c.applyHeaders(req)
+
 	logUpstreamReq(c.logger, requestId, req)
 
 	response, err := c.client.Do(req)
@@ -185,6 +197,16 @@ func (c *HTTPClient) PATCH(url string, body io.Reader) ([]byte, error) {
 	}
 
 	return responseBody, nil
+}
+
+func (c *HTTPClient) applyHeaders(req *http.Request) {
+	if c.Headers != nil {
+		for key, values := range c.Headers {
+			for _, value := range values {
+				req.Header.Add(key, value)
+			}
+		}
+	}
 }
 
 func logUpstreamReq(logger *slog.Logger, reqId string, req *http.Request) {

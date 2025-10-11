@@ -2,8 +2,11 @@ package llamastack
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 
@@ -19,10 +22,22 @@ type LlamaStackClient struct {
 }
 
 // NewLlamaStackClient creates a new client configured for Llama Stack.
-func NewLlamaStackClient(baseURL string) *LlamaStackClient {
+func NewLlamaStackClient(baseURL string, insecureSkipVerify bool, rootCAs *x509.CertPool) *LlamaStackClient {
+	tlsConfig := &tls.Config{InsecureSkipVerify: insecureSkipVerify}
+	if rootCAs != nil {
+		tlsConfig.RootCAs = rootCAs
+	}
+
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: tlsConfig,
+		},
+	}
+
 	client := openai.NewClient(
 		option.WithBaseURL(baseURL+"/v1/openai/v1"),
 		option.WithAPIKey("none"),
+		option.WithHTTPClient(httpClient),
 	)
 
 	return &LlamaStackClient{
