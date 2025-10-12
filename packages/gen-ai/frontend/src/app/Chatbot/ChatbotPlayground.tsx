@@ -51,6 +51,27 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   );
   const [isStreamingEnabled, setIsStreamingEnabled] = React.useState<boolean>(true);
   const [temperature, setTemperature] = React.useState<number>(0.1);
+  const [isDarkMode, setIsDarkMode] = React.useState<boolean>(false);
+
+  // Detect dark mode by checking for pf-v6-theme-dark class
+  React.useEffect(() => {
+    const checkDarkMode = () => {
+      const htmlElement = document.documentElement;
+      setIsDarkMode(htmlElement.classList.contains('pf-v6-theme-dark'));
+    };
+
+    // Check initially
+    checkDarkMode();
+
+    // Set up observer to watch for class changes
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   const location = useLocation();
   const selectedAAModel = location.state?.model;
@@ -165,7 +186,13 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         <DrawerContent panelContent={settingsPanelContent}>
           <DrawerContentBody>
             <Chatbot displayMode={ChatbotDisplayMode.embedded} data-testid="chatbot">
-              <ChatbotContent>
+              <ChatbotContent
+                style={{
+                  backgroundColor: isDarkMode
+                    ? 'var(--pf-t--global--dark--background--color--100)'
+                    : 'var(--pf-t--global--background--color--100)',
+                }}
+              >
                 <MessageBox position="bottom">
                   <ChatbotWelcomePrompt
                     title={username ? `Hello, ${username}` : 'Hello'}
@@ -181,6 +208,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               </ChatbotContent>
               <ChatbotFooter>
                 <MessageBar
+                  className="message-bar"
                   onSendMessage={(message) => {
                     if (typeof message === 'string') {
                       chatbotMessages.handleMessageSend(message);

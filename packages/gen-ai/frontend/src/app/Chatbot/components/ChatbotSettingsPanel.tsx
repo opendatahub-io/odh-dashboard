@@ -61,8 +61,32 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const accordionState = useAccordionState();
   const { selectedServersCount, saveSelectedServersToPlayground } = useMCPSelectionContext();
 
+  const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
+  const DEFAULT_WIDTH = '460px';
+
+  // Initialize panel width from session storage or use default
+  const [panelWidth, setPanelWidth] = React.useState<string>(() => {
+    const storedWidth = sessionStorage.getItem(SETTINGS_PANEL_WIDTH);
+    return storedWidth || DEFAULT_WIDTH;
+  });
+
+  // Handle panel resize and save to session storage
+  const handlePanelResize = (
+    _event: MouseEvent | TouchEvent | React.KeyboardEvent<Element>,
+    width: number,
+  ) => {
+    const newWidth = `${width}px`;
+    setPanelWidth(newWidth);
+    sessionStorage.setItem(SETTINGS_PANEL_WIDTH, newWidth);
+  };
+
   return (
-    <DrawerPanelContent isResizable defaultSize="460px" minSize="300px">
+    <DrawerPanelContent
+      isResizable
+      defaultSize={panelWidth}
+      minSize="300px"
+      onResize={handlePanelResize}
+    >
       <DrawerPanelBody>
         <Accordion asDefinitionList={false}>
           {/* Model Details Accordion Item */}
