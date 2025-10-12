@@ -25,7 +25,7 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('[Product Bug: RHOAIENG-35577] A model can be deployed with token auth', () => {
+describe('A model can be deployed with token auth', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
     return loadDSPFixture('e2e/dataScienceProjects/testModelTokenAuth.yaml').then(
@@ -56,11 +56,14 @@ describe('[Product Bug: RHOAIENG-35577] A model can be deployed with token auth'
 
   it(
     'Verify that a model can be deployed with token auth',
-    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@Bug'] },
+    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing'] },
     () => {
       cy.log('Model Name:', modelName);
       cy.step(`Log into the application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin(
+        '/?devFeatureFlags=disableDeploymentWizard%3Dfalse',
+        HTPASSWD_CLUSTER_ADMIN_USER,
+      );
 
       // Project navigation
       cy.step(`Navigate to the Project list tab and search for ${projectName}`);

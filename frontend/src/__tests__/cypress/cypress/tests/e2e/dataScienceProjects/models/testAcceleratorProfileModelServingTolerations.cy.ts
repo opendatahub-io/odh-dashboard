@@ -99,7 +99,7 @@ describe('[Bug: RHOAIENG-33131] Verify Model Serving Creation using Accelerator 
       // Navigate to Model Serving tab and Deploy a Single Model
       cy.step('Navigate to Model Serving and click to Deploy a Single Model');
       projectDetails.findSectionTab('model-server').click();
-      modelServingGlobal.findSingleServingModelButton().click();
+      //modelServingGlobal.findSingleServingModelButton().click();
       modelServingGlobal.findDeployModelButton().click();
       inferenceServiceModal.shouldBeOpen();
       inferenceServiceModal.findModelNameInput().type(modelName);

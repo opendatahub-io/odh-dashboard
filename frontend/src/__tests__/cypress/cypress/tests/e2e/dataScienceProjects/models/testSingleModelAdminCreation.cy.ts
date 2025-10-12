@@ -70,7 +70,10 @@ describe('[Product Bug: RHOAIENG-35572] Verify Admin Single Model Creation and V
       cy.log('Model Name:', modelName);
       // Authentication and navigation
       cy.step(`Log into the application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin(
+        '/?devFeatureFlags=disableDeploymentWizard%3Dfalse',
+        HTPASSWD_CLUSTER_ADMIN_USER,
+      );
 
       // Project navigation
       cy.step(`Navigate to the Project list tab and search for ${projectName}`);

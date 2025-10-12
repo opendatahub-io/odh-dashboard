@@ -72,7 +72,10 @@ describe('Verify a model can be deployed from a PVC', () => {
     { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving'] },
     () => {
       cy.step('log into application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}');
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin(
+        '/?devFeatureFlags=disableDeploymentWizard%3Dfalse',
+        HTPASSWD_CLUSTER_ADMIN_USER,
+      );
 
       // Navigate to the project
       cy.step('Navigate to the project');
@@ -142,8 +145,6 @@ describe('Verify a model can be deployed from a PVC', () => {
       modelServingWizard.findNextButton().click();
       //Step 4: Summary
       modelServingWizard.findSubmitButton().click();
-      modelServingWizard.shouldBeOpen(false);
-
       //Verify the model created and is running
       cy.step('Verify that the Model is running');
       // For KServe Raw deployments, we only need to check Ready condition

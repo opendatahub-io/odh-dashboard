@@ -62,7 +62,10 @@ describe('A model can be stopped and started', () => {
     () => {
       cy.log('Model Name:', modelName);
       cy.step(`Log into the application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin(
+        '/?devFeatureFlags=disableDeploymentWizard%3Dfalse',
+        HTPASSWD_CLUSTER_ADMIN_USER,
+      );
 
       // Project navigation
       cy.step(`Navigate to the Project list tab and search for ${projectName}`);
@@ -77,7 +80,6 @@ describe('A model can be stopped and started', () => {
       // Deploy a Model
       cy.step('Deploy a Model');
       modelServingGlobal.findDeployModelButton().click();
-      modelServingWizard.shouldBeOpen(true);
       // Step 1: Model Source
       modelServingWizard.findModelLocationSelectOption('Existing connection').click();
       modelServingWizard.findLocationPathInput().type(modelFilePath);
@@ -91,7 +93,6 @@ describe('A model can be stopped and started', () => {
       modelServingWizard.findNextButton().click();
       //Step 4: Summary
       modelServingWizard.findSubmitButton().click();
-      modelServingWizard.shouldBeOpen(false);
       modelServingSection.findModelServerDeployedName(testData.singleModelName);
       const kServeRow = modelServingSection.getKServeRow(testData.singleModelName);
 

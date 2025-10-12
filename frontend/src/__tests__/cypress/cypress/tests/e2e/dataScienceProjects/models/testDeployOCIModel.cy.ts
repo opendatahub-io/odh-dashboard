@@ -8,7 +8,6 @@ import {
   connectionsPage,
 } from '#~/__tests__/cypress/cypress/pages/connections';
 import {
-  inferenceServiceModal,
   modelServingGlobal,
   modelServingSection,
   modelServingWizard,
@@ -27,7 +26,7 @@ let modelDeploymentName: string;
 const uuid = generateTestUUID();
 
 describe(
-  '[Product Bug: RHOAIENG-31085] A user can create an OCI connection and deploy a model with it',
+  'A user can create an OCI connection and deploy a model with it',
   { testIsolation: false },
   () => {
     let testData: DeployOCIModelData;
@@ -59,11 +58,14 @@ describe(
     it(
       'Verify User Can Create an OCI Connection in DS Connections Page And Deploy the Model',
       {
-        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent', '@Bug'],
+        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent'],
       },
       () => {
         cy.step(`Navigate to DS Project ${projectName}`);
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+        cy.visitWithLogin(
+          '/?devFeatureFlags=disableDeploymentWizard%3Dfalse',
+          HTPASSWD_CLUSTER_ADMIN_USER,
+        );
         projectListPage.navigate();
         projectListPage.filterProjectByName(projectName);
         projectListPage.findProjectLink(projectName).click();
@@ -84,24 +86,33 @@ describe(
 
         cy.step('Deploy OCI Connection with KServe');
         projectDetails.findSectionTab('model-server').click();
-        modelServingGlobal.findSingleServingModelButton().click();
         modelServingGlobal.findDeployModelButton().click();
-        modelServingWizard.findModelLocationSelectOption('Exisiting connection').click();
-        inferenceServiceModal.findOCIModelURI().type(modelDeploymentURI);
+        // Step 1: Model Source
+        modelServingWizard.findModelLocationSelectOption('Existing connection').click();
+        modelServingWizard.findOCIModelURI().type(modelDeploymentURI);
         modelServingWizard.findModelTypeSelectOption('Predictive model').click();
-        modelServingWizard.findNextButton().should('be.enabled').click();
+        modelServingWizard.findNextButton().click();
+        // Step 2: Model Deployment
         modelServingWizard.findModelDeploymentNameInput().type(modelDeploymentName);
-        modelServingWizard.findModelFormatSelectOption('OpenVINO Model Server').click();
-        inferenceServiceModal.findSubmitButton().focus().click();
-        modelServingWizard.findNextButton().should('be.enabled').click();
-        modelServingWizard.findNextButton().should('be.enabled').click();
-        modelServingWizard.findSubmitButton().should('be.enabled').click();
-        checkInferenceServiceState(modelDeploymentName, projectName);
-        // Note reload is required as status tooltip was not found due to a stale element
-        cy.reload();
+        modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
+        modelServingWizard.findNextButton().click();
+        //Step 3: Advanced Options
+        modelServingWizard.findNextButton().click();
+        //Step 4: Summary
+        modelServingWizard.findSubmitButton().click();
+        //Verify the model created and is running
+        cy.step('Verify that the Model is running');
+        // For KServe Raw deployments, we only need to check Ready condition
+        // LatestDeploymentReady is specific to Serverless deployments
+        checkInferenceServiceState(
+          modelDeploymentName,
+          projectName,
+          {
+            checkReady: true,
+          },
+          'RawDeployment',
+        );
         modelServingSection.findModelMetricsLink(modelDeploymentName);
-        modelServingSection.findStatusTooltip().click({ force: true });
-        cy.contains('Model is deployed', { timeout: 120000 }).should('be.visible');
       },
     );
   },
