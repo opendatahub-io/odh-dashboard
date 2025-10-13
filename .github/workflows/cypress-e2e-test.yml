@@ -1,6 +1,6 @@
-name: E2E Direct Commit PR Tests 
+name: E2E Direct Commit PR Tests
 
-on: [push, pull_request]
+on: [push]
 
 permissions:
   contents: read
@@ -45,8 +45,15 @@ jobs:
           
           CYPRESS_PORT=$((BASE_PORT + MATRIX_OFFSET))
           
+          # Set unique DISPLAY for Xvfb (for parallel Chrome instances)
+          # Use higher display numbers (200+) to avoid collisions with existing Xvfb processes
+          DISPLAY_NUM=$((200 + ${{ github.run_id }} % 50 + MATRIX_OFFSET))
+          DISPLAY=":${DISPLAY_NUM}"
+          
           echo "CYPRESS_PORT=$CYPRESS_PORT" >> $GITHUB_ENV
+          echo "DISPLAY=$DISPLAY" >> $GITHUB_ENV
           echo "📍 Workflow run ${{ github.run_id }} matrix ${{ matrix.test-tag }} will use port: $CYPRESS_PORT"
+          echo "🖥️  Using display: $DISPLAY"
           echo "🏷️  Test tag: ${{ matrix.test-tag }}"
 
       - name: Checkout code
@@ -463,6 +470,32 @@ jobs:
             exit 1
           fi
 
+      - name: Start Xvfb
+        run: |
+          echo "🖥️  Starting Xvfb on display ${{ env.DISPLAY }}..."
+          
+          # Check if display is already running
+          if ps aux | grep -v grep | grep "Xvfb ${{ env.DISPLAY }}" > /dev/null; then
+            echo "⚠️  Display ${{ env.DISPLAY }} already running - will reuse it"
+          else
+            # Start Xvfb in background
+            Xvfb ${{ env.DISPLAY }} -screen 0 1280x1024x24 > /tmp/xvfb-${{ matrix.test-tag }}.log 2>&1 &
+            XVFB_PID=$!
+            echo "XVFB_PID=$XVFB_PID" >> $GITHUB_ENV
+            
+            # Wait for Xvfb to initialize
+            sleep 2
+            
+            # Verify it started
+            if ps -p $XVFB_PID > /dev/null 2>&1; then
+              echo "✅ Xvfb started (PID: $XVFB_PID) on display ${{ env.DISPLAY }}"
+            else
+              echo "❌ Xvfb failed to start!"
+              cat /tmp/xvfb-${{ matrix.test-tag }}.log
+              exit 1
+            fi
+          fi
+
       - name: Run E2E Tests
         run: |
           cd frontend
@@ -478,6 +511,7 @@ jobs:
           # Run tests with matrix tag using Jenkins-style command format
           export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
           export CY_RESULTS_DIR="${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}"
+          export DISPLAY="${{ env.DISPLAY }}"
 
           # Ensure OpenShift configuration is available to Cypress process
           if [ -n "$KUBECONFIG" ]; then
@@ -493,7 +527,7 @@ jobs:
           echo "📋 Test group: ${{ matrix.test-tag }}"
 
           # Use Jenkins-style command format for proper tag filtering
-          echo "🔄 Using Chrome browser (Chrome not available on Fedora)"
+          echo "🔄 Using Chrome browser (headless)"
 
           # Create results directory
           mkdir -p "$CY_RESULTS_DIR"
@@ -551,6 +585,10 @@ jobs:
               lsof -ti:$port | xargs kill -9 2>/dev/null || true
             fi
           done
+          
+          # Clean up Xvfb processes for this workflow (displays 200-250)
+          echo "🖥️  Cleaning up Xvfb processes..."
+          pkill -f "Xvfb :[2][0-5][0-9]" || echo "No Xvfb processes in range :200-:259"
           
           echo "✅ Server cleanup completed"
 
