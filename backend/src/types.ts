@@ -60,10 +60,6 @@ export type DashboardConfig = K8sResourceCommon & {
       pvcSize?: string;
       // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
       // notebookNamespace?: string;
-      notebookTolerationSettings?: {
-        enabled: boolean;
-        key: string;
-      };
       storageClassName?: string;
     };
     templateOrder?: string[];
@@ -94,16 +90,10 @@ export type NotebookSize = {
   notUserDefined?: boolean;
 };
 
-export type NotebookTolerationSettings = {
-  enabled: boolean;
-  key: string;
-};
-
 export type ClusterSettings = {
   pvcSize: number;
   cullerTimeout: number;
   userTrackingEnabled: boolean;
-  notebookTolerationSettings: NotebookTolerationSettings | null;
   modelServingPlatformEnabled: {
     kServe: boolean;
     modelMesh: boolean;

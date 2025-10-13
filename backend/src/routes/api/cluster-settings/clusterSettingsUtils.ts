@@ -17,7 +17,6 @@ const DEFAULT_CLUSTER_SETTINGS = {
   pvcSize: DEFAULT_PVC_SIZE,
   cullerTimeout: DEFAULT_CULLER_TIMEOUT,
   userTrackingEnabled: false,
-  notebookTolerationSettings: { enabled: false, key: 'NotebooksOnly' },
   modelServingPlatformEnabled: {
     kServe: true,
     modelMesh: false,
@@ -32,13 +31,7 @@ export const updateClusterSettings = async (
 ): Promise<{ success: boolean; error: string }> => {
   const { coreV1Api } = fastify.kube;
   const { namespace } = fastify.kube;
-  const {
-    pvcSize,
-    cullerTimeout,
-    userTrackingEnabled,
-    notebookTolerationSettings,
-    modelServingPlatformEnabled,
-  } = request.body;
+  const { pvcSize, cullerTimeout, userTrackingEnabled, modelServingPlatformEnabled } = request.body;
   const dashConfig = getDashboardConfig(request);
   const isJupyterEnabled = checkJupyterEnabled();
   try {
@@ -67,13 +60,6 @@ export const updateClusterSettings = async (
           notebookController: {
             enabled: isJupyterEnabled,
             pvcSize: `${pvcSize}Gi`,
-            ...(isJupyterEnabled &&
-              !!notebookTolerationSettings && {
-                notebookTolerationSettings: {
-                  enabled: notebookTolerationSettings.enabled,
-                  key: notebookTolerationSettings.key,
-                },
-              }),
           },
         },
       });
@@ -131,16 +117,11 @@ export const getClusterSettings = async (
   const { coreV1Api } = fastify.kube;
   const { namespace } = fastify.kube;
   const dashConfig = getDashboardConfig(request);
-  const isJupyterEnabled = checkJupyterEnabled();
   const clusterSettings: ClusterSettings = {
     ...DEFAULT_CLUSTER_SETTINGS,
     modelServingPlatformEnabled: {
       kServe: !dashConfig.spec.dashboardConfig.disableKServe,
       modelMesh: !dashConfig.spec.dashboardConfig.disableModelMesh,
-    },
-    notebookTolerationSettings: {
-      ...DEFAULT_CLUSTER_SETTINGS.notebookTolerationSettings,
-      key: isJupyterEnabled ? DEFAULT_CLUSTER_SETTINGS.notebookTolerationSettings.key : '',
     },
   };
 
@@ -157,10 +138,6 @@ export const getClusterSettings = async (
   clusterSettings.pvcSize = DEFAULT_PVC_SIZE;
   if (dashConfig.spec.notebookController?.pvcSize) {
     clusterSettings.pvcSize = Number(dashConfig.spec.notebookController.pvcSize.replace('Gi', ''));
-  }
-  if (dashConfig.spec.notebookController?.notebookTolerationSettings && isJupyterEnabled) {
-    clusterSettings.notebookTolerationSettings =
-      dashConfig.spec.notebookController.notebookTolerationSettings;
   }
   clusterSettings.cullerTimeout = DEFAULT_CULLER_TIMEOUT;
   await fastify.kube.coreV1Api

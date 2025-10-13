@@ -495,7 +495,7 @@ describe('startNotebook', () => {
 
     k8sPatchResourceMock.mockResolvedValue(mockNotebookK8sResource({ uid }));
 
-    const renderResult = await startNotebook(mockNotebook, tolerationChanges, enablePipelines);
+    const renderResult = await startNotebook(mockNotebook, enablePipelines);
 
     expect(k8sPatchResourceMock).toHaveBeenCalledWith({
       model: NotebookModel,
@@ -520,7 +520,7 @@ describe('startNotebook', () => {
 
     k8sPatchResourceMock.mockResolvedValue(mockNotebookK8sResource({ uid }));
 
-    const renderResult = await startNotebook(mockNotebook, tolerationChanges, enablePipelines);
+    const renderResult = await startNotebook(mockNotebook, enablePipelines);
 
     expect(k8sPatchResourceMock).toHaveBeenCalledWith({
       model: NotebookModel,
@@ -545,7 +545,7 @@ describe('startNotebook', () => {
 
     k8sPatchResourceMock.mockResolvedValue(mockNotebookK8sResource({ uid }));
 
-    const renderResult = await startNotebook(mockNotebook, tolerationChanges, enablePipelines);
+    const renderResult = await startNotebook(mockNotebook, enablePipelines);
 
     expect(k8sPatchResourceMock).toHaveBeenCalledWith({
       model: NotebookModel,
@@ -561,16 +561,12 @@ describe('startNotebook', () => {
     expect(renderResult).toStrictEqual(mockNotebook);
   });
   it('should start a notebook without pipelines', async () => {
-    const tolerationChanges = {
-      type: 'nothing',
-      settings: [] as Toleration[],
-    } as TolerationChanges;
     const enablePipelines = false;
 
     const mockNotebook = mockNotebookK8sResource({ uid });
     k8sPatchResourceMock.mockResolvedValue(mockNotebook);
 
-    const renderResult = await startNotebook(mockNotebook, tolerationChanges, enablePipelines);
+    const renderResult = await startNotebook(mockNotebook, enablePipelines);
 
     expect(k8sPatchResourceMock).toHaveBeenCalledWith({
       model: NotebookModel,
@@ -590,9 +586,7 @@ describe('startNotebook', () => {
     const mockNotebook = mockNotebookK8sResource({ uid });
 
     k8sPatchResourceMock.mockRejectedValue(new Error('error1'));
-    await expect(startNotebook(mockNotebook, tolerationChanges, enablePipelines)).rejects.toThrow(
-      'error1',
-    );
+    await expect(startNotebook(mockNotebook, enablePipelines)).rejects.toThrow('error1');
     expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sPatchResourceMock).toHaveBeenCalledWith({
       model: NotebookModel,

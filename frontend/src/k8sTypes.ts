@@ -15,7 +15,6 @@ import {
   PodAffinity,
   PodContainer,
   Toleration,
-  TolerationSettings,
   Volume,
   VolumeMount,
   HardwareProfileAnnotations,
@@ -1310,7 +1309,6 @@ export type DashboardConfigKind = K8sResourceCommon & {
       storageClassName?: string;
       // Intentionally disjointed from the CRD [1]
       // notebookNamespace?: string;
-      notebookTolerationSettings?: TolerationSettings;
     };
     templateOrder?: string[];
     templateDisablement?: string[];
