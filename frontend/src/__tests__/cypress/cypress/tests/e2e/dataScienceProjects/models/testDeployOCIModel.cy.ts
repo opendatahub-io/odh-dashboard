@@ -38,10 +38,22 @@ describe(
           testData = fixtureData;
           projectName = `${testData.projectName}-${uuid}`;
           connectionName = testData.connectionName;
-          // Create temporary file with secret content
+          // Load fixture file and update with actual secret value
           const secretValue = Cypress.env('OCI_SECRET_VALUE');
-          secretDetailsFile = `/tmp/oci-secret-${uuid}.json`;
-          cy.writeFile(secretDetailsFile, secretValue);
+          const secretDetailsFixture = 'resources/json/oci-data-connection-secret.json';
+          secretDetailsFile = `cypress/fixtures/${secretDetailsFixture}`;
+          // Load the fixture, update auth value, and write back
+          cy.fixture(secretDetailsFixture).then((templateContent) => {
+            const updatedContent = {
+              ...templateContent,
+              auths: {
+                'quay.io': {
+                  auth: secretValue,
+                },
+              },
+            };
+            cy.writeFile(secretDetailsFile, updatedContent);
+          });
           ociRegistryHost = testData.ociRegistryHost;
           modelDeploymentURI = Cypress.env('OCI_MODEL_URI');
           modelDeploymentName = testData.modelDeploymentName;
@@ -53,9 +65,6 @@ describe(
     });
 
     after(() => {
-      // Clean up temporary secret file
-      cy.task('deleteFile', secretDetailsFile, { log: false });
-
       // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
       // TODO: Review this timeout once RHOAIENG-19969 is resolved
       deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
