@@ -1076,7 +1076,7 @@ describe('Project Details', () => {
         .click();
       cy.url().should(
         'include',
-        '/model-registry/modelregistry-sample/registeredModels/1/versions/2',
+        '/modelRegistry/modelregistry-sample/registeredModels/1/versions/2',
       );
     });
 
