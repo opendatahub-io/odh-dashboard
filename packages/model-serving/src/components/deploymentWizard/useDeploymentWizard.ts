@@ -76,6 +76,10 @@ export type UseModelDeploymentWizardState = WizardFormData & {
     externalRouteFields: ExternalRouteField[];
     tokenAuthFields: TokenAuthField[];
   };
+  advancedOptions: {
+    isExternalRouteVisible: boolean;
+    shouldAutoCheckTokens: boolean;
+  };
 };
 
 export const useModelDeploymentWizard = (
@@ -172,10 +176,18 @@ export const useModelDeploymentWizard = (
   }, [modelFormatState.loaded, hardwareProfileConfig.profilesLoaded]);
 
   // Step 3: Advanced Options - Individual Fields
-  const externalRoute = useExternalRouteField(initialData?.externalRoute ?? undefined);
+  const externalRoute = useExternalRouteField(
+    initialData?.externalRoute ?? undefined,
+    externalRouteFields,
+    modelType.data,
+    modelServer.data || undefined,
+  );
 
   const tokenAuthentication = useTokenAuthenticationField(
     initialData?.tokenAuthentication ?? undefined,
+    tokenAuthFields,
+    modelType.data,
+    modelServer.data || undefined,
   );
   const aiAssetData = useAvailableAiAssetsFields(
     initialData?.aiAssetData ?? undefined,
@@ -216,5 +228,9 @@ export const useModelDeploymentWizard = (
       summaryLoaded: true, // TODO: Update if these get dependencies that we need to wait for
     },
     fieldExtensions,
+    advancedOptions: {
+      isExternalRouteVisible: externalRoute.isVisible,
+      shouldAutoCheckTokens: tokenAuthentication.shouldAutoCheck,
+    },
   };
 };

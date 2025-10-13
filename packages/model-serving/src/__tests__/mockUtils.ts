@@ -181,12 +181,12 @@ export const mockDeploymentWizardState = (
         externalRoute: {
           data: undefined,
           setData: jest.fn(),
-          updateField: jest.fn(),
+          isVisible: true,
         },
         tokenAuthentication: {
           data: undefined,
           setData: jest.fn(),
-          updateField: jest.fn(),
+          shouldAutoCheck: false,
         },
         runtimeArgs: {
           data: undefined,
@@ -222,6 +222,10 @@ export const mockDeploymentWizardState = (
         modelDeploymentLoaded: true,
         advancedOptionsLoaded: true,
         summaryLoaded: true,
+      },
+      advancedOptions: {
+        isExternalRouteVisible: true,
+        shouldAutoCheckTokens: false,
       },
     },
     overrides,

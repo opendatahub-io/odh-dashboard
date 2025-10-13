@@ -7,15 +7,7 @@ import {
   ServingRuntimeKind,
 } from '@odh-dashboard/internal/k8sTypes';
 import { isServingRuntimeKind } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
-import {
-  Form,
-  Title,
-  Stack,
-  StackItem,
-  Alert,
-  FormGroup,
-  getUniqueId,
-} from '@patternfly/react-core';
+import { Form, Title, Stack, StackItem, Alert, FormGroup } from '@patternfly/react-core';
 import { useAccessReview } from '../../../../../../frontend/src/api';
 import { ExternalRouteField } from '../fields/ExternalRouteField';
 import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
@@ -23,6 +15,7 @@ import { RuntimeArgsField } from '../fields/RuntimeArgsField';
 import { EnvironmentVariablesField } from '../fields/EnvironmentVariablesField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { AvailableAiAssetsFieldsComponent } from '../fields/AvailableAiAssetsFields';
+import { useAuthWarning } from '../hooks/useAuthWarning';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -41,51 +34,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
 }) => {
   const externalRouteData = wizardState.state.externalRoute.data;
   const tokenAuthData = wizardState.state.tokenAuthentication.data;
-
-  const extensionContext = React.useMemo(() => {
-    if (!wizardState.state.modelType.data) return null;
-    return {
-      modelType: wizardState.state.modelType.data,
-      selectedModelServer: wizardState.state.modelServer.data || undefined,
-    };
-  }, [wizardState.state.modelType.data, wizardState.state.modelServer.data]);
-
-  const activeExternalRouteField = wizardState.fieldExtensions.externalRouteFields.find(
-    (field) => extensionContext && field.isActive(extensionContext),
-  );
-  const activeTokenAuthField = wizardState.fieldExtensions.tokenAuthFields.find(
-    (field) => extensionContext && field.isActive(extensionContext),
-  );
-  const isExternalRouteVisible = activeExternalRouteField?.isVisible ?? true;
-  const shouldAutoCheckTokens = activeTokenAuthField?.initialValue ?? false;
-  const hasAutoCheckedRef = React.useRef(false);
-
-  React.useEffect(() => {
-    if (shouldAutoCheckTokens && !hasAutoCheckedRef.current) {
-      if (!tokenAuthData || tokenAuthData.length === 0) {
-        wizardState.state.tokenAuthentication.setData([
-          {
-            uuid: getUniqueId('ml'),
-            name: 'default-name',
-            error: '',
-          },
-        ]);
-      }
-      if (!isExternalRouteVisible && externalRouteData) {
-        wizardState.state.externalRoute.setData(false);
-      }
-      hasAutoCheckedRef.current = true;
-    } else if (!shouldAutoCheckTokens) {
-      hasAutoCheckedRef.current = false;
-    }
-  }, [
-    shouldAutoCheckTokens,
-    tokenAuthData,
-    isExternalRouteVisible,
-    externalRouteData,
-    wizardState.state.tokenAuthentication,
-    wizardState.state.externalRoute,
-  ]);
+  const { isExternalRouteVisible, shouldAutoCheckTokens } = wizardState.advancedOptions;
 
   // TODO: Clean up the stuff below related to KServe. Maybe move to an extension?
   const selectedModelServer =
@@ -181,18 +130,22 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
             </FormGroup>
           </StackItem>
 
-          {(shouldAutoCheckTokens || (isExternalRouteVisible && externalRouteData)) &&
-            (!tokenAuthData || tokenAuthData.length === 0) && (
-              <StackItem>
-                <Alert
-                  id="no-auth-alert"
-                  data-testid="no-auth-alert"
-                  variant="warning"
-                  isInline
-                  title="Making models available by external routes without requiring authorization can lead to security vulnerabilities."
-                />
-              </StackItem>
-            )}
+          {useAuthWarning({
+            shouldAutoCheckTokens,
+            isExternalRouteVisible,
+            externalRouteData,
+            tokenAuthData,
+          }) && (
+            <StackItem>
+              <Alert
+                id="no-auth-alert"
+                data-testid="no-auth-alert"
+                variant="warning"
+                isInline
+                title="Making models available by external routes without requiring authorization can lead to security vulnerabilities."
+              />
+            </StackItem>
+          )}
 
           <StackItem>
             <FormGroup
