@@ -497,6 +497,10 @@ jobs:
           fi
 
       - name: Run E2E Tests
+        env:
+          DISPLAY: ${{ env.DISPLAY }}
+          CY_TEST_CONFIG: ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          CY_RESULTS_DIR: ${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}
         run: |
           cd frontend
 
@@ -504,14 +508,21 @@ jobs:
           echo "Event: ${{ github.event_name }}"
           echo "Branch: ${{ github.ref_name }}"
           echo "Commit: ${{ github.sha }}"
+          
+          # DEBUG: Verify environment setup
+          echo ""
+          echo "=== Environment Verification ==="
+          echo "DISPLAY: $DISPLAY"
+          echo "CY_TEST_CONFIG: $CY_TEST_CONFIG"
+          echo "Xvfb running on $DISPLAY: $(ps aux | grep -v grep | grep "Xvfb $DISPLAY" > /dev/null && echo 'YES' || echo 'NO')"
+          if [ -f "$CY_TEST_CONFIG" ]; then
+            echo "Test config baseUrl: $(grep '^ODH_DASHBOARD_URL:' $CY_TEST_CONFIG | head -1)"
+          fi
+          echo "================================"
+          echo ""
 
           # Run real E2E tests (not mock mode)
           echo "🚀 Running real E2E tests against live dashboard"
-
-          # Run tests with matrix tag using Jenkins-style command format
-          export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
-          export CY_RESULTS_DIR="${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}"
-          export DISPLAY="${{ env.DISPLAY }}"
 
           # Ensure OpenShift configuration is available to Cypress process
           if [ -n "$KUBECONFIG" ]; then
@@ -534,6 +545,29 @@ jobs:
 
           # Run tests against dynamic port - baseUrl from test-variables.yml
           npm run cypress:run:chrome -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+
+      - name: Debug Chrome/DISPLAY on failure
+        if: ${{ failure() }}
+        run: |
+          echo "=== POST-FAILURE DEBUGGING ==="
+          echo ""
+          echo "1. Check if Chrome processes launched:"
+          ps aux | grep -v grep | grep chrome | head -5 || echo "No Chrome processes found"
+          echo ""
+          echo "2. Check Xvfb status:"
+          ps aux | grep -v grep | grep "Xvfb ${{ env.DISPLAY }}" || echo "Xvfb not running on ${{ env.DISPLAY }}"
+          echo ""
+          echo "3. Check Chrome DISPLAY environment (if Chrome is running):"
+          CHROME_PID=$(ps aux | grep -v grep | grep "/opt/google/chrome/chrome --test-type" | head -1 | awk '{print $2}')
+          if [ -n "$CHROME_PID" ]; then
+            echo "Chrome PID: $CHROME_PID"
+            cat /proc/$CHROME_PID/environ 2>/dev/null | tr '\0' '\n' | grep "^DISPLAY=" || echo "NO DISPLAY in Chrome environment"
+          else
+            echo "Chrome not found"
+          fi
+          echo ""
+          echo "4. Recent Cypress output (last 50 lines):"
+          find frontend/src/__tests__/cypress/results -name "*.log" -o -name "*.txt" 2>/dev/null | head -1 | xargs tail -50 || echo "No logs found"
 
       - name: Test tag name
         if: ${{ always() }}
