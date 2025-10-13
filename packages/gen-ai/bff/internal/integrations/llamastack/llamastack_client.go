@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/option"
@@ -32,6 +33,7 @@ func NewLlamaStackClient(baseURL string, insecureSkipVerify bool, rootCAs *x509.
 		Transport: &http.Transport{
 			TLSClientConfig: tlsConfig,
 		},
+		Timeout: 8 * time.Minute, // Overall request timeout (matches server WriteTimeout)
 	}
 
 	client := openai.NewClient(
