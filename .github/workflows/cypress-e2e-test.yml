@@ -30,13 +30,23 @@ jobs:
     steps:
       - name: Calculate unique port for this workflow run
         run: |
-          # Generate unique port using run_id to avoid conflicts between different PRs
+          # Generate unique port using run_id AND matrix index to avoid conflicts
           # Port range: 4000-4999 (1000 possible ports)
-          PORT_OFFSET=$(((${{ github.run_id }} % 100) * 10))
-          CYPRESS_PORT=$((4000 + PORT_OFFSET))
+          BASE_PORT=$((4000 + ((${{ github.run_id }} % 100) * 10)))
+          
+          # Add offset based on matrix test-tag to ensure each matrix job gets unique port
+          if [[ "${{ matrix.test-tag }}" == *"set-1"* ]]; then
+            MATRIX_OFFSET=0
+          elif [[ "${{ matrix.test-tag }}" == *"set-2"* ]]; then
+            MATRIX_OFFSET=1
+          else
+            MATRIX_OFFSET=2
+          fi
+          
+          CYPRESS_PORT=$((BASE_PORT + MATRIX_OFFSET))
           
           echo "CYPRESS_PORT=$CYPRESS_PORT" >> $GITHUB_ENV
-          echo "📍 Workflow run ${{ github.run_id }} will use port: $CYPRESS_PORT"
+          echo "📍 Workflow run ${{ github.run_id }} matrix ${{ matrix.test-tag }} will use port: $CYPRESS_PORT"
           echo "🏷️  Test tag: ${{ matrix.test-tag }}"
 
       - name: Checkout code
@@ -333,16 +343,16 @@ jobs:
           # For forked PRs or when secrets are not available, use localhost with dynamic port
           if [ -z "${{ secrets.OCP_CONSOLE_URL }}" ]; then
             echo "⚠️  OCP_CONSOLE_URL secret not available - using localhost with port ${CYPRESS_PORT}"
-            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: $DYNAMIC_URL|" "$TEST_VARS_FILE"
+            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: $DYNAMIC_URL|g" "$TEST_VARS_FILE"
           else
-            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: ${{ secrets.OCP_CONSOLE_URL }}|" "$TEST_VARS_FILE"
+            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: ${{ secrets.OCP_CONSOLE_URL }}|g" "$TEST_VARS_FILE"
           fi
           
           if [ -z "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
             echo "⚠️  ODH_DASHBOARD_URL secret not available - using localhost with port ${CYPRESS_PORT}"
-            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: $DYNAMIC_URL|" "$TEST_VARS_FILE"
+            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: $DYNAMIC_URL|g" "$TEST_VARS_FILE"
           else
-            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: ${{ secrets.ODH_DASHBOARD_URL }}|" "$TEST_VARS_FILE"
+            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: ${{ secrets.ODH_DASHBOARD_URL }}|g" "$TEST_VARS_FILE"
           fi
 
           # Export the unique config file path
