@@ -338,22 +338,19 @@ jobs:
           cp ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml "$TEST_VARS_FILE"
           
           # Update URLs to use dynamic port
+          # In dynamic port mode, ALWAYS use localhost (we're running webpack locally)
           DYNAMIC_URL="http://localhost:${CYPRESS_PORT}"
           
-          # For forked PRs or when secrets are not available, use localhost with dynamic port
-          if [ -z "${{ secrets.OCP_CONSOLE_URL }}" ]; then
-            echo "⚠️  OCP_CONSOLE_URL secret not available - using localhost with port ${CYPRESS_PORT}"
-            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: $DYNAMIC_URL|g" "$TEST_VARS_FILE"
-          else
-            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: ${{ secrets.OCP_CONSOLE_URL }}|g" "$TEST_VARS_FILE"
-          fi
+          echo "🔧 Updating test-variables.yml to use localhost:${CYPRESS_PORT}..."
+          sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: $DYNAMIC_URL|g" "$TEST_VARS_FILE"
+          sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: $DYNAMIC_URL|g" "$TEST_VARS_FILE"
           
-          if [ -z "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
-            echo "⚠️  ODH_DASHBOARD_URL secret not available - using localhost with port ${CYPRESS_PORT}"
-            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: $DYNAMIC_URL|g" "$TEST_VARS_FILE"
-          else
-            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: ${{ secrets.ODH_DASHBOARD_URL }}|g" "$TEST_VARS_FILE"
-          fi
+          echo "📝 Verifying ALL updated URLs (should all be localhost:${CYPRESS_PORT}):"
+          echo "ODH_DASHBOARD_URL occurrences:"
+          grep -n "ODH_DASHBOARD_URL:" "$TEST_VARS_FILE" || echo "No matches found"
+          echo ""
+          echo "OCP_CONSOLE_URL occurrences:"
+          grep -n "OCP_CONSOLE_URL:" "$TEST_VARS_FILE" || echo "No matches found"
 
           # Export the unique config file path
           echo "CY_TEST_CONFIG=$TEST_VARS_FILE" >> $GITHUB_ENV
