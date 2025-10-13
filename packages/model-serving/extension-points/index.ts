@@ -15,10 +15,10 @@ import type { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelSe
 import type { ToggleState } from '@odh-dashboard/internal/components/StateActionToggle';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
 import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
-import type { ModelLocationData } from '../src/components/deploymentWizard/fields/modelLocationFields/types';
 import type {
   WizardFormData,
   DeploymentWizardField,
+  ModelLocationData,
 } from '../src/components/deploymentWizard/types';
 
 export type DeploymentStatus = {

@@ -1,15 +1,15 @@
 import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
-import type { WizardFormData } from '@odh-dashboard/model-serving/types/form-data';
+import {
+  type WizardFormData,
+  ModelLocationType,
+  ModelLocationData,
+} from '@odh-dashboard/model-serving/types/form-data';
 import { applyHardwareProfileConfig, applyReplicas } from './hardware';
 import { applyModelEnvVars, applyModelArgs, applyModelLocation } from './model';
 import { setUpTokenAuth } from './deployUtils';
 import { LLMD_SERVING_ID } from '../../extensions/extensions';
 import { LLMdDeployment, LLMInferenceServiceKind, LLMInferenceServiceModel } from '../types';
-import {
-  ModelLocationData,
-  ModelLocationType,
-} from '../../../model-serving/src/components/deploymentWizard/fields/modelLocationFields/types';
 
 const applyTokenAuthentication = (
   llmdInferenceService: LLMInferenceServiceKind,

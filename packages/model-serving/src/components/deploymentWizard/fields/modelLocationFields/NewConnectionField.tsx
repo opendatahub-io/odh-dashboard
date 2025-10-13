@@ -12,7 +12,7 @@ import {
 import ConnectionTypeFormFields from '@odh-dashboard/internal/concepts/connectionTypes/fields/ConnectionTypeFormFields';
 import ConnectionOciPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciPathField';
 import ConnectionS3FolderPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionS3FolderPathField';
-import { ModelLocationData } from './types';
+import { ModelLocationData } from '../../types';
 
 type Props = {
   setModelLocationData: (data: ModelLocationData | undefined) => void;

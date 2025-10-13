@@ -9,7 +9,7 @@ import {
   isValidCreateConnectionData,
   useCreateConnectionData,
 } from '../CreateConnectionInputFields';
-import { ModelLocationType } from '../modelLocationFields/types';
+import { ModelLocationType } from '../../types';
 
 const createConnectionInputFieldsSchema = z.object({
   createConnectionData: createConnectionDataSchema,

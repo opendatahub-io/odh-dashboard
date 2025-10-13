@@ -3,8 +3,8 @@ import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+import { ModelLocationData } from '@odh-dashboard/model-serving/types/form-data';
 import type { LLMdContainer, LLMInferenceServiceKind } from '../types';
-import { ModelLocationData } from '../../../model-serving/src/components/deploymentWizard/fields/modelLocationFields/types';
 
 export const applyModelLocation = (
   llmdInferenceService: LLMInferenceServiceKind,

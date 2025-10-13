@@ -23,13 +23,9 @@ import useServingConnections from '@odh-dashboard/internal/pages/projects/screen
 import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
 import { ExistingConnectionField } from './modelLocationFields/ExistingConnectionField';
-import {
-  ConnectionTypeRefs,
-  ModelLocationData,
-  ModelLocationType,
-} from './modelLocationFields/types';
 import NewConnectionField from './modelLocationFields/NewConnectionField';
 import { PvcSelectField } from './modelLocationFields/PVCSelectField';
+import { ConnectionTypeRefs, ModelLocationData, ModelLocationType } from '../types';
 
 export type ModelLocationDataField = {
   data: ModelLocationData | undefined;

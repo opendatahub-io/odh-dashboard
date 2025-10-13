@@ -10,7 +10,7 @@ import K8sNameDescriptionField, {
 import { K8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/types';
 import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
 import { translateDisplayNameForK8s } from '@odh-dashboard/internal/concepts/k8s/utils';
-import { ModelLocationData, ModelLocationType } from './modelLocationFields/types';
+import { ModelLocationData, ModelLocationType } from '../types';
 
 export type CreateConnectionData = {
   saveConnection?: boolean;

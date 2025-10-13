@@ -1,9 +1,8 @@
 import { getTokenNames } from '@odh-dashboard/internal/pages/modelServing/utils';
 import { ProjectKind, ServingRuntimeKind } from '@odh-dashboard/internal/k8sTypes.js';
 import { isValidModelType, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
-import { ModelLocationType, ModelLocationData } from './fields/modelLocationFields/types';
 import { type TokenAuthenticationFieldData } from './fields/TokenAuthenticationField';
-import { WizardFormData } from './types';
+import { ModelLocationType, ModelLocationData, WizardFormData } from './types';
 import {
   handleConnectionCreation,
   handleSecretOwnerReferencePatch,
