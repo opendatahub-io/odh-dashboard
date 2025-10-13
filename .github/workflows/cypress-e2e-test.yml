@@ -1,26 +1,36 @@
 name: E2E Direct Commit PR Tests
 
-on: [push, pull_request]
+on:
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
+  pull-requests: write
+  issues: write
 
 env:
   NODE_VERSION: 20.x
   DO_NOT_TRACK: 1
 
 jobs:
+  check-comment:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-e2e-tests-gh') }}
+    steps:
+      - run: echo "E2E tests requested via /run-e2e-tests-gh comment"
+
   get-test-tags:
+    needs: [check-comment]
     runs-on: self-hosted
     outputs:
       test-tags: ${{ steps.set-tags.outputs.test-tags }}
     steps:
       - name: Set default test tags
         id: set-tags
-        # Created 2 new tags - @ci-dashboard-set-1 and @ci-dashboard-set-2
-        # ToDO: Use turbo to run tests according to PR changes.
+        # TO:DO - update execution tags and simplify for v1
         run: |
-          echo "test-tags=[\"@ci-dashboard-set-1\",\"@ci-dashboard-set-2\"]" >> $GITHUB_OUTPUT
+          echo "test-tags=[\"@SmokeSet1\",\"@SmokeSet2\",\"@SmokeSet3\"]" >> $GITHUB_OUTPUT
 
   e2e-tests:
     needs: [get-test-tags]
@@ -32,27 +42,31 @@ jobs:
     steps:
       - name: Calculate unique port for this workflow run
         run: |
-          # Simple dynamic port: start at 4010 and add run_id % 10
-          # This gives us ports 4010-4019 cycling across runs
-          BASE_PORT=4010
-          PORT_OFFSET=$((${{ github.run_id }} % 10))
+          # Generate unique port using run_id AND matrix index to avoid conflicts
+          # Port range: 4000-4999 (1000 possible ports)
+          BASE_PORT=$((4000 + ((${{ github.run_id }} % 100) * 10)))
           
-          # Add matrix offset to separate concurrent jobs
-          if [[ "${{ matrix.test-tag }}" == *"set-1"* ]]; then
+          # Add offset based on matrix test-tag to ensure each matrix job gets unique port
+          if [[ "${{ matrix.test-tag }}" == *"Set1"* ]]; then
             MATRIX_OFFSET=0
-          elif [[ "${{ matrix.test-tag }}" == *"set-2"* ]]; then
-            MATRIX_OFFSET=20
+          elif [[ "${{ matrix.test-tag }}" == *"Set2"* ]]; then
+            MATRIX_OFFSET=1
+          elif [[ "${{ matrix.test-tag }}" == *"Set3"* ]]; then
+            MATRIX_OFFSET=2
           else
-            MATRIX_OFFSET=40
+            MATRIX_OFFSET=3
           fi
           
-          CYPRESS_PORT=$((BASE_PORT + PORT_OFFSET + MATRIX_OFFSET))
-          echo "CYPRESS_PORT=$CYPRESS_PORT" >> $GITHUB_ENV
+          CYPRESS_PORT=$((BASE_PORT + MATRIX_OFFSET))
           
-          echo "📍 Port for run ${{ github.run_id }} (tag: ${{ matrix.test-tag }}): $CYPRESS_PORT"
+          echo "CYPRESS_PORT=$CYPRESS_PORT" >> $GITHUB_ENV
+          echo "📍 Workflow run ${{ github.run_id }} matrix ${{ matrix.test-tag }} will use port: $CYPRESS_PORT"
+          echo "🏷️  Test tag: ${{ matrix.test-tag }}"
 
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.issue.number }}/head
 
       - name: Cache npm dependencies
         uses: actions/cache@v4
@@ -236,6 +250,14 @@ jobs:
             echo "Token length: ${#GITLAB_TOKEN}"
             echo "URL length: ${#GITLAB_TEST_VARS_URL}"
 
+            # Debug: Show first few characters of secrets (safely)
+            if [ -n "${{ secrets.GITLAB_TOKEN }}" ]; then
+              echo "Token starts with: ${{ secrets.GITLAB_TOKEN }}" | cut -c1-10
+            fi
+            if [ -n "${{ secrets.GITLAB_TEST_VARS_URL }}" ]; then
+              echo "URL starts with: ${{ secrets.GITLAB_TEST_VARS_URL }}" | cut -c1-20
+            fi
+
             # Try with SSL verification disabled (for self-signed certs)
             if curl -f -k -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
                         "${{ secrets.GITLAB_TEST_VARS_URL }}" \
@@ -272,8 +294,8 @@ jobs:
             echo ""
             echo "💡 POSSIBLE SOLUTIONS:"
             echo "1. Ensure secrets are configured in upstream repo (opendatahub-io/odh-dashboard)"
-            echo "2. For testing, secrets need to be available when PR is merged"
-            echo "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
+            "2. For testing, secrets need to be available when PR is merged"
+            "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
             exit 1
           fi
 
@@ -327,28 +349,56 @@ jobs:
 
       - name: Set test configuration
         run: |
-          # IMPORTANT: Always use localhost with dynamic port for Cypress tests
-          # The webpack dev server proxies API calls to the cluster
-          echo "🔧 Updating test-variables.yml to use localhost:${CYPRESS_PORT}..."
-          sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:${CYPRESS_PORT}|g" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
-          sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:${CYPRESS_PORT}|g" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
-
-          echo "📝 Verifying updated URLs:"
-          grep "ODH_DASHBOARD_URL:" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml | head -3
-          grep "OCP_CONSOLE_URL:" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml | head -3
-
-          export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
+          TEST_VARS_FILE="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
+          
+          echo "🔧 Setting up test-variables.yml for Cypress (localhost:${CYPRESS_PORT})..."
+          
+          # Check if root-level ODH_DASHBOARD_URL exists (Cypress reads this)
+          if ! grep -q "^ODH_DASHBOARD_URL:" "$TEST_VARS_FILE"; then
+            echo "⚠️  Root-level ODH_DASHBOARD_URL not found - adding it"
+            echo "ODH_DASHBOARD_URL: http://localhost:${CYPRESS_PORT}" >> "$TEST_VARS_FILE"
+          else
+            echo "✅ Root-level ODH_DASHBOARD_URL found - updating it"
+            sed -i.bak "s|^ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:${CYPRESS_PORT}|g" "$TEST_VARS_FILE"
+          fi
+          
+          # Check if root-level OCP_CONSOLE_URL exists
+          if ! grep -q "^OCP_CONSOLE_URL:" "$TEST_VARS_FILE"; then
+            echo "⚠️  Root-level OCP_CONSOLE_URL not found - adding it"
+            echo "OCP_CONSOLE_URL: http://localhost:${CYPRESS_PORT}" >> "$TEST_VARS_FILE"
+          else
+            echo "✅ Root-level OCP_CONSOLE_URL found - updating it"
+            sed -i.bak "s|^OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:${CYPRESS_PORT}|g" "$TEST_VARS_FILE"
+          fi
+          
+          # Also update any nested occurrences (in TEST_CLUSTERS)
+          echo "🔧 Updating nested URL occurrences..."
+          sed -i "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:${CYPRESS_PORT}|g" "$TEST_VARS_FILE"
+          sed -i "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:${CYPRESS_PORT}|g" "$TEST_VARS_FILE"
+          
+          echo ""
+          echo "📝 Verifying configuration (showing root-level URLs that Cypress reads):"
+          echo "Root-level ODH_DASHBOARD_URL:"
+          grep -n "^ODH_DASHBOARD_URL:" "$TEST_VARS_FILE" || echo "❌ NOT FOUND!"
+          echo ""
+          echo "Root-level OCP_CONSOLE_URL:"
+          grep -n "^OCP_CONSOLE_URL:" "$TEST_VARS_FILE" || echo "❌ NOT FOUND!"
+          echo ""
+          echo "All ODH_DASHBOARD_URL occurrences:"
+          grep -n "ODH_DASHBOARD_URL:" "$TEST_VARS_FILE" || echo "No matches found"
+          
+          export CY_TEST_CONFIG="$TEST_VARS_FILE"
           echo "✅ Test config set to use localhost:${CYPRESS_PORT}"
 
       - name: Start Cypress Server
         run: |
-          echo "🧹 Cleaning up any existing processes..."
+          echo "🧹 Cleaning up any existing processes on port ${CYPRESS_PORT}..."
           pkill -f "webpack.*serve" || echo "No webpack processes found"
-          pkill -f "node.*${CYPRESS_PORT}" || echo "No node processes on port ${CYPRESS_PORT}"
+          lsof -ti:${CYPRESS_PORT} | xargs kill -9 2>/dev/null || echo "No node processes on port ${CYPRESS_PORT}"
           sleep 2
           
-          echo "🚀 Starting webpack dev server with cluster proxy on port ${CYPRESS_PORT}..."
-          cd frontend && ODH_PORT=${CYPRESS_PORT} npm run start:dev:ext &
+          echo "🚀 Starting webpack dev server on port ${CYPRESS_PORT} with cluster proxy..."
+          cd frontend && PORT=${CYPRESS_PORT} npm run start:dev:ext &
           
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
@@ -363,12 +413,12 @@ jobs:
           echo "⏳ Waiting for localhost:${CYPRESS_PORT} to be ready..."
           # Use HTTP check instead of TCP since server is clearly running
           npx wait-on http://localhost:${CYPRESS_PORT} --timeout 120000
-          echo "✅ Server is responding to HTTP!"
+          echo "✅ Server is responding to HTTP on port ${CYPRESS_PORT}!"
           
           # Verify the application actually loads with more details
           echo "🔍 Verifying application loads properly..."
           for i in {1..10}; do
-            echo "🔄 Attempt $i/10: Testing application..."
+            echo "🔄 Attempt $i/10: Testing application on port ${CYPRESS_PORT}..."
             
             # Check if basic page loads
             if curl -s -f http://localhost:${CYPRESS_PORT}/ > /tmp/response.html 2>/dev/null; then
@@ -397,7 +447,7 @@ jobs:
           # Final verification with detailed debugging
           echo "🔍 Final application verification..."
           if curl -s -f http://localhost:${CYPRESS_PORT}/ | grep -q "Data Science Projects\|ODH\|Open Data Hub\|Dashboard"; then
-            echo "✅ Server is ready and application is loaded!"
+            echo "✅ Server is ready and application is loaded on port ${CYPRESS_PORT}!"
             
             # Test API endpoint
             echo "🔍 Testing API endpoint..."
@@ -407,7 +457,7 @@ jobs:
               echo "⚠️  API endpoint test failed, but frontend is working"
             fi
           else
-            echo "❌ Application failed to load properly"
+            echo "❌ Application failed to load properly on port ${CYPRESS_PORT}"
             echo ""
             echo "📊 Debugging information:"
             echo "🔄 Server process status:"
@@ -459,13 +509,13 @@ jobs:
           echo "📋 Test group: ${{ matrix.test-tag }}"
 
           # Use Jenkins-style command format for proper tag filtering
-          echo "🔄 Using chrome browser"
+          echo "🔄 Using Electron browser (Chrome not available on Fedora)"
 
           # Create results directory
           mkdir -p "$CY_RESULTS_DIR"
 
-          # Run tests against dynamic port (baseUrl is set in test-variables.yml)
-          npm run cypress:run:chrome -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+          # Run tests against dynamic port - baseUrl from test-variables.yml
+          npm run cypress:run:electron -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Test tag name
         if: ${{ always() }}
@@ -493,6 +543,7 @@ jobs:
           echo "Event: ${{ github.event_name }}"
           echo "Branch: ${{ github.ref_name }}"
           echo "Test Tag: ${{ matrix.test-tag }}"
+          echo "Port: ${CYPRESS_PORT}"
           echo "Commit: ${{ github.sha }}"
           echo "Run ID: ${{ github.run_id }}"
           echo ""
@@ -506,10 +557,16 @@ jobs:
     steps:
       - name: Stop Cypress Servers
         run: |
-          echo "🛑 Stopping webpack dev server..."
-          if [ -n "$SERVER_PID" ]; then
-            kill $SERVER_PID || echo "Failed to kill SERVER_PID"
-          fi
+          echo "🛑 Stopping all webpack dev servers..."
           pkill -f "webpack.*serve" || echo "No webpack processes found"
-          pkill -f "node.*40[0-9][0-9]" || echo "No node processes on dynamic ports"
+          
+          # Clean up common port range
+          for port in {4000..4999..10}; do
+            if lsof -ti:$port >/dev/null 2>&1; then
+              echo "🧹 Cleaning up port $port"
+              lsof -ti:$port | xargs kill -9 2>/dev/null || true
+            fi
+          done
+          
           echo "✅ Server cleanup completed"
+
