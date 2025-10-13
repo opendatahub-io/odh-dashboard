@@ -682,26 +682,28 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 	modelSecrets := make(map[string]modelSecretInfo)
 
 	for _, model := range models {
+		var (
+			secretName string
+			foundType  string
+		)
 		// First try to find InferenceService
 		if targetISVC, err := kc.findInferenceServiceByModelName(ctx, namespace, model); err == nil {
 			// Find the actual secret name and key used by the InferenceService
-			_, secretName := kc.findServiceAccountAndSecretForInferenceService(ctx, targetISVC)
-			modelSecrets[model] = modelSecretInfo{
-				secretName: secretName,
-				tokenKey:   "token", // Service account token secrets always use "token" as the key
-				hasToken:   secretName != "",
-			}
-			kc.Logger.Info("found existing InferenceService service account token secret", "model", model, "secretName", secretName, "hasToken", secretName != "")
+			_, secretName = kc.findServiceAccountAndSecretForInferenceService(ctx, targetISVC)
+			foundType = "InferenceService"
 			// If InferenceService not found, try LLMInferenceService
 		} else if targetLLMSvc, err := kc.findLLMInferenceServiceByModelName(ctx, namespace, model); err == nil {
 			// Find the actual secret name and key used by the LLMInferenceService
-			_, secretName := kc.findServiceAccountAndSecretForLLMInferenceService(ctx, targetLLMSvc)
+			_, secretName = kc.findServiceAccountAndSecretForLLMInferenceService(ctx, targetLLMSvc)
+			foundType = "LLMInferenceService"
+		}
+		if foundType != "" {
 			modelSecrets[model] = modelSecretInfo{
 				secretName: secretName,
 				tokenKey:   "token", // Service account token secrets always use "token" as the key
 				hasToken:   secretName != "",
 			}
-			kc.Logger.Info("found existing LLMInferenceService service account token secret", "model", model, "secretName", secretName, "hasToken", secretName != "")
+			kc.Logger.Info("found existing "+foundType+" service account token secret", "model", model, "secretName", secretName, "hasToken", secretName != "")
 		} else {
 			kc.Logger.Debug("could not find InferenceService or LLMInferenceService for model, will use default", "model", model)
 		}
