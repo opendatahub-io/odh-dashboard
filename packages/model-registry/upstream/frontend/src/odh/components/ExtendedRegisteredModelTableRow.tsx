@@ -44,8 +44,10 @@ const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowP
   const rmUrl = registeredModelUrl(rm.id, preferredModelRegistry?.name);
 
   const columnExtensions = useExtensions(isModelRegistryTableColumnExtension);
-  // Check if deployments column extension is available as a proxy for model serving being enabled
-  const isModelServingEnabled = columnExtensions.length > 0;
+  // Check if deployments column extension is available by checking for the required flag
+  const isModelServingEnabled = columnExtensions.some((extension) =>
+    extension.flags?.required?.includes('model-serving-shell'),
+  );
 
   const baseActions: IAction[] = [
     {
@@ -138,7 +140,10 @@ const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowP
       <Td key={`extension-${index}`}>
         <LazyCodeRefComponent
           component={extension.properties.component}
-          props={{ registeredModel: rm }}
+          props={{
+            registeredModel: rm,
+            preferredModelRegistryName: preferredModelRegistry?.name,
+          }}
         />
       </Td>
     ));

@@ -5,7 +5,10 @@ import type { RegisteredModel } from '~/app/types';
 export type ModelRegistryTableColumnExtension = Extension<
   'model-registry.registered-models/table-column',
   {
-    component: ComponentCodeRef<{ registeredModel: RegisteredModel }>;
+    component: ComponentCodeRef<{
+      registeredModel: RegisteredModel;
+      preferredModelRegistryName?: string;
+    }>;
   }
 >;
 
