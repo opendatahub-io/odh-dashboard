@@ -97,6 +97,7 @@ describe(
         modelServingWizard.findNextButton().click();
         //Step 4: Summary
         modelServingWizard.findSubmitButton().click();
+        modelServingSection.findModelServerDeployedName(modelDeploymentName);
         //Verify the model created and is running
         cy.step('Verify that the Model is running');
         // For KServe Raw deployments, we only need to check Ready condition

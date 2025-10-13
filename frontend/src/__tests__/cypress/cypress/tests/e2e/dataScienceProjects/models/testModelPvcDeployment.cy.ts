@@ -1,5 +1,6 @@
 import {
   modelServingGlobal,
+  modelServingSection,
   modelServingWizard,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import { AWS_BUCKETS } from '#~/__tests__/cypress/cypress/utils/s3Buckets';
@@ -142,6 +143,7 @@ describe('Verify a model can be deployed from a PVC', () => {
       modelServingWizard.findNextButton().click();
       //Step 4: Summary
       modelServingWizard.findSubmitButton().click();
+      modelServingSection.findModelServerDeployedName(testData.singleModelName);
       //Verify the model created and is running
       cy.step('Verify that the Model is running');
       // For KServe Raw deployments, we only need to check Ready condition

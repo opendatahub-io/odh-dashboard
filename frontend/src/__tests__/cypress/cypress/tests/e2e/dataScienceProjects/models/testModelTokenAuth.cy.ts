@@ -97,6 +97,7 @@ describe('A model can be deployed with token auth', () => {
       modelServingWizard.findNextButton().click();
       //Step 4: Summary
       modelServingWizard.findSubmitButton().click();
+      modelServingSection.findModelServerDeployedName(testData.singleModelName);
 
       // Verify the model created
       cy.step('Verify that the Model is running');
