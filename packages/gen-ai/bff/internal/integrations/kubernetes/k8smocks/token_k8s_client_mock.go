@@ -617,3 +617,10 @@ func (m *TokenKubernetesClientMock) CanListLlamaStackDistributions(ctx context.C
 	// In real scenarios, this would perform a SubjectAccessReview
 	return true, nil
 }
+
+// CanListNamespaces returns mock namespace listing permission check for testing
+func (m *TokenKubernetesClientMock) CanListNamespaces(ctx context.Context, identity *integrations.RequestIdentity) (bool, error) {
+	// For testing purposes, always return true to allow namespace listing
+	// In real scenarios, this would perform a SubjectAccessReview for cluster-scoped namespace access
+	return true, nil
+}
