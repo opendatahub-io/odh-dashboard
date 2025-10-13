@@ -31,6 +31,9 @@ const extractAdditionalFields = (deployment: InferenceServiceKind): Record<strin
   if (connectionType === ModelServingCompatibleTypes.OCI) {
     additionalFields.modelUri = predictor.model?.storageUri || '';
   }
+  if (deployment.metadata.annotations?.['opendatahub.io/connection-path']) {
+    additionalFields.modelPath = deployment.metadata.annotations['opendatahub.io/connection-path'];
+  }
 
   return additionalFields;
 };

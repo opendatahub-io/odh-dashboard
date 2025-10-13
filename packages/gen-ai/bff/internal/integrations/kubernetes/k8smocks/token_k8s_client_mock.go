@@ -427,10 +427,6 @@ providers:
   - provider_id: llm-as-judge
     provider_type: inline::llm-as-judge
     config: {}
-  - provider_id: braintrust
-    provider_type: inline::braintrust
-    config:
-      openai_api_key: ${env.OPENAI_API_KEY:=}
   telemetry:
   - provider_id: meta-reference
     provider_type: inline::meta-reference

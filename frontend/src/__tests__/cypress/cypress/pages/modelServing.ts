@@ -1034,6 +1034,10 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('pvc-path-prefix');
   }
 
+  findPVCSelectValue() {
+    return cy.findByTestId('pvc-connection-selector').findByRole('combobox');
+  }
+
   findOCIModelURI() {
     return cy.findByTestId('model-uri');
   }
@@ -1057,6 +1061,10 @@ class ModelServingWizard extends Wizard {
   findExistingConnectionSelectOption(name: string) {
     cy.findByRole('listbox');
     return cy.findByText(name);
+  }
+
+  findSaveConnectionCheckbox() {
+    return cy.findByTestId('save-connection-checkbox');
   }
 
   findExternalRouteCheckbox() {

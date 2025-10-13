@@ -18,6 +18,25 @@ type AIModelsTableProps = {
   lsdStatus: LlamaStackDistributionModel | null;
 };
 
+export const AIModelStatusPopoverContent: React.ReactNode = (
+  <Stack hasGutter>
+    <StackItem>
+      <Content component="ol">
+        <Content component="li">
+          Go to your <strong>model deployments</strong> page
+        </Content>
+        <Content component="li">
+          Select &apos;<strong>Edit</strong>&apos; to update your deployment
+        </Content>
+        <Content component="li">
+          Check the box: &apos;
+          <strong>Make this deployment available as an AI Asset</strong>&apos;
+        </Content>
+      </Content>
+    </StackItem>
+  </Stack>
+);
+
 export const AIModelStatusPopover: React.ReactNode = (
   <Popover
     position="bottom"
@@ -25,24 +44,7 @@ export const AIModelStatusPopover: React.ReactNode = (
     aria-label="Information about making model deployments available"
     headerComponent="h2"
     headerContent={<Content>To make a model deployment available:</Content>}
-    bodyContent={
-      <Stack hasGutter>
-        <StackItem>
-          <Content component="ol">
-            <Content component="li">
-              Go to your <strong>model deployments</strong> page
-            </Content>
-            <Content component="li">
-              Select &apos;<strong>Edit</strong>&apos; to update your deployment
-            </Content>
-            <Content component="li">
-              Check the box: &apos;
-              <strong>Make this deployment available as an AI Asset</strong>&apos;
-            </Content>
-          </Content>
-        </StackItem>
-      </Stack>
-    }
+    bodyContent={AIModelStatusPopoverContent}
   >
     <Button variant={ButtonVariant.link} data-testid="dont-see-model-button">
       Don&apos;t see the model you&apos;re looking for?

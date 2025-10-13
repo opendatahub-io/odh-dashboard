@@ -3,7 +3,7 @@ import { renderHook, act } from '@testing-library/react';
 import * as React from 'react';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
 import { createResponse } from '~/app/services/llamaStackService';
-import { ChatbotSourceSettings, SimplifiedResponseData } from '~/app/types';
+import { ChatbotSourceSettings, CreateResponseRequest, SimplifiedResponseData } from '~/app/types';
 import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
 import { useMCPServersContext } from '~/app/context/MCPServersContext';
 import { useMCPTokenContext } from '~/app/context/MCPTokenContext';
@@ -249,7 +249,7 @@ describe('useChatbotMessages', () => {
       expect(result.current.messages).toHaveLength(3); // initial + user + error bot
       expect(result.current.messages[2]).toMatchObject({
         role: 'bot',
-        content: 'Sorry, I encountered an error while processing your request. Please try again.',
+        content: 'No model or source settings selected',
         name: 'Bot',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
@@ -322,7 +322,7 @@ describe('useChatbotMessages', () => {
       expect(result.current.messages).toHaveLength(3); // initial + user + error bot
       expect(result.current.messages[2]).toMatchObject({
         role: 'bot',
-        content: 'Sorry, I encountered an error while processing your request. Please try again.',
+        content: 'API Error',
         name: 'Bot',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
@@ -373,11 +373,86 @@ describe('useChatbotMessages', () => {
       expect(result.current.messages).toHaveLength(3); // initial + user + error bot
       expect(result.current.messages[2]).toMatchObject({
         role: 'bot',
-        content: 'Sorry, I encountered an error while processing your request. Please try again.',
+        content: 'Namespace is required for generating responses',
         name: 'Bot',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(mockCreateResponse).not.toHaveBeenCalled();
+    });
+
+    it('should display error message from streaming error', async () => {
+      const customErrorMessage = 'Custom streaming error message';
+      mockCreateResponse.mockRejectedValueOnce(new Error(customErrorMessage));
+
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          modelId: mockModelId,
+          selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
+          isStreamingEnabled: false,
+          temperature: 0.7,
+          currentVectorStoreId: null,
+        }),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Test message');
+      });
+
+      expect(result.current.messages).toHaveLength(3); // initial + user + error bot
+      expect(result.current.messages[2]).toMatchObject({
+        role: 'bot',
+        content: customErrorMessage,
+        name: 'Bot',
+      });
+      expect(result.current.isMessageSendButtonDisabled).toBe(false);
+    });
+
+    it('should update existing bot message on streaming error', async () => {
+      const streamingErrorMessage = 'Streaming error occurred';
+
+      // Mock streaming response that will error
+      mockCreateResponse.mockImplementation(
+        (
+          request: CreateResponseRequest,
+          namespace: string,
+          onStreamData?: (chunk: string) => void,
+        ) => {
+          // Simulate some streaming before error
+          if (onStreamData) {
+            onStreamData('Hello ');
+          }
+          return Promise.reject(new Error(streamingErrorMessage));
+        },
+      );
+
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          modelId: mockModelId,
+          selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
+          isStreamingEnabled: true,
+          temperature: 0.7,
+          currentVectorStoreId: null,
+        }),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Test message');
+      });
+
+      // Should have initial + user + bot (updated with error, not added separately)
+      expect(result.current.messages).toHaveLength(3);
+      expect(result.current.messages[2]).toMatchObject({
+        role: 'bot',
+        content: streamingErrorMessage,
+        name: 'Bot',
+      });
+      expect(result.current.isMessageSendButtonDisabled).toBe(false);
+      expect(result.current.isLoading).toBe(false);
+      expect(result.current.isStreamingWithoutContent).toBe(false);
     });
 
     it('should use currentVectorStoreId when RAG is enabled and selectedSourceSettings is null', async () => {

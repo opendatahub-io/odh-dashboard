@@ -1,10 +1,11 @@
 import * as React from 'react';
 import { EmptyState, Spinner } from '@patternfly/react-core';
 import { GenAiContext } from '~/app/context/GenAiContext';
+import { MCPDataProvider } from '~/app/context/MCPContextProvider';
 import { useMCPServers } from '~/app/hooks/useMCPServers';
-import MCPServersTable from './components/mcp/MCPServersTable';
+import MCPServersTable from '~/app/AIAssets/components/mcp/MCPServersTable';
 
-const AIAssetsMCPTab: React.FC = () => {
+const MCPTabContent: React.FC = () => {
   const { namespace } = React.useContext(GenAiContext);
   const { servers, serversLoaded, serversLoadError, serverStatuses, statusesLoading, refresh } =
     useMCPServers(namespace?.name || '');
@@ -21,6 +22,20 @@ const AIAssetsMCPTab: React.FC = () => {
       statusesLoading={statusesLoading}
       onRefresh={refresh}
     />
+  );
+};
+
+/**
+ * MCP tab component with complete context provider.
+ * Provides MCP data context and loads data only when the tab is accessed.
+ */
+const AIAssetsMCPTab: React.FC = () => {
+  const { namespace } = React.useContext(GenAiContext);
+
+  return (
+    <MCPDataProvider namespace={namespace} autoCheckStatuses>
+      <MCPTabContent />
+    </MCPDataProvider>
   );
 };
 
