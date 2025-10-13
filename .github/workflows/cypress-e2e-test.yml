@@ -1,24 +1,36 @@
-name: E2E Direct Commit PR Tests (Dynamic Ports)
+name: E2E Direct Commit PR Tests 
 
-on: [push, pull_request]
+on:
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
+  pull-requests: write
+  issues: write
 
 env:
   NODE_VERSION: 20.x
   DO_NOT_TRACK: 1
 
 jobs:
+  check-comment:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-e2e-tests-gh') }}
+    steps:
+      - run: echo "E2E tests requested via /run-e2e-tests-gh comment"
+
   get-test-tags:
+    needs: [check-comment]
     runs-on: self-hosted
     outputs:
       test-tags: ${{ steps.set-tags.outputs.test-tags }}
     steps:
       - name: Set default test tags
         id: set-tags
+        # TO:DO - update execution tags and simplify for v1
         run: |
-          echo "test-tags=[\"@ci-dashboard-set-1\",\"@ci-dashboard-set-2\"]" >> $GITHUB_OUTPUT
+          echo "test-tags=[\"@SmokeSet1\",\"@SmokeSet2\",\"@SmokeSet3\"]" >> $GITHUB_OUTPUT
 
   e2e-tests:
     needs: [get-test-tags]
@@ -35,12 +47,14 @@ jobs:
           BASE_PORT=$((4000 + ((${{ github.run_id }} % 100) * 10)))
           
           # Add offset based on matrix test-tag to ensure each matrix job gets unique port
-          if [[ "${{ matrix.test-tag }}" == *"set-1"* ]]; then
+          if [[ "${{ matrix.test-tag }}" == *"Set1"* ]]; then
             MATRIX_OFFSET=0
-          elif [[ "${{ matrix.test-tag }}" == *"set-2"* ]]; then
+          elif [[ "${{ matrix.test-tag }}" == *"Set2"* ]]; then
             MATRIX_OFFSET=1
-          else
+          elif [[ "${{ matrix.test-tag }}" == *"Set3"* ]]; then
             MATRIX_OFFSET=2
+          else
+            MATRIX_OFFSET=3
           fi
           
           CYPRESS_PORT=$((BASE_PORT + MATRIX_OFFSET))
@@ -51,6 +65,8 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.issue.number }}/head
 
       - name: Cache npm dependencies
         uses: actions/cache@v4
@@ -278,8 +294,8 @@ jobs:
             echo ""
             echo "💡 POSSIBLE SOLUTIONS:"
             echo "1. Ensure secrets are configured in upstream repo (opendatahub-io/odh-dashboard)"
-            echo "2. For testing, secrets need to be available when PR is merged"
-            echo "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
+            "2. For testing, secrets need to be available when PR is merged"
+            "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
             exit 1
           fi
 
@@ -331,41 +347,31 @@ jobs:
           export KUBECONFIG="$HOME/.kube/config"
           echo "KUBECONFIG=$KUBECONFIG" >> $GITHUB_ENV
 
-      - name: Set test configuration with dynamic port
+      - name: Set test configuration
         run: |
-          # Create unique test-variables file for this workflow run
-          TEST_VARS_FILE="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables-${{ github.run_id }}.yml"
-          cp ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml "$TEST_VARS_FILE"
-          
-          # Update URLs to use dynamic port
-          # In dynamic port mode, ALWAYS use localhost (we're running webpack locally)
-          DYNAMIC_URL="http://localhost:${CYPRESS_PORT}"
-          
           echo "🔧 Updating test-variables.yml to use localhost:${CYPRESS_PORT}..."
-          sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: $DYNAMIC_URL|g" "$TEST_VARS_FILE"
-          sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: $DYNAMIC_URL|g" "$TEST_VARS_FILE"
+          sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:${CYPRESS_PORT}|g" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:${CYPRESS_PORT}|g" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
           
           echo "📝 Verifying ALL updated URLs (should all be localhost:${CYPRESS_PORT}):"
           echo "ODH_DASHBOARD_URL occurrences:"
-          grep -n "ODH_DASHBOARD_URL:" "$TEST_VARS_FILE" || echo "No matches found"
+          grep -n "ODH_DASHBOARD_URL:" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml || echo "No matches found"
           echo ""
           echo "OCP_CONSOLE_URL occurrences:"
-          grep -n "OCP_CONSOLE_URL:" "$TEST_VARS_FILE" || echo "No matches found"
+          grep -n "OCP_CONSOLE_URL:" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml || echo "No matches found"
+          
+          export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
+          echo "✅ Test config set to use localhost:${CYPRESS_PORT}"
 
-          # Export the unique config file path
-          echo "CY_TEST_CONFIG=$TEST_VARS_FILE" >> $GITHUB_ENV
-          echo "📝 Test config file: $TEST_VARS_FILE"
-          echo "🌐 Using base URL: $DYNAMIC_URL"
-
-      - name: Start Cypress Server on dynamic port
+      - name: Start Cypress Server
         run: |
           echo "🧹 Cleaning up any existing processes on port ${CYPRESS_PORT}..."
-          lsof -ti:${CYPRESS_PORT} | xargs kill -9 2>/dev/null || echo "No processes on port ${CYPRESS_PORT}"
-          pkill -f "webpack.*serve.*${CYPRESS_PORT}" || echo "No webpack processes for port ${CYPRESS_PORT}"
+          pkill -f "webpack.*serve" || echo "No webpack processes found"
+          lsof -ti:${CYPRESS_PORT} | xargs kill -9 2>/dev/null || echo "No node processes on port ${CYPRESS_PORT}"
           sleep 2
           
           echo "🚀 Starting webpack dev server on port ${CYPRESS_PORT} with cluster proxy..."
-          cd frontend && ODH_PORT=${CYPRESS_PORT} npm run start:dev:ext &
+          cd frontend && PORT=${CYPRESS_PORT} npm run start:dev:ext &
           
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
@@ -375,7 +381,7 @@ jobs:
           echo "⏳ Giving server 15 seconds to initialize..."
           sleep 15
 
-      - name: Wait for Server Ready on dynamic port
+      - name: Wait for Server Ready
         run: |
           echo "⏳ Waiting for localhost:${CYPRESS_PORT} to be ready..."
           # Use HTTP check instead of TCP since server is clearly running
@@ -438,26 +444,34 @@ jobs:
             echo "📄 Raw response (first 1000 chars):"
             curl -s http://localhost:${CYPRESS_PORT}/ 2>/dev/null | head -c 1000 || echo "Failed to get response"
             
+            echo ""
+            echo "🔍 Looking for webpack output in background..."
+            # Check if there are any relevant log files or output
+            ls -la /tmp/ | grep -E "(webpack|error|log)" || echo "No relevant temp files found"
+            
             exit 1
           fi
 
-      - name: Run E2E Tests with dynamic port
+      - name: Run E2E Tests
         run: |
           cd frontend
 
+          echo "🧪 Running commit-based E2E tests..."
           echo "Event: ${{ github.event_name }}"
           echo "Branch: ${{ github.ref_name }}"
           echo "Commit: ${{ github.sha }}"
-          echo "Port: ${CYPRESS_PORT}"
-          echo "Config: ${CY_TEST_CONFIG}"
 
-          # Set Cypress environment
+          # Run real E2E tests (not mock mode)
+          echo "🚀 Running real E2E tests against live dashboard"
+
+          # Run tests with matrix tag using Jenkins-style command format
+          export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
           export CY_RESULTS_DIR="${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}"
-          export BASE_URL="http://localhost:${CYPRESS_PORT}"
 
           # Ensure OpenShift configuration is available to Cypress process
           if [ -n "$KUBECONFIG" ]; then
             echo "🔧 OpenShift configuration available: $KUBECONFIG"
+            # Verify oc command works in this context
             oc whoami || echo "⚠️  oc whoami failed, but continuing with tests"
           else
             echo "⚠️  No KUBECONFIG set, OpenShift commands may fail"
@@ -466,29 +480,15 @@ jobs:
           echo "🎯 Running tests with tags: ${{ matrix.test-tag }}"
           echo "🚫 Skipping tags: @Bug,@Maintain,@NonConcurrent"
           echo "📋 Test group: ${{ matrix.test-tag }}"
-          echo "🌐 Base URL: $BASE_URL"
+
+          # Use Jenkins-style command format for proper tag filtering
+          echo "🔄 Using Electron browser (Chrome not available on Fedora)"
 
           # Create results directory
           mkdir -p "$CY_RESULTS_DIR"
 
-          # Run tests with dynamic base URL set BEFORE Cypress starts
-          npm run cypress:run:chrome -- \
-            --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true \
-            --config baseUrl="$BASE_URL",video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
-
-      - name: Cleanup dynamic port resources
-        if: always()
-        run: |
-          echo "🧹 Cleaning up resources for port ${CYPRESS_PORT}..."
-          if [ -n "$SERVER_PID" ]; then
-            kill $SERVER_PID 2>/dev/null || echo "Failed to kill SERVER_PID $SERVER_PID"
-          fi
-          lsof -ti:${CYPRESS_PORT} | xargs kill -9 2>/dev/null || echo "No processes on port ${CYPRESS_PORT}"
-          pkill -f "webpack.*serve.*${CYPRESS_PORT}" || echo "No webpack processes for port ${CYPRESS_PORT}"
-          
-          # Remove unique test config file
-          rm -f "${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables-${{ github.run_id }}.yml"
-          echo "✅ Cleanup completed for port ${CYPRESS_PORT}"
+          # Run tests against dynamic port - baseUrl from test-variables.yml
+          npm run cypress:run:electron -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Test tag name
         if: ${{ always() }}
@@ -528,9 +528,9 @@ jobs:
     runs-on: self-hosted
     if: ${{ always() && needs.e2e-tests.result != 'skipped' }}
     steps:
-      - name: Stop all Cypress Servers
+      - name: Stop Cypress Servers
         run: |
-          echo "🛑 Final cleanup - stopping all webpack dev servers..."
+          echo "🛑 Stopping all webpack dev servers..."
           pkill -f "webpack.*serve" || echo "No webpack processes found"
           
           # Clean up common port range
@@ -542,5 +542,4 @@ jobs:
           done
           
           echo "✅ Server cleanup completed"
-
 
