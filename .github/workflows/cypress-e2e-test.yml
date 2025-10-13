@@ -45,15 +45,8 @@ jobs:
           
           CYPRESS_PORT=$((BASE_PORT + MATRIX_OFFSET))
           
-          # Set unique DISPLAY for Xvfb (for parallel Chrome instances)
-          # Use higher display numbers (200+) to avoid collisions with existing Xvfb processes
-          DISPLAY_NUM=$((200 + ${{ github.run_id }} % 50 + MATRIX_OFFSET))
-          DISPLAY=":${DISPLAY_NUM}"
-          
           echo "CYPRESS_PORT=$CYPRESS_PORT" >> $GITHUB_ENV
-          echo "DISPLAY=$DISPLAY" >> $GITHUB_ENV
           echo "📍 Workflow run ${{ github.run_id }} matrix ${{ matrix.test-tag }} will use port: $CYPRESS_PORT"
-          echo "🖥️  Using display: $DISPLAY"
           echo "🏷️  Test tag: ${{ matrix.test-tag }}"
 
       - name: Checkout code
@@ -142,7 +135,7 @@ jobs:
 
             # Based on Cypress docs for Amazon Linux 2023 - Fedora compatible
             echo "Installing core dependencies..."
-            sudo dnf install -y xorg-x11-server-Xvfb gtk3-devel nss alsa-lib
+            sudo dnf install -y gtk3-devel nss alsa-lib
 
             # Add the missing ATK packages that Cypress actually needs
             echo "Installing ATK dependencies..."
@@ -157,11 +150,7 @@ jobs:
 
             # Verify installations
             echo "🔍 Verifying installations..."
-            if command -v Xvfb &> /dev/null; then
-              echo "✅ Xvfb installed"
-            else
-              echo "❌ Xvfb missing"
-            fi
+            echo "✅ Using Chrome's built-in headless mode (no Xvfb needed)"
 
             if ldconfig -p | grep -q libnss3; then
               echo "✅ NSS libraries installed"
@@ -470,35 +459,8 @@ jobs:
             exit 1
           fi
 
-      - name: Start Xvfb
-        run: |
-          echo "🖥️  Starting Xvfb on display ${{ env.DISPLAY }}..."
-          
-          # Check if display is already running
-          if ps aux | grep -v grep | grep "Xvfb ${{ env.DISPLAY }}" > /dev/null; then
-            echo "⚠️  Display ${{ env.DISPLAY }} already running - will reuse it"
-          else
-            # Start Xvfb in background
-            Xvfb ${{ env.DISPLAY }} -screen 0 1280x1024x24 > /tmp/xvfb-${{ matrix.test-tag }}.log 2>&1 &
-            XVFB_PID=$!
-            echo "XVFB_PID=$XVFB_PID" >> $GITHUB_ENV
-            
-            # Wait for Xvfb to initialize
-            sleep 2
-            
-            # Verify it started
-            if ps -p $XVFB_PID > /dev/null 2>&1; then
-              echo "✅ Xvfb started (PID: $XVFB_PID) on display ${{ env.DISPLAY }}"
-            else
-              echo "❌ Xvfb failed to start!"
-              cat /tmp/xvfb-${{ matrix.test-tag }}.log
-              exit 1
-            fi
-          fi
-
       - name: Run E2E Tests
         env:
-          DISPLAY: ${{ env.DISPLAY }}
           CY_TEST_CONFIG: ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
           CY_RESULTS_DIR: ${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}
         run: |
@@ -512,12 +474,11 @@ jobs:
           # DEBUG: Verify environment setup
           echo ""
           echo "=== Environment Verification ==="
-          echo "DISPLAY: $DISPLAY"
           echo "CY_TEST_CONFIG: $CY_TEST_CONFIG"
-          echo "Xvfb running on $DISPLAY: $(ps aux | grep -v grep | grep "Xvfb $DISPLAY" > /dev/null && echo 'YES' || echo 'NO')"
           if [ -f "$CY_TEST_CONFIG" ]; then
             echo "Test config baseUrl: $(grep '^ODH_DASHBOARD_URL:' $CY_TEST_CONFIG | head -1)"
           fi
+          echo "Chrome will use built-in headless mode (no X11/Xvfb needed)"
           echo "================================"
           echo ""
 
@@ -546,7 +507,7 @@ jobs:
           # Run tests against dynamic port - baseUrl from test-variables.yml
           npm run cypress:run:chrome -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
-      - name: Debug Chrome/DISPLAY on failure
+      - name: Debug Chrome on failure
         if: ${{ failure() }}
         run: |
           echo "=== POST-FAILURE DEBUGGING ==="
@@ -554,20 +515,18 @@ jobs:
           echo "1. Check if Chrome processes launched:"
           ps aux | grep -v grep | grep chrome | head -5 || echo "No Chrome processes found"
           echo ""
-          echo "2. Check Xvfb status:"
-          ps aux | grep -v grep | grep "Xvfb ${{ env.DISPLAY }}" || echo "Xvfb not running on ${{ env.DISPLAY }}"
+          echo "2. Check Chrome headless mode flags:"
+          ps aux | grep -v grep | grep chrome | grep -o "\--headless[^ ]*" | head -3 || echo "No headless flags"
           echo ""
-          echo "3. Check Chrome DISPLAY environment (if Chrome is running):"
-          CHROME_PID=$(ps aux | grep -v grep | grep "/opt/google/chrome/chrome --test-type" | head -1 | awk '{print $2}')
-          if [ -n "$CHROME_PID" ]; then
-            echo "Chrome PID: $CHROME_PID"
-            cat /proc/$CHROME_PID/environ 2>/dev/null | tr '\0' '\n' | grep "^DISPLAY=" || echo "NO DISPLAY in Chrome environment"
-          else
-            echo "Chrome not found"
+          echo "3. Check Chrome remote debugging port:"
+          lsof -nP | grep chrome | grep LISTEN | grep "127.0.0.1" || echo "No Chrome debug ports found"
+          echo ""
+          echo "4. Test Chrome debug port connection:"
+          CHROME_PORT=$(lsof -nP | grep chrome | grep LISTEN | grep "127.0.0.1" | head -1 | awk '{print $9}' | cut -d: -f2)
+          if [ -n "$CHROME_PORT" ]; then
+            echo "Attempting connection to 127.0.0.1:$CHROME_PORT..."
+            timeout 2 curl -s "http://127.0.0.1:$CHROME_PORT/json/version" || echo "Cannot connect"
           fi
-          echo ""
-          echo "4. Recent Cypress output (last 50 lines):"
-          find frontend/src/__tests__/cypress/results -name "*.log" -o -name "*.txt" 2>/dev/null | head -1 | xargs tail -50 || echo "No logs found"
 
       - name: Test tag name
         if: ${{ always() }}
@@ -619,10 +578,6 @@ jobs:
               lsof -ti:$port | xargs kill -9 2>/dev/null || true
             fi
           done
-          
-          # Clean up Xvfb processes for this workflow (displays 200-250)
-          echo "🖥️  Cleaning up Xvfb processes..."
-          pkill -f "Xvfb :[2][0-5][0-9]" || echo "No Xvfb processes in range :200-:259"
           
           echo "✅ Server cleanup completed"
 
