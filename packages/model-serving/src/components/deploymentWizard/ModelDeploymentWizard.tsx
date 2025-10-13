@@ -47,17 +47,17 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   const secretName = React.useMemo(() => {
     return (
       wizardState.state.modelLocationData.data?.connection ??
-      wizardState.state.createConnectionData.data.nameDesc?.name ??
+      wizardState.state.createConnectionData.data.nameDesc?.k8sName.value ??
       getGeneratedSecretName()
     );
   }, [
     wizardState.state.modelLocationData.data?.connection,
-    wizardState.state.createConnectionData.data.nameDesc?.name,
+    wizardState.state.createConnectionData.data.nameDesc?.k8sName.value,
   ]);
 
   React.useEffect(() => {
     const current = wizardState.state.createConnectionData.data.nameDesc;
-    if (current?.name !== secretName) {
+    if (current?.k8sName.value !== secretName) {
       wizardState.state.createConnectionData.setData({
         ...wizardState.state.createConnectionData.data,
         nameDesc: {

@@ -62,7 +62,7 @@ export const handleConnectionCreation = async (
       return getGeneratedSecretName();
     }
     // Otherwise, reuse whatever was passed or saved
-    return secretName ?? createConnectionData.nameDesc?.name ?? getGeneratedSecretName();
+    return secretName ?? createConnectionData.nameDesc?.k8sName.value ?? getGeneratedSecretName();
   })();
 
   const description = createConnectionData.nameDesc?.description ?? '';
@@ -95,11 +95,6 @@ export const handleConnectionCreation = async (
       annotations: {
         ...newConnection.metadata.annotations,
         'opendatahub.io/connection-type-protocol': protocolType,
-        // Add display name annotation if it differs from the k8s name and the user is saving the connection
-        ...(createConnectionData.nameDesc?.name !== createConnectionData.nameDesc?.k8sName.value &&
-        createConnectionData.saveConnection
-          ? { 'opendatahub.io/display-name': createConnectionData.nameDesc?.name }
-          : {}),
       },
     },
   };
