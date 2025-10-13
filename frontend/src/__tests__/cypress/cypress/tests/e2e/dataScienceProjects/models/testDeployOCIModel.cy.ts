@@ -25,6 +25,24 @@ let modelDeploymentURI: string;
 let modelDeploymentName: string;
 const uuid = generateTestUUID();
 
+const updateSecretDetailsFile = (
+  secretValue: string,
+  fixtureRelativePath: string,
+  fixtureFullPath: string,
+) => {
+  return cy.fixture(fixtureRelativePath).then((templateContent) => {
+    const updatedContent = {
+      ...templateContent,
+      auths: {
+        'quay.io': {
+          auth: secretValue,
+        },
+      },
+    };
+    return cy.writeFile(fixtureFullPath, updatedContent);
+  });
+};
+
 describe(
   'A user can create an OCI connection and deploy a model with it',
   { testIsolation: false },
@@ -42,18 +60,7 @@ describe(
           const secretValue = Cypress.env('OCI_SECRET_VALUE');
           const secretDetailsFixture = 'resources/json/oci-data-connection-secret.json';
           secretDetailsFile = `cypress/fixtures/${secretDetailsFixture}`;
-          // Load the fixture, update auth value, and write back
-          cy.fixture(secretDetailsFixture).then((templateContent) => {
-            const updatedContent = {
-              ...templateContent,
-              auths: {
-                'quay.io': {
-                  auth: secretValue,
-                },
-              },
-            };
-            cy.writeFile(secretDetailsFile, updatedContent);
-          });
+          updateSecretDetailsFile(secretValue, secretDetailsFixture, secretDetailsFile);
           ociRegistryHost = testData.ociRegistryHost;
           modelDeploymentURI = Cypress.env('OCI_MODEL_URI');
           modelDeploymentName = testData.modelDeploymentName;
