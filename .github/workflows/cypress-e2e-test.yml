@@ -1,36 +1,24 @@
-name: E2E Direct Commit PR Tests
+name: E2E Direct Commit PR Tests 
 
-on:
-  issue_comment:
-    types: [created]
+on: [push]
 
 permissions:
   contents: read
-  pull-requests: write
-  issues: write
 
 env:
   NODE_VERSION: 20.x
   DO_NOT_TRACK: 1
 
 jobs:
-  check-comment:
-    runs-on: ubuntu-latest
-    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-e2e-tests-gh') }}
-    steps:
-      - run: echo "E2E tests requested via /run-e2e-tests-gh comment"
-
   get-test-tags:
-    needs: [check-comment]
     runs-on: self-hosted
     outputs:
       test-tags: ${{ steps.set-tags.outputs.test-tags }}
     steps:
       - name: Set default test tags
         id: set-tags
-        # TO:DO - update execution tags and simplify for v1
         run: |
-          echo "test-tags=[\"@SmokeSet1\",\"@SmokeSet2\",\"@SmokeSet3\"]" >> $GITHUB_OUTPUT
+          echo "test-tags=[\"@ci-dashboard-set-1\",\"@ci-dashboard-set-2\"]" >> $GITHUB_OUTPUT
 
   e2e-tests:
     needs: [get-test-tags]
@@ -47,14 +35,12 @@ jobs:
           BASE_PORT=$((4000 + ((${{ github.run_id }} % 100) * 10)))
           
           # Add offset based on matrix test-tag to ensure each matrix job gets unique port
-          if [[ "${{ matrix.test-tag }}" == *"Set1"* ]]; then
+          if [[ "${{ matrix.test-tag }}" == *"set-1"* ]]; then
             MATRIX_OFFSET=0
-          elif [[ "${{ matrix.test-tag }}" == *"Set2"* ]]; then
+          elif [[ "${{ matrix.test-tag }}" == *"set-2"* ]]; then
             MATRIX_OFFSET=1
-          elif [[ "${{ matrix.test-tag }}" == *"Set3"* ]]; then
-            MATRIX_OFFSET=2
           else
-            MATRIX_OFFSET=3
+            MATRIX_OFFSET=2
           fi
           
           CYPRESS_PORT=$((BASE_PORT + MATRIX_OFFSET))
@@ -65,8 +51,6 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: refs/pull/${{ github.event.issue.number }}/head
 
       - name: Cache npm dependencies
         uses: actions/cache@v4
