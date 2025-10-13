@@ -85,3 +85,26 @@ func newOriginParser(allowList *[]string, defaultVal string) func(s string) erro
 		return nil
 	}
 }
+
+func newBundlePathParser(bundlePaths *[]string, defaultVal string) func(s string) error {
+	return func(s string) error {
+		value := defaultVal
+
+		if s != "" {
+			value = s
+		}
+
+		if value == "" {
+			return nil
+		}
+
+		for _, str := range strings.Split(value, ",") {
+			path := strings.TrimSpace(str)
+			if path != "" {
+				*bundlePaths = append(*bundlePaths, path)
+			}
+		}
+
+		return nil
+	}
+}

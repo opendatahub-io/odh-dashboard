@@ -17,6 +17,13 @@ vars:
       apiVersion: v1
     fieldref:
       fieldpath: data.model-registry-ui-image
+  - name: gen-ai-ui-image
+    objref:
+      kind: ConfigMap
+      name: modular-architecture-params
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.gen-ai-ui-image
 configurations:
   - params.yaml
 patchesJson6902:
