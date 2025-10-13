@@ -29,12 +29,19 @@ import {
   ServiceAccountKind,
   RoleKind,
   SupportedModelFormats,
+  MetadataAnnotation,
 } from '@odh-dashboard/internal/k8sTypes';
 import { getTokenNames } from '@odh-dashboard/internal/pages/modelServing/utils';
+import {
+  isModelServingCompatible,
+  ModelServingCompatibleTypes,
+} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import type { CreatingInferenceServiceObject } from './deployModel';
 import type { AvailableAiAssetsFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/AvailableAiAssetsFields';
 import type { RuntimeArgsFieldData } from '../../model-serving/src/components/deploymentWizard/fields/RuntimeArgsField';
 import type { EnvironmentVariablesFieldData } from '../../model-serving/src/components/deploymentWizard/fields/EnvironmentVariablesField';
+import { CreateConnectionData } from '../../model-serving/src/components/deploymentWizard/fields/CreateConnectionInputFields';
+import { ModelLocationData } from '../../model-serving/src/components/deploymentWizard/fields/modelLocationFields/types';
 
 const is404 = (error: unknown): boolean => {
   return getGenericErrorCode(error) === 404;
@@ -262,5 +269,54 @@ export const applyModelFormat = (
       version: modelFormat?.version,
     },
   };
+  return result;
+};
+
+export const applyConnectionData = (
+  inferenceService: InferenceServiceKind,
+  createConnectionData: CreateConnectionData,
+  modelLocationData: ModelLocationData,
+  dryRun?: boolean,
+  secretName?: string,
+): InferenceServiceKind => {
+  const result = structuredClone(inferenceService);
+  if (createConnectionData.nameDesc?.name) {
+    result.metadata.annotations = {
+      ...result.metadata.annotations,
+    };
+    // Apply connection name to the annotations
+    if (!dryRun) {
+      result.metadata.annotations[MetadataAnnotation.ConnectionName] =
+        secretName ?? createConnectionData.nameDesc.name;
+    }
+    // Apply connection path to the annotations if the connection type is S3ObjectStorage
+    if (
+      modelLocationData.additionalFields.modelPath &&
+      isModelServingCompatible(
+        modelLocationData.connectionTypeObject ?? [],
+        ModelServingCompatibleTypes.S3ObjectStorage,
+      )
+    ) {
+      result.metadata.annotations = {
+        ...result.metadata.annotations,
+        'opendatahub.io/connection-path': modelLocationData.additionalFields.modelPath,
+      };
+    } else {
+      // Delete connection path from the annotations if it's not present or the connection type is not S3ObjectStorage
+      delete result.metadata.annotations['opendatahub.io/connection-path'];
+    }
+  }
+  if (
+    modelLocationData.additionalFields.modelUri &&
+    isModelServingCompatible(
+      modelLocationData.connectionTypeObject ?? [],
+      ModelServingCompatibleTypes.OCI,
+    )
+  ) {
+    result.spec.predictor.model = {
+      ...result.spec.predictor.model,
+      storageUri: modelLocationData.additionalFields.modelUri,
+    };
+  }
   return result;
 };

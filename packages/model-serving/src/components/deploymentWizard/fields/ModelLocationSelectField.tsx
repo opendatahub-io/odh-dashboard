@@ -74,6 +74,9 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     project,
     modelLocationData,
   );
+  const filteredConnections = React.useMemo(() => {
+    return connections.filter((c) => c.metadata.labels['opendatahub.io/dashboard'] === 'true');
+  }, [connections]);
 
   const selectedConnectionType = React.useMemo(() => {
     if (modelLocationData?.type === ModelLocationType.NEW) {
@@ -169,7 +172,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
           <StackItem>
             <ModelLocationInputFields
               modelLocation={modelLocation}
-              connections={connections}
+              connections={filteredConnections}
               connectionTypes={modelServingConnectionTypes}
               selectedConnection={selectedConnection}
               setSelectedConnection={setSelectedConnection}

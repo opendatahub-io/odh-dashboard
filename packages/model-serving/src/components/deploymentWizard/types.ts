@@ -15,6 +15,7 @@ import type { useModelLocationData } from './fields/ModelLocationInputFields';
 import type { useNumReplicasField } from './fields/NumReplicasField';
 import type { useRuntimeArgsField } from './fields/RuntimeArgsField';
 import type { useTokenAuthenticationField } from './fields/TokenAuthenticationField';
+import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
 
 // extensible fields
 
@@ -68,5 +69,6 @@ export type WizardFormData = {
     environmentVariables: ReturnType<typeof useEnvironmentVariablesField>;
     aiAssetData: ReturnType<typeof useAvailableAiAssetsFields>;
     modelServer: ReturnType<typeof useModelServerSelectField>;
+    createConnectionData: ReturnType<typeof useCreateConnectionData>;
   };
 };
