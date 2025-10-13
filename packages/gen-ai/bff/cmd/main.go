@@ -70,8 +70,8 @@ func main() {
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
 		Handler:      app.Routes(),
 		IdleTimeout:  time.Minute,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
+		ReadTimeout:  8 * time.Minute, // Allow larger file uploads (up to 10MB)
+		WriteTimeout: 8 * time.Minute, // Allow longer processing time for large PDFs
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 
