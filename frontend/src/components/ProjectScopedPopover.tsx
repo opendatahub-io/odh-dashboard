@@ -7,15 +7,21 @@ import PopoverListContent from './PopoverListContent';
 type PropjectScopedPopoverProps = {
   title: string;
   item: string;
+  description?: string;
 };
 
-const ProjectScopedPopover: React.FC<PropjectScopedPopoverProps> = ({ title, item }) => (
+const ProjectScopedPopover: React.FC<PropjectScopedPopoverProps> = ({
+  title,
+  item,
+  description,
+}) => (
   <Popover
     showClose
     hasAutoWidth
     maxWidth="370px"
     bodyContent={
       <PopoverListContent
+        leadText={description}
         listHeading={`${title} accessibility`}
         listItems={[
           <span key="project-scoped">

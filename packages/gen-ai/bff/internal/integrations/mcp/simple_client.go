@@ -51,6 +51,30 @@ func NewSimpleMCPClientWithConfig(logger *slog.Logger, config *MCPClientConfig) 
 	}
 }
 
+// NewSimpleMCPClientWithConfigAndTLS creates a new simple MCP client with custom configuration and TLS options
+func NewSimpleMCPClientWithConfigAndTLS(logger *slog.Logger, config *MCPClientConfig, transportOpts *TransportOptions) *SimpleMCPClient {
+	if config == nil {
+		config = DefaultMCPClientConfig()
+	}
+
+	if err := config.Validate(); err != nil {
+		logger.Warn("Invalid MCP client configuration, using defaults", "error", err)
+		config = DefaultMCPClientConfig()
+	}
+
+	transportFactory := NewMCPTransportFactory(transportOpts)
+	httpClient := &http.Client{
+		Timeout: config.HealthCheckTimeout,
+	}
+
+	return &SimpleMCPClient{
+		logger:           logger,
+		config:           config,
+		transportFactory: transportFactory,
+		httpClient:       httpClient,
+	}
+}
+
 // CheckConnectionStatus checks the connection status of an MCP server
 func (c *SimpleMCPClient) CheckConnectionStatus(ctx context.Context, identity *integrations.RequestIdentity, serverConfig models.MCPServerConfig) (*models.ConnectionStatus, error) {
 	c.logger.Debug("Checking MCP server connection status", "server_url", serverConfig.URL)

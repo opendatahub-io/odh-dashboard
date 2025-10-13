@@ -7,12 +7,13 @@ import {
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
 import { InferenceServiceModel } from '@odh-dashboard/internal/api/index';
-import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
+import { k8sCreateResource, k8sUpdateResource } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   applyAiAvailableAssetAnnotations,
   applyAuth,
   applyEnvironmentVariables,
   applyModelFormat,
+  applyConnectionData,
   applyRuntimeArgs,
 } from './deployUtils';
 import { applyHardwareProfileToDeployment, applyReplicas } from './hardware';
@@ -23,6 +24,8 @@ import type { NumReplicasFieldData } from '../../model-serving/src/components/de
 import type { RuntimeArgsFieldData } from '../../model-serving/src/components/deploymentWizard/fields/RuntimeArgsField';
 import type { TokenAuthenticationFieldData } from '../../model-serving/src/components/deploymentWizard/fields/TokenAuthenticationField';
 import type { ModelLocationData } from '../../model-serving/src/components/deploymentWizard/fields/modelLocationFields/types';
+import { CreateConnectionData } from '../../model-serving/src/components/deploymentWizard/fields/CreateConnectionInputFields';
+import { ModelLocationType } from '../../model-serving/src/components/deploymentWizard/fields/modelLocationFields/types';
 
 export type CreatingInferenceServiceObject = {
   project: string;
@@ -39,11 +42,14 @@ export type CreatingInferenceServiceObject = {
   runtimeArgs?: RuntimeArgsFieldData;
   environmentVariables?: EnvironmentVariablesFieldData;
   aiAssetData?: AvailableAiAssetsFieldsData;
+  createConnectionData?: CreateConnectionData;
 };
 
 const assembleInferenceService = (
   data: CreatingInferenceServiceObject,
   existingInferenceService?: InferenceServiceKind,
+  dryRun?: boolean,
+  secretName?: string,
 ): InferenceServiceKind => {
   const {
     project,
@@ -51,6 +57,8 @@ const assembleInferenceService = (
     name,
     description,
     modelType,
+    modelLocationData,
+    createConnectionData,
     modelFormat,
     hardwareProfile,
     numReplicas,
@@ -88,6 +96,18 @@ const assembleInferenceService = (
 
   inferenceService = applyModelFormat(inferenceService, modelFormat);
 
+  inferenceService = applyConnectionData(
+    inferenceService,
+    createConnectionData ?? {},
+    modelLocationData ?? {
+      type: ModelLocationType.NEW,
+      fieldValues: { URI: '' },
+      additionalFields: { modelUri: '' },
+    },
+    dryRun,
+    secretName,
+  );
+
   inferenceService = applyHardwareProfileToDeployment(inferenceService, hardwareProfile);
 
   inferenceService = applyAuth(
@@ -123,8 +143,25 @@ export const createInferenceService = (
   data: CreatingInferenceServiceObject,
   inferenceService?: InferenceServiceKind,
   dryRun?: boolean,
+  secretName?: string,
 ): Promise<InferenceServiceKind> => {
-  const assembledInferenceService = assembleInferenceService(data, inferenceService);
+  const assembledInferenceService = assembleInferenceService(
+    data,
+    inferenceService,
+    dryRun,
+    secretName,
+  );
+  if (inferenceService) {
+    return k8sUpdateResource<InferenceServiceKind>(
+      applyK8sAPIOptions(
+        {
+          model: InferenceServiceModel,
+          resource: assembledInferenceService,
+        },
+        { dryRun: dryRun ?? false },
+      ),
+    );
+  }
 
   return k8sCreateResource<InferenceServiceKind>(
     applyK8sAPIOptions(

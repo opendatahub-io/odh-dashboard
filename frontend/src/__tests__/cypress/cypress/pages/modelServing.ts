@@ -165,11 +165,15 @@ class ServingModal extends Modal {
   }
 
   findProjectScopedLabel() {
-    return this.find().findByTestId('project-scoped-label');
+    return this.findServingRuntimeTemplateSearchSelector()
+      .parent()
+      .findByTestId('project-scoped-label');
   }
 
   findGlobalScopedLabel() {
-    return this.find().findByTestId('global-scoped-label');
+    return this.findServingRuntimeTemplateSearchSelector()
+      .parent()
+      .findByTestId('global-scoped-label');
   }
 
   getProjectScopedServingRuntime() {
@@ -1030,6 +1034,10 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('pvc-path-prefix');
   }
 
+  findPVCSelectValue() {
+    return cy.findByTestId('pvc-connection-selector').findByRole('combobox');
+  }
+
   findOCIModelURI() {
     return cy.findByTestId('model-uri');
   }
@@ -1053,6 +1061,10 @@ class ModelServingWizard extends Wizard {
   findExistingConnectionSelectOption(name: string) {
     cy.findByRole('listbox');
     return cy.findByText(name);
+  }
+
+  findSaveConnectionCheckbox() {
+    return cy.findByTestId('save-connection-checkbox');
   }
 
   findExternalRouteCheckbox() {

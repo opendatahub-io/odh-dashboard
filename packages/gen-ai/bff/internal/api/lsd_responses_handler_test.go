@@ -53,7 +53,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, false, nil)
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -112,7 +112,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, false, nil)
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -200,7 +200,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, false, nil)
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -233,7 +233,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, false, nil)
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -268,7 +268,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, false, nil)
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -339,7 +339,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, false, nil)
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -442,7 +442,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, false, nil)
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -477,7 +477,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, false, nil)
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -515,7 +515,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, false, nil)
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -556,7 +556,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, false, nil)
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -583,7 +583,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, false, nil)
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -628,7 +628,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, false, nil)
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -666,7 +666,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, false, nil)
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 

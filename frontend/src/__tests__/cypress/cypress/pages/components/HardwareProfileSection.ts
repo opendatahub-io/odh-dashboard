@@ -50,6 +50,22 @@ export class HardwareProfileSection {
     return cy.findByTestId('hardware-profile-customize-form');
   }
 
+  findCPURequestsInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findCustomizeForm().findByTestId('cpu-requests-input').findByLabelText('Input');
+  }
+
+  findCPULimitsInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
+    return this.findCustomizeForm().findByTestId('cpu-limits-input').find('input');
+  }
+
+  findMemoryRequestsInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
+    return this.findCustomizeForm().findByTestId('memory-requests-input').find('input');
+  }
+
+  findMemoryLimitsInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
+    return this.findCustomizeForm().findByTestId('memory-limits-input').find('input');
+  }
+
   selectProfile(name: string): void {
     this.findSelect().click();
     cy.findByRole('option', { name }).click();
@@ -85,6 +101,26 @@ export class HardwareProfileSection {
 
   getGlobalScopedHardwareProfile(): Contextual<HTMLElement> {
     return new HardwareProfileGroup(() => cy.findByTestId('global-scoped-hardware-profiles'));
+  }
+
+  selectGlobalScopedProfile(profileName: string | RegExp): void {
+    this.getGlobalScopedHardwareProfile()
+      .find()
+      .findByRole('menuitem', {
+        name: profileName,
+        hidden: true,
+      })
+      .click();
+  }
+
+  selectProjectScopedProfile(profileName: string | RegExp): void {
+    this.getProjectScopedHardwareProfile()
+      .find()
+      .findByRole('menuitem', {
+        name: profileName,
+        hidden: true,
+      })
+      .click();
   }
 
   verifyProfileDetails(resources: ContainerResources): void {

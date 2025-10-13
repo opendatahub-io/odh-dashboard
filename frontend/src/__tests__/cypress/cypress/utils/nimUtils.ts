@@ -1,3 +1,4 @@
+import { mockDefaultHardwareProfile } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
 import type { MockDashboardConfigType } from '#~/__mocks__';
 import {
   mock200Status,
@@ -8,8 +9,8 @@ import {
   mockSecretK8sResource,
 } from '#~/__mocks__';
 import {
-  AcceleratorProfileModel,
   ConfigMapModel,
+  HardwareProfileModel,
   InferenceServiceModel,
   NIMAccountModel,
   ProjectModel,
@@ -29,7 +30,6 @@ import {
   mockNvidiaNimAccessSecret,
   mockNvidiaNimImagePullSecret,
 } from '#~/__mocks__/mockNimResource';
-import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
 import type { InferenceServiceKind } from '#~/k8sTypes';
 import { mockNimAccount } from '#~/__mocks__/mockNimAccount';
 import { mockOdhApplication } from '#~/__mocks__/mockOdhApplication';
@@ -84,16 +84,9 @@ export const initInterceptsToEnableNim = ({ hasAllModels = false }: EnableNimCon
   cy.interceptK8s(TemplateModel, templateMock);
 
   cy.interceptK8sList(
-    AcceleratorProfileModel,
-    mockK8sResourceList([mockAcceleratorProfile({ namespace: 'opendatahub' })]),
-  );
-
-  cy.interceptOdh('GET /api/accelerators', {
-    configured: true,
-    available: { 'nvidia.com/gpu': 1 },
-    total: { 'nvidia.com/gpu': 1 },
-    allocated: { 'nvidia.com/gpu': 1 },
-  });
+    { model: HardwareProfileModel, ns: 'opendatahub' },
+    mockK8sResourceList([mockDefaultHardwareProfile]),
+  ).as('defaultHardwareProfile');
 };
 
 // intercept all APIs required for deploying new NIM models in existing projects

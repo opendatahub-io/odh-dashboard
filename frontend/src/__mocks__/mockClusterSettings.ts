@@ -5,10 +5,6 @@ export const mockClusterSettings = ({
   userTrackingEnabled = false,
   cullerTimeout = DEFAULT_CULLER_TIMEOUT,
   pvcSize = DEFAULT_PVC_SIZE,
-  notebookTolerationSettings = {
-    key: 'NotebooksOnlyChange',
-    enabled: true,
-  },
   modelServingPlatformEnabled = {
     kServe: true,
     modelMesh: true,
@@ -17,6 +13,5 @@ export const mockClusterSettings = ({
   userTrackingEnabled,
   cullerTimeout,
   pvcSize,
-  notebookTolerationSettings,
   modelServingPlatformEnabled,
 });

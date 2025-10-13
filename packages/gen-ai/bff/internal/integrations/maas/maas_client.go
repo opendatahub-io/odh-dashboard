@@ -3,6 +3,8 @@ package maas
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -23,12 +25,20 @@ type HTTPMaaSClient struct {
 }
 
 // NewHTTPMaaSClient creates a new HTTP-based MaaS client
-func NewHTTPMaaSClient(baseURL string, authToken string) *HTTPMaaSClient {
+func NewHTTPMaaSClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) *HTTPMaaSClient {
+	tlsConfig := &tls.Config{InsecureSkipVerify: insecureSkipVerify}
+	if rootCAs != nil {
+		tlsConfig.RootCAs = rootCAs
+	}
+
 	return &HTTPMaaSClient{
 		baseURL:   baseURL,
 		authToken: authToken,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
+			Transport: &http.Transport{
+				TLSClientConfig: tlsConfig,
+			},
 		},
 	}
 }

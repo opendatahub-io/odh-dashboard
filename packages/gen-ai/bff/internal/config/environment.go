@@ -38,6 +38,17 @@ type EnvConfig struct {
 	// Filter models configuration
 	FilteredModelKeywords []string
 
+	// ─── TLS ────────────────────────────────────────────────────
+	// BundlePaths is a list of filesystem paths to PEM-encoded CA bundle files.
+	// If provided, the application will attempt to load these files and add the
+	// certificates to the HTTP client's Root CAs for outbound TLS connections.
+	// Missing or unreadable files are ignored.
+	BundlePaths []string
+
+	// TLS verification settings for HTTP client connections
+	// InsecureSkipVerify when true, skips TLS certificate verification (useful for development/local setups)
+	InsecureSkipVerify bool
+
 	// ─── AUTH ───────────────────────────────────────────────────
 	// Specifies the authentication method used by the server.
 	// Valid values: "disabled" or "user_token"

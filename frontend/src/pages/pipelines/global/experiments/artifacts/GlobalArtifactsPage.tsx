@@ -9,14 +9,17 @@ import { artifactsBaseRoute } from '#~/routes/pipelines/artifacts';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { ArtifactsList } from './ArtifactsList';
+import { artifactsPageDescription, artifactsPageTitle } from './constants';
 
 export const GlobalArtifactsPage: React.FC = () => {
   const pipelinesAPI = usePipelinesAPI();
 
   return (
     <PipelineCoreApplicationPage
-      title={<TitleWithIcon title="Artifacts" objectType={ProjectObjectType.pipelineArtifact} />}
-      description="View your artifacts and their metadata."
+      title={
+        <TitleWithIcon title={artifactsPageTitle} objectType={ProjectObjectType.pipelineArtifact} />
+      }
+      description={artifactsPageDescription}
       headerAction={<PipelineServerActions isDisabled={!pipelinesAPI.pipelinesServer.installed} />}
       getRedirectPath={artifactsBaseRoute}
       overrideTimeout

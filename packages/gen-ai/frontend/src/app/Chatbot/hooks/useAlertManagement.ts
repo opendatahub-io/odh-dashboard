@@ -11,10 +11,11 @@ export interface UseAlertManagementReturn {
   deleteAlertKey: number;
   errorAlertKey: number;
   errorMessage: string | undefined;
+  errorTitle: string | undefined;
   onShowSuccessAlert: () => void;
   onShowUploadSuccessAlert: () => void;
   onShowDeleteSuccessAlert: () => void;
-  onShowErrorAlert: (message?: string) => void;
+  onShowErrorAlert: (message?: string, title?: string) => void;
   onHideSuccessAlert: () => void;
   onHideUploadSuccessAlert: () => void;
   onHideDeleteSuccessAlert: () => void;
@@ -31,6 +32,7 @@ const useAlertManagement = (): UseAlertManagementReturn => {
   const [showDeleteSuccessAlert, setShowDeleteSuccessAlert] = React.useState(false);
   const [showErrorAlert, setShowErrorAlert] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | undefined>();
+  const [errorTitle, setErrorTitle] = React.useState<string | undefined>();
 
   const autoHideTimeouts = React.useRef<Record<string, ReturnType<typeof setTimeout> | undefined>>({
     success: undefined,
@@ -97,15 +99,17 @@ const useAlertManagement = (): UseAlertManagementReturn => {
     });
   }, []);
 
-  const showErrAlert = React.useCallback((message?: string) => {
+  const showErrAlert = React.useCallback((message?: string, title?: string) => {
     setErrorAlertKey((key) => key + 1);
     setAlertKey((key) => key + 1);
     setErrorMessage(message);
+    setErrorTitle(title);
     setShowErrorAlert(true);
     clearTimeoutRef('error');
     autoHideTimeouts.current.error = setTimeout(() => {
       setShowErrorAlert(false);
       setErrorMessage(undefined);
+      setErrorTitle(undefined);
       clearTimeoutRef('error');
     }, ALERT_TIMEOUT_MS);
   }, []);
@@ -125,6 +129,7 @@ const useAlertManagement = (): UseAlertManagementReturn => {
   const hideErrorAlert = React.useCallback(() => {
     setShowErrorAlert(false);
     setErrorMessage(undefined);
+    setErrorTitle(undefined);
   }, []);
 
   React.useEffect(
@@ -156,6 +161,7 @@ const useAlertManagement = (): UseAlertManagementReturn => {
     deleteAlertKey,
     errorAlertKey,
     errorMessage,
+    errorTitle,
     onShowSuccessAlert: showSuccAlert,
     onShowUploadSuccessAlert: showUploadSuccAlert,
     onShowDeleteSuccessAlert: showDeleteSuccAlert,

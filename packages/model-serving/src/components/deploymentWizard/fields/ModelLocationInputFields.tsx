@@ -21,6 +21,7 @@ import {
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import useServingConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections';
 import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
+import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
 import { ExistingConnectionField } from './modelLocationFields/ExistingConnectionField';
 import {
   ConnectionTypeRefs,
@@ -50,24 +51,32 @@ export const useModelLocationData = (
     existingData,
   );
   const [connectionTypes, connectionTypesLoaded] = useWatchConnectionTypes(true);
-  const [connections, connectionsLoaded] = useServingConnections(project?.metadata.name);
+  const [connections, connectionsLoaded] = useServingConnections(
+    project?.metadata.name,
+    true,
+    true,
+  );
 
   const [isStableState, setIsStableState] = React.useState(
     connectionTypesLoaded && connectionsLoaded,
   );
+  const [prefillApplied, setPrefillApplied] = React.useState(false);
   React.useEffect(() => {
     if (!project?.metadata.name || !connectionsLoaded || !connectionTypesLoaded) {
       return;
     }
+    if (prefillApplied) return;
     if (!existingData) {
       // new deployment
       setIsStableState(true);
+      setPrefillApplied(true);
       return;
     }
 
     const fetchConnectionData = async () => {
       if (existingData.type === ModelLocationType.PVC) {
         setIsStableState(true);
+        setPrefillApplied(true);
         return;
       }
       if (existingData.type === ModelLocationType.NEW) {
@@ -82,6 +91,7 @@ export const useModelLocationData = (
           });
         }
         setIsStableState(true);
+        setPrefillApplied(true);
         return;
       }
 
@@ -89,6 +99,14 @@ export const useModelLocationData = (
       try {
         const connectionName = existingData.connection;
         if (!connectionName) {
+          return;
+        }
+
+        if (
+          modelLocationData?.type === ModelLocationType.EXISTING &&
+          modelLocationData.connection !== connectionName
+        ) {
+          setIsStableState(true);
           return;
         }
 
@@ -100,7 +118,8 @@ export const useModelLocationData = (
         const connectionTypeRef = getConnectionTypeRef(secret);
         const connectionType = connectionTypes.find((ct) => ct.metadata.name === connectionTypeRef);
         const values = parseConnectionSecretValues(secret, connectionType);
-        const hasOwnerRef = !!secret.metadata.ownerReferences?.length;
+        const isGeneratedSecret = isGeneratedSecretName(secret.metadata.name);
+        const hasOwnerRef = !!secret.metadata.ownerReferences?.length || isGeneratedSecret;
 
         const newState = {
           type: hasOwnerRef ? ModelLocationType.NEW : ModelLocationType.EXISTING,
@@ -111,6 +130,7 @@ export const useModelLocationData = (
         };
 
         setModelLocationData(newState);
+        setPrefillApplied(true);
       } catch (e) {
         console.error('Failed to fetch secret data:', e);
       } finally {
@@ -137,6 +157,7 @@ export const useModelLocationData = (
 
   const updateSelectedConnection = React.useCallback(
     (connection: Connection | undefined) => {
+      setPrefillApplied(true);
       if (!connection) {
         setUserSelectedConnection(undefined);
         return;
