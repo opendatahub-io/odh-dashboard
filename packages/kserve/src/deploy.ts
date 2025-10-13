@@ -3,7 +3,11 @@ import type { WizardFormData } from '@odh-dashboard/model-serving/types/form-dat
 import { KServeDeployment } from './deployments';
 import { setUpTokenAuth } from './deployUtils';
 import { createServingRuntime } from './deployServer';
-import { createInferenceService, CreatingInferenceServiceObject } from './deployModel';
+import {
+  createInferenceService,
+  CreatingInferenceServiceObject,
+  updateInferenceService,
+} from './deployModel';
 
 export const deployKServeDeployment = async (
   wizardData: WizardFormData['state'],
@@ -46,12 +50,14 @@ export const deployKServeDeployment = async (
         )
       : undefined;
 
-  const inferenceService = await createInferenceService(
-    inferenceServiceData,
-    existingDeployment?.model,
-    dryRun,
-    secretName,
-  );
+  const inferenceService = !existingDeployment
+    ? await createInferenceService(inferenceServiceData, dryRun, secretName)
+    : await updateInferenceService(
+        inferenceServiceData,
+        existingDeployment.model,
+        dryRun,
+        secretName,
+      );
 
   if (inferenceServiceData.tokenAuth && !existingDeployment) {
     await setUpTokenAuth(

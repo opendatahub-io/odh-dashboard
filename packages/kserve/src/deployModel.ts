@@ -6,8 +6,9 @@ import {
 } from '@odh-dashboard/internal/k8sTypes';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
-import { InferenceServiceModel } from '@odh-dashboard/internal/api/index';
+import { InferenceServiceModel, k8sMergePatchResource } from '@odh-dashboard/internal/api/index';
 import { k8sCreateResource, k8sUpdateResource } from '@openshift/dynamic-plugin-sdk-utils';
+import * as _ from 'lodash-es';
 import {
   applyAiAvailableAssetAnnotations,
   applyAuth,
@@ -15,6 +16,8 @@ import {
   applyModelFormat,
   applyConnectionData,
   applyRuntimeArgs,
+  applyDisplayNameDesc,
+  applyDashboardResourceLabel,
 } from './deployUtils';
 import { applyHardwareProfileToDeployment, applyReplicas } from './hardware';
 import type { AvailableAiAssetsFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/AvailableAiAssetsFields';
@@ -77,8 +80,6 @@ const assembleInferenceService = (
           name: k8sName,
           namespace: project,
           annotations: {
-            'openshift.io/display-name': name,
-            'openshift.io/description': description,
             'opendatahub.io/model-type': modelType ?? ServingRuntimeModelType.GENERATIVE,
           },
           labels: {
@@ -93,6 +94,10 @@ const assembleInferenceService = (
           },
         },
       };
+
+  inferenceService = applyDashboardResourceLabel(inferenceService);
+
+  inferenceService = applyDisplayNameDesc(inferenceService, name, description);
 
   inferenceService = applyModelFormat(inferenceService, modelFormat);
 
@@ -141,7 +146,25 @@ const assembleInferenceService = (
 
 export const createInferenceService = (
   data: CreatingInferenceServiceObject,
-  inferenceService?: InferenceServiceKind,
+  dryRun?: boolean,
+  secretName?: string,
+): Promise<InferenceServiceKind> => {
+  const assembledInferenceService = assembleInferenceService(data, undefined, dryRun, secretName);
+
+  return k8sCreateResource<InferenceServiceKind>(
+    applyK8sAPIOptions(
+      {
+        model: InferenceServiceModel,
+        resource: assembledInferenceService,
+      },
+      { dryRun: dryRun ?? false },
+    ),
+  );
+};
+
+export const updateInferenceService = (
+  data: CreatingInferenceServiceObject,
+  inferenceService: InferenceServiceKind,
   dryRun?: boolean,
   secretName?: string,
 ): Promise<InferenceServiceKind> => {
@@ -151,25 +174,28 @@ export const createInferenceService = (
     dryRun,
     secretName,
   );
-  if (inferenceService) {
+
+  if (dryRun) {
+    const oldInferenceService = structuredClone(inferenceService);
+
     return k8sUpdateResource<InferenceServiceKind>(
       applyK8sAPIOptions(
         {
           model: InferenceServiceModel,
-          resource: assembledInferenceService,
+          resource: _.merge({}, oldInferenceService, assembledInferenceService),
         },
-        { dryRun: dryRun ?? false },
+        { dryRun },
       ),
     );
   }
 
-  return k8sCreateResource<InferenceServiceKind>(
+  return k8sMergePatchResource<InferenceServiceKind>(
     applyK8sAPIOptions(
       {
         model: InferenceServiceModel,
         resource: assembledInferenceService,
       },
-      { dryRun: dryRun ?? false },
+      { dryRun },
     ),
   );
 };

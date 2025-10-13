@@ -30,6 +30,7 @@ import {
   RoleKind,
   SupportedModelFormats,
   MetadataAnnotation,
+  KnownLabels,
 } from '@odh-dashboard/internal/k8sTypes';
 import { getTokenNames } from '@odh-dashboard/internal/pages/modelServing/utils';
 import {
@@ -318,5 +319,31 @@ export const applyConnectionData = (
       storageUri: modelLocationData.additionalFields.modelUri,
     };
   }
+  return result;
+};
+
+export const applyDisplayNameDesc = (
+  inferenceService: InferenceServiceKind,
+  name: string,
+  description: string,
+): InferenceServiceKind => {
+  const result = structuredClone(inferenceService);
+  result.metadata.annotations = {
+    ...result.metadata.annotations,
+    'openshift.io/display-name': name,
+    'openshift.io/description': description,
+  };
+
+  return result;
+};
+
+export const applyDashboardResourceLabel = (
+  inferenceService: InferenceServiceKind,
+): InferenceServiceKind => {
+  const result = structuredClone(inferenceService);
+  result.metadata.labels = {
+    ...result.metadata.labels,
+    [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+  };
   return result;
 };

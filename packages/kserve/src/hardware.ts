@@ -57,6 +57,14 @@ export const applyHardwareProfileToDeployment = (
     'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
   };
 
+  result.spec.predictor.model = {
+    ...result.spec.predictor.model,
+    resources: {
+      ...result.spec.predictor.model?.resources,
+      ...hardwareProfile.resources,
+    },
+  };
+
   return result;
 };
 
