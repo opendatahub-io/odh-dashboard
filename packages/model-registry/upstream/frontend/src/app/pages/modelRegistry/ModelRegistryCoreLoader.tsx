@@ -3,11 +3,11 @@ import { Navigate, Outlet, useParams } from 'react-router-dom';
 import { Bullseye, Alert, Divider, Stack, StackItem } from '@patternfly/react-core';
 import {
   ProjectObjectType,
-  typedEmptyImage,
   TitleWithIcon,
+  ApplicationsPage,
+  typedEmptyImage,
   WhosMyAdministrator,
   KubeflowDocs,
-  ApplicationsPage,
 } from 'mod-arch-shared';
 import { useThemeContext } from 'mod-arch-kubeflow';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
@@ -21,6 +21,7 @@ type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
 
 type ModelRegistryCoreLoaderProps = {
   getInvalidRedirectPath: (modelRegistry: string) => string;
+  emptyStatePage?: React.ReactNode;
 };
 
 type ApplicationPageRenderState = Pick<
@@ -30,6 +31,7 @@ type ApplicationPageRenderState = Pick<
 
 const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> = ({
   getInvalidRedirectPath,
+  emptyStatePage,
 }) => {
   const { modelRegistry } = useParams<{ modelRegistry: string }>();
   const {
@@ -66,7 +68,7 @@ const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> = ({
   if (modelRegistries.length === 0) {
     renderStateProps = {
       empty: true,
-      emptyStatePage: (
+      emptyStatePage: emptyStatePage || (
         <EmptyModelRegistryState
           testid="empty-model-registries-state"
           title={isMUITheme ? 'Deploy a model registry' : 'Request access to model registries'}
@@ -106,9 +108,7 @@ const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> = ({
 
   return (
     <ApplicationsPage
-      title={
-        <TitleWithIcon title="Registry" objectType={ProjectObjectType.registeredModels} />
-      }
+      title={<TitleWithIcon title="Registry" objectType={ProjectObjectType.registeredModels} />}
       description={
         <Stack hasGutter>
           <StackItem>
