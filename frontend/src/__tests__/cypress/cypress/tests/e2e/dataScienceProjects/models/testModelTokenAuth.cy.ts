@@ -60,10 +60,7 @@ describe('A model can be deployed with token auth', () => {
     () => {
       cy.log('Model Name:', modelName);
       cy.step(`Log into the application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
-      cy.visitWithLogin(
-        '/?devFeatureFlags=disableDeploymentWizard%3Dfalse',
-        HTPASSWD_CLUSTER_ADMIN_USER,
-      );
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       // Project navigation
       cy.step(`Navigate to the Project list tab and search for ${projectName}`);

@@ -66,7 +66,7 @@ describe('[Product Bug: RHOAIENG-35572] Verify Model Creation and Validation usi
         '@SmokeSet3',
         '@ODS-2552',
         '@Dashboard',
-        '@Modelserving',
+        '@ModelServing',
         '@NonConcurrent',
         '@Bug',
       ],
@@ -75,7 +75,7 @@ describe('[Product Bug: RHOAIENG-35572] Verify Model Creation and Validation usi
       cy.log('Model Name:', modelName);
       // Authentication and navigation
       cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
-      cy.visitWithLogin('/?devFeatureFlags=disableDeploymentWizard%3Dfalse', LDAP_CONTRIBUTOR_USER);
+      cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
       // Project navigation, add user and provide contributor permissions
       cy.step(`Navigate to the Project list tab and search for ${projectName}`);

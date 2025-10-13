@@ -72,10 +72,7 @@ describe('Verify a model can be deployed from a PVC', () => {
     { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving'] },
     () => {
       cy.step('log into application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}');
-      cy.visitWithLogin(
-        '/?devFeatureFlags=disableDeploymentWizard%3Dfalse',
-        HTPASSWD_CLUSTER_ADMIN_USER,
-      );
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       // Navigate to the project
       cy.step('Navigate to the project');
@@ -134,7 +131,7 @@ describe('Verify a model can be deployed from a PVC', () => {
       // Step 1: Model Source
       modelServingWizard.findModelLocationSelectOption('Cluster storage').click();
       // There's only one PVC so it's automatically selected
-      modelServingWizard.findExistingConnectionValue().should('not.be.empty');
+      modelServingWizard.findExistingPVCSelectValue().should('not.be.empty');
       modelServingWizard.findModelTypeSelectOption('Predictive model').click();
       modelServingWizard.findNextButton().click();
       // Step 2: Model Deployment

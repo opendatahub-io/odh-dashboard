@@ -1050,6 +1050,10 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('uri-form-field-helper-text');
   }
 
+  findExistingPVCSelectValue() {
+    return cy.findByTestId('pvc-connection-selector');
+  }
+
   findExistingConnectionSelect() {
     return cy.findByTestId('typeahead-menu-toggle');
   }
