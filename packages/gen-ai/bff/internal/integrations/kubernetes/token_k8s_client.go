@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -161,6 +162,51 @@ func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *integrati
 	}
 
 	return nsList.Items, nil
+}
+
+// CanListNamespaces performs a SubjectAccessReview to check if the user has permission to list namespaces
+// This is a cluster-scoped operation, so no namespace is specified in the SAR
+func (kc *TokenKubernetesClient) CanListNamespaces(ctx context.Context, identity *integrations.RequestIdentity) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	// Check for nil identity
+	if identity == nil {
+		kc.Logger.Error("identity is nil")
+		return false, fmt.Errorf("identity cannot be nil")
+	}
+
+	// Create a new config with the token from the request identity
+	config := rest.CopyConfig(kc.Config)
+	config.BearerToken = identity.Token
+	config.BearerTokenFile = ""
+
+	// Create a kubernetes clientset to use the authorization API
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		kc.Logger.Error("failed to create kubernetes clientset for SAR", "error", err)
+		return false, fmt.Errorf("failed to create kubernetes clientset: %w", err)
+	}
+
+	// Create SelfSubjectAccessReview to check if user can list namespaces (cluster-scoped)
+	sar := &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      "list",
+				Group:     "",
+				Resource:  "namespaces",
+				Namespace: "", // Cluster-scoped operation
+			},
+		},
+	}
+
+	resp, err := clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to perform namespaces list SAR", "error", err)
+		return false, fmt.Errorf("failed to verify namespaces list permissions: %w", err)
+	}
+
+	return resp.Status.Allowed, nil
 }
 
 // CanListLlamaStackDistributions performs a SubjectAccessReview to check if the user has permission to list LlamaStackDistribution resources
@@ -1105,6 +1151,24 @@ func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.C
 		}
 	}
 
+	// Find services owned by this InferenceService
+	services, err := kc.findServicesForInferenceService(ctx, namespace, targetISVC)
+	if err != nil {
+		kc.Logger.Warn("failed to find services for InferenceService", "name", targetISVC.Name, "error", err)
+	} else if len(services) == 0 {
+		kc.Logger.Warn("no services found for InferenceService", "name", targetISVC.Name)
+	} else {
+		svc := services[0]
+		isHeadless := kc.isHeadlessService(ctx, namespace, svc.Name)
+		port := kc.getServingPort(ctx, namespace, svc.Name)
+
+		if isHeadless && internalURL.Port() == "" {
+			internalURL.Host = fmt.Sprintf("%s:%d", internalURL.Hostname(), port)
+			kc.Logger.Info("headless kserve detected: HeadlessService is used; adding target port to internal URL",
+				"service", svc.Name, "port", port, "url", internalURL.String())
+		}
+	}
+
 	internalURLStr := internalURL.String()
 	// Add /v1 suffix if not present
 	if !strings.HasSuffix(internalURLStr, "/v1") {
@@ -1132,6 +1196,63 @@ func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.C
 		"metadata":     metadata,
 		"endpoint_url": internalURLStr,
 	}, nil
+}
+
+func (kc *TokenKubernetesClient) isHeadlessService(ctx context.Context, namespace, svcName string) bool {
+	var svc corev1.Service
+	if err := kc.Client.Get(ctx, types.NamespacedName{Name: svcName, Namespace: namespace}, &svc); err != nil {
+		kc.Logger.Warn("unable to check if service is headless", "service", svcName, "error", err)
+		return false
+	}
+	return svc.Spec.ClusterIP == "None"
+}
+
+// For headless services, we use TargetPort because ClusterIP/Port may not exist or may be shared;
+// TargetPort points directly to the container port in the pods.
+func (kc *TokenKubernetesClient) getServingPort(ctx context.Context, namespace, svcName string) int32 {
+	const defaultPort int32 = 8080
+
+	var svc corev1.Service
+	if err := kc.Client.Get(ctx, types.NamespacedName{Name: svcName, Namespace: namespace}, &svc); err != nil || len(svc.Spec.Ports) == 0 {
+		return defaultPort
+	}
+
+	if svc.Spec.Ports[0].TargetPort.IntVal != 0 {
+		return svc.Spec.Ports[0].TargetPort.IntVal
+	}
+
+	return defaultPort
+}
+
+func (kc *TokenKubernetesClient) findServicesForInferenceService(ctx context.Context, namespace string, isvc metav1.Object) ([]corev1.Service, error) {
+	var svcList corev1.ServiceList
+
+	// Use label selector to only fetch services with the serving.kserve.io/inferenceservice label
+	labelSelector := labels.SelectorFromSet(map[string]string{
+		"serving.kserve.io/inferenceservice": isvc.GetName(),
+	})
+
+	listOptions := &client.ListOptions{
+		Namespace:     namespace,
+		LabelSelector: labelSelector,
+	}
+
+	if err := kc.Client.List(ctx, &svcList, listOptions); err != nil {
+		return nil, err
+	}
+
+	// Filter by owner reference to ensure we only get services owned by this InferenceService
+	var services []corev1.Service
+	for _, svc := range svcList.Items {
+		for _, owner := range svc.OwnerReferences {
+			if owner.UID == isvc.GetUID() {
+				services = append(services, svc)
+				break
+			}
+		}
+	}
+
+	return services, nil
 }
 
 // findInferenceServiceByModelName finds an InferenceService by its display name annotation

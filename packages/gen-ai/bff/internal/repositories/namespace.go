@@ -39,9 +39,10 @@ func (r *NamespaceRepository) GetNamespaces(client kubernetes.KubernetesClientIn
 
 func filterAvailableNamespaces(namespaces []corev1.Namespace) []corev1.Namespace {
 	excludedExact := map[string]struct{}{
-		"default":   {},
-		"system":    {},
-		"openshift": {},
+		"default":     {},
+		"system":      {},
+		"openshift":   {},
+		"opendatahub": {},
 	}
 
 	filtered := make([]corev1.Namespace, 0, len(namespaces))
