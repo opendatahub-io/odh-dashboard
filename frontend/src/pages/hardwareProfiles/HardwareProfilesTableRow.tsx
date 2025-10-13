@@ -40,6 +40,7 @@ type HardwareProfilesTableRowProps = {
   handleDelete: (cr: HardwareProfileKind) => void;
   isExpanded: boolean;
   onToggleExpansion: () => void;
+  dragDisabled?: boolean;
 };
 
 const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
@@ -48,6 +49,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
   handleDelete,
   isExpanded,
   onToggleExpansion,
+  dragDisabled = false,
   ...props
 }) => {
   const modifiedDate = hardwareProfile.metadata.annotations?.['opendatahub.io/modified-date'];
@@ -101,7 +103,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
       <Tr
         key={hardwareProfile.metadata.name}
         id={hardwareProfile.metadata.name}
-        draggable
+        draggable={!dragDisabled}
         {...props}
       >
         <Td
@@ -116,6 +118,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
           draggableRow={{
             id: `draggable-row-${hardwareProfile.metadata.name}`,
           }}
+          style={dragDisabled ? { pointerEvents: 'none', opacity: 0.5 } : undefined}
         />
         <Td dataLabel="Name">
           <TableRowTitleDescription

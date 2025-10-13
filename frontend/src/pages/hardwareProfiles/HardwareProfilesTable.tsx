@@ -12,7 +12,6 @@ import HardwareProfilesTableRow from '#~/pages/hardwareProfiles/HardwareProfiles
 import DeleteHardwareProfileModal from '#~/pages/hardwareProfiles/DeleteHardwareProfileModal';
 import HardwareProfilesToolbar from '#~/pages/hardwareProfiles/HardwareProfilesToolbar';
 import useDraggableTable from '#~/utilities/useDraggableTable';
-import useTableColumnSort from '#~/components/table/useTableColumnSort';
 import {
   getHardwareProfileDisplayName,
   isHardwareProfileEnabled,
@@ -97,49 +96,43 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
       setFilterData((prevValues) => ({ ...prevValues, [key]: value })),
     [setFilterData],
   );
+  const isAnyFilterActive = React.useMemo(
+    () => filteredHardwareProfiles.length !== hardwareProfiles.length,
+    [filteredHardwareProfiles.length, hardwareProfiles.length],
+  );
   const orderedHardwareProfiles = orderHardwareProfiles(
     filteredHardwareProfiles,
     hardwareProfileOrder,
   );
-  //column sorting with the following cycle: custom → asc → desc → custom
-  const { transformData, getColumnSort, isCustomOrder } = useTableColumnSort(
-    hardwareProfileColumns,
-    [],
-    undefined,
-    true,
-  );
-  const displayedHardwareProfiles = transformData(orderedHardwareProfiles);
-  const currentOrder = displayedHardwareProfiles.map((profile) => profile.metadata.name);
+  const currentOrder = orderedHardwareProfiles.map((profile) => profile.metadata.name);
   //drag-and-drop for persisted ordering, close expanded rows when dragging
   const { tableProps, rowProps } = useDraggableTable(currentOrder, setHardwareProfileOrder, {
     onDragStart: () => setExpandedRows(new Set()),
   });
 
-  const conditionalTableProps = isCustomOrder ? tableProps : {};
-  const conditionalRowProps = isCustomOrder ? rowProps : {};
-
   return (
     <>
       <Table
-        {...conditionalTableProps}
+        {...tableProps}
         onClearFilters={onClearFilters}
         data-testid="hardware-profile-table"
         id="hardware-profile-table"
-        enablePagination
-        data={displayedHardwareProfiles}
+        style={{ tableLayout: 'fixed' }}
+        enablePagination={false}
+        data={orderedHardwareProfiles}
         columns={hardwareProfileColumns}
-        getColumnSort={getColumnSort}
         emptyTableView={<DashboardEmptyTableView onClearFilters={resetFilters} />}
         rowRenderer={(cr, index) => {
           return (
             <HardwareProfilesTableRow
-              {...conditionalRowProps}
+              {...rowProps}
               key={cr.metadata.name}
               rowIndex={index}
               hardwareProfile={cr}
               handleDelete={setDeleteHardwareProfile}
               isExpanded={expandedRows.has(cr.metadata.name)}
               onToggleExpansion={() => toggleRowExpansion(cr.metadata.name)}
+              dragDisabled={isAnyFilterActive}
             />
           );
         }}
