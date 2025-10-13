@@ -7,7 +7,6 @@ import {
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { NotebookKind } from '#~/k8sTypes';
-import { Toleration } from '#~/types';
 import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { mock200Status } from '#~/__mocks__/mockK8sStatus';
@@ -40,7 +39,6 @@ import {
   ELYRA_VOLUME_NAME,
 } from '#~/concepts/pipelines/elyra/utils';
 
-import { TolerationChanges, getTolerationPatch } from '#~/utilities/tolerations';
 import { NotebookModel } from '#~/api/models';
 import { k8sMergePatchResource } from '#~/api/k8sUtils';
 import { mockImageStreamK8sResource } from '#~/__mocks__/mockImageStreamK8sResource';
@@ -485,11 +483,7 @@ describe('getNotebooks', () => {
   });
 });
 describe('startNotebook', () => {
-  it('should start a notebook with pipelines and add tolerations', async () => {
-    const tolerationChanges = {
-      type: 'add',
-      settings: [] as Toleration[],
-    } as TolerationChanges;
+  it('should start a notebook with pipelines', async () => {
     const enablePipelines = true;
     const mockNotebook = mockNotebookK8sResource({ uid });
 
@@ -500,62 +494,7 @@ describe('startNotebook', () => {
     expect(k8sPatchResourceMock).toHaveBeenCalledWith({
       model: NotebookModel,
       queryOptions: { name: mockNotebook.metadata.name, ns: mockNotebook.metadata.namespace },
-      patches: [
-        startPatch,
-        getTolerationPatch(tolerationChanges),
-        getPipelineVolumePatch(),
-        getPipelineVolumeMountPatch(),
-      ],
-    });
-    expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
-    expect(renderResult).toStrictEqual(mockNotebook);
-  });
-  it('should start a notebook with pipelines and replace tolerations', async () => {
-    const tolerationChanges = {
-      type: 'replace',
-      settings: [] as Toleration[],
-    } as TolerationChanges;
-    const enablePipelines = true;
-    const mockNotebook = mockNotebookK8sResource({ uid });
-
-    k8sPatchResourceMock.mockResolvedValue(mockNotebookK8sResource({ uid }));
-
-    const renderResult = await startNotebook(mockNotebook, enablePipelines);
-
-    expect(k8sPatchResourceMock).toHaveBeenCalledWith({
-      model: NotebookModel,
-      queryOptions: { name: mockNotebook.metadata.name, ns: mockNotebook.metadata.namespace },
-      patches: [
-        startPatch,
-        getTolerationPatch(tolerationChanges),
-        getPipelineVolumePatch(),
-        getPipelineVolumeMountPatch(),
-      ],
-    });
-    expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
-    expect(renderResult).toStrictEqual(mockNotebook);
-  });
-  it('should start a notebook with pipelines and remove tolerations', async () => {
-    const tolerationChanges = {
-      type: 'remove',
-      settings: [] as Toleration[],
-    } as TolerationChanges;
-    const enablePipelines = true;
-    const mockNotebook = mockNotebookK8sResource({ uid });
-
-    k8sPatchResourceMock.mockResolvedValue(mockNotebookK8sResource({ uid }));
-
-    const renderResult = await startNotebook(mockNotebook, enablePipelines);
-
-    expect(k8sPatchResourceMock).toHaveBeenCalledWith({
-      model: NotebookModel,
-      queryOptions: { name: mockNotebook.metadata.name, ns: mockNotebook.metadata.namespace },
-      patches: [
-        startPatch,
-        getTolerationPatch(tolerationChanges),
-        getPipelineVolumePatch(),
-        getPipelineVolumeMountPatch(),
-      ],
+      patches: [startPatch, getPipelineVolumePatch(), getPipelineVolumeMountPatch()],
     });
     expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).toStrictEqual(mockNotebook);
@@ -578,10 +517,6 @@ describe('startNotebook', () => {
     expect(renderResult).toStrictEqual(mockNotebook);
   });
   it('should handle errors and rethrow', async () => {
-    const tolerationChanges = {
-      type: 'add',
-      settings: [] as Toleration[],
-    } as TolerationChanges;
     const enablePipelines = true;
     const mockNotebook = mockNotebookK8sResource({ uid });
 
@@ -591,12 +526,7 @@ describe('startNotebook', () => {
     expect(k8sPatchResourceMock).toHaveBeenCalledWith({
       model: NotebookModel,
       queryOptions: { name: mockNotebook.metadata.name, ns: mockNotebook.metadata.namespace },
-      patches: [
-        startPatch,
-        getTolerationPatch(tolerationChanges),
-        getPipelineVolumePatch(),
-        getPipelineVolumeMountPatch(),
-      ],
+      patches: [startPatch, getPipelineVolumePatch(), getPipelineVolumeMountPatch()],
     });
   });
 });
