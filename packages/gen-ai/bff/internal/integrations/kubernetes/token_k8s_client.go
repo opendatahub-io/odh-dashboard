@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/models"
@@ -974,117 +975,24 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 `, providerID, endpointURL, apiTokenConfig)
 	}
 
-	config := fmt.Sprintf(`# Llama Stack Configuration
-version: "2"
-image_name: rh
-apis:
-- agents
-- datasetio
-- files
-- inference
-- safety
-- scoring
-- telemetry
-- tool_runtime
-- vector_io
-providers:
-  inference:
-%s  - provider_id: sentence-transformers
-    provider_type: inline::sentence-transformers
-    config: {}
-  vector_io:
-  - provider_id: milvus
-    provider_type: inline::milvus
-    config:
-      db_path: /opt/app-root/src/.llama/distributions/rh/milvus.db
-      kvstore:
-        type: sqlite
-        namespace: null
-        db_path: /opt/app-root/src/.llama/distributions/rh/milvus_registry.db
-  safety:
-  - provider_id: trustyai_fms
-    provider_type: remote::trustyai_fms
-    module: llama_stack_provider_trustyai_fms==0.2.2
-    config:
-      orchestrator_url: ${env.FMS_ORCHESTRATOR_URL:=http://localhost}
-      ssl_cert_path: ${env.FMS_SSL_CERT_PATH:=}
-      shields: {}
-  agents:
-  - provider_id: meta-reference
-    provider_type: inline::meta-reference
-    config:
-      persistence_store:
-        type: sqlite
-        namespace: null
-        db_path: /opt/app-root/src/.llama/distributions/rh/agents_store.db
-      responses_store:
-        type: sqlite
-        db_path: /opt/app-root/src/.llama/distributions/rh/responses_store.db
-  eval: []
-  files:
-  - provider_id: meta-reference-files
-    provider_type: inline::localfs
-    config:
-      storage_dir: /opt/app-root/src/.llama/distributions/rh/files
-      metadata_store:
-        type: sqlite
-        db_path: /opt/app-root/src/.llama/distributions/rh/files_metadata.db
-  datasetio:
-  - provider_id: huggingface
-    provider_type: remote::huggingface
-    config:
-      kvstore:
-        type: sqlite
-        namespace: null
-        db_path: /opt/app-root/src/.llama/distributions/rh/huggingface_datasetio.db
-  scoring:
-  - provider_id: basic
-    provider_type: inline::basic
-    config: {}
-  - provider_id: llm-as-judge
-    provider_type: inline::llm-as-judge
-    config: {}
-  telemetry:
-  - provider_id: meta-reference
-    provider_type: inline::meta-reference
-    config:
-      service_name: "${env.OTEL_SERVICE_NAME:=\u200B}"
-      sinks: ${env.TELEMETRY_SINKS:=console,sqlite}
-      sqlite_db_path: /opt/app-root/src/.llama/distributions/rh/trace_store.db
-      otel_exporter_otlp_endpoint: ${env.OTEL_EXPORTER_OTLP_ENDPOINT:=}
-  tool_runtime:
-  - provider_id: rag-runtime
-    provider_type: inline::rag-runtime
-    config: {}
-  - provider_id: model-context-protocol
-    provider_type: remote::model-context-protocol
-    config: {}
-metadata_store:
-  type: sqlite
-  db_path: /opt/app-root/src/.llama/distributions/rh/inference_store.db
+	// Combine embedding model with other models
+	allModelsYAML := generateEmbeddingModelYAML(constants.DefaultEmbeddingModel) + "\n" + modelsYAML
+	configMapYAML := fmt.Sprintf(constants.LlamaStackConfigTemplate, providersYAML, allModelsYAML)
 
-models:
-  - metadata:
-      embedding_dimension: 768
-    model_id: granite-embedding-125m
-    provider_id: sentence-transformers
-    provider_model_id: ibm-granite/granite-embedding-125m-english
-    model_type: embedding
+	return configMapYAML, nil
+}
 
-%s
-shields: []
-vector_dbs: []
-datasets: []
-scoring_fns: []
-benchmarks: []
-tool_groups:
-- toolgroup_id: builtin::rag
-  provider_id: rag-runtime
-external_providers_dir: /opt/app-root/.llama/providers.d
-server:
-  port: 8321`, providersYAML, modelsYAML)
-
-	return config, nil
+// generateEmbeddingModelYAML creates a YAML configuration for an embedding model
+func generateEmbeddingModelYAML(model constants.EmbeddingModelConfig) string {
+	return fmt.Sprintf(`  - metadata:
+      embedding_dimension: %d
+    model_id: %s
+    provider_id: %s
+    provider_model_id: %s
+    model_type: embedding`, model.EmbeddingDimension,
+		model.ModelID,
+		model.ProviderID,
+		model.ProviderModelID)
 }
 
 // getModelDetailsFromServingRuntime queries the serving runtime and inference service
