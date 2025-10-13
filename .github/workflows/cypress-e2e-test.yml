@@ -478,7 +478,7 @@ jobs:
           if [ -f "$CY_TEST_CONFIG" ]; then
             echo "Test config baseUrl: $(grep '^ODH_DASHBOARD_URL:' $CY_TEST_CONFIG | head -1)"
           fi
-          echo "Chrome will use built-in headless mode (no X11/Xvfb needed)"
+          echo "Using Electron (same as working version, but with dynamic ports)"
           echo "================================"
           echo ""
 
@@ -499,34 +499,27 @@ jobs:
           echo "📋 Test group: ${{ matrix.test-tag }}"
 
           # Use Jenkins-style command format for proper tag filtering
-          echo "🔄 Using Chrome browser (headless)"
+          echo "🔄 Using Electron browser (like working version)"
 
           # Create results directory
           mkdir -p "$CY_RESULTS_DIR"
 
           # Run tests against dynamic port - baseUrl from test-variables.yml
-          npm run cypress:run:chrome -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+          npm run cypress:run:electron -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
-      - name: Debug Chrome on failure
+      - name: Debug Electron on failure
         if: ${{ failure() }}
         run: |
           echo "=== POST-FAILURE DEBUGGING ==="
           echo ""
-          echo "1. Check if Chrome processes launched:"
-          ps aux | grep -v grep | grep chrome | head -5 || echo "No Chrome processes found"
+          echo "1. Check if Electron processes launched:"
+          ps aux | grep -v grep | grep electron | head -5 || echo "No Electron processes found"
           echo ""
-          echo "2. Check Chrome headless mode flags:"
-          ps aux | grep -v grep | grep chrome | grep -o "\--headless[^ ]*" | head -3 || echo "No headless flags"
+          echo "2. Check Cypress processes:"
+          ps aux | grep -v grep | grep cypress | head -3 || echo "No Cypress processes"
           echo ""
-          echo "3. Check Chrome remote debugging port:"
-          lsof -nP | grep chrome | grep LISTEN | grep "127.0.0.1" || echo "No Chrome debug ports found"
-          echo ""
-          echo "4. Test Chrome debug port connection:"
-          CHROME_PORT=$(lsof -nP | grep chrome | grep LISTEN | grep "127.0.0.1" | head -1 | awk '{print $9}' | cut -d: -f2)
-          if [ -n "$CHROME_PORT" ]; then
-            echo "Attempting connection to 127.0.0.1:$CHROME_PORT..."
-            timeout 2 curl -s "http://127.0.0.1:$CHROME_PORT/json/version" || echo "Cannot connect"
-          fi
+          echo "3. Check for Electron crash logs:"
+          find /tmp -name "*electron*" -o -name "*cypress*" 2>/dev/null | grep -i "log\|crash" | head -5 || echo "No crash logs found"
 
       - name: Test tag name
         if: ${{ always() }}
