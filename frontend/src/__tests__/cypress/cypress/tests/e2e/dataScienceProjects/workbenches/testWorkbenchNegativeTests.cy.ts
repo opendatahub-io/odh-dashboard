@@ -13,7 +13,7 @@ import { retryableBeforeEach } from '#~/__tests__/cypress/cypress/utils/retryabl
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 import { selectNotebookImageWithBackendFallback } from '#~/__tests__/cypress/cypress/utils/oc_commands/imageStreams';
 
-describe('Workbenches - negative tests', () => {
+describe('[Automation Bug: RHOAIENG-35934] Workbenches - negative tests', () => {
   let testData: WBNegativeTestsData;
   let projectName: string;
   const uuid = generateTestUUID();
@@ -47,7 +47,7 @@ describe('Workbenches - negative tests', () => {
 
   it(
     'Verify UI informs users about workbenches failed to start',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1973', '@Dashboard', '@Workbenches'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1973', '@Dashboard', '@Workbenches', '@Maintain'] },
     () => {
       const workbenchName = `${projectName.replace('dsp-', '')}-large`;
 
@@ -87,7 +87,7 @@ describe('Workbenches - negative tests', () => {
   );
   it(
     'Verify User cannot create a workbench using special characters or long names in the Resource name field',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1973', '@Dashboard', '@Workbenches'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1973', '@Dashboard', '@Workbenches', '@Maintain'] },
     () => {
       const workbenchName = projectName.replace('dsp-', '');
 

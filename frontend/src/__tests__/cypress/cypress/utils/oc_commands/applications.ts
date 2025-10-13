@@ -98,7 +98,7 @@ export const getSubscriptionChannelFromCsv = (csvObject: {
   };
 }): Cypress.Chainable<string> => {
   const packageName = csvObject.metadata.name.split('.')[0];
-  const ocCommand = `oc get subscription -A -o json | jq -r '.items[] | select(.status.installedCSV | test("${packageName}")) | .spec.channel' | head -n 1`;
+  const ocCommand = `oc get subscription -A -o json | jq -r '.items[] | select(.status.installedCSV != null) | select(.status.installedCSV | test("${packageName}")) | .spec.channel' | head -n 1`;
 
   return execWithOutput(ocCommand).then(({ code, stdout, stderr }) => {
     if (code !== 0 || !stdout.trim()) {
