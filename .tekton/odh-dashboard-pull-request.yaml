@@ -50,9 +50,7 @@ spec:
   - name: prefetch-input
     value: |
       [
-        {"type": "npm", "path": "."}, 
-        {"type": "npm", "path": "frontend"}, 
-        {"type": "npm", "path": "backend"}
+        {"type": "npm", "path": "."}
       ]
   - name: build-image-index
     value: true
