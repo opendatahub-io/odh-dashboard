@@ -1,4 +1,8 @@
-import { MetadataAnnotation, type SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
+import {
+  KnownLabels,
+  MetadataAnnotation,
+  type SupportedModelFormats,
+} from '@odh-dashboard/internal/k8sTypes';
 import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
@@ -92,10 +96,11 @@ export const applyModelArgs = (
   llmdInferenceService: LLMInferenceServiceKind,
   modelArgs?: string[],
 ): LLMInferenceServiceKind => {
-  if (!modelArgs) {
-    return llmdInferenceService;
-  }
   const { result, mainContainer } = structuredCloneWithMainContainer(llmdInferenceService);
+  if (!modelArgs) {
+    delete mainContainer.args;
+    return result;
+  }
   mainContainer.args = modelArgs;
   return result;
 };
@@ -104,10 +109,11 @@ export const applyModelEnvVars = (
   llmdInferenceService: LLMInferenceServiceKind,
   modelEnvVars?: { name: string; value: string }[],
 ): LLMInferenceServiceKind => {
-  if (!modelEnvVars) {
-    return llmdInferenceService;
-  }
   const { result, mainContainer } = structuredCloneWithMainContainer(llmdInferenceService);
+  if (!modelEnvVars) {
+    delete mainContainer.env;
+    return result;
+  }
   mainContainer.env = modelEnvVars;
   return result;
 };
@@ -241,5 +247,33 @@ export const applyAiAvailableAssetAnnotations = (
     delete annotations['opendatahub.io/genai-use-case'];
   }
   result.metadata.annotations = annotations;
+  return result;
+};
+export const applyDisplayNameDesc = (
+  inferenceService: LLMInferenceServiceKind,
+  name: string,
+  description: string,
+): LLMInferenceServiceKind => {
+  const result = structuredClone(inferenceService);
+  result.metadata.annotations = {
+    ...(result.metadata.annotations ?? {}),
+    'openshift.io/display-name': name,
+    'openshift.io/description': description,
+  };
+  if (!description) {
+    delete result.metadata.annotations['openshift.io/description'];
+  }
+
+  return result;
+};
+
+export const applyDashboardResourceLabel = (
+  inferenceService: LLMInferenceServiceKind,
+): LLMInferenceServiceKind => {
+  const result = structuredClone(inferenceService);
+  result.metadata.labels = {
+    ...(result.metadata.labels ?? {}),
+    [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+  };
   return result;
 };

@@ -5,6 +5,8 @@ import {
   ModelLocationType,
   ModelLocationData,
 } from '@odh-dashboard/model-serving/types/form-data';
+import * as _ from 'lodash-es';
+import { k8sMergePatchResource } from '@odh-dashboard/internal/api/k8sUtils';
 import { applyHardwareProfileConfig, applyReplicas } from './hardware';
 import { setUpTokenAuth } from './deployUtils';
 import {
@@ -12,6 +14,8 @@ import {
   applyModelArgs,
   applyModelLocation,
   applyAiAvailableAssetAnnotations,
+  applyDisplayNameDesc,
+  applyDashboardResourceLabel,
 } from './model';
 import { AvailableAiAssetsFieldsData } from '../../../model-serving/src/components/deploymentWizard/fields/AvailableAiAssetsFields';
 import { LLMD_SERVING_ID } from '../../extensions/extensions';
@@ -38,14 +42,17 @@ export const isLLMdDeployActive = (wizardData: WizardFormData['state']): boolean
 };
 
 const createLLMdInferenceServiceKind = async (
-  resource: LLMInferenceServiceKind,
+  assembledLLMdInferenceParams: CreateLLMdInferenceServiceParams,
   dryRun?: boolean,
 ): Promise<LLMInferenceServiceKind> => {
+  const assembledLLMdInferenceService = assembleLLMdInferenceServiceKind(
+    assembledLLMdInferenceParams,
+  );
   return k8sCreateResource<LLMInferenceServiceKind>(
     applyK8sAPIOptions(
       {
         model: LLMInferenceServiceModel,
-        resource,
+        resource: assembledLLMdInferenceService,
       },
       { dryRun: dryRun ?? false },
     ),
@@ -53,16 +60,29 @@ const createLLMdInferenceServiceKind = async (
 };
 
 const updateLLMdInferenceServiceKind = async (
-  resource: LLMInferenceServiceKind,
+  assembledLLMdInferenceParams: CreateLLMdInferenceServiceParams,
+  existingDeployment: LLMInferenceServiceKind,
   dryRun?: boolean,
 ): Promise<LLMInferenceServiceKind> => {
-  return k8sUpdateResource<LLMInferenceServiceKind>(
+  const assembledLLMdInferenceService = assembleLLMdInferenceServiceKind(
+    assembledLLMdInferenceParams,
+  );
+  if (dryRun) {
+    const oldDeployment = structuredClone(existingDeployment);
+    return k8sUpdateResource<LLMInferenceServiceKind>(
+      applyK8sAPIOptions(
+        {
+          model: LLMInferenceServiceModel,
+          resource: _.merge({}, oldDeployment, assembledLLMdInferenceService),
+        },
+        { dryRun },
+      ),
+    );
+  }
+  return k8sMergePatchResource<LLMInferenceServiceKind>(
     applyK8sAPIOptions(
-      {
-        model: LLMInferenceServiceModel,
-        resource,
-      },
-      { dryRun: dryRun ?? false },
+      { model: LLMInferenceServiceModel, resource: assembledLLMdInferenceService },
+      { dryRun },
     ),
   );
 };
@@ -133,25 +153,12 @@ const assembleLLMdInferenceServiceKind = ({
           },
         },
       };
-  if (displayName) {
-    llmdInferenceService.metadata.annotations = {
-      ...llmdInferenceService.metadata.annotations,
-      'openshift.io/display-name': displayName,
-    };
-  }
-  if (description) {
-    llmdInferenceService.metadata.annotations = {
-      ...llmdInferenceService.metadata.annotations,
-      'openshift.io/description': description,
-    };
-  } else {
-    delete llmdInferenceService.metadata.annotations?.['openshift.io/description'];
-  }
-
-  llmdInferenceService.metadata.annotations = {
-    ...llmdInferenceService.metadata.annotations,
-    'opendatahub.io/model-type': 'generative',
-  };
+  llmdInferenceService = applyDisplayNameDesc(
+    llmdInferenceService,
+    displayName ?? '',
+    description ?? '',
+  );
+  llmdInferenceService = applyDashboardResourceLabel(llmdInferenceService);
 
   llmdInferenceService = applyModelLocation(
     llmdInferenceService,
@@ -189,7 +196,7 @@ export const deployLLMdDeployment = async (
   dryRun?: boolean,
   secretName?: string,
 ): Promise<LLMdDeployment> => {
-  const llmdInferenceServiceKind = assembleLLMdInferenceServiceKind({
+  const llmdInferenceServiceData: CreateLLMdInferenceServiceParams = {
     projectName,
     dryRun,
     k8sName: wizardData.k8sNameDesc.data.k8sName.value,
@@ -212,10 +219,14 @@ export const deployLLMdDeployment = async (
     modelAvailability: wizardData.modelAvailability.data,
     tokenAuthentication: wizardData.tokenAuthentication.data,
     existing: existingDeployment?.model,
-  });
-  const llmdInferenceService = existingDeployment
-    ? await updateLLMdInferenceServiceKind(llmdInferenceServiceKind, dryRun)
-    : await createLLMdInferenceServiceKind(llmdInferenceServiceKind, dryRun);
+  };
+  const llmdInferenceService = !existingDeployment
+    ? await createLLMdInferenceServiceKind(llmdInferenceServiceData, dryRun)
+    : await updateLLMdInferenceServiceKind(
+        llmdInferenceServiceData,
+        existingDeployment.model,
+        dryRun,
+      );
 
   if (wizardData.tokenAuthentication.data && wizardData.tokenAuthentication.data.length > 0) {
     await setUpTokenAuth(
