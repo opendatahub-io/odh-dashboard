@@ -117,18 +117,6 @@ const initIntercepts = ({
     },
   );
 
-  // cy.interceptOdh(
-  //   `PATCH /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId`,
-  //   {
-  //     path: {
-  //       modelRegistryName: 'modelregistry-sample',
-  //       apiVersion: MODEL_REGISTRY_API_VERSION,
-  //       modelVersionId: 1,
-  //     },
-  //   },
-  //   { data: mockModelVersions },
-  // ).as('UpdatePropertyRow');
-
   cy.interceptOdh(
     `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId`,
     {
@@ -415,7 +403,7 @@ describe('Deploy model version', () => {
 
     // Check for project specific serving runtimes
     kserveModal.findProjectScopedTemplateOption('Caikit').click();
-    // acceleratorProfileSection.findProjectScopedLabel().should('exist');
+    kserveModal.findProjectScopedLabel().should('exist');
     kserveModal.findModelFrameworkSelect().should('be.disabled');
     kserveModal.findModelFrameworkSelect().should('have.text', 'openvino_ir - opset1');
     cy.findByText(
@@ -427,7 +415,7 @@ describe('Deploy model version', () => {
     // Check for global specific serving runtimes
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
     kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
-    // acceleratorProfileSection.findGlobalScopedLabel().should('exist');
+    kserveModal.findGlobalScopedLabel().should('exist');
     kserveModal.findModelFrameworkSelect().should('be.enabled');
     kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
     cy.findByText(
