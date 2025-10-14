@@ -19,7 +19,16 @@ import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
 
 // extensible fields
 
-export type DeploymentWizardFieldId = 'modelType' | 'modelServerTemplate';
+export type DeploymentWizardFieldId =
+  | 'modelType'
+  | 'modelServerTemplate'
+  | 'externalRoute'
+  | 'tokenAuth';
+
+export type FieldExtensionContext = {
+  modelType: ServingRuntimeModelType;
+  selectedModelServer?: ModelServerOption;
+};
 
 export interface DeploymentWizardFieldBase {
   id: DeploymentWizardFieldId;
@@ -33,23 +42,35 @@ export interface ModelServerTemplateField extends DeploymentWizardFieldBase {
   isActive: (modelType: ServingRuntimeModelType) => boolean;
 }
 
-// Future field types can be added here easily:
-// export interface ModelTypeField extends DeploymentWizardFieldBase {
-//   id: 'modelType';
-//   type: 'replacement';
-//   isActive: (someOtherParam: string) => boolean;
-// }
+export interface ExternalRouteField extends DeploymentWizardFieldBase {
+  id: 'externalRoute';
+  type: 'modifier';
+  isVisible: boolean;
+  isActive: (context: FieldExtensionContext) => boolean;
+}
+
+export interface TokenAuthField extends DeploymentWizardFieldBase {
+  id: 'tokenAuth';
+  type: 'modifier';
+  initialValue: boolean;
+  isActive: (context: FieldExtensionContext) => boolean;
+}
 
 // Union type approach - just add new field types to this union
-export type DeploymentWizardField = ModelServerTemplateField;
-// | ModelTypeField  // Add future field types here
-// | SomeOtherField;
+export type DeploymentWizardField = ModelServerTemplateField | ExternalRouteField | TokenAuthField;
 
 export const isModelServerTemplateField = (
   field: DeploymentWizardField,
 ): field is ModelServerTemplateField => {
-  // return field.id === 'modelServerTemplate';
-  return true; // Currently only ModelServerTemplateField exists
+  return field.id === 'modelServerTemplate';
+};
+
+export const isExternalRouteField = (field: DeploymentWizardField): field is ExternalRouteField => {
+  return field.id === 'externalRoute';
+};
+
+export const isTokenAuthField = (field: DeploymentWizardField): field is TokenAuthField => {
+  return field.id === 'tokenAuth';
 };
 
 // wizard form data

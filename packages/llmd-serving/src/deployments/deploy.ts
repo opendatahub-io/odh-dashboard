@@ -3,8 +3,24 @@ import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
 import type { WizardFormData } from '@odh-dashboard/model-serving/types/form-data';
 import { applyHardwareProfileConfig, applyReplicas } from './hardware';
 import { applyModelEnvVars, applyModelArgs, applyModelLocation } from './model';
+import { setUpTokenAuth } from './deployUtils';
 import { LLMD_SERVING_ID } from '../../extensions/extensions';
 import { LLMdDeployment, LLMInferenceServiceKind, LLMInferenceServiceModel } from '../types';
+
+const applyTokenAuthentication = (
+  llmdInferenceService: LLMInferenceServiceKind,
+  tokenAuthentication?: { name: string; uuid: string; error?: string }[],
+): LLMInferenceServiceKind => {
+  const result = structuredClone(llmdInferenceService);
+  const annotations = { ...result.metadata.annotations };
+  if (!tokenAuthentication || tokenAuthentication.length === 0) {
+    annotations['security.opendatahub.io/enable-auth'] = 'false';
+  } else {
+    delete annotations['security.opendatahub.io/enable-auth'];
+  }
+  result.metadata.annotations = annotations;
+  return result;
+};
 
 export const isLLMdDeployActive = (wizardData: WizardFormData['state']): boolean => {
   return wizardData.modelServer.data?.name === LLMD_SERVING_ID;
@@ -36,6 +52,7 @@ type CreateLLMdInferenceServiceParams = {
   replicas?: number;
   runtimeArgs?: string[];
   environmentVariables?: { name: string; value: string }[];
+  tokenAuthentication?: { name: string; uuid: string; error?: string }[];
 };
 
 const assembleLLMdInferenceServiceKind = ({
@@ -49,6 +66,7 @@ const assembleLLMdInferenceServiceKind = ({
   replicas = 1,
   runtimeArgs,
   environmentVariables,
+  tokenAuthentication,
 }: CreateLLMdInferenceServiceParams): LLMInferenceServiceKind => {
   let llmdInferenceService: LLMInferenceServiceKind = {
     apiVersion: 'serving.kserve.io/v1alpha1',
@@ -84,6 +102,7 @@ const assembleLLMdInferenceServiceKind = ({
   llmdInferenceService = applyReplicas(llmdInferenceService, replicas);
   llmdInferenceService = applyModelArgs(llmdInferenceService, runtimeArgs);
   llmdInferenceService = applyModelEnvVars(llmdInferenceService, environmentVariables);
+  llmdInferenceService = applyTokenAuthentication(llmdInferenceService, tokenAuthentication);
 
   return llmdInferenceService;
 };
@@ -108,12 +127,25 @@ export const deployLLMdDeployment = async (
     replicas: wizardData.numReplicas.data,
     runtimeArgs: wizardData.runtimeArgs.data?.args,
     environmentVariables: wizardData.environmentVariables.data?.variables,
+    tokenAuthentication: wizardData.tokenAuthentication.data,
   });
 
   const llmdInferenceService = await createLLMdInferenceServiceKind(
     llmdInferenceServiceKind,
     dryRun,
   );
+
+  if (wizardData.tokenAuthentication.data && wizardData.tokenAuthentication.data.length > 0) {
+    await setUpTokenAuth(
+      wizardData.tokenAuthentication.data,
+      wizardData.k8sNameDesc.data.k8sName.value,
+      projectName,
+      true,
+      llmdInferenceService,
+      undefined,
+      { dryRun },
+    );
+  }
 
   return {
     modelServingPlatformId: LLMD_SERVING_ID,
