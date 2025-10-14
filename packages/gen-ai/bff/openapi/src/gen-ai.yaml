@@ -2242,10 +2242,31 @@ components:
         models:
           type: array
           items:
-            type: string
-          description: List of model names to include in the LSD installation
-          example: ['llama-3-2-3b-instruct', 'granite-embedding-125m']
+            $ref: '#/components/schemas/InstallModel'
+          description: List of models to include in the LSD installation
+          example:
+            - model_name: 'llama-3-2-3b-instruct'
+              is_maas_model: false
+            - model_name: 'facebook/opt-125m'
+              is_maas_model: true
           minItems: 1
+
+    InstallModel:
+      type: object
+      required:
+        - model_name
+        - is_maas_model
+      properties:
+        model_name:
+          type: string
+          description: |
+            Name of the model to install. For MaaS models, this must be the exact MaaS model ID 
+            (e.g., 'facebook/opt-125m'). For regular models, this is the Kubernetes resource name.
+          example: 'llama-3-2-3b-instruct'
+        is_maas_model:
+          type: boolean
+          description: Whether this is a MaaS (Model as a Service) model
+          example: false
 
     LlamaStackDistributionInstallModel:
       type: object

@@ -18,6 +18,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -187,7 +188,10 @@ func TestLlamaStackDistributionInstallHandler(t *testing.T) {
 	t.Run("should install LSD successfully with models", func(t *testing.T) {
 		// Create request body with models
 		requestBody := map[string]interface{}{
-			"models": []string{"llama-3-2-3b-instruct", "granite-embedding-125m"},
+			"models": []map[string]interface{}{
+				{"model_name": "llama-3-2-3b-instruct", "is_maas_model": false},
+				{"model_name": "granite-embedding-125m", "is_maas_model": true},
+			},
 		}
 		jsonBody, err := json.Marshal(requestBody)
 		require.NoError(t, err)
@@ -196,12 +200,13 @@ func TestLlamaStackDistributionInstallHandler(t *testing.T) {
 		require.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
 
-		// Add namespace and identity to context
+		// Add namespace, identity, and MaaS client to context
 		ctx := context.Background()
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN", // Use one of the default test tokens
 		})
+		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -238,12 +243,13 @@ func TestLlamaStackDistributionInstallHandler(t *testing.T) {
 		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/llamastack-distribution/install", nil)
 		assert.NoError(t, err)
 
-		// Add namespace and identity to context
+		// Add namespace, identity, and MaaS client to context
 		ctx := context.Background()
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
+		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -269,7 +275,9 @@ func TestLlamaStackDistributionInstallHandler(t *testing.T) {
 	// Test error case - missing namespace
 	t.Run("should return error when namespace is missing from context", func(t *testing.T) {
 		requestBody := map[string]interface{}{
-			"models": []string{"llama-3-2-3b-instruct"},
+			"models": []map[string]interface{}{
+				{"model_name": "llama-3-2-3b-instruct", "is_maas_model": false},
+			},
 		}
 		jsonBody, err := json.Marshal(requestBody)
 		require.NoError(t, err)
@@ -307,7 +315,9 @@ func TestLlamaStackDistributionInstallHandler(t *testing.T) {
 	// Test error case - LSD already exists
 	t.Run("should return error when LSD already exists in namespace", func(t *testing.T) {
 		requestBody := map[string]interface{}{
-			"models": []string{"llama-3-2-3b-instruct"},
+			"models": []map[string]interface{}{
+				{"model_name": "llama-3-2-3b-instruct", "is_maas_model": false},
+			},
 		}
 		jsonBody, err := json.Marshal(requestBody)
 		require.NoError(t, err)
@@ -322,6 +332,7 @@ func TestLlamaStackDistributionInstallHandler(t *testing.T) {
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
+		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -342,6 +353,146 @@ func TestLlamaStackDistributionInstallHandler(t *testing.T) {
 
 		assert.Equal(t, "400", errorMap["code"])
 		assert.Contains(t, errorMap["message"], "LlamaStackDistribution already exists in namespace mock-test-namespace-2")
+	})
+}
+
+func TestLlamaStackDistributionInstallHandlerWithMaaSModels(t *testing.T) {
+	// Setup test environment (takes ~1-2 seconds)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	testEnv, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
+		Users:  k8smocks.DefaultTestUsers,
+		Logger: slog.Default(),
+		Ctx:    ctx,
+		Cancel: cancel,
+	})
+	require.NoError(t, err)
+	defer func() {
+		if err := testEnv.Stop(); err != nil {
+			t.Logf("Failed to stop test environment: %v", err)
+		}
+	}()
+
+	// Create mock factory (instant)
+	k8sFactory, err := k8smocks.NewTokenClientFactory(ctrlClient, testEnv.Config, slog.Default())
+	require.NoError(t, err)
+
+	// Create test app with real mock infrastructure
+	app := App{
+		config: config.EnvConfig{
+			Port: 4000,
+		},
+		kubernetesClientFactory: k8sFactory,
+		repositories:            repositories.NewRepositories(),
+	}
+
+	// Test MaaS model handling
+	t.Run("should handle MaaS models correctly", func(t *testing.T) {
+		// Create request body with MaaS models
+		requestBody := map[string]interface{}{
+			"models": []map[string]interface{}{
+				{"model_name": "llama-2-7b-chat", "is_maas_model": true},
+				{"model_name": "granite-7b-code", "is_maas_model": true},
+			},
+		}
+		jsonBody, err := json.Marshal(requestBody)
+		require.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/llamastack-distribution/install", bytes.NewReader(jsonBody))
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		// Add namespace, identity, and MaaS client to context
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+
+		app.LlamaStackDistributionInstallHandler(rr, req, nil)
+
+		rs := rr.Result()
+		defer func() { _ = rs.Body.Close() }()
+
+		body, err := io.ReadAll(rs.Body)
+		assert.NoError(t, err)
+
+		var response map[string]interface{}
+		err = json.Unmarshal(body, &response)
+		assert.NoError(t, err)
+
+		// Debug: Print the response to see what we're getting
+		t.Logf("Response body: %s", string(body))
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		data, exists := response["data"]
+		assert.True(t, exists, "Response should contain 'data' field")
+
+		dataMap, ok := data.(map[string]interface{})
+		assert.True(t, ok, "Data should be a map")
+
+		assert.Equal(t, "mock-lsd", dataMap["name"])
+		assert.Equal(t, "200", dataMap["httpStatus"])
+	})
+
+	// Test MaaS model not ready scenario
+	t.Run("should handle MaaS model not ready", func(t *testing.T) {
+		// Create request body with a not-ready MaaS model
+		requestBody := map[string]interface{}{
+			"models": []map[string]interface{}{
+				{"model_name": "not-ready-model", "is_maas_model": true},
+			},
+		}
+		jsonBody, err := json.Marshal(requestBody)
+		require.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/llamastack-distribution/install", bytes.NewReader(jsonBody))
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		// Add namespace, identity, and MaaS client to context
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-3")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+
+		app.LlamaStackDistributionInstallHandler(rr, req, nil)
+
+		rs := rr.Result()
+		defer func() { _ = rs.Body.Close() }()
+
+		body, err := io.ReadAll(rs.Body)
+		assert.NoError(t, err)
+
+		var response map[string]interface{}
+		err = json.Unmarshal(body, &response)
+		assert.NoError(t, err)
+
+		// Debug: Print the response to see what we're getting
+		t.Logf("Response body: %s", string(body))
+
+		// Should still succeed but skip the not-ready model
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		data, exists := response["data"]
+		assert.True(t, exists, "Response should contain 'data' field")
+
+		dataMap, ok := data.(map[string]interface{})
+		assert.True(t, ok, "Data should be a map")
+
+		assert.Equal(t, "mock-lsd", dataMap["name"])
+		assert.Equal(t, "200", dataMap["httpStatus"])
 	})
 }
 
@@ -383,7 +534,9 @@ func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
 
 		// First, install an LSD to have something to delete
 		installRequestBody := map[string]interface{}{
-			"models": []string{"llama-3-2-3b-instruct"},
+			"models": []map[string]interface{}{
+				{"model_name": "llama-3-2-3b-instruct", "is_maas_model": false},
+			},
 		}
 		installJsonBody, err := json.Marshal(installRequestBody)
 		require.NoError(t, err)
@@ -392,12 +545,13 @@ func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
 		require.NoError(t, err)
 		installReq.Header.Set("Content-Type", "application/json")
 
-		// Add namespace and identity to context
+		// Add namespace, identity, and MaaS client to context
 		installCtx := context.Background()
 		installCtx = context.WithValue(installCtx, constants.NamespaceQueryParameterKey, testNamespace)
 		installCtx = context.WithValue(installCtx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
+		installCtx = context.WithValue(installCtx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
 		installReq = installReq.WithContext(installCtx)
 
 		installRr := httptest.NewRecorder()
