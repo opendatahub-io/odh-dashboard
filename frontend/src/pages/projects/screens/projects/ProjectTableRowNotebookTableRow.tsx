@@ -11,6 +11,7 @@ import { fireNotebookTrackingEvent } from '#~/pages/projects/notebook/utils';
 import StopNotebookConfirmModal from '#~/pages/projects/notebook/StopNotebookConfirmModal';
 import { useNotebookKindPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import StateActionToggle from '#~/components/StateActionToggle';
+import { currentlyHasPipelines } from '#~/concepts/pipelines/elyra/utils.ts';
 
 type ProjectTableRowNotebookTableRowProps = {
   project: ProjectKind;
@@ -33,7 +34,7 @@ const ProjectTableRowNotebookTableRow: React.FC<ProjectTableRowNotebookTableRowP
 
   const onStart = React.useCallback(() => {
     setInProgress(true);
-    startNotebook(notebook).then(() => {
+    startNotebook(notebook, enablePipelines && !currentlyHasPipelines(notebook)).then(() => {
       fireNotebookTrackingEvent('started', notebook, podSpecOptionsState);
       refresh().then(() => setInProgress(false));
     });

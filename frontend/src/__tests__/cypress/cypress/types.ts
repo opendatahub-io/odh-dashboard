@@ -208,14 +208,9 @@ export type SettingsTestData = {
   pvcDefaultSize: number;
 };
 
-export type NotebookTolerationSettings = {
-  enabled: boolean;
-};
-
 export type NotebookController = {
   enabled: boolean;
   pvcSize: string;
-  notebookTolerationSettings: NotebookTolerationSettings;
 };
 
 export type DashboardConfig = {

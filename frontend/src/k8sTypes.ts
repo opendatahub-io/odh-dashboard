@@ -1309,6 +1309,8 @@ export type DashboardConfigKind = K8sResourceCommon & {
       storageClassName?: string;
       // Intentionally disjointed from the CRD [1]
       // notebookNamespace?: string;
+      // Intentionally disjointed from the CRD [1]
+      // notebookTolerationSettings?: TolerationSettings;
     };
     templateOrder?: string[];
     templateDisablement?: string[];
