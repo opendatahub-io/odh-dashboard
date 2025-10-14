@@ -115,12 +115,12 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
 
   return (
     <Card isPlain>
-      <CardTitle>
+      <CardTitle style={{ paddingLeft: '0' }}>
         <Flex>
           <FlexItem>Uploaded files</FlexItem>
         </Flex>
       </CardTitle>
-      <CardBody>
+      <CardBody style={{ paddingLeft: '0' }}>
         <Grid hasGutter>
           {files.map((file) => (
             <React.Fragment key={file.id}>
