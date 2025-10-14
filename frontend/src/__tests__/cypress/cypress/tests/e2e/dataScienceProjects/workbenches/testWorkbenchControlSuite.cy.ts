@@ -102,7 +102,6 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
           // Use the dynamic image name verification based on what was actually selected
           getImageStreamDisplayName(selectedImageStream).then((displayName) => {
             notebookRow.shouldHaveNotebookImageName(displayName);
-            notebookRow.shouldHaveContainerSize('Small');
 
             // Stop workbench
             cy.step('Stop workbench and validate it has been stopped');

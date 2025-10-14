@@ -14,6 +14,7 @@ const ComponenetLabelValue = "llama-stack"
 type KubernetesClientInterface interface {
 	// Namespace access
 	GetNamespaces(ctx context.Context, identity *integrations.RequestIdentity) ([]corev1.Namespace, error)
+	CanListNamespaces(ctx context.Context, identity *integrations.RequestIdentity) (bool, error)
 	GetAAModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]models.AAModel, error)
 
 	// Meta

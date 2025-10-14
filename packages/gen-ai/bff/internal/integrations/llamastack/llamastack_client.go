@@ -4,16 +4,19 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/option"
 	"github.com/openai/openai-go/v2/packages/ssestream"
 	"github.com/openai/openai-go/v2/responses"
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 )
 
 // LlamaStackClient wraps the OpenAI client for Llama Stack communication.
@@ -32,6 +35,7 @@ func NewLlamaStackClient(baseURL string, insecureSkipVerify bool, rootCAs *x509.
 		Transport: &http.Transport{
 			TLSClientConfig: tlsConfig,
 		},
+		Timeout: 8 * time.Minute, // Overall request timeout (matches server WriteTimeout)
 	}
 
 	client := openai.NewClient(
@@ -137,6 +141,12 @@ func (c *LlamaStackClient) ListVectorStores(ctx context.Context, params ListVect
 type CreateVectorStoreParams struct {
 	// Name is the required name for the vector store (1-256 characters).
 	Name string
+	// ProviderID is the required identifier for the vector store provider.
+	ProviderID string
+	// EmbeddingModel is the optional embedding model to use for this vector store.
+	EmbeddingModel string
+	// EmbeddingDimension is the optional dimension of the embedding vectors (default: 384).
+	EmbeddingDimension *int64
 	// Metadata contains optional key-value pairs (max 16 pairs, keys ≤64 chars, values ≤512 chars).
 	Metadata map[string]string
 }
@@ -147,15 +157,11 @@ func (c *LlamaStackClient) CreateVectorStore(ctx context.Context, params CreateV
 	if strings.TrimSpace(params.Name) == "" {
 		return nil, fmt.Errorf("name is required")
 	}
-
-	apiParams := openai.VectorStoreNewParams{}
-
-	// Validate name length and set parameter
-	if len(params.Name) > 256 {
-		return nil, fmt.Errorf("name must be ≤256 characters, got: %d", len(params.Name))
+	if strings.TrimSpace(params.ProviderID) == "" {
+		return nil, fmt.Errorf("provider_id is required")
 	}
-	apiParams.Name = openai.String(params.Name)
 
+	// Validate metadata if provided
 	if len(params.Metadata) > 0 {
 		if len(params.Metadata) > 16 {
 			return nil, fmt.Errorf("metadata can have max 16 key-value pairs, got: %d", len(params.Metadata))
@@ -169,10 +175,41 @@ func (c *LlamaStackClient) CreateVectorStore(ctx context.Context, params CreateV
 				return nil, fmt.Errorf("metadata value for '%s' exceeds 512 chars", k)
 			}
 		}
-		apiParams.Metadata = params.Metadata
 	}
 
-	vectorStore, err := c.client.VectorStores.New(ctx, apiParams)
+	// Use default embedding model and dimension if not specified
+	embeddingModel := params.EmbeddingModel
+	if embeddingModel == "" {
+		embeddingModel = constants.DefaultEmbeddingModel.ModelID
+	}
+
+	embeddingDimension := params.EmbeddingDimension
+	if embeddingDimension == nil {
+		defaultDimension := constants.DefaultEmbeddingModel.EmbeddingDimension
+		embeddingDimension = &defaultDimension
+	}
+
+	// Create request body with all parameters
+	requestBody := map[string]interface{}{
+		"name":                params.Name,
+		"metadata":            params.Metadata,
+		"provider_id":         params.ProviderID,
+		"embedding_model":     embeddingModel,
+		"embedding_dimension": *embeddingDimension,
+	}
+
+	// Convert to JSON
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body: %w", err)
+	}
+
+	// Override the request body with our custom JSON
+	opts := []option.RequestOption{
+		option.WithRequestBody("application/json", jsonBody),
+	}
+
+	vectorStore, err := c.client.VectorStores.New(ctx, openai.VectorStoreNewParams{}, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create vector store: %w", err)
 	}
