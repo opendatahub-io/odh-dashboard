@@ -1,6 +1,5 @@
 {
   "typescript.tsdk": "node_modules/typescript/lib",
-  "eslint.workingDirectories": ["./frontend", "./backend"],
   "jestrunner.jestCommand": "TS_NODE_COMPILER_OPTIONS=\"{\\\"moduleResolution\\\":\\\"Bundler\\\",\\\"customConditions\\\":null}\" node 'node_modules/jest/bin/jest.js'",
   "jestrunner.debugOptions": {
     "env": { "TS_NODE_COMPILER_OPTIONS": "{\"moduleResolution\":\"Bundler\",\"customConditions\":null}" }
