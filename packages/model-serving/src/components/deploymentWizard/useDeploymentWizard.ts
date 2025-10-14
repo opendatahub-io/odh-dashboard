@@ -9,39 +9,23 @@ import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { useModelFormatField } from './fields/ModelFormatField';
 import { useModelTypeField, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
 import { useModelLocationData } from './fields/ModelLocationInputFields';
-import { useExternalRouteField, type ExternalRouteFieldData } from './fields/ExternalRouteField';
+import { useExternalRouteField } from './fields/ExternalRouteField';
+import { useTokenAuthenticationField } from './fields/TokenAuthenticationField';
+import { useNumReplicasField } from './fields/NumReplicasField';
+import { useRuntimeArgsField } from './fields/RuntimeArgsField';
+import { useEnvironmentVariablesField } from './fields/EnvironmentVariablesField';
+import { useModelAvailabilityFields } from './fields/ModelAvailabilityFields';
+import { useModelServerSelectField } from './fields/ModelServerTemplateSelectField';
 import {
-  useTokenAuthenticationField,
-  type TokenAuthenticationFieldData,
-} from './fields/TokenAuthenticationField';
-import { useNumReplicasField, type NumReplicasFieldData } from './fields/NumReplicasField';
-import { useRuntimeArgsField, type RuntimeArgsFieldData } from './fields/RuntimeArgsField';
-import {
-  useEnvironmentVariablesField,
-  type EnvironmentVariablesFieldData,
-} from './fields/EnvironmentVariablesField';
-import {
-  ModelAvailabilityFieldsData,
-  useModelAvailabilityFields,
-} from './fields/ModelAvailabilityFields';
-import {
-  useModelServerSelectField,
-  type ModelServerOption,
-} from './fields/ModelServerTemplateSelectField';
-import {
-  isModelServerTemplateField,
   isExternalRouteField,
   isTokenAuthField,
-  ModelLocationData,
-  type WizardFormData,
   type ExternalRouteField,
+  type InitialWizardFormData,
   type TokenAuthField,
+  type WizardFormData,
 } from './types';
-import {
-  useCreateConnectionData,
-  type CreateConnectionData,
-} from './fields/CreateConnectionInputFields';
-import { useExtensionStateModifier } from './dynamicFormUtils';
+import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
+import { useExtensionStateModifier, useWizardFieldsFromExtensions } from './dynamicFormUtils';
 
 export type UseModelDeploymentWizardState = WizardFormData & {
   loaded: {
@@ -63,6 +47,8 @@ export type UseModelDeploymentWizardState = WizardFormData & {
 export const useModelDeploymentWizard = (
   initialData?: InitialWizardFormData,
 ): UseModelDeploymentWizardState => {
+  const [fields] = useWizardFieldsFromExtensions();
+
   // Step 1: Model Source
   const modelType = useModelTypeField(initialData?.modelTypeField);
   const { namespace } = useParams();
@@ -152,19 +138,32 @@ export const useModelDeploymentWizard = (
       modelServer,
     },
   );
-  
+
+  const externalRouteFields = React.useMemo(() => {
+    return fields.filter(isExternalRouteField);
+  }, [fields]);
+
+  const tokenAuthFields = React.useMemo(() => {
+    return fields.filter(isTokenAuthField);
+  }, [fields]);
+
+  const fieldExtensions = {
+    externalRouteFields,
+    tokenAuthFields,
+  };
+
   const externalRoute = useExternalRouteField(
     initialData?.externalRoute ?? undefined,
     externalRouteFields,
-    modelType.data,
-    modelServer.data || undefined,
+    modelType,
+    modelServer,
   );
 
   const tokenAuthentication = useTokenAuthenticationField(
     initialData?.tokenAuthentication ?? undefined,
     tokenAuthFields,
-    modelType.data,
-    modelServer.data || undefined,
+    modelType,
+    modelServer,
   );
 
   const runtimeArgs = useRuntimeArgsField(initialData?.runtimeArgs ?? undefined);

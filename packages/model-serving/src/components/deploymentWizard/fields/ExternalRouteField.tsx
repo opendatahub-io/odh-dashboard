@@ -1,8 +1,8 @@
 import React from 'react';
 import { Checkbox, Stack, StackItem } from '@patternfly/react-core';
 import { z } from 'zod';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
-import type { ModelServerOption } from './ModelServerTemplateSelectField';
+import type { ModelServerSelectField } from './ModelServerTemplateSelectField';
+import type { ModelTypeField } from './ModelTypeSelectField';
 import type { ExternalRouteField as ExternalRouteFieldType } from '../types';
 
 // Schema
@@ -24,20 +24,20 @@ export type ExternalRouteFieldHook = {
 export const useExternalRouteField = (
   existingData?: ExternalRouteFieldData,
   externalRouteFields?: ExternalRouteFieldType[],
-  modelType?: ServingRuntimeModelType,
-  selectedModelServer?: ModelServerOption,
+  modelType?: ModelTypeField,
+  modelServer?: ModelServerSelectField,
 ): ExternalRouteFieldHook => {
   const isVisible = React.useMemo(() => {
     if (!modelType || !externalRouteFields) return true;
 
-    const extensionContext = {
-      modelType,
-      selectedModelServer,
-    };
-
-    const activeField = externalRouteFields.find((field) => field.isActive(extensionContext));
+    const activeField = externalRouteFields.find((field) =>
+      field.isActive({
+        modelType,
+        modelServer,
+      }),
+    );
     return activeField?.isVisible ?? true;
-  }, [externalRouteFields, modelType, selectedModelServer]);
+  }, [externalRouteFields, modelType, modelServer]);
 
   const [externalRouteData, setExternalRouteData] = React.useState<
     ExternalRouteFieldData | undefined

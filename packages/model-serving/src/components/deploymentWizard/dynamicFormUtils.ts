@@ -9,7 +9,8 @@ export const useWizardFieldsFromExtensions = (
 ): [DeploymentWizardField[], boolean, Error[]] => {
   const [extensions, loaded, errors] = useResolvedExtensions(isDeploymentWizardFieldExtension);
   const fields = React.useMemo(() => {
-    return extensions.map((ext) => ext.properties.field).filter((field) => field.id === fieldId);
+    const all = extensions.map((ext) => ext.properties.field);
+    return fieldId ? all.filter((field) => field.id === fieldId) : all;
   }, [extensions, fieldId]);
 
   return React.useMemo(
