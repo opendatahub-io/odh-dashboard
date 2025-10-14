@@ -372,6 +372,11 @@ jobs:
 
       - name: Start Cypress Server
         run: |
+          # Increase file descriptor limit for parallel execution
+          echo "🔧 Increasing system limits for parallel execution..."
+          ulimit -n 65536 || echo "⚠️  Could not increase file descriptor limit (current: $(ulimit -n))"
+          echo "File descriptors: $(ulimit -n)"
+          
           echo "🧹 Cleaning up any existing processes on port ${CYPRESS_PORT}..."
           pkill -f "webpack.*serve" || echo "No webpack processes found"
           lsof -ti:${CYPRESS_PORT} | xargs kill -9 2>/dev/null || echo "No node processes on port ${CYPRESS_PORT}"
@@ -500,6 +505,11 @@ jobs:
 
           # Use Jenkins-style command format for proper tag filtering
           echo "🔄 Using Electron browser (like working version)"
+          
+          # Increase file descriptor limit for Electron/Cypress
+          echo "🔧 Setting file descriptor limit for Electron..."
+          ulimit -n 65536 || echo "⚠️  Could not increase file descriptor limit (current: $(ulimit -n))"
+          echo "File descriptors for Cypress: $(ulimit -n)"
 
           # Create results directory
           mkdir -p "$CY_RESULTS_DIR"
