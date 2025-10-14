@@ -878,6 +878,21 @@ describe('Model Serving Global', () => {
       disableServingRuntimeParamsConfig: false,
       disableProjectScoped: false,
       servingRuntimes: [mockServingRuntimeK8sResource({})],
+      inferenceServices: [
+        mockInferenceServiceK8sResource({
+          resources: {
+            // Mock weird resources so it doesn't auto-match an existing profile
+            requests: {
+              cpu: '99',
+              memory: '99Gi',
+            },
+            limits: {
+              cpu: '99',
+              memory: '99Gi',
+            },
+          },
+        }),
+      ],
     });
     modelServingGlobal.visit('test-project');
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();

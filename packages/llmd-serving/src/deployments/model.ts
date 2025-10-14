@@ -11,7 +11,6 @@ export const applyModelLocation = (
   modelLocationData: ModelLocationData,
   secretName?: string,
   dryRun?: boolean,
-  // will also need to pass in createConnectionData
 ): LLMInferenceServiceKind => {
   const result = structuredClone(llmdInferenceService);
   result.metadata.annotations = {
