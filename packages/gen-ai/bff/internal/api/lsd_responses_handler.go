@@ -5,9 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"mime/multipart"
 	"net/http"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/gen-ai/internal/api/handlers/validation"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 )
@@ -107,6 +111,9 @@ type CreateResponseRequest struct {
 	Stream             bool                 `json:"stream,omitempty"`               // Enable streaming response
 	MCPServers         []MCPServer          `json:"mcp_servers,omitempty"`          // MCP server configurations
 	PreviousResponseID string               `json:"previous_response_id,omitempty"` // Link to previous response for conversation continuity
+
+	// Files for in-context learning (not stored in vector store)
+	Files []*multipart.FileHeader `json:"-"` // Files uploaded for direct context injection
 }
 
 // convertToStreamingEvent converts a LlamaStack event to our clean StreamingEvent schema
@@ -154,11 +161,32 @@ func convertToResponseData(llamaResponse interface{}) ResponseData {
 func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
-	// Parse the request body
+	// Check if this is a multipart form request
+	contentType := r.Header.Get("Content-Type")
+	isMultipart := strings.HasPrefix(contentType, "multipart/form-data")
+
 	var createRequest CreateResponseRequest
-	if err := json.NewDecoder(r.Body).Decode(&createRequest); err != nil {
-		app.badRequestResponse(w, r, err)
-		return
+
+	if isMultipart {
+		// Parse and validate multipart form data
+		requestData, err := validation.ValidateMultipartFormRequest(r, &createRequest)
+		if err != nil {
+			app.badRequestResponse(w, r, err)
+			return
+		}
+		// Ensure cleanup of any temporary files
+		defer func() {
+			if r.MultipartForm != nil {
+				_ = r.MultipartForm.RemoveAll()
+			}
+		}()
+		createRequest.Files = requestData.Files
+	} else {
+		// Parse regular JSON request
+		if err := json.NewDecoder(r.Body).Decode(&createRequest); err != nil {
+			app.badRequestResponse(w, r, err)
+			return
+		}
 	}
 
 	// Validate required fields
@@ -226,9 +254,15 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		}
 	}
 
+	// Extract and process file contents
+	input, err := app.extractFileContents(w, r, createRequest)
+	if err != nil {
+		return
+	}
+
 	// Convert to client params (only working parameters)
 	params := llamastack.CreateResponseParams{
-		Input:              createRequest.Input,
+		Input:              input,
 		Model:              createRequest.Model,
 		VectorStoreIDs:     createRequest.VectorStoreIDs,
 		ChatContext:        chatContext,
@@ -341,6 +375,12 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 			app.modelNotFoundResponse(w, r, params.Model)
 			return
 		}
+		// Check for VLLM-specific errors
+		if strings.Contains(err.Error(), "CUDA out of memory") ||
+			strings.Contains(err.Error(), "shared memory") {
+			app.serverErrorResponse(w, r, fmt.Errorf("model is temporarily busy, please try again in a few moments"))
+			return
+		}
 		app.serverErrorResponse(w, r, err)
 		return
 	}
@@ -361,6 +401,57 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+// extractFileContent reads the content of a single file in a memory-efficient way
+func (app *App) extractFileContent(file multipart.File, filename string) (string, error) {
+	const chunkSize = 32 * 1024 // 32KB chunks
+	var content strings.Builder
+	buf := make([]byte, chunkSize)
+
+	for {
+		n, err := file.Read(buf)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return "", fmt.Errorf("failed to read file %s: %w", filename, err)
+		}
+		content.Write(buf[:n])
+	}
+
+	return content.String(), nil
+}
+
+// extractFileContents processes all uploaded files and combines their content with the user's input
+func (app *App) extractFileContents(w http.ResponseWriter, r *http.Request, createRequest CreateResponseRequest) (string, error) {
+	if len(createRequest.Files) == 0 {
+		return createRequest.Input, nil
+	}
+
+	var fileContents []string
+	for _, fileHeader := range createRequest.Files {
+		file, err := fileHeader.Open()
+		if err != nil {
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to open file %s: %w", fileHeader.Filename, err))
+			return "", err
+		}
+		defer file.Close()
+
+		content, err := app.extractFileContent(file, fileHeader.Filename)
+		if err != nil {
+			app.serverErrorResponse(w, r, err)
+			return "", err
+		}
+
+		// Format file content with metadata
+		fileContents = append(fileContents, fmt.Sprintf("File: %s\nContent:\n%s\n", fileHeader.Filename, content))
+	}
+
+	// Combine file contents with user input
+	return fmt.Sprintf("Context from uploaded files:\n\n%s\n\nUser query:\n%s",
+		strings.Join(fileContents, "\n---\n"),
+		createRequest.Input), nil
 }
 
 // validatePreviousResponse validates that a previous response ID exists and is accessible

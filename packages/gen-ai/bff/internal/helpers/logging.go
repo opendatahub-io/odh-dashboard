@@ -97,21 +97,12 @@ type RequestLogValuer struct {
 }
 
 func (r RequestLogValuer) LogValue() slog.Value {
-	body := ""
-
-	if r.Request.Body != nil {
-		cloneBody, err := CloneBody(r.Request)
-		if err != nil {
-			body = fmt.Sprintf("error: %v", err)
-		} else {
-			body = string(cloneBody)
-		}
-	}
+	bodyAttr := formatRequestBody(r.Request)
 
 	return slog.GroupValue(
 		slog.String("method", r.Request.Method),
 		slog.String("url", r.Request.URL.String()),
-		slog.String("body", body),
+		slog.String("body", bodyAttr.String()),
 		slog.Any("headers", HeaderLogValuer{Header: r.Request.Header}))
 }
 

@@ -5,6 +5,7 @@ const (
 
 	PathPrefix    = "/gen-ai"
 	ApiPathPrefix = "/api/v1"
+	OpenAIPath    = "/v1/openai/v1"
 
 	// API endpoint paths
 	HealthCheckPath = "/healthcheck"

@@ -195,6 +195,11 @@ func (m *MockLlamaStackClient) CreateResponse(ctx context.Context, params llamas
 		responseText = "Continuing from previous response " + params.PreviousResponseID + ". " + responseText
 	}
 
+	// If input contains file content (from in-context learning), acknowledge it
+	if strings.Contains(params.Input, "Context from uploaded files:") {
+		responseText = "Based on the provided file content, " + responseText
+	}
+
 	// Create output items
 	var outputItems []responses.ResponseOutputItemUnion
 
@@ -322,6 +327,11 @@ func (m *MockLlamaStackClient) HandleMockStreaming(w http.ResponseWriter, flushe
 	// If previous response ID is provided, acknowledge it in the response
 	if params.PreviousResponseID != "" {
 		responseText = "Continuing from previous response " + params.PreviousResponseID + ". " + responseText
+	}
+
+	// If input contains file content (from in-context learning), acknowledge it
+	if strings.Contains(params.Input, "Context from uploaded files:") {
+		responseText = "Based on the provided file content, " + responseText
 	}
 
 	// Mock identifiers

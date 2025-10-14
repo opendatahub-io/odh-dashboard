@@ -21,7 +21,8 @@ import (
 
 // LlamaStackClient wraps the OpenAI client for Llama Stack communication.
 type LlamaStackClient struct {
-	client *openai.Client
+	client  *openai.Client
+	baseURL string
 }
 
 // NewLlamaStackClient creates a new client configured for Llama Stack.
@@ -38,14 +39,16 @@ func NewLlamaStackClient(baseURL string, insecureSkipVerify bool, rootCAs *x509.
 		Timeout: 8 * time.Minute, // Overall request timeout (matches server WriteTimeout)
 	}
 
+	fullURL := baseURL + constants.OpenAIPath
 	client := openai.NewClient(
-		option.WithBaseURL(baseURL+"/v1/openai/v1"),
+		option.WithBaseURL(fullURL),
 		option.WithAPIKey("none"),
 		option.WithHTTPClient(httpClient),
 	)
 
 	return &LlamaStackClient{
-		client: &client,
+		client:  &client,
+		baseURL: fullURL,
 	}
 }
 
@@ -520,6 +523,10 @@ func (c *LlamaStackClient) CreateResponse(ctx context.Context, params CreateResp
 }
 
 // CreateResponseStream creates an AI response stream using the specified parameters.
+// Note: This method requires the WithNoRetries option to be set when creating the client
+// to prevent VLLM shared memory exhaustion. When a streaming request fails and is retried,
+// VLLM may not properly clean up the shared memory from the failed request, leading to
+// memory leaks.
 func (c *LlamaStackClient) CreateResponseStream(ctx context.Context, params CreateResponseParams) (*ssestream.Stream[responses.ResponseStreamEventUnion], error) {
 	apiParams, err := c.prepareResponseParams(params)
 	if err != nil {
