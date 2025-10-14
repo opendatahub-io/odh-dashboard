@@ -7,7 +7,7 @@ import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
 import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { useModelFormatField } from './fields/ModelFormatField';
-import { useModelTypeField, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
+import { useModelTypeField } from './fields/ModelTypeSelectField';
 import { useModelLocationData } from './fields/ModelLocationInputFields';
 import { useExternalRouteField } from './fields/ExternalRouteField';
 import { useTokenAuthenticationField } from './fields/TokenAuthenticationField';
