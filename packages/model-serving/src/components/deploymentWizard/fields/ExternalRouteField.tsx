@@ -43,7 +43,7 @@ export const useExternalRouteField = (
     ExternalRouteFieldData | undefined
   >(existingData || false);
 
-  React.useMemo(() => {
+  React.useEffect(() => {
     if (!isVisible && externalRouteData) {
       setExternalRouteData(false);
     }

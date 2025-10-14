@@ -15,7 +15,7 @@ import { RuntimeArgsField } from '../fields/RuntimeArgsField';
 import { EnvironmentVariablesField } from '../fields/EnvironmentVariablesField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { AvailableAiAssetsFieldsComponent } from '../fields/AvailableAiAssetsFields';
-import { useAuthWarning } from '../hooks/useAuthWarning';
+import { showAuthWarning } from '../hooks/useAuthWarning';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -130,7 +130,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
             </FormGroup>
           </StackItem>
 
-          {useAuthWarning({
+          {showAuthWarning({
             shouldAutoCheckTokens,
             isExternalRouteVisible,
             externalRouteData,

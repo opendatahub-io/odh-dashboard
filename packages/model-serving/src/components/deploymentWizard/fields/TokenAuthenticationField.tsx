@@ -81,7 +81,7 @@ export const useTokenAuthenticationField = (
     TokenAuthenticationFieldData | undefined
   >(initialData);
 
-  React.useMemo(() => {
+  React.useEffect(() => {
     setTokenAuthData(initialData);
   }, [initialData]);
 

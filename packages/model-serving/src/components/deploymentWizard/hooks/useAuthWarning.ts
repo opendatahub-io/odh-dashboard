@@ -1,18 +1,18 @@
 import { TokenAuthenticationFieldData } from '../fields/TokenAuthenticationField';
 
-type UseAuthWarningProps = {
+type ShowAuthWarningProps = {
   shouldAutoCheckTokens: boolean;
   isExternalRouteVisible: boolean;
   externalRouteData?: boolean;
   tokenAuthData?: TokenAuthenticationFieldData;
 };
 
-export const useAuthWarning = ({
+export const showAuthWarning = ({
   shouldAutoCheckTokens,
   isExternalRouteVisible,
   externalRouteData,
   tokenAuthData,
-}: UseAuthWarningProps): boolean => {
+}: ShowAuthWarningProps): boolean => {
   const hasNoTokens = !tokenAuthData || tokenAuthData.length === 0;
   return (
     (shouldAutoCheckTokens && hasNoTokens) ||
