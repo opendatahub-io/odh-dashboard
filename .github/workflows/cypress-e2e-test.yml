@@ -145,12 +145,15 @@ jobs:
             echo "Installing additional GUI libraries..."
             sudo dnf install -y libgbm libgbm-devel libnotify libnotify-devel
 
+            # Install Xvfb for headless Electron
+            echo "Installing Xvfb for headless browser support..."
+            sudo dnf install -y xorg-x11-server-Xvfb
+
             # Update library cache
             sudo ldconfig
 
             # Verify installations
             echo "🔍 Verifying installations..."
-            echo "✅ Using Chrome's built-in headless mode (no Xvfb needed)"
 
             if ldconfig -p | grep -q libnss3; then
               echo "✅ NSS libraries installed"
@@ -166,6 +169,12 @@ jobs:
               echo "❌ ATK libraries missing - checking what we have..."
               sudo dnf list installed | grep -i atk || echo "No ATK packages found"
               find /usr/lib* -name "*libatk*" 2>/dev/null || echo "No ATK libraries found in filesystem"
+            fi
+
+            if command -v Xvfb &> /dev/null; then
+              echo "✅ Xvfb installed"
+            else
+              echo "❌ Xvfb missing"
             fi
 
             echo "🎯 Cypress dependencies installation completed"
@@ -274,8 +283,8 @@ jobs:
             echo ""
             echo "💡 POSSIBLE SOLUTIONS:"
             echo "1. Ensure secrets are configured in upstream repo (opendatahub-io/odh-dashboard)"
-            "2. For testing, secrets need to be available when PR is merged"
-            "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
+            echo "2. For testing, secrets need to be available when PR is merged"
+            echo "3. Check secret names match exactly: GITLAB_TOKEN, GITLAB_TEST_VARS_URL"
             exit 1
           fi
 
@@ -432,14 +441,43 @@ jobs:
             exit 1
           fi
 
+      - name: Setup Xvfb for Electron
+        run: |
+          # Calculate unique display number based on port to avoid conflicts
+          DISPLAY_NUM=$((99 + (${CYPRESS_PORT} - 4670)))
+          
+          echo "🖥️  Starting Xvfb on display :${DISPLAY_NUM} for Electron browser..."
+          
+          # Kill any existing Xvfb on this display
+          pkill -f "Xvfb :${DISPLAY_NUM}" || true
+          sleep 1
+          
+          # Start Xvfb
+          Xvfb :${DISPLAY_NUM} -screen 0 1280x1024x24 > /tmp/xvfb-${DISPLAY_NUM}.log 2>&1 &
+          XVFB_PID=$!
+          
+          echo "XVFB_PID=${XVFB_PID}" >> $GITHUB_ENV
+          echo "DISPLAY=:${DISPLAY_NUM}" >> $GITHUB_ENV
+          
+          # Wait for Xvfb to be ready
+          sleep 2
+          
+          # Verify Xvfb is running
+          if ps -p $XVFB_PID > /dev/null; then
+            echo "✅ Xvfb ready on display :${DISPLAY_NUM} (PID: ${XVFB_PID})"
+          else
+            echo "❌ Xvfb failed to start"
+            cat /tmp/xvfb-${DISPLAY_NUM}.log || true
+            exit 1
+          fi
+
       - name: Run E2E Tests
         env:
           CY_TEST_CONFIG: ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
           CY_RESULTS_DIR: ${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}
-          # Cypress debug flags - SAFE: Only shows browser launch process, not config/secrets
-          # Does NOT include: cypress:server:socket, cypress:server:request (would show network traffic)
           DEBUG: cypress:server:browsers*,cypress:server:util:process_profiler
           ELECTRON_ENABLE_LOGGING: 1
+          DISPLAY: ${{ env.DISPLAY }}
         run: |
           cd frontend
 
@@ -454,6 +492,7 @@ jobs:
           echo "CY_TEST_CONFIG: $CY_TEST_CONFIG"
           echo "CY_RESULTS_DIR: $CY_RESULTS_DIR"
           echo "CYPRESS_PORT: ${CYPRESS_PORT}"
+          echo "DISPLAY: ${DISPLAY}"
           echo "Using Electron (same as working version, but with dynamic ports)"
           echo "================================"
           echo ""
@@ -503,6 +542,12 @@ jobs:
           echo ""
           echo "3. Check for Electron crash logs:"
           find /tmp -name "*electron*" -o -name "*cypress*" 2>/dev/null | grep -i "log\|crash" | head -5 || echo "No crash logs found"
+          echo ""
+          echo "4. Check Xvfb status:"
+          ps aux | grep -v grep | grep Xvfb || echo "No Xvfb processes"
+          echo ""
+          echo "5. DISPLAY variable:"
+          echo "DISPLAY=${DISPLAY}"
 
       - name: Test tag name
         if: ${{ always() }}
@@ -531,6 +576,7 @@ jobs:
           echo "Branch: ${{ github.ref_name }}"
           echo "Test Tag: ${{ matrix.test-tag }}"
           echo "Port: ${CYPRESS_PORT}"
+          echo "Display: ${DISPLAY}"
           echo "Commit: ${{ github.sha }}"
           echo "Run ID: ${{ github.run_id }}"
           echo ""
@@ -547,6 +593,9 @@ jobs:
           echo "🛑 Stopping all webpack dev servers..."
           pkill -f "webpack.*serve" || echo "No webpack processes found"
           
+          echo "🛑 Stopping all Xvfb processes..."
+          pkill -f "Xvfb" || echo "No Xvfb processes found"
+          
           # Clean up common port range
           for port in {4000..4999..10}; do
             if lsof -ti:$port >/dev/null 2>&1; then
@@ -556,4 +605,3 @@ jobs:
           done
           
           echo "✅ Server cleanup completed"
-
