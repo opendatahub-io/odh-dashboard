@@ -5,11 +5,6 @@ on: [push]
 permissions:
   contents: read
 
-# Serialize jobs per runner to avoid webpack websocket conflicts
-concurrency:
-  group: e2e-${{ github.run_id }}
-  cancel-in-progress: false
-
 env:
   NODE_VERSION: 20.x
   DO_NOT_TRACK: 1
@@ -356,7 +351,7 @@ jobs:
           sleep 2
           
           echo "🚀 Starting webpack dev server on port ${CYPRESS_PORT} with cluster proxy..."
-          cd frontend && ODH_PORT=${CYPRESS_PORT} WDS_SOCKET_PORT=${CYPRESS_PORT} npm run start:dev:ext &
+          cd frontend && ODH_PORT=${CYPRESS_PORT} npm run start:dev:ext &
           
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
