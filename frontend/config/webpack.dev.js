@@ -134,6 +134,9 @@ module.exports = smp.wrap(
         },
         client: {
           overlay: false,
+          webSocketURL: {
+            port: PORT,
+          },
         },
         static: {
           directory: DIST_DIR,
