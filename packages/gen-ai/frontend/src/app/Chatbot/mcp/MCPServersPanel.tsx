@@ -253,7 +253,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
 
   return (
     <>
-      <div className="mcp-servers-panel pf-v6-u-py-sm">
+      <div className="mcp-servers-panel">
         <Table
           {...tableProps}
           data={transformedServers}

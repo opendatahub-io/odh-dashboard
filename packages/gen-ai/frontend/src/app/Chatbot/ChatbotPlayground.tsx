@@ -19,6 +19,7 @@ import useSourceManagement from './hooks/useSourceManagement';
 import useAlertManagement from './hooks/useAlertManagement';
 import useChatbotMessages from './hooks/useChatbotMessages';
 import useFileManagement from './hooks/useFileManagement';
+import useDarkMode from './hooks/useDarkMode';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
@@ -51,27 +52,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   );
   const [isStreamingEnabled, setIsStreamingEnabled] = React.useState<boolean>(true);
   const [temperature, setTemperature] = React.useState<number>(0.1);
-  const [isDarkMode, setIsDarkMode] = React.useState<boolean>(false);
-
-  // Detect dark mode by checking for pf-v6-theme-dark class
-  React.useEffect(() => {
-    const checkDarkMode = () => {
-      const htmlElement = document.documentElement;
-      setIsDarkMode(htmlElement.classList.contains('pf-v6-theme-dark'));
-    };
-
-    // Check initially
-    checkDarkMode();
-
-    // Set up observer to watch for class changes
-    const observer = new MutationObserver(checkDarkMode);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
-    });
-
-    return () => observer.disconnect();
-  }, []);
+  const isDarkMode = useDarkMode();
 
   const location = useLocation();
   const selectedAAModel = location.state?.model;
