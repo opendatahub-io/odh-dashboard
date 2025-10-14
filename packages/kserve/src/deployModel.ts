@@ -9,6 +9,10 @@ import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
 import { InferenceServiceModel } from '@odh-dashboard/internal/api/index';
 import { k8sCreateResource, k8sUpdateResource } from '@openshift/dynamic-plugin-sdk-utils';
 import {
+  type ModelLocationData,
+  ModelLocationType,
+} from '@odh-dashboard/model-serving/types/form-data';
+import {
   applyAiAvailableAssetAnnotations,
   applyAuth,
   applyEnvironmentVariables,
@@ -23,9 +27,7 @@ import type { ExternalRouteFieldData } from '../../model-serving/src/components/
 import type { NumReplicasFieldData } from '../../model-serving/src/components/deploymentWizard/fields/NumReplicasField';
 import type { RuntimeArgsFieldData } from '../../model-serving/src/components/deploymentWizard/fields/RuntimeArgsField';
 import type { TokenAuthenticationFieldData } from '../../model-serving/src/components/deploymentWizard/fields/TokenAuthenticationField';
-import type { ModelLocationData } from '../../model-serving/src/components/deploymentWizard/fields/modelLocationFields/types';
 import { CreateConnectionData } from '../../model-serving/src/components/deploymentWizard/fields/CreateConnectionInputFields';
-import { ModelLocationType } from '../../model-serving/src/components/deploymentWizard/fields/modelLocationFields/types';
 
 export type CreatingInferenceServiceObject = {
   project: string;

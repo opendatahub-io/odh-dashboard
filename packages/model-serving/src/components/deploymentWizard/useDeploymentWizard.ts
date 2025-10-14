@@ -9,7 +9,6 @@ import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projec
 import { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { useModelFormatField } from './fields/ModelFormatField';
-import { ModelLocationData } from './fields/modelLocationFields/types';
 import { useModelTypeField, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
 import { useModelLocationData } from './fields/ModelLocationInputFields';
 import { useExternalRouteField, type ExternalRouteFieldData } from './fields/ExternalRouteField';
@@ -35,6 +34,7 @@ import {
   isModelServerTemplateField,
   isExternalRouteField,
   isTokenAuthField,
+  ModelLocationData,
   type WizardFormData,
   type ExternalRouteField,
   type TokenAuthField,

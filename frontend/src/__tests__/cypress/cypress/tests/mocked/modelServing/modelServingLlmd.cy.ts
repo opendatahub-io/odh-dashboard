@@ -22,6 +22,7 @@ import {
   ProjectModel,
   ServingRuntimeModel,
   TemplateModel,
+  SecretModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import type { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { mockGlobalScopedHardwareProfiles } from '#~/__mocks__/mockHardwareProfile';
@@ -32,6 +33,7 @@ import {
   mockModelServingFields,
 } from '#~/__mocks__/mockConnectionType';
 import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
+import { mockSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
 
 const initIntercepts = ({
   llmInferenceServices = [],
@@ -64,6 +66,12 @@ const initIntercepts = ({
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'opendatahub' },
     mockK8sResourceList(mockGlobalScopedHardwareProfiles),
+  );
+  cy.interceptK8sList(
+    { model: SecretModel, ns: 'test-project' },
+    mockK8sResourceList([
+      mockSecretK8sResource({ name: 'test-s3-secret', displayName: 'test-s3-secret' }),
+    ]),
   );
   cy.interceptOdh('GET /api/connection-types', [
     mockConnectionTypeConfigMap({
@@ -273,14 +281,13 @@ describe('Model Serving LLMD', () => {
       modelServingGlobal.findDeployModelButton().click();
 
       // Step 1: Model source
-      modelServingWizard.findModelLocationSelectOption('URI - v1').click();
-      modelServingWizard.findUrilocationInput().type('hf://coolmodel/coolmodel');
-
-      modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
-      modelServingWizard.findSaveConnectionCheckbox().click();
-      modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
-
+      modelServingWizard
+        .findModelLocationSelectOption('Existing connection')
+        .should('exist')
+        .click();
+      modelServingWizard.findExistingConnectionValue().should('have.value', 'test-s3-secret');
       modelServingWizard.findModelTypeSelectOption('Generative AI model (e.g. LLM)').click();
+      modelServingWizard.findLocationPathInput().should('exist').type('test-model/');
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       // Step 2: Model deployment
@@ -329,7 +336,7 @@ describe('Model Serving LLMD', () => {
           'opendatahub.io/hardware-profile-namespace': 'opendatahub',
           'opendatahub.io/model-type': 'generative',
           'security.opendatahub.io/enable-auth': 'false',
-          // 'opendatahub.io/connections': '', // todo
+          'opendatahub.io/connection-path': 'test-model/', // Connection name is only added in the actual request to avoid dry run failures
         });
         expect(interception.request.body.spec.model.uri).to.equal(''); // here, it will be filled in by the backend
         expect(interception.request.body.spec.model.name).to.equal('test-llmd-model');
@@ -351,6 +358,10 @@ describe('Model Serving LLMD', () => {
       // Actual request
       cy.wait('@createLLMInferenceService').then((interception) => {
         expect(interception.request.url).not.to.include('?dryRun=All');
+        expect(interception.request.body.metadata.annotations).to.containSubset({
+          'opendatahub.io/connections': 'test-s3-secret', // Connection name is only added in the actual request to avoid dry run failures
+          'opendatahub.io/connection-path': 'test-model/',
+        });
       });
 
       cy.get('@createLLMInferenceService.all').then((interceptions) => {

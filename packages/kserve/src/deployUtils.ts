@@ -36,12 +36,12 @@ import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+import { ModelLocationData } from '@odh-dashboard/model-serving/types/form-data';
 import type { CreatingInferenceServiceObject } from './deployModel';
 import type { AvailableAiAssetsFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/AvailableAiAssetsFields';
 import type { RuntimeArgsFieldData } from '../../model-serving/src/components/deploymentWizard/fields/RuntimeArgsField';
 import type { EnvironmentVariablesFieldData } from '../../model-serving/src/components/deploymentWizard/fields/EnvironmentVariablesField';
 import { CreateConnectionData } from '../../model-serving/src/components/deploymentWizard/fields/CreateConnectionInputFields';
-import { ModelLocationData } from '../../model-serving/src/components/deploymentWizard/fields/modelLocationFields/types';
 
 const is404 = (error: unknown): boolean => {
   return getGenericErrorCode(error) === 404;

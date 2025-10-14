@@ -8,11 +8,12 @@ import {
 import {
   ModelServingCompatibleTypes,
   isModelServingCompatible,
+  isConnectionTypeDataField,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import ConnectionTypeFormFields from '@odh-dashboard/internal/concepts/connectionTypes/fields/ConnectionTypeFormFields';
 import ConnectionOciPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciPathField';
 import ConnectionS3FolderPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionS3FolderPathField';
-import { ModelLocationData } from './types';
+import { ModelLocationData } from '../../types';
 
 type Props = {
   setModelLocationData: (data: ModelLocationData | undefined) => void;
@@ -81,11 +82,26 @@ const NewConnectionField: React.FC<Props> = ({
 
     return null;
   };
+  const fields = React.useMemo(() => {
+    if (isModelServingCompatible(connectionType, ModelServingCompatibleTypes.S3ObjectStorage)) {
+      return connectionType.data?.fields?.map((field) => {
+        // Force bucket field to be required
+        if (isConnectionTypeDataField(field) && field.envVar === 'AWS_S3_BUCKET') {
+          return {
+            ...field,
+            required: true,
+          };
+        }
+        return field;
+      });
+    }
+    return connectionType.data?.fields;
+  }, [connectionType]);
 
   return (
     <FormGroup>
       <ConnectionTypeFormFields
-        fields={connectionType.data?.fields}
+        fields={fields}
         isPreview={false}
         onChange={handleFieldChange}
         connectionValues={connectionValues}
