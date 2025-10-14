@@ -228,11 +228,23 @@ const hasRequiredConnectionTypeFields = (modelLocationData: ModelLocationData): 
     ) || [];
 
   const requiredFields = dataFields.filter((field) => field.required).map((field) => field.envVar);
+  if (
+    modelLocationData.connectionTypeObject &&
+    isModelServingCompatible(
+      modelLocationData.connectionTypeObject,
+      ModelServingCompatibleTypes.S3ObjectStorage,
+    )
+  ) {
+    requiredFields.push('AWS_S3_BUCKET');
+  }
 
   return requiredFields.every((fieldName) => {
     const value = modelLocationData.fieldValues[fieldName];
     if (fieldName === 'URI') {
       return value !== undefined && String(value).includes('://');
+    }
+    if (fieldName === 'Bucket') {
+      return value !== undefined && String(value).trim() !== '';
     }
     return value !== undefined && String(value).trim() !== '';
   });
