@@ -22,6 +22,8 @@ import { modelVersionArchive } from '#~/__tests__/cypress/cypress/pages/modelReg
 import { modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry';
 import { mockModelRegistry, mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
 import { KnownLabels } from '#~/k8sTypes';
+import { DataScienceStackComponent } from '#~/concepts/areas/types';
+import { mockModelArtifact } from '../../../../../../../__mocks__/mockModelArtifact';
 
 const MODEL_REGISTRY_API_VERSION = 'v1';
 
@@ -198,6 +200,22 @@ const initIntercepts = ({
     },
     { data: { userId: 'user@example.com', clusterAdmin: true } },
   );
+
+  cy.interceptOdh(
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId/artifacts`,
+    {
+      path: {
+        modelRegistryName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: 2,
+      },
+    },
+    {
+      data: mockModelArtifactList({
+        items: [mockModelArtifact({})],
+      }),
+    },
+  );
 };
 
 describe('Archiving version', () => {
@@ -216,8 +234,7 @@ describe('Archiving version', () => {
     modelVersionArchive.findVersionDeploymentTab().should('not.exist');
   });
 
-  // TODO: Fix this test
-  it.skip('Cannot archive version that has a deployment from versions table', () => {
+  it('Cannot archive version that has a deployment from versions table', () => {
     cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
     cy.interceptK8sList(
       InferenceServiceModel,
