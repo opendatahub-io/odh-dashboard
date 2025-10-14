@@ -436,6 +436,10 @@ jobs:
         env:
           CY_TEST_CONFIG: ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
           CY_RESULTS_DIR: ${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}
+          # Cypress debug flags - SAFE: Only shows browser launch process, not config/secrets
+          # Does NOT include: cypress:server:socket, cypress:server:request (would show network traffic)
+          DEBUG: cypress:server:browsers*,cypress:server:util:process_profiler
+          ELECTRON_ENABLE_LOGGING: 1
         run: |
           cd frontend
 
@@ -444,13 +448,12 @@ jobs:
           echo "Branch: ${{ github.ref_name }}"
           echo "Commit: ${{ github.sha }}"
           
-          # DEBUG: Verify environment setup
+          # DEBUG: Verify environment setup (DO NOT show test-variables.yml content)
           echo ""
           echo "=== Environment Verification ==="
           echo "CY_TEST_CONFIG: $CY_TEST_CONFIG"
-          if [ -f "$CY_TEST_CONFIG" ]; then
-            echo "Test config baseUrl: $(grep '^ODH_DASHBOARD_URL:' $CY_TEST_CONFIG | head -1)"
-          fi
+          echo "CY_RESULTS_DIR: $CY_RESULTS_DIR"
+          echo "CYPRESS_PORT: ${CYPRESS_PORT}"
           echo "Using Electron (same as working version, but with dynamic ports)"
           echo "================================"
           echo ""
@@ -481,6 +484,8 @@ jobs:
 
           # Create results directory
           mkdir -p "$CY_RESULTS_DIR"
+
+          echo "🐛 Cypress debug logging enabled for browser launch troubleshooting"
 
           # Run tests against dynamic port - baseUrl from test-variables.yml
           BASE_URL=http://localhost:${CYPRESS_PORT} npm run cypress:run:electron -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
