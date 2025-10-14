@@ -9,7 +9,8 @@
     "test:fix": "eslint --ext .js,.ts,.jsx,.tsx . --fix"
   },
   "exports": {
-    "./extensions": "./extensions.ts"
+    "./extensions": "./extensions.ts",
+    "./deployUtils": "./src/deployUtils.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",

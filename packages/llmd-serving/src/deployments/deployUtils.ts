@@ -13,7 +13,7 @@ import {
   createServiceAccountIfMissing,
   createRoleIfMissing,
   createRoleBindingIfMissing,
-} from '../../../kserve/src/deployUtils';
+} from '@odh-dashboard/kserve/deployUtils';
 import { LLMInferenceServiceKind } from '../types';
 
 export const generateRoleLLMInferenceService = (
