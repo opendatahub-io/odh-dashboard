@@ -105,6 +105,7 @@ describe(
 
         cy.step('Deploy OCI Connection with KServe');
         projectDetails.findSectionTab('model-server').click();
+        modelServingGlobal.findSingleServingModelButton().click();
         modelServingGlobal.findDeployModelButton().click();
         inferenceServiceModal.findModelNameInput().type(modelDeploymentName);
         inferenceServiceModal.findServingRuntimeTemplateSearchSelector().click();
