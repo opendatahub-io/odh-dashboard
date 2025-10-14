@@ -250,13 +250,21 @@ const initIntercepts = (
         modelVersionId: 1,
       },
     },
-    { data: mockModelArtifactList({
-      items: [mockModelArtifact(fromCatalog ? {
-        modelSourceClass: 'test-catalog-source',
-        modelSourceKind: ModelSourceKind.CATALOG,
-        modelSourceName: 'test-catalog-repo/test-catalog-model',
-      } : {})],
-    }) },
+    {
+      data: mockModelArtifactList({
+        items: [
+          mockModelArtifact(
+            fromCatalog
+              ? {
+                  modelSourceClass: 'test-catalog-source',
+                  modelSourceKind: ModelSourceKind.CATALOG,
+                  modelSourceName: 'test-catalog-repo/test-catalog-model',
+                }
+              : {},
+          ),
+        ],
+      }),
+    },
   );
 
   cy.interceptOdh(
@@ -300,12 +308,12 @@ describe('Model version details', () => {
       modelVersionDetails.visit();
       modelVersionDetails.findVersionId().contains('1');
       modelVersionDetails.findRegisteredFromCatalog().should('exist');
-      modelVersionDetails
-        .findRegisteredFromCatalog()
-        .should('have.text', 'test-catalog-model');
+      modelVersionDetails.findRegisteredFromCatalog().should('have.text', 'test-catalog-model');
       modelVersionDetails.findRegisteredFromCatalog().click();
       verifyRelativeURL(
-        `/ai-hub/catalog/test-catalog-source/${encodeURIComponent('test-catalog-repo/test-catalog-model')}`,
+        `/ai-hub/catalog/test-catalog-source/${encodeURIComponent(
+          'test-catalog-repo/test-catalog-model',
+        )}`,
       );
     });
 
