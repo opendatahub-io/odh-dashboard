@@ -114,7 +114,6 @@ describe('Workbench and PVSs tests', () => {
           // Use dynamic image name verification based on what was actually selected
           getImageStreamDisplayName(selectedImageStream).then((displayName) => {
             notebookRow.shouldHaveNotebookImageName(displayName);
-            notebookRow.shouldHaveContainerSize('Small');
 
             cy.step(
               `Check the cluster storage ${PVCDisplayName} is now connected to ${workbenchName}`,

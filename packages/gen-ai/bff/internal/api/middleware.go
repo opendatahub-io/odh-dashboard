@@ -121,18 +121,79 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 			return
 		}
 
-		// TODO: Add validation that namespace is being sent in every request after the initial
-		// get namespace call.
+		// Apply LlamaStack authorization check to all endpoints that require namespace access
+		// This ensures consistent security across all services (LlamaStack, MCP, etc.)
+		// Check if namespace is present in context (set by AttachNamespace middleware)
+		if namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string); ok && namespace != "" {
+			// Get Kubernetes client to perform SAR
+			k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+			if err != nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+				return
+			}
 
-		// Implement service-level authorization for LlamaStack. Since the basic auth as of now
-		// is being done by K8s auth, removing this for now.
-		// Once we implement llama stack auth, do the following:
-		// Create a geneic RequestIdentity struct
-		// Move K8s.RequestIdentity to generic package, so that we can use for both LLS and K8s.
-		// Use the same token and add llamastack.Validate for the same RequestIdentity.
+			// Perform SubjectAccessReview to check if user can list LlamaStackDistribution resources
+			// This ensures users have proper permissions to access any service in the namespace
+			allowed, err := k8sClient.CanListLlamaStackDistributions(ctx, identity, namespace)
+			if err != nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("failed to check LlamaStackDistribution permissions: %w", err))
+				return
+			}
+
+			if !allowed {
+				app.forbiddenResponse(w, r, "user does not have permission to access services in this namespace")
+				return
+			}
+
+			logger := helper.GetContextLoggerFromReq(r)
+			logger.Debug("User authorized to access services in namespace", "namespace", namespace)
+		}
 
 		logger := helper.GetContextLoggerFromReq(r)
 		logger.Debug("Request authorized")
+
+		next(w, r, ps)
+	}
+}
+
+// RequireNamespaceListAccess middleware checks if the user can list namespaces
+// This performs a SubjectAccessReview to verify cluster-scoped namespace listing permissions
+func (app *App) RequireNamespaceListAccess(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		// If authentication is disabled, skip SAR check
+		if app.config.AuthMethod == config.AuthMethodDisabled {
+			next(w, r, ps)
+			return
+		}
+
+		ctx := r.Context()
+		identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+		if !ok || identity == nil {
+			app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+			return
+		}
+
+		// Get Kubernetes client to perform SAR
+		k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+		if err != nil {
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+			return
+		}
+
+		// Perform SubjectAccessReview to check if user can list namespaces (cluster-scoped)
+		allowed, err := k8sClient.CanListNamespaces(ctx, identity)
+		if err != nil {
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to check namespace listing permissions: %w", err))
+			return
+		}
+
+		if !allowed {
+			app.forbiddenResponse(w, r, "user does not have permission to list namespaces")
+			return
+		}
+
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Debug("User authorized to list namespaces")
 
 		next(w, r, ps)
 	}
@@ -177,7 +238,7 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 		if app.config.MockLSClient {
 			logger.Debug("MOCK MODE: creating mock LlamaStack client for namespace", "namespace", namespace)
 			// In mock mode, use empty URL since mock factory ignores it
-			llamaStackClient = app.llamaStackClientFactory.CreateClient("")
+			llamaStackClient = app.llamaStackClientFactory.CreateClient("", app.config.InsecureSkipVerify, app.rootCAs)
 		} else {
 			var serviceURL string
 			// Use environment variable if explicitly set (developer override)
@@ -233,7 +294,7 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 				"serviceURL", serviceURL)
 
 			// Create LlamaStack client per-request using app factory (consistent with K8s pattern)
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(serviceURL)
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(serviceURL, app.config.InsecureSkipVerify, app.rootCAs)
 		}
 
 		// Attach ready-to-use client to context
@@ -262,7 +323,7 @@ func (app *App) AttachMaaSClient(next func(http.ResponseWriter, *http.Request, h
 		if app.config.MockMaaSClient {
 			logger.Debug("MOCK MODE: creating mock MaaS client")
 			// In mock mode, use empty URL since mock factory ignores it
-			maasClient = app.maasClientFactory.CreateClient("", "")
+			maasClient = app.maasClientFactory.CreateClient("", "", app.config.InsecureSkipVerify, app.rootCAs)
 		} else {
 			var serviceURL string
 			// Use environment variable if explicitly set
@@ -287,62 +348,12 @@ func (app *App) AttachMaaSClient(next func(http.ResponseWriter, *http.Request, h
 				"hasAuthToken", identity.Token != "")
 
 			// Create MaaS client per-request using app factory with auth token from RequestIdentity
-			maasClient = app.maasClientFactory.CreateClient(serviceURL, identity.Token)
+			maasClient = app.maasClientFactory.CreateClient(serviceURL, identity.Token, app.config.InsecureSkipVerify, app.rootCAs)
 		}
 
 		// Attach ready-to-use client to context
 		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasClient)
 		r = r.WithContext(ctx)
-
-		next(w, r, ps)
-	}
-}
-
-// RequireLlamaStackAccess middleware performs a SubjectAccessReview to check if the user
-// has permission to list LlamaStackDistribution resources in the namespace before allowing access to LLS endpoints.
-func (app *App) RequireLlamaStackAccess(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		// If authentication is disabled, skip SAR check
-		if app.config.AuthMethod == config.AuthMethodDisabled {
-			next(w, r, ps)
-			return
-		}
-
-		ctx := r.Context()
-		identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
-		if !ok || identity == nil {
-			app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-			return
-		}
-
-		// Get namespace from context (set by AttachNamespace middleware)
-		namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
-		if !ok || namespace == "" {
-			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
-			return
-		}
-
-		// Get Kubernetes client to perform SAR
-		k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-		if err != nil {
-			app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
-			return
-		}
-
-		// Perform SubjectAccessReview to check if user can list LlamaStackDistribution resources
-		allowed, err := k8sClient.CanListLlamaStackDistributions(ctx, identity, namespace)
-		if err != nil {
-			app.serverErrorResponse(w, r, fmt.Errorf("failed to check LlamaStackDistribution permissions: %w", err))
-			return
-		}
-
-		if !allowed {
-			app.forbiddenResponse(w, r, "user does not have permission to access LlamaStack services in this namespace")
-			return
-		}
-
-		logger := helper.GetContextLoggerFromReq(r)
-		logger.Debug("User authorized to access LlamaStack services", "namespace", namespace)
 
 		next(w, r, ps)
 	}

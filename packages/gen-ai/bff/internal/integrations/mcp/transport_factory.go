@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -26,6 +27,7 @@ type TransportOptions struct {
 	InsecureSkipVerify bool
 	MaxIdleConns       int
 	IdleConnTimeout    time.Duration
+	RootCAs            *x509.CertPool
 }
 
 // DefaultTransportOptions provides sensible defaults for transport configuration
@@ -196,10 +198,15 @@ func ValidateAndNormalizeTransportType(transportType string, logger *slog.Logger
 
 // createMCPHTTPClient creates a configured HTTP client with authentication and MCP error handling
 func (f *MCPTransportFactory) createMCPHTTPClient(opts *TransportOptions, identity *integrations.RequestIdentity) *http.Client {
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: opts.InsecureSkipVerify,
+	}
+	if opts.RootCAs != nil {
+		tlsConfig.RootCAs = opts.RootCAs
+	}
+
 	baseTransport := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: opts.InsecureSkipVerify,
-		},
+		TLSClientConfig: tlsConfig,
 		MaxIdleConns:    opts.MaxIdleConns,
 		IdleConnTimeout: opts.IdleConnTimeout,
 	}
