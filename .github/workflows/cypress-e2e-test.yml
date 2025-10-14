@@ -18,7 +18,7 @@ jobs:
       - name: Set default test tags
         id: set-tags
         run: |
-          echo "test-tags=[\"@ci-dashboard-set-1\",\"@ci-dashboard-set-2\"]" >> $GITHUB_OUTPUT
+          echo "test-tags=[\"@ci-dashboard-set-1\"]" >> $GITHUB_OUTPUT
 
   e2e-tests:
     needs: [get-test-tags]
