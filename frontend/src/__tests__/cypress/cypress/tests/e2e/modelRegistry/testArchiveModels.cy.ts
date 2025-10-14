@@ -201,51 +201,15 @@ describe('Verify that models and versions can be archived and restored via model
       restoreVersionModal.findRestoreButton().click();
 
       cy.step('Verify the version is restored');
-      // Navigate back to versions and verify v1.0 is restored
-      cy.visit(`/model-registry/${registryName}/registeredModels/1/versions`);
+      // Navigate back to versions via UI to replicate customer workflow
+      cy.visit('/model-registry');
+      modelRegistry.findSelectModelRegistry(registryName);
+      cy.contains(testData.objectStorageModelName).click();
       modelRegistry.findModelVersionsTab().should('be.visible').click();
       modelRegistry
         .getModelVersionRow(testData.version1Name)
         .findModelVersionName()
         .should('be.visible');
-
-      // TODO: Uncomment for 3.0 when model registry bug is addressed https://issues.redhat.com/browse/RHOAIENG-35821
-      //     cy.step('Navigate back to model registry to archive the whole model');
-      //     cy.visit(`/model-registry/${registryName}`);
-
-      //     cy.step('Archive the entire model');
-      //     // Find the model row and archive it
-      //     const modelRow = modelRegistry.getRow(testData.objectStorageModelName);
-      //     modelRow.findKebabAction('Archive model').click();
-      //     // Type the model name to confirm and click archive
-      //     archiveModelModal.findModalTextInput().type(testData.objectStorageModelName);
-      //     archiveModelModal.findArchiveButton().click();
-
-      //     cy.step('Verify the model is archived');
-      //     // Navigate to archived models to verify
-      //     modelRegistry.findEmptyModelRegistrySecondaryButton().should('be.visible').click();
-      //     registeredModelArchive
-      //       .findArchiveModelTable()
-      //       .contains('td', testData.objectStorageModelName, { timeout: 10000 })
-      //       .should('be.visible');
-
-      //     // Verify we're on the archived models page
-      //     cy.url().should('include', '/registeredModels/archive');
-
-      //     cy.step('Restore the archived model');
-      //     // Find the archived model row and restore it
-      //     const archivedModelRow = registeredModelArchive.getRow(testData.objectStorageModelName);
-      //     archivedModelRow.findKebab().click();
-      //     cy.get('body').find('[role="menuitem"]').should('be.visible');
-      //     cy.get('body').find('[role="menuitem"]').contains('Restore model').click({ force: true });
-
-      //     // Confirm restore in the modal
-      //     restoreModelModal.findRestoreButton().click();
-
-      //     cy.step('Verify the model is restored');
-      //     // Navigate back to models and verify the model is restored
-      //     cy.visit(`/model-registry/${registryName}`);
-      //     modelRegistry.getRow(testData.objectStorageModelName).findName().should('be.visible');
     },
   );
 
