@@ -329,46 +329,14 @@ jobs:
 
       - name: Set test configuration
         run: |
+          # Keep test-variables.yml as-is (with cluster URLs for API calls)
+          # Only use BASE_URL to tell the browser where to navigate
           TEST_VARS_FILE="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
           
-          echo "🔧 Setting up test-variables.yml for Cypress (localhost:${CYPRESS_PORT})..."
-          
-          # Check if root-level ODH_DASHBOARD_URL exists (Cypress reads this)
-          if ! grep -q "^ODH_DASHBOARD_URL:" "$TEST_VARS_FILE"; then
-            echo "⚠️  Root-level ODH_DASHBOARD_URL not found - adding it"
-            echo "ODH_DASHBOARD_URL: http://localhost:${CYPRESS_PORT}" >> "$TEST_VARS_FILE"
-          else
-            echo "✅ Root-level ODH_DASHBOARD_URL found - updating it"
-            sed -i.bak "s|^ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:${CYPRESS_PORT}|g" "$TEST_VARS_FILE"
-          fi
-          
-          # Check if root-level OCP_CONSOLE_URL exists
-          if ! grep -q "^OCP_CONSOLE_URL:" "$TEST_VARS_FILE"; then
-            echo "⚠️  Root-level OCP_CONSOLE_URL not found - adding it"
-            echo "OCP_CONSOLE_URL: http://localhost:${CYPRESS_PORT}" >> "$TEST_VARS_FILE"
-          else
-            echo "✅ Root-level OCP_CONSOLE_URL found - updating it"
-            sed -i.bak "s|^OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:${CYPRESS_PORT}|g" "$TEST_VARS_FILE"
-          fi
-          
-          # Also update any nested occurrences (in TEST_CLUSTERS)
-          echo "🔧 Updating nested URL occurrences..."
-          sed -i "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:${CYPRESS_PORT}|g" "$TEST_VARS_FILE"
-          sed -i "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:${CYPRESS_PORT}|g" "$TEST_VARS_FILE"
-          
-          echo ""
-          echo "📝 Verifying configuration (showing root-level URLs that Cypress reads):"
-          echo "Root-level ODH_DASHBOARD_URL:"
-          grep -n "^ODH_DASHBOARD_URL:" "$TEST_VARS_FILE" || echo "❌ NOT FOUND!"
-          echo ""
-          echo "Root-level OCP_CONSOLE_URL:"
-          grep -n "^OCP_CONSOLE_URL:" "$TEST_VARS_FILE" || echo "❌ NOT FOUND!"
-          echo ""
-          echo "All ODH_DASHBOARD_URL occurrences:"
-          grep -n "ODH_DASHBOARD_URL:" "$TEST_VARS_FILE" || echo "No matches found"
+          echo "✅ Using test-variables.yml with cluster URLs for API calls"
+          echo "✅ Browser will navigate to localhost:${CYPRESS_PORT} via BASE_URL"
           
           export CY_TEST_CONFIG="$TEST_VARS_FILE"
-          echo "✅ Test config set to use localhost:${CYPRESS_PORT}"
 
       - name: Start Cypress Server
         run: |
