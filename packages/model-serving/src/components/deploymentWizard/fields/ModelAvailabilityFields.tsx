@@ -112,7 +112,7 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
               data-testid="save-as-ai-asset-checkbox"
               label={
                 <Flex>
-                  <FlexItem>Make this deployment available as an AI asset</FlexItem>
+                  <FlexItem>Make this deployment available as an AI asset endpoint</FlexItem>
                   <Label isCompact color="yellow" variant="outline">
                     Tech Preview
                   </Label>
@@ -131,7 +131,9 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
                 data-testid="save-as-maas-checkbox"
                 label={
                   <Flex>
-                    <FlexItem>Make this deployment available as a MaaS asset</FlexItem>
+                    <FlexItem>
+                      Make this deployment available as a Models-as-a-Service asset
+                    </FlexItem>
                     <Label isCompact color="yellow" variant="outline">
                       Developer Preview
                     </Label>
