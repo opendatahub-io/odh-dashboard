@@ -29,7 +29,7 @@ import {
 } from '#~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDetails';
 import { ModelDeploymentState } from '#~/pages/modelServing/screens/types';
 import { modelServingGlobal } from '#~/__tests__/cypress/cypress/pages/modelServing';
-import { ModelRegistryMetadataType } from '#~/concepts/modelRegistry/types';
+import { ModelRegistryMetadataType, ModelSourceKind } from '#~/concepts/modelRegistry/types';
 import { KnownLabels } from '#~/k8sTypes';
 import { asProjectEditUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
 
@@ -149,8 +149,6 @@ const mockRegisteredModelWithData = mockRegisteredModel({
 
 const initIntercepts = (
   isEmptyProject = false,
-  // TODO: Investigate if this line is needed.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   fromCatalog = false,
   modelCatalogAvailable = true,
 ) => {
@@ -252,7 +250,13 @@ const initIntercepts = (
         modelVersionId: 1,
       },
     },
-    { data: mockModelArtifactList({}) },
+    { data: mockModelArtifactList({
+      items: [mockModelArtifact(fromCatalog ? {
+        modelSourceClass: 'test-catalog-source',
+        modelSourceKind: ModelSourceKind.CATALOG,
+        modelSourceName: 'test-catalog-repo/test-catalog-model',
+      } : {})],
+    }) },
   );
 
   cy.interceptOdh(
@@ -291,23 +295,21 @@ describe('Model version details', () => {
       modelVersionDetails.visit();
     });
 
-    // We do not have this functionality yet.
-    it.skip('Model version details registered from catalog', () => {
+    it('Model version details registered from catalog', () => {
       initIntercepts(false, true, true);
       modelVersionDetails.visit();
       modelVersionDetails.findVersionId().contains('1');
       modelVersionDetails.findRegisteredFromCatalog().should('exist');
       modelVersionDetails
         .findRegisteredFromCatalog()
-        .should('have.text', 'test-catalog-model (test-catalog-tag)');
+        .should('have.text', 'test-catalog-model');
       modelVersionDetails.findRegisteredFromCatalog().click();
       verifyRelativeURL(
-        '/ai-hub/catalog/test-catalog-source/test-catalog-repo/test-catalog-model/test-catalog-tag',
+        `/ai-hub/catalog/test-catalog-source/${encodeURIComponent('test-catalog-repo/test-catalog-model')}`,
       );
     });
 
-    // We do not have this functionality yet.
-    it.skip('Model version details registered from catalog with model catalog unavailable', () => {
+    it('Model version details registered from catalog with model catalog unavailable', () => {
       initIntercepts(false, true, false);
       modelVersionDetails.visit();
       modelVersionDetails.findVersionId().contains('1');
@@ -389,8 +391,7 @@ describe('Model version details', () => {
       cy.findByTestId('model-version-deployments-empty-state').should('exist');
     });
 
-    // TODO: Fix this test
-    it.skip('renders table with data', () => {
+    it('renders table with data', () => {
       cy.interceptK8sList(
         InferenceServiceModel,
         mockK8sResourceList([

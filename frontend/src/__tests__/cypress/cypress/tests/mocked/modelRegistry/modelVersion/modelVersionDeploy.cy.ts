@@ -17,7 +17,7 @@ import type { ModelVersion } from '#~/concepts/modelRegistry/types';
 import { ModelState } from '#~/concepts/modelRegistry/types';
 import { mockRegisteredModel } from '#~/__mocks__/mockRegisteredModel';
 import { modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry';
-import { mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
+import { mockModelRegistry, mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
 import { modelVersionDeployModal } from '#~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDeployModal';
 import { mockModelArtifactList } from '#~/__mocks__/mockModelArtifactList';
 import { kserveModal } from '#~/__tests__/cypress/cypress/pages/modelServing';
@@ -25,7 +25,7 @@ import { mockModelArtifact } from '#~/__mocks__/mockModelArtifact';
 import { initDeployPrefilledModelIntercepts } from '#~/__tests__/cypress/cypress/utils/modelServingUtils';
 import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
 
-const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
+const MODEL_REGISTRY_API_VERSION = 'v1';
 
 type HandlersProps = {
   registeredModelsSize?: number;
@@ -82,124 +82,179 @@ const initIntercepts = ({
   );
 
   cy.interceptOdh(
-    'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId/versions',
+    `GET /model-registry/api/:apiVersion/model_registry`,
+    {
+      path: { apiVersion: MODEL_REGISTRY_API_VERSION },
+    },
+    { data: [mockModelRegistry({ name: 'modelregistry-sample' })] },
+  );
+
+  cy.interceptOdh(
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId`,
     {
       path: {
-        serviceName: 'modelregistry-sample',
+        modelRegistryName: 'modelregistry-sample',
         apiVersion: MODEL_REGISTRY_API_VERSION,
         registeredModelId: 1,
       },
     },
-    mockModelVersionList({
-      items: modelVersions,
-    }),
+    { data: registeredModelMocked },
   );
 
   cy.interceptOdh(
-    'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId',
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId/versions`,
     {
       path: {
-        serviceName: 'modelregistry-sample',
+        modelRegistryName: 'modelregistry-sample',
         apiVersion: MODEL_REGISTRY_API_VERSION,
         registeredModelId: 1,
       },
     },
-    registeredModelMocked,
+    {
+      data: mockModelVersionList({
+        items: modelVersions,
+      }),
+    },
   );
 
+  // cy.interceptOdh(
+  //   `PATCH /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId`,
+  //   {
+  //     path: {
+  //       modelRegistryName: 'modelregistry-sample',
+  //       apiVersion: MODEL_REGISTRY_API_VERSION,
+  //       modelVersionId: 1,
+  //     },
+  //   },
+  //   { data: mockModelVersions },
+  // ).as('UpdatePropertyRow');
+
   cy.interceptOdh(
-    'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId',
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId`,
     {
       path: {
-        serviceName: 'modelregistry-sample',
+        modelRegistryName: 'modelregistry-sample',
         apiVersion: MODEL_REGISTRY_API_VERSION,
         modelVersionId: 1,
       },
     },
-    modelVersionMocked,
+    { data: modelVersionMocked },
   );
 
   cy.interceptOdh(
-    'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId',
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId`,
     {
       path: {
-        serviceName: 'modelregistry-sample',
+        modelRegistryName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: 1,
+      },
+    },
+    { data: modelVersionMocked },
+  );
+
+  cy.interceptOdh(
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId`,
+    {
+      path: {
+        modelRegistryName: 'modelregistry-sample',
         apiVersion: MODEL_REGISTRY_API_VERSION,
         modelVersionId: 2,
       },
     },
-    modelVersionMocked2,
+    { data: modelVersionMocked2 },
   );
 
   cy.interceptOdh(
-    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts`,
+    `GET /model-registry/api/:apiVersion/user`,
+    {
+      path: { apiVersion: MODEL_REGISTRY_API_VERSION },
+    },
+    { data: { userId: 'user@example.com', clusterAdmin: true } },
+  );
+
+  cy.interceptOdh(
+    `GET /model-registry/api/:apiVersion/namespaces`,
+    {
+      path: { apiVersion: MODEL_REGISTRY_API_VERSION },
+    },
+    { data: [{ metadata: { name: 'odh-model-registries' } }] },
+  );
+
+  cy.interceptOdh(
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId/artifacts`,
     {
       path: {
-        serviceName: 'modelregistry-sample',
+        modelRegistryName: 'modelregistry-sample',
         apiVersion: MODEL_REGISTRY_API_VERSION,
         modelVersionId: 1,
       },
     },
-    mockModelArtifactList({}),
+    { data: mockModelArtifactList({}) },
   );
 
   cy.interceptOdh(
-    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts`,
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId/artifacts`,
     {
       path: {
-        serviceName: 'modelregistry-sample',
+        modelRegistryName: 'modelregistry-sample',
         apiVersion: MODEL_REGISTRY_API_VERSION,
         modelVersionId: 3,
       },
     },
-    mockModelArtifactList({
-      items: [mockModelArtifact({ uri: 'https://demo-models/some-path.zip' })],
-    }),
+    {
+      data: mockModelArtifactList({
+        items: [mockModelArtifact({ uri: 'https://demo-models/some-path.zip' })],
+      }),
+    },
   );
 
   cy.interceptOdh(
-    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts`,
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId/artifacts`,
     {
       path: {
-        serviceName: 'modelregistry-sample',
+        modelRegistryName: 'modelregistry-sample',
         apiVersion: MODEL_REGISTRY_API_VERSION,
         modelVersionId: 4,
       },
     },
-    mockModelArtifactList({
-      items: [mockModelArtifact({ uri: 'oci://test.io/test/private:test' })],
-    }),
+    {
+      data: mockModelArtifactList({
+        items: [mockModelArtifact({ uri: 'oci://test.io/test/private:test' })],
+      }),
+    },
   );
 
   cy.interceptOdh(
-    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts`,
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId/artifacts`,
     {
       path: {
-        serviceName: 'modelregistry-sample',
+        modelRegistryName: 'modelregistry-sample',
         apiVersion: MODEL_REGISTRY_API_VERSION,
         modelVersionId: 5,
       },
     },
-    mockModelArtifactList({
-      items: [mockModelArtifact({ uri: 'oci://registry.redhat.io/rhel/private:test' })],
-    }),
+    {
+      data: mockModelArtifactList({
+        items: [mockModelArtifact({ uri: 'oci://registry.redhat.io/rhel/private:test' })],
+      }),
+    },
   );
 
   cy.interceptOdh(
-    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts`,
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId/artifacts`,
     {
       path: {
-        serviceName: 'modelregistry-sample',
+        modelRegistryName: 'modelregistry-sample',
         apiVersion: MODEL_REGISTRY_API_VERSION,
         modelVersionId: 2,
       },
     },
-    mockModelArtifactList({}),
+    { data: mockModelArtifactList({}) },
   );
 };
 
-// TODO: Fix these tests
-describe.skip('Deploy model version', () => {
+describe('Deploy model version', () => {
   it('Deploy model version on unsupported multi-model platform', () => {
     initIntercepts({ modelMeshInstalled: false });
     cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
@@ -751,9 +806,7 @@ describe.skip('Deploy model version', () => {
     cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version 4');
     modelVersionRow.findKebabAction('Deploy').click();
-    cy.findByRole('tooltip').should(
-      'contain.text',
-      'To deploy this model, an administrator must first enable single-model serving in the cluster settings.',
-    );
+    modelVersionDeployModal.selectProjectByName('KServe project');
+    cy.findByText('Single-model platform is not installed').should('exist');
   });
 });
