@@ -24,6 +24,8 @@ import { kserveModal } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import { mockModelArtifact } from '#~/__mocks__/mockModelArtifact';
 import { initDeployPrefilledModelIntercepts } from '#~/__tests__/cypress/cypress/utils/modelServingUtils';
 import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
+import { modelDetails } from '#~/__tests__/cypress/cypress/pages/modelRegistry/modelDetails';
+import { modelVersionDetails } from '#~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDetails';
 
 const MODEL_REGISTRY_API_VERSION = 'v1';
 
@@ -241,6 +243,45 @@ const initIntercepts = ({
     { data: mockModelArtifactList({}) },
   );
 };
+
+describe('Deploy action button', () => {
+  it('Deploy action button is disabled in the model details page when there are no live versions', () => {
+    initIntercepts({});
+    cy.interceptOdh(
+      `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId/versions`,
+      {
+        path: {
+          modelRegistryName: 'modelregistry-sample',
+          apiVersion: MODEL_REGISTRY_API_VERSION,
+          registeredModelId: 1,
+        },
+      },
+      {
+        data: mockModelVersionList({
+          items: [],
+        }),
+      },
+    );
+    modelDetails.visit();
+    modelDetails.findModelVersionActionToggle().findDropdownItem('Deploy').should('not.exist');
+  });
+
+  it('Deploy action button is visible in the model details page when there are live versions', () => {
+    initIntercepts({});
+    modelDetails.visit();
+    modelDetails.findModelActionToggle().findDropdownItem('Deploy test model version').click();
+    cy.wait('@getProjects');
+    modelVersionDeployModal.shouldBeOpen();
+  });
+
+  it('Deploy action button is visible in the model version details page when there are live versions', () => {
+    initIntercepts({});
+    modelVersionDetails.visit();
+    modelVersionDetails.findDeployModelButton().click();
+    cy.wait('@getProjects');
+    modelVersionDeployModal.shouldBeOpen();
+  });
+});
 
 describe('Deploy model version', () => {
   it('Deploy model version on unsupported multi-model platform', () => {
