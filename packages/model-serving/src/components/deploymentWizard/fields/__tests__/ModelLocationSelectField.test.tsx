@@ -5,15 +5,12 @@ import { useWizardContext, useWizardFooter } from '@patternfly/react-core';
 import { renderHook } from '@odh-dashboard/jest-config/hooks';
 import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
 import { ConnectionTypeConfigMapObj } from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import {
-  ModelLocationData as ModelLocationDataField,
-  ModelLocationType,
-} from '../modelLocationFields/types';
+import { ModelLocationData, ModelLocationType } from '../../types';
 import { isValidModelLocationData, useModelLocationData } from '../ModelLocationInputFields';
 import { ModelLocationSelectField } from '../ModelLocationSelectField';
 
 const modelLocationSchema = z.object({
-  modelLocationData: z.custom<ModelLocationDataField>((val) => {
+  modelLocationData: z.custom<ModelLocationData>((val) => {
     if (!val) return false;
     return isValidModelLocationData(val.type, val);
   }),

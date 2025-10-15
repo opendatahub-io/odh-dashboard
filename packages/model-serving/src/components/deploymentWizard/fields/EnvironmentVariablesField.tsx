@@ -49,6 +49,22 @@ export const isValidEnvironmentVariables = (name: string): string => {
   return result.success ? '' : result.error.errors[0]?.message || '';
 };
 
+export const hasInvalidEnvironmentVariableNames = (
+  data?: EnvironmentVariablesFieldData,
+): boolean => {
+  if (!data?.enabled) {
+    return false;
+  }
+
+  return data.variables.some((variable) => {
+    if (variable.name.trim() === '') {
+      return true;
+    }
+    const error = isValidEnvironmentVariables(variable.name);
+    return error !== '';
+  });
+};
+
 // Hook
 export type EnvironmentVariablesFieldHook = {
   data: EnvironmentVariablesFieldData | undefined;

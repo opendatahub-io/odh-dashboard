@@ -17,6 +17,9 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
+import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import type { ModelServerOption } from './ModelServerTemplateSelectField';
+import type { TokenAuthField } from '../types';
 
 // Schema
 const tokenSchema = z.object({
@@ -40,18 +43,52 @@ export const isValidTokenAuthentication = (
 export type TokenAuthenticationFieldHook = {
   data: TokenAuthenticationFieldData | undefined;
   setData: (data: TokenAuthenticationFieldData) => void;
+  shouldAutoCheck: boolean;
 };
 
 export const useTokenAuthenticationField = (
   existingData?: TokenAuthenticationFieldData,
+  tokenAuthFields?: TokenAuthField[],
+  modelType?: ServingRuntimeModelType,
+  selectedModelServer?: ModelServerOption,
 ): TokenAuthenticationFieldHook => {
+  const shouldAutoCheck = React.useMemo(() => {
+    if (!modelType || !tokenAuthFields) return false;
+
+    const extensionContext = {
+      modelType,
+      selectedModelServer,
+    };
+
+    const activeField = tokenAuthFields.find((field) => field.isActive(extensionContext));
+    return activeField?.initialValue ?? false;
+  }, [tokenAuthFields, modelType, selectedModelServer]);
+
+  const initialData = React.useMemo(() => {
+    if (shouldAutoCheck && (!existingData || existingData.length === 0)) {
+      return [
+        {
+          uuid: getUniqueId('ml'),
+          name: 'default-name',
+          error: '',
+        },
+      ];
+    }
+    return existingData || [];
+  }, [shouldAutoCheck, existingData]);
+
   const [tokenAuthData, setTokenAuthData] = React.useState<
     TokenAuthenticationFieldData | undefined
-  >(existingData || []);
+  >(initialData);
+
+  React.useEffect(() => {
+    setTokenAuthData(initialData);
+  }, [initialData]);
 
   return {
     data: tokenAuthData,
     setData: setTokenAuthData,
+    shouldAutoCheck,
   };
 };
 

@@ -7,7 +7,6 @@ import {
   ManageHardwareProfileSectionTitlesType,
 } from '#~/pages/hardwareProfiles/manage/types';
 import { IdentifierResourceType } from '#~/types';
-import { getHardwareProfileDisplayName } from './utils';
 
 export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
   {
@@ -23,34 +22,13 @@ export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
   {
     field: 'name',
     label: 'Name',
-    sortable: (a, b) =>
-      getHardwareProfileDisplayName(a).localeCompare(getHardwareProfileDisplayName(b)),
-    width: 40,
+    sortable: false,
+    width: 25,
   },
   {
     field: 'visibility',
     label: 'Visibility',
-    sortable: (a: HardwareProfileKind, b: HardwareProfileKind): number => {
-      try {
-        const aUseCases = JSON.parse(
-          a.metadata.annotations?.['opendatahub.io/dashboard-feature-visibility'] ?? '[]',
-        ).toSorted();
-        const bUseCases = JSON.parse(
-          b.metadata.annotations?.['opendatahub.io/dashboard-feature-visibility'] ?? '[]',
-        ).toSorted();
-
-        // First sort by length
-        const lengthDiff = aUseCases.length - bUseCases.length;
-        if (lengthDiff !== 0) {
-          return lengthDiff;
-        }
-
-        // Compare the sorted arrays element by element
-        return aUseCases.join().localeCompare(bUseCases.join());
-      } catch {
-        return 0;
-      }
-    },
+    sortable: false,
     info: {
       popover: (
         <>
@@ -62,7 +40,7 @@ export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
         showClose: false,
       },
     },
-    width: 30,
+    width: 20,
   },
   {
     field: 'enablement',
@@ -79,12 +57,8 @@ export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
   {
     field: 'last_modified',
     label: 'Last modified',
-    sortable: (a: HardwareProfileKind, b: HardwareProfileKind): number => {
-      const first = a.metadata.annotations?.['opendatahub.io/modified-date'];
-      const second = b.metadata.annotations?.['opendatahub.io/modified-date'];
-      return new Date(first ?? 0).getTime() - new Date(second ?? 0).getTime();
-    },
-    width: 30,
+    sortable: false,
+    width: 20,
   },
   {
     field: 'kebab',
