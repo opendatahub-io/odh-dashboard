@@ -1,8 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
+import { registeredModelDeploymentsRoute } from '@odh-dashboard/internal/routes/modelRegistry/registeredModels';
 import type { RegisteredModel } from '@mf/modelRegistry/compiled-types/src/app/types';
-import { registeredModelDeploymentsUrl } from '../../model-registry/upstream/frontend/src/app/pages/modelRegistry/screens/routeUtils';
 import { ModelDeploymentsContext } from '../src/concepts/ModelDeploymentsContext';
 
 const DeploymentsColumn: React.FC<{
@@ -30,7 +30,7 @@ const DeploymentsColumn: React.FC<{
   }
 
   return (
-    <Link to={registeredModelDeploymentsUrl(registeredModel, preferredModelRegistryName)}>
+    <Link to={registeredModelDeploymentsRoute(registeredModel.id, preferredModelRegistryName)}>
       {deploymentCount} {deploymentCount === 1 ? 'deployment' : 'deployments'}
     </Link>
   );
