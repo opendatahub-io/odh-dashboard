@@ -427,12 +427,75 @@ jobs:
             exit 1
           fi
 
+      - name: Debug Cypress Environment
+        run: |
+          cd frontend
+          
+          echo "🔍 ==================== DEBUGGING CYPRESS ENVIRONMENT ===================="
+          echo "📍 Current Port: ${CYPRESS_PORT}"
+          echo "📍 BASE_URL that will be used: http://localhost:${CYPRESS_PORT}"
+          
+          echo ""
+          echo "🌐 Network Connectivity Tests:"
+          echo "   Testing localhost resolution..."
+          ping -c 2 localhost || echo "⚠️  Ping failed"
+          
+          echo ""
+          echo "   Testing port connectivity with nc..."
+          nc -zv localhost ${CYPRESS_PORT} 2>&1 || echo "⚠️  nc test failed"
+          
+          echo ""
+          echo "   Testing HTTP connectivity with curl (detailed)..."
+          curl -v http://localhost:${CYPRESS_PORT}/ 2>&1 | head -30
+          
+          echo ""
+          echo "🔧 Environment Variables (filtered for safety):"
+          env | grep -E "(CYPRESS|PORT|URL|BASE|HOST|CI|NODE)" | sort
+          
+          echo ""
+          echo "📦 Cypress Binary Info:"
+          npx cypress info || echo "⚠️  Cypress info failed"
+          
+          echo ""
+          echo "🖥️  System Info:"
+          uname -a
+          echo "User: $(whoami)"
+          echo "Home: $HOME"
+          echo "PWD: $(pwd)"
+          
+          echo ""
+          echo "🌐 Network Interfaces:"
+          ip addr show 2>/dev/null || ifconfig
+          
+          echo ""
+          echo "🔌 All Listening Ports:"
+          netstat -tlnp 2>/dev/null | head -20 || ss -tlnp | head -20
+          
+          echo ""
+          echo "🔌 Specific Port ${CYPRESS_PORT}:"
+          netstat -tlnp 2>/dev/null | grep ${CYPRESS_PORT} || ss -tlnp | grep ${CYPRESS_PORT} || echo "⚠️  Port ${CYPRESS_PORT} not found in netstat/ss"
+          
+          echo ""
+          echo "🔍 Process tree:"
+          ps auxf | grep -E "(webpack|node|cypress|electron)" | grep -v grep | head -20
+          
+          echo ""
+          echo "🧪 Direct localhost connectivity test:"
+          for method in "127.0.0.1" "localhost" "::1"; do
+            echo "   Testing with $method:${CYPRESS_PORT}..."
+            curl -s -o /dev/null -w "   %{http_code} - %{time_total}s\n" http://$method:${CYPRESS_PORT}/ 2>&1 || echo "   ❌ Failed with $method"
+          done
+          
+          echo "============================================================================"
+
       - name: Run E2E Tests
         env:
           CY_TEST_CONFIG: ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
           CY_RESULTS_DIR: ${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}
+          CYPRESS_BASE_URL: http://localhost:${{ env.CYPRESS_PORT }}
           DEBUG: cypress:server:browsers*,cypress:server:util:process_profiler
           ELECTRON_ENABLE_LOGGING: 1
+          CI: true
         run: |
           cd frontend
 
@@ -447,6 +510,7 @@ jobs:
           echo "CY_TEST_CONFIG: $CY_TEST_CONFIG"
           echo "CY_RESULTS_DIR: $CY_RESULTS_DIR"
           echo "CYPRESS_PORT: ${CYPRESS_PORT}"
+          echo "CYPRESS_BASE_URL: $CYPRESS_BASE_URL"
           echo "Using Electron (same as working version, but with dynamic ports)"
           echo "================================"
           echo ""
@@ -480,13 +544,50 @@ jobs:
 
           echo "🐛 Cypress debug logging enabled for browser launch troubleshooting"
 
-          # Run tests against dynamic port - baseUrl from test-variables.yml
-          BASE_URL=http://localhost:${CYPRESS_PORT} npm run cypress:run:electron -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+          # Run tests with explicit baseUrl override in multiple places to ensure it's set
+          npm run cypress:run:electron -- \
+            --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true \
+            --config baseUrl=http://localhost:${CYPRESS_PORT},video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+
+      - name: Debug Test Failure
+        if: failure()
+        run: |
+          echo "🔍 ==================== POST-MORTEM DEBUGGING ===================="
+          
+          echo ""
+          echo "📊 Webpack server still running?"
+          ps aux | grep -E "(webpack|node.*${CYPRESS_PORT})" | grep -v grep | head -10 || echo "No webpack/node processes found"
+          
+          echo ""
+          echo "📊 Electron/Cypress processes:"
+          ps aux | grep -E "(electron|cypress)" | grep -v grep | head -10 || echo "No electron/cypress processes found"
+          
+          echo ""
+          echo "🌐 Can we still reach the server from this shell?"
+          curl -v http://localhost:${CYPRESS_PORT}/ 2>&1 | head -30 || echo "❌ curl failed"
+          
+          echo ""
+          echo "🔌 Network ports still listening:"
+          netstat -tlnp 2>/dev/null | grep LISTEN | head -20 || ss -tlnp | grep LISTEN | head -20
+          
+          echo ""
+          echo "📝 Looking for error logs:"
+          find /tmp -name "*webpack*" -o -name "*cypress*" -o -name "*electron*" 2>/dev/null | head -10
+          
+          echo ""
+          echo "📝 Recent Cypress logs (if any):"
+          find ~/.cache/Cypress -name "*.log" -mmin -30 -exec echo "File: {}" \; -exec tail -20 {} \; 2>/dev/null | head -50
+          
+          echo ""
+          echo "📝 Checking for crash dumps:"
+          find /tmp -name "core.*" -o -name "*.dmp" -mmin -30 2>/dev/null | head -5
+          
+          echo "============================================================================"
 
       - name: Debug Electron on failure
         if: ${{ failure() }}
         run: |
-          echo "=== POST-FAILURE DEBUGGING ==="
+          echo "=== ADDITIONAL ELECTRON DEBUGGING ==="
           echo ""
           echo "1. Check if Electron processes launched:"
           ps aux | grep -v grep | grep electron | head -5 || echo "No Electron processes found"
@@ -496,6 +597,9 @@ jobs:
           echo ""
           echo "3. Check for Electron crash logs:"
           find /tmp -name "*electron*" -o -name "*cypress*" 2>/dev/null | grep -i "log\|crash" | head -5 || echo "No crash logs found"
+          echo ""
+          echo "4. Check /var/log for relevant errors:"
+          sudo tail -50 /var/log/messages 2>/dev/null | grep -i "electron\|cypress\|chrome" || echo "No system logs found"
 
       - name: Test tag name
         if: ${{ always() }}
