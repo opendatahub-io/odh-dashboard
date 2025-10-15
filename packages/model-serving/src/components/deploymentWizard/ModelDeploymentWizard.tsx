@@ -151,7 +151,14 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         onSave={onSave}
       />
     ),
-    [submitError, isLoading, primaryButtonText, validation.isAdvancedSettingsStepValid], //TODO: Remove validation.isAdvancedSettingsStepValid once summary page is added
+    [
+      submitError,
+      isLoading,
+      primaryButtonText,
+      deployMethod?.properties.supportsOverwrite,
+      onSave,
+      validation.isAdvancedSettingsStepValid,
+    ], //TODO: Remove validation.isAdvancedSettingsStepValid once summary page is added
   );
 
   return (
