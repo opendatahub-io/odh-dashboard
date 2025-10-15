@@ -1,6 +1,8 @@
 import * as React from 'react';
-import { PageSection, Sidebar, SidebarContent, SidebarPanel } from '@patternfly/react-core';
+import { PageSection, Sidebar, SidebarContent, SidebarPanel, Stack, StackItem } from '@patternfly/react-core';
 import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-shared';
+import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
+import { isModelCatalogBannerExtension } from '~/odh/extension-points';
 import ScrollViewOnMount from '~/app/shared/components/ScrollViewOnMount';
 import ModelCatalogFilters from '~/app/pages/modelCatalog/components/ModelCatalogFilters';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
@@ -21,6 +23,8 @@ const ModelCatalog: React.FC = () => {
   const isAllModelsView =
     selectedSourceLabel === CategoryName.allModels && !searchTerm && !filtersApplied;
 
+  const bannerExtensions = useExtensions(isModelCatalogBannerExtension);
+  
   const handleSearch = React.useCallback((term: string) => {
     setSearchTerm(term);
   }, []);
@@ -54,28 +58,37 @@ const ModelCatalog: React.FC = () => {
         loaded
         provideChildrenPadding
       >
-        <Sidebar hasBorder hasGutter>
-          <SidebarPanel>
-            <ModelCatalogFilters />
-          </SidebarPanel>
-          <SidebarContent>
-            <ModelCatalogSourceLabelSelectorNavigator
-              searchTerm={searchTerm}
-              onSearch={handleSearch}
-              onClearSearch={handleClearSearch}
-            />
-            <PageSection isFilled padding={{ default: 'noPadding' }}>
-              {isAllModelsView ? (
-                <ModelCatalogAllModelsView searchTerm={searchTerm} />
-              ) : (
-                <ModelCatalogGalleryView
+        <Stack hasGutter>
+          {bannerExtensions.map((extension) => (
+            <StackItem key={extension.properties.id}>
+              <LazyCodeRefComponent component={extension.properties.component} />
+            </StackItem>
+          ))}
+          <StackItem>
+            <Sidebar hasBorder hasGutter>
+              <SidebarPanel>
+                <ModelCatalogFilters />
+              </SidebarPanel>
+              <SidebarContent>
+                <ModelCatalogSourceLabelSelectorNavigator
                   searchTerm={searchTerm}
-                  handleFilterReset={handleFilterReset}
+                  onSearch={handleSearch}
+                  onClearSearch={handleClearSearch}
                 />
-              )}
-            </PageSection>
-          </SidebarContent>
-        </Sidebar>
+                <PageSection isFilled padding={{ default: 'noPadding' }}>
+                  {isAllModelsView ? (
+                    <ModelCatalogAllModelsView searchTerm={searchTerm} />
+                  ) : (
+                    <ModelCatalogGalleryView
+                      searchTerm={searchTerm}
+                      handleFilterReset={handleFilterReset}
+                    />
+                  )}
+                </PageSection>
+              </SidebarContent>
+            </Sidebar>
+          </StackItem>
+        </Stack>
       </ApplicationsPage>
     </>
   );
