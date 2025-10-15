@@ -25,6 +25,7 @@ const CustomServingRuntimeModelTypeSelector: React.FC<
     <FormGroup
       label="Select the model types this runtime supports"
       id="custom-serving-model-type-selection"
+      isRequired
     >
       <CheckboxSelect
         toggleContent="Select model types"
