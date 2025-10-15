@@ -9,11 +9,10 @@ import {
   PodModel,
   ProjectModel,
   ProjectRequestModel,
-  RouteModel,
   SelfSubjectAccessReviewModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { mock200Status } from '#~/__mocks__/mockK8sStatus';
-import { mockDscStatus, mockNotebookK8sResource, mockRouteK8sResource } from '#~/__mocks__';
+import { mockDscStatus, mockNotebookK8sResource } from '#~/__mocks__';
 import { mockPodK8sResource } from '#~/__mocks__/mockPodK8sResource';
 import { mockSelfSubjectAccessReview } from '#~/__mocks__/mockSelfSubjectAccessReview';
 import { asProjectAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
@@ -236,9 +235,6 @@ describe('Projects details', () => {
 
   it('should show list of workbenches when the column is expanded', () => {
     cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
-    cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'test-notebook' })).as(
-      'getWorkbench',
-    );
     cy.interceptK8sList(
       { model: NotebookModel },
       mockK8sResourceList([
@@ -281,9 +277,6 @@ describe('Projects details', () => {
     cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
     cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('stopWorkbench');
     cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
-    cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'test-notebook' })).as(
-      'getWorkbench',
-    );
     cy.interceptK8sList(
       NotebookModel,
       mockK8sResourceList([
@@ -356,7 +349,7 @@ describe('Projects details', () => {
       ]);
     });
     notebookRow.findNotebookStatusText().should('have.text', 'Stopped');
-    notebookRow.findNotebookRouteLink().should('have.attr', 'aria-disabled', 'true');
+    notebookRow.findDisabledNotebookLink().should('exist');
   });
 
   describe('Workbench disabled', () => {

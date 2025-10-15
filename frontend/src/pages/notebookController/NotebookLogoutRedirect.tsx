@@ -3,9 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getNotebook } from '#~/services/notebookService';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import useNotification from '#~/utilities/useNotification';
-import useRouteForNotebook from '#~/concepts/notebooks/apiHooks/useRouteForNotebook';
-import { getRoute } from '#~/services/routeService';
-import { FAST_POLL_INTERVAL } from '#~/utilities/const';
+import { getRoutePathForWorkbench } from '#~/concepts/notebooks/utils';
 import useNamespaces from './useNamespaces';
 
 const NotebookLogoutRedirect: React.FC = () => {
@@ -13,31 +11,19 @@ const NotebookLogoutRedirect: React.FC = () => {
   const notification = useNotification();
   const navigate = useNavigate();
   const { workbenchNamespace } = useNamespaces();
-  const {
-    data: notebookRoute,
-    loaded,
-    error,
-  } = useRouteForNotebook(notebookName, namespace, true, FAST_POLL_INTERVAL);
 
   React.useEffect(() => {
     let cancelled = false;
-    if (namespace && notebookName && namespace === workbenchNamespace) {
+    if (namespace && notebookName) {
       getNotebook(namespace, notebookName)
         .then(() => {
           if (cancelled) {
             return;
           }
-          getRoute(workbenchNamespace, notebookName)
-            .then((route) => {
-              const location = new URL(
-                `https://${route.spec.host}/notebook/${workbenchNamespace}/${notebookName}`,
-              );
-              window.location.href = `${location.origin}/oauth/sign_out`;
-            })
-            .catch((e) => {
-              notification.error('Error fetching notebook URL.', e.message);
-              navigate('not-found');
-            });
+          // Use same-origin relative path for logout
+          const workbenchPath = getRoutePathForWorkbench(namespace, notebookName);
+          const location = new URL(workbenchPath, window.location.origin);
+          window.location.href = `${location.origin}/oauth/sign_out`;
         })
         .catch((e) => {
           if (cancelled) {
@@ -45,34 +31,14 @@ const NotebookLogoutRedirect: React.FC = () => {
           }
           /* eslint-disable-next-line no-console */
           console.error(e);
+          notification.error('Error fetching notebook.', e.message);
+          navigate('not-found');
         });
     }
     return () => {
       cancelled = true;
     };
   }, [namespace, notebookName, navigate, notification, workbenchNamespace]);
-
-  React.useEffect(() => {
-    if (namespace && notebookName && namespace !== workbenchNamespace) {
-      if (error) {
-        notification.error(`Error when logging out ${notebookName}`, error.message);
-        navigate(`/projects/${namespace}`);
-      }
-      if (loaded && notebookRoute) {
-        const location = new URL(notebookRoute);
-        window.location.href = `${location.origin}/oauth/sign_out`;
-      }
-    }
-  }, [
-    notebookRoute,
-    loaded,
-    error,
-    notification,
-    namespace,
-    notebookName,
-    navigate,
-    workbenchNamespace,
-  ]);
 
   return (
     <ApplicationsPage title="Logging out..." description={null} loaded={false} empty={false} />
