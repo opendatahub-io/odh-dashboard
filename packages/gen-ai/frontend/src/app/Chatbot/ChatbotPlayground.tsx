@@ -13,6 +13,7 @@ import {
 import { useLocation } from 'react-router-dom';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
+import { getLlamaModelStatus } from '~/app/utilities';
 import { DEFAULT_SYSTEM_INSTRUCTIONS, FILE_UPLOAD_CONFIG, ERROR_MESSAGES } from './const';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
@@ -26,7 +27,6 @@ import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAle
 import SourceDeleteSuccessAlert from './components/alerts/SourceDeleteSuccessAlert';
 import { ChatbotMessages } from './ChatbotMessagesList';
 import ViewCodeModal from './components/ViewCodeModal';
-import { getLlamaModelStatus } from '../utilities';
 
 type ChatbotPlaygroundProps = {
   isViewCodeModalOpen: boolean;
@@ -167,6 +167,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         input={lastInput}
         model={selectedModel}
         systemInstruction={systemInstruction}
+        files={fileManagement.files}
       />
       <Drawer isExpanded isInline position="right">
         <Divider />
