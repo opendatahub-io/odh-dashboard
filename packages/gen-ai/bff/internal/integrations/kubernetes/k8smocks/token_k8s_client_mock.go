@@ -7,6 +7,7 @@ import (
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -341,7 +342,7 @@ func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Conte
 	}, nil
 }
 
-func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []string) (*lsdapi.LlamaStackDistribution, error) {
+func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []models.InstallModel, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
 	// Check if LSD already exists in the namespace
 	existingLSDList, err := m.GetLlamaStackDistributions(ctx, identity, namespace)
 	if err != nil {

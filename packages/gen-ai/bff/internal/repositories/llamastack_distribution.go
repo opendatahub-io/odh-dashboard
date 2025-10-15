@@ -5,6 +5,7 @@ import (
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
@@ -63,10 +64,11 @@ func (r *LlamaStackDistributionRepository) InstallLlamaStackDistribution(
 	ctx context.Context,
 	identity *integrations.RequestIdentity,
 	namespace string,
-	installmodels []string,
+	installmodels []models.InstallModel,
+	maasClient maas.MaaSClientInterface,
 ) (*models.LlamaStackDistributionInstallModel, error) {
 	// Call the Kubernetes client to install the LSD
-	lsd, err := client.InstallLlamaStackDistribution(ctx, identity, namespace, installmodels)
+	lsd, err := client.InstallLlamaStackDistribution(ctx, identity, namespace, installmodels, maasClient)
 	if err != nil {
 		return nil, err
 	}

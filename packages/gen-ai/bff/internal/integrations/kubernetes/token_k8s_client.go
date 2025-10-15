@@ -10,6 +10,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	authnv1 "k8s.io/api/authentication/v1"
 	authv1 "k8s.io/api/authorization/v1"
@@ -705,7 +706,7 @@ func (kc *TokenKubernetesClient) extractDisplayNameFromLLMInferenceService(llmSv
 	return displayName
 }
 
-func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []string) (*lsdapi.LlamaStackDistribution, error) {
+func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []models.InstallModel, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
@@ -734,25 +735,25 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 			foundType  string
 		)
 		// First try to find InferenceService
-		if targetISVC, err := kc.findInferenceServiceByModelName(ctx, namespace, model); err == nil {
+		if targetISVC, err := kc.findInferenceServiceByModelName(ctx, namespace, model.ModelName); err == nil {
 			// Find the actual secret name and key used by the InferenceService
 			_, secretName = kc.findServiceAccountAndSecretForInferenceService(ctx, targetISVC)
 			foundType = "InferenceService"
 			// If InferenceService not found, try LLMInferenceService
-		} else if targetLLMSvc, err := kc.findLLMInferenceServiceByModelName(ctx, namespace, model); err == nil {
+		} else if targetLLMSvc, err := kc.findLLMInferenceServiceByModelName(ctx, namespace, model.ModelName); err == nil {
 			// Find the actual secret name and key used by the LLMInferenceService
 			_, secretName = kc.findServiceAccountAndSecretForLLMInferenceService(ctx, targetLLMSvc)
 			foundType = "LLMInferenceService"
 		}
 		if foundType != "" {
-			modelSecrets[model] = modelSecretInfo{
+			modelSecrets[model.ModelName] = modelSecretInfo{
 				secretName: secretName,
 				tokenKey:   "token", // Service account token secrets always use "token" as the key
 				hasToken:   secretName != "",
 			}
-			kc.Logger.Info("found existing "+foundType+" service account token secret", "model", model, "secretName", secretName, "hasToken", secretName != "")
+			kc.Logger.Info("found existing "+foundType+" service account token secret", "model", model.ModelName, "isMaaSModel", model.IsMaaSModel, "secretName", secretName, "hasToken", secretName != "")
 		} else {
-			kc.Logger.Debug("could not find InferenceService or LLMInferenceService for model, will use default", "model", model)
+			kc.Logger.Debug("could not find InferenceService or LLMInferenceService for model, will use default", "model", model.ModelName, "isMaaSModel", model.IsMaaSModel)
 		}
 	}
 
@@ -780,7 +781,7 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 	for i, model := range models {
 		envVarName := fmt.Sprintf("VLLM_API_TOKEN_%d", i+1)
 
-		if secretInfo, exists := modelSecrets[model]; exists && secretInfo.hasToken {
+		if secretInfo, exists := modelSecrets[model.ModelName]; exists && secretInfo.hasToken {
 			// Reference the existing service account token secret
 			envVars = append(envVars, corev1.EnvVar{
 				Name: envVarName,
@@ -855,7 +856,7 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 	kc.Logger.Info("LlamaStackDistribution created successfully", "namespace", namespace, "lsdName", lsdName, "models", models)
 
 	// Step 3: Create ConfigMap with owner reference to the LSD
-	if err := kc.createConfigMapWithOwnerReference(ctx, namespace, configMapName, lsdName, models, lsd); err != nil {
+	if err := kc.createConfigMapWithOwnerReference(ctx, namespace, configMapName, lsdName, models, lsd, maasClient); err != nil {
 		// If ConfigMap creation fails, we should clean up the LSD
 		kc.Logger.Error("failed to create ConfigMap with owner reference", "error", err)
 		// Note: In a production environment, you might want to delete the LSD here
@@ -867,9 +868,9 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 }
 
 // createConfigMapWithOwnerReference creates a ConfigMap and sets up owner reference to LSD
-func (kc *TokenKubernetesClient) createConfigMapWithOwnerReference(ctx context.Context, namespace, configMapName, lsdName string, models []string, lsd *lsdapi.LlamaStackDistribution) error {
+func (kc *TokenKubernetesClient) createConfigMapWithOwnerReference(ctx context.Context, namespace, configMapName, lsdName string, models []models.InstallModel, lsd *lsdapi.LlamaStackDistribution, maasClient maas.MaaSClientInterface) error {
 	// Step 1: Create ConfigMap with models configuration
-	runYAML, err := kc.generateLlamaStackConfig(ctx, namespace, models)
+	runYAML, err := kc.generateLlamaStackConfig(ctx, namespace, models, maasClient)
 	if err != nil {
 		kc.Logger.Error("failed to generate Llama Stack configuration", "error", err, "namespace", namespace)
 		return fmt.Errorf("failed to generate Llama Stack configuration: %w", err)
@@ -920,52 +921,87 @@ func (kc *TokenKubernetesClient) createConfigMapWithOwnerReference(ctx context.C
 	return nil
 }
 
+// ensureVLLMCompatibleURL ensures the URL has /v1 suffix for vLLM provider compatibility
+func ensureVLLMCompatibleURL(url string) string {
+	// Remove any trailing slashes
+	url = strings.TrimSuffix(url, "/")
+	// Check if URL already ends with /v1
+	if strings.HasSuffix(url, "/v1") {
+		return url
+	}
+	// Add /v1 suffix
+	return url + "/v1"
+}
+
 // generateLlamaStackConfig generates the Llama Stack configuration YAML
-func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, namespace string, models []string) (string, error) {
+func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, namespace string, installModels []models.InstallModel, maasClient maas.MaaSClientInterface) (string, error) {
 	// Generate models section and providers section dynamically from the provided models
 	modelsYAML := ""
 	providersYAML := ""
 
-	for i, model := range models {
-		// Query serving runtime and inference service to get actual model details
-		modelDetails, err := kc.getModelDetailsFromServingRuntime(ctx, namespace, model)
-		if err != nil {
-			kc.Logger.Error("failed to get model details from serving runtime", "model", model, "error", err)
-			return "", fmt.Errorf("cannot determine endpoint for model '%s': %w", model, err)
-		}
-
-		// Extract details from the model configuration
-		modelID := modelDetails["model_id"].(string)
-		providerID := fmt.Sprintf("vllm-inference-%d", i+1) // Create unique provider ID for each model
-		modelType := modelDetails["model_type"].(string)
-		endpointURL := modelDetails["endpoint_url"].(string)
-		metadata := modelDetails["metadata"].(map[string]interface{})
-
-		// Use the corresponding environment variable for this model's API token
-		apiTokenConfig := fmt.Sprintf("${env.VLLM_API_TOKEN_%d:=fake}", i+1)
-
-		// Convert metadata to YAML format
-		metadataYAML := ""
-		if len(metadata) > 0 {
-			metadataYAML = "\n    metadata:\n"
-			for key, value := range metadata {
-				metadataYAML += fmt.Sprintf("      %s: %v\n", key, value)
+	// Create a map of MaaS models for efficient lookup (only call ListModels once)
+	maasModelsMap := make(map[string]*models.MaaSModel)
+	if maasClient != nil {
+		// Check if we have any MaaS models first
+		hasMaaSModels := false
+		for _, model := range installModels {
+			if model.IsMaaSModel {
+				hasMaaSModels = true
+				break
 			}
-			// Remove trailing newline
-			metadataYAML = strings.TrimSuffix(metadataYAML, "\n")
-		} else {
-			metadataYAML = "\n    metadata: {}"
 		}
 
-		// Add model to models section
-		modelsYAML += fmt.Sprintf(`  -%s
+		if hasMaaSModels {
+			// Get all MaaS models once
+			maasModels, err := maasClient.ListModels(ctx)
+			if err != nil {
+				kc.Logger.Error("failed to list MaaS models", "error", err)
+				return "", fmt.Errorf("failed to list MaaS models: %w", err)
+			}
+
+			// Create map for efficient lookup
+			for i := range maasModels {
+				model := &maasModels[i]
+				maasModelsMap[model.ID] = model
+			}
+
+			kc.Logger.Info("loaded MaaS models into map", "count", len(maasModelsMap))
+		}
+	}
+
+	for i, model := range installModels {
+		if model.IsMaaSModel {
+			// Handle MaaS models using the pre-loaded map
+			maasModel, exists := maasModelsMap[model.ModelName]
+			if !exists {
+				kc.Logger.Error("MaaS model not found in map", "model", model.ModelName)
+				return "", fmt.Errorf("MaaS model '%s' not found", model.ModelName)
+			}
+
+			// Check if model is ready
+			if !maasModel.Ready {
+				kc.Logger.Error("MaaS model is not ready", "model", model.ModelName, "modelID", maasModel.ID)
+				return "", fmt.Errorf("MaaS model '%s' is not ready (status: %t)", model.ModelName, maasModel.Ready)
+			}
+
+			// Extract details from the MaaS model
+			modelID := maasModel.ID
+			providerID := fmt.Sprintf("maas-vllm-inference-%d", i+1) // Use "maas" prefix
+			modelType := "llm"
+			endpointURL := ensureVLLMCompatibleURL(maasModel.URL)
+
+			// Use the corresponding environment variable for this model's API token
+			apiTokenConfig := fmt.Sprintf("${env.VLLM_API_TOKEN_%d:=fake}", i+1)
+
+			// Add model to models section
+			modelsYAML += fmt.Sprintf(`  - metadata: {}
     model_id: %s
     provider_id: %s
     model_type: %s
-`, metadataYAML, modelID, providerID, modelType)
+`, modelID, providerID, modelType)
 
-		// Add provider to providers section
-		providersYAML += fmt.Sprintf(`  - provider_id: %s
+			// Add provider to providers section
+			providersYAML += fmt.Sprintf(`  - provider_id: %s
     provider_type: remote::vllm
     config:
       url: %s
@@ -973,6 +1009,56 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
       api_token: %s
       tls_verify: ${env.VLLM_TLS_VERIFY:=true}
 `, providerID, endpointURL, apiTokenConfig)
+
+			kc.Logger.Info("added MaaS model to configuration", "model", model.ModelName, "modelID", modelID, "endpoint", endpointURL)
+		} else {
+			// Handle regular models (existing logic)
+			modelDetails, err := kc.getModelDetailsFromServingRuntime(ctx, namespace, model.ModelName)
+			if err != nil {
+				kc.Logger.Error("failed to get model details from serving runtime", "model", model.ModelName, "isMaaSModel", model.IsMaaSModel, "error", err)
+				return "", fmt.Errorf("cannot determine endpoint for model '%s': %w", model.ModelName, err)
+			}
+
+			// Extract details from the model configuration
+			modelID := modelDetails["model_id"].(string)
+			providerID := fmt.Sprintf("vllm-inference-%d", i+1) // Create unique provider ID for each model
+			modelType := modelDetails["model_type"].(string)
+			endpointURL := modelDetails["endpoint_url"].(string)
+			metadata := modelDetails["metadata"].(map[string]interface{})
+
+			// Use the corresponding environment variable for this model's API token
+			apiTokenConfig := fmt.Sprintf("${env.VLLM_API_TOKEN_%d:=fake}", i+1)
+
+			// Convert metadata to YAML format
+			metadataYAML := ""
+			if len(metadata) > 0 {
+				metadataYAML = "\n    metadata:\n"
+				for key, value := range metadata {
+					metadataYAML += fmt.Sprintf("      %s: %v\n", key, value)
+				}
+				// Remove trailing newline
+				metadataYAML = strings.TrimSuffix(metadataYAML, "\n")
+			} else {
+				metadataYAML = "\n    metadata: {}"
+			}
+
+			// Add model to models section
+			modelsYAML += fmt.Sprintf(`  -%s
+    model_id: %s
+    provider_id: %s
+    model_type: %s
+`, metadataYAML, modelID, providerID, modelType)
+
+			// Add provider to providers section
+			providersYAML += fmt.Sprintf(`  - provider_id: %s
+    provider_type: remote::vllm
+    config:
+      url: %s
+      max_tokens: ${env.VLLM_MAX_TOKENS:=4096}
+      api_token: %s
+      tls_verify: ${env.VLLM_TLS_VERIFY:=true}
+`, providerID, endpointURL, apiTokenConfig)
+		}
 	}
 
 	// Combine embedding model with other models

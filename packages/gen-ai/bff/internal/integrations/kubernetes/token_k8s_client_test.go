@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	authv1 "k8s.io/api/authorization/v1"
@@ -134,5 +136,87 @@ func TestCanListLlamaStackDistributionsSARStructure(t *testing.T) {
 		assert.Equal(t, "llamastack.io", sar.Spec.ResourceAttributes.Group)
 		assert.Equal(t, "llamastackdistributions", sar.Spec.ResourceAttributes.Resource)
 		assert.Equal(t, "test-namespace", sar.Spec.ResourceAttributes.Namespace)
+	})
+}
+
+func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
+	t.Run("should handle MaaS models correctly", func(t *testing.T) {
+		// Create a mock MaaS client
+		mockMaaSClient := &maasmocks.MockMaaSClient{}
+
+		// Create a token client
+		client := &TokenKubernetesClient{
+			Logger: slog.Default(),
+		}
+
+		// Test models with only MaaS models (no regular models to avoid Kubernetes client issues)
+		models := []models.InstallModel{
+			{ModelName: "llama-2-7b-chat", IsMaaSModel: true},
+			{ModelName: "granite-7b-lab", IsMaaSModel: true},
+		}
+
+		ctx := context.Background()
+
+		// Test the MaaS model handling logic
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, mockMaaSClient)
+
+		// This should succeed since we're only using MaaS models
+		assert.NoError(t, err)
+		assert.NotEmpty(t, result)
+
+		// Verify the result contains MaaS model configurations
+		assert.Contains(t, result, "llama-2-7b-chat")
+		assert.Contains(t, result, "granite-7b-lab")
+		assert.Contains(t, result, "maas-vllm-inference")
+	})
+
+	t.Run("should fail when MaaS model is not ready", func(t *testing.T) {
+		// Create a mock MaaS client
+		mockMaaSClient := &maasmocks.MockMaaSClient{}
+
+		// Create a token client
+		client := &TokenKubernetesClient{
+			Logger: slog.Default(),
+		}
+
+		// Test with a model that is not ready (mistral-7b-instruct has Ready: false in mock)
+		models := []models.InstallModel{
+			{ModelName: "mistral-7b-instruct", IsMaaSModel: true},
+		}
+
+		ctx := context.Background()
+
+		// Test the MaaS model handling logic
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, mockMaaSClient)
+
+		// This should fail because the model is not ready
+		assert.Error(t, err)
+		assert.Empty(t, result)
+		assert.Contains(t, err.Error(), "is not ready")
+	})
+
+	t.Run("should fail when MaaS model is not found", func(t *testing.T) {
+		// Create a mock MaaS client
+		mockMaaSClient := &maasmocks.MockMaaSClient{}
+
+		// Create a token client
+		client := &TokenKubernetesClient{
+			Logger: slog.Default(),
+		}
+
+		// Test with a model that doesn't exist in the mock
+		models := []models.InstallModel{
+			{ModelName: "non-existent-model", IsMaaSModel: true},
+		}
+
+		ctx := context.Background()
+
+		// Test the MaaS model handling logic
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, mockMaaSClient)
+
+		// This should fail because the model is not found
+		assert.Error(t, err)
+		assert.Empty(t, result)
+		assert.Contains(t, err.Error(), "not found")
 	})
 }
