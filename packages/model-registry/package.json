@@ -22,7 +22,7 @@
     "repo": "https://github.com/kubeflow/model-registry.git",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "2fc39fbadf956bfad6593d886c3e965bea49ef86"
+    "commit": "c0764449a6a325327bf860c717d6e8b1194e3e62"
   },
   "module-federation": {
     "name": "modelRegistry",
