@@ -45,7 +45,8 @@ const ModelServingStopModal: React.FC<ModelServingStopModalProps> = ({
       message={
         <>
           The <strong>{modelName}</strong> model deployment will be shut down and will not use
-          resources until it is restarted.
+          resources until it is restarted. The model endpoint will no longer be available as an AI
+          asset or MaaS.
         </>
       }
       modalActions={modalActions}
