@@ -30,3 +30,12 @@ export const getLlamaModelDisplayName = (modelId: string, aiModels: AIModel[]): 
   }
   return `${providerId}/${enabledModel.display_name}`;
 };
+
+export const getLlamaModelStatus = (
+  modelId: string,
+  aiModels: AIModel[],
+): AIModel['status'] | undefined => {
+  const { id } = splitLlamaModelId(modelId);
+  const enabledModel = aiModels.find((aiModel) => aiModel.model_id === id);
+  return enabledModel?.status;
+};

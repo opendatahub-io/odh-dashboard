@@ -140,7 +140,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
       {!configuringPlayground && (
         <ModalFooter>
           <DashboardModalFooter
-            submitLabel={existingModels ? 'Update configuration' : 'Configure'}
+            submitLabel={lsdStatus ? 'Update configuration' : 'Configure'}
             onSubmit={onSubmit}
             onCancel={() => onBeforeClose()}
             error={error}

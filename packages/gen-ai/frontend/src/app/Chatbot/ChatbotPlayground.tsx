@@ -26,6 +26,7 @@ import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAle
 import SourceDeleteSuccessAlert from './components/alerts/SourceDeleteSuccessAlert';
 import { ChatbotMessages } from './ChatbotMessagesList';
 import ViewCodeModal from './components/ViewCodeModal';
+import { getLlamaModelStatus } from '../utilities';
 
 type ChatbotPlaygroundProps = {
   isViewCodeModalOpen: boolean;
@@ -65,7 +66,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         // so that when refreshing the page, the selected model is not passed again
         window.history.replaceState({}, '');
       } else {
-        setSelectedModel(models[0].id);
+        const availableModels = models.filter(
+          (model) => getLlamaModelStatus(model.id, aiModels) === 'Running',
+        );
+        if (availableModels.length > 0) {
+          setSelectedModel(availableModels[0].id);
+        }
       }
     }
   }, [modelsLoaded, models, selectedModel, setSelectedModel, aiModels, selectedAAModel]);

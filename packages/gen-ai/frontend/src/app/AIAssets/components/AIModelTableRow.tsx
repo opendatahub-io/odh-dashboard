@@ -72,6 +72,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
                   },
                 })
               }
+              isDisabled={model.status !== 'Running'}
             >
               Try in playground
             </Button>
