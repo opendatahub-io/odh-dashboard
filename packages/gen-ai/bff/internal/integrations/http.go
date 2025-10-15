@@ -87,6 +87,33 @@ func (c *HTTPClient) GET(url string) ([]byte, error) {
 		return nil, fmt.Errorf("error reading response body: %w", err)
 	}
 
+	if response.StatusCode != http.StatusOK {
+		var errorResponse ErrorResponse
+		if err := json.Unmarshal(body, &errorResponse); err != nil {
+			// Log non-JSON responses with preview
+			c.logger.Warn("received non-JSON error response",
+				"status_code", response.StatusCode,
+				"content_type", response.Header.Get("Content-Type"),
+				"body_preview", string(body[:min(len(body), 200)]))
+
+			errorResponse = ErrorResponse{
+				Code:    strconv.Itoa(response.StatusCode),
+				Message: fmt.Sprintf("HTTP %d: %s", response.StatusCode, string(body)),
+			}
+		}
+		httpError := &HTTPError{
+			StatusCode:    response.StatusCode,
+			ErrorResponse: errorResponse,
+		}
+		//Sometimes the code comes empty from model registry API
+		//also not all error codes are correctly implemented
+		//see https://github.com/kubeflow/model-registry/issues/95
+		if httpError.Code == "" {
+			httpError.Code = strconv.Itoa(response.StatusCode)
+		}
+		return nil, httpError
+	}
+
 	return body, nil
 }
 
@@ -94,7 +121,6 @@ func (c *HTTPClient) POST(url string, body io.Reader) ([]byte, error) {
 	requestId := uuid.NewString()
 
 	fullURL := c.baseURL + url
-	fmt.Println(fullURL)
 	req, err := http.NewRequest("POST", fullURL, body)
 	if err != nil {
 		return nil, err
@@ -128,7 +154,16 @@ func (c *HTTPClient) POST(url string, body io.Reader) ([]byte, error) {
 	if response.StatusCode != http.StatusCreated && response.StatusCode != http.StatusOK {
 		var errorResponse ErrorResponse
 		if err := json.Unmarshal(responseBody, &errorResponse); err != nil {
-			return nil, fmt.Errorf("error parsing error response: %w", err)
+			// Log non-JSON responses with preview
+			c.logger.Warn("received non-JSON error response",
+				"status_code", response.StatusCode,
+				"content_type", response.Header.Get("Content-Type"),
+				"body_preview", string(responseBody[:min(len(responseBody), 200)]))
+
+			errorResponse = ErrorResponse{
+				Code:    strconv.Itoa(response.StatusCode),
+				Message: fmt.Sprintf("HTTP %d: %s", response.StatusCode, string(responseBody)),
+			}
 		}
 		httpError := &HTTPError{
 			StatusCode:    response.StatusCode,
@@ -181,7 +216,16 @@ func (c *HTTPClient) PATCH(url string, body io.Reader) ([]byte, error) {
 	if response.StatusCode != http.StatusOK {
 		var errorResponse ErrorResponse
 		if err := json.Unmarshal(responseBody, &errorResponse); err != nil {
-			return nil, fmt.Errorf("error parsing error response: %w", err) // updated wording
+			// Log non-JSON responses with preview
+			c.logger.Warn("received non-JSON error response",
+				"status_code", response.StatusCode,
+				"content_type", response.Header.Get("Content-Type"),
+				"body_preview", string(responseBody[:min(len(responseBody), 200)]))
+
+			errorResponse = ErrorResponse{
+				Code:    strconv.Itoa(response.StatusCode),
+				Message: fmt.Sprintf("HTTP %d: %s", response.StatusCode, string(responseBody)),
+			}
 		}
 		httpError := &HTTPError{
 			StatusCode:    response.StatusCode,
