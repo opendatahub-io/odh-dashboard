@@ -1,10 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
-import {
-  LLMInferenceServiceModel,
-  type LLMInferenceServiceKind,
-} from '@odh-dashboard/llmd-serving/types';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/llmd-serving/__tests__/utils';
+import { type LLMInferenceServiceKind } from '@odh-dashboard/llmd-serving/types';
+import { mockLLMInferenceServiceK8sResource } from '#~/__mocks__/mockLLMInferenceServiceK8sResource';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
@@ -23,6 +19,7 @@ import {
   ServingRuntimeModel,
   TemplateModel,
   SecretModel,
+  LLMInferenceServiceModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import type { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { mockGlobalScopedHardwareProfiles } from '#~/__mocks__/mockHardwareProfile';
@@ -394,6 +391,8 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.findNextButton().click();
 
       // Focus on MaaS feature testing
+      // uncheck token auth to simplify test
+      modelServingWizard.findTokenAuthenticationCheckbox().click();
       modelServingWizard.findSaveAsMaaSCheckbox().should('exist').should('not.be.checked');
       modelServingWizard.findSaveAsMaaSCheckbox().click();
       modelServingWizard.findSaveAsMaaSCheckbox().should('be.checked');

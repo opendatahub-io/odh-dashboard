@@ -6,7 +6,7 @@ import {
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import type { K8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/types';
 import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
-import type { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types.js';
+import type { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type {
   ModelServerOption,
   useModelServerSelectField,
