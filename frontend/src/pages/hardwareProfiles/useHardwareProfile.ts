@@ -12,9 +12,10 @@ const useHardwareProfile = (
   name?: string,
 ): FetchState<HardwareProfileKind | null> => {
   const callback = React.useCallback<FetchStateCallbackPromise<HardwareProfileKind | null>>(() => {
-    if (!name) {
-      return Promise.reject(new NotReadyError('Hardware profile name is missing'));
+    if (!name || !namespace) {
+      return Promise.reject(new NotReadyError('Hardware profile name or namespace is missing'));
     }
+
     return getHardwareProfile(name, namespace);
   }, [name, namespace]);
 

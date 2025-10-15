@@ -18,14 +18,14 @@ export const useHardwareProfileBindingState = (
     resource?.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'] ||
     dashboardNamespace;
 
-  if (!hardwareProfileName || !hardwareProfileNamespace) {
-    return [null, true, undefined];
-  }
-
   const [profile, loaded, loadError] = useHardwareProfile(
     hardwareProfileNamespace,
     hardwareProfileName,
   );
+
+  if (!hardwareProfileName || !hardwareProfileNamespace) {
+    return [null, true, undefined];
+  }
 
   if (loadError) {
     const bindingState: HardwareProfileBindingStateInfo | null =
