@@ -117,6 +117,16 @@ export default defineConfig({
         table(message) {
           return logToConsole(LogLevel.TABLE, message);
         },
+        deleteFile(filePath: string) {
+          try {
+            if (fs.existsSync(filePath)) {
+              fs.unlinkSync(filePath);
+            }
+            return Promise.resolve(null);
+          } catch (error) {
+            return Promise.resolve(null);
+          }
+        },
       });
 
       if (config.env.CY_RECORD) {
