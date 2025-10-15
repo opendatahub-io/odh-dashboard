@@ -22,7 +22,6 @@ import {
   getModelName,
   hasModelArtifacts,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
-import ModelDetailsTabs from '~/app/pages/modelCatalog/screens/ModelDetailsTabs';
 import { useCatalogModel } from '~/app/hooks/modelCatalog/useCatalogModel';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { getRegisterCatalogModelRoute } from '~/app/routes/modelCatalog/catalogModelRegister';
@@ -30,8 +29,13 @@ import { ModelCatalogDeployButton } from '~/odh/components/ModelCatalogDeployBut
 import { CatalogModelDetailsParams } from '~/app/modelCatalogTypes';
 import { useCatalogModelArtifacts } from '~/app/hooks/modelCatalog/useCatalogModelArtifacts';
 import { modelCatalogUrl } from '~/app/routes/modelCatalog/catalogModel';
+import ModelDetailsTabs, { ModelDetailsTab } from './ModelDetailsTabs';
 
-const ModelDetailsPage: React.FC = () => {
+type ModelDetailsPageProps = {
+  tab: ModelDetailsTab;
+};
+
+const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
   const params = useParams<CatalogModelDetailsParams>();
   const decodedParams = decodeParams(params);
   const navigate = useNavigate();
@@ -180,6 +184,7 @@ const ModelDetailsPage: React.FC = () => {
       {model && (
         <ModelDetailsTabs
           model={model}
+          tab={tab}
           artifacts={artifacts}
           artifactLoaded={artifactLoaded}
           artifactsLoadError={artifactsLoadError}
