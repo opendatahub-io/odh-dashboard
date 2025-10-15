@@ -839,9 +839,18 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 					Name: "llama-stack",
 					Port: 8321,
 				},
-				Distribution: lsdapi.DistributionType{
-					Name: kc.EnvConfig.DistributionName,
-				},
+				Distribution: func() lsdapi.DistributionType {
+					// Check if distributionName contains registry patterns indicating it's a container image
+					name := kc.EnvConfig.DistributionName
+					if strings.Contains(name, "/") || strings.Contains(name, ":") {
+						return lsdapi.DistributionType{
+							Image: name,
+						}
+					}
+					return lsdapi.DistributionType{
+						Name: name,
+					}
+				}(),
 				UserConfig: &lsdapi.UserConfigSpec{
 					ConfigMapName: configMapName,
 				},
