@@ -1,6 +1,11 @@
-import { useFetchState, FetchStateCallbackPromise, NotReadyError } from 'mod-arch-core';
+import { useFetchState, FetchStateCallbackPromise } from 'mod-arch-core';
 import React from 'react';
-import { CatalogModel, CatalogModelList } from '~/app/modelCatalogTypes';
+import {
+  CatalogFilterOptionsList,
+  CatalogModel,
+  CatalogModelList,
+  ModelCatalogFilterStates,
+} from '~/app/modelCatalogTypes';
 import { useModelCatalogAPI } from './useModelCatalogAPI';
 
 type PaginatedCatalogModelList = {
@@ -22,9 +27,12 @@ type ModelList = {
 };
 
 export const useCatalogModelsBySources = (
-  sourceId: string,
+  sourceId?: string,
+  sourceLabel?: string,
   pageSize = 10,
   searchQuery = '',
+  filterData?: ModelCatalogFilterStates,
+  filterOptions?: CatalogFilterOptionsList | null,
 ): ModelList => {
   const { api, apiAvailable } = useModelCatalogAPI();
 
@@ -38,18 +46,18 @@ export const useCatalogModelsBySources = (
       if (!apiAvailable) {
         return Promise.reject(new Error('API not yet available'));
       }
-      if (!sourceId) {
-        return Promise.reject(new NotReadyError('No source id'));
-      }
 
       return api.getCatalogModelsBySource(
         opts,
         sourceId,
+        sourceLabel,
         { pageSize: pageSize.toString() },
         searchQuery.trim() || undefined,
+        filterData,
+        filterOptions,
       );
     },
-    [api, apiAvailable, sourceId, pageSize, searchQuery],
+    [api, apiAvailable, sourceId, pageSize, searchQuery, filterData, filterOptions, sourceLabel],
   );
 
   const [firstPageData, loaded, error, refetch] = useFetchState(
@@ -77,11 +85,14 @@ export const useCatalogModelsBySources = (
       const response = await api.getCatalogModelsBySource(
         {},
         sourceId,
+        sourceLabel,
         {
           pageSize: pageSize.toString(),
           nextPageToken,
         },
         searchQuery.trim() || undefined,
+        filterData,
+        filterOptions,
       );
 
       setAllItems((prev) => [...prev, ...response.items]);
@@ -94,14 +105,25 @@ export const useCatalogModelsBySources = (
     } finally {
       setIsLoadingMore(false);
     }
-  }, [api, apiAvailable, sourceId, pageSize, searchQuery, nextPageToken, isLoadingMore]);
+  }, [
+    api,
+    apiAvailable,
+    sourceId,
+    pageSize,
+    searchQuery,
+    nextPageToken,
+    isLoadingMore,
+    sourceLabel,
+    filterData,
+    filterOptions,
+  ]);
 
   React.useEffect(() => {
     setAllItems([]);
     setTotalSize(0);
     setNextPageToken('');
     setIsLoadingMore(false);
-  }, [sourceId, searchQuery]);
+  }, [sourceId, searchQuery, sourceLabel, filterData, filterOptions]);
 
   const refresh = React.useCallback(() => {
     setAllItems([]);

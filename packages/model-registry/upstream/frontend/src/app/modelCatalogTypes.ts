@@ -59,6 +59,15 @@ export enum MetricsType {
   performanceMetrics = 'performance-metrics',
 }
 
+export enum CategoryName {
+  allModels = 'All models',
+  communityAndCustomModels = 'Community and custom',
+}
+
+export enum SourceLabel {
+  other = 'null',
+}
+
 export type CatalogArtifactBase = {
   createTimeSinceEpoch: string;
   lastUpdateTimeSinceEpoch: string;
@@ -153,7 +162,8 @@ export type CatalogFilterStringOption<T extends string> = {
 
 export type GetCatalogModelsBySource = (
   opts: APIOptions,
-  sourceId: string,
+  sourceId?: string,
+  sourceLabel?: string,
   paginationParams?: {
     pageSize?: string;
     nextPageToken?: string;
@@ -161,6 +171,8 @@ export type GetCatalogModelsBySource = (
     sortOrder?: string;
   },
   searchKeyword?: string,
+  filterData?: ModelCatalogFilterStates,
+  filterOptions?: CatalogFilterOptionsList | null,
 ) => Promise<CatalogModelList>;
 
 export type GetListSources = (opts: APIOptions) => Promise<CatalogSourceList>;
@@ -200,6 +212,7 @@ export type ModelCatalogStringFilterValueType = {
   [ModelCatalogStringFilterKey.PROVIDER]: ModelCatalogProvider;
   [ModelCatalogStringFilterKey.LICENSE]: ModelCatalogLicense;
   [ModelCatalogStringFilterKey.LANGUAGE]: AllLanguageCode;
+  [ModelCatalogStringFilterKey.HARDWARE_TYPE]: string;
 };
 
 export type ModelCatalogStringFilterOptions = {
@@ -219,5 +232,5 @@ export type CatalogFilterOptionsList = {
 export type ModelCatalogFilterStates = {
   [key in ModelCatalogStringFilterKey]: ModelCatalogStringFilterValueType[key][];
 } & {
-  [key in ModelCatalogNumberFilterKey]: number;
+  [key in ModelCatalogNumberFilterKey]: number | undefined;
 };

@@ -24,16 +24,15 @@ class ModelCatalogFilter {
   findSearch() {
     return this.find().findByTestId(`${this.title}-filter-search`);
   }
+
+  findEmpty() {
+    return this.find().findByTestId(`${this.title}-filter-empty`);
+  }
 }
 
 class ModelCatalog {
   visit() {
     cy.visit('/model-catalog');
-    this.wait();
-  }
-
-  navigate() {
-    appChrome.findNavItem('Model Catalog').click();
     this.wait();
   }
 
@@ -49,6 +48,10 @@ class ModelCatalog {
 
   findFilterSearch(title: string) {
     return new ModelCatalogFilter(title).findSearch();
+  }
+
+  findFilterEmpty(title: string) {
+    return new ModelCatalogFilter(title).findEmpty();
   }
 
   findFilterShowMoreButton(title: string) {
@@ -68,6 +71,30 @@ class ModelCatalog {
     return this;
   }
 
+  findAllModelsToggle() {
+    return cy.findByTestId('all');
+  }
+
+  findCategoryToggle(category: string) {
+    return cy.findByTestId(category);
+  }
+
+  findCategoryTitle(category: string) {
+    return cy.findByTestId(['title', category]);
+  }
+
+  findShowMoreModelsLink(category: string) {
+    return cy.findByTestId(['show-more-button', category]);
+  }
+
+  findErrorState(category: string) {
+    return cy.findByTestId(['error-state', category]);
+  }
+
+  findEmptyState(category: string) {
+    return cy.findByTestId(['empty-model-catalog-state', category]);
+  }
+
   findModelCatalogEmptyState() {
     return cy.findByTestId('empty-model-catalog-state');
   }
@@ -82,6 +109,18 @@ class ModelCatalog {
 
   findModelCatalogDetailLink() {
     return cy.findAllByTestId('model-catalog-detail-link');
+  }
+
+  findValidatedModelBenchmarkLink() {
+    return cy.findAllByTestId('validated-model-benchmark-link');
+  }
+
+  findValidatedModelBenchmarkNext() {
+    return cy.findAllByTestId('validated-model-benchmark-next');
+  }
+
+  findValidatedModelBenchmarkPrev() {
+    return cy.findAllByTestId('validated-model-benchmark-prev');
   }
 
   findModelCatalogDescription() {
@@ -209,6 +248,18 @@ class ModelCatalog {
 
   findHardwareConfigurationPagination() {
     return cy.get('[data-testid="hardware-configuration-table"] .pf-v6-c-pagination');
+  }
+
+  findValidatedModelHardware() {
+    return cy.findByTestId('validated-model-hardware');
+  }
+
+  findValidatedModelRps() {
+    return cy.findByTestId('validated-model-rps');
+  }
+
+  findValidatedModelTtft() {
+    return cy.findByTestId('validated-model-ttft');
   }
 }
 

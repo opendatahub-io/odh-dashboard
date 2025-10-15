@@ -1,6 +1,7 @@
 import { CatalogFilterOptionsList } from '~/app/modelCatalogTypes';
 import {
   ModelCatalogStringFilterKey,
+  ModelCatalogNumberFilterKey,
   ModelCatalogLicense,
   ModelCatalogProvider,
   ModelCatalogTask,
@@ -46,6 +47,38 @@ export const mockCatalogFilterOptionsList = (
         AllLanguageCode.PT,
         AllLanguageCode.ZH,
       ],
+    },
+    [ModelCatalogStringFilterKey.HARDWARE_TYPE]: {
+      type: 'string',
+      values: ['GPU', 'CPU', 'TPU', 'FPGA'],
+    },
+    [ModelCatalogNumberFilterKey.MIN_RPS]: {
+      type: 'number',
+      range: {
+        min: 1,
+        max: 300,
+      },
+    },
+    [ModelCatalogNumberFilterKey.MAX_LATENCY]: {
+      type: 'number',
+      range: {
+        min: 20,
+        max: 893,
+      },
+    },
+    [ModelCatalogNumberFilterKey.MAX_INPUT_TOKENS]: {
+      type: 'number',
+      range: {
+        min: 0,
+        max: 8192,
+      },
+    },
+    [ModelCatalogNumberFilterKey.MAX_OUTPUT_TOKENS]: {
+      type: 'number',
+      range: {
+        min: 0,
+        max: 4096,
+      },
     },
   },
   ...partial,

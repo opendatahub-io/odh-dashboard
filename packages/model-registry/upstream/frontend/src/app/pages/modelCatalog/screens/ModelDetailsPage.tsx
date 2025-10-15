@@ -22,7 +22,6 @@ import {
   getModelName,
   hasModelArtifacts,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
-import ModelDetailsTabs from '~/app/pages/modelCatalog/screens/ModelDetailsTabs';
 import { useCatalogModel } from '~/app/hooks/modelCatalog/useCatalogModel';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { getRegisterCatalogModelRoute } from '~/app/routes/modelCatalog/catalogModelRegister';
@@ -30,8 +29,14 @@ import { ModelCatalogDeployButton } from '~/odh/components/ModelCatalogDeployBut
 import { CatalogModelDetailsParams } from '~/app/modelCatalogTypes';
 import { useCatalogModelArtifacts } from '~/app/hooks/modelCatalog/useCatalogModelArtifacts';
 import { modelCatalogUrl } from '~/app/routes/modelCatalog/catalogModel';
+import ScrollViewOnMount from '~/app/shared/components/ScrollViewOnMount';
+import ModelDetailsTabs, { ModelDetailsTab } from './ModelDetailsTabs';
 
-const ModelDetailsPage: React.FC = () => {
+type ModelDetailsPageProps = {
+  tab: ModelDetailsTab;
+};
+
+const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
   const params = useParams<CatalogModelDetailsParams>();
   const decodedParams = decodeParams(params);
   const navigate = useNavigate();
@@ -105,87 +110,89 @@ const ModelDetailsPage: React.FC = () => {
   };
 
   return (
-    <ApplicationsPage
-      breadcrumb={
-        <Breadcrumb>
-          <BreadcrumbItem>
-            <Link to={modelCatalogUrl()}>Catalog</Link>
-          </BreadcrumbItem>
-          <BreadcrumbItem isActive>{getModelName(model?.name || '') || 'Details'}</BreadcrumbItem>
-        </Breadcrumb>
-      }
-      title={
-        model ? (
-          <Flex
-            spaceItems={{ default: 'spaceItemsMd' }}
-            alignItems={{ default: 'alignItemsCenter' }}
-          >
-            {model.logo ? (
-              <img src={model.logo} alt="model logo" style={{ height: '56px', width: '56px' }} />
-            ) : (
-              <Skeleton
-                shape="square"
-                width="56px"
-                height="56px"
-                screenreaderText="Brand image loading"
-              />
-            )}
-            <Stack>
-              <StackItem>
-                <Flex
-                  spaceItems={{ default: 'spaceItemsSm' }}
-                  alignItems={{ default: 'alignItemsCenter' }}
-                >
-                  <FlexItem>{getModelName(model.name)}</FlexItem>
-                </Flex>
-              </StackItem>
-              <StackItem>
-                <Content component={ContentVariants.small}>Provided by {model.provider}</Content>
-              </StackItem>
-            </Stack>
-          </Flex>
-        ) : (
-          'Model details'
-        )
-      }
-      empty={!model}
-      emptyStatePage={
-        !model ? (
-          <div>
-            Details not found. Return to <Link to={modelCatalogUrl()}>Model catalog</Link>
-          </div>
-        ) : undefined
-      }
-      loadError={modelLoadError}
-      loaded={modelLoaded}
-      errorMessage="Unable to load model catalog"
-      provideChildrenPadding
-      headerAction={
-        modelLoaded &&
-        !modelLoadError &&
-        model && (
-          <ActionList>
-            <ActionListGroup>
-              <ModelCatalogDeployButton
-                model={model}
-                renderRegisterButton={(isDeployAvailable) =>
-                  registerModelButton(isDeployAvailable ? 'secondary' : 'primary')
-                }
-              />
-            </ActionListGroup>
-          </ActionList>
-        )
-      }
-    >
-      {model && (
-        <ModelDetailsTabs
-          model={model}
-          artifacts={artifacts}
-          artifactLoaded={artifactLoaded}
-          artifactsLoadError={artifactsLoadError}
-        />
-      )}
-    </ApplicationsPage>
+    <>
+      <ScrollViewOnMount shouldScroll scrollToTop />
+      <ApplicationsPage
+        breadcrumb={
+          <Breadcrumb>
+            <BreadcrumbItem>
+              <Link to={modelCatalogUrl()}>Catalog</Link>
+            </BreadcrumbItem>
+            <BreadcrumbItem isActive>{getModelName(model?.name || '') || 'Details'}</BreadcrumbItem>
+          </Breadcrumb>
+        }
+        title={
+          model ? (
+            <Flex
+              spaceItems={{ default: 'spaceItemsMd' }}
+              alignItems={{ default: 'alignItemsCenter' }}
+            >
+              {model.logo ? (
+                <img src={model.logo} alt="model logo" style={{ height: '56px', width: '56px' }} />
+              ) : (
+                <Skeleton
+                  shape="square"
+                  width="56px"
+                  height="56px"
+                  screenreaderText="Brand image loading"
+                />
+              )}
+              <Stack>
+                <StackItem>
+                  <Flex
+                    spaceItems={{ default: 'spaceItemsSm' }}
+                    alignItems={{ default: 'alignItemsCenter' }}
+                  >
+                    <FlexItem>{getModelName(model.name)}</FlexItem>
+                  </Flex>
+                </StackItem>
+                <StackItem>
+                  <Content component={ContentVariants.small}>Provided by {model.provider}</Content>
+                </StackItem>
+              </Stack>
+            </Flex>
+          ) : null
+        }
+        empty={!model}
+        emptyStatePage={
+          !model ? (
+            <div>
+              Details not found. Return to <Link to={modelCatalogUrl()}>Model catalog</Link>
+            </div>
+          ) : undefined
+        }
+        loadError={modelLoadError}
+        loaded={modelLoaded}
+        errorMessage="Unable to load model catalog"
+        provideChildrenPadding
+        headerAction={
+          modelLoaded &&
+          !modelLoadError &&
+          model && (
+            <ActionList>
+              <ActionListGroup>
+                <ModelCatalogDeployButton
+                  model={model}
+                  renderRegisterButton={(isDeployAvailable) =>
+                    registerModelButton(isDeployAvailable ? 'secondary' : 'primary')
+                  }
+                />
+              </ActionListGroup>
+            </ActionList>
+          )
+        }
+      >
+        {model && (
+          <ModelDetailsTabs
+            model={model}
+            tab={tab}
+            artifacts={artifacts}
+            artifactLoaded={artifactLoaded}
+            artifactsLoadError={artifactsLoadError}
+          />
+        )}
+      </ApplicationsPage>
+    </>
   );
 };
 
