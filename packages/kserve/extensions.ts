@@ -142,6 +142,7 @@ const extensions: (
       platform: KSERVE_ID,
       isActive: true,
       priority: 0,
+      supportsOverwrite: true,
       deploy: () => import('./src/deploy').then((m) => m.deployKServeDeployment),
     },
   },

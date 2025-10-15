@@ -30,6 +30,7 @@ import {
   RoleKind,
   SupportedModelFormats,
   MetadataAnnotation,
+  KnownLabels,
 } from '@odh-dashboard/internal/k8sTypes';
 import { getTokenNames } from '@odh-dashboard/internal/pages/modelServing/utils';
 import {
@@ -37,6 +38,7 @@ import {
   ModelServingCompatibleTypes,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { ModelLocationData } from '@odh-dashboard/model-serving/types/form-data';
+import type { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import type { CreatingInferenceServiceObject } from './deployModel';
 import type { ModelAvailabilityFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/ModelAvailabilityFields';
 import type { RuntimeArgsFieldData } from '../../model-serving/src/components/deploymentWizard/fields/RuntimeArgsField';
@@ -318,5 +320,43 @@ export const applyConnectionData = (
       storageUri: modelLocationData.additionalFields.modelUri,
     };
   }
+  return result;
+};
+
+export const applyDisplayNameDesc = (
+  inferenceService: InferenceServiceKind,
+  name: string,
+  description: string,
+): InferenceServiceKind => {
+  const result = structuredClone(inferenceService);
+  result.metadata.annotations = {
+    ...result.metadata.annotations,
+    'openshift.io/display-name': name,
+    'openshift.io/description': description,
+  };
+
+  return result;
+};
+
+export const applyDashboardResourceLabel = (
+  inferenceService: InferenceServiceKind,
+): InferenceServiceKind => {
+  const result = structuredClone(inferenceService);
+  result.metadata.labels = {
+    ...result.metadata.labels,
+    [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+  };
+  return result;
+};
+
+export const applyModelType = (
+  inferenceService: InferenceServiceKind,
+  modelType: ServingRuntimeModelType,
+): InferenceServiceKind => {
+  const result = structuredClone(inferenceService);
+  result.metadata.annotations = {
+    ...result.metadata.annotations,
+    'opendatahub.io/model-type': modelType,
+  };
   return result;
 };
