@@ -13,7 +13,7 @@ func (app *App) MaaSModelsHandler(w http.ResponseWriter, r *http.Request, _ http
 
 	maasModels, err := app.repositories.MaaSModels.ListModels(ctx)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.handleMaaSClientError(w, r, err)
 		return
 	}
 

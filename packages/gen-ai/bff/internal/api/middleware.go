@@ -308,7 +308,7 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 // AttachMaaSClient middleware creates a MaaS client and attaches it to context.
 // This middleware can be used independently and doesn't require namespace.
 //
-// In mock mode, creates a mock client. In real mode, uses the configured MaaS URL.
+// In mock mode, creates a mock client. In real mode, uses autodiscovery or configured MaaS URL.
 // Uses RequestIdentity from context for authentication, consistent with other clients.
 func (app *App) AttachMaaSClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -326,14 +326,41 @@ func (app *App) AttachMaaSClient(next func(http.ResponseWriter, *http.Request, h
 			maasClient = app.maasClientFactory.CreateClient("", "", app.config.InsecureSkipVerify, app.rootCAs)
 		} else {
 			var serviceURL string
-			// Use environment variable if explicitly set
+
+			// Configuration Priority:
+			// 1. MAAS_URL env var (if set for local dev)
+			// 2. Autodiscovered endpoint (production default)
+
 			if app.config.MaaSURL != "" {
+				// Priority 1: Use environment variable if explicitly set
 				serviceURL = app.config.MaaSURL
-				logger.Debug("Using MAAS_URL environment variable",
+				logger.Debug("Using MAAS_URL environment variable (developer override)",
 					"serviceURL", serviceURL)
 			} else {
-				app.serverErrorResponse(w, r, fmt.Errorf("MaaS URL not configured - set MAAS_URL environment variable"))
-				return
+				// Priority 2: Autodiscovery using cluster domain
+				if app.kubernetesClientFactory == nil {
+					app.handleMaaSClientError(w, r, maas.NewServerUnavailableError(""))
+					return
+				}
+				
+				k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+				if err != nil {
+					logger.Error("failed to get Kubernetes client for MaaS autodiscovery", "error", err)
+					app.handleMaaSClientError(w, r, maas.NewServerUnavailableError(""))
+					return
+				}
+
+				clusterDomain, err := k8sClient.GetClusterDomain(ctx)
+				if err != nil {
+					logger.Error("failed to get cluster domain for MaaS autodiscovery", "error", err)
+					app.handleMaaSClientError(w, r, maas.NewServerUnavailableError(""))
+					return
+				}
+
+				serviceURL = fmt.Sprintf("https://maas-api.%s", clusterDomain)
+				logger.Debug("Using autodiscovered MaaS endpoint",
+					"clusterDomain", clusterDomain,
+					"serviceURL", serviceURL)
 			}
 
 			// Get RequestIdentity from context (set by InjectRequestIdentity middleware)
