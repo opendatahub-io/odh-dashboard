@@ -476,6 +476,9 @@ jobs:
           # Run tests with matrix tag using Jenkins-style command format
           export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
           export CY_RESULTS_DIR="${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}"
+          export BASE_URL="http://localhost:${CYPRESS_PORT}"
+          
+          echo "📍 Cypress will use BASE_URL: $BASE_URL"
 
           # Ensure OpenShift configuration is available to Cypress process
           if [ -n "$KUBECONFIG" ]; then
