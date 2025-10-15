@@ -83,7 +83,7 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
       data-testid="model-versions-details-page-tabs"
       onSelect={(_event, eventKey) => navigate(`../${eventKey}`, { relative: 'path' })}
     >
-      {modelVersionDetails}
+      {isArchiveVersion ? modelVersionDetails.filter((tab) => tab.key !== 'deployments') : modelVersionDetails}
     </Tabs>
   );
 };

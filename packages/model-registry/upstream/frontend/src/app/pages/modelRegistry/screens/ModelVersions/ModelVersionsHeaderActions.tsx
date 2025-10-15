@@ -16,7 +16,7 @@ import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelecto
 import { ArchiveRegisteredModelModal } from '~/app/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
 import { registeredModelsUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
 import DeployModalExtension from '~/odh/components/DeployModalExtension';
-
+import { useDeploymentsState } from '~/odh/hooks/useDeploymentsState';
 interface ModelVersionsHeaderActionsProps {
   rm: RegisteredModel;
   latestModelVersion?: ModelVersion;
@@ -28,6 +28,7 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
 }) => {
   const { apiState } = React.useContext(ModelRegistryContext);
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const { deployments } = useDeploymentsState();
 
   const navigate = useNavigate();
   const [isOpen, setOpen] = React.useState(false);
@@ -73,7 +74,7 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
                       </DropdownItem>
                     {isModalAvailable && <Divider />}
                     </DropdownGroup>)}
-                    <DropdownItem onClick={() => setIsArchiveModalOpen(true)}>Archive model</DropdownItem>
+                    <DropdownItem onClick={() => setIsArchiveModalOpen(true)} isDisabled={deployments && deployments.length > 0}>Archive model</DropdownItem>
                   </DropdownList>
                 </Dropdown>
               )}
@@ -99,7 +100,7 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
             >
               <DropdownList>
                 <DropdownGroup>
-                  <DropdownItem onClick={() => setIsArchiveModalOpen(true)}>Archive model</DropdownItem>
+                  <DropdownItem onClick={() => setIsArchiveModalOpen(true)} isDisabled={deployments && deployments.length > 0}>Archive model</DropdownItem>
                 </DropdownGroup>
               </DropdownList>
             </Dropdown>
