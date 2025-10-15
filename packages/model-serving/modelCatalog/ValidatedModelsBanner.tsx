@@ -11,11 +11,13 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
+import { useNavigate } from 'react-router-dom';
 import validatedModelsBannerImg from '@odh-dashboard/internal/images/validated-models-banner.svg';
 
 const BANNER_STORAGE_KEY = 'odh.dashboard.modelCatalog.validatedModelsBanner.dismissed';
 
 const ValidatedModelsBanner: React.FC = () => {
+  const navigate = useNavigate();
   const [isDismissed, setIsDismissed] = React.useState(() => {
     try {
       return localStorage.getItem(BANNER_STORAGE_KEY) === 'true';
@@ -36,8 +38,8 @@ const ValidatedModelsBanner: React.FC = () => {
   }, []);
 
   const handleExploreClick = React.useCallback(() => {
-    window.location.href = '/ai-hub/catalog';
-  }, []);
+    navigate('/ai-hub/catalog');
+  }, [navigate]);
 
   // Don't render if dismissed
   if (isDismissed) {
@@ -50,7 +52,6 @@ const ValidatedModelsBanner: React.FC = () => {
         direction={{ default: 'row' }}
         alignItems={{ default: 'alignItemsStretch' }}
         flexWrap={{ default: 'nowrap' }}
-        style={{ minHeight: '200px' }}
       >
         {/* Left side: Content */}
         <Flex flex={{ default: 'flex_1' }} direction={{ default: 'column' }}>
@@ -95,17 +96,13 @@ const ValidatedModelsBanner: React.FC = () => {
         </Flex>
 
         {/* Right side: Banner image */}
-        <FlexItem
-          alignSelf={{ default: 'alignSelfStretch' }}
-          style={{
-            minWidth: '300px',
-            maxWidth: '400px',
-            backgroundImage: `url(${validatedModelsBannerImg})`,
-            backgroundSize: 'contain',
-            backgroundPosition: 'center right',
-            backgroundRepeat: 'no-repeat',
-          }}
-        />
+        <FlexItem alignSelf={{ default: 'alignSelfStretch' }}>
+          <img
+            src={validatedModelsBannerImg}
+            alt="Red Hat AI validated models illustration"
+            aria-label="Red Hat AI validated models illustration"
+          />
+        </FlexItem>
       </Flex>
     </Card>
   );
