@@ -28,9 +28,20 @@ import {
   InferenceServiceKind,
   ServiceAccountKind,
   RoleKind,
+  SupportedModelFormats,
+  MetadataAnnotation,
 } from '@odh-dashboard/internal/k8sTypes';
 import { getTokenNames } from '@odh-dashboard/internal/pages/modelServing/utils';
-import { type CreatingInferenceServiceObject } from './deploy';
+import {
+  isModelServingCompatible,
+  ModelServingCompatibleTypes,
+} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+import { ModelLocationData } from '@odh-dashboard/model-serving/types/form-data';
+import type { CreatingInferenceServiceObject } from './deployModel';
+import type { AvailableAiAssetsFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/AvailableAiAssetsFields';
+import type { RuntimeArgsFieldData } from '../../model-serving/src/components/deploymentWizard/fields/RuntimeArgsField';
+import type { EnvironmentVariablesFieldData } from '../../model-serving/src/components/deploymentWizard/fields/EnvironmentVariablesField';
+import { CreateConnectionData } from '../../model-serving/src/components/deploymentWizard/fields/CreateConnectionInputFields';
 
 const is404 = (error: unknown): boolean => {
   return getGenericErrorCode(error) === 404;
@@ -161,4 +172,151 @@ export const setUpTokenAuth = async (
   )
     .then(() => createSecrets(fillData, deployedModelName, namespace, owner, existingSecrets, opts))
     .catch((error) => Promise.reject(error));
+};
+
+export const applyAuth = (
+  inferenceService: InferenceServiceKind,
+  tokenAuth: boolean,
+  externalRoute: boolean,
+): InferenceServiceKind => {
+  const result = structuredClone(inferenceService);
+  result.metadata.annotations = {
+    ...result.metadata.annotations,
+    'security.opendatahub.io/enable-auth': tokenAuth ? 'true' : 'false',
+  };
+
+  result.metadata.labels = {
+    ...result.metadata.labels,
+    ...(externalRoute && { 'networking.kserve.io/visibility': 'exposed' }),
+  };
+
+  if (!externalRoute) {
+    delete result.metadata.labels['networking.kserve.io/visibility'];
+  }
+
+  return result;
+};
+
+export const applyAiAvailableAssetAnnotations = (
+  inferenceService: InferenceServiceKind,
+  aiAvailableAsset: AvailableAiAssetsFieldsData,
+): InferenceServiceKind => {
+  const result = structuredClone(inferenceService);
+  result.metadata.annotations = {
+    ...result.metadata.annotations,
+    'opendatahub.io/genai-asset': aiAvailableAsset.saveAsAiAsset ? 'true' : 'false',
+    ...(aiAvailableAsset.saveAsAiAsset && {
+      'opendatahub.io/genai-use-case': aiAvailableAsset.useCase ?? '',
+    }),
+  };
+
+  if (!aiAvailableAsset.saveAsAiAsset) {
+    delete result.metadata.annotations['opendatahub.io/genai-asset'];
+    delete result.metadata.annotations['opendatahub.io/genai-use-case'];
+  }
+
+  return result;
+};
+
+export const applyRuntimeArgs = (
+  inferenceService: InferenceServiceKind,
+  runtimeArgs: RuntimeArgsFieldData,
+): InferenceServiceKind => {
+  const result = structuredClone(inferenceService);
+  result.spec.predictor.model = {
+    ...result.spec.predictor.model,
+    ...(runtimeArgs.enabled && { args: runtimeArgs.args }),
+  };
+
+  if (!runtimeArgs.enabled) {
+    delete result.spec.predictor.model.args;
+  }
+
+  return result;
+};
+
+export const applyEnvironmentVariables = (
+  inferenceService: InferenceServiceKind,
+  environmentVariables: EnvironmentVariablesFieldData,
+): InferenceServiceKind => {
+  const result = structuredClone(inferenceService);
+  result.spec.predictor.model = {
+    ...result.spec.predictor.model,
+    ...(environmentVariables.enabled && {
+      env: environmentVariables.variables.map((envVar) => ({
+        name: envVar.name,
+        value: envVar.value,
+      })),
+    }),
+  };
+
+  if (!environmentVariables.enabled) {
+    delete result.spec.predictor.model.env;
+  }
+
+  return result;
+};
+
+export const applyModelFormat = (
+  inferenceService: InferenceServiceKind,
+  modelFormat?: SupportedModelFormats,
+): InferenceServiceKind => {
+  const result = structuredClone(inferenceService);
+  result.spec.predictor.model = {
+    ...result.spec.predictor.model,
+    modelFormat: {
+      name: modelFormat?.name ?? 'vLLM',
+      version: modelFormat?.version,
+    },
+  };
+  return result;
+};
+
+export const applyConnectionData = (
+  inferenceService: InferenceServiceKind,
+  createConnectionData: CreateConnectionData,
+  modelLocationData: ModelLocationData,
+  dryRun?: boolean,
+  secretName?: string,
+): InferenceServiceKind => {
+  const result = structuredClone(inferenceService);
+  if (createConnectionData.nameDesc?.name) {
+    result.metadata.annotations = {
+      ...result.metadata.annotations,
+    };
+    // Apply connection name to the annotations
+    if (!dryRun) {
+      result.metadata.annotations[MetadataAnnotation.ConnectionName] =
+        secretName ?? createConnectionData.nameDesc.name;
+    }
+    // Apply connection path to the annotations if the connection type is S3ObjectStorage
+    if (
+      modelLocationData.additionalFields.modelPath &&
+      isModelServingCompatible(
+        modelLocationData.connectionTypeObject ?? [],
+        ModelServingCompatibleTypes.S3ObjectStorage,
+      )
+    ) {
+      result.metadata.annotations = {
+        ...result.metadata.annotations,
+        'opendatahub.io/connection-path': modelLocationData.additionalFields.modelPath,
+      };
+    } else {
+      // Delete connection path from the annotations if it's not present or the connection type is not S3ObjectStorage
+      delete result.metadata.annotations['opendatahub.io/connection-path'];
+    }
+  }
+  if (
+    modelLocationData.additionalFields.modelUri &&
+    isModelServingCompatible(
+      modelLocationData.connectionTypeObject ?? [],
+      ModelServingCompatibleTypes.OCI,
+    )
+  ) {
+    result.spec.predictor.model = {
+      ...result.spec.predictor.model,
+      storageUri: modelLocationData.additionalFields.modelUri,
+    };
+  }
+  return result;
 };

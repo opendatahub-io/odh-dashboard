@@ -7,6 +7,8 @@ import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfile
 import { ZodErrorHelperText } from '#~/components/ZodErrorFormHelperText';
 import ProjectScopedPopover from '#~/components/ProjectScopedPopover';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
+import { HARDWARE_PROFILE_SELECTION_HELP } from './const';
 import { hardwareProfileValidationSchema } from './validationUtils';
 import HardwareProfileSelect from './HardwareProfileSelect';
 import HardwareProfileCustomize from './HardwareProfileCustomize';
@@ -71,8 +73,14 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
             isRequired
             labelHelp={
               isProjectScoped && project && projectScopedHardwareProfiles[0].length > 0 ? (
-                <ProjectScopedPopover title="Hardware profile" item="hardware profiles" />
-              ) : undefined
+                <ProjectScopedPopover
+                  title="Hardware profile"
+                  item="hardware profiles"
+                  description={HARDWARE_PROFILE_SELECTION_HELP}
+                />
+              ) : (
+                <DashboardHelpTooltip content={HARDWARE_PROFILE_SELECTION_HELP} />
+              )
             }
           >
             <HardwareProfileSelect

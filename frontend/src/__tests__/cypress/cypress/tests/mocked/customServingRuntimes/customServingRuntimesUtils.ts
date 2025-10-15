@@ -38,6 +38,7 @@ export const customServingRuntimesInitialMock = [
   mockServingRuntimeTemplateK8sResource({
     name: 'template-4',
     displayName: 'Serving Runtime with No Annotations',
+    platforms: [],
   }),
 ];
 

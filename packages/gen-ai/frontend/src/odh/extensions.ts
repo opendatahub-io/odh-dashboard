@@ -1,3 +1,4 @@
+import { StackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import type {
   NavExtension,
   RouteExtension,
@@ -10,15 +11,26 @@ import {
   globChatPlaygroundAll,
   globGenAiAll,
 } from '~/app/utilities/routes';
+import type { AIAssetsTabExtension } from '~/odh/extension-points';
 
 const PLUGIN_GEN_AI = 'plugin-gen-ai';
+const MODEL_AS_SERVICE = 'model-as-service';
 
-const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
+const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabExtension)[] = [
   {
     type: 'app.area',
     properties: {
       id: PLUGIN_GEN_AI,
+      requiredComponents: [StackComponent.LLAMA_STACK_OPERATOR],
       devFlags: ['Gen AI plugin'],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: MODEL_AS_SERVICE,
+      reliantAreas: [PLUGIN_GEN_AI],
+      devFlags: ['Model as a service'],
     },
   },
   {
@@ -30,7 +42,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       id: 'gen-ai-studio',
       title: 'Gen AI studio',
       group: '4_gen_ai_studio',
-      iconRef: () => import('./GenAiStudioIcon'),
+      iconRef: () => import('./GenAiStudioNavIcon'),
     },
   },
   {
@@ -69,6 +81,41 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       path: globGenAiAll,
       component: () => import('./GenAiWrapper'),
+    },
+  },
+  // AI Assets Tab Extensions
+  {
+    type: 'gen-ai.ai-assets/tab',
+    flags: {
+      required: [PLUGIN_GEN_AI],
+    },
+    properties: {
+      id: 'models',
+      title: 'Models',
+      component: () => import('../app/AIAssets/AIAssetsModelsTab').then((m) => m.default),
+    },
+  },
+  {
+    type: 'gen-ai.ai-assets/tab',
+    flags: {
+      required: [PLUGIN_GEN_AI],
+    },
+    properties: {
+      id: 'mcpservers',
+      title: 'MCP Servers',
+      component: () => import('../app/AIAssets/AIAssetsMCPTab').then((m) => m.default),
+    },
+  },
+  {
+    type: 'gen-ai.ai-assets/tab',
+    flags: {
+      required: [MODEL_AS_SERVICE],
+    },
+    properties: {
+      id: 'maasmodels',
+      title: 'Models as a service',
+      component: () => import('../app/AIAssets/AIAssetsMaaSTab').then((m) => m.default),
+      label: 'Developer Preview',
     },
   },
 ];

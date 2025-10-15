@@ -20,6 +20,7 @@ import {
   HardwareProfileModel,
   InferenceServiceModel,
   ProjectModel,
+  PVCModel,
   RoleBindingModel,
   RoleModel,
   SecretModel,
@@ -27,14 +28,28 @@ import {
   ServingRuntimeModel,
   TemplateModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
-import { ServingRuntimeModelType, ServingRuntimePlatform } from '#~/types';
+import { ServingRuntimeModelType } from '#~/types';
 import { mockGlobalScopedHardwareProfiles } from '#~/__mocks__/mockHardwareProfile';
 import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
-} from '../../../../../../__mocks__/mockConnectionType';
+  mockOciConnectionTypeConfigMap,
+} from '#~/__mocks__/mockConnectionType';
+import {
+  mockCustomSecretK8sResource,
+  mockURISecretK8sResource,
+  mockSecretK8sResource,
+} from '../../../../../../__mocks__/mockSecretK8sResource';
+import { mockPVCK8sResource } from '../../../../../../__mocks__/mockPVCK8sResource';
+import { isGeneratedSecretName } from '../../../../../../api/k8s/secrets';
 
-const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) => {
+const initIntercepts = ({
+  modelType,
+  rejectAddSupportServingPlatformProject = false,
+}: {
+  modelType?: ServingRuntimeModelType;
+  rejectAddSupportServingPlatformProject?: boolean;
+}) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
@@ -53,6 +68,13 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
       disableDeploymentWizard: false,
     }),
   );
+  // used by addSupportServingPlatformProject
+  cy.interceptOdh(
+    'GET /api/namespaces/:namespace/:context',
+    { path: { namespace: 'test-project', context: '*' } },
+    rejectAddSupportServingPlatformProject ? { statusCode: 401 } : { applied: true },
+  );
+
   cy.interceptOdh('GET /api/components', null, []);
   cy.interceptOdh('GET /api/connection-types', [
     mockConnectionTypeConfigMap({
@@ -75,11 +97,24 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
       category: ['existing-category'],
       fields: mockModelServingFields,
     }),
+    mockOciConnectionTypeConfigMap(),
   ]).as('getConnectionTypes');
 
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'opendatahub' },
     mockK8sResourceList(mockGlobalScopedHardwareProfiles),
+  );
+
+  cy.interceptK8sList(
+    { model: SecretModel, ns: 'test-project' },
+    mockK8sResourceList([
+      mockURISecretK8sResource({ namespace: 'test-project' }),
+      mockURISecretK8sResource({
+        namespace: 'test-project',
+        name: 'test-uri-secret-2',
+        displayName: 'Test URI Secret 2',
+      }),
+    ]),
   );
 
   cy.interceptK8sList(
@@ -89,13 +124,11 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
         mockServingRuntimeTemplateK8sResource({
           name: 'template-2',
           displayName: 'OpenVINO',
-          platforms: [ServingRuntimePlatform.SINGLE],
           modelTypes: [ServingRuntimeModelType.PREDICTIVE],
         }),
         mockServingRuntimeTemplateK8sResource({
           name: 'template-3',
           displayName: 'Caikit',
-          platforms: [ServingRuntimePlatform.SINGLE],
           modelTypes: [ServingRuntimeModelType.PREDICTIVE],
           supportedModelFormats: [
             {
@@ -107,7 +140,6 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
         mockServingRuntimeTemplateK8sResource({
           name: 'template-4',
           displayName: 'vLLM AMD',
-          platforms: [ServingRuntimePlatform.SINGLE],
           modelTypes: [ServingRuntimeModelType.GENERATIVE],
           supportedModelFormats: [
             {
@@ -118,7 +150,6 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
         mockServingRuntimeTemplateK8sResource({
           name: 'template-5',
           displayName: 'vLLM NVIDIA',
-          platforms: [ServingRuntimePlatform.SINGLE],
           modelTypes: [ServingRuntimeModelType.GENERATIVE],
           supportedModelFormats: [
             {
@@ -137,6 +168,8 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
     mockK8sResourceList([mockProjectK8sResource({ enableModelMesh: false })]),
   );
 
+  cy.interceptK8sList(PVCModel, mockK8sResourceList([mockPVCK8sResource({})]));
+
   cy.interceptK8s(
     'POST',
     {
@@ -145,7 +178,10 @@ const initIntercepts = ({ modelType }: { modelType?: ServingRuntimeModelType }) 
     },
     {
       statusCode: 200,
-      body: mockInferenceServiceK8sResource({ name: 'test-model', modelType }),
+      body: mockInferenceServiceK8sResource({
+        name: 'test-model',
+        modelType,
+      }),
     },
   ).as('createInferenceService');
 
@@ -277,18 +313,13 @@ describe('Model Serving Deploy Wizard', () => {
       mockK8sResourceList([mockServingRuntimeK8sResource({})]),
     );
 
-    // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin(
-      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
-    );
+    modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
     cy.findByRole('heading', { name: 'Deploy a model' }).should('exist');
     cy.findByRole('button', { name: 'Cancel' }).click();
     cy.url().should('include', '/deployments/test-project');
 
-    cy.visitWithLogin(
-      '/projects/test-project?section=model-server&devFeatureFlags=Model+Serving+Plugin%3Dtrue',
-    );
+    modelServingSection.visit('test-project');
     modelServingSection.findDeployModelButton().click();
     cy.findByRole('heading', { name: 'Deploy a model' }).should('exist');
     cy.findByRole('button', { name: 'Cancel' }).click();
@@ -306,12 +337,8 @@ describe('Model Serving Deploy Wizard', () => {
       mockK8sResourceList([mockServingRuntimeK8sResource({})]),
     );
 
-    // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin(
-      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
-    );
+    modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
-
     // Step 1: Model source
     modelServingWizard.findModelSourceStep().should('be.enabled');
     modelServingWizard.findModelDeploymentStep().should('be.disabled');
@@ -322,8 +349,14 @@ describe('Model Serving Deploy Wizard', () => {
       .should('exist')
       .click();
     modelServingWizard.findModelLocationSelect().should('exist');
-    modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
-    modelServingWizard.findUrilocationInput().should('exist').type('https://test');
+    modelServingWizard.findModelLocationSelectOption('Existing connection').should('exist').click();
+    modelServingWizard.findExistingConnectionSelect().should('exist').click();
+    modelServingWizard
+      .findExistingConnectionSelectOption('Test URI Secret')
+      .should('exist')
+      .click();
+
+    modelServingWizard.findSaveConnectionCheckbox().should('not.exist');
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
@@ -598,12 +631,8 @@ describe('Model Serving Deploy Wizard', () => {
       mockK8sResourceList([mockServingRuntimeK8sResource({})]),
     );
 
-    // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin(
-      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
-    );
+    modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
-
     // Step 1: Model source
     modelServingWizard.findModelSourceStep().should('be.enabled');
     modelServingWizard.findModelDeploymentStep().should('be.disabled');
@@ -611,8 +640,14 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelTypeSelectOption('Generative AI model (e.g. LLM)').should('exist');
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
     modelServingWizard.findModelLocationSelect().should('exist');
-    modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
-    modelServingWizard.findUrilocationInput().should('exist').type('https://test');
+    modelServingWizard.findModelLocationSelectOption('Existing connection').should('exist').click();
+    modelServingWizard.findExistingConnectionSelect().should('exist').click();
+    modelServingWizard
+      .findExistingConnectionSelectOption('Test URI Secret')
+      .should('exist')
+      .click();
+    modelServingWizard.findExistingConnectionValue().should('have.value', 'Test URI Secret');
+    modelServingWizard.findSaveConnectionCheckbox().should('not.exist');
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
@@ -755,6 +790,509 @@ describe('Model Serving Deploy Wizard', () => {
     });
   });
 
+  it('Do not deploy KServe model when user cannot edit namespace (only one serving platform enabled)', () => {
+    // If only one platform is enabled, project platform selection has not happened yet and patching the namespace with the platform happens at deploy time.
+    initIntercepts({
+      modelType: ServingRuntimeModelType.PREDICTIVE,
+      rejectAddSupportServingPlatformProject: true,
+    });
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+    );
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findDeployModelButton().click();
+    // test filling in minimum required fields
+    modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
+    modelServingWizard.findUrilocationInput().should('exist').type('https://test');
+    modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
+    modelServingWizard.findSaveConnectionCheckbox().click();
+    modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
+    modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+    modelServingWizard.findModelDeploymentNameInput().type('test-model');
+    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // test submitting form, an error should appear
+    modelServingWizard.findSubmitButton().should('be.enabled').click();
+
+    // dry run request
+    cy.wait('@createServingRuntime').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+    });
+
+    // dry run request
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+    });
+
+    // Add error message validation - cy.findByText('Error creating model server');
+
+    // the serving runtime should NOT have been created
+    cy.get('@createServingRuntime.all').then((interceptions) => {
+      expect(interceptions).to.have.length(1); // 1 dry-run request only
+    });
+
+    // the inference service should NOT have been created
+    cy.get('@createInferenceService.all').then((interceptions) => {
+      expect(interceptions).to.have.length(1); // 1 dry-run request only
+    });
+  });
+
+  it('Check Kserve Auth Section', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+    );
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findDeployModelButton().click();
+    // Step 1: Model Source
+    modelServingWizard.findModelSourceStep().should('be.enabled');
+    modelServingWizard.findModelDeploymentStep().should('be.disabled');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
+    modelServingWizard.findUrilocationInput().should('exist').type('https://test');
+    modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
+    modelServingWizard.findSaveConnectionCheckbox().click();
+    modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
+    modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+    // Step 2: Model Deployment
+    modelServingWizard.findModelDeploymentNameInput().type('test-model');
+    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+    // Step 3: Advanced Options
+    // check external route, token should be checked and no alert
+    modelServingWizard.findTokenAuthenticationCheckbox().should('exist');
+    modelServingWizard.findExternalRouteCheckbox().should('exist').click();
+    modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
+    cy.findAllByText(
+      'The actual tokens will be created and displayed when the model server is configured.',
+    ).should('be.visible');
+    modelServingWizard.findTokenAuthenticationCheckbox().should('exist').click();
+    modelServingWizard.findTokenWarningAlert().should('be.visible');
+  });
+
+  it('Check path error in KServe Wizard', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+    );
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findDeployModelButton().click();
+    // Step 1: Model Source
+    modelServingWizard.findModelSourceStep().should('be.enabled');
+    modelServingWizard.findModelDeploymentStep().should('be.disabled');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
+    modelServingWizard.findNextButton().should('be.disabled');
+
+    modelServingWizard.findModelLocationSelect().should('exist');
+    modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
+
+    modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
+    modelServingWizard.findSaveConnectionCheckbox().click();
+    modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
+
+    modelServingWizard.findUrilocationInput().should('exist').type('https://test');
+    // Trigger blur event to activate validation
+    modelServingWizard.findUrilocationInput().blur();
+    modelServingWizard.findUrilocationInputError().should('not.exist');
+    modelServingWizard.findNextButton().should('be.enabled');
+    modelServingWizard.findUrilocationInput().clear();
+
+    modelServingWizard.findUrilocationInput().type('test-model/');
+    // Trigger blur event to activate validation
+    modelServingWizard.findUrilocationInput().blur();
+    modelServingWizard.findUrilocationInputError().should('be.visible').contains('Invalid URI');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findUrilocationInput().clear();
+
+    // Check with root path
+    modelServingWizard.findUrilocationInput().type('/');
+    // Trigger blur event to activate validation
+    modelServingWizard.findUrilocationInput().blur();
+    modelServingWizard.findUrilocationInputError().should('be.visible').contains('Invalid URI');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findUrilocationInput().clear();
+
+    // Check path with special characters
+    modelServingWizard.findUrilocationInput().type('invalid/path/@#%#@%');
+    // Trigger blur event to activate validation
+    modelServingWizard.findUrilocationInput().blur();
+    modelServingWizard.findUrilocationInputError().should('be.visible').contains('Invalid URI');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findUrilocationInput().clear();
+
+    // Check path with extra slashes in between
+    modelServingWizard.findUrilocationInput().type('invalid/path///test');
+    // Trigger blur event to activate validation
+    modelServingWizard.findUrilocationInput().blur();
+    modelServingWizard.findUrilocationInputError().should('be.visible').contains('Invalid URI');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findUrilocationInput().clear();
+
+    modelServingWizard.findUrilocationInput().type('https://test');
+    modelServingWizard.findNextButton().should('be.enabled');
+  });
+
+  it('Check environment variables validation in KServe Wizard', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+    );
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findDeployModelButton().click();
+    // Step 1: Model Source
+    modelServingWizard.findModelSourceStep().should('be.enabled');
+    modelServingWizard.findModelDeploymentStep().should('be.disabled');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
+    modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
+    modelServingWizard.findUrilocationInput().should('exist').type('https://test');
+    modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
+    modelServingWizard.findSaveConnectionCheckbox().click();
+    modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
+    modelServingWizard.findNextButton().should('be.enabled').click();
+    modelServingWizard.findModelDeploymentNameInput().type('test-model');
+    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.findGlobalScopedTemplateOption('Caikit').should('exist').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Verify submit is enabled before testing env vars
+    modelServingWizard.findNextButton().should('be.enabled');
+
+    // Add environment variable with invalid name
+    modelServingWizard.findEnvVariablesCheckbox().click();
+    modelServingWizard.findAddVariableButton().click();
+    modelServingWizard.findEnvVariableName('0').type('1invalid-name');
+    cy.findByText(
+      'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
+    ).should('be.visible');
+    // Verify submit is disabled with invalid env var
+    modelServingWizard.findNextButton().should('be.disabled');
+
+    // Test invalid env var name with special characters
+    modelServingWizard.findEnvVariableName('0').clear().type('invalid@name');
+    cy.findByText(
+      'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
+    ).should('be.visible');
+    // Verify submit is disabled with invalid env var
+    modelServingWizard.findNextButton().should('be.disabled');
+
+    // Test valid env var name
+    modelServingWizard.findEnvVariableName('0').clear().type('VALID_NAME');
+    cy.findByText(
+      'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
+    ).should('not.exist');
+    // Verify submit is enabled with valid env var
+    modelServingWizard.findNextButton().should('be.enabled');
+  });
+
+  it('Deploy OCI Model and check paste functionality', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+    );
+
+    cy.interceptK8sList(
+      SecretModel,
+      mockK8sResourceList([
+        mockCustomSecretK8sResource({
+          type: 'kubernetes.io/dockerconfigjson',
+          namespace: 'test-project',
+          name: 'test-secret',
+          annotations: {
+            'opendatahub.io/connection-type': 'oci-v1',
+            'openshift.io/display-name': 'Test Secret',
+          },
+          data: {
+            '.dockerconfigjson':
+              'eyJhdXRocyI6IHsidGVzdC5pbyI6IHsiYXV0aCI6ICJibGFoYmxhaGJsYWgifX19Cg==',
+            OCI_HOST: 'dGVzdC5pby9vcmdhbml6YXRpb24K',
+            ACCESS_TYPE: 'WyJQdWxsIl0',
+          },
+        }),
+      ]),
+    );
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findDeployModelButton().click();
+    // Step 1: Model Source
+    modelServingWizard.findModelSourceStep().should('be.enabled');
+    modelServingWizard.findModelDeploymentStep().should('be.disabled');
+    modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findBackButton().should('be.disabled');
+    modelServingWizard.findCancelButton().should('be.enabled');
+    modelServingWizard.findModelLocationSelectOption('Existing connection').should('exist').click();
+    modelServingWizard.findExistingConnectionValue().should('have.value', 'Test Secret');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findOCIModelURI().click();
+    modelServingWizard.findOCIModelURI().trigger('paste', {
+      clipboardData: {
+        getData: () => 'https://test.io/organization/test-model:latest',
+      },
+    });
+    modelServingWizard.findNextButton().should('be.enabled').click();
+    //Step 2: Model Deployment
+    modelServingWizard.findModelDeploymentNameInput().type('test-model');
+    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+    //Step 3: Advanced Options
+    modelServingWizard.findNextButton().should('be.enabled').click();
+    //Step 4: Summary
+    modelServingWizard.findSubmitButton().should('be.enabled').click();
+
+    // dry run request for ServingRuntime
+    cy.wait('@createServingRuntime').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'test-model',
+          annotations: {
+            'opendatahub.io/apiProtocol': 'REST',
+            'opendatahub.io/runtime-version': '1.0.0',
+            'opendatahub.io/template-display-name': 'OpenVINO',
+            'openshift.io/display-name': 'OpenVINO',
+          },
+          labels: { 'opendatahub.io/dashboard': 'true' },
+          namespace: 'test-project',
+        },
+      });
+      expect(interception.request.body.spec).to.containSubset({
+        supportedModelFormats: [{ name: 'openvino_ir', version: 'opset1' }],
+      });
+    });
+
+    // dry run request for InferenceService
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        apiVersion: 'serving.kserve.io/v1beta1',
+        kind: 'InferenceService',
+        metadata: {
+          name: 'test-model',
+          namespace: 'test-project',
+          annotations: {
+            'openshift.io/display-name': 'test-model',
+            'opendatahub.io/model-type': 'predictive',
+          },
+          labels: {
+            'opendatahub.io/dashboard': 'true',
+          },
+        },
+        spec: {
+          predictor: {
+            minReplicas: 1,
+            maxReplicas: 1,
+            model: {
+              modelFormat: { name: 'openvino_ir', version: 'opset1' },
+              runtime: 'test-model',
+            },
+          },
+        },
+      });
+    });
+
+    // Actual request for ServingRuntime
+    cy.wait('@createServingRuntime').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    // Actual request for InferenceService
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    // Verify both requests were made
+    cy.get('@createServingRuntime.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
+
+    cy.get('@createInferenceService.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
+  });
+
+  it('Deploy model with PVC', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+    );
+    cy.interceptK8s(
+      'GET',
+      { model: SecretModel, ns: 'test-project', name: 'test-model-token' },
+      {
+        statusCode: 200,
+        body: {
+          apiVersion: 'v1',
+          kind: 'Secret',
+          metadata: { name: 'test-model-token', namespace: 'test-project' },
+          data: { token: btoa('test-token') },
+        },
+      },
+    ).as('getTokenSecret');
+
+    cy.intercept(
+      'GET',
+      '**/namespaces/test-project/persistentvolumeclaims?labelSelector=opendatahub.io%2Fdashboard%3Dtrue',
+      mockK8sResourceList([
+        mockPVCK8sResource({
+          name: 'test-pvc',
+          namespace: 'test-project',
+          displayName: 'Test PVC',
+          storageClassName: 'openshift-default-sc',
+          annotations: {
+            'dashboard.opendatahub.io/model-name': 'test-model',
+            'dashboard.opendatahub.io/model-path': 'test-path',
+          },
+          labels: {
+            'opendatahub.io/dashboard': 'true',
+          },
+        }),
+      ]),
+    );
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findDeployModelButton().click();
+    // Step 1: Model Source
+    modelServingWizard.findModelSourceStep().should('be.enabled');
+    modelServingWizard.findModelDeploymentStep().should('be.disabled');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findBackButton().should('be.disabled');
+    modelServingWizard.findCancelButton().should('be.enabled');
+    modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findModelLocationSelectOption('Cluster storage').should('exist').click();
+    modelServingWizard.findPVCSelectValue().should('have.value', 'Test PVC');
+    modelServingWizard.findPVCPathPrefix().should('contain.text', 'pvc://test-pvc/');
+    modelServingWizard.findLocationPathInput().should('have.value', 'test-path');
+    modelServingWizard.findNextButton().should('be.enabled').click();
+    //Step 2: Model Deployment
+    modelServingWizard.findModelDeploymentNameInput().type('test-model');
+    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+    //Step 3: Advanced Options
+    modelServingWizard.findNextButton().should('be.enabled').click();
+    //Step 4: Summary
+    modelServingWizard.findSubmitButton().should('be.enabled').click();
+
+    // dry run request for ServingRuntime
+    cy.wait('@createServingRuntime').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'test-model',
+          annotations: {
+            'opendatahub.io/apiProtocol': 'REST',
+            'opendatahub.io/runtime-version': '1.0.0',
+            'opendatahub.io/template-display-name': 'OpenVINO',
+            'openshift.io/display-name': 'OpenVINO',
+          },
+          labels: { 'opendatahub.io/dashboard': 'true' },
+          namespace: 'test-project',
+        },
+      });
+      expect(interception.request.body.spec).to.containSubset({
+        supportedModelFormats: [{ name: 'openvino_ir', version: 'opset1' }],
+      });
+    });
+
+    // dry run request for InferenceService
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        apiVersion: 'serving.kserve.io/v1beta1',
+        kind: 'InferenceService',
+        metadata: {
+          name: 'test-model',
+          namespace: 'test-project',
+          annotations: {
+            'openshift.io/display-name': 'test-model',
+            'opendatahub.io/model-type': 'predictive',
+          },
+          labels: {
+            'opendatahub.io/dashboard': 'true',
+          },
+        },
+        spec: {
+          predictor: {
+            minReplicas: 1,
+            maxReplicas: 1,
+            model: {
+              modelFormat: { name: 'openvino_ir', version: 'opset1' },
+              runtime: 'test-model',
+            },
+          },
+        },
+      });
+    });
+
+    // Actual request for ServingRuntime
+    cy.wait('@createServingRuntime').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    // Actual request for InferenceService
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    // Verify both requests were made
+    cy.get('@createServingRuntime.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
+
+    cy.get('@createInferenceService.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
+  });
+
   it('Edit an existing deployment', () => {
     initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
     cy.interceptK8sList(
@@ -763,6 +1301,7 @@ describe('Model Serving Deploy Wizard', () => {
         mockInferenceServiceK8sResource({
           modelType: ServingRuntimeModelType.PREDICTIVE,
           hasExternalRoute: true,
+          secretName: 'test-uri-secret',
           hardwareProfileName: 'large-profile',
           hardwareProfileNamespace: 'opendatahub',
           description: 'test-description',
@@ -776,7 +1315,6 @@ describe('Model Serving Deploy Wizard', () => {
               memory: '16Gi',
             },
           },
-          storageUri: 'https://test',
         }),
       ]),
     );
@@ -785,15 +1323,15 @@ describe('Model Serving Deploy Wizard', () => {
       mockK8sResourceList([mockServingRuntimeK8sResource({})]),
     );
 
-    // TODO: visit directly when plugin is enabled
-    cy.visitWithLogin(
-      '/ai-hub/deployments/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue',
-    );
+    modelServingGlobal.visit('test-project');
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
 
     // Step 1: Model source
     modelServingWizardEdit.findModelLocationSelect().should('exist');
-    modelServingWizardEdit.findUrilocationInput().should('have.value', 'https://test');
+    modelServingWizardEdit.findModelLocationSelectOption('Existing connection').should('exist');
+    modelServingWizardEdit.findExistingConnectionSelect().should('exist');
+    modelServingWizardEdit.findExistingConnectionValue().should('have.value', 'Test URI Secret');
+    modelServingWizardEdit.findSaveConnectionCheckbox().should('not.exist');
     modelServingWizardEdit.findModelSourceStep().should('be.enabled');
     modelServingWizardEdit.findNextButton().should('be.enabled');
 
@@ -832,21 +1370,201 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
   });
 
+  it('Verify cpu and memory request and limits values when editing KServe model', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockInferenceServiceK8sResource({
+          modelType: ServingRuntimeModelType.PREDICTIVE,
+          hasExternalRoute: true,
+          hardwareProfileName: 'large-profile',
+          hardwareProfileNamespace: 'opendatahub',
+          description: 'test-description',
+          resources: {
+            requests: {
+              cpu: '6',
+              memory: '10Gi',
+            },
+            limits: {
+              cpu: '6',
+              memory: '10Gi',
+            },
+          },
+          storageUri: 'https://test',
+        }),
+      ]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+    );
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
+    // Step 1: Model source
+    modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
+    modelServingWizard.findSaveConnectionCheckbox().click();
+    modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+    // Step 2: Model deployment
+    hardwareProfileSection.findSelect().should('contain.text', 'Large Profile');
+    hardwareProfileSection.findCustomizeButton().should('exist').click();
+    modelServingWizardEdit.findCPURequestedInput().should('have.value', '6');
+    modelServingWizardEdit.findCPULimitInput().should('have.value', '6');
+    modelServingWizardEdit.findMemoryRequestedInput().should('have.value', '10');
+    modelServingWizardEdit.findMemoryLimitInput().should('have.value', '10');
+    modelServingWizardEdit.findNextButton().should('be.enabled');
+
+    // Test validation: CPU request cannot exceed CPU limit
+    modelServingWizardEdit.findCPURequestedButton('Plus').click(); // set request to 7
+    modelServingWizardEdit.findNextButton().should('be.disabled');
+    cy.findAllByText('Limit must be greater than or equal to request').first().should('be.visible');
+    modelServingWizardEdit.findCPURequestedButton('Minus').click();
+    modelServingWizardEdit.findNextButton().should('be.enabled');
+
+    // Test validation: Memory request cannot exceed memory limit
+    modelServingWizardEdit.findMemoryRequestedButton('Plus').click(); // set request to 11
+    modelServingWizardEdit.findNextButton().should('be.disabled');
+    cy.findAllByText('Limit must be greater than or equal to request').first().should('be.visible');
+    modelServingWizardEdit.findMemoryRequestedButton('Minus').click();
+    modelServingWizardEdit.findNextButton().should('be.enabled');
+
+    // Test validation: CPU and memory limit cannot be less than CPU and memory request
+    modelServingWizardEdit.findCPULimitButton('Minus').click();
+    modelServingWizardEdit.findNextButton().should('be.disabled');
+    cy.findAllByText('Limit must be greater than or equal to request').first().should('be.visible');
+    modelServingWizardEdit.findCPULimitButton('Plus').click();
+    modelServingWizardEdit.findMemoryLimitButton('Minus').click();
+    modelServingWizardEdit.findNextButton().should('be.disabled');
+    cy.findAllByText('Limit must be greater than or equal to request').first().should('be.visible');
+    modelServingWizardEdit.findMemoryLimitButton('Plus').click();
+    modelServingWizardEdit.findNextButton().should('be.enabled');
+  });
+
+  it('Should create a new connection with a generated secret name', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.GENERATIVE });
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    cy.interceptK8s('POST', { model: SecretModel, ns: 'test-project' }, (req) => {
+      const secretName = req.body.metadata.name;
+      req.reply(mockSecretK8sResource({ name: secretName }));
+    }).as('createSecret');
+    cy.interceptK8s('GET', { model: SecretModel, ns: 'test-project' }, (req) => {
+      const secretName = req.url.split('/').pop();
+
+      if (secretName?.startsWith('secret-')) {
+        req.reply({
+          statusCode: 200,
+          body: mockSecretK8sResource({ name: secretName }),
+        });
+      } else {
+        req.reply({
+          statusCode: 200,
+          body: { apiVersion: 'v1', items: [], kind: 'SecretList', metadata: {} },
+        });
+      }
+    }).as('getSecret');
+    cy.intercept('GET', '/api/k8s/api/v1/namespaces/test-project/secrets/*', (req) => {
+      const secretName = req.url.split('/').pop();
+      if (secretName?.startsWith('secret-')) {
+        req.reply({
+          statusCode: 200,
+          body: {
+            apiVersion: 'v1',
+            kind: 'Secret',
+            metadata: { name: secretName, namespace: 'test-project' },
+            stringData: {},
+          },
+        });
+      } else {
+        req.continue();
+      }
+    }).as('fetchGeneratedSecretGets');
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findDeployModelButton().click();
+
+    // Step 1: Model source
+    modelServingWizard.findModelSourceStep().should('be.enabled');
+    modelServingWizard.findModelDeploymentStep().should('be.disabled');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist');
+    modelServingWizard
+      .findModelTypeSelectOption('Generative AI model (e.g. LLM)')
+      .should('exist')
+      .click();
+    modelServingWizard.findModelLocationSelect().should('exist');
+    modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
+    modelServingWizard.findUrilocationInput().type('https://testinguri');
+
+    modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
+    modelServingWizard.findSaveConnectionCheckbox().click();
+    modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Step 2: Model deployment
+    modelServingWizard.findModelDeploymentStep().should('be.enabled');
+    modelServingWizard.findAdvancedOptionsStep().should('be.disabled');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findModelDeploymentNameInput().type('test-model');
+    hardwareProfileSection.findSelect().should('contain.text', 'Small');
+
+    modelServingWizard.findModelFormatSelect().should('not.exist');
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().should('exist');
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.findGlobalScopedTemplateOption('vLLM NVIDIA').should('exist').click();
+
+    modelServingWizard.findNumReplicasInput().should('exist');
+    modelServingWizard.findNumReplicasInputField().should('have.value', '1');
+
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Step 3: Advanced Options
+    modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Step 4: Summary
+    modelServingWizard.findSubmitButton().should('be.enabled').click();
+
+    cy.wait('@createSecret').then((interception) => {
+      expect(interception.request.body.metadata.name).to.satisfy(isGeneratedSecretName);
+      expect(interception.request.body.metadata.namespace).to.equal('test-project');
+      expect(interception.request.body.metadata.labels['opendatahub.io/dashboard']).to.equal(
+        'false',
+      );
+      expect(
+        interception.request.body.metadata.annotations['opendatahub.io/connection-type-protocol'],
+      ).to.equal('uri');
+      expect(interception.request.body.stringData.URI).to.equal('https://testinguri');
+    });
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+    });
+
+    cy.wait('@createInferenceService').then((interception) => {
+      const { annotations } = interception.request.body.metadata;
+      expect(annotations).to.have.property('opendatahub.io/connections');
+      expect(isGeneratedSecretName(annotations['opendatahub.io/connections'])).to.equal(true);
+    });
+  });
+
   describe('redirect from v2 to v3 route', () => {
-    // TODO: visit directly when plugin is enabled
-    const featureFlagParam = '?devFeatureFlags=Model+Serving+Plugin%3Dtrue';
     beforeEach(() => {
       initIntercepts({});
     });
 
     it('deploy create', () => {
-      cy.visitWithLogin(`/modelServing/test-project/deploy/create${featureFlagParam}`);
+      cy.visitWithLogin(`/modelServing/test-project/deploy/create`);
       cy.findByTestId('app-page-title').contains('Deploy a model');
       cy.url().should('include', '/ai-hub/deployments/test-project/deploy/create');
     });
 
     it('deploy edit', () => {
-      cy.visitWithLogin(`/modelServing/test-project/deploy/edit/test-model${featureFlagParam}`);
+      cy.visitWithLogin(`/modelServing/test-project/deploy/edit/test-model`);
       cy.findByTestId('app-page-title').contains('Edit model deployment');
       cy.url().should('include', '/ai-hub/deployments/test-project/deploy/edit/test-model');
     });

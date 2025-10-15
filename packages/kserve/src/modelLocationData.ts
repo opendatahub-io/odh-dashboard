@@ -4,10 +4,7 @@ import {
 } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
 import { MetadataAnnotation, InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
 import { ModelServingCompatibleTypes } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
-import {
-  ModelLocationData,
-  ModelLocationType,
-} from '../../model-serving/src/components/deploymentWizard/fields/modelLocationFields/types';
+import { ModelLocationData, ModelLocationType } from '@odh-dashboard/model-serving/types/form-data';
 
 export const getModelLocationUri = (deployment: InferenceServiceKind): string | undefined => {
   return deployment.spec.predictor.model?.storageUri;
@@ -30,6 +27,9 @@ const extractAdditionalFields = (deployment: InferenceServiceKind): Record<strin
 
   if (connectionType === ModelServingCompatibleTypes.OCI) {
     additionalFields.modelUri = predictor.model?.storageUri || '';
+  }
+  if (deployment.metadata.annotations?.['opendatahub.io/connection-path']) {
+    additionalFields.modelPath = deployment.metadata.annotations['opendatahub.io/connection-path'];
   }
 
   return additionalFields;

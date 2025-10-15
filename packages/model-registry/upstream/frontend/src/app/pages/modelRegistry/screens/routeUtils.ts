@@ -55,6 +55,11 @@ export const registerVersionForModelUrl = (
   preferredModelRegistry?: string,
 ): string => `${registeredModelUrl(rmId, preferredModelRegistry)}/register/version`;
 
+export const registeredModelDeploymentsUrl = (
+  registeredModel: { id: string },
+  preferredModelRegistry?: string,
+): string => `${registeredModelUrl(registeredModel.id, preferredModelRegistry)}/deployments`;
+
 export const modelVersionDeploymentsUrl = (
   mvId: string,
   rmId?: string,

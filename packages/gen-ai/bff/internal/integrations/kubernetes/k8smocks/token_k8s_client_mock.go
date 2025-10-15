@@ -427,10 +427,6 @@ providers:
   - provider_id: llm-as-judge
     provider_type: inline::llm-as-judge
     config: {}
-  - provider_id: braintrust
-    provider_type: inline::braintrust
-    config:
-      openai_api_key: ${env.OPENAI_API_KEY:=}
   telemetry:
   - provider_id: meta-reference
     provider_type: inline::meta-reference
@@ -609,8 +605,22 @@ func (m *TokenKubernetesClientMock) GetConfigMap(ctx context.Context, identity *
 			"github-copilot": `{
   "url": "https://api.githubcopilot.com/mcp",
   "description": "GitHub Copilot MCP server with advanced kubectl tools.",
-  "logo": "https://github.com/images/modules/logos_page/GitHub-Mark.png"
-}`,
+			"logo": "https://github.com/images/modules/logos_page/GitHub-Mark.png"
+		}`,
 		},
 	}, nil
+}
+
+// CanListLlamaStackDistributions returns mock permission check for testing
+func (m *TokenKubernetesClientMock) CanListLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
+	// For testing purposes, always return true to allow LlamaStackDistribution listing
+	// In real scenarios, this would perform a SubjectAccessReview
+	return true, nil
+}
+
+// CanListNamespaces returns mock namespace listing permission check for testing
+func (m *TokenKubernetesClientMock) CanListNamespaces(ctx context.Context, identity *integrations.RequestIdentity) (bool, error) {
+	// For testing purposes, always return true to allow namespace listing
+	// In real scenarios, this would perform a SubjectAccessReview for cluster-scoped namespace access
+	return true, nil
 }

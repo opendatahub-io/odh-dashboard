@@ -54,3 +54,6 @@ export enum ArtifactDetailsTabKey {
   Overview = 'overview',
   LineageExplorer = 'lineage-explorer',
 }
+
+export const artifactsPageTitle = 'Artifacts';
+export const artifactsPageDescription = 'View your artifacts and their metadata.';

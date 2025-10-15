@@ -3,19 +3,17 @@ import {
   Card,
   CardBody,
   CardTitle,
-  List,
-  ListItem,
+  Grid,
+  GridItem,
   Button,
   Flex,
   FlexItem,
-  Split,
-  SplitItem,
   Spinner,
   EmptyState,
   EmptyStateBody,
   Tooltip,
 } from '@patternfly/react-core';
-import { FileIcon, TrashIcon, SyncAltIcon } from '@patternfly/react-icons';
+import { FileIcon, TimesIcon } from '@patternfly/react-icons';
 import { FileModel } from '~/app/types';
 import DeleteFileModal from './DeleteFileModal';
 
@@ -24,7 +22,6 @@ interface UploadedFilesListProps {
   isLoading: boolean;
   isDeleting: boolean;
   error: string | null;
-  onRefresh: () => void;
   onDeleteFile: (fileId: string) => void;
 }
 
@@ -35,17 +32,22 @@ const formatFileSize = (bytes: number): string => {
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 };
 
-const formatDate = (timestamp: number): string => new Date(timestamp * 1000).toLocaleDateString();
+const formatDate = (timestamp: number): string => {
+  const date = new Date(timestamp * 1000);
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${month}-${day}-${year}`;
+};
 
 const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
   files,
   isLoading,
   isDeleting,
   error,
-  onRefresh,
   onDeleteFile,
 }) => {
   const [fileToDelete, setFileToDelete] = React.useState<FileModel | null>(null);
@@ -73,16 +75,7 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
       <Card>
         <CardTitle>
           <Flex>
-            <FlexItem>Uploaded Files</FlexItem>
-            <FlexItem align={{ default: 'alignRight' }}>
-              <Button
-                variant="plain"
-                icon={<SyncAltIcon />}
-                onClick={onRefresh}
-                isDisabled={isLoading}
-                aria-label="Refresh files"
-              />
-            </FlexItem>
+            <FlexItem>Uploaded files</FlexItem>
           </Flex>
         </CardTitle>
         <CardBody>
@@ -99,16 +92,7 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
       <Card>
         <CardTitle>
           <Flex>
-            <FlexItem>Uploaded Files</FlexItem>
-            <FlexItem align={{ default: 'alignRight' }}>
-              <Button
-                variant="plain"
-                icon={<SyncAltIcon />}
-                onClick={onRefresh}
-                isDisabled={isLoading}
-                aria-label="Refresh files"
-              />
-            </FlexItem>
+            <FlexItem>Uploaded files</FlexItem>
           </Flex>
         </CardTitle>
         <CardBody>
@@ -130,62 +114,59 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
   }
 
   return (
-    <Card>
-      <CardTitle>
+    <Card isPlain>
+      <CardTitle style={{ paddingLeft: '0' }}>
         <Flex>
-          <FlexItem>Uploaded Files ({files.length})</FlexItem>
-          <FlexItem align={{ default: 'alignRight' }}>
-            <Button
-              variant="plain"
-              icon={<SyncAltIcon />}
-              onClick={onRefresh}
-              isDisabled={isLoading}
-              aria-label="Refresh files"
-            />
-          </FlexItem>
+          <FlexItem>Uploaded files</FlexItem>
         </Flex>
       </CardTitle>
-      <CardBody>
-        <List isPlain>
+      <CardBody style={{ paddingLeft: '0' }}>
+        <Grid hasGutter>
           {files.map((file) => (
-            <ListItem key={file.id}>
-              <Split hasGutter>
-                <SplitItem style={{ alignSelf: 'flex-start', paddingTop: '0.25rem' }}>
-                  <FileIcon />
-                </SplitItem>
-                <SplitItem isFilled>
-                  <div style={{ minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontWeight: 'bold',
-                        wordBreak: 'break-word',
-                        lineHeight: '1.3',
-                      }}
-                      title={file.filename}
-                    >
-                      {file.filename}
-                    </div>
-                    <div style={{ fontSize: '0.875rem', color: '#6a6e73', marginTop: '0.25rem' }}>
-                      {formatFileSize(file.bytes)} • Uploaded {formatDate(file.created_at)}
-                    </div>
+            <React.Fragment key={file.id}>
+              <GridItem span={1}>
+                <FileIcon />
+              </GridItem>
+              <GridItem span={7}>
+                <div className="pf-u-min-width-0">
+                  <div
+                    className="pf-u-font-weight-bold pf-u-word-break-word pf-u-font-size-md"
+                    title={file.filename}
+                  >
+                    {file.filename}
                   </div>
-                </SplitItem>
-                <SplitItem style={{ alignSelf: 'flex-start', paddingTop: '0.25rem' }}>
-                  <Tooltip content="Delete file">
-                    <Button
-                      variant="plain"
-                      icon={<TrashIcon />}
-                      onClick={() => handleDeleteClick(file)}
-                      isDisabled={isDeleting}
-                      aria-label={`Delete ${file.filename}`}
-                      isDanger
-                    />
-                  </Tooltip>
-                </SplitItem>
-              </Split>
-            </ListItem>
+                  <div
+                    className="pf-u-font-size-sm"
+                    style={{ color: 'var(--pf-t--global--border--color--on-secondary)' }}
+                  >
+                    {formatDate(file.created_at)}
+                  </div>
+                </div>
+              </GridItem>
+              <GridItem span={3} style={{ textAlign: 'right' }}>
+                <div
+                  className="pf-u-font-size-sm"
+                  style={{ color: 'var(--pf-t--global--border--color--on-secondary)' }}
+                >
+                  {formatFileSize(file.bytes)}
+                </div>
+              </GridItem>
+              <GridItem span={1}>
+                <Tooltip content="Delete file">
+                  <Button
+                    variant="plain"
+                    icon={<TimesIcon />}
+                    onClick={() => handleDeleteClick(file)}
+                    isDisabled={isDeleting}
+                    aria-label={`Delete ${file.filename}`}
+                    style={{ paddingTop: 0 }}
+                    isDanger
+                  />
+                </Tooltip>
+              </GridItem>
+            </React.Fragment>
           ))}
-        </List>
+        </Grid>
       </CardBody>
       <DeleteFileModal
         isOpen={isDeleteModalOpen}

@@ -6,7 +6,11 @@ import { modelTypeSelectFieldSchema, ModelTypeSelectField } from '../fields/Mode
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { ModelLocationSelectField } from '../fields/ModelLocationSelectField';
 import { isValidModelLocationData } from '../fields/ModelLocationInputFields';
-import { ModelLocationData } from '../fields/modelLocationFields/types';
+import { ModelLocationData } from '../types';
+import {
+  createConnectionDataSchema,
+  CreateConnectionInputFields,
+} from '../fields/CreateConnectionInputFields';
 
 // Schema
 export const modelSourceStepSchema = z.object({
@@ -15,6 +19,7 @@ export const modelSourceStepSchema = z.object({
     if (!val) return false;
     return isValidModelLocationData(val.type, val);
   }),
+  createConnectionData: createConnectionDataSchema,
 });
 
 export type ModelSourceStepData = z.infer<typeof modelSourceStepSchema>;
@@ -46,12 +51,20 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
         setModelLocationData={wizardState.state.modelLocationData.setData}
         resetModelLocationData={() => wizardState.state.modelLocationData.setData(undefined)}
       />
+      <CreateConnectionInputFields
+        createConnectionData={wizardState.state.createConnectionData.data}
+        setCreateConnectionData={wizardState.state.createConnectionData.setData}
+        project={wizardState.state.modelLocationData.project}
+        modelLocationData={wizardState.state.modelLocationData.data}
+      />
       <ModelTypeSelectField
         modelType={wizardState.state.modelType.data}
         setModelType={wizardState.state.modelType.setData}
         validationProps={validation.getFieldValidationProps(['modelType'])}
         validationIssues={validation.getFieldValidation(['modelType'])}
-        isEditing={wizardState.initialData?.isEditing}
+        isEditing={
+          !wizardState.initialData?.modelTypeField ? false : wizardState.initialData.isEditing
+        }
       />
     </Form>
   );

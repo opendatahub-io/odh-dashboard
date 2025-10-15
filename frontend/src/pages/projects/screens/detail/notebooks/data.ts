@@ -25,12 +25,6 @@ export const columns: SortableData<NotebookState>[] = [
     sortable: false,
   },
   {
-    field: 'size',
-    label: 'Container size',
-    width: 15,
-    sortable: false,
-  },
-  {
     field: 'hardwareProfile',
     label: 'Hardware profile',
     width: 15,

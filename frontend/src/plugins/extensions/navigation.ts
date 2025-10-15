@@ -16,7 +16,7 @@ const extensions: NavExtension[] = [
       title: 'Home',
       href: '/',
       group: '1_home',
-      iconRef: () => import('@patternfly/react-icons/dist/esm/icons/home-icon'),
+      iconRef: () => import('#~/images/icons/HomeNavIcon'),
     },
   },
 
@@ -31,7 +31,7 @@ const extensions: NavExtension[] = [
       href: '/projects',
       path: '/projects/*',
       group: '2_projects',
-      iconRef: () => import('@patternfly/react-icons/dist/esm/icons/folder-icon'),
+      iconRef: () => import('#~/images/icons/ProjectsNavIcon'),
     },
   },
 
@@ -41,7 +41,7 @@ const extensions: NavExtension[] = [
       id: 'ai-hub',
       title: 'AI hub',
       group: '3_ai_hub',
-      iconRef: () => import('#~/images/icons/AiHubIcon'),
+      iconRef: () => import('#~/images/icons/AiHubNavIcon'),
     },
   },
   // This is being replaced by the upstream extension for model registry and will be removed along with the old MR UI code as part of https://issues.redhat.com/browse/RHOAIENG-34088
@@ -78,7 +78,7 @@ const extensions: NavExtension[] = [
       id: 'develop-and-train',
       title: 'Develop & train',
       group: '5_develop_and_train',
-      iconRef: () => import('@patternfly/react-icons/dist/esm/icons/code-icon'),
+      iconRef: () => import('#~/images/icons/DevelopAndTrainNavIcon'),
     },
   },
   {
@@ -175,7 +175,7 @@ const extensions: NavExtension[] = [
       id: 'observe-and-monitor',
       title: 'Observe & monitor',
       group: '6_observe_and_monitor',
-      iconRef: () => import('#~/images/icons/ObserveAndMonitorIcon'),
+      iconRef: () => import('#~/images/icons/ObserveAndMonitorNavIcon'),
     },
   },
   {
@@ -199,7 +199,7 @@ const extensions: NavExtension[] = [
       title: 'Learning resources',
       href: '/learning-resources',
       group: '7_other',
-      iconRef: () => import('#~/images/icons/LearningResourcesIcon'),
+      iconRef: () => import('#~/images/icons/LearningResourcesNavIcon'),
     },
   },
 
@@ -209,7 +209,7 @@ const extensions: NavExtension[] = [
       id: 'applications',
       title: 'Applications',
       group: '8_other',
-      iconRef: () => import('#~/images/icons/ApplicationsIcon'),
+      iconRef: () => import('#~/images/icons/ApplicationsNavIcon'),
     },
   },
   {
@@ -252,7 +252,7 @@ const extensions: NavExtension[] = [
       id: 'settings',
       title: 'Settings',
       group: '8_settings',
-      iconRef: () => import('@patternfly/react-icons/dist/esm/icons/cog-icon'),
+      iconRef: () => import('#~/images/icons/SettingsNavIcon'),
     },
   },
   {
@@ -313,23 +313,6 @@ const extensions: NavExtension[] = [
   },
   {
     type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.ACCELERATOR_PROFILES, ADMIN_USER],
-      disallowed: [SupportedArea.HARDWARE_PROFILES],
-    },
-    properties: {
-      id: 'settings-accelerator-profiles',
-      title: 'Accelerator profiles',
-      href: '/settings/environment-setup/accelerator-profiles',
-      section: 'settings-environment-setup',
-      path: '/settings/environment-setup/accelerator-profiles/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.HARDWARE_PROFILES],
-    },
     properties: {
       id: 'settings-hardware-profiles',
       title: 'Hardware profiles',

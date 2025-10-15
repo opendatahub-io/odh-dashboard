@@ -165,11 +165,15 @@ class ServingModal extends Modal {
   }
 
   findProjectScopedLabel() {
-    return this.find().findByTestId('project-scoped-label');
+    return this.findServingRuntimeTemplateSearchSelector()
+      .parent()
+      .findByTestId('project-scoped-label');
   }
 
   findGlobalScopedLabel() {
-    return this.find().findByTestId('global-scoped-label');
+    return this.findServingRuntimeTemplateSearchSelector()
+      .parent()
+      .findByTestId('global-scoped-label');
   }
 
   getProjectScopedServingRuntime() {
@@ -396,6 +400,10 @@ class InferenceServiceModal extends ServingModal {
 
   findLocationPathInputError() {
     return this.find().findByTestId('folder-path-error');
+  }
+
+  findPVCPathPrefix() {
+    return cy.findByTestId('pvc-path-prefix');
   }
 
   findConfigurationParamsSection() {
@@ -683,8 +691,10 @@ class ModelMeshRow extends ModelServingRow {
 }
 
 class KServeRow extends ModelMeshRow {
-  findToggleButton() {
-    return this.find().findByTestId('kserve-model-row-item').find('button');
+  findToggleButton(platform?: string) {
+    return this.find()
+      .findByTestId(`${platform || 'kserve'}-model-row-item`)
+      .find('button');
   }
 
   findDescriptionListItem(itemName: string) {
@@ -831,10 +841,6 @@ class ModelServingSection {
 
   find() {
     return cy.findByTestId('section-model-server');
-  }
-
-  findDescriptionListItem(itemName: string) {
-    return this.find().next('tr').find(`dt:contains("${itemName}")`);
   }
 
   private findKServeTable() {
@@ -1020,8 +1026,45 @@ class ModelServingWizard extends Wizard {
     return this.findModelLocationSelect().findSelectOption(name);
   }
 
+  findLocationPathInput() {
+    return cy.findByTestId('folder-path');
+  }
+
+  findPVCPathPrefix() {
+    return cy.findByTestId('pvc-path-prefix');
+  }
+
+  findPVCSelectValue() {
+    return cy.findByTestId('pvc-connection-selector').findByRole('combobox');
+  }
+
+  findOCIModelURI() {
+    return cy.findByTestId('model-uri');
+  }
+
   findUrilocationInput() {
     return cy.findByTestId('field URI');
+  }
+
+  findUrilocationInputError() {
+    return cy.findByTestId('uri-form-field-helper-text');
+  }
+
+  findExistingConnectionSelect() {
+    return cy.findByTestId('typeahead-menu-toggle');
+  }
+
+  findExistingConnectionValue() {
+    return this.findExistingConnectionSelect().findByRole('combobox');
+  }
+
+  findExistingConnectionSelectOption(name: string) {
+    cy.findByRole('listbox');
+    return cy.findByText(name);
+  }
+
+  findSaveConnectionCheckbox() {
+    return cy.findByTestId('save-connection-checkbox');
   }
 
   findExternalRouteCheckbox() {
@@ -1112,6 +1155,38 @@ class ModelServingWizard extends Wizard {
 
   findUseCaseInput() {
     return cy.findByTestId('use-case-input');
+  }
+
+  findCPURequestedInput() {
+    return cy.findByTestId('cpu-requests-input').find('input');
+  }
+
+  findCPURequestedButton(type: 'Plus' | 'Minus') {
+    return cy.findByTestId('cpu-requests-input').findByRole('button', { name: type });
+  }
+
+  findCPULimitInput() {
+    return cy.findByTestId('cpu-limits-input').find('input');
+  }
+
+  findCPULimitButton(type: 'Plus' | 'Minus') {
+    return cy.findByTestId('cpu-limits-input').findByRole('button', { name: type });
+  }
+
+  findMemoryRequestedInput() {
+    return cy.findByTestId('memory-requests-input').find('input');
+  }
+
+  findMemoryRequestedButton(type: 'Plus' | 'Minus') {
+    return cy.findByTestId('memory-requests-input').findByRole('button', { name: type });
+  }
+
+  findMemoryLimitInput() {
+    return cy.findByTestId('memory-limits-input').find('input');
+  }
+
+  findMemoryLimitButton(type: 'Plus' | 'Minus') {
+    return cy.findByTestId('memory-limits-input').findByRole('button', { name: type });
   }
 }
 

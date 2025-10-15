@@ -8,8 +8,9 @@ describe('ModelParameterFormGroup', () => {
     fieldId: 'temperature',
     label: 'Temperature',
     helpText: 'This controls the randomness of the model output.',
-    value: 0.5,
+    value: 1.3,
     onChange: jest.fn(),
+    max: 2,
   };
 
   beforeEach(() => {
@@ -28,8 +29,8 @@ describe('ModelParameterFormGroup', () => {
     ).toBeInTheDocument();
 
     // Check initial values
-    expect(screen.getByRole('slider')).toHaveAttribute('aria-valuenow', '0.5');
-    expect(screen.getByRole('spinbutton')).toHaveValue(0.5);
+    expect(screen.getByRole('slider')).toHaveAttribute('aria-valuenow', '1.3');
+    expect(screen.getByRole('spinbutton')).toHaveValue(1.3);
   });
 
   it('shows help text when help button is clicked', async () => {
@@ -61,39 +62,8 @@ describe('ModelParameterFormGroup', () => {
 
     const textInput = screen.getByRole('spinbutton');
     await user.clear(textInput);
-    await user.type(textInput, '1');
+    await user.type(textInput, '1.8');
 
     expect(mockOnChange).toHaveBeenCalled();
-  });
-
-  it('respects custom props and renders with correct attributes', () => {
-    const customProps = {
-      ...defaultProps,
-      fieldId: 'top-p',
-      label: 'Top P',
-      min: 0.1,
-      max: 2.0,
-      step: 0.05,
-      value: 0.8,
-    };
-
-    render(<ModelParameterFormGroup {...customProps} />);
-
-    // Check custom label
-    expect(screen.getByText('Top P')).toBeInTheDocument();
-
-    // Check slider attributes
-    const slider = screen.getByRole('slider');
-    expect(slider).toHaveAttribute('aria-valuemin', '0.1');
-    expect(slider).toHaveAttribute('aria-valuemax', '2');
-    expect(slider).toHaveAttribute('aria-valuenow', '0.8');
-
-    // Check text input attributes
-    const textInput = screen.getByRole('spinbutton');
-    expect(textInput).toHaveAttribute('id', 'top-p-input');
-    expect(textInput).toHaveAttribute('min', '0.1');
-    expect(textInput).toHaveAttribute('max', '2');
-    expect(textInput).toHaveAttribute('step', '0.05');
-    expect(textInput).toHaveValue(0.8);
   });
 });

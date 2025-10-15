@@ -14,6 +14,7 @@ import (
 
 	"github.com/opendatahub-io/gen-ai/internal/api"
 	"github.com/opendatahub-io/gen-ai/internal/config"
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 )
 
 func main() {
@@ -46,6 +47,10 @@ func main() {
 	// Filter models configuration
 	flag.Func("filtered-model-keywords", "Filter models by keywords (comma-separated list)", newKeywordParser(&cfg.FilteredModelKeywords, getEnvAsString("FILTERED_MODEL_KEYWORDS", "")))
 
+	// TLS configuration
+	flag.Func("bundle-paths", "CA bundle file paths (comma-separated list)", newBundlePathParser(&cfg.BundlePaths, getEnvAsString("BUNDLE_PATHS", "")))
+	flag.BoolVar(&cfg.InsecureSkipVerify, "insecure-skip-verify", getEnvAsBool("INSECURE_SKIP_VERIFY", false), "Skip TLS certificate verification")
+
 	flag.Parse()
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
@@ -65,14 +70,14 @@ func main() {
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
 		Handler:      app.Routes(),
 		IdleTimeout:  time.Minute,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
+		ReadTimeout:  8 * time.Minute, // Allow larger file uploads (up to 10MB)
+		WriteTimeout: 8 * time.Minute, // Allow longer processing time for large PDFs
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 
 	// Start the server in a goroutine
 	go func() {
-		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", (certFile != "" && keyFile != ""))
+		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", (certFile != "" && keyFile != ""), "path_prefix", cfg.PathPrefix, "swagger_ui", constants.SwaggerUIPath)
 		var err error
 		if certFile != "" && keyFile != "" {
 			// Configure TLS if both cert and key files are provided

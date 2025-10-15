@@ -2,14 +2,14 @@ import * as React from 'react';
 import { Button, Truncate, Label, ButtonVariant } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import { CheckCircleIcon, ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
-import { ResourceNameTooltip, TableRowTitleDescription, TruncatedText } from 'mod-arch-shared';
 import { useNavigate } from 'react-router-dom';
+import { TableRowTitleDescription, TruncatedText } from 'mod-arch-shared';
 import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
-import { convertAIModelToK8sResource } from '~/app/utilities/utils';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import AIModelsTableRowEndpoint from './AIModelsTableRowEndpoint';
+import AIModelsTableRowInfo from './AIModelsTableRowInfo';
 
 type AIModelTableRowProps = {
   lsdStatus: LlamaStackDistributionModel | null;
@@ -34,13 +34,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
       <Tr>
         <Td dataLabel="Model deployment name">
           <>
-            <TableRowTitleDescription
-              title={
-                <ResourceNameTooltip resource={convertAIModelToK8sResource(model)} wrap>
-                  {model.display_name}
-                </ResourceNameTooltip>
-              }
-            />
+            <TableRowTitleDescription title={<AIModelsTableRowInfo model={model} />} />
             {/* The shared TableRowTitleDescription component only accepts a string for the description
          * so we need to use the TruncatedText component to truncate the description
          and take it out of the TableRowTitleDescription component */}

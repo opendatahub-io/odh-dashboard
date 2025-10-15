@@ -1,5 +1,7 @@
 import * as React from 'react';
 import { Navigate, Route } from 'react-router-dom';
+import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '#~/concepts/design/utils';
 import ProjectsRoutes from '#~/concepts/projects/ProjectsRoutes';
 import GlobalPipelineCoreLoader from '#~/pages/pipelines/global/GlobalPipelineCoreLoader';
 import { PipelineRunCoreDetails } from '#~/pages/pipelines/global/GlobalPipelineCoreDetails';
@@ -35,7 +37,12 @@ const GlobalPipelineRunsRoutes: React.FC = () => (
       path={globNamespaceAll}
       element={
         <GlobalPipelineCoreLoader
-          title={pipelineRunsPageTitle}
+          title={
+            <TitleWithIcon
+              title={pipelineRunsPageTitle}
+              objectType={ProjectObjectType.pipelineRun}
+            />
+          }
           description={pipelineRunsPageDescription}
           getInvalidRedirectPath={pipelineRunsBaseRoute}
         />

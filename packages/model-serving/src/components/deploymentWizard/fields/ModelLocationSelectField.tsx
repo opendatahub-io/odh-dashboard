@@ -20,7 +20,7 @@ import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWa
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import usePvcs from '@odh-dashboard/internal/pages/modelServing/usePvcs';
 import { ModelLocationInputFields, useModelLocationData } from './ModelLocationInputFields';
-import { ModelLocationData, ModelLocationType } from './modelLocationFields/types';
+import { ModelLocationData, ModelLocationType } from '../types';
 
 // Schema
 export const modelLocationSelectFieldSchema = z.enum(
@@ -74,6 +74,9 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     project,
     modelLocationData,
   );
+  const filteredConnections = React.useMemo(() => {
+    return connections.filter((c) => c.metadata.labels['opendatahub.io/dashboard'] === 'true');
+  }, [connections]);
 
   const selectedConnectionType = React.useMemo(() => {
     if (modelLocationData?.type === ModelLocationType.NEW) {
@@ -169,7 +172,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
           <StackItem>
             <ModelLocationInputFields
               modelLocation={modelLocation}
-              connections={connections}
+              connections={filteredConnections}
               connectionTypes={modelServingConnectionTypes}
               selectedConnection={selectedConnection}
               setSelectedConnection={setSelectedConnection}

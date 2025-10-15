@@ -26,7 +26,6 @@ import {
   ServingRuntimePlatform,
   ServingRuntimeModelType,
 } from '#~/types';
-import CustomServingRuntimePlatformsSelector from '#~/pages/modelServing/customServingRuntimes/CustomServingRuntimePlatformsSelector';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import {
   getAPIProtocolFromTemplate,
@@ -119,10 +118,7 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
   );
 
   const [code, setCode] = React.useState(stringifiedTemplate);
-  const [selectedPlatforms, setSelectedPlatforms] =
-    React.useState<ServingRuntimePlatform[]>(enabledPlatforms);
-  const isSinglePlatformEnabled = selectedPlatforms.includes(ServingRuntimePlatform.SINGLE);
-  const isMultiPlatformEnabled = selectedPlatforms.includes(ServingRuntimePlatform.MULTI);
+  const isSinglePlatformEnabled = enabledPlatforms.includes(ServingRuntimePlatform.SINGLE);
   const [selectedAPIProtocol, setSelectedAPIProtocol] = React.useState<
     ServingRuntimeAPIProtocol | undefined
   >(apiProtocol);
@@ -145,11 +141,9 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
     (!state &&
       code === stringifiedTemplate &&
       enabledPlatforms.includes(ServingRuntimePlatform.SINGLE) === isSinglePlatformEnabled &&
-      enabledPlatforms.includes(ServingRuntimePlatform.MULTI) === isMultiPlatformEnabled &&
       apiProtocol === selectedAPIProtocol &&
       modelTypesEqual(modelTypes, selectedModelTypes)) ||
     code === '' ||
-    selectedPlatforms.length === 0 ||
     !selectedAPIProtocol ||
     loading;
 
@@ -195,17 +189,9 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
       <Form style={{ height: '100%' }}>
         <Stack hasGutter>
           <StackItem>
-            <CustomServingRuntimePlatformsSelector
-              isSinglePlatformEnabled={isSinglePlatformEnabled}
-              isMultiPlatformEnabled={isMultiPlatformEnabled}
-              setSelectedPlatforms={setSelectedPlatforms}
-            />
-          </StackItem>
-          <StackItem>
             <CustomServingRuntimeAPIProtocolSelector
               selectedAPIProtocol={selectedAPIProtocol}
               setSelectedAPIProtocol={setSelectedAPIProtocol}
-              selectedPlatforms={selectedPlatforms}
             />
           </StackItem>
           {isDeploymentWizardEnabled && (
@@ -269,14 +255,12 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
                         existingTemplate,
                         code,
                         dashboardNamespace,
-                        selectedPlatforms,
                         selectedAPIProtocol,
                         selectedModelTypes,
                       )
                     : createServingRuntimeTemplateBackend(
                         code,
                         dashboardNamespace,
-                        selectedPlatforms,
                         selectedAPIProtocol,
                         selectedModelTypes,
                       );

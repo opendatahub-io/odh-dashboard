@@ -37,8 +37,6 @@ export enum SupportedArea {
   BYON = 'bring-your-own-notebook',
   CLUSTER_SETTINGS = 'cluster-settings',
   USER_MANAGEMENT = 'user-management',
-  ACCELERATOR_PROFILES = 'accelerator-profiles',
-  HARDWARE_PROFILES = 'hardware-profiles',
   STORAGE_CLASSES = 'storage-classes',
   ADMIN_CONNECTION_TYPES = 'connection-types',
   FINE_TUNING = 'fine-tuning',
@@ -106,6 +104,7 @@ export enum StackComponent {
   TRAINING_OPERATOR = 'trainingoperator',
   MODEL_REGISTRY = 'model-registry-operator',
   FEAST_OPERATOR = 'feastoperator',
+  LLAMA_STACK_OPERATOR = 'llamastackoperator',
 }
 
 /** The possible component names that are used as keys in the `components` object of the DSC Status.

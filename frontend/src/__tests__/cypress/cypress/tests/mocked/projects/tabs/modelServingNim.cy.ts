@@ -40,11 +40,28 @@ describe('NIM Model Serving', () => {
 
     it('should be enabled if the modal has the minimal info', () => {
       initInterceptsToEnableNim({});
-      const nimInferenceService = mockNimInferenceService();
+      const nimInferenceService = mockNimInferenceService({
+        resources: {
+          limits: {
+            cpu: '2',
+            memory: '4Gi',
+          },
+          requests: {
+            cpu: '2',
+            memory: '4Gi',
+          },
+        },
+      });
+      nimInferenceService.metadata.annotations = {
+        ...nimInferenceService.metadata.annotations,
+        'opendatahub.io/hardware-profile-name': 'default-profile',
+        'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+        'opendatahub.io/hardware-profile-resource-version': '1309350',
+      };
       initInterceptsToDeployModel(nimInferenceService);
 
       projectDetails.visitSection('test-project', 'model-server');
-      cy.get('button[data-testid=deploy-button]').click();
+      projectDetails.findTopLevelDeployModelButton().click();
 
       // test that you can not submit on empty
       nimDeployModal.shouldBeOpen();
@@ -121,8 +138,17 @@ describe('NIM Model Serving', () => {
 
     it('should list the deployed model in Models tab', () => {
       initInterceptsToEnableNim({ hasAllModels: false });
-      cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([mockNimInferenceService()]));
+      // cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([mockNimInferenceService()]));
       cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([mockNimServingRuntime()]));
+
+      const nimInferenceService = mockNimInferenceService({});
+      nimInferenceService.metadata.annotations = {
+        ...nimInferenceService.metadata.annotations,
+        'opendatahub.io/hardware-profile-name': 'default-profile',
+        'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+        'opendatahub.io/hardware-profile-resource-version': '1309350',
+      };
+      cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([nimInferenceService]));
 
       projectDetails.visitSection('test-project', 'model-server');
 
@@ -161,8 +187,8 @@ describe('NIM Model Serving', () => {
         .should('contain.text', '16 CPUs, 64GiB Memory limit');
       projectDetails
         .getKserveTableRow('Test Name')
-        .findInfoValueFor('Accelerator')
-        .should('have.text', 'No accelerator selected');
+        .findInfoValueFor('Hardware profile')
+        .should('have.text', 'default-profile');
     });
 
     it('should list the deployed model in Overview tab', () => {

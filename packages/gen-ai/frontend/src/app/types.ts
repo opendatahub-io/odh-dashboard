@@ -82,7 +82,6 @@ export type CreateResponseRequest = {
   vector_store_ids?: string[];
   chat_context?: ChatContextMessage[];
   temperature?: number;
-  top_p?: number;
   instructions?: string;
   stream?: boolean;
   mcp_servers?: MCPServerConfig[];
@@ -275,6 +274,25 @@ export interface AIModel extends AAModelResponse {
   internalEndpoint?: string;
   externalEndpoint?: string;
 }
+
+export interface MaaSModel {
+  id: string;
+  object: string;
+  created: number;
+  owned_by: string;
+  ready: boolean;
+  url: string;
+}
+
+export interface MaaSTokenRequest {
+  expiration?: string;
+}
+
+export interface MaaSTokenResponse {
+  token: string;
+  expiresAt: number;
+}
+
 export type {
   MCPServerFromAPI,
   MCPConfigMapInfo,
@@ -293,3 +311,5 @@ export type {
   MCPErrorDetails,
   MCPServerUIStatus,
 } from './types/mcp';
+
+export type IconType = React.ComponentType<{ style?: React.CSSProperties }>;

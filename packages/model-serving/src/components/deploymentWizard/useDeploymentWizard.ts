@@ -9,7 +9,6 @@ import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projec
 import { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { useModelFormatField } from './fields/ModelFormatField';
-import { ModelLocationData } from './fields/modelLocationFields/types';
 import { useModelTypeField, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
 import { useModelLocationData } from './fields/ModelLocationInputFields';
 import { useExternalRouteField, type ExternalRouteFieldData } from './fields/ExternalRouteField';
@@ -31,7 +30,19 @@ import {
   useModelServerSelectField,
   type ModelServerOption,
 } from './fields/ModelServerTemplateSelectField';
-import { isModelServerTemplateField, type WizardFormData } from './types';
+import {
+  isModelServerTemplateField,
+  isExternalRouteField,
+  isTokenAuthField,
+  ModelLocationData,
+  type WizardFormData,
+  type ExternalRouteField,
+  type TokenAuthField,
+} from './types';
+import {
+  useCreateConnectionData,
+  type CreateConnectionData,
+} from './fields/CreateConnectionInputFields';
 import { useWizardFieldsFromExtensions } from '../../concepts/extensionUtils';
 
 export type ModelDeploymentWizardData = {
@@ -49,10 +60,27 @@ export type ModelDeploymentWizardData = {
   isEditing?: boolean;
   connections?: LabeledConnection[];
   initSelectedConnection?: LabeledConnection | undefined;
-  AiAssetData?: AvailableAiAssetsFieldsData;
+  aiAssetData?: AvailableAiAssetsFieldsData;
+  createConnectionData?: CreateConnectionData;
+  // Add more field handlers as needed
 };
 
-export type UseModelDeploymentWizardState = WizardFormData;
+export type UseModelDeploymentWizardState = WizardFormData & {
+  loaded: {
+    modelSourceLoaded: boolean;
+    modelDeploymentLoaded: boolean;
+    advancedOptionsLoaded: boolean;
+    summaryLoaded: boolean;
+  };
+  fieldExtensions: {
+    externalRouteFields: ExternalRouteField[];
+    tokenAuthFields: TokenAuthField[];
+  };
+  advancedOptions: {
+    isExternalRouteVisible: boolean;
+    shouldAutoCheckTokens: boolean;
+  };
+};
 
 export const useModelDeploymentWizard = (
   initialData?: ModelDeploymentWizardData,
@@ -62,12 +90,30 @@ export const useModelDeploymentWizard = (
   // Step 1: Model Source
   const modelType = useModelTypeField(initialData?.modelTypeField);
   const { namespace } = useParams();
-  const { projects } = React.useContext(ProjectsContext);
+  const { projects, loaded: projectsLoaded } = React.useContext(ProjectsContext);
   const currentProject = projects.find(byName(namespace));
   const modelLocationData = useModelLocationData(
     currentProject ?? null,
     initialData?.modelLocationData,
   );
+  const createConnectionData = useCreateConnectionData(
+    currentProject ?? null,
+    initialData?.createConnectionData,
+    modelLocationData.data,
+  );
+
+  // loaded state
+  const modelSourceLoaded = React.useMemo(() => {
+    return (
+      modelLocationData.connectionsLoaded &&
+      modelLocationData.connectionTypesLoaded &&
+      projectsLoaded
+    );
+  }, [
+    modelLocationData.connectionsLoaded,
+    modelLocationData.connectionTypesLoaded,
+    projectsLoaded,
+  ]);
 
   // Step 2: Model Deployment
   const k8sNameDesc = useK8sNameDescriptionFieldData({
@@ -98,6 +144,19 @@ export const useModelDeploymentWizard = (
   const modelServerTemplateFields = React.useMemo(() => {
     return fields.filter(isModelServerTemplateField);
   }, [fields]);
+
+  const externalRouteFields = React.useMemo(() => {
+    return fields.filter(isExternalRouteField);
+  }, [fields]);
+
+  const tokenAuthFields = React.useMemo(() => {
+    return fields.filter(isTokenAuthField);
+  }, [fields]);
+
+  const fieldExtensions = {
+    externalRouteFields,
+    tokenAuthFields,
+  };
   const modelServer = useModelServerSelectField(
     modelServerTemplateFields,
     initialData?.modelServer,
@@ -109,18 +168,31 @@ export const useModelDeploymentWizard = (
     modelType.data,
   );
 
+  const numReplicas = useNumReplicasField(initialData?.numReplicas ?? undefined);
+
+  // loaded state
+  const modelDeploymentLoaded = React.useMemo(() => {
+    return modelFormatState.loaded && hardwareProfileConfig.profilesLoaded;
+  }, [modelFormatState.loaded, hardwareProfileConfig.profilesLoaded]);
+
   // Step 3: Advanced Options - Individual Fields
-  const externalRoute = useExternalRouteField(initialData?.externalRoute ?? undefined);
+  const externalRoute = useExternalRouteField(
+    initialData?.externalRoute ?? undefined,
+    externalRouteFields,
+    modelType.data,
+    modelServer.data || undefined,
+  );
 
   const tokenAuthentication = useTokenAuthenticationField(
     initialData?.tokenAuthentication ?? undefined,
+    tokenAuthFields,
+    modelType.data,
+    modelServer.data || undefined,
   );
-  const AiAssetData = useAvailableAiAssetsFields(
-    initialData?.AiAssetData ?? undefined,
+  const aiAssetData = useAvailableAiAssetsFields(
+    initialData?.aiAssetData ?? undefined,
     modelType.data,
   );
-
-  const numReplicas = useNumReplicasField(initialData?.numReplicas ?? undefined);
 
   const runtimeArgs = useRuntimeArgsField(initialData?.runtimeArgs ?? undefined);
   const environmentVariables = useEnvironmentVariablesField(
@@ -136,14 +208,29 @@ export const useModelDeploymentWizard = (
       k8sNameDesc,
       hardwareProfileConfig,
       modelFormatState,
-      modelLocationData,
+      modelLocationData: {
+        ...modelLocationData,
+        selectedConnection: modelLocationData.selectedConnection,
+      },
+      createConnectionData,
       externalRoute,
       tokenAuthentication,
       numReplicas,
       runtimeArgs,
       environmentVariables,
-      AiAssetData,
+      aiAssetData,
       modelServer,
+    },
+    loaded: {
+      modelSourceLoaded,
+      modelDeploymentLoaded,
+      advancedOptionsLoaded: true, // TODO: Update if these get dependencies that we need to wait for
+      summaryLoaded: true, // TODO: Update if these get dependencies that we need to wait for
+    },
+    fieldExtensions,
+    advancedOptions: {
+      isExternalRouteVisible: externalRoute.isVisible,
+      shouldAutoCheckTokens: tokenAuthentication.shouldAutoCheck,
     },
   };
 };

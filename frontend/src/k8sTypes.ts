@@ -135,7 +135,7 @@ export type NotebookAnnotations = Partial<{
 }>;
 
 export type DashboardLabels = {
-  [KnownLabels.DASHBOARD_RESOURCE]: 'true';
+  [KnownLabels.DASHBOARD_RESOURCE]: 'true' | 'false';
 };
 
 export type ModelServingProjectLabels = {
@@ -412,7 +412,7 @@ export type PodKind = K8sResourceCommon & {
   spec: PodSpec;
   status?: {
     phase: string;
-    conditions: K8sCondition[];
+    conditions?: K8sCondition[];
     containerStatuses?: PodContainerStatus[];
   };
 };
@@ -1278,8 +1278,6 @@ export type DashboardCommonConfig = {
   disableKServeMetrics: boolean;
   disableKServeRaw: boolean;
   disableModelMesh: boolean;
-  disableAcceleratorProfiles: boolean;
-  disableHardwareProfiles: boolean;
   disableDistributedWorkloads: boolean;
   disableModelCatalog: boolean;
   disableModelRegistry: boolean;

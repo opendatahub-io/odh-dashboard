@@ -1,5 +1,4 @@
 import React from 'react';
-import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 import { ContainerResources } from '#~/types';
 import { assemblePodSpecOptions } from '#~/utilities/podSpec';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
@@ -61,8 +60,6 @@ export const useModelServingPodSpecOptionsState = (
         : acceleratorProfile.formData,
   };
 
-  const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
-
   let podSpecOptions: ModelServingPodSpecOptions = {
     resources: {},
     tolerations: undefined,
@@ -78,7 +75,7 @@ export const useModelServingPodSpecOptionsState = (
   const existingNodeSelector =
     inferenceService?.spec.predictor.nodeSelector || servingRuntime?.spec.nodeSelector;
 
-  if (isHardwareProfilesAvailable && !isModelMesh) {
+  if (!isModelMesh) {
     const annotationData = {
       selectedHardwareProfile: hardwareProfile.formData.selectedProfile,
     };

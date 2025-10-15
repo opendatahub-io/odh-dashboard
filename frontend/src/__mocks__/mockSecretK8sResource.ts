@@ -43,10 +43,12 @@ type MockResourceConfigType = {
   namespace?: string;
   displayName?: string;
   connectionType?: string;
+  data?: Record<string, string>;
   s3Bucket?: string;
   endPoint?: string;
   region?: string;
   uid?: string;
+  uri?: string;
 };
 
 export const mockSecretK8sResource = ({
@@ -54,6 +56,7 @@ export const mockSecretK8sResource = ({
   namespace = 'test-project',
   displayName = 'Test Secret',
   connectionType = 's3',
+  data,
   s3Bucket = 'dGVzdC1idWNrZXQ=',
   endPoint = 'aHR0cHM6Ly9zMy5hbWF6b25hd3MuY29tLw==',
   region = 'dXMtZWFzdC0x',
@@ -70,11 +73,31 @@ export const mockSecretK8sResource = ({
       'opendatahub.io/connection-type': connectionType,
       'openshift.io/display-name': displayName,
     },
-    data: {
+    data: data || {
       AWS_ACCESS_KEY_ID: 'c2RzZA==',
       AWS_DEFAULT_REGION: region,
       AWS_S3_BUCKET: s3Bucket,
       AWS_S3_ENDPOINT: endPoint,
       AWS_SECRET_ACCESS_KEY: 'c2RzZA==',
     },
+  });
+
+export const mockURISecretK8sResource = ({
+  name = 'test-uri-secret',
+  namespace = 'test-project',
+  displayName = 'Test URI Secret',
+  uri = 'https://test',
+}: MockResourceConfigType): SecretKind =>
+  mockCustomSecretK8sResource({
+    name,
+    namespace,
+    labels: {
+      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+      'opendatahub.io/connection-type': 'true',
+    },
+    annotations: {
+      'opendatahub.io/connection-type': 'uri-v1',
+      'openshift.io/display-name': displayName,
+    },
+    data: { URI: window.btoa(uri) },
   });

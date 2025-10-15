@@ -15,6 +15,7 @@ import { RuntimeArgsField } from '../fields/RuntimeArgsField';
 import { EnvironmentVariablesField } from '../fields/EnvironmentVariablesField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { AvailableAiAssetsFieldsComponent } from '../fields/AvailableAiAssetsFields';
+import { showAuthWarning } from '../hooks/useAuthWarning';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -33,6 +34,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
 }) => {
   const externalRouteData = wizardState.state.externalRoute.data;
   const tokenAuthData = wizardState.state.tokenAuthentication.data;
+  const { isExternalRouteVisible, shouldAutoCheckTokens } = wizardState.advancedOptions;
 
   // TODO: Clean up the stuff below related to KServe. Maybe move to an extension?
   const selectedModelServer =
@@ -95,23 +97,25 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
         </Stack>
         <Stack hasGutter>
           <AvailableAiAssetsFieldsComponent
-            data={wizardState.state.AiAssetData.data}
-            setData={wizardState.state.AiAssetData.setData}
+            data={wizardState.state.aiAssetData.data}
+            setData={wizardState.state.aiAssetData.setData}
             wizardData={wizardState}
           />
-          <StackItem>
-            <FormGroup
-              label="External route"
-              data-testid="external-route-section"
-              fieldId="model-access"
-            >
-              <ExternalRouteField
-                isChecked={externalRouteData}
-                allowCreate={allowCreate}
-                onChange={handleExternalRouteChange}
-              />
-            </FormGroup>
-          </StackItem>
+          {isExternalRouteVisible && (
+            <StackItem>
+              <FormGroup
+                label="Model access"
+                data-testid="external-route-section"
+                fieldId="model-access"
+              >
+                <ExternalRouteField
+                  isChecked={externalRouteData}
+                  allowCreate={allowCreate}
+                  onChange={handleExternalRouteChange}
+                />
+              </FormGroup>
+            </StackItem>
+          )}
           <StackItem>
             <FormGroup
               label="Token authentication"
@@ -126,11 +130,16 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
             </FormGroup>
           </StackItem>
 
-          {externalRouteData && (!tokenAuthData || tokenAuthData.length === 0) && (
+          {showAuthWarning({
+            shouldAutoCheckTokens,
+            isExternalRouteVisible,
+            externalRouteData,
+            tokenAuthData,
+          }) && (
             <StackItem>
               <Alert
-                id="external-route-no-token-alert"
-                data-testid="external-route-no-token-alert"
+                id="no-auth-alert"
+                data-testid="no-auth-alert"
                 variant="warning"
                 isInline
                 title="Making models available by external routes without requiring authorization can lead to security vulnerabilities."

@@ -1,6 +1,10 @@
 import type { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import type { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import {
+  ConnectionTypeConfigMapObj,
+  ConnectionTypeValueType,
+} from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import type {
   ModelServerOption,
   useModelServerSelectField,
@@ -15,10 +19,20 @@ import type { useModelLocationData } from './fields/ModelLocationInputFields';
 import type { useNumReplicasField } from './fields/NumReplicasField';
 import type { useRuntimeArgsField } from './fields/RuntimeArgsField';
 import type { useTokenAuthenticationField } from './fields/TokenAuthenticationField';
+import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
 
 // extensible fields
 
-export type DeploymentWizardFieldId = 'modelType' | 'modelServerTemplate';
+export type DeploymentWizardFieldId =
+  | 'modelType'
+  | 'modelServerTemplate'
+  | 'externalRoute'
+  | 'tokenAuth';
+
+export type FieldExtensionContext = {
+  modelType: ServingRuntimeModelType;
+  selectedModelServer?: ModelServerOption;
+};
 
 export interface DeploymentWizardFieldBase {
   id: DeploymentWizardFieldId;
@@ -32,23 +46,35 @@ export interface ModelServerTemplateField extends DeploymentWizardFieldBase {
   isActive: (modelType: ServingRuntimeModelType) => boolean;
 }
 
-// Future field types can be added here easily:
-// export interface ModelTypeField extends DeploymentWizardFieldBase {
-//   id: 'modelType';
-//   type: 'replacement';
-//   isActive: (someOtherParam: string) => boolean;
-// }
+export interface ExternalRouteField extends DeploymentWizardFieldBase {
+  id: 'externalRoute';
+  type: 'modifier';
+  isVisible: boolean;
+  isActive: (context: FieldExtensionContext) => boolean;
+}
+
+export interface TokenAuthField extends DeploymentWizardFieldBase {
+  id: 'tokenAuth';
+  type: 'modifier';
+  initialValue: boolean;
+  isActive: (context: FieldExtensionContext) => boolean;
+}
 
 // Union type approach - just add new field types to this union
-export type DeploymentWizardField = ModelServerTemplateField;
-// | ModelTypeField  // Add future field types here
-// | SomeOtherField;
+export type DeploymentWizardField = ModelServerTemplateField | ExternalRouteField | TokenAuthField;
 
 export const isModelServerTemplateField = (
   field: DeploymentWizardField,
 ): field is ModelServerTemplateField => {
-  // return field.id === 'modelServerTemplate';
-  return true; // Currently only ModelServerTemplateField exists
+  return field.id === 'modelServerTemplate';
+};
+
+export const isExternalRouteField = (field: DeploymentWizardField): field is ExternalRouteField => {
+  return field.id === 'externalRoute';
+};
+
+export const isTokenAuthField = (field: DeploymentWizardField): field is TokenAuthField => {
+  return field.id === 'tokenAuth';
 };
 
 // wizard form data
@@ -66,7 +92,33 @@ export type WizardFormData = {
     numReplicas: ReturnType<typeof useNumReplicasField>;
     runtimeArgs: ReturnType<typeof useRuntimeArgsField>;
     environmentVariables: ReturnType<typeof useEnvironmentVariablesField>;
-    AiAssetData: ReturnType<typeof useAvailableAiAssetsFields>;
+    aiAssetData: ReturnType<typeof useAvailableAiAssetsFields>;
     modelServer: ReturnType<typeof useModelServerSelectField>;
+    createConnectionData: ReturnType<typeof useCreateConnectionData>;
+  };
+};
+
+export enum ConnectionTypeRefs {
+  S3 = 's3',
+  URI = 'uri-v1',
+  OCI = 'oci-v1',
+}
+
+export enum ModelLocationType {
+  NEW = 'new',
+  EXISTING = 'existing',
+  PVC = 'pvc',
+}
+
+export type ModelLocationData = {
+  type: ModelLocationType.EXISTING | ModelLocationType.NEW | ModelLocationType.PVC;
+  connectionTypeObject?: ConnectionTypeConfigMapObj;
+  connection?: string;
+  fieldValues: Record<string, ConnectionTypeValueType>;
+  additionalFields: {
+    // For S3 and OCI additional fields
+    modelPath?: string;
+    modelUri?: string;
+    pvcConnection?: string;
   };
 };

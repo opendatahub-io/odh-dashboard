@@ -14,6 +14,7 @@ const ComponenetLabelValue = "llama-stack"
 type KubernetesClientInterface interface {
 	// Namespace access
 	GetNamespaces(ctx context.Context, identity *integrations.RequestIdentity) ([]corev1.Namespace, error)
+	CanListNamespaces(ctx context.Context, identity *integrations.RequestIdentity) (bool, error)
 	GetAAModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]models.AAModel, error)
 
 	// Meta
@@ -25,9 +26,8 @@ type KubernetesClientInterface interface {
 
 	// LlamaStack Distribution
 	GetLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*lsdapi.LlamaStackDistributionList, error)
-
+	CanListLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error)
 	InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []string) (*lsdapi.LlamaStackDistribution, error)
-
 	DeleteLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*lsdapi.LlamaStackDistribution, error)
 
 	// ConfigMap operations

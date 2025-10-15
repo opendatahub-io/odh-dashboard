@@ -1,11 +1,13 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Wizard, WizardStep } from '@patternfly/react-core';
+import { Spinner, Wizard, WizardStep } from '@patternfly/react-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
-import { getDeploymentWizardExitRoute } from './utils';
-import { useModelDeploymentWizard, type ModelDeploymentWizardData } from './useDeploymentWizard';
+import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import { getGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
+import { Deployment } from 'extension-points';
+import { getDeploymentWizardExitRoute, deployModel } from './utils';
+import { ModelDeploymentWizardData, useModelDeploymentWizard } from './useDeploymentWizard';
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
 import { ModelSourceStepContent } from './steps/ModelSourceStep';
 import { AdvancedSettingsStepContent } from './steps/AdvancedOptionsStep';
@@ -19,6 +21,7 @@ type ModelDeploymentWizardProps = {
   primaryButtonText: string;
   existingData?: ModelDeploymentWizardData;
   project: ProjectKind;
+  existingDeployment?: Deployment;
 };
 
 const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
@@ -27,6 +30,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   primaryButtonText,
   existingData,
   project,
+  existingDeployment,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -40,7 +44,41 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
 
   const { deployMethod, deployMethodLoaded } = useDeployMethod(wizardState.state);
 
-  const onSave = React.useCallback(() => {
+  const secretName = React.useMemo(() => {
+    return (
+      wizardState.state.modelLocationData.data?.connection ??
+      wizardState.state.createConnectionData.data.nameDesc?.k8sName.value ??
+      getGeneratedSecretName()
+    );
+  }, [
+    wizardState.state.modelLocationData.data?.connection,
+    wizardState.state.createConnectionData.data.nameDesc?.k8sName.value,
+  ]);
+
+  React.useEffect(() => {
+    const current = wizardState.state.createConnectionData.data.nameDesc;
+    if (current?.k8sName.value !== secretName) {
+      wizardState.state.createConnectionData.setData({
+        ...wizardState.state.createConnectionData.data,
+        nameDesc: {
+          name: secretName,
+          description: current?.description || '',
+          k8sName: {
+            value: secretName,
+            state: {
+              immutable: false,
+              invalidCharacters: false,
+              invalidLength: false,
+              maxLength: 0,
+              touched: false,
+            },
+          },
+        },
+      });
+    }
+  }, [secretName, wizardState.state.createConnectionData]);
+
+  const onSave = React.useCallback(async () => {
     // Use existing validation to prevent submission with invalid data
     if (
       !validation.isModelSourceStepValid ||
@@ -62,61 +100,62 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         )
       : undefined;
 
-    Promise.all([
-      deployMethod.properties.deploy(
-        wizardState.state,
-        project.metadata.name,
-        undefined,
-        serverResource,
-        serverResourceTemplateName,
-        true,
-      ),
-    ]).then(() => {
-      Promise.all([
-        deployMethod.properties.deploy(
-          wizardState.state,
-          project.metadata.name,
-          undefined,
-          serverResource,
-          serverResourceTemplateName,
-          false,
-        ),
-      ]).then(() => {
-        exitWizard();
-      });
-    });
+    deployModel(
+      wizardState,
+      project,
+      secretName,
+      exitWizard,
+      deployMethod.properties.deploy,
+      existingDeployment,
+      serverResource,
+      serverResourceTemplateName,
+    );
   }, [
+    deployMethod,
+    deployMethodLoaded,
+    existingDeployment,
     exitWizard,
     project.metadata.name,
-    deployMethodLoaded,
-    deployMethod,
-    wizardState.state,
-    validation.isModelSourceStepValid,
+    secretName,
     validation.isModelDeploymentStepValid,
+    validation.isModelSourceStepValid,
+    wizardState.state,
   ]);
 
   return (
     <ApplicationsPage title={title} description={description} loaded empty={false}>
       <Wizard onClose={exitWizard} onSave={onSave} footer={<WizardFooterWithDisablingNext />}>
         <WizardStep name="Source model" id="source-model-step">
-          <ModelSourceStepContent wizardState={wizardState} validation={validation.modelSource} />
+          {wizardState.loaded.modelSourceLoaded ? (
+            <ModelSourceStepContent wizardState={wizardState} validation={validation.modelSource} />
+          ) : (
+            <Spinner />
+          )}
         </WizardStep>
         <WizardStep
           name="Model deployment"
           id="model-deployment-step"
           isDisabled={!validation.isModelSourceStepValid}
         >
-          <ModelDeploymentStepContent
-            projectName={project.metadata.name}
-            wizardState={wizardState}
-          />
+          {wizardState.loaded.modelDeploymentLoaded ? (
+            <ModelDeploymentStepContent
+              projectName={project.metadata.name}
+              wizardState={wizardState}
+            />
+          ) : (
+            <Spinner />
+          )}
         </WizardStep>
         <WizardStep
           name="Advanced settings (optional)"
           id="advanced-options-step"
           isDisabled={!validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid}
         >
-          <AdvancedSettingsStepContent wizardState={wizardState} project={project} />
+          {wizardState.loaded.advancedOptionsLoaded ? (
+            <AdvancedSettingsStepContent wizardState={wizardState} project={project} />
+          ) : (
+            <Spinner />
+          )}
         </WizardStep>
         <WizardStep
           name="Summary"
@@ -128,7 +167,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
             !validation.isAdvancedSettingsStepValid
           }
         >
-          Review step content
+          {wizardState.loaded.summaryLoaded ? 'Review step content' : <Spinner />}
         </WizardStep>
       </Wizard>
     </ApplicationsPage>
