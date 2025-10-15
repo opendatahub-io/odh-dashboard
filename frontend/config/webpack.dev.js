@@ -91,7 +91,8 @@ module.exports = smp.wrap(
               const username = execSync('oc whoami').toString().trim();
               console.info('Logged in as user:', username);
             } catch (e) {
-              throw new Error('Login with `oc login` prior to starting dev server.');
+              console.error('Login with `oc login` prior to starting dev server.');
+              process.exit(1);
             }
 
             const headers = {
@@ -108,10 +109,10 @@ module.exports = smp.wrap(
                 headers,
               },
               {
-                context: ['/wss/k8s'],
+                context: ['/wss'],
                 target: `wss://${dashboardHost}`,
-                secure: false,
                 ws: true,
+                secure: false,
                 changeOrigin: true,
                 headers,
               },
@@ -123,7 +124,7 @@ module.exports = smp.wrap(
               target: `http://0.0.0.0:${BACKEND_PORT}`,
             },
             {
-              context: ['/wss/k8s'],
+              context: ['/wss'],
               target: `ws://0.0.0.0:${BACKEND_PORT}`,
               ws: true,
             },
@@ -134,22 +135,81 @@ module.exports = smp.wrap(
         },
         client: {
           overlay: false,
+          // Explicit websocket configuration for dynamic ports
           webSocketURL: {
             hostname: 'localhost',
             port: PORT,
             protocol: 'ws',
+            pathname: '/ws',
           },
+          // Enable verbose logging from webpack-dev-server client
+          logging: process.env.CI ? 'verbose' : 'info',
         },
         static: {
           directory: DIST_DIR,
         },
+        setupMiddlewares: (middlewares, devServer) => {
+          // Add debugging middleware to track websocket connections
+          console.log('\n🔧 [WEBPACK] setupMiddlewares called');
+          console.log(`🔧 [WEBPACK] Server will listen on: http://${HOST}:${PORT}`);
+          console.log(`🔧 [WEBPACK] WebSocket URL: ws://localhost:${PORT}/ws`);
+          
+          // Log all incoming requests
+          devServer.app.use((req, res, next) => {
+            if (process.env.CI) {
+              const timestamp = new Date().toISOString();
+              console.log(`[${timestamp}] ${req.method} ${req.url} - Headers: ${JSON.stringify(req.headers.upgrade || 'none')}`);
+            }
+            next();
+          });
+
+          // Track websocket upgrades
+          devServer.server.on('upgrade', (request, socket, head) => {
+            console.log(`\n🔌 [WEBPACK] WebSocket upgrade request received:`);
+            console.log(`   URL: ${request.url}`);
+            console.log(`   Origin: ${request.headers.origin || 'none'}`);
+            console.log(`   Connection: ${request.headers.connection}`);
+            console.log(`   Upgrade: ${request.headers.upgrade}`);
+          });
+
+          // Track websocket connections
+          const wss = devServer.webSocketServer;
+          if (wss) {
+            const originalOn = wss.on.bind(wss);
+            wss.on = function(event, handler) {
+              if (event === 'connection') {
+                return originalOn(event, function(ws, req) {
+                  console.log(`✅ [WEBPACK] WebSocket client connected from: ${req.socket.remoteAddress}`);
+                  
+                  ws.on('close', (code, reason) => {
+                    console.log(`❌ [WEBPACK] WebSocket client disconnected - Code: ${code}, Reason: ${reason || 'none'}`);
+                  });
+                  
+                  ws.on('error', (error) => {
+                    console.error(`⚠️  [WEBPACK] WebSocket error:`, error.message);
+                  });
+                  
+                  return handler.call(this, ws, req);
+                });
+              }
+              return originalOn(event, handler);
+            };
+          }
+
+          return middlewares;
+        },
         onListening: (devServer) => {
           if (devServer) {
+            const actualPort = devServer.server.address().port;
             console.log(
-              `\x1b[32m✓ ODH Dashboard available at: \x1b[4mhttp://localhost:${
-                devServer.server.address().port
-              }\x1b[0m`,
+              `\x1b[32m✓ ODH Dashboard available at: \x1b[4mhttp://localhost:${actualPort}\x1b[0m`,
             );
+            console.log(`🔌 WebSocket endpoint: ws://localhost:${actualPort}/ws`);
+            console.log(`🔌 Expected client connection to: ws://localhost:${PORT}/ws`);
+            if (PORT != actualPort) {
+              console.error(`\x1b[31m⚠️  PORT MISMATCH! Config: ${PORT}, Actual: ${actualPort}\x1b[0m`);
+            }
+            console.log(`📊 File descriptor limit: ${require('child_process').execSync('ulimit -n').toString().trim()}`);
           }
         },
       },
