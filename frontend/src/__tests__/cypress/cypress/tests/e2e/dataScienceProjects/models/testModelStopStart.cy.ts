@@ -1,7 +1,7 @@
 import {
   modelServingGlobal,
   modelServingSection,
-  inferenceServiceModal,
+  modelServingWizard,
 } from '#~/__tests__/cypress/cypress/pages/modelServing.ts';
 import { projectDetails, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
 import type { DataScienceProjectData } from '#~/__tests__/cypress/cypress/types';
@@ -19,8 +19,8 @@ import { MODEL_STATUS_TIMEOUT } from '#~/__tests__/cypress/cypress/support/timeo
 
 let testData: DataScienceProjectData;
 let projectName: string;
-let modelName: string;
 let modelFilePath: string;
+let modelName: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
@@ -57,7 +57,7 @@ describe('A model can be stopped and started', () => {
   it(
     'Verify that a model can be stopped and started',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent'],
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
     },
     () => {
       cy.log('Model Name:', modelName);
@@ -73,19 +73,23 @@ describe('A model can be stopped and started', () => {
       // Navigate to Model Serving section and Deploy a Model
       cy.step('Navigate to Model Serving and deploy a Model');
       projectDetails.findSectionTab('model-server').click();
-      modelServingGlobal.findSingleServingModelButton().click();
-      modelServingGlobal.findDeployModelButton().click();
 
       // Deploy a Model
       cy.step('Deploy a Model');
-      inferenceServiceModal.findModelNameInput().type(testData.singleModelName);
-      inferenceServiceModal.findServingRuntimeTemplateSearchSelector().click();
-      inferenceServiceModal.findGlobalScopedTemplateOption('OpenVINO Model Server').click();
-      inferenceServiceModal.findModelFrameworkSelect().click();
-      inferenceServiceModal.findOpenVinoIROpSet13().click();
-      inferenceServiceModal.findLocationPathInput().type(modelFilePath);
-      inferenceServiceModal.findSubmitButton().click();
-      inferenceServiceModal.shouldBeOpen(false);
+      modelServingGlobal.findDeployModelButton().click();
+      // Step 1: Model Source
+      modelServingWizard.findModelLocationSelectOption('Existing connection').click();
+      modelServingWizard.findLocationPathInput().type(modelFilePath);
+      modelServingWizard.findModelTypeSelectOption('Predictive model').click();
+      modelServingWizard.findNextButton().click();
+      // Step 2: Model Deployment
+      modelServingWizard.findModelDeploymentNameInput().type(modelName);
+      modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
+      modelServingWizard.findNextButton().click();
+      //Step 3: Advanced Options
+      modelServingWizard.findNextButton().click();
+      //Step 4: Summary
+      modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(testData.singleModelName);
       const kServeRow = modelServingSection.getKServeRow(testData.singleModelName);
 
