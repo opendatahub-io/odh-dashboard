@@ -1,6 +1,6 @@
 name: E2E Direct Commit PR Tests
 
-on: [push]
+on: [push, pull_request]
 
 permissions:
   contents: read
@@ -533,12 +533,11 @@ jobs:
           # Create results directory
           mkdir -p "$CY_RESULTS_DIR"
 
-          # Run tests with BASE_URL inline (EXACT match to upstream working config)
-          # NO --config baseUrl=... (let BASE_URL env var handle it)
-          echo "🚀 Running Cypress with BASE_URL=http://localhost:${CYPRESS_PORT} (upstream pattern)..."
-          BASE_URL=http://localhost:${CYPRESS_PORT} npm run cypress:run:electron -- \
+          # Try disabling video to see if that's causing port conflicts
+          echo "🚀 Running Cypress WITHOUT video (testing if video recording causes port conflict)..."
+          BASE_URL=http://localhost:${CYPRESS_PORT} DEBUG=cypress:server:* npm run cypress:run:electron -- \
             --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true \
-            --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos" 2>&1 | tee /tmp/cypress_run.log || {
+            --config video=false,screenshotsFolder="$CY_RESULTS_DIR/screenshots" 2>&1 | tee /tmp/cypress_run.log || {
             
             CYPRESS_EXIT_CODE=$?
             echo ""
