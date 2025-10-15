@@ -846,11 +846,11 @@ declare global {
           response: OdhResponse<RoleBindingKind>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_artifacts/:artifactId',
+          type: 'PATCH /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_artifacts/:artifactId',
           options: {
-            path: { serviceName: string; apiVersion: string; artifactId: string };
+            path: { apiVersion: string; modelRegistryName: string; artifactId: string };
           },
-          response: OdhResponse<ModelArtifact>,
+          response: { data: OdhResponse<ModelArtifact> },
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/accelerators',

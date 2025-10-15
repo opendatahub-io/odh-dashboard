@@ -465,31 +465,18 @@ describe('Model version details', () => {
       modelVersionDetails.visit();
     });
 
-    // TODO: Fix this test
-    it.skip('should update source model format', () => {
+    it('should update source model format', () => {
       cy.interceptOdh(
-        'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_artifacts/:artifactId',
+        'PATCH /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_artifacts/:artifactId',
         {
           path: {
-            serviceName: 'modelregistry-sample',
+            modelRegistryName: 'modelregistry-sample',
             apiVersion: MODEL_REGISTRY_API_VERSION,
             artifactId: '1',
           },
         },
-        mockModelArtifact({}),
+        { data: mockModelArtifact({}) },
       ).as('updateModelFormat');
-
-      cy.interceptOdh(
-        'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId',
-        {
-          path: {
-            serviceName: 'modelregistry-sample',
-            apiVersion: MODEL_REGISTRY_API_VERSION,
-            registeredModelId: '1',
-          },
-        },
-        mockRegisteredModel({}),
-      );
 
       modelVersionDetails.findSourceModelFormat('edit').click();
       modelVersionDetails
@@ -500,44 +487,31 @@ describe('Model version details', () => {
       modelVersionDetails.findSourceModelFormat('save').click();
 
       cy.wait('@updateModelFormat').then((interception) => {
-        expect(interception.request.body).to.deep.equal({
+        expect(interception.request.body.data).to.deep.equal({
           modelFormatName: 'UpdatedFormat',
         });
       });
     });
 
-    // TODO: Fix this test
-    it.skip('should update source model version', () => {
+    it('should update source model version', () => {
       cy.interceptOdh(
-        'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_artifacts/:artifactId',
+        'PATCH /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_artifacts/:artifactId',
         {
           path: {
-            serviceName: 'modelregistry-sample',
+            modelRegistryName: 'modelregistry-sample',
             apiVersion: MODEL_REGISTRY_API_VERSION,
             artifactId: '1',
           },
         },
-        mockModelArtifact({}),
+        { data: mockModelArtifact({}) },
       ).as('updateModelVersion');
-
-      cy.interceptOdh(
-        'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId',
-        {
-          path: {
-            serviceName: 'modelregistry-sample',
-            apiVersion: MODEL_REGISTRY_API_VERSION,
-            registeredModelId: '1',
-          },
-        },
-        mockRegisteredModel({}),
-      );
 
       modelVersionDetails.findSourceModelVersion('edit').click();
       modelVersionDetails.findSourceModelVersion('group').find('input').clear().type('2.0.0');
       modelVersionDetails.findSourceModelVersion('save').click();
 
       cy.wait('@updateModelVersion').then((interception) => {
-        expect(interception.request.body).to.deep.equal({
+        expect(interception.request.body.data).to.deep.equal({
           modelFormatVersion: '2.0.0',
         });
       });
