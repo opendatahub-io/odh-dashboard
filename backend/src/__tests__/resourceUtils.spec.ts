@@ -12,7 +12,6 @@ describe('resourceUtils', () => {
           status: 'True',
         },
       ],
-      installedComponents: {},
       phase: 'Running',
       release: {
         name,

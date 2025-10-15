@@ -1401,13 +1401,15 @@ export type K8sResourceListResult<TResource extends Partial<K8sResourceCommon>> 
   };
 };
 
+export type ManagementState = 'Managed' | 'Unmanaged' | 'Removed';
+
 /** Represents a component in the DataScienceCluster. */
 export type DataScienceClusterComponent = {
   /**
    * The management state of the component (e.g., Managed, Removed).
    * Indicates whether the component is being actively managed or not.
    */
-  managementState?: 'Managed' | 'Removed';
+  managementState?: ManagementState;
 };
 
 /** Defines a DataScienceCluster with various components. */
@@ -1453,7 +1455,7 @@ export type DataScienceClusterComponentStatus = {
    * The management state of the component (e.g., Managed, Removed).
    * Indicates whether the component is being actively managed or not.
    */
-  managementState?: 'Managed' | 'Removed';
+  managementState?: ManagementState;
 
   /**
    * List of releases for the component.
@@ -1493,13 +1495,18 @@ export type DataScienceClusterKindStatus = {
     };
   };
   conditions: K8sCondition[];
-  installedComponents?: { [key in StackComponent]?: boolean };
   phase?: string;
   release?: {
     name: string;
     version: string;
   };
 };
+
+/**
+ * @deprecated The operator no longer exposes installedComponents.
+ * Use DataScienceClusterKindStatus.components.*.managementState instead.
+ */
+export type DataScienceClusterInstalledComponents = { [key in StackComponent]?: boolean };
 
 export type DataScienceClusterInitializationKindStatus = {
   conditions: K8sCondition[];
