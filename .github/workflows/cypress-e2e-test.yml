@@ -1,6 +1,6 @@
 name: E2E Direct Commit PR Tests
 
-on: [push]
+on: [push, pull_request]
 
 permissions:
   contents: read
@@ -17,8 +17,10 @@ jobs:
     steps:
       - name: Set default test tags
         id: set-tags
+        # Created 2 new tags - @ci-dashboard-set-1 and @ci-dashboard-set-2
+        # ToDO: Use turbo to run tests according to PR changes.
         run: |
-          echo "test-tags=[\"@ci-dashboard-set-1\"]" >> $GITHUB_OUTPUT
+          echo "test-tags=[\"@ci-dashboard-set-1\",\"@ci-dashboard-set-2\"]" >> $GITHUB_OUTPUT
 
   e2e-tests:
     needs: [get-test-tags]
@@ -30,24 +32,24 @@ jobs:
     steps:
       - name: Calculate unique port for this workflow run
         run: |
-          # Generate unique port using run_id AND matrix index to avoid conflicts
-          # Port range: 4000-4999 (1000 possible ports)
-          BASE_PORT=$((4000 + ((${{ github.run_id }} % 100) * 10)))
+          # Simple dynamic port: start at 4010 and add run_id % 10
+          # This gives us ports 4010-4019 cycling across runs
+          BASE_PORT=4010
+          PORT_OFFSET=$((${{ github.run_id }} % 10))
           
-          # Add offset based on matrix test-tag to ensure each matrix job gets unique port
+          # Add matrix offset to separate concurrent jobs
           if [[ "${{ matrix.test-tag }}" == *"set-1"* ]]; then
             MATRIX_OFFSET=0
           elif [[ "${{ matrix.test-tag }}" == *"set-2"* ]]; then
-            MATRIX_OFFSET=1
+            MATRIX_OFFSET=20
           else
-            MATRIX_OFFSET=2
+            MATRIX_OFFSET=40
           fi
           
-          CYPRESS_PORT=$((BASE_PORT + MATRIX_OFFSET))
-          
+          CYPRESS_PORT=$((BASE_PORT + PORT_OFFSET + MATRIX_OFFSET))
           echo "CYPRESS_PORT=$CYPRESS_PORT" >> $GITHUB_ENV
-          echo "📍 Workflow run ${{ github.run_id }} matrix ${{ matrix.test-tag }} will use port: $CYPRESS_PORT"
-          echo "🏷️  Test tag: ${{ matrix.test-tag }}"
+          
+          echo "📍 Port for run ${{ github.run_id }} (tag: ${{ matrix.test-tag }}): $CYPRESS_PORT"
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -129,12 +131,13 @@ jobs:
         run: |
           echo "🔧 Installing Cypress system dependencies for Fedora (based on Cypress docs)..."
 
+          # Use the simplified approach from Cypress documentation for Amazon Linux 2023 (Fedora-compatible)
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             echo "📦 Installing minimal Cypress dependencies for Linux..."
 
             # Based on Cypress docs for Amazon Linux 2023 - Fedora compatible
             echo "Installing core dependencies..."
-            sudo dnf install -y gtk3-devel nss alsa-lib
+            sudo dnf install -y xorg-x11-server-Xvfb gtk3-devel nss alsa-lib
 
             # Add the missing ATK packages that Cypress actually needs
             echo "Installing ATK dependencies..."
@@ -149,7 +152,11 @@ jobs:
 
             # Verify installations
             echo "🔍 Verifying installations..."
-            echo "✅ Using Electron's built-in display handling (no Xvfb needed)"
+            if command -v Xvfb &> /dev/null; then
+              echo "✅ Xvfb installed"
+            else
+              echo "❌ Xvfb missing"
+            fi
 
             if ldconfig -p | grep -q libnss3; then
               echo "✅ NSS libraries installed"
@@ -158,9 +165,13 @@ jobs:
             fi
 
             if ldconfig -p | grep -q libatk; then
-              echo "✅ ATK libraries installed"
+              echo "✅ ATK libraries installed (fixes libatk-1.0.so.0 error)"
+              echo "📋 ATK libraries found:"
+              ldconfig -p | grep libatk
             else
-              echo "❌ ATK libraries missing"
+              echo "❌ ATK libraries missing - checking what we have..."
+              sudo dnf list installed | grep -i atk || echo "No ATK packages found"
+              find /usr/lib* -name "*libatk*" 2>/dev/null || echo "No ATK libraries found in filesystem"
             fi
 
             echo "🎯 Cypress dependencies installation completed"
@@ -224,14 +235,6 @@ jobs:
             echo "🔄 Both secrets are available, attempting download..."
             echo "Token length: ${#GITLAB_TOKEN}"
             echo "URL length: ${#GITLAB_TEST_VARS_URL}"
-
-            # Debug: Show first few characters of secrets (safely)
-            if [ -n "${{ secrets.GITLAB_TOKEN }}" ]; then
-              echo "Token starts with: ${{ secrets.GITLAB_TOKEN }}" | cut -c1-10
-            fi
-            if [ -n "${{ secrets.GITLAB_TEST_VARS_URL }}" ]; then
-              echo "URL starts with: ${{ secrets.GITLAB_TEST_VARS_URL }}" | cut -c1-20
-            fi
 
             # Try with SSL verification disabled (for self-signed certs)
             if curl -f -k -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
@@ -324,28 +327,59 @@ jobs:
 
       - name: Set test configuration
         run: |
-          # Keep test-variables.yml as-is (with cluster URLs for API calls)
-          # Only use BASE_URL to tell the browser where to navigate
-          TEST_VARS_FILE="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
-          
-          echo "✅ Using test-variables.yml with cluster URLs for API calls"
-          echo "✅ Browser will navigate to localhost:${CYPRESS_PORT} via BASE_URL"
-          
-          export CY_TEST_CONFIG="$TEST_VARS_FILE"
+          # IMPORTANT: Always use localhost with dynamic port for Cypress tests
+          # The webpack dev server proxies API calls to the cluster
+          echo "🔧 Updating test-variables.yml to use localhost:${CYPRESS_PORT}..."
+          sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:${CYPRESS_PORT}|g" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+          sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:${CYPRESS_PORT}|g" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+
+          echo "📝 Verifying updated URLs:"
+          grep "ODH_DASHBOARD_URL:" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml | head -3
+          grep "OCP_CONSOLE_URL:" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml | head -3
+
+          export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
+          echo "✅ Test config set to use localhost:${CYPRESS_PORT}"
 
       - name: Start Cypress Server
         run: |
-          # Increase file descriptor limit for parallel execution
-          echo "🔧 Increasing system limits for parallel execution..."
-          ulimit -n 65536 || echo "⚠️  Could not increase file descriptor limit (current: $(ulimit -n))"
-          echo "File descriptors: $(ulimit -n)"
+          echo "🧹 Targeted cleanup of port ${CYPRESS_PORT} only (preserving other parallel jobs)..."
           
-          echo "🧹 Cleaning up any existing processes on port ${CYPRESS_PORT}..."
-          pkill -f "webpack.*serve" || echo "No webpack processes found"
-          lsof -ti:${CYPRESS_PORT} | xargs kill -9 2>/dev/null || echo "No node processes on port ${CYPRESS_PORT}"
-          sleep 2
+          # ONLY kill processes using OUR specific port - do NOT touch other ports!
+          if lsof -i:${CYPRESS_PORT} > /dev/null 2>&1; then
+            echo "⚠️  Port ${CYPRESS_PORT} is in use, cleaning up..."
+            lsof -i:${CYPRESS_PORT}
+            lsof -ti:${CYPRESS_PORT} | xargs -r kill -9 2>/dev/null || true
+          else
+            echo "✅ Port ${CYPRESS_PORT} is already free"
+          fi
           
-          echo "🚀 Starting webpack dev server on port ${CYPRESS_PORT} with cluster proxy..."
+          # Give processes time to fully terminate
+          sleep 3
+          
+          # Verify port is actually free with retry logic
+          echo "🔍 Verifying port ${CYPRESS_PORT} is free..."
+          RETRY_COUNT=0
+          while lsof -i:${CYPRESS_PORT} > /dev/null 2>&1; do
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            if [ $RETRY_COUNT -gt 10 ]; then
+              echo "❌ Port ${CYPRESS_PORT} still in use after cleanup!"
+              echo "Processes using port:"
+              lsof -i:${CYPRESS_PORT}
+              echo ""
+              echo "This may indicate:"
+              echo "  1. A previous run didn't clean up properly"
+              echo "  2. Another process is using this port"
+              echo "  3. Port is in TIME_WAIT state"
+              exit 1
+            fi
+            echo "⏳ Port ${CYPRESS_PORT} still in use, retrying cleanup... (attempt $RETRY_COUNT/10)"
+            lsof -ti:${CYPRESS_PORT} | xargs -r kill -9 2>/dev/null || true
+            sleep 2
+          done
+          
+          echo "✅ Port ${CYPRESS_PORT} is free and ready!"
+          
+          echo "🚀 Starting webpack dev server with cluster proxy on port ${CYPRESS_PORT}..."
           cd frontend && ODH_PORT=${CYPRESS_PORT} npm run start:dev:ext &
           
           SERVER_PID=$!
@@ -361,12 +395,12 @@ jobs:
           echo "⏳ Waiting for localhost:${CYPRESS_PORT} to be ready..."
           # Use HTTP check instead of TCP since server is clearly running
           npx wait-on http://localhost:${CYPRESS_PORT} --timeout 120000
-          echo "✅ Server is responding to HTTP on port ${CYPRESS_PORT}!"
+          echo "✅ Server is responding to HTTP!"
           
           # Verify the application actually loads with more details
           echo "🔍 Verifying application loads properly..."
           for i in {1..10}; do
-            echo "🔄 Attempt $i/10: Testing application on port ${CYPRESS_PORT}..."
+            echo "🔄 Attempt $i/10: Testing application..."
             
             # Check if basic page loads
             if curl -s -f http://localhost:${CYPRESS_PORT}/ > /tmp/response.html 2>/dev/null; then
@@ -395,7 +429,7 @@ jobs:
           # Final verification with detailed debugging
           echo "🔍 Final application verification..."
           if curl -s -f http://localhost:${CYPRESS_PORT}/ | grep -q "Data Science Projects\|ODH\|Open Data Hub\|Dashboard"; then
-            echo "✅ Server is ready and application is loaded on port ${CYPRESS_PORT}!"
+            echo "✅ Server is ready and application is loaded!"
             
             # Test API endpoint
             echo "🔍 Testing API endpoint..."
@@ -405,7 +439,7 @@ jobs:
               echo "⚠️  API endpoint test failed, but frontend is working"
             fi
           else
-            echo "❌ Application failed to load properly on port ${CYPRESS_PORT}"
+            echo "❌ Application failed to load properly"
             echo ""
             echo "📊 Debugging information:"
             echo "🔄 Server process status:"
@@ -427,75 +461,7 @@ jobs:
             exit 1
           fi
 
-      - name: Debug Cypress Environment
-        run: |
-          cd frontend
-          
-          echo "🔍 ==================== DEBUGGING CYPRESS ENVIRONMENT ===================="
-          echo "📍 Current Port: ${CYPRESS_PORT}"
-          echo "📍 BASE_URL that will be used: http://localhost:${CYPRESS_PORT}"
-          
-          echo ""
-          echo "🌐 Network Connectivity Tests:"
-          echo "   Testing localhost resolution..."
-          ping -c 2 localhost || echo "⚠️  Ping failed"
-          
-          echo ""
-          echo "   Testing port connectivity with nc..."
-          nc -zv localhost ${CYPRESS_PORT} 2>&1 || echo "⚠️  nc test failed"
-          
-          echo ""
-          echo "   Testing HTTP connectivity with curl (detailed)..."
-          curl -v http://localhost:${CYPRESS_PORT}/ 2>&1 | head -30
-          
-          echo ""
-          echo "🔧 Environment Variables (filtered for safety):"
-          env | grep -E "(CYPRESS|PORT|URL|BASE|HOST|CI|NODE)" | sort
-          
-          echo ""
-          echo "📦 Cypress Binary Info:"
-          npx cypress info || echo "⚠️  Cypress info failed"
-          
-          echo ""
-          echo "🖥️  System Info:"
-          uname -a
-          echo "User: $(whoami)"
-          echo "Home: $HOME"
-          echo "PWD: $(pwd)"
-          
-          echo ""
-          echo "🌐 Network Interfaces:"
-          ip addr show 2>/dev/null || ifconfig
-          
-          echo ""
-          echo "🔌 All Listening Ports:"
-          netstat -tlnp 2>/dev/null | head -20 || ss -tlnp | head -20
-          
-          echo ""
-          echo "🔌 Specific Port ${CYPRESS_PORT}:"
-          netstat -tlnp 2>/dev/null | grep ${CYPRESS_PORT} || ss -tlnp | grep ${CYPRESS_PORT} || echo "⚠️  Port ${CYPRESS_PORT} not found in netstat/ss"
-          
-          echo ""
-          echo "🔍 Process tree:"
-          ps auxf | grep -E "(webpack|node|cypress|electron)" | grep -v grep | head -20
-          
-          echo ""
-          echo "🧪 Direct localhost connectivity test:"
-          for method in "127.0.0.1" "localhost" "::1"; do
-            echo "   Testing with $method:${CYPRESS_PORT}..."
-            curl -s -o /dev/null -w "   %{http_code} - %{time_total}s\n" http://$method:${CYPRESS_PORT}/ 2>&1 || echo "   ❌ Failed with $method"
-          done
-          
-          echo "============================================================================"
-
       - name: Run E2E Tests
-        env:
-          CY_TEST_CONFIG: ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
-          CY_RESULTS_DIR: ${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}
-          CYPRESS_BASE_URL: http://localhost:${{ env.CYPRESS_PORT }}
-          DEBUG: cypress:server:browsers*,cypress:server:util:process_profiler
-          ELECTRON_ENABLE_LOGGING: 1
-          CI: true
         run: |
           cd frontend
 
@@ -503,20 +469,13 @@ jobs:
           echo "Event: ${{ github.event_name }}"
           echo "Branch: ${{ github.ref_name }}"
           echo "Commit: ${{ github.sha }}"
-          
-          # DEBUG: Verify environment setup (DO NOT show test-variables.yml content)
-          echo ""
-          echo "=== Environment Verification ==="
-          echo "CY_TEST_CONFIG: $CY_TEST_CONFIG"
-          echo "CY_RESULTS_DIR: $CY_RESULTS_DIR"
-          echo "CYPRESS_PORT: ${CYPRESS_PORT}"
-          echo "CYPRESS_BASE_URL: $CYPRESS_BASE_URL"
-          echo "Using Electron (same as working version, but with dynamic ports)"
-          echo "================================"
-          echo ""
 
           # Run real E2E tests (not mock mode)
           echo "🚀 Running real E2E tests against live dashboard"
+
+          # Run tests with matrix tag using Jenkins-style command format
+          export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
+          export CY_RESULTS_DIR="${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}"
 
           # Ensure OpenShift configuration is available to Cypress process
           if [ -n "$KUBECONFIG" ]; then
@@ -532,74 +491,13 @@ jobs:
           echo "📋 Test group: ${{ matrix.test-tag }}"
 
           # Use Jenkins-style command format for proper tag filtering
-          echo "🔄 Using Electron browser (like working version)"
-          
-          # Increase file descriptor limit for Electron/Cypress
-          echo "🔧 Setting file descriptor limit for Electron..."
-          ulimit -n 65536 || echo "⚠️  Could not increase file descriptor limit (current: $(ulimit -n))"
-          echo "File descriptors for Cypress: $(ulimit -n)"
+          echo "🔄 Using chrome browser"
 
           # Create results directory
           mkdir -p "$CY_RESULTS_DIR"
 
-          echo "🐛 Cypress debug logging enabled for browser launch troubleshooting"
-
-          # Run tests with explicit baseUrl override in multiple places to ensure it's set
-          npm run cypress:run:electron -- \
-            --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true \
-            --config baseUrl=http://localhost:${CYPRESS_PORT},video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
-
-      - name: Debug Test Failure
-        if: failure()
-        run: |
-          echo "🔍 ==================== POST-MORTEM DEBUGGING ===================="
-          
-          echo ""
-          echo "📊 Webpack server still running?"
-          ps aux | grep -E "(webpack|node.*${CYPRESS_PORT})" | grep -v grep | head -10 || echo "No webpack/node processes found"
-          
-          echo ""
-          echo "📊 Electron/Cypress processes:"
-          ps aux | grep -E "(electron|cypress)" | grep -v grep | head -10 || echo "No electron/cypress processes found"
-          
-          echo ""
-          echo "🌐 Can we still reach the server from this shell?"
-          curl -v http://localhost:${CYPRESS_PORT}/ 2>&1 | head -30 || echo "❌ curl failed"
-          
-          echo ""
-          echo "🔌 Network ports still listening:"
-          netstat -tlnp 2>/dev/null | grep LISTEN | head -20 || ss -tlnp | grep LISTEN | head -20
-          
-          echo ""
-          echo "📝 Looking for error logs:"
-          find /tmp -name "*webpack*" -o -name "*cypress*" -o -name "*electron*" 2>/dev/null | head -10
-          
-          echo ""
-          echo "📝 Recent Cypress logs (if any):"
-          find ~/.cache/Cypress -name "*.log" -mmin -30 -exec echo "File: {}" \; -exec tail -20 {} \; 2>/dev/null | head -50
-          
-          echo ""
-          echo "📝 Checking for crash dumps:"
-          find /tmp -name "core.*" -o -name "*.dmp" -mmin -30 2>/dev/null | head -5
-          
-          echo "============================================================================"
-
-      - name: Debug Electron on failure
-        if: ${{ failure() }}
-        run: |
-          echo "=== ADDITIONAL ELECTRON DEBUGGING ==="
-          echo ""
-          echo "1. Check if Electron processes launched:"
-          ps aux | grep -v grep | grep electron | head -5 || echo "No Electron processes found"
-          echo ""
-          echo "2. Check Cypress processes:"
-          ps aux | grep -v grep | grep cypress | head -3 || echo "No Cypress processes"
-          echo ""
-          echo "3. Check for Electron crash logs:"
-          find /tmp -name "*electron*" -o -name "*cypress*" 2>/dev/null | grep -i "log\|crash" | head -5 || echo "No crash logs found"
-          echo ""
-          echo "4. Check /var/log for relevant errors:"
-          sudo tail -50 /var/log/messages 2>/dev/null | grep -i "electron\|cypress\|chrome" || echo "No system logs found"
+          # Run tests against dynamic port (baseUrl is set in test-variables.yml)
+          npm run cypress:run:chrome -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Test tag name
         if: ${{ always() }}
@@ -627,7 +525,6 @@ jobs:
           echo "Event: ${{ github.event_name }}"
           echo "Branch: ${{ github.ref_name }}"
           echo "Test Tag: ${{ matrix.test-tag }}"
-          echo "Port: ${CYPRESS_PORT}"
           echo "Commit: ${{ github.sha }}"
           echo "Run ID: ${{ github.run_id }}"
           echo ""
@@ -641,15 +538,10 @@ jobs:
     steps:
       - name: Stop Cypress Servers
         run: |
-          echo "🛑 Stopping all webpack dev servers..."
+          echo "🛑 Stopping webpack dev server..."
+          if [ -n "$SERVER_PID" ]; then
+            kill $SERVER_PID || echo "Failed to kill SERVER_PID"
+          fi
           pkill -f "webpack.*serve" || echo "No webpack processes found"
-          
-          # Clean up common port range
-          for port in {4000..4999..10}; do
-            if lsof -ti:$port >/dev/null 2>&1; then
-              echo "🧹 Cleaning up port $port"
-              lsof -ti:$port | xargs kill -9 2>/dev/null || true
-            fi
-          done
-          
+          pkill -f "node.*40[0-9][0-9]" || echo "No node processes on dynamic ports"
           echo "✅ Server cleanup completed"
