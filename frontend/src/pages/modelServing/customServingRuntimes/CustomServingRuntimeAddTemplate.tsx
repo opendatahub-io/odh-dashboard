@@ -137,6 +137,7 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
     return sortedA.every((val, index) => val === sortedB[index]);
   };
 
+  const isDeploymentWizardEnabled = useIsAreaAvailable(SupportedArea.DEPLOYMENT_WIZARD).status;
   const isDisabled =
     (!state &&
       code === stringifiedTemplate &&
@@ -145,10 +146,8 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
       modelTypesEqual(modelTypes, selectedModelTypes)) ||
     code === '' ||
     !selectedAPIProtocol ||
-    selectedModelTypes.length === 0 ||
+    (isDeploymentWizardEnabled && selectedModelTypes.length === 0) ||
     loading;
-
-  const isDeploymentWizardEnabled = useIsAreaAvailable(SupportedArea.DEPLOYMENT_WIZARD).status;
 
   return (
     <ApplicationsPage
