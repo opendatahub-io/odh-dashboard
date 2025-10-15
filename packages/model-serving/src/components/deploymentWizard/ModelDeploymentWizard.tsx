@@ -141,9 +141,10 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         clearError={() => setSubmitError(null)}
         isLoading={isLoading}
         submitButtonText={primaryButtonText}
+        isAdvancedSettingsStepValid={validation.isAdvancedSettingsStepValid} //TODO: Remove this line once summary page is added
       />
     ),
-    [submitError, isLoading, primaryButtonText],
+    [submitError, isLoading, primaryButtonText, validation.isAdvancedSettingsStepValid], //TODO: Remove validation.isAdvancedSettingsStepValid once summary page is added
   );
 
   return (
@@ -173,10 +174,6 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         <WizardStep
           name="Advanced settings (optional)"
           id="advanced-options-step"
-          footer={{
-            nextButtonText: primaryButtonText,
-            isNextDisabled: !validation.isAdvancedSettingsStepValid,
-          }} //TODO: Remove this footer when summary page is added
           isDisabled={!validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid}
         >
           {wizardState.loaded.advancedOptionsLoaded ? (

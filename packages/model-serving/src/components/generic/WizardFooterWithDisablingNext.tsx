@@ -17,6 +17,7 @@ type WizardFooterWithDisablingNextProps = {
   clearError?: () => void;
   isLoading?: boolean;
   submitButtonText?: string;
+  isAdvancedSettingsStepValid?: boolean; //TODO: Remove line when summary page added
 };
 
 // When clicking Next, the default WizardFooter will skip over disabled steps, but we want to prevent that and just disable the Next button
@@ -26,10 +27,12 @@ export const WizardFooterWithDisablingNext: React.FC<WizardFooterWithDisablingNe
   clearError,
   isLoading,
   submitButtonText = 'Deploy model',
+  isAdvancedSettingsStepValid = true, //TODO: Remove line when summary page added
 }) => {
   const { activeStep, steps, goToNextStep, goToPrevStep, close } = useWizardContext();
 
   const isFinalStep = activeStep.index === steps.length;
+  const isNextDisabled = !isAdvancedSettingsStepValid; //TODO: Remove line when summary page added
 
   return (
     <WizardFooterWrapper>
@@ -64,7 +67,7 @@ export const WizardFooterWithDisablingNext: React.FC<WizardFooterWithDisablingNe
                   variant="primary"
                   onClick={goToNextStep}
                   isLoading={isLoading}
-                  isDisabled={isLoading || steps[activeStep.index]?.isDisabled}
+                  isDisabled={isLoading || steps[activeStep.index]?.isDisabled || isNextDisabled} //TODO: Remove isNextDisabled when summary page added
                 >
                   {isFinalStep ? submitButtonText : 'Next'}
                 </Button>
