@@ -342,7 +342,7 @@ func (app *App) AttachMaaSClient(next func(http.ResponseWriter, *http.Request, h
 					app.handleMaaSClientError(w, r, maas.NewServerUnavailableError(""))
 					return
 				}
-				
+
 				k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
 				if err != nil {
 					logger.Error("failed to get Kubernetes client for MaaS autodiscovery", "error", err)
