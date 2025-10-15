@@ -225,8 +225,7 @@ describe('Archiving version', () => {
     modelVersionArchive.findVersionDeploymentTab().should('exist');
   });
 
-  // TODO: Fix this test
-  it.skip('Archived version details page does not have the Deployments tab', () => {
+  it('Archived version details page does not have the Deployments tab', () => {
     initIntercepts({});
     modelVersionArchive.visitArchiveVersionDetail();
     modelVersionArchive.findVersionDetailsTab().should('exist');
@@ -254,8 +253,7 @@ describe('Archiving version', () => {
     modelVersionRow.findKebabAction('Archive model version').should('have.attr', 'aria-disabled');
   });
 
-  // TODO: Fix this test
-  it.skip('Cannot archive model that has versions with a deployment', () => {
+  it('Cannot archive model that has versions with a deployment', () => {
     cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
     cy.interceptK8sList(
       InferenceServiceModel,
@@ -268,19 +266,26 @@ describe('Archiving version', () => {
     modelRegistry
       .findModelVersionsHeaderAction()
       .findDropdownItem('Archive model')
-      .should('have.attr', 'aria-disabled');
+      .should('be.disabled');
   });
 
-  // TODO: Fix this test
-  it.skip('Cannot archive model version with deployment from the version detail page', () => {
+  it('Cannot archive model version with deployment from the version detail page', () => {
     cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
     cy.interceptK8sList(
       InferenceServiceModel,
-      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+      mockK8sResourceList([
+        mockInferenceServiceK8sResource({
+          additionalLabels: {
+            [KnownLabels.REGISTERED_MODEL_ID]: '1',
+            [KnownLabels.MODEL_VERSION_ID]: '3',
+          },
+        }),
+      ]),
     );
     initIntercepts({});
     modelVersionArchive.visitModelVersionDetails();
-    cy.findByTestId('model-version-details-action-button')
+    modelVersionArchive
+      .findModelVersionsDetailsHeaderAction()
       .findDropdownItem('Archive model version')
       .should('have.attr', 'aria-disabled');
   });
