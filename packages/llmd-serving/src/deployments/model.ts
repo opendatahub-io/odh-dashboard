@@ -14,21 +14,29 @@ import {
 } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
 import type { LLMdContainer, LLMInferenceServiceKind, LLMdDeployment } from '../types';
 import { AvailableAiAssetsFieldsData } from '../../../model-serving/src/components/deploymentWizard/fields/AvailableAiAssetsFields';
+import { RuntimeArgsFieldData } from '../../../model-serving/src/components/deploymentWizard/fields/RuntimeArgsField';
+import { EnvironmentVariablesFieldData } from '../../../model-serving/src/components/deploymentWizard/fields/EnvironmentVariablesField';
+import { CreateConnectionData } from '../../../model-serving/src/components/deploymentWizard/fields/CreateConnectionInputFields';
 
 export const applyModelLocation = (
   llmdInferenceService: LLMInferenceServiceKind,
   modelLocationData: ModelLocationData,
   secretName?: string,
+  createConnectionData?: CreateConnectionData,
   dryRun?: boolean,
 ): LLMInferenceServiceKind => {
   const result = structuredClone(llmdInferenceService);
   result.metadata.annotations = {
     ...result.metadata.annotations,
   };
+
   if (!dryRun) {
     // Only add the connection name in the actual request (dry run will fail if the connection doesn't exist yet)
     result.metadata.annotations[MetadataAnnotation.ConnectionName] =
-      modelLocationData.connection ?? secretName ?? '';
+      secretName ?? createConnectionData?.nameDesc?.name ?? '';
+  } else {
+    // Remove the connection name in the dry run or it will conflict during updates
+    delete result.metadata.annotations[MetadataAnnotation.ConnectionName];
   }
   // Adds path annotation for S3
   if (
@@ -68,7 +76,7 @@ export const extractModelFormat = (): SupportedModelFormats | null => {
 /**
  * Helper function to ensure the main container exists and return a cloned service with the container
  */
-const structuredCloneWithMainContainer = (
+export const structuredCloneWithMainContainer = (
   llmdInferenceService: LLMInferenceServiceKind,
 ): {
   result: LLMInferenceServiceKind;
@@ -94,27 +102,27 @@ const structuredCloneWithMainContainer = (
 
 export const applyModelArgs = (
   llmdInferenceService: LLMInferenceServiceKind,
-  modelArgs?: string[],
+  modelArgs?: RuntimeArgsFieldData,
 ): LLMInferenceServiceKind => {
   const { result, mainContainer } = structuredCloneWithMainContainer(llmdInferenceService);
-  if (!modelArgs) {
+  if (!modelArgs?.enabled) {
     delete mainContainer.args;
     return result;
   }
-  mainContainer.args = modelArgs;
+  mainContainer.args = modelArgs.args;
   return result;
 };
 
 export const applyModelEnvVars = (
   llmdInferenceService: LLMInferenceServiceKind,
-  modelEnvVars?: { name: string; value: string }[],
+  modelEnvVars?: EnvironmentVariablesFieldData,
 ): LLMInferenceServiceKind => {
   const { result, mainContainer } = structuredCloneWithMainContainer(llmdInferenceService);
-  if (!modelEnvVars) {
+  if (!modelEnvVars?.enabled) {
     delete mainContainer.env;
     return result;
   }
-  mainContainer.env = modelEnvVars;
+  mainContainer.env = modelEnvVars.variables;
   return result;
 };
 
@@ -221,7 +229,7 @@ export const extractAiAssetData = (
 ): AvailableAiAssetsFieldsData => {
   return {
     saveAsAiAsset:
-      llmdInferenceService.model.metadata.annotations?.['opendatahub.io/genai-asset'] === 'true',
+      llmdInferenceService.model.metadata.labels?.['opendatahub.io/genai-asset'] === 'true',
     useCase:
       llmdInferenceService.model.metadata.annotations?.['opendatahub.io/genai-use-case'] || '',
   };
@@ -229,38 +237,42 @@ export const extractAiAssetData = (
 
 export const applyAiAvailableAssetAnnotations = (
   llmdInferenceService: LLMInferenceServiceKind,
-  aiAssetData: AvailableAiAssetsFieldsData,
+  aiAssetData?: AvailableAiAssetsFieldsData,
 ): LLMInferenceServiceKind => {
   const result = structuredClone(llmdInferenceService);
-  const annotations = {
-    ...result.metadata.annotations,
+  result.metadata.labels = {
+    ...result.metadata.labels,
+    'opendatahub.io/genai-asset': aiAssetData?.saveAsAiAsset ? 'true' : 'false',
   };
-  if (aiAssetData.saveAsAiAsset) {
-    annotations['opendatahub.io/genai-asset'] = 'true';
-    if (aiAssetData.useCase) {
-      annotations['opendatahub.io/genai-use-case'] = aiAssetData.useCase;
-    } else {
-      delete annotations['opendatahub.io/genai-use-case'];
-    }
-  } else {
-    delete annotations['opendatahub.io/genai-asset'];
-    delete annotations['opendatahub.io/genai-use-case'];
+  if (!aiAssetData?.saveAsAiAsset) {
+    delete result.metadata.labels['opendatahub.io/genai-asset'];
   }
-  result.metadata.annotations = annotations;
+  result.metadata.annotations = {
+    ...result.metadata.annotations,
+    ...(aiAssetData?.saveAsAiAsset &&
+      aiAssetData.useCase && {
+        'opendatahub.io/genai-use-case': aiAssetData.useCase,
+      }),
+  };
+  if (!aiAssetData?.saveAsAiAsset || !aiAssetData.useCase) {
+    delete result.metadata.annotations['opendatahub.io/genai-use-case'];
+  }
+
   return result;
 };
+
 export const applyDisplayNameDesc = (
   inferenceService: LLMInferenceServiceKind,
-  name: string,
-  description: string,
+  name?: string,
+  description?: string,
 ): LLMInferenceServiceKind => {
   const result = structuredClone(inferenceService);
   result.metadata.annotations = {
     ...(result.metadata.annotations ?? {}),
-    'openshift.io/display-name': name,
-    'openshift.io/description': description,
+    'openshift.io/display-name': name ?? inferenceService.metadata.name,
+    'openshift.io/description': description ?? '',
   };
-  if (!description) {
+  if (!description || description === '') {
     delete result.metadata.annotations['openshift.io/description'];
   }
 

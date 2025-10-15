@@ -6,7 +6,7 @@ export const extractModelAvailabilityData = (
 ): AvailableAiAssetsFieldsData => {
   return {
     saveAsAiAsset:
-      kserveDeployment.model.metadata.annotations?.['opendatahub.io/genai-asset'] === 'true',
+      kserveDeployment.model.metadata.labels?.['opendatahub.io/genai-asset'] === 'true',
     useCase: kserveDeployment.model.metadata.annotations?.['opendatahub.io/genai-use-case'] || '',
   };
 };

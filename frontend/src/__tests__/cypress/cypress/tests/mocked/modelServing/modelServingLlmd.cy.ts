@@ -422,6 +422,9 @@ describe('Model Serving LLMD', () => {
       // Step 3: Advanced Options
       modelServingWizardEdit.findNextButton().should('be.enabled');
       // test "Allow anonymous access" stuff
+      modelServingWizardEdit.findTokenAuthenticationCheckbox().should('be.checked');
+      modelServingWizardEdit.findTokenAuthenticationCheckbox().click();
+      modelServingWizardEdit.findTokenAuthenticationCheckbox().should('not.be.checked');
       modelServingWizardEdit.findRuntimeArgsCheckbox().click();
       modelServingWizardEdit.findRuntimeArgsTextBox().type('--arg=value1');
       modelServingWizardEdit.findEnvVariableName('0').clear().type('MY_ENV');

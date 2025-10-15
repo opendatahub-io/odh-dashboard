@@ -1,18 +1,23 @@
-import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import type {
+  HardwareProfileConfig,
+  useHardwareProfileConfig,
+} from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { HardwareProfileFeatureVisibility } from '@odh-dashboard/internal/k8sTypes';
+import { structuredCloneWithMainContainer } from './model';
 import type { LLMdDeployment, LLMInferenceServiceKind } from '../types';
 
 export const applyHardwareProfileConfig = (
   llmdInferenceService: LLMInferenceServiceKind,
-  hardwareProfileName: string,
-  hardwareProfileNamespace: string,
+  hardwareProfile: HardwareProfileConfig,
 ): LLMInferenceServiceKind => {
-  const result = structuredClone(llmdInferenceService);
+  const { result, mainContainer } = structuredCloneWithMainContainer(llmdInferenceService);
   result.metadata.annotations = {
     ...result.metadata.annotations,
-    'opendatahub.io/hardware-profile-name': hardwareProfileName,
-    'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
+    'opendatahub.io/hardware-profile-name': hardwareProfile.selectedProfile?.metadata.name ?? '',
+    'opendatahub.io/hardware-profile-namespace':
+      hardwareProfile.selectedProfile?.metadata.namespace ?? '',
   };
+  mainContainer.resources = hardwareProfile.resources ?? undefined;
   return result;
 };
 

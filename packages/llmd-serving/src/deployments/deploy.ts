@@ -7,6 +7,7 @@ import {
 } from '@odh-dashboard/model-serving/types/form-data';
 import * as _ from 'lodash-es';
 import { k8sMergePatchResource } from '@odh-dashboard/internal/api/k8sUtils';
+import { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { applyHardwareProfileConfig, applyReplicas } from './hardware';
 import { setUpTokenAuth } from './deployUtils';
 import {
@@ -19,8 +20,16 @@ import {
 } from './model';
 import { AvailableAiAssetsFieldsData } from '../../../model-serving/src/components/deploymentWizard/fields/AvailableAiAssetsFields';
 import { LLMD_SERVING_ID } from '../../extensions/extensions';
-import { LLMdDeployment, LLMInferenceServiceKind, LLMInferenceServiceModel } from '../types';
+import {
+  LLMdContainer,
+  LLMdDeployment,
+  LLMInferenceServiceKind,
+  LLMInferenceServiceModel,
+} from '../types';
 import { applyModelAvailabilityData } from '../wizardFields/modelAvailability';
+import { RuntimeArgsFieldData } from '../../../model-serving/src/components/deploymentWizard/fields/RuntimeArgsField';
+import { EnvironmentVariablesFieldData } from '../../../model-serving/src/components/deploymentWizard/fields/EnvironmentVariablesField';
+import { CreateConnectionData } from '../../../model-serving/src/components/deploymentWizard/fields/CreateConnectionInputFields';
 
 const applyTokenAuthentication = (
   llmdInferenceService: LLMInferenceServiceKind,
@@ -47,6 +56,8 @@ const createLLMdInferenceServiceKind = async (
 ): Promise<LLMInferenceServiceKind> => {
   const assembledLLMdInferenceService = assembleLLMdInferenceServiceKind(
     assembledLLMdInferenceParams,
+    undefined,
+    dryRun,
   );
   return k8sCreateResource<LLMInferenceServiceKind>(
     applyK8sAPIOptions(
@@ -59,31 +70,95 @@ const createLLMdInferenceServiceKind = async (
   );
 };
 
+const buildRemovalPatch = (
+  oldObj: Record<string, string> = {},
+  newObj: Record<string, string> = {},
+) => {
+  const removalPatch: Record<string, string | null> = {};
+  // Find keys that existed in old but not in new
+  Object.keys(oldObj).forEach((key) => {
+    if (!(key in newObj)) {
+      removalPatch[key] = null;
+    }
+  });
+  return removalPatch;
+};
 const updateLLMdInferenceServiceKind = async (
   assembledLLMdInferenceParams: CreateLLMdInferenceServiceParams,
   existingDeployment: LLMInferenceServiceKind,
   dryRun?: boolean,
+  secretName?: string,
 ): Promise<LLMInferenceServiceKind> => {
   const assembledLLMdInferenceService = assembleLLMdInferenceServiceKind(
     assembledLLMdInferenceParams,
+    existingDeployment,
+    dryRun,
+    secretName,
   );
+  // Automatically figure out what annotations need removing
+  const annotationsToRemove = buildRemovalPatch(
+    existingDeployment.metadata.annotations,
+    assembledLLMdInferenceService.metadata.annotations,
+  );
+  // Automatically figure out what labels need removing
+  const labelsToRemove = buildRemovalPatch(
+    existingDeployment.metadata.labels,
+    assembledLLMdInferenceService.metadata.labels,
+  );
+
+  // Handle args and env vars removal
+  const oldMainContainer =
+    existingDeployment.spec.template?.containers?.find((c) => c.name === 'main') || {};
+  const newMainContainer =
+    assembledLLMdInferenceService.spec.template?.containers?.find((c) => c.name === 'main') || {};
+  const containerFieldsToRemove = buildRemovalPatch(oldMainContainer, newMainContainer);
+
+  const resource = {
+    ...assembledLLMdInferenceService,
+    metadata: {
+      ...assembledLLMdInferenceService.metadata,
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      annotations: {
+        ...annotationsToRemove,
+        ...assembledLLMdInferenceService.metadata.annotations,
+      } as Record<string, string>,
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      labels: {
+        ...labelsToRemove,
+        ...assembledLLMdInferenceService.metadata.labels,
+      } as Record<string, string>,
+    },
+    spec: {
+      ...assembledLLMdInferenceService.spec,
+      template: {
+        ...assembledLLMdInferenceService.spec.template,
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        containers: [
+          {
+            ...oldMainContainer,
+            ...containerFieldsToRemove,
+            ...newMainContainer,
+          },
+        ] as LLMdContainer[],
+      },
+    },
+  };
+
   if (dryRun) {
     const oldDeployment = structuredClone(existingDeployment);
     return k8sUpdateResource<LLMInferenceServiceKind>(
       applyK8sAPIOptions(
         {
           model: LLMInferenceServiceModel,
-          resource: _.merge({}, oldDeployment, assembledLLMdInferenceService),
+          resource: _.merge({}, oldDeployment, resource),
         },
         { dryRun },
       ),
     );
   }
+
   return k8sMergePatchResource<LLMInferenceServiceKind>(
-    applyK8sAPIOptions(
-      { model: LLMInferenceServiceModel, resource: assembledLLMdInferenceService },
-      { dryRun },
-    ),
+    applyK8sAPIOptions({ model: LLMInferenceServiceModel, resource }, { dryRun }),
   );
 };
 
@@ -92,42 +167,44 @@ type CreateLLMdInferenceServiceParams = {
   k8sName: string;
   dryRun?: boolean;
   modelLocationData: ModelLocationData;
+  createConnectionData?: CreateConnectionData;
   secretName?: string;
   displayName?: string;
   description?: string;
-  hardwareProfileName?: string;
-  hardwareProfileNamespace?: string;
+  hardwareProfile: HardwareProfileConfig;
   connectionName: string;
   replicas?: number;
-  runtimeArgs?: string[];
-  environmentVariables?: { name: string; value: string }[];
+  runtimeArgs?: RuntimeArgsFieldData;
+  environmentVariables?: EnvironmentVariablesFieldData;
   modelAvailability?: WizardFormData['state']['modelAvailability']['data'];
   tokenAuthentication?: { name: string; uuid: string; error?: string }[];
   aiAssetData?: AvailableAiAssetsFieldsData;
-  existing?: LLMInferenceServiceKind;
 };
 
-const assembleLLMdInferenceServiceKind = ({
-  projectName,
-  dryRun,
-  k8sName,
-  modelLocationData,
-  secretName,
-  displayName,
-  description,
-  hardwareProfileName,
-  hardwareProfileNamespace,
-  replicas = 1,
-  runtimeArgs,
-  environmentVariables,
-  modelAvailability,
-  tokenAuthentication,
-  aiAssetData,
-  existing,
-}: CreateLLMdInferenceServiceParams): LLMInferenceServiceKind => {
-  let llmdInferenceService: LLMInferenceServiceKind = existing
+const assembleLLMdInferenceServiceKind = (
+  data: CreateLLMdInferenceServiceParams,
+  existingDeployment?: LLMInferenceServiceKind,
+  dryRun?: boolean,
+  secretName?: string,
+): LLMInferenceServiceKind => {
+  const {
+    projectName,
+    k8sName,
+    displayName,
+    description,
+    hardwareProfile,
+    modelLocationData,
+    createConnectionData,
+    replicas = 1,
+    runtimeArgs,
+    environmentVariables,
+    modelAvailability,
+    tokenAuthentication,
+    aiAssetData,
+  } = data;
+  let llmdInferenceService: LLMInferenceServiceKind = existingDeployment
     ? {
-        ...existing,
+        ...existingDeployment,
       }
     : {
         apiVersion: 'serving.kserve.io/v1alpha1',
@@ -153,31 +230,18 @@ const assembleLLMdInferenceServiceKind = ({
           },
         },
       };
-  llmdInferenceService = applyDisplayNameDesc(
-    llmdInferenceService,
-    displayName ?? '',
-    description ?? '',
-  );
+  llmdInferenceService = applyDisplayNameDesc(llmdInferenceService, displayName, description);
   llmdInferenceService = applyDashboardResourceLabel(llmdInferenceService);
 
   llmdInferenceService = applyModelLocation(
     llmdInferenceService,
     modelLocationData,
     secretName,
+    createConnectionData,
     dryRun,
   );
-  llmdInferenceService = applyHardwareProfileConfig(
-    llmdInferenceService,
-    hardwareProfileName ?? '',
-    hardwareProfileNamespace ?? '',
-  );
-  llmdInferenceService = applyAiAvailableAssetAnnotations(
-    llmdInferenceService,
-    aiAssetData ?? {
-      saveAsAiAsset: false,
-      useCase: '',
-    },
-  );
+  llmdInferenceService = applyHardwareProfileConfig(llmdInferenceService, hardwareProfile);
+  llmdInferenceService = applyAiAvailableAssetAnnotations(llmdInferenceService, aiAssetData);
   llmdInferenceService = applyReplicas(llmdInferenceService, replicas);
   llmdInferenceService = applyModelArgs(llmdInferenceService, runtimeArgs);
   llmdInferenceService = applyModelEnvVars(llmdInferenceService, environmentVariables);
@@ -203,22 +267,20 @@ export const deployLLMdDeployment = async (
     displayName: wizardData.k8sNameDesc.data.name,
     description: wizardData.k8sNameDesc.data.description,
     aiAssetData: wizardData.aiAssetData.data,
-    hardwareProfileName: wizardData.hardwareProfileConfig.formData.selectedProfile?.metadata.name,
-    hardwareProfileNamespace:
-      wizardData.hardwareProfileConfig.formData.selectedProfile?.metadata.namespace,
+    hardwareProfile: wizardData.hardwareProfileConfig.formData,
     modelLocationData: wizardData.modelLocationData.data ?? {
       type: ModelLocationType.NEW,
       fieldValues: {},
       additionalFields: {},
     },
+    createConnectionData: wizardData.createConnectionData.data,
     secretName,
     connectionName: wizardData.modelLocationData.data?.connection ?? '',
     replicas: wizardData.numReplicas.data,
-    runtimeArgs: wizardData.runtimeArgs.data?.args,
-    environmentVariables: wizardData.environmentVariables.data?.variables,
+    runtimeArgs: wizardData.runtimeArgs.data,
+    environmentVariables: wizardData.environmentVariables.data,
     modelAvailability: wizardData.modelAvailability.data,
     tokenAuthentication: wizardData.tokenAuthentication.data,
-    existing: existingDeployment?.model,
   };
   const llmdInferenceService = !existingDeployment
     ? await createLLMdInferenceServiceKind(llmdInferenceServiceData, dryRun)
@@ -226,6 +288,7 @@ export const deployLLMdDeployment = async (
         llmdInferenceServiceData,
         existingDeployment.model,
         dryRun,
+        secretName,
       );
 
   if (wizardData.tokenAuthentication.data && wizardData.tokenAuthentication.data.length > 0) {
