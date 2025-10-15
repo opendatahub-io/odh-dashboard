@@ -1,22 +1,18 @@
 import React from 'react';
 import { Button } from '@patternfly/react-core';
 import ConfirmStopModal from '@odh-dashboard/internal/pages/projects/components/ConfirmStopModal';
-import { Deployment } from '@odh-dashboard/model-serving/extension-points';
 import useStopModalPreference from '../../concepts/useStopModalPreference';
-import AIAssetExpandableSection from '../shared/AIAssetExpandableSection';
 
 type ModelServingStopModalProps = {
   modelName: string;
   title: string;
   onClose: (confirmStatus: boolean) => void;
-  deployment: Deployment;
 };
 
 const ModelServingStopModal: React.FC<ModelServingStopModalProps> = ({
   modelName,
   title,
   onClose,
-  deployment,
 }) => {
   const [dontShowModalValue, setDontShowModalValue] = useStopModalPreference();
 
@@ -49,8 +45,8 @@ const ModelServingStopModal: React.FC<ModelServingStopModalProps> = ({
       message={
         <>
           The <strong>{modelName}</strong> model deployment will be shut down and will not use
-          resources until it is restarted.
-          <AIAssetExpandableSection models={deployment.model} testIdPrefix="stop-ai-assets" />
+          resources until it is restarted. The model endpoint will no longer be available as an AI
+          asset or MaaS.
         </>
       }
       modalActions={modalActions}
