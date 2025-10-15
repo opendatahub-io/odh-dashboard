@@ -308,7 +308,7 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       // Step 3: Advanced Options
-      modelServingWizard.findNextButton().should('be.enabled');
+      modelServingWizard.findSubmitButton().should('be.enabled'); //TODO: Change back to findNextButton() when submit page is added
       modelServingWizard.findExternalRouteCheckbox().should('not.exist');
       modelServingWizard.findTokenAuthenticationCheckbox().click();
       modelServingWizard.findTokenWarningAlert().should('exist');
@@ -318,7 +318,7 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.findAddVariableButton().click();
       modelServingWizard.findEnvVariableName('0').clear().type('MY_ENV');
       modelServingWizard.findEnvVariableValue('0').type('MY_VALUE');
-      modelServingWizard.findNextButton().should('be.enabled').click();
+      // modelServingWizard.findNextButton().should('be.enabled').click(); //TODO: Uncomment when submit page is added
 
       // Step 4: Summary
       modelServingWizard.findSubmitButton().should('be.enabled').click();

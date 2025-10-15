@@ -173,6 +173,10 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         <WizardStep
           name="Advanced settings (optional)"
           id="advanced-options-step"
+          footer={{
+            nextButtonText: primaryButtonText,
+            isNextDisabled: !validation.isAdvancedSettingsStepValid,
+          }} //TODO: Remove this footer when summary page is added
           isDisabled={!validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid}
         >
           {wizardState.loaded.advancedOptionsLoaded ? (
@@ -181,7 +185,8 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
             <Spinner />
           )}
         </WizardStep>
-        <WizardStep
+        {/* TODO: Uncomment when summary page is added */}
+        {/* <WizardStep
           name="Summary"
           id="summary-step"
           isDisabled={
@@ -191,7 +196,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           }
         >
           {wizardState.loaded.summaryLoaded ? 'Review step content' : <Spinner />}
-        </WizardStep>
+        </WizardStep> */}
       </Wizard>
     </ApplicationsPage>
   );
