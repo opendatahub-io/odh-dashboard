@@ -301,6 +301,7 @@ describe('Projects details', () => {
                 'opendatahub.io/notebook-image': 'true',
               },
               annotations: {
+                'openshift.io/display-name': 'Test Notebook',
                 'opendatahub.io/image-display-name': 'Test image',
               },
             },
@@ -331,6 +332,7 @@ describe('Projects details', () => {
             },
             annotations: {
               'kubeflow-resource-stopped': '2023-02-14T21:45:14Z',
+              'openshift.io/display-name': 'Test Notebook',
               'opendatahub.io/image-display-name': 'Test image',
             },
           },
@@ -349,7 +351,7 @@ describe('Projects details', () => {
       ]);
     });
     notebookRow.findNotebookStatusText().should('have.text', 'Stopped');
-    notebookRow.findDisabledNotebookLink().should('exist');
+    notebookRow.findDisabledNotebookLink().should('be.disabled');
   });
 
   describe('Workbench disabled', () => {

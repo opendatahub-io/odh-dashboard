@@ -44,7 +44,7 @@ class ProjectNotebookRow extends TableRow {
   }
 
   findDisabledNotebookLink() {
-    return this.find().findByTestId('notebook-route-link-disabled');
+    return this.find().findByTestId('notebook-route-link');
   }
 
   findNotebookStatusText() {
@@ -79,12 +79,6 @@ class ProjectRow extends TableRow {
 
   getNotebookRow(notebookName: string) {
     return new ProjectNotebookRow(() => this.findNotebookLink(notebookName).parents('tr'));
-  }
-
-  getDisabledNotebookRow(notebookName: string) {
-    return new ProjectNotebookRow(() =>
-      this.findNotebookTable().findByText(notebookName).parents('tr'),
-    );
   }
 
   findNotebookLink(notebookName: string) {
