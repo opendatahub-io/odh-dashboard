@@ -387,8 +387,8 @@ jobs:
           echo "Started webpack dev server with PID: $SERVER_PID on port ${CYPRESS_PORT}"
           
           # Give the server extra time to start in CI
-          echo "⏳ Giving server 15 seconds to initialize..."
-          sleep 15
+          echo "⏳ Giving server 20 seconds to initialize..."
+          sleep 20
 
       - name: Wait for Server Ready
         run: |
@@ -478,7 +478,14 @@ jobs:
           export CY_RESULTS_DIR="${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}"
           export BASE_URL="http://localhost:${CYPRESS_PORT}"
           
-          echo "📍 Cypress will use BASE_URL: $BASE_URL"
+          # Also set CYPRESS_BASE_URL to ensure Cypress reads it
+          export CYPRESS_BASE_URL="http://localhost:${CYPRESS_PORT}"
+          
+          echo "📍 Environment check before Cypress:"
+          echo "   BASE_URL=$BASE_URL"
+          echo "   CYPRESS_BASE_URL=$CYPRESS_BASE_URL"
+          echo "   CYPRESS_PORT=${CYPRESS_PORT}"
+          echo "   CY_TEST_CONFIG=$CY_TEST_CONFIG"
 
           # Ensure OpenShift configuration is available to Cypress process
           if [ -n "$KUBECONFIG" ]; then
@@ -499,8 +506,10 @@ jobs:
           # Create results directory
           mkdir -p "$CY_RESULTS_DIR"
 
-          # Run tests against dynamic port (baseUrl is set in test-variables.yml)
-          npm run cypress:run:chrome -- --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+          # Run tests with baseUrl explicitly set on command line (highest precedence)
+          npm run cypress:run:chrome -- \
+            --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true \
+            --config baseUrl=http://localhost:${CYPRESS_PORT},video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Test tag name
         if: ${{ always() }}
