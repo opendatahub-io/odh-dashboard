@@ -16,7 +16,6 @@ resources:
   - image-puller.clusterrolebinding.yaml
   - model-serving-role.yaml
   - model-serving-role-binding.yaml
-  - fetch-accelerators.rbac.yaml
   - fetch-hardwares.rbac.yaml
   - fetch-nim-account.rbac.yaml
   - aggregate-permissions.rbac.yaml
