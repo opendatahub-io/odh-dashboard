@@ -32,24 +32,26 @@ jobs:
     steps:
       - name: Calculate unique port for this workflow run
         run: |
-          # Simple dynamic port: start at 4010 and add run_id % 10
-          # This gives us ports 4010-4019 cycling across runs
-          BASE_PORT=4010
-          PORT_OFFSET=$((${{ github.run_id }} % 10))
+          # Dynamic port per PR/run to support parallel execution across different PRs
+          # Port range: 4000-4999 (1000 ports available)
+          BASE_PORT=$((4000 + (${{ github.run_id }} % 100) * 10))
           
-          # Add matrix offset to separate concurrent jobs
+          # Add matrix offset to separate concurrent jobs within same PR
           if [[ "${{ matrix.test-tag }}" == *"set-1"* ]]; then
             MATRIX_OFFSET=0
           elif [[ "${{ matrix.test-tag }}" == *"set-2"* ]]; then
-            MATRIX_OFFSET=20
+            MATRIX_OFFSET=1
           else
-            MATRIX_OFFSET=40
+            MATRIX_OFFSET=2
           fi
           
-          CYPRESS_PORT=$((BASE_PORT + PORT_OFFSET + MATRIX_OFFSET))
+          CYPRESS_PORT=$((BASE_PORT + MATRIX_OFFSET))
           echo "CYPRESS_PORT=$CYPRESS_PORT" >> $GITHUB_ENV
           
-          echo "📍 Port for run ${{ github.run_id }} (tag: ${{ matrix.test-tag }}): $CYPRESS_PORT"
+          echo "📍 Run ${{ github.run_id }} / Tag ${{ matrix.test-tag }}"
+          echo "   BASE_PORT: $BASE_PORT (from run_id % 100 * 10)"
+          echo "   MATRIX_OFFSET: $MATRIX_OFFSET"
+          echo "   FINAL PORT: $CYPRESS_PORT"
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -461,6 +463,40 @@ jobs:
             exit 1
           fi
 
+      - name: Debug Port Connectivity Before Cypress
+        run: |
+          echo "🔍 PRE-CYPRESS PORT DEBUGGING FOR: ${CYPRESS_PORT}"
+          echo "=========================================="
+          
+          echo ""
+          echo "1️⃣ System view - what's listening on port ${CYPRESS_PORT}:"
+          lsof -i:${CYPRESS_PORT} || echo "✅ No processes shown by lsof"
+          
+          echo ""
+          echo "2️⃣ Network connectivity test:"
+          if curl -s -f http://127.0.0.1:${CYPRESS_PORT}/ > /dev/null; then
+            echo "✅ IPv4 127.0.0.1 connection: SUCCESS"
+          else
+            echo "❌ IPv4 127.0.0.1 connection: FAILED"
+          fi
+          
+          if curl -s -f http://localhost:${CYPRESS_PORT}/ > /dev/null; then
+            echo "✅ localhost connection: SUCCESS"
+          else
+            echo "❌ localhost connection: FAILED"
+          fi
+          
+          echo ""
+          echo "3️⃣ Process tree for webpack:"
+          ps aux | grep -E "(webpack|node.*${CYPRESS_PORT})" | grep -v grep || echo "No matching processes"
+          
+          echo ""
+          echo "4️⃣ Test simple HTTP request that Cypress would make:"
+          curl -I http://localhost:${CYPRESS_PORT}/ 2>&1 | head -10
+          
+          echo ""
+          echo "=========================================="
+
       - name: Run E2E Tests
         run: |
           cd frontend
@@ -500,16 +536,52 @@ jobs:
           echo "🚫 Skipping tags: @Bug,@Maintain,@NonConcurrent"
           echo "📋 Test group: ${{ matrix.test-tag }}"
 
-          # Use Jenkins-style command format for proper tag filtering
-          echo "🔄 Using chrome browser"
+          # Use Electron browser (more stable in CI than Chrome)
+          echo "🔄 Using Electron browser"
 
           # Create results directory
           mkdir -p "$CY_RESULTS_DIR"
 
           # Run tests with baseUrl explicitly set on command line (highest precedence)
-          npm run cypress:run:chrome -- \
+          # Add DEBUG env vars to get more Cypress verbosity on port/browser issues
+          echo "🐛 Running with enhanced debugging for port issues..."
+          DEBUG=cypress:server:browsers:electron,cypress:server:browsers,cypress:cli npm run cypress:run:electron -- \
             --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true \
-            --config baseUrl=http://localhost:${CYPRESS_PORT},video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+            --config baseUrl=http://localhost:${CYPRESS_PORT},video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos" 2>&1 | tee /tmp/cypress_run.log || {
+            
+            CYPRESS_EXIT_CODE=$?
+            echo ""
+            echo "❌ CYPRESS FAILED WITH EXIT CODE: $CYPRESS_EXIT_CODE"
+            echo "=========================================="
+            
+            if grep -q "Port.*is already in use" /tmp/cypress_run.log; then
+              echo "🔍 DETECTED 'Port ${CYPRESS_PORT} is already in use' ERROR!"
+              echo ""
+              echo "📊 Port status IMMEDIATELY AFTER failure:"
+              lsof -i:${CYPRESS_PORT} || echo "✅ No processes on port ${CYPRESS_PORT} (lsof says free)"
+              
+              echo ""
+              echo "🔍 Checking if Cypress/Electron tried to bind the port:"
+              ps aux | grep -E "(cypress|electron)" | grep -v grep || echo "No cypress/electron processes"
+              
+              echo ""
+              echo "🔍 Network statistics for port ${CYPRESS_PORT}:"
+              netstat -an | grep ${CYPRESS_PORT} || echo "No netstat entries for port ${CYPRESS_PORT}"
+              
+              echo ""
+              echo "📄 Last 60 lines of Cypress output:"
+              tail -60 /tmp/cypress_run.log
+              
+              echo ""
+              echo "💡 HYPOTHESIS: Cypress reports port in use, but system shows it's free."
+              echo "   This suggests Cypress internal port checking issue, not actual conflict."
+            else
+              echo "📄 Last 50 lines of Cypress output:"
+              tail -50 /tmp/cypress_run.log
+            fi
+            
+            exit $CYPRESS_EXIT_CODE
+          }
 
       - name: Test tag name
         if: ${{ always() }}
