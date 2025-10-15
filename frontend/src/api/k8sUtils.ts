@@ -77,6 +77,8 @@ export const k8sMergePatchResource = <
  * Generates JSON Patch operations by comparing an old object with a new object.
  * This is useful for creating targeted k8s resource patches instead of full updates.
  *
+ * Automatically filters out Kubernetes managed fields like status, resourceVersion, etc.
+ *
  * @param oldObj - The original object (current state)
  * @param newObj - The desired object (target state)
  * @param basePath - The base path for the patches (default: '')
@@ -94,6 +96,37 @@ export const k8sMergePatchResource = <
  */
 export const createPatchesFromDiff = (oldObj: unknown, newObj: unknown, basePath = ''): Patch[] => {
   const patches: Patch[] = [];
+
+  // K8s managed fields that should not be patched
+  const managedMetadataFields = new Set([
+    'resourceVersion',
+    'uid',
+    'selfLink',
+    'creationTimestamp',
+    'deletionTimestamp',
+    'deletionGracePeriodSeconds',
+    'generation',
+    'managedFields',
+    'ownerReferences', // Typically managed via specialized APIs
+  ]);
+
+  // Helper to check if a path should be ignored
+  const shouldIgnorePath = (path: string): boolean => {
+    // Ignore the entire status subresource
+    if (path === '/status' || path.startsWith('/status/')) {
+      return true;
+    }
+
+    // Ignore managed metadata fields
+    if (path.startsWith('/metadata/')) {
+      const field = path.split('/')[2]; // Get field name after /metadata/
+      if (managedMetadataFields.has(field)) {
+        return true;
+      }
+    }
+
+    return false;
+  };
 
   // Helper to escape JSON Pointer special characters
   const escapePathComponent = (component: string): string =>
@@ -137,6 +170,11 @@ export const createPatchesFromDiff = (oldObj: unknown, newObj: unknown, basePath
 
   // Main comparison logic
   const compare = (oldVal: unknown, newVal: unknown, path: string): void => {
+    // Skip managed fields
+    if (shouldIgnorePath(path)) {
+      return;
+    }
+
     // If values are identical, no patch needed
     if (areEqual(oldVal, newVal)) {
       return;
@@ -145,8 +183,10 @@ export const createPatchesFromDiff = (oldObj: unknown, newObj: unknown, basePath
     // Handle null/undefined cases
     if (newVal === undefined || newVal === null) {
       if (oldVal !== undefined && oldVal !== null) {
-        // Remove the field
-        patches.push({ op: 'remove', path });
+        // Remove the field (but check if path is allowed)
+        if (!shouldIgnorePath(path)) {
+          patches.push({ op: 'remove', path });
+        }
       }
       return;
     }
@@ -171,17 +211,28 @@ export const createPatchesFromDiff = (oldObj: unknown, newObj: unknown, basePath
       const oldKeys = new Set(Object.keys(oldVal));
       const newKeys = new Set(Object.keys(newVal));
 
+      // Special handling for metadata object - filter out managed fields
+      const keysToProcess =
+        path === '/metadata'
+          ? Array.from(newKeys).filter((key) => !managedMetadataFields.has(key))
+          : Array.from(newKeys);
+
       // Process all keys from new object
-      newKeys.forEach((key) => {
+      keysToProcess.forEach((key) => {
         const newPath = buildPath(path, key);
         compare(oldVal[key], newVal[key], newPath);
       });
 
-      // Remove keys that exist in old but not in new
+      // Remove keys that exist in old but not in new (except managed fields)
       oldKeys.forEach((key) => {
         if (!newKeys.has(key)) {
           const newPath = buildPath(path, key);
-          patches.push({ op: 'remove', path: newPath });
+          if (!shouldIgnorePath(newPath)) {
+            // Additional check for metadata fields
+            if (path !== '/metadata' || !managedMetadataFields.has(key)) {
+              patches.push({ op: 'remove', path: newPath });
+            }
+          }
         }
       });
 
@@ -201,6 +252,8 @@ export const createPatchesFromDiff = (oldObj: unknown, newObj: unknown, basePath
 /**
  * Simplified version that only generates patches for fields that exist in both objects
  * and ignores removals. Useful when you want to update specific fields without removing others.
+ *
+ * Also automatically filters out Kubernetes managed fields like status, resourceVersion, etc.
  *
  * @param oldObj - The original object (current state)
  * @param newObj - The desired object (target state)

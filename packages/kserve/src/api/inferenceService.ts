@@ -53,6 +53,7 @@ export const patchInferenceService = (
   opts?: K8sAPIOptions,
 ): Promise<InferenceServiceKind> => {
   // Generate patches based on the differences
+  // Managed fields like status, resourceVersion, etc. are automatically filtered out
   const patches = createPatchesFromDiff(existingInferenceService, newInferenceService);
 
   // If no patches needed, return the existing resource
