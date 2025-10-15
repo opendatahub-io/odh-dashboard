@@ -20,12 +20,10 @@ import {
 } from '#~/__tests__/cypress/cypress/pages/administration';
 import { homePage } from '#~/__tests__/cypress/cypress/pages/home/home';
 import {
-  AcceleratorProfileModel,
   HardwareProfileModel,
   ImageStreamModel,
   StorageClassModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
-import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
 import {
   mockGlobalScopedHardwareProfiles,
   mockProjectScopedHardwareProfiles,
@@ -65,17 +63,6 @@ const initIntercepts = () => {
     mockDashboardConfig({
       disableStorageClasses: false,
     }),
-  );
-  cy.interceptK8sList(
-    AcceleratorProfileModel,
-    mockK8sResourceList([
-      mockAcceleratorProfile({
-        name: 'test-gpu',
-        displayName: 'Test GPU',
-        namespace: 'opendatahub',
-        uid: 'uid',
-      }),
-    ]),
   );
   cy.interceptK8sList(StorageClassModel, mockStorageClassList());
 };

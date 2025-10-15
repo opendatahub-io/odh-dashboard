@@ -15,6 +15,7 @@ import { numReplicasFieldSchema, type NumReplicasFieldData } from './fields/NumR
 import { runtimeArgsFieldSchema, type RuntimeArgsFieldData } from './fields/RuntimeArgsField';
 import {
   environmentVariablesFieldSchema,
+  hasInvalidEnvironmentVariableNames,
   type EnvironmentVariablesFieldData,
 } from './fields/EnvironmentVariablesField';
 import {
@@ -109,7 +110,8 @@ export const useModelDeploymentWizardValidation = (
     modelServerValidation.getFieldValidation(undefined, true).length === 0;
   const isAdvancedSettingsStepValid =
     externalRouteValidation.getFieldValidation(undefined, true).length === 0 &&
-    tokenAuthenticationValidation.getFieldValidation(undefined, true).length === 0;
+    tokenAuthenticationValidation.getFieldValidation(undefined, true).length === 0 &&
+    !hasInvalidEnvironmentVariableNames(state.environmentVariables.data);
   return {
     modelSource: modelSourceStepValidation,
     hardwareProfile: hardwareProfileValidation,

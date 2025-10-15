@@ -6,7 +6,7 @@ import { modelTypeSelectFieldSchema, ModelTypeSelectField } from '../fields/Mode
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { ModelLocationSelectField } from '../fields/ModelLocationSelectField';
 import { isValidModelLocationData } from '../fields/ModelLocationInputFields';
-import { ModelLocationData } from '../fields/modelLocationFields/types';
+import { ModelLocationData } from '../types';
 import {
   createConnectionDataSchema,
   CreateConnectionInputFields,

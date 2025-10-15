@@ -23,13 +23,9 @@ import useServingConnections from '@odh-dashboard/internal/pages/projects/screen
 import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
 import { ExistingConnectionField } from './modelLocationFields/ExistingConnectionField';
-import {
-  ConnectionTypeRefs,
-  ModelLocationData,
-  ModelLocationType,
-} from './modelLocationFields/types';
 import NewConnectionField from './modelLocationFields/NewConnectionField';
 import { PvcSelectField } from './modelLocationFields/PVCSelectField';
+import { ConnectionTypeRefs, ModelLocationData, ModelLocationType } from '../types';
 
 export type ModelLocationDataField = {
   data: ModelLocationData | undefined;
@@ -232,11 +228,23 @@ const hasRequiredConnectionTypeFields = (modelLocationData: ModelLocationData): 
     ) || [];
 
   const requiredFields = dataFields.filter((field) => field.required).map((field) => field.envVar);
+  if (
+    modelLocationData.connectionTypeObject &&
+    isModelServingCompatible(
+      modelLocationData.connectionTypeObject,
+      ModelServingCompatibleTypes.S3ObjectStorage,
+    )
+  ) {
+    requiredFields.push('AWS_S3_BUCKET');
+  }
 
   return requiredFields.every((fieldName) => {
     const value = modelLocationData.fieldValues[fieldName];
     if (fieldName === 'URI') {
       return value !== undefined && String(value).includes('://');
+    }
+    if (fieldName === 'Bucket') {
+      return value !== undefined && String(value).trim() !== '';
     }
     return value !== undefined && String(value).trim() !== '';
   });

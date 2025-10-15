@@ -878,12 +878,31 @@ describe('Model Serving Global', () => {
       disableServingRuntimeParamsConfig: false,
       disableProjectScoped: false,
       servingRuntimes: [mockServingRuntimeK8sResource({})],
+      inferenceServices: [
+        mockInferenceServiceK8sResource({
+          // Explicitly create inference service without hardware profile
+          // Use empty string to match the default, but ensure no hardware profile annotations
+          hardwareProfileName: '',
+          hardwareProfileNamespace: undefined,
+          hardwareProfileResourceVersion: undefined,
+        }),
+      ],
     });
+
+    // Override hardware profile intercepts to return empty lists
+    // This ensures no hardware profiles are available, forcing "Use existing settings"
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'test-project' },
+      mockK8sResourceList([]),
+    );
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList([]),
+    );
+
     modelServingGlobal.visit('test-project');
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
-    hardwareProfileSection
-      .findHardwareProfileSearchSelector()
-      .should('contain.text', 'Use existing settings');
+    hardwareProfileSection.findSelect().should('contain.text', 'Use existing settings');
   });
 
   it('Display global scoped label on serving runtime selection', () => {
