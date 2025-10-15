@@ -28,14 +28,10 @@ import { mockModelArtifact } from '#~/__mocks__/mockModelArtifact';
 const MODEL_REGISTRY_API_VERSION = 'v1';
 
 type HandlersProps = {
-  registeredModelsSize?: number;
   modelVersions?: ModelVersion[];
 };
 
 const initIntercepts = ({
-  // TODO: Investigate if this line is needed.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  registeredModelsSize = 4,
   modelVersions = [
     mockModelVersion({
       name: 'model version 1',
