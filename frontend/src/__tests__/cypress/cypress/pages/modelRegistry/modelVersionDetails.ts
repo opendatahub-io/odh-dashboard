@@ -2,10 +2,7 @@ import { TableRow } from '#~/__tests__/cypress/cypress/pages/components/table';
 import { Modal } from '#~/__tests__/cypress/cypress/pages/components/Modal';
 
 class ModelVersionDetails {
-  visit() {
-    const preferredModelRegistry = 'modelregistry-sample';
-    const rmId = '1';
-    const mvId = '1';
+  visit(preferredModelRegistry = 'modelregistry-sample', rmId = '1', mvId = '1') {
     cy.visitWithLogin(
       `/ai-hub/registry/${preferredModelRegistry}/registered-models/${rmId}/versions/${mvId}`,
     );
