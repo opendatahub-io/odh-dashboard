@@ -12,6 +12,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/models"
+	"gopkg.in/yaml.v3"
 	authnv1 "k8s.io/api/authentication/v1"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -1360,4 +1361,109 @@ func (kc *TokenKubernetesClient) DeleteLlamaStackDistribution(ctx context.Contex
 
 	kc.Logger.Info("successfully deleted LlamaStackDistribution", "namespace", namespace, "name", targetLSD.Name, "displayName", name)
 	return targetLSD, nil
+}
+
+// GetModelProviderInfo retrieves provider configuration for a model from LSD configmap
+func (kc *TokenKubernetesClient) GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*ModelProviderInfo, error) {
+	// Get LlamaStackDistribution
+	lsdList, err := kc.GetLlamaStackDistributions(ctx, identity, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get LlamaStackDistributions: %w", err)
+	}
+
+	if len(lsdList.Items) == 0 {
+		return nil, fmt.Errorf("no LlamaStackDistribution found in namespace %s", namespace)
+	}
+
+	if len(lsdList.Items) > 1 {
+		kc.Logger.Warn("Multiple LlamaStackDistributions found, using first one",
+			"namespace", namespace, "count", len(lsdList.Items))
+	}
+
+	lsd := lsdList.Items[0]
+
+	// Get configmap name
+	configMapName := constants.LlamaStackConfigMapName
+	if lsd.Spec.Server.UserConfig != nil && lsd.Spec.Server.UserConfig.ConfigMapName != "" {
+		configMapName = lsd.Spec.Server.UserConfig.ConfigMapName
+	}
+
+	// Retrieve configmap
+	configMap, err := kc.GetConfigMap(ctx, identity, namespace, configMapName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get configmap: %w", err)
+	}
+
+	runYAML, ok := configMap.Data[constants.LlamaStackRunYAMLKey]
+	if !ok {
+		return nil, fmt.Errorf("run.yaml not found in configmap")
+	}
+
+	// Parse model and provider info from YAML
+	return kc.parseModelProviderFromYAML(runYAML, modelID)
+}
+
+// LlamaStackConfig represents the YAML structure for LlamaStack configuration
+type LlamaStackConfig struct {
+	Models []struct {
+		ModelID    string `yaml:"model_id"`
+		ProviderID string `yaml:"provider_id"`
+	} `yaml:"models"`
+	Providers struct {
+		Inference []struct {
+			ProviderID   string `yaml:"provider_id"`
+			ProviderType string `yaml:"provider_type"`
+			Config       struct {
+				URL string `yaml:"url"`
+			} `yaml:"config"`
+		} `yaml:"inference"`
+	} `yaml:"providers"`
+}
+
+// parseModelProviderFromYAML parses the LlamaStack configuration YAML to extract model provider configuration
+// This is a two-step process:
+// 1. Find the model in the models section and get its provider_id
+// 2. Find that provider_id in the providers.inference section and get provider_type and url
+func (kc *TokenKubernetesClient) parseModelProviderFromYAML(runYAML string, modelID string) (*ModelProviderInfo, error) {
+	var config LlamaStackConfig
+	if err := yaml.Unmarshal([]byte(runYAML), &config); err != nil {
+		return nil, fmt.Errorf("failed to parse YAML: %w", err)
+	}
+
+	// Find model and provider_id
+	var providerID string
+	for _, model := range config.Models {
+		if model.ModelID == modelID {
+			providerID = model.ProviderID
+			break
+		}
+	}
+	if providerID == "" {
+		return nil, fmt.Errorf("provider not found for model %s", modelID)
+	}
+
+	// Find provider details
+	for _, provider := range config.Providers.Inference {
+		if provider.ProviderID == providerID {
+			return &ModelProviderInfo{
+				ModelID:      modelID,
+				ProviderID:   providerID,
+				ProviderType: provider.ProviderType,
+				URL:          cleanEnvVar(provider.Config.URL),
+			}, nil
+		}
+	}
+
+	return nil, fmt.Errorf("provider configuration not found for provider_id %s", providerID)
+}
+
+// cleanEnvVar removes environment variable placeholders like ${env.VAR:=default}
+func cleanEnvVar(value string) string {
+	if strings.HasPrefix(value, "${env.") && strings.Contains(value, ":=") {
+		parts := strings.SplitN(value, ":=", 2)
+		if len(parts) == 2 {
+			return strings.TrimSuffix(parts[1], "}")
+		}
+	}
+	return value
 }

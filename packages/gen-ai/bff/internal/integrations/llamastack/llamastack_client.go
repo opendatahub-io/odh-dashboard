@@ -380,6 +380,8 @@ type CreateResponseParams struct {
 	Tools []MCPServerParam
 	// PreviousResponseID links this response to a previous response for conversation continuity.
 	PreviousResponseID string
+	// ProviderData contains custom provider headers (e.g., vllm_api_token)
+	ProviderData map[string]interface{}
 }
 
 // prepareResponseParams validates input parameters and prepares the API parameters for response creation.
@@ -511,7 +513,10 @@ func (c *LlamaStackClient) CreateResponse(ctx context.Context, params CreateResp
 		return nil, err
 	}
 
-	response, err := c.client.Responses.New(ctx, *apiParams)
+	// Build request options with custom headers if provider data is present
+	opts := c.buildRequestOptions(params.ProviderData)
+
+	response, err := c.client.Responses.New(ctx, *apiParams, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create response: %w", err)
 	}
@@ -526,8 +531,30 @@ func (c *LlamaStackClient) CreateResponseStream(ctx context.Context, params Crea
 		return nil, err
 	}
 
-	stream := c.client.Responses.NewStreaming(ctx, *apiParams)
+	// Build request options with custom headers if provider data is present
+	opts := c.buildRequestOptions(params.ProviderData)
+
+	stream := c.client.Responses.NewStreaming(ctx, *apiParams, opts...)
 	return stream, nil
+}
+
+// buildRequestOptions creates option functions for custom headers
+func (c *LlamaStackClient) buildRequestOptions(providerData map[string]interface{}) []option.RequestOption {
+	if len(providerData) == 0 {
+		return nil
+	}
+
+	// Convert provider data to JSON using json.Marshal
+	jsonBytes, err := json.Marshal(providerData)
+	if err != nil {
+		// Log error but don't fail request - proceed without custom headers
+		return nil
+	}
+
+	headerValue := string(jsonBytes)
+	return []option.RequestOption{
+		option.WithHeader("x-llamastack-provider-data", headerValue),
+	}
 }
 
 // DeleteVectorStore deletes a vector store by ID.

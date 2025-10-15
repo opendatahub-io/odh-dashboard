@@ -12,6 +12,14 @@ import (
 
 const ComponenetLabelValue = "llama-stack"
 
+// ModelProviderInfo contains model provider configuration from LSD configmap
+type ModelProviderInfo struct {
+	ModelID      string
+	ProviderID   string
+	ProviderType string
+	URL          string
+}
+
 type KubernetesClientInterface interface {
 	// Namespace access
 	GetNamespaces(ctx context.Context, identity *integrations.RequestIdentity) ([]corev1.Namespace, error)
@@ -30,6 +38,7 @@ type KubernetesClientInterface interface {
 	CanListLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error)
 	InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []models.InstallModel, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error)
 	DeleteLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*lsdapi.LlamaStackDistribution, error)
+	GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*ModelProviderInfo, error)
 
 	// ConfigMap operations
 	GetConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.ConfigMap, error)
