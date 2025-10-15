@@ -8,8 +8,9 @@ describe('ModelParameterFormGroup', () => {
     fieldId: 'temperature',
     label: 'Temperature',
     helpText: 'This controls the randomness of the model output.',
-    value: 0.5,
+    value: 1.3,
     onChange: jest.fn(),
+    max: 2,
   };
 
   beforeEach(() => {
@@ -28,8 +29,8 @@ describe('ModelParameterFormGroup', () => {
     ).toBeInTheDocument();
 
     // Check initial values
-    expect(screen.getByRole('slider')).toHaveAttribute('aria-valuenow', '0.5');
-    expect(screen.getByRole('spinbutton')).toHaveValue(0.5);
+    expect(screen.getByRole('slider')).toHaveAttribute('aria-valuenow', '1.3');
+    expect(screen.getByRole('spinbutton')).toHaveValue(1.3);
   });
 
   it('shows help text when help button is clicked', async () => {
@@ -61,7 +62,7 @@ describe('ModelParameterFormGroup', () => {
 
     const textInput = screen.getByRole('spinbutton');
     await user.clear(textInput);
-    await user.type(textInput, '1');
+    await user.type(textInput, '1.8');
 
     expect(mockOnChange).toHaveBeenCalled();
   });

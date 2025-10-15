@@ -141,6 +141,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                   helpText="This controls the randomness of the model's output."
                   value={temperature}
                   onChange={onTemperatureChange}
+                  max={2}
                 />
                 <FormGroup fieldId="streaming">
                   <Switch
