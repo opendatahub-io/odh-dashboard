@@ -835,7 +835,8 @@ describe('Model Serving Deploy Wizard', () => {
       expect(interception.request.url).to.include('?dryRun=All');
     });
 
-    // Add error message validation - cy.findByText('Error creating model server');
+    // error message validation
+    modelServingWizard.findErrorMessageAlert().should('be.visible').contains('Error');
 
     // the serving runtime should NOT have been created
     cy.get('@createServingRuntime.all').then((interceptions) => {
