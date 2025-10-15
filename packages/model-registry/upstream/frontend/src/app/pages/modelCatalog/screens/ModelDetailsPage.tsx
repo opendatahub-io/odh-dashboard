@@ -148,9 +148,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
               </StackItem>
             </Stack>
           </Flex>
-        ) : (
-          'Model details'
-        )
+        ) : null
       }
       empty={!model}
       emptyStatePage={
