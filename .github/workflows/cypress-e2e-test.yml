@@ -45,13 +45,17 @@ jobs:
             MATRIX_OFFSET=2
           fi
           
-          CYPRESS_PORT=$((BASE_PORT + MATRIX_OFFSET))
-          echo "CYPRESS_PORT=$CYPRESS_PORT" >> $GITHUB_ENV
+          # IMPORTANT: Use WEBPACK_PORT (not CYPRESS_PORT) to avoid conflict
+          # CYPRESS_PORT env var tells Cypress where to start ITS OWN server
+          # We only want to tell it the baseUrl of our webpack server
+          WEBPACK_PORT=$((BASE_PORT + MATRIX_OFFSET))
+          echo "WEBPACK_PORT=$WEBPACK_PORT" >> $GITHUB_ENV
           
           echo "📍 Run ${{ github.run_id }} / Tag ${{ matrix.test-tag }}"
           echo "   BASE_PORT: $BASE_PORT (from run_id % 100 * 10)"
           echo "   MATRIX_OFFSET: $MATRIX_OFFSET"
-          echo "   FINAL PORT: $CYPRESS_PORT"
+          echo "   WEBPACK PORT: $WEBPACK_PORT (for webpack dev server)"
+          echo "   Cypress will use its default internal port (not conflicting)"
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -335,33 +339,33 @@ jobs:
           export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
           echo "CY_TEST_CONFIG=$CY_TEST_CONFIG" >> $GITHUB_ENV
           echo "✅ Test config will use cluster URLs from test-variables.yml"
-          echo "✅ Cypress will connect to localhost:${CYPRESS_PORT} via BASE_URL env var"
+          echo "✅ Cypress will connect to localhost:${WEBPACK_PORT} via BASE_URL env var"
 
       - name: Start Cypress Server
         run: |
-          echo "🧹 Targeted cleanup of port ${CYPRESS_PORT} only (preserving other parallel jobs)..."
+          echo "🧹 Targeted cleanup of port ${WEBPACK_PORT} only (preserving other parallel jobs)..."
           
           # ONLY kill processes using OUR specific port - do NOT touch other ports!
-          if lsof -i:${CYPRESS_PORT} > /dev/null 2>&1; then
-            echo "⚠️  Port ${CYPRESS_PORT} is in use, cleaning up..."
-            lsof -i:${CYPRESS_PORT}
-            lsof -ti:${CYPRESS_PORT} | xargs -r kill -9 2>/dev/null || true
+          if lsof -i:${WEBPACK_PORT} > /dev/null 2>&1; then
+            echo "⚠️  Port ${WEBPACK_PORT} is in use, cleaning up..."
+            lsof -i:${WEBPACK_PORT}
+            lsof -ti:${WEBPACK_PORT} | xargs -r kill -9 2>/dev/null || true
           else
-            echo "✅ Port ${CYPRESS_PORT} is already free"
+            echo "✅ Port ${WEBPACK_PORT} is already free"
           fi
           
           # Give processes time to fully terminate
           sleep 3
           
           # Verify port is actually free with retry logic
-          echo "🔍 Verifying port ${CYPRESS_PORT} is free..."
+          echo "🔍 Verifying port ${WEBPACK_PORT} is free..."
           RETRY_COUNT=0
-          while lsof -i:${CYPRESS_PORT} > /dev/null 2>&1; do
+          while lsof -i:${WEBPACK_PORT} > /dev/null 2>&1; do
             RETRY_COUNT=$((RETRY_COUNT + 1))
             if [ $RETRY_COUNT -gt 10 ]; then
-              echo "❌ Port ${CYPRESS_PORT} still in use after cleanup!"
+              echo "❌ Port ${WEBPACK_PORT} still in use after cleanup!"
               echo "Processes using port:"
-              lsof -i:${CYPRESS_PORT}
+              lsof -i:${WEBPACK_PORT}
               echo ""
               echo "This may indicate:"
               echo "  1. A previous run didn't clean up properly"
@@ -369,19 +373,19 @@ jobs:
               echo "  3. Port is in TIME_WAIT state"
               exit 1
             fi
-            echo "⏳ Port ${CYPRESS_PORT} still in use, retrying cleanup... (attempt $RETRY_COUNT/10)"
-            lsof -ti:${CYPRESS_PORT} | xargs -r kill -9 2>/dev/null || true
+            echo "⏳ Port ${WEBPACK_PORT} still in use, retrying cleanup... (attempt $RETRY_COUNT/10)"
+            lsof -ti:${WEBPACK_PORT} | xargs -r kill -9 2>/dev/null || true
             sleep 2
           done
           
-          echo "✅ Port ${CYPRESS_PORT} is free and ready!"
+          echo "✅ Port ${WEBPACK_PORT} is free and ready!"
           
-          echo "🚀 Starting webpack dev server with cluster proxy on port ${CYPRESS_PORT}..."
-          cd frontend && ODH_PORT=${CYPRESS_PORT} npm run start:dev:ext &
+          echo "🚀 Starting webpack dev server with cluster proxy on port ${WEBPACK_PORT}..."
+          cd frontend && ODH_PORT=${WEBPACK_PORT} npm run start:dev:ext &
           
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
-          echo "Started webpack dev server with PID: $SERVER_PID on port ${CYPRESS_PORT}"
+          echo "Started webpack dev server with PID: $SERVER_PID on port ${WEBPACK_PORT}"
           
           # Give the server extra time to start in CI
           echo "⏳ Giving server 20 seconds to initialize..."
@@ -389,9 +393,9 @@ jobs:
 
       - name: Wait for Server Ready
         run: |
-          echo "⏳ Waiting for localhost:${CYPRESS_PORT} to be ready..."
+          echo "⏳ Waiting for localhost:${WEBPACK_PORT} to be ready..."
           # Use HTTP check instead of TCP since server is clearly running
-          npx wait-on http://localhost:${CYPRESS_PORT} --timeout 120000
+          npx wait-on http://localhost:${WEBPACK_PORT} --timeout 120000
           echo "✅ Server is responding to HTTP!"
           
           # Verify the application actually loads with more details
@@ -400,7 +404,7 @@ jobs:
             echo "🔄 Attempt $i/10: Testing application..."
             
             # Check if basic page loads
-            if curl -s -f http://localhost:${CYPRESS_PORT}/ > /tmp/response.html 2>/dev/null; then
+            if curl -s -f http://localhost:${WEBPACK_PORT}/ > /tmp/response.html 2>/dev/null; then
               echo "✅ HTTP 200 response received"
               
               # Check for dashboard content
@@ -425,12 +429,12 @@ jobs:
           
           # Final verification with detailed debugging
           echo "🔍 Final application verification..."
-          if curl -s -f http://localhost:${CYPRESS_PORT}/ | grep -q "Data Science Projects\|ODH\|Open Data Hub\|Dashboard"; then
+          if curl -s -f http://localhost:${WEBPACK_PORT}/ | grep -q "Data Science Projects\|ODH\|Open Data Hub\|Dashboard"; then
             echo "✅ Server is ready and application is loaded!"
             
             # Test API endpoint
             echo "🔍 Testing API endpoint..."
-            if curl -s -f http://localhost:${CYPRESS_PORT}/api/status > /dev/null; then
+            if curl -s -f http://localhost:${WEBPACK_PORT}/api/status > /dev/null; then
               echo "✅ API proxy is working!"
             else
               echo "⚠️  API endpoint test failed, but frontend is working"
@@ -440,15 +444,15 @@ jobs:
             echo ""
             echo "📊 Debugging information:"
             echo "🔄 Server process status:"
-            ps aux | grep -E "(webpack|node.*${CYPRESS_PORT})" | head -5 || echo "No matching processes found"
+            ps aux | grep -E "(webpack|node.*${WEBPACK_PORT})" | head -5 || echo "No matching processes found"
             
             echo ""
             echo "🌐 Network connectivity test:"
-            curl -I http://localhost:${CYPRESS_PORT}/ 2>&1 || echo "Connection failed"
+            curl -I http://localhost:${WEBPACK_PORT}/ 2>&1 || echo "Connection failed"
             
             echo ""
             echo "📄 Raw response (first 1000 chars):"
-            curl -s http://localhost:${CYPRESS_PORT}/ 2>/dev/null | head -c 1000 || echo "Failed to get response"
+            curl -s http://localhost:${WEBPACK_PORT}/ 2>/dev/null | head -c 1000 || echo "Failed to get response"
             
             echo ""
             echo "🔍 Looking for webpack output in background..."
@@ -460,22 +464,22 @@ jobs:
 
       - name: Debug Port Connectivity Before Cypress
         run: |
-          echo "🔍 PRE-CYPRESS PORT DEBUGGING FOR: ${CYPRESS_PORT}"
+          echo "🔍 PRE-CYPRESS PORT DEBUGGING FOR: ${WEBPACK_PORT}"
           echo "=========================================="
           
           echo ""
-          echo "1️⃣ System view - what's listening on port ${CYPRESS_PORT}:"
-          lsof -i:${CYPRESS_PORT} || echo "✅ No processes shown by lsof"
+          echo "1️⃣ System view - what's listening on port ${WEBPACK_PORT}:"
+          lsof -i:${WEBPACK_PORT} || echo "✅ No processes shown by lsof"
           
           echo ""
           echo "2️⃣ Network connectivity test:"
-          if curl -s -f http://127.0.0.1:${CYPRESS_PORT}/ > /dev/null; then
+          if curl -s -f http://127.0.0.1:${WEBPACK_PORT}/ > /dev/null; then
             echo "✅ IPv4 127.0.0.1 connection: SUCCESS"
           else
             echo "❌ IPv4 127.0.0.1 connection: FAILED"
           fi
           
-          if curl -s -f http://localhost:${CYPRESS_PORT}/ > /dev/null; then
+          if curl -s -f http://localhost:${WEBPACK_PORT}/ > /dev/null; then
             echo "✅ localhost connection: SUCCESS"
           else
             echo "❌ localhost connection: FAILED"
@@ -483,11 +487,11 @@ jobs:
           
           echo ""
           echo "3️⃣ Process tree for webpack:"
-          ps aux | grep -E "(webpack|node.*${CYPRESS_PORT})" | grep -v grep || echo "No matching processes"
+          ps aux | grep -E "(webpack|node.*${WEBPACK_PORT})" | grep -v grep || echo "No matching processes"
           
           echo ""
           echo "4️⃣ Test simple HTTP request that Cypress would make:"
-          curl -I http://localhost:${CYPRESS_PORT}/ 2>&1 | head -10
+          curl -I http://localhost:${WEBPACK_PORT}/ 2>&1 | head -10
           
           echo ""
           echo "=========================================="
@@ -509,10 +513,10 @@ jobs:
           export CY_RESULTS_DIR="${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}"
 
           echo "📍 Environment check before Cypress:"
-          echo "   CYPRESS_PORT=${CYPRESS_PORT}"
+          echo "   CYPRESS_PORT=${WEBPACK_PORT}"
           echo "   CY_TEST_CONFIG=$CY_TEST_CONFIG"
           echo "   CY_RESULTS_DIR=$CY_RESULTS_DIR"
-          echo "   Will use: BASE_URL=http://localhost:${CYPRESS_PORT} (inline, same as upstream)"
+          echo "   Will use: BASE_URL=http://localhost:${WEBPACK_PORT} (inline, same as upstream)"
 
           # Ensure OpenShift configuration is available to Cypress process
           if [ -n "$KUBECONFIG" ]; then
@@ -535,7 +539,7 @@ jobs:
 
           # Try disabling video to see if that's causing port conflicts
           echo "🚀 Running Cypress WITHOUT video (testing if video recording causes port conflict)..."
-          BASE_URL=http://localhost:${CYPRESS_PORT} DEBUG=cypress:server:* npm run cypress:run:electron -- \
+          BASE_URL=http://localhost:${WEBPACK_PORT} DEBUG=cypress:server:* npm run cypress:run:electron -- \
             --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true \
             --config video=false,screenshotsFolder="$CY_RESULTS_DIR/screenshots" 2>&1 | tee /tmp/cypress_run.log || {
             
@@ -545,18 +549,18 @@ jobs:
             echo "=========================================="
             
             if grep -q "Port.*is already in use" /tmp/cypress_run.log; then
-              echo "🔍 DETECTED 'Port ${CYPRESS_PORT} is already in use' ERROR!"
+              echo "🔍 DETECTED 'Port ${WEBPACK_PORT} is already in use' ERROR!"
               echo ""
               echo "📊 Port status IMMEDIATELY AFTER failure:"
-              lsof -i:${CYPRESS_PORT} || echo "✅ No processes on port ${CYPRESS_PORT} (lsof says free)"
+              lsof -i:${WEBPACK_PORT} || echo "✅ No processes on port ${WEBPACK_PORT} (lsof says free)"
               
               echo ""
               echo "🔍 Checking if Cypress/Electron tried to bind the port:"
               ps aux | grep -E "(cypress|electron)" | grep -v grep || echo "No cypress/electron processes"
               
               echo ""
-              echo "🔍 Network statistics for port ${CYPRESS_PORT}:"
-              netstat -an | grep ${CYPRESS_PORT} || echo "No netstat entries for port ${CYPRESS_PORT}"
+              echo "🔍 Network statistics for port ${WEBPACK_PORT}:"
+              netstat -an | grep ${WEBPACK_PORT} || echo "No netstat entries for port ${WEBPACK_PORT}"
               
               echo ""
               echo "📄 Last 60 lines of Cypress output:"
