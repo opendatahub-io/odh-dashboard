@@ -7,18 +7,11 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/models"
+	"github.com/opendatahub-io/gen-ai/internal/types"
 	corev1 "k8s.io/api/core/v1"
 )
 
 const ComponenetLabelValue = "llama-stack"
-
-// ModelProviderInfo contains model provider configuration from LSD configmap
-type ModelProviderInfo struct {
-	ModelID      string
-	ProviderID   string
-	ProviderType string
-	URL          string
-}
 
 type KubernetesClientInterface interface {
 	// Namespace access
@@ -38,7 +31,7 @@ type KubernetesClientInterface interface {
 	CanListLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error)
 	InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []models.InstallModel, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error)
 	DeleteLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*lsdapi.LlamaStackDistribution, error)
-	GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*ModelProviderInfo, error)
+	GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*types.ModelProviderInfo, error)
 
 	// ConfigMap operations
 	GetConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.ConfigMap, error)
