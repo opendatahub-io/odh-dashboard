@@ -43,7 +43,8 @@ export const getAllowedUsers = async (
 
     // Handle kube-safe prefix
     if (username.startsWith(KUBE_SAFE_PREFIX)) {
-      username = username.slice(KUBE_SAFE_PREFIX.length);
+      const buffer = Buffer.from(username.slice(KUBE_SAFE_PREFIX.length), 'base64');
+      username = String(buffer);
     }
 
     const lastActivity =
@@ -55,9 +56,11 @@ export const getAllowedUsers = async (
     // Default to 'User' unless explicitly marked
     const isNotebookOwnerAdmin = notebook.metadata.labels?.['opendatahub.io/user-type'] === 'admin';
 
+    const existing = usersMap.get(username);
+    const privilege = existing?.privilege === 'Admin' || isNotebookOwnerAdmin ? 'Admin' : 'User';
     usersMap.set(username, {
       username,
-      privilege: isNotebookOwnerAdmin ? 'Admin' : 'User',
+      privilege,
       lastActivity,
     });
   }

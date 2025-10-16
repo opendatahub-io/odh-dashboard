@@ -27,7 +27,9 @@ export const getSegmentUserId = async (
     const user = await getUser(fastify, request);
     const ssoUserId = user.metadata.annotations?.['toolchain.dev.openshift.com/sso-user-id'];
     if (ssoUserId) {
-      fastify.log.debug(`Using dev-sandbox SSO user ID for segment: ${ssoUserId}`);
+      // log only a masked version for privacy
+      const masked = createHash('sha256').update(ssoUserId).digest('hex').substring(0, 8);
+      fastify.log.debug(`Using dev-sandbox SSO user ID for segment: ${masked}...`);
       return ssoUserId;
     }
   } catch (e) {

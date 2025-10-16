@@ -100,7 +100,7 @@ type Options = { path?: Replacement; query?: Query; times?: number } | null;
 declare global {
   namespace Cypress {
     interface Chainable {
-      interceptOdh: ((type: 'GET /auth2/sign_out') => Cypress.Chainable<null>) &
+      interceptOdh: ((type: 'GET /oauth2/sign_out') => Cypress.Chainable<null>) &
         ((
           type: 'POST /api/accelerator-profiles',
           response?: OdhResponse,

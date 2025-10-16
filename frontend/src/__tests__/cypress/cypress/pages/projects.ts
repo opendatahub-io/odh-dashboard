@@ -70,7 +70,8 @@ class ProjectRow extends TableRow {
   }
 
   findNotebookTable() {
-    return this.find().parents('tbody').findByTestId('project-notebooks-table');
+    // Navigate from the project row to the expanded row's notebook table
+    return this.find().parents('tbody').find('[data-testid="project-notebooks-table"]');
   }
 
   getNotebookRows() {
@@ -78,7 +79,10 @@ class ProjectRow extends TableRow {
   }
 
   getNotebookRow(notebookName: string) {
-    return new ProjectNotebookRow(() => this.findNotebookLink(notebookName).parents('tr'));
+    // Find the notebook row by looking for the notebook name in the Name column (data-label="Name")
+    return new ProjectNotebookRow(() =>
+      this.findNotebookTable().find('[data-label="Name"]').contains(notebookName).parents('tr'),
+    );
   }
 
   findNotebookLink(notebookName: string) {

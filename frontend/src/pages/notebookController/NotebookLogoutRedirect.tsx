@@ -23,7 +23,7 @@ const NotebookLogoutRedirect: React.FC = () => {
           // Use same-origin relative path for logout
           const workbenchPath = getRoutePathForWorkbench(namespace, notebookName);
           const location = new URL(workbenchPath, window.location.origin);
-          window.location.href = `${location.origin}/auth2/sign_out`;
+          window.location.href = `${location.origin}/oauth2/sign_out`;
         })
         .catch((e) => {
           if (cancelled) {
