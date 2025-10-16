@@ -1192,6 +1192,10 @@ class ModelServingWizard extends Wizard {
   findErrorMessageAlert() {
     return cy.findByTestId('error-message-alert');
   }
+
+  findUpdateDeploymentButton() {
+    return cy.findByRole('button', { name: 'Update deployment' });
+  }
 }
 
 export const modelServingGlobal = new ModelServingGlobal();
