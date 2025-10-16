@@ -23,7 +23,7 @@ const FeatureStoreAccessDenied: React.FC<FeatureStoreAccessDeniedProps> = ({
   resourceType,
   title = 'Access permissions needed',
   description,
-  testId = 'feature-store-access-denied',
+  testId,
   headingLevel = 'h4',
   emptyStateVariant = EmptyStateVariant.lg,
 }) => {
@@ -33,14 +33,16 @@ const FeatureStoreAccessDenied: React.FC<FeatureStoreAccessDeniedProps> = ({
   return (
     <EmptyState
       headingLevel={headingLevel}
-      icon={() => <SupportIcon />}
+      icon={SupportIcon}
       titleText={title}
-      data-testid={testId}
+      data-testid={testId ?? 'feature-store-access-denied'}
       variant={emptyStateVariant}
     >
       <EmptyStateBody>{description || defaultDescription}</EmptyStateBody>
       <EmptyStateFooter>
-        <WhosMyAdministrator linkTestId={`${testId}-who-is-admin-button`} />
+        <WhosMyAdministrator
+          linkTestId={`${testId ?? 'feature-store-access-denied'}-who-is-admin-button`}
+        />
       </EmptyStateFooter>
     </EmptyState>
   );

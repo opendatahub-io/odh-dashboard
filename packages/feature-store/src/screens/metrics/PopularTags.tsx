@@ -143,6 +143,7 @@ const PopularTags: React.FC<PopularTagsProps> = ({ project, limit = 4 }) => {
     if (error) {
       return (
         <FeatureStoreAccessDenied
+          testId="error-loading-popular-tags"
           resourceType="popular tags"
           title="Access permissions needed"
           description="You don't have permission to access the popular tags. Contact your admin to request access."
