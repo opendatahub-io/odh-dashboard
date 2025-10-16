@@ -18,6 +18,7 @@ const IS_PROJECT_ROOT_DIR = process.env._ODH_IS_PROJECT_ROOT_DIR;
 const SRC_DIR = process.env._ODH_SRC_DIR;
 const COMMON_DIR = process.env._ODH_COMMON_DIR;
 const DIST_DIR = process.env._ODH_DIST_DIR;
+const HOST = process.env._ODH_HOST;
 const PORT = process.env._ODH_PORT;
 const BACKEND_PORT = process.env._BACKEND_PORT;
 
@@ -56,7 +57,7 @@ module.exports = smp.wrap(
         ],
       },
       devServer: {
-        host: '0.0.0.0', // Bind to all interfaces (IPv4 + IPv6) for CI compatibility
+        host: HOST,
         port: PORT,
         compress: true,
         historyApiFallback: true,
@@ -133,11 +134,6 @@ module.exports = smp.wrap(
         },
         client: {
           overlay: false,
-          webSocketURL: {
-            hostname: '127.0.0.1', // Force IPv4 for Electron WebSocket client
-            port: PORT,
-            protocol: 'ws',
-          },
         },
         static: {
           directory: DIST_DIR,
