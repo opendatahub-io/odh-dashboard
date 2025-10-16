@@ -7,7 +7,7 @@ import useFetchAIModels from '~/app/hooks/useFetchAIModels';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
 import AIModelsTable from '~/app/AIAssets/components/AIModelsTable';
-import useFetchMaaSModels from '../hooks/useFetchMaaSModels';
+import useFetchMaaSModels from '~/app/hooks/useFetchMaaSModels';
 
 const AIAssetsModelsTab: React.FC = () => {
   const navigate = useNavigate();
