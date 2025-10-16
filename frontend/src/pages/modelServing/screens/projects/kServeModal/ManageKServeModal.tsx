@@ -140,9 +140,9 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     ...accessReviewResource,
     namespace,
   });
-
+  console.log('podSpecOptionsState (accelerator profile here at all???', podSpecOptionsState);
   const profileIdentifiers = useProfileIdentifiers(
-    podSpecOptionsState.acceleratorProfile.formData.profile,
+    undefined,
     podSpecOptionsState.hardwareProfile.formData.selectedProfile,
   );
 
@@ -199,8 +199,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       Array.isArray(servingRuntimeTemplates) &&
       servingRuntimeTemplates.length > 0 &&
       (!projectContext || connectionsLoaded) &&
-      (podSpecOptionsState.acceleratorProfile.loaded ||
-        podSpecOptionsState.hardwareProfile.profilesLoaded));
+      podSpecOptionsState.hardwareProfile.profilesLoaded);
 
   const isLoading = !isDataReady;
 
