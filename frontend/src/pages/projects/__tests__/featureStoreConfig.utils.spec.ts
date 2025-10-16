@@ -4,7 +4,6 @@ import {
   getConfigId,
   filterConfigs,
   generatePythonScript,
-  getDefaultCodeBlockContent,
 } from '#~/pages/projects/featureStoreConfig/utils';
 import {
   FeatureStoreClientConfig,
@@ -452,17 +451,6 @@ describe('featureStoreConfig utils', () => {
       expect(result).toContain('def print_summary');
       expect(result).toContain('def main');
       expect(result).toContain('if __name__ == "__main__"');
-    });
-  });
-
-  describe('getDefaultCodeBlockContent', () => {
-    it('should return default title and description', () => {
-      const result = getDefaultCodeBlockContent();
-
-      expect(result).toHaveProperty('title');
-      expect(result).toHaveProperty('description');
-      expect(result.title).toBe('Generate Python script for connection');
-      expect(result.description).toContain('configmaps');
     });
   });
 });

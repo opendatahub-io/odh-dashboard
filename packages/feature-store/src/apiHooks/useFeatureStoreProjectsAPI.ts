@@ -14,14 +14,17 @@ const useFeatureStoreProjectsAPI = (
   const call = React.useCallback<FetchStateCallbackPromise<ProjectList>>(
     (opts) => {
       if (!apiState.apiAvailable) {
-        return Promise.reject(new Error('API not yet available'));
+        return Promise.resolve(DEFAULT_PROJECT_LIST);
       }
       return apiState.api.listFeatureStoreProject(opts);
     },
     [apiState.api, apiState.apiAvailable],
   );
 
-  const result = useFetch(call, DEFAULT_PROJECT_LIST, { initialPromisePurity: true });
+  const result = useFetch(call, DEFAULT_PROJECT_LIST, {
+    initialPromisePurity: true,
+  });
+
   return result;
 };
 

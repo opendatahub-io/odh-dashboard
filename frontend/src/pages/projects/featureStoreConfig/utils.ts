@@ -251,9 +251,3 @@ if __name__ == "__main__":
 
   return pythonScript;
 };
-
-export const getDefaultCodeBlockContent = (): { title: string; description: string } => ({
-  title: 'Generate Python script for connection',
-  description:
-    'Your connection script will appear here once you select configmaps from the list on the left.',
-});
