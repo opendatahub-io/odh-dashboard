@@ -48,6 +48,8 @@ type EnvConfig struct {
 	// TLS verification settings for HTTP client connections
 	// InsecureSkipVerify when true, skips TLS certificate verification (useful for development/local setups)
 	InsecureSkipVerify bool
+	// Custom distribution name
+	DistributionName string
 
 	// ─── AUTH ───────────────────────────────────────────────────
 	// Specifies the authentication method used by the server.

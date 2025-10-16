@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
@@ -54,10 +55,11 @@ const (
 
 type TokenKubernetesClient struct {
 	// Move this to a common struct, when we decide to support multiple clients.
-	Client client.Client
-	Logger *slog.Logger
-	Token  integrations.BearerToken
-	Config *rest.Config
+	Client    client.Client
+	Logger    *slog.Logger
+	Token     integrations.BearerToken
+	Config    *rest.Config
+	EnvConfig config.EnvConfig
 }
 
 func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, identity *integrations.RequestIdentity) (bool, error) {
@@ -108,7 +110,7 @@ func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, identity *i
 	return true, nil
 }
 
-func newTokenKubernetesClient(token string, logger *slog.Logger) (*TokenKubernetesClient, error) {
+func newTokenKubernetesClient(token string, logger *slog.Logger, envConfig config.EnvConfig) (*TokenKubernetesClient, error) {
 	baseConfig, err := helper.GetKubeconfig()
 	if err != nil {
 		logger.Error("failed to get kube config", "error", err)
@@ -144,8 +146,9 @@ func newTokenKubernetesClient(token string, logger *slog.Logger) (*TokenKubernet
 		Client: ctrlClient,
 		Logger: logger,
 		// Token is retained for follow-up calls; do not log it.
-		Token:  integrations.NewBearerToken(token),
-		Config: cfg,
+		Token:     integrations.NewBearerToken(token),
+		Config:    cfg,
+		EnvConfig: envConfig,
 	}, nil
 }
 
@@ -837,9 +840,18 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 					Name: "llama-stack",
 					Port: 8321,
 				},
-				Distribution: lsdapi.DistributionType{
-					Name: "rh-dev",
-				},
+				Distribution: func() lsdapi.DistributionType {
+					// Check if distributionName contains registry patterns indicating it's a container image
+					name := kc.EnvConfig.DistributionName
+					if strings.Contains(name, "/") || strings.Contains(name, ":") {
+						return lsdapi.DistributionType{
+							Image: name,
+						}
+					}
+					return lsdapi.DistributionType{
+						Name: name,
+					}
+				}(),
 				UserConfig: &lsdapi.UserConfigSpec{
 					ConfigMapName: configMapName,
 				},
