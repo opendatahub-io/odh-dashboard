@@ -984,7 +984,7 @@ declare global {
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/feature_views/all',
-          options: { path: { namespace: string; serviceName: string; apiVersion: string } },
+          options: { path: { namespace: string; projectName: string; apiVersion: string } },
           response: OdhResponse<FeatureViewsList>,
         ) => Cypress.Chainable<null>) &
         ((
@@ -1006,7 +1006,7 @@ declare global {
           options: {
             path: {
               namespace: string;
-              serviceName: string;
+              projectName: string;
               apiVersion: string;
               featureViewName: string;
             };
@@ -1079,7 +1079,7 @@ declare global {
           options: {
             path: {
               namespace: string;
-              serviceName: string;
+              projectName: string;
               apiVersion: string;
               featureViewName: string;
             };
@@ -1089,7 +1089,7 @@ declare global {
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/saved_datasets/all',
-          options: { path: { namespace: string; serviceName: string; apiVersion: string } },
+          options: { path: { namespace: string; projectName: string; apiVersion: string } },
           response: OdhResponse<DataSetList>,
         ) => Cypress.Chainable<null>) &
         ((
@@ -1105,7 +1105,7 @@ declare global {
           options: {
             path: {
               namespace: string;
-              serviceName: string;
+              projectName: string;
               apiVersion: string;
               dataSetName: string;
             };
@@ -1133,7 +1133,7 @@ declare global {
           options: {
             path: {
               namespace: string;
-              serviceName: string;
+              projectName: string;
               apiVersion: string;
               dataSourceName: string;
             };

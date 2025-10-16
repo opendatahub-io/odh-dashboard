@@ -3,7 +3,6 @@
 import { mockFeatureStoreService } from '@odh-dashboard/feature-store/mocks/mockFeatureStoreService';
 import { mockFeatureStoreProject } from '@odh-dashboard/feature-store/mocks/mockFeatureStoreProject';
 import { mockFeatureService } from '@odh-dashboard/feature-store/mocks/mockFeatureServices';
-import { mockFeatureStore } from '@odh-dashboard/feature-store/mocks/mockFeatureStore';
 import { featureServicesTable } from '#~/__tests__/cypress/cypress/pages/featureStore/featureService';
 import { featureStoreGlobal } from '#~/__tests__/cypress/cypress/pages/featureStore/featureStoreGlobal';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
@@ -32,14 +31,6 @@ const initIntercept = () => {
   cy.interceptK8sList(
     ProjectModel,
     mockK8sResourceList([mockProjectK8sResource({ k8sName: k8sNamespace })]),
-  );
-
-  cy.intercept(
-    'GET',
-    `/api/k8s/apis/feast.dev/v1alpha1/namespaces/${k8sNamespace}/featurestores?labelSelector=feature-store-ui%3Denabled`,
-    {
-      items: [mockFeatureStore({ name: fsName, namespace: k8sNamespace })],
-    },
   );
 
   cy.intercept('GET', '/api/featurestores', {
