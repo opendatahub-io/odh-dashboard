@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Timestamp,
   Alert,
   Content,
   List,
@@ -25,7 +26,6 @@ import { Link } from 'react-router-dom';
 import FeatureStoreObjectIcon from '@odh-dashboard/feature-store/components/FeatureStoreObjectIcon';
 import EmptyStateFeatureStore from '@odh-dashboard/feature-store/screens/components/EmptyStateFeatureStore';
 import SupportIcon from '@odh-dashboard/feature-store/icons/header-icons/SupportIcon';
-/* eslint-enable import/no-extraneous-dependencies */
 import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import WhosMyAdministrator from '#~/components/WhosMyAdministrator';
 import { useClusterInfo } from '#~/redux/selectors';
@@ -33,6 +33,13 @@ import { getOpenShiftConsoleAction } from '#~/app/AppLauncher';
 import { useAccessAllowed } from '#~/concepts/userSSAR/useAccessAllowed';
 import { verbModelAccess } from '#~/concepts/userSSAR/utils';
 import { FeatureStoreModel } from '#~/api/models/odh';
+
+type FeatureStoreTimestampProps = {
+  date: string | Date;
+  dateFormat?: 'medium' | 'short';
+  fallback?: string;
+  timeFormat?: 'short' | 'medium';
+};
 
 const useFeatureStoreAdminState = () => {
   const [isAdmin, isAdminLoaded] = useAccessAllowed(verbModelAccess('create', FeatureStoreModel));
@@ -202,5 +209,25 @@ export const FeatureStoreErrorState: React.FC = () => {
       )}
       customAction={!isAdmin && <WhosMyAdministrator />}
     />
+  );
+};
+
+export const FeatureStoreTimestamp: React.FC<FeatureStoreTimestampProps> = ({
+  date,
+  fallback = '-',
+  dateFormat = 'medium',
+  timeFormat = 'short',
+}) => {
+  if (!date) {
+    return <>{fallback}</>;
+  }
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+
+  if (Number.isNaN(dateObj.getTime())) {
+    return <>{fallback}</>;
+  }
+
+  return (
+    <Timestamp date={dateObj} shouldDisplayUTC dateFormat={dateFormat} timeFormat={timeFormat} />
   );
 };

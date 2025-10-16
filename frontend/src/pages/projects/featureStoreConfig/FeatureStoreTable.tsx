@@ -1,8 +1,7 @@
 import * as React from 'react';
 import { Tr, Td, TableVariant } from '@patternfly/react-table';
 import { TextInput, Switch, Flex, FlexItem } from '@patternfly/react-core';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import FeatureStoreTimestamp from '@odh-dashboard/feature-store/components/FeatureStoreTimestamp';
+import { FeatureStoreTimestamp } from '#~/pages/projects/featureStoreConfig/FeatureStoreIntegrationComponents';
 import { Table, useCheckboxTable, CheckboxTd } from '#~/components/table';
 import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import FilterToolbar from '#~/components/FilterToolbar';

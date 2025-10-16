@@ -82,6 +82,7 @@ const FeatureStoreContextProviderComponent: React.FC<FeatureStoreContextProvider
     if (selectedFeatureStoreName) {
       return registryFeatureStores.find((fs) => fs.name === selectedFeatureStoreName) || null;
     }
+    // NOTE: Currently limited to one FeatureStore. Selecting the first enabled available one.
     return registryFeatureStores.length > 0 ? registryFeatureStores[0] : null;
   }, [registryFeatureStores, selectedFeatureStoreName]);
 
