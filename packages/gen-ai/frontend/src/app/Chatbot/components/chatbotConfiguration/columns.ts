@@ -17,9 +17,6 @@ export const chatbotConfigurationColumns: SortableData<AIModel>[] = [
     width: 20,
     info: {
       popover: AIModelStatusPopoverContent,
-      popoverProps: {
-        headerContent: 'To make a model deployment available:',
-      },
     },
   },
   {

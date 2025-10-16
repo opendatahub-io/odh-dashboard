@@ -47,7 +47,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
         <Td dataLabel="External endpoint">
           <AIModelsTableRowEndpoint model={model} isExternal />
         </Td>
-        <Td dataLabel="Use Case">
+        <Td dataLabel="Use case">
           <Truncate content={model.usecase} />
         </Td>
         <Td dataLabel="Status">

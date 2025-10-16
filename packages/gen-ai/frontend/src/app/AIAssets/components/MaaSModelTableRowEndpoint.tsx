@@ -38,7 +38,7 @@ const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({ m
       headerComponent="h2"
       headerContent={
         <Content style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
-          MaaS route
+          Model as a service (MaaS) route
         </Content>
       }
       bodyContent={
@@ -56,7 +56,7 @@ const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({ m
             <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
               <FlexItem>
                 <Content style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
-                  API Token
+                  API token
                 </Content>
               </FlexItem>
 
@@ -83,7 +83,8 @@ const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({ m
                         isInline
                         customIcon={<InfoCircleIcon />}
                       >
-                        This token cannot be viewed again after you close this dialog.
+                        This token can be viewed only once, and will be unavailable after you close
+                        this dialog.
                       </Alert>
                     </FlexItem>
                     <FlexItem>

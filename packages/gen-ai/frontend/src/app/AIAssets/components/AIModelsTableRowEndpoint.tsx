@@ -28,7 +28,8 @@ const AIModelsTableRowEndpoint: React.FC<AIModelsTableRowEndpointProps> = ({
         aria-label={`No ${isExternal ? 'external' : 'internal'} endpoint for ${model.model_name}`}
         bodyContent={
           <>
-            No {isExternal ? 'external' : 'internal'} endpoint has been configured for this model.
+            No {isExternal ? 'external' : 'internal'} endpoint has been configured for this model
+            deployment.
           </>
         }
       >
@@ -47,12 +48,12 @@ const AIModelsTableRowEndpoint: React.FC<AIModelsTableRowEndpointProps> = ({
             <Flex>
               <FlexItem>
                 <Content style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
-                  {isExternal ? 'External' : 'Internal'} Endpoint URL
+                  {isExternal ? 'External' : 'Internal'} endpoint URL
                 </Content>
               </FlexItem>
               <FlexItem>
                 <ClipboardCopy
-                  hoverTip="Copy"
+                  hoverTip="Copy URL"
                   clickTip="Copied"
                   aria-label={`${isExternal ? 'external' : 'internal'} endpoint URL for ${model.model_name}`}
                 >
@@ -84,7 +85,7 @@ const AIModelsTableRowEndpoint: React.FC<AIModelsTableRowEndpointProps> = ({
         </Flex>
       }
     >
-      <Button variant={ButtonVariant.link}>View</Button>
+      <Button variant={ButtonVariant.link}>View URL</Button>
     </Popover>
   );
 };
