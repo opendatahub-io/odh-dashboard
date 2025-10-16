@@ -12,18 +12,18 @@ import { HARDWARE_PROFILE_SELECTION_HELP } from './const';
 import { hardwareProfileValidationSchema } from './validationUtils';
 import HardwareProfileSelect from './HardwareProfileSelect';
 import HardwareProfileCustomize from './HardwareProfileCustomize';
+import { PodSpecOptions, PodSpecOptionsState, HardwarePodSpecOptionsState } from './types';
 import { getContainerResourcesFromHardwareProfile } from './utils';
-import { ModelServingHardwareProfileState } from './useModelServingPodSpecOptionsState.ts';
 
-type HardwareProfileFormSectionProps = {
+type HardwareProfileFormSectionProps<T extends PodSpecOptions> = {
   isEditing: boolean;
   project?: string;
   visibleIn?: HardwareProfileFeatureVisibility[];
-  podSpecOptionsState: ModelServingHardwareProfileState;
+  podSpecOptionsState: PodSpecOptionsState<T> | HardwarePodSpecOptionsState<T>;
   isHardwareProfileSupported?: (profile: HardwareProfileKind) => boolean;
 };
 
-const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps> = ({
+const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSpecOptions>> = ({
   podSpecOptionsState,
   project,
   isEditing,

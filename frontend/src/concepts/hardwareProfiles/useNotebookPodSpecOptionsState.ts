@@ -4,6 +4,7 @@ import { Notebook, NotebookSize } from '#~/types';
 import { usePreferredNotebookSize } from '#~/pages/notebookController/screens/server/usePreferredNotebookSize';
 import useNotebookHardwareProfileConfig from './useNotebookHardwareProfileConfig';
 import { HardwarePodSpecOptions } from './types';
+import type { HardwarePodSpecOptionsState } from './types';
 
 export type NotebookPodSpecOptions = HardwarePodSpecOptions & {
   lastSizeSelection?: string;
