@@ -21,6 +21,7 @@ import useFeatureViews from '../../../apiHooks/useFeatureViews';
 import { getRelationshipsByTargetType } from '../../../utils/filterUtils';
 import ScrollableLinksPopover from '../../../components/ScrollableLinksPopover';
 import { featureServiceRoute, featureViewRoute } from '../../../routes';
+import FeatureStoreAccessDenied from '../../../components/FeatureStoreAccessDenied';
 
 type FeatureViewsWithServices = {
   featureViewName: string;
@@ -151,17 +152,6 @@ const DataSourceDetailsTabs: React.FC<DataSourceDetailsTabsProps> = ({ dataSourc
     </EmptyState>
   );
 
-  if (featureViewsLoadError) {
-    return (
-      <EmptyState>
-        <EmptyState icon={SearchIcon} />
-        <Title headingLevel="h5" size="lg">
-          Error loading feature views
-        </Title>
-      </EmptyState>
-    );
-  }
-
   return (
     <Tabs
       activeKey={activeTabKey}
@@ -195,26 +185,29 @@ const DataSourceDetailsTabs: React.FC<DataSourceDetailsTabsProps> = ({ dataSourc
           isFilled
           data-testid="data-source-feature-views-tab-content"
           isWidthLimited
-          style={{ maxWidth: '75%' }}
+          style={{ maxWidth: featureViewsLoadError ? '100%' : '75%' }}
         >
-          {featureViewsLoaded ? (
-            featureViewsWithServices.length > 0 ? (
-              <>
-                <Title headingLevel="h3" data-testid="feature-view-tab">
-                  Feature views
-                </Title>
-                <FeatureViewsTabContent
-                  featureViewsWithServices={featureViewsWithServices}
-                  currentProject={dataSource.project || currentProject || ''}
-                />
-              </>
-            ) : (
-              emptyState
-            )
-          ) : (
+          {featureViewsLoadError ? (
+            <FeatureStoreAccessDenied
+              resourceType="feature views"
+              projectName={dataSource.project || currentProject || ''}
+            />
+          ) : !featureViewsLoaded ? (
             <Bullseye>
               <Spinner size="xl" data-testid="loading-spinner" />
             </Bullseye>
+          ) : featureViewsWithServices.length > 0 ? (
+            <>
+              <Title headingLevel="h3" data-testid="feature-view-tab">
+                Feature views
+              </Title>
+              <FeatureViewsTabContent
+                featureViewsWithServices={featureViewsWithServices}
+                currentProject={dataSource.project || currentProject || ''}
+              />
+            </>
+          ) : (
+            emptyState
           )}
         </PageSection>
       </Tab>

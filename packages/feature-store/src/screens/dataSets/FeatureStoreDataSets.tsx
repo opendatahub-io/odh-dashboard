@@ -9,6 +9,7 @@ import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import { featureStoreRoute } from '../../routes';
 import useFeatureStoreDataSets from '../../apiHooks/useFeatureStoreDataSets';
 import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
+import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied';
 
 const title = 'Datasets';
 const description =
@@ -41,6 +42,9 @@ const FeatureStoreDataSets = (): React.ReactElement => {
     <ApplicationsPage
       empty={dataSets.savedDatasets.length === 0}
       emptyStatePage={emptyState}
+      loadErrorPage={
+        <FeatureStoreAccessDenied resourceType="data sets" projectName={currentProject} />
+      }
       title={
         <FeatureStorePageTitle
           title={
