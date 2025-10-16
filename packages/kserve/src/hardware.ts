@@ -38,7 +38,7 @@ export const extractEnvironmentVariables = (
     enabled: envVars.length > 0,
     variables: envVars.map((envVar) => ({
       name: envVar.name,
-      value: envVar.value || '',
+      value: envVar.value ?? '',
     })),
   };
 };
