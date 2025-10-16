@@ -48,6 +48,7 @@ import {
 } from '#~/__mocks__/mockHardwareProfile';
 import { initInterceptsForAllProjects } from '#~/__tests__/cypress/cypress/utils/servingUtils';
 import { nimDeployModal } from '#~/__tests__/cypress/cypress/pages/components/NIMDeployModal';
+import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -78,9 +79,9 @@ const initIntercepts = ({
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      installedComponents: {
-        kserve: true,
-        'model-mesh': true,
+      components: {
+        [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
+        [DataScienceStackComponent.MODEL_MESH_SERVING]: { managementState: 'Managed' },
       },
     }),
   );
