@@ -10,7 +10,6 @@ apis:
 - inference
 - safety
 - scoring
-- telemetry
 - tool_runtime
 - vector_io
 providers:
@@ -62,14 +61,6 @@ providers:
   - provider_id: llm-as-judge
     provider_type: inline::llm-as-judge
     config: {}
-  telemetry:
-  - provider_id: meta-reference
-    provider_type: inline::meta-reference
-    config:
-      service_name: "${env.OTEL_SERVICE_NAME:=\u200B}"
-      sinks: ${env.TELEMETRY_SINKS:=console,sqlite}
-      sqlite_db_path: /opt/app-root/src/.llama/distributions/rh/trace_store.db
-      otel_exporter_otlp_endpoint: ${env.OTEL_EXPORTER_OTLP_ENDPOINT:=}
   tool_runtime:
   - provider_id: rag-runtime
     provider_type: inline::rag-runtime
@@ -80,7 +71,6 @@ providers:
 metadata_store:
   type: sqlite
   db_path: /opt/app-root/src/.llama/distributions/rh/inference_store.db
-
 models:
 %s
 shields: []
@@ -91,6 +81,5 @@ benchmarks: []
 tool_groups:
 - toolgroup_id: builtin::rag
   provider_id: rag-runtime
-external_providers_dir: /opt/app-root/.llama/providers.d
 server:
   port: 8321`
