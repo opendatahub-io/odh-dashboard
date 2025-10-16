@@ -7,6 +7,8 @@ const DEFAULT_HTTPS_PORT = '443';
 const DEFAULT_HTTP_PORT = '80';
 const FEATURE_STORE_YAML_KEY = 'feature_store.yaml';
 const REGISTRY_CONDITION_TYPE = 'Registry';
+const PROTOCOL_REGEX = /^(https?):\/\//;
+const SERVICE_NAME_REGEX = /feast-(.+)-registry\.(.+)\.svc\.cluster\.local(:\d+)?/;
 
 export interface NamespacesData {
   namespaces: Record<string, string[]>;
@@ -88,16 +90,11 @@ export function parseNamespacesData(configMapData: string): NamespacesData {
 }
 
 export function extractServiceInfo(registryUrl: string): RegistryUrlInfo {
-  // Extract protocol if present, default to https
-  const protocolMatch = registryUrl.match(/^(https?):\/\//);
+  const protocolMatch = registryUrl.match(PROTOCOL_REGEX);
   const protocol = protocolMatch ? protocolMatch[1] : 'https';
 
-  // Remove protocol for service name extraction
-  const urlWithoutProtocol = registryUrl.replace(/^https?:\/\//, '');
-
-  const serviceMatch = urlWithoutProtocol.match(
-    /feast-(.+)-registry\.(.+)\.svc\.cluster\.local(:\d+)?/,
-  );
+  const urlWithoutProtocol = registryUrl.replace(PROTOCOL_REGEX, '');
+  const serviceMatch = urlWithoutProtocol.match(SERVICE_NAME_REGEX);
 
   if (!serviceMatch) {
     throw new Error(`Invalid registry URL format: ${registryUrl}`);
@@ -328,7 +325,7 @@ export async function makeAuthenticatedHttpRequest<T = unknown>(
     agent?: import('https').Agent;
   } = {},
 ): Promise<{ data: T; statusCode: number }> {
-  const { timeout = 10000, rejectUnauthorized = false, agent } = options;
+  const { timeout = 60000, rejectUnauthorized = false, agent } = options;
 
   const https = require('https');
   const http = require('http');

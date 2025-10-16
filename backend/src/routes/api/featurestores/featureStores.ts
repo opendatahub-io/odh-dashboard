@@ -4,6 +4,20 @@ import { KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { getAccessToken, getDirectCallOptions } from '../../../utils/directCallUtils';
 import { createCustomError } from '../../../utils/requestUtils';
 import { getNamespaces } from '../../../utils/notebookUtils';
+import {
+  parseNamespacesData,
+  findRegistryUrlForFeatureStore,
+  extractServiceInfo,
+  constructRegistryProxyUrl,
+  createFeatureStoreResponse,
+  filterEnabledCRDs,
+  getClientConfigsBatched,
+  fetchFromRegistry,
+  fetchConfigMap,
+  handleError,
+  makeAuthenticatedHttpRequest,
+  type FeatureStoreCRD,
+} from './featureStoreUtils';
 
 interface FeatureStoreResponse {
   featureStores: FeatureStore[];
@@ -30,20 +44,6 @@ interface CustomObjectResponse {
     items?: FeatureStoreCRD[];
   };
 }
-import {
-  parseNamespacesData,
-  findRegistryUrlForFeatureStore,
-  extractServiceInfo,
-  constructRegistryProxyUrl,
-  createFeatureStoreResponse,
-  filterEnabledCRDs,
-  getClientConfigsBatched,
-  fetchFromRegistry,
-  fetchConfigMap,
-  handleError,
-  makeAuthenticatedHttpRequest,
-  type FeatureStoreCRD,
-} from './featureStoreUtils';
 
 function buildFeatureStoreResponse(featureStores: FeatureStore[]): FeatureStoreResponse {
   return { featureStores };
@@ -198,7 +198,7 @@ async function handleFeatureStoreProxy(
 
   try {
     const { data, statusCode } = await makeAuthenticatedHttpRequest(fastify, proxyUrl, token, {
-      timeout: 20000,
+      timeout: 60000,
       rejectUnauthorized: false,
       agent: new https.Agent({
         rejectUnauthorized: false,

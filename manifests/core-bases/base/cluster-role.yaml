@@ -227,5 +227,6 @@ rules:
     verbs:
       - get
       - list
+      - watch
     resources:
       - featurestores
