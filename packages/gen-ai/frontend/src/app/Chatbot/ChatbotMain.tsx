@@ -50,7 +50,7 @@ const ChatbotMain: React.FunctionComponent = () => {
     <>
       <ApplicationsPage
         title={<ChatbotHeader />}
-        loaded={lsdStatusLoaded && aiModelsLoaded && maasModelsLoaded}
+        loaded={lsdStatusLoaded && (aiModelsLoaded || maasModelsLoaded)}
         empty={!lsdStatus}
         emptyStatePage={
           !hasModels ? (
@@ -96,7 +96,7 @@ const ChatbotMain: React.FunctionComponent = () => {
             />
           )
         }
-        loadError={lsdStatusError || aiModelsError || maasModelsError}
+        loadError={lsdStatusError || (aiModelsError && maasModelsError)}
         headerAction={
           <ChatbotHeaderActions
             onViewCode={() => setIsViewCodeModalOpen(true)}
@@ -159,7 +159,7 @@ const ChatbotMain: React.FunctionComponent = () => {
             setConfigurationModalOpen(false);
             refresh();
           }}
-          allModels={aiModels}
+          aiModels={aiModels}
           lsdStatus={lsdStatus}
           existingModels={models}
           maasModels={maasModels}

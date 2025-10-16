@@ -7,12 +7,14 @@ import useFetchAIModels from '~/app/hooks/useFetchAIModels';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
 import AIModelsTable from '~/app/AIAssets/components/AIModelsTable';
+import useFetchMaaSModels from '../hooks/useFetchMaaSModels';
 
 const AIAssetsModelsTab: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = React.useContext(GenAiContext);
   const { data: playgroundModels } = useFetchLlamaModels(namespace?.name);
-  const { data: models = [], loaded, error } = useFetchAIModels(namespace?.name);
+  const { data: aiModels = [], loaded, error } = useFetchAIModels(namespace?.name);
+  const { data: maasModels = [] } = useFetchMaaSModels(namespace?.name || '');
   const { data: lsdStatus } = useFetchLSDStatus(namespace?.name);
 
   if (!loaded && !error) {
@@ -23,7 +25,7 @@ const AIAssetsModelsTab: React.FC = () => {
     );
   }
 
-  if (error || models.length === 0) {
+  if (error || aiModels.length === 0) {
     return (
       <ModelsEmptyState
         title="To begin you must deploy a model"
@@ -59,7 +61,12 @@ const AIAssetsModelsTab: React.FC = () => {
   }
 
   return (
-    <AIModelsTable models={models} playgroundModels={playgroundModels} lsdStatus={lsdStatus} />
+    <AIModelsTable
+      aiModels={aiModels}
+      maasModels={maasModels}
+      playgroundModels={playgroundModels}
+      lsdStatus={lsdStatus}
+    />
   );
 };
 
