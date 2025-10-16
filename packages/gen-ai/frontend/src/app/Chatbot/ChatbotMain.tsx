@@ -12,6 +12,10 @@ import {
 } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { useNavigate } from 'react-router-dom';
+import {
+  fireMiscTrackingEvent,
+  fireSimpleTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import ChatbotEmptyState from '~/app/EmptyStates/NoData';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -92,6 +96,9 @@ const ChatbotMain: React.FunctionComponent = () => {
               actionButtonText="Configure playground"
               handleActionButtonClick={() => {
                 setConfigurationModalOpen(true);
+                fireMiscTrackingEvent('Playground Setup Initiated', {
+                  source: 'Playground',
+                });
               }}
             />
           )
@@ -99,7 +106,10 @@ const ChatbotMain: React.FunctionComponent = () => {
         loadError={lsdStatusError || aiModelsError || maasModelsError}
         headerAction={
           <ChatbotHeaderActions
-            onViewCode={() => setIsViewCodeModalOpen(true)}
+            onViewCode={() => {
+              setIsViewCodeModalOpen(true);
+              fireSimpleTrackingEvent('Playground View Code Selected');
+            }}
             onConfigurePlayground={() => setConfigurationModalOpen(true)}
             onDeletePlayground={() => setDeleteModalOpen(true)}
           />
