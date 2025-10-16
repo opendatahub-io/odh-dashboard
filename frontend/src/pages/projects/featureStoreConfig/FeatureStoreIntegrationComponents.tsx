@@ -12,6 +12,7 @@ import {
   Button,
   Bullseye,
   Spinner,
+  Icon,
 } from '@patternfly/react-core';
 import {
   OutlinedQuestionCircleIcon,
@@ -43,24 +44,18 @@ const useFeatureStoreAdminState = () => {
 };
 
 export const FeatureStoreAlert: React.FC = () => (
-  <Alert
-    isInline
-    variant="info"
-    title="Integrate feature store into your Workbenches to consume and manage features."
-    isExpandable
-  >
-    <Content component="p">
-      To consume and manage features from the Feature store within your workbenches, follow these
-      steps to establish the connection:
-    </Content>
+  <Alert isInline variant="info" title="Integration instructions" isExpandable>
+    <Content component="p">To integrate feature store repositories with a workbench:</Content>
     <List component={ListComponent.ol} type={OrderType.number}>
       <ListItem>
-        Select your desired connection(s) from the Feature store client configmaps table using the
-        checkboxes.
+        In the <strong>Feature store client configuration</strong> table, select configmaps
+        associated with the desired repos.
       </ListItem>
-      <ListItem>Copy the Python script that appears in the code block on the right.</ListItem>
-      <ListItem>Launch your workbench from the Workbenches tab.</ListItem>
-      <ListItem>Once launched, paste and run the script in a cell to complete the setup.</ListItem>
+      <ListItem>Copy the Python script that is generated in the Python script section.</ListItem>
+      <ListItem>
+        From the <strong>Workbenches</strong> tab, launch a workbench.
+      </ListItem>
+      <ListItem>Paste the Python script into the workbench.</ListItem>
     </List>
   </Alert>
 );
@@ -89,12 +84,13 @@ export const FeatureStoreTitle: React.FC<FeatureStoreTitleProps> = ({ title, nav
       useTypedColors={false}
     />
     <Popover
-      headerContent="About Feature store integration"
+      headerContent="About feature store integration"
       bodyContent={
         <>
-          Integrate feature store into your Workbenches, to securely consume and manage features.
+          Integrating feature stores with your workbenches enables you to securely consume and
+          manage features.
           <br /> <br />
-          Learn more about Feature store by exploring feature store pages.
+          To learn more about feature stores, go to the
         </>
       }
       footerContent={
@@ -102,10 +98,10 @@ export const FeatureStoreTitle: React.FC<FeatureStoreTitleProps> = ({ title, nav
           isInline
           variant="link"
           onClick={() => {
-            navigate('/featureStore/overview');
+            navigate('/develop-train/feature-store/overview');
           }}
         >
-          Go to <strong>Feature store pages</strong>
+          <strong>Feature store {'>'} Overview </strong> page
         </Button>
       }
     >
@@ -128,24 +124,23 @@ export const FeatureStoreEmptyState: React.FC = () => {
   const adminTitle = 'Create a feature store repository';
   const adminDescription = (
     <>
-      No feature store repositories are available to users in your organization. Create a repository
-      in OpenShift. <br />
+      No feature store repositories are available to users in your organization. Create a feature
+      store repository from the <strong>OpenShift console</strong>. <br />
       <br />
       {osConsoleAction && (
         <Link target="_blank" to={osConsoleAction.href || ''} style={{ textDecoration: 'none' }}>
-          Go to <b>OpenShift Platform</b> {'   '}
+          Go to <b>OpenShift</b> {'   '}
           <ExternalLinkAltIcon />
         </Link>
       )}
     </>
   );
 
-  const userTitle = 'Request access to a feature store repository';
+  const userTitle = 'Request a feature store repository';
   const userDescription = (
     <>
-      Feature store repositories allow teams to organize and collaborate on resources within
-      separate namespaces. To request access to a new or existing repository, contact your
-      administrator.
+      No feature store repositories are available in your organization. To request access to a new
+      repo, contact your administrator.
     </>
   );
 
@@ -180,7 +175,7 @@ export const FeatureStoreErrorState: React.FC = () => {
       <br />
       {osConsoleAction && (
         <Link target="_blank" to={osConsoleAction.href || ''} style={{ textDecoration: 'none' }}>
-          Go to <b>OpenShift Platform</b> {'   '}
+          Go to <b>OpenShift</b> {'   '}
           <ExternalLinkAltIcon />
         </Link>
       )}
@@ -201,9 +196,9 @@ export const FeatureStoreErrorState: React.FC = () => {
       title={isAdmin ? adminTitle : userTitle}
       description={isAdmin ? adminDescription : userDescription}
       headerIcon={() => (
-        <ExclamationCircleIcon
-          style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}
-        />
+        <Icon status="danger" isInline size="2xl" iconSize="2xl">
+          <ExclamationCircleIcon />
+        </Icon>
       )}
       customAction={!isAdmin && <WhosMyAdministrator />}
     />

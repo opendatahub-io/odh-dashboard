@@ -26,6 +26,7 @@ import { EMPTY_STATE_MESSAGES } from './const';
 import useMetricsPopularTags from '../../apiHooks/useMetricsPopularTags';
 import { featureViewRoute } from '../../routes';
 import { PopularTag } from '../../types/metrics';
+import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied';
 
 type PopularTagsProps = {
   project?: string;
@@ -141,9 +142,13 @@ const PopularTags: React.FC<PopularTagsProps> = ({ project, limit = 4 }) => {
   const renderContent = () => {
     if (error) {
       return (
-        <Content component={ContentVariants.p} data-testid="error-loading-popular-tags">
-          Error loading popular tags
-        </Content>
+        <FeatureStoreAccessDenied
+          resourceType="popular tags"
+          title="Access permissions needed"
+          description="You don't have permission to access the popular tags. Contact your admin to request access."
+          headingLevel="h6"
+          emptyStateVariant={EmptyStateVariant.xs}
+        />
       );
     }
 
@@ -176,7 +181,11 @@ const PopularTags: React.FC<PopularTagsProps> = ({ project, limit = 4 }) => {
 
   return (
     <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsMd' }}>
-      <Title headingLevel="h3" data-testid="popular-tags-title" style={{ marginBottom: '2rem' }}>
+      <Title
+        headingLevel="h3"
+        data-testid="popular-tags-title"
+        style={{ marginBottom: error ? '0' : '2rem' }}
+      >
         Feature views using popular tags
       </Title>
       {renderContent()}

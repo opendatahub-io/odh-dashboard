@@ -23,7 +23,7 @@ import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import useFeatureStoreConfigs from './useFeatureStoreConfigs';
 import { FeatureStoreClientConfig } from './types';
-import { generatePythonScript, getDefaultCodeBlockContent } from './utils';
+import { generatePythonScript } from './utils';
 import FeatureStoreTable from './FeatureStoreTable';
 import {
   FeatureStoreAlert,
@@ -43,11 +43,10 @@ const FeatureStoreIntegration: React.FC = () => {
 
     if (selectedConfigs.length > 0) {
       content = generatePythonScript(selectedConfigs);
-    } else {
-      const defaultContent = getDefaultCodeBlockContent();
-      content = `${defaultContent.title}\n\n${defaultContent.description}`;
+      return content;
     }
-    return content;
+
+    return '';
   }, [selectedConfigs]);
 
   React.useEffect(() => {
@@ -87,7 +86,7 @@ const FeatureStoreIntegration: React.FC = () => {
       <Flex direction={{ default: 'column' }} gap={{ default: 'gapLg' }}>
         <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
           <Title headingLevel="h6" size="md">
-            Run this python script in your workbench
+            Python script
           </Title>
         </Flex>
         <CodeBlock
@@ -147,21 +146,16 @@ const FeatureStoreIntegration: React.FC = () => {
                 <Icon type="custom" iconSize="2xl" size="2xl">
                   <CodeIcon style={{ color: 'var(--pf-t--color--gray--50)' }} />
                 </Icon>
-                <Title
-                  headingLevel="h2"
-                  size="lg"
-                  color="var(--pf-t--global--text--color--regular)"
-                  style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-                >
-                  Generate Python script for connection
+                <Title headingLevel="h2" size="lg" className="pf-v6-u-mb-md">
+                  Select configmaps
                 </Title>
                 <Content
                   component="p"
                   className={text.textColorSubtle}
                   style={{ fontSize: '0.8rem' }}
                 >
-                  Your connection script will appear here once you select configmaps from the list
-                  on the left.
+                  To automatically generate a Python integration script, select 1 or more configmaps
+                  from the <strong>Feature store client configmaps</strong> section of this page.
                 </Content>
               </Flex>
             )}
@@ -200,13 +194,10 @@ const FeatureStoreIntegration: React.FC = () => {
                         Feature store client configmaps
                       </Title>
                       <Popover
-                        headerContent="About feature store client configmaps"
                         bodyContent={
                           <>
-                            Feature store client configmaps are setup by your admin to connect to
-                            feature store repositories independently. Each configmap holds the
-                            settings to connect to feature store servers like offline, online,
-                            registry, and more.
+                            A feature store client configmap contains the settings required to
+                            connect a feature store repository to a workbench.
                           </>
                         }
                       >
