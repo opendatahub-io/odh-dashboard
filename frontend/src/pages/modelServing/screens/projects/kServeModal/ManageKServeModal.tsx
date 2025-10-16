@@ -53,7 +53,7 @@ import K8sNameDescriptionField, {
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { isK8sNameDescriptionDataValid } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import { useProfileIdentifiers } from '#~/concepts/hardwareProfiles/utils';
-import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { useModelServingHardwareProfileState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import usePrefillModelDeployModal, {
   ModelDeployPrefillInfo,
 } from '#~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
@@ -113,7 +113,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       editInfo?.servingRuntimeEditInfo?.servingRuntime,
       editInfo?.secrets,
     );
-  const podSpecOptionsState = useModelServingPodSpecOptionsState(
+  const podSpecOptionsState = useModelServingHardwareProfileState(
     editInfo?.servingRuntimeEditInfo?.servingRuntime,
     editInfo?.inferenceServiceEditInfo,
     false,

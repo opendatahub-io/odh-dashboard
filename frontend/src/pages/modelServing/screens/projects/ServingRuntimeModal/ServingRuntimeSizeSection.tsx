@@ -9,13 +9,16 @@ import {
 import { getCompatibleIdentifiers } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { formatMemory } from '#~/utilities/valueUnits';
-import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import {
+  ModelServingPodSpecOptionsState,
+  ModelServingHardwareProfileState,
+} from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import HardwareProfileFormSection from '#~/concepts/hardwareProfiles/HardwareProfileFormSection';
 import { ModelServingSize } from '#~/pages/modelServing/screens/types';
 import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
 
 type ServingRuntimeSizeSectionProps = {
-  podSpecOptionState: ModelServingPodSpecOptionsState;
+  podSpecOptionState: ModelServingPodSpecOptionsState | ModelServingHardwareProfileState;
   projectName?: string;
   servingRuntimeSelected?: ServingRuntimeKind;
   infoContent?: string;
