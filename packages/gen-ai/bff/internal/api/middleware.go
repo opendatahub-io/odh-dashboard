@@ -357,7 +357,7 @@ func (app *App) AttachMaaSClient(next func(http.ResponseWriter, *http.Request, h
 					return
 				}
 
-				serviceURL = fmt.Sprintf("https://maas-api.%s", clusterDomain)
+				serviceURL = fmt.Sprintf("https://maas.%s", clusterDomain)
 				logger.Debug("Using autodiscovered MaaS endpoint",
 					"clusterDomain", clusterDomain,
 					"serviceURL", serviceURL)
