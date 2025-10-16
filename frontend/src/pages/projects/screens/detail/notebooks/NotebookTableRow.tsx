@@ -14,12 +14,10 @@ import { getDescriptionFromK8sResource } from '#~/concepts/k8s/utils';
 import { NotebookSize } from '#~/types';
 import NotebookStateStatus from '#~/pages/projects/notebook/NotebookStateStatus';
 import { NotebookActionsColumn } from '#~/pages/projects/notebook/NotebookActionsColumn';
-import { computeNotebooksTolerations } from '#~/utilities/tolerations';
 import { startNotebook, stopNotebook } from '#~/api';
 import { currentlyHasPipelines } from '#~/concepts/pipelines/elyra/utils';
 import { fireNotebookTrackingEvent } from '#~/pages/projects/notebook/utils';
 import useStopNotebookModalAvailability from '#~/pages/projects/notebook/useStopNotebookModalAvailability';
-import { useAppContext } from '#~/app/AppContext';
 import StopNotebookConfirmModal from '#~/pages/projects/notebook/StopNotebookConfirmModal';
 import { useNotebookKindPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import HardwareProfileTableColumn from '#~/concepts/hardwareProfiles/HardwareProfileTableColumn';
@@ -63,7 +61,6 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
 
   const podSpecOptionsState = useNotebookKindPodSpecOptionsState(obj.notebook);
   const [dontShowModalValue] = useStopNotebookModalAvailability();
-  const { dashboardConfig } = useAppContext();
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [isUpdating, setIsUpdating] = React.useState(false);
@@ -72,16 +69,13 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
 
   const onStart = React.useCallback(() => {
     setInProgress(true);
-    const tolerationSettings = computeNotebooksTolerations(dashboardConfig, obj.notebook);
-    startNotebook(
-      obj.notebook,
-      tolerationSettings,
-      canEnablePipelines && !currentlyHasPipelines(obj.notebook),
-    ).then(() => {
-      fireNotebookTrackingEvent('started', obj.notebook, podSpecOptionsState);
-      obj.refresh().then(() => setInProgress(false));
-    });
-  }, [dashboardConfig, obj, canEnablePipelines, podSpecOptionsState]);
+    startNotebook(obj.notebook, canEnablePipelines && !currentlyHasPipelines(obj.notebook)).then(
+      () => {
+        fireNotebookTrackingEvent('started', obj.notebook, podSpecOptionsState);
+        obj.refresh().then(() => setInProgress(false));
+      },
+    );
+  }, [obj, canEnablePipelines, podSpecOptionsState]);
 
   const handleStop = React.useCallback(() => {
     fireNotebookTrackingEvent('stopped', obj.notebook, podSpecOptionsState);

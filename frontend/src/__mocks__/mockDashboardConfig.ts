@@ -245,10 +245,6 @@ export const mockDashboardConfig = ({
     },
     notebookController: {
       enabled: !disableNotebookController,
-      notebookTolerationSettings: {
-        enabled: true,
-        key: 'NotebooksOnlyChange',
-      },
       pvcSize: '20Gi',
     },
     groupsConfig: {
