@@ -666,24 +666,73 @@ func (kc *TokenKubernetesClient) extractEndpointsFromLLMInferenceService(llmSvc 
 		return endpoints
 	}
 
-	// Extract internal endpoint from Address
-	if llmSvc.Status.Address != nil && llmSvc.Status.Address.URL != nil {
-		internal := llmSvc.Status.Address.URL.String()
-		endpoints = append(endpoints, fmt.Sprintf("internal: %s", internal))
+	// Extract internal endpoint within the namespace
+	internalEndpoint := kc.extractInternalEndpointFromLLMInferenceService(llmSvc)
+	if internalEndpoint != "" {
+		endpoints = append(endpoints, fmt.Sprintf("internal: %s", internalEndpoint))
 	}
 
-	// Extract external endpoint from URL
+	// Extract external endpoint from URL (if different from internal)
 	if llmSvc.Status.URL != nil {
 		external := llmSvc.Status.URL.String()
-		if strings.Contains(external, ".svc.cluster.local") {
-			return endpoints
-		}
-		// Only add if it's different from internal and not internal service
-		if len(endpoints) == 0 || !strings.Contains(endpoints[0], external) {
+		// Only add external if it's not the same as internal and not a cluster-local URL
+		if !strings.Contains(external, ".svc.cluster.local") &&
+			(internalEndpoint == "" || !strings.Contains(internalEndpoint, external)) {
 			endpoints = append(endpoints, fmt.Sprintf("external: %s", external))
 		}
 	}
 	return endpoints
+}
+
+// extractInternalEndpointFromLLMInferenceService extracts the internal endpoint within the namespace
+func (kc *TokenKubernetesClient) extractInternalEndpointFromLLMInferenceService(llmSvc *kservev1alpha1.LLMInferenceService) string {
+	if llmSvc == nil {
+		return ""
+	}
+
+	// Find the workload service for this LLMInferenceService
+	serviceName := fmt.Sprintf("%s-kserve-workload-svc", llmSvc.Name)
+	namespace := llmSvc.Namespace
+
+	// Try to get the service to extract port and protocol
+	svc := &corev1.Service{}
+	err := kc.Client.Get(context.Background(), client.ObjectKey{
+		Name:      serviceName,
+		Namespace: namespace,
+	}, svc)
+	if err != nil {
+		// If service not found, fall back to using Address.URL
+		if llmSvc.Status.Address != nil && llmSvc.Status.Address.URL != nil {
+			internalURL := llmSvc.Status.Address.URL.URL()
+			// Ensure we're using the internal URL (http scheme for non-auth services)
+			if llmSvc.Annotations["security.opendatahub.io/enable-auth"] != "true" {
+				if internalURL.Scheme == "https" {
+					internalURL.Scheme = "http"
+				}
+			}
+			return internalURL.String()
+		}
+		return ""
+	}
+
+	// Check if service has ports
+	if len(svc.Spec.Ports) == 0 {
+		return ""
+	}
+
+	// Extract port and determine protocol
+	port := svc.Spec.Ports[0].Port
+	portName := svc.Spec.Ports[0].Name
+	protocol := "http"
+	if portName == "https" {
+		protocol = "https"
+	}
+
+	// Construct internal endpoint within the namespace
+	internalEndpoint := fmt.Sprintf("%s://%s.%s.svc.cluster.local:%d",
+		protocol, serviceName, namespace, port)
+
+	return internalEndpoint
 }
 
 // Helper method to extract status from LLMInferenceService
@@ -1321,29 +1370,61 @@ func (kc *TokenKubernetesClient) findLLMInferenceServiceByModelName(ctx context.
 	return nil, fmt.Errorf("LLMInferenceService with model name '%s' not found in namespace %s", modelName, namespace)
 }
 
-// extractEndpointFromLLMInferenceService extracts the endpoint URL from LLMInferenceService status.addresses
+// extractEndpointFromLLMInferenceService extracts the internal endpoint URL from LLMInferenceService
 func (kc *TokenKubernetesClient) extractEndpointFromLLMInferenceService(llmSvc *kservev1alpha1.LLMInferenceService) (string, error) {
-	// Check if status.addresses exists and has at least one address
-	if len(llmSvc.Status.Addresses) == 0 {
-		kc.Logger.Error("LLMInferenceService has no addresses in status", "name", llmSvc.Name, "namespace", llmSvc.Namespace)
-		return "", fmt.Errorf("LLMInferenceService '%s' has no addresses in status - service may not be ready", llmSvc.Name)
+	if llmSvc == nil {
+		return "", fmt.Errorf("LLMInferenceService is nil")
 	}
 
-	// Get the first address URL
-	firstAddress := llmSvc.Status.Addresses[0]
-	if firstAddress.URL == nil {
-		kc.Logger.Error("LLMInferenceService first address has no URL", "name", llmSvc.Name, "namespace", llmSvc.Namespace)
-		return "", fmt.Errorf("LLMInferenceService '%s' first address has no URL", llmSvc.Name)
+	// Find the workload service for this LLMInferenceService
+	serviceName := fmt.Sprintf("%s-kserve-workload-svc", llmSvc.Name)
+	namespace := llmSvc.Namespace
+
+	// Try to get the service to extract port and protocol
+	svc := &corev1.Service{}
+	err := kc.Client.Get(context.Background(), client.ObjectKey{
+		Name:      serviceName,
+		Namespace: namespace,
+	}, svc)
+	if err != nil {
+		// If service not found, fall back to using Address.URL but convert to internal
+		if llmSvc.Status.Address != nil && llmSvc.Status.Address.URL != nil {
+			internalURL := llmSvc.Status.Address.URL.URL()
+			// Ensure we're using the internal URL (http scheme for non-auth services)
+			if llmSvc.Annotations["security.opendatahub.io/enable-auth"] != "true" {
+				if internalURL.Scheme == "https" {
+					internalURL.Scheme = "http"
+				}
+			}
+			endpointURL := internalURL.String()
+			// Add /v1 suffix if not present
+			if !strings.HasSuffix(endpointURL, "/v1") {
+				endpointURL = endpointURL + "/v1"
+			}
+			kc.Logger.Info("extracted endpoint from LLMInferenceService Address (fallback)", "name", llmSvc.Name, "endpoint", endpointURL)
+			return endpointURL, nil
+		}
+		return "", fmt.Errorf("LLMInferenceService '%s' has no service or address URL - service may not be ready", llmSvc.Name)
 	}
 
-	endpointURL := firstAddress.URL.String()
-
-	// Add /v1 suffix if not present for LLMInferenceService compatibility
-	if !strings.HasSuffix(endpointURL, "/v1") {
-		endpointURL = endpointURL + "/v1"
+	// Check if service has ports
+	if len(svc.Spec.Ports) == 0 {
+		return "", fmt.Errorf("service '%s' has no ports", serviceName)
 	}
 
-	kc.Logger.Info("extracted endpoint from LLMInferenceService", "name", llmSvc.Name, "endpoint", endpointURL)
+	// Extract port and determine protocol
+	port := svc.Spec.Ports[0].Port
+	portName := svc.Spec.Ports[0].Name
+	protocol := "http"
+	if portName == "https" {
+		protocol = "https"
+	}
+
+	// Construct internal endpoint within the namespace
+	endpointURL := fmt.Sprintf("%s://%s.%s.svc.cluster.local:%d/v1",
+		protocol, serviceName, namespace, port)
+
+	kc.Logger.Info("extracted internal endpoint from LLMInferenceService", "name", llmSvc.Name, "endpoint", endpointURL)
 
 	return endpointURL, nil
 }
