@@ -15,6 +15,9 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/api"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 func main() {
@@ -51,7 +54,24 @@ func main() {
 	flag.Func("bundle-paths", "CA bundle file paths (comma-separated list)", newBundlePathParser(&cfg.BundlePaths, getEnvAsString("BUNDLE_PATHS", "")))
 	flag.BoolVar(&cfg.InsecureSkipVerify, "insecure-skip-verify", getEnvAsBool("INSECURE_SKIP_VERIFY", false), "Skip TLS certificate verification")
 
+	// Initialize klog flags before parsing
+	klog.InitFlags(nil)
+
 	flag.Parse()
+
+	if cfg.LogLevel == slog.LevelDebug {
+		log.SetLogger(zap.New(zap.UseDevMode(true)))
+		klog.SetLogger(log.Log)
+		if err := flag.Set("v", "4"); err != nil {
+			fmt.Println("failed to set klog verbosity", "error", err)
+		}
+	} else {
+		log.SetLogger(zap.New(zap.UseDevMode(false)))
+		klog.SetLogger(log.Log)
+		if err := flag.Set("v", "1"); err != nil {
+			fmt.Println("failed to set klog verbosity", "error", err)
+		}
+	}
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: cfg.LogLevel,
