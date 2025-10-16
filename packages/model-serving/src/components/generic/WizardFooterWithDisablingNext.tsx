@@ -52,7 +52,7 @@ export const WizardFooterWithDisablingNext: React.FC<WizardFooterWithDisablingNe
               title="Error"
               actionClose={<AlertActionCloseButton onClose={clearError} />}
               actionLinks={
-                // If this is a 409 conflict error on the notebook (not PVC or Secret or ConfigMap)
+                // If this is a 409 conflict error on the model resource (not Secret or ServiceAccount)
                 onSave &&
                 overwriteSupported &&
                 error instanceof K8sStatusError &&
