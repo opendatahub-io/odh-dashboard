@@ -50,7 +50,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
         version: '',
         usecase: 'LLM',
         description: `Model as a Service - ${maasModel.owned_by}`,
-        endpoints: [`internal:${maasModel.url}`],
+        endpoints: [`internal: ${maasModel.url}`],
         status: 'Running' as const,
         display_name: maasModel.id,
         sa_token: {
