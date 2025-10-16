@@ -263,6 +263,7 @@ export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
     platform: D['modelServingPlatformId'];
     isActive: CodeRef<(wizardData: WizardFormData['state']) => boolean> | true;
     priority?: number;
+    supportsOverwrite?: boolean;
     deploy: CodeRef<
       (
         wizardData: WizardFormData['state'],
@@ -272,6 +273,7 @@ export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
         serverResourceTemplateName?: string,
         dryRun?: boolean,
         secretName?: string,
+        overwrite?: boolean,
       ) => Promise<D>
     >;
   }

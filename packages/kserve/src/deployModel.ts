@@ -2,12 +2,9 @@ import type { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/har
 import {
   type SupportedModelFormats,
   type InferenceServiceKind,
-  KnownLabels,
 } from '@odh-dashboard/internal/k8sTypes';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
-import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
-import { InferenceServiceModel } from '@odh-dashboard/internal/api/index';
-import { k8sCreateResource, k8sUpdateResource } from '@openshift/dynamic-plugin-sdk-utils';
+
 import {
   type ModelLocationData,
   ModelLocationType,
@@ -19,8 +16,16 @@ import {
   applyModelFormat,
   applyConnectionData,
   applyRuntimeArgs,
+  applyDashboardResourceLabel,
+  applyDisplayNameDesc,
+  applyModelType,
 } from './deployUtils';
 import { applyHardwareProfileToDeployment, applyReplicas } from './hardware';
+import {
+  createInferenceService,
+  patchInferenceService,
+  updateInferenceService,
+} from './api/inferenceService';
 import type { ModelAvailabilityFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/ModelAvailabilityFields';
 import type { EnvironmentVariablesFieldData } from '../../model-serving/src/components/deploymentWizard/fields/EnvironmentVariablesField';
 import type { ExternalRouteFieldData } from '../../model-serving/src/components/deploymentWizard/fields/ExternalRouteField';
@@ -78,14 +83,6 @@ const assembleInferenceService = (
         metadata: {
           name: k8sName,
           namespace: project,
-          annotations: {
-            'openshift.io/display-name': name,
-            'openshift.io/description': description,
-            'opendatahub.io/model-type': modelType ?? ServingRuntimeModelType.GENERATIVE,
-          },
-          labels: {
-            [KnownLabels.DASHBOARD_RESOURCE]: 'true',
-          },
         },
         spec: {
           predictor: {
@@ -95,6 +92,13 @@ const assembleInferenceService = (
           },
         },
       };
+
+  inferenceService = applyDisplayNameDesc(inferenceService, name, description);
+  inferenceService = applyDashboardResourceLabel(inferenceService);
+  inferenceService = applyModelType(
+    inferenceService,
+    modelType ?? ServingRuntimeModelType.GENERATIVE,
+  );
 
   inferenceService = applyModelFormat(inferenceService, modelFormat);
 
@@ -141,37 +145,31 @@ const assembleInferenceService = (
   return inferenceService;
 };
 
-export const createInferenceService = (
+/**
+ * Selects the appropriate method to deploy an inference service based on the existing inference service and the options.
+ * Hides the complexity of the different methods from the caller.
+ */
+export const deployInferenceService = (
   data: CreatingInferenceServiceObject,
-  inferenceService?: InferenceServiceKind,
-  dryRun?: boolean,
-  secretName?: string,
+  existingInferenceService?: InferenceServiceKind,
+  connectionSecretName?: string,
+  opts?: {
+    dryRun?: boolean;
+    overwrite?: boolean;
+  },
 ): Promise<InferenceServiceKind> => {
-  const assembledInferenceService = assembleInferenceService(
+  const newInferenceService = assembleInferenceService(
     data,
-    inferenceService,
-    dryRun,
-    secretName,
+    existingInferenceService,
+    opts?.dryRun,
+    connectionSecretName,
   );
-  if (inferenceService) {
-    return k8sUpdateResource<InferenceServiceKind>(
-      applyK8sAPIOptions(
-        {
-          model: InferenceServiceModel,
-          resource: assembledInferenceService,
-        },
-        { dryRun: dryRun ?? false },
-      ),
-    );
-  }
 
-  return k8sCreateResource<InferenceServiceKind>(
-    applyK8sAPIOptions(
-      {
-        model: InferenceServiceModel,
-        resource: assembledInferenceService,
-      },
-      { dryRun: dryRun ?? false },
-    ),
-  );
+  if (!existingInferenceService) {
+    return createInferenceService(newInferenceService, opts);
+  }
+  if (opts?.overwrite) {
+    return patchInferenceService(existingInferenceService, newInferenceService, opts);
+  }
+  return updateInferenceService(newInferenceService, opts);
 };

@@ -106,9 +106,14 @@ const EditModelDeploymentContent: React.FC<{
   const { deployments, loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
   const { dashboardNamespace } = useDashboardNamespace();
 
-  const existingDeployment = React.useMemo(() => {
-    return deployments?.find((d: Deployment) => d.model.metadata.name === deploymentName);
-  }, [deployments, deploymentName]);
+  // freeze the existing deployment data so it doesn't change while the form is open
+  const existingDeploymentRef = React.useRef<Deployment | undefined>();
+  if (!existingDeploymentRef.current && deploymentsLoaded) {
+    existingDeploymentRef.current = deployments?.find(
+      (d: Deployment) => d.model.metadata.name === deploymentName,
+    );
+  }
+  const existingDeployment = existingDeploymentRef.current;
 
   const [formDataExtension, formDataExtensionLoaded, formDataExtensionErrors] =
     useResolvedDeploymentExtension(isModelServingDeploymentFormDataExtension, existingDeployment);

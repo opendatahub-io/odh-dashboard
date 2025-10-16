@@ -82,58 +82,62 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
 
-  const onSave = React.useCallback(async () => {
-    setSubmitError(null);
-    setIsLoading(true);
+  const onSave = React.useCallback(
+    async (overwrite?: boolean) => {
+      setSubmitError(null);
+      setIsLoading(true);
 
-    try {
-      if (
-        !validation.isModelSourceStepValid ||
-        !validation.isModelDeploymentStepValid ||
-        !deployMethodLoaded ||
-        !deployMethod
-      ) {
-        // shouldn't happen, but just in case
-        throw new Error('Invalid form data');
+      try {
+        if (
+          !validation.isModelSourceStepValid ||
+          !validation.isModelDeploymentStepValid ||
+          !deployMethodLoaded ||
+          !deployMethod
+        ) {
+          // shouldn't happen, but just in case
+          throw new Error('Invalid form data');
+        }
+
+        const serverResourceTemplateName = wizardState.state.modelServer.data?.name;
+        const allModelServerTemplates =
+          wizardState.state.modelFormatState.templatesFilteredForModelType;
+        const serverResource = serverResourceTemplateName
+          ? getServingRuntimeFromTemplate(
+              allModelServerTemplates?.find(
+                (template) => template.metadata.name === serverResourceTemplateName,
+              ),
+            )
+          : undefined;
+
+        await deployModel(
+          wizardState,
+          project,
+          secretName,
+          exitWizard,
+          deployMethod.properties.deploy,
+          existingDeployment,
+          serverResource,
+          serverResourceTemplateName,
+          overwrite,
+        );
+      } catch (error) {
+        setSubmitError(error instanceof Error ? error : new Error(String(error)));
+      } finally {
+        setIsLoading(false);
       }
-
-      const serverResourceTemplateName = wizardState.state.modelServer.data?.name;
-      const allModelServerTemplates =
-        wizardState.state.modelFormatState.templatesFilteredForModelType;
-      const serverResource = serverResourceTemplateName
-        ? getServingRuntimeFromTemplate(
-            allModelServerTemplates?.find(
-              (template) => template.metadata.name === serverResourceTemplateName,
-            ),
-          )
-        : undefined;
-
-      await deployModel(
-        wizardState,
-        project,
-        secretName,
-        exitWizard,
-        deployMethod.properties.deploy,
-        existingDeployment,
-        serverResource,
-        serverResourceTemplateName,
-      );
-    } catch (error) {
-      setSubmitError(error instanceof Error ? error : new Error(String(error)));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [
-    deployMethod,
-    deployMethodLoaded,
-    existingDeployment,
-    exitWizard,
-    project.metadata.name,
-    secretName,
-    validation.isModelDeploymentStepValid,
-    validation.isModelSourceStepValid,
-    wizardState.state,
-  ]);
+    },
+    [
+      deployMethod,
+      deployMethodLoaded,
+      existingDeployment,
+      exitWizard,
+      project.metadata.name,
+      secretName,
+      validation.isModelDeploymentStepValid,
+      validation.isModelSourceStepValid,
+      wizardState.state,
+    ],
+  );
 
   const wizardFooter = React.useMemo(
     () => (
@@ -143,14 +147,23 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         isLoading={isLoading}
         submitButtonText={primaryButtonText}
         isAdvancedSettingsStepValid={validation.isAdvancedSettingsStepValid} //TODO: Remove this line once summary page is added
+        overwriteSupported={deployMethod?.properties.supportsOverwrite}
+        onSave={onSave}
       />
     ),
-    [submitError, isLoading, primaryButtonText, validation.isAdvancedSettingsStepValid], //TODO: Remove validation.isAdvancedSettingsStepValid once summary page is added
+    [
+      submitError,
+      isLoading,
+      primaryButtonText,
+      deployMethod?.properties.supportsOverwrite,
+      onSave,
+      validation.isAdvancedSettingsStepValid,
+    ], //TODO: Remove validation.isAdvancedSettingsStepValid once summary page is added
   );
 
   return (
     <ApplicationsPage title={title} description={description} loaded empty={false}>
-      <Wizard onClose={exitWizard} onSave={onSave} footer={wizardFooter}>
+      <Wizard onClose={exitWizard} onSave={() => onSave()} footer={wizardFooter}>
         <WizardStep name="Source model" id="source-model-step">
           {wizardState.loaded.modelSourceLoaded ? (
             <ModelSourceStepContent wizardState={wizardState} validation={validation.modelSource} />
