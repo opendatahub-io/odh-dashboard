@@ -14,7 +14,7 @@ import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { getModelServingSizes } from '#~/concepts/modelServing/modelServingSizesUtils';
 import { getResourceSize } from '#~/pages/modelServing/utils';
 import { formatMemory } from '#~/utilities/valueUnits';
-import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import useServingHardwareProfileConfig from '#~/concepts/hardwareProfiles/useServingHardwareProfileConfig';
 import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 import ScopedLabel from '#~/components/ScopedLabel';
 import { ScopedType } from '#~/pages/modelServing/screens/const';
@@ -45,8 +45,7 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
   );
   const isModelMesh = currentProjectServingPlatform === ServingRuntimePlatform.MULTI;
 
-  // todo: deal with the accelProfile below......
-  const { hardwareProfile } = useModelServingPodSpecOptionsState(obj, isvc, isModelMesh);
+  const hardwareProfile = useServingHardwareProfileConfig(isvc);
 
   const resources = isvc?.spec.predictor.model?.resources || obj.spec.containers[0].resources;
   const sizes = getModelServingSizes(dashboardConfig);
