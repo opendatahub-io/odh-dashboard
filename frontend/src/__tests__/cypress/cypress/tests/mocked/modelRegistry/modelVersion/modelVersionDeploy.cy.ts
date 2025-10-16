@@ -310,7 +310,6 @@ describe.skip('Deploy model version', () => {
     cy.findByText('oci://registry.redhat.io/rhel/private:test').should('exist');
   });
 
-  // note:  accelerator profiles are removed as of 3.0
   it('Display project specific serving runtimes while deploying', () => {
     initIntercepts({ disableProjectScoped: false });
     cy.interceptK8sList(
@@ -360,7 +359,7 @@ describe.skip('Deploy model version', () => {
 
     // Check for project specific serving runtimes
     kserveModal.findProjectScopedTemplateOption('Caikit').click();
-    // acceleratorProfileSection.findProjectScopedLabel().should('exist');
+    acceleratorProfileSection.findProjectScopedLabel().should('exist');
     kserveModal.findModelFrameworkSelect().should('be.disabled');
     kserveModal.findModelFrameworkSelect().should('have.text', 'openvino_ir - opset1');
     cy.findByText(
@@ -372,7 +371,7 @@ describe.skip('Deploy model version', () => {
     // Check for global specific serving runtimes
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
     kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
-    // acceleratorProfileSection.findGlobalScopedLabel().should('exist');
+    acceleratorProfileSection.findGlobalScopedLabel().should('exist');
     kserveModal.findModelFrameworkSelect().should('be.enabled');
     kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
     cy.findByText(
@@ -409,6 +408,44 @@ describe.skip('Deploy model version', () => {
     hardwareProfileSection.findSelect().should('exist');
     hardwareProfileSection.findSelect().click();
     // Read visible menu options from the open PF v6 menu and verify expected text
+  });
+
+  it('Display project specific accelerator profile while deploying', () => {
+    initIntercepts({ disableProjectScoped: false });
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 4');
+    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDeployModal.selectProjectByName('Test project');
+    kserveModal.findModelNameInput().should('exist');
+
+    // Verify accelerator profile section exists
+    acceleratorProfileSection.findAcceleratorProfileSearchSelector().should('exist');
+    acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
+
+    // verify available project-scoped accelerator profile
+    const projectScopedAcceleratorProfile =
+      acceleratorProfileSection.getProjectScopedAcceleratorProfile();
+    projectScopedAcceleratorProfile
+      .find()
+      .findByRole('menuitem', {
+        name: 'Small Profile nvidia.com/gpu',
+        hidden: true,
+      })
+      .click();
+    acceleratorProfileSection.findProjectScopedLabel().should('exist');
+
+    // verify available global-scoped accelerator profile
+    acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
+    const globalScopedAcceleratorProfile =
+      acceleratorProfileSection.getGlobalScopedAcceleratorProfile();
+    globalScopedAcceleratorProfile
+      .find()
+      .findByRole('menuitem', {
+        name: 'Small Profile Global nvidia.com/gpu',
+        hidden: true,
+      })
+      .click();
+    acceleratorProfileSection.findGlobalScopedLabel().should('exist');
   });
 
   it('Selects Create Connection in case of no matching connections', () => {
