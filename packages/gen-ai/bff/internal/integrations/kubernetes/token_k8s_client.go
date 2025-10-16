@@ -1460,11 +1460,32 @@ func (kc *TokenKubernetesClient) parseModelProviderFromYAML(runYAML string, mode
 	}
 
 	// Find model and provider_id
+	// Handle two formats:
+	// 1. Just model_id (e.g., "facebook/opt-125m")
+	// 2. provider_id/model_id (e.g., "maas-vllm-inference-1/facebook/opt-125m")
 	var providerID string
+	var actualModelID string
+
+	// First, try exact match with modelID as-is
 	for _, model := range config.Models {
 		if model.ModelID == modelID {
 			providerID = model.ProviderID
+			actualModelID = model.ModelID
 			break
+		}
+	}
+
+	// If not found, try matching with provider prefix stripped
+	// Check if modelID matches pattern: provider_id/model_id
+	if providerID == "" {
+		for _, model := range config.Models {
+			// Construct the provider-prefixed format and check if it matches
+			providerPrefixedID := model.ProviderID + "/" + model.ModelID
+			if providerPrefixedID == modelID {
+				providerID = model.ProviderID
+				actualModelID = model.ModelID
+				break
+			}
 		}
 	}
 	if providerID == "" {
@@ -1475,7 +1496,7 @@ func (kc *TokenKubernetesClient) parseModelProviderFromYAML(runYAML string, mode
 	for _, provider := range config.Providers.Inference {
 		if provider.ProviderID == providerID {
 			return &ModelProviderInfo{
-				ModelID:      modelID,
+				ModelID:      actualModelID,
 				ProviderID:   providerID,
 				ProviderType: provider.ProviderType,
 				URL:          cleanEnvVar(provider.Config.URL),
