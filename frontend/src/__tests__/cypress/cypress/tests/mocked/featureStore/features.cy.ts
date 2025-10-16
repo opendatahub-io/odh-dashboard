@@ -12,6 +12,7 @@ import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { ProjectModel, ServiceModel } from '#~/__tests__/cypress/cypress/utils/models';
 import { asClusterAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
+import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 const k8sNamespace = 'default';
 const fsName = 'demo';
@@ -102,8 +103,8 @@ const initIntercept = () => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      installedComponents: {
-        feastoperator: true,
+      components: {
+        [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Managed' },
       },
     }),
   );

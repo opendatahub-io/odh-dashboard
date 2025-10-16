@@ -57,6 +57,7 @@ import {
   mockNimMetricsConfigMap,
 } from '#~/__mocks__/mockKserveMetricsConfigMap';
 import { mockOdhApplication } from '#~/__mocks__/mockOdhApplication';
+import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 type HandlersProps = {
   disablePerformanceMetrics?: boolean;
@@ -105,7 +106,11 @@ const initIntercepts = ({
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      installedComponents: { kserve: true, 'model-mesh': true, trustyai: true },
+      components: {
+        [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
+        [DataScienceStackComponent.MODEL_MESH_SERVING]: { managementState: 'Managed' },
+        [DataScienceStackComponent.TRUSTY_AI]: { managementState: 'Managed' },
+      },
     }),
   );
   cy.interceptOdh(

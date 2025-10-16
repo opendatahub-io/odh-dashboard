@@ -33,6 +33,7 @@ import { workbenchPage, editSpawnerPage } from '#~/__tests__/cypress/cypress/pag
 import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
 import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
 import type { PodKind } from '#~/k8sTypes';
+import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 type HandlersProps = {
   isEmpty?: boolean;
@@ -63,8 +64,8 @@ const initIntercepts = ({
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      installedComponents: {
-        workbenches: true,
+      components: {
+        [DataScienceStackComponent.WORKBENCHES]: { managementState: 'Managed' },
       },
     }),
   );
