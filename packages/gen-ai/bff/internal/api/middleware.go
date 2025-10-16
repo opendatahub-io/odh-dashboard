@@ -238,7 +238,7 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 		if app.config.MockLSClient {
 			logger.Debug("MOCK MODE: creating mock LlamaStack client for namespace", "namespace", namespace)
 			// In mock mode, use empty URL since mock factory ignores it
-			llamaStackClient = app.llamaStackClientFactory.CreateClient("", app.config.InsecureSkipVerify, app.rootCAs)
+			llamaStackClient = app.llamaStackClientFactory.CreateClient("", "", app.config.InsecureSkipVerify, app.rootCAs)
 		} else {
 			var serviceURL string
 			// Use environment variable if explicitly set (developer override)
@@ -294,7 +294,15 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 				"serviceURL", serviceURL)
 
 			// Create LlamaStack client per-request using app factory (consistent with K8s pattern)
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(serviceURL, app.config.InsecureSkipVerify, app.rootCAs)
+			// Get identity from context for auth token
+			identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+			if !ok || identity == nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+				return
+			}
+
+			// Create LlamaStack client with auth token from identity
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(serviceURL, identity.Token, app.config.InsecureSkipVerify, app.rootCAs)
 		}
 
 		// Attach ready-to-use client to context
