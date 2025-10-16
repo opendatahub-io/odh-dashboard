@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import React from 'react';
 import { Modal, ModalBody, ModalFooter, ModalHeader, ModalVariant } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
@@ -81,7 +82,10 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     const install = () => {
       installLSD(
         namespace.name,
-        selectedModels.map((model) => model.model_name),
+        selectedModels.map((model) => ({
+          model_name: model.model_name,
+          is_maas_model: model.isMaaSModel || false,
+        })),
       )
         .then(() => {
           setConfiguringPlayground(true);

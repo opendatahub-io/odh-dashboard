@@ -803,7 +803,11 @@ describe('llamaStackService', () => {
 
   describe('installLSD', () => {
     const project = 'test-project';
-    const models = ['model-1', 'model-2', 'model-3'];
+    const models = [
+      { model_name: 'model-1', is_maas_model: false },
+      { model_name: 'model-2', is_maas_model: false },
+      { model_name: 'model-3', is_maas_model: true },
+    ];
 
     it('should install LSD successfully', async () => {
       const mockResponse = { data: { data: mockLlamaStackDistribution } };
@@ -859,6 +863,23 @@ describe('llamaStackService', () => {
       expect(mockedAxios.post).toHaveBeenCalledWith(
         `/gen-ai/api/v1/lsd/install?namespace=${project}`,
         { models: [] },
+      );
+    });
+
+    it('should handle MaaS models', async () => {
+      const maasModels = [
+        { model_name: 'maas-model-1', is_maas_model: true },
+        { model_name: 'regular-model', is_maas_model: false },
+      ];
+      const mockResponse = { data: { data: mockLlamaStackDistribution } };
+      mockedAxios.post.mockResolvedValueOnce(mockResponse);
+
+      const result = await installLSD(project, maasModels);
+
+      expect(result).toEqual(mockLlamaStackDistribution);
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        `/gen-ai/api/v1/lsd/install?namespace=${project}`,
+        { models: maasModels },
       );
     });
   });

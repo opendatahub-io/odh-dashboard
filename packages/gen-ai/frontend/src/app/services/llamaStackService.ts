@@ -12,6 +12,7 @@ import {
   LlamaModel,
   LlamaModelType,
   LlamaStackDistributionModel,
+  LSDInstallModel,
   AAModelResponse,
   MaaSModel,
   MaaSTokenRequest,
@@ -565,7 +566,7 @@ export const revokeMaaSTokens = (): Promise<void> => {
 
 export const installLSD = (
   project: string,
-  models: string[],
+  models: LSDInstallModel[],
 ): Promise<LlamaStackDistributionModel> => {
   const url = `${URL_PREFIX}/api/v1/lsd/install?namespace=${project}`;
   return axiosInstance
