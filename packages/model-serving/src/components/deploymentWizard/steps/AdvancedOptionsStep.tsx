@@ -14,7 +14,7 @@ import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
 import { RuntimeArgsField } from '../fields/RuntimeArgsField';
 import { EnvironmentVariablesField } from '../fields/EnvironmentVariablesField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
-import { AvailableAiAssetsFieldsComponent } from '../fields/AvailableAiAssetsFields';
+import { AvailableAiAssetsFieldsComponent } from '../fields/ModelAvailabilityFields';
 import { showAuthWarning } from '../hooks/useAuthWarning';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
@@ -96,11 +96,13 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
           </StackItem>
         </Stack>
         <Stack hasGutter>
-          <AvailableAiAssetsFieldsComponent
-            data={wizardState.state.aiAssetData.data}
-            setData={wizardState.state.aiAssetData.setData}
-            wizardData={wizardState}
-          />
+          {wizardState.state.modelAvailability.showField && (
+            <AvailableAiAssetsFieldsComponent
+              data={wizardState.state.modelAvailability.data}
+              setData={wizardState.state.modelAvailability.setData}
+              showSaveAsMaaS={wizardState.state.modelAvailability.showSaveAsMaaS}
+            />
+          )}
           {isExternalRouteVisible && (
             <StackItem>
               <FormGroup

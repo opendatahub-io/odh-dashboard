@@ -1,10 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
-import {
-  LLMInferenceServiceModel,
-  type LLMInferenceServiceKind,
-} from '@odh-dashboard/llmd-serving/types';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/llmd-serving/__tests__/utils';
+import { type LLMInferenceServiceKind } from '@odh-dashboard/llmd-serving/types';
+import { mockLLMInferenceServiceK8sResource } from '#~/__mocks__/mockLLMInferenceServiceK8sResource';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
@@ -23,6 +19,7 @@ import {
   ServingRuntimeModel,
   TemplateModel,
   SecretModel,
+  LLMInferenceServiceModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import type { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { mockGlobalScopedHardwareProfiles } from '#~/__mocks__/mockHardwareProfile';
@@ -60,6 +57,7 @@ const initIntercepts = ({
       disableNIMModelServing: true,
       disableKServe: false,
       disableDeploymentWizard: false,
+      disableModelAsService: false, // Enable MaaS for testing
     }),
   );
   cy.interceptOdh('GET /api/components', null, []);
@@ -367,6 +365,62 @@ describe('Model Serving LLMD', () => {
       cy.get('@createLLMInferenceService.all').then((interceptions) => {
         expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
       });
+    });
+  });
+
+  describe('Deploy LLMD with MaaS enabled', () => {
+    it('should create an LLMD deployment with MaaS enabled', () => {
+      initIntercepts({});
+
+      // Navigate to wizard and set up basic deployment
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+
+      // Quick setup: Model source and deployment
+      modelServingWizard.findModelLocationSelectOption('URI - v1').click();
+      modelServingWizard.findUrilocationInput().type('hf://coolmodel/coolmodel');
+      modelServingWizard.findSaveConnectionCheckbox().click(); // Uncheck to simplify
+      modelServingWizard.findModelTypeSelectOption('Generative AI model (e.g. LLM)').click();
+      modelServingWizard.findNextButton().click();
+
+      modelServingWizard.findModelDeploymentNameInput().type('test-maas-llmd-model');
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard
+        .findGlobalScopedTemplateOption('Distributed Inference Server with llm-d')
+        .click();
+      modelServingWizard.findNextButton().click();
+
+      // Focus on MaaS feature testing
+      // uncheck token auth to simplify test
+      modelServingWizard.findTokenAuthenticationCheckbox().click();
+      modelServingWizard.findSaveAsMaaSCheckbox().should('exist').should('not.be.checked');
+      modelServingWizard.findSaveAsMaaSCheckbox().click();
+      modelServingWizard.findSaveAsMaaSCheckbox().should('be.checked');
+      modelServingWizard.findUseCaseInput().should('be.visible').type('Test MaaS use case');
+      modelServingWizard.findNextButton().click();
+
+      // Submit and verify MaaS-specific annotations and gateway refs
+      modelServingWizard.findSubmitButton().click();
+
+      cy.wait('@createLLMInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+
+        // Verify MaaS-specific configuration
+        expect(interception.request.body.metadata.annotations).to.containSubset({
+          'alpha.maas.opendatahub.io/tiers': '[]',
+          'opendatahub.io/genai-use-case': 'Test MaaS use case',
+        });
+
+        expect(interception.request.body.spec.router.gateway.refs).to.deep.equal([
+          {
+            name: 'maas-default-gateway',
+            namespace: 'openshift-ingress',
+          },
+        ]);
+      });
+
+      cy.wait('@createLLMInferenceService'); // Actual request
+      cy.get('@createLLMInferenceService.all').should('have.length', 2);
     });
   });
 });

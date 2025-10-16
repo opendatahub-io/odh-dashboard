@@ -1291,6 +1291,7 @@ export type DashboardCommonConfig = {
   disableKueue: boolean;
   disableModelTraining: boolean;
   disableDeploymentWizard: boolean;
+  disableModelAsService: boolean;
   disableFeatureStore?: boolean;
 };
 

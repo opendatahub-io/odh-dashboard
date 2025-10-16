@@ -10,6 +10,7 @@ import { applyModelEnvVars, applyModelArgs, applyModelLocation } from './model';
 import { setUpTokenAuth } from './deployUtils';
 import { LLMD_SERVING_ID } from '../../extensions/extensions';
 import { LLMdDeployment, LLMInferenceServiceKind, LLMInferenceServiceModel } from '../types';
+import { applyModelAvailabilityData } from '../wizardFields/modelAvailability';
 
 const applyTokenAuthentication = (
   llmdInferenceService: LLMInferenceServiceKind,
@@ -59,6 +60,7 @@ type CreateLLMdInferenceServiceParams = {
   replicas?: number;
   runtimeArgs?: string[];
   environmentVariables?: { name: string; value: string }[];
+  modelAvailability?: WizardFormData['state']['modelAvailability']['data'];
   tokenAuthentication?: { name: string; uuid: string; error?: string }[];
 };
 
@@ -75,6 +77,7 @@ const assembleLLMdInferenceServiceKind = ({
   replicas = 1,
   runtimeArgs,
   environmentVariables,
+  modelAvailability,
   tokenAuthentication,
 }: CreateLLMdInferenceServiceParams): LLMInferenceServiceKind => {
   let llmdInferenceService: LLMInferenceServiceKind = {
@@ -116,6 +119,7 @@ const assembleLLMdInferenceServiceKind = ({
   llmdInferenceService = applyReplicas(llmdInferenceService, replicas);
   llmdInferenceService = applyModelArgs(llmdInferenceService, runtimeArgs);
   llmdInferenceService = applyModelEnvVars(llmdInferenceService, environmentVariables);
+  llmdInferenceService = applyModelAvailabilityData(llmdInferenceService, modelAvailability);
   llmdInferenceService = applyTokenAuthentication(llmdInferenceService, tokenAuthentication);
 
   return llmdInferenceService;
@@ -149,6 +153,7 @@ export const deployLLMdDeployment = async (
     replicas: wizardData.numReplicas.data,
     runtimeArgs: wizardData.runtimeArgs.data?.args,
     environmentVariables: wizardData.environmentVariables.data?.variables,
+    modelAvailability: wizardData.modelAvailability.data,
     tokenAuthentication: wizardData.tokenAuthentication.data,
   });
 
