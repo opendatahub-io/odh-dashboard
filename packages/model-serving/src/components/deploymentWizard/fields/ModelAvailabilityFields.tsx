@@ -97,11 +97,12 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
             data-testid="save-as-ai-asset-checkbox"
             label={
               <>
-                <strong>Add AI asset endpoint</strong>
+                <div className="pf-v6-c-form__label-text">Add AI asset endpoint</div>
                 <Flex>
                   <FlexItem>
                     Enable users in your namespace to test this model in the playground by adding
-                    its endpoint to the <strong>AI asset endpoints</strong> page.
+                    its endpoint to the{' '}
+                    <span className="pf-v6-c-form__label-text">AI asset endpoints</span> page.
                   </FlexItem>
                   <Label isCompact color="yellow" variant="outline">
                     Tech preview
@@ -120,12 +121,12 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
               data-testid="save-as-maas-checkbox"
               label={
                 <>
-                  <strong>Add as MaaS endpoint</strong>
+                  <div className="pf-v6-c-form__label-text">Add as MaaS endpoint</div>
                   <Flex>
                     <FlexItem>
                       Enable users in any namespace to access this model by adding its endpoint to
-                      the <strong>Models as a service</strong> page. This is best for production
-                      models.
+                      the <span className="pf-v6-c-form__label-text">Models as a service</span> This
+                      is best for production models.
                     </FlexItem>
                     <Label isCompact color="yellow" variant="outline">
                       Developer preview
