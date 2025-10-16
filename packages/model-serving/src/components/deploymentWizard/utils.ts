@@ -84,6 +84,7 @@ export const deployModel = async (
     serverResourceTemplateName?: string,
     dryRun?: boolean,
     secretName?: string,
+    overwrite?: boolean,
   ) => Promise<Deployment>,
   existingDeployment?: Deployment,
   serverResource?: ServingRuntimeKind,
@@ -140,6 +141,7 @@ export const deployModel = async (
     serverResourceTemplateName,
     false,
     actualSecretName,
+    overwrite,
   );
 
   if (!wizardState.state.modelLocationData.data || !deploymentResult) {
