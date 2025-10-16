@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Label } from '@patternfly/react-core';
+import { Label, Popover } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import { CheckCircleIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { TableRowTitleDescription } from 'mod-arch-shared';
@@ -17,13 +17,15 @@ const MaaSModelTableRow: React.FC<MaaSModelTableRowProps> = ({ model }) => (
         title={
           <>
             {model.id}
-            <Label
-              style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}
-              color="orange"
-              aria-label="Model as a Service"
-            >
-              MaaS
-            </Label>
+            <Popover aria-label="Models as a Service" bodyContent={<>Models as a Service</>}>
+              <Label
+                style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}
+                color="orange"
+                aria-label="Model as a Service"
+              >
+                MaaS
+              </Label>
+            </Popover>
           </>
         }
       />

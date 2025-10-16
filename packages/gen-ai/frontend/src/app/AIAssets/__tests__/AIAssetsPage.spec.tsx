@@ -56,7 +56,7 @@ describe('AIAssetsPage', () => {
 
     expect(screen.getByTestId('applications-page')).toBeInTheDocument();
     expect(screen.getByTestId('description')).toHaveTextContent(
-      'Browse endpoints for available models and MCP servers.',
+      'Browse endpoints for models and MCP servers that are available as AI assets.',
     );
   });
 
@@ -77,7 +77,7 @@ describe('AIAssetsPage', () => {
         type: 'gen-ai.ai-assets/tab',
         properties: {
           id: 'mcpservers',
-          title: 'MCP Servers',
+          title: 'MCP servers',
           component: () => Promise.resolve({ default: () => <div>MCP Tab</div> }),
         },
         uid: 'mcp-uid',
@@ -95,7 +95,7 @@ describe('AIAssetsPage', () => {
     );
 
     expect(screen.getByText('Models')).toBeInTheDocument();
-    expect(screen.getByText('MCP Servers')).toBeInTheDocument();
+    expect(screen.getByText('MCP servers')).toBeInTheDocument();
   });
 
   it('should render tab with label when provided', () => {
@@ -155,7 +155,7 @@ describe('AIAssetsPage', () => {
         type: 'gen-ai.ai-assets/tab',
         properties: {
           id: 'mcpservers',
-          title: 'MCP Servers',
+          title: 'MCP servers',
           component: () => Promise.resolve({ default: () => <div>MCP Tab</div> }),
         },
         uid: 'mcp-uid',

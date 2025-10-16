@@ -21,17 +21,12 @@ type AIModelsTableProps = {
 export const AIModelStatusPopoverContent: React.ReactNode = (
   <Stack hasGutter>
     <StackItem>
-      <Content component="ol">
-        <Content component="li">
-          Go to your <strong>model deployments</strong> page
-        </Content>
-        <Content component="li">
-          Select &apos;<strong>Edit</strong>&apos; to update your deployment
-        </Content>
-        <Content component="li">
-          Check the box: &apos;
-          <strong>Make this deployment available as an AI Asset</strong>&apos;
-        </Content>
+      <Content component="p">
+        This page displays only model deployments that are available as AI assets.
+      </Content>
+      <Content component="p">
+        To make a deployment available as an AI asset, edit it from the{' '}
+        <strong>Model deployments</strong> page.
       </Content>
     </StackItem>
   </Stack>
@@ -43,7 +38,6 @@ export const AIModelStatusPopover: React.ReactNode = (
     showClose
     aria-label="Information about making model deployments available"
     headerComponent="h2"
-    headerContent={<Content>To make a model deployment available:</Content>}
     bodyContent={AIModelStatusPopoverContent}
   >
     <Button variant={ButtonVariant.link} data-testid="dont-see-model-button">

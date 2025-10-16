@@ -22,7 +22,7 @@ export const aiModelColumns: SortableData<AIModel>[] = [
   },
   {
     field: 'usecase',
-    label: 'Use Case',
+    label: 'Use case',
     sortable: false,
     width: 15,
   },
