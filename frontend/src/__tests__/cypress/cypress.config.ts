@@ -12,7 +12,7 @@ import cypressHighResolution from 'cypress-high-resolution';
 // @ts-ignore no types available
 import { beforeRunHook, afterRunHook } from 'cypress-mochawesome-reporter/lib';
 import { mergeFiles } from 'junit-report-merger';
-import { getModuleFederationConfigs } from '@odh-dashboard/app-config/node';
+import { getModuleFederationConfigs } from '@odh-dashboard/app-config';
 import { interceptSnapshotFile } from './cypress/utils/snapshotUtils';
 import { setup as setupWebsockets } from './cypress/support/websockets';
 import { env, cypressEnv, BASE_URL } from './cypress/utils/testConfig';

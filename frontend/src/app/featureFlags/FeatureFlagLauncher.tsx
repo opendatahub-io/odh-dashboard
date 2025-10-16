@@ -2,7 +2,7 @@ import React from 'react';
 import { Dropdown, DropdownGroup, DropdownItem, MenuToggle, Tooltip } from '@patternfly/react-core';
 import { FlagIcon, PencilAltIcon, RedoIcon } from '@patternfly/react-icons';
 import type { FeatureFlagProps } from '#~/types';
-import { DashboardCommonConfig } from '#~/k8sTypes.js';
+import { DashboardCommonConfig } from '#~/k8sTypes';
 import FeatureFlagModal from '#~/app/featureFlags/FeatureFlagModal';
 
 // import './AppLauncher.scss';
