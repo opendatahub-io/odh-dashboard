@@ -515,8 +515,8 @@ export const getAAModels = (namespace: string): Promise<AAModelResponse[]> => {
  * @returns Promise<MaaSModel[]> - Array of available MaaS models with their metadata
  * @throws Error - When the API request fails or returns an error response
  */
-export const getMaaSModels = (): Promise<MaaSModel[]> => {
-  const url = `${URL_PREFIX}/api/v1/maas/models`;
+export const getMaaSModels = (namespace: string): Promise<MaaSModel[]> => {
+  const url = `${URL_PREFIX}/api/v1/maas/models?namespace=${namespace}`;
   return axiosInstance
     .get(url)
     .then((response) => response.data.data ?? [])
@@ -529,12 +529,16 @@ export const getMaaSModels = (): Promise<MaaSModel[]> => {
 
 /**
  * Generates a new MaaS API token
+ * @param namespace - The namespace to generate the token for
  * @param expiration - Optional expiration duration in Go format (e.g., "2h", "30m", "1h30m"). Defaults to 4h if not provided.
  * @returns Promise<MaaSTokenResponse> - The generated token and expiration timestamp
  * @throws Error - When the API request fails or returns an error response
  */
-export const generateMaaSToken = (expiration?: string): Promise<MaaSTokenResponse> => {
-  const url = `${URL_PREFIX}/api/v1/maas/tokens`;
+export const generateMaaSToken = (
+  namespace: string,
+  expiration?: string,
+): Promise<MaaSTokenResponse> => {
+  const url = `${URL_PREFIX}/api/v1/maas/tokens?namespace=${namespace}`;
   const requestBody: MaaSTokenRequest = expiration ? { expiration } : {};
 
   return axiosInstance
@@ -549,11 +553,12 @@ export const generateMaaSToken = (expiration?: string): Promise<MaaSTokenRespons
 
 /**
  * Revokes all MaaS API tokens for the current user
+ * @param namespace - The namespace to revoke tokens for
  * @returns Promise<void> - Promise that resolves when tokens are revoked
  * @throws Error - When the API request fails or returns an error response
  */
-export const revokeMaaSTokens = (): Promise<void> => {
-  const url = `${URL_PREFIX}/api/v1/maas/tokens`;
+export const revokeMaaSTokens = (namespace: string): Promise<void> => {
+  const url = `${URL_PREFIX}/api/v1/maas/tokens?namespace=${namespace}`;
   return axiosInstance
     .delete(url)
     .then(() => undefined)

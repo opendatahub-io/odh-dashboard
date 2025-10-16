@@ -280,6 +280,8 @@ export interface AIModel extends AAModelResponse {
   externalEndpoint?: string;
   // Flag to identify if this is a MaaS model
   isMaaSModel?: boolean;
+  // The MaaS model ID if this is a MaaS model (needed for LSD installation)
+  maasModelId?: string;
 }
 
 export interface MaaSModel {

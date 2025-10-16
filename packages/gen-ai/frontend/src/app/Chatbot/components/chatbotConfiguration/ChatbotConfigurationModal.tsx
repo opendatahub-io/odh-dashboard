@@ -83,7 +83,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
       installLSD(
         namespace.name,
         selectedModels.map((model) => ({
-          model_name: model.model_name,
+          model_name: model.isMaaSModel && model.maasModelId ? model.maasModelId : model.model_name,
           is_maas_model: model.isMaaSModel || false,
         })),
       )
