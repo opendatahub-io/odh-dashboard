@@ -202,19 +202,24 @@ export const applyAiAvailableAssetAnnotations = (
   aiAvailableAsset: ModelAvailabilityFieldsData,
 ): InferenceServiceKind => {
   const result = structuredClone(inferenceService);
-  result.metadata.annotations = {
-    ...result.metadata.annotations,
+  result.metadata.labels = {
+    ...result.metadata.labels,
     'opendatahub.io/genai-asset': aiAvailableAsset.saveAsAiAsset ? 'true' : 'false',
-    ...(aiAvailableAsset.saveAsAiAsset && {
-      'opendatahub.io/genai-use-case': aiAvailableAsset.useCase ?? '',
-    }),
   };
-
   if (!aiAvailableAsset.saveAsAiAsset) {
-    delete result.metadata.annotations['opendatahub.io/genai-asset'];
-    delete result.metadata.annotations['opendatahub.io/genai-use-case'];
+    delete result.metadata.labels['opendatahub.io/genai-asset'];
   }
 
+  result.metadata.annotations = {
+    ...result.metadata.annotations,
+    ...(aiAvailableAsset.saveAsAiAsset &&
+      aiAvailableAsset.useCase && {
+        'opendatahub.io/genai-use-case': aiAvailableAsset.useCase,
+      }),
+  };
+  if (!aiAvailableAsset.saveAsAiAsset || !aiAvailableAsset.useCase) {
+    delete result.metadata.annotations['opendatahub.io/genai-use-case'];
+  }
   return result;
 };
 

@@ -22,6 +22,7 @@ import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWa
 import useServingConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections';
 import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
+import { containsOnlySlashes, isS3PathValid } from '@odh-dashboard/internal/utilities/string';
 import { ExistingConnectionField } from './modelLocationFields/ExistingConnectionField';
 import NewConnectionField from './modelLocationFields/NewConnectionField';
 import { PvcSelectField } from './modelLocationFields/PVCSelectField';
@@ -261,7 +262,11 @@ const hasRequiredAdditionalFields = (
       ModelServingCompatibleTypes.S3ObjectStorage,
     )
   ) {
-    return !!modelLocationData.additionalFields.modelPath;
+    return (
+      !!modelLocationData.additionalFields.modelPath &&
+      isS3PathValid(modelLocationData.additionalFields.modelPath ?? '') &&
+      !containsOnlySlashes(modelLocationData.additionalFields.modelPath ?? '')
+    );
   }
   if (
     modelLocationData.connectionTypeObject &&

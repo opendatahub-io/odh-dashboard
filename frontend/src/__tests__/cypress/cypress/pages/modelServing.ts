@@ -931,7 +931,7 @@ class ModelServingSection {
 
 class ModelServingWizard extends Wizard {
   constructor(private edit = false) {
-    super('Deploy a model', 'Deploy model');
+    super('Deploy a model', edit ? 'Update deployment' : 'Deploy model');
   }
 
   findModelSourceStep() {
