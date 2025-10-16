@@ -140,7 +140,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     ...accessReviewResource,
     namespace,
   });
-  console.log('podSpecOptionsState (accelerator profile here at all???', podSpecOptionsState);
+
   const profileIdentifiers = useProfileIdentifiers(
     undefined,
     podSpecOptionsState.hardwareProfile.formData.selectedProfile,
