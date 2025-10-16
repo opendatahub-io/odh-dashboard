@@ -4,6 +4,10 @@ import {
   type WizardFormData,
   ModelLocationType,
   ModelLocationData,
+  RuntimeArgsFieldData,
+  EnvironmentVariablesFieldData,
+  CreateConnectionFieldData,
+  ModelAvailabilityFieldsData,
 } from '@odh-dashboard/model-serving/types/form-data';
 import * as _ from 'lodash-es';
 import { k8sMergePatchResource } from '@odh-dashboard/internal/api/k8sUtils';
@@ -14,11 +18,10 @@ import {
   applyModelEnvVars,
   applyModelArgs,
   applyModelLocation,
-  applyAiAvailableAssetAnnotations,
   applyDisplayNameDesc,
   applyDashboardResourceLabel,
 } from './model';
-import { AvailableAiAssetsFieldsData } from '../../../model-serving/src/components/deploymentWizard/fields/AvailableAiAssetsFields';
+import { applyModelAvailabilityData } from '../wizardFields/modelAvailability';
 import { LLMD_SERVING_ID } from '../../extensions/extensions';
 import {
   LLMdContainer,
@@ -26,10 +29,6 @@ import {
   LLMInferenceServiceKind,
   LLMInferenceServiceModel,
 } from '../types';
-import { applyModelAvailabilityData } from '../wizardFields/modelAvailability';
-import { RuntimeArgsFieldData } from '../../../model-serving/src/components/deploymentWizard/fields/RuntimeArgsField';
-import { EnvironmentVariablesFieldData } from '../../../model-serving/src/components/deploymentWizard/fields/EnvironmentVariablesField';
-import { CreateConnectionData } from '../../../model-serving/src/components/deploymentWizard/fields/CreateConnectionInputFields';
 
 const applyTokenAuthentication = (
   llmdInferenceService: LLMInferenceServiceKind,
@@ -50,14 +49,16 @@ export const isLLMdDeployActive = (wizardData: WizardFormData['state']): boolean
   return wizardData.modelServer.data?.name === LLMD_SERVING_ID;
 };
 
-const createLLMdInferenceServiceKind = async (
+const createLLMInferenceServiceKind = async (
   assembledLLMdInferenceParams: CreateLLMdInferenceServiceParams,
   dryRun?: boolean,
+  connectionSecretName?: string,
 ): Promise<LLMInferenceServiceKind> => {
   const assembledLLMdInferenceService = assembleLLMdInferenceServiceKind(
     assembledLLMdInferenceParams,
     undefined,
     dryRun,
+    connectionSecretName,
   );
   return k8sCreateResource<LLMInferenceServiceKind>(
     applyK8sAPIOptions(
@@ -83,17 +84,17 @@ const buildRemovalPatch = (
   });
   return removalPatch;
 };
-const updateLLMdInferenceServiceKind = async (
+const updateLLMInferenceServiceKind = async (
   assembledLLMdInferenceParams: CreateLLMdInferenceServiceParams,
   existingDeployment: LLMInferenceServiceKind,
   dryRun?: boolean,
-  secretName?: string,
+  connectionSecretName?: string,
 ): Promise<LLMInferenceServiceKind> => {
   const assembledLLMdInferenceService = assembleLLMdInferenceServiceKind(
     assembledLLMdInferenceParams,
     existingDeployment,
     dryRun,
-    secretName,
+    connectionSecretName,
   );
   // Automatically figure out what annotations need removing
   const annotationsToRemove = buildRemovalPatch(
@@ -167,25 +168,23 @@ type CreateLLMdInferenceServiceParams = {
   k8sName: string;
   dryRun?: boolean;
   modelLocationData: ModelLocationData;
-  createConnectionData?: CreateConnectionData;
-  secretName?: string;
+  createConnectionData?: CreateConnectionFieldData;
+  connectionSecretName?: string;
   displayName?: string;
   description?: string;
   hardwareProfile: HardwareProfileConfig;
-  connectionName: string;
   replicas?: number;
   runtimeArgs?: RuntimeArgsFieldData;
   environmentVariables?: EnvironmentVariablesFieldData;
-  modelAvailability?: WizardFormData['state']['modelAvailability']['data'];
+  modelAvailability?: ModelAvailabilityFieldsData;
   tokenAuthentication?: { name: string; uuid: string; error?: string }[];
-  aiAssetData?: AvailableAiAssetsFieldsData;
 };
 
 const assembleLLMdInferenceServiceKind = (
   data: CreateLLMdInferenceServiceParams,
   existingDeployment?: LLMInferenceServiceKind,
   dryRun?: boolean,
-  secretName?: string,
+  connectionSecretName?: string,
 ): LLMInferenceServiceKind => {
   const {
     projectName,
@@ -200,7 +199,6 @@ const assembleLLMdInferenceServiceKind = (
     environmentVariables,
     modelAvailability,
     tokenAuthentication,
-    aiAssetData,
   } = data;
   let llmdInferenceService: LLMInferenceServiceKind = existingDeployment
     ? {
@@ -236,12 +234,11 @@ const assembleLLMdInferenceServiceKind = (
   llmdInferenceService = applyModelLocation(
     llmdInferenceService,
     modelLocationData,
-    secretName,
+    connectionSecretName,
     createConnectionData,
     dryRun,
   );
   llmdInferenceService = applyHardwareProfileConfig(llmdInferenceService, hardwareProfile);
-  llmdInferenceService = applyAiAvailableAssetAnnotations(llmdInferenceService, aiAssetData);
   llmdInferenceService = applyReplicas(llmdInferenceService, replicas);
   llmdInferenceService = applyModelArgs(llmdInferenceService, runtimeArgs);
   llmdInferenceService = applyModelEnvVars(llmdInferenceService, environmentVariables);
@@ -258,7 +255,7 @@ export const deployLLMdDeployment = async (
   serverResource?: LLMdDeployment['server'],
   serverResourceTemplateName?: string,
   dryRun?: boolean,
-  secretName?: string,
+  connectionSecretName?: string,
 ): Promise<LLMdDeployment> => {
   const llmdInferenceServiceData: CreateLLMdInferenceServiceParams = {
     projectName,
@@ -266,16 +263,14 @@ export const deployLLMdDeployment = async (
     k8sName: wizardData.k8sNameDesc.data.k8sName.value,
     displayName: wizardData.k8sNameDesc.data.name,
     description: wizardData.k8sNameDesc.data.description,
-    aiAssetData: wizardData.aiAssetData.data,
     hardwareProfile: wizardData.hardwareProfileConfig.formData,
     modelLocationData: wizardData.modelLocationData.data ?? {
       type: ModelLocationType.NEW,
       fieldValues: {},
       additionalFields: {},
     },
+    connectionSecretName,
     createConnectionData: wizardData.createConnectionData.data,
-    secretName,
-    connectionName: wizardData.modelLocationData.data?.connection ?? '',
     replicas: wizardData.numReplicas.data,
     runtimeArgs: wizardData.runtimeArgs.data,
     environmentVariables: wizardData.environmentVariables.data,
@@ -283,12 +278,12 @@ export const deployLLMdDeployment = async (
     tokenAuthentication: wizardData.tokenAuthentication.data,
   };
   const llmdInferenceService = !existingDeployment
-    ? await createLLMdInferenceServiceKind(llmdInferenceServiceData, dryRun)
-    : await updateLLMdInferenceServiceKind(
+    ? await createLLMInferenceServiceKind(llmdInferenceServiceData, dryRun, connectionSecretName)
+    : await updateLLMInferenceServiceKind(
         llmdInferenceServiceData,
         existingDeployment.model,
         dryRun,
-        secretName,
+        connectionSecretName,
       );
 
   if (wizardData.tokenAuthentication.data && wizardData.tokenAuthentication.data.length > 0) {

@@ -4,37 +4,25 @@ import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeValueType,
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import type { K8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/types';
 import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
 import type { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type {
   ModelServerOption,
   useModelServerSelectField,
 } from './fields/ModelServerTemplateSelectField';
-import type { ModelTypeFieldData, useModelTypeField } from './fields/ModelTypeSelectField';
-import type { ExternalRouteFieldData, useExternalRouteField } from './fields/ExternalRouteField';
-import type {
-  ModelAvailabilityFieldsData,
-  useModelAvailabilityFields,
-} from './fields/ModelAvailabilityFields';
-import type {
-  EnvironmentVariablesFieldData,
-  useEnvironmentVariablesField,
-} from './fields/EnvironmentVariablesField';
+import type { useModelTypeField } from './fields/ModelTypeSelectField';
+import type { useExternalRouteField } from './fields/ExternalRouteField';
+import type { useModelAvailabilityFields } from './fields/ModelAvailabilityFields';
+import type { useEnvironmentVariablesField } from './fields/EnvironmentVariablesField';
 import type { useModelFormatField } from './fields/ModelFormatField';
 import type { useModelLocationData } from './fields/ModelLocationInputFields';
-import type { NumReplicasFieldData, useNumReplicasField } from './fields/NumReplicasField';
-import type { RuntimeArgsFieldData, useRuntimeArgsField } from './fields/RuntimeArgsField';
-import type {
-  TokenAuthenticationFieldData,
-  useTokenAuthenticationField,
-} from './fields/TokenAuthenticationField';
+import type { useNumReplicasField } from './fields/NumReplicasField';
+import type { useRuntimeArgsField } from './fields/RuntimeArgsField';
+import type { useTokenAuthenticationField } from './fields/TokenAuthenticationField';
 import {
   useCreateConnectionData,
   type CreateConnectionData,
 } from './fields/CreateConnectionInputFields';
-
-// wizard form data
 
 export enum ConnectionTypeRefs {
   S3 = 's3',
@@ -99,6 +87,22 @@ export type WizardFormData = {
     createConnectionData: ReturnType<typeof useCreateConnectionData>;
   };
 };
+// wizard form data
+
+// Export field data types
+export type ModelTypeFieldData = WizardFormData['state']['modelType']['data'];
+export type K8sNameDescriptionFieldData = WizardFormData['state']['k8sNameDesc']['data'];
+export type ExternalRouteFieldData = WizardFormData['state']['externalRoute']['data'];
+export type TokenAuthenticationFieldData = WizardFormData['state']['tokenAuthentication']['data'];
+export type NumReplicasFieldData = WizardFormData['state']['numReplicas']['data'];
+export type RuntimeArgsFieldData = WizardFormData['state']['runtimeArgs']['data'];
+export type EnvironmentVariablesFieldData = WizardFormData['state']['environmentVariables']['data'];
+export type ModelServerSelectFieldData = WizardFormData['state']['modelServer']['data'];
+export type CreateConnectionFieldData = WizardFormData['state']['createConnectionData']['data'];
+export type HardwareProfileConfigFieldData =
+  WizardFormData['state']['hardwareProfileConfig']['formData'];
+export type ModelFormatFieldData = WizardFormData['state']['modelFormatState']['modelFormat'];
+export type ModelAvailabilityFieldsData = WizardFormData['state']['modelAvailability']['data'];
 
 // extensible fields
 

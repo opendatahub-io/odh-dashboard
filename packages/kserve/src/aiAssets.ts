@@ -1,9 +1,9 @@
+import { ModelAvailabilityFieldsData } from '@odh-dashboard/model-serving/types/form-data';
 import { KServeDeployment } from './deployments';
-import { AvailableAiAssetsFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/AvailableAiAssetsFields';
 
 export const extractModelAvailabilityData = (
   kserveDeployment: KServeDeployment,
-): AvailableAiAssetsFieldsData => {
+): ModelAvailabilityFieldsData => {
   return {
     saveAsAiAsset:
       kserveDeployment.model.metadata.labels?.['opendatahub.io/genai-asset'] === 'true',

@@ -7,22 +7,24 @@ import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
-import { ModelLocationData, ModelLocationType } from '@odh-dashboard/model-serving/types/form-data';
+import {
+  ModelLocationData,
+  ModelLocationType,
+  CreateConnectionFieldData,
+  EnvironmentVariablesFieldData,
+  RuntimeArgsFieldData,
+} from '@odh-dashboard/model-serving/types/form-data';
 import {
   getPVCNameFromURI,
   isPVCUri,
 } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
 import type { LLMdContainer, LLMInferenceServiceKind, LLMdDeployment } from '../types';
-import { AvailableAiAssetsFieldsData } from '../../../model-serving/src/components/deploymentWizard/fields/AvailableAiAssetsFields';
-import { RuntimeArgsFieldData } from '../../../model-serving/src/components/deploymentWizard/fields/RuntimeArgsField';
-import { EnvironmentVariablesFieldData } from '../../../model-serving/src/components/deploymentWizard/fields/EnvironmentVariablesField';
-import { CreateConnectionData } from '../../../model-serving/src/components/deploymentWizard/fields/CreateConnectionInputFields';
 
 export const applyModelLocation = (
   llmdInferenceService: LLMInferenceServiceKind,
   modelLocationData: ModelLocationData,
-  secretName?: string,
-  createConnectionData?: CreateConnectionData,
+  connectionSecretName?: string,
+  createConnectionData?: CreateConnectionFieldData,
   dryRun?: boolean,
 ): LLMInferenceServiceKind => {
   const result = structuredClone(llmdInferenceService);
@@ -33,7 +35,7 @@ export const applyModelLocation = (
   if (!dryRun) {
     // Only add the connection name in the actual request (dry run will fail if the connection doesn't exist yet)
     result.metadata.annotations[MetadataAnnotation.ConnectionName] =
-      secretName ?? createConnectionData?.nameDesc?.name ?? '';
+      connectionSecretName ?? createConnectionData?.nameDesc?.name ?? '';
   } else {
     // Remove the connection name in the dry run or it will conflict during updates
     delete result.metadata.annotations[MetadataAnnotation.ConnectionName];
@@ -187,9 +189,13 @@ export const extractModelLocationData = (deployment: {
       },
     };
   }
-  const imagePullSecrets = deployment.model.spec.template?.containers?.find(
-    (container) => container.name === 'imagePullSecrets',
-  );
+
+  const imagePullSecrets =
+    deployment.model.spec.template?.imagePullSecrets?.length &&
+    deployment.model.spec.template.imagePullSecrets.length > 0
+      ? deployment.model.spec.template.imagePullSecrets[0]
+      : undefined;
+
   const connectionName =
     deployment.model.metadata.annotations?.[MetadataAnnotation.ConnectionName] ||
     imagePullSecrets?.name;
@@ -222,43 +228,6 @@ export const getConnectionTypeFromUri = (uri: string): ModelServingCompatibleTyp
     default:
       return ModelServingCompatibleTypes.URI;
   }
-};
-
-export const extractAiAssetData = (
-  llmdInferenceService: LLMdDeployment,
-): AvailableAiAssetsFieldsData => {
-  return {
-    saveAsAiAsset:
-      llmdInferenceService.model.metadata.labels?.['opendatahub.io/genai-asset'] === 'true',
-    useCase:
-      llmdInferenceService.model.metadata.annotations?.['opendatahub.io/genai-use-case'] || '',
-  };
-};
-
-export const applyAiAvailableAssetAnnotations = (
-  llmdInferenceService: LLMInferenceServiceKind,
-  aiAssetData?: AvailableAiAssetsFieldsData,
-): LLMInferenceServiceKind => {
-  const result = structuredClone(llmdInferenceService);
-  result.metadata.labels = {
-    ...result.metadata.labels,
-    'opendatahub.io/genai-asset': aiAssetData?.saveAsAiAsset ? 'true' : 'false',
-  };
-  if (!aiAssetData?.saveAsAiAsset) {
-    delete result.metadata.labels['opendatahub.io/genai-asset'];
-  }
-  result.metadata.annotations = {
-    ...result.metadata.annotations,
-    ...(aiAssetData?.saveAsAiAsset &&
-      aiAssetData.useCase && {
-        'opendatahub.io/genai-use-case': aiAssetData.useCase,
-      }),
-  };
-  if (!aiAssetData?.saveAsAiAsset || !aiAssetData.useCase) {
-    delete result.metadata.annotations['opendatahub.io/genai-use-case'];
-  }
-
-  return result;
 };
 
 export const applyDisplayNameDesc = (

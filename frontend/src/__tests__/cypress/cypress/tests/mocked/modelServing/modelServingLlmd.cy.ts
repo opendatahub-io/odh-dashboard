@@ -378,6 +378,17 @@ describe('Model Serving LLMD', () => {
           }),
         ],
       });
+      // Force the serving runtimelist to show llmd as an option
+      cy.interceptK8sList(
+        TemplateModel,
+        mockK8sResourceList([
+          mockServingRuntimeTemplateK8sResource({
+            name: 'llmd-serving',
+            displayName: 'Distributed Inference Server with llm-d',
+            modelTypes: [ServingRuntimeModelType.GENERATIVE],
+          }),
+        ]),
+      );
       cy.intercept('PUT', '**/llminferenceservices/test-llmd-model*', (req) => {
         req.reply({ statusCode: 200, body: req.body });
       }).as('updateLLMInferenceServiceDryRun');
@@ -412,7 +423,10 @@ describe('Model Serving LLMD', () => {
       hardwareProfileSection.selectProfile(
         'Large Profile Compatible CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
       );
-      modelServingWizardEdit.findServingRuntimeTemplateSearchSelector().should('be.disabled');
+      modelServingWizardEdit
+        .findServingRuntimeTemplateSearchSelector()
+        .should('be.disabled')
+        .should('contain.text', 'Distributed Inference Server with llm-d');
 
       modelServingWizardEdit.findNumReplicasInputField().should('have.value', '2');
       modelServingWizardEdit.findNumReplicasPlusButton().click();
@@ -420,8 +434,7 @@ describe('Model Serving LLMD', () => {
       modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
       // Step 3: Advanced Options
-      modelServingWizardEdit.findNextButton().should('be.enabled');
-      // test "Allow anonymous access" stuff
+      //modelServingWizardEdit.findNextButton().should('be.enabled'); //TODO: Uncomment when summary page is added back
       modelServingWizardEdit.findTokenAuthenticationCheckbox().should('be.checked');
       modelServingWizardEdit.findTokenAuthenticationCheckbox().click();
       modelServingWizardEdit.findTokenAuthenticationCheckbox().should('not.be.checked');
@@ -429,7 +442,7 @@ describe('Model Serving LLMD', () => {
       modelServingWizardEdit.findRuntimeArgsTextBox().type('--arg=value1');
       modelServingWizardEdit.findEnvVariableName('0').clear().type('MY_ENV');
       modelServingWizardEdit.findEnvVariableValue('0').clear().type('MY_VALUE');
-      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+      //modelServingWizardEdit.findNextButton().should('be.enabled').click(); //TODO: Uncomment when summary page is added back
 
       // Step 4: Summary
       modelServingWizardEdit.findSubmitButton().should('be.enabled').click();

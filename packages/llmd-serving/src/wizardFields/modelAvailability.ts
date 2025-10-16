@@ -31,7 +31,7 @@ export const extractModelAvailabilityData = (
   deployment: LLMdDeployment,
 ): WizardFormData['state']['modelAvailability']['data'] => {
   return {
-    saveAsAiAsset: deployment.model.metadata.annotations?.['opendatahub.io/genai-asset'] === 'true',
+    saveAsAiAsset: deployment.model.metadata.labels?.['opendatahub.io/genai-asset'] === 'true',
     saveAsMaaS: !!deployment.model.metadata.annotations?.[MAAS_TIERS_ANNOTATION],
     useCase: deployment.model.metadata.annotations?.['opendatahub.io/genai-use-case'],
   };
@@ -48,15 +48,12 @@ export const applyModelAvailabilityData = (
     result.metadata.annotations?.[MAAS_TIERS_ANNOTATION] || DEFAULT_MAAS_TIERS_VALUE;
   const gatewayRefs = result.spec.router?.gateway?.refs ?? [DEFAULT_MAAS_GATEWAY_REF];
 
-  delete result.metadata.annotations?.['opendatahub.io/genai-asset'];
+  delete result.metadata.labels?.['opendatahub.io/genai-asset'];
   delete result.metadata.annotations?.['opendatahub.io/genai-use-case'];
   delete result.metadata.annotations?.[MAAS_TIERS_ANNOTATION];
 
   result.metadata.annotations = {
     ...result.metadata.annotations,
-    ...(modelAvailability?.saveAsAiAsset && {
-      'opendatahub.io/genai-asset': 'true',
-    }),
     ...(modelAvailability?.saveAsMaaS && {
       [MAAS_TIERS_ANNOTATION]: maasTiersValue,
     }),
@@ -64,6 +61,12 @@ export const applyModelAvailabilityData = (
       (modelAvailability.saveAsAiAsset || modelAvailability.saveAsMaaS) && {
         'opendatahub.io/genai-use-case': modelAvailability.useCase,
       }),
+  };
+  result.metadata.labels = {
+    ...result.metadata.labels,
+    ...(modelAvailability?.saveAsAiAsset && {
+      'opendatahub.io/genai-asset': 'true',
+    }),
   };
 
   delete result.spec.router?.gateway?.refs;

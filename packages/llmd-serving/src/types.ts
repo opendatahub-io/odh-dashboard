@@ -1,5 +1,9 @@
 import type { K8sModelCommon, K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import type { DisplayNameAnnotations, MetadataAnnotation } from '@odh-dashboard/internal/k8sTypes';
+import type {
+  DisplayNameAnnotations,
+  ImagePullSecret,
+  MetadataAnnotation,
+} from '@odh-dashboard/internal/k8sTypes';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
 import type { PodContainer } from '@odh-dashboard/internal/types';
 import { MAAS_TIERS_ANNOTATION } from './wizardFields/modelAvailability';
@@ -15,9 +19,11 @@ export type LLMInferenceServiceKind = K8sResourceCommon & {
       [MetadataAnnotation.ConnectionName]?: string;
     } & {
       'opendatahub.io/model-type'?: 'generative';
-      'opendatahub.io/genai-asset'?: 'true';
       'opendatahub.io/genai-use-case'?: string;
       [MAAS_TIERS_ANNOTATION]?: string;
+    };
+    labels?: {
+      'opendatahub.io/genai-asset'?: 'true' | 'false';
     };
   };
   spec: {
@@ -38,6 +44,7 @@ export type LLMInferenceServiceKind = K8sResourceCommon & {
     };
     template?: {
       containers?: LLMdContainer[];
+      imagePullSecrets?: ImagePullSecret[];
     };
   };
   status?: {
