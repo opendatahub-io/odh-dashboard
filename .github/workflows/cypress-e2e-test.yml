@@ -1,6 +1,6 @@
 name: E2E Direct Commit PR Tests
 
-on: [push]
+on: [push, pull_request]
 
 permissions:
   contents: read
@@ -234,10 +234,16 @@ jobs:
           echo "TEST_USER_3_PASSWORD=$TEST_USER_3_PASSWORD" >> $GITHUB_ENV
           
           echo "Logging in to OpenShift cluster..."
-          oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="${{ secrets.OC_SERVER }}" --insecure-skip-tls-verify
+          oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="${{ secrets.OC_SERVER }}" --insecure-skip-tls-verify > /dev/null 2>&1
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ Successfully logged in to OpenShift cluster (dash-e2e-odh)"
+          else
+            echo "❌ Failed to login to OpenShift cluster"
+            exit 1
+          fi
 
           # Export OpenShift configuration for Cypress tests
-          echo "🔧 Setting up OpenShift configuration for Cypress tests..."
           export KUBECONFIG="$HOME/.kube/config"
           echo "KUBECONFIG=$KUBECONFIG" >> $GITHUB_ENV
 
@@ -273,14 +279,24 @@ jobs:
           done
           
           echo "✅ Port ${WEBPACK_PORT} is free"
-          echo "🚀 Starting webpack dev server on port ${WEBPACK_PORT}..."
+          echo "🚀 Starting webpack dev server on port ${WEBPACK_PORT} (dash-e2e-odh)..."
           
-          cd frontend && ODH_PORT=${WEBPACK_PORT} npm run start:dev:ext &
+          # Start webpack and filter sensitive output
+          cd frontend && ODH_PORT=${WEBPACK_PORT} npm run start:dev:ext > /tmp/webpack_${WEBPACK_PORT}.log 2>&1 &
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
           
           # Give server time to initialize
           sleep 20
+          
+          # Show filtered webpack status (hide sensitive cluster URLs)
+          if [ -f /tmp/webpack_${WEBPACK_PORT}.log ]; then
+            tail -20 /tmp/webpack_${WEBPACK_PORT}.log | \
+              grep -v "Dashboard host:" | \
+              grep -v "Proxy created:" | \
+              grep -v "Logged in as user:" | \
+              grep -v "Using project:" || true
+          fi
 
       - name: Wait for Server Ready
         run: |
@@ -313,8 +329,8 @@ jobs:
           export CY_RESULTS_DIR="${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}"
           mkdir -p "$CY_RESULTS_DIR"
 
-          # Run Cypress tests with Chrome browser
-          BASE_URL=http://localhost:${WEBPACK_PORT} npm run cypress:run:chrome -- \
+          # Run Cypress tests with Electron browser
+          BASE_URL=http://localhost:${WEBPACK_PORT} npm run cypress:run:electron -- \
             --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true \
             --config video=false,screenshotsFolder="$CY_RESULTS_DIR/screenshots"
 
