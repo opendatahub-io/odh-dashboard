@@ -26,6 +26,7 @@ export type ModelServingPodSpecOptionsState = PodSpecOptionsState<ModelServingPo
   modelSize: ModelServingSizeState;
 };
 
+// todo: rename this to have podSpect in the title after migration is done (when the class/type above is gone)
 export type ModelServingHardwareProfileState =
   HardwarePodSpecOptionsState<ModelServingPodSpecOptions> & {
     modelSize: ModelServingSizeState;
