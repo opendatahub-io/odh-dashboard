@@ -92,22 +92,22 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
       <Form>
         <FormSection title="Advanced settings">
           <Stack hasGutter>
-            <StackItem>
-              <FormGroup
-                label="Model playground availability"
-                data-testid="Model-playground-availability-section"
-                fieldId="Model playground availability"
-              >
-                {wizardState.state.modelAvailability.showField && (
-            <AvailableAiAssetsFieldsComponent
+            {wizardState.state.modelAvailability.showField && (
+              <StackItem>
+                <FormGroup
+                  label="Model playground availability"
+                  data-testid="Model-playground-availability-section"
+                  fieldId="Model playground availability"
+                >
+                  <AvailableAiAssetsFieldsComponent
                     data={wizardState.state.modelAvailability.data}
                     setData={wizardState.state.modelAvailability.setData}
                     showSaveAsMaaS={wizardState.state.modelAvailability.showSaveAsMaaS}
                   />
-              </FormGroup>
-            </StackItem>
+                </FormGroup>
+              </StackItem>
             )}
-          {isExternalRouteVisible && (
+            {isExternalRouteVisible && (
               <StackItem>
                 <FormGroup
                   label="Model access"

@@ -215,12 +215,10 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
         <Checkbox
           label={
             <>
-              Require token authentication
+              <strong>Require token authentication</strong>
               <br />
-              <i>
-                Use this if you make your model accessible through an external route. Unchecking
-                this option is a bad idea
-              </i>
+              Requiring token authorization provides added security if you make your model available
+              to users outside of your cluster.
             </>
           }
           id="alt-form-checkbox-auth"
