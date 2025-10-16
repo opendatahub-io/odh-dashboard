@@ -313,8 +313,8 @@ jobs:
           export CY_RESULTS_DIR="${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}"
           mkdir -p "$CY_RESULTS_DIR"
 
-          # Run Cypress tests with Electron browser
-          BASE_URL=http://localhost:${WEBPACK_PORT} npm run cypress:run:electron -- \
+          # Run Cypress tests with Chrome browser
+          BASE_URL=http://localhost:${WEBPACK_PORT} npm run cypress:run:chrome -- \
             --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true \
             --config video=false,screenshotsFolder="$CY_RESULTS_DIR/screenshots"
 
