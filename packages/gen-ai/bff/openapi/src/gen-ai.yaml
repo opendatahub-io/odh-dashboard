@@ -222,7 +222,11 @@ paths:
             schema:
               $ref: "#/components/schemas/LlamaStackDistributionInstallRequest"
             example:
-              models: ["llama-3-2-3b-instruct", "granite-embedding-125m"]
+              models:
+                - model_name: "llama-3-2-3b-instruct"
+                  is_maas_model: false
+                - model_name: "granite-embedding-125m"
+                  is_maas_model: false
       responses:
         '200':
           $ref: "#/components/responses/LlamaStackDistributionInstallResponse"
