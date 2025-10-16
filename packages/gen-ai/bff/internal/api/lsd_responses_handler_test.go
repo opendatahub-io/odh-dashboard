@@ -4,11 +4,15 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/textproto"
 	"testing"
 
+	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
@@ -16,6 +20,52 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
+
+func createMultipartRequest(t *testing.T, payload interface{}, files map[string][]byte) (*http.Request, error) {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	// Add the JSON request
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+	part, err := writer.CreateFormField("request")
+	if err != nil {
+		return nil, err
+	}
+	_, err = part.Write(jsonData)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add files
+	for filename, content := range files {
+		h := make(textproto.MIMEHeader)
+		h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="files"; filename="%s"`, filename))
+		h.Set("Content-Type", "text/plain")
+		part, err := writer.CreatePart(h)
+		if err != nil {
+			return nil, err
+		}
+		_, err = part.Write(content)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = writer.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses?namespace="+testutil.TestNamespace, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	return req, nil
+}
 
 func TestLlamaStackCreateResponseHandler(t *testing.T) {
 	// Create test app with mock client
@@ -698,5 +748,185 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		firstContent := content[0].(map[string]interface{})
 		text := firstContent["text"].(string)
 		assert.Contains(t, text, "Continuing from previous response prev-response-123")
+	})
+
+	t.Run("should handle file upload for in-context learning", func(t *testing.T) {
+		payload := CreateResponseRequest{
+			Input: "What does the file say?",
+			Model: "llama-3.1-8b",
+		}
+
+		files := map[string][]byte{
+			"test.txt": []byte("This is a test file content."),
+		}
+
+		req, err := createMultipartRequest(t, payload, files)
+		assert.NoError(t, err)
+
+		// Create a mock client that returns a valid response
+		mockClient := lsmocks.NewMockLlamaStackClient()
+		llamaStackClientFactory.SetMockClient(mockClient)
+
+		// Mock the response
+		mockClient.SetCreateResponseResult(&lsmocks.MockResponse{
+			ID:     "resp_mock123",
+			Model:  "llama-3.1-8b",
+			Status: responses.ResponseStatusCompleted,
+			Output: []responses.ResponseOutputItemUnion{
+				{
+					Type: "message",
+					Role: "assistant",
+					Content: []responses.ResponseOutputMessageContentUnion{
+						{
+							Type: "text",
+							Text: "I've read the file test.txt which contains: This is a test file content.",
+						},
+					},
+				},
+			},
+		})
+
+		// Simulate AttachLlamaStackClient middleware
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, false, nil)
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackCreateResponseHandler(rr, req, nil)
+
+		t.Logf("Response body: %s", rr.Body.String())
+		assert.Equal(t, http.StatusCreated, rr.Code)
+
+		var response map[string]interface{}
+		body, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		err = json.Unmarshal(body, &response)
+		assert.NoError(t, err)
+
+		data := response["data"].(map[string]interface{})
+		output := data["output"].([]interface{})
+		assert.Greater(t, len(output), 0)
+
+		// Verify the response includes file content
+		messageItem := output[len(output)-1].(map[string]interface{})
+		content := messageItem["content"].([]interface{})
+		textContent := content[0].(map[string]interface{})
+		assert.Contains(t, textContent["text"], "test.txt")
+		assert.Contains(t, textContent["text"], "This is a test file content")
+	})
+
+	t.Run("should reject oversized files", func(t *testing.T) {
+		payload := CreateResponseRequest{
+			Input: "What does the file say?",
+			Model: "llama-3.1-8b",
+		}
+
+		// Create a file larger than maxFileSize (5MB)
+		largeContent := make([]byte, 6<<20) // 6MB
+		for i := range largeContent {
+			largeContent[i] = 'A'
+		}
+
+		files := map[string][]byte{
+			"large.txt": largeContent,
+		}
+
+		req, err := createMultipartRequest(t, payload, files)
+		assert.NoError(t, err)
+
+		// Simulate AttachLlamaStackClient middleware
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, false, nil)
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackCreateResponseHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "exceeds maximum size")
+	})
+
+	t.Run("should reject unsupported file types", func(t *testing.T) {
+		payload := CreateResponseRequest{
+			Input: "What does the file say?",
+			Model: "llama-3.1-8b",
+		}
+
+		files := map[string][]byte{
+			"test.exe": []byte("This is a test executable file."),
+		}
+
+		req, err := createMultipartRequest(t, payload, files)
+		assert.NoError(t, err)
+
+		// Parse the form first
+		err = req.ParseMultipartForm(32 << 20)
+		assert.NoError(t, err)
+
+		// Set unsupported content type
+		for _, v := range req.MultipartForm.File {
+			for _, fh := range v {
+				fh.Header.Set("Content-Type", "application/x-executable")
+			}
+		}
+
+		// Simulate AttachLlamaStackClient middleware
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, false, nil)
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackCreateResponseHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "unsupported file type")
+	})
+
+	t.Run("should handle multiple files", func(t *testing.T) {
+		payload := CreateResponseRequest{
+			Input: "What do the files say?",
+			Model: "llama-3.1-8b",
+		}
+
+		files := map[string][]byte{
+			"test1.txt": []byte("This is the first file."),
+			"test2.txt": []byte("This is the second file."),
+		}
+
+		req, err := createMultipartRequest(t, payload, files)
+		assert.NoError(t, err)
+
+		// Simulate AttachLlamaStackClient middleware
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, false, nil)
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackCreateResponseHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusCreated, rr.Code)
+
+		var response map[string]interface{}
+		body, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		err = json.Unmarshal(body, &response)
+		assert.NoError(t, err)
+
+		data := response["data"].(map[string]interface{})
+		output := data["output"].([]interface{})
+		assert.Greater(t, len(output), 0)
+
+		// Verify the response includes both files' content
+		messageItem := output[len(output)-1].(map[string]interface{})
+		content := messageItem["content"].([]interface{})
+		textContent := content[0].(map[string]interface{})
+		assert.Contains(t, textContent["text"], "test1.txt")
+		assert.Contains(t, textContent["text"], "test2.txt")
+		assert.Contains(t, textContent["text"], "first file")
+		assert.Contains(t, textContent["text"], "second file")
 	})
 }

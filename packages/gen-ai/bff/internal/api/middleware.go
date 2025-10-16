@@ -294,7 +294,9 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 				"serviceURL", serviceURL)
 
 			// Create LlamaStack client per-request using app factory (consistent with K8s pattern)
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(serviceURL, app.config.InsecureSkipVerify, app.rootCAs)
+			// Disable retries to prevent VLLM shared memory exhaustion during streaming
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(serviceURL, app.config.InsecureSkipVerify, app.rootCAs,
+				llamastack.WithNoRetries())
 		}
 
 		// Attach ready-to-use client to context
