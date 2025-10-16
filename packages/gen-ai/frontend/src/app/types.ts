@@ -41,6 +41,7 @@ export type VectorStore = {
   /** Key-value metadata (max 16 pairs, keys ≤64 chars, values ≤512 chars) */
   metadata: {
     description?: string;
+    provider_id: string;
     [key: string]: string | undefined;
   };
   /** Human-readable name (max 256 characters) */
@@ -226,6 +227,14 @@ export type CodeExportRequest = {
   stream?: boolean;
   temperature?: number;
   tools?: CodeExportTool[];
+  mcp_servers?: MCPServerConfig[];
+  vector_store?: {
+    name: string;
+    embedding_model?: string;
+    embedding_dimension?: number;
+    provider_id: string;
+  };
+  files?: { file: string; purpose: string }[];
 };
 
 export type CodeExportData = {

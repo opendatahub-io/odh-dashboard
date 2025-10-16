@@ -8,6 +8,7 @@ import {
   MCPToolCallData,
 } from '~/app/types';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServers';
+import { generateMCPServerConfig } from './utils';
 
 /**
  * Transform MCP server data from API to table format
@@ -189,21 +190,9 @@ export const getSelectedServersForAPI = (
     const isConnected = statusInfo?.status === 'connected' || tokenInfo?.authenticated === true;
 
     if (isConnected && isValidated) {
-      const serverTokenInfo = serverTokens.get(server.url);
-      const headers: Record<string, string> = {};
+      const serverConfig = generateMCPServerConfig(server, serverTokens);
 
-      if (serverTokenInfo?.token) {
-        const raw = serverTokenInfo.token.trim();
-        headers.Authorization = raw.toLowerCase().startsWith('bearer ') ? raw : `Bearer ${raw}`;
-      }
-
-      validServers.push({
-        // eslint-disable-next-line camelcase
-        server_label: server.name,
-        // eslint-disable-next-line camelcase
-        server_url: server.url,
-        headers,
-      });
+      validServers.push(serverConfig);
     } else {
       excludedCount++;
     }
