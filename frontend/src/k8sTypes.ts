@@ -1,7 +1,7 @@
 import { K8sResourceCommon, MatchExpression } from '@openshift/dynamic-plugin-sdk-utils';
 import { EitherNotBoth } from '@openshift/dynamic-plugin-sdk';
 import { AwsKeys } from '#~/pages/projects/dataConnections/const';
-import { DataScienceStackComponent, StackComponent } from '#~/concepts/areas/types';
+import type { DataScienceStackComponent } from '#~/concepts/areas/types';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import {
   ContainerResourceAttributes,
@@ -1501,12 +1501,6 @@ export type DataScienceClusterKindStatus = {
     version: string;
   };
 };
-
-/**
- * @deprecated The operator no longer exposes installedComponents.
- * Use DataScienceClusterKindStatus.components.*.managementState instead.
- */
-export type DataScienceClusterInstalledComponents = { [key in StackComponent]?: boolean };
 
 export type DataScienceClusterInitializationKindStatus = {
   conditions: K8sCondition[];

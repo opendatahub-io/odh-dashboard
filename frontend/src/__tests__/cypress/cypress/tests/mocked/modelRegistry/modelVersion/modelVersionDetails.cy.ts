@@ -32,6 +32,7 @@ import { modelServingGlobal } from '#~/__tests__/cypress/cypress/pages/modelServ
 import { ModelRegistryMetadataType } from '#~/concepts/modelRegistry/types';
 import { KnownLabels } from '#~/k8sTypes';
 import { asProjectEditUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 const MODEL_REGISTRY_API_VERSION = 'v1';
 const mockModelVersions = mockModelVersion({
@@ -166,8 +167,8 @@ const initIntercepts = (
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      installedComponents: {
-        'model-registry-operator': true,
+      components: {
+        [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
       },
     }),
   );
@@ -447,9 +448,9 @@ describe('Model version details', () => {
       cy.interceptOdh(
         'GET /api/dsc/status',
         mockDscStatus({
-          installedComponents: {
-            'model-registry-operator': true,
-            'data-science-pipelines-operator': true,
+          components: {
+            [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+            [DataScienceStackComponent.DS_PIPELINES]: { managementState: 'Managed' },
           },
         }),
       );
@@ -542,9 +543,9 @@ describe('Model version details', () => {
       cy.interceptOdh(
         'GET /api/dsc/status',
         mockDscStatus({
-          installedComponents: {
-            'model-registry-operator': true,
-            'data-science-pipelines-operator': true,
+          components: {
+            [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+            [DataScienceStackComponent.DS_PIPELINES]: { managementState: 'Managed' },
           },
         }),
       );

@@ -5,7 +5,7 @@ import {
   mockK8sResourceList,
 } from '#~/__mocks__';
 import { mockDsciStatus } from '#~/__mocks__/mockDsciStatus';
-import { StackComponent } from '#~/concepts/areas/types';
+import { DataScienceStackComponent } from '#~/concepts/areas/types';
 import {
   FormFieldSelector,
   modelRegistrySettings,
@@ -57,9 +57,12 @@ const setupMocksForMRSettingAccess = ({
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      installedComponents: {
-        [StackComponent.MODEL_REGISTRY]: true,
-        [StackComponent.MODEL_MESH]: true,
+      components: {
+        [DataScienceStackComponent.MODEL_REGISTRY]: {
+          managementState: 'Managed',
+          registriesNamespace: 'odh-model-registries',
+        },
+        [DataScienceStackComponent.MODEL_MESH_SERVING]: { managementState: 'Managed' },
       },
     }),
   );
