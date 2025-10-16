@@ -93,7 +93,7 @@ export const NumReplicasField: React.FC<NumReplicasFieldProps> = ({ replicaState
         onBlur={handleBlur}
       />
       <HelperText>
-        <HelperTextItem>Non-production models typically require only one replica</HelperTextItem>
+        <HelperTextItem>Non-production models usually require 1 replica only.</HelperTextItem>
       </HelperText>
     </FormGroup>
   );

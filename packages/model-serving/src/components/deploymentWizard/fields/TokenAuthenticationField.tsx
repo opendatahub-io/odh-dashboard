@@ -213,7 +213,16 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
     <Stack hasGutter id="auth-section">
       <StackItem>
         <Checkbox
-          label="Require token authentication"
+          label={
+            <>
+              Require token authentication
+              <br />
+              <i>
+                Use this if you make your model accessible through an external route. Unchecking
+                this option is a bad idea
+              </i>
+            </>
+          }
           id="alt-form-checkbox-auth"
           data-testid="token-authentication-checkbox"
           name="alt-form-checkbox-auth"

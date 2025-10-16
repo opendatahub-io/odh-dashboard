@@ -74,7 +74,7 @@ export const RuntimeArgsField: React.FC<RuntimeArgsFieldProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Checkbox
             id="runtime-args-checkbox"
-            label="Include additional runtime arguments"
+            label="Add custom runtime arguments"
             isChecked={data.enabled}
             isDisabled={!allowCreate}
             onChange={handleCheckboxChange}

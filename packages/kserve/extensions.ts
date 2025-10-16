@@ -47,9 +47,9 @@ const extensions: (
         },
       },
       enableCardText: {
-        title: 'Single-model serving platform',
+        title: 'Enable model serving',
         description:
-          'Each model is deployed on its own model server. Choose this option when you want to deploy a large model such as a large language model (LLM).',
+          'Enable users to serve models using the single-model serving platform which deploys each model on its own dedicated model server. ',
         selectText: 'Select single-model',
         enabledText: 'Single-model serving enabled',
         objectType: ProjectObjectType.singleModel,
