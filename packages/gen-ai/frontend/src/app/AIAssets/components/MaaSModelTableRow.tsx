@@ -8,9 +8,10 @@ import MaaSModelTableRowEndpoint from './MaaSModelTableRowEndpoint';
 
 type MaaSModelTableRowProps = {
   model: MaaSModel;
+  namespace: string;
 };
 
-const MaaSModelTableRow: React.FC<MaaSModelTableRowProps> = ({ model }) => (
+const MaaSModelTableRow: React.FC<MaaSModelTableRowProps> = ({ model, namespace }) => (
   <Tr>
     <Td dataLabel="Model deployment name">
       <TableRowTitleDescription
@@ -31,7 +32,7 @@ const MaaSModelTableRow: React.FC<MaaSModelTableRowProps> = ({ model }) => (
       />
     </Td>
     <Td dataLabel="External endpoint">
-      <MaaSModelTableRowEndpoint model={model} />
+      <MaaSModelTableRowEndpoint model={model} namespace={namespace} />
     </Td>
     <Td dataLabel="Status">
       {model.ready ? (

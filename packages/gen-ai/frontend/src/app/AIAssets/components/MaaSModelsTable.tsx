@@ -13,9 +13,10 @@ import ModelsListToolbar from './ModelsListToolbar';
 
 type MaaSModelsTableProps = {
   models: MaaSModel[];
+  namespace: string;
 };
 
-const MaaSModelsTable: React.FC<MaaSModelsTableProps> = ({ models }) => {
+const MaaSModelsTable: React.FC<MaaSModelsTableProps> = ({ models, namespace }) => {
   const { filterData, onFilterUpdate, onClearFilters, filteredModels } =
     useMaaSModelsFilter(models);
 
@@ -47,7 +48,9 @@ const MaaSModelsTable: React.FC<MaaSModelsTableProps> = ({ models }) => {
         />
       }
       onClearFilters={onClearFilters}
-      rowRenderer={(model) => <MaaSModelTableRow key={model.id} model={model} />}
+      rowRenderer={(model) => (
+        <MaaSModelTableRow key={model.id} model={model} namespace={namespace} />
+      )}
     />
   );
 };

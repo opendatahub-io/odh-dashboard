@@ -11,6 +11,11 @@ export type LlamaModel = LlamaModelResponse & {
   modelId: string;
 };
 
+export type LSDInstallModel = {
+  model_name: string;
+  is_maas_model: boolean;
+};
+
 export type FileCounts = {
   /** Number of cancelled file operations */
   cancelled: number;
@@ -273,6 +278,10 @@ export interface AIModel extends AAModelResponse {
   // Parse endpoints into usable format
   internalEndpoint?: string;
   externalEndpoint?: string;
+  // Flag to identify if this is a MaaS model
+  isMaaSModel?: boolean;
+  // The MaaS model ID if this is a MaaS model (needed for LSD installation)
+  maasModelId?: string;
 }
 
 export interface MaaSModel {
