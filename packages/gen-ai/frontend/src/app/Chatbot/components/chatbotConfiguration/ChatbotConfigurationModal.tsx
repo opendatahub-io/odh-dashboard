@@ -15,7 +15,7 @@ type ChatbotConfigurationModalProps = {
   onClose: () => void;
   lsdStatus: LlamaStackDistributionModel | null;
   /** All available AI assets models in the namespace */
-  allModels: AIModel[];
+  aiModels: AIModel[];
   /** All available MaaS models in the namespace */
   maasModels?: MaaSModel[];
   /** Models that are already available in the playground,
@@ -33,7 +33,7 @@ const UPDATE_PLAYGROUND_EVENT_NAME = 'Playground Config Update';
 const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   onClose,
   lsdStatus,
-  allModels,
+  aiModels,
   maasModels = [],
   existingModels = [],
   extraSelectedModels,
@@ -43,8 +43,8 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
 
   // Convert pure MaaS models to AIModel format so they can be used in the table
   const maasAsAIModels: AIModel[] = React.useMemo(() => {
-    const aiModelIds = new Set(allModels.map((model) => model.model_id));
-    // Only include MaaS models that aren't already in allModels (i.e., not marked as AI assets)
+    const aiModelIds = new Set(aiModels.map((model) => model.model_id));
+    // Only include MaaS models that aren't already in aiModels (i.e., not marked as AI assets)
     return maasModels
       .filter((maasModel) => !aiModelIds.has(maasModel.id) && maasModel.ready)
       .map((maasModel) => ({
@@ -67,20 +67,18 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
         isMaaSModel: true,
         maasModelId: maasModel.id,
       }));
-  }, [allModels, maasModels]);
+  }, [aiModels, maasModels]);
 
   // Merge all models and MaaS models for display
-  const combinedModels = React.useMemo(
-    () => [...allModels, ...maasAsAIModels],
-    [allModels, maasAsAIModels],
+  const allModels = React.useMemo(
+    () => [...aiModels, ...maasAsAIModels],
+    [aiModels, maasAsAIModels],
   );
 
   const preSelectedModels = React.useMemo(() => {
     if (existingModels.length > 0) {
       const existingModelsSet = new Set(existingModels.map((model) => model.modelId));
-      const existingAIModels = combinedModels.filter((model) =>
-        existingModelsSet.has(model.model_id),
-      );
+      const existingAIModels = allModels.filter((model) => existingModelsSet.has(model.model_id));
 
       if (extraSelectedModels && extraSelectedModels.length > 0) {
         const extraSelectedModelsSet = new Set(
@@ -94,8 +92,8 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
       }
       return existingAIModels;
     }
-    return extraSelectedModels ?? combinedModels;
-  }, [existingModels, extraSelectedModels, combinedModels]);
+    return extraSelectedModels ?? allModels;
+  }, [existingModels, extraSelectedModels, allModels]);
 
   const availableModels = React.useMemo(
     () => preSelectedModels.filter((model) => model.status === 'Running'),
@@ -206,7 +204,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
           <ChatbotConfigurationState redirectToPlayground={redirectToPlayground} />
         ) : (
           <ChatbotConfigurationTable
-            allModels={combinedModels}
+            allModels={allModels}
             selectedModels={selectedModels}
             setSelectedModels={setSelectedModels}
           />

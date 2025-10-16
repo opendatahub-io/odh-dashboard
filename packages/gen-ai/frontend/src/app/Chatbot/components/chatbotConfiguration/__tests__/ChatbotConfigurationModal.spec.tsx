@@ -42,7 +42,7 @@ const renderModal = (props: {
       <ChatbotConfigurationModal
         onClose={() => undefined}
         lsdStatus={null}
-        allModels={props.allModels}
+        aiModels={props.allModels}
         existingModels={props.existingModels}
         extraSelectedModels={props.extraSelectedModels}
       />

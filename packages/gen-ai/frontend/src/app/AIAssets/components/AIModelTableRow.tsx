@@ -4,30 +4,30 @@ import { Td, Tr } from '@patternfly/react-table';
 import { CheckCircleIcon, ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { TableRowTitleDescription, TruncatedText } from 'mod-arch-shared';
-import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
+import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
 import { GenAiContext } from '~/app/context/GenAiContext';
-import useFetchMaaSModels from '~/app/hooks/useFetchMaaSModels';
 import AIModelsTableRowEndpoint from './AIModelsTableRowEndpoint';
 import AIModelsTableRowInfo from './AIModelsTableRowInfo';
 
 type AIModelTableRowProps = {
   lsdStatus: LlamaStackDistributionModel | null;
   model: AIModel;
-  models: AIModel[];
+  aiModels: AIModel[];
+  maasModels: MaaSModel[];
   playgroundModels: LlamaModel[];
 };
 
 const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
   lsdStatus,
   model,
-  models,
+  aiModels,
+  maasModels,
   playgroundModels,
 }) => {
   const navigate = useNavigate();
   const { namespace } = React.useContext(GenAiContext);
-  const { data: maasModels = [] } = useFetchMaaSModels(namespace?.name || '');
   const enabledModel = playgroundModels.find((m) => m.modelId === model.model_id);
   const [isConfigurationModalOpen, setIsConfigurationModalOpen] = React.useState(false);
 
@@ -94,7 +94,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
         <ChatbotConfigurationModal
           onClose={() => setIsConfigurationModalOpen(false)}
           lsdStatus={lsdStatus}
-          allModels={models}
+          aiModels={aiModels}
           maasModels={maasModels}
           existingModels={playgroundModels}
           extraSelectedModels={[model]}

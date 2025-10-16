@@ -45,9 +45,9 @@ jest.mock('~/app/EmptyStates/NoData', () => ({
 
 jest.mock('~/app/AIAssets/components/AIModelsTable', () => ({
   __esModule: true,
-  default: ({ models }: { models: AIModel[] }) => (
+  default: ({ aiModels }: { aiModels: AIModel[] }) => (
     <div data-testid="models-table">
-      {models.map((model) => (
+      {aiModels.map((model) => (
         <div key={model.model_id} data-testid={`model-${model.model_id}`}>
           {model.display_name}
         </div>

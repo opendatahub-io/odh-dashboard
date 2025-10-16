@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button, ButtonVariant, Popover, Content, Stack, StackItem } from '@patternfly/react-core';
 import { DashboardEmptyTableView, Table } from 'mod-arch-shared';
-import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
+import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
 import { aiModelColumns } from '~/app/AIAssets/data/columns';
 import useAIModelsFilter from '~/app/AIAssets/hooks/useAIModelsFilter';
 import {
@@ -13,7 +13,8 @@ import AIModelTableRow from './AIModelTableRow';
 import ModelsListToolbar from './ModelsListToolbar';
 
 type AIModelsTableProps = {
-  models: AIModel[];
+  aiModels: AIModel[];
+  maasModels: MaaSModel[];
   playgroundModels: LlamaModel[];
   lsdStatus: LlamaStackDistributionModel | null;
 };
@@ -46,8 +47,14 @@ export const AIModelStatusPopover: React.ReactNode = (
   </Popover>
 );
 
-const AIModelsTable: React.FC<AIModelsTableProps> = ({ models, playgroundModels, lsdStatus }) => {
-  const { filterData, onFilterUpdate, onClearFilters, filteredModels } = useAIModelsFilter(models);
+const AIModelsTable: React.FC<AIModelsTableProps> = ({
+  aiModels,
+  maasModels,
+  playgroundModels,
+  lsdStatus,
+}) => {
+  const { filterData, onFilterUpdate, onClearFilters, filteredModels } =
+    useAIModelsFilter(aiModels);
 
   const aiFilterColors = {
     [AssetsFilterOptions.NAME]: AssetsFilterColors.NAME,
@@ -79,7 +86,8 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({ models, playgroundModels,
           lsdStatus={lsdStatus}
           key={model.model_name}
           model={model}
-          models={models}
+          aiModels={aiModels}
+          maasModels={maasModels}
           playgroundModels={playgroundModels}
         />
       )}
