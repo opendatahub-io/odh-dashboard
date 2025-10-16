@@ -3,9 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getNotebook } from '#~/services/notebookService';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import useNotification from '#~/utilities/useNotification';
-import useRouteForNotebook from '#~/concepts/notebooks/apiHooks/useRouteForNotebook';
-import { getRoute } from '#~/services/routeService';
-import { FAST_POLL_INTERVAL } from '#~/utilities/const';
+import { getRoutePathForWorkbench } from '#~/concepts/notebooks/utils';
 import useNamespaces from './useNamespaces';
 
 const NotebookLogoutRedirect: React.FC = () => {
@@ -13,11 +11,8 @@ const NotebookLogoutRedirect: React.FC = () => {
   const notification = useNotification();
   const navigate = useNavigate();
   const { workbenchNamespace } = useNamespaces();
-  const {
-    data: notebookRoute,
-    loaded,
-    error,
-  } = useRouteForNotebook(notebookName, namespace, true, FAST_POLL_INTERVAL);
+  const notebookRoute =
+    namespace && notebookName ? getRoutePathForWorkbench(namespace, notebookName) : null;
 
   React.useEffect(() => {
     let cancelled = false;
@@ -27,17 +22,7 @@ const NotebookLogoutRedirect: React.FC = () => {
           if (cancelled) {
             return;
           }
-          getRoute(workbenchNamespace, notebookName)
-            .then((route) => {
-              const location = new URL(
-                `https://${route.spec.host}/notebook/${workbenchNamespace}/${notebookName}`,
-              );
-              window.location.href = `${location.origin}/oauth/sign_out`;
-            })
-            .catch((e) => {
-              notification.error('Error fetching notebook URL.', e.message);
-              navigate('not-found');
-            });
+          window.location.href = getRoutePathForWorkbench(workbenchNamespace, notebookName);
         })
         .catch((e) => {
           if (cancelled) {
@@ -54,25 +39,13 @@ const NotebookLogoutRedirect: React.FC = () => {
 
   React.useEffect(() => {
     if (namespace && notebookName && namespace !== workbenchNamespace) {
-      if (error) {
-        notification.error(`Error when logging out ${notebookName}`, error.message);
-        navigate(`/projects/${namespace}`);
-      }
-      if (loaded && notebookRoute) {
+      if (notebookRoute) {
         const location = new URL(notebookRoute);
+        // TODO: how do we handle logout? We share a token login state
         window.location.href = `${location.origin}/oauth/sign_out`;
       }
     }
-  }, [
-    notebookRoute,
-    loaded,
-    error,
-    notification,
-    namespace,
-    notebookName,
-    navigate,
-    workbenchNamespace,
-  ]);
+  }, [notebookRoute, notification, namespace, notebookName, navigate, workbenchNamespace]);
 
   return (
     <ApplicationsPage title="Logging out..." description={null} loaded={false} empty={false} />
