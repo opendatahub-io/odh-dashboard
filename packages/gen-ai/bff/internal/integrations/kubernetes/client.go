@@ -42,4 +42,7 @@ type KubernetesClientInterface interface {
 
 	// ConfigMap operations
 	GetConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.ConfigMap, error)
+
+	// Cluster information
+	GetClusterDomain(ctx context.Context) (string, error)
 }
