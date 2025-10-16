@@ -511,12 +511,11 @@ export const getAAModels = (namespace: string): Promise<AAModelResponse[]> => {
 
 /**
  * Fetches all available MaaS (Model as a Service) models
- * @param namespace - The namespace to fetch MaaS models from
  * @returns Promise<MaaSModel[]> - Array of available MaaS models with their metadata
  * @throws Error - When the API request fails or returns an error response
  */
-export const getMaaSModels = (namespace: string): Promise<MaaSModel[]> => {
-  const url = `${URL_PREFIX}/api/v1/maas/models?namespace=${namespace}`;
+export const getMaaSModels = (): Promise<MaaSModel[]> => {
+  const url = `${URL_PREFIX}/api/v1/maas/models`;
   return axiosInstance
     .get(url)
     .then((response) => response.data.data ?? [])
