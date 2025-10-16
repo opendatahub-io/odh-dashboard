@@ -3,11 +3,13 @@ import { useFetchState, FetchStateObject, FetchStateCallbackPromise } from 'mod-
 import { MaaSModel } from '~/app/types';
 import { getMaaSModels } from '~/app/services/llamaStackService';
 
-const useFetchMaaSModels = (): FetchStateObject<MaaSModel[]> => {
-  const fetchMaaSModels = React.useCallback<FetchStateCallbackPromise<MaaSModel[]>>(
-    async () => getMaaSModels(),
-    [],
-  );
+const useFetchMaaSModels = (namespace?: string): FetchStateObject<MaaSModel[]> => {
+  const fetchMaaSModels = React.useCallback<FetchStateCallbackPromise<MaaSModel[]>>(async () => {
+    if (!namespace) {
+      return Promise.reject(new Error('No namespace provided'));
+    }
+    return getMaaSModels(namespace);
+  }, [namespace]);
 
   const [data, loaded, error, refresh] = useFetchState(fetchMaaSModels, [], {
     initialPromisePurity: true,

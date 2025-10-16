@@ -9,7 +9,7 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 const AIAssetsMaaSTab: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = React.useContext(GenAiContext);
-  const { data: models = [], loaded, error } = useFetchMaaSModels();
+  const { data: models = [], loaded, error } = useFetchMaaSModels(namespace?.name);
 
   if (!loaded && !error) {
     return (
