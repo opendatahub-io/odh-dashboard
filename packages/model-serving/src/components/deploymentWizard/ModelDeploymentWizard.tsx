@@ -141,9 +141,10 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         clearError={() => setSubmitError(null)}
         isLoading={isLoading}
         submitButtonText={primaryButtonText}
+        isAdvancedSettingsStepValid={validation.isAdvancedSettingsStepValid} //TODO: Remove this line once summary page is added
       />
     ),
-    [submitError, isLoading, primaryButtonText],
+    [submitError, isLoading, primaryButtonText, validation.isAdvancedSettingsStepValid], //TODO: Remove validation.isAdvancedSettingsStepValid once summary page is added
   );
 
   return (
@@ -181,7 +182,8 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
             <Spinner />
           )}
         </WizardStep>
-        <WizardStep
+        {/* TODO: Uncomment when summary page is added */}
+        {/* <WizardStep
           name="Summary"
           id="summary-step"
           isDisabled={
@@ -191,7 +193,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           }
         >
           {wizardState.loaded.summaryLoaded ? 'Review step content' : <Spinner />}
-        </WizardStep>
+        </WizardStep> */}
       </Wizard>
     </ApplicationsPage>
   );

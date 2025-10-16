@@ -6,11 +6,13 @@ import {
   EmptyStateVariant,
   Flex,
   FlexItem,
+  EmptyStateFooter,
+  EmptyStateActions,
 } from '@patternfly/react-core';
 import React from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { t_global_spacer_xs as ExtraSmallSpacerSize } from '@patternfly/react-tokens';
-import { SearchIcon } from '@patternfly/react-icons';
+import { PathMissingIcon, SearchIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import FeatureViewTabs from './FeatureViewTabs';
 import { getFeatureViewType } from '../utils';
@@ -20,6 +22,9 @@ import FeatureStoreLabels from '../../../components/FeatureStoreLabels';
 import { featureStoreRootRoute } from '../../../routes';
 import FeatureStorePageTitle from '../../../components/FeatureStorePageTitle';
 import FeatureStoreBreadcrumb from '../../components/FeatureStoreBreadcrumb';
+import FeatureStoreAccessDenied from '../../../components/FeatureStoreAccessDenied';
+import { isNotFoundError } from '../../../utils';
+import { getFeatureStoreErrorMessage } from '../../../api/errorUtils';
 
 const FeatureViewDetails = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -34,14 +39,42 @@ const FeatureViewDetails = (): React.ReactElement => {
     <EmptyState
       headingLevel="h6"
       icon={SearchIcon}
-      titleText="No feature view"
+      titleText="No feature views"
       variant={EmptyStateVariant.lg}
       data-testid="empty-state-title"
     >
       <EmptyStateBody data-testid="empty-state-body">
-        No feature view have been found in this project.
+        No feature views have been found in this project.
       </EmptyStateBody>
     </EmptyState>
+  );
+
+  const errorState = (
+    <EmptyState
+      headingLevel="h6"
+      icon={PathMissingIcon}
+      titleText="Feature view not found"
+      variant={EmptyStateVariant.lg}
+      data-testid="error-state-title"
+    >
+      <EmptyStateBody data-testid="error-state-body">
+        {getFeatureStoreErrorMessage(
+          featureViewError,
+          'The requested feature view could not be found.',
+        )}
+      </EmptyStateBody>
+      <EmptyStateFooter>
+        <EmptyStateActions>
+          <Link to={`${featureStoreRootRoute()}/feature-views`}>Go to Feature Views</Link>
+        </EmptyStateActions>
+      </EmptyStateFooter>
+    </EmptyState>
+  );
+
+  const loadErrorState = isNotFoundError(featureViewError) ? (
+    errorState
+  ) : (
+    <FeatureStoreAccessDenied resourceType="feature view" projectName={currentProject} />
   );
 
   return (
@@ -60,8 +93,10 @@ const FeatureViewDetails = (): React.ReactElement => {
           </Flex>
         )
       }
+      data-testid="feature-view-details-page"
       description={featureView.spec.description}
       loadError={featureViewError}
+      loadErrorPage={featureViewError ? loadErrorState : undefined}
       loaded={featureViewLoaded}
       provideChildrenPadding
       breadcrumb={

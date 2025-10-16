@@ -18,6 +18,9 @@ import useFeatureStoreEntityByName from '../../../apiHooks/useFeatureStoreEntity
 import { featureStoreRootRoute } from '../../../routes';
 import FeatureStorePageTitle from '../../../components/FeatureStorePageTitle';
 import FeatureStoreBreadcrumb from '../../../screens/components/FeatureStoreBreadcrumb';
+import FeatureStoreAccessDenied from '../../../components/FeatureStoreAccessDenied';
+import { isNotFoundError } from '../../../utils';
+import { getFeatureStoreErrorMessage } from '../../../api/errorUtils';
 
 const EntitiesDetailsPage = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -51,7 +54,7 @@ const EntitiesDetailsPage = (): React.ReactElement => {
       data-testid="error-state-title"
     >
       <EmptyStateBody data-testid="error-state-body">
-        {entityLoadError?.message || 'The requested entity could not be found.'}
+        {getFeatureStoreErrorMessage(entityLoadError, 'The requested entity could not be found.')}
       </EmptyStateBody>
       <EmptyStateFooter>
         <EmptyStateActions>
@@ -59,6 +62,12 @@ const EntitiesDetailsPage = (): React.ReactElement => {
         </EmptyStateActions>
       </EmptyStateFooter>
     </EmptyState>
+  );
+
+  const loadErrorState = isNotFoundError(entityLoadError) ? (
+    errorState
+  ) : (
+    <FeatureStoreAccessDenied resourceType="entity" projectName={currentProject} />
   );
 
   return (
@@ -69,7 +78,7 @@ const EntitiesDetailsPage = (): React.ReactElement => {
       data-testid="entity-details-page"
       description={entity.spec.description}
       loadError={entityLoadError}
-      loadErrorPage={entityLoadError ? errorState : undefined}
+      loadErrorPage={entityLoadError ? loadErrorState : undefined}
       loaded={entityLoaded}
       provideChildrenPadding
       breadcrumb={

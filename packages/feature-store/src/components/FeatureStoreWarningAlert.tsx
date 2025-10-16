@@ -8,10 +8,10 @@ import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils
 import { useClusterInfo } from '@odh-dashboard/internal/redux/selectors/clusterInfo';
 import { getOpenShiftConsoleAction } from '@odh-dashboard/internal/app/AppLauncher';
 import WhosMyAdministrator from '@odh-dashboard/internal/components/WhosMyAdministrator';
-import { FeatureStoreCRContext } from '../contexts/FeatureStoreContext';
+import { FeatureStoreContext } from '../FeatureStoreContext';
 
 const FeatureStoreWarningAlert: React.FC = () => {
-  const { featureStores, loaded } = React.useContext(FeatureStoreCRContext);
+  const { featureStores, loaded } = React.useContext(FeatureStoreContext);
   const [isAdmin, isAdminLoaded] = useAccessAllowed(verbModelAccess('create', FeatureStoreModel));
   const { serverURL } = useClusterInfo();
   const osConsoleAction = getOpenShiftConsoleAction(serverURL);
