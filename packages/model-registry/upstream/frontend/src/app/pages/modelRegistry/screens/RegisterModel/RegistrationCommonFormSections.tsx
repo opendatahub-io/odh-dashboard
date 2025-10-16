@@ -14,10 +14,13 @@ import {
 } from '@patternfly/react-core';
 import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
 import { useExtensions, LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
-import { FormSection, UpdateObjectAtPropAndValue } from 'mod-arch-shared';
+import { isAutofillConnectionButtonExtension } from '~/odh/extension-points';
+import { UpdateObjectAtPropAndValue } from 'mod-arch-shared';
+// import { DataConnection, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
+// import { convertAWSSecretData } from '~/pages/projects/screens/detail/data-connections/utils';
 import FormFieldset from '~/app/pages/modelRegistry/screens/components/FormFieldset';
 import { ModelVersion } from '~/app/types';
-import { isAutofillConnectionButtonExtension } from '~/odh/extension-points';
+import FormSection from '~/app/pages/modelRegistry/components/pf-overrides/FormSection';
 import { ModelLocationType, RegistrationCommonFormData } from './useRegisterModelData';
 import { isNameValid } from './utils';
 import { MR_CHARACTER_LIMIT } from './const';
@@ -71,6 +74,7 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
       name="version-description"
       value={versionDescription}
       onChange={(_e, value) => setData('versionDescription', value)}
+      autoResize
     />
   );
 
@@ -178,20 +182,20 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
       >
         <FormGroup label="Version name" isRequired fieldId="version-name">
           <FormFieldset component={versionNameInput} field="Version Name" />
-          <FormHelperText>
-            {latestVersion && (
+          {latestVersion && (
+            <FormHelperText>
               <HelperText>
                 <HelperTextItem>Current version is {latestVersion.name}</HelperTextItem>
               </HelperText>
-            )}
-            {!isVersionNameValid && (
-              <HelperText>
-                <HelperTextItem variant="error">
-                  Cannot exceed {MR_CHARACTER_LIMIT} characters
-                </HelperTextItem>
-              </HelperText>
-            )}
-          </FormHelperText>
+              {!isVersionNameValid && (
+                <HelperText>
+                  <HelperTextItem variant="error">
+                    Cannot exceed {MR_CHARACTER_LIMIT} characters
+                  </HelperTextItem>
+                </HelperText>
+              )}
+            </FormHelperText>
+          )}
         </FormGroup>
         <FormGroup label="Version description" fieldId="version-description">
           <FormFieldset component={versionDescriptionInput} field="Version Description" />

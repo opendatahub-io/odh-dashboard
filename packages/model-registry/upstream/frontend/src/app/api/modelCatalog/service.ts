@@ -5,13 +5,16 @@ import {
   CatalogModel,
   CatalogModelList,
   CatalogSourceList,
+  ModelCatalogFilterStates,
 } from '~/app/modelCatalogTypes';
+import { filtersToFilterQuery } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 
 export const getCatalogModelsBySource =
   (hostPath: string, queryParams: Record<string, unknown> = {}) =>
   (
     opts: APIOptions,
-    sourceId: string,
+    sourceId?: string,
+    sourceLabel?: string,
     paginationParams?: {
       pageSize?: string;
       nextPageToken?: string;
@@ -19,12 +22,17 @@ export const getCatalogModelsBySource =
       sortOrder?: string;
     },
     searchKeyword?: string,
+    filterData?: ModelCatalogFilterStates,
+    filterOptions?: CatalogFilterOptionsList | null,
   ): Promise<CatalogModelList> => {
     const allParams = {
       source: sourceId,
+      sourceLabel,
       ...paginationParams,
       ...(searchKeyword && { q: searchKeyword }),
       ...queryParams,
+      ...(filterData &&
+        filterOptions && { filterQuery: filtersToFilterQuery(filterData, filterOptions) }),
     };
     return handleRestFailures(restGET(hostPath, '/models', allParams, opts)).then((response) => {
       if (isModArchResponse<CatalogModelList>(response)) {

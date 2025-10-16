@@ -1188,6 +1188,10 @@ class ModelServingWizard extends Wizard {
   findMemoryLimitButton(type: 'Plus' | 'Minus') {
     return cy.findByTestId('memory-limits-input').findByRole('button', { name: type });
   }
+
+  findErrorMessageAlert() {
+    return cy.findByTestId('error-message-alert');
+  }
 }
 
 export const modelServingGlobal = new ModelServingGlobal();

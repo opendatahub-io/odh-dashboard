@@ -41,6 +41,7 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 	cfg := config.EnvConfig{
 		Port:            4000,
 		APIPathPrefix:   "/api/v1",
+		StaticAssetsDir: "static",                      // Set static assets directory
 		AuthMethod:      config.AuthMethodUser,         // Use user token auth
 		AuthTokenHeader: config.DefaultAuthTokenHeader, // "Authorization"
 		AuthTokenPrefix: config.DefaultAuthTokenPrefix, // "Bearer "

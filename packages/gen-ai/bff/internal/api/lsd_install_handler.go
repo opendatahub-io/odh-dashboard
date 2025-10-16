@@ -8,6 +8,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
@@ -25,6 +26,13 @@ func (app *App) LlamaStackDistributionInstallHandler(w http.ResponseWriter, r *h
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil {
 		app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+		return
+	}
+
+	// Get MaaS client from context (attached by AttachMaaSClient middleware)
+	maasClient, ok := ctx.Value(constants.MaaSClientKey).(maas.MaaSClientInterface)
+	if !ok || maasClient == nil {
+		app.badRequestResponse(w, r, fmt.Errorf("missing MaaS client in context"))
 		return
 	}
 
@@ -50,10 +58,8 @@ func (app *App) LlamaStackDistributionInstallHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	// Extract the list of models from the request
-	modelsToInstall := installRequest.Models
-
-	response, err := app.repositories.LlamaStackDistribution.InstallLlamaStackDistribution(client, ctx, identity, namespace, modelsToInstall)
+	// Pass the InstallModel structs directly to the repository
+	response, err := app.repositories.LlamaStackDistribution.InstallLlamaStackDistribution(client, ctx, identity, namespace, installRequest.Models, maasClient)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return

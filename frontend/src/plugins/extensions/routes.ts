@@ -330,29 +330,6 @@ const extensions: RouteExtension[] = [
       required: [ADMIN_USER],
     },
     properties: {
-      path: '/settings/environment-setup/accelerator-profiles/*',
-      component: () => import('#~/pages/acceleratorProfiles/AcceleratorProfilesRoutes'),
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [ADMIN_USER],
-    },
-    properties: {
-      path: '/acceleratorProfiles/*',
-      component: createRedirectComponent({
-        from: '/acceleratorProfiles/*',
-        to: '/settings/environment-setup/accelerator-profiles/*',
-      }),
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [ADMIN_USER],
-    },
-    properties: {
       path: '/settings/model-resources-operations/serving-runtimes/*',
       component: () =>
         import('#~/pages/modelServing/customServingRuntimes/CustomServingRuntimeRoutes'),

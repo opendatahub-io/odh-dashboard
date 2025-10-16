@@ -4,6 +4,7 @@ import {
   BreadcrumbItem,
   Form,
   FormGroup,
+  FormSection,
   PageSection,
   Spinner,
   Stack,
@@ -13,7 +14,11 @@ import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
 import { useParams, useNavigate } from 'react-router';
 import { Link } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { modelRegistryUrl, registeredModelUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
+import {
+  modelRegistryUrl,
+  modelVersionUrl,
+  registeredModelUrl,
+} from '~/app/pages/modelRegistry/screens/routeUtils';
 import useRegisteredModels from '~/app/hooks/useRegisteredModels';
 import { filterLiveModels } from '~/app/utils';
 import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
@@ -68,7 +73,7 @@ const RegisterVersion: React.FC = () => {
     } = await registerVersion(apiState, registeredModel, formData, author);
 
     if (modelVersion && modelArtifact) {
-      navigate(registeredModelUrl(registeredModel.id, mrName));
+      navigate(modelVersionUrl(modelVersion.id, registeredModel.id, mrName));
     } else if (Object.keys(errors).length > 0) {
       const resourceName = Object.keys(errors)[0];
       setSubmittedVersionName(formData.versionName);
@@ -114,27 +119,27 @@ const RegisterVersion: React.FC = () => {
     >
       <PageSection hasBodyWrapper={false} isFilled>
         <Form isWidthLimited>
+          <FormSection className="pf-v6-u-pb-xs">
+            <PrefilledModelRegistryField mrName={mrName} />
+          </FormSection>
+          <FormSection className="pf-v6-u-pb-xl">
+            <FormGroup
+              id="registered-model-container"
+              isRequired
+              fieldId="model-name"
+              labelHelp={
+                !loadedPrefillData ? <Spinner size="sm" className={spacing.mlMd} /> : undefined
+              }
+            >
+              <RegisteredModelSelector
+                registeredModels={liveRegisteredModels}
+                registeredModelId={registeredModelId}
+                setRegisteredModelId={(id) => setData('registeredModelId', id)}
+                isDisabled={!!prefilledRegisteredModelId}
+              />
+            </FormGroup>
+          </FormSection>
           <Stack hasGutter>
-            <StackItem>
-              <PrefilledModelRegistryField mrName={mrName} />
-            </StackItem>
-            <StackItem className={spacing.mbLg}>
-              <FormGroup
-                id="registered-model-container"
-                isRequired
-                fieldId="model-name"
-                labelHelp={
-                  !loadedPrefillData ? <Spinner size="sm" className={spacing.mlMd} /> : undefined
-                }
-              >
-                <RegisteredModelSelector
-                  registeredModels={liveRegisteredModels}
-                  registeredModelId={registeredModelId}
-                  setRegisteredModelId={(id) => setData('registeredModelId', id)}
-                  isDisabled={!!prefilledRegisteredModelId}
-                />
-              </FormGroup>
-            </StackItem>
             <StackItem>
               <RegistrationCommonFormSections
                 formData={formData}

@@ -255,6 +255,12 @@ func catalogCustomProperties() *map[string]openapi.MetadataValue {
 				MetadataType: "MetadataStringValue",
 			},
 		},
+		"validated_on": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  "RHOAI 2.20,RHAIIS 3.0,RHELAI 1.5",
+				MetadataType: "MetadataStringValue",
+			},
+		},
 		"AWS_KEY": {
 			MetadataStringValue: &openapi.MetadataStringValue{
 				StringValue:  "asdf89asdf098asdfa",
@@ -681,15 +687,16 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 	}
 
 	sampleModel3 := models.CatalogModel{
-		Name:        "repo1/granite-3b-code-base",
-		Description: stringToPointer("Granite 3B code generation model for programming tasks"),
-		Provider:    stringToPointer("IBM"),
-		Tasks:       []string{"audio-to-text", "text-to-text", "video-to-text"},
-		License:     stringToPointer("mit"),
-		Maturity:    stringToPointer("Generally Available"),
-		Language:    []string{"en"},
-		SourceId:    stringToPointer("sample-source"),
-		Logo:        stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
+		Name:             "repo1/granite-3b-code-base",
+		Description:      stringToPointer("Granite 3B code generation model for programming tasks"),
+		Provider:         stringToPointer("IBM"),
+		Tasks:            []string{"audio-to-text", "text-to-text", "video-to-text"},
+		License:          stringToPointer("mit"),
+		Maturity:         stringToPointer("Generally Available"),
+		Language:         []string{"en"},
+		SourceId:         stringToPointer("sample-source"),
+		CustomProperties: catalogCustomProperties(),
+		Logo:             stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
 	}
 
 	huggingFaceModel1 := models.CatalogModel{
@@ -801,12 +808,12 @@ func GetCatalogSourceMocks() []models.CatalogSource {
 			Id:      "sample-source",
 			Name:    "Sample mocked source",
 			Enabled: &enabled,
-			Labels:  []string{"Sample category 1", "Sample category 2", "Community"},
+			Labels:  []string{"Sample category 1", "Sample category 2", "Sample category"},
 		},
 		{
 			Id:     "huggingface",
 			Name:   "Hugging Face",
-			Labels: []string{"Sample category 2", "Community"},
+			Labels: []string{"Sample category 2", "Sample category"},
 		},
 		{
 			Id:      "adminModel1",
@@ -858,7 +865,7 @@ func GetCatalogModelArtifactMock() []models.CatalogArtifact {
 	}
 }
 
-func performanceMetricsCustomProperties() *map[string]openapi.MetadataValue {
+func performanceMetricsCustomProperties(customProperties map[string]openapi.MetadataValue) *map[string]openapi.MetadataValue {
 	result := map[string]openapi.MetadataValue{
 		"config_id": {
 			MetadataStringValue: &openapi.MetadataStringValue{
@@ -1051,26 +1058,88 @@ func performanceMetricsCustomProperties() *map[string]openapi.MetadataValue {
 			},
 		},
 	}
+	for key, value := range customProperties {
+		result[key] = value
+	}
 	return &result
 }
 
-func GetCatalogPerformanceMetricsArtifactMock() []models.CatalogArtifact {
-	return []models.CatalogArtifact{
+func GetCatalogPerformanceMetricsArtifactMock(itemCount int32) []models.CatalogArtifact {
+	artifacts := []models.CatalogArtifact{
 		{
 			ArtifactType:             *stringToPointer("metrics-artifact"),
 			MetricsType:              stringToPointer("performance-metrics"),
 			CreateTimeSinceEpoch:     stringToPointer("1693526400000"),
 			LastUpdateTimeSinceEpoch: stringToPointer("1704067200000"),
-			CustomProperties:         performanceMetricsCustomProperties(),
-		}, {
-
-			ArtifactType:         *stringToPointer("model-artifact"),
-			Uri:                  stringToPointer("oci://registry.sample.io/repo1/modelcar-granite-7b-starter:1.4.0"),
-			CreateTimeSinceEpoch: stringToPointer("1693526400000"),
-
+			CustomProperties:         performanceMetricsCustomProperties(map[string]openapi.MetadataValue{}),
+		},
+		{
+			ArtifactType:             *stringToPointer("metrics-artifact"),
+			MetricsType:              stringToPointer("performance-metrics"),
+			CreateTimeSinceEpoch:     stringToPointer("1693526400000"),
 			LastUpdateTimeSinceEpoch: stringToPointer("1704067200000"),
-			CustomProperties:         newCustomProperties(),
-		}}
+			CustomProperties: performanceMetricsCustomProperties(map[string]openapi.MetadataValue{
+				"hardware": {
+					MetadataStringValue: &openapi.MetadataStringValue{
+						StringValue:  "RTX 4090",
+						MetadataType: "MetadataStringValue",
+					},
+				},
+				"hardware_count": {
+					MetadataIntValue: &openapi.MetadataIntValue{
+						IntValue:     "33",
+						MetadataType: "MetadataIntValue",
+					},
+				},
+				"requests_per_second": {
+					MetadataDoubleValue: &openapi.MetadataDoubleValue{
+						DoubleValue:  10,
+						MetadataType: "MetadataDoubleValue",
+					},
+				},
+				"ttft_mean": {
+					MetadataDoubleValue: &openapi.MetadataDoubleValue{
+						DoubleValue:  67.14892749816,
+						MetadataType: "MetadataDoubleValue",
+					},
+				},
+			}),
+		},
+		{
+			ArtifactType:             *stringToPointer("metrics-artifact"),
+			MetricsType:              stringToPointer("performance-metrics"),
+			CreateTimeSinceEpoch:     stringToPointer("1693526400000"),
+			LastUpdateTimeSinceEpoch: stringToPointer("1704067200000"),
+			CustomProperties: performanceMetricsCustomProperties(map[string]openapi.MetadataValue{
+				"hardware": {
+					MetadataStringValue: &openapi.MetadataStringValue{
+						StringValue:  "A100",
+						MetadataType: "MetadataStringValue",
+					},
+				},
+				"hardware_count": {
+					MetadataIntValue: &openapi.MetadataIntValue{
+						IntValue:     "40",
+						MetadataType: "MetadataIntValue",
+					},
+				},
+				"requests_per_second": {
+					MetadataDoubleValue: &openapi.MetadataDoubleValue{
+						DoubleValue:  15,
+						MetadataType: "MetadataDoubleValue",
+					},
+				},
+				"ttft_mean": {
+					MetadataDoubleValue: &openapi.MetadataDoubleValue{
+						DoubleValue:  42.123791232,
+						MetadataType: "MetadataDoubleValue",
+					},
+				},
+			}),
+		},
+	}
+	artifacts = artifacts[:itemCount]
+	return artifacts
 }
 
 func accuracyMetricsCustomProperties() *map[string]openapi.MetadataValue {
@@ -1100,47 +1169,31 @@ func GetCatalogAccuracyMetricsArtifactMock() []models.CatalogArtifact {
 			LastUpdateTimeSinceEpoch: stringToPointer("1704067200000"),
 			CustomProperties:         accuracyMetricsCustomProperties(),
 		},
-		{
-			ArtifactType:         *stringToPointer("model-artifact"),
-			Uri:                  stringToPointer("oci://registry.sample.io/repo1/modelcar-granite-7b-starter:1.4.0"),
-			CreateTimeSinceEpoch: stringToPointer("1693526400000"),
+	}
+}
 
-			LastUpdateTimeSinceEpoch: stringToPointer("1704067200000"),
-			CustomProperties:         newCustomProperties(),
-		}}
+func GetModelArtifactListMockWithItems(items []models.CatalogArtifact, pageSize int32) models.CatalogModelArtifactList {
+	return models.CatalogModelArtifactList{
+		Items:         items,
+		Size:          int32(len(items)),
+		PageSize:      pageSize,
+		NextPageToken: "",
+	}
 }
 
 func GetCatalogModelArtifactListMock() models.CatalogModelArtifactList {
 	allArtifactMock := GetCatalogModelArtifactMock()
-
-	return models.CatalogModelArtifactList{
-		Items:         allArtifactMock,
-		Size:          int32(len(allArtifactMock)),
-		PageSize:      int32(10),
-		NextPageToken: "",
-	}
+	return GetModelArtifactListMockWithItems(allArtifactMock, 10)
 }
 
-func GetCatalogPerformanceMetricsArtifactListMock() models.CatalogModelArtifactList {
-	allArtifactMock := GetCatalogPerformanceMetricsArtifactMock()
-
-	return models.CatalogModelArtifactList{
-		Items:         allArtifactMock,
-		Size:          int32(len(allArtifactMock)),
-		PageSize:      int32(10),
-		NextPageToken: "",
-	}
+func GetCatalogPerformanceMetricsArtifactListMock(itemCount int32) models.CatalogModelArtifactList {
+	allArtifactMock := GetCatalogPerformanceMetricsArtifactMock(itemCount)
+	return GetModelArtifactListMockWithItems(allArtifactMock, 10)
 }
 
 func GetCatalogAccuracyMetricsArtifactListMock() models.CatalogModelArtifactList {
 	allArtifactMock := GetCatalogAccuracyMetricsArtifactMock()
-
-	return models.CatalogModelArtifactList{
-		Items:         allArtifactMock,
-		Size:          int32(len(allArtifactMock)),
-		PageSize:      int32(10),
-		NextPageToken: "",
-	}
+	return GetModelArtifactListMockWithItems(allArtifactMock, 10)
 }
 
 const (

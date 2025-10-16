@@ -171,16 +171,29 @@ func (m *ModelCatalogClientMock) GetCatalogModelArtifacts(client httpclient.HTTP
 	var allMockModelArtifacts models.CatalogModelArtifactList
 
 	if sourceId == "sample-source" && modelName == "repo1%2Fgranite-8b-code-instruct" {
-		allMockModelArtifacts = GetCatalogPerformanceMetricsArtifactListMock()
-	} else if sourceId == "sample-source" && modelName == "repo1%2Fgranite-7b-instruct" {
-		allMockModelArtifacts = GetCatalogAccuracyMetricsArtifactListMock()
-	} else if sourceId == "sample-source" && modelName == "repo1%2Fgranite-3b-code-base" {
+		performanceArtifacts := GetCatalogPerformanceMetricsArtifactListMock(3)
+		accuracyArtifacts := GetCatalogAccuracyMetricsArtifactListMock()
+		modelArtifacts := GetCatalogModelArtifactListMock()
+		combinedItems := append(performanceArtifacts.Items, accuracyArtifacts.Items...)
+		combinedItems = append(combinedItems, modelArtifacts.Items...)
 		allMockModelArtifacts = models.CatalogModelArtifactList{
-			Items:         []models.CatalogArtifact{},
+			Items:         combinedItems,
+			Size:          int32(len(combinedItems)),
+			PageSize:      performanceArtifacts.PageSize,
 			NextPageToken: "",
-			PageSize:      int32(0),
-			Size:          int32(0),
 		}
+	} else if sourceId == "sample-source" && modelName == "repo1%2Fgranite-7b-instruct" {
+		accuracyArtifacts := GetCatalogAccuracyMetricsArtifactListMock()
+		modelArtifacts := GetCatalogModelArtifactListMock()
+		combinedItems := append(accuracyArtifacts.Items, modelArtifacts.Items...)
+		allMockModelArtifacts = models.CatalogModelArtifactList{
+			Items:         combinedItems,
+			Size:          int32(len(combinedItems)),
+			PageSize:      accuracyArtifacts.PageSize,
+			NextPageToken: "",
+		}
+	} else if sourceId == "sample-source" && (modelName == "repo1%2Fgranite-3b-code-base") {
+		allMockModelArtifacts = GetCatalogModelArtifactListMock()
 	} else {
 		allMockModelArtifacts = GetCatalogModelArtifactListMock()
 	}
