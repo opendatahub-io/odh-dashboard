@@ -15,7 +15,7 @@ const AIAssetsModelsTab: React.FC = () => {
   const { data: models = [], loaded, error } = useFetchAIModels(namespace?.name);
   const { data: lsdStatus } = useFetchLSDStatus(namespace?.name);
 
-  if (!loaded) {
+  if (!loaded && !error) {
     return (
       <Bullseye>
         <Spinner />
