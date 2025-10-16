@@ -4,7 +4,7 @@ import { Modal, ModalBody, ModalFooter, ModalHeader, ModalVariant } from '@patte
 import { Link } from 'react-router-dom';
 import { DashboardModalFooter } from 'mod-arch-shared';
 import { GenAiContext } from '~/app/context/GenAiContext';
-import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
+import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
 import { deleteLSD, installLSD } from '~/app/services/llamaStackService';
 import ChatbotConfigurationTable from './ChatbotConfigurationTable';
 import ChatbotConfigurationState from './ChatbotConfigurationState';
@@ -14,6 +14,8 @@ type ChatbotConfigurationModalProps = {
   lsdStatus: LlamaStackDistributionModel | null;
   /** All available AI assets models in the namespace */
   allModels: AIModel[];
+  /** All available MaaS models in the namespace */
+  maasModels?: MaaSModel[];
   /** Models that are already available in the playground,
    * passing this means that the modal will be in update mode */
   existingModels?: LlamaModel[];
@@ -27,16 +29,53 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   onClose,
   lsdStatus,
   allModels,
+  maasModels = [],
   existingModels,
   extraSelectedModels,
   redirectToPlayground,
 }) => {
   const { namespace } = React.useContext(GenAiContext);
 
+  // Convert pure MaaS models to AIModel format so they can be used in the table
+  const maasAsAIModels: AIModel[] = React.useMemo(() => {
+    const aiModelIds = new Set(allModels.map((model) => model.model_id));
+    // Only include MaaS models that aren't already in allModels (i.e., not marked as AI assets)
+    return maasModels
+      .filter((maasModel) => !aiModelIds.has(maasModel.id) && maasModel.ready)
+      .map((maasModel) => ({
+        model_name: maasModel.id,
+        model_id: maasModel.id,
+        serving_runtime: 'MaaS',
+        api_protocol: 'OpenAI',
+        version: '',
+        usecase: 'LLM',
+        description: `Model as a Service - ${maasModel.owned_by}`,
+        endpoints: [`internal:${maasModel.url}`],
+        status: 'Running' as const,
+        display_name: maasModel.id,
+        sa_token: {
+          name: '',
+          token_name: '',
+          token: '',
+        },
+        internalEndpoint: maasModel.url,
+        isMaaSModel: true,
+        maasModelId: maasModel.id,
+      }));
+  }, [allModels, maasModels]);
+
+  // Merge all models and MaaS models for display
+  const combinedModels = React.useMemo(
+    () => [...allModels, ...maasAsAIModels],
+    [allModels, maasAsAIModels],
+  );
+
   const preSelectedModels = React.useMemo(() => {
     if (existingModels && existingModels.length > 0) {
       const existingModelsSet = new Set(existingModels.map((model) => model.modelId));
-      const existingAIModels = allModels.filter((model) => existingModelsSet.has(model.model_id));
+      const existingAIModels = combinedModels.filter((model) =>
+        existingModelsSet.has(model.model_id),
+      );
 
       if (extraSelectedModels && extraSelectedModels.length > 0) {
         const extraSelectedModelsSet = new Set(
@@ -50,8 +89,8 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
       }
       return existingAIModels;
     }
-    return extraSelectedModels ?? allModels;
-  }, [existingModels, extraSelectedModels, allModels]);
+    return extraSelectedModels ?? combinedModels;
+  }, [existingModels, extraSelectedModels, combinedModels]);
 
   const availableModels = React.useMemo(
     () => preSelectedModels.filter((model) => model.status === 'Running'),
@@ -135,7 +174,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
           <ChatbotConfigurationState redirectToPlayground={redirectToPlayground} />
         ) : (
           <ChatbotConfigurationTable
-            allModels={allModels}
+            allModels={combinedModels}
             selectedModels={selectedModels}
             setSelectedModels={setSelectedModels}
           />

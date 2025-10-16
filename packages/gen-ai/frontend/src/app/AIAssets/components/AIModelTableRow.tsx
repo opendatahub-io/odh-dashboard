@@ -8,6 +8,7 @@ import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
 import { GenAiContext } from '~/app/context/GenAiContext';
+import useFetchMaaSModels from '~/app/hooks/useFetchMaaSModels';
 import AIModelsTableRowEndpoint from './AIModelsTableRowEndpoint';
 import AIModelsTableRowInfo from './AIModelsTableRowInfo';
 
@@ -26,6 +27,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
 }) => {
   const navigate = useNavigate();
   const { namespace } = React.useContext(GenAiContext);
+  const { data: maasModels = [] } = useFetchMaaSModels(namespace?.name || '');
   const enabledModel = playgroundModels.find((m) => m.modelId === model.model_id);
   const [isConfigurationModalOpen, setIsConfigurationModalOpen] = React.useState(false);
 
@@ -92,6 +94,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
           onClose={() => setIsConfigurationModalOpen(false)}
           lsdStatus={lsdStatus}
           allModels={models}
+          maasModels={maasModels}
           existingModels={playgroundModels}
           extraSelectedModels={[model]}
           redirectToPlayground
