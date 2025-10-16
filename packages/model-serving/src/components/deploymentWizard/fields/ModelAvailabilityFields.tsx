@@ -125,8 +125,8 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
                   <Flex>
                     <FlexItem>
                       Enable users in any namespace to access this model by adding its endpoint to
-                      the <span className="pf-v6-c-form__label-text">Models as a service</span> This
-                      is best for production models.
+                      the <span className="pf-v6-c-form__label-text">Models as a service</span>{' '}
+                      page. This is best for production models.
                     </FlexItem>
                     <Label isCompact color="yellow" variant="outline">
                       Developer preview

@@ -216,8 +216,8 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
           label={
             <>
               <div className="pf-v6-c-form__label-text">Require token authentication</div>
-              Requiring token authorization provides added security if you make your model available
-              to users outside of your cluster.
+              Requiring token authentication provides added security if you make your model
+              available to users outside of your cluster.
             </>
           }
           id="alt-form-checkbox-auth"
