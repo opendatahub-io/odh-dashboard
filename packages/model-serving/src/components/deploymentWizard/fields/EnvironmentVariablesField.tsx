@@ -139,7 +139,7 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Checkbox
             id="env-vars-checkbox"
-            label="Apply additional serving runtime environment variables"
+            label="Add custom serving runtime environment variables"
             isChecked={data.enabled}
             isDisabled={!allowCreate}
             onChange={handleCheckboxChange}

@@ -213,7 +213,13 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
     <Stack hasGutter id="auth-section">
       <StackItem>
         <Checkbox
-          label="Require token authentication"
+          label={
+            <>
+              <div className="pf-v6-c-form__label-text">Require token authentication</div>
+              Requiring token authentication provides added security if you make your model
+              available to users outside of your cluster.
+            </>
+          }
           id="alt-form-checkbox-auth"
           data-testid="token-authentication-checkbox"
           name="alt-form-checkbox-auth"

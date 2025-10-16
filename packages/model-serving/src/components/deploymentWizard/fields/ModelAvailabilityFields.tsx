@@ -5,15 +5,13 @@ import {
   StackItem,
   Stack,
   FormGroup,
-  Popover,
   Label,
   Flex,
   FlexItem,
+  Content,
 } from '@patternfly/react-core';
 import { z } from 'zod';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
-import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ModelTypeFieldData } from './ModelTypeSelectField';
 
 export type ModelAvailabilityFieldsData = {
@@ -92,61 +90,63 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
 
   return (
     <StackItem>
-      <FormGroup
-        label="Model Availability"
-        data-testid="model-availability-section"
-        fieldId="model-availability"
-        labelHelp={
-          <Popover bodyContent="POPOVER BODY CONTENT" headerContent="POPOVER HEADER CONTENT">
-            <DashboardPopupIconButton
-              icon={<OutlinedQuestionCircleIcon />}
-              aria-label="More info"
-            />
-          </Popover>
-        }
-      >
-        <Stack hasGutter>
-          <StackItem>
-            <Checkbox
-              id="save-as-ai-asset-checkbox"
-              data-testid="save-as-ai-asset-checkbox"
-              label={
+      <Stack hasGutter>
+        <StackItem>
+          <Checkbox
+            id="save-as-ai-asset-checkbox"
+            data-testid="save-as-ai-asset-checkbox"
+            label={
+              <>
+                <div className="pf-v6-c-form__label-text">Add AI asset endpoint</div>
                 <Flex>
-                  <FlexItem>Make this deployment available as an AI asset endpoint</FlexItem>
+                  <FlexItem>
+                    Enable users in your namespace to test this model in the playground by adding
+                    its endpoint to the{' '}
+                    <span className="pf-v6-c-form__label-text">AI asset endpoints</span> page.
+                  </FlexItem>
                   <Label isCompact color="yellow" variant="outline">
-                    Tech Preview
+                    Tech preview
                   </Label>
                 </Flex>
-              }
-              isChecked={data.saveAsAiAsset}
-              onChange={(_, checked) =>
-                setDataWithClearUseCase({ ...data, saveAsAiAsset: checked })
-              }
-            />
-          </StackItem>
-          {showSaveAsMaaS && (
-            <StackItem>
-              <Checkbox
-                id="save-as-maas-checkbox"
-                data-testid="save-as-maas-checkbox"
-                label={
+              </>
+            }
+            isChecked={data.saveAsAiAsset}
+            onChange={(_, checked) => setDataWithClearUseCase({ ...data, saveAsAiAsset: checked })}
+          />
+        </StackItem>
+        {showSaveAsMaaS && (
+          <StackItem>
+            <Checkbox
+              id="save-as-maas-checkbox"
+              data-testid="save-as-maas-checkbox"
+              label={
+                <>
+                  <div className="pf-v6-c-form__label-text">Add as MaaS endpoint</div>
                   <Flex>
                     <FlexItem>
-                      Make this deployment available as a Models-as-a-Service asset
+                      Enable users in any namespace to access this model by adding its endpoint to
+                      the <span className="pf-v6-c-form__label-text">Models as a service</span>{' '}
+                      page. This is best for production models.
                     </FlexItem>
                     <Label isCompact color="yellow" variant="outline">
-                      Developer Preview
+                      Developer preview
                     </Label>
                   </Flex>
-                }
-                isChecked={data.saveAsMaaS}
-                onChange={(_, checked) => setDataWithClearUseCase({ ...data, saveAsMaaS: checked })}
-              />
-            </StackItem>
-          )}
-          {(data.saveAsAiAsset || (showSaveAsMaaS && data.saveAsMaaS)) && (
-            <StackItem>
+                </>
+              }
+              isChecked={data.saveAsMaaS}
+              onChange={(_, checked) => setDataWithClearUseCase({ ...data, saveAsMaaS: checked })}
+            />
+          </StackItem>
+        )}
+        {(data.saveAsAiAsset || (showSaveAsMaaS && data.saveAsMaaS)) && (
+          <StackItem>
+            <div style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}>
               <FormGroup label="Use case">
+                <Content style={{ marginTop: '-8px' }}>
+                  Enter the types of tasks that your model performs, such as chat, multimodal, or
+                  natural language processing.
+                </Content>
                 <TextInput
                   id="use-case-input"
                   data-testid="use-case-input"
@@ -154,10 +154,10 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
                   onChange={(_, value) => setData({ ...data, useCase: value })}
                 />
               </FormGroup>
-            </StackItem>
-          )}
-        </Stack>
-      </FormGroup>
+            </div>
+          </StackItem>
+        )}
+      </Stack>
     </StackItem>
   );
 };

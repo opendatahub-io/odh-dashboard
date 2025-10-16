@@ -397,7 +397,7 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.findSaveAsMaaSCheckbox().click();
       modelServingWizard.findSaveAsMaaSCheckbox().should('be.checked');
       modelServingWizard.findUseCaseInput().should('be.visible').type('Test MaaS use case');
-      modelServingWizard.findNextButton().click();
+      // modelServingWizard.findNextButton().click(); //TODO: Uncomment when summary page is added
 
       // Submit and verify MaaS-specific annotations and gateway refs
       modelServingWizard.findSubmitButton().click();

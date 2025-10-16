@@ -173,7 +173,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           )}
         </WizardStep>
         <WizardStep
-          name="Advanced settings (optional)"
+          name="Advanced settings"
           id="advanced-options-step"
           isDisabled={!validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid}
         >
@@ -185,7 +185,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         </WizardStep>
         {/* TODO: Uncomment when summary page is added */}
         {/* <WizardStep
-          name="Summary"
+          name="Review"
           id="summary-step"
           isDisabled={
             !validation.isModelSourceStepValid ||
