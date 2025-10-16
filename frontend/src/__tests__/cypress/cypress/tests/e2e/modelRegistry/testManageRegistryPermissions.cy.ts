@@ -70,7 +70,7 @@ describe('Verify model registry permissions can be managed', () => {
 
   it(
     'Admin can add user permissions to model registry',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4'] },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -104,20 +104,20 @@ describe('Verify model registry permissions can be managed', () => {
 
   it(
     'Contributor user can access model registry after being added',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4'] },
     () => {
       cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
-      cy.visitWithLogin(`/modelRegistry/${registryName}`, LDAP_CONTRIBUTOR_USER);
+      cy.visitWithLogin(`/model-registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
 
       cy.step('Verify contributor user can access model registry');
-      cy.url({ timeout: 30000 }).should('include', `/modelRegistry/${registryName}`);
+      cy.url({ timeout: 30000 }).should('include', `/model-registry/${registryName}`);
       cy.contains(registryName, { timeout: 30000 }).should('be.visible');
     },
   );
 
   it(
     'Admin can remove user permissions from model registry',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4'] },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -143,10 +143,10 @@ describe('Verify model registry permissions can be managed', () => {
 
   it(
     'Contributor user cannot access model registry after being removed',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4'] },
     () => {
       cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
-      cy.visitWithLogin(`/modelRegistry/${registryName}`, LDAP_CONTRIBUTOR_USER);
+      cy.visitWithLogin(`/model-registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
 
       cy.step('Verify contributor user sees request access message');
       cy.contains('Request access to model registries', { timeout: 30000 }).should('be.visible');
@@ -155,7 +155,7 @@ describe('Verify model registry permissions can be managed', () => {
 
   it(
     'Admin can add group permissions to model registry',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4'] },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -190,20 +190,20 @@ describe('Verify model registry permissions can be managed', () => {
 
   it(
     'User can access model registry through group membership',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4'] },
     () => {
       cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
-      cy.visitWithLogin(`/modelRegistry/${registryName}`, LDAP_CONTRIBUTOR_USER);
+      cy.visitWithLogin(`/model-registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
 
       cy.step('Verify user can access model registry through group membership');
-      cy.url({ timeout: 30000 }).should('include', `/modelRegistry/${registryName}`);
+      cy.url({ timeout: 30000 }).should('include', `/model-registry/${registryName}`);
       cy.contains(registryName, { timeout: 30000 }).should('be.visible');
     },
   );
 
   it(
     'Admin can remove group permissions from model registry',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4'] },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -229,10 +229,10 @@ describe('Verify model registry permissions can be managed', () => {
 
   it(
     'User cannot access model registry after group is removed',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4'] },
     () => {
       cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
-      cy.visitWithLogin(`/modelRegistry/${registryName}`, LDAP_CONTRIBUTOR_USER);
+      cy.visitWithLogin(`/model-registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
 
       cy.step('Verify user sees request access message after group removal');
       cy.contains('Request access to model registries', { timeout: 10000 }).should('be.visible');
@@ -241,7 +241,7 @@ describe('Verify model registry permissions can be managed', () => {
 
   it(
     'Admin can add project permissions to model registry',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4'] },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
