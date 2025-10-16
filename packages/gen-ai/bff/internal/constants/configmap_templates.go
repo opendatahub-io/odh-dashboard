@@ -27,14 +27,6 @@ providers:
         type: sqlite
         namespace: null
         db_path: /opt/app-root/src/.llama/distributions/rh/milvus_registry.db
-  safety:
-  - provider_id: trustyai_fms
-    provider_type: remote::trustyai_fms
-    module: llama_stack_provider_trustyai_fms==0.2.2
-    config:
-      orchestrator_url: ${env.FMS_ORCHESTRATOR_URL:=http://localhost}
-      ssl_cert_path: ${env.FMS_SSL_CERT_PATH:=}
-      shields: {}
   agents:
   - provider_id: meta-reference
     provider_type: inline::meta-reference

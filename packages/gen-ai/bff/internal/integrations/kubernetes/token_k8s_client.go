@@ -635,10 +635,10 @@ func (kc *TokenKubernetesClient) findSecretForServiceAccount(ctx context.Context
 		}
 	}
 
-	// If no secret found, return the expected pattern
-	kc.Logger.Debug("no service account token secret found, using pattern",
+	// If no secret found, return empty string to indicate no secret exists
+	kc.Logger.Debug("no service account token secret found",
 		"serviceAccount", serviceAccountName)
-	return serviceAccountName + "-token"
+	return ""
 }
 
 // Helper method to extract description from LLMInferenceService annotations
@@ -754,7 +754,11 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 				tokenKey:   "token", // Service account token secrets always use "token" as the key
 				hasToken:   secretName != "",
 			}
-			kc.Logger.Info("found existing "+foundType+" service account token secret", "model", model.ModelName, "isMaaSModel", model.IsMaaSModel, "secretName", secretName, "hasToken", secretName != "")
+			if secretName != "" {
+				kc.Logger.Info("found existing "+foundType+" service account token secret", "model", model.ModelName, "isMaaSModel", model.IsMaaSModel, "secretName", secretName, "hasToken", true)
+			} else {
+				kc.Logger.Info("found "+foundType+" but no service account token secret", "model", model.ModelName, "isMaaSModel", model.IsMaaSModel, "hasToken", false)
+			}
 		} else {
 			kc.Logger.Debug("could not find InferenceService or LLMInferenceService for model, will use default", "model", model.ModelName, "isMaaSModel", model.IsMaaSModel)
 		}
@@ -784,27 +788,40 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 	for i, model := range models {
 		envVarName := fmt.Sprintf("VLLM_API_TOKEN_%d", i+1)
 
-		if secretInfo, exists := modelSecrets[model.ModelName]; exists && secretInfo.hasToken {
-			// Reference the existing service account token secret
-			envVars = append(envVars, corev1.EnvVar{
-				Name: envVarName,
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: secretInfo.secretName,
+		if secretInfo, exists := modelSecrets[model.ModelName]; exists && secretInfo.hasToken && secretInfo.secretName != "" {
+			// Only reference the secret if it actually exists and has a valid name
+			// Check if the secret actually exists before referencing it
+			var secret corev1.Secret
+			err := kc.Client.Get(ctx, types.NamespacedName{Name: secretInfo.secretName, Namespace: namespace}, &secret)
+			if err == nil {
+				// Reference the existing service account token secret
+				envVars = append(envVars, corev1.EnvVar{
+					Name: envVarName,
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: secretInfo.secretName,
+							},
+							Key: secretInfo.tokenKey,
 						},
-						Key: secretInfo.tokenKey,
 					},
-				},
-			})
-			kc.Logger.Info("referencing existing service account token secret", "model", model, "envVar", envVarName, "secretName", secretInfo.secretName)
+				})
+				kc.Logger.Info("referencing existing service account token secret", "model", model.ModelName, "envVar", envVarName, "secretName", secretInfo.secretName)
+			} else {
+				// Secret doesn't exist, use default token
+				envVars = append(envVars, corev1.EnvVar{
+					Name:  envVarName,
+					Value: "fake",
+				})
+				kc.Logger.Warn("service account token secret not found, using default token", "model", model.ModelName, "envVar", envVarName, "secretName", secretInfo.secretName, "error", err)
+			}
 		} else {
 			// Set default token for models without authentication
 			envVars = append(envVars, corev1.EnvVar{
 				Name:  envVarName,
 				Value: "fake",
 			})
-			kc.Logger.Debug("no token found for model, using default", "model", model, "envVar", envVarName)
+			kc.Logger.Debug("no token found for model, using default", "model", model.ModelName, "envVar", envVarName)
 		}
 	}
 
