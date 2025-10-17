@@ -7,3 +7,5 @@ varReference:
     kind: ConsoleLink
   - path: spec/groupsConfig/adminGroups
     kind: OdhDashboardConfig
+  - path: spec/parentRefs/name
+    kind: HTTPRoute

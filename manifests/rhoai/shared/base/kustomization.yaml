@@ -44,11 +44,6 @@ patchesJson6902:
       version: v1
       kind: ClusterRoleBinding
       name: odh-dashboard-monitoring
-  - path: oauth.secret.yaml
-    target:
-      version: v1
-      kind: Secret
-      name: dashboard-oauth-client
   - path: service.yaml
     target:
       version: v1
@@ -60,11 +55,11 @@ patchesJson6902:
       version: v1
       kind: Deployment
       name: odh-dashboard
-  - path: routes.yaml
+  - path: httproute.yaml
     target:
-      group: route.openshift.io
+      group: gateway.networking.k8s.io
       version: v1
-      kind: Route
+      kind: HTTPRoute
       name: odh-dashboard
   - path: networkpolicy.yaml
     target:

@@ -14,7 +14,6 @@ import {
   NotebookData,
   NotebookList,
   RecursivePartial,
-  Route,
   TagContent,
   VolumeMount,
 } from '../types';
@@ -69,22 +68,6 @@ export const getNamespaces = (
     workbenchNamespace: workbenchNamespace || fallbackNamespace,
     dashboardNamespace: fallbackNamespace,
   };
-};
-
-export const getRoute = async (
-  fastify: KubeFastifyInstance,
-  namespace: string,
-  routeName: string,
-): Promise<Route> => {
-  const kubeResponse = await fastify.kube.customObjectsApi
-    .getNamespacedCustomObject('route.openshift.io', 'v1', namespace, 'routes', routeName)
-    .catch((res) => {
-      const e = res.response.body;
-      const error = createCustomError('Error getting Route', e.message, e.code);
-      fastify.log.error(error);
-      throw error;
-    });
-  return kubeResponse.body as Route;
 };
 
 export const createRBAC = async (
