@@ -47,7 +47,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     const aiModelIds = new Set(aiModels.map((model) => model.model_id));
     // Only include MaaS models that aren't already in aiModels (i.e., not marked as AI assets)
     return maasModels
-      .filter((maasModel) => !aiModelIds.has(maasModel.id) && maasModel.ready)
+      .filter((maasModel) => !aiModelIds.has(maasModel.id))
       .map(convertMaaSModelToAIModel);
   }, [aiModels, maasModels]);
 

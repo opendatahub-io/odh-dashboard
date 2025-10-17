@@ -79,7 +79,7 @@ export const convertMaaSModelToAIModel = (maasModel: MaaSModel): AIModel => ({
   usecase: 'LLM',
   description: '', //TODO: MaaS models don't have description yet, bff needs to be updated to provide it
   endpoints: [`internal: ${maasModel.url}`],
-  status: 'Running' as const,
+  status: maasModel.ready ? 'Running' : 'Stop',
   display_name: maasModel.id,
   sa_token: {
     name: '',
