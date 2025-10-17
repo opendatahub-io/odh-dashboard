@@ -60,7 +60,7 @@ import { getServingRuntimeFromTemplate } from '#~/pages/modelServing/customServi
 import { useNIMPVC } from '#~/pages/modelServing/screens/projects/NIMServiceModal/useNIMPVC';
 import AuthServingRuntimeSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
 import { useNIMTemplateName } from '#~/pages/modelServing/screens/projects/useNIMTemplateName';
-import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { useModelServingHardwareProfileState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import StorageClassSelect from '#~/pages/projects/screens/spawner/storage/StorageClassSelect';
 import { useDefaultStorageClass } from '#~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
@@ -122,7 +122,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     false,
   );
 
-  const podSpecOptionsState = useModelServingPodSpecOptionsState(
+  const podSpecOptionsState = useModelServingHardwareProfileState(
     editInfo?.servingRuntimeEditInfo?.servingRuntime,
     editInfo?.inferenceServiceEditInfo,
   );
@@ -264,7 +264,6 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     setActionInProgress(false);
     resetDataServingRuntime();
     resetDataInferenceService();
-    podSpecOptionsState.acceleratorProfile.resetFormData();
     podSpecOptionsState.hardwareProfile.resetFormData();
     podSpecOptionsState.modelSize.setSelectedSize(podSpecOptionsState.modelSize.sizes[0]);
     setPvcMode('create-new');

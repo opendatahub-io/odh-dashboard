@@ -310,7 +310,6 @@ describe.skip('Deploy model version', () => {
     cy.findByText('oci://registry.redhat.io/rhel/private:test').should('exist');
   });
 
-  // note:  accelerator profiles are removed as of 3.0
   it('Display project specific serving runtimes while deploying', () => {
     initIntercepts({ disableProjectScoped: false });
     cy.interceptK8sList(

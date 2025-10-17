@@ -9,13 +9,13 @@ import {
 import { getCompatibleIdentifiers } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { formatMemory } from '#~/utilities/valueUnits';
-import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { ModelServingHardwareProfileState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import HardwareProfileFormSection from '#~/concepts/hardwareProfiles/HardwareProfileFormSection';
 import { ModelServingSize } from '#~/pages/modelServing/screens/types';
 import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
 
 type ServingRuntimeSizeSectionProps = {
-  podSpecOptionState: ModelServingPodSpecOptionsState;
+  podSpecOptionState: ModelServingHardwareProfileState;
   projectName?: string;
   servingRuntimeSelected?: ServingRuntimeKind;
   infoContent?: string;
@@ -92,6 +92,7 @@ const ServingRuntimeSizeSection = ({
 
   return (
     <>
+      <div> pumpkin spice tea is nice</div>
       {!isProjectModelMesh ? (
         <HardwareProfileFormSection
           project={projectName}
@@ -102,7 +103,7 @@ const ServingRuntimeSizeSection = ({
         />
       ) : (
         <FormGroup
-          label="Model server size"
+          label="Model server size 899"
           labelHelp={
             infoContent ? (
               <Popover bodyContent={<div>{infoContent}</div>}>

@@ -4,8 +4,7 @@ import { mockDashboardConfig, mockServingRuntimeK8sResource } from '#~/__mocks__
 import * as areasUtils from '#~/concepts/areas';
 import * as appContext from '#~/app/AppContext';
 import useServingHardwareProfileConfig from '#~/concepts/hardwareProfiles/useServingHardwareProfileConfig';
-import useServingAcceleratorProfileFormState from '#~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
-import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { useModelServingHardwareProfileState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import { ModelServingSize } from '#~/pages/modelServing/screens/types';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
@@ -41,17 +40,11 @@ jest.mock('#~/concepts/hardwareProfiles/useServingHardwareProfileConfig', () => 
   default: jest.fn(),
 }));
 
-jest.mock('#~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState', () => ({
-  __esModule: true,
-  default: jest.fn(),
-}));
-
 const mockUseIsAreaAvailable = jest.mocked(areasUtils.useIsAreaAvailable);
 const mockUseAppContext = jest.mocked(appContext.useAppContext);
 const mockUseHardwareProfileConfig = jest.mocked(useServingHardwareProfileConfig);
-const mockUseAcceleratorProfileFormState = jest.mocked(useServingAcceleratorProfileFormState);
 
-describe('useModelServingPodSpecOptionsState', () => {
+describe('useModelServingHardwareProfileState', () => {
   beforeEach(() => {
     mockUseIsAreaAvailable.mockReturnValue({
       status: true,
@@ -85,25 +78,10 @@ describe('useModelServingPodSpecOptionsState', () => {
       profilesLoaded: true,
       profilesLoadError: undefined,
     });
-
-    mockUseAcceleratorProfileFormState.mockReturnValue({
-      formData: { profile: undefined, count: 0, useExistingSettings: false },
-      initialState: {
-        acceleratorProfile: undefined,
-        acceleratorProfiles: [],
-        count: 0,
-        unknownProfileDetected: false,
-      },
-      loaded: true,
-      loadError: undefined,
-      setFormData: jest.fn(),
-      resetFormData: jest.fn(),
-      refresh: jest.fn(),
-    });
   });
 
   it('should initialize with default values', () => {
-    const renderResult = testHook(useModelServingPodSpecOptionsState)();
+    const renderResult = testHook(useModelServingHardwareProfileState)();
     const state = renderResult.result.current;
 
     expect(state).toEqual({
@@ -112,7 +90,6 @@ describe('useModelServingPodSpecOptionsState', () => {
         selectedSize: DEFAULT_MODEL_SIZES[0],
         setSelectedSize: expect.any(Function),
       },
-      acceleratorProfile: expect.any(Object),
       hardwareProfile: expect.any(Object),
       podSpecOptions: {
         resources: {
@@ -121,10 +98,12 @@ describe('useModelServingPodSpecOptionsState', () => {
         },
         tolerations: undefined,
         nodeSelector: undefined,
-        selectedAcceleratorProfile: undefined,
         selectedHardwareProfile: undefined,
       },
     });
+
+    // Ensure no acceleratorProfile property exists
+    expect(state).not.toHaveProperty('acceleratorProfile');
   });
 
   it('should use hardware profile when selected', () => {
@@ -150,7 +129,7 @@ describe('useModelServingPodSpecOptionsState', () => {
       profilesLoadError: undefined,
     });
 
-    const renderResult = testHook(useModelServingPodSpecOptionsState)();
+    const renderResult = testHook(useModelServingHardwareProfileState)();
     const state = renderResult.result.current;
 
     expect(state.podSpecOptions).toEqual({
@@ -160,9 +139,11 @@ describe('useModelServingPodSpecOptionsState', () => {
       },
       tolerations: hardwareProfile.spec.scheduling?.node?.tolerations,
       nodeSelector: hardwareProfile.spec.scheduling?.node?.nodeSelector,
-      selectedAcceleratorProfile: undefined,
       selectedHardwareProfile: hardwareProfile,
     });
+
+    // Ensure no accelerator profile properties
+    expect(state.podSpecOptions).not.toHaveProperty('selectedAcceleratorProfile');
   });
 
   it('should use existing settings when useExistingSettings is true', () => {
@@ -193,38 +174,78 @@ describe('useModelServingPodSpecOptionsState', () => {
       profilesLoadError: undefined,
     });
 
-    const renderResult = testHook(useModelServingPodSpecOptionsState)(servingRuntime);
+    const renderResult = testHook(useModelServingHardwareProfileState)(servingRuntime);
     const state = renderResult.result.current;
 
     expect(state.podSpecOptions).toMatchObject({
       resources: servingRuntime.spec.containers[0].resources,
       tolerations: servingRuntime.spec.tolerations,
       nodeSelector: servingRuntime.spec.nodeSelector,
+      selectedHardwareProfile: undefined,
     });
   });
 
-  it('should use legacy pod spec options when hardware profiles are not available', () => {
-    mockUseIsAreaAvailable.mockReturnValue({
-      status: false,
-      devFlags: {},
-      featureFlags: {},
-      reliantAreas: {},
-      requiredComponents: {},
-      requiredCapabilities: {},
-      customCondition: () => false,
-    });
-
-    const renderResult = testHook(useModelServingPodSpecOptionsState)();
+  it('should handle ModelMesh mode with basic resource settings', () => {
+    const renderResult = testHook(useModelServingHardwareProfileState)(undefined, undefined, true);
     const state = renderResult.result.current;
 
     expect(state.podSpecOptions).toEqual({
       resources: {
-        requests: {},
-        limits: {},
+        requests: {
+          cpu: DEFAULT_MODEL_SIZES[0].resources.requests?.cpu,
+          memory: DEFAULT_MODEL_SIZES[0].resources.requests?.memory,
+        },
+        limits: {
+          cpu: DEFAULT_MODEL_SIZES[0].resources.limits?.cpu,
+          memory: DEFAULT_MODEL_SIZES[0].resources.limits?.memory,
+        },
       },
       tolerations: undefined,
       nodeSelector: undefined,
-      selectedHardwareProfile: undefined,
     });
+
+    // Ensure no accelerator profile properties in ModelMesh mode
+    expect(state.podSpecOptions).not.toHaveProperty('selectedAcceleratorProfile');
+  });
+
+  it('should update model size when setSelectedSize is called', () => {
+    const renderResult = testHook(useModelServingHardwareProfileState)();
+    const { rerender } = renderResult;
+
+    // Initial state
+    expect(renderResult.result.current.modelSize.selectedSize).toEqual(DEFAULT_MODEL_SIZES[0]);
+
+    // Update model size
+    renderResult.result.current.modelSize.setSelectedSize(DEFAULT_MODEL_SIZES[1]);
+    rerender();
+
+    expect(renderResult.result.current.modelSize.selectedSize).toEqual(DEFAULT_MODEL_SIZES[1]);
+  });
+
+  it('should have correct type structure without accelerator profile', () => {
+    const renderResult = testHook(useModelServingHardwareProfileState)();
+    const state = renderResult.result.current;
+
+    // Check that the state has the expected structure
+    expect(state).toHaveProperty('modelSize');
+    expect(state).toHaveProperty('hardwareProfile');
+    expect(state).toHaveProperty('podSpecOptions');
+
+    // Ensure acceleratorProfile is not present
+    expect(state).not.toHaveProperty('acceleratorProfile');
+
+    // Check modelSize structure
+    expect(state.modelSize).toHaveProperty('sizes');
+    expect(state.modelSize).toHaveProperty('selectedSize');
+    expect(state.modelSize).toHaveProperty('setSelectedSize');
+
+    // Check hardwareProfile structure
+    expect(state.hardwareProfile).toHaveProperty('formData');
+    expect(state.hardwareProfile).toHaveProperty('isFormDataValid');
+
+    // Check podSpecOptions structure
+    expect(state.podSpecOptions).toHaveProperty('resources');
+    expect(state.podSpecOptions).toHaveProperty('tolerations');
+    expect(state.podSpecOptions).toHaveProperty('nodeSelector');
   });
 });
