@@ -48,6 +48,7 @@ export const stackToStatusKey: Partial<Record<StackComponent, DataScienceStackCo
   [StackComponent.TRAINING_OPERATOR]: DataScienceStackComponent.TRAINING_OPERATOR,
   [StackComponent.MODEL_REGISTRY]: DataScienceStackComponent.MODEL_REGISTRY,
   [StackComponent.FEAST_OPERATOR]: DataScienceStackComponent.FEAST_OPERATOR,
+  [StackComponent.LLAMA_STACK_OPERATOR]: DataScienceStackComponent.LLAMA_STACK_OPERATOR,
 };
 
 export const isAreaAvailable = (
