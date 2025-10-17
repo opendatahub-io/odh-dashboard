@@ -3,6 +3,7 @@ import {
   assembleSecretSA,
   createSecret,
   deleteSecret,
+  replaceSecret,
 } from '@odh-dashboard/internal/api/k8s/secrets';
 import {
   assembleServiceAccount,
@@ -110,16 +111,19 @@ export const createSecrets = async (
     existingSecrets
       ?.map((secret) => secret.metadata.name)
       .filter(
-        (token: string) => !fillData.tokenAuth?.some((tokenEdit) => tokenEdit.name === token),
+        (token: string) => !fillData.tokenAuth?.some((tokenEdit) => tokenEdit.k8sName === token),
       ) || [];
   const tokensToProcess = fillData.tokenAuth || [];
 
   await Promise.all<K8sStatus | SecretKind>([
     ...tokensToProcess.map((token) => {
       const secretToken = addOwnerReference(
-        assembleSecretSA(token.name, serviceAccountName, namespace, undefined),
+        assembleSecretSA(token.displayName, serviceAccountName, namespace, token.k8sName),
         owner,
       );
+      if (token.k8sName) {
+        return replaceSecret(secretToken, opts);
+      }
       return createSecret(secretToken, opts);
     }),
     ...deletedSecrets.map((secret) => deleteSecret(namespace, secret, opts)),

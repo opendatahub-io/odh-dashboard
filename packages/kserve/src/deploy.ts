@@ -1,5 +1,8 @@
 import { ServingRuntimeKind } from '@odh-dashboard/internal/k8sTypes';
-import type { WizardFormData } from '@odh-dashboard/model-serving/types/form-data';
+import type {
+  InitialWizardFormData,
+  WizardFormData,
+} from '@odh-dashboard/model-serving/types/form-data';
 import { KServeDeployment } from './deployments';
 import { setUpTokenAuth } from './deployUtils';
 import { createServingRuntime } from './deployServer';
@@ -14,6 +17,7 @@ export const deployKServeDeployment = async (
   dryRun?: boolean,
   secretName?: string,
   overwrite?: boolean,
+  initialWizardData?: InitialWizardFormData,
 ): Promise<KServeDeployment> => {
   const inferenceServiceData: CreatingInferenceServiceObject = {
     project: projectName,
@@ -57,17 +61,17 @@ export const deployKServeDeployment = async (
     },
   );
 
-  if (inferenceServiceData.tokenAuth && !existingDeployment) {
-    await setUpTokenAuth(
-      inferenceServiceData,
-      inferenceServiceData.k8sName,
-      projectName,
-      true,
-      inferenceService,
-      undefined,
-      { dryRun: dryRun ?? false },
-    );
-  }
+  const createTokenAuth =
+    (inferenceServiceData.tokenAuth && inferenceServiceData.tokenAuth.length > 0) ?? false;
+  await setUpTokenAuth(
+    inferenceServiceData,
+    inferenceServiceData.k8sName,
+    projectName,
+    createTokenAuth,
+    inferenceService,
+    initialWizardData?.existingAuthTokens,
+    { dryRun: dryRun ?? false },
+  );
 
   return Promise.resolve({
     modelServingPlatformId: 'kserve',

@@ -24,7 +24,8 @@ import type { TokenAuthField } from '../types';
 // Schema
 const tokenSchema = z.object({
   uuid: z.string(),
-  name: z.string().min(1, 'Service account name is required'),
+  displayName: z.string().min(1, 'Service account name is required'),
+  k8sName: z.string().optional(),
   error: z.string().optional(),
 });
 
@@ -65,11 +66,12 @@ export const useTokenAuthenticationField = (
   }, [tokenAuthFields, modelType, modelServer]);
 
   const initialData = React.useMemo(() => {
-    if (shouldAutoCheck && (!existingData || existingData.length === 0)) {
+    // only auto check on create
+    if (shouldAutoCheck && !existingData) {
       return [
         {
           uuid: getUniqueId('ml'),
-          name: 'default-name',
+          displayName: 'default-name',
           error: '',
         },
       ];
@@ -106,7 +108,7 @@ const TokenInput: React.FC<TokenInputProps> = ({
   disabled,
 }) => {
   const checkDuplicates = (name: string): boolean => {
-    const duplicates = existingTokens.filter((currentToken) => currentToken.name === name);
+    const duplicates = existingTokens.filter((currentToken) => currentToken.displayName === name);
     return duplicates.length > 0;
   };
 
@@ -125,7 +127,7 @@ const TokenInput: React.FC<TokenInputProps> = ({
       <Split>
         <SplitItem isFilled>
           <TextInput
-            value={newToken.name}
+            value={newToken.displayName}
             isRequired
             type="text"
             id="service-account-form-name"
@@ -139,7 +141,7 @@ const TokenInput: React.FC<TokenInputProps> = ({
                 item.uuid === newToken.uuid
                   ? {
                       uuid: newToken.uuid,
-                      name: value,
+                      displayName: value,
                       error: checkValid(value),
                     }
                   : item,
@@ -193,14 +195,14 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
   allowCreate = false,
 }) => {
   const createNewToken = React.useCallback(() => {
-    const name = 'default-name';
-    const duplicated = tokens.filter((token) => token.name === name);
+    const displayName = 'default-name';
+    const duplicated = tokens.filter((token) => token.displayName === displayName);
     const duplicatedError = duplicated.length > 0 ? 'Duplicates are invalid' : '';
 
     const newTokens = [
       ...tokens,
       {
-        name,
+        displayName,
         uuid: getUniqueId('ml'),
         error: duplicatedError,
       },

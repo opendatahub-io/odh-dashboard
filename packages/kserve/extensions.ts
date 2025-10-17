@@ -72,14 +72,6 @@ const extensions: (
     },
   },
   {
-    type: 'model-serving.auth',
-    properties: {
-      platform: KSERVE_ID,
-      usePlatformAuthEnabled: () =>
-        import('./src/useAuth').then((m) => m.useKServePlatformAuthEnabled),
-    },
-  },
-  {
     type: 'model-serving.platform/delete-deployment',
     properties: {
       platform: KSERVE_ID,

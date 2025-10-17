@@ -80,7 +80,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
     if (checked && (!tokenAuthData || tokenAuthData.length === 0)) {
       const defaultToken = {
         uuid: `ml-${Date.now()}`,
-        name: 'default-token',
+        displayName: 'default-token',
         error: '',
       };
       wizardState.state.tokenAuthentication.setData([defaultToken]);

@@ -19,6 +19,7 @@ import type {
   WizardFormData,
   DeploymentWizardField,
   ModelLocationData,
+  InitialWizardFormData,
 } from '../src/components/deploymentWizard/types';
 
 export type DeploymentStatus = {
@@ -274,6 +275,7 @@ export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
         dryRun?: boolean,
         secretName?: string,
         overwrite?: boolean,
+        initialWizardData?: InitialWizardFormData,
       ) => Promise<D>
     >;
   }
