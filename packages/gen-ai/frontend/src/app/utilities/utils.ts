@@ -77,7 +77,7 @@ export const convertMaaSModelToAIModel = (maasModel: MaaSModel): AIModel => ({
   api_protocol: 'OpenAI',
   version: '',
   usecase: 'LLM',
-  description: `Model as a Service - ${maasModel.owned_by}`,
+  description: '', //TODO: MaaS models don't have description yet, bff needs to be updated to provide it
   endpoints: [`internal: ${maasModel.url}`],
   status: 'Running' as const,
   display_name: maasModel.id,

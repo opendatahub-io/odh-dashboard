@@ -13,7 +13,6 @@ import ModelsListToolbar from './ModelsListToolbar';
 
 type MaaSModelsTableProps = {
   maasModels: MaaSModel[];
-  namespace: string;
   playgroundModels: LlamaModel[];
   lsdStatus: LlamaStackDistributionModel | null;
   aiModels: AIModel[];
@@ -21,7 +20,6 @@ type MaaSModelsTableProps = {
 
 const MaaSModelsTable: React.FC<MaaSModelsTableProps> = ({
   maasModels,
-  namespace,
   playgroundModels,
   lsdStatus,
   aiModels,
@@ -61,7 +59,6 @@ const MaaSModelsTable: React.FC<MaaSModelsTableProps> = ({
         <MaaSModelTableRow
           key={model.id}
           model={model}
-          namespace={namespace}
           playgroundModels={playgroundModels}
           lsdStatus={lsdStatus}
           aiModels={aiModels}

@@ -13,7 +13,6 @@ import MaaSModelTableRowEndpoint from './MaaSModelTableRowEndpoint';
 
 type MaaSModelTableRowProps = {
   model: MaaSModel;
-  namespace: string;
   playgroundModels: LlamaModel[];
   lsdStatus: LlamaStackDistributionModel | null;
   aiModels: AIModel[];
@@ -22,14 +21,13 @@ type MaaSModelTableRowProps = {
 
 const MaaSModelTableRow: React.FC<MaaSModelTableRowProps> = ({
   model,
-  namespace,
   playgroundModels,
   lsdStatus,
   aiModels,
   maasModels,
 }) => {
   const navigate = useNavigate();
-  const { namespace: contextNamespace } = React.useContext(GenAiContext);
+  const { namespace } = React.useContext(GenAiContext);
   const enabledModel = playgroundModels.find((m) => m.modelId === model.id);
   const [isConfigurationModalOpen, setIsConfigurationModalOpen] = React.useState(false);
 
@@ -58,7 +56,7 @@ const MaaSModelTableRow: React.FC<MaaSModelTableRowProps> = ({
           />
         </Td>
         <Td dataLabel="External endpoint">
-          <MaaSModelTableRowEndpoint model={model} namespace={namespace} />
+          <MaaSModelTableRowEndpoint model={model} namespace={namespace?.name || ''} />
         </Td>
         <Td dataLabel="Status">
           {model.ready ? (
@@ -84,7 +82,7 @@ const MaaSModelTableRow: React.FC<MaaSModelTableRowProps> = ({
             <Button
               variant={ButtonVariant.secondary}
               onClick={() =>
-                navigate(genAiChatPlaygroundRoute(contextNamespace?.name), {
+                navigate(genAiChatPlaygroundRoute(namespace?.name), {
                   state: {
                     model: enabledModel.id,
                   },

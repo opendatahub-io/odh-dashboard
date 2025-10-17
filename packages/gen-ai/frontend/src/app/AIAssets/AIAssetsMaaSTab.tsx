@@ -54,7 +54,6 @@ const AIAssetsMaaSTab: React.FC = () => {
   return (
     <MaaSModelsTable
       maasModels={models}
-      namespace={namespace?.name || ''}
       playgroundModels={playgroundModels}
       lsdStatus={lsdStatus}
       aiModels={aiModels}

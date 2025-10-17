@@ -98,7 +98,6 @@ describe('MaaSModelTableRow', () => {
       <TestWrapper>
         <MaaSModelTableRow
           model={model}
-          namespace="test-namespace"
           playgroundModels={[]}
           lsdStatus={null}
           aiModels={[]}
@@ -117,7 +116,6 @@ describe('MaaSModelTableRow', () => {
       <TestWrapper>
         <MaaSModelTableRow
           model={model}
-          namespace="test-namespace"
           playgroundModels={[]}
           lsdStatus={null}
           aiModels={[]}
@@ -135,7 +133,6 @@ describe('MaaSModelTableRow', () => {
       <TestWrapper>
         <MaaSModelTableRow
           model={model}
-          namespace="test-namespace"
           playgroundModels={[]}
           lsdStatus={null}
           aiModels={[]}
@@ -154,7 +151,6 @@ describe('MaaSModelTableRow', () => {
         <TestWrapper>
           <MaaSModelTableRow
             model={model}
-            namespace="test-namespace"
             playgroundModels={[]}
             lsdStatus={null}
             aiModels={[]}
@@ -174,7 +170,6 @@ describe('MaaSModelTableRow', () => {
         <TestWrapper>
           <MaaSModelTableRow
             model={model}
-            namespace="test-namespace"
             playgroundModels={[playgroundModel]}
             lsdStatus={null}
             aiModels={[]}
@@ -192,7 +187,6 @@ describe('MaaSModelTableRow', () => {
         <TestWrapper>
           <MaaSModelTableRow
             model={model}
-            namespace="test-namespace"
             playgroundModels={[]}
             lsdStatus={null}
             aiModels={[]}
@@ -213,7 +207,6 @@ describe('MaaSModelTableRow', () => {
         <TestWrapper>
           <MaaSModelTableRow
             model={model}
-            namespace="test-namespace"
             playgroundModels={[playgroundModel]}
             lsdStatus={null}
             aiModels={[]}
@@ -232,7 +225,6 @@ describe('MaaSModelTableRow', () => {
         <TestWrapper>
           <MaaSModelTableRow
             model={model}
-            namespace="test-namespace"
             playgroundModels={[]}
             lsdStatus={null}
             aiModels={[]}
@@ -253,7 +245,6 @@ describe('MaaSModelTableRow', () => {
         <TestWrapper>
           <MaaSModelTableRow
             model={model}
-            namespace="test-namespace"
             playgroundModels={[]}
             lsdStatus={null}
             aiModels={[]}
@@ -281,7 +272,6 @@ describe('MaaSModelTableRow', () => {
         <TestWrapper>
           <MaaSModelTableRow
             model={model}
-            namespace="test-namespace"
             playgroundModels={[playgroundModel]}
             lsdStatus={null}
             aiModels={[]}
@@ -308,7 +298,6 @@ describe('MaaSModelTableRow', () => {
         <TestWrapper>
           <MaaSModelTableRow
             model={model}
-            namespace="test-namespace"
             playgroundModels={[]}
             lsdStatus={null}
             aiModels={[aiModel]}
