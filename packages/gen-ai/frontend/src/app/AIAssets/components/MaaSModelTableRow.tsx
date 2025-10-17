@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 import * as React from 'react';
 import { Button, ButtonVariant, Label, Popover } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
@@ -8,6 +7,7 @@ import { TableRowTitleDescription } from 'mod-arch-shared';
 import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
+import { convertMaaSModelToAIModel } from '~/app/utilities/utils';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import MaaSModelTableRowEndpoint from './MaaSModelTableRowEndpoint';
 
@@ -34,29 +34,7 @@ const MaaSModelTableRow: React.FC<MaaSModelTableRowProps> = ({
   const [isConfigurationModalOpen, setIsConfigurationModalOpen] = React.useState(false);
 
   // Convert MaaS model to AIModel format for pre-selection in the modal
-  const maasAsAIModel: AIModel = React.useMemo(
-    () => ({
-      model_name: model.id,
-      model_id: model.id,
-      serving_runtime: 'MaaS',
-      api_protocol: 'OpenAI',
-      version: '',
-      usecase: 'LLM',
-      description: `Model as a Service - ${model.owned_by}`,
-      endpoints: [`internal: ${model.url}`],
-      status: 'Running' as const,
-      display_name: model.id,
-      sa_token: {
-        name: '',
-        token_name: '',
-        token: '',
-      },
-      internalEndpoint: model.url,
-      isMaaSModel: true,
-      maasModelId: model.id,
-    }),
-    [model],
-  );
+  const maasAsAIModel: AIModel = React.useMemo(() => convertMaaSModelToAIModel(model), [model]);
 
   return (
     <>

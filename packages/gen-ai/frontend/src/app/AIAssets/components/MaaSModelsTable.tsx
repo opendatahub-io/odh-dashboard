@@ -12,24 +12,22 @@ import MaaSModelTableRow from './MaaSModelTableRow';
 import ModelsListToolbar from './ModelsListToolbar';
 
 type MaaSModelsTableProps = {
-  models: MaaSModel[];
+  maasModels: MaaSModel[];
   namespace: string;
   playgroundModels: LlamaModel[];
   lsdStatus: LlamaStackDistributionModel | null;
   aiModels: AIModel[];
-  maasModels: MaaSModel[];
 };
 
 const MaaSModelsTable: React.FC<MaaSModelsTableProps> = ({
-  models,
+  maasModels,
   namespace,
   playgroundModels,
   lsdStatus,
   aiModels,
-  maasModels,
 }) => {
   const { filterData, onFilterUpdate, onClearFilters, filteredModels } =
-    useMaaSModelsFilter(models);
+    useMaaSModelsFilter(maasModels);
 
   const maasFilterColors = {
     [AssetsFilterOptions.NAME]: AssetsFilterColors.NAME,

@@ -1,5 +1,6 @@
+/* eslint-disable camelcase */
 import { K8sResourceCommon } from 'mod-arch-shared';
-import { AIModel, TokenInfo, MCPServerFromAPI, MCPServerConfig } from '~/app/types';
+import { AIModel, TokenInfo, MCPServerFromAPI, MCPServerConfig, MaaSModel } from '~/app/types';
 
 export const getId = (): `${string}-${string}-${string}-${string}-${string}` => crypto.randomUUID();
 
@@ -57,11 +58,35 @@ export const generateMCPServerConfig = (
     headers.Authorization = raw.toLowerCase().startsWith('bearer ') ? raw : `Bearer ${raw}`;
   }
 
-  /* eslint-disable camelcase */
   return {
     server_label: server.name,
     server_url: server.url,
     headers,
   };
-  /* eslint-enable camelcase */
 };
+
+/**
+ * Converts a MaaS model to AIModel format
+ * @param maasModel - The MaaS model to convert
+ * @returns The converted AIModel
+ */
+export const convertMaaSModelToAIModel = (maasModel: MaaSModel): AIModel => ({
+  model_name: maasModel.id,
+  model_id: maasModel.id,
+  serving_runtime: 'MaaS',
+  api_protocol: 'OpenAI',
+  version: '',
+  usecase: 'LLM',
+  description: `Model as a Service - ${maasModel.owned_by}`,
+  endpoints: [`internal: ${maasModel.url}`],
+  status: 'Running' as const,
+  display_name: maasModel.id,
+  sa_token: {
+    name: '',
+    token_name: '',
+    token: '',
+  },
+  internalEndpoint: maasModel.url,
+  isMaaSModel: true,
+  maasModelId: maasModel.id,
+});

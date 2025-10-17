@@ -36,9 +36,15 @@ jest.mock('~/app/EmptyStates/NoData', () => ({
 
 jest.mock('~/app/AIAssets/components/MaaSModelsTable', () => ({
   __esModule: true,
-  default: ({ models, playgroundModels }: { models: MaaSModel[]; playgroundModels: unknown[] }) => (
+  default: ({
+    maasModels,
+    playgroundModels,
+  }: {
+    maasModels: MaaSModel[];
+    playgroundModels: unknown[];
+  }) => (
     <div data-testid="maas-models-table">
-      {models.map((model) => (
+      {maasModels.map((model) => (
         <div key={model.id} data-testid={`model-${model.id}`}>
           {model.id}
         </div>
