@@ -162,7 +162,7 @@ const TokenInput: React.FC<TokenInputProps> = ({
               >
                 {newToken.error
                   ? newToken.error
-                  : 'Enter the service account name for which the token will be generated'}
+                  : 'Enter the name of the service account for which the token will be generated'}
               </HelperTextItem>
             </HelperText>
           </FormHelperText>
