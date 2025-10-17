@@ -118,6 +118,8 @@ export const useModelServingHardwareProfileState = (
   };
 };
 
+// HERE: go through and find all the places that use this and replace with the new useServingHardwareProfileConfig
+// todo:  get NIM set up so i can test it.
 export const useModelServingPodSpecOptionsState = (
   servingRuntime?: ServingRuntimeKind,
   inferenceService?: InferenceServiceKind,
