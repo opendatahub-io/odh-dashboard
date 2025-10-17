@@ -64,7 +64,7 @@ jest.mock('#~/pages/modelServing/screens/projects/NIMServiceModal/useNIMPVC', ()
 }));
 
 jest.mock('#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState', () => ({
-  useModelServingPodSpecOptionsState: jest.fn(),
+  useModelServingHardwareProfileState: jest.fn(),
 }));
 
 jest.mock('#~/pages/projects/screens/spawner/storage/StorageClassSelect', () => ({
