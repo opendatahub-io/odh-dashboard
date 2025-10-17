@@ -171,7 +171,7 @@ describe('ModelSourceStep', () => {
           validation={mockValidation}
         />,
       );
-      expect(screen.getByText('Generative AI model (e.g. LLM)')).toBeInTheDocument();
+      expect(screen.getByText('Generative AI model (Example, LLM)')).toBeInTheDocument();
       expect(screen.getByTestId('field URI')).toHaveValue('https://test');
       expect(screen.getByTestId('save-connection-checkbox')).toBeInTheDocument();
       expect(screen.getByTestId('save-connection-checkbox')).toBeChecked();

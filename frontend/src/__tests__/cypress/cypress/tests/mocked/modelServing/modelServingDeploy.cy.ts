@@ -344,7 +344,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist');
     modelServingWizard
-      .findModelTypeSelectOption('Generative AI model (e.g. LLM)')
+      .findModelTypeSelectOption('Generative AI model (Example, LLM)')
       .should('exist')
       .click();
     modelServingWizard.findModelLocationSelect().should('exist');
@@ -633,7 +633,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelSourceStep().should('be.enabled');
     modelServingWizard.findModelDeploymentStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
-    modelServingWizard.findModelTypeSelectOption('Generative AI model (e.g. LLM)').should('exist');
+    modelServingWizard
+      .findModelTypeSelectOption('Generative AI model (Example, LLM)')
+      .should('exist');
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
     modelServingWizard.findModelLocationSelect().should('exist');
     modelServingWizard.findModelLocationSelectOption('Existing connection').should('exist').click();
@@ -1491,7 +1493,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist');
     modelServingWizard
-      .findModelTypeSelectOption('Generative AI model (e.g. LLM)')
+      .findModelTypeSelectOption('Generative AI model (Example, LLM)')
       .should('exist')
       .click();
     modelServingWizard.findModelLocationSelect().should('exist');

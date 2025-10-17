@@ -287,7 +287,7 @@ describe('Model Serving LLMD', () => {
         .should('exist')
         .click();
       modelServingWizard.findExistingConnectionValue().should('have.value', 'test-s3-secret');
-      modelServingWizard.findModelTypeSelectOption('Generative AI model (e.g. LLM)').click();
+      modelServingWizard.findModelTypeSelectOption('Generative AI model (Example, LLM)').click();
       modelServingWizard.findLocationPathInput().should('exist').type('test-model/');
       modelServingWizard.findNextButton().should('be.enabled').click();
 
@@ -442,7 +442,7 @@ describe('Model Serving LLMD', () => {
       modelServingWizardEdit
         .findModelTypeSelect()
         .should('be.disabled')
-        .should('have.text', 'Generative AI model (e.g. LLM)');
+        .should('have.text', 'Generative AI model (Example, LLM)');
       modelServingWizardEdit.findSaveConnectionCheckbox().should('be.checked');
       modelServingWizardEdit.findSaveConnectionCheckbox().click();
       modelServingWizardEdit.findSaveConnectionCheckbox().should('not.be.checked');
@@ -520,7 +520,7 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.findModelLocationSelectOption('URI - v1').click();
       modelServingWizard.findUrilocationInput().type('hf://coolmodel/coolmodel');
       modelServingWizard.findSaveConnectionCheckbox().click(); // Uncheck to simplify
-      modelServingWizard.findModelTypeSelectOption('Generative AI model (e.g. LLM)').click();
+      modelServingWizard.findModelTypeSelectOption('Generative AI model (Example, LLM)').click();
       modelServingWizard.findNextButton().click();
 
       modelServingWizard.findModelDeploymentNameInput().type('test-maas-llmd-model');
