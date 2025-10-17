@@ -73,6 +73,7 @@ describe('A model can be stopped and started', () => {
       // Navigate to Model Serving section and Deploy a Model
       cy.step('Navigate to Model Serving and deploy a Model');
       projectDetails.findSectionTab('model-server').click();
+      modelServingGlobal.findSingleServingModelButton().click();
 
       // Deploy a Model
       cy.step('Deploy a Model');
@@ -85,10 +86,19 @@ describe('A model can be stopped and started', () => {
       // Step 2: Model Deployment
       modelServingWizard.findModelDeploymentNameInput().type(modelName);
       modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
+      // Only interact with serving runtime template selector if it's not disabled
+      // (it may be disabled when only one option is available)
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().then(($selector) => {
+        if (!$selector.is(':disabled')) {
+          cy.wrap($selector).click();
+          modelServingWizard
+            .findGlobalScopedTemplateOption('OpenVINO Model Server')
+            .should('exist')
+            .click();
+        }
+      });
       modelServingWizard.findNextButton().click();
       //Step 3: Advanced Options
-      modelServingWizard.findNextButton().click();
-      //Step 4: Summary
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(testData.singleModelName);
       const kServeRow = modelServingSection.getKServeRow(testData.singleModelName);

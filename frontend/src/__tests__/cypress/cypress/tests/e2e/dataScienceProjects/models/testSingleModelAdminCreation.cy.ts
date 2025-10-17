@@ -24,7 +24,7 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('[Product Bug: RHOAIENG-35572] Verify Admin Single Model Creation and Validation using the UI', () => {
+describe('Verify Admin Single Model Creation and Validation using the UI', () => {
   retryableBefore(() =>
     // Setup: Load test data and ensure clean state
     loadDSPFixture('e2e/dataScienceProjects/testSingleModelAdminCreation.yaml').then(
@@ -56,15 +56,7 @@ describe('[Product Bug: RHOAIENG-35572] Verify Admin Single Model Creation and V
   it(
     'Verify that an Admin can Serve, Query a Single Model using both the UI and External links',
     {
-      tags: [
-        '@Smoke',
-        '@SmokeSet3',
-        '@ODS-2626',
-        '@Dashboard',
-        '@ModelServing',
-        '@NonConcurrent',
-        '@Bug',
-      ],
+      tags: ['@Smoke', '@SmokeSet3', '@ODS-2626', '@Dashboard', '@ModelServing', '@NonConcurrent'],
     },
     () => {
       cy.log('Model Name:', modelName);
@@ -81,6 +73,7 @@ describe('[Product Bug: RHOAIENG-35572] Verify Admin Single Model Creation and V
       // Navigate to Model Serving tab and Deploy a Single Model
       cy.step('Navigate to Model Serving and click to Deploy a Single Model');
       projectDetails.findSectionTab('model-server').click();
+      modelServingGlobal.findSingleServingModelButton().click();
       modelServingGlobal.findDeployModelButton().click();
 
       // Launch a Single Serving Model and select the required entries
@@ -93,6 +86,17 @@ describe('[Product Bug: RHOAIENG-35572] Verify Admin Single Model Creation and V
       // Step 2: Model Deployment
       modelServingWizard.findModelDeploymentNameInput().type(modelName);
       modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
+      // Only interact with serving runtime template selector if it's not disabled
+      // (it may be disabled when only one option is available)
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().then(($selector) => {
+        if (!$selector.is(':disabled')) {
+          cy.wrap($selector).click();
+          modelServingWizard
+            .findGlobalScopedTemplateOption('OpenVINO Model Server')
+            .should('exist')
+            .click();
+        }
+      });
       modelServingWizard.findNextButton().click();
       //Step 3: Advanced Options
       // Enable Model access through an external route
@@ -103,8 +107,6 @@ describe('[Product Bug: RHOAIENG-35572] Verify Admin Single Model Creation and V
       modelServingWizard.findAddServiceAccountButton().click();
       modelServingWizard.findServiceAccountByIndex(1).clear();
       modelServingWizard.findServiceAccountByIndex(1).type('secret2');
-      modelServingWizard.findNextButton().click();
-      //Step 4: Summary
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(testData.singleModelAdminName);
 

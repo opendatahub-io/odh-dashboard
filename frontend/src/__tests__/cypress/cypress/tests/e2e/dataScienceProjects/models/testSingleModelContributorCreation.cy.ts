@@ -27,7 +27,7 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_3' as const;
 const uuid = generateTestUUID();
 
-describe('[Product Bug: RHOAIENG-35572] Verify Model Creation and Validation using the UI', () => {
+describe('Verify Model Creation and Validation using the UI', () => {
   retryableBefore(() =>
     // Setup: Load test data and ensure clean state
     loadDSPFixture('e2e/dataScienceProjects/testSingleModelContributorCreation.yaml').then(
@@ -61,15 +61,7 @@ describe('[Product Bug: RHOAIENG-35572] Verify Model Creation and Validation usi
   it(
     'Verify that a Non Admin can Serve and Query a Model using the UI',
     {
-      tags: [
-        '@Smoke',
-        '@SmokeSet3',
-        '@ODS-2552',
-        '@Dashboard',
-        '@ModelServing',
-        '@NonConcurrent',
-        '@Bug',
-      ],
+      tags: ['@Smoke', '@SmokeSet3', '@ODS-2552', '@Dashboard', '@ModelServing', '@NonConcurrent'],
     },
     () => {
       cy.log('Model Name:', modelName);
@@ -86,6 +78,7 @@ describe('[Product Bug: RHOAIENG-35572] Verify Model Creation and Validation usi
       // Navigate to Model Serving tab and Deploy a Single Model
       cy.step('Navigate to Model Serving and click to Deploy a Single Model');
       projectDetails.findSectionTab('model-server').click();
+      modelServingGlobal.findSingleServingModelButton().click();
       modelServingGlobal.findDeployModelButton().click();
 
       // Launch a Single Serving Model and select the required entries
@@ -98,10 +91,20 @@ describe('[Product Bug: RHOAIENG-35572] Verify Model Creation and Validation usi
       // Step 2: Model Deployment
       modelServingWizard.findModelDeploymentNameInput().type(modelName);
       modelServingWizard.findModelFormatSelectOption('caikit').click();
+      // Only interact with serving runtime template selector if it's not disabled
+      // (it may be disabled when only one option is available)
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().then(($selector) => {
+        if (!$selector.is(':disabled')) {
+          cy.wrap($selector).click();
+          modelServingWizard
+            .findGlobalScopedTemplateOption('Caikit TGIS ServingRuntime for KServe')
+            .should('exist')
+            .click();
+        }
+      });
       modelServingWizard.findNextButton().click();
       //Step 3: Advanced Options
-      modelServingWizard.findNextButton().click();
-      //Step 4: Summary
+      cy.pause();
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(testData.singleModelName);
 

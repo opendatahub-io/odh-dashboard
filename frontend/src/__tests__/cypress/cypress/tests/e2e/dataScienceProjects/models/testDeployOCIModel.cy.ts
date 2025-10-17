@@ -25,8 +25,26 @@ let modelDeploymentURI: string;
 let modelDeploymentName: string;
 const uuid = generateTestUUID();
 
+const updateSecretDetailsFile = (
+  secretValue: string,
+  fixtureRelativePath: string,
+  fixtureFullPath: string,
+) => {
+  return cy.fixture(fixtureRelativePath).then((templateContent) => {
+    const updatedContent = {
+      ...templateContent,
+      auths: {
+        'quay.io': {
+          auth: secretValue,
+        },
+      },
+    };
+    return cy.writeFile(fixtureFullPath, updatedContent);
+  });
+};
+
 describe(
-  '[Product Bug: RHOAIENG-31085] A user can create an OCI connection and deploy a model with it',
+  'A user can create an OCI connection and deploy a model with it',
   { testIsolation: false },
   () => {
     let testData: DeployOCIModelData;
@@ -38,7 +56,11 @@ describe(
           testData = fixtureData;
           projectName = `${testData.projectName}-${uuid}`;
           connectionName = testData.connectionName;
-          secretDetailsFile = Cypress.env('OCI_SECRET_DETAILS_FILE');
+          // Load fixture file and update with actual secret value
+          const secretValue = Cypress.env('OCI_SECRET_VALUE');
+          const secretDetailsFixture = 'resources/json/oci-data-connection-secret.json';
+          secretDetailsFile = `cypress/fixtures/${secretDetailsFixture}`;
+          updateSecretDetailsFile(secretValue, secretDetailsFixture, secretDetailsFile);
           ociRegistryHost = testData.ociRegistryHost;
           modelDeploymentURI = Cypress.env('OCI_MODEL_URI');
           modelDeploymentName = testData.modelDeploymentName;
@@ -58,7 +80,7 @@ describe(
     it(
       'Verify User Can Create an OCI Connection in DS Connections Page And Deploy the Model',
       {
-        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent', '@Bug'],
+        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
       },
       () => {
         cy.step(`Navigate to DS Project ${projectName}`);
@@ -83,6 +105,7 @@ describe(
 
         cy.step('Deploy OCI Connection with KServe');
         projectDetails.findSectionTab('model-server').click();
+        modelServingGlobal.findSingleServingModelButton().click();
         modelServingGlobal.findDeployModelButton().click();
         // Step 1: Model Source
         modelServingWizard.findModelLocationSelectOption('Existing connection').click();
@@ -92,10 +115,19 @@ describe(
         // Step 2: Model Deployment
         modelServingWizard.findModelDeploymentNameInput().type(modelDeploymentName);
         modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
+        // Only interact with serving runtime template selector if it's not disabled
+        // (it may be disabled when only one option is available)
+        modelServingWizard.findServingRuntimeTemplateSearchSelector().then(($selector) => {
+          if (!$selector.is(':disabled')) {
+            cy.wrap($selector).click();
+            modelServingWizard
+              .findGlobalScopedTemplateOption('OpenVINO Model Server')
+              .should('exist')
+              .click();
+          }
+        });
         modelServingWizard.findNextButton().click();
-        //Step 3: Advanced Options
-        modelServingWizard.findNextButton().click();
-        //Step 4: Summary
+        // Step 3: Advanced Options
         modelServingWizard.findSubmitButton().click();
         modelServingSection.findModelServerDeployedName(modelDeploymentName);
         //Verify the model created and is running

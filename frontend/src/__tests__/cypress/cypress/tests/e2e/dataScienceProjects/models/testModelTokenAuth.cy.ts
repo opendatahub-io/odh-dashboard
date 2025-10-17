@@ -71,6 +71,7 @@ describe('A model can be deployed with token auth', () => {
       // Navigate to Model Serving tab and Deploy a model
       cy.step('Navigate to Model Serving and click to Deploy a model');
       projectDetails.findSectionTab('model-server').click();
+      modelServingGlobal.findSingleServingModelButton().click();
       modelServingGlobal.findDeployModelButton().click();
 
       // Launch a model
@@ -83,6 +84,17 @@ describe('A model can be deployed with token auth', () => {
       // Step 2: Model Deployment
       modelServingWizard.findModelDeploymentNameInput().type(modelName);
       modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
+      // Only interact with serving runtime template selector if it's not disabled
+      // (it may be disabled when only one option is available)
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().then(($selector) => {
+        if (!$selector.is(':disabled')) {
+          cy.wrap($selector).click();
+          modelServingWizard
+            .findGlobalScopedTemplateOption('OpenVINO Model Server')
+            .should('exist')
+            .click();
+        }
+      });
       modelServingWizard.findNextButton().click();
       //Step 3: Advanced Options
       // Enable Model access through an external route
@@ -94,8 +106,6 @@ describe('A model can be deployed with token auth', () => {
       modelServingWizard.findAddServiceAccountButton().click();
       modelServingWizard.findServiceAccountByIndex(1).clear();
       modelServingWizard.findServiceAccountByIndex(1).type('secret2');
-      modelServingWizard.findNextButton().click();
-      //Step 4: Summary
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(testData.singleModelName);
 

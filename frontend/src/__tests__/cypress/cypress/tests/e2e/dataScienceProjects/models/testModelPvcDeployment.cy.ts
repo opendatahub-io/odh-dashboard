@@ -128,6 +128,7 @@ describe('Verify a model can be deployed from a PVC', () => {
       // Deploy the model
       cy.step('Deploy the model');
       projectDetails.findSectionTab('model-server').click();
+      modelServingGlobal.findSingleServingModelButton().click();
       modelServingGlobal.findDeployModelButton().click();
       // Step 1: Model Source
       modelServingWizard.findModelLocationSelectOption('Cluster storage').click();
@@ -138,10 +139,19 @@ describe('Verify a model can be deployed from a PVC', () => {
       // Step 2: Model Deployment
       modelServingWizard.findModelDeploymentNameInput().type(modelName);
       modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
+      // Only interact with serving runtime template selector if it's not disabled
+      // (it may be disabled when only one option is available)
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().then(($selector) => {
+        if (!$selector.is(':disabled')) {
+          cy.wrap($selector).click();
+          modelServingWizard
+            .findGlobalScopedTemplateOption('Caikit TGIS ServingRuntime for KServe')
+            .should('exist')
+            .click();
+        }
+      });
       modelServingWizard.findNextButton().click();
       //Step 3: Advanced Options
-      modelServingWizard.findNextButton().click();
-      //Step 4: Summary
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(testData.singleModelName);
       //Verify the model created and is running
