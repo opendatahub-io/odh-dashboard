@@ -60,7 +60,6 @@ const initIntercepts = ({
       disableModelMesh: true,
       disableNIMModelServing: true,
       disableKServe: false,
-      disableDeploymentWizard: false,
       disableModelAsService: false, // Enable MaaS for testing
     }),
   );

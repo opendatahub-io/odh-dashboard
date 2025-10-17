@@ -26,7 +26,6 @@ import {
   ServingRuntimePlatform,
   ServingRuntimeModelType,
 } from '#~/types';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import {
   getAPIProtocolFromTemplate,
   getEnabledPlatformsFromTemplate,
@@ -137,7 +136,6 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
     return sortedA.every((val, index) => val === sortedB[index]);
   };
 
-  const isDeploymentWizardEnabled = useIsAreaAvailable(SupportedArea.DEPLOYMENT_WIZARD).status;
   const isDisabled =
     (!state &&
       code === stringifiedTemplate &&
@@ -146,7 +144,7 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
       modelTypesEqual(modelTypes, selectedModelTypes)) ||
     code === '' ||
     !selectedAPIProtocol ||
-    (isDeploymentWizardEnabled && selectedModelTypes.length === 0) ||
+    selectedModelTypes.length === 0 ||
     loading;
 
   return (
@@ -194,14 +192,12 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
               setSelectedAPIProtocol={setSelectedAPIProtocol}
             />
           </StackItem>
-          {isDeploymentWizardEnabled && (
-            <StackItem>
-              <CustomServingRuntimeModelTypeSelector
-                selectedModelTypes={selectedModelTypes}
-                setSelectedModelTypes={setSelectedModelTypes}
-              />
-            </StackItem>
-          )}
+          <StackItem>
+            <CustomServingRuntimeModelTypeSelector
+              selectedModelTypes={selectedModelTypes}
+              setSelectedModelTypes={setSelectedModelTypes}
+            />
+          </StackItem>
           <StackItem isFilled>
             <DashboardCodeEditor
               testId="dashboard-code-editor"
