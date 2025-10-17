@@ -11,7 +11,7 @@ export const mockTrustyAIServiceForDbK8sResource = ({
   creationTimestamp = new Date().toISOString(),
   namespace = 'test-project',
 }: MockTrustyAIServiceK8sResourceOptions): TrustyAIKind => ({
-  apiVersion: 'trustyai.opendatahub.io.trustyai.opendatahub.io/v1alpha1',
+  apiVersion: 'trustyai.opendatahub.io.trustyai.opendatahub.io/v1',
   kind: 'TrustyAIService',
   metadata: {
     name: 'trustyai-service',

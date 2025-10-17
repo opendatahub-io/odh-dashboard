@@ -468,7 +468,7 @@ describe('Model Metrics', () => {
 
     cy.wait('@installTrustyAI').then((interception) => {
       expect(interception.request.body).to.containSubset({
-        apiVersion: 'trustyai.opendatahub.io/v1alpha1',
+        apiVersion: 'trustyai.opendatahub.io/v1',
         kind: 'TrustyAIService',
         metadata: {
           name: 'trustyai-service',
