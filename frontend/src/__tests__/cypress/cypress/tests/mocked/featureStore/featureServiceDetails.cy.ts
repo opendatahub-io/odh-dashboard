@@ -3,7 +3,6 @@
 import { mockFeatureStoreService } from '@odh-dashboard/feature-store/mocks/mockFeatureStoreService';
 import { mockFeatureStoreProject } from '@odh-dashboard/feature-store/mocks/mockFeatureStoreProject';
 import { mockFeatureService } from '@odh-dashboard/feature-store/mocks/mockFeatureServices';
-import { mockFeatureStore } from '@odh-dashboard/feature-store/mocks/mockFeatureStore';
 import { mockFeatureView } from '@odh-dashboard/feature-store/mocks/mockFeatureViews';
 import {
   featureServiceDetails,
@@ -40,13 +39,27 @@ const initIntercept = () => {
     mockK8sResourceList([mockProjectK8sResource({ k8sName: k8sNamespace })]),
   );
 
-  cy.intercept(
-    'GET',
-    `/api/k8s/apis/feast.dev/v1alpha1/namespaces/${k8sNamespace}/featurestores?labelSelector=feature-store-ui%3Denabled`,
-    {
-      items: [mockFeatureStore({ name: fsName, namespace: k8sNamespace })],
-    },
-  );
+  cy.intercept('GET', '/api/featurestores', {
+    featureStores: [
+      {
+        name: fsName,
+        project: fsName,
+        registry: {
+          path: `feast-${fsName}-${k8sNamespace}-registry.${k8sNamespace}.svc.cluster.local:443`,
+        },
+        namespace: k8sNamespace,
+        status: {
+          conditions: [
+            {
+              type: 'Registry',
+              status: 'True',
+              lastTransitionTime: '2025-10-08T21:13:38.158Z',
+            },
+          ],
+        },
+      },
+    ],
+  });
 
   cy.interceptK8sList(
     ServiceModel,
@@ -60,9 +73,9 @@ const initIntercept = () => {
   );
 
   cy.interceptOdh(
-    'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/projects',
+    'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/projects',
     {
-      path: { namespace: k8sNamespace, serviceName: fsName, apiVersion: 'v1' },
+      path: { namespace: k8sNamespace, projectName: fsName, apiVersion: 'v1' },
     },
     {
       projects: [
@@ -81,9 +94,9 @@ const initIntercept = () => {
   );
 
   cy.interceptOdh(
-    'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/feature_services',
+    'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/feature_services',
     {
-      path: { namespace: k8sNamespace, serviceName: fsName, apiVersion: 'v1' },
+      path: { namespace: k8sNamespace, projectName: fsName, apiVersion: 'v1' },
     },
     {
       featureServices: [mockFeatureService({ name: featureServiceName })],
@@ -119,11 +132,11 @@ const initIntercept = () => {
   );
 
   cy.interceptOdh(
-    'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/feature_services/:featureServiceName',
+    'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/feature_services/:featureServiceName',
     {
       path: {
         namespace: k8sNamespace,
-        serviceName: fsName,
+        projectName: fsName,
         apiVersion: 'v1',
         featureServiceName,
       },
@@ -166,9 +179,9 @@ const initIntercept = () => {
   );
 
   cy.interceptOdh(
-    'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/feature_views',
+    'GET /api/featurestores/:namespace/:projectName/api/:apiVersion/feature_views',
     {
-      path: { namespace: k8sNamespace, serviceName: fsName, apiVersion: 'v1' },
+      path: { namespace: k8sNamespace, projectName: fsName, apiVersion: 'v1' },
     },
     {
       featureViews: [mockFeatureView()],

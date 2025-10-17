@@ -166,7 +166,7 @@ export type TestConfig = {
   PIP_INDEX_URL: string;
   PIP_TRUSTED_HOST: string;
   NGC_API_KEY: string;
-  OCI_SECRET_DETAILS_FILE: string;
+  OCI_SECRET_VALUE: string;
   OCI_MODEL_URI: string;
 };
 
@@ -208,14 +208,9 @@ export type SettingsTestData = {
   pvcDefaultSize: number;
 };
 
-export type NotebookTolerationSettings = {
-  enabled: boolean;
-};
-
 export type NotebookController = {
   enabled: boolean;
   pvcSize: string;
-  notebookTolerationSettings: NotebookTolerationSettings;
 };
 
 export type DashboardConfig = {

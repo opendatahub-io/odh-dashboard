@@ -6,6 +6,8 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
   Icon,
+  Label,
+  LabelGroup,
   PageSection,
   Sidebar,
   SidebarContent,
@@ -17,7 +19,7 @@ import { OutlinedClockIcon } from '@patternfly/react-icons';
 import { InlineTruncatedClipboardCopy } from 'mod-arch-shared';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 import { CatalogArtifactList, CatalogModel } from '~/app/modelCatalogTypes';
-import { getLabels } from '~/app/pages/modelRegistry/screens/utils';
+import { getLabels, getValidatedOnPlatforms } from '~/app/pages/modelRegistry/screens/utils';
 import ModelCatalogLabels from '~/app/pages/modelCatalog/components/ModelCatalogLabels';
 import ExternalLink from '~/app/shared/components/ExternalLink';
 import MarkdownComponent from '~/app/shared/markdown/MarkdownComponent';
@@ -25,6 +27,7 @@ import ModelTimestamp from '~/app/pages/modelRegistry/screens/components/ModelTi
 import {
   getModelArtifactUri,
   hasModelArtifacts,
+  isModelValidated,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 
 type ModelDetailsViewProps = {
@@ -42,12 +45,16 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
 }) => {
   // Extract all labels from customProperties
   const allLabels = model.customProperties ? getLabels(model.customProperties) : [];
+  const isValidated = isModelValidated(model);
+
+  // Extract validated_on platforms
+  const validatedOnPlatforms = getValidatedOnPlatforms(model.customProperties);
 
   return (
-    <PageSection hasBodyWrapper={false} isFilled>
+    <PageSection hasBodyWrapper={false} isFilled padding={{ default: 'noPadding' }}>
       <Sidebar hasBorder hasGutter isPanelRight>
-        <SidebarContent>
-          <Content>
+        <SidebarContent style={{ minWidth: 0, overflow: 'hidden' }}>
+          <Content style={{ wordBreak: 'break-word' }}>
             <h2>Description</h2>
             <p data-testid="model-long-description">{model.description || 'No description'}</p>
             <h2>Model card</h2>
@@ -61,8 +68,8 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
             />
           )}
         </SidebarContent>
-        <SidebarPanel>
-          <DescriptionList isFillColumns>
+        <SidebarPanel width={{ default: 'width_33' }}>
+          <DescriptionList>
             <DescriptionListGroup>
               <DescriptionListTerm>Labels</DescriptionListTerm>
               <DescriptionListDescription>
@@ -70,6 +77,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
                   tasks={model.tasks ?? []}
                   license={model.license}
                   labels={allLabels}
+                  numLabels={isValidated ? 2 : 3}
                 />
               </DescriptionListDescription>
             </DescriptionListGroup>
@@ -85,6 +93,20 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
               <DescriptionListTerm>Provider</DescriptionListTerm>
               <DescriptionListDescription>{model.provider || 'N/A'}</DescriptionListDescription>
             </DescriptionListGroup>
+            {validatedOnPlatforms.length > 0 && (
+              <DescriptionListGroup>
+                <DescriptionListTerm>Validated on</DescriptionListTerm>
+                <DescriptionListDescription>
+                  <LabelGroup numLabels={5} isCompact>
+                    {validatedOnPlatforms.map((platform) => (
+                      <Label data-testid="validated-on-label" key={platform} variant="outline">
+                        {platform}
+                      </Label>
+                    ))}
+                  </LabelGroup>
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            )}
             <DescriptionListGroup>
               <DescriptionListTerm>Model location</DescriptionListTerm>
               {artifactsLoadError ? (
@@ -94,10 +116,12 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
               ) : !artifactLoaded ? (
                 <Spinner size="sm" />
               ) : artifacts.items.length > 0 && hasModelArtifacts(artifacts.items) ? (
-                <InlineTruncatedClipboardCopy
-                  testId="source-image-location"
-                  textToCopy={getModelArtifactUri(artifacts.items) || ''}
-                />
+                <DescriptionListDescription>
+                  <InlineTruncatedClipboardCopy
+                    testId="source-image-location"
+                    textToCopy={getModelArtifactUri(artifacts.items) || ''}
+                  />
+                </DescriptionListDescription>
               ) : (
                 <p className={text.textColorDisabled}>No artifacts available</p>
               )}

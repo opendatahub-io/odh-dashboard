@@ -58,7 +58,7 @@ const CreateModelDeploymentPage: React.FC = () => {
     <ModelDeploymentsProvider projects={[currentProject]}>
       <ModelDeploymentWizard
         title="Deploy a model"
-        description="Configure and deploy your model."
+        description="Configure deployment options for this model version."
         primaryButtonText="Deploy model"
         project={currentProject}
       />

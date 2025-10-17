@@ -19,6 +19,21 @@
       "./src/types/*",
       "./src/types/*.ts"
     ],
+    "./components/*": [
+      "./src/components/*",
+      "./src/components/*.ts",
+      "./src/components/*.tsx"
+    ],
+    "./screens/components/*": [
+      "./src/screens/components/*",
+      "./src/screens/components/*.ts",
+      "./src/screens/components/*.tsx"
+    ],
+    "./icons/header-icons/*": [
+      "./src/icons/header-icons/*",
+      "./src/icons/header-icons/*.ts",
+      "./src/icons/header-icons/*.tsx"
+    ],
     "./screens/lineage/*": [
       "./src/screens/lineage/*",
       "./src/screens/lineage/*.ts",

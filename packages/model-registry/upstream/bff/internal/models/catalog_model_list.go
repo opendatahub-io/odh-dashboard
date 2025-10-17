@@ -18,7 +18,7 @@ type CatalogModel struct {
 	Name                     string                            `json:"name"`
 	Provider                 *string                           `json:"provider,omitempty"`
 	Readme                   *string                           `json:"readme,omitempty"`
-	SourceId                 *string                           `json:"sourceId,omitempty"`
+	SourceId                 *string                           `json:"source_id,omitempty"`
 	Tasks                    []string                          `json:"tasks,omitempty"`
 }
 
@@ -30,14 +30,14 @@ type CatalogModelList struct {
 }
 
 type FilterRange struct {
-	Max *int64 `json:"max,omitempty"`
-	Min *int64 `json:"min,omitempty"`
+	Max *float32 `json:"max,omitempty"`
+	Min *float32 `json:"min,omitempty"`
 }
 
 type FilterOption struct {
 	Range  *FilterRange     `json:"range,omitempty"`
 	Type   FilterOptionType `json:"type"`
-	Values *[]interface{}   `json:"values,omitempty"`
+	Values []interface{}    `json:"values,omitempty"`
 }
 
 type FilterOptionType string

@@ -63,22 +63,26 @@ func (c *HTTPMaaSClient) ListModels(ctx context.Context) ([]models.MaaSModel, er
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %w", err)
+		// Handle connection failures gracefully
+		return nil, NewConnectionError(c.baseURL, fmt.Sprintf("failed to connect to MaaS service: %v", err))
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
+		return nil, NewInvalidResponseError(c.baseURL, fmt.Sprintf("failed to read response body: %v", err))
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
+		if resp.StatusCode >= 500 {
+			return nil, NewServerUnavailableError(c.baseURL)
+		}
+		return nil, NewInvalidResponseError(c.baseURL, fmt.Sprintf("API request failed with status %d: %s", resp.StatusCode, string(body)))
 	}
 
 	var response models.MaaSModelsResponse
 	if err := json.Unmarshal(body, &response); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+		return nil, NewInvalidResponseError(c.baseURL, fmt.Sprintf("failed to unmarshal response: %v", err))
 	}
 
 	return response.Data, nil
@@ -107,22 +111,26 @@ func (c *HTTPMaaSClient) IssueToken(ctx context.Context, request models.MaaSToke
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %w", err)
+		// Handle connection failures gracefully
+		return nil, NewConnectionError(c.baseURL, fmt.Sprintf("failed to connect to MaaS service: %v", err))
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
+		return nil, NewInvalidResponseError(c.baseURL, fmt.Sprintf("failed to read response body: %v", err))
 	}
 
 	if resp.StatusCode != http.StatusCreated {
-		return nil, fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
+		if resp.StatusCode >= 500 {
+			return nil, NewServerUnavailableError(c.baseURL)
+		}
+		return nil, NewInvalidResponseError(c.baseURL, fmt.Sprintf("API request failed with status %d: %s", resp.StatusCode, string(body)))
 	}
 
 	var response models.MaaSTokenResponse
 	if err := json.Unmarshal(body, &response); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+		return nil, NewInvalidResponseError(c.baseURL, fmt.Sprintf("failed to unmarshal response: %v", err))
 	}
 
 	return &response, nil
@@ -141,17 +149,21 @@ func (c *HTTPMaaSClient) RevokeAllTokens(ctx context.Context) error {
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to make request: %w", err)
+		// Handle connection failures gracefully
+		return NewConnectionError(c.baseURL, fmt.Sprintf("failed to connect to MaaS service: %v", err))
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("failed to read response body: %w", err)
+		return NewInvalidResponseError(c.baseURL, fmt.Sprintf("failed to read response body: %v", err))
 	}
 
 	if resp.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
+		if resp.StatusCode >= 500 {
+			return NewServerUnavailableError(c.baseURL)
+		}
+		return NewInvalidResponseError(c.baseURL, fmt.Sprintf("API request failed with status %d: %s", resp.StatusCode, string(body)))
 	}
 
 	return nil

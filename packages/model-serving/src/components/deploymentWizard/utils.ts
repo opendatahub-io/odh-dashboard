@@ -1,9 +1,8 @@
 import { getTokenNames } from '@odh-dashboard/internal/pages/modelServing/utils';
-import { ProjectKind, ServingRuntimeKind } from '@odh-dashboard/internal/k8sTypes.js';
+import { ProjectKind, ServingRuntimeKind } from '@odh-dashboard/internal/k8sTypes';
 import { isValidModelType, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
-import { ModelLocationType, ModelLocationData } from './fields/modelLocationFields/types';
 import { type TokenAuthenticationFieldData } from './fields/TokenAuthenticationField';
-import { WizardFormData } from './types';
+import { ModelLocationType, ModelLocationData, WizardFormData } from './types';
 import {
   handleConnectionCreation,
   handleSecretOwnerReferencePatch,
@@ -85,77 +84,78 @@ export const deployModel = async (
     serverResourceTemplateName?: string,
     dryRun?: boolean,
     secretName?: string,
+    overwrite?: boolean,
   ) => Promise<Deployment>,
   existingDeployment?: Deployment,
   serverResource?: ServingRuntimeKind,
   serverResourceTemplateName?: string,
+  overwrite?: boolean,
 ): Promise<void> => {
-  try {
-    // Dry runs
-    const [dryRunSecret] = await Promise.all([
-      handleConnectionCreation(
-        wizardState.state.createConnectionData.data,
-        project.metadata.name,
-        wizardState.state.modelLocationData.data,
-        secretName,
-        true,
-        wizardState.state.modelLocationData.selectedConnection,
-      ),
-      deployMethod?.(
-        wizardState.state,
-        project.metadata.name,
-        existingDeployment,
-        serverResource,
-        serverResourceTemplateName,
-        true,
-      ),
-    ]);
-
-    // The secret name is calculated in handleConnectionCreation dryRun
-    // so ensure we're sending the correct name into the real deploy and secret creation methods
-    const realSecretName = dryRunSecret?.metadata.name ?? secretName;
-
-    // Create secret
-    const newSecret = await handleConnectionCreation(
+  // Dry runs
+  const [dryRunSecret] = await Promise.all([
+    handleConnectionCreation(
       wizardState.state.createConnectionData.data,
       project.metadata.name,
       wizardState.state.modelLocationData.data,
-      realSecretName,
-      false,
+      secretName,
+      true,
       wizardState.state.modelLocationData.selectedConnection,
-    );
-    // newSecret.metadata.name is the name of the secret created during secret creation,
-    // use realSecretName as a fallback (should be the same)
-    const actualSecretName = newSecret?.metadata.name ?? realSecretName;
+    ),
+    ...(!overwrite
+      ? [
+          deployMethod?.(
+            wizardState.state,
+            project.metadata.name,
+            existingDeployment,
+            serverResource,
+            serverResourceTemplateName,
+            true,
+          ),
+        ]
+      : []),
+  ]);
 
-    // Create deployment
-    const deploymentResult = await deployMethod?.(
-      wizardState.state,
-      project.metadata.name,
-      existingDeployment,
-      serverResource,
-      serverResourceTemplateName,
-      false,
-      actualSecretName,
-    );
+  // The secret name is calculated in handleConnectionCreation dryRun
+  // so ensure we're sending the correct name into the real deploy and secret creation methods
+  const realSecretName = dryRunSecret?.metadata.name ?? secretName;
 
-    if (!wizardState.state.modelLocationData.data || !deploymentResult) {
-      exitWizard();
-      return;
-    }
+  // Create secret
+  const newSecret = await handleConnectionCreation(
+    wizardState.state.createConnectionData.data,
+    project.metadata.name,
+    wizardState.state.modelLocationData.data,
+    realSecretName,
+    false,
+    wizardState.state.modelLocationData.selectedConnection,
+  );
+  // newSecret.metadata.name is the name of the secret created during secret creation,
+  // use realSecretName as a fallback (should be the same)
+  const actualSecretName = newSecret?.metadata.name ?? realSecretName;
 
-    await handleSecretOwnerReferencePatch(
-      wizardState.state.createConnectionData.data,
-      deploymentResult.model,
-      wizardState.state.modelLocationData.data,
-      actualSecretName,
-      deploymentResult.model.metadata.uid ?? '',
-      false,
-    );
+  // Create deployment
+  const deploymentResult = await deployMethod?.(
+    wizardState.state,
+    project.metadata.name,
+    existingDeployment,
+    serverResource,
+    serverResourceTemplateName,
+    false,
+    actualSecretName,
+    overwrite,
+  );
 
-    exitWizard();
-  } catch (error) {
-    console.error('Deployment or patching failed:', error);
-    exitWizard();
+  if (!wizardState.state.modelLocationData.data || !deploymentResult) {
+    throw new Error('Model location data or deployment result is missing');
   }
+
+  await handleSecretOwnerReferencePatch(
+    wizardState.state.createConnectionData.data,
+    deploymentResult.model,
+    wizardState.state.modelLocationData.data,
+    actualSecretName,
+    deploymentResult.model.metadata.uid ?? '',
+    false,
+  );
+
+  exitWizard();
 };

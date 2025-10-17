@@ -49,6 +49,22 @@ export const isValidEnvironmentVariables = (name: string): string => {
   return result.success ? '' : result.error.errors[0]?.message || '';
 };
 
+export const hasInvalidEnvironmentVariableNames = (
+  data?: EnvironmentVariablesFieldData,
+): boolean => {
+  if (!data?.enabled) {
+    return false;
+  }
+
+  return data.variables.some((variable) => {
+    if (variable.name.trim() === '') {
+      return true;
+    }
+    const error = isValidEnvironmentVariables(variable.name);
+    return error !== '';
+  });
+};
+
 // Hook
 export type EnvironmentVariablesFieldHook = {
   data: EnvironmentVariablesFieldData | undefined;
@@ -123,7 +139,7 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Checkbox
             id="env-vars-checkbox"
-            label="Apply additional serving runtime environment variables"
+            label="Add custom serving runtime environment variables"
             isChecked={data.enabled}
             isDisabled={!allowCreate}
             onChange={handleCheckboxChange}

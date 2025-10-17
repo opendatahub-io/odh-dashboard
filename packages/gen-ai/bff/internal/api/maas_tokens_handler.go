@@ -24,7 +24,7 @@ func (app *App) MaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request, _ 
 
 	tokenResponse, err := app.repositories.MaaSModels.IssueToken(ctx, tokenRequest)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.handleMaaSClientError(w, r, err)
 		return
 	}
 
@@ -40,7 +40,7 @@ func (app *App) MaaSRevokeAllTokensHandler(w http.ResponseWriter, r *http.Reques
 
 	err := app.repositories.MaaSModels.RevokeAllTokens(ctx)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.handleMaaSClientError(w, r, err)
 		return
 	}
 

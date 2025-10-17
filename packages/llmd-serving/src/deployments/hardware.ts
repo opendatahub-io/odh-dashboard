@@ -1,18 +1,23 @@
-import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import type {
+  HardwareProfileConfig,
+  useHardwareProfileConfig,
+} from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { HardwareProfileFeatureVisibility } from '@odh-dashboard/internal/k8sTypes';
+import { structuredCloneWithMainContainer } from './model';
 import type { LLMdDeployment, LLMInferenceServiceKind } from '../types';
 
 export const applyHardwareProfileConfig = (
   llmdInferenceService: LLMInferenceServiceKind,
-  hardwareProfileName: string,
-  hardwareProfileNamespace: string,
+  hardwareProfile: HardwareProfileConfig,
 ): LLMInferenceServiceKind => {
-  const result = structuredClone(llmdInferenceService);
+  const { result, mainContainer } = structuredCloneWithMainContainer(llmdInferenceService);
   result.metadata.annotations = {
     ...result.metadata.annotations,
-    'opendatahub.io/hardware-profile-name': hardwareProfileName,
-    'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
+    'opendatahub.io/hardware-profile-name': hardwareProfile.selectedProfile?.metadata.name ?? '',
+    'opendatahub.io/hardware-profile-namespace':
+      hardwareProfile.selectedProfile?.metadata.namespace ?? '',
   };
+  mainContainer.resources = hardwareProfile.resources ?? undefined;
   return result;
 };
 
@@ -49,4 +54,27 @@ export const applyReplicas = (
 
 export const extractReplicas = (llmdDeployment: LLMdDeployment): number | null => {
   return llmdDeployment.model.spec.replicas ?? null;
+};
+
+export const extractRuntimeArgs = (
+  deployment: LLMdDeployment,
+): { enabled: boolean; args: string[] } => {
+  const args = deployment.model.spec.template?.containers?.[0]?.args || [];
+  return {
+    enabled: args.length > 0,
+    args,
+  };
+};
+
+export const extractEnvironmentVariables = (
+  deployment: LLMdDeployment,
+): { enabled: boolean; variables: { name: string; value: string }[] } => {
+  const envVars = deployment.model.spec.template?.containers?.[0]?.env || [];
+  return {
+    enabled: envVars.length > 0,
+    variables: envVars.map((envVar) => ({
+      name: envVar.name,
+      value: envVar.value?.toString() || '',
+    })),
+  };
 };

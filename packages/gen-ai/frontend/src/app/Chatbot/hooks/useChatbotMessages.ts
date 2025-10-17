@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { MessageProps, ToolResponseProps } from '@patternfly/chatbot';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import userAvatar from '~/app/bgimages/user_avatar.svg';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { getId } from '~/app/utilities/utils';
@@ -161,6 +162,12 @@ const useChatbotMessages = ({
         temperature,
         ...(mcpServers.length > 0 && { mcp_servers: mcpServers }),
       };
+
+      fireMiscTrackingEvent('Playground Query Submitted', {
+        isRag: isRawUploaded,
+        countofMCP: mcpServers.length,
+        isStreaming: isStreamingEnabled,
+      });
 
       if (!namespace?.name) {
         throw new Error('Namespace is required for generating responses');

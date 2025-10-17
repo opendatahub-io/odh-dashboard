@@ -22,6 +22,9 @@ import FeatureStorePageTitle from '../../../components/FeatureStorePageTitle';
 import FeatureStoreBreadcrumb from '../../components/FeatureStoreBreadcrumb';
 import FeatureStoreLabels from '../../../components/FeatureStoreLabels';
 import { getDataSourceConnectorType } from '../utils';
+import FeatureStoreAccessDenied from '../../../components/FeatureStoreAccessDenied';
+import { isNotFoundError } from '../../../utils';
+import { getFeatureStoreErrorMessage } from '../../../api/errorUtils';
 
 const DataSourceDetailsPage = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -55,7 +58,10 @@ const DataSourceDetailsPage = (): React.ReactElement => {
       data-testid="error-state-title"
     >
       <EmptyStateBody data-testid="error-state-body">
-        {dataSourceLoadError?.message || 'The requested data source could not be found.'}
+        {getFeatureStoreErrorMessage(
+          dataSourceLoadError,
+          'The requested data source could not be found.',
+        )}
       </EmptyStateBody>
       <EmptyStateFooter>
         <EmptyStateActions>
@@ -63,6 +69,12 @@ const DataSourceDetailsPage = (): React.ReactElement => {
         </EmptyStateActions>
       </EmptyStateFooter>
     </EmptyState>
+  );
+
+  const loadErrorState = isNotFoundError(dataSourceLoadError) ? (
+    errorState
+  ) : (
+    <FeatureStoreAccessDenied resourceType="data source" projectName={currentProject} />
   );
 
   return (
@@ -84,7 +96,7 @@ const DataSourceDetailsPage = (): React.ReactElement => {
       data-testid="data-source-details-page"
       description={dataSource.description}
       loadError={dataSourceLoadError}
-      loadErrorPage={dataSourceLoadError ? errorState : undefined}
+      loadErrorPage={dataSourceLoadError ? loadErrorState : undefined}
       loaded={dataSourceLoaded}
       provideChildrenPadding
       breadcrumb={

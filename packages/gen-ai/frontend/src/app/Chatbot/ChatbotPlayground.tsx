@@ -13,6 +13,7 @@ import {
 import { useLocation } from 'react-router-dom';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
+import { getLlamaModelStatus } from '~/app/utilities';
 import { DEFAULT_SYSTEM_INSTRUCTIONS, FILE_UPLOAD_CONFIG, ERROR_MESSAGES } from './const';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
@@ -65,7 +66,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         // so that when refreshing the page, the selected model is not passed again
         window.history.replaceState({}, '');
       } else {
-        setSelectedModel(models[0].id);
+        const availableModels = models.filter(
+          (model) => getLlamaModelStatus(model.id, aiModels) === 'Running',
+        );
+        if (availableModels.length > 0) {
+          setSelectedModel(availableModels[0].id);
+        }
       }
     }
   }, [modelsLoaded, models, selectedModel, setSelectedModel, aiModels, selectedAAModel]);
@@ -161,6 +167,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         input={lastInput}
         model={selectedModel}
         systemInstruction={systemInstruction}
+        files={fileManagement.files}
       />
       <Drawer isExpanded isInline position="right">
         <Divider />

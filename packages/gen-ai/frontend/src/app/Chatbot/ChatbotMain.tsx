@@ -12,6 +12,10 @@ import {
 } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { useNavigate } from 'react-router-dom';
+import {
+  fireMiscTrackingEvent,
+  fireSimpleTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import ChatbotEmptyState from '~/app/EmptyStates/NoData';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -30,6 +34,9 @@ const ChatbotMain: React.FunctionComponent = () => {
     aiModels,
     aiModelsLoaded,
     aiModelsError,
+    maasModels,
+    maasModelsLoaded,
+    maasModelsError,
     models,
   } = React.useContext(ChatbotContext);
   const { namespace } = React.useContext(GenAiContext);
@@ -40,14 +47,17 @@ const ChatbotMain: React.FunctionComponent = () => {
   const [configurationModalOpen, setConfigurationModalOpen] = React.useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
 
+  // Check if there are any models available (either AI assets or MaaS models)
+  const hasModels = aiModels.length > 0 || maasModels.length > 0;
+
   return (
     <>
       <ApplicationsPage
         title={<ChatbotHeader />}
-        loaded={lsdStatusLoaded && aiModelsLoaded}
+        loaded={lsdStatusLoaded && (aiModelsLoaded || maasModelsLoaded)}
         empty={!lsdStatus}
         emptyStatePage={
-          aiModels.length === 0 ? (
+          !hasModels ? (
             <ChatbotEmptyState
               title="You need at least one model "
               description={
@@ -86,14 +96,20 @@ const ChatbotMain: React.FunctionComponent = () => {
               actionButtonText="Configure playground"
               handleActionButtonClick={() => {
                 setConfigurationModalOpen(true);
+                fireMiscTrackingEvent('Playground Setup Initiated', {
+                  source: 'Playground',
+                });
               }}
             />
           )
         }
-        loadError={lsdStatusError || aiModelsError}
+        loadError={lsdStatusError || (aiModelsError && maasModelsError)}
         headerAction={
           <ChatbotHeaderActions
-            onViewCode={() => setIsViewCodeModalOpen(true)}
+            onViewCode={() => {
+              setIsViewCodeModalOpen(true);
+              fireSimpleTrackingEvent('Playground View Code Selected');
+            }}
             onConfigurePlayground={() => setConfigurationModalOpen(true)}
             onDeletePlayground={() => setDeleteModalOpen(true)}
           />
@@ -153,9 +169,10 @@ const ChatbotMain: React.FunctionComponent = () => {
             setConfigurationModalOpen(false);
             refresh();
           }}
-          allModels={aiModels}
+          aiModels={aiModels}
           lsdStatus={lsdStatus}
           existingModels={models}
+          maasModels={maasModels}
         />
       )}
       {deleteModalOpen && (

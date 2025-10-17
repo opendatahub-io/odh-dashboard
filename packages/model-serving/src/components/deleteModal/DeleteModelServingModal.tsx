@@ -61,7 +61,9 @@ const DeleteModelServingModal: React.FC<DeleteModelServingModalProps> = ({
           error={error}
           deleteName={getDisplayNameFromK8sResource(deployment.model)}
         >
-          This action cannot be undone.
+          The <strong>{getDisplayNameFromK8sResource(deployment.model)}</strong> model deployment
+          and its API keys will be deleted, and its model endpoint will no longer be available as an
+          AI asset or MaaS.
         </DeleteModal>
       );
 };

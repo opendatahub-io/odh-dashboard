@@ -35,7 +35,7 @@ func TestMaaSIssueTokenHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachMaaSClient middleware
-		maasClient := app.maasClientFactory.CreateClient("", "", false, nil)
+		maasClient := app.maasClientFactory.CreateClient("", "token_mock", false, nil)
 		ctx := context.WithValue(req.Context(), constants.MaaSClientKey, maasClient)
 		req = req.WithContext(ctx)
 
@@ -67,7 +67,7 @@ func TestMaaSIssueTokenHandler(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 
 		// Simulate AttachMaaSClient middleware
-		maasClient := app.maasClientFactory.CreateClient("", "", false, nil)
+		maasClient := app.maasClientFactory.CreateClient("", "token_mock", false, nil)
 		ctx := context.WithValue(req.Context(), constants.MaaSClientKey, maasClient)
 		req = req.WithContext(ctx)
 
@@ -94,7 +94,7 @@ func TestMaaSIssueTokenHandler(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 
 		// Simulate AttachMaaSClient middleware
-		maasClient := app.maasClientFactory.CreateClient("", "", false, nil)
+		maasClient := app.maasClientFactory.CreateClient("", "token_mock", false, nil)
 		ctx := context.WithValue(req.Context(), constants.MaaSClientKey, maasClient)
 		req = req.WithContext(ctx)
 
@@ -109,7 +109,7 @@ func TestMaaSIssueTokenHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachMaaSClient middleware
-		maasClient := app.maasClientFactory.CreateClient("", "", false, nil)
+		maasClient := app.maasClientFactory.CreateClient("", "token_mock", false, nil)
 		ctx := context.WithValue(req.Context(), constants.MaaSClientKey, maasClient)
 		req = req.WithContext(ctx)
 
@@ -149,7 +149,7 @@ func TestMaaSRevokeAllTokensHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachMaaSClient middleware
-		maasClient := app.maasClientFactory.CreateClient("", "", false, nil)
+		maasClient := app.maasClientFactory.CreateClient("", "token_mock", false, nil)
 		ctx := context.WithValue(req.Context(), constants.MaaSClientKey, maasClient)
 		req = req.WithContext(ctx)
 
@@ -170,7 +170,7 @@ func TestMaaSRevokeAllTokensHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachMaaSClient middleware
-		maasClient := app.maasClientFactory.CreateClient("", "", false, nil)
+		maasClient := app.maasClientFactory.CreateClient("", "token_mock", false, nil)
 		ctx := context.WithValue(req.Context(), constants.MaaSClientKey, maasClient)
 		req = req.WithContext(ctx)
 

@@ -11,6 +11,11 @@ export type LlamaModel = LlamaModelResponse & {
   modelId: string;
 };
 
+export type LSDInstallModel = {
+  model_name: string;
+  is_maas_model: boolean;
+};
+
 export type FileCounts = {
   /** Number of cancelled file operations */
   cancelled: number;
@@ -36,6 +41,7 @@ export type VectorStore = {
   /** Key-value metadata (max 16 pairs, keys ≤64 chars, values ≤512 chars) */
   metadata: {
     description?: string;
+    provider_id: string;
     [key: string]: string | undefined;
   };
   /** Human-readable name (max 256 characters) */
@@ -221,6 +227,14 @@ export type CodeExportRequest = {
   stream?: boolean;
   temperature?: number;
   tools?: CodeExportTool[];
+  mcp_servers?: MCPServerConfig[];
+  vector_store?: {
+    name: string;
+    embedding_model?: string;
+    embedding_dimension?: number;
+    provider_id: string;
+  };
+  files?: { file: string; purpose: string }[];
 };
 
 export type CodeExportData = {
@@ -273,6 +287,10 @@ export interface AIModel extends AAModelResponse {
   // Parse endpoints into usable format
   internalEndpoint?: string;
   externalEndpoint?: string;
+  // Flag to identify if this is a MaaS model
+  isMaaSModel?: boolean;
+  // The MaaS model ID if this is a MaaS model (needed for LSD installation)
+  maasModelId?: string;
 }
 
 export interface MaaSModel {

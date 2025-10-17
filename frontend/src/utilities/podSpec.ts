@@ -1,4 +1,4 @@
-import { ContainerResources, TolerationSettings, Toleration, PodAffinity } from '#~/types';
+import { ContainerResources, Toleration, PodAffinity } from '#~/types';
 import { determineTolerations } from './tolerations';
 import { AcceleratorProfileFormData } from './useAcceleratorProfileFormState';
 import { AcceleratorProfileState } from './useReadAcceleratorState';
@@ -7,7 +7,6 @@ export const assemblePodSpecOptions = (
   resourceSettings: ContainerResources,
   initialAcceleratorProfile?: AcceleratorProfileState,
   selectedAcceleratorProfile?: AcceleratorProfileFormData,
-  tolerationSettings?: TolerationSettings,
   existingTolerations?: Toleration[],
   affinitySettings?: PodAffinity,
   existingResources?: ContainerResources,
@@ -50,7 +49,6 @@ export const assemblePodSpecOptions = (
   }
 
   const tolerations = determineTolerations(
-    tolerationSettings,
     initialAcceleratorProfile,
     selectedAcceleratorProfile,
     existingTolerations,

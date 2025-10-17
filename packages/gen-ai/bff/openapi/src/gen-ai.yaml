@@ -222,7 +222,11 @@ paths:
             schema:
               $ref: "#/components/schemas/LlamaStackDistributionInstallRequest"
             example:
-              models: ["llama-3-2-3b-instruct", "granite-embedding-125m"]
+              models:
+                - model_name: "llama-3-2-3b-instruct"
+                  is_maas_model: false
+                - model_name: "granite-embedding-125m"
+                  is_maas_model: false
       responses:
         '200':
           $ref: "#/components/responses/LlamaStackDistributionInstallResponse"
@@ -281,12 +285,20 @@ paths:
     description: >-
       Lists all available models from MaaS (Model as a Service).
       Returns models with their identifiers, creation timestamps, ownership information, ready status, and service URLs.
-      This endpoint does not require namespace parameter as MaaS operates independently.
+      Requires namespace parameter for proper multi-tenant isolation.
     get:
       tags:
         - MaaS
       security:
         - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace for MaaS operations
+          required: true
+          schema:
+            type: string
+            example: 'default'
       responses:
         '200':
           description: Successful response with MaaS models list
@@ -347,11 +359,20 @@ paths:
     description: >-
       Issue new ephemeral tokens and revoke existing tokens for MaaS service authentication.
       Tokens are JWT-based with configurable TTL (time-to-live).
+      Requires namespace parameter for proper multi-tenant isolation.
     post:
       tags:
         - MaaS
       security:
         - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace for MaaS token operations
+          required: true
+          schema:
+            type: string
+            example: 'default'
       summary: Issue New Token
       description: Create a new ephemeral token with specified TTL for API authentication.
       requestBody:
@@ -401,6 +422,14 @@ paths:
         - MaaS
       security:
         - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace for MaaS token operations
+          required: true
+          schema:
+            type: string
+            example: 'default'
       summary: Revoke All Tokens
       description: Invalidate all tokens for the current user. This will break any applications currently using those tokens.
       responses:
@@ -2242,10 +2271,31 @@ components:
         models:
           type: array
           items:
-            type: string
-          description: List of model names to include in the LSD installation
-          example: ['llama-3-2-3b-instruct', 'granite-embedding-125m']
+            $ref: '#/components/schemas/InstallModel'
+          description: List of models to include in the LSD installation
+          example:
+            - model_name: 'llama-3-2-3b-instruct'
+              is_maas_model: false
+            - model_name: 'facebook/opt-125m'
+              is_maas_model: true
           minItems: 1
+
+    InstallModel:
+      type: object
+      required:
+        - model_name
+        - is_maas_model
+      properties:
+        model_name:
+          type: string
+          description: |
+            Name of the model to install. For MaaS models, this must be the exact MaaS model ID 
+            (e.g., 'facebook/opt-125m'). For regular models, this is the Kubernetes resource name.
+          example: 'llama-3-2-3b-instruct'
+        is_maas_model:
+          type: boolean
+          description: Whether this is a MaaS (Model as a Service) model
+          example: false
 
     LlamaStackDistributionInstallModel:
       type: object

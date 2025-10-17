@@ -17,10 +17,7 @@ import {
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import { CreateConnectionData } from '../components/deploymentWizard/fields/CreateConnectionInputFields';
-import {
-  ModelLocationData,
-  ModelLocationType,
-} from '../components/deploymentWizard/fields/modelLocationFields/types';
+import { ModelLocationData, ModelLocationType } from '../components/deploymentWizard/types';
 
 export const handleConnectionCreation = async (
   createConnectionData: CreateConnectionData,
@@ -98,6 +95,9 @@ export const handleConnectionCreation = async (
       },
     },
   };
+  if (!description || description === '') {
+    delete annotatedConnection.metadata.annotations['openshift.io/description'];
+  }
 
   // If not saving as connection
   if (!createConnectionData.saveConnection) {

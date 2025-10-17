@@ -32,7 +32,7 @@ export const AIAssetsPage: React.FC = () => {
           icon={AiAssetEndpointsIcon}
         />
       }
-      description="Browse endpoints for available models and MCP servers."
+      description="Browse endpoints for models and MCP servers that are available as AI assets."
       loaded
       empty={false}
     >

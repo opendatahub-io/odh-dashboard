@@ -1,8 +1,10 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import type { MaaSModel } from '~/app/types';
 import useFetchMaaSModels from '~/app/hooks/useFetchMaaSModels';
 import AIAssetsMaaSTab from '~/app/AIAssets/AIAssetsMaaSTab';
+import { GenAiContext } from '~/app/context/GenAiContext';
 
 jest.mock('~/app/hooks/useFetchMaaSModels', () => ({
   __esModule: true,
@@ -29,6 +31,23 @@ jest.mock('~/app/AIAssets/components/MaaSModelsTable', () => ({
 
 const mockUseFetchMaaSModels = jest.mocked(useFetchMaaSModels);
 
+const mockGenAiContextValue = {
+  namespace: { name: 'test-namespace' },
+  nsModel: undefined,
+  loaded: true,
+  error: undefined,
+  refresh: jest.fn(),
+  isConfigured: true,
+  configuration: undefined,
+  crossProjectEnabledNamespaces: [],
+};
+
+const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <MemoryRouter>
+    <GenAiContext.Provider value={mockGenAiContextValue}>{children}</GenAiContext.Provider>
+  </MemoryRouter>
+);
+
 describe('AIAssetsMaaSTab', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -42,7 +61,11 @@ describe('AIAssetsMaaSTab', () => {
       refresh: jest.fn(),
     } as ReturnType<typeof useFetchMaaSModels>);
 
-    render(<AIAssetsMaaSTab />);
+    render(
+      <TestWrapper>
+        <AIAssetsMaaSTab />
+      </TestWrapper>,
+    );
 
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
@@ -55,10 +78,14 @@ describe('AIAssetsMaaSTab', () => {
       refresh: jest.fn(),
     } as ReturnType<typeof useFetchMaaSModels>);
 
-    render(<AIAssetsMaaSTab />);
+    render(
+      <TestWrapper>
+        <AIAssetsMaaSTab />
+      </TestWrapper>,
+    );
 
     expect(screen.getByTestId('empty-state')).toBeInTheDocument();
-    expect(screen.getByText('No MaaS models available')).toBeInTheDocument();
+    expect(screen.getByText('No models available as a service')).toBeInTheDocument();
   });
 
   it('should render empty state on error', () => {
@@ -69,7 +96,11 @@ describe('AIAssetsMaaSTab', () => {
       refresh: jest.fn(),
     } as ReturnType<typeof useFetchMaaSModels>);
 
-    render(<AIAssetsMaaSTab />);
+    render(
+      <TestWrapper>
+        <AIAssetsMaaSTab />
+      </TestWrapper>,
+    );
 
     expect(screen.getByTestId('empty-state')).toBeInTheDocument();
   });
@@ -91,7 +122,11 @@ describe('AIAssetsMaaSTab', () => {
       refresh: jest.fn(),
     } as ReturnType<typeof useFetchMaaSModels>);
 
-    render(<AIAssetsMaaSTab />);
+    render(
+      <TestWrapper>
+        <AIAssetsMaaSTab />
+      </TestWrapper>,
+    );
 
     expect(screen.getByTestId('maas-models-table')).toBeInTheDocument();
     expect(screen.getByTestId('model-model-1')).toBeInTheDocument();

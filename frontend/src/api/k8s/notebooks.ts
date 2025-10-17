@@ -20,7 +20,6 @@ import {
 import { usernameTranslate } from '#~/utilities/notebookControllerUtils';
 import { EnvironmentFromVariable, StartNotebookData } from '#~/pages/projects/types';
 import { ROOT_MOUNT_PATH } from '#~/pages/projects/pvc/const';
-import { getTolerationPatch, TolerationChanges } from '#~/utilities/tolerations';
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import {
   ELYRA_VOLUME_NAME,
@@ -261,16 +260,10 @@ export const stopNotebook = (name: string, namespace: string): Promise<NotebookK
 
 export const startNotebook = async (
   notebook: NotebookKind,
-  tolerationChanges: TolerationChanges,
   enablePipelines?: boolean,
 ): Promise<NotebookKind> => {
   const patches: Patch[] = [];
   patches.push(startPatch);
-
-  const tolerationPatch = getTolerationPatch(tolerationChanges);
-  if (tolerationPatch) {
-    patches.push(tolerationPatch);
-  }
 
   if (enablePipelines) {
     patches.push(getPipelineVolumePatch());

@@ -7,19 +7,20 @@ import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { getGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
 import { Deployment } from 'extension-points';
 import { getDeploymentWizardExitRoute, deployModel } from './utils';
-import { ModelDeploymentWizardData, useModelDeploymentWizard } from './useDeploymentWizard';
+import { useModelDeploymentWizard } from './useDeploymentWizard';
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
 import { ModelSourceStepContent } from './steps/ModelSourceStep';
 import { AdvancedSettingsStepContent } from './steps/AdvancedOptionsStep';
 import { ModelDeploymentStepContent } from './steps/ModelDeploymentStep';
 import { useDeployMethod } from './useDeployMethod';
+import type { InitialWizardFormData } from './types';
 import { WizardFooterWithDisablingNext } from '../generic/WizardFooterWithDisablingNext';
 
 type ModelDeploymentWizardProps = {
   title: string;
   description?: string;
   primaryButtonText: string;
-  existingData?: ModelDeploymentWizardData;
+  existingData?: InitialWizardFormData;
   project: ProjectKind;
   existingDeployment?: Deployment;
 };
@@ -78,53 +79,91 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     }
   }, [secretName, wizardState.state.createConnectionData]);
 
-  const onSave = React.useCallback(async () => {
-    // Use existing validation to prevent submission with invalid data
-    if (
-      !validation.isModelSourceStepValid ||
-      !validation.isModelDeploymentStepValid ||
-      !deployMethodLoaded ||
-      !deployMethod
-    ) {
-      return;
-    }
+  const [submitError, setSubmitError] = React.useState<Error | null>(null);
+  const [isLoading, setIsLoading] = React.useState(false);
 
-    const serverResourceTemplateName = wizardState.state.modelServer.data?.name;
-    const allModelServerTemplates =
-      wizardState.state.modelFormatState.templatesFilteredForModelType;
-    const serverResource = serverResourceTemplateName
-      ? getServingRuntimeFromTemplate(
-          allModelServerTemplates?.find(
-            (template) => template.metadata.name === serverResourceTemplateName,
-          ),
-        )
-      : undefined;
+  const onSave = React.useCallback(
+    async (overwrite?: boolean) => {
+      setSubmitError(null);
+      setIsLoading(true);
 
-    deployModel(
-      wizardState,
-      project,
-      secretName,
-      exitWizard,
-      deployMethod.properties.deploy,
+      try {
+        if (
+          !validation.isModelSourceStepValid ||
+          !validation.isModelDeploymentStepValid ||
+          !deployMethodLoaded ||
+          !deployMethod
+        ) {
+          // shouldn't happen, but just in case
+          throw new Error('Invalid form data');
+        }
+
+        const serverResourceTemplateName = wizardState.state.modelServer.data?.name;
+        const allModelServerTemplates =
+          wizardState.state.modelFormatState.templatesFilteredForModelType;
+        const serverResource = serverResourceTemplateName
+          ? getServingRuntimeFromTemplate(
+              allModelServerTemplates?.find(
+                (template) => template.metadata.name === serverResourceTemplateName,
+              ),
+            )
+          : undefined;
+
+        await deployModel(
+          wizardState,
+          project,
+          secretName,
+          exitWizard,
+          deployMethod.properties.deploy,
+          existingDeployment,
+          serverResource,
+          serverResourceTemplateName,
+          overwrite,
+        );
+      } catch (error) {
+        setSubmitError(error instanceof Error ? error : new Error(String(error)));
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [
+      deployMethod,
+      deployMethodLoaded,
       existingDeployment,
-      serverResource,
-      serverResourceTemplateName,
-    );
-  }, [
-    deployMethod,
-    deployMethodLoaded,
-    existingDeployment,
-    exitWizard,
-    project.metadata.name,
-    secretName,
-    validation.isModelDeploymentStepValid,
-    validation.isModelSourceStepValid,
-    wizardState.state,
-  ]);
+      exitWizard,
+      project.metadata.name,
+      secretName,
+      validation.isModelDeploymentStepValid,
+      validation.isModelSourceStepValid,
+      wizardState.state,
+    ],
+  );
+
+  const wizardFooter = React.useMemo(
+    () => (
+      <WizardFooterWithDisablingNext
+        error={submitError}
+        clearError={() => setSubmitError(null)}
+        isLoading={isLoading}
+        submitButtonText={primaryButtonText}
+        isAdvancedSettingsStepValid={validation.isAdvancedSettingsStepValid} //TODO: Remove this line once summary page is added
+        overwriteSupported={deployMethod?.properties.supportsOverwrite}
+        onSave={onSave}
+      />
+    ),
+    [
+      submitError,
+      isLoading,
+      primaryButtonText,
+      deployMethod?.properties.supportsOverwrite,
+      onSave,
+      validation.isAdvancedSettingsStepValid,
+    ], //TODO: Remove validation.isAdvancedSettingsStepValid once summary page is added
+  );
 
   return (
     <ApplicationsPage title={title} description={description} loaded empty={false}>
-      <Wizard onClose={exitWizard} onSave={onSave} footer={<WizardFooterWithDisablingNext />}>
+      <Wizard onClose={exitWizard} onSave={() => onSave()} footer={wizardFooter}>
         <WizardStep name="Source model" id="source-model-step">
           {wizardState.loaded.modelSourceLoaded ? (
             <ModelSourceStepContent wizardState={wizardState} validation={validation.modelSource} />
@@ -147,7 +186,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           )}
         </WizardStep>
         <WizardStep
-          name="Advanced settings (optional)"
+          name="Advanced settings"
           id="advanced-options-step"
           isDisabled={!validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid}
         >
@@ -157,10 +196,10 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
             <Spinner />
           )}
         </WizardStep>
-        <WizardStep
-          name="Summary"
+        {/* TODO: Uncomment when summary page is added */}
+        {/* <WizardStep
+          name="Review"
           id="summary-step"
-          footer={{ nextButtonText: primaryButtonText }}
           isDisabled={
             !validation.isModelSourceStepValid ||
             !validation.isModelDeploymentStepValid ||
@@ -168,7 +207,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           }
         >
           {wizardState.loaded.summaryLoaded ? 'Review step content' : <Spinner />}
-        </WizardStep>
+        </WizardStep> */}
       </Wizard>
     </ApplicationsPage>
   );

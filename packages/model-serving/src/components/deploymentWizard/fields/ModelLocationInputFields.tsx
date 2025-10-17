@@ -22,14 +22,11 @@ import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWa
 import useServingConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections';
 import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
+import { containsOnlySlashes, isS3PathValid } from '@odh-dashboard/internal/utilities/string';
 import { ExistingConnectionField } from './modelLocationFields/ExistingConnectionField';
-import {
-  ConnectionTypeRefs,
-  ModelLocationData,
-  ModelLocationType,
-} from './modelLocationFields/types';
 import NewConnectionField from './modelLocationFields/NewConnectionField';
 import { PvcSelectField } from './modelLocationFields/PVCSelectField';
+import { ConnectionTypeRefs, ModelLocationData, ModelLocationType } from '../types';
 
 export type ModelLocationDataField = {
   data: ModelLocationData | undefined;
@@ -232,11 +229,23 @@ const hasRequiredConnectionTypeFields = (modelLocationData: ModelLocationData): 
     ) || [];
 
   const requiredFields = dataFields.filter((field) => field.required).map((field) => field.envVar);
+  if (
+    modelLocationData.connectionTypeObject &&
+    isModelServingCompatible(
+      modelLocationData.connectionTypeObject,
+      ModelServingCompatibleTypes.S3ObjectStorage,
+    )
+  ) {
+    requiredFields.push('AWS_S3_BUCKET');
+  }
 
   return requiredFields.every((fieldName) => {
     const value = modelLocationData.fieldValues[fieldName];
     if (fieldName === 'URI') {
       return value !== undefined && String(value).includes('://');
+    }
+    if (fieldName === 'Bucket') {
+      return value !== undefined && String(value).trim() !== '';
     }
     return value !== undefined && String(value).trim() !== '';
   });
@@ -253,7 +262,11 @@ const hasRequiredAdditionalFields = (
       ModelServingCompatibleTypes.S3ObjectStorage,
     )
   ) {
-    return !!modelLocationData.additionalFields.modelPath;
+    return (
+      !!modelLocationData.additionalFields.modelPath &&
+      isS3PathValid(modelLocationData.additionalFields.modelPath ?? '') &&
+      !containsOnlySlashes(modelLocationData.additionalFields.modelPath ?? '')
+    );
   }
   if (
     modelLocationData.connectionTypeObject &&

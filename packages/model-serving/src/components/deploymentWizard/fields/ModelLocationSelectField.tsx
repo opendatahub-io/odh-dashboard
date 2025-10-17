@@ -1,7 +1,9 @@
 import React from 'react';
 import {
+  Form,
   FormGroup,
   FormHelperText,
+  FormSection,
   HelperTextItem,
   Stack,
   StackItem,
@@ -20,7 +22,7 @@ import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWa
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import usePvcs from '@odh-dashboard/internal/pages/modelServing/usePvcs';
 import { ModelLocationInputFields, useModelLocationData } from './ModelLocationInputFields';
-import { ModelLocationData, ModelLocationType } from './modelLocationFields/types';
+import { ModelLocationData, ModelLocationType } from '../types';
 
 // Schema
 export const modelLocationSelectFieldSchema = z.enum(
@@ -122,69 +124,74 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     return baseOptions;
   }, [baseOptions]);
   return (
-    <FormGroup fieldId="model-location-select" label="Model location" isRequired>
-      <FormHelperText>
-        <HelperTextItem>Where is the model you want to deploy located?</HelperTextItem>
-      </FormHelperText>
-      <Stack hasGutter>
-        <StackItem>
-          <SimpleSelect
-            dataTestId="model-location-select"
-            options={selectOptions}
-            onChange={(key) => {
-              if (key === '__placeholder__') {
-                return;
-              }
-              setSelectedConnection(undefined);
-              resetModelLocationData();
-              if (isValidModelLocation(key)) {
-                setModelLocationData({
-                  type: key,
-                  fieldValues: {},
-                  additionalFields: {},
-                });
-              } else {
-                const foundConnectionType = modelServingConnectionTypes.find(
-                  (ct) => ct.metadata.name === key,
-                );
-                if (foundConnectionType) {
-                  setModelLocationData({
-                    type: ModelLocationType.NEW,
-                    connectionTypeObject: foundConnectionType,
-                    fieldValues: {},
-                    additionalFields: {},
-                  });
+    <Form>
+      <FormSection title="Model details">
+        <p style={{ marginTop: '-8px' }}>Provide information about the model you want to deploy.</p>
+        <FormGroup fieldId="model-location-select" label="Model location" isRequired>
+          <FormHelperText>
+            <HelperTextItem>Where is the model currently located?</HelperTextItem>
+          </FormHelperText>
+          <Stack hasGutter>
+            <StackItem>
+              <SimpleSelect
+                dataTestId="model-location-select"
+                options={selectOptions}
+                onChange={(key) => {
+                  if (key === '__placeholder__') {
+                    return;
+                  }
+                  setSelectedConnection(undefined);
+                  resetModelLocationData();
+                  if (isValidModelLocation(key)) {
+                    setModelLocationData({
+                      type: key,
+                      fieldValues: {},
+                      additionalFields: {},
+                    });
+                  } else {
+                    const foundConnectionType = modelServingConnectionTypes.find(
+                      (ct) => ct.metadata.name === key,
+                    );
+                    if (foundConnectionType) {
+                      setModelLocationData({
+                        type: ModelLocationType.NEW,
+                        connectionTypeObject: foundConnectionType,
+                        fieldValues: {},
+                        additionalFields: {},
+                      });
+                    }
+                  }
+                }}
+                onBlur={validationProps?.onBlur}
+                placeholder="Select model location"
+                value={
+                  modelLocation === ModelLocationType.NEW && modelLocationData?.connectionTypeObject
+                    ? modelLocationData.connectionTypeObject.metadata.name
+                    : modelLocation
                 }
-              }
-            }}
-            onBlur={validationProps?.onBlur}
-            placeholder="Select model location"
-            value={
-              modelLocation === ModelLocationType.NEW && modelLocationData?.connectionTypeObject
-                ? modelLocationData.connectionTypeObject.metadata.name
-                : modelLocation
-            }
-            toggleProps={{ style: { minWidth: '450px' } }}
-          />
-        </StackItem>
-        <ZodErrorHelperText zodIssue={validationIssues} />
-        {modelLocation && (
-          <StackItem>
-            <ModelLocationInputFields
-              modelLocation={modelLocation}
-              connections={filteredConnections}
-              connectionTypes={modelServingConnectionTypes}
-              selectedConnection={selectedConnection}
-              setSelectedConnection={setSelectedConnection}
-              selectedConnectionType={selectedConnectionType}
-              setModelLocationData={setModelLocationData}
-              resetModelLocationData={resetModelLocationData}
-              modelLocationData={modelLocationData}
-              pvcs={pvcs.data}
-            />
-          </StackItem>
-        )}
-      </Stack>
-    </FormGroup>
+                toggleProps={{ style: { minWidth: '450px' } }}
+              />
+            </StackItem>
+            <ZodErrorHelperText zodIssue={validationIssues} />
+            {modelLocation && (
+              <StackItem>
+                <ModelLocationInputFields
+                  modelLocation={modelLocation}
+                  connections={filteredConnections}
+                  connectionTypes={modelServingConnectionTypes}
+                  selectedConnection={selectedConnection}
+                  setSelectedConnection={setSelectedConnection}
+                  selectedConnectionType={selectedConnectionType}
+                  setModelLocationData={setModelLocationData}
+                  resetModelLocationData={resetModelLocationData}
+                  modelLocationData={modelLocationData}
+                  pvcs={pvcs.data}
+                />
+              </StackItem>
+            )}
+          </Stack>
+        </FormGroup>
+      </FormSection>
+    </Form>
   );
 };

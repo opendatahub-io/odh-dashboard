@@ -11,7 +11,7 @@ import type {
   PodSpecOptions,
   PodSpecOptionsState,
 } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
-import type { UseAcceleratorProfileFormResult } from '@odh-dashboard/internal/utilities/useAcceleratorProfileFormState.js';
+import type { UseAcceleratorProfileFormResult } from '@odh-dashboard/internal/utilities/useAcceleratorProfileFormState';
 
 export const useModelServingHardwareProfileSection = (
   name?: string,
