@@ -113,7 +113,7 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
 
   return (
     <Modal variant={ModalVariant.large} isOpen={isOpen} onClose={onToggle}>
-      <ModalHeader title="View code" />
+      <ModalHeader title="Playground configuration" />
       <ModalBody>
         {error ? (
           <Alert variant={AlertVariant.danger} title="Error exporting code" isInline>

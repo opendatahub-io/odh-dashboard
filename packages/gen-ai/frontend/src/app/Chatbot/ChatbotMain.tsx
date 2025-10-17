@@ -1,15 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import {
-  Button,
-  EmptyState,
-  EmptyStateVariant,
-  EmptyStateBody,
-  Spinner,
-  EmptyStateFooter,
-  Content,
-  EmptyStateActions,
-} from '@patternfly/react-core';
+import { EmptyState, EmptyStateVariant, Spinner, Content } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -59,7 +50,7 @@ const ChatbotMain: React.FunctionComponent = () => {
         emptyStatePage={
           !hasModels ? (
             <ChatbotEmptyState
-              title="You need at least one model "
+              title="No available model deployments"
               description={
                 <Content
                   style={{
@@ -67,33 +58,34 @@ const ChatbotMain: React.FunctionComponent = () => {
                   }}
                 >
                   <Content component="p">
-                    Looks like your project is missing at least one model to use the playground.
-                    Follow the steps below to deploy make a model available.
+                    Model deployments must be added as AI asset endpoints to be available for
+                    testing in this model playground.
                   </Content>
+                  <Content component="p">To enable a deployment:</Content>
                   <Content component="ol">
                     <Content component="li">
-                      Go to your <b>Model Deployments</b> page and identify a LLM model
+                      Deploy a new model or edit an existing deployment.
                     </Content>
                     <Content component="li">
-                      {' '}
-                      Select <b>&#39;Edit&#39;</b> to update your deployment
-                    </Content>
-                    <Content component="li">
-                      Check the box: <b>&#39;Make this deployment available as an AI asset&#39;</b>
+                      In the deployment configuration, check the <b>Add as AI asset endpoint</b> box
                     </Content>
                   </Content>
                 </Content>
               }
-              actionButtonText="Go to Model Deployments"
+              actionButtonText={
+                <>
+                  Go to <b>Model deployments</b>
+                </>
+              }
               handleActionButtonClick={() => {
                 navigate(`/ai-hub/deployments/${namespace?.name}`);
               }}
             />
           ) : (
             <ChatbotEmptyState
-              title="Enable Playground"
-              description="Create a playground to chat with the generative models deployed in this project. Experiment with model output using a simple RAG simulation, custom prompt and MCP servers."
-              actionButtonText="Configure playground"
+              title="Create your playground"
+              description="Create a playground to interact with and test available generative models in this project."
+              actionButtonText="Create playground"
               handleActionButtonClick={() => {
                 setConfigurationModalOpen(true);
                 fireMiscTrackingEvent('Playground Setup Initiated', {
@@ -123,44 +115,12 @@ const ChatbotMain: React.FunctionComponent = () => {
         ) : lsdStatus?.phase === 'Failed' ? (
           <EmptyState
             headingLevel="h4"
-            titleText="Playground setup failed"
+            titleText="Playground creation failed"
             variant={EmptyStateVariant.lg}
             status="danger"
-          >
-            <EmptyStateBody>
-              There was an issue with one or more of the models added to your playground
-              configuration.You can update the configuration to change your model selection and try
-              again, or delete the playground.
-            </EmptyStateBody>
-            <EmptyStateFooter>
-              <EmptyStateActions>
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setConfigurationModalOpen(true);
-                  }}
-                >
-                  Update configuration
-                </Button>
-              </EmptyStateActions>
-              <EmptyStateActions>
-                <Button
-                  variant="link"
-                  onClick={() => {
-                    setDeleteModalOpen(true);
-                  }}
-                >
-                  Delete playground
-                </Button>
-              </EmptyStateActions>
-            </EmptyStateFooter>
-          </EmptyState>
+          />
         ) : (
-          <EmptyState headingLevel="h4" titleText="Configuring playground" icon={Spinner}>
-            <EmptyStateBody>
-              Please wait while we add models and configure the playground
-            </EmptyStateBody>
-          </EmptyState>
+          <EmptyState headingLevel="h4" titleText="Creating playground" icon={Spinner} />
         )}
       </ApplicationsPage>
       {configurationModalOpen && (

@@ -1562,6 +1562,16 @@ describe('Model Serving Deploy Wizard', () => {
     });
 
     it('deploy edit', () => {
+      cy.interceptK8sList(
+        { model: InferenceServiceModel, ns: 'test-project' },
+        mockK8sResourceList([
+          mockInferenceServiceK8sResource({ name: 'test-model', namespace: 'test-project' }),
+        ]),
+      );
+      cy.interceptK8sList(
+        { model: ServingRuntimeModel, ns: 'test-project' },
+        mockK8sResourceList([mockServingRuntimeK8sResource({ namespace: 'test-project' })]),
+      );
       cy.visitWithLogin(`/modelServing/test-project/deploy/edit/test-model`);
       cy.findByTestId('app-page-title').contains('Edit model deployment');
       cy.url().should('include', '/ai-hub/deployments/test-project/deploy/edit/test-model');

@@ -117,8 +117,8 @@ const useSourceManagement = ({
       if (skippedCount > 0) {
         // const remainingSlots = availableSlots;
         onShowErrorAlert(
-          `You have reached your max files uploaded. ${skippedCount} file${skippedCount === 1 ? '' : 's'}  will not be uploaded.`,
-          'Max Files Exceeded',
+          'The maximum file number of 10 has been reached. Some files might not have been uploaded.',
+          'File limit met',
         );
       }
 
