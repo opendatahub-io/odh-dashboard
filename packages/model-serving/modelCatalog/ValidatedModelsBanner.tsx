@@ -4,10 +4,9 @@ import {
   Card,
   CardBody,
   CardFooter,
+  CardHeader,
   Flex,
   FlexItem,
-  Stack,
-  StackItem,
   Title,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
@@ -48,6 +47,23 @@ const ValidatedModelsBanner: React.FC = () => {
 
   return (
     <Card variant="secondary" data-testid="validated-models-banner">
+      <CardHeader
+        actions={{
+          actions: (
+            <Button
+              variant="plain"
+              aria-label="Dismiss banner"
+              onClick={handleDismiss}
+              icon={<TimesIcon />}
+              data-testid="dismiss-banner-button"
+            />
+          ),
+        }}
+      >
+        <Title headingLevel="h3" size="lg">
+          Validated models by Red Hat AI
+        </Title>
+      </CardHeader>
       <Flex
         direction={{ default: 'row' }}
         alignItems={{ default: 'alignItemsStretch' }}
@@ -56,37 +72,14 @@ const ValidatedModelsBanner: React.FC = () => {
         {/* Left side: Content */}
         <Flex flex={{ default: 'flex_1' }} direction={{ default: 'column' }}>
           <CardBody>
-            <Stack hasGutter>
-              <StackItem>
-                <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                  <FlexItem flex={{ default: 'flex_1' }}>
-                    <Title headingLevel="h3" size="lg">
-                      Validated models by Red Hat AI
-                    </Title>
-                  </FlexItem>
-                  <FlexItem>
-                    <Button
-                      variant="plain"
-                      aria-label="Dismiss banner"
-                      onClick={handleDismiss}
-                      icon={<TimesIcon />}
-                      data-testid="dismiss-banner-button"
-                    />
-                  </FlexItem>
-                </Flex>
-              </StackItem>
-              <StackItem>
-                <p>
-                  Validated models by Red Hat AI offer confidence, predictability, and flexibility
-                  when deploying third-party generative AI models across the Red Hat AI platform.
-                </p>
-              </StackItem>
-            </Stack>
+            <p>
+              Validated models by Red Hat AI offer confidence, predictability, and flexibility when
+              deploying third-party generative AI models across the Red Hat AI platform.
+            </p>
           </CardBody>
           <CardFooter>
             <Button
-              variant="link"
-              isInline
+              variant="secondary"
               onClick={handleExploreClick}
               data-testid="explore-validated-models-button"
             >
@@ -109,4 +102,3 @@ const ValidatedModelsBanner: React.FC = () => {
 };
 
 export default ValidatedModelsBanner;
-
