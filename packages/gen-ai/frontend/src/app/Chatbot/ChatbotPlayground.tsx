@@ -156,7 +156,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         isOpen={sourceManagement.isSourceSettingsOpen}
         onToggle={sourceManagement.handleModalClose}
         onSubmitSettings={sourceManagement.handleSourceSettingsSubmit}
-        filename={sourceManagement.currentFileForSettings?.name}
         pendingFiles={sourceManagement.pendingFiles}
         isUploading={sourceManagement.isUploading}
         uploadProgress={sourceManagement.uploadProgress}
