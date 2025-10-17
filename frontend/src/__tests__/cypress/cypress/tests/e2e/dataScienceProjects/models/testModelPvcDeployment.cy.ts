@@ -133,7 +133,7 @@ describe('Verify a model can be deployed from a PVC', () => {
       // Step 1: Model Source
       modelServingWizard.findModelLocationSelectOption('Cluster storage').click();
       // There's only one PVC so it's automatically selected
-      modelServingWizard.findExistingPVCSelectValue().should('not.be.empty');
+      modelServingWizard.findPVCSelectValue().should('not.be.empty');
       modelServingWizard.findModelTypeSelectOption('Predictive model').click();
       modelServingWizard.findNextButton().click();
       // Step 2: Model Deployment
@@ -145,7 +145,7 @@ describe('Verify a model can be deployed from a PVC', () => {
         if (!$selector.is(':disabled')) {
           cy.wrap($selector).click();
           modelServingWizard
-            .findGlobalScopedTemplateOption('Caikit TGIS ServingRuntime for KServe')
+            .findGlobalScopedTemplateOption('OpenVINO Model Server')
             .should('exist')
             .click();
         }

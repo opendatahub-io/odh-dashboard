@@ -104,7 +104,6 @@ describe('Verify Model Creation and Validation using the UI', () => {
       });
       modelServingWizard.findNextButton().click();
       //Step 3: Advanced Options
-      cy.pause();
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(testData.singleModelName);
 

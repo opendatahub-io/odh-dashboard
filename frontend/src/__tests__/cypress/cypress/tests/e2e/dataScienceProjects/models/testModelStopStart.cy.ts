@@ -2,7 +2,7 @@ import {
   modelServingGlobal,
   modelServingSection,
   modelServingWizard,
-} from '#~/__tests__/cypress/cypress/pages/modelServing.ts';
+} from '#~/__tests__/cypress/cypress/pages/modelServing';
 import { projectDetails, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
 import type { DataScienceProjectData } from '#~/__tests__/cypress/cypress/types';
 import { loadDSPFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
