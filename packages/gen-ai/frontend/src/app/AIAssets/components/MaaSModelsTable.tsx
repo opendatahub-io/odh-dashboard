@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { DashboardEmptyTableView, Table } from 'mod-arch-shared';
-import { MaaSModel } from '~/app/types';
+import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
 import { maasModelColumns } from '~/app/AIAssets/data/maasColumns';
 import useMaaSModelsFilter from '~/app/AIAssets/hooks/useMaaSModelsFilter';
 import {
@@ -14,9 +14,20 @@ import ModelsListToolbar from './ModelsListToolbar';
 type MaaSModelsTableProps = {
   models: MaaSModel[];
   namespace: string;
+  playgroundModels: LlamaModel[];
+  lsdStatus: LlamaStackDistributionModel | null;
+  aiModels: AIModel[];
+  maasModels: MaaSModel[];
 };
 
-const MaaSModelsTable: React.FC<MaaSModelsTableProps> = ({ models, namespace }) => {
+const MaaSModelsTable: React.FC<MaaSModelsTableProps> = ({
+  models,
+  namespace,
+  playgroundModels,
+  lsdStatus,
+  aiModels,
+  maasModels,
+}) => {
   const { filterData, onFilterUpdate, onClearFilters, filteredModels } =
     useMaaSModelsFilter(models);
 
@@ -49,7 +60,15 @@ const MaaSModelsTable: React.FC<MaaSModelsTableProps> = ({ models, namespace }) 
       }
       onClearFilters={onClearFilters}
       rowRenderer={(model) => (
-        <MaaSModelTableRow key={model.id} model={model} namespace={namespace} />
+        <MaaSModelTableRow
+          key={model.id}
+          model={model}
+          namespace={namespace}
+          playgroundModels={playgroundModels}
+          lsdStatus={lsdStatus}
+          aiModels={aiModels}
+          maasModels={maasModels}
+        />
       )}
     />
   );

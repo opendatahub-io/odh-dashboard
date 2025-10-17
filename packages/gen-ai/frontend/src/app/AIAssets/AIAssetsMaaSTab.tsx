@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Bullseye, Content, Spinner } from '@patternfly/react-core';
 import ModelsEmptyState from '~/app/EmptyStates/NoData';
 import useFetchMaaSModels from '~/app/hooks/useFetchMaaSModels';
+import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
+import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
+import useFetchAIModels from '~/app/hooks/useFetchAIModels';
 import MaaSModelsTable from '~/app/AIAssets/components/MaaSModelsTable';
 import { GenAiContext } from '~/app/context/GenAiContext';
 
@@ -10,6 +13,9 @@ const AIAssetsMaaSTab: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = React.useContext(GenAiContext);
   const { data: models = [], loaded, error } = useFetchMaaSModels(namespace?.name || '');
+  const { data: playgroundModels = [] } = useFetchLlamaModels(namespace?.name);
+  const { data: lsdStatus } = useFetchLSDStatus(namespace?.name);
+  const { data: aiModels = [] } = useFetchAIModels(namespace?.name);
 
   if (!loaded && !error) {
     return (
@@ -45,7 +51,16 @@ const AIAssetsMaaSTab: React.FC = () => {
     );
   }
 
-  return <MaaSModelsTable models={models} namespace={namespace?.name || ''} />;
+  return (
+    <MaaSModelsTable
+      models={models}
+      namespace={namespace?.name || ''}
+      playgroundModels={playgroundModels}
+      lsdStatus={lsdStatus}
+      aiModels={aiModels}
+      maasModels={models}
+    />
+  );
 };
 
 export default AIAssetsMaaSTab;
