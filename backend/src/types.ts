@@ -990,16 +990,6 @@ export enum KnownLabels {
   KUEUE_MANAGED = 'kueue.openshift.io/managed',
 }
 
-type ComponentNames =
-  | 'codeflare'
-  | 'data-science-pipelines-operator'
-  | 'kserve'
-  | 'model-mesh'
-  // Bug: https://github.com/opendatahub-io/opendatahub-operator/issues/641
-  | 'odh-dashboard'
-  | 'ray'
-  | 'workbenches';
-
 export type DataScienceClusterKindStatus = {
   components?: {
     modelregistry?: {
@@ -1010,7 +1000,6 @@ export type DataScienceClusterKindStatus = {
     };
   };
   conditions: K8sCondition[];
-  installedComponents: { [key in ComponentNames]?: boolean };
   phase?: string;
   release?: {
     name: string;
