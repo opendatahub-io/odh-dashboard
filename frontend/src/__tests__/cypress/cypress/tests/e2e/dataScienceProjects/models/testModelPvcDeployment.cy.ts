@@ -1,6 +1,7 @@
 import {
-  inferenceServiceModal,
   modelServingGlobal,
+  modelServingSection,
+  modelServingWizard,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import { AWS_BUCKETS } from '#~/__tests__/cypress/cypress/utils/s3Buckets';
 import {
@@ -69,7 +70,7 @@ describe('Verify a model can be deployed from a PVC', () => {
   });
   it(
     'should deploy a model from a PVC',
-    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving'] },
+    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing'] },
     () => {
       cy.step('log into application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -129,16 +130,30 @@ describe('Verify a model can be deployed from a PVC', () => {
       projectDetails.findSectionTab('model-server').click();
       modelServingGlobal.findSingleServingModelButton().click();
       modelServingGlobal.findDeployModelButton().click();
-      inferenceServiceModal.findModelNameInput().type(modelName);
-      inferenceServiceModal.findServingRuntimeTemplateSearchSelector().click();
-      inferenceServiceModal.findGlobalScopedTemplateOption('OpenVINO Model Server').click();
-      inferenceServiceModal.findModelFrameworkSelect().click();
-      inferenceServiceModal.findOpenVinoIROpSet13().click();
+      // Step 1: Model Source
+      modelServingWizard.findModelLocationSelectOption('Cluster storage').click();
       // There's only one PVC so it's automatically selected
-      inferenceServiceModal.findExistingPVCConnectionOption().click();
-      inferenceServiceModal.findSubmitButton().should('be.enabled').click();
-      inferenceServiceModal.shouldBeOpen(false);
-
+      modelServingWizard.findPVCSelectValue().should('not.be.empty');
+      modelServingWizard.findModelTypeSelectOption('Predictive model').click();
+      modelServingWizard.findNextButton().click();
+      // Step 2: Model Deployment
+      modelServingWizard.findModelDeploymentNameInput().type(modelName);
+      modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
+      // Only interact with serving runtime template selector if it's not disabled
+      // (it may be disabled when only one option is available)
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().then(($selector) => {
+        if (!$selector.is(':disabled')) {
+          cy.wrap($selector).click();
+          modelServingWizard
+            .findGlobalScopedTemplateOption('OpenVINO Model Server')
+            .should('exist')
+            .click();
+        }
+      });
+      modelServingWizard.findNextButton().click();
+      //Step 3: Advanced Options
+      modelServingWizard.findSubmitButton().click();
+      modelServingSection.findModelServerDeployedName(testData.singleModelName);
       //Verify the model created and is running
       cy.step('Verify that the Model is running');
       // For KServe Raw deployments, we only need to check Ready condition
