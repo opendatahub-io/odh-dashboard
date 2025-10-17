@@ -97,7 +97,7 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
             data-testid="save-as-ai-asset-checkbox"
             label={
               <>
-                <div className="pf-v6-c-form__label-text">Add AI asset endpoint</div>
+                <div className="pf-v6-c-form__label-text">Add as AI asset endpoint</div>
                 <Flex>
                   <FlexItem>
                     Enable users in your namespace to test this model in the playground by adding

@@ -1290,7 +1290,6 @@ export type DashboardCommonConfig = {
   disableLMEval: boolean;
   disableKueue: boolean;
   disableModelTraining: boolean;
-  disableDeploymentWizard: boolean;
   disableModelAsService: boolean;
   disableFeatureStore?: boolean;
 };

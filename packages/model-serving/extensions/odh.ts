@@ -97,7 +97,7 @@ const extensions: (
       component: () => import('../src/ModelDeploymentWizardRoutes'),
     },
     flags: {
-      required: [PLUGIN_MODEL_SERVING, SupportedArea.DEPLOYMENT_WIZARD],
+      required: [PLUGIN_MODEL_SERVING],
     },
   },
 ];
