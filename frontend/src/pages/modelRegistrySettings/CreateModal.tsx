@@ -181,7 +181,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
           },
         },
         spec: {
-          oauthProxy: {},
+          kubeRBACProxy: {},
           mysql: {
             host,
             port: Number(port),
@@ -227,7 +227,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
           },
         },
         spec: {
-          oauthProxy: {},
+          kubeRBACProxy: {},
           grpc: {},
           rest: {},
           mysql: {
