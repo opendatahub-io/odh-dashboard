@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
 	"github.com/opendatahub-io/gen-ai/internal/models"
@@ -15,7 +16,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	authv1 "k8s.io/api/authorization/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 // loadTestData loads test fixture files from the testdata directory
@@ -490,4 +496,463 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		assert.Empty(t, result)
 		assert.Contains(t, err.Error(), "not found")
 	})
+}
+
+// TestExtractEndpointFromLLMInferenceService tests the internal endpoint extraction
+func TestExtractEndpointFromLLMInferenceService(t *testing.T) {
+	t.Run("should extract internal endpoint from service", func(t *testing.T) {
+		// Create a fake Kubernetes client with a service
+		scheme := runtime.NewScheme()
+		require.NoError(t, corev1.AddToScheme(scheme))
+
+		// Create a mock service
+		mockService := &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "facebook-opt-125m-single-kserve-workload-svc",
+				Namespace: "llm-test",
+			},
+			Spec: corev1.ServiceSpec{
+				Ports: []corev1.ServicePort{
+					{
+						Name:       "https",
+						Port:       8000,
+						TargetPort: intstr.FromInt(8000),
+						Protocol:   corev1.ProtocolTCP,
+					},
+				},
+			},
+		}
+
+		// Create fake client with the service
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(mockService).Build()
+
+		// Create LLMInferenceService
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "facebook-opt-125m-single",
+				Namespace: "llm-test",
+				Annotations: map[string]string{
+					"security.opendatahub.io/enable-auth": "true",
+				},
+			},
+			Spec: kservev1alpha1.LLMInferenceServiceSpec{
+				Model: kservev1alpha1.LLMModelSpec{
+					Name: stringPtr("facebook/opt-125m"),
+				},
+			},
+		}
+
+		// Create token client with fake client
+		client := &TokenKubernetesClient{
+			Client: fakeClient,
+			Logger: slog.Default(),
+		}
+
+		// Test endpoint extraction
+		endpoint, err := client.extractEndpointFromLLMInferenceService(llmSvc)
+
+		// Should succeed and return internal endpoint
+		assert.NoError(t, err)
+		assert.Equal(t, "https://facebook-opt-125m-single-kserve-workload-svc.llm-test.svc.cluster.local:8000/v1", endpoint)
+	})
+
+	t.Run("should extract internal endpoint with http for non-auth service", func(t *testing.T) {
+		// Create a fake Kubernetes client with a service
+		scheme := runtime.NewScheme()
+		require.NoError(t, corev1.AddToScheme(scheme))
+
+		// Create a mock service with http port
+		mockService := &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-model-kserve-workload-svc",
+				Namespace: "test-namespace",
+			},
+			Spec: corev1.ServiceSpec{
+				Ports: []corev1.ServicePort{
+					{
+						Name:       "http",
+						Port:       8080,
+						TargetPort: intstr.FromInt(8080),
+						Protocol:   corev1.ProtocolTCP,
+					},
+				},
+			},
+		}
+
+		// Create fake client with the service
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(mockService).Build()
+
+		// Create LLMInferenceService without auth
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-model",
+				Namespace: "test-namespace",
+				Annotations: map[string]string{
+					"security.opendatahub.io/enable-auth": "false",
+				},
+			},
+			Spec: kservev1alpha1.LLMInferenceServiceSpec{
+				Model: kservev1alpha1.LLMModelSpec{
+					Name: stringPtr("test/model"),
+				},
+			},
+		}
+
+		// Create token client with fake client
+		client := &TokenKubernetesClient{
+			Client: fakeClient,
+			Logger: slog.Default(),
+		}
+
+		// Test endpoint extraction
+		endpoint, err := client.extractEndpointFromLLMInferenceService(llmSvc)
+
+		// Should succeed and return internal endpoint with http
+		assert.NoError(t, err)
+		assert.Equal(t, "http://test-model-kserve-workload-svc.test-namespace.svc.cluster.local:8080/v1", endpoint)
+	})
+
+	t.Run("should handle service not found", func(t *testing.T) {
+		// Create a fake Kubernetes client without the service
+		scheme := runtime.NewScheme()
+		require.NoError(t, corev1.AddToScheme(scheme))
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+		// Create LLMInferenceService without Status fields
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-model",
+				Namespace: "test-namespace",
+				Annotations: map[string]string{
+					"security.opendatahub.io/enable-auth": "false",
+				},
+			},
+			Spec: kservev1alpha1.LLMInferenceServiceSpec{
+				Model: kservev1alpha1.LLMModelSpec{
+					Name: stringPtr("test/model"),
+				},
+			},
+		}
+
+		// Create token client with fake client
+		client := &TokenKubernetesClient{
+			Client: fakeClient,
+			Logger: slog.Default(),
+		}
+
+		// Test endpoint extraction
+		endpoint, err := client.extractEndpointFromLLMInferenceService(llmSvc)
+
+		// Should fail because service is not found and no fallback URL
+		assert.Error(t, err)
+		assert.Empty(t, endpoint)
+		assert.Contains(t, err.Error(), "has no service or address URL")
+	})
+
+	t.Run("should handle nil LLMInferenceService", func(t *testing.T) {
+		client := &TokenKubernetesClient{
+			Logger: slog.Default(),
+		}
+
+		endpoint, err := client.extractEndpointFromLLMInferenceService(nil)
+
+		assert.Error(t, err)
+		assert.Empty(t, endpoint)
+		assert.Contains(t, err.Error(), "LLMInferenceService is nil")
+	})
+
+	t.Run("should handle service with no ports", func(t *testing.T) {
+		// Create a fake Kubernetes client with a service that has no ports
+		scheme := runtime.NewScheme()
+		require.NoError(t, corev1.AddToScheme(scheme))
+
+		mockService := &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-model-kserve-workload-svc",
+				Namespace: "test-namespace",
+			},
+			Spec: corev1.ServiceSpec{
+				Ports: []corev1.ServicePort{}, // No ports
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(mockService).Build()
+
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-model",
+				Namespace: "test-namespace",
+			},
+			Spec: kservev1alpha1.LLMInferenceServiceSpec{
+				Model: kservev1alpha1.LLMModelSpec{
+					Name: stringPtr("test/model"),
+				},
+			},
+		}
+
+		client := &TokenKubernetesClient{
+			Client: fakeClient,
+			Logger: slog.Default(),
+		}
+
+		endpoint, err := client.extractEndpointFromLLMInferenceService(llmSvc)
+
+		assert.Error(t, err)
+		assert.Empty(t, endpoint)
+		assert.Contains(t, err.Error(), "has no ports")
+	})
+}
+
+// TestExtractEndpointsFromLLMInferenceService tests the endpoint list extraction
+func TestExtractEndpointsFromLLMInferenceService(t *testing.T) {
+	t.Run("should extract internal endpoint", func(t *testing.T) {
+		// Create a fake Kubernetes client with a service
+		scheme := runtime.NewScheme()
+		require.NoError(t, corev1.AddToScheme(scheme))
+
+		mockService := &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-model-kserve-workload-svc",
+				Namespace: "test-namespace",
+			},
+			Spec: corev1.ServiceSpec{
+				Ports: []corev1.ServicePort{
+					{
+						Name:       "https",
+						Port:       8000,
+						TargetPort: intstr.FromInt(8000),
+						Protocol:   corev1.ProtocolTCP,
+					},
+				},
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(mockService).Build()
+
+		// Create LLMInferenceService
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-model",
+				Namespace: "test-namespace",
+				Annotations: map[string]string{
+					"security.opendatahub.io/enable-auth": "true",
+				},
+			},
+			Spec: kservev1alpha1.LLMInferenceServiceSpec{
+				Model: kservev1alpha1.LLMModelSpec{
+					Name: stringPtr("test/model"),
+				},
+			},
+		}
+
+		client := &TokenKubernetesClient{
+			Client: fakeClient,
+			Logger: slog.Default(),
+		}
+
+		endpoints := client.extractEndpointsFromLLMInferenceService(llmSvc)
+
+		// Should have internal endpoint
+		assert.Len(t, endpoints, 1)
+		assert.Contains(t, endpoints, "internal: https://test-model-kserve-workload-svc.test-namespace.svc.cluster.local:8000")
+	})
+
+	t.Run("should only extract internal endpoint when external is cluster-local", func(t *testing.T) {
+		// Create a fake Kubernetes client with a service
+		scheme := runtime.NewScheme()
+		require.NoError(t, corev1.AddToScheme(scheme))
+
+		mockService := &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-model-kserve-workload-svc",
+				Namespace: "test-namespace",
+			},
+			Spec: corev1.ServiceSpec{
+				Ports: []corev1.ServicePort{
+					{
+						Name:       "https",
+						Port:       8000,
+						TargetPort: intstr.FromInt(8000),
+						Protocol:   corev1.ProtocolTCP,
+					},
+				},
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(mockService).Build()
+
+		// Create LLMInferenceService with cluster-local external URL
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-model",
+				Namespace: "test-namespace",
+			},
+			Spec: kservev1alpha1.LLMInferenceServiceSpec{
+				Model: kservev1alpha1.LLMModelSpec{
+					Name: stringPtr("test/model"),
+				},
+			},
+		}
+
+		client := &TokenKubernetesClient{
+			Client: fakeClient,
+			Logger: slog.Default(),
+		}
+
+		endpoints := client.extractEndpointsFromLLMInferenceService(llmSvc)
+
+		// Should only have internal endpoint (external is filtered out as cluster-local)
+		assert.Len(t, endpoints, 1)
+		assert.Contains(t, endpoints, "internal: https://test-model-kserve-workload-svc.test-namespace.svc.cluster.local:8000")
+	})
+
+	t.Run("should handle nil LLMInferenceService", func(t *testing.T) {
+		client := &TokenKubernetesClient{
+			Logger: slog.Default(),
+		}
+
+		endpoints := client.extractEndpointsFromLLMInferenceService(nil)
+
+		assert.Empty(t, endpoints)
+	})
+}
+
+// TestExtractInternalEndpointFromLLMInferenceService tests the internal endpoint extraction helper
+func TestExtractInternalEndpointFromLLMInferenceService(t *testing.T) {
+	t.Run("should extract internal endpoint with correct protocol and port", func(t *testing.T) {
+		// Create a fake Kubernetes client with a service
+		scheme := runtime.NewScheme()
+		require.NoError(t, corev1.AddToScheme(scheme))
+
+		mockService := &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "facebook-opt-125m-single-kserve-workload-svc",
+				Namespace: "llm-test",
+			},
+			Spec: corev1.ServiceSpec{
+				Ports: []corev1.ServicePort{
+					{
+						Name:       "https",
+						Port:       8000,
+						TargetPort: intstr.FromInt(8000),
+						Protocol:   corev1.ProtocolTCP,
+					},
+				},
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(mockService).Build()
+
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "facebook-opt-125m-single",
+				Namespace: "llm-test",
+				Annotations: map[string]string{
+					"security.opendatahub.io/enable-auth": "true",
+				},
+			},
+			Spec: kservev1alpha1.LLMInferenceServiceSpec{
+				Model: kservev1alpha1.LLMModelSpec{
+					Name: stringPtr("facebook/opt-125m"),
+				},
+			},
+		}
+
+		client := &TokenKubernetesClient{
+			Client: fakeClient,
+			Logger: slog.Default(),
+		}
+
+		endpoint := client.extractInternalEndpointFromLLMInferenceService(llmSvc)
+
+		assert.Equal(t, "https://facebook-opt-125m-single-kserve-workload-svc.llm-test.svc.cluster.local:8000", endpoint)
+	})
+
+	t.Run("should handle different port names and protocols", func(t *testing.T) {
+		testCases := []struct {
+			name        string
+			portName    string
+			port        int32
+			authEnabled string
+			expectedURL string
+		}{
+			{
+				name:        "https port with auth",
+				portName:    "https",
+				port:        8000,
+				authEnabled: "true",
+				expectedURL: "https://test-model-kserve-workload-svc.test-namespace.svc.cluster.local:8000",
+			},
+			{
+				name:        "http port without auth",
+				portName:    "http",
+				port:        8080,
+				authEnabled: "false",
+				expectedURL: "http://test-model-kserve-workload-svc.test-namespace.svc.cluster.local:8080",
+			},
+			{
+				name:        "custom port name",
+				portName:    "custom",
+				port:        9000,
+				authEnabled: "false",
+				expectedURL: "http://test-model-kserve-workload-svc.test-namespace.svc.cluster.local:9000",
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				// Create a fake Kubernetes client with a service
+				scheme := runtime.NewScheme()
+				require.NoError(t, corev1.AddToScheme(scheme))
+
+				mockService := &corev1.Service{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-model-kserve-workload-svc",
+						Namespace: "test-namespace",
+					},
+					Spec: corev1.ServiceSpec{
+						Ports: []corev1.ServicePort{
+							{
+								Name:       tc.portName,
+								Port:       tc.port,
+								TargetPort: intstr.FromInt(int(tc.port)),
+								Protocol:   corev1.ProtocolTCP,
+							},
+						},
+					},
+				}
+
+				fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(mockService).Build()
+
+				llmSvc := &kservev1alpha1.LLMInferenceService{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-model",
+						Namespace: "test-namespace",
+						Annotations: map[string]string{
+							"security.opendatahub.io/enable-auth": tc.authEnabled,
+						},
+					},
+					Spec: kservev1alpha1.LLMInferenceServiceSpec{
+						Model: kservev1alpha1.LLMModelSpec{
+							Name: stringPtr("test/model"),
+						},
+					},
+				}
+
+				client := &TokenKubernetesClient{
+					Client: fakeClient,
+					Logger: slog.Default(),
+				}
+
+				endpoint := client.extractInternalEndpointFromLLMInferenceService(llmSvc)
+
+				assert.Equal(t, tc.expectedURL, endpoint)
+			})
+		}
+	})
+}
+
+// Helper function to create string pointers
+func stringPtr(s string) *string {
+	return &s
 }
