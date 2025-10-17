@@ -37,15 +37,28 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
   const { isExternalRouteVisible, shouldAutoCheckTokens } = wizardState.advancedOptions;
 
   // TODO: Clean up the stuff below related to KServe. Maybe move to an extension?
-  const selectedModelServer =
-    wizardState.state.modelFormatState.templatesFilteredForModelType?.find(
-      (template) =>
-        template.metadata.name === wizardState.state.modelServer.data?.name &&
-        template.metadata.namespace === wizardState.state.modelServer.data.namespace,
-    )?.objects[0];
+  const selectedModelServer = React.useMemo(() => {
+    const templates = wizardState.state.modelFormatState.templatesFilteredForModelType;
+    const modelServerData = wizardState.state.modelServer.data;
+    if (!modelServerData || !templates || templates.length === 0) {
+      return undefined;
+    }
+    const template = templates.find((tmpl) => tmpl.metadata.name === modelServerData.name);
 
-  const getKServeContainer = (servingRuntime?: ServingRuntimeKind): ServingContainer | undefined =>
-    servingRuntime?.spec.containers.find((container) => container.name === 'kserve-container');
+    return template?.objects[0];
+  }, [
+    wizardState.state.modelFormatState.templatesFilteredForModelType,
+    wizardState.state.modelServer.data,
+  ]);
+
+  const getKServeContainer = (
+    servingRuntime?: ServingRuntimeKind,
+  ): ServingContainer | undefined => {
+    return (
+      servingRuntime?.spec.containers.find((container) => container.name === 'kserve-container') ||
+      servingRuntime?.spec.containers.find((container) => container.name === 'main')
+    );
+  };
 
   // will return `undefined` if no kserve container, force empty array if there is kserve with no args
   const getKServeContainerArgs = (servingRuntime?: K8sDSGResource): string[] | undefined => {
