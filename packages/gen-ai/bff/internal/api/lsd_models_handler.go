@@ -37,7 +37,7 @@ func (app *App) LlamaStackModelsHandler(w http.ResponseWriter, r *http.Request, 
 func filterModels(models []openai.Model, filteredKeywords []string) []openai.Model {
 	filtered := []openai.Model{}
 	// Default keywords to filter out (hardcoded rules)
-	defaultFilterKeywords := []string{"embedding", "all-mini"}
+	defaultFilterKeywords := []string{"embedding", "all-mini", "embed"}
 
 	// Combine default keywords with configured keywords
 	allFilterKeywords := append(defaultFilterKeywords, filteredKeywords...)
