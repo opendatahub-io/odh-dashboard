@@ -9,6 +9,7 @@ import (
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/models"
+	"github.com/opendatahub-io/gen-ai/internal/types"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -621,9 +622,9 @@ func (m *TokenKubernetesClientMock) CanListLlamaStackDistributions(ctx context.C
 
 // GetModelProviderInfo returns mock model provider configuration
 // Only returns provider_id, provider_type, and url (no api_token or other config)
-func (m *TokenKubernetesClientMock) GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*k8s.ModelProviderInfo, error) {
+func (m *TokenKubernetesClientMock) GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*types.ModelProviderInfo, error) {
 	// Return mock provider info based on common model IDs
-	mockConfigs := map[string]*k8s.ModelProviderInfo{
+	mockConfigs := map[string]*types.ModelProviderInfo{
 		// Non-MaaS models (vLLM)
 		"vllm-inference-1/llama-32-3b-instruct": {
 			ModelID:      "vllm-inference-1/llama-32-3b-instruct",
@@ -657,7 +658,7 @@ func (m *TokenKubernetesClientMock) GetModelProviderInfo(ctx context.Context, id
 	}
 
 	// Return generic mock config for unknown models (non-MaaS)
-	return &k8s.ModelProviderInfo{
+	return &types.ModelProviderInfo{
 		ModelID:      modelID,
 		ProviderID:   "vllm-inference-1",
 		ProviderType: "remote::vllm",

@@ -14,7 +14,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/models"
-	"gopkg.in/yaml.v3"
+	genaitypes "github.com/opendatahub-io/gen-ai/internal/types"
 	authnv1 "k8s.io/api/authentication/v1"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -587,7 +587,7 @@ func (kc *TokenKubernetesClient) findServiceAccountAndSecret(ctx context.Context
 	for _, sa := range saList.Items {
 		for _, ownerRef := range sa.OwnerReferences {
 			if ownerRef.Kind == serviceKind && ownerRef.Name == serviceName {
-				kc.Logger.Debug("found service account with owner reference",
+				kc.Logger.Debug("Found service account with owner reference",
 					"serviceAccount", sa.Name,
 					"serviceName", serviceName,
 					"serviceKind", serviceKind)
@@ -631,7 +631,7 @@ func (kc *TokenKubernetesClient) findSecretForServiceAccount(ctx context.Context
 	for _, secret := range secretList.Items {
 		if secret.Type == corev1.SecretTypeServiceAccountToken {
 			if saName, exists := secret.Annotations["kubernetes.io/service-account.name"]; exists && saName == serviceAccountName {
-				kc.Logger.Debug("found service account token secret",
+				kc.Logger.Debug("Found service account token secret",
 					"serviceAccount", serviceAccountName,
 					"secretName", secret.Name)
 				return secret.Name
@@ -810,7 +810,7 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 						},
 					},
 				})
-				kc.Logger.Info("referencing existing service account token secret", "model", model.ModelName, "envVar", envVarName, "secretName", secretInfo.secretName)
+				kc.Logger.Info("Referencing existing service account token secret", "model", model.ModelName, "envVar", envVarName, "secretName", secretInfo.secretName)
 			} else {
 				// Secret doesn't exist, use default token
 				envVars = append(envVars, corev1.EnvVar{
@@ -857,7 +857,10 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 							corev1.ResourceMemory: resource.MustParse("12Gi"),
 						},
 					},
-					Env:  envVars,
+					Env: append(envVars, corev1.EnvVar{
+						Name:  "LLAMA_STACK_CONFIG_DIR",
+						Value: "/opt/app-root/src/.llama/distributions/rh/",
+					}),
 					Name: "llama-stack",
 					Port: 8321,
 				},
@@ -968,9 +971,8 @@ func ensureVLLMCompatibleURL(url string) string {
 
 // generateLlamaStackConfig generates the Llama Stack configuration YAML
 func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, namespace string, installModels []models.InstallModel, maasClient maas.MaaSClientInterface) (string, error) {
-	// Generate models section and providers section dynamically from the provided models
-	modelsYAML := ""
-	providersYAML := ""
+	// Create a new config to build
+	config := constants.NewDefaultLlamaStackConfig()
 
 	// Create a map of MaaS models for efficient lookup (only call ListModels once)
 	maasModelsMap := make(map[string]*models.MaaSModel)
@@ -1002,6 +1004,15 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 		}
 	}
 
+	// Add the default embedding model
+	embeddingModel := constants.NewEmbeddingModel(
+		constants.DefaultEmbeddingModel.ModelID,
+		constants.DefaultEmbeddingModel.ProviderID,
+		constants.DefaultEmbeddingModel.ProviderModelID,
+		int(constants.DefaultEmbeddingModel.EmbeddingDimension),
+	)
+	config.AddModel(embeddingModel)
+
 	for i, model := range installModels {
 		if model.IsMaaSModel {
 			// Handle MaaS models using the pre-loaded map
@@ -1017,35 +1028,13 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 				return "", fmt.Errorf("MaaS model '%s' is not ready (status: %t)", model.ModelName, maasModel.Ready)
 			}
 
-			// Extract details from the MaaS model
-			modelID := maasModel.ID
-			providerID := fmt.Sprintf("maas-vllm-inference-%d", i+1) // Use "maas" prefix
-			modelType := "llm"
+			// Create provider and model for MaaS model
+			providerID := fmt.Sprintf("maas-vllm-inference-%d", i+1)
 			endpointURL := ensureVLLMCompatibleURL(maasModel.URL)
-
-			// Use the corresponding environment variable for this model's API token
-			apiTokenConfig := fmt.Sprintf("${env.VLLM_API_TOKEN_%d:=fake}", i+1)
-
-			// Add model to models section
-			modelsYAML += fmt.Sprintf(`  - metadata: {}
-    model_id: %s
-    provider_id: %s
-    model_type: %s
-`, modelID, providerID, modelType)
-
-			// Add provider to providers section
-			providersYAML += fmt.Sprintf(`  - provider_id: %s
-    provider_type: remote::vllm
-    config:
-      url: %s
-      max_tokens: ${env.VLLM_MAX_TOKENS:=4096}
-      api_token: %s
-      tls_verify: ${env.VLLM_TLS_VERIFY:=true}
-`, providerID, endpointURL, apiTokenConfig)
-
-			kc.Logger.Info("added MaaS model to configuration", "model", model.ModelName, "modelID", modelID, "endpoint", endpointURL)
+			addProviderAndModel(config, providerID, endpointURL, i, maasModel.ID, "llm", nil)
+			kc.Logger.Info("Added MaaS model to configuration", "model", maasModel.ID, "endpoint", endpointURL)
 		} else {
-			// Handle regular models (existing logic)
+			// Handle regular models
 			modelDetails, err := kc.getModelDetailsFromServingRuntime(ctx, namespace, model.ModelName)
 			if err != nil {
 				kc.Logger.Error("failed to get model details from serving runtime", "model", model.ModelName, "isMaaSModel", model.IsMaaSModel, "error", err)
@@ -1054,64 +1043,27 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 
 			// Extract details from the model configuration
 			modelID := modelDetails["model_id"].(string)
-			providerID := fmt.Sprintf("vllm-inference-%d", i+1) // Create unique provider ID for each model
+			providerID := fmt.Sprintf("vllm-inference-%d", i+1)
 			modelType := modelDetails["model_type"].(string)
 			endpointURL := modelDetails["endpoint_url"].(string)
 			metadata := modelDetails["metadata"].(map[string]interface{})
 
-			// Use the corresponding environment variable for this model's API token
-			apiTokenConfig := fmt.Sprintf("${env.VLLM_API_TOKEN_%d:=fake}", i+1)
+			// Create provider and model for regular model
+			addProviderAndModel(config, providerID, endpointURL, i, modelID, modelType, metadata)
+			kc.Logger.Info("Added regular LLM model to configuration", "model", modelID, "endpoint", endpointURL)
 
-			// Convert metadata to YAML format
-			metadataYAML := ""
-			if len(metadata) > 0 {
-				metadataYAML = "\n    metadata:\n"
-				for key, value := range metadata {
-					metadataYAML += fmt.Sprintf("      %s: %v\n", key, value)
-				}
-				// Remove trailing newline
-				metadataYAML = strings.TrimSuffix(metadataYAML, "\n")
-			} else {
-				metadataYAML = "\n    metadata: {}"
-			}
-
-			// Add model to models section
-			modelsYAML += fmt.Sprintf(`  -%s
-    model_id: %s
-    provider_id: %s
-    model_type: %s
-`, metadataYAML, modelID, providerID, modelType)
-
-			// Add provider to providers section
-			providersYAML += fmt.Sprintf(`  - provider_id: %s
-    provider_type: remote::vllm
-    config:
-      url: %s
-      max_tokens: ${env.VLLM_MAX_TOKENS:=4096}
-      api_token: %s
-      tls_verify: ${env.VLLM_TLS_VERIFY:=true}
-`, providerID, endpointURL, apiTokenConfig)
 		}
 	}
 
-	// Combine embedding model with other models
-	allModelsYAML := generateEmbeddingModelYAML(constants.DefaultEmbeddingModel) + "\n" + modelsYAML
-	configMapYAML := fmt.Sprintf(constants.LlamaStackConfigTemplate, providersYAML, allModelsYAML)
+	// Convert the config to YAML
+	configYAML, err := config.ToYAML()
+	if err != nil {
+		return "", fmt.Errorf("failed to convert config to YAML: %w", err)
+	}
 
-	return configMapYAML, nil
-}
-
-// generateEmbeddingModelYAML creates a YAML configuration for an embedding model
-func generateEmbeddingModelYAML(model constants.EmbeddingModelConfig) string {
-	return fmt.Sprintf(`  - metadata:
-      embedding_dimension: %d
-    model_id: %s
-    provider_id: %s
-    provider_model_id: %s
-    model_type: embedding`, model.EmbeddingDimension,
-		model.ModelID,
-		model.ProviderID,
-		model.ProviderModelID)
+	// Add comment header
+	configYAML = "# Llama Stack Configuration\n" + configYAML
+	return configYAML, nil
 }
 
 // getModelDetailsFromServingRuntime queries the serving runtime and inference service
@@ -1216,7 +1168,7 @@ func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.C
 	// All models are LLM models using vllm-inference
 	modelType := "llm"
 
-	kc.Logger.Info("using InferenceService for model", "modelID", modelID, "endpoint", internalURLStr)
+	kc.Logger.Info("Using InferenceService for model", "modelID", modelID, "endpoint", internalURLStr)
 	return map[string]interface{}{
 		"model_id":     strings.ReplaceAll(modelID, ":", "-"),
 		"model_type":   modelType,
@@ -1295,7 +1247,7 @@ func (kc *TokenKubernetesClient) findInferenceServiceByModelName(ctx context.Con
 	// Find InferenceService with name matching the model name
 	for _, isvc := range isvcList.Items {
 		if isvc.Name == modelName {
-			kc.Logger.Info("found InferenceService by model name", "modelName", modelName, "isvcName", isvc.Name, "namespace", namespace)
+			kc.Logger.Info("Found InferenceService by model name", "modelName", modelName, "isvcName", isvc.Name, "namespace", namespace)
 			return &isvc, nil
 		}
 	}
@@ -1395,9 +1347,43 @@ func (kc *TokenKubernetesClient) DeleteLlamaStackDistribution(ctx context.Contex
 	return targetLSD, nil
 }
 
-// GetModelProviderInfo retrieves provider configuration for a model from LSD configmap
-func (kc *TokenKubernetesClient) GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*ModelProviderInfo, error) {
+// GetModelProviderInfo retrieves provider configuration for a model from LlamaStackConfig
+func (kc *TokenKubernetesClient) GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*genaitypes.ModelProviderInfo, error) {
 	// Get LlamaStackDistribution
+	config, err := loadLlamaStackConfig(ctx, kc, identity, namespace)
+	if config == nil {
+		return nil, err
+	}
+	// Get model provider info from config
+	return config.GetModelProviderInfo(modelID)
+}
+
+// addProviderAndModel adds a provider and model to the LlamaStack configuration
+func addProviderAndModel(config *constants.LlamaStackConfig, providerID, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}) {
+	// Create provider config
+	providerConfig := constants.EmptyConfig()
+	providerConfig["url"] = endpointURL
+	providerConfig["max_tokens"] = "${env.VLLM_MAX_TOKENS:=4096}"
+	providerConfig["api_token"] = fmt.Sprintf("${env.VLLM_API_TOKEN_%d:=fake}", index+1)
+	providerConfig["tls_verify"] = "${env.VLLM_TLS_VERIFY:=true}"
+
+	// Add provider
+	provider := constants.NewProvider(providerID, "remote::vllm", providerConfig)
+	config.AddInferenceProvider(provider)
+
+	// Add model
+	var model constants.Model
+	if metadata == nil {
+		// For MaaS models or when no metadata is provided
+		model = constants.NewLLMModel(modelID, providerID, modelID)
+	} else {
+		// For regular models with metadata
+		model = constants.NewModel(modelID, providerID, modelType, metadata)
+	}
+	config.AddModel(model)
+}
+
+func loadLlamaStackConfig(ctx context.Context, kc *TokenKubernetesClient, identity *integrations.RequestIdentity, namespace string) (*constants.LlamaStackConfig, error) {
 	lsdList, err := kc.GetLlamaStackDistributions(ctx, identity, namespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get LlamaStackDistributions: %w", err)
@@ -1431,73 +1417,12 @@ func (kc *TokenKubernetesClient) GetModelProviderInfo(ctx context.Context, ident
 		return nil, fmt.Errorf("run.yaml not found in configmap")
 	}
 
-	// Parse model and provider info from YAML
-	return kc.parseModelProviderFromYAML(runYAML, modelID)
-}
-
-// LlamaStackConfig represents the YAML structure for LlamaStack configuration
-type LlamaStackConfig struct {
-	Models []struct {
-		ModelID    string `yaml:"model_id"`
-		ProviderID string `yaml:"provider_id"`
-	} `yaml:"models"`
-	Providers struct {
-		Inference []struct {
-			ProviderID   string `yaml:"provider_id"`
-			ProviderType string `yaml:"provider_type"`
-			Config       struct {
-				URL string `yaml:"url"`
-			} `yaml:"config"`
-		} `yaml:"inference"`
-	} `yaml:"providers"`
-}
-
-// parseModelProviderFromYAML parses the LlamaStack configuration YAML to extract model provider configuration
-// This is a two-step process:
-// 1. Find the model in the models section and get its provider_id
-// 2. Find that provider_id in the providers.inference section and get provider_type and url
-func (kc *TokenKubernetesClient) parseModelProviderFromYAML(runYAML string, modelID string) (*ModelProviderInfo, error) {
-	var config LlamaStackConfig
-	if err := yaml.Unmarshal([]byte(runYAML), &config); err != nil {
+	// Parse YAML into config
+	var config constants.LlamaStackConfig
+	if err := config.FromYAML(runYAML); err != nil {
 		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
-
-	// Find model and provider_id
-	var providerID string
-	for _, model := range config.Models {
-		if model.ModelID == modelID {
-			providerID = model.ProviderID
-			break
-		}
-	}
-	if providerID == "" {
-		return nil, fmt.Errorf("provider not found for model %s", modelID)
-	}
-
-	// Find provider details
-	for _, provider := range config.Providers.Inference {
-		if provider.ProviderID == providerID {
-			return &ModelProviderInfo{
-				ModelID:      modelID,
-				ProviderID:   providerID,
-				ProviderType: provider.ProviderType,
-				URL:          cleanEnvVar(provider.Config.URL),
-			}, nil
-		}
-	}
-
-	return nil, fmt.Errorf("provider configuration not found for provider_id %s", providerID)
-}
-
-// cleanEnvVar removes environment variable placeholders like ${env.VAR:=default}
-func cleanEnvVar(value string) string {
-	if strings.HasPrefix(value, "${env.") && strings.Contains(value, ":=") {
-		parts := strings.SplitN(value, ":=", 2)
-		if len(parts) == 2 {
-			return strings.TrimSuffix(parts[1], "}")
-		}
-	}
-	return value
+	return &config, nil
 }
 
 // GetClusterDomain retrieves the cluster domain from the ingresses.config.openshift.io/cluster resource
