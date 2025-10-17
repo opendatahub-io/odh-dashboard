@@ -56,9 +56,6 @@ RUN npm run build:prod
 # BFF build stage
 FROM ${GOLANG_BASE_IMAGE} AS bff-builder
 
-# Switch to root for build permissions
-USER root
-
 ARG BFF_SOURCE_CODE
 ARG TARGETOS
 ARG TARGETARCH
