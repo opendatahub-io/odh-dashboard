@@ -1,11 +1,16 @@
 import * as React from 'react';
 import { useCheckboxTable, Table, DashboardEmptyTableView } from 'mod-arch-shared';
-import { SearchType } from 'mod-arch-shared/dist/components/DashboardSearchField';
 import { MCPServer, MCPServerFromAPI } from '~/app/types';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServers';
 import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
 import NoData from '~/app/EmptyStates/NoData';
 import { transformMCPServerData } from '~/app/utilities/mcp';
+import useMCPServersFilter from '~/app/AIAssets/hooks/useMCPServersFilter';
+import {
+  MCPFilterColors,
+  MCPFilterOptions,
+  mcpFilterOptions,
+} from '~/app/AIAssets/data/mcpFilterOptions';
 import MCPServerTableRow from './MCPServerTableRow';
 import MCPServersToolbar from './MCPServersToolbar';
 import MCPServerColumns from './MCPServerColumns';
@@ -30,8 +35,6 @@ const MCPServersTable: React.FC<MCPServersTableProps> = ({
   statusesLoading,
   onRefresh,
 }) => {
-  const [filterValue, setFilterValue] = React.useState('');
-  const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
   const { saveSelectedServersToPlayground } = useMCPSelectionContext();
 
   const transformedServers = React.useMemo(
@@ -39,28 +42,8 @@ const MCPServersTable: React.FC<MCPServersTableProps> = ({
     [apiServers],
   );
 
-  const filteredServers = React.useMemo(() => {
-    if (!filterValue) {
-      return transformedServers;
-    }
-
-    return transformedServers.filter((server) => {
-      const searchTerm = filterValue.toLowerCase();
-      switch (searchType) {
-        case SearchType.NAME:
-          return server.name.toLowerCase().includes(searchTerm);
-        case SearchType.KEYWORD:
-          return (
-            server.name.toLowerCase().includes(searchTerm) ||
-            server.description.toLowerCase().includes(searchTerm)
-          );
-        case SearchType.DESCRIPTION:
-          return server.description.toLowerCase().includes(searchTerm);
-        default:
-          return server.name.toLowerCase().includes(searchTerm);
-      }
-    });
-  }, [filterValue, searchType, transformedServers]);
+  const { filterData, onFilterUpdate, onClearFilters, filteredServers } =
+    useMCPServersFilter(transformedServers);
 
   const serverIds = React.useMemo(
     () => filteredServers.map((server) => server.id),
@@ -101,7 +84,7 @@ const MCPServersTable: React.FC<MCPServersTableProps> = ({
         columns={MCPServerColumns}
         enablePagination
         defaultSortColumn={0}
-        emptyTableView={<DashboardEmptyTableView onClearFilters={() => setFilterValue('')} />}
+        emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
         rowRenderer={(server: MCPServer) => {
           const statusInfo = serverStatuses.get(server.connectionUrl);
           const isLoading = statusesLoading.has(server.connectionUrl);
@@ -119,16 +102,22 @@ const MCPServersTable: React.FC<MCPServersTableProps> = ({
         }}
         toolbarContent={
           <MCPServersToolbar
-            filterValue={filterValue}
-            onFilterChange={setFilterValue}
-            searchType={searchType}
-            onSearchTypeChange={setSearchType}
+            onFilterUpdate={onFilterUpdate}
+            filterData={filterData}
+            filterOptions={mcpFilterOptions}
+            filterColors={{
+              [MCPFilterOptions.NAME]: MCPFilterColors.NAME,
+              [MCPFilterOptions.KEYWORD]: MCPFilterColors.KEYWORD,
+              [MCPFilterOptions.DESCRIPTION]: MCPFilterColors.DESCRIPTION,
+            }}
             selectedCount={selections.length}
             selectedServerIds={selections}
             onTryInPlayground={saveSelectedServersToPlayground}
             onRefresh={onRefresh}
+            onClearFilters={onClearFilters}
           />
         }
+        onClearFilters={onClearFilters}
         data-testid="mcp-servers-table"
       />
     </>

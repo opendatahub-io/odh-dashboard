@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Label } from '@patternfly/react-core';
+import { Label, Popover } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import { CheckCircleIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { TableRowTitleDescription } from 'mod-arch-shared';
@@ -8,28 +8,31 @@ import MaaSModelTableRowEndpoint from './MaaSModelTableRowEndpoint';
 
 type MaaSModelTableRowProps = {
   model: MaaSModel;
+  namespace: string;
 };
 
-const MaaSModelTableRow: React.FC<MaaSModelTableRowProps> = ({ model }) => (
+const MaaSModelTableRow: React.FC<MaaSModelTableRowProps> = ({ model, namespace }) => (
   <Tr>
     <Td dataLabel="Model deployment name">
       <TableRowTitleDescription
         title={
           <>
             {model.id}
-            <Label
-              style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}
-              color="orange"
-              aria-label="Model as a Service"
-            >
-              MaaS
-            </Label>
+            <Popover aria-label="Models as a Service" bodyContent={<>Models as a Service</>}>
+              <Label
+                style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}
+                color="orange"
+                aria-label="Model as a Service"
+              >
+                MaaS
+              </Label>
+            </Popover>
           </>
         }
       />
     </Td>
     <Td dataLabel="External endpoint">
-      <MaaSModelTableRowEndpoint model={model} />
+      <MaaSModelTableRowEndpoint model={model} namespace={namespace} />
     </Td>
     <Td dataLabel="Status">
       {model.ready ? (

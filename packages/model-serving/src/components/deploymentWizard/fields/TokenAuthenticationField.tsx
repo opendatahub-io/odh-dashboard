@@ -17,8 +17,8 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
-import type { ModelServerOption } from './ModelServerTemplateSelectField';
+import type { ModelServerSelectField } from './ModelServerTemplateSelectField';
+import type { ModelTypeField } from './ModelTypeSelectField';
 import type { TokenAuthField } from '../types';
 
 // Schema
@@ -49,20 +49,20 @@ export type TokenAuthenticationFieldHook = {
 export const useTokenAuthenticationField = (
   existingData?: TokenAuthenticationFieldData,
   tokenAuthFields?: TokenAuthField[],
-  modelType?: ServingRuntimeModelType,
-  selectedModelServer?: ModelServerOption,
+  modelType?: ModelTypeField,
+  modelServer?: ModelServerSelectField,
 ): TokenAuthenticationFieldHook => {
   const shouldAutoCheck = React.useMemo(() => {
     if (!modelType || !tokenAuthFields) return false;
 
-    const extensionContext = {
-      modelType,
-      selectedModelServer,
-    };
-
-    const activeField = tokenAuthFields.find((field) => field.isActive(extensionContext));
+    const activeField = tokenAuthFields.find((field) =>
+      field.isActive({
+        modelType,
+        modelServer,
+      }),
+    );
     return activeField?.initialValue ?? false;
-  }, [tokenAuthFields, modelType, selectedModelServer]);
+  }, [tokenAuthFields, modelType, modelServer]);
 
   const initialData = React.useMemo(() => {
     if (shouldAutoCheck && (!existingData || existingData.length === 0)) {
@@ -213,7 +213,13 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
     <Stack hasGutter id="auth-section">
       <StackItem>
         <Checkbox
-          label="Require token authentication"
+          label={
+            <>
+              <div className="pf-v6-c-form__label-text">Require token authentication</div>
+              Requiring token authentication provides added security if you make your model
+              available to users outside of your cluster.
+            </>
+          }
           id="alt-form-checkbox-auth"
           data-testid="token-authentication-checkbox"
           name="alt-form-checkbox-auth"

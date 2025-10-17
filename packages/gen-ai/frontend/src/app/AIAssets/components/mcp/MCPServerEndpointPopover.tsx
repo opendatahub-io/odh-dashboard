@@ -11,7 +11,7 @@ const MCPServerEndpointPopover: React.FC<MCPServerEndpointPopoverProps> = ({
   children,
 }) => (
   <Popover
-    headerContent="Connection URL"
+    headerContent="Endpoint URL"
     headerComponent="h2"
     bodyContent={
       <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied">

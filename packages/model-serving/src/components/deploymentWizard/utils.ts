@@ -1,5 +1,5 @@
 import { getTokenNames } from '@odh-dashboard/internal/pages/modelServing/utils';
-import { ProjectKind, ServingRuntimeKind } from '@odh-dashboard/internal/k8sTypes.js';
+import { ProjectKind, ServingRuntimeKind } from '@odh-dashboard/internal/k8sTypes';
 import { isValidModelType, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
 import { type TokenAuthenticationFieldData } from './fields/TokenAuthenticationField';
 import { ModelLocationType, ModelLocationData, WizardFormData } from './types';
@@ -84,10 +84,12 @@ export const deployModel = async (
     serverResourceTemplateName?: string,
     dryRun?: boolean,
     secretName?: string,
+    overwrite?: boolean,
   ) => Promise<Deployment>,
   existingDeployment?: Deployment,
   serverResource?: ServingRuntimeKind,
   serverResourceTemplateName?: string,
+  overwrite?: boolean,
 ): Promise<void> => {
   // Dry runs
   const [dryRunSecret] = await Promise.all([
@@ -99,14 +101,18 @@ export const deployModel = async (
       true,
       wizardState.state.modelLocationData.selectedConnection,
     ),
-    deployMethod?.(
-      wizardState.state,
-      project.metadata.name,
-      existingDeployment,
-      serverResource,
-      serverResourceTemplateName,
-      true,
-    ),
+    ...(!overwrite
+      ? [
+          deployMethod?.(
+            wizardState.state,
+            project.metadata.name,
+            existingDeployment,
+            serverResource,
+            serverResourceTemplateName,
+            true,
+          ),
+        ]
+      : []),
   ]);
 
   // The secret name is calculated in handleConnectionCreation dryRun
@@ -135,6 +141,7 @@ export const deployModel = async (
     serverResourceTemplateName,
     false,
     actualSecretName,
+    overwrite,
   );
 
   if (!wizardState.state.modelLocationData.data || !deploymentResult) {

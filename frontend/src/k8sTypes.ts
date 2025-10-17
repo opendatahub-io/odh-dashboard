@@ -15,7 +15,6 @@ import {
   PodAffinity,
   PodContainer,
   Toleration,
-  TolerationSettings,
   Volume,
   VolumeMount,
   HardwareProfileAnnotations,
@@ -1292,6 +1291,7 @@ export type DashboardCommonConfig = {
   disableKueue: boolean;
   disableModelTraining: boolean;
   disableDeploymentWizard: boolean;
+  disableModelAsService: boolean;
   disableFeatureStore?: boolean;
 };
 
@@ -1310,7 +1310,8 @@ export type DashboardConfigKind = K8sResourceCommon & {
       storageClassName?: string;
       // Intentionally disjointed from the CRD [1]
       // notebookNamespace?: string;
-      notebookTolerationSettings?: TolerationSettings;
+      // Intentionally disjointed from the CRD [1]
+      // notebookTolerationSettings?: TolerationSettings;
     };
     templateOrder?: string[];
     templateDisablement?: string[];

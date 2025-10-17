@@ -30,6 +30,7 @@ import {
   RoleKind,
   SupportedModelFormats,
   MetadataAnnotation,
+  KnownLabels,
 } from '@odh-dashboard/internal/k8sTypes';
 import { getTokenNames } from '@odh-dashboard/internal/pages/modelServing/utils';
 import {
@@ -37,8 +38,9 @@ import {
   ModelServingCompatibleTypes,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { ModelLocationData } from '@odh-dashboard/model-serving/types/form-data';
+import type { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import type { CreatingInferenceServiceObject } from './deployModel';
-import type { AvailableAiAssetsFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/AvailableAiAssetsFields';
+import type { ModelAvailabilityFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/ModelAvailabilityFields';
 import type { RuntimeArgsFieldData } from '../../model-serving/src/components/deploymentWizard/fields/RuntimeArgsField';
 import type { EnvironmentVariablesFieldData } from '../../model-serving/src/components/deploymentWizard/fields/EnvironmentVariablesField';
 import { CreateConnectionData } from '../../model-serving/src/components/deploymentWizard/fields/CreateConnectionInputFields';
@@ -199,22 +201,27 @@ export const applyAuth = (
 
 export const applyAiAvailableAssetAnnotations = (
   inferenceService: InferenceServiceKind,
-  aiAvailableAsset: AvailableAiAssetsFieldsData,
+  aiAvailableAsset: ModelAvailabilityFieldsData,
 ): InferenceServiceKind => {
   const result = structuredClone(inferenceService);
-  result.metadata.annotations = {
-    ...result.metadata.annotations,
+  result.metadata.labels = {
+    ...result.metadata.labels,
     'opendatahub.io/genai-asset': aiAvailableAsset.saveAsAiAsset ? 'true' : 'false',
-    ...(aiAvailableAsset.saveAsAiAsset && {
-      'opendatahub.io/genai-use-case': aiAvailableAsset.useCase ?? '',
-    }),
   };
-
   if (!aiAvailableAsset.saveAsAiAsset) {
-    delete result.metadata.annotations['opendatahub.io/genai-asset'];
-    delete result.metadata.annotations['opendatahub.io/genai-use-case'];
+    delete result.metadata.labels['opendatahub.io/genai-asset'];
   }
 
+  result.metadata.annotations = {
+    ...result.metadata.annotations,
+    ...(aiAvailableAsset.saveAsAiAsset &&
+      aiAvailableAsset.useCase && {
+        'opendatahub.io/genai-use-case': aiAvailableAsset.useCase,
+      }),
+  };
+  if (!aiAvailableAsset.saveAsAiAsset || !aiAvailableAsset.useCase) {
+    delete result.metadata.annotations['opendatahub.io/genai-use-case'];
+  }
   return result;
 };
 
@@ -318,5 +325,43 @@ export const applyConnectionData = (
       storageUri: modelLocationData.additionalFields.modelUri,
     };
   }
+  return result;
+};
+
+export const applyDisplayNameDesc = (
+  inferenceService: InferenceServiceKind,
+  name: string,
+  description: string,
+): InferenceServiceKind => {
+  const result = structuredClone(inferenceService);
+  result.metadata.annotations = {
+    ...result.metadata.annotations,
+    'openshift.io/display-name': name,
+    'openshift.io/description': description,
+  };
+
+  return result;
+};
+
+export const applyDashboardResourceLabel = (
+  inferenceService: InferenceServiceKind,
+): InferenceServiceKind => {
+  const result = structuredClone(inferenceService);
+  result.metadata.labels = {
+    ...result.metadata.labels,
+    [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+  };
+  return result;
+};
+
+export const applyModelType = (
+  inferenceService: InferenceServiceKind,
+  modelType: ServingRuntimeModelType,
+): InferenceServiceKind => {
+  const result = structuredClone(inferenceService);
+  result.metadata.annotations = {
+    ...result.metadata.annotations,
+    'opendatahub.io/model-type': modelType,
+  };
   return result;
 };
