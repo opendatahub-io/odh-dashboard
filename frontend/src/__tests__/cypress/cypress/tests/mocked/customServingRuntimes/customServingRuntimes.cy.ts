@@ -92,6 +92,9 @@ describe('Custom serving runtimes', () => {
     servingRuntimes.uploadYaml(addfilePath);
     servingRuntimes.getDashboardCodeEditor().findInput().should('not.be.empty');
 
+    // Wait for form validation to complete
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
+    cy.wait(3000);
     servingRuntimes.findSubmitButton().should('be.enabled');
     servingRuntimes.findSubmitButton().click();
     cy.wait('@createSingleModelServingRuntime').then((interception) => {
