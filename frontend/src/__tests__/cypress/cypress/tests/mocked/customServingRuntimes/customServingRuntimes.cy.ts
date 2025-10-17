@@ -86,6 +86,12 @@ describe('Custom serving runtimes', () => {
       ServingRuntimeAPIProtocol.GRPC,
     ]);
     servingRuntimes.selectAPIProtocol(ServingRuntimeAPIProtocol.REST);
+    servingRuntimes.findSelectModelTypeButton();
+    servingRuntimes.shouldDisplayModelTypeValues([
+      'Predictive model',
+      'Generative AI model (e.g., LLM)',
+    ]);
+    servingRuntimes.selectModelType('Predictive model');
     servingRuntimes.findStartFromScratchButton().click();
     servingRuntimes.uploadYaml(addfilePath);
     servingRuntimes.getDashboardCodeEditor().findInput().should('not.be.empty');

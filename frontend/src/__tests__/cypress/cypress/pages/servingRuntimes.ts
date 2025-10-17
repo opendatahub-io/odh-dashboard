@@ -112,6 +112,20 @@ class ServingRuntimes {
     cy.findByRole('option', { name: value }).click();
   }
 
+  findSelectModelTypeButton() {
+    return cy.findByTestId('custom-serving-model-type-selection').find('button');
+  }
+
+  shouldDisplayModelTypeValues(values: ('Predictive model' | 'Generative AI model (e.g., LLM)')[]) {
+    this.findSelectModelTypeButton().click();
+    values.forEach((value) => cy.contains('.pf-v6-c-menu__item-text', value).should('exist'));
+    return this;
+  }
+
+  selectModelType(value: 'Predictive model' | 'Generative AI model (e.g., LLM)') {
+    cy.contains('.pf-v6-c-menu__item-text', value).click();
+  }
+
   uploadYaml(filePath: string) {
     this.getDashboardCodeEditor().findUpload().selectFile([filePath], { force: true });
   }
