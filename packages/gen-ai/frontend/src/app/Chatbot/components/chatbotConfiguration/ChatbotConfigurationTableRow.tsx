@@ -29,9 +29,13 @@ const ChatbotConfigurationTableRow: React.FC<ChatbotConfigurationTableRowProps> 
         title={
           <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
             <FlexItem>
-              <ResourceNameTooltip resource={convertAIModelToK8sResource(model)}>
-                {model.display_name}
-              </ResourceNameTooltip>
+              {model.isMaaSModel ? (
+                model.display_name
+              ) : (
+                <ResourceNameTooltip resource={convertAIModelToK8sResource(model)}>
+                  {model.display_name}
+                </ResourceNameTooltip>
+              )}
             </FlexItem>
             {model.isMaaSModel && (
               <FlexItem>
