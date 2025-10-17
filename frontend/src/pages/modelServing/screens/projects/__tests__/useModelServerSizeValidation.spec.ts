@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react';
-import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
 import useModelServerSizeValidation from '#~/pages/modelServing/screens/projects/useModelServerSizeValidation';
 
 // Mock the useValidation hook

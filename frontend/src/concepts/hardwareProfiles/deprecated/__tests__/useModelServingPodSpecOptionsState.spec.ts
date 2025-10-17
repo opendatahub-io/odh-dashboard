@@ -5,7 +5,7 @@ import * as areasUtils from '#~/concepts/areas';
 import * as appContext from '#~/app/AppContext';
 import useServingHardwareProfileConfig from '#~/concepts/hardwareProfiles/useServingHardwareProfileConfig';
 import useServingAcceleratorProfileFormState from '#~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
-import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
 import { ModelServingSize } from '#~/pages/modelServing/screens/types';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
