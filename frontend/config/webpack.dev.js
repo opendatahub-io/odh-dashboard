@@ -65,39 +65,119 @@ module.exports = smp.wrap(
         open: false,
         proxy: (() => {
           if (process.env.EXT_CLUSTER) {
-            const odhProject = process.env.OC_PROJECT || 'opendatahub';
-            const app = process.env.ODH_APP || 'odh-dashboard';
-            console.info('Using project:', odhProject);
-
+            // Environment variables:
+            // - DEV_LEGACY=true: Forces legacy behavior for oauth-proxy clusters
+            //   (uses old subdomain format and sends x-forwarded-access-token header)
+            const devLegacy = process.env.DEV_LEGACY === 'true';
             let dashboardHost;
             let token;
+
             try {
-              try {
-                dashboardHost = execSync(
-                  `oc get routes -n ${odhProject} ${app} -o jsonpath='{.spec.host}'`,
-                )
-                  .toString()
-                  .trim();
-              } catch (e) {
-                console.info('Failed to GET dashboard route, constructing host manually.');
-                dashboardHost = new URL(
-                  execSync(`oc whoami --show-console`).toString(),
-                ).host.replace(/^[^.]+\./, `${app}-${odhProject}.`);
-              }
-              console.info('Dashboard host:', dashboardHost);
-
-              token = execSync('oc whoami --show-token').toString().trim();
-
-              const username = execSync('oc whoami').toString().trim();
+              token = execSync('oc whoami --show-token', { stdio: ['pipe', 'pipe', 'ignore'] })
+                .toString()
+                .trim();
+              const username = execSync('oc whoami', { stdio: ['pipe', 'pipe', 'ignore'] })
+                .toString()
+                .trim();
               console.info('Logged in as user:', username);
             } catch (e) {
               throw new Error('Login with `oc login` prior to starting dev server.');
             }
 
+            const odhProject = process.env.OC_PROJECT || 'opendatahub';
+            const app = process.env.ODH_APP || 'odh-dashboard';
+            console.info('Using project:', odhProject);
+
+            // try to get dashboard host from HttpRoute and Gateway
+            try {
+              // Get the HttpRoute resource as JSON
+              const httpRouteJson = execSync(`oc get httproutes -n ${odhProject} ${app} -o json`, {
+                stdio: ['pipe', 'pipe', 'ignore'],
+              }).toString();
+              const httpRoute = JSON.parse(httpRouteJson);
+
+              // Extract parent gateway name and namespace
+              const parentRef = httpRoute?.status?.parents?.[0]?.parentRef;
+              const gatewayName = parentRef?.name;
+              const gatewayNamespace = parentRef?.namespace || odhProject;
+
+              if (gatewayName && gatewayNamespace) {
+                // Get the Gateway resource as JSON
+                const gatewayJson = execSync(
+                  `oc get gateway -n ${gatewayNamespace} ${gatewayName} -o json`,
+                  { stdio: ['pipe', 'pipe', 'ignore'] },
+                ).toString();
+                const gateway = JSON.parse(gatewayJson);
+
+                // Find the listener with name 'https'
+                const listeners = gateway?.spec?.listeners || [];
+                const httpsListener = listeners.find((listener) => listener.name === 'https');
+                if (httpsListener && httpsListener.hostname) {
+                  dashboardHost = httpsListener.hostname;
+                }
+              }
+            } catch (e) {
+              // ignore
+            }
+
+            if (!dashboardHost) {
+              // try to get dashboard host from Route
+              try {
+                dashboardHost = execSync(
+                  `oc get routes -n ${odhProject} ${app} -o jsonpath='{.spec.host}'`,
+                  { stdio: ['pipe', 'pipe', 'ignore'] },
+                )
+                  .toString()
+                  .trim();
+              } catch (e) {
+                // ignore
+              }
+            }
+
+            if (!dashboardHost) {
+              // default to legacy behavior if ODH_SUBDOMAIN is not set
+              const subdomain = devLegacy ? `${app}-${odhProject}` : `data-science-gateway`;
+              console.info(
+                `Failed to GET dashboard hostname, constructing hostname using subdomain '${subdomain}'.`,
+              );
+              if (!devLegacy) {
+                console.info(
+                  `Use DEV_LEGACY=true to override with legacy behavior. eg. DEV_LEGACY=true`,
+                );
+              }
+              dashboardHost = new URL(
+                execSync(`oc whoami --show-console`, {
+                  stdio: ['pipe', 'pipe', 'ignore'],
+                }).toString(),
+              ).host.replace(/^[^.]+\./, `${subdomain}.`);
+            }
+
+            console.info('Dashboard host:', dashboardHost);
+
+            let shouldFwdAccessToken = false;
+            // Detect if oauth-proxy is being used for legacy compatibility
+            try {
+              const deploymentJson = execSync(`oc get deployment -n ${odhProject} ${app} -o json`, {
+                stdio: ['pipe', 'pipe', 'ignore'],
+              }).toString();
+              const deployment = JSON.parse(deploymentJson);
+              const containers = deployment?.spec?.template?.spec?.containers || [];
+              shouldFwdAccessToken = containers.some(
+                (container) =>
+                  container.name === 'oauth-proxy' || container.image?.includes('oauth-proxy'),
+              );
+            } catch (e) {
+              shouldFwdAccessToken = devLegacy;
+              // ignore
+            }
+
             const headers = {
               Authorization: `Bearer ${token}`,
-              'x-forwarded-access-token': token,
             };
+            if (shouldFwdAccessToken) {
+              console.info('Supplying x-forwarded-access-token header');
+              headers['x-forwarded-access-token'] = token;
+            }
 
             return [
               {
