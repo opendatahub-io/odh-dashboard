@@ -118,6 +118,10 @@ class ServingRuntimes {
 
   selectModelType(value: 'Predictive model' | 'Generative AI model (e.g., LLM)') {
     cy.contains('.pf-v6-c-menu__item-text', value).click();
+    // Close the dropdown by clicking the toggle button again
+    this.findSelectModelTypeButton().click();
+    // Wait for the dropdown to close
+    cy.get('.pf-v6-c-menu').should('not.exist');
   }
 
   uploadYaml(filePath: string) {

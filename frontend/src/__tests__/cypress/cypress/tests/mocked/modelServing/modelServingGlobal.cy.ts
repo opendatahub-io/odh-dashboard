@@ -14,6 +14,7 @@ import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/Delet
 import {
   inferenceServiceModal,
   inferenceServiceModalEdit,
+  kserveModalEdit,
   modelServingGlobal,
   modelServingSection,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
@@ -311,7 +312,10 @@ describe('Model Serving Global', () => {
       .should('contain.text', 'NVIDIA NIM');
 
     // Open each modal and make sure it is the correct one
-    modelServingGlobal.getModelRow('KServe Model').findKebabAction('Edit').should('exist');
+    modelServingGlobal.getModelRow('KServe Model').findKebabAction('Edit').click();
+    // KServe Modal has section at the bottom for configuring params where as Model Mesh does not
+    kserveModalEdit.findConfigurationParamsSection().should('exist');
+    kserveModalEdit.findCancelButton().click();
 
     modelServingGlobal.getModelRow('Model Mesh Model').findKebabAction('Edit').click();
     inferenceServiceModalEdit.findConfigurationParamsSection().should('not.exist');
