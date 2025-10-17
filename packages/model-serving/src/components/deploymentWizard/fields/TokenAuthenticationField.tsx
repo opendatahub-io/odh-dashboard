@@ -83,8 +83,12 @@ export const useTokenAuthenticationField = (
     TokenAuthenticationFieldData | undefined
   >(initialData);
 
+  const runOnce = React.useRef(false);
   React.useEffect(() => {
-    setTokenAuthData(initialData);
+    if (runOnce.current === false) {
+      runOnce.current = true;
+      setTokenAuthData(initialData);
+    }
   }, [initialData]);
 
   return {
