@@ -8,6 +8,7 @@ import {
   EnvironmentVariablesFieldData,
   CreateConnectionFieldData,
   ModelAvailabilityFieldsData,
+  type InitialWizardFormData,
 } from '@odh-dashboard/model-serving/types/form-data';
 import * as _ from 'lodash-es';
 import { k8sMergePatchResource } from '@odh-dashboard/internal/api/k8sUtils';
@@ -32,7 +33,7 @@ import {
 
 const applyTokenAuthentication = (
   llmdInferenceService: LLMInferenceServiceKind,
-  tokenAuthentication?: { name: string; uuid: string; error?: string }[],
+  tokenAuthentication?: { displayName: string; uuid: string; error?: string }[],
 ): LLMInferenceServiceKind => {
   const result = structuredClone(llmdInferenceService);
   const annotations = { ...result.metadata.annotations };
@@ -177,7 +178,7 @@ type CreateLLMdInferenceServiceParams = {
   runtimeArgs?: RuntimeArgsFieldData;
   environmentVariables?: EnvironmentVariablesFieldData;
   modelAvailability?: ModelAvailabilityFieldsData;
-  tokenAuthentication?: { name: string; uuid: string; error?: string }[];
+  tokenAuthentication?: { displayName: string; uuid: string; error?: string }[];
 };
 
 const assembleLLMdInferenceServiceKind = (
@@ -256,6 +257,8 @@ export const deployLLMdDeployment = async (
   serverResourceTemplateName?: string,
   dryRun?: boolean,
   connectionSecretName?: string,
+  overwrite?: boolean,
+  initialWizardData?: InitialWizardFormData,
 ): Promise<LLMdDeployment> => {
   const llmdInferenceServiceData: CreateLLMdInferenceServiceParams = {
     projectName,
@@ -286,17 +289,18 @@ export const deployLLMdDeployment = async (
         connectionSecretName,
       );
 
-  if (wizardData.tokenAuthentication.data && wizardData.tokenAuthentication.data.length > 0) {
-    await setUpTokenAuth(
-      wizardData.tokenAuthentication.data,
-      wizardData.k8sNameDesc.data.k8sName.value,
-      projectName,
-      true,
-      llmdInferenceService,
-      undefined,
-      { dryRun },
-    );
-  }
+  const createTokenAuth =
+    (wizardData.tokenAuthentication.data && wizardData.tokenAuthentication.data.length > 0) ??
+    false;
+  await setUpTokenAuth(
+    wizardData.tokenAuthentication.data,
+    wizardData.k8sNameDesc.data.k8sName.value,
+    projectName,
+    createTokenAuth,
+    llmdInferenceService,
+    initialWizardData?.existingAuthTokens,
+    { dryRun },
+  );
 
   return {
     modelServingPlatformId: LLMD_SERVING_ID,

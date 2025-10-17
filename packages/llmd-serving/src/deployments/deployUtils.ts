@@ -3,6 +3,7 @@ import {
   assembleSecretSA,
   createSecret,
   deleteSecret,
+  replaceSecret,
 } from '@odh-dashboard/internal/api/k8s/secrets';
 import { assembleServiceAccount } from '@odh-dashboard/internal/api/k8s/serviceAccounts';
 import { generateRoleBindingServiceAccount } from '@odh-dashboard/internal/api/k8s/roleBindings';
@@ -44,7 +45,7 @@ export const generateRoleLLMInferenceService = (
 };
 
 export const createSecrets = async (
-  tokenAuth: { name: string; uuid: string; error?: string }[] | undefined,
+  tokenAuth: { displayName: string; k8sName?: string; uuid: string; error?: string }[] | undefined,
   deployedModelName: string,
   namespace: string,
   owner: LLMInferenceServiceKind,
@@ -55,15 +56,19 @@ export const createSecrets = async (
   const deletedSecrets =
     existingSecrets
       ?.map((secret) => secret.metadata.name)
-      .filter((token: string) => !tokenAuth?.some((tokenEdit) => tokenEdit.name === token)) || [];
+      .filter((token: string) => !tokenAuth?.some((tokenEdit) => tokenEdit.k8sName === token)) ||
+    [];
   const tokensToProcess = tokenAuth || [];
 
   await Promise.all<K8sStatus | SecretKind>([
     ...tokensToProcess.map((token) => {
       const secretToken = addOwnerReference(
-        assembleSecretSA(token.name, serviceAccountName, namespace, undefined),
+        assembleSecretSA(token.displayName, serviceAccountName, namespace, token.k8sName),
         owner,
       );
+      if (token.k8sName) {
+        return replaceSecret(secretToken, opts);
+      }
       return createSecret(secretToken, opts);
     }),
     ...deletedSecrets.map((secret) => deleteSecret(namespace, secret, opts)),
@@ -71,7 +76,7 @@ export const createSecrets = async (
 };
 
 export const setUpTokenAuth = async (
-  tokenAuth: { name: string; uuid: string; error?: string }[] | undefined,
+  tokenAuth: { displayName: string; k8sName?: string; uuid: string; error?: string }[] | undefined,
   deployedModelName: string,
   namespace: string,
   createTokenAuth: boolean,

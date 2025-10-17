@@ -119,6 +119,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           serverResource,
           serverResourceTemplateName,
           overwrite,
+          wizardState.initialData,
         );
       } catch (error) {
         setSubmitError(error instanceof Error ? error : new Error(String(error)));

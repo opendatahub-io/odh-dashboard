@@ -29,6 +29,7 @@ import {
 import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
 import { useAvailableClusterPlatforms } from '../../concepts/useAvailableClusterPlatforms';
 import { useResolvedDeploymentExtension } from '../../concepts/extensionUtils';
+import { useDeploymentAuthTokens } from '../../concepts/auth';
 
 const ErrorContent: React.FC<{ error: Error }> = ({ error }) => {
   const navigate = useNavigate();
@@ -118,6 +119,12 @@ const EditModelDeploymentContent: React.FC<{
   const [formDataExtension, formDataExtensionLoaded, formDataExtensionErrors] =
     useResolvedDeploymentExtension(isModelServingDeploymentFormDataExtension, existingDeployment);
 
+  const {
+    data: deploymentSecrets,
+    loaded: deploymentSecretsLoaded,
+    error: deploymentSecretsError,
+  } = useDeploymentAuthTokens(existingDeployment);
+
   const extractFormDataFromDeployment: (deployment: Deployment) => InitialWizardFormData = (
     deployment: Deployment,
   ) => ({
@@ -140,7 +147,8 @@ const EditModelDeploymentContent: React.FC<{
         ? formDataExtension.properties.extractModelLocationData(deployment) ?? undefined
         : undefined,
     externalRoute: getExternalRouteFromDeployment(deployment),
-    tokenAuthentication: getTokenAuthenticationFromDeployment(deployment),
+    tokenAuthentication: getTokenAuthenticationFromDeployment(deployment, deploymentSecrets),
+    existingAuthTokens: deploymentSecrets,
     runtimeArgs:
       typeof formDataExtension?.properties.extractRuntimeArgs === 'function'
         ? formDataExtension.properties.extractRuntimeArgs(deployment) ?? undefined
@@ -181,11 +189,11 @@ const EditModelDeploymentContent: React.FC<{
     return undefined;
   }, [existingDeployment, extractFormDataFromDeployment]);
 
-  if (formDataExtensionErrors.length > 0) {
-    return <ErrorContent error={formDataExtensionErrors[0]} />;
+  if (deploymentSecretsError || formDataExtensionErrors.length > 0) {
+    return <ErrorContent error={deploymentSecretsError || formDataExtensionErrors[0]} />;
   }
 
-  if (!deploymentsLoaded || !formDataExtensionLoaded) {
+  if (!deploymentsLoaded || !formDataExtensionLoaded || !deploymentSecretsLoaded) {
     return (
       <Bullseye>
         <Spinner />

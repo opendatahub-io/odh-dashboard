@@ -1,13 +1,22 @@
-import { getTokenNames } from '@odh-dashboard/internal/pages/modelServing/utils';
-import { ProjectKind, ServingRuntimeKind } from '@odh-dashboard/internal/k8sTypes';
+import { ProjectKind, ServingRuntimeKind, type SecretKind } from '@odh-dashboard/internal/k8sTypes';
+import {
+  getDisplayNameFromK8sResource,
+  getResourceNameFromK8sResource,
+} from '@odh-dashboard/internal/concepts/k8s/utils';
 import { isValidModelType, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
 import { type TokenAuthenticationFieldData } from './fields/TokenAuthenticationField';
-import { ModelLocationType, ModelLocationData, WizardFormData } from './types';
+import {
+  ModelLocationType,
+  ModelLocationData,
+  WizardFormData,
+  type InitialWizardFormData,
+} from './types';
 import {
   handleConnectionCreation,
   handleSecretOwnerReferencePatch,
 } from '../../concepts/connectionUtils';
 import type { Deployment, DeploymentEndpoint } from '../../../extension-points';
+import { isDeploymentAuthEnabled } from '../../concepts/auth';
 
 export const getDeploymentWizardRoute = (currentpath: string, deploymentName?: string): string => {
   if (deploymentName) {
@@ -49,26 +58,20 @@ export const getExternalRouteFromDeployment = (deployment: Deployment): boolean 
 
 export const getTokenAuthenticationFromDeployment = (
   deployment: Deployment,
+  deploymentSecrets: SecretKind[],
 ): TokenAuthenticationFieldData => {
-  const isTokenAuthEnabled =
-    deployment.model.metadata.annotations?.['security.opendatahub.io/enable-auth'] === 'true';
+  const isTokenAuthEnabled = isDeploymentAuthEnabled(deployment);
 
-  const tokens = [];
   if (isTokenAuthEnabled) {
-    const { serviceAccountName } = getTokenNames(
-      deployment.model.metadata.name,
-      deployment.model.metadata.namespace,
-    );
-    if (serviceAccountName) {
-      tokens.push({
-        uuid: `token-${Date.now()}`,
-        name: serviceAccountName,
-        error: '',
-      });
-    }
+    return deploymentSecrets.map((secret) => ({
+      uuid: secret.metadata.uid ?? '',
+      k8sName: getResourceNameFromK8sResource(secret),
+      displayName: getDisplayNameFromK8sResource(secret),
+      error: '',
+    }));
   }
 
-  return tokens;
+  return [];
 };
 
 export const deployModel = async (
@@ -85,11 +88,13 @@ export const deployModel = async (
     dryRun?: boolean,
     secretName?: string,
     overwrite?: boolean,
+    initialWizardData?: InitialWizardFormData,
   ) => Promise<Deployment>,
   existingDeployment?: Deployment,
   serverResource?: ServingRuntimeKind,
   serverResourceTemplateName?: string,
   overwrite?: boolean,
+  initialWizardData?: InitialWizardFormData,
 ): Promise<void> => {
   // Dry runs
   const [dryRunSecret] = await Promise.all([
@@ -110,6 +115,9 @@ export const deployModel = async (
             serverResource,
             serverResourceTemplateName,
             true,
+            undefined,
+            undefined,
+            initialWizardData,
           ),
         ]
       : []),
@@ -142,6 +150,7 @@ export const deployModel = async (
     false,
     actualSecretName,
     overwrite,
+    initialWizardData,
   );
 
   if (!wizardState.state.modelLocationData.data || !deploymentResult) {
