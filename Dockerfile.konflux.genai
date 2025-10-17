@@ -56,6 +56,8 @@ RUN npm run build:prod
 # BFF build stage
 FROM ${GOLANG_BASE_IMAGE} AS bff-builder
 
+USER 0
+
 ARG BFF_SOURCE_CODE
 ARG TARGETOS
 ARG TARGETARCH
@@ -76,6 +78,7 @@ COPY ${BFF_SOURCE_CODE}/openapi/ openapi/
 # Build the Go application
 RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags="-s -w" -tags strictfipsruntime -o bff ./cmd
 
+USER 1001
 # Final stage
 FROM ${DISTROLESS_BASE_IMAGE}
 
