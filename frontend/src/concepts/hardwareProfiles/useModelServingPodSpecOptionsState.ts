@@ -110,7 +110,6 @@ export const useModelServingPodSpecOptionsState = (
       resourceSettings,
       acceleratorProfile.initialState,
       acceleratorProfile.formData,
-      undefined,
       existingTolerations,
       undefined,
       existingResources,

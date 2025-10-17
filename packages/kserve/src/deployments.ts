@@ -15,7 +15,11 @@ import {
 } from '@odh-dashboard/internal/api/index';
 import { getAPIProtocolFromServingRuntime } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { getKServeDeploymentEndpoints } from './deploymentEndpoints';
-import { useWatchDeploymentPods, useWatchServingRuntimes, useWatchInferenceServices } from './api';
+import {
+  useWatchDeploymentPods,
+  useWatchServingRuntimes,
+  useWatchInferenceServices,
+} from './api/watch';
 import { getKServeDeploymentStatus } from './deploymentStatus';
 import { KSERVE_ID } from '../extensions';
 

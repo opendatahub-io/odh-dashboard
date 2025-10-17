@@ -931,7 +931,7 @@ class ModelServingSection {
 
 class ModelServingWizard extends Wizard {
   constructor(private edit = false) {
-    super('Deploy a model', 'Deploy model');
+    super('Deploy a model', edit ? 'Update deployment' : 'Deploy model');
   }
 
   findModelSourceStep() {
@@ -1153,6 +1153,10 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('save-as-ai-asset-checkbox');
   }
 
+  findSaveAsMaaSCheckbox() {
+    return cy.findByTestId('save-as-maas-checkbox');
+  }
+
   findUseCaseInput() {
     return cy.findByTestId('use-case-input');
   }
@@ -1191,6 +1195,10 @@ class ModelServingWizard extends Wizard {
 
   findErrorMessageAlert() {
     return cy.findByTestId('error-message-alert');
+  }
+
+  findUpdateDeploymentButton() {
+    return cy.findByRole('button', { name: 'Update deployment' });
   }
 }
 

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button, ButtonVariant, Popover, Content, Stack, StackItem } from '@patternfly/react-core';
 import { DashboardEmptyTableView, Table } from 'mod-arch-shared';
-import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
+import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
 import { aiModelColumns } from '~/app/AIAssets/data/columns';
 import useAIModelsFilter from '~/app/AIAssets/hooks/useAIModelsFilter';
 import {
@@ -13,7 +13,8 @@ import AIModelTableRow from './AIModelTableRow';
 import ModelsListToolbar from './ModelsListToolbar';
 
 type AIModelsTableProps = {
-  models: AIModel[];
+  aiModels: AIModel[];
+  maasModels: MaaSModel[];
   playgroundModels: LlamaModel[];
   lsdStatus: LlamaStackDistributionModel | null;
 };
@@ -21,17 +22,12 @@ type AIModelsTableProps = {
 export const AIModelStatusPopoverContent: React.ReactNode = (
   <Stack hasGutter>
     <StackItem>
-      <Content component="ol">
-        <Content component="li">
-          Go to your <strong>model deployments</strong> page
-        </Content>
-        <Content component="li">
-          Select &apos;<strong>Edit</strong>&apos; to update your deployment
-        </Content>
-        <Content component="li">
-          Check the box: &apos;
-          <strong>Make this deployment available as an AI Asset</strong>&apos;
-        </Content>
+      <Content component="p">
+        This page displays only model deployments that are available as AI assets.
+      </Content>
+      <Content component="p">
+        To make a deployment available as an AI asset, edit it from the{' '}
+        <strong>Model deployments</strong> page.
       </Content>
     </StackItem>
   </Stack>
@@ -43,7 +39,6 @@ export const AIModelStatusPopover: React.ReactNode = (
     showClose
     aria-label="Information about making model deployments available"
     headerComponent="h2"
-    headerContent={<Content>To make a model deployment available:</Content>}
     bodyContent={AIModelStatusPopoverContent}
   >
     <Button variant={ButtonVariant.link} data-testid="dont-see-model-button">
@@ -52,8 +47,14 @@ export const AIModelStatusPopover: React.ReactNode = (
   </Popover>
 );
 
-const AIModelsTable: React.FC<AIModelsTableProps> = ({ models, playgroundModels, lsdStatus }) => {
-  const { filterData, onFilterUpdate, onClearFilters, filteredModels } = useAIModelsFilter(models);
+const AIModelsTable: React.FC<AIModelsTableProps> = ({
+  aiModels,
+  maasModels,
+  playgroundModels,
+  lsdStatus,
+}) => {
+  const { filterData, onFilterUpdate, onClearFilters, filteredModels } =
+    useAIModelsFilter(aiModels);
 
   const aiFilterColors = {
     [AssetsFilterOptions.NAME]: AssetsFilterColors.NAME,
@@ -85,7 +86,8 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({ models, playgroundModels,
           lsdStatus={lsdStatus}
           key={model.model_name}
           model={model}
-          models={models}
+          aiModels={aiModels}
+          maasModels={maasModels}
           playgroundModels={playgroundModels}
         />
       )}

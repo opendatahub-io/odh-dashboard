@@ -96,8 +96,8 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
       <Stack hasGutter>
         <StackItem>
           <Checkbox
-            label="Single-model serving platform"
-            description="Each model is deployed on its own model server. Choose this option when you want to deploy a large model such as a large language model (LLM)."
+            label="Enable model serving"
+            description="Enable users to serve models using the single-model serving platform which deploys each model on its own dedicated model server. "
             isDisabled={!kServeInstalled}
             isChecked={kServeInstalled && enabledPlatforms.kServe}
             onChange={(e, enabled) => {

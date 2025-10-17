@@ -15,12 +15,12 @@ import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { setupDefaults } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
-import { ModelDeploymentWizardData } from './useDeploymentWizard';
 import {
   getModelTypeFromDeployment,
   getTokenAuthenticationFromDeployment,
   getExternalRouteFromDeployment,
 } from './utils';
+import type { InitialWizardFormData } from './types';
 import { Deployment, isModelServingDeploymentFormDataExtension } from '../../../extension-points';
 import {
   ModelDeploymentsContext,
@@ -106,14 +106,19 @@ const EditModelDeploymentContent: React.FC<{
   const { deployments, loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
   const { dashboardNamespace } = useDashboardNamespace();
 
-  const existingDeployment = React.useMemo(() => {
-    return deployments?.find((d: Deployment) => d.model.metadata.name === deploymentName);
-  }, [deployments, deploymentName]);
+  // freeze the existing deployment data so it doesn't change while the form is open
+  const existingDeploymentRef = React.useRef<Deployment | undefined>();
+  if (!existingDeploymentRef.current && deploymentsLoaded) {
+    existingDeploymentRef.current = deployments?.find(
+      (d: Deployment) => d.model.metadata.name === deploymentName,
+    );
+  }
+  const existingDeployment = existingDeploymentRef.current;
 
   const [formDataExtension, formDataExtensionLoaded, formDataExtensionErrors] =
     useResolvedDeploymentExtension(isModelServingDeploymentFormDataExtension, existingDeployment);
 
-  const extractFormDataFromDeployment: (deployment: Deployment) => ModelDeploymentWizardData = (
+  const extractFormDataFromDeployment: (deployment: Deployment) => InitialWizardFormData = (
     deployment: Deployment,
   ) => ({
     modelTypeField: getModelTypeFromDeployment(deployment),
@@ -144,20 +149,29 @@ const EditModelDeploymentContent: React.FC<{
       typeof formDataExtension?.properties.extractEnvironmentVariables === 'function'
         ? formDataExtension.properties.extractEnvironmentVariables(deployment) ?? undefined
         : undefined,
-    aiAssetData:
-      typeof formDataExtension?.properties.extractAiAssetData === 'function'
-        ? formDataExtension.properties.extractAiAssetData(deployment) ?? undefined
+    modelAvailability:
+      typeof formDataExtension?.properties.extractModelAvailabilityData === 'function'
+        ? formDataExtension.properties.extractModelAvailabilityData(deployment) ?? undefined
         : undefined,
-    modelServer: {
-      name: deployment.server?.metadata.annotations?.['opendatahub.io/template-name'] || '',
-      namespace:
-        deployment.server?.metadata.annotations?.['opendatahub.io/serving-runtime-scope'] ===
-        'global'
-          ? dashboardNamespace
-          : deployment.server?.metadata.namespace || '',
-      scope:
-        deployment.server?.metadata.annotations?.['opendatahub.io/serving-runtime-scope'] || '',
-    },
+    modelServer:
+      deployment.modelServingPlatformId === 'llmd-serving'
+        ? {
+            name: 'llmd-serving',
+            label: 'Distributed Inference Server with llm-d',
+          }
+        : deployment.server
+        ? {
+            name: deployment.server.metadata.annotations?.['opendatahub.io/template-name'] || '',
+            namespace:
+              deployment.server.metadata.annotations?.['opendatahub.io/serving-runtime-scope'] ===
+              'global'
+                ? dashboardNamespace
+                : deployment.server.metadata.namespace || '',
+            scope:
+              deployment.server.metadata.annotations?.['opendatahub.io/serving-runtime-scope'] ||
+              '',
+          }
+        : undefined,
   });
 
   const formData = React.useMemo(() => {

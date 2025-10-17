@@ -1,10 +1,10 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { FeatureStoreKind } from '@odh-dashboard/internal/k8sTypes';
 import { useFeatureStoreAPI } from '../FeatureStoreContext';
 import { useFeatureStoreCR } from '../apiHooks/useFeatureStoreCR';
 import { FeatureStoreAPIs } from '../types/global';
+import { RegistryFeatureStore } from '../hooks/useRegistryFeatureStores';
 import EnsureFeatureStoreAPIAvailability from '../EnsureAPIAvailability';
 
 jest.mock('../FeatureStoreContext', () => ({
@@ -21,12 +21,30 @@ const useFeatureStoreCRMock = jest.mocked(useFeatureStoreCR);
 describe('EnsureFeatureStoreAPIAvailability', () => {
   const MockChildren = () => <div data-testid="children">Test Children</div>;
 
+  const mockFeatureStore: RegistryFeatureStore = {
+    name: 'feature-store',
+    project: 'test-project',
+    registry: {
+      path: 'test-registry.svc.cluster.local:443',
+    },
+    namespace: 'test-namespace',
+    status: {
+      conditions: [
+        {
+          type: 'Registry',
+          status: 'True',
+          lastTransitionTime: '2025-01-01T00:00:00Z',
+        },
+      ],
+    },
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
 
     // Default mock for useFeatureStoreCR
     useFeatureStoreCRMock.mockReturnValue({
-      data: { metadata: { name: 'feature-store' } } as FeatureStoreKind,
+      data: mockFeatureStore,
       loaded: true,
       error: undefined,
     });
@@ -59,7 +77,7 @@ describe('EnsureFeatureStoreAPIAvailability', () => {
     });
 
     useFeatureStoreCRMock.mockReturnValue({
-      data: { metadata: { name: 'feature-store' } } as FeatureStoreKind,
+      data: mockFeatureStore,
       loaded: true,
       error: undefined,
     });

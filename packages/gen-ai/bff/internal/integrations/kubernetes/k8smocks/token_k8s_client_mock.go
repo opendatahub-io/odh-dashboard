@@ -619,6 +619,52 @@ func (m *TokenKubernetesClientMock) CanListLlamaStackDistributions(ctx context.C
 	return true, nil
 }
 
+// GetModelProviderInfo returns mock model provider configuration
+// Only returns provider_id, provider_type, and url (no api_token or other config)
+func (m *TokenKubernetesClientMock) GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*k8s.ModelProviderInfo, error) {
+	// Return mock provider info based on common model IDs
+	mockConfigs := map[string]*k8s.ModelProviderInfo{
+		// Non-MaaS models (vLLM)
+		"vllm-inference-1/llama-32-3b-instruct": {
+			ModelID:      "vllm-inference-1/llama-32-3b-instruct",
+			ProviderID:   "vllm-inference-1",
+			ProviderType: "remote::vllm",
+			URL:          "http://llama-32-3b-instruct-predictor.team-crimson.svc.cluster.local/v1",
+		},
+		"llama-32-3b-instruct": {
+			ModelID:      "llama-32-3b-instruct",
+			ProviderID:   "vllm-inference-1",
+			ProviderType: "remote::vllm",
+			URL:          "http://llama-32-3b-instruct-predictor.crimson-show.svc.cluster.local/v1",
+		},
+		// MaaS models (provider_id starts with "maas-")
+		"granite-3.1-8b-instruct": {
+			ModelID:      "granite-3.1-8b-instruct",
+			ProviderID:   "maas-watsonx",
+			ProviderType: "remote::watsonx",
+			URL:          "https://us-south.ml.cloud.ibm.com/ml/v1",
+		},
+		"llama-3-70b-instruct": {
+			ModelID:      "llama-3-70b-instruct",
+			ProviderID:   "maas-vllm-inference-1",
+			ProviderType: "remote::vllm",
+			URL:          "https://api.azure.com/openai/deployments/llama-3-70b",
+		},
+	}
+
+	if config, exists := mockConfigs[modelID]; exists {
+		return config, nil
+	}
+
+	// Return generic mock config for unknown models (non-MaaS)
+	return &k8s.ModelProviderInfo{
+		ModelID:      modelID,
+		ProviderID:   "vllm-inference-1",
+		ProviderType: "remote::vllm",
+		URL:          "http://mock-predictor.default.svc.cluster.local/v1",
+	}, nil
+}
+
 // CanListNamespaces returns mock namespace listing permission check for testing
 func (m *TokenKubernetesClientMock) CanListNamespaces(ctx context.Context, identity *integrations.RequestIdentity) (bool, error) {
 	// For testing purposes, always return true to allow namespace listing

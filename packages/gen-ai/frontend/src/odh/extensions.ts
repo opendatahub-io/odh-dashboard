@@ -102,7 +102,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
     },
     properties: {
       id: 'mcpservers',
-      title: 'MCP Servers',
+      title: 'MCP servers',
       component: () => import('../app/AIAssets/AIAssetsMCPTab').then((m) => m.default),
     },
   },

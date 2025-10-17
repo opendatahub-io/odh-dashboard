@@ -43,6 +43,7 @@ export type MockDashboardConfigType = {
   disableFeatureStore?: boolean;
   disableModelTraining?: boolean;
   disableDeploymentWizard?: boolean;
+  disableModelAsService?: boolean;
   hardwareProfileOrder?: string[];
 };
 
@@ -82,6 +83,7 @@ export const mockDashboardConfig = ({
   disableFeatureStore = true,
   disableModelTraining = true,
   disableDeploymentWizard = true,
+  disableModelAsService = true,
   hardwareProfileOrder = ['test-hardware-profile'],
   modelServerSizes = [
     {
@@ -242,13 +244,10 @@ export const mockDashboardConfig = ({
       disableFeatureStore,
       disableModelTraining,
       disableDeploymentWizard,
+      disableModelAsService,
     },
     notebookController: {
       enabled: !disableNotebookController,
-      notebookTolerationSettings: {
-        enabled: true,
-        key: 'NotebooksOnlyChange',
-      },
       pvcSize: '20Gi',
     },
     groupsConfig: {

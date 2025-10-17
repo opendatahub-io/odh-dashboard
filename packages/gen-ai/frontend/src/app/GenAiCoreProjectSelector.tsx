@@ -2,6 +2,7 @@ import * as React from 'react';
 import ProjectSelector from '@odh-dashboard/internal/concepts/projects/ProjectSelector';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { useNavigate } from 'react-router-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 
 type PipelineCoreProjectSelectorProps = {
   namespace?: string;
@@ -23,6 +24,9 @@ const GenAiCoreProjectSelector: React.FC<PipelineCoreProjectSelectorProps> = ({
         const match = projectName
           ? (namespaces.find((n) => n.name === projectName) ?? undefined)
           : undefined;
+        fireMiscTrackingEvent('GenAI Project Dropdown Option Selected', {
+          selectedProject: projectName,
+        });
         updatePreferredNamespace(match);
         navigate(getRedirectPath(projectName));
       }}

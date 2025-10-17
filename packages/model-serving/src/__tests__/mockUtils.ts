@@ -200,7 +200,7 @@ export const mockDeploymentWizardState = (
           data: undefined,
           setReplicas: jest.fn(),
         },
-        aiAssetData: {
+        modelAvailability: {
           data: {
             saveAsAiAsset: false,
             useCase: '',

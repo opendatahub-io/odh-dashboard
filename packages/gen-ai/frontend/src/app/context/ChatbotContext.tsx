@@ -1,9 +1,10 @@
 import React from 'react';
 import { Namespace } from 'mod-arch-core';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
-import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
+import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
 import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
 import useFetchAIModels from '~/app/hooks/useFetchAIModels';
+import useFetchMaaSModels from '~/app/hooks/useFetchMaaSModels';
 
 type ChatbotContextProps = {
   lsdStatus: LlamaStackDistributionModel | null;
@@ -12,6 +13,9 @@ type ChatbotContextProps = {
   aiModels: AIModel[];
   aiModelsLoaded: boolean;
   aiModelsError: Error | undefined;
+  maasModels: MaaSModel[];
+  maasModelsLoaded: boolean;
+  maasModelsError: Error | undefined;
   models: LlamaModel[];
   modelsError: Error | undefined;
   lsdStatusError: Error | undefined;
@@ -34,6 +38,9 @@ export const ChatbotContext = React.createContext<ChatbotContextProps>({
   aiModels: [],
   aiModelsLoaded: false,
   aiModelsError: undefined,
+  maasModels: [],
+  maasModelsLoaded: false,
+  maasModelsError: undefined,
   models: [],
   modelsError: undefined,
   lsdStatusError: undefined,
@@ -63,6 +70,12 @@ export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
     loaded: aiModelsLoaded,
     error: aiModelsError,
   } = useFetchAIModels(namespace?.name);
+
+  const {
+    data: maasModels,
+    loaded: maasModelsLoaded,
+    error: maasModelsError,
+  } = useFetchMaaSModels(namespace?.name || '');
 
   const {
     data: models,
@@ -96,6 +109,9 @@ export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
       aiModels,
       aiModelsLoaded,
       aiModelsError,
+      maasModels,
+      maasModelsLoaded,
+      maasModelsError,
       models,
       modelsError,
       lsdStatusError,
@@ -111,6 +127,9 @@ export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
       aiModels,
       aiModelsLoaded,
       aiModelsError,
+      maasModels,
+      maasModelsLoaded,
+      maasModelsError,
       models,
       modelsLoaded,
       modelsError,

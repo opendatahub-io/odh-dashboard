@@ -83,6 +83,7 @@ ARG UI_SOURCE_CODE
 WORKDIR /
 COPY --from=bff-builder /usr/src/app/bff ./
 COPY --from=ui-builder /usr/src/workspace/${UI_SOURCE_CODE}/dist ./static/
+COPY --from=bff-builder /usr/src/app/openapi/ ./openapi/
 USER 65532:65532
 
 # Expose port 8080

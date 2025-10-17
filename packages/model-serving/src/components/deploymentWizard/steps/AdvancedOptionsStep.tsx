@@ -7,14 +7,14 @@ import {
   ServingRuntimeKind,
 } from '@odh-dashboard/internal/k8sTypes';
 import { isServingRuntimeKind } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
-import { Form, Title, Stack, StackItem, Alert, FormGroup } from '@patternfly/react-core';
+import { Form, Stack, StackItem, Alert, FormGroup, FormSection } from '@patternfly/react-core';
 import { useAccessReview } from '../../../../../../frontend/src/api';
 import { ExternalRouteField } from '../fields/ExternalRouteField';
 import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
 import { RuntimeArgsField } from '../fields/RuntimeArgsField';
 import { EnvironmentVariablesField } from '../fields/EnvironmentVariablesField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
-import { AvailableAiAssetsFieldsComponent } from '../fields/AvailableAiAssetsFields';
+import { AvailableAiAssetsFieldsComponent } from '../fields/ModelAvailabilityFields';
 import { showAuthWarning } from '../hooks/useAuthWarning';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
@@ -90,90 +90,97 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
   return (
     <>
       <Form>
-        <Stack>
-          <StackItem>
-            <Title headingLevel="h2">Advanced Settings (optional)</Title>
-          </StackItem>
-        </Stack>
-        <Stack hasGutter>
-          <AvailableAiAssetsFieldsComponent
-            data={wizardState.state.aiAssetData.data}
-            setData={wizardState.state.aiAssetData.setData}
-            wizardData={wizardState}
-          />
-          {isExternalRouteVisible && (
+        <FormSection title="Advanced settings">
+          <Stack hasGutter>
+            {wizardState.state.modelAvailability.showField && (
+              <StackItem>
+                <FormGroup
+                  label="Model playground availability"
+                  data-testid="Model-playground-availability-section"
+                  fieldId="Model playground availability"
+                >
+                  <AvailableAiAssetsFieldsComponent
+                    data={wizardState.state.modelAvailability.data}
+                    setData={wizardState.state.modelAvailability.setData}
+                    showSaveAsMaaS={wizardState.state.modelAvailability.showSaveAsMaaS}
+                  />
+                </FormGroup>
+              </StackItem>
+            )}
+            {isExternalRouteVisible && (
+              <StackItem>
+                <FormGroup
+                  label="Model access"
+                  data-testid="external-route-section"
+                  fieldId="model-access"
+                >
+                  <ExternalRouteField
+                    isChecked={externalRouteData}
+                    allowCreate={allowCreate}
+                    onChange={handleExternalRouteChange}
+                  />
+                </FormGroup>
+              </StackItem>
+            )}
             <StackItem>
               <FormGroup
-                label="Model access"
-                data-testid="external-route-section"
-                fieldId="model-access"
+                label="Token authentication"
+                data-testid="auth-section"
+                fieldId="alt-form-checkbox-auth"
               >
-                <ExternalRouteField
-                  isChecked={externalRouteData}
+                <TokenAuthenticationField
+                  tokens={tokenAuthData}
                   allowCreate={allowCreate}
-                  onChange={handleExternalRouteChange}
+                  onChange={wizardState.state.tokenAuthentication.setData}
                 />
               </FormGroup>
             </StackItem>
-          )}
-          <StackItem>
-            <FormGroup
-              label="Token authentication"
-              data-testid="auth-section"
-              fieldId="alt-form-checkbox-auth"
-            >
-              <TokenAuthenticationField
-                tokens={tokenAuthData}
-                allowCreate={allowCreate}
-                onChange={wizardState.state.tokenAuthentication.setData}
-              />
-            </FormGroup>
-          </StackItem>
 
-          {showAuthWarning({
-            shouldAutoCheckTokens,
-            isExternalRouteVisible,
-            externalRouteData,
-            tokenAuthData,
-          }) && (
+            {showAuthWarning({
+              shouldAutoCheckTokens,
+              isExternalRouteVisible,
+              externalRouteData,
+              tokenAuthData,
+            }) && (
+              <StackItem>
+                <Alert
+                  id="no-auth-alert"
+                  data-testid="no-auth-alert"
+                  variant="warning"
+                  isInline
+                  title="Making models available by external routes without requiring authorization can lead to security vulnerabilities."
+                />
+              </StackItem>
+            )}
+
             <StackItem>
-              <Alert
-                id="no-auth-alert"
-                data-testid="no-auth-alert"
-                variant="warning"
-                isInline
-                title="Making models available by external routes without requiring authorization can lead to security vulnerabilities."
-              />
+              <FormGroup
+                label="Configuration parameters"
+                data-testid="configuration-params"
+                fieldId="configuration-params"
+              >
+                <Stack hasGutter>
+                  <StackItem>
+                    <RuntimeArgsField
+                      data={wizardState.state.runtimeArgs.data}
+                      onChange={wizardState.state.runtimeArgs.setData}
+                      allowCreate={allowCreate}
+                      predefinedArgs={getKServeContainerArgs(selectedModelServer)}
+                    />
+                  </StackItem>
+                  <StackItem>
+                    <EnvironmentVariablesField
+                      data={wizardState.state.environmentVariables.data}
+                      onChange={wizardState.state.environmentVariables.setData}
+                      allowCreate={allowCreate}
+                      predefinedVars={getKServeContainerEnvVarStrs(selectedModelServer)}
+                    />
+                  </StackItem>
+                </Stack>
+              </FormGroup>
             </StackItem>
-          )}
-
-          <StackItem>
-            <FormGroup
-              label="Configuration parameters"
-              data-testid="configuration-params"
-              fieldId="configuration-params"
-            >
-              <Stack hasGutter>
-                <StackItem>
-                  <RuntimeArgsField
-                    data={wizardState.state.runtimeArgs.data}
-                    onChange={wizardState.state.runtimeArgs.setData}
-                    allowCreate={allowCreate}
-                    predefinedArgs={getKServeContainerArgs(selectedModelServer)}
-                  />
-                </StackItem>
-                <StackItem>
-                  <EnvironmentVariablesField
-                    data={wizardState.state.environmentVariables.data}
-                    onChange={wizardState.state.environmentVariables.setData}
-                    allowCreate={allowCreate}
-                    predefinedVars={getKServeContainerEnvVarStrs(selectedModelServer)}
-                  />
-                </StackItem>
-              </Stack>
-            </FormGroup>
-          </StackItem>
-        </Stack>
+          </Stack>
+        </FormSection>
       </Form>
     </>
   );

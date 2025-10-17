@@ -9,6 +9,7 @@ import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import useFeatureStoreDataSources from '../../apiHooks/useFeatureStoreDataSources';
 import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
 import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
+import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied';
 
 const title = 'Data sources';
 const description =
@@ -39,6 +40,9 @@ const DataSources: React.FC = () => {
     <ApplicationsPage
       empty={dataSources.dataSources.length === 0}
       emptyStatePage={emptyState}
+      loadErrorPage={
+        <FeatureStoreAccessDenied resourceType="data sources" projectName={currentProject} />
+      }
       title={
         <FeatureStorePageTitle
           title={

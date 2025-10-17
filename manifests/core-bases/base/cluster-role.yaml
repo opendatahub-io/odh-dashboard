@@ -35,6 +35,7 @@ rules:
       - config.openshift.io
     resources:
       - clusterversions
+      - ingresses
   - verbs:
       - get
       - list
@@ -222,3 +223,11 @@ rules:
       - watch
     resources:
       - llamastackdistributions
+  - apiGroups:
+      - feast.dev
+    verbs:
+      - get
+      - list
+      - watch
+    resources:
+      - featurestores

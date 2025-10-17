@@ -60,6 +60,7 @@ export enum SupportedArea {
   NIM_MODEL = 'nim-model',
   SERVING_RUNTIME_PARAMS = 'serving-runtime-params',
   DEPLOYMENT_WIZARD = 'deployment-wizard',
+  MODEL_AS_SERVICE = 'model-as-service',
 
   /* Distributed Workloads areas */
   DISTRIBUTED_WORKLOADS = 'distributed-workloads',

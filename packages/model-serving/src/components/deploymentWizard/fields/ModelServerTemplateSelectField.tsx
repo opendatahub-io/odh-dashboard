@@ -20,7 +20,6 @@ import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import ServingRuntimeVersionLabel from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeVersionLabel';
 import { ModelTypeFieldData } from './ModelTypeSelectField';
-import type { ModelServerTemplateField } from '../types';
 
 export type ModelServerOption = {
   name: string;
@@ -51,7 +50,6 @@ export type ModelServerSelectField = {
 };
 
 export const useModelServerSelectField = (
-  platformExtensionData?: ModelServerTemplateField[],
   existingData?: ModelServerOption,
   projectName?: string,
   modelServerTemplates?: TemplateKind[],
@@ -87,12 +85,6 @@ export const useModelServerSelectField = (
   const options = React.useMemo(() => {
     const result: ModelServerOption[] = [];
 
-    const extensionOptions =
-      platformExtensionData
-        ?.filter((field) => modelType && field.isActive(modelType))
-        .flatMap((field) => field.modelServerTemplates) || [];
-    result.push(...extensionOptions);
-
     const globalOptions =
       modelServerTemplatesFiltered?.filter((template) => {
         return template.metadata.namespace === dashboardNamespace;
@@ -120,13 +112,7 @@ export const useModelServerSelectField = (
     );
 
     return result;
-  }, [
-    platformExtensionData,
-    modelType,
-    modelServerTemplatesFiltered,
-    dashboardNamespace,
-    projectName,
-  ]);
+  }, [modelType, modelServerTemplatesFiltered, dashboardNamespace, projectName]);
 
   const updatedModelServer = React.useMemo(() => {
     // auto-select when there's only one template available

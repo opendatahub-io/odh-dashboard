@@ -2,16 +2,19 @@ package kubernetes
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strings"
 	"time"
 
+	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/models"
+	"gopkg.in/yaml.v3"
 	authnv1 "k8s.io/api/authentication/v1"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -19,8 +22,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -54,10 +59,11 @@ const (
 
 type TokenKubernetesClient struct {
 	// Move this to a common struct, when we decide to support multiple clients.
-	Client client.Client
-	Logger *slog.Logger
-	Token  integrations.BearerToken
-	Config *rest.Config
+	Client    client.Client
+	Logger    *slog.Logger
+	Token     integrations.BearerToken
+	Config    *rest.Config
+	EnvConfig config.EnvConfig
 }
 
 func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, identity *integrations.RequestIdentity) (bool, error) {
@@ -108,7 +114,7 @@ func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, identity *i
 	return true, nil
 }
 
-func newTokenKubernetesClient(token string, logger *slog.Logger) (*TokenKubernetesClient, error) {
+func newTokenKubernetesClient(token string, logger *slog.Logger, envConfig config.EnvConfig) (*TokenKubernetesClient, error) {
 	baseConfig, err := helper.GetKubeconfig()
 	if err != nil {
 		logger.Error("failed to get kube config", "error", err)
@@ -144,8 +150,9 @@ func newTokenKubernetesClient(token string, logger *slog.Logger) (*TokenKubernet
 		Client: ctrlClient,
 		Logger: logger,
 		// Token is retained for follow-up calls; do not log it.
-		Token:  integrations.NewBearerToken(token),
-		Config: cfg,
+		Token:     integrations.NewBearerToken(token),
+		Config:    cfg,
+		EnvConfig: envConfig,
 	}, nil
 }
 
@@ -632,10 +639,10 @@ func (kc *TokenKubernetesClient) findSecretForServiceAccount(ctx context.Context
 		}
 	}
 
-	// If no secret found, return the expected pattern
-	kc.Logger.Debug("no service account token secret found, using pattern",
+	// If no secret found, return empty string to indicate no secret exists
+	kc.Logger.Debug("no service account token secret found",
 		"serviceAccount", serviceAccountName)
-	return serviceAccountName + "-token"
+	return ""
 }
 
 // Helper method to extract description from LLMInferenceService annotations
@@ -751,7 +758,11 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 				tokenKey:   "token", // Service account token secrets always use "token" as the key
 				hasToken:   secretName != "",
 			}
-			kc.Logger.Info("found existing "+foundType+" service account token secret", "model", model.ModelName, "isMaaSModel", model.IsMaaSModel, "secretName", secretName, "hasToken", secretName != "")
+			if secretName != "" {
+				kc.Logger.Info("found existing "+foundType+" service account token secret", "model", model.ModelName, "isMaaSModel", model.IsMaaSModel, "secretName", secretName, "hasToken", true)
+			} else {
+				kc.Logger.Info("found "+foundType+" but no service account token secret", "model", model.ModelName, "isMaaSModel", model.IsMaaSModel, "hasToken", false)
+			}
 		} else {
 			kc.Logger.Debug("could not find InferenceService or LLMInferenceService for model, will use default", "model", model.ModelName, "isMaaSModel", model.IsMaaSModel)
 		}
@@ -781,27 +792,40 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 	for i, model := range models {
 		envVarName := fmt.Sprintf("VLLM_API_TOKEN_%d", i+1)
 
-		if secretInfo, exists := modelSecrets[model.ModelName]; exists && secretInfo.hasToken {
-			// Reference the existing service account token secret
-			envVars = append(envVars, corev1.EnvVar{
-				Name: envVarName,
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: secretInfo.secretName,
+		if secretInfo, exists := modelSecrets[model.ModelName]; exists && secretInfo.hasToken && secretInfo.secretName != "" {
+			// Only reference the secret if it actually exists and has a valid name
+			// Check if the secret actually exists before referencing it
+			var secret corev1.Secret
+			err := kc.Client.Get(ctx, types.NamespacedName{Name: secretInfo.secretName, Namespace: namespace}, &secret)
+			if err == nil {
+				// Reference the existing service account token secret
+				envVars = append(envVars, corev1.EnvVar{
+					Name: envVarName,
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: secretInfo.secretName,
+							},
+							Key: secretInfo.tokenKey,
 						},
-						Key: secretInfo.tokenKey,
 					},
-				},
-			})
-			kc.Logger.Info("referencing existing service account token secret", "model", model, "envVar", envVarName, "secretName", secretInfo.secretName)
+				})
+				kc.Logger.Info("referencing existing service account token secret", "model", model.ModelName, "envVar", envVarName, "secretName", secretInfo.secretName)
+			} else {
+				// Secret doesn't exist, use default token
+				envVars = append(envVars, corev1.EnvVar{
+					Name:  envVarName,
+					Value: "fake",
+				})
+				kc.Logger.Warn("service account token secret not found, using default token", "model", model.ModelName, "envVar", envVarName, "secretName", secretInfo.secretName, "error", err)
+			}
 		} else {
 			// Set default token for models without authentication
 			envVars = append(envVars, corev1.EnvVar{
 				Name:  envVarName,
 				Value: "fake",
 			})
-			kc.Logger.Debug("no token found for model, using default", "model", model, "envVar", envVarName)
+			kc.Logger.Debug("no token found for model, using default", "model", model.ModelName, "envVar", envVarName)
 		}
 	}
 
@@ -837,9 +861,18 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 					Name: "llama-stack",
 					Port: 8321,
 				},
-				Distribution: lsdapi.DistributionType{
-					Name: "rh-dev",
-				},
+				Distribution: func() lsdapi.DistributionType {
+					// Check if distributionName contains registry patterns indicating it's a container image
+					name := kc.EnvConfig.DistributionName
+					if strings.Contains(name, "/") || strings.Contains(name, ":") {
+						return lsdapi.DistributionType{
+							Image: name,
+						}
+					}
+					return lsdapi.DistributionType{
+						Name: name,
+					}
+				}(),
 				UserConfig: &lsdapi.UserConfigSpec{
 					ConfigMapName: configMapName,
 				},
@@ -1360,4 +1393,159 @@ func (kc *TokenKubernetesClient) DeleteLlamaStackDistribution(ctx context.Contex
 
 	kc.Logger.Info("successfully deleted LlamaStackDistribution", "namespace", namespace, "name", targetLSD.Name, "displayName", name)
 	return targetLSD, nil
+}
+
+// GetModelProviderInfo retrieves provider configuration for a model from LSD configmap
+func (kc *TokenKubernetesClient) GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*ModelProviderInfo, error) {
+	// Get LlamaStackDistribution
+	lsdList, err := kc.GetLlamaStackDistributions(ctx, identity, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get LlamaStackDistributions: %w", err)
+	}
+
+	if len(lsdList.Items) == 0 {
+		return nil, fmt.Errorf("no LlamaStackDistribution found in namespace %s", namespace)
+	}
+
+	if len(lsdList.Items) > 1 {
+		kc.Logger.Warn("Multiple LlamaStackDistributions found, using first one",
+			"namespace", namespace, "count", len(lsdList.Items))
+	}
+
+	lsd := lsdList.Items[0]
+
+	// Get configmap name
+	configMapName := constants.LlamaStackConfigMapName
+	if lsd.Spec.Server.UserConfig != nil && lsd.Spec.Server.UserConfig.ConfigMapName != "" {
+		configMapName = lsd.Spec.Server.UserConfig.ConfigMapName
+	}
+
+	// Retrieve configmap
+	configMap, err := kc.GetConfigMap(ctx, identity, namespace, configMapName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get configmap: %w", err)
+	}
+
+	runYAML, ok := configMap.Data[constants.LlamaStackRunYAMLKey]
+	if !ok {
+		return nil, fmt.Errorf("run.yaml not found in configmap")
+	}
+
+	// Parse model and provider info from YAML
+	return kc.parseModelProviderFromYAML(runYAML, modelID)
+}
+
+// LlamaStackConfig represents the YAML structure for LlamaStack configuration
+type LlamaStackConfig struct {
+	Models []struct {
+		ModelID    string `yaml:"model_id"`
+		ProviderID string `yaml:"provider_id"`
+	} `yaml:"models"`
+	Providers struct {
+		Inference []struct {
+			ProviderID   string `yaml:"provider_id"`
+			ProviderType string `yaml:"provider_type"`
+			Config       struct {
+				URL string `yaml:"url"`
+			} `yaml:"config"`
+		} `yaml:"inference"`
+	} `yaml:"providers"`
+}
+
+// parseModelProviderFromYAML parses the LlamaStack configuration YAML to extract model provider configuration
+// This is a two-step process:
+// 1. Find the model in the models section and get its provider_id
+// 2. Find that provider_id in the providers.inference section and get provider_type and url
+func (kc *TokenKubernetesClient) parseModelProviderFromYAML(runYAML string, modelID string) (*ModelProviderInfo, error) {
+	var config LlamaStackConfig
+	if err := yaml.Unmarshal([]byte(runYAML), &config); err != nil {
+		return nil, fmt.Errorf("failed to parse YAML: %w", err)
+	}
+
+	// Find model and provider_id
+	var providerID string
+	for _, model := range config.Models {
+		if model.ModelID == modelID {
+			providerID = model.ProviderID
+			break
+		}
+	}
+	if providerID == "" {
+		return nil, fmt.Errorf("provider not found for model %s", modelID)
+	}
+
+	// Find provider details
+	for _, provider := range config.Providers.Inference {
+		if provider.ProviderID == providerID {
+			return &ModelProviderInfo{
+				ModelID:      modelID,
+				ProviderID:   providerID,
+				ProviderType: provider.ProviderType,
+				URL:          cleanEnvVar(provider.Config.URL),
+			}, nil
+		}
+	}
+
+	return nil, fmt.Errorf("provider configuration not found for provider_id %s", providerID)
+}
+
+// cleanEnvVar removes environment variable placeholders like ${env.VAR:=default}
+func cleanEnvVar(value string) string {
+	if strings.HasPrefix(value, "${env.") && strings.Contains(value, ":=") {
+		parts := strings.SplitN(value, ":=", 2)
+		if len(parts) == 2 {
+			return strings.TrimSuffix(parts[1], "}")
+		}
+	}
+	return value
+}
+
+// GetClusterDomain retrieves the cluster domain from the ingresses.config.openshift.io/cluster resource
+func (kc *TokenKubernetesClient) GetClusterDomain(ctx context.Context) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	// Create a REST client specifically configured for the config.openshift.io API
+	config := rest.CopyConfig(kc.Config)
+	config.APIPath = "/apis"
+	config.GroupVersion = &schema.GroupVersion{Group: "config.openshift.io", Version: "v1"}
+	config.NegotiatedSerializer = scheme.Codecs.WithoutConversion()
+
+	restClient, err := rest.RESTClientFor(config)
+	if err != nil {
+		kc.Logger.Error("failed to create REST client for cluster domain query", "error", err)
+		return "", fmt.Errorf("failed to create REST client: %w", err)
+	}
+
+	// Query the ingresses.config.openshift.io/cluster resource
+	result := restClient.Get().
+		Resource("ingresses").
+		Name("cluster").
+		Do(ctx)
+
+	rawBytes, err := result.Raw()
+	if err != nil {
+		kc.Logger.Debug("failed to get cluster ingress config", "error", err)
+		return "", fmt.Errorf("failed to get cluster domain: %w", err)
+	}
+
+	// Parse the JSON response
+	var obj map[string]interface{}
+	if err := json.Unmarshal(rawBytes, &obj); err != nil {
+		return "", fmt.Errorf("failed to parse ingress config response: %w", err)
+	}
+
+	// Extract the domain from spec.domain
+	spec, ok := obj["spec"].(map[string]interface{})
+	if !ok {
+		return "", fmt.Errorf("invalid ingress config structure: missing spec")
+	}
+
+	domain, ok := spec["domain"].(string)
+	if !ok || domain == "" {
+		return "", fmt.Errorf("invalid ingress config structure: missing or empty domain")
+	}
+
+	kc.Logger.Debug("discovered cluster domain", "domain", domain)
+	return domain, nil
 }

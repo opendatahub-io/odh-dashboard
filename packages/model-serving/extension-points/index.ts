@@ -149,8 +149,8 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
     extractEnvironmentVariables: CodeRef<
       (deployment: D) => { enabled: boolean; variables: { name: string; value: string }[] } | null
     >;
-    extractAiAssetData: CodeRef<
-      (deployment: D) => { saveAsAiAsset: boolean; useCase: string } | null
+    extractModelAvailabilityData: CodeRef<
+      (deployment: D) => { saveAsAiAsset: boolean; saveAsMaaS?: boolean; useCase?: string } | null
     >;
     extractModelLocationData: CodeRef<(deployment: D) => ModelLocationData | null>;
   }
@@ -263,6 +263,7 @@ export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
     platform: D['modelServingPlatformId'];
     isActive: CodeRef<(wizardData: WizardFormData['state']) => boolean> | true;
     priority?: number;
+    supportsOverwrite?: boolean;
     deploy: CodeRef<
       (
         wizardData: WizardFormData['state'],
@@ -272,6 +273,7 @@ export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
         serverResourceTemplateName?: string,
         dryRun?: boolean,
         secretName?: string,
+        overwrite?: boolean,
       ) => Promise<D>
     >;
   }

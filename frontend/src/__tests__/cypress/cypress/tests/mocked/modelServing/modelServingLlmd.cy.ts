@@ -1,10 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
-import {
-  LLMInferenceServiceModel,
-  type LLMInferenceServiceKind,
-} from '@odh-dashboard/llmd-serving/types';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/llmd-serving/__tests__/utils';
+import { type LLMInferenceServiceKind } from '@odh-dashboard/llmd-serving/types';
+import { mockLLMInferenceServiceK8sResource } from '#~/__mocks__/mockLLMInferenceServiceK8sResource';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
@@ -15,6 +11,7 @@ import {
   modelServingGlobal,
   modelServingSection,
   modelServingWizard,
+  modelServingWizardEdit,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import {
   HardwareProfileModel,
@@ -23,6 +20,7 @@ import {
   ServingRuntimeModel,
   TemplateModel,
   SecretModel,
+  LLMInferenceServiceModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import type { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { mockGlobalScopedHardwareProfiles } from '#~/__mocks__/mockHardwareProfile';
@@ -60,6 +58,7 @@ const initIntercepts = ({
       disableNIMModelServing: true,
       disableKServe: false,
       disableDeploymentWizard: false,
+      disableModelAsService: false, // Enable MaaS for testing
     }),
   );
   cy.interceptOdh('GET /api/components', null, []);
@@ -308,7 +307,7 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       // Step 3: Advanced Options
-      modelServingWizard.findNextButton().should('be.enabled');
+      modelServingWizard.findSubmitButton().should('be.enabled'); //TODO: Change back to findNextButton() when submit page is added
       modelServingWizard.findExternalRouteCheckbox().should('not.exist');
       modelServingWizard.findTokenAuthenticationCheckbox().click();
       modelServingWizard.findTokenWarningAlert().should('exist');
@@ -318,7 +317,7 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.findAddVariableButton().click();
       modelServingWizard.findEnvVariableName('0').clear().type('MY_ENV');
       modelServingWizard.findEnvVariableValue('0').type('MY_VALUE');
-      modelServingWizard.findNextButton().should('be.enabled').click();
+      // modelServingWizard.findNextButton().should('be.enabled').click(); //TODO: Uncomment when submit page is added
 
       // Step 4: Summary
       modelServingWizard.findSubmitButton().should('be.enabled').click();
@@ -367,6 +366,166 @@ describe('Model Serving LLMD', () => {
       cy.get('@createLLMInferenceService.all').then((interceptions) => {
         expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
       });
+    });
+    it('should edit an LLMD deployment', () => {
+      initIntercepts({
+        llmInferenceServices: [
+          mockLLMInferenceServiceK8sResource({
+            name: 'test-llmd-model',
+            displayName: 'Test LLM Inference Service',
+            replicas: 2,
+            modelType: ServingRuntimeModelType.GENERATIVE,
+          }),
+        ],
+      });
+      // Force the serving runtimelist to show llmd as an option
+      cy.interceptK8sList(
+        TemplateModel,
+        mockK8sResourceList([
+          mockServingRuntimeTemplateK8sResource({
+            name: 'llmd-serving',
+            displayName: 'Distributed Inference Server with llm-d',
+            modelTypes: [ServingRuntimeModelType.GENERATIVE],
+          }),
+        ]),
+      );
+      cy.intercept('PUT', '**/llminferenceservices/test-llmd-model*', (req) => {
+        req.reply({ statusCode: 200, body: req.body });
+      }).as('updateLLMInferenceServiceDryRun');
+      cy.intercept('PATCH', '**/llminferenceservices/test-llmd-model*', (req) => {
+        req.reply({ statusCode: 200, body: req.body });
+      }).as('updateLLMInferenceService');
+
+      // Visit the model serving page
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.getModelRow('Test LLM Inference Service').findKebabAction('Edit').click();
+
+      // Step 1: Model source
+      modelServingWizardEdit.findModelLocationSelectOption('URI - v1').click();
+      modelServingWizardEdit.findUrilocationInput().clear().type('hf://updated-uri');
+
+      modelServingWizardEdit
+        .findModelTypeSelect()
+        .should('be.disabled')
+        .should('have.text', 'Generative AI model (e.g. LLM)');
+      modelServingWizardEdit.findSaveConnectionCheckbox().should('be.checked');
+      modelServingWizardEdit.findSaveConnectionCheckbox().click();
+      modelServingWizardEdit.findSaveConnectionCheckbox().should('not.be.checked');
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+      // Step 2: Model deployment
+      modelServingWizardEdit.findNextButton().should('be.disabled');
+      modelServingWizardEdit.findModelDeploymentNameInput().clear().type('test-llmd-model-2');
+      modelServingWizardEdit.findModelDeploymentDescriptionInput().type('test-llmd-description-2');
+
+      hardwareProfileSection.findSelect().should('exist');
+      hardwareProfileSection.findSelect().should('contain.text', 'Small');
+      hardwareProfileSection.selectProfile(
+        'Large Profile Compatible CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
+      );
+      modelServingWizardEdit
+        .findServingRuntimeTemplateSearchSelector()
+        .should('be.disabled')
+        .should('contain.text', 'Distributed Inference Server with llm-d');
+
+      modelServingWizardEdit.findNumReplicasInputField().should('have.value', '2');
+      modelServingWizardEdit.findNumReplicasPlusButton().click();
+      modelServingWizardEdit.findNumReplicasInputField().should('have.value', '3');
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+      // Step 3: Advanced Options
+      //modelServingWizardEdit.findNextButton().should('be.enabled'); //TODO: Uncomment when summary page is added back
+      modelServingWizardEdit.findTokenAuthenticationCheckbox().should('be.checked');
+      modelServingWizardEdit.findTokenAuthenticationCheckbox().click();
+      modelServingWizardEdit.findTokenAuthenticationCheckbox().should('not.be.checked');
+      modelServingWizardEdit.findRuntimeArgsCheckbox().click();
+      modelServingWizardEdit.findRuntimeArgsTextBox().type('--arg=value1');
+      modelServingWizardEdit.findEnvVariableName('0').clear().type('MY_ENV');
+      modelServingWizardEdit.findEnvVariableValue('0').clear().type('MY_VALUE');
+      //modelServingWizardEdit.findNextButton().should('be.enabled').click(); //TODO: Uncomment when summary page is added back
+
+      // Step 4: Summary
+      modelServingWizardEdit.findSubmitButton().should('be.enabled').click();
+
+      cy.wait('@updateLLMInferenceServiceDryRun').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body.metadata.annotations).to.containSubset({
+          'openshift.io/display-name': 'test-llmd-model-2',
+          'openshift.io/description': 'test-llmd-description-2',
+        });
+        expect(interception.request.body.spec.replicas).to.equal(3);
+        expect(interception.request.body.spec.template.containers).to.containSubset([
+          { name: 'main', args: ['--arg=value1'], env: [{ name: 'MY_ENV', value: 'MY_VALUE' }] },
+        ]);
+      });
+
+      cy.wait('@updateLLMInferenceService').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
+      cy.get('@updateLLMInferenceServiceDryRun.all').then((interceptions) => {
+        expect(interceptions).to.have.length(1); // 1 dry-run request
+      });
+
+      cy.get('@updateLLMInferenceService.all').then((interceptions) => {
+        expect(interceptions).to.have.length(1); // 1 actual request
+      });
+    });
+  });
+
+  describe('Deploy LLMD with MaaS enabled', () => {
+    it('should create an LLMD deployment with MaaS enabled', () => {
+      initIntercepts({});
+
+      // Navigate to wizard and set up basic deployment
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+
+      // Quick setup: Model source and deployment
+      modelServingWizard.findModelLocationSelectOption('URI - v1').click();
+      modelServingWizard.findUrilocationInput().type('hf://coolmodel/coolmodel');
+      modelServingWizard.findSaveConnectionCheckbox().click(); // Uncheck to simplify
+      modelServingWizard.findModelTypeSelectOption('Generative AI model (e.g. LLM)').click();
+      modelServingWizard.findNextButton().click();
+
+      modelServingWizard.findModelDeploymentNameInput().type('test-maas-llmd-model');
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard
+        .findGlobalScopedTemplateOption('Distributed Inference Server with llm-d')
+        .click();
+      modelServingWizard.findNextButton().click();
+
+      // Focus on MaaS feature testing
+      // uncheck token auth to simplify test
+      modelServingWizard.findTokenAuthenticationCheckbox().click();
+      modelServingWizard.findSaveAsMaaSCheckbox().should('exist').should('not.be.checked');
+      modelServingWizard.findSaveAsMaaSCheckbox().click();
+      modelServingWizard.findSaveAsMaaSCheckbox().should('be.checked');
+      modelServingWizard.findUseCaseInput().should('be.visible').type('Test MaaS use case');
+      // modelServingWizard.findNextButton().click(); //TODO: Uncomment when summary page is added
+
+      // Submit and verify MaaS-specific annotations and gateway refs
+      modelServingWizard.findSubmitButton().click();
+
+      cy.wait('@createLLMInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+
+        // Verify MaaS-specific configuration
+        expect(interception.request.body.metadata.annotations).to.containSubset({
+          'alpha.maas.opendatahub.io/tiers': '[]',
+          'opendatahub.io/genai-use-case': 'Test MaaS use case',
+        });
+
+        expect(interception.request.body.spec.router.gateway.refs).to.deep.equal([
+          {
+            name: 'maas-default-gateway',
+            namespace: 'openshift-ingress',
+          },
+        ]);
+      });
+
+      cy.wait('@createLLMInferenceService'); // Actual request
+      cy.get('@createLLMInferenceService.all').should('have.length', 2);
     });
   });
 });

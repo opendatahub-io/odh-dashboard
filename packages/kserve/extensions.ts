@@ -47,9 +47,9 @@ const extensions: (
         },
       },
       enableCardText: {
-        title: 'Single-model serving platform',
+        title: 'Enable model serving',
         description:
-          'Each model is deployed on its own model server. Choose this option when you want to deploy a large model such as a large language model (LLM).',
+          'Enable users to serve models using the single-model serving platform which deploys each model on its own dedicated model server. ',
         selectText: 'Select single-model',
         enabledText: 'Single-model serving enabled',
         objectType: ProjectObjectType.singleModel,
@@ -130,7 +130,8 @@ const extensions: (
       extractRuntimeArgs: () => import('./src/hardware').then((m) => m.extractRuntimeArgs),
       extractEnvironmentVariables: () =>
         import('./src/hardware').then((m) => m.extractEnvironmentVariables),
-      extractAiAssetData: () => import('./src/aiAssets').then((m) => m.extractAiAssetData),
+      extractModelAvailabilityData: () =>
+        import('./src/aiAssets').then((m) => m.extractModelAvailabilityData),
       extractModelLocationData: () =>
         import('./src/modelLocationData').then((m) => m.extractKServeModelLocationData),
     },
@@ -141,6 +142,7 @@ const extensions: (
       platform: KSERVE_ID,
       isActive: true,
       priority: 0,
+      supportsOverwrite: true,
       deploy: () => import('./src/deploy').then((m) => m.deployKServeDeployment),
     },
   },

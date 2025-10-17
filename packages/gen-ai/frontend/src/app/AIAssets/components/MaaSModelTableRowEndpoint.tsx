@@ -17,9 +17,13 @@ import useGenerateMaaSToken from '~/app/hooks/useGenerateMaaSToken';
 
 type MaaSModelTableRowEndpointProps = {
   model: MaaSModel;
+  namespace: string;
 };
 
-const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({ model }) => {
+const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({
+  model,
+  namespace,
+}) => {
   const { isGenerating, tokenData, error, generateToken, resetToken } = useGenerateMaaSToken();
 
   if (!model.url) {
@@ -27,7 +31,7 @@ const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({ m
   }
 
   const handleGenerateToken = () => {
-    generateToken();
+    generateToken(namespace);
   };
 
   return (
@@ -38,7 +42,7 @@ const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({ m
       headerComponent="h2"
       headerContent={
         <Content style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
-          MaaS route
+          Model as a service (MaaS) route
         </Content>
       }
       bodyContent={
@@ -56,7 +60,7 @@ const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({ m
             <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
               <FlexItem>
                 <Content style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
-                  API Token
+                  API token
                 </Content>
               </FlexItem>
 
@@ -83,7 +87,8 @@ const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({ m
                         isInline
                         customIcon={<InfoCircleIcon />}
                       >
-                        This token cannot be viewed again after you close this dialog.
+                        This token can be viewed only once, and will be unavailable after you close
+                        this dialog.
                       </Alert>
                     </FlexItem>
                     <FlexItem>

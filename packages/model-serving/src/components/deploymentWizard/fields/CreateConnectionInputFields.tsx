@@ -144,13 +144,15 @@ export const CreateConnectionInputFields: React.FC<CreateConnectionInputFieldsPr
             <FlexItem>
               <Popover
                 aria-label="Save connection popover"
-                headerContent="A connection is a..."
                 bodyContent={
                   <>
-                    Creating a connection saves the model location and any necessary credentials
-                    required to access the model artifacts at that location so they can be reused at
-                    a later time. <br /> The connection will be created in the current project,{' '}
-                    <strong>{project?.metadata.name}</strong>
+                    Connections securely store the configuration parameters and credentials of
+                    external data sources and services as environment variables so they can be
+                    easily reused in the future.
+                    <br />
+                    <br />
+                    If you choose to create a connection to this model location, it will be created
+                    in the <strong>{project?.metadata.name}</strong> project.
                   </>
                 }
               >
@@ -201,10 +203,10 @@ export const CreateConnectionInputFields: React.FC<CreateConnectionInputFieldsPr
             />
           )}
           {!createConnectionData.saveConnection && (
-            <Alert title="A connection is required to reuse this location." variant="warning">
-              Choosing not to create a connection means that if you want to deploy again for this
-              location you will need to re-enter all of the location information, including any
-              necessary credentials.
+            <Alert title="Location information will not be saved" variant="warning">
+              You have elected not to create a connection to this location. Creating a connection
+              makes deploying to this location in the future easier by securely storing its
+              configuration parameters and credentials.
             </Alert>
           )}
         </Form>
