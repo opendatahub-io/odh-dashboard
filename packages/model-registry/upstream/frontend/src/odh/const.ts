@@ -4,3 +4,5 @@ export const DEPLOY_BUTTON_TOOLTIP = {
   ENABLE_MODEL_SERVING_PLATFORM:
     'To enable model serving, an administrator must first select a model serving platform in the cluster settings.',
 };
+
+export const DEPLOYMENTS_TAB_EXTENSION_ID = 'deployments';
