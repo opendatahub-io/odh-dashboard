@@ -12,7 +12,12 @@ export const convertAIModelToK8sResource = (model: AIModel): K8sResourceCommon =
 });
 
 export const splitLlamaModelId = (llamaModelId: string): { providerId: string; id: string } => {
-  const [providerId, id] = llamaModelId.split('/');
+  const slashIndex = llamaModelId.indexOf('/');
+  if (slashIndex === -1) {
+    return { providerId: '', id: llamaModelId };
+  }
+  const providerId = llamaModelId.substring(0, slashIndex);
+  const id = llamaModelId.substring(slashIndex + 1);
   if (!providerId || !id) {
     return { providerId: '', id: llamaModelId };
   }
