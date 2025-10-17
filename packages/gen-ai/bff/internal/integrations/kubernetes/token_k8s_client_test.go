@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
 	"github.com/opendatahub-io/gen-ai/internal/models"
@@ -150,12 +151,9 @@ func TestCanListLlamaStackDistributionsSARStructure(t *testing.T) {
 	})
 }
 
-func TestParseModelProviderFromYAML(t *testing.T) {
+func TestGetModelProviderInfo(t *testing.T) {
 	// Load test data from testdata directory
 	mockLlamaStackConfigYAML := loadTestData(t, "test_llama_stack_config.yaml")
-
-	// Create a TokenKubernetesClient instance for testing
-	kc := &TokenKubernetesClient{}
 
 	tests := []struct {
 		name                 string
@@ -198,7 +196,10 @@ func TestParseModelProviderFromYAML(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := kc.parseModelProviderFromYAML(mockLlamaStackConfigYAML, tt.modelID)
+			var config constants.LlamaStackConfig
+			err := config.FromYAML(mockLlamaStackConfigYAML)
+			require.NoError(t, err)
+			result, err := config.GetModelProviderInfo(tt.modelID)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -218,14 +219,15 @@ func TestParseModelProviderFromYAML(t *testing.T) {
 	}
 }
 
-func TestParseModelProviderFromYAML_EnvVarCleaning(t *testing.T) {
+func TestGetModelProviderInfo_EnvVarCleaning(t *testing.T) {
 	// Load test data from testdata directory
 	mockLlamaStackConfigYAML := loadTestData(t, "test_llama_stack_config.yaml")
 
-	kc := &TokenKubernetesClient{}
-
 	// Test that environment variable placeholders are cleaned
-	result, err := kc.parseModelProviderFromYAML(mockLlamaStackConfigYAML, "llama-32-3b-instruct")
+	var config constants.LlamaStackConfig
+	err := config.FromYAML(mockLlamaStackConfigYAML)
+	require.NoError(t, err)
+	result, err := config.GetModelProviderInfo("llama-32-3b-instruct")
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -235,11 +237,9 @@ func TestParseModelProviderFromYAML_EnvVarCleaning(t *testing.T) {
 	assert.NotContains(t, result.URL, ":=", "URL should not contain default value syntax")
 }
 
-func TestParseModelProviderFromYAML_MaaSDetection(t *testing.T) {
+func TestGetModelProviderInfo_MaaSDetection(t *testing.T) {
 	// Load test data from testdata directory
 	mockLlamaStackConfigYAML := loadTestData(t, "test_llama_stack_config.yaml")
-
-	kc := &TokenKubernetesClient{}
 
 	tests := []struct {
 		name    string
@@ -263,9 +263,13 @@ func TestParseModelProviderFromYAML_MaaSDetection(t *testing.T) {
 		},
 	}
 
+	var config constants.LlamaStackConfig
+	err := config.FromYAML(mockLlamaStackConfigYAML)
+	require.NoError(t, err)
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := kc.parseModelProviderFromYAML(mockLlamaStackConfigYAML, tt.modelID)
+			result, err := config.GetModelProviderInfo(tt.modelID)
 
 			require.NoError(t, err)
 			require.NotNil(t, result)
@@ -277,20 +281,24 @@ func TestParseModelProviderFromYAML_MaaSDetection(t *testing.T) {
 	}
 }
 
-func TestParseModelProviderFromYAML_EdgeCases(t *testing.T) {
-	kc := &TokenKubernetesClient{}
-
+func TestGetModelProviderInfo_EdgeCases(t *testing.T) {
 	t.Run("should handle invalid YAML", func(t *testing.T) {
 		invalidYAML := "this is not { valid yaml: ["
-		result, err := kc.parseModelProviderFromYAML(invalidYAML, "any-model")
+		var config constants.LlamaStackConfig
+		err := config.FromYAML(invalidYAML)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to parse YAML")
+		result, err := config.GetModelProviderInfo("any-model")
 		assert.Error(t, err)
 		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "failed to parse YAML")
 	})
 
 	t.Run("should handle empty YAML", func(t *testing.T) {
 		emptyYAML := ""
-		result, err := kc.parseModelProviderFromYAML(emptyYAML, "any-model")
+		var config constants.LlamaStackConfig
+		err := config.FromYAML(emptyYAML)
+		assert.Error(t, err)
+		result, err := config.GetModelProviderInfo("any-model")
 		assert.Error(t, err)
 		assert.Nil(t, result)
 	})
@@ -305,7 +313,10 @@ providers:
       config:
         url: https://test.com
 `
-		result, err := kc.parseModelProviderFromYAML(yamlWithoutModels, "any-model")
+		var config constants.LlamaStackConfig
+		err := config.FromYAML(yamlWithoutModels)
+		require.NoError(t, err)
+		result, err := config.GetModelProviderInfo("any-model")
 		assert.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "provider not found for model")
@@ -318,7 +329,10 @@ models:
   - model_id: test-model
     provider_id: test-provider
 `
-		result, err := kc.parseModelProviderFromYAML(yamlWithoutProviders, "test-model")
+		var config constants.LlamaStackConfig
+		err := config.FromYAML(yamlWithoutProviders)
+		require.NoError(t, err)
+		result, err := config.GetModelProviderInfo("test-model")
 		assert.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "provider configuration not found")
@@ -337,16 +351,17 @@ providers:
       config:
         url: https://test.com
 `
-		result, err := kc.parseModelProviderFromYAML(yamlWithMissingProvider, "test-model")
+		var config constants.LlamaStackConfig
+		err := config.FromYAML(yamlWithMissingProvider)
+		require.NoError(t, err)
+		result, err := config.GetModelProviderInfo("test-model")
 		assert.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "provider configuration not found for provider_id non-existent-provider")
 	})
 }
 
-func TestParseModelProviderFromYAML_YAMLStructureParsing(t *testing.T) {
-	kc := &TokenKubernetesClient{}
-
+func TestGetModelProviderInfo_YAMLStructureParsing(t *testing.T) {
 	t.Run("should correctly parse all fields from well-formed YAML", func(t *testing.T) {
 		wellFormedYAML := `
 version: "2"
@@ -368,8 +383,12 @@ providers:
       provider_type: inline::local
       config: {}
 `
+		var config constants.LlamaStackConfig
+		err := config.FromYAML(wellFormedYAML)
+		require.NoError(t, err)
+
 		// Test first model
-		result1, err := kc.parseModelProviderFromYAML(wellFormedYAML, "test-model-1")
+		result1, err := config.GetModelProviderInfo("test-model-1")
 		require.NoError(t, err)
 		require.NotNil(t, result1)
 		assert.Equal(t, "test-model-1", result1.ModelID)
@@ -378,7 +397,7 @@ providers:
 		assert.Equal(t, "https://provider1.test.com/v1/endpoint", result1.URL)
 
 		// Test second model
-		result2, err := kc.parseModelProviderFromYAML(wellFormedYAML, "test-model-2")
+		result2, err := config.GetModelProviderInfo("test-model-2")
 		require.NoError(t, err)
 		require.NotNil(t, result2)
 		assert.Equal(t, "test-model-2", result2.ModelID)
@@ -400,7 +419,11 @@ providers:
       config:
         some_other_field: value
 `
-		result, err := kc.parseModelProviderFromYAML(yamlWithoutURL, "local-model")
+		var config constants.LlamaStackConfig
+		err := config.FromYAML(yamlWithoutURL)
+		require.NoError(t, err)
+
+		result, err := config.GetModelProviderInfo("local-model")
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.Equal(t, "local-model", result.ModelID)
