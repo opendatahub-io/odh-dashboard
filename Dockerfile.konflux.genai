@@ -63,15 +63,14 @@ ARG TARGETARCH
 WORKDIR /usr/src/app
 
 # Copy the Go Modules manifests
-COPY --chown=1001:0 ${BFF_SOURCE_CODE}/go.mod ${BFF_SOURCE_CODE}/go.sum ./
-RUN chmod 444 /tmp/go.mod /tmp/go.sum && mv /tmp/go.* ./
+COPY ${BFF_SOURCE_CODE}/go.mod ${BFF_SOURCE_CODE}/go.sum ./
 
 # Download dependencies
 RUN go mod download
 
 # Copy the go source files
-COPY --chown=1001:0 ${BFF_SOURCE_CODE}/cmd/ cmd/
-COPY --chown=1001:0 ${BFF_SOURCE_CODE}/internal/ internal/
+COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
+COPY ${BFF_SOURCE_CODE}/internal/ internal/
 
 # Build the Go application
 RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags="-s -w" -tags strictfipsruntime -o bff ./cmd
