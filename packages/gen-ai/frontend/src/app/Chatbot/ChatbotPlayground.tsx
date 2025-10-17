@@ -156,7 +156,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         isOpen={sourceManagement.isSourceSettingsOpen}
         onToggle={sourceManagement.handleModalClose}
         onSubmitSettings={sourceManagement.handleSourceSettingsSubmit}
-        filename={sourceManagement.currentFileForSettings?.name}
         pendingFiles={sourceManagement.pendingFiles}
         isUploading={sourceManagement.isUploading}
         uploadProgress={sourceManagement.uploadProgress}
@@ -184,7 +183,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 <MessageBox position="bottom">
                   <ChatbotWelcomePrompt
                     title={username ? `Hello, ${username}` : 'Hello'}
-                    description="Welcome to the chat playground"
+                    description="Welcome to the model playground."
                   />
                   <ChatbotMessages
                     messageList={chatbotMessages.messages}
@@ -271,7 +270,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                     }}
                   />
                 </div>
-                <ChatbotFootnote {...{ label: 'Bot uses AI. Check for mistakes.' }} />
+                <ChatbotFootnote {...{ label: 'This chatbot uses AI. Check for mistakes.' }} />
               </ChatbotFooter>
             </Chatbot>
           </DrawerContentBody>

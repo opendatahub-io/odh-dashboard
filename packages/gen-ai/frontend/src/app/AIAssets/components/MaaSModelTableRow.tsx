@@ -55,7 +55,7 @@ const MaaSModelTableRow: React.FC<MaaSModelTableRowProps> = ({
             }
           />
         </Td>
-        <Td dataLabel="External endpoint">
+        <Td dataLabel="Endpoint">
           <MaaSModelTableRowEndpoint model={model} namespace={namespace?.name || ''} />
         </Td>
         <Td dataLabel="Status">

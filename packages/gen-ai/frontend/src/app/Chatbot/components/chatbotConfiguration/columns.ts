@@ -5,7 +5,7 @@ import { AIModel } from '~/app/types';
 export const chatbotConfigurationColumns: SortableData<AIModel>[] = [
   checkboxTableColumn(),
   {
-    label: 'Model deployment name',
+    label: 'Model name',
     field: 'display_name',
     sortable: (a, b) => a.display_name.localeCompare(b.display_name),
     width: 50,

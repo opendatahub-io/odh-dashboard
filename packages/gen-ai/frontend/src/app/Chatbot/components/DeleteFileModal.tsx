@@ -35,9 +35,8 @@ const DeleteFileModal: React.FC<DeleteFileModalProps> = ({
       <ModalBody>
         <Stack hasGutter>
           <StackItem>
-            Are you sure you want to delete <strong>{file.filename}</strong>?
+            The <strong>{file.filename}</strong> file will be deleted.
           </StackItem>
-          <StackItem>This action cannot be undone.</StackItem>
         </Stack>
       </ModalBody>
       <ModalFooter>
