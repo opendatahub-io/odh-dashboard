@@ -35,7 +35,7 @@ const isFlagOn = (flag: string, flagState: FlagState): 'on' | 'off' => {
   return enabled ? 'on' : 'off';
 };
 
-export const stackToStatusKey: Partial<Record<StackComponent, DataScienceStackComponent>> = {
+export const stackToStatusKey: Record<StackComponent, DataScienceStackComponent> = {
   [StackComponent.CODE_FLARE]: DataScienceStackComponent.CODE_FLARE,
   [StackComponent.DS_PIPELINES]: DataScienceStackComponent.DS_PIPELINES,
   [StackComponent.K_SERVE]: DataScienceStackComponent.K_SERVE,
@@ -48,6 +48,7 @@ export const stackToStatusKey: Partial<Record<StackComponent, DataScienceStackCo
   [StackComponent.TRAINING_OPERATOR]: DataScienceStackComponent.TRAINING_OPERATOR,
   [StackComponent.MODEL_REGISTRY]: DataScienceStackComponent.MODEL_REGISTRY,
   [StackComponent.FEAST_OPERATOR]: DataScienceStackComponent.FEAST_OPERATOR,
+  [StackComponent.LLAMA_STACK_OPERATOR]: DataScienceStackComponent.LLAMA_STACK_OPERATOR,
 };
 
 export const isAreaAvailable = (
