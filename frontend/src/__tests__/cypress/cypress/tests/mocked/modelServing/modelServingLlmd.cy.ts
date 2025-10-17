@@ -312,6 +312,7 @@ describe('Model Serving LLMD', () => {
       // Step 3: Advanced Options
       modelServingWizard.findSubmitButton().should('be.enabled'); //TODO: Change back to findNextButton() when submit page is added
       modelServingWizard.findExternalRouteCheckbox().should('not.exist');
+      modelServingWizard.findTokenAuthenticationCheckbox().should('be.enabled');
       modelServingWizard.findTokenAuthenticationCheckbox().click();
       modelServingWizard.findTokenWarningAlert().should('exist');
       modelServingWizard.findRuntimeArgsCheckbox().click();
@@ -391,6 +392,7 @@ describe('Model Serving LLMD', () => {
             namespace: 'test-project',
             annotations: {
               'openshift.io/display-name': 'default-token',
+              'kubernetes.io/service-account.name': 'test-llmd-model-sa',
             },
             type: 'kubernetes.io/service-account-token',
             data: {
@@ -410,6 +412,19 @@ describe('Model Serving LLMD', () => {
           }),
         ]),
       );
+      cy.intercept('DELETE', '**/secrets/default-token-test-llmd-model-sa*', (req) => {
+        req.reply({
+          statusCode: 200,
+          body: {
+            kind: 'Status',
+            apiVersion: 'v1',
+            status: 'Success',
+            message: 'Secret deleted',
+            reason: 'OK',
+            code: 200,
+          },
+        });
+      }).as('deleteDefaultTokenSecret');
       cy.intercept('PUT', '**/llminferenceservices/test-llmd-model*', (req) => {
         req.reply({ statusCode: 200, body: req.body });
       }).as('updateLLMInferenceServiceDryRun');

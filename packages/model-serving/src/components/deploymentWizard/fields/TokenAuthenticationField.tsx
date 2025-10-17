@@ -16,6 +16,7 @@ import {
   getUniqueId,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
+import * as _ from 'lodash-es';
 import { z } from 'zod';
 import type { ModelServerSelectField } from './ModelServerTemplateSelectField';
 import type { ModelTypeField } from './ModelTypeSelectField';
@@ -83,10 +84,11 @@ export const useTokenAuthenticationField = (
     TokenAuthenticationFieldData | undefined
   >(initialData);
 
-  const runOnce = React.useRef(false);
+  const initialDataRef = React.useRef(initialData);
   React.useEffect(() => {
-    if (runOnce.current === false) {
-      runOnce.current = true;
+    const isInitialDataDifferent = !_.isEqual(initialData, initialDataRef.current);
+    if (isInitialDataDifferent) {
+      initialDataRef.current = initialData;
       setTokenAuthData(initialData);
     }
   }, [initialData]);
