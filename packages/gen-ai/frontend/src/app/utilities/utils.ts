@@ -37,13 +37,25 @@ export const getLlamaModelDisplayName = (modelId: string, aiModels: AIModel[]): 
   return `${providerId}/${enabledModel.display_name}`;
 };
 
-export const getLlamaModelStatus = (
+export const isLlamaModelEnabled = (
   modelId: string,
   aiModels: AIModel[],
-): AIModel['status'] | undefined => {
+  maasModels: MaaSModel[],
+): boolean => {
   const { id } = splitLlamaModelId(modelId);
+
   const enabledModel = aiModels.find((aiModel) => aiModel.model_id === id);
-  return enabledModel?.status;
+
+  if (enabledModel) {
+    return enabledModel.status === 'Running';
+  }
+
+  const maasModel = maasModels.find((m) => m.id === id);
+  if (maasModel) {
+    return maasModel.ready;
+  }
+
+  return false;
 };
 
 export const generateMCPServerConfig = (

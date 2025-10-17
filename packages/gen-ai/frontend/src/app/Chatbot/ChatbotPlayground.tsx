@@ -13,7 +13,7 @@ import {
 import { useLocation } from 'react-router-dom';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
-import { getLlamaModelStatus } from '~/app/utilities';
+import { isLlamaModelEnabled } from '~/app/utilities';
 import { DEFAULT_SYSTEM_INSTRUCTIONS, FILE_UPLOAD_CONFIG, ERROR_MESSAGES } from './const';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
@@ -42,6 +42,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     models,
     modelsLoaded,
     aiModels,
+    maasModels,
     selectedModel,
     setSelectedModel,
     lastInput,
@@ -66,15 +67,23 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         // so that when refreshing the page, the selected model is not passed again
         window.history.replaceState({}, '');
       } else {
-        const availableModels = models.filter(
-          (model) => getLlamaModelStatus(model.id, aiModels) === 'Running',
+        const availableModels = models.filter((model) =>
+          isLlamaModelEnabled(model.id, aiModels, maasModels),
         );
         if (availableModels.length > 0) {
           setSelectedModel(availableModels[0].id);
         }
       }
     }
-  }, [modelsLoaded, models, selectedModel, setSelectedModel, aiModels, selectedAAModel]);
+  }, [
+    modelsLoaded,
+    models,
+    selectedModel,
+    setSelectedModel,
+    aiModels,
+    maasModels,
+    selectedAAModel,
+  ]);
 
   // Custom hooks for managing different aspects of the chatbot
   const alertManagement = useAlertManagement();
