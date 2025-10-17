@@ -11,7 +11,7 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
-import { getLlamaModelDisplayName, getLlamaModelStatus } from '~/app/utilities';
+import { getLlamaModelDisplayName, isLlamaModelEnabled } from '~/app/utilities';
 
 interface ModelDetailsDropdownProps {
   selectedModel: string;
@@ -22,7 +22,7 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
   selectedModel,
   onModelChange,
 }) => {
-  const { models, aiModels } = React.useContext(ChatbotContext);
+  const { models, aiModels, maasModels } = React.useContext(ChatbotContext);
   const [isOpen, setIsOpen] = React.useState(false);
 
   const placeholder = models.length === 0 ? 'No models available' : 'Select a model';
@@ -62,7 +62,7 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
     >
       <DropdownList style={{ maxHeight: '300px', overflowY: 'auto' }}>
         {models.map((option) => {
-          const isDisabled = getLlamaModelStatus(option.id, aiModels) !== 'Running';
+          const isDisabled = !isLlamaModelEnabled(option.id, aiModels, maasModels);
           return (
             <DropdownItem
               value={option.id}
