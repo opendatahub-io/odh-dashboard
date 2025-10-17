@@ -90,7 +90,11 @@ export const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = (
             toggleWidth="450px"
             selectOptions={options}
             onSelect={(_, value) => {
-              if (modelLocationData) {
+              if (
+                modelLocationData &&
+                (!selectedConnection ||
+                  getResourceNameFromK8sResource(selectedConnection) !== value)
+              ) {
                 resetModelLocationData();
               }
 
