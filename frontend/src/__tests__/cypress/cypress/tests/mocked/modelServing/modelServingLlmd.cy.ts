@@ -31,7 +31,10 @@ import {
   mockModelServingFields,
 } from '#~/__mocks__/mockConnectionType';
 import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
-import { mockSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
+import {
+  mockCustomSecretK8sResource,
+  mockSecretK8sResource,
+} from '#~/__mocks__/mockSecretK8sResource';
 
 const initIntercepts = ({
   llmInferenceServices = [],
@@ -367,6 +370,7 @@ describe('Model Serving LLMD', () => {
         expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
       });
     });
+
     it('should edit an LLMD deployment', () => {
       initIntercepts({
         llmInferenceServices: [
@@ -378,6 +382,23 @@ describe('Model Serving LLMD', () => {
           }),
         ],
       });
+      // Mock the default token secret since auth is enabled on the deployment
+      cy.interceptK8sList(
+        { model: SecretModel, ns: 'test-project' },
+        mockK8sResourceList([
+          mockCustomSecretK8sResource({
+            name: 'default-token-test-llmd-model-sa',
+            namespace: 'test-project',
+            annotations: {
+              'openshift.io/display-name': 'default-token',
+            },
+            type: 'kubernetes.io/service-account-token',
+            data: {
+              token: 'test-token',
+            },
+          }),
+        ]),
+      );
       // Force the serving runtimelist to show llmd as an option
       cy.interceptK8sList(
         TemplateModel,
