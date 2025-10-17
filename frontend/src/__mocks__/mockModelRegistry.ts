@@ -41,7 +41,7 @@ export const mockModelRegistry = ({
     spec: {
       grpc: {},
       rest: {},
-      oauthProxy: {},
+      kubeRBACProxy: {},
       mysql: {
         database: 'model-registry',
         host: 'model-registry-db',
