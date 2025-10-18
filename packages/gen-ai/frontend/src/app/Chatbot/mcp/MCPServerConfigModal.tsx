@@ -9,9 +9,8 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
-  HelperText,
-  HelperTextItem,
   Alert,
+  Content,
 } from '@patternfly/react-core';
 import { MCPServer } from '~/app/types';
 
@@ -63,7 +62,7 @@ const MCPServerConfigModal: React.FC<MCPServerConfigModalProps> = ({
 
   return (
     <Modal variant={ModalVariant.medium} isOpen={isOpen} onClose={onClose}>
-      <ModalHeader title={`Configure ${server.name}`} />
+      <ModalHeader title="Authorize MCP server" />
       <ModalBody>
         {isAlreadyConnected ? (
           <Alert variant="success" title="Connection Successful">
@@ -82,7 +81,8 @@ const MCPServerConfigModal: React.FC<MCPServerConfigModalProps> = ({
               </Alert>
             )}
             <Form>
-              <FormGroup label="Access Token" isRequired fieldId="access-token">
+              <Content component="p">{`Enter the access token for the ${server.name} MCP Server.`}</Content>
+              <FormGroup label="Access token" isRequired fieldId="access-token">
                 <TextInput
                   isRequired
                   type="password"
@@ -90,15 +90,8 @@ const MCPServerConfigModal: React.FC<MCPServerConfigModalProps> = ({
                   name="access-token"
                   value={accessToken}
                   onChange={(_event, value) => setAccessToken(value)}
-                  placeholder="Enter your access token"
                   isDisabled={isValidating}
                 />
-                <HelperText className="pf-v6-u-mt-xs">
-                  <HelperTextItem>
-                    The access token for authorizing this MCP server. This will be validated against
-                    the server.
-                  </HelperTextItem>
-                </HelperText>
               </FormGroup>
             </Form>
           </>
@@ -134,7 +127,7 @@ const MCPServerConfigModal: React.FC<MCPServerConfigModalProps> = ({
                 isLoading={isValidating}
                 spinnerAriaValueText={isValidating ? 'Validating token...' : undefined}
               >
-                {isValidating ? 'Validating...' : 'Configure'}
+                {isValidating ? 'Validating...' : 'Authorize'}
               </Button>
             </div>
           </>

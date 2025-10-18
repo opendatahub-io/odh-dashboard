@@ -19,13 +19,13 @@ vars:
       apiVersion: v1
     fieldref:
       fieldpath: data.odh-dashboard-image
-  - name: oauth-proxy-image
+  - name: kube-rbac-proxy
     objref:
       kind: ConfigMap
       name: rhoai-dashboard-params
       apiVersion: v1
     fieldref:
-      fieldpath: data.oauth-proxy-image
+      fieldpath: data.kube-rbac-proxy
   - name: section-title
     objref:
       kind: ConfigMap
@@ -40,5 +40,12 @@ vars:
       apiVersion: v1
     fieldref:
       fieldpath: data.dashboard-url
+  - name: gateway-name
+    objref:
+      kind: ConfigMap
+      name: rhoai-dashboard-params
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.gateway-name
 configurations:
   - params.yaml

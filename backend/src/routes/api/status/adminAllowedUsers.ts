@@ -1,13 +1,7 @@
 import { FastifyRequest } from 'fastify';
 import { KubeFastifyInstance } from '../../../types';
 import { getUserInfo } from '../../../utils/userUtils';
-import {
-  getAdminUserList,
-  getAllowedUserList,
-  getClusterAdminUserList,
-  isUserAdmin,
-  KUBE_SAFE_PREFIX,
-} from '../../../utils/adminUtils';
+import { isUserAdmin, KUBE_SAFE_PREFIX } from '../../../utils/adminUtils';
 import { getNotebooks } from '../../../utils/notebookUtils';
 
 type AllowedUser = {
@@ -15,54 +9,13 @@ type AllowedUser = {
   privilege: 'Admin' | 'User';
   lastActivity: string;
 };
-type AllowedUserMap = { [username: string]: AllowedUser };
-type UserActivityMap = { [username: string]: string };
 
-const convertUserListToMap = (
-  userList: string[],
-  privilege: 'Admin' | 'User',
-  activityMap: UserActivityMap,
-): AllowedUserMap =>
-  userList.reduce<AllowedUserMap>((acc, rawUsername) => {
-    let username = rawUsername;
-    if (username.startsWith(KUBE_SAFE_PREFIX)) {
-      // Users who start with this designation are non-k8s names
-      username = username.slice(KUBE_SAFE_PREFIX.length);
-    }
-
-    return {
-      ...acc,
-      [username]: { username, privilege, lastActivity: activityMap[username] ?? null },
-    };
-  }, {});
-
-const getUserActivityFromNotebook = async (
-  fastify: KubeFastifyInstance,
-  namespace: string,
-): Promise<UserActivityMap> => {
-  const notebooks = await getNotebooks(fastify, namespace);
-
-  return notebooks.items
-    .map<[string | undefined, string | undefined]>((notebook) => [
-      notebook.metadata.annotations?.['opendatahub.io/username'],
-      notebook.metadata.annotations?.['notebooks.kubeflow.org/last-activity'] ||
-        notebook.metadata.annotations?.['kubeflow-resource-stopped'] ||
-        'Now',
-    ])
-    .filter(
-      (arr): arr is [string, string] =>
-        Array.isArray(arr) && typeof arr[0] === 'string' && typeof arr[1] === 'string',
-    )
-    .reduce<UserActivityMap>(
-      (acc, [username, lastActivity]) => ({
-        ...acc,
-        [username]: lastActivity,
-      }),
-      {},
-    );
-};
-
-/** @deprecated -- Jupyter Tile reliance; group and user fetching is incompatible with OpenShift Console growth */
+/**
+ * Get list of users with active notebooks (Group API independent).
+ * This works in both traditional OpenShift and BYO OIDC environments.
+ *
+ * @deprecated -- Jupyter Tile reliance; limited functionality in BYO OIDC
+ */
 export const getAllowedUsers = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest<{ Params: { namespace: string } }>,
@@ -71,43 +24,46 @@ export const getAllowedUsers = async (
   const userInfo = await getUserInfo(fastify, request);
   const currentUser = userInfo.userName;
   const isAdmin = await isUserAdmin(fastify, request);
+
   if (!isAdmin) {
-    // Privileged call -- return nothing
-    fastify.log.warn(
-      `A request for all allowed users & their status was made as a non Admin (by ${currentUser})`,
-    );
+    fastify.log.warn(`A request for all allowed users was made as a non Admin (by ${currentUser})`);
     return [];
   }
 
-  const activityMap = await getUserActivityFromNotebook(fastify, namespace);
+  // Get users from notebook resources only (no Group API required)
+  const notebooks = await getNotebooks(fastify, namespace);
 
-  const withNotebookUsers = Object.keys(activityMap);
-  // TODO: Move away from this group listing design...
-  const adminUsers = await getAdminUserList(fastify);
-  const allowedUsers = await getAllowedUserList(fastify);
-  // get cluster admins that have a notebook
-  const clusterAdminUsers = (await getClusterAdminUserList(fastify)).filter((user) =>
-    withNotebookUsers.includes(user),
-  );
+  const usersMap = new Map<string, AllowedUser>();
 
-  const usersWithNotebooksMap: AllowedUserMap = convertUserListToMap(
-    withNotebookUsers,
-    'User',
-    activityMap,
-  );
-  const allowedUsersMap: AllowedUserMap = convertUserListToMap(allowedUsers, 'User', activityMap);
-  const adminUsersMap: AllowedUserMap = convertUserListToMap(adminUsers, 'Admin', activityMap);
-  const clusterAdminUsersMap: AllowedUserMap = convertUserListToMap(
-    clusterAdminUsers,
-    'Admin',
-    activityMap,
-  );
+  for (const notebook of notebooks.items) {
+    let username = notebook.metadata.annotations?.['opendatahub.io/username'];
+    if (!username) {
+      continue;
+    }
 
-  const returnUsers: AllowedUserMap = {
-    ...usersWithNotebooksMap,
-    ...allowedUsersMap,
-    ...adminUsersMap,
-    ...clusterAdminUsersMap,
-  };
-  return Object.values(returnUsers);
+    // Handle kube-safe prefix
+    if (username.startsWith(KUBE_SAFE_PREFIX)) {
+      const buffer = Buffer.from(username.slice(KUBE_SAFE_PREFIX.length), 'base64');
+      username = String(buffer);
+    }
+
+    const lastActivity =
+      notebook.metadata.annotations?.['notebooks.kubeflow.org/last-activity'] ||
+      notebook.metadata.annotations?.['kubeflow-resource-stopped'] ||
+      'Now';
+
+    // In BYO OIDC, we can't determine admin status from Groups
+    // Default to 'User' unless explicitly marked
+    const isNotebookOwnerAdmin = notebook.metadata.labels?.['opendatahub.io/user-type'] === 'admin';
+
+    const existing = usersMap.get(username);
+    const privilege = existing?.privilege === 'Admin' || isNotebookOwnerAdmin ? 'Admin' : 'User';
+    usersMap.set(username, {
+      username,
+      privilege,
+      lastActivity,
+    });
+  }
+
+  return Array.from(usersMap.values());
 };

@@ -65,7 +65,6 @@ const initIntercepts = ({
       disableModelMesh: true,
       disableNIMModelServing: true,
       disableKServe: false,
-      disableDeploymentWizard: false,
     }),
   );
   // used by addSupportServingPlatformProject
@@ -345,7 +344,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist');
     modelServingWizard
-      .findModelTypeSelectOption('Generative AI model (e.g. LLM)')
+      .findModelTypeSelectOption('Generative AI model (Example, LLM)')
       .should('exist')
       .click();
     modelServingWizard.findModelLocationSelect().should('exist');
@@ -634,7 +633,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelSourceStep().should('be.enabled');
     modelServingWizard.findModelDeploymentStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
-    modelServingWizard.findModelTypeSelectOption('Generative AI model (e.g. LLM)').should('exist');
+    modelServingWizard
+      .findModelTypeSelectOption('Generative AI model (Example, LLM)')
+      .should('exist');
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
     modelServingWizard.findModelLocationSelect().should('exist');
     modelServingWizard.findModelLocationSelectOption('Existing connection').should('exist').click();
@@ -1492,7 +1493,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist');
     modelServingWizard
-      .findModelTypeSelectOption('Generative AI model (e.g. LLM)')
+      .findModelTypeSelectOption('Generative AI model (Example, LLM)')
       .should('exist')
       .click();
     modelServingWizard.findModelLocationSelect().should('exist');
@@ -1562,6 +1563,16 @@ describe('Model Serving Deploy Wizard', () => {
     });
 
     it('deploy edit', () => {
+      cy.interceptK8sList(
+        { model: InferenceServiceModel, ns: 'test-project' },
+        mockK8sResourceList([
+          mockInferenceServiceK8sResource({ name: 'test-model', namespace: 'test-project' }),
+        ]),
+      );
+      cy.interceptK8sList(
+        { model: ServingRuntimeModel, ns: 'test-project' },
+        mockK8sResourceList([mockServingRuntimeK8sResource({ namespace: 'test-project' })]),
+      );
       cy.visitWithLogin(`/modelServing/test-project/deploy/edit/test-model`);
       cy.findByTestId('app-page-title').contains('Edit model deployment');
       cy.url().should('include', '/ai-hub/deployments/test-project/deploy/edit/test-model');

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { DashboardEmptyTableView, Table } from 'mod-arch-shared';
-import { MaaSModel } from '~/app/types';
+import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
 import { maasModelColumns } from '~/app/AIAssets/data/maasColumns';
 import useMaaSModelsFilter from '~/app/AIAssets/hooks/useMaaSModelsFilter';
 import {
@@ -12,13 +12,20 @@ import MaaSModelTableRow from './MaaSModelTableRow';
 import ModelsListToolbar from './ModelsListToolbar';
 
 type MaaSModelsTableProps = {
-  models: MaaSModel[];
-  namespace: string;
+  maasModels: MaaSModel[];
+  playgroundModels: LlamaModel[];
+  lsdStatus: LlamaStackDistributionModel | null;
+  aiModels: AIModel[];
 };
 
-const MaaSModelsTable: React.FC<MaaSModelsTableProps> = ({ models, namespace }) => {
+const MaaSModelsTable: React.FC<MaaSModelsTableProps> = ({
+  maasModels,
+  playgroundModels,
+  lsdStatus,
+  aiModels,
+}) => {
   const { filterData, onFilterUpdate, onClearFilters, filteredModels } =
-    useMaaSModelsFilter(models);
+    useMaaSModelsFilter(maasModels);
 
   const maasFilterColors = {
     [AssetsFilterOptions.NAME]: AssetsFilterColors.NAME,
@@ -49,7 +56,14 @@ const MaaSModelsTable: React.FC<MaaSModelsTableProps> = ({ models, namespace }) 
       }
       onClearFilters={onClearFilters}
       rowRenderer={(model) => (
-        <MaaSModelTableRow key={model.id} model={model} namespace={namespace} />
+        <MaaSModelTableRow
+          key={model.id}
+          model={model}
+          playgroundModels={playgroundModels}
+          lsdStatus={lsdStatus}
+          aiModels={aiModels}
+          maasModels={maasModels}
+        />
       )}
     />
   );

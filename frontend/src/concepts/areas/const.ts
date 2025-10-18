@@ -15,7 +15,6 @@ export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableLlamaStackChatBot: true, // internal dev only
   disableProjectScoped: true,
-  disableDeploymentWizard: true,
   disableModelAsService: true,
 } satisfies Partial<DashboardCommonConfig>;
 
@@ -103,9 +102,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.DS_PROJECTS_VIEW]: {
     featureFlags: ['disableProjects'],
-  },
-  [SupportedArea.DEPLOYMENT_WIZARD]: {
-    featureFlags: ['disableDeploymentWizard'],
   },
   [SupportedArea.MODEL_AS_SERVICE]: {
     featureFlags: ['disableModelAsService'],

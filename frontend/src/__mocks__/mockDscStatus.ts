@@ -1,12 +1,17 @@
-import { DataScienceClusterKindStatus, K8sCondition } from '#~/k8sTypes';
+import {
+  DataScienceClusterInstalledComponents,
+  DataScienceClusterKindStatus,
+  K8sCondition,
+} from '#~/k8sTypes';
 import { DataScienceStackComponent, StackComponent } from '#~/concepts/areas/types';
 import { DataScienceStackComponentMap } from '#~/concepts/areas/const';
+import { stackToStatusKey } from '#~/concepts/areas/utils';
 
 export type MockDscStatus = {
   components?: DataScienceClusterKindStatus['components'];
   conditions?: K8sCondition[];
   phase?: string;
-  installedComponents?: DataScienceClusterKindStatus['installedComponents'];
+  installedComponents?: DataScienceClusterInstalledComponents;
   release?: {
     name: string;
     version: string;
@@ -16,7 +21,6 @@ export type MockDscStatus = {
 export const mockDscStatus = ({
   components = {
     [DataScienceStackComponent.MODEL_REGISTRY]: {
-      managementState: 'Managed',
       registriesNamespace: 'odh-model-registries',
       releases: [
         {
@@ -27,7 +31,6 @@ export const mockDscStatus = ({
       ],
     },
     [DataScienceStackComponent.K_SERVE]: {
-      managementState: 'Managed',
       releases: [
         {
           name: 'KServe',
@@ -38,7 +41,6 @@ export const mockDscStatus = ({
     },
     [DataScienceStackComponent.WORKBENCHES]: {
       workbenchNamespace: 'openshift-ai-notebooks',
-      managementState: 'Managed',
     },
   },
   installedComponents = Object.values(StackComponent).reduce(
@@ -49,7 +51,23 @@ export const mockDscStatus = ({
   phase = 'Ready',
   release = { name: 'Open Data Hub', version: '2.28.0' },
 }: MockDscStatus): DataScienceClusterKindStatus => ({
-  components,
+  components: (() => {
+    // Map StackComponent -> DataScienceStackComponent ComponentName keys
+
+    const result = { ...components };
+    // Synthesize components managementState from installedComponents for compatibility
+    Object.entries(installedComponents).forEach(([stackKey, isInstalled]) => {
+      const statusKey = stackToStatusKey[stackKey as StackComponent];
+      if (statusKey) {
+        const prev = result[statusKey] || {};
+        result[statusKey] = {
+          managementState: isInstalled ? 'Managed' : 'Removed',
+          ...prev,
+        };
+      }
+    });
+    return result;
+  })(),
   conditions: [
     ...[
       {
@@ -143,13 +161,6 @@ export const mockDscStatus = ({
     ],
     ...conditions,
   ],
-  installedComponents: Object.values(StackComponent).reduce(
-    (acc, component) => ({
-      ...acc,
-      [component]: installedComponents[component] ?? false,
-    }),
-    {},
-  ),
   phase,
   release,
 });

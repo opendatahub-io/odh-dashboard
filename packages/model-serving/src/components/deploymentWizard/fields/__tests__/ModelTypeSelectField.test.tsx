@@ -94,7 +94,7 @@ describe('ModelTypeSelectField', () => {
       await act(async () => {
         fireEvent.click(button);
       });
-      const option = screen.getByText('Generative AI model (e.g. LLM)');
+      const option = screen.getByText('Generative AI model (Example, LLM)');
       await act(async () => {
         fireEvent.click(option);
       });
@@ -123,7 +123,7 @@ describe('ModelTypeSelectField', () => {
       });
 
       expect(screen.getByText('Predictive model')).toBeInTheDocument();
-      expect(screen.getByText('Generative AI model (e.g. LLM)')).toBeInTheDocument();
+      expect(screen.getByText('Generative AI model (Example, LLM)')).toBeInTheDocument();
     });
   });
 });

@@ -22,9 +22,9 @@ import { useUser } from '#~/redux/selectors';
 import { EMPTY_USER_STATE } from '#~/pages/notebookController/const';
 import useNamespaces from '#~/pages/notebookController/useNamespaces';
 import { useAppContext } from '#~/app/AppContext';
-import { getRoute } from '#~/services/routeService';
 import { EventKind, NotebookKind, RoleBindingKind } from '#~/k8sTypes';
 import { useWatchNotebookEvents } from '#~/api';
+import { getRoutePathForWorkbench } from '#~/concepts/notebooks/utils';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 
 export const usernameTranslate = (username: string): string => {
@@ -48,6 +48,9 @@ export const generateNotebookNameFromUsername = (username: string): string =>
 
 export const generatePvcNameFromUsername = (username: string): string =>
   `jupyterhub-nb-${usernameTranslate(username)}-pvc`;
+
+export const getNotebookDisplayName = (notebook: NotebookKind): string =>
+  notebook.metadata.annotations?.['openshift.io/display-name'] || notebook.metadata.name || '';
 
 export const generateEnvVarFileNameFromUsername = (username: string): string =>
   `jupyterhub-singleuser-profile-${usernameTranslate(username)}-envs`;
@@ -194,7 +197,6 @@ export const useNotebookRedirectLink = (): (() => Promise<string>) => {
   const { currentUserNotebook, currentUserNotebookLink } =
     React.useContext(NotebookControllerContext);
   const { workbenchNamespace } = useNamespaces();
-  const fetchCountRef = React.useRef(5); // how many tries to get the Route
 
   const routeName = currentUserNotebook?.metadata.name;
 
@@ -207,35 +209,15 @@ export const useNotebookRedirectLink = (): (() => Promise<string>) => {
       return Promise.reject();
     }
 
-    return new Promise<string>((presolve, preject) => {
-      const call = (resolve: typeof presolve, reject: typeof preject) => {
-        if (currentUserNotebookLink) {
-          resolve(currentUserNotebookLink);
-        } else {
-          getRoute(workbenchNamespace, routeName)
-            .then((route) => {
-              resolve(`https://${route.spec.host}/notebook/${workbenchNamespace}/${routeName}`);
-            })
-            .catch((e) => {
-              /* eslint-disable-next-line no-console */
-              console.warn('Unable to get the route. Re-polling.', e);
-              if (fetchCountRef.current <= 0) {
-                fetchCountRef.current--;
-                setTimeout(() => call(resolve, reject), 1000);
-              } else {
-                reject();
-              }
-            });
-        }
-      };
-
-      call(presolve, () => {
-        /* eslint-disable-next-line no-console */
-        console.error(
-          'Could not fetch route over several tries, See previous warnings for a history of why each failed call.',
-        );
-        preject();
-      });
+    return new Promise<string>((resolve) => {
+      // Use the existing link if available, otherwise generate the path
+      if (currentUserNotebookLink) {
+        resolve(currentUserNotebookLink);
+      } else {
+        // Generate same-origin relative path
+        const workbenchPath = getRoutePathForWorkbench(workbenchNamespace, routeName);
+        resolve(workbenchPath);
+      }
     });
   }, [workbenchNamespace, routeName, currentUserNotebookLink]);
 };

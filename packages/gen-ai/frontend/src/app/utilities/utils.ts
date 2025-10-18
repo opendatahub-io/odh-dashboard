@@ -1,5 +1,6 @@
+/* eslint-disable camelcase */
 import { K8sResourceCommon } from 'mod-arch-shared';
-import { AIModel, TokenInfo, MCPServerFromAPI, MCPServerConfig } from '~/app/types';
+import { AIModel, TokenInfo, MCPServerFromAPI, MCPServerConfig, MaaSModel } from '~/app/types';
 
 export const getId = (): `${string}-${string}-${string}-${string}-${string}` => crypto.randomUUID();
 
@@ -36,13 +37,25 @@ export const getLlamaModelDisplayName = (modelId: string, aiModels: AIModel[]): 
   return `${providerId}/${enabledModel.display_name}`;
 };
 
-export const getLlamaModelStatus = (
+export const isLlamaModelEnabled = (
   modelId: string,
   aiModels: AIModel[],
-): AIModel['status'] | undefined => {
+  maasModels: MaaSModel[],
+): boolean => {
   const { id } = splitLlamaModelId(modelId);
+
   const enabledModel = aiModels.find((aiModel) => aiModel.model_id === id);
-  return enabledModel?.status;
+
+  if (enabledModel) {
+    return enabledModel.status === 'Running';
+  }
+
+  const maasModel = maasModels.find((m) => m.id === id);
+  if (maasModel) {
+    return maasModel.ready;
+  }
+
+  return false;
 };
 
 export const generateMCPServerConfig = (
@@ -57,11 +70,35 @@ export const generateMCPServerConfig = (
     headers.Authorization = raw.toLowerCase().startsWith('bearer ') ? raw : `Bearer ${raw}`;
   }
 
-  /* eslint-disable camelcase */
   return {
     server_label: server.name,
     server_url: server.url,
     headers,
   };
-  /* eslint-enable camelcase */
 };
+
+/**
+ * Converts a MaaS model to AIModel format
+ * @param maasModel - The MaaS model to convert
+ * @returns The converted AIModel
+ */
+export const convertMaaSModelToAIModel = (maasModel: MaaSModel): AIModel => ({
+  model_name: maasModel.id,
+  model_id: maasModel.id,
+  serving_runtime: 'MaaS',
+  api_protocol: 'OpenAI',
+  version: '',
+  usecase: 'LLM',
+  description: '', //TODO: MaaS models don't have description yet, bff needs to be updated to provide it
+  endpoints: [`internal: ${maasModel.url}`],
+  status: maasModel.ready ? 'Running' : 'Stop',
+  display_name: maasModel.id,
+  sa_token: {
+    name: '',
+    token_name: '',
+    token: '',
+  },
+  internalEndpoint: maasModel.url,
+  isMaaSModel: true,
+  maasModelId: maasModel.id,
+});

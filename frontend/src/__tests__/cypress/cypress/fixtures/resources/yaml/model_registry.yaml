@@ -9,7 +9,7 @@ metadata:
 spec:
   grpc: {}
   rest: {}
-  oauthProxy: {}
+  kubeRBACProxy: {}
   mysql:
     host: model-registry-db
     port: 3306
