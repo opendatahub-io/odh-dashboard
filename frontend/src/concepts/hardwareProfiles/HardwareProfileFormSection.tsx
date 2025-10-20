@@ -12,14 +12,14 @@ import { HARDWARE_PROFILE_SELECTION_HELP } from './const';
 import { hardwareProfileValidationSchema } from './validationUtils';
 import HardwareProfileSelect from './HardwareProfileSelect';
 import HardwareProfileCustomize from './HardwareProfileCustomize';
-import { PodSpecOptions, PodSpecOptionsState, HardwarePodSpecOptionsState } from './types';
+import { PodSpecOptions, HardwarePodSpecOptionsState } from './types';
 import { getContainerResourcesFromHardwareProfile } from './utils';
 
 type HardwareProfileFormSectionProps<T extends PodSpecOptions> = {
   isEditing: boolean;
   project?: string;
   visibleIn?: HardwareProfileFeatureVisibility[];
-  podSpecOptionsState: PodSpecOptionsState<T> | HardwarePodSpecOptionsState<T>;
+  podSpecOptionsState: HardwarePodSpecOptionsState<T>;
   isHardwareProfileSupported?: (profile: HardwareProfileKind) => boolean;
 };
 
