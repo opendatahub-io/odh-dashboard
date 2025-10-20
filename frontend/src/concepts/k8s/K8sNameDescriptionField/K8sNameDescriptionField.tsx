@@ -38,6 +38,7 @@ type K8sNameDescriptionFieldProps = {
   dataTestId: string;
   descriptionLabel?: string;
   nameLabel?: string;
+  nameHelperTextAbove?: React.ReactNode;
   nameHelperText?: React.ReactNode;
   onDataChange?: UseK8sNameDescriptionFieldData['onDataChange'];
   hideDescription?: boolean;
@@ -56,6 +57,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   descriptionLabel = 'Description',
   onDataChange,
   nameLabel = 'Name',
+  nameHelperTextAbove,
   nameHelperText,
   hideDescription,
   maxLength,
@@ -71,6 +73,11 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   return (
     <>
       <FormGroup label={nameLabel} isRequired fieldId={`${dataTestId}-name`}>
+        {nameHelperTextAbove && (
+          <HelperText>
+            <HelperTextItem>{nameHelperTextAbove}</HelperTextItem>
+          </HelperText>
+        )}
         <TextInput
           aria-readonly={!onDataChange}
           data-testid={`${dataTestId}-name`}

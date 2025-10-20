@@ -4,6 +4,7 @@ import { getUserInfo } from '../../../utils/userUtils';
 import { createCustomError } from '../../../utils/requestUtils';
 import { isUserAdmin, isUserAllowed } from '../../../utils/adminUtils';
 import { isImpersonating } from '../../../devFlags';
+import { getSegmentUserId } from '../../../utils/segmentUtils';
 
 export const status = async (
   fastify: KubeFastifyInstance,
@@ -19,9 +20,12 @@ export const status = async (
 
   const { server } = currentCluster;
 
-  const { userName, userID } = await getUserInfo(fastify, request);
+  const { userName, userID: devSandboxUserId } = await getUserInfo(fastify, request);
   const isAdmin = await isUserAdmin(fastify, request);
   const isAllowed = isAdmin ? true : await isUserAllowed(fastify, request);
+
+  // Get segment user ID with fallbacks
+  const userID = devSandboxUserId || (await getSegmentUserId(fastify, request, userName));
 
   if (!kubeContext && !kubeContext.trim()) {
     const error = createCustomError(

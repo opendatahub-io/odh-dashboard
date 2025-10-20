@@ -119,6 +119,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           serverResource,
           serverResourceTemplateName,
           overwrite,
+          wizardState.initialData,
         );
       } catch (error) {
         setSubmitError(error instanceof Error ? error : new Error(String(error)));
@@ -164,7 +165,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   return (
     <ApplicationsPage title={title} description={description} loaded empty={false}>
       <Wizard onClose={exitWizard} onSave={() => onSave()} footer={wizardFooter}>
-        <WizardStep name="Source model" id="source-model-step">
+        <WizardStep name="Model details" id="source-model-step">
           {wizardState.loaded.modelSourceLoaded ? (
             <ModelSourceStepContent wizardState={wizardState} validation={validation.modelSource} />
           ) : (

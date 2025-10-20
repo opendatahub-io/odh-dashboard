@@ -70,9 +70,6 @@ export const assembleNotebook = (
 
   const translatedUsername = usernameTranslate(username);
 
-  const location = new URL(window.location.href);
-  const { origin } = location;
-
   let volumes: Volume[] | undefined = formVolumes && [...formVolumes];
   let volumeMounts: VolumeMount[] | undefined = formVolumeMounts && [...formVolumeMounts];
   if (canEnablePipelines) {
@@ -130,10 +127,9 @@ export const assembleNotebook = (
         ...acceleratorProfileNamespace,
         'openshift.io/display-name': notebookName.trim(),
         'openshift.io/description': description || '',
-        'notebooks.opendatahub.io/oauth-logout-url': `${origin}/projects/${projectName}?notebookLogout=${notebookId}`,
         'notebooks.opendatahub.io/last-size-selection': lastSizeSelection || '',
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
-        'notebooks.opendatahub.io/inject-oauth': 'true',
+        'notebooks.opendatahub.io/inject-auth': 'true',
         'opendatahub.io/username': username,
         'opendatahub.io/accelerator-name': selectedAcceleratorProfile?.metadata.name || '',
         'opendatahub.io/hardware-profile-name': selectedHardwareProfile?.metadata.name || '',
@@ -163,8 +159,7 @@ export const assembleNotebook = (
                   --ServerApp.token=''
                   --ServerApp.password=''
                   --ServerApp.base_url=/notebook/${projectName}/${notebookId}
-                  --ServerApp.quit_button=False
-                  --ServerApp.tornado_settings={"user":"${translatedUsername}","hub_host":"${origin}","hub_prefix":"/projects/${projectName}"}`,
+                  --ServerApp.quit_button=False`,
                 },
                 {
                   name: 'JUPYTER_IMAGE',

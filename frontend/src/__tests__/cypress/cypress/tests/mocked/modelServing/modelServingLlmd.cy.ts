@@ -31,7 +31,10 @@ import {
   mockModelServingFields,
 } from '#~/__mocks__/mockConnectionType';
 import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
-import { mockSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
+import {
+  mockCustomSecretK8sResource,
+  mockSecretK8sResource,
+} from '#~/__mocks__/mockSecretK8sResource';
 
 const initIntercepts = ({
   llmInferenceServices = [],
@@ -57,7 +60,6 @@ const initIntercepts = ({
       disableModelMesh: true,
       disableNIMModelServing: true,
       disableKServe: false,
-      disableDeploymentWizard: false,
       disableModelAsService: false, // Enable MaaS for testing
     }),
   );
@@ -285,7 +287,7 @@ describe('Model Serving LLMD', () => {
         .should('exist')
         .click();
       modelServingWizard.findExistingConnectionValue().should('have.value', 'test-s3-secret');
-      modelServingWizard.findModelTypeSelectOption('Generative AI model (e.g. LLM)').click();
+      modelServingWizard.findModelTypeSelectOption('Generative AI model (Example, LLM)').click();
       modelServingWizard.findLocationPathInput().should('exist').type('test-model/');
       modelServingWizard.findNextButton().should('be.enabled').click();
 
@@ -309,6 +311,7 @@ describe('Model Serving LLMD', () => {
       // Step 3: Advanced Options
       modelServingWizard.findSubmitButton().should('be.enabled'); //TODO: Change back to findNextButton() when submit page is added
       modelServingWizard.findExternalRouteCheckbox().should('not.exist');
+      modelServingWizard.findTokenAuthenticationCheckbox().should('be.enabled');
       modelServingWizard.findTokenAuthenticationCheckbox().click();
       modelServingWizard.findTokenWarningAlert().should('exist');
       modelServingWizard.findRuntimeArgsCheckbox().click();
@@ -367,6 +370,7 @@ describe('Model Serving LLMD', () => {
         expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
       });
     });
+
     it('should edit an LLMD deployment', () => {
       initIntercepts({
         llmInferenceServices: [
@@ -378,6 +382,24 @@ describe('Model Serving LLMD', () => {
           }),
         ],
       });
+      // Mock the default token secret since auth is enabled on the deployment
+      cy.interceptK8sList(
+        { model: SecretModel, ns: 'test-project' },
+        mockK8sResourceList([
+          mockCustomSecretK8sResource({
+            name: 'default-token-test-llmd-model-sa',
+            namespace: 'test-project',
+            annotations: {
+              'openshift.io/display-name': 'default-token',
+              'kubernetes.io/service-account.name': 'test-llmd-model-sa',
+            },
+            type: 'kubernetes.io/service-account-token',
+            data: {
+              token: 'test-token',
+            },
+          }),
+        ]),
+      );
       // Force the serving runtimelist to show llmd as an option
       cy.interceptK8sList(
         TemplateModel,
@@ -389,6 +411,19 @@ describe('Model Serving LLMD', () => {
           }),
         ]),
       );
+      cy.intercept('DELETE', '**/secrets/default-token-test-llmd-model-sa*', (req) => {
+        req.reply({
+          statusCode: 200,
+          body: {
+            kind: 'Status',
+            apiVersion: 'v1',
+            status: 'Success',
+            message: 'Secret deleted',
+            reason: 'OK',
+            code: 200,
+          },
+        });
+      }).as('deleteDefaultTokenSecret');
       cy.intercept('PUT', '**/llminferenceservices/test-llmd-model*', (req) => {
         req.reply({ statusCode: 200, body: req.body });
       }).as('updateLLMInferenceServiceDryRun');
@@ -407,7 +442,7 @@ describe('Model Serving LLMD', () => {
       modelServingWizardEdit
         .findModelTypeSelect()
         .should('be.disabled')
-        .should('have.text', 'Generative AI model (e.g. LLM)');
+        .should('have.text', 'Generative AI model (Example, LLM)');
       modelServingWizardEdit.findSaveConnectionCheckbox().should('be.checked');
       modelServingWizardEdit.findSaveConnectionCheckbox().click();
       modelServingWizardEdit.findSaveConnectionCheckbox().should('not.be.checked');
@@ -485,7 +520,7 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.findModelLocationSelectOption('URI - v1').click();
       modelServingWizard.findUrilocationInput().type('hf://coolmodel/coolmodel');
       modelServingWizard.findSaveConnectionCheckbox().click(); // Uncheck to simplify
-      modelServingWizard.findModelTypeSelectOption('Generative AI model (e.g. LLM)').click();
+      modelServingWizard.findModelTypeSelectOption('Generative AI model (Example, LLM)').click();
       modelServingWizard.findNextButton().click();
 
       modelServingWizard.findModelDeploymentNameInput().type('test-maas-llmd-model');

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icon, Stack, StackItem, Content, Title, Spinner } from '@patternfly/react-core';
+import { Icon, Stack, StackItem, Title, Spinner } from '@patternfly/react-core';
 import { CheckCircleIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -25,7 +25,6 @@ const ChatbotConfigurationState: React.FC<ChatbotConfigurationStateProps> = ({
 
   let icon: React.ReactNode;
   let title: string;
-  let description: string;
 
   switch (lsdStatus?.phase) {
     case 'Ready':
@@ -34,8 +33,7 @@ const ChatbotConfigurationState: React.FC<ChatbotConfigurationStateProps> = ({
           <CheckCircleIcon />
         </Icon>
       );
-      title = 'Playground configured';
-      description = 'Your playground has been successfully created';
+      title = 'Playground created';
       break;
     case 'Failed':
       icon = (
@@ -43,23 +41,17 @@ const ChatbotConfigurationState: React.FC<ChatbotConfigurationStateProps> = ({
           <ExclamationCircleIcon />
         </Icon>
       );
-      title = 'Playground setup failed';
-      description =
-        'There was an issue with one or more of the models added to your playground configuration.You can update the configuration to change your model selection and try again, or delete the playground.';
+      title = 'Playground creation failed';
       break;
     default:
       icon = <Spinner size="xl" />;
-      title = 'Configuring playground';
-      description = 'Please wait while we add models and configure the playground';
+      title = 'Creating playground';
   }
   return (
     <Stack hasGutter style={{ textAlign: 'center' }}>
       <StackItem>{icon}</StackItem>
       <StackItem>
         <Title headingLevel="h4">{title}</Title>
-      </StackItem>
-      <StackItem>
-        <Content component="small">{description}</Content>
       </StackItem>
       {redirectToPlayground && lsdStatus?.phase === 'Ready' && (
         <StackItem>

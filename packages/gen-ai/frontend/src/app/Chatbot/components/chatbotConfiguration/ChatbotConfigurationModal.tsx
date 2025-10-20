@@ -8,6 +8,7 @@ import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTrack
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
 import { deleteLSD, installLSD } from '~/app/services/llamaStackService';
+import { convertMaaSModelToAIModel } from '~/app/utilities/utils';
 import ChatbotConfigurationTable from './ChatbotConfigurationTable';
 import ChatbotConfigurationState from './ChatbotConfigurationState';
 
@@ -46,27 +47,8 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     const aiModelIds = new Set(aiModels.map((model) => model.model_id));
     // Only include MaaS models that aren't already in aiModels (i.e., not marked as AI assets)
     return maasModels
-      .filter((maasModel) => !aiModelIds.has(maasModel.id) && maasModel.ready)
-      .map((maasModel) => ({
-        model_name: maasModel.id,
-        model_id: maasModel.id,
-        serving_runtime: 'MaaS',
-        api_protocol: 'OpenAI',
-        version: '',
-        usecase: 'LLM',
-        description: `Model as a Service - ${maasModel.owned_by}`,
-        endpoints: [`internal: ${maasModel.url}`],
-        status: 'Running' as const,
-        display_name: maasModel.id,
-        sa_token: {
-          name: '',
-          token_name: '',
-          token: '',
-        },
-        internalEndpoint: maasModel.url,
-        isMaaSModel: true,
-        maasModelId: maasModel.id,
-      }));
+      .filter((maasModel) => !aiModelIds.has(maasModel.id))
+      .map(convertMaaSModelToAIModel);
   }, [aiModels, maasModels]);
 
   // Merge all models and MaaS models for display
@@ -213,7 +195,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
       {!configuringPlayground && (
         <ModalFooter>
           <DashboardModalFooter
-            submitLabel={isUpdate ? 'Update configuration' : 'Configure'}
+            submitLabel={isUpdate ? 'Update' : 'Create'}
             onSubmit={onSubmit}
             onCancel={onBeforeClose}
             error={error}

@@ -414,7 +414,6 @@ export type NotebookRunningState = {
   notebook: Notebook | null;
   isRunning: boolean;
   podUID: string;
-  notebookLink: string;
 };
 
 export type Route = {

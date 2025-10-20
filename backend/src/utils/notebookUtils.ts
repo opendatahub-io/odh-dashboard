@@ -14,7 +14,6 @@ import {
   NotebookData,
   NotebookList,
   RecursivePartial,
-  Route,
   TagContent,
   VolumeMount,
 } from '../types';
@@ -69,22 +68,6 @@ export const getNamespaces = (
     workbenchNamespace: workbenchNamespace || fallbackNamespace,
     dashboardNamespace: fallbackNamespace,
   };
-};
-
-export const getRoute = async (
-  fastify: KubeFastifyInstance,
-  namespace: string,
-  routeName: string,
-): Promise<Route> => {
-  const kubeResponse = await fastify.kube.customObjectsApi
-    .getNamespacedCustomObject('route.openshift.io', 'v1', namespace, 'routes', routeName)
-    .catch((res) => {
-      const e = res.response.body;
-      const error = createCustomError('Error getting Route', e.message, e.code);
-      fastify.log.error(error);
-      throw error;
-    });
-  return kubeResponse.body as Route;
 };
 
 export const createRBAC = async (
@@ -235,7 +218,6 @@ export const assembleNotebook = async (
         'opendatahub.io/dashboard': 'true',
       },
       annotations: {
-        'notebooks.opendatahub.io/oauth-logout-url': `${url}/notebook-controller/${translatedUsername}/home`,
         'notebooks.opendatahub.io/last-size-selection': lastSizeSelection,
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'opendatahub.io/username': username,
@@ -266,8 +248,7 @@ export const assembleNotebook = async (
                   --ServerApp.token=''
                   --ServerApp.password=''
                   --ServerApp.base_url=/notebook/${namespace}/${name}
-                  --ServerApp.quit_button=False
-                  --ServerApp.tornado_settings={"user":"${translatedUsername}","hub_host":"${url}","hub_prefix":"/notebook-controller/${translatedUsername}"}`,
+                  --ServerApp.quit_button=False`,
                 },
                 {
                   name: 'JUPYTER_IMAGE',
@@ -417,7 +398,7 @@ export const createNotebook = async (
     notebookAssembled.metadata.annotations = {};
   }
 
-  notebookAssembled.metadata.annotations['notebooks.opendatahub.io/inject-oauth'] = 'true';
+  notebookAssembled.metadata.annotations['notebooks.opendatahub.io/inject-auth'] = 'true';
   const notebookContainers = notebookAssembled.spec.template.spec.containers;
 
   if (!notebookContainers[0]) {

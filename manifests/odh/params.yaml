@@ -5,3 +5,5 @@ varReference:
   kind: ConsoleLink
 - path: spec/href
   kind: ConsoleLink
+- path: spec/parentRefs/name
+  kind: HTTPRoute

@@ -4,7 +4,7 @@ import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeValueType,
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
+import type { SecretKind, SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
 import type { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type {
   ModelServerOption,
@@ -54,6 +54,7 @@ export type InitialWizardFormData = {
   k8sNameDesc?: K8sNameDescriptionFieldData;
   externalRoute?: ExternalRouteFieldData;
   tokenAuthentication?: TokenAuthenticationFieldData;
+  existingAuthTokens?: SecretKind[];
   numReplicas?: NumReplicasFieldData;
   runtimeArgs?: RuntimeArgsFieldData;
   environmentVariables?: EnvironmentVariablesFieldData;

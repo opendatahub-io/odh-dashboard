@@ -139,7 +139,7 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Checkbox
             id="env-vars-checkbox"
-            label="Add custom serving runtime environment variables"
+            label="Add custom runtime environment variables"
             isChecked={data.enabled}
             isDisabled={!allowCreate}
             onChange={handleCheckboxChange}
@@ -162,10 +162,10 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
           headerContent="Predefined variables of the selected serving runtime"
           bodyContent={
             <List isPlain data-testid="predefined-vars-list">
-              {predefinedVars?.length === 0 ? (
+              {!predefinedVars || predefinedVars.length === 0 ? (
                 <ListItem key="0">No predefined variables</ListItem>
               ) : (
-                predefinedVars?.map((arg: string, index: number) => (
+                predefinedVars.map((arg: string, index: number) => (
                   <ListItem key={index}>{arg}</ListItem>
                 ))
               )}

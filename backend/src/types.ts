@@ -274,7 +274,15 @@ export type KubeFastifyInstance = FastifyInstance & {
 
 // TODO: constant-ize the x-forwarded header
 export type OauthFastifyRequest<Data extends RouteGenericInterface = RouteGenericInterface> =
-  FastifyRequest<{ Headers?: { 'x-forwarded-access-token'?: string } & Data['Headers'] } & Data>;
+  FastifyRequest<
+    {
+      Headers?: {
+        'x-forwarded-access-token'?: string;
+        'x-auth-request-user'?: string;
+        'x-auth-request-groups'?: string;
+      } & Data['Headers'];
+    } & Data
+  >;
 
 /*
  * Common types, should be kept up to date with frontend types
@@ -454,32 +462,6 @@ export type NotebookList = {
   metadata: Record<string, unknown>;
   items: Notebook[];
 } & K8sResourceCommon;
-
-export type Route = {
-  apiVersion?: string;
-  kind?: string;
-  metadata: {
-    name: string;
-    namespace: string;
-    annotations?: { [key: string]: string };
-  };
-  spec: {
-    host: string;
-    port: {
-      targetPort: string;
-    };
-    tls: {
-      insecureEdgeTerminationPolicy: string;
-      termination: string;
-    };
-    to: {
-      kind: string;
-      name: string;
-      weight: number;
-    };
-    wildcardPolicy: string;
-  };
-};
 
 export type ODHSegmentKey = {
   segmentKey: string;
@@ -990,16 +972,6 @@ export enum KnownLabels {
   KUEUE_MANAGED = 'kueue.openshift.io/managed',
 }
 
-type ComponentNames =
-  | 'codeflare'
-  | 'data-science-pipelines-operator'
-  | 'kserve'
-  | 'model-mesh'
-  // Bug: https://github.com/opendatahub-io/opendatahub-operator/issues/641
-  | 'odh-dashboard'
-  | 'ray'
-  | 'workbenches';
-
 export type DataScienceClusterKindStatus = {
   components?: {
     modelregistry?: {
@@ -1010,7 +982,6 @@ export type DataScienceClusterKindStatus = {
     };
   };
   conditions: K8sCondition[];
-  installedComponents: { [key in ComponentNames]?: boolean };
   phase?: string;
   release?: {
     name: string;

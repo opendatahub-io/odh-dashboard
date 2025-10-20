@@ -59,7 +59,6 @@ export enum SupportedArea {
   TRUSTY_AI = 'trusty-ai',
   NIM_MODEL = 'nim-model',
   SERVING_RUNTIME_PARAMS = 'serving-runtime-params',
-  DEPLOYMENT_WIZARD = 'deployment-wizard',
   MODEL_AS_SERVICE = 'model-as-service',
 
   /* Distributed Workloads areas */
@@ -108,13 +107,13 @@ export enum StackComponent {
   LLAMA_STACK_OPERATOR = 'llamastackoperator',
 }
 
-/** The possible component names that are used as keys in the `components` object of the DSC Status.
+/** The possible V1 component names that are used as keys in the `components` object of the DSC Status.
  * Each component's key (e.g., 'codeflare', 'dashboard', etc.) maps to a specific component status.
  **/
 export enum DataScienceStackComponent {
   CODE_FLARE = 'codeflare',
   DASHBOARD = 'dashboard',
-  DS_PIPELINES = 'aipipelines',
+  DS_PIPELINES = 'datasciencepipelines',
   K_SERVE = 'kserve',
   KUEUE = 'kueue',
   MODEL_MESH_SERVING = 'modelmeshserving',
@@ -124,6 +123,7 @@ export enum DataScienceStackComponent {
   TRAINING_OPERATOR = 'trainingoperator',
   TRUSTY_AI = 'trustyai',
   WORKBENCHES = 'workbenches',
+  LLAMA_STACK_OPERATOR = 'llamastackoperator',
 }
 
 /** Capabilities of the Operator. Part of the DSCI Status. */
