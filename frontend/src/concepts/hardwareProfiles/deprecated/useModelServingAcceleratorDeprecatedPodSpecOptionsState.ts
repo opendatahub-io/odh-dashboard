@@ -9,18 +9,24 @@ import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { getInferenceServiceSize } from '#~/pages/modelServing/utils';
 import { isGpuDisabled } from '#~/pages/modelServing/screens/projects/utils';
 import useServingHardwareProfileConfig from '#~/concepts/hardwareProfiles/useServingHardwareProfileConfig';
-import { PodSpecOptionsState } from '#~/concepts/hardwareProfiles/types';
+import { PodSpecOptionsAcceleratorState } from '#~/concepts/hardwareProfiles/types';
 import {
   ModelServingPodSpecOptions,
   ModelServingSizeState,
 } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 
-export type ModelServingPodSpecOptionsState = PodSpecOptionsState<ModelServingPodSpecOptions> & {
-  modelSize: ModelServingSizeState;
-};
+export type ModelServingPodSpecOptionsState =
+  PodSpecOptionsAcceleratorState<ModelServingPodSpecOptions> & {
+    modelSize: ModelServingSizeState;
+  };
 
 // HERE: go through and find all the places that use this and replace with the new useServingHardwareProfileConfig
 // todo:  get NIM set up so i can test it.
+
+// every file that is *only* used by this file should be marked as deprecated.
+// it will be marked as deprecated and with the label: accel-modelMesh-deprecated
+// everything with this label can all be removed when the modelmesh classes are removed
+
 /** @deprecated -- accelerator profiles are removed as of 3.0; and only modelmesh uses this (which is itself deprecated) */
 export const useModelServingPodSpecOptionsState = (
   servingRuntime?: ServingRuntimeKind,

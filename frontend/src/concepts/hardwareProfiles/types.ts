@@ -36,7 +36,7 @@ export type HardwarePodSpecOptions = {
   selectedHardwareProfile?: HardwareProfileKind;
 };
 
-export type PodSpecOptionsState<T extends PodSpecOptions> = {
+export type PodSpecOptionsAcceleratorState<T extends PodSpecOptions> = {
   acceleratorProfile: ReturnType<typeof useAcceleratorProfileFormState>;
   hardwareProfile: ReturnType<typeof useHardwareProfileConfig>;
   podSpecOptions: T;
