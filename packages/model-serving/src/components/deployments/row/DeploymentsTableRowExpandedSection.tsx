@@ -25,6 +25,7 @@ import {
   isModelServingDeploymentFormDataExtension,
   type Deployment,
 } from '../../../../extension-points';
+import { ModelAvailabilityFieldsData } from '../../../components/deploymentWizard/types';
 
 const FrameworkItem = ({ framework }: { framework: SupportedModelFormats }) => {
   const name = `${framework.name}${framework.version ? `-${framework.version}` : ''}`;
@@ -106,6 +107,47 @@ const TokenAuthenticationItem = ({ deployment }: { deployment: Deployment }) => 
   );
 };
 
+const ModelAvailabilityItem = ({
+  modelAvailability,
+}: {
+  modelAvailability: ModelAvailabilityFieldsData;
+}) => {
+  const availabilityTypes = [];
+  if (modelAvailability.saveAsAiAsset) {
+    availabilityTypes.push('AI asset endpoint');
+  }
+  if (modelAvailability.saveAsMaaS) {
+    availabilityTypes.push('Model-as-a-Service (MaaS)');
+  }
+  return (
+    <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '250px' }}>
+      <DescriptionListGroup>
+        <DescriptionListTerm>Model availability</DescriptionListTerm>
+        <DescriptionListDescription>
+          {availabilityTypes.length > 0 ? availabilityTypes.join(', ') : 'None'}
+        </DescriptionListDescription>
+        {modelAvailability.useCase ? (
+          <>
+            <DescriptionListTerm>Use case</DescriptionListTerm>
+            <DescriptionListDescription>{modelAvailability.useCase}</DescriptionListDescription>
+          </>
+        ) : null}
+      </DescriptionListGroup>
+    </DescriptionList>
+  );
+};
+
+const DescriptionItem = ({ description }: { description: string }) => {
+  return (
+    <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '250px' }}>
+      <DescriptionListGroup>
+        <DescriptionListTerm>Description</DescriptionListTerm>
+        <DescriptionListDescription>{description}</DescriptionListDescription>
+      </DescriptionListGroup>
+    </DescriptionList>
+  );
+};
+
 export const DeploymentRowExpandedSection: React.FC<{
   deployment: Deployment;
   isVisible: boolean;
@@ -129,6 +171,15 @@ export const DeploymentRowExpandedSection: React.FC<{
     () => formDataExtension?.properties.extractHardwareProfileConfig(deployment),
     [formDataExtension, deployment],
   );
+  const description = React.useMemo(
+    () => deployment.model.metadata.annotations?.['openshift.io/description'],
+    [deployment],
+  );
+
+  const modelAvailability = React.useMemo(
+    () => formDataExtension?.properties.extractModelAvailabilityData(deployment),
+    [formDataExtension, deployment],
+  );
 
   if (!isVisible) {
     return null;
@@ -140,6 +191,7 @@ export const DeploymentRowExpandedSection: React.FC<{
       <Td dataLabel="Information" colSpan={5}>
         <ExpandableRowContent>
           <Stack hasGutter>
+            {description && description !== '' && <DescriptionItem description={description} />}
             {modelFormat && <FrameworkItem framework={modelFormat} />}
             <ReplicasItem replicas={replicas} />
             <ModelSizeItem resources={hardwareProfileConfig?.[1]} />
@@ -149,6 +201,7 @@ export const DeploymentRowExpandedSection: React.FC<{
                 hardwareProfileConfig={hardwareProfileConfig}
               />
             )}
+            {modelAvailability && <ModelAvailabilityItem modelAvailability={modelAvailability} />}
             <TokenAuthenticationItem deployment={deployment} />
           </Stack>
         </ExpandableRowContent>
