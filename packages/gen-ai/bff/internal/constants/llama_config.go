@@ -126,6 +126,12 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 				NewProvider("model-context-protocol", "remote::model-context-protocol", EmptyConfig()),
 			},
 		},
+		ToolGroups: []ToolGroup{
+			{
+				ToolGroupID: "builtin::rag",
+				ProviderID:  "rag-runtime",
+			},
+		},
 		MetadataStore: MetadataStore{
 			Type:   "sqlite",
 			DBPath: "/opt/app-root/src/.llama/distributions/rh/inference_store.db",
