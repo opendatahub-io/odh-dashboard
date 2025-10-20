@@ -8,6 +8,7 @@ import { HardwareFormData } from '#~/concepts/pipelines/content/modelCustomizati
 import { CONTAINER_RESOURCE_DEFAULT, KnownFineTuningPipelineParameters } from './const';
 import { getParamsValueFromPipelineInput } from './utils';
 
+/** @deprecated  fine-tuning is going away*/
 export type IlabPodSpecOptions = {
   resources: ContainerResources;
   tolerations?: Toleration[];
@@ -27,6 +28,7 @@ export type IlabPodSpecOptionsState = {
   hardwareProfile: ReturnType<typeof useHardwareProfileConfig>;
 };
 
+/** @deprecated  fine-tuning is going away */
 export const useIlabPodSpecOptionsState = (
   ilabPipelineVersion: PipelineVersionKF | null,
   setHardwareFormData: (data: HardwareFormData) => void,
