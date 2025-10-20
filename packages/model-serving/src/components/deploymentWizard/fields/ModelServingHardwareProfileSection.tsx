@@ -9,7 +9,7 @@ import { HardwareProfileFeatureVisibility } from '@odh-dashboard/internal/k8sTyp
 import { ContainerResources, NodeSelector, Toleration } from '@odh-dashboard/internal/types';
 import type {
   PodSpecOptions,
-  PodSpecOptionsState,
+  PodSpecOptionsAcceleratorState,
 } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import type { UseAcceleratorProfileFormResult } from '@odh-dashboard/internal/utilities/useAcceleratorProfileFormState';
 
@@ -66,7 +66,7 @@ type ModelServingHardwareProfileSectionComponentProps = {
 export const ModelServingHardwareProfileSection: React.FC<
   ModelServingHardwareProfileSectionComponentProps
 > = ({ hardwareProfileConfig, project, isEditing = false }) => {
-  const podSpecOptionsState: PodSpecOptionsState<PodSpecOptions> = React.useMemo(
+  const podSpecOptionsState: PodSpecOptionsAcceleratorState<PodSpecOptions> = React.useMemo(
     () => ({
       acceleratorProfile: createAcceleratorProfileStub(),
       hardwareProfile: hardwareProfileConfig,
