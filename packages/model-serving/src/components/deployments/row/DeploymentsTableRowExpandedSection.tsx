@@ -124,12 +124,14 @@ const ModelAvailabilityItem = ({
       <DescriptionListGroup>
         <DescriptionListTerm>Model availability</DescriptionListTerm>
         <DescriptionListDescription>
-          {availabilityTypes.length > 0 ? availabilityTypes.join(', ') : 'None'}
+          {availabilityTypes.length > 0 ? availabilityTypes.join(', ') : 'No model availability'}
         </DescriptionListDescription>
-        {modelAvailability.useCase ? (
+        {availabilityTypes.length > 0 ? (
           <>
             <DescriptionListTerm>Use case</DescriptionListTerm>
-            <DescriptionListDescription>{modelAvailability.useCase}</DescriptionListDescription>
+            <DescriptionListDescription>
+              {modelAvailability.useCase ?? 'No use case'}
+            </DescriptionListDescription>
           </>
         ) : null}
       </DescriptionListGroup>
