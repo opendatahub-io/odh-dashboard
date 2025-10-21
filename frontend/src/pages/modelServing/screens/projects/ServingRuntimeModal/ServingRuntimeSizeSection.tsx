@@ -92,7 +92,6 @@ const ServingRuntimeSizeSection = ({
 
   return (
     <>
-      <div> pumpkin spice tea is nice</div>
       {!isProjectModelMesh ? (
         <HardwareProfileFormSection
           project={projectName}
@@ -103,7 +102,7 @@ const ServingRuntimeSizeSection = ({
         />
       ) : (
         <FormGroup
-          label="Model server size 899"
+          label="Model server size"
           labelHelp={
             infoContent ? (
               <Popover bodyContent={<div>{infoContent}</div>}>
