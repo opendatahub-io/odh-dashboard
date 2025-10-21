@@ -19,7 +19,6 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
   wizardState,
 }) => {
   const profileIdentifiers = useProfileIdentifiers(
-    undefined,
     wizardState.state.hardwareProfileConfig.formData.selectedProfile,
   );
 
