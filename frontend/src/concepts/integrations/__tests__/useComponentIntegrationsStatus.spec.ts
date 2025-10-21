@@ -7,6 +7,7 @@ jest.mock('#~/utilities/useFetch');
 jest.mock('#~/services/componentsServices');
 jest.mock('#~/services/integrationAppService');
 jest.mock('#~/utilities/utils.ts');
+jest.mock('#~/redux/hooks');
 
 const mockUseFetch = jest.requireMock('#~/utilities/useFetch').default;
 const mockFetchComponents = jest.requireMock('#~/services/componentsServices').fetchComponents;
@@ -14,6 +15,7 @@ const mockGetIntegrationAppEnablementStatus = jest.requireMock(
   '#~/services/integrationAppService',
 ).getIntegrationAppEnablementStatus;
 const mockIsIntegrationApp = jest.requireMock('#~/utilities/utils.ts').isIntegrationApp;
+const mockUseAppSelector = jest.requireMock('#~/redux/hooks').useAppSelector;
 
 describe('useComponentIntegrationsStatus', () => {
   const mockIntegrationStatus: IntegrationAppStatus = {
@@ -25,6 +27,7 @@ describe('useComponentIntegrationsStatus', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseAppSelector.mockReturnValue(0);
   });
 
   it('should return empty object when no integration apps exist', () => {
@@ -95,6 +98,6 @@ describe('useComponentIntegrationsStatus', () => {
 
     renderHook(() => useComponentIntegrationsStatus());
 
-    expect(mockUseFetch).toHaveBeenCalledWith(expect.any(Function), []);
+    expect(mockUseFetch).toHaveBeenCalledWith(expect.any(Function), {});
   });
 });
