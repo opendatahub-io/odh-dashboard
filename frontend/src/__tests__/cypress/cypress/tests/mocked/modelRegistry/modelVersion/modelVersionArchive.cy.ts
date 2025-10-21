@@ -263,7 +263,7 @@ describe('Archiving version', () => {
     modelRegistry
       .findModelVersionsHeaderAction()
       .findDropdownItem('Archive model')
-      .should('be.disabled');
+      .should('have.attr', 'aria-disabled');
   });
 
   it('Cannot archive model version with deployment from the version detail page', () => {
