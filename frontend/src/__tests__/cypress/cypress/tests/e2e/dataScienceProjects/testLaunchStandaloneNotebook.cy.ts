@@ -39,14 +39,6 @@ describe('Verify a Jupyter Notebook can be launched directly from the Project Li
       cy.step('Choose Code Server Image');
       notebookServer.findNotebookImage('code-server-notebook').click();
 
-      // Select the versions dropdown
-      cy.step('Select the code server versions dropdown');
-      notebookServer.findVersionsDropdown(testData.codeserverImageName).click();
-
-      // Select an image version
-      cy.step('Select the codeserver image version');
-      notebookServer.findNotebookVersion(testData.codeserverImageName).click();
-
       // Verify that 'Start Server button' is enabled
       cy.step('Check Start server button is enabled');
       notebookServer.findStartServerButton().should('not.be.disabled');
