@@ -170,3 +170,103 @@ func TestNewTypes(t *testing.T) {
 	assert.Equal(t, 100, benchmark.Config["iterations"])
 	assert.NotNil(t, benchmark.Metadata)
 }
+
+func TestGetModelProviderInfo(t *testing.T) {
+	// Create a test config with models and providers
+	config := NewDefaultLlamaStackConfig()
+
+	// Add test providers
+	vllmProvider := NewVLLMProvider("vllm-inference-1", "http://vllm.example.com/v1")
+	config.AddInferenceProvider(vllmProvider)
+
+	maasProvider := NewVLLMProvider("maas-vllm-inference-1", "http://maas.example.com/v1")
+	config.AddInferenceProvider(maasProvider)
+
+	watsonxProvider := NewProvider("maas-watsonx", "remote::watsonx", map[string]interface{}{
+		"url": "https://watsonx.example.com/v1",
+	})
+	config.AddInferenceProvider(watsonxProvider)
+
+	// Add test models
+	model1 := NewModel("llama-32-3b-instruct", "vllm-inference-1", "llm", nil)
+	config.AddModel(model1)
+
+	model2 := NewModel("facebook/opt-125m", "maas-vllm-inference-1", "llm", nil)
+	config.AddModel(model2)
+
+	model3 := NewModel("granite-3.1-8b-instruct", "maas-watsonx", "llm", nil)
+	config.AddModel(model3)
+
+	tests := []struct {
+		name                 string
+		modelID              string
+		expectedModelID      string
+		expectedProviderID   string
+		expectedProviderType string
+		expectError          bool
+	}{
+		{
+			name:                 "Direct model ID without slash",
+			modelID:              "llama-32-3b-instruct",
+			expectedModelID:      "llama-32-3b-instruct",
+			expectedProviderID:   "vllm-inference-1",
+			expectedProviderType: "remote::vllm",
+			expectError:          false,
+		},
+		{
+			name:                 "Direct model ID with slash",
+			modelID:              "facebook/opt-125m",
+			expectedModelID:      "facebook/opt-125m",
+			expectedProviderID:   "maas-vllm-inference-1",
+			expectedProviderType: "remote::vllm",
+			expectError:          false,
+		},
+		{
+			name:                 "Provider-prefixed model ID without slash in model",
+			modelID:              "vllm-inference-1/llama-32-3b-instruct",
+			expectedModelID:      "llama-32-3b-instruct",
+			expectedProviderID:   "vllm-inference-1",
+			expectedProviderType: "remote::vllm",
+			expectError:          false,
+		},
+		{
+			name:                 "Provider-prefixed model ID with slash in model",
+			modelID:              "maas-vllm-inference-1/facebook/opt-125m",
+			expectedModelID:      "facebook/opt-125m",
+			expectedProviderID:   "maas-vllm-inference-1",
+			expectedProviderType: "remote::vllm",
+			expectError:          false,
+		},
+		{
+			name:                 "MaaS watsonx with provider prefix",
+			modelID:              "maas-watsonx/granite-3.1-8b-instruct",
+			expectedModelID:      "granite-3.1-8b-instruct",
+			expectedProviderID:   "maas-watsonx",
+			expectedProviderType: "remote::watsonx",
+			expectError:          false,
+		},
+		{
+			name:        "Non-existent model",
+			modelID:     "non-existent-model",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := config.GetModelProviderInfo(tt.modelID)
+
+			if tt.expectError {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.NotNil(t, result)
+			assert.Equal(t, tt.expectedModelID, result.ModelID, "ModelID should match the actual model_id from config")
+			assert.Equal(t, tt.expectedProviderID, result.ProviderID, "ProviderID should match")
+			assert.Equal(t, tt.expectedProviderType, result.ProviderType, "ProviderType should match")
+		})
+	}
+}

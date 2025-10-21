@@ -280,8 +280,31 @@ Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUS
         cy.get('input[name=username]').fill(credentials.USERNAME);
         cy.get('input[name=password]').fill(credentials.PASSWORD);
         cy.get('form').submit();
-      } else if (!interception.response || statusCode !== 200) {
+      } else if (!interception.response || (statusCode !== 200 && statusCode !== 302)) {
         throw new Error(`Failed to visit '${fullUrl}'. Status code: ${statusCode || 'unknown'}`);
+      }
+    });
+
+    // Handle OAuth login flow - check if we got redirected to OAuth login
+    cy.url().then((currentUrl) => {
+      if (currentUrl.includes('/oauth/authorize') || currentUrl.includes('oauth-openshift')) {
+        cy.log('OAuth login flow detected - completing authentication');
+
+        // Look for and click the auth provider link
+        cy.findAllByRole('link', credentials.AUTH_TYPE ? { name: credentials.AUTH_TYPE } : {})
+          .last()
+          .click();
+
+        // Fill in credentials
+        cy.get('input[name=username]').clear();
+        cy.get('input[name=username]').type(credentials.USERNAME);
+        cy.get('input[name=password]').clear();
+        cy.get('input[name=password]').type(credentials.PASSWORD);
+        cy.get('input[type="submit"], button[type="submit"]').click();
+
+        // Wait for redirect back to dashboard
+        cy.url().should('include', Cypress.config('baseUrl'));
+        cy.url().should('not.include', '/oauth');
       }
     });
   }
