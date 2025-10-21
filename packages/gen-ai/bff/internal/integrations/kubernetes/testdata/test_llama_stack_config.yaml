@@ -28,6 +28,13 @@ providers:
     config:
       url: https://us-south.ml.cloud.ibm.com/ml/v1
       api_key: ${env.WATSONX_API_KEY:=fake-key}
+  - provider_id: maas-vllm-inference-1
+    provider_type: remote::vllm
+    config:
+      url: http://maas.apps.rosa.crimson-demo.g9ax.p3.openshiftapps.com/llm/facebook-opt-125m-simulated/v1
+      max_tokens: ${env.VLLM_MAX_TOKENS:=4096}
+      api_token: ${env.VLLM_API_TOKEN_1:=fake}
+      tls_verify: ${env.VLLM_TLS_VERIFY:=true}
   vector_io:
   - provider_id: milvus
     provider_type: inline::milvus
@@ -122,6 +129,11 @@ models:
 
     model_id: granite-3.1-8b-instruct
     provider_id: maas-watsonx
+    model_type: llm
+  -
+    metadata: {}
+    model_id: facebook/opt-125m
+    provider_id: maas-vllm-inference-1
     model_type: llm
 
 shields: []
