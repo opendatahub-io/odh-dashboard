@@ -51,11 +51,6 @@ export const fireNotebookTrackingEvent = (
   notebook: NotebookKind,
   podSpecOptionsState: NotebookPodSpecOptionsState,
 ): void => {
-  console.log(
-    'in firenotebook tracking event avo88a podSpecOptionsState',
-    podSpecOptionsState,
-    action,
-  );
   fireFormTrackingEvent(`Workbench ${action === 'started' ? 'Started' : 'Stopped'}`, {
     outcome: TrackingOutcome.submit,
     podSpecOptions: JSON.stringify({
