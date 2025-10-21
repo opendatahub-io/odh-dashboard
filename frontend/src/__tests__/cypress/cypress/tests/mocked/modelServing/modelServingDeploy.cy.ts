@@ -317,12 +317,14 @@ describe('Model Serving Deploy Wizard', () => {
     cy.findByRole('heading', { name: 'Deploy a model' }).should('exist');
     cy.findByRole('button', { name: 'Cancel' }).click();
     cy.url().should('include', '/deployments/test-project');
+    modelServingWizard.findDiscardButton().click();
 
     modelServingSection.visit('test-project');
     modelServingSection.findDeployModelButton().click();
     cy.findByRole('heading', { name: 'Deploy a model' }).should('exist');
     cy.findByRole('button', { name: 'Cancel' }).click();
     cy.url().should('include', '/projects/test-project');
+    modelServingWizard.findCancelButton().click();
   });
 
   it('Create a new generative deployment and submit', () => {

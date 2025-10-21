@@ -1200,6 +1200,14 @@ class ModelServingWizard extends Wizard {
   findUpdateDeploymentButton() {
     return cy.findByRole('button', { name: 'Update deployment' });
   }
+
+  findCancelButton() {
+    return cy.findByRole('button', { name: 'Cancel' });
+  }
+
+  findDiscardButton() {
+    return cy.findByRole('button', { name: 'Discard' });
+  }
 }
 
 export const modelServingGlobal = new ModelServingGlobal();
