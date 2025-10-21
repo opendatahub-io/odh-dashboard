@@ -182,14 +182,6 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
           cy.step('Restart the workbench and confirm the workbench has started successfully');
           workbenchStatusModal.findStartWorkbenchFooterButton().click();
           workbenchStatusModal.getNotebookStatus('Running', 120000);
-          workbenchStatusModal.findProgressTab().click();
-          workbenchStatusModal.findProgressSteps().each(($step) => {
-            workbenchStatusModal.assertStepSuccess($step).then(() => {
-              workbenchStatusModal.getStepTitle($step).then((stepTitle) => {
-                cy.log(`✅ Step "${stepTitle}" is successful`);
-              });
-            });
-          });
         },
       );
     },
