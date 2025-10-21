@@ -1,3 +1,13 @@
+import { ChatbotSourceSettings } from '~/app/types';
+
+export const DEFAULT_SOURCE_SETTINGS: ChatbotSourceSettings = {
+  embeddingModel: '',
+  vectorStore: '',
+  delimiter: '',
+  maxChunkLength: 800,
+  chunkOverlap: 400,
+};
+
 export const formatFileSize = (bytes: number): string => {
   if (bytes === 0) {
     return '0 Bytes';
