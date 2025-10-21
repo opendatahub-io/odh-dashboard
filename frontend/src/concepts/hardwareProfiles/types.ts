@@ -37,6 +37,7 @@ export type HardwarePodSpecOptions = {
 };
 
 // @deprecated.  leaving in only for deprecated code to use (ie, modelmesh)
+// only in modelmesh deprecation path
 export type PodSpecOptionsAcceleratorState<T extends PodSpecOptions> = {
   acceleratorProfile: ReturnType<typeof useAcceleratorProfileFormState>;
   hardwareProfile: ReturnType<typeof useHardwareProfileConfig>;
