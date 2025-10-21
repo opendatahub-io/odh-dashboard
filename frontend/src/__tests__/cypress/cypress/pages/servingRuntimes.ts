@@ -107,11 +107,11 @@ class ServingRuntimes {
   }
 
   findPredictiveModelOption() {
-    return cy.findByTestId('model-type-option-predictive');
+    return cy.findByTestId('model-type-option-predictive').find('input[type="checkbox"]');
   }
 
   findGenerativeAIModelOption() {
-    return cy.findByTestId('model-type-option-generative');
+    return cy.findByTestId('model-type-option-generative').find('input[type="checkbox"]');
   }
 
   shouldDisplayAPIProtocolValues(values: ServingRuntimeAPIProtocol[]) {
