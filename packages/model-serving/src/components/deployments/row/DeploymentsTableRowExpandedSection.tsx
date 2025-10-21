@@ -131,7 +131,7 @@ const ModelAvailabilityItem = ({
           <>
             <DescriptionListTerm>Use case</DescriptionListTerm>
             <DescriptionListDescription>
-              {modelAvailability.useCase ?? 'No use case'}
+              <Truncate content={modelAvailability.useCase ?? 'No use case'} />
             </DescriptionListDescription>
           </>
         ) : null}
