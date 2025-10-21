@@ -10,12 +10,15 @@ export const ExitDeploymentModal: React.FC<ExitDeploymentModalProps> = ({ onClos
   return (
     <Modal isOpen onClose={onClose} variant="small">
       <ModalHeader
-        title="Exit Wizard?"
+        title="Discard deployment configuration?"
         titleIconVariant="warning"
         labelId="exit-deployment-modal-title"
       />
       <ModalBody>
-        <span id="exit-deployment-modal-description">All inputs will be discarded.</span>
+        <span id="exit-deployment-modal-description">
+          Your configuration details for this model deployment are not saved. Discard your changes
+          and leave this page, or cancel to continue editing.
+        </span>
       </ModalBody>
       <ModalFooter>
         <Button key="discard" variant="primary" onClick={onConfirm}>
