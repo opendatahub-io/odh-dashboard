@@ -174,7 +174,10 @@ describe('Model Serving LLMD', () => {
         .findExternalServicePopover()
         .findByText('http://us-east-1.elb.amazonaws.com/test-project/facebook-opt-125m-single')
         .should('exist');
-      row.findAPIProtocol().should('have.text', 'REST');
+      row
+        .findExternalServicePopover()
+        .findByTestId('api-protocol-label')
+        .should('have.text', 'REST');
       row.findLastDeployed().should('have.text', '17 Mar 2023');
       row.findStatusLabel('Started');
 
