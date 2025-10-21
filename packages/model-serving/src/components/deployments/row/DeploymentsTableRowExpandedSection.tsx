@@ -9,6 +9,7 @@ import {
   Stack,
   ListItem,
   List,
+  Truncate,
 } from '@patternfly/react-core';
 import { formatMemory } from '@odh-dashboard/internal/utilities/valueUnits';
 import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
@@ -144,7 +145,9 @@ const DescriptionItem = ({ description }: { description: string }) => {
     <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '250px' }}>
       <DescriptionListGroup>
         <DescriptionListTerm>Description</DescriptionListTerm>
-        <DescriptionListDescription>{description}</DescriptionListDescription>
+        <DescriptionListDescription>
+          <Truncate content={description} />
+        </DescriptionListDescription>
       </DescriptionListGroup>
     </DescriptionList>
   );
@@ -193,7 +196,7 @@ export const DeploymentRowExpandedSection: React.FC<{
       <Td dataLabel="Information" colSpan={5}>
         <ExpandableRowContent>
           <Stack hasGutter>
-            {description && description !== '' && <DescriptionItem description={description} />}
+            {description && <DescriptionItem description={description} />}
             {modelFormat && <FrameworkItem framework={modelFormat} />}
             <ReplicasItem replicas={replicas} />
             <ModelSizeItem resources={hardwareProfileConfig?.[1]} />
