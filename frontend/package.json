@@ -4,7 +4,7 @@
   "description": "Frontend for ODH dashboard.",
   "license": "Apache-2.0",
   "private": true,
-  "packageManager": "npm@10.9.2",
+  "packageManager": "npm@10.9.4",
   "workspaces": [
     "src",
     "src/__tests__/cypress",
