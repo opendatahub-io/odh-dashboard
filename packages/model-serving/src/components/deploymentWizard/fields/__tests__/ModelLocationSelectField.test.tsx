@@ -168,14 +168,15 @@ describe('ModelLocationSelectField', () => {
     it('should validate new S3 connection', () => {
       const result = modelLocationSchema.safeParse({
         modelLocationData: {
+          connectionTypeObject: mockConnectionTypes[1],
           type: ModelLocationType.NEW,
           connection: 'S3-connection',
           fieldValues: {
             AWS_S3_BUCKET: 'bucket',
             AWS_S3_ENDPOINT: 'endpoint',
-            AWS_S3_REGION: 'region',
-            AWS_S3_ACCESS_KEY_ID: 'key',
-            AWS_S3_SECRET_ACCESS_KEY: 'secret',
+            AWS_DEFAULT_REGION: 'region',
+            AWS_ACCESS_KEY_ID: 'key',
+            AWS_SECRET_ACCESS_KEY: 'secret',
           },
           additionalFields: {
             modelPath: 'path',
@@ -187,6 +188,7 @@ describe('ModelLocationSelectField', () => {
     it('should validate new OCI connection', () => {
       const result = modelLocationSchema.safeParse({
         modelLocationData: {
+          connectionTypeObject: mockConnectionTypes[2],
           type: ModelLocationType.NEW,
           connection: 'OCI-connection',
           fieldValues: {
@@ -203,7 +205,11 @@ describe('ModelLocationSelectField', () => {
     });
     it('should validate new URI connection', () => {
       const result = modelLocationSchema.safeParse({
-        modelLocationData: { type: ModelLocationType.NEW, fieldValues: { URI: 'uri://test' } },
+        modelLocationData: {
+          connectionTypeObject: mockConnectionTypes[0],
+          type: ModelLocationType.NEW,
+          fieldValues: { URI: 'uri://test' },
+        },
       });
       expect(result.success).toBe(true);
     });
@@ -273,6 +279,7 @@ describe('ModelLocationSelectField', () => {
             URI: 'uri://test',
           },
           additionalFields: {},
+          connectionTypeObject: mockConnectionTypes[0],
         }),
       ).toBe(true);
     });
@@ -393,7 +400,7 @@ describe('ModelLocationSelectField', () => {
       await act(async () => {
         fireEvent.click(button);
       });
-      const option = screen.getByText('URI - v1');
+      const option = screen.getByRole('option', { name: 'URI' });
       await act(async () => {
         fireEvent.click(option);
       });

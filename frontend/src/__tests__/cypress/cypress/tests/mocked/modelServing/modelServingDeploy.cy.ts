@@ -806,7 +806,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
     // test filling in minimum required fields
-    modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
+    modelServingWizard.findModelLocationSelectOption('URI').should('exist').click();
     modelServingWizard.findUrilocationInput().should('exist').type('https://test');
     modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
     modelServingWizard.findSaveConnectionCheckbox().click();
@@ -864,7 +864,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelSourceStep().should('be.enabled');
     modelServingWizard.findModelDeploymentStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
-    modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
+    modelServingWizard.findModelLocationSelectOption('URI').should('exist').click();
     modelServingWizard.findUrilocationInput().should('exist').type('https://test');
     modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
     modelServingWizard.findSaveConnectionCheckbox().click();
@@ -910,7 +910,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
 
     modelServingWizard.findModelLocationSelect().should('exist');
-    modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
+    modelServingWizard.findModelLocationSelectOption('URI').should('exist').click();
 
     modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
     modelServingWizard.findSaveConnectionCheckbox().click();
@@ -976,7 +976,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelDeploymentStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
-    modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
+    modelServingWizard.findModelLocationSelectOption('URI').should('exist').click();
     modelServingWizard.findUrilocationInput().should('exist').type('https://test');
     modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
     modelServingWizard.findSaveConnectionCheckbox().click();
@@ -1497,7 +1497,7 @@ describe('Model Serving Deploy Wizard', () => {
       .should('exist')
       .click();
     modelServingWizard.findModelLocationSelect().should('exist');
-    modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
+    modelServingWizard.findModelLocationSelectOption('URI').should('exist').click();
     modelServingWizard.findUrilocationInput().type('https://testinguri');
 
     modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
