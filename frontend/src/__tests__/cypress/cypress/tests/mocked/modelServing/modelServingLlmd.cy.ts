@@ -51,14 +51,12 @@ const initIntercepts = ({
     mockDscStatus({
       components: {
         [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
-        [DataScienceStackComponent.MODEL_MESH_SERVING]: { managementState: 'Removed' },
       },
     }),
   );
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
-      disableModelMesh: true,
       disableNIMModelServing: true,
       disableKServe: false,
       disableModelAsService: false, // Enable MaaS for testing
@@ -121,10 +119,7 @@ const initIntercepts = ({
     ),
   );
 
-  cy.interceptK8sList(
-    ProjectModel,
-    mockK8sResourceList([mockProjectK8sResource({ enableModelMesh: false })]),
-  );
+  cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
   cy.interceptK8sList(LLMInferenceServiceModel, mockK8sResourceList(llmInferenceServices));
   cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList(inferenceServices));
   cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(servingRuntimes));

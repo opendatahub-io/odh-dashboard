@@ -14,18 +14,16 @@ import { modelCatalogDeployModal } from '#~/__tests__/cypress/cypress/pages/mode
 
 type HandlersProps = {
   catalogModels?: ModelCatalogSource[];
-  modelMeshInstalled?: boolean;
   kServeInstalled?: boolean;
   isEmpty?: boolean;
 };
 
 const initIntercepts = ({
   catalogModels = [mockModelCatalogSource({})],
-  modelMeshInstalled = true,
   kServeInstalled = true,
   isEmpty = false,
 }: HandlersProps) => {
-  initDeployPrefilledModelIntercepts({ modelMeshInstalled, kServeInstalled, isEmpty });
+  initDeployPrefilledModelIntercepts({ kServeInstalled, isEmpty });
 
   cy.interceptK8s(
     {

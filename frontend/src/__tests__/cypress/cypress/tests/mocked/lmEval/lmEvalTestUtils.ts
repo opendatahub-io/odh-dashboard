@@ -37,7 +37,6 @@ export const setupBasicMocks = (namespace: string): void => {
     mockDscStatus({
       components: {
         [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
-        [DataScienceStackComponent.MODEL_MESH_SERVING]: { managementState: 'Managed' },
         [DataScienceStackComponent.TRUSTY_AI]: { managementState: 'Managed' },
       },
     }),

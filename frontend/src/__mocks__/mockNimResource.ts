@@ -152,14 +152,12 @@ type NimProjectType = {
 };
 
 export const mockNimProject = ({
-  hasAllModels,
   k8sName,
   displayName,
   enableNIM,
 }: NimProjectType): ProjectKind => {
   const project = mockProjectK8sResource({
     hasAnnotations: true,
-    enableModelMesh: hasAllModels ? undefined : false,
     k8sName,
     displayName,
     enableNIM,

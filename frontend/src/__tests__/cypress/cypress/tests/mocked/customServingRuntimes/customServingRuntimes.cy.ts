@@ -30,40 +30,29 @@ describe('Custom serving runtimes', () => {
   });
 
   it('should display platform labels', () => {
-    servingRuntimes.shouldBeSingleModel(true).shouldBeMultiModel(true);
+    servingRuntimes.shouldBeSingleModel(true);
   });
 
   it('should display serving runtime version label', () => {
     servingRuntimes.getRowById('template-1').findServingRuntimeVersionLabel().should('exist');
     servingRuntimes.getRowById('template-2').findServingRuntimeVersionLabel().should('exist');
-    servingRuntimes.getRowById('template-3').findServingRuntimeVersionLabel().should('not.exist');
-    servingRuntimes.getRowById('template-4').findServingRuntimeVersionLabel().should('exist');
   });
 
   it('should test pre-installed label', () => {
-    servingRuntimes.getRowById('template-3').shouldHavePreInstalledLabel();
-    servingRuntimes.getRowById('template-3').find().findKebabAction('Edit').should('not.exist');
-    servingRuntimes.getRowById('template-3').find().findKebabAction('Delete').should('not.exist');
-    servingRuntimes.getRowById('template-3').find().findKebabAction('Duplicate').should('exist');
-
-    servingRuntimes.getRowById('template-2').shouldHavePreInstalledLabel(false);
-    servingRuntimes.getRowById('template-2').find().findKebabAction('Delete').should('exist');
-    servingRuntimes.getRowById('template-2').find().findKebabAction('Edit').should('exist');
-    servingRuntimes.getRowById('template-2').find().findKebabAction('Duplicate').should('exist');
+    servingRuntimes.getRowById('template-1').shouldHavePreInstalledLabel(false);
+    servingRuntimes.getRowById('template-1').find().findKebabAction('Delete').should('exist');
+    servingRuntimes.getRowById('template-1').find().findKebabAction('Edit').should('exist');
+    servingRuntimes.getRowById('template-1').find().findKebabAction('Duplicate').should('exist');
   });
 
   it('should display platform labels in table rows', () => {
     servingRuntimes.getRowById('template-1').shouldBeSingleModel(true);
     servingRuntimes.getRowById('template-2').shouldBeSingleModel(true);
-    servingRuntimes.getRowById('template-3').shouldBeMultiModel(true);
-    servingRuntimes.getRowById('template-4').shouldBeSingleModel(true);
   });
 
   it('should display api protocol in table row', () => {
-    servingRuntimes.getRowById('template-1').shouldHaveAPIProtocol(ServingRuntimeAPIProtocol.REST);
-    servingRuntimes.getRowById('template-2').shouldHaveAPIProtocol(ServingRuntimeAPIProtocol.GRPC);
-    servingRuntimes.getRowById('template-3').shouldHaveAPIProtocol(ServingRuntimeAPIProtocol.REST);
-    servingRuntimes.getRowById('template-4').shouldHaveAPIProtocol(ServingRuntimeAPIProtocol.REST);
+    servingRuntimes.getRowById('template-1').shouldHaveAPIProtocol(ServingRuntimeAPIProtocol.GRPC);
+    servingRuntimes.getRowById('template-2').shouldHaveAPIProtocol(ServingRuntimeAPIProtocol.REST);
   });
 
   // I have no idea why this isn't passing in the CI, it passes locally
@@ -170,7 +159,7 @@ describe('Custom serving runtimes', () => {
     cy.wait('@duplicateServingRuntime').then((interception) => {
       expect(interception.request.body.metadata).to.containSubset({
         name: 'template-1-copy',
-        annotations: { 'openshift.io/display-name': 'Copy of Multi Platform' },
+        annotations: { 'openshift.io/display-name': 'Copy of Caikit' },
         namespace: 'opendatahub',
       });
     });
@@ -187,7 +176,7 @@ describe('Custom serving runtimes', () => {
           {
             metadata: {
               name: 'template-1-copy',
-              annotations: { 'openshift.io/display-name': 'Copy of Multi Platform' },
+              annotations: { 'openshift.io/display-name': 'Copy of Caikit' },
             },
           },
         ],
@@ -201,7 +190,7 @@ describe('Custom serving runtimes', () => {
       TemplateModel,
       mockServingRuntimeTemplateK8sResource({
         name: 'template-1-copy',
-        displayName: 'Copy of Multi platform',
+        displayName: 'Copy of Caikit',
         platforms: [ServingRuntimePlatform.SINGLE],
         apiProtocol: ServingRuntimeAPIProtocol.GRPC,
       }),
@@ -226,7 +215,7 @@ describe('Custom serving runtimes', () => {
     ).as('editTemplate');
 
     servingRuntimes.getRowById('template-1').find().findKebabAction('Edit').click();
-    servingRuntimes.findAppTitle().should('contain', 'Edit Multi Platform');
+    servingRuntimes.findAppTitle().should('contain', 'Edit Caikit');
     cy.url().should('include', '/serving-runtimes/edit/template-1');
     servingRuntimes.findSubmitButton().should('be.disabled');
     servingRuntimes.uploadYaml(editfilePath);
@@ -236,7 +225,7 @@ describe('Custom serving runtimes', () => {
       expect(interception.request.body).to.containSubset({
         metadata: {
           name: 'template-1',
-          annotations: { 'openshift.io/display-name': 'Updated Multi Platform' },
+          annotations: { 'openshift.io/display-name': 'Updated Caikit' },
         },
       });
     });
@@ -247,14 +236,19 @@ describe('Custom serving runtimes', () => {
           value: {
             metadata: {
               name: 'template-1',
-              annotations: { 'openshift.io/display-name': 'Updated Multi Platform' },
+              annotations: { 'openshift.io/display-name': 'Updated Caikit' },
             },
           },
         },
         {
           op: 'replace',
+          path: '/metadata/annotations/opendatahub.io~1model-type',
+          value: '["predictive"]',
+        },
+        {
+          op: 'replace',
           path: '/metadata/annotations/opendatahub.io~1apiProtocol',
-          value: 'REST',
+          value: 'gRPC',
         },
       ]);
     });
@@ -271,7 +265,7 @@ describe('Custom serving runtimes', () => {
     deleteModal.findSubmitButton().should('be.disabled');
 
     // test delete form is enabled after filling out required fields
-    deleteModal.findInput().type('Multi Platform');
+    deleteModal.findInput().type('Caikit');
     deleteModal.findSubmitButton().should('be.enabled').click();
 
     cy.wait('@deleteServingRuntime');
@@ -280,7 +274,7 @@ describe('Custom serving runtimes', () => {
       TemplateModel,
       mockServingRuntimeTemplateK8sResource({
         name: 'template-1',
-        displayName: 'Multi platform',
+        displayName: 'Caikit',
         platforms: [ServingRuntimePlatform.SINGLE],
         apiProtocol: ServingRuntimeAPIProtocol.REST,
       }),
@@ -303,7 +297,7 @@ describe('Custom serving runtimes', () => {
 
     it('edit', () => {
       cy.visitWithLogin('/servingRuntimes/editServingRuntime/template-1');
-      cy.findByTestId('app-page-title').contains('Edit Multi Platform');
+      cy.findByTestId('app-page-title').contains('Edit Caikit');
       cy.url().should(
         'include',
         '/settings/model-resources-operations/serving-runtimes/edit/template-1',

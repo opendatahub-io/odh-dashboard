@@ -30,7 +30,6 @@ const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 type HandlersProps = {
   registeredModelsSize?: number;
   modelVersions?: ModelVersion[];
-  modelMeshInstalled?: boolean;
   kServeInstalled?: boolean;
   disableProjectScoped?: boolean;
   isEmpty?: boolean;
@@ -58,13 +57,11 @@ const initIntercepts = ({
     mockModelVersion({ id: '4', name: 'test model version 3' }),
     mockModelVersion({ id: '5', name: 'test model version 4' }),
   ],
-  modelMeshInstalled = true,
   kServeInstalled = true,
   disableProjectScoped = true,
   isEmpty = false,
 }: HandlersProps) => {
   initDeployPrefilledModelIntercepts({
-    modelMeshInstalled,
     kServeInstalled,
     disableProjectScoped,
     isEmpty,
@@ -200,16 +197,6 @@ const initIntercepts = ({
 
 // TODO: Fix these tests
 describe.skip('Deploy model version', () => {
-  it('Deploy model version on unsupported multi-model platform', () => {
-    initIntercepts({ modelMeshInstalled: false });
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow('test model version');
-    modelVersionRow.findKebabAction('Deploy').click();
-    cy.wait('@getProjects');
-    modelVersionDeployModal.selectProjectByName('Model mesh project');
-    cy.findByText('Multi-model platform is not installed').should('exist');
-  });
-
   it('Deploy model version on unsupported single-model platform', () => {
     initIntercepts({ kServeInstalled: false });
     cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
@@ -229,16 +216,6 @@ describe.skip('Deploy model version', () => {
     cy.findByText(
       'To deploy a model, you must first select a model serving platform for this project.',
     ).should('exist');
-  });
-
-  it('Deploy model version on a model mesh project that has no model servers', () => {
-    initIntercepts({});
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow('test model version');
-    modelVersionRow.findKebabAction('Deploy').click();
-    cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([]));
-    modelVersionDeployModal.selectProjectByName('Model mesh project');
-    cy.findByText('To deploy a model, you must first configure a model server.').should('exist');
   });
 
   it('OCI info alert is visible in case of OCI models', () => {

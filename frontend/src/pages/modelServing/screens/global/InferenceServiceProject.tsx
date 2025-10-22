@@ -14,7 +14,7 @@ const InferenceServiceProject: React.FC<InferenceServiceProjectProps> = ({
   inferenceService,
   isCompact,
 }) => {
-  const { modelServingProjects, loaded, loadError } = React.useContext(ProjectsContext);
+  const { projects, loaded, loadError } = React.useContext(ProjectsContext);
 
   if (!loaded) {
     return <Skeleton />;
@@ -30,7 +30,7 @@ const InferenceServiceProject: React.FC<InferenceServiceProjectProps> = ({
     );
   }
 
-  const project = modelServingProjects.find(byName(inferenceService.metadata.namespace));
+  const project = projects.find(byName(inferenceService.metadata.namespace));
   const isKServeNIMEnabled = !!project && isProjectNIMSupported(project);
 
   return (

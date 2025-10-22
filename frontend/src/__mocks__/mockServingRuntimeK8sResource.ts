@@ -14,7 +14,6 @@ type MockResourceConfigType = {
   resources?: ContainerResources;
   disableResources?: boolean;
   disableReplicas?: boolean;
-  disableModelMeshAnnotations?: boolean;
   tolerations?: Toleration[];
   nodeSelector?: NodeSelector;
   templateDisplayName?: string;
@@ -87,7 +86,6 @@ export const mockServingRuntimeK8sResourceLegacy = ({
     ],
     grpcDataEndpoint: 'port:8001',
     grpcEndpoint: 'port:8085',
-    multiModel: true,
     protocolVersions: ['grpc-v1'],
     replicas,
     supportedModelFormats: [
@@ -109,8 +107,6 @@ export const mockServingRuntimeK8sResource = ({
   name = 'test-model',
   namespace = 'test-project',
   replicas = 0,
-  auth = false,
-  route = false,
   displayName = 'OVMS Model Serving',
   acceleratorName = '',
   acceleratorProfileNamespace = undefined,
@@ -130,7 +126,6 @@ export const mockServingRuntimeK8sResource = ({
   nodeSelector,
   disableResources = false,
   disableReplicas = false,
-  disableModelMeshAnnotations = false,
   templateDisplayName = 'OpenVINO Serving Runtime (Supports GPUs)',
   isProjectScoped = false,
   scope,
@@ -156,10 +151,6 @@ export const mockServingRuntimeK8sResource = ({
       'opendatahub.io/apiProtocol': apiProtocol,
       ...(version && {
         'opendatahub.io/runtime-version': version,
-      }),
-      ...(!disableModelMeshAnnotations && {
-        'enable-auth': auth ? 'true' : 'false',
-        'enable-route': route ? 'true' : 'false',
       }),
       ...(isProjectScoped && { 'opendatahub.io/serving-runtime-scope': scope }),
       ...(hardwareProfileNamespace && {
@@ -200,7 +191,6 @@ export const mockServingRuntimeK8sResource = ({
     ],
     grpcDataEndpoint: 'port:8001',
     grpcEndpoint: 'port:8085',
-    multiModel: true,
     protocolVersions: ['grpc-v1'],
     ...(!disableReplicas && { replicas }),
     supportedModelFormats: [

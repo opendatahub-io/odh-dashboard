@@ -14,7 +14,6 @@ type MockResourceConfigType = {
   modelTypes?: ServingRuntimeModelType[];
   preInstalled?: boolean;
   apiProtocol?: ServingRuntimeAPIProtocol;
-  isModelmesh?: boolean;
   containerName?: string;
   containerEnvVars?: { name: string; value: string }[];
   supportedModelFormats?: SupportedModelFormats[];
@@ -27,8 +26,6 @@ export const mockServingRuntimeTemplateK8sResource = ({
   name = 'template-1',
   namespace = 'opendatahub',
   displayName = 'New OVMS Server',
-  replicas = 1,
-  isModelmesh = false,
   apiProtocol = ServingRuntimeAPIProtocol.REST,
   platforms = [ServingRuntimePlatform.SINGLE],
   modelTypes = [ServingRuntimeModelType.PREDICTIVE, ServingRuntimeModelType.GENERATIVE],
@@ -117,9 +114,7 @@ export const mockServingRuntimeTemplateK8sResource = ({
         ],
         grpcDataEndpoint: 'port:8001',
         grpcEndpoint: 'port:8085',
-        multiModel: true,
         protocolVersions: ['grpc-v1'],
-        ...(isModelmesh && { replicas }),
         supportedModelFormats,
       },
     },
@@ -194,7 +189,6 @@ export const mockInvalidTemplateK8sResource = ({
         ],
         grpcDataEndpoint: 'port:8001',
         grpcEndpoint: 'port:8085',
-        multiModel: true,
         protocolVersions: ['grpc-v1'],
         replicas: 1,
       },
