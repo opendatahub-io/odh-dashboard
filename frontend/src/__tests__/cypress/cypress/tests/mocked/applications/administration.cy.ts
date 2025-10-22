@@ -188,7 +188,7 @@ describe('Administration Tab', () => {
     initIntercepts({ allowedUsers: [] });
     notebookController.visit();
     notebookController.findAdministrationTab().click();
-    administration.findTable().should('not.exist');
+    administration.findRows().should('have.length', 0);
     administration.findTableHeaderButton('User').should('exist');
     administration.findTableHeaderButton('Privilege').should('exist');
     administration.findTableHeaderButton('Last activity').should('exist');

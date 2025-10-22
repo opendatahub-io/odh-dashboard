@@ -74,7 +74,7 @@ class AdministrationTab {
     return cy.findByTestId('stop-all-servers-button');
   }
 
-  findTable() {
+  private findTable() {
     return cy.findByTestId('administration-users-table');
   }
 
@@ -82,6 +82,10 @@ class AdministrationTab {
     return new AdministrationUsersRow(() =>
       this.findTable().find(`[data-label=name]`).contains(name).parents('tr'),
     );
+  }
+
+  findRows() {
+    return this.findTable().find('tbody tr');
   }
 
   mockGetNotebookStatus(username: string, isRunning = true) {
