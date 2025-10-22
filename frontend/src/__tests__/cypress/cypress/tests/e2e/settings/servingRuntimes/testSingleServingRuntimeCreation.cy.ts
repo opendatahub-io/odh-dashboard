@@ -57,6 +57,10 @@ describe('Verify Admins Can Import and Delete a Custom Single-Model Serving Runt
       servingRuntimes.findSelectAPIProtocolButton().click();
       servingRuntimes.selectAPIProtocol('REST');
 
+      cy.step('Select Model Types');
+      servingRuntimes.findSelectModelTypes().click();
+      servingRuntimes.findPredictiveModelOption().click();
+
       cy.step('Upload a Single-Model Serving runtime yaml file');
       const singleModelYaml = getSingleModelPath();
       servingRuntimes.uploadYaml(singleModelYaml);

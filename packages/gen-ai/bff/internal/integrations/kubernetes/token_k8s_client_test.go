@@ -158,6 +158,7 @@ func TestGetModelProviderInfo(t *testing.T) {
 	tests := []struct {
 		name                 string
 		modelID              string
+		expectedModelID      string // The actual model_id in the config (may differ from input when provider prefix is used)
 		expectedProviderID   string
 		expectedProviderType string
 		expectedURL          string
@@ -166,6 +167,7 @@ func TestGetModelProviderInfo(t *testing.T) {
 		{
 			name:                 "Extract vLLM model (non-MaaS)",
 			modelID:              "llama-32-3b-instruct",
+			expectedModelID:      "llama-32-3b-instruct",
 			expectedProviderID:   "vllm-inference-1",
 			expectedProviderType: "remote::vllm",
 			expectedURL:          "http://llama-32-3b-instruct-predictor.crimson-show.svc.cluster.local/v1",
@@ -174,6 +176,7 @@ func TestGetModelProviderInfo(t *testing.T) {
 		{
 			name:                 "Extract embedding model",
 			modelID:              "granite-embedding-125m",
+			expectedModelID:      "granite-embedding-125m",
 			expectedProviderID:   "sentence-transformers",
 			expectedProviderType: "inline::sentence-transformers",
 			expectedURL:          "", // No URL in config for this provider
@@ -182,9 +185,46 @@ func TestGetModelProviderInfo(t *testing.T) {
 		{
 			name:                 "Extract MaaS model (watsonx)",
 			modelID:              "granite-3.1-8b-instruct",
+			expectedModelID:      "granite-3.1-8b-instruct",
 			expectedProviderID:   "maas-watsonx",
 			expectedProviderType: "remote::watsonx",
 			expectedURL:          "https://us-south.ml.cloud.ibm.com/ml/v1",
+			expectError:          false,
+		},
+		{
+			name:                 "Extract MaaS model with provider prefix (watsonx)",
+			modelID:              "maas-watsonx/granite-3.1-8b-instruct",
+			expectedModelID:      "granite-3.1-8b-instruct",
+			expectedProviderID:   "maas-watsonx",
+			expectedProviderType: "remote::watsonx",
+			expectedURL:          "https://us-south.ml.cloud.ibm.com/ml/v1",
+			expectError:          false,
+		},
+		{
+			name:                 "Extract vLLM model with provider prefix",
+			modelID:              "vllm-inference-1/llama-32-3b-instruct",
+			expectedModelID:      "llama-32-3b-instruct",
+			expectedProviderID:   "vllm-inference-1",
+			expectedProviderType: "remote::vllm",
+			expectedURL:          "http://llama-32-3b-instruct-predictor.crimson-show.svc.cluster.local/v1",
+			expectError:          false,
+		},
+		{
+			name:                 "Extract MaaS model with slash in model ID (facebook/opt-125m)",
+			modelID:              "facebook/opt-125m",
+			expectedModelID:      "facebook/opt-125m",
+			expectedProviderID:   "maas-vllm-inference-1",
+			expectedProviderType: "remote::vllm",
+			expectedURL:          "http://maas.apps.rosa.crimson-demo.g9ax.p3.openshiftapps.com/llm/facebook-opt-125m-simulated/v1",
+			expectError:          false,
+		},
+		{
+			name:                 "Extract MaaS model with provider prefix and slash in model ID (maas-vllm-inference-1/facebook/opt-125m)",
+			modelID:              "maas-vllm-inference-1/facebook/opt-125m",
+			expectedModelID:      "facebook/opt-125m",
+			expectedProviderID:   "maas-vllm-inference-1",
+			expectedProviderType: "remote::vllm",
+			expectedURL:          "http://maas.apps.rosa.crimson-demo.g9ax.p3.openshiftapps.com/llm/facebook-opt-125m-simulated/v1",
 			expectError:          false,
 		},
 		{
@@ -211,7 +251,7 @@ func TestGetModelProviderInfo(t *testing.T) {
 			require.NotNil(t, result)
 
 			// Verify extracted fields
-			assert.Equal(t, tt.modelID, result.ModelID, "ModelID should match")
+			assert.Equal(t, tt.expectedModelID, result.ModelID, "ModelID should match the actual model_id from config")
 			assert.Equal(t, tt.expectedProviderID, result.ProviderID, "ProviderID should match")
 			assert.Equal(t, tt.expectedProviderType, result.ProviderType, "ProviderType should match")
 			assert.Equal(t, tt.expectedURL, result.URL, "URL should match")

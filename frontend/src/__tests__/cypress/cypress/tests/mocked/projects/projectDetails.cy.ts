@@ -48,6 +48,7 @@ import { mockNimAccount } from '#~/__mocks__/mockNimAccount';
 import { mockOdhApplication } from '#~/__mocks__/mockOdhApplication';
 import { mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
 import type { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 type HandlersProps = {
   isEmpty?: boolean;
@@ -117,12 +118,14 @@ const initIntercepts = ({
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      installedComponents: {
-        workbenches: !disableWorkbenches,
-        'data-science-pipelines-operator': true,
-        kserve: true,
-        'model-mesh': true,
-        'model-registry-operator': true,
+      components: {
+        [DataScienceStackComponent.WORKBENCHES]: {
+          managementState: disableWorkbenches ? 'Removed' : 'Managed',
+        },
+        [DataScienceStackComponent.DS_PIPELINES]: { managementState: 'Managed' },
+        [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
+        [DataScienceStackComponent.MODEL_MESH_SERVING]: { managementState: 'Managed' },
+        [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
       },
     }),
   );

@@ -25,6 +25,7 @@ import { ChatbotSourceSettings } from '~/app/types';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import { createVectorStore } from '~/app/services/llamaStackService';
 import { GenAiContext } from '~/app/context/GenAiContext';
+import { DEFAULT_SOURCE_SETTINGS } from './utils';
 
 type ChatbotSourceSettingsModalProps = {
   isOpen: boolean;
@@ -33,14 +34,6 @@ type ChatbotSourceSettingsModalProps = {
   pendingFiles?: File[];
   isUploading?: boolean;
   uploadProgress?: { current: number; total: number };
-};
-
-const DEFAULT_SOURCE_SETTINGS: ChatbotSourceSettings = {
-  embeddingModel: '',
-  vectorStore: '',
-  delimiter: '',
-  maxChunkLength: 500,
-  chunkOverlap: 50,
 };
 
 const DEFAULT_VECTOR_STORE_FORM = {

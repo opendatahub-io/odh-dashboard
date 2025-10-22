@@ -102,6 +102,18 @@ class ServingRuntimes {
     return cy.findByTestId('custom-serving-api-protocol-selection');
   }
 
+  findSelectModelTypes() {
+    return cy.findByTestId('custom-serving-model-type-selection').find('button');
+  }
+
+  findPredictiveModelOption() {
+    return cy.findByTestId('model-type-option-predictive').find('input[type="checkbox"]');
+  }
+
+  findGenerativeAIModelOption() {
+    return cy.findByTestId('model-type-option-generative').find('input[type="checkbox"]');
+  }
+
   shouldDisplayAPIProtocolValues(values: ServingRuntimeAPIProtocol[]) {
     this.findSelectAPIProtocolButton().click();
     values.forEach((value) => cy.findByRole('option', { name: value }).should('exist'));

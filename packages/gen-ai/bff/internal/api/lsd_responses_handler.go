@@ -400,29 +400,20 @@ func (app *App) getMaaSProviderData(ctx context.Context, modelID string) map[str
 		return nil
 	}
 
+	// Early check: If model ID doesn't start with "maas-", skip MaaS token injection
+	// This handles provider-prefixed format (e.g., "maas-vllm-inference-1/facebook/opt-125m")
+	if !strings.HasPrefix(modelID, constants.MaaSProviderPrefix) {
+		app.logger.Debug("Non-MaaS model (no maas- prefix in model ID), skipping token injection", "model", modelID)
+		return nil
+	}
+
 	// Get Kubernetes client
 	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
 		return nil
 	}
 
-	// Get provider info for the model
-	providerInfo, err := k8sClient.GetModelProviderInfo(ctx, identity, namespace, modelID)
-	if err != nil {
-		app.logger.Warn("Failed to retrieve model provider info", "model", modelID, "error", err)
-		return nil
-	}
-	if providerInfo == nil {
-		return nil
-	}
-
-	// Check if this is a MaaS model (early return for non-MaaS models)
-	if !strings.HasPrefix(providerInfo.ProviderID, constants.MaaSProviderPrefix) {
-		app.logger.Debug("Non-MaaS model, skipping token injection", "model", modelID, "provider_id", providerInfo.ProviderID)
-		return nil
-	}
-
-	app.logger.Debug("Detected MaaS model", "model", modelID, "provider_id", providerInfo.ProviderID)
+	app.logger.Debug("Detected MaaS model", "model", modelID)
 
 	// Get or generate MaaS token
 	token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, modelID)
@@ -431,7 +422,7 @@ func (app *App) getMaaSProviderData(ctx context.Context, modelID string) map[str
 	}
 
 	// Inject token as provider data
-	app.logger.Debug("Injected MaaS provider data", "model", modelID, "provider_id", providerInfo.ProviderID)
+	app.logger.Debug("Injected MaaS provider data", "model", modelID)
 	return map[string]interface{}{
 		"vllm_api_token": token,
 	}
