@@ -242,12 +242,6 @@
     "@patternfly/react-topology": {
       "react": "^18.2.0"
     },
-    "@patternfly/react-core": "^6.4.0",
-    "@patternfly/react-icons": "^6.4.0",
-    "@patternfly/react-styles": "^6.4.0",
-    "@patternfly/react-table": "^6.4.0",
-    "@patternfly/react-tokens": "^6.4.0",
-    "@patternfly/react-code-editor": "^6.4.0",
     "react-router": "^7.6.2",
     "ws": "^8.17.1",
     "dompurify": "^3.2.4",
