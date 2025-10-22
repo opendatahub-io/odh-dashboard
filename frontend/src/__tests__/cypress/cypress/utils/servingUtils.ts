@@ -25,15 +25,14 @@ import {
   SecretModel,
   ServingRuntimeModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
-import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 export const initInterceptsForAllProjects = (): void => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      components: {
-        [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
-        [DataScienceStackComponent.MODEL_MESH_SERVING]: { managementState: 'Managed' },
+      installedComponents: {
+        kserve: true,
+        'model-mesh': true,
       },
     }),
   );

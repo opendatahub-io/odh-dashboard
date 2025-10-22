@@ -3,7 +3,13 @@ import {
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
 } from '#~/k8sTypes';
-import { IsAreaAvailableStatus, FeatureFlag, SupportedAreaType } from './types';
+import {
+  IsAreaAvailableStatus,
+  FeatureFlag,
+  SupportedAreaType,
+  StackComponent,
+  DataScienceStackComponent,
+} from './types';
 import { definedFeatureFlags, SupportedAreasStateMap } from './const';
 
 export const isDefinedFeatureFlag = (key: string): key is FeatureFlag =>
@@ -29,6 +35,22 @@ const isFlagOn = (flag: string, flagState: FlagState): 'on' | 'off' => {
   return enabled ? 'on' : 'off';
 };
 
+export const stackToStatusKey: Partial<Record<StackComponent, DataScienceStackComponent>> = {
+  [StackComponent.CODE_FLARE]: DataScienceStackComponent.CODE_FLARE,
+  [StackComponent.DS_PIPELINES]: DataScienceStackComponent.DS_PIPELINES,
+  [StackComponent.K_SERVE]: DataScienceStackComponent.K_SERVE,
+  [StackComponent.MODEL_MESH]: DataScienceStackComponent.MODEL_MESH_SERVING,
+  [StackComponent.DASHBOARD]: DataScienceStackComponent.DASHBOARD,
+  [StackComponent.RAY]: DataScienceStackComponent.RAY,
+  [StackComponent.WORKBENCHES]: DataScienceStackComponent.WORKBENCHES,
+  [StackComponent.TRUSTY_AI]: DataScienceStackComponent.TRUSTY_AI,
+  [StackComponent.KUEUE]: DataScienceStackComponent.KUEUE,
+  [StackComponent.TRAINING_OPERATOR]: DataScienceStackComponent.TRAINING_OPERATOR,
+  [StackComponent.MODEL_REGISTRY]: DataScienceStackComponent.MODEL_REGISTRY,
+  [StackComponent.FEAST_OPERATOR]: DataScienceStackComponent.FEAST_OPERATOR,
+  [StackComponent.LLAMA_STACK_OPERATOR]: DataScienceStackComponent.LLAMA_STACK_OPERATOR,
+};
+
 export const isAreaAvailable = (
   area: SupportedAreaType,
   dashboardConfigSpec: DashboardConfigKind['spec'],
@@ -39,6 +61,17 @@ export const isAreaAvailable = (
     flagState: getFlags(dashboardConfigSpec),
   },
 ): IsAreaAvailableStatus => {
+  const isComponentInstalled = (component: StackComponent): boolean => {
+    if (!dscStatus?.components) {
+      return false;
+    }
+    const statusKey = stackToStatusKey[component];
+    if (!statusKey) {
+      return false;
+    }
+    const state = dscStatus.components[statusKey]?.managementState;
+    return state === 'Managed' || state === 'Unmanaged';
+  };
   const { devFlags, featureFlags, requiredComponents, reliantAreas, requiredCapabilities } =
     options.internalStateMap[area];
 
@@ -80,12 +113,7 @@ export const isAreaAvailable = (
   const requiredComponentsState =
     requiredComponents && dscStatus
       ? requiredComponents.reduce<IsAreaAvailableStatus['requiredComponents']>(
-          (acc, component) => ({
-            ...acc,
-            [component]:
-              dscStatus.components?.[component]?.managementState === 'Managed' ||
-              dscStatus.components?.[component]?.managementState === 'Unmanaged',
-          }),
+          (acc, component) => ({ ...acc, [component]: isComponentInstalled(component) }),
           {},
         )
       : null;

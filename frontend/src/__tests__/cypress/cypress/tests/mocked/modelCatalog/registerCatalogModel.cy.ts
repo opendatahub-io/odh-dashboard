@@ -26,7 +26,6 @@ import {
   FormFieldSelector,
   registerModelPage,
 } from '#~/__tests__/cypress/cypress/pages/modelRegistry/registerModelPage';
-import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 const existingModelName = 'model1';
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
@@ -48,8 +47,8 @@ const initIntercepts = ({
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      components: {
-        [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+      installedComponents: {
+        'model-registry-operator': true,
       },
     }),
   );

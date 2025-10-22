@@ -48,7 +48,6 @@ import type { HardwareProfileKind, NotebookKind, PodKind } from '#~/k8sTypes';
 import type { EnvironmentFromVariable } from '#~/pages/projects/types';
 import { SpawnerPageSectionID } from '#~/pages/projects/screens/spawner/types';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums.ts';
-import { DataScienceStackComponent } from '#~/concepts/areas/types';
 import { hardwareProfileSection } from '../../../../pages/components/HardwareProfileSection.ts';
 
 const configYamlPath = '../../__mocks__/mock-upload-configmap.yaml';
@@ -166,8 +165,8 @@ const initIntercepts = ({
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      components: {
-        [DataScienceStackComponent.WORKBENCHES]: { managementState: 'Managed' },
+      installedComponents: {
+        workbenches: true,
       },
     }),
   );

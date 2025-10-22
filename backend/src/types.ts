@@ -972,32 +972,12 @@ export enum KnownLabels {
   KUEUE_MANAGED = 'kueue.openshift.io/managed',
 }
 
-export type ManagementState = 'Managed' | 'Unmanaged' | 'Removed';
-
-// Base component status shared by all components
-export type DataScienceClusterComponentStatus = {
-  managementState?: ManagementState;
-  releases?: Array<{
-    name: string;
-    version?: string;
-    repoUrl?: string;
-  }>;
-};
-
 export type DataScienceClusterKindStatus = {
   components?: {
-    [key: string]: DataScienceClusterComponentStatus;
-  } & {
-    /** Status of KServe, including deployment mode and serverless configuration. */
-    kserve?: DataScienceClusterComponentStatus & {
-      defaultDeploymentMode?: string;
-      serverlessMode?: string;
-    };
-    /** Status of Model Registry, including its namespace configuration. */
-    modelregistry?: DataScienceClusterComponentStatus & {
+    modelregistry?: {
       registriesNamespace?: string;
     };
-    workbenches?: DataScienceClusterComponentStatus & {
+    workbenches?: {
       workbenchNamespace?: string;
     };
   };
@@ -1005,7 +985,6 @@ export type DataScienceClusterKindStatus = {
   phase?: string;
   release?: {
     name: string;
-    version?: string;
   };
 };
 
