@@ -88,11 +88,11 @@ describe('Verify a model can be deployed from a PVC', () => {
 
       // Enter cluster storage details
       cy.step('Enter cluster storage details');
-      addClusterStorageModal.findNameInput().type(pvStorageName);
+      addClusterStorageModal.findNameInput().clear().type(pvStorageName);
 
       addClusterStorageModal.findModelStorageRadio().click();
-      addClusterStorageModal.findModelPathInput().type(modelFilePath);
-      addClusterStorageModal.findModelNameInput().type(modelName);
+      addClusterStorageModal.findModelPathInput().clear().type(modelFilePath);
+      addClusterStorageModal.findModelNameInput().clear().type(modelName);
 
       addClusterStorageModal.findSubmitButton().click({ force: true });
 
@@ -128,7 +128,9 @@ describe('Verify a model can be deployed from a PVC', () => {
       // Deploy the model
       cy.step('Deploy the model');
       projectDetails.findSectionTab('model-server').click();
-      modelServingGlobal.findSingleServingModelButton().click();
+      // If we have only one serving model platform, then it is selected by default.
+      // So we don't need to click the button.
+      modelServingGlobal.selectSingleServingModelButtonIfExists();
       modelServingGlobal.findDeployModelButton().click();
       // Step 1: Model Source
       modelServingWizard.findModelLocationSelectOption('Cluster storage').click();
@@ -137,7 +139,7 @@ describe('Verify a model can be deployed from a PVC', () => {
       modelServingWizard.findModelTypeSelectOption('Predictive model').click();
       modelServingWizard.findNextButton().click();
       // Step 2: Model Deployment
-      modelServingWizard.findModelDeploymentNameInput().type(modelName);
+      modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
       modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
       // Only interact with serving runtime template selector if it's not disabled
       // (it may be disabled when only one option is available)

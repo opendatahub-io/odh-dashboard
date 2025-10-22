@@ -88,7 +88,6 @@ describe(
           '@NonConcurrent',
           '@Maintain',
         ],
-        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
       },
       () => {
         cy.step(`Navigate to DS Project ${projectName}`);
@@ -102,26 +101,28 @@ describe(
         connectionsPage.findCreateConnectionButton().click();
         addConnectionModal.findConnectionTypeDropdown().click();
         addConnectionModal.findOciConnectionType().click();
-        addConnectionModal.findConnectionNameInput().type(connectionName);
-        addConnectionModal.findConnectionDescriptionInput().type('OCI Connection');
+        addConnectionModal.findConnectionNameInput().clear().type(connectionName);
+        addConnectionModal.findConnectionDescriptionInput().clear().type('OCI Connection');
         addConnectionModal.findOciAccessType().click();
         addConnectionModal.findOciPullSecretOption().click();
         addConnectionModal.findOciAccessType().click();
         addConnectionModal.uploadSecretDetails(secretDetailsFile);
-        addConnectionModal.findOciRegistryHost().type(ociRegistryHost);
+        addConnectionModal.findOciRegistryHost().clear().type(ociRegistryHost);
         addConnectionModal.findCreateButton().click();
 
         cy.step('Deploy OCI Connection with KServe');
         projectDetails.findSectionTab('model-server').click();
-        modelServingGlobal.findSingleServingModelButton().click();
+        // If we have only one serving model platform, then it is selected by default.
+        // So we don't need to click the button.
+        modelServingGlobal.selectSingleServingModelButtonIfExists();
         modelServingGlobal.findDeployModelButton().click();
         // Step 1: Model Source
         modelServingWizard.findModelLocationSelectOption('Existing connection').click();
-        modelServingWizard.findOCIModelURI().type(modelDeploymentURI);
+        modelServingWizard.findOCIModelURI().clear().type(modelDeploymentURI);
         modelServingWizard.findModelTypeSelectOption('Predictive model').click();
         modelServingWizard.findNextButton().click();
         // Step 2: Model Deployment
-        modelServingWizard.findModelDeploymentNameInput().type(modelDeploymentName);
+        modelServingWizard.findModelDeploymentNameInput().clear().type(modelDeploymentName);
         modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
         // Only interact with serving runtime template selector if it's not disabled
         // (it may be disabled when only one option is available)

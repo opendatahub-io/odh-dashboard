@@ -78,30 +78,25 @@ describe('Verify Model Creation and Validation using the UI', () => {
       // Navigate to Model Serving tab and Deploy a Single Model
       cy.step('Navigate to Model Serving and click to Deploy a Single Model');
       projectDetails.findSectionTab('model-server').click();
-      modelServingGlobal.findSingleServingModelButton().click();
+      // If we have only one serving model platform, then it is selected by default.
+      // So we don't need to click the button.
+      modelServingGlobal.selectSingleServingModelButtonIfExists();
       modelServingGlobal.findDeployModelButton().click();
 
       // Launch a Single Serving Model and select the required entries
-      cy.step('Launch a Single Serving Model using Caikit TGIS ServingRuntime for KServe');
+      cy.step('Launch a Single Serving Model using Generative AI model (Example, LLM)');
       // Step 1: Model Source
       modelServingWizard.findModelLocationSelectOption('Existing connection').click();
-      modelServingWizard.findLocationPathInput().type(modelFilePath);
-      modelServingWizard.findModelTypeSelectOption('Predictive model').click();
+      modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
+      modelServingWizard.findModelTypeSelectOption('Generative AI model (Example, LLM)').click();
       modelServingWizard.findNextButton().click();
       // Step 2: Model Deployment
-      modelServingWizard.findModelDeploymentNameInput().type(modelName);
-      modelServingWizard.findModelFormatSelectOption('caikit').click();
-      // Only interact with serving runtime template selector if it's not disabled
-      // (it may be disabled when only one option is available)
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().then(($selector) => {
-        if (!$selector.is(':disabled')) {
-          cy.wrap($selector).click();
-          modelServingWizard
-            .findGlobalScopedTemplateOption('Caikit TGIS ServingRuntime for KServe')
-            .should('exist')
-            .click();
-        }
-      });
+      modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard
+        .findGlobalScopedTemplateOption('vLLM Intel Gaudi Accelerator ServingRuntime for KServe')
+        .should('exist')
+        .click();
       modelServingWizard.findNextButton().click();
       //Step 3: Advanced Options
       modelServingWizard.findSubmitButton().click();

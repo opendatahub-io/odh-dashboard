@@ -73,18 +73,20 @@ describe('A model can be stopped and started', () => {
       // Navigate to Model Serving section and Deploy a Model
       cy.step('Navigate to Model Serving and deploy a Model');
       projectDetails.findSectionTab('model-server').click();
-      modelServingGlobal.findSingleServingModelButton().click();
+      // If we have only one serving model platform, then it is selected by default.
+      // So we don't need to click the button.
+      modelServingGlobal.selectSingleServingModelButtonIfExists();
 
       // Deploy a Model
       cy.step('Deploy a Model');
       modelServingGlobal.findDeployModelButton().click();
       // Step 1: Model Source
       modelServingWizard.findModelLocationSelectOption('Existing connection').click();
-      modelServingWizard.findLocationPathInput().type(modelFilePath);
+      modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
       modelServingWizard.findModelTypeSelectOption('Predictive model').click();
       modelServingWizard.findNextButton().click();
       // Step 2: Model Deployment
-      modelServingWizard.findModelDeploymentNameInput().type(modelName);
+      modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
       modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
       // Only interact with serving runtime template selector if it's not disabled
       // (it may be disabled when only one option is available)
