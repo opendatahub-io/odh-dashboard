@@ -118,5 +118,5 @@
     "eslint-plugin-react": "^7.37.2",
     "eslint-plugin-react-hooks": "^5.0.0"
   },
-  "packageManager": "npm@10.9.2"
+  "packageManager": "npm@10.9.4"
 }
