@@ -1,8 +1,6 @@
-import yaml from 'js-yaml';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import { projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
 import { notebookServer } from '#~/__tests__/cypress/cypress/pages/notebookServer';
-import type { NotebookImageData } from '#~/__tests__/cypress/cypress/types';
 import {
   waitForPodReady,
   deleteNotebook,
@@ -10,17 +8,9 @@ import {
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('Verify a Jupyter Notebook can be launched directly from the Project List View', () => {
-  let testData: NotebookImageData;
-
-  retryableBefore(() =>
-    cy
-      .fixture('e2e/dataScienceProjects/testNotebookCreation.yaml', 'utf8')
-      .then((yamlContent: string) => {
-        testData = yaml.load(yamlContent) as NotebookImageData;
-        // Check if a notebook is running and delete if it is
-        deleteNotebook('jupyter-nb');
-      }),
-  );
+  retryableBefore(() => {
+    deleteNotebook('jupyter-nb');
+  });
 
   it(
     'Verify User Can Access Jupyter Launcher From Project Page',
@@ -38,14 +28,6 @@ describe('Verify a Jupyter Notebook can be launched directly from the Project Li
       // Select a notebook image
       cy.step('Choose Code Server Image');
       notebookServer.findNotebookImage('code-server-notebook').click();
-
-      // Select the versions dropdown
-      cy.step('Select the code server versions dropdown');
-      notebookServer.findVersionsDropdown(testData.codeserverImageName).click();
-
-      // Select an image version
-      cy.step('Select the codeserver image version');
-      notebookServer.findNotebookVersion(testData.codeserverImageName).click();
 
       // Verify that 'Start Server button' is enabled
       cy.step('Check Start server button is enabled');

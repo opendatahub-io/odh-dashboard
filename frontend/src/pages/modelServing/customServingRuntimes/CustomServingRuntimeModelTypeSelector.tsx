@@ -17,7 +17,12 @@ const CustomServingRuntimeModelTypeSelector: React.FC<
   CustomServingRuntimeModelTypeSelectorProps
 > = ({ selectedModelTypes, setSelectedModelTypes }) => {
   const modelTypeOptions = React.useMemo<CheckboxSelectOption[]>(
-    () => Options.map((o) => ({ ...o, selected: selectedModelTypes.includes(o.value) })),
+    () =>
+      Options.map((o) => ({
+        ...o,
+        selected: selectedModelTypes.includes(o.value),
+        'data-testid': `model-type-option-${o.value.toLowerCase()}`,
+      })),
     [selectedModelTypes],
   );
 
