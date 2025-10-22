@@ -4,7 +4,7 @@
   "description": "Backend for the ODH dashboard.",
   "license": "Apache-2.0",
   "private": true,
-  "packageManager": "npm@10.9.2",
+  "packageManager": "npm@10.9.4",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/opendatahub-io/odh-dashboard.git"
