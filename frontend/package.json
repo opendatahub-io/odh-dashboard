@@ -118,7 +118,7 @@
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*",
-    "@pmmmwh/react-refresh-webpack-plugin": "^0.5.15",
+    "@pmmmwh/react-refresh-webpack-plugin": "^0.6.0",
     "@swc/core": "^1.13.3",
     "@types/dompurify": "^2.2.6",
     "@types/google-protobuf": "^3.7.2",
