@@ -74,7 +74,7 @@ class AdministrationTab {
     return cy.findByTestId('stop-all-servers-button');
   }
 
-  private findTable() {
+  findTable() {
     return cy.findByTestId('administration-users-table');
   }
 
