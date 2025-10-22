@@ -39,7 +39,7 @@ import type {
 import { DeploymentMode } from '#~/k8sTypes';
 import { ServingRuntimePlatform } from '#~/types';
 import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { StackCapability, DataScienceStackComponent } from '#~/concepts/areas/types';
+import { StackCapability } from '#~/concepts/areas/types';
 import { mockDsciStatus } from '#~/__mocks__/mockDsciStatus';
 import {
   HardwareProfileModel,
@@ -135,11 +135,8 @@ const initIntercepts = ({
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      components: {
-        [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
-        [DataScienceStackComponent.MODEL_MESH_SERVING]: { managementState: 'Managed' },
-        ...DscComponents,
-      },
+      components: DscComponents,
+      installedComponents: { kserve: true, 'model-mesh': true },
     }),
   );
   cy.interceptOdh(

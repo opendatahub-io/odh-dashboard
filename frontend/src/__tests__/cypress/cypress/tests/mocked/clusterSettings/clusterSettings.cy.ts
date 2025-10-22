@@ -13,7 +13,7 @@ import {
   asClusterAdminUser,
   asProjectAdminUser,
 } from '#~/__tests__/cypress/cypress/utils/mockUsers';
-import { DataScienceStackComponent } from '#~/concepts/areas/types';
+import { StackComponent } from '#~/concepts/areas/types';
 import { mockK8sResourceList } from '#~/__mocks__';
 import { DataScienceClusterModel } from '#~/__tests__/cypress/cypress/utils/models';
 import { mockDsc } from '#~/__mocks__/mockDsc';
@@ -35,10 +35,7 @@ describe('Cluster Settings', () => {
     cy.interceptOdh(
       'GET /api/dsc/status',
       mockDscStatus({
-        components: {
-          [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
-          [DataScienceStackComponent.MODEL_MESH_SERVING]: { managementState: 'Managed' },
-        },
+        installedComponents: { [StackComponent.K_SERVE]: true, [StackComponent.MODEL_MESH]: true },
       }),
     );
     cy.interceptOdh('GET /api/cluster-settings', mockClusterSettings({}));

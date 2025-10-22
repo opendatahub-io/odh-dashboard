@@ -35,7 +35,6 @@ import {
   mockModelServingFields,
   mockOciConnectionTypeConfigMap,
 } from '#~/__mocks__/mockConnectionType';
-import { DataScienceStackComponent } from '#~/concepts/areas/types';
 import {
   mockCustomSecretK8sResource,
   mockURISecretK8sResource,
@@ -54,9 +53,9 @@ const initIntercepts = ({
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      components: {
-        [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
-        [DataScienceStackComponent.MODEL_MESH_SERVING]: { managementState: 'Removed' },
+      installedComponents: {
+        kserve: true,
+        'model-mesh': false,
       },
     }),
   );

@@ -22,7 +22,6 @@ import { modelVersionArchive } from '#~/__tests__/cypress/cypress/pages/modelReg
 import { modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry';
 import { mockModelRegistry, mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
 import { KnownLabels } from '#~/k8sTypes';
-import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 const MODEL_REGISTRY_API_VERSION = 'v1';
 
@@ -83,8 +82,8 @@ const initIntercepts = ({
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      components: {
-        [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+      installedComponents: {
+        'model-registry-operator': true,
       },
     }),
   );

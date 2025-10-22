@@ -33,7 +33,6 @@ import {
 import type { InferenceServiceKind } from '#~/k8sTypes';
 import { mockNimAccount } from '#~/__mocks__/mockNimAccount';
 import { mockOdhApplication } from '#~/__mocks__/mockOdhApplication';
-import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 /* ###################################################
    ###### Interception Initialization Utilities ######
@@ -48,9 +47,9 @@ export const initInterceptsToEnableNim = ({ hasAllModels = false }: EnableNimCon
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      components: {
-        [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
-        [DataScienceStackComponent.MODEL_MESH_SERVING]: { managementState: 'Managed' },
+      installedComponents: {
+        kserve: true,
+        'model-mesh': true,
       },
     }),
   );
