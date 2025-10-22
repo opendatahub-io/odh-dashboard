@@ -115,7 +115,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.21.0",
-    "@module-federation/enhanced": "^0.13.1",
+    "@module-federation/enhanced": "^0.21.0",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.15",
     "@swc/core": "^1.11.21",
     "@types/dompurify": "^2.2.6",
