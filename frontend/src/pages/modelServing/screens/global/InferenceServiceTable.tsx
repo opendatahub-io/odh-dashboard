@@ -41,7 +41,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
   isLoading,
   getColumns,
 }) => {
-  const { modelServingProjects: projects } = React.useContext(ProjectsContext);
+  const { projects } = React.useContext(ProjectsContext);
   const [deleteInferenceService, setDeleteInferenceService] =
     React.useState<InferenceServiceKind>();
   const [editInferenceService, setEditInferenceService] = React.useState<InferenceServiceKind>();

@@ -19,7 +19,7 @@ export const mockModelServingPlatform = ({
   namespaceApplicationCase = NamespaceApplicationCase.KSERVE_PROMOTION,
   enabledProjectMetadata = {
     labels: {
-      'enable-modelmesh': 'false',
+      'modelmesh-enabled': 'false',
     },
   },
   title = 'KServe',

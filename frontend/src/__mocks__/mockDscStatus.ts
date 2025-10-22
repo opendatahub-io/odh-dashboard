@@ -128,14 +128,6 @@ export const mockDscStatus = ({
         type: 'kserveReady',
       },
       {
-        lastHeartbeatTime: '2023-10-20T11:45:04Z',
-        lastTransitionTime: '2023-10-20T11:45:04Z',
-        message: 'Component reconciled successfully',
-        reason: 'ReconcileCompleted',
-        status: 'True',
-        type: 'model-meshReady',
-      },
-      {
         lastHeartbeatTime: '2023-10-20T11:45:06Z',
         lastTransitionTime: '2023-10-20T11:45:06Z',
         message: 'Component is disabled',

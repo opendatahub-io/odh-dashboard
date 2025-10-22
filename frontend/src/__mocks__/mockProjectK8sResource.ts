@@ -21,7 +21,7 @@ export const mockProjectK8sResource = ({
   displayName = 'Test Project',
   k8sName = 'test-project',
   creationTimestamp = '2023-02-14T21:43:59Z',
-  enableModelMesh,
+  enableModelMesh = false,
   enableNIM = false,
   description = '',
   isDSProject = true,
@@ -35,9 +35,7 @@ export const mockProjectK8sResource = ({
     creationTimestamp,
     labels: {
       'kubernetes.io/metadata.name': k8sName,
-      ...(enableModelMesh !== undefined && {
-        [KnownLabels.MODEL_SERVING_PROJECT]: enableModelMesh ? 'true' : 'false',
-      }),
+      [KnownLabels.MODEL_SERVING_PROJECT]: enableModelMesh ? 'true' : 'false',
       ...(isDSProject && { [KnownLabels.DASHBOARD_RESOURCE]: 'true' }),
     },
     ...(hasAnnotations && {

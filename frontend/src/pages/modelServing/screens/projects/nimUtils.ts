@@ -49,11 +49,10 @@ export const getNIMData = async (
 };
 
 export const isProjectNIMSupported = (currentProject: ProjectKind): boolean => {
-  const isModelMeshDisabled = currentProject.metadata.labels?.['modelmesh-enabled'] === 'false';
   const hasNIMSupportAnnotation =
     currentProject.metadata.annotations?.['opendatahub.io/nim-support'] === 'true';
 
-  return isModelMeshDisabled && hasNIMSupportAnnotation;
+  return hasNIMSupportAnnotation;
 };
 
 export const isNIMServingRuntimeTemplateAvailable = async (

@@ -80,10 +80,6 @@ class ModelServingGlobal {
     return cy.findByTestId('kserve-select-button');
   }
 
-  findMultiModelButton() {
-    return cy.findByTestId('model-mesh-select-button');
-  }
-
   private findModelsTable() {
     // TODO be more precise
     return cy.findByTestId('inference-service-table');
@@ -635,6 +631,22 @@ class ModelServingRow extends TableRow {
     return this;
   }
 
+  findExpandButton() {
+    return this.find().find('[data-label="Model Server Name"] button');
+  }
+
+  findDeployModelButton() {
+    return this.find().findByTestId('deploy-model-button');
+  }
+
+  findExpansion() {
+    return this.find().siblings();
+  }
+
+  findDeployedModelExpansionButton() {
+    return this.find().find('[data-label="Deployed models"] button');
+  }
+
   findInternalServiceButton() {
     return this.find().findByTestId('internal-service-button');
   }
@@ -672,25 +684,7 @@ class ModelServingRow extends TableRow {
   }
 }
 
-class ModelMeshRow extends ModelServingRow {
-  findExpandButton() {
-    return this.find().find('[data-label="Model Server Name"] button');
-  }
-
-  findDeployModelButton() {
-    return this.find().findByTestId('deploy-model-button');
-  }
-
-  findExpansion() {
-    return this.find().siblings();
-  }
-
-  findDeployedModelExpansionButton() {
-    return this.find().find('[data-label="Deployed models"] button');
-  }
-}
-
-class KServeRow extends ModelMeshRow {
+class KServeRow extends ModelServingRow {
   findToggleButton(platform?: string) {
     return this.find()
       .findByTestId(`${platform || 'kserve'}-model-row-item`)
@@ -847,10 +841,6 @@ class ModelServingSection {
     return this.find().findByTestId('kserve-inference-service-table');
   }
 
-  private findModelMeshTable() {
-    return this.find().findByTestId('serving-runtime-table');
-  }
-
   findModelServerDeployedName(name: string) {
     return this.find().findByTestId('deployed-model-name').contains(name);
   }
@@ -899,15 +889,6 @@ class ModelServingSection {
 
   findAddModelServerButton() {
     return this.find().findByTestId('add-server-button');
-  }
-
-  getModelMeshRow(name: string) {
-    return new ModelMeshRow(() =>
-      this.findModelMeshTable()
-        .find('[data-label="Model Server Name"]')
-        .contains(name)
-        .parents('tr'),
-    );
   }
 
   findInferenceServiceTable() {
