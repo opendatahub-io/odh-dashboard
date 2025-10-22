@@ -135,7 +135,7 @@ describe('Verify a model can be deployed from a PVC', () => {
       // Step 1: Model Source
       modelServingWizard.findModelLocationSelectOption('Cluster storage').click();
       // There's only one PVC so it's automatically selected
-      modelServingWizard.findPVCSelectValue().should('not.be.empty');
+      modelServingWizard.findPVCSelectValue().should('have.value', pvStorageName);
       modelServingWizard.findModelTypeSelectOption('Predictive model').click();
       modelServingWizard.findNextButton().click();
       // Step 2: Model Deployment

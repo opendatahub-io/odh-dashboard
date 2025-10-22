@@ -1,5 +1,5 @@
 import type { DataScienceProjectData } from '#~/__tests__/cypress/cypress/types';
-import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
+//import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { loadDSPFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import { projectListPage, projectDetails } from '#~/__tests__/cypress/cypress/pages/projects';
@@ -50,7 +50,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
   after(() => {
     // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
     // TODO: Review this timeout once RHOAIENG-19969 is resolved
-    deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
+    //deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
   });
 
   it(
@@ -73,7 +73,6 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       // Navigate to Model Serving tab and Deploy a Single Model
       cy.step('Navigate to Model Serving and click to Deploy a Single Model');
       projectDetails.findSectionTab('model-server').click();
-      modelServingGlobal.findSingleServingModelButton().click();
       // If we have only one serving model platform, then it is selected by default.
       // So we don't need to click the button.
       modelServingGlobal.selectSingleServingModelButtonIfExists();
