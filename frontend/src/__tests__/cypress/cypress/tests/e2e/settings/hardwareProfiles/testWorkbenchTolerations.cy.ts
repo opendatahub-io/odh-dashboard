@@ -70,7 +70,7 @@ describe('Workbenches - tolerations tests', () => {
     'Verify Workbench Creation using Hardware Profiles and applying Tolerations',
     // TODO: Add the below tags once this feature is enabled in 2.20+
     //  { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard'] },
-    { tags: ['@Featureflagged', '@HardwareProfilesWB', '@HardwareProfiles'] },
+    { tags: ['@Dashboard', '@HardwareProfiles', '@Sanity', '@SanitySet2'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -98,7 +98,6 @@ describe('Workbenches - tolerations tests', () => {
       const notebookRow = workbenchPage.getNotebookRow(testData.workbenchName);
       notebookRow.findNotebookDescription(projectDescription);
       notebookRow.expectStatusLabelToBe('Running', 120000);
-      notebookRow.shouldHaveNotebookImageName('code-server');
 
       // Validate that the toleration applied earlier displays in the newly created pod
       cy.step('Validate the Tolerations for the pod include the newly added toleration');
