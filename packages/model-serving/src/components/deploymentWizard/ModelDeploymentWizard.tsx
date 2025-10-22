@@ -12,6 +12,7 @@ import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidat
 import { ModelSourceStepContent } from './steps/ModelSourceStep';
 import { AdvancedSettingsStepContent } from './steps/AdvancedOptionsStep';
 import { ModelDeploymentStepContent } from './steps/ModelDeploymentStep';
+import { ReviewStepContent } from './steps/ReviewStep';
 import { useDeployMethod } from './useDeployMethod';
 import type { InitialWizardFormData } from './types';
 import { WizardFooterWithDisablingNext } from '../generic/WizardFooterWithDisablingNext';
@@ -147,19 +148,11 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         clearError={() => setSubmitError(null)}
         isLoading={isLoading}
         submitButtonText={primaryButtonText}
-        isAdvancedSettingsStepValid={validation.isAdvancedSettingsStepValid} //TODO: Remove this line once summary page is added
         overwriteSupported={deployMethod?.properties.supportsOverwrite}
         onSave={onSave}
       />
     ),
-    [
-      submitError,
-      isLoading,
-      primaryButtonText,
-      deployMethod?.properties.supportsOverwrite,
-      onSave,
-      validation.isAdvancedSettingsStepValid,
-    ], //TODO: Remove validation.isAdvancedSettingsStepValid once summary page is added
+    [submitError, isLoading, primaryButtonText, deployMethod?.properties.supportsOverwrite, onSave],
   );
 
   return (
@@ -197,8 +190,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
             <Spinner />
           )}
         </WizardStep>
-        {/* TODO: Uncomment when summary page is added */}
-        {/* <WizardStep
+        <WizardStep
           name="Review"
           id="summary-step"
           isDisabled={
@@ -207,8 +199,12 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
             !validation.isAdvancedSettingsStepValid
           }
         >
-          {wizardState.loaded.summaryLoaded ? 'Review step content' : <Spinner />}
-        </WizardStep> */}
+          {wizardState.loaded.summaryLoaded ? (
+            <ReviewStepContent wizardState={wizardState} />
+          ) : (
+            <Spinner />
+          )}
+        </WizardStep>
       </Wizard>
     </ApplicationsPage>
   );
