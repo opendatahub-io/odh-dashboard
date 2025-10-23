@@ -200,6 +200,11 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     reliantAreas: [SupportedArea.MODEL_SERVING],
     //TODO: Add Llama Stack component when details known.
   },
+  [SupportedArea.GEN_AI_STUDIO]: {
+    featureFlags: ['disableGenAiStudio'],
+    requiredComponents: [StackComponent.LLAMA_STACK_OPERATOR],
+  },
+
   [SupportedArea.LM_EVAL]: {
     featureFlags: ['disableLMEval'],
     reliantAreas: [SupportedArea.MODEL_REGISTRY, SupportedArea.MODEL_SERVING],
