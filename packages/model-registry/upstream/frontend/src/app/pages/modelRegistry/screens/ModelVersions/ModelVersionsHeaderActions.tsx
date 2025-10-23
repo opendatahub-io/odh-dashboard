@@ -99,7 +99,7 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
             >
               <DropdownList>
                 <DropdownGroup>
-                  <ArchiveButtonDropdownItem mv={latestModelVersion} setIsArchiveModalOpen={setIsArchiveModalOpen} />
+                  <ArchiveButtonDropdownItem setIsArchiveModalOpen={setIsArchiveModalOpen} />
                 </DropdownGroup>
               </DropdownList>
             </Dropdown>
