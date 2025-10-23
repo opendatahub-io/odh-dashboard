@@ -22,6 +22,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
     properties: {
       id: PLUGIN_GEN_AI,
       reliantAreas: [SupportedArea.GEN_AI_STUDIO],
+      featureFlags: ['disableGenAiStudio'],
     },
   },
   {
