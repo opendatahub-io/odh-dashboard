@@ -184,6 +184,17 @@ describe('Administration Tab', () => {
     notebookController.findAppTitle().should('not.contain', 'Administration');
   });
 
+  it('The table should load and be empty when there are no allowed users', () => {
+    initIntercepts({ allowedUsers: [] });
+    notebookController.visit();
+    notebookController.findAdministrationTab().click();
+    administration.findRows().should('have.length', 0);
+    administration.findTableHeaderButton('User').should('exist');
+    administration.findTableHeaderButton('Privilege').should('exist');
+    administration.findTableHeaderButton('Last activity').should('exist');
+    administration.findTableHeaderButton('Workbench status').should('exist');
+  });
+
   it('Validate that clicking on "Stop all workbenches" button will show dialog for stopping multiple workbenches', () => {
     const allowedUsers = [
       mockAllowedUsers({ username: 'regularuser2', lastActivity: 'Now' }),
