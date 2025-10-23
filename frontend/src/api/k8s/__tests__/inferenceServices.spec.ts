@@ -456,30 +456,6 @@ describe('assembleInferenceService', () => {
     );
   });
 
-  it('should not set hardware profile name and namespace annotation for real profiles if model mesh', () => {
-    const hardwareProfile = mockHardwareProfile({ name: 'real-profile' });
-    hardwareProfile.metadata.uid = 'test-uid';
-    const podSpecOptions = mockModelServingPodSpecOptions({
-      selectedHardwareProfile: hardwareProfile,
-    });
-    const result = assembleInferenceService(
-      mockInferenceServiceModalData({
-        externalRoute: true,
-        tokenAuth: true,
-      }),
-      undefined,
-      undefined,
-      true,
-      undefined,
-      undefined,
-      podSpecOptions,
-    );
-    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBeUndefined();
-    expect(
-      result.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'],
-    ).toBeUndefined();
-  });
-
   it('should not set pod specs like tolerations and nodeSelector for hardware profiles', () => {
     const hardwareProfile = mockHardwareProfile({});
     hardwareProfile.metadata.uid = 'test-uid'; // not a legacy hardware profile

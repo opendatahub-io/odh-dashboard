@@ -28,11 +28,9 @@ import { ServingRuntimePlatform } from '#~/types';
 import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 export const initDeployPrefilledModelIntercepts = ({
-  modelMeshInstalled = true,
   disableProjectScoped = true,
   isEmpty = false,
 }: {
-  modelMeshInstalled?: boolean;
   kServeInstalled?: boolean;
   disableProjectScoped?: boolean;
   isEmpty?: boolean;
@@ -51,9 +49,6 @@ export const initDeployPrefilledModelIntercepts = ({
     mockDscStatus({
       components: {
         [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
-        [DataScienceStackComponent.MODEL_MESH_SERVING]: {
-          managementState: modelMeshInstalled ? 'Managed' : 'Removed',
-        },
         [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
       },
     }),
@@ -63,12 +58,6 @@ export const initDeployPrefilledModelIntercepts = ({
     ProjectModel,
     mockK8sResourceList([
       mockProjectK8sResource({
-        enableModelMesh: true,
-        k8sName: 'model-mesh-project',
-        displayName: 'Model mesh project',
-      }),
-      mockProjectK8sResource({
-        enableModelMesh: false,
         k8sName: 'kserve-project',
         displayName: 'KServe project',
       }),
@@ -82,11 +71,6 @@ export const initDeployPrefilledModelIntercepts = ({
       ? mockK8sResourceList([])
       : mockK8sResourceList(
           [
-            mockServingRuntimeTemplateK8sResource({
-              name: 'template-1',
-              displayName: 'Multi Platform',
-              platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
-            }),
             mockServingRuntimeTemplateK8sResource({
               name: 'template-2',
               displayName: 'Caikit',
@@ -111,11 +95,6 @@ export const initDeployPrefilledModelIntercepts = ({
     TemplateModel,
     mockK8sResourceList(
       [
-        mockServingRuntimeTemplateK8sResource({
-          name: 'template-1',
-          displayName: 'Multi Platform',
-          platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
-        }),
         mockServingRuntimeTemplateK8sResource({
           name: 'template-2',
           displayName: 'OpenVINO',

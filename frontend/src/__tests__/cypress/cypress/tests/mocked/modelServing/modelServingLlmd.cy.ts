@@ -51,14 +51,12 @@ const initIntercepts = ({
     mockDscStatus({
       components: {
         [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
-        [DataScienceStackComponent.MODEL_MESH_SERVING]: { managementState: 'Removed' },
       },
     }),
   );
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
-      disableModelMesh: true,
       disableNIMModelServing: true,
       disableKServe: false,
       disableModelAsService: false, // Enable MaaS for testing

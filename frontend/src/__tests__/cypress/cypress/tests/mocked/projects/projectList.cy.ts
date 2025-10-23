@@ -364,7 +364,6 @@ describe('Projects details', () => {
             [DataScienceStackComponent.WORKBENCHES]: { managementState: 'Removed' },
             [DataScienceStackComponent.DS_PIPELINES]: { managementState: 'Managed' },
             [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
-            [DataScienceStackComponent.MODEL_MESH_SERVING]: { managementState: 'Managed' },
             [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
           },
         }),

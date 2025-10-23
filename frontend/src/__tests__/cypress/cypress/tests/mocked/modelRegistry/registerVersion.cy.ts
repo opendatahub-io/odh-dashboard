@@ -33,7 +33,6 @@ const initIntercepts = () => {
     mockDscStatus({
       components: {
         [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
-        [DataScienceStackComponent.MODEL_MESH_SERVING]: { managementState: 'Managed' },
       },
     }),
   );

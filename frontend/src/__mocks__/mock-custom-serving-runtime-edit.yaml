@@ -3,7 +3,7 @@ kind: ServingRuntime
 metadata:
   name: template-1
   annotations:
-    openshift.io/display-name: Updated Multi Platform
+    openshift.io/display-name: Updated Caikit
   labels:
     opendatahub.io/dashboard: 'true'
 spec:

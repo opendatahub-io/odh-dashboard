@@ -188,9 +188,6 @@ export type DataScienceProjectData = {
   projectSingleModelAdminResourceName: string;
   singleModelAdminName: string;
   modelOpenVinoPath: string;
-  projectMultiModelAdminDisplayName: string;
-  projectMultiModelAdminResourceName: string;
-  multiModelAdminName: string;
   modelOpenVinoExamplePath: string;
   projectDCResourceName: string;
   projectPVStorageResourceName: string;
@@ -216,7 +213,6 @@ export type NotebookController = {
 export type DashboardConfig = {
   dashboardConfig: {
     disableModelServing: boolean;
-    disableModelMesh: boolean;
     disableKServe: boolean;
   };
   notebookController: NotebookController;
