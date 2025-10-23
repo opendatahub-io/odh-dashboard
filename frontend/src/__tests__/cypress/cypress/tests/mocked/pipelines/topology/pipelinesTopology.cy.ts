@@ -31,7 +31,6 @@ import {
 import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { RecurringRunStatus } from '#~/concepts/pipelines/kfTypes';
 import { initMlmdIntercepts } from '#~/__tests__/cypress/cypress/tests/mocked/pipelines/mlmdUtils';
-import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 const projectId = 'test-project';
 const mockPipeline = buildMockPipeline({
@@ -77,9 +76,7 @@ const initIntercepts = () => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      components: {
-        [DataScienceStackComponent.DS_PIPELINES]: { managementState: 'Managed' },
-      },
+      installedComponents: { 'data-science-pipelines-operator': true },
     }),
   );
   cy.interceptK8sList(

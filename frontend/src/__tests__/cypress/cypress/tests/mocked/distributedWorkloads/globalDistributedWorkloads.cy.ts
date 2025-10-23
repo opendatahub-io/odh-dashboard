@@ -19,7 +19,6 @@ import {
   WorkloadModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { RefreshIntervalTitle } from '#~/concepts/metrics/types';
-import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 const mockContainer: PodContainer = {
   env: [],
@@ -103,11 +102,7 @@ const initIntercepts = ({
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      components: {
-        [DataScienceStackComponent.KUEUE]: {
-          managementState: isKueueInstalled ? 'Managed' : 'Removed',
-        },
-      },
+      installedComponents: { kueue: isKueueInstalled },
     }),
   );
   cy.interceptOdh(

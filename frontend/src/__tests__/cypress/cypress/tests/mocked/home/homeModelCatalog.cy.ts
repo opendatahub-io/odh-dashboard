@@ -16,7 +16,6 @@ import {
   mockModelRegistryService,
 } from '#~/__mocks__';
 import { mockCatalogModel } from '#~/__mocks__/mockCatalogModel';
-import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 type HandlersProps = {
   modelRegistries?: K8sResourceCommon[];
@@ -37,8 +36,8 @@ const initIntercepts = ({
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      components: {
-        [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+      installedComponents: {
+        'model-registry-operator': true,
       },
     }),
   );

@@ -18,7 +18,6 @@ import { mockSelfSubjectAccessReview } from '#~/__mocks__/mockSelfSubjectAccessR
 import { asProjectAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
 import { notebookConfirmModal } from '#~/__tests__/cypress/cypress/pages/workbench';
 import { testPagination } from '#~/__tests__/cypress/cypress/utils/pagination';
-import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 const mockProject = mockProjectK8sResource({ description: 'Mock description' });
 const initIntercepts = () => {
@@ -360,12 +359,12 @@ describe('Projects details', () => {
       cy.interceptOdh(
         'GET /api/dsc/status',
         mockDscStatus({
-          components: {
-            [DataScienceStackComponent.WORKBENCHES]: { managementState: 'Removed' },
-            [DataScienceStackComponent.DS_PIPELINES]: { managementState: 'Managed' },
-            [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
-            [DataScienceStackComponent.MODEL_MESH_SERVING]: { managementState: 'Managed' },
-            [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+          installedComponents: {
+            workbenches: false,
+            'data-science-pipelines-operator': true,
+            kserve: true,
+            'model-mesh': true,
+            'model-registry-operator': true,
           },
         }),
       );

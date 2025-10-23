@@ -84,6 +84,10 @@ class AdministrationTab {
     );
   }
 
+  findRows() {
+    return this.findTable().find('tbody tr');
+  }
+
   mockGetNotebookStatus(username: string, isRunning = true) {
     return cy.interceptOdh(
       'GET /api/notebooks/openshift-ai-notebooks/:username/status',

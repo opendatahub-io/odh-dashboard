@@ -6,7 +6,6 @@ import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServi
 import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
 import { mockConfigMap } from '#~/__mocks__/mockConfigMap';
 import { LMEvalModel, ProjectModel, ConfigMapModel } from '#~/api/models';
-import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 export const createVLLMInferenceService = (
   name: string,
@@ -35,11 +34,7 @@ export const setupBasicMocks = (namespace: string): void => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      components: {
-        [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
-        [DataScienceStackComponent.MODEL_MESH_SERVING]: { managementState: 'Managed' },
-        [DataScienceStackComponent.TRUSTY_AI]: { managementState: 'Managed' },
-      },
+      installedComponents: { kserve: true, 'model-mesh': true, trustyai: true },
     }),
   );
 

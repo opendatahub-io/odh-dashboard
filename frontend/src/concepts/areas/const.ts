@@ -1,6 +1,7 @@
 import { DashboardCommonConfig } from '#~/k8sTypes';
 import {
   StackCapability,
+  StackComponent,
   SupportedArea,
   SupportedAreasState,
   DataScienceStackComponent,
@@ -94,7 +95,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.DS_PIPELINES]: {
     featureFlags: ['disablePipelines'],
-    requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
+    requiredComponents: [StackComponent.DS_PIPELINES],
   },
   [SupportedArea.HOME]: {
     featureFlags: ['disableHome'],
@@ -128,7 +129,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MODEL_MESH]: {
     featureFlags: ['disableModelMesh'],
-    requiredComponents: [DataScienceStackComponent.MODEL_MESH_SERVING],
+    requiredComponents: [StackComponent.MODEL_MESH],
   },
   [SupportedArea.MODEL_SERVING]: {
     featureFlags: ['disableModelServing'],
@@ -138,12 +139,12 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.WORKBENCHES]: {
     // featureFlags: [], // TODO: We want to disable, no flag exists today
-    requiredComponents: [DataScienceStackComponent.WORKBENCHES],
+    requiredComponents: [StackComponent.WORKBENCHES],
     reliantAreas: [SupportedArea.DS_PROJECTS_VIEW],
   },
   [SupportedArea.BIAS_METRICS]: {
     featureFlags: ['disableTrustyBiasMetrics'],
-    requiredComponents: [DataScienceStackComponent.TRUSTY_AI],
+    requiredComponents: [StackComponent.TRUSTY_AI],
     reliantAreas: [SupportedArea.MODEL_SERVING],
   },
   [SupportedArea.PERFORMANCE_METRICS]: {
@@ -151,16 +152,16 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     reliantAreas: [SupportedArea.MODEL_SERVING],
   },
   [SupportedArea.TRUSTY_AI]: {
-    requiredComponents: [DataScienceStackComponent.TRUSTY_AI],
+    requiredComponents: [StackComponent.TRUSTY_AI],
     reliantAreas: [SupportedArea.BIAS_METRICS],
   },
   [SupportedArea.DISTRIBUTED_WORKLOADS]: {
     featureFlags: ['disableDistributedWorkloads'],
-    requiredComponents: [DataScienceStackComponent.KUEUE],
+    requiredComponents: [StackComponent.KUEUE],
   },
   [SupportedArea.KUEUE]: {
     featureFlags: ['disableKueue'],
-    requiredComponents: [DataScienceStackComponent.KUEUE],
+    requiredComponents: [StackComponent.KUEUE],
   },
   [SupportedArea.MODEL_CATALOG]: {
     featureFlags: ['disableModelCatalog'],
@@ -168,7 +169,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MODEL_REGISTRY]: {
     featureFlags: ['disableModelRegistry'],
-    requiredComponents: [DataScienceStackComponent.MODEL_REGISTRY],
+    requiredComponents: [StackComponent.MODEL_REGISTRY],
   },
   [SupportedArea.SERVING_RUNTIME_PARAMS]: {
     featureFlags: ['disableServingRuntimeParams'],
@@ -204,14 +205,11 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.FEATURE_STORE]: {
     featureFlags: ['disableFeatureStore'],
-    requiredComponents: [DataScienceStackComponent.FEAST_OPERATOR],
+    requiredComponents: [StackComponent.FEAST_OPERATOR],
   },
   [SupportedArea.MODEL_TRAINING]: {
     featureFlags: ['disableModelTraining'],
-    requiredComponents: [
-      DataScienceStackComponent.TRAINING_OPERATOR,
-      DataScienceStackComponent.KUEUE,
-    ],
+    requiredComponents: [StackComponent.TRAINING_OPERATOR, StackComponent.KUEUE],
   },
 };
 

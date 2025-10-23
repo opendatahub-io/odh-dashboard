@@ -29,15 +29,12 @@ import {
   buildMockPipelineVersions,
   buildMockRecurringRunKF,
 } from '#~/__mocks__';
-import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 const initIntercepts = () => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      components: {
-        [DataScienceStackComponent.DS_PIPELINES]: { managementState: 'Managed' },
-      },
+      installedComponents: { 'data-science-pipelines-operator': true },
     }),
   );
 
