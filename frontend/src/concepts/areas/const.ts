@@ -9,8 +9,8 @@ import {
 
 export const techPreviewFlags = {
   disableModelRegistry: true,
-  genAiStudio: true,
-  modelAsService: true,
+  genAiStudio: false,
+  modelAsService: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
