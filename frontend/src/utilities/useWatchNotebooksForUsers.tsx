@@ -25,6 +25,7 @@ const useWatchNotebooksForUsers = (
   const getNotebooks = React.useCallback(
     (usernameList: string[]) => {
       if (usernameList.length === 0) {
+        setLoaded(true);
         return;
       }
 
