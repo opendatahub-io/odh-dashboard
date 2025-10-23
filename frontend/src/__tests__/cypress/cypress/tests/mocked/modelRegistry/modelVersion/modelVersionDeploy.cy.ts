@@ -33,9 +33,10 @@ type HandlersProps = {
   registeredModelsSize?: number;
   modelVersions?: ModelVersion[];
   modelMeshInstalled?: boolean;
-  kServeInstalled?: boolean;
   disableProjectScoped?: boolean;
   isEmpty?: boolean;
+  disableKServe?: boolean;
+  disableModelMesh?: boolean;
 };
 
 const registeredModelMocked = mockRegisteredModel({ name: 'test-1' });
@@ -61,14 +62,16 @@ const initIntercepts = ({
     mockModelVersion({ id: '5', name: 'test model version 4' }),
   ],
   modelMeshInstalled = true,
-  kServeInstalled = true,
   disableProjectScoped = true,
+  disableKServe = false,
+  disableModelMesh = false,
   isEmpty = false,
 }: HandlersProps) => {
   initDeployPrefilledModelIntercepts({
     modelMeshInstalled,
-    kServeInstalled,
     disableProjectScoped,
+    disableKServe,
+    disableModelMesh,
     isEmpty,
   });
 
@@ -337,16 +340,24 @@ describe('Model version deploy kebab action works', () => {
       cy.contains('Deploy').should('not.exist');
     });
   });
+
+  it('shows a disabled deploy menu option in the kebab menu for the model with OCI URI when kserve is disabled', () => {
+    initIntercepts({ disableKServe: true, disableModelMesh: true });
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 4');
+    modelVersionRow.findKebabAction('Deploy').should('have.attr', 'aria-disabled');
+  });
 });
 
 describe('Deploy model version', () => {
   it('Deploy model version on unsupported single-model platform', () => {
-    initIntercepts({ kServeInstalled: false });
+    initIntercepts({ disableKServe: true, disableModelMesh: true });
     modelVersionDetails.visit();
     modelVersionDetails.findDeployModelButton().click();
-    cy.wait('@getProjects');
-    modelVersionDeployModal.selectProjectByName('KServe project');
-    cy.findByText('Single-model platform is not installed').should('exist');
+    cy.findByRole('tooltip').should(
+      'contain.text',
+      'To enable model serving, an administrator must first select a model serving platform in the cluster settings.',
+    );
   });
 
   it('Deploy model version on a project which platform is not selected', () => {
@@ -435,7 +446,6 @@ describe('Deploy model version', () => {
     cy.findAllByText('oci://registry.redhat.io/rhel/private:test').should('have.length', 2);
   });
 
-  // note:  accelerator profiles are removed as of 3.0
   it('Display project specific serving runtimes while deploying', () => {
     initIntercepts({ disableProjectScoped: false });
     cy.interceptK8sList(
@@ -841,13 +851,5 @@ describe('Deploy model version', () => {
     modelVersionDetails.findDeployModelButton().click();
     modelVersionDeployModal.selectProjectByName('KServe project');
     kserveModal.findSpinner().should('exist');
-  });
-
-  it('shows a disabled deploy menu option in the kebab menu for the model with OCI URI when kserve is disabled', () => {
-    initIntercepts({ kServeInstalled: false });
-    modelVersionDetails.visit(undefined, undefined, '5');
-    modelVersionDetails.findDeployModelButton().click();
-    modelVersionDeployModal.selectProjectByName('KServe project');
-    cy.findByText('Single-model platform is not installed').should('exist');
   });
 });

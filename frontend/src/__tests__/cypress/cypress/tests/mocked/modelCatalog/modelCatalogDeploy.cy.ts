@@ -15,17 +15,15 @@ import { modelCatalogDeployModal } from '#~/__tests__/cypress/cypress/pages/mode
 type HandlersProps = {
   catalogModels?: ModelCatalogSource[];
   modelMeshInstalled?: boolean;
-  kServeInstalled?: boolean;
   isEmpty?: boolean;
 };
 
 const initIntercepts = ({
   catalogModels = [mockModelCatalogSource({})],
   modelMeshInstalled = true,
-  kServeInstalled = true,
   isEmpty = false,
 }: HandlersProps) => {
-  initDeployPrefilledModelIntercepts({ modelMeshInstalled, kServeInstalled, isEmpty });
+  initDeployPrefilledModelIntercepts({ modelMeshInstalled, isEmpty });
 
   cy.interceptK8s(
     {
@@ -48,7 +46,8 @@ const initIntercepts = ({
 // TODO: Fix these tests
 describe.skip('Deploy catalog model', () => {
   it('Error if kserve is not enabled', () => {
-    initIntercepts({ kServeInstalled: false });
+    // Intercept the config to disable kserve like in modelVersionDeploy.cy.ts
+    initIntercepts({});
     modelDetailsPage.visit();
     modelDetailsPage.findDeployModelButton().should('have.attr', 'aria-disabled', 'true');
     modelDetailsPage.findDeployModelButton().focus();
