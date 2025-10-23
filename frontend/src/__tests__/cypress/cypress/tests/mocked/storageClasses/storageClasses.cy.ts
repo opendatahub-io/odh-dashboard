@@ -33,6 +33,23 @@ describe('Storage classes', () => {
       storageClassesPage.findEmptyState().should('be.visible');
     });
 
+    it('does not automatically set a default storage class when no config is found, and can edit to make it valid.', () => {
+      const storageClassWithoutConfig = {
+        ...openshiftDefaultStorageClass,
+        metadata: {
+          ...openshiftDefaultStorageClass.metadata,
+          annotations: undefined,
+        },
+      };
+      storageClassesPage.mockGetStorageClasses([storageClassWithoutConfig]);
+      storageClassesPage.visit();
+
+      const storageClassTableRow =
+        storageClassesTable.getRowByStorageClassName('openshift-default-sc');
+
+      storageClassTableRow.find().findByTestId('corrupted-metadata-alert').should('be.visible');
+    });
+
     it('renders table with data', () => {
       storageClassesPage.mockGetStorageClasses();
       storageClassesPage.visit();

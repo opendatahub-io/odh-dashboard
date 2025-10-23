@@ -92,66 +92,49 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
 
         const accessModeSettings = getStorageClassDefaultAccessModeSettings();
 
-        // Add a default config annotation when one doesn't exist
+        // Skip if no config is found
         if (!config) {
-          let isDefault = isOpenshiftDefault;
-          let isEnabled = isDefault;
-
-          if (!openshiftDefaultScName) {
-            isDefault = isFirstConfig;
-            isEnabled = true;
-          }
-
-          acc.push(
-            updateStorageClassConfig(name, {
-              isDefault,
-              isEnabled,
-              displayName: name,
-              accessModeSettings,
-            }),
-          );
+          return acc;
         }
         // If multiple defaults are set via OpenShift's dashboard,
         // unset all except the first indexed storage class
-        else {
-          if (config.isDefault === true) {
-            if (!hasDefaultConfig) {
-              hasDefaultConfig = true;
-            } else {
-              acc.push(updateStorageClassConfig(name, { isDefault: false }));
-            }
+        if (config.isDefault === true) {
+          if (!hasDefaultConfig) {
+            hasDefaultConfig = true;
+          } else {
+            acc.push(updateStorageClassConfig(name, { isDefault: false }));
           }
+        }
 
-          // Set a default storage class (OpenShift default or first indexed storage class)
-          // if none exists and notify the user
-          if (
-            !defaultStorageClassName &&
-            ((isFirstConfig && !openshiftDefaultScName) || isOpenshiftDefault)
-          ) {
-            acc.push(
-              updateStorageClassConfig(name, {
-                isDefault: true,
-                isEnabled: true,
-              }),
-            );
-          }
+        // Set a default storage class (OpenShift default or first indexed storage class)
+        // if none exists and notify the user
+        if (
+          !defaultStorageClassName &&
+          ((isFirstConfig && !openshiftDefaultScName) || isOpenshiftDefault)
+        ) {
+          acc.push(
+            updateStorageClassConfig(name, {
+              isDefault: true,
+              isEnabled: true,
+            }),
+          );
+        }
 
-          // If the default storage class coming from OpenShift is disabled, update to enable
-          if (defaultStorageClassName && !storageClassConfigs[defaultStorageClassName]?.isEnabled) {
-            acc.push(
-              updateStorageClassConfig(defaultStorageClassName, {
-                isEnabled: true,
-              }),
-            );
-          }
+        // If the default storage class coming from OpenShift is disabled, update to enable
+        if (defaultStorageClassName && !storageClassConfigs[defaultStorageClassName]?.isEnabled) {
+          acc.push(
+            updateStorageClassConfig(defaultStorageClassName, {
+              isEnabled: true,
+            }),
+          );
+        }
 
-          if (!config.accessModeSettings) {
-            acc.push(
-              updateStorageClassConfig(name, {
-                accessModeSettings,
-              }),
-            );
-          }
+        if (!config.accessModeSettings) {
+          acc.push(
+            updateStorageClassConfig(name, {
+              accessModeSettings,
+            }),
+          );
         }
 
         return acc;
