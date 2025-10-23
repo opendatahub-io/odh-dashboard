@@ -177,7 +177,10 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
         .and('be.checked');
       storageClassEditModal.findAccessModeCheckbox(AccessMode.RWX).should('not.be.checked');
       storageClassEditModal.findAccessModeCheckbox(AccessMode.ROX).should('not.be.checked');
-      storageClassEditModal.findAccessModeCheckbox(AccessMode.RWOP).should('not.be.checked');
+      storageClassEditModal
+        .findAccessModeCheckbox(AccessMode.RWOP)
+        .should('be.disabled')
+        .and('not.be.checked');
 
       cy.step('Change access modes - enable ReadWriteMany and ReadOnlyMany');
       storageClassEditModal.findAccessModeCheckbox(AccessMode.RWX).click();
