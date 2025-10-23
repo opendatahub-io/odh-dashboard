@@ -41,6 +41,7 @@ export type MockDashboardConfigType = {
   disableLMEval?: boolean;
   disableKueue?: boolean;
   disableFeatureStore?: boolean;
+  genAiStudio?: boolean;
   disableModelTraining?: boolean;
   disableModelAsService?: boolean;
   hardwareProfileOrder?: string[];
@@ -53,6 +54,7 @@ export const mockDashboardConfig = ({
   disableTracking = false,
   disableBYONImageStream = false,
   disableISVBadges = false,
+  genAiStudio = true,
   disableAppLauncher = false,
   disableUserManagement = false,
   disableHome = false,
@@ -223,6 +225,7 @@ export const mockDashboardConfig = ({
       disableTrustyBiasMetrics,
       disablePerformanceMetrics,
       disableKServe,
+      genAiStudio,
       disableKServeAuth,
       disableKServeMetrics,
       disableKServeRaw,

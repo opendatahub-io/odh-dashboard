@@ -9,7 +9,8 @@ import {
 
 export const techPreviewFlags = {
   disableModelRegistry: true,
-  disableGenAiStudio: true,
+  genAiStudio: true,
+  modelAsService: true,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -199,10 +200,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disableLlamaStackChatBot'],
     reliantAreas: [SupportedArea.MODEL_SERVING],
     //TODO: Add Llama Stack component when details known.
-  },
-  [SupportedArea.GEN_AI_STUDIO]: {
-    featureFlags: ['disableGenAiStudio'],
-    requiredComponents: [StackComponent.LLAMA_STACK_OPERATOR],
   },
   [SupportedArea.LM_EVAL]: {
     featureFlags: ['disableLMEval'],

@@ -99,7 +99,9 @@ spec:
                       type: boolean
                     disableFeatureStore:
                       type: boolean
-                    disableGenAiStudio:
+                    genAiStudio:
+                      type: boolean
+                    modelAsService:
                       type: boolean
                   x-kubernetes-validations:
                     - rule: '!has(self.disableAcceleratorProfiles) || self.disableAcceleratorProfiles == oldSelf.disableAcceleratorProfiles'
