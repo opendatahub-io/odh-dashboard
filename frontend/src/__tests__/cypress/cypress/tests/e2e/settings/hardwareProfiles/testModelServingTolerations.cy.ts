@@ -81,16 +81,17 @@ describe('[Automation Bug: RHOAIENG-32898] Notebooks - tolerations tests', () =>
 
   //Cleanup: Delete Hardware Profile and the associated Project
   after(() => {
-    // Load Hardware Profile
-    cy.log(`Loaded Hardware Profile Name: ${hardwareProfileResourceName}`);
+    // Use the actual hardware profile name from the YAML, not the variable with UUID
+    cy.log(`Cleaning up Hardware Profile: ${testData.hardwareProfileName}`);
 
-    // Call cleanupHardwareProfiles here, after hardwareProfileResourceName is set
-    return cleanupHardwareProfiles(hardwareProfileResourceName).then(() => {
+    // Call cleanupHardwareProfiles with the actual name from the YAML file
+    return cleanupHardwareProfiles(testData.hardwareProfileName).then(() => {
       // Delete provisioned Project
       if (projectName) {
         cy.log(`Deleting Project ${projectName} after the test has finished.`);
-        deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+        return deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
       }
+      return cy.wrap(null);
     });
   });
 
