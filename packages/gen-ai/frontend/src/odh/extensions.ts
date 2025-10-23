@@ -22,7 +22,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
     properties: {
       id: PLUGIN_GEN_AI,
       requiredComponents: [StackComponent.LLAMA_STACK_OPERATOR],
-      featureFlags: ['disableGenAiPlugin'],
+      featureFlags: ['disableGenAiStudio'],
     },
   },
   {

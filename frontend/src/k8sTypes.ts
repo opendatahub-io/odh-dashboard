@@ -1292,7 +1292,7 @@ export type DashboardCommonConfig = {
   disableModelTraining: boolean;
   disableModelAsService: boolean;
   disableFeatureStore?: boolean;
-  disableGenAiPlugin?: boolean;
+  disableGenAiStudio?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition
