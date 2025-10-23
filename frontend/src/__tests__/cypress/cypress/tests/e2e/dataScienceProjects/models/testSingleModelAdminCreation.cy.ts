@@ -1,12 +1,12 @@
 import type { DataScienceProjectData } from '#~/__tests__/cypress/cypress/types';
-import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
+//import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { loadDSPFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import { projectListPage, projectDetails } from '#~/__tests__/cypress/cypress/pages/projects';
 import {
   modelServingGlobal,
-  inferenceServiceModal,
   modelServingSection,
+  modelServingWizard,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import {
   checkInferenceServiceState,
@@ -24,7 +24,7 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('[Product Bug: RHOAIENG-35572] Verify Admin Single Model Creation and Validation using the UI', () => {
+describe('Verify Admin Single Model Creation and Validation using the UI', () => {
   retryableBefore(() =>
     // Setup: Load test data and ensure clean state
     loadDSPFixture('e2e/dataScienceProjects/testSingleModelAdminCreation.yaml').then(
@@ -50,21 +50,13 @@ describe('[Product Bug: RHOAIENG-35572] Verify Admin Single Model Creation and V
   after(() => {
     // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
     // TODO: Review this timeout once RHOAIENG-19969 is resolved
-    deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
+    //deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
   });
 
   it(
     'Verify that an Admin can Serve, Query a Single Model using both the UI and External links',
     {
-      tags: [
-        '@Smoke',
-        '@SmokeSet3',
-        '@ODS-2626',
-        '@Dashboard',
-        '@Modelserving',
-        '@NonConcurrent',
-        '@Bug',
-      ],
+      tags: ['@Smoke', '@SmokeSet3', '@ODS-2626', '@Dashboard', '@ModelServing', '@NonConcurrent'],
     },
     () => {
       cy.log('Model Name:', modelName);
@@ -81,26 +73,43 @@ describe('[Product Bug: RHOAIENG-35572] Verify Admin Single Model Creation and V
       // Navigate to Model Serving tab and Deploy a Single Model
       cy.step('Navigate to Model Serving and click to Deploy a Single Model');
       projectDetails.findSectionTab('model-server').click();
-      modelServingGlobal.findSingleServingModelButton().click();
+      // If we have only one serving model platform, then it is selected by default.
+      // So we don't need to click the button.
+      modelServingGlobal.selectSingleServingModelButtonIfExists();
       modelServingGlobal.findDeployModelButton().click();
 
       // Launch a Single Serving Model and select the required entries
       cy.step('Launch a Single Serving Model using Openvino');
-      inferenceServiceModal.findModelNameInput().type(testData.singleModelAdminName);
-      inferenceServiceModal.findServingRuntimeTemplateSearchSelector().click();
-      inferenceServiceModal.findGlobalScopedTemplateOption('OpenVINO Model Server').click();
-      inferenceServiceModal.findModelFrameworkSelect().click();
-      inferenceServiceModal.findOpenVinoIROpSet13().click();
-
+      // Step 1: Model Source
+      modelServingWizard.findModelLocationSelectOption('Existing connection').click();
+      modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
+      modelServingWizard.findModelTypeSelectOption('Predictive model').click();
+      modelServingWizard.findNextButton().click();
+      // Step 2: Model Deployment
+      modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
+      modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
+      // Only interact with serving runtime template selector if it's not disabled
+      // (it may be disabled when only one option is available)
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().then(($selector) => {
+        if (!$selector.is(':disabled')) {
+          cy.wrap($selector).click();
+          modelServingWizard
+            .findGlobalScopedTemplateOption('OpenVINO Model Server')
+            .should('exist')
+            .click();
+        }
+      });
+      modelServingWizard.findNextButton().click();
+      //Step 3: Advanced Options
       // Enable Model access through an external route
-      cy.step('Allow Model to be accessed from an External route without Authentication');
-      inferenceServiceModal.findDeployedModelRouteCheckbox().click();
-      inferenceServiceModal.findDeployedModelRouteCheckbox().should('be.checked');
-      inferenceServiceModal.findTokenAuthenticationCheckbox().click();
-      inferenceServiceModal.findTokenAuthenticationCheckbox().should('not.be.checked');
-      inferenceServiceModal.findLocationPathInput().type(modelFilePath);
-      inferenceServiceModal.findSubmitButton().click();
-      inferenceServiceModal.shouldBeOpen(false);
+      modelServingWizard.findExternalRouteCheckbox().click();
+      modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
+      modelServingWizard.findServiceAccountByIndex(0).clear();
+      modelServingWizard.findServiceAccountByIndex(0).clear().type('secret');
+      modelServingWizard.findAddServiceAccountButton().click();
+      modelServingWizard.findServiceAccountByIndex(1).clear();
+      modelServingWizard.findServiceAccountByIndex(1).clear().type('secret2');
+      modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(testData.singleModelAdminName);
 
       //Verify the model created
