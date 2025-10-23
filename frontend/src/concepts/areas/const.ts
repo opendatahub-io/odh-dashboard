@@ -204,7 +204,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disableGenAiStudio'],
     requiredComponents: [StackComponent.LLAMA_STACK_OPERATOR],
   },
-
   [SupportedArea.LM_EVAL]: {
     featureFlags: ['disableLMEval'],
     reliantAreas: [SupportedArea.MODEL_REGISTRY, SupportedArea.MODEL_SERVING],
