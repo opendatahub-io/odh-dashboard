@@ -22,7 +22,6 @@ import { modelVersionArchive } from '#~/__tests__/cypress/cypress/pages/modelReg
 import { modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry';
 import { mockModelRegistry, mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
 import { KnownLabels } from '#~/k8sTypes';
-import { DataScienceStackComponent } from '#~/concepts/areas/types';
 import { mockModelArtifact } from '#~/__mocks__/mockModelArtifact';
 
 const MODEL_REGISTRY_API_VERSION = 'v1';
