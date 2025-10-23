@@ -81,6 +81,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableNIMModelServing: false,
       disableAdminConnectionTypes: false,
       disableFeatureStore: false,
+      disableGenAiPlugin: true,
       disableFineTuning: true,
       disableKueue: true,
       disableLMEval: true,
