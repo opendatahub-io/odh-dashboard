@@ -183,11 +183,17 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
         ? [{ key: ModelLocationType.EXISTING, label: 'Existing connection' }]
         : []),
       ...(pvcs.data.length > 0 ? [{ key: ModelLocationType.PVC, label: 'Cluster storage' }] : []),
-      s3Option,
-      ociOption,
-      uriOption,
+      ...(s3ConnectionTypes.length > 0 ? [s3Option] : []),
+      ...(ociConnectionTypes.length > 0 ? [ociOption] : []),
+      ...(uriConnectionTypes.length > 0 ? [uriOption] : []),
     ],
-    [connections.length, pvcs.data.length, modelServingConnectionTypes],
+    [
+      connections.length,
+      pvcs.data.length,
+      s3ConnectionTypes.length,
+      ociConnectionTypes.length,
+      uriConnectionTypes.length,
+    ],
   );
 
   const selectOptions = React.useMemo(() => {
@@ -302,7 +308,13 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
                 }}
                 onBlur={validationProps?.onBlur}
                 placeholder="Select model location"
-                value={selectedKey?.key ?? modelLocation}
+                value={
+                  selectedKey?.key ??
+                  (modelLocation === ModelLocationType.PVC ||
+                  modelLocation === ModelLocationType.EXISTING
+                    ? modelLocation
+                    : undefined)
+                }
                 toggleProps={{ style: { minWidth: '450px' } }}
               />
             </StackItem>

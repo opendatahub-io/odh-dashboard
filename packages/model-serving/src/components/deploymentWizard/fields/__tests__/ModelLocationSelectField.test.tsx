@@ -135,9 +135,42 @@ const mockConnectionTypes: ConnectionTypeConfigMapObj[] = [
       ],
     },
   },
+  // Custom URI option so the custom type select shows up
+  {
+    apiVersion: 'v1',
+    kind: 'ConfigMap',
+    metadata: {
+      name: 'custom-uri',
+      labels: {
+        [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+        'opendatahub.io/connection-type': 'true',
+      },
+      annotations: {
+        'openshift.io/display-name': 'Custom URI',
+      },
+    },
+    data: {
+      fields: [
+        {
+          envVar: 'URI',
+          name: 'URI',
+          required: true,
+          type: 'uri',
+          properties: {},
+        },
+        {
+          envVar: 'CUSTOM_URI_FIELD',
+          name: 'CUSTOM_URI_FIELD',
+          required: true,
+          type: 'short-text',
+          properties: {},
+        },
+      ],
+    },
+  },
 ];
 jest.mock('@odh-dashboard/internal/utilities/useWatchConnectionTypes', () => ({
-  useWatchConnectionTypes: () => [mockConnectionTypes],
+  useWatchConnectionTypes: () => [mockConnectionTypes, true],
 }));
 describe('ModelLocationSelectField', () => {
   const mockWizardContext = {
@@ -375,24 +408,15 @@ describe('ModelLocationSelectField', () => {
     it('should call setModelLocationData on valid location type selection', async () => {
       render(
         <ModelLocationSelectField
+          modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
           project={null}
           resetModelLocationData={jest.fn()}
           modelLocationData={{
             type: ModelLocationType.NEW,
-            fieldValues: { URI: 'https://test' },
+            fieldValues: {},
             additionalFields: {},
-            connectionTypeObject: {
-              apiVersion: 'v1',
-              kind: 'ConfigMap',
-              metadata: {
-                name: 'uri-v1',
-                labels: {
-                  [KnownLabels.DASHBOARD_RESOURCE]: 'true',
-                  'opendatahub.io/connection-type': 'true',
-                },
-              },
-            },
+            connectionTypeObject: undefined,
           }}
         />,
       );
@@ -400,9 +424,19 @@ describe('ModelLocationSelectField', () => {
       await act(async () => {
         fireEvent.click(button);
       });
-      const option = screen.getByRole('option', { name: 'URI' });
+      const URIOption = screen.getByRole('option', { name: 'URI' });
       await act(async () => {
-        fireEvent.click(option);
+        fireEvent.click(URIOption);
+      });
+
+      const customTypeSelect = screen.getByTestId('custom-type-select');
+      await act(async () => {
+        fireEvent.click(customTypeSelect);
+      });
+
+      const uriV1Option = screen.getByRole('option', { name: 'URI - v1' });
+      await act(async () => {
+        fireEvent.click(uriV1Option);
       });
       expect(mockSetModelLocationData).toHaveBeenCalledWith({
         type: ModelLocationType.NEW,
@@ -510,6 +544,72 @@ describe('ModelLocationSelectField', () => {
         connectionTypeObject: mockConnectionTypes[2],
         fieldValues: { OCI_HOST: 'newhost', '.dockerconfigjson': 'secret', ACCESS_TYPE: ['Pull'] },
         additionalFields: { modelUri: 'oci://test' },
+      });
+    });
+    it('should render the custom type select and fields and call setModelLocationData', async () => {
+      const { rerender } = render(
+        <ModelLocationSelectField
+          modelLocation={ModelLocationType.NEW}
+          setModelLocationData={mockSetModelLocationData}
+          project={null}
+          resetModelLocationData={jest.fn()}
+          modelLocationData={{
+            type: ModelLocationType.NEW,
+            fieldValues: {},
+            additionalFields: {},
+            connectionTypeObject: undefined,
+          }}
+        />,
+      );
+      const modalLocationSelect = screen.getByTestId('model-location-select');
+      await act(async () => {
+        fireEvent.click(modalLocationSelect);
+      });
+      const URIOption = screen.getByRole('option', { name: 'URI' });
+      await act(async () => {
+        fireEvent.click(URIOption);
+      });
+
+      const customTypeSelect = screen.getByTestId('custom-type-select');
+      await act(async () => {
+        fireEvent.click(customTypeSelect);
+      });
+
+      const customURIOption = screen.getByRole('option', { name: 'Custom URI' });
+      const uriV1Option = screen.getByRole('option', { name: 'URI - v1' });
+      expect(customURIOption).toBeInTheDocument();
+      expect(uriV1Option).toBeInTheDocument();
+      await act(async () => {
+        fireEvent.click(customURIOption);
+      });
+      expect(mockSetModelLocationData).toHaveBeenCalledWith({
+        type: ModelLocationType.NEW,
+        connectionTypeObject: mockConnectionTypes[3],
+        fieldValues: {},
+        additionalFields: {},
+      });
+
+      const newData = mockSetModelLocationData.mock.calls.slice(-1)[0][0];
+      rerender(
+        <ModelLocationSelectField
+          modelLocation={ModelLocationType.NEW}
+          setModelLocationData={mockSetModelLocationData}
+          project={null}
+          resetModelLocationData={jest.fn()}
+          modelLocationData={newData}
+        />,
+      );
+      expect(screen.getByTestId('field CUSTOM_URI_FIELD')).toBeInTheDocument();
+      await act(async () => {
+        fireEvent.change(screen.getByTestId('field CUSTOM_URI_FIELD'), {
+          target: { value: 'https://newtest' },
+        });
+      });
+      expect(mockSetModelLocationData).toHaveBeenCalledWith({
+        type: ModelLocationType.NEW,
+        connectionTypeObject: mockConnectionTypes[3],
+        fieldValues: { CUSTOM_URI_FIELD: 'https://newtest' },
+        additionalFields: {},
       });
     });
   });
