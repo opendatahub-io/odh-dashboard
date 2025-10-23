@@ -25,7 +25,7 @@ const scAccessModeName2 = `${scName}-vsphere-volume`;
 
 // Using testIsolation will reuse the login (cache)
 // describe('An admin user can manage Storage Classes', { testIsolation: false }, () => {
-describe('[Automation Bug: RHOAIENG-34808] An admin user can manage Storage Classes from Settings -> Storage classes view', () => {
+describe('[Product Bug: RHOAIENG-34808] An admin user can manage Storage Classes from Settings -> Storage classes view', () => {
   let createdStorageClasses: string[];
   let accessModeStorageClasses: string[];
   retryableBefore(() => {
