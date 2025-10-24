@@ -41,8 +41,10 @@ export type MockDashboardConfigType = {
   disableLMEval?: boolean;
   disableKueue?: boolean;
   disableFeatureStore?: boolean;
+  genAiStudio?: boolean;
+  modelAsService?: boolean;
   disableModelTraining?: boolean;
-  disableModelAsService?: boolean;
+
   hardwareProfileOrder?: string[];
 };
 
@@ -53,6 +55,8 @@ export const mockDashboardConfig = ({
   disableTracking = false,
   disableBYONImageStream = false,
   disableISVBadges = false,
+  genAiStudio = false,
+  modelAsService = true,
   disableAppLauncher = false,
   disableUserManagement = false,
   disableHome = false,
@@ -81,7 +85,6 @@ export const mockDashboardConfig = ({
   disableKueue = true,
   disableFeatureStore = true,
   disableModelTraining = true,
-  disableModelAsService = true,
   hardwareProfileOrder = ['test-hardware-profile'],
   modelServerSizes = [
     {
@@ -223,6 +226,8 @@ export const mockDashboardConfig = ({
       disableTrustyBiasMetrics,
       disablePerformanceMetrics,
       disableKServe,
+      genAiStudio,
+      modelAsService,
       disableKServeAuth,
       disableKServeMetrics,
       disableKServeRaw,
@@ -241,7 +246,6 @@ export const mockDashboardConfig = ({
       disableKueue,
       disableFeatureStore,
       disableModelTraining,
-      disableModelAsService,
     },
     notebookController: {
       enabled: !disableNotebookController,

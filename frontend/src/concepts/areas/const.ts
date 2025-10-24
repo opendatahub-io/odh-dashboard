@@ -9,13 +9,14 @@ import {
 
 export const techPreviewFlags = {
   disableModelRegistry: true,
+  genAiStudio: false,
+  modelAsService: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableLlamaStackChatBot: true, // internal dev only
   disableProjectScoped: true,
-  disableModelAsService: true,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -102,9 +103,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.DS_PROJECTS_VIEW]: {
     featureFlags: ['disableProjects'],
-  },
-  [SupportedArea.MODEL_AS_SERVICE]: {
-    featureFlags: ['disableModelAsService'],
   },
   [SupportedArea.DS_PROJECT_SCOPED]: {
     featureFlags: ['disableProjectScoped'],
