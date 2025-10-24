@@ -8,7 +8,7 @@
 
 import * as http from 'http';
 import * as https from 'https';
-// eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-extraneous-dependencies
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const HttpsProxyAgent: new (options: string | object) => https.Agent = require('https-proxy-agent');
 
 // Result interface for URL validation responses
