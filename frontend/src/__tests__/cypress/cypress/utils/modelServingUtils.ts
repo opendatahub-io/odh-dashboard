@@ -29,11 +29,15 @@ import { ServingRuntimePlatform } from '#~/types';
 export const initDeployPrefilledModelIntercepts = ({
   modelMeshInstalled = true,
   kServeInstalled = true,
+  disableKServe = false,
+  disableModelMesh = false,
   disableProjectScoped = true,
   isEmpty = false,
 }: {
   modelMeshInstalled?: boolean;
   kServeInstalled?: boolean;
+  disableKServe?: boolean;
+  disableModelMesh?: boolean;
   disableProjectScoped?: boolean;
   isEmpty?: boolean;
 }): void => {
@@ -43,6 +47,8 @@ export const initDeployPrefilledModelIntercepts = ({
       disableModelRegistry: false,
       disableModelCatalog: false,
       disableProjectScoped,
+      disableKServe,
+      disableModelMesh,
     }),
   );
 
