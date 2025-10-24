@@ -200,7 +200,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           }
         >
           {wizardState.loaded.summaryLoaded ? (
-            <ReviewStepContent wizardState={wizardState} />
+            <ReviewStepContent wizardState={wizardState} projectName={project.metadata.name} />
           ) : (
             <Spinner />
           )}

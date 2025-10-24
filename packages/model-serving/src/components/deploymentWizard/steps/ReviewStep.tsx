@@ -10,15 +10,19 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
+import { ModelLocationType } from '../types';
 
 type ReviewStepContentProps = {
   wizardState: UseModelDeploymentWizardState;
+  projectName: string;
 };
 
 type WizardState = UseModelDeploymentWizardState['state'];
+type WizardStateKey = keyof WizardState;
+type StatusItemKey = WizardStateKey | `${WizardStateKey}-${string}` | 'projectName';
 
-type StatusItem = {
-  key: string;
+type StatusItem<K extends StatusItemKey = StatusItemKey> = {
+  key: K;
   label: string;
   comp: (state: WizardState) => React.ReactNode;
   optional?: boolean;
@@ -30,7 +34,7 @@ type StatusSection = {
   items: StatusItem[];
 };
 
-const statusSections: StatusSection[] = [
+const getStatusSections = (projectName: string): StatusSection[] => [
   {
     title: 'Model details',
     items: [
@@ -40,18 +44,127 @@ const statusSections: StatusSection[] = [
         comp: (state) => state.modelType.data || '--',
       },
       {
-        key: 'modelLocation',
+        key: 'modelLocationData-locationType',
         label: 'Model location',
         comp: (state) => {
-          const connection = state.modelLocationData.data?.connection;
-          return connection ? 'Existing connection' : 'New connection';
+          const locationData = state.modelLocationData.data;
+          if (!locationData) {
+            return '--';
+          }
+          if (locationData.type === ModelLocationType.EXISTING) {
+            return 'Existing connection';
+          }
+          if (locationData.type === ModelLocationType.PVC) {
+            return 'Cluster storage';
+          }
+          const connectionTypeName = locationData.connectionTypeObject?.metadata.name;
+          if (connectionTypeName === 's3') {
+            return 'S3 object storage';
+          }
+          if (connectionTypeName === 'oci-v1') {
+            return 'OCI compliant registry';
+          }
+          if (connectionTypeName === 'uri-v1') {
+            return 'URI';
+          }
+
+          return 'New connection';
         },
       },
       {
-        key: 'connectionName',
+        key: 'modelLocationData-existingConnectionName',
         label: 'Connection name',
         comp: (state) => state.modelLocationData.data?.connection || undefined,
         optional: true,
+        isVisible: (wizardState) =>
+          wizardState.state.modelLocationData.data?.type === ModelLocationType.EXISTING,
+      },
+      {
+        key: 'modelLocationData-newConnection',
+        label: 'New connection',
+        comp: (state) =>
+          state.modelLocationData.data?.type === ModelLocationType.NEW ? 'Yes' : 'No',
+      },
+      {
+        key: 'createConnectionData-name',
+        label: 'Connection name',
+        comp: (state) => state.createConnectionData.data.nameDesc?.name || undefined,
+        optional: true,
+        isVisible: (wizardState) =>
+          wizardState.state.modelLocationData.data?.type === ModelLocationType.NEW &&
+          wizardState.state.createConnectionData.data.saveConnection === true,
+      },
+      {
+        key: 'createConnectionData-description',
+        label: 'Connection description',
+        comp: (state) => state.createConnectionData.data.nameDesc?.description || undefined,
+        optional: true,
+        isVisible: (wizardState) =>
+          wizardState.state.modelLocationData.data?.type === ModelLocationType.NEW &&
+          wizardState.state.createConnectionData.data.saveConnection === true,
+      },
+      {
+        key: 'modelLocationData-connectionFields',
+        label: 'Connection details',
+        comp: (state) => {
+          const locationData = state.modelLocationData.data;
+          if (!locationData || locationData.type !== ModelLocationType.NEW) {
+            return undefined;
+          }
+
+          const { fieldValues: fields, additionalFields } = locationData;
+
+          return (
+            <>
+              {Object.entries(fields).map(([key, value]) => {
+                if (!value) {
+                  return null;
+                }
+                const label = key
+                  .replace(/_/g, ' ')
+                  .split(' ')
+                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                  .join(' ');
+
+                const isSensitive = key.toLowerCase().includes('secret');
+                const displayValue = isSensitive ? '•'.repeat(String(value).length) : String(value);
+
+                return (
+                  <div key={key}>
+                    {label}: {displayValue}
+                  </div>
+                );
+              })}
+              {additionalFields.modelPath && <div>Model path: {additionalFields.modelPath}</div>}
+              {additionalFields.modelUri && <div>Model URI: {additionalFields.modelUri}</div>}
+            </>
+          );
+        },
+        optional: true,
+        isVisible: (wizardState) =>
+          wizardState.state.modelLocationData.data?.type === ModelLocationType.NEW,
+      },
+      {
+        key: 'modelLocationData-pvcFields',
+        label: 'Storage details',
+        comp: (state) => {
+          const locationData = state.modelLocationData.data;
+          if (!locationData || locationData.type !== ModelLocationType.PVC) {
+            return undefined;
+          }
+
+          const { additionalFields } = locationData;
+
+          return (
+            <>
+              {additionalFields.pvcConnection && <div>PVC: {additionalFields.pvcConnection}</div>}
+              {additionalFields.modelPath && <div>Path: {additionalFields.modelPath}</div>}
+            </>
+          );
+        },
+        optional: true,
+        isVisible: (wizardState) =>
+          wizardState.state.modelLocationData.data?.type === ModelLocationType.PVC,
       },
     ],
   },
@@ -59,24 +172,29 @@ const statusSections: StatusSection[] = [
     title: 'Model deployment',
     items: [
       {
-        key: 'modelName',
+        key: 'projectName',
+        label: 'Project',
+        comp: () => projectName,
+      },
+      {
+        key: 'k8sNameDesc-name',
         label: 'Model deployment name',
         comp: (state) => state.k8sNameDesc.data.name || '--',
       },
       {
-        key: 'modelDescription',
+        key: 'k8sNameDesc-description',
         label: 'Description',
         comp: (state) => state.k8sNameDesc.data.description || undefined,
         optional: true,
       },
       {
-        key: 'hardwareProfile',
+        key: 'hardwareProfileConfig',
         label: 'Hardware profile',
         comp: (state) =>
           state.hardwareProfileConfig.formData.selectedProfile?.metadata.name || 'default',
       },
       {
-        key: 'modelFormat',
+        key: 'modelFormatState',
         label: 'Model format',
         comp: (state) => {
           const format = state.modelFormatState.modelFormat;
@@ -88,12 +206,12 @@ const statusSections: StatusSection[] = [
         optional: true,
       },
       {
-        key: 'servingRuntime',
+        key: 'modelServer',
         label: 'Serving runtime',
         comp: (state) => state.modelServer.data?.name || 'Auto-selected',
       },
       {
-        key: 'replicas',
+        key: 'numReplicas',
         label: 'Replicas',
         comp: (state) => state.numReplicas.data || 1,
       },
@@ -103,13 +221,19 @@ const statusSections: StatusSection[] = [
     title: 'Advanced settings',
     items: [
       {
-        key: 'aiAssetEndpoint',
+        key: 'modelAvailability-aiAssetEndpoint',
         label: 'AI asset endpoint',
         comp: (state) => (state.modelAvailability.data.saveAsAiAsset ? 'Yes' : 'No'),
         isVisible: (wizardState) => !!wizardState.state.modelAvailability.showField,
       },
       {
-        key: 'useCase',
+        key: 'modelAvailability-maasEndpoint',
+        label: 'Add as MaaS endpoint',
+        comp: (state) => (state.modelAvailability.data.saveAsMaaS ? 'Yes' : 'No'),
+        isVisible: (wizardState) => !!wizardState.state.modelAvailability.showSaveAsMaaS,
+      },
+      {
+        key: 'modelAvailability-useCase',
         label: 'Use case',
         comp: (state) => state.modelAvailability.data.useCase || undefined,
         optional: true,
@@ -122,7 +246,7 @@ const statusSections: StatusSection[] = [
         isVisible: (wizardState) => !!wizardState.advancedOptions.isExternalRouteVisible,
       },
       {
-        key: 'tokenAuth',
+        key: 'tokenAuthentication',
         label: 'Token authentication',
         comp: (state) =>
           state.tokenAuthentication.data && state.tokenAuthentication.data.length > 0
@@ -130,7 +254,7 @@ const statusSections: StatusSection[] = [
             : 'No',
       },
       {
-        key: 'serviceAccounts',
+        key: 'tokenAuthentication-serviceAccounts',
         label: 'Service accounts',
         comp: (state) => {
           const tokens = state.tokenAuthentication.data;
@@ -162,7 +286,7 @@ const statusSections: StatusSection[] = [
         optional: true,
       },
       {
-        key: 'envVars',
+        key: 'environmentVariables',
         label: 'Additional environment variables',
         comp: (state) => {
           const envVars = state.environmentVariables.data;
@@ -186,10 +310,15 @@ const statusSections: StatusSection[] = [
   },
 ];
 
-export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({ wizardState }) => {
+export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
+  wizardState,
+  projectName,
+}) => {
+  const statusSections = getStatusSections(projectName);
+
   return (
     <Form>
-      <FormSection title="Summary">
+      <FormSection title="Review">
         <Stack hasGutter style={{ marginTop: '14px' }}>
           {statusSections.map((section) => {
             const visibleItems = section.items.filter((item) => {
@@ -212,11 +341,13 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({ wizardStat
                 <FormSection title={section.title}>
                   <DescriptionList
                     isHorizontal
+                    isCompact
                     horizontalTermWidthModifier={{
                       default: '15ch',
                       lg: '18ch',
                       xl: '24ch',
                     }}
+                    style={{ rowGap: '0.35rem' }}
                   >
                     {visibleItems.map((item) => (
                       <DescriptionListGroup key={item.key}>
