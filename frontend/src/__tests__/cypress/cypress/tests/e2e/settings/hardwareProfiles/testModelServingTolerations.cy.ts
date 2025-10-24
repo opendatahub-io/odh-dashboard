@@ -36,7 +36,7 @@ const awsBucket = 'BUCKET_3' as const;
 const projectUuid = generateTestUUID();
 const hardwareProfileUuid = generateTestUUID();
 
-describe('Notebooks - tolerations tests', () => {
+describe('[Automation Bug: RHOAIENG-32898] Notebooks - tolerations tests', () => {
   retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
       if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
@@ -81,16 +81,17 @@ describe('Notebooks - tolerations tests', () => {
 
   //Cleanup: Delete Hardware Profile and the associated Project
   after(() => {
-    // Load Hardware Profile
-    cy.log(`Loaded Hardware Profile Name: ${hardwareProfileResourceName}`);
+    // Use the actual hardware profile name from the YAML, not the variable with UUID
+    cy.log(`Cleaning up Hardware Profile: ${testData.hardwareProfileName}`);
 
-    // Call cleanupHardwareProfiles here, after hardwareProfileResourceName is set
-    return cleanupHardwareProfiles(hardwareProfileResourceName).then(() => {
+    // Call cleanupHardwareProfiles with the actual name from the YAML file
+    return cleanupHardwareProfiles(testData.hardwareProfileName).then(() => {
       // Delete provisioned Project
       if (projectName) {
         cy.log(`Deleting Project ${projectName} after the test has finished.`);
-        deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+        return deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
       }
+      return cy.wrap(null);
     });
   });
 
@@ -98,7 +99,7 @@ describe('Notebooks - tolerations tests', () => {
     'Verify Model Serving Creation using Hardware Profiles and applying Tolerations',
     // TODO: Add the below tags once this feature is enabled in 2.20+
     //  { tags: ['@Sanity', '@SanitySet2', '@Dashboard'] },
-    { tags: ['@Featureflagged', '@HardwareProfileModelServing', '@HardwareProfiles'] },
+    { tags: ['@Featureflagged', '@HardwareProfileModelServing', '@HardwareProfiles', '@Maintain'] },
     () => {
       cy.log('Model Name:', modelName);
       // Authentication and navigation

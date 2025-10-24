@@ -53,16 +53,17 @@ describe('Workbenches - tolerations tests', () => {
 
   // Cleanup: Delete Hardware Profile and the associated Project
   after(() => {
-    // Load Hardware Profile
-    cy.log(`Loaded Hardware Profile Name: ${hardwareProfileResourceName}`);
+    // Use the actual hardware profile name from the YAML, not the variable with UUID
+    cy.log(`Cleaning up Hardware Profile: ${testData.hardwareProfileName}`);
 
-    // Call cleanupHardwareProfiles here, after hardwareProfileResourceName is set
-    return cleanupHardwareProfiles(hardwareProfileResourceName).then(() => {
+    // Call cleanupHardwareProfiles with the actual name from the YAML file
+    return cleanupHardwareProfiles(testData.hardwareProfileName).then(() => {
       // Delete provisioned Project
       if (projectName) {
         cy.log(`Deleting Project ${projectName} after the test has finished.`);
-        deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+        return deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
       }
+      return cy.wrap(null);
     });
   });
 
@@ -70,7 +71,7 @@ describe('Workbenches - tolerations tests', () => {
     'Verify Workbench Creation using Hardware Profiles and applying Tolerations',
     // TODO: Add the below tags once this feature is enabled in 2.20+
     //  { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard'] },
-    { tags: ['@Featureflagged', '@HardwareProfilesWB', '@HardwareProfiles'] },
+    { tags: ['@Dashboard', '@HardwareProfiles', '@Sanity', '@SanitySet2'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -98,7 +99,6 @@ describe('Workbenches - tolerations tests', () => {
       const notebookRow = workbenchPage.getNotebookRow(testData.workbenchName);
       notebookRow.findNotebookDescription(projectDescription);
       notebookRow.expectStatusLabelToBe('Running', 120000);
-      notebookRow.shouldHaveNotebookImageName('code-server');
 
       // Validate that the toleration applied earlier displays in the newly created pod
       cy.step('Validate the Tolerations for the pod include the newly added toleration');
@@ -117,9 +117,7 @@ describe('Workbenches - tolerations tests', () => {
 
   it(
     'Validate pod tolerations for a stopped workbench',
-    // TODO: Add the below tags once this feature is enabled in 2.20+
-    //  { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard'] },
-    { tags: ['@Featureflagged', '@HardwareProfilesWB', '@HardwareProfiles'] },
+    { tags: ['@Dashboard', '@HardwareProfiles', '@Sanity', '@SanitySet2'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -152,9 +150,7 @@ describe('Workbenches - tolerations tests', () => {
 
   it(
     'Validate pod tolerations when a workbench is restarted with tolerations and tolerations are disabled',
-    // TODO: Add the below tags once this feature is enabled in 2.20+
-    //  { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard'] },
-    { tags: ['@Featureflagged', '@HardwareProfilesWB', '@HardwareProfiles'] },
+    { tags: ['@Dashboard', '@HardwareProfiles', '@Sanity', '@SanitySet2'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');

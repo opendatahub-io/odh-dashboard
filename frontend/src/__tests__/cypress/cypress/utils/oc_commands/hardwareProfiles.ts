@@ -8,7 +8,7 @@ const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
  *
  * If a HardwareProfile is found, it is deleted using `oc`. If no matching profile is found, a message is logged.
  *
- * @param hardwareProfile - The `displayName` substring to search for in HardwareProfiles.
+ * @param hardwareProfile - The `metadata.name` substring to search for in HardwareProfiles.
  * @returns A Cypress.Chainable that resolves to:
  *   - The `CommandLineResult` of the deletion command, if a profile was found and deleted.
  *   - The original `CommandLineResult` if no matching profile was found.  This allows chaining even if no deletion occurs.
@@ -16,8 +16,8 @@ const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
 export const cleanupHardwareProfiles = (
   hardwareProfile: string,
 ): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc get hardwareprofiles -ojson -n ${applicationNamespace} | jq '.items[] | select(.spec.displayName | contains("${hardwareProfile}")) | .metadata.name' | tr -d '"'`;
-  cy.log(`Executing command: ${ocCommand}`);
+  const ocCommand = `oc get hardwareprofiles -ojson -n ${applicationNamespace} | jq '.items[] | select(.metadata.name | contains("${hardwareProfile}")) | .metadata.name' | tr -d '"'`;
+  cy.log(`Executing delete hardware profile command: ${ocCommand}`);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
     const profileName = result.stdout.trim();
