@@ -9,6 +9,7 @@ import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import useFeatureServices from '../../apiHooks/useFeatureServices';
 import { featureStoreRoute } from '../../routes';
 import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
+import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied';
 
 const title = 'Feature services';
 const description =
@@ -53,6 +54,9 @@ const FeatureServices = (): React.ReactElement => {
         />
       }
       description={description}
+      loadErrorPage={
+        <FeatureStoreAccessDenied resourceType="feature services" projectName={currentProject} />
+      }
       loadError={featureServicesLoadError}
       loaded={featureServicesLoaded}
       headerContent={

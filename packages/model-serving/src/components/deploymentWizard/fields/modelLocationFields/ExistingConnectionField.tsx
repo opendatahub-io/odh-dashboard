@@ -21,7 +21,7 @@ import {
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import ConnectionS3FolderPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionS3FolderPathField';
 import ConnectionOciPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciPathField';
-import { ConnectionTypeRefs, ModelLocationData, ModelLocationType } from './types';
+import { ConnectionTypeRefs, ModelLocationData, ModelLocationType } from '../../types';
 import { isExistingModelLocation } from '../../utils';
 
 type ExistingConnectionFieldProps = {
@@ -90,7 +90,11 @@ export const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = (
             toggleWidth="450px"
             selectOptions={options}
             onSelect={(_, value) => {
-              if (modelLocationData) {
+              if (
+                modelLocationData &&
+                (!selectedConnection ||
+                  getResourceNameFromK8sResource(selectedConnection) !== value)
+              ) {
                 resetModelLocationData();
               }
 

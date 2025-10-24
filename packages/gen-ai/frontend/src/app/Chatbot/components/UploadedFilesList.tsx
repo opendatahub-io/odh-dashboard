@@ -14,7 +14,10 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { FileIcon, TimesIcon } from '@patternfly/react-icons';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { FileModel } from '~/app/types';
+import { DELETE_EVENT_NAME } from '~/app/Chatbot/hooks/useFileManagement';
 import DeleteFileModal from './DeleteFileModal';
 
 interface UploadedFilesListProps {
@@ -69,6 +72,9 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
   const handleDeleteCancel = () => {
     setIsDeleteModalOpen(false);
     setFileToDelete(null);
+    fireFormTrackingEvent(DELETE_EVENT_NAME, {
+      outcome: TrackingOutcome.cancel,
+    });
   };
   if (isLoading) {
     return (
@@ -115,12 +121,12 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
 
   return (
     <Card isPlain>
-      <CardTitle>
+      <CardTitle style={{ paddingLeft: '0' }}>
         <Flex>
           <FlexItem>Uploaded files</FlexItem>
         </Flex>
       </CardTitle>
-      <CardBody>
+      <CardBody style={{ paddingLeft: '0' }}>
         <Grid hasGutter>
           {files.map((file) => (
             <React.Fragment key={file.id}>

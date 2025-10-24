@@ -10,10 +10,7 @@ import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/Delet
 import { cleanupHardwareProfiles } from '#~/__tests__/cypress/cypress/utils/oc_commands/hardwareProfiles';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 
-describe('[Feature behing a Dev Feature Flag] Verify Hardware Profiles - Creating, Editing and Deleting', () => {
-  // This feature is under active development (see RHOAIENG-9399) and requires a developer flag to be enabled.
-  // Append `?devFeatureFlags=true` to the ODH Dashboard URL to enable it for testing and development.
-
+describe('Verify Hardware Profiles - Creating, Editing and Deleting', () => {
   let testData: HardwareProfilesData;
   let hardwareProfileResourceName: string;
   const uuid = generateTestUUID();
@@ -36,7 +33,7 @@ describe('[Feature behing a Dev Feature Flag] Verify Hardware Profiles - Creatin
 
   it(
     'Create, Edit and Delete a Hardware Profile',
-    { tags: ['@Featureflagged', '@HardwareProfiles'] },
+    { tags: ['@Dashboard', '@HardwareProfiles', '@Smoke', '@SmokeSet1'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');

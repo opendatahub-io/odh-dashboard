@@ -41,6 +41,7 @@ describe('listFeatureStoreProject', () => {
     expect(proxyGETMock).toHaveBeenCalledWith(
       hostPath,
       `/api/${FEATURE_STORE_API_VERSION}/projects`,
+      {},
       opts,
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
@@ -57,6 +58,7 @@ describe('listFeatureStoreProject', () => {
     expect(proxyGETMock).toHaveBeenCalledWith(
       hostPath,
       `/api/${FEATURE_STORE_API_VERSION}/projects`,
+      {},
       opts,
     );
   });
@@ -77,6 +79,7 @@ describe('getEntities', () => {
     expect(proxyGETMock).toHaveBeenCalledWith(
       hostPath,
       `/api/${FEATURE_STORE_API_VERSION}/entities/all?include_relationships=true`,
+      {},
       opts,
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
@@ -97,6 +100,7 @@ describe('getEntities', () => {
       `/api/${FEATURE_STORE_API_VERSION}/entities?project=${encodeURIComponent(
         project,
       )}&include_relationships=true`,
+      {},
       opts,
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
@@ -124,6 +128,7 @@ describe('getEntityByName', () => {
       `/api/${FEATURE_STORE_API_VERSION}/entities/${encodeURIComponent(
         entityName,
       )}?include_relationships=true&project=${encodeURIComponent(project)}`,
+      {},
       opts,
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
@@ -147,6 +152,7 @@ describe('getFeatureViews', () => {
     expect(proxyGETMock).toHaveBeenCalledWith(
       hostPath,
       `/api/${FEATURE_STORE_API_VERSION}/feature_views/all?include_relationships=true`,
+      {},
       opts,
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
@@ -167,6 +173,7 @@ describe('getFeatureViews', () => {
       `/api/${FEATURE_STORE_API_VERSION}/feature_views?project=${encodeURIComponent(
         project,
       )}&include_relationships=true`,
+      {},
       opts,
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
@@ -188,6 +195,7 @@ describe('getFeatureViews', () => {
       `/api/${FEATURE_STORE_API_VERSION}/feature_views?project=${encodeURIComponent(
         project,
       )}&feature_service=${encodeURIComponent(featureService)}&include_relationships=true`,
+      {},
       opts,
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
@@ -209,6 +217,7 @@ describe('getFeatureViews', () => {
       `/api/${FEATURE_STORE_API_VERSION}/feature_views?project=${encodeURIComponent(
         project,
       )}&entity=${encodeURIComponent(entity)}&include_relationships=true`,
+      {},
       opts,
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
@@ -232,6 +241,7 @@ describe('getFeatureServices', () => {
     expect(proxyGETMock).toHaveBeenCalledWith(
       hostPath,
       `/api/${FEATURE_STORE_API_VERSION}/feature_services/all?include_relationships=true`,
+      {},
       opts,
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
@@ -252,6 +262,7 @@ describe('getFeatureServices', () => {
       `/api/${FEATURE_STORE_API_VERSION}/feature_services?project=${encodeURIComponent(
         project,
       )}&include_relationships=true`,
+      {},
       opts,
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
@@ -273,6 +284,7 @@ describe('getFeatureServices', () => {
       `/api/${FEATURE_STORE_API_VERSION}/feature_services?project=${encodeURIComponent(
         project,
       )}&include_relationships=true&feature_view=${encodeURIComponent(featureView)}`,
+      {},
       opts,
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
@@ -300,6 +312,7 @@ describe('getFeatureServiceByName', () => {
       `/api/${FEATURE_STORE_API_VERSION}/feature_services/${encodeURIComponent(
         featureServiceName,
       )}?project=${encodeURIComponent(project)}&include_relationships=true`,
+      {},
       opts,
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
@@ -327,6 +340,7 @@ describe('getFeatureViewByName', () => {
       `/api/${FEATURE_STORE_API_VERSION}/feature_views/${encodeURIComponent(
         featureViewName,
       )}?project=${encodeURIComponent(project)}&include_relationships=true`,
+      {},
       opts,
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
@@ -368,6 +382,7 @@ describe('getFeatures', () => {
     expect(proxyGETMock).toHaveBeenCalledWith(
       hostPath,
       `/api/${FEATURE_STORE_API_VERSION}/features/all`,
+      {},
       opts,
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
@@ -386,6 +401,7 @@ describe('getFeatures', () => {
     expect(proxyGETMock).toHaveBeenCalledWith(
       hostPath,
       `/api/${FEATURE_STORE_API_VERSION}/features?project=${encodeURIComponent(project)}`,
+      {},
       opts,
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
@@ -414,6 +430,7 @@ describe('getFeatureByName', () => {
       `/api/${FEATURE_STORE_API_VERSION}/features/${featureViewName}/${featureName}?project=${encodeURIComponent(
         project,
       )}&include_relationships=true`,
+      {},
       opts,
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);

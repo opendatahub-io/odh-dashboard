@@ -74,7 +74,7 @@ export const RuntimeArgsField: React.FC<RuntimeArgsFieldProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Checkbox
             id="runtime-args-checkbox"
-            label="Include additional runtime arguments"
+            label="Add custom runtime arguments"
             isChecked={data.enabled}
             isDisabled={!allowCreate}
             onChange={handleCheckboxChange}
@@ -97,10 +97,10 @@ export const RuntimeArgsField: React.FC<RuntimeArgsFieldProps> = ({
           headerContent="Predefined arguments of the selected serving runtime"
           bodyContent={
             <List isPlain data-testid="predefined-args-list">
-              {predefinedArgs?.length === 0 ? (
+              {!predefinedArgs || predefinedArgs.length === 0 ? (
                 <ListItem key="0">No predefined arguments</ListItem>
               ) : (
-                predefinedArgs?.map((arg: string, index: number) => (
+                predefinedArgs.map((arg: string, index: number) => (
                   <ListItem key={index}>{arg}</ListItem>
                 ))
               )}

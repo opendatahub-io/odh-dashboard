@@ -20,7 +20,6 @@ import {
 import { usernameTranslate } from '#~/utilities/notebookControllerUtils';
 import { EnvironmentFromVariable, StartNotebookData } from '#~/pages/projects/types';
 import { ROOT_MOUNT_PATH } from '#~/pages/projects/pvc/const';
-import { getTolerationPatch, TolerationChanges } from '#~/utilities/tolerations';
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import {
   ELYRA_VOLUME_NAME,
@@ -70,9 +69,6 @@ export const assembleNotebook = (
   }`;
 
   const translatedUsername = usernameTranslate(username);
-
-  const location = new URL(window.location.href);
-  const { origin } = location;
 
   let volumes: Volume[] | undefined = formVolumes && [...formVolumes];
   let volumeMounts: VolumeMount[] | undefined = formVolumeMounts && [...formVolumeMounts];
@@ -131,10 +127,9 @@ export const assembleNotebook = (
         ...acceleratorProfileNamespace,
         'openshift.io/display-name': notebookName.trim(),
         'openshift.io/description': description || '',
-        'notebooks.opendatahub.io/oauth-logout-url': `${origin}/projects/${projectName}?notebookLogout=${notebookId}`,
         'notebooks.opendatahub.io/last-size-selection': lastSizeSelection || '',
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
-        'notebooks.opendatahub.io/inject-oauth': 'true',
+        'notebooks.opendatahub.io/inject-auth': 'true',
         'opendatahub.io/username': username,
         'opendatahub.io/accelerator-name': selectedAcceleratorProfile?.metadata.name || '',
         'opendatahub.io/hardware-profile-name': selectedHardwareProfile?.metadata.name || '',
@@ -164,8 +159,7 @@ export const assembleNotebook = (
                   --ServerApp.token=''
                   --ServerApp.password=''
                   --ServerApp.base_url=/notebook/${projectName}/${notebookId}
-                  --ServerApp.quit_button=False
-                  --ServerApp.tornado_settings={"user":"${translatedUsername}","hub_host":"${origin}","hub_prefix":"/projects/${projectName}"}`,
+                  --ServerApp.quit_button=False`,
                 },
                 {
                   name: 'JUPYTER_IMAGE',
@@ -261,16 +255,10 @@ export const stopNotebook = (name: string, namespace: string): Promise<NotebookK
 
 export const startNotebook = async (
   notebook: NotebookKind,
-  tolerationChanges: TolerationChanges,
   enablePipelines?: boolean,
 ): Promise<NotebookKind> => {
   const patches: Patch[] = [];
   patches.push(startPatch);
-
-  const tolerationPatch = getTolerationPatch(tolerationChanges);
-  if (tolerationPatch) {
-    patches.push(tolerationPatch);
-  }
 
   if (enablePipelines) {
     patches.push(getPipelineVolumePatch());

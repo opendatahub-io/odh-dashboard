@@ -15,7 +15,6 @@ import {
   PodAffinity,
   PodContainer,
   Toleration,
-  TolerationSettings,
   Volume,
   VolumeMount,
   HardwareProfileAnnotations,
@@ -135,7 +134,7 @@ export type NotebookAnnotations = Partial<{
 }>;
 
 export type DashboardLabels = {
-  [KnownLabels.DASHBOARD_RESOURCE]: 'true';
+  [KnownLabels.DASHBOARD_RESOURCE]: 'true' | 'false';
 };
 
 export type ModelServingProjectLabels = {
@@ -412,7 +411,7 @@ export type PodKind = K8sResourceCommon & {
   spec: PodSpec;
   status?: {
     phase: string;
-    conditions: K8sCondition[];
+    conditions?: K8sCondition[];
     containerStatuses?: PodContainerStatus[];
   };
 };
@@ -1278,8 +1277,6 @@ export type DashboardCommonConfig = {
   disableKServeMetrics: boolean;
   disableKServeRaw: boolean;
   disableModelMesh: boolean;
-  disableAcceleratorProfiles: boolean;
-  disableHardwareProfiles: boolean;
   disableDistributedWorkloads: boolean;
   disableModelCatalog: boolean;
   disableModelRegistry: boolean;
@@ -1293,7 +1290,7 @@ export type DashboardCommonConfig = {
   disableLMEval: boolean;
   disableKueue: boolean;
   disableModelTraining: boolean;
-  disableDeploymentWizard: boolean;
+  disableModelAsService: boolean;
   disableFeatureStore?: boolean;
 };
 
@@ -1312,7 +1309,8 @@ export type DashboardConfigKind = K8sResourceCommon & {
       storageClassName?: string;
       // Intentionally disjointed from the CRD [1]
       // notebookNamespace?: string;
-      notebookTolerationSettings?: TolerationSettings;
+      // Intentionally disjointed from the CRD [1]
+      // notebookTolerationSettings?: TolerationSettings;
     };
     templateOrder?: string[];
     templateDisablement?: string[];
@@ -1403,13 +1401,15 @@ export type K8sResourceListResult<TResource extends Partial<K8sResourceCommon>> 
   };
 };
 
+export type ManagementState = 'Managed' | 'Unmanaged' | 'Removed';
+
 /** Represents a component in the DataScienceCluster. */
 export type DataScienceClusterComponent = {
   /**
    * The management state of the component (e.g., Managed, Removed).
    * Indicates whether the component is being actively managed or not.
    */
-  managementState?: 'Managed' | 'Removed';
+  managementState?: ManagementState;
 };
 
 /** Defines a DataScienceCluster with various components. */
@@ -1455,7 +1455,7 @@ export type DataScienceClusterComponentStatus = {
    * The management state of the component (e.g., Managed, Removed).
    * Indicates whether the component is being actively managed or not.
    */
-  managementState?: 'Managed' | 'Removed';
+  managementState?: ManagementState;
 
   /**
    * List of releases for the component.
@@ -1495,13 +1495,18 @@ export type DataScienceClusterKindStatus = {
     };
   };
   conditions: K8sCondition[];
-  installedComponents?: { [key in StackComponent]?: boolean };
   phase?: string;
   release?: {
     name: string;
     version: string;
   };
 };
+
+/**
+ * @deprecated The operator no longer exposes installedComponents.
+ * Use DataScienceClusterKindStatus.components.*.managementState instead.
+ */
+export type DataScienceClusterInstalledComponents = { [key in StackComponent]?: boolean };
 
 export type DataScienceClusterInitializationKindStatus = {
   conditions: K8sCondition[];
@@ -1522,7 +1527,7 @@ export type ModelRegistryKind = K8sResourceCommon & {
   spec: {
     grpc: Record<string, never>; // Empty object at create time, properties here aren't used by the UI
     rest: Record<string, never>; // Empty object at create time, properties here aren't used by the UI
-    oauthProxy: Record<string, never>; // Empty object at create time, properties here aren't used by the UI
+    kubeRBACProxy: Record<string, never>; // Empty object at create time, properties here aren't used by the UI
   } & EitherNotBoth<
     {
       mysql?: {

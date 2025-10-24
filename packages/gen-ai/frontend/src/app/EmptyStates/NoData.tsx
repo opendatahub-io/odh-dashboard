@@ -5,7 +5,7 @@ import emptyStateImage from '~/app/bgimages/empty-state.svg';
 type NoDataProps = {
   title: string;
   description: React.ReactNode;
-  actionButtonText?: string;
+  actionButtonText?: React.ReactNode;
   handleActionButtonClick?: () => void;
 };
 

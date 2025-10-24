@@ -25,8 +25,26 @@ let modelDeploymentURI: string;
 let modelDeploymentName: string;
 const uuid = generateTestUUID();
 
+const updateSecretDetailsFile = (
+  secretValue: string,
+  fixtureRelativePath: string,
+  fixtureFullPath: string,
+) => {
+  return cy.fixture(fixtureRelativePath).then((templateContent) => {
+    const updatedContent = {
+      ...templateContent,
+      auths: {
+        'quay.io': {
+          auth: secretValue,
+        },
+      },
+    };
+    return cy.writeFile(fixtureFullPath, updatedContent);
+  });
+};
+
 describe(
-  '[Product Bug: RHOAIENG-31085] A user can create an OCI connection and deploy a model with it',
+  '[Automation Bug: RHOAIENG-32898] A user can create an OCI connection and deploy a model with it',
   { testIsolation: false },
   () => {
     let testData: DeployOCIModelData;
@@ -38,7 +56,11 @@ describe(
           testData = fixtureData;
           projectName = `${testData.projectName}-${uuid}`;
           connectionName = testData.connectionName;
-          secretDetailsFile = Cypress.env('OCI_SECRET_DETAILS_FILE');
+          // Load fixture file and update with actual secret value
+          const secretValue = Cypress.env('OCI_SECRET_VALUE');
+          const secretDetailsFixture = 'resources/json/oci-data-connection-secret.json';
+          secretDetailsFile = `cypress/fixtures/${secretDetailsFixture}`;
+          updateSecretDetailsFile(secretValue, secretDetailsFixture, secretDetailsFile);
           ociRegistryHost = testData.ociRegistryHost;
           modelDeploymentURI = Cypress.env('OCI_MODEL_URI');
           modelDeploymentName = testData.modelDeploymentName;
@@ -58,7 +80,14 @@ describe(
     it(
       'Verify User Can Create an OCI Connection in DS Connections Page And Deploy the Model',
       {
-        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent', '@Bug'],
+        tags: [
+          '@Smoke',
+          '@SmokeSet3',
+          '@Dashboard',
+          '@Modelserving',
+          '@NonConcurrent',
+          '@Maintain',
+        ],
       },
       () => {
         cy.step(`Navigate to DS Project ${projectName}`);
@@ -92,12 +121,14 @@ describe(
         inferenceServiceModal.findOpenVinoOnnx().click();
         inferenceServiceModal.findOCIModelURI().type(modelDeploymentURI);
         inferenceServiceModal.findSubmitButton().focus().click();
-        checkInferenceServiceState(modelDeploymentName, projectName);
-        // Note reload is required as status tooltip was not found due to a stale element
-        cy.reload();
+        //Verify the model created and is running
+        cy.step('Verify that the Model is running');
+        // For KServe Raw deployments, we only need to check Ready condition
+        // LatestDeploymentReady is specific to Serverless deployments
+        checkInferenceServiceState(modelDeploymentName, projectName, {
+          checkReady: true,
+        });
         modelServingSection.findModelMetricsLink(modelDeploymentName);
-        modelServingSection.findStatusTooltip().click({ force: true });
-        cy.contains('Model is deployed', { timeout: 120000 }).should('be.visible');
       },
     );
   },

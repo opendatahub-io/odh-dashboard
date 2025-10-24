@@ -14,14 +14,111 @@ Main topics:
 
 ![Overview](./meta/arch-overview.png)
 
-> **OpenShift OAuth Proxy** is not part of the Dashboard (see [Dashboard Deployment `containers`]) but useful to understand its role. See [OpenShift OAuth Proxy repo] for more information. It is typically in the containers of all services we talk to from the proxy API, as well as the Dashboard itself when the client calls the NodeJS server (in the pod).
+> **OpenShift OAuth Proxy** is not part of the Dashboard (see [Dashboard Deployment `containers`]) but useful to understand its role. See [OpenShift OAuth Proxy repo] for more information.  
+> **Note**: As of OpenShift 4.19+, the OAuth Proxy is being replaced with kube-rbac-proxy to support BYO OIDC authentication.
 
 The main focus point here is that there are 5 kinds of calls from the client. These are split into two different types. The difference in these two types is one takes your request and does it on your behalf (via the service account), and the other does it as you (through direct calls with your bearer token).
 
 Additional topics in this section:
 
+- [Authentication and Routing Evolution](#authentication-and-routing-evolution)
 - [Custom Backend Business Logic](#custom-backend-business-logic)
 - [Proxy/Pass-through based efforts](#proxypass-through-based-efforts)
+
+### Authentication and Routing Evolution
+
+As of OpenShift 4.19+, Dashboard has adapted to support both traditional OpenShift authentication and Bring Your Own OIDC (BYO OIDC) scenarios where external identity providers are used.
+
+#### Authentication Proxy Layer
+
+**Kube-RBAC-Proxy with Envoy Filter**:
+The kube-rbac-proxy acts as the authentication gateway and includes an Envoy Lua filter that processes authentication tokens:
+
+```lua
+function envoy_on_request(request_handle)
+  local access_token = request_handle:headers():get("x-auth-request-access-token")
+  if access_token then
+    request_handle:headers():add("x-forwarded-access-token", access_token)
+    request_handle:headers():add("authorization", "Bearer " .. access_token)
+  end
+end
+```
+
+This filter ensures that:
+- The `x-forwarded-access-token` header is available (same as traditional OAuth proxy)
+- The `authorization` header contains the Bearer token
+- Both `x-auth-request-user` and `x-auth-request-groups` headers are injected
+
+#### User Authentication (v3.0+)
+
+The backend uses a multi-strategy approach to extract user identity, with each strategy serving as a fallback:
+
+1. **Kube-RBAC-Proxy Headers** (Primary - OpenShift 4.19+)
+   - `x-auth-request-user`: Contains the authenticated username
+   - `x-auth-request-groups`: Contains user's groups
+   - These headers are injected by kube-rbac-proxy after validating JWT tokens
+
+2. **User API with Token** (Fallback - Traditional OpenShift & dev-sandbox)
+   - Uses `x-forwarded-access-token` to call `user.openshift.io/v1/users/~`
+   - Provides backward compatibility for traditional deployments
+   - Required for dev-sandbox SSO user ID annotations
+
+3. **SelfSubjectReview with Token** (Fallback - Kubernetes Standard API)
+   - Uses `x-forwarded-access-token` to call `authentication.k8s.io/v1/selfsubjectreviews`
+   - Equivalent to `kubectl auth whoami`
+   - Works with any valid Kubernetes token, even when User API is unavailable
+
+4. **JWT Token Parsing** (Fallback - When APIs unavailable)
+   - Extracts username from JWT claims when APIs fail
+   - Tries claims in order: `preferred_username` → `username` → `sub` → `email`
+   - No signature verification (already validated by kube-rbac-proxy)
+
+5. **Dev Mode** (Local Development)
+   - Uses service account identity for local testing
+
+**Authentication Flow**:
+```
+Request → Kube-RBAC-Proxy → Envoy Filter → Headers Injected
+                                          ↓
+                           x-auth-request-user
+                           x-auth-request-groups  
+                           x-forwarded-access-token (from x-auth-request-access-token)
+                                          ↓
+                           Dashboard Backend → getUserInfo()
+                                          ↓
+                           Strategy 1: Check x-auth-request-user header
+                           Strategy 2: User API with token
+                           Strategy 3: SelfSubjectReview with token
+                           Strategy 4: JWT parsing
+                           Strategy 5: Dev mode
+```
+
+#### Authorization
+
+User permissions are checked using SelfSubjectAccessReview (SSAR) instead of Group API:
+
+- Admin status: SSAR check on dashboard Auth resource
+- Workbench access: SSAR check on notebook resources
+- Group API calls are gracefully degraded (return empty arrays in BYO OIDC)
+
+#### Workbench Routing (v3.0+)
+
+Starting in v3.0, workbenches no longer use individual OpenShift Routes. Instead:
+
+- **Gateway-based Routing**: All workbenches share a single Gateway route with the Dashboard
+- **Same-Origin Paths**: Workbenches are accessed via `/notebook/{namespace}/{name}` relative paths
+- **No Route Fetching**: Frontend generates workbench links directly without backend calls
+- **Simplified Architecture**: Eliminates route polling, timeouts, and error handling complexity
+
+**Migration from v2.x**:
+- Old: `https://{route.spec.host}/notebook/{namespace}/{name}`
+- New: `/notebook/{namespace}/{name}` (same-origin relative path)
+
+This change provides:
+- Faster workbench access (no route lookup delay)
+- Better reliability (no route API failures)
+- Compatibility with Gateway API infrastructure
+- Support for both traditional and BYO OIDC clusters
 
 ### Custom Backend Business Logic
 

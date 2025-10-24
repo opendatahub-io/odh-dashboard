@@ -15,7 +15,6 @@ import {
   validateModelServingPlatforms,
   validatePVCSize,
   validateStopIdleNotebooks,
-  validateNotebookPodTolerations,
 } from '#~/__tests__/cypress/cypress/utils/clusterSettingsUtils';
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 
@@ -89,7 +88,6 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
 
       // Validate notebook pod tolerations displays based on OpenShift command to 'get OdhDashboardConfig' to validate configuration
       cy.step('Validate Notebook pod tolerations displays and fields are enabled/disabled');
-      validateNotebookPodTolerations(dashboardConfig);
     },
   );
 

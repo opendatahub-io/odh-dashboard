@@ -15,7 +15,9 @@ export const getGroup = async (
     );
     return (adminGroupResponse.body as GroupObjResponse).users || [];
   } catch (e) {
-    // TODO: Silence fetch errors -- Group API might be disabled on cluster
+    // Silence fetch errors -- Group API is disabled in BYO OIDC clusters
+    // This is expected behavior in OpenShift 4.19+ with external auth providers
+    // No action needed - returning empty array is correct behavior
     return [];
   }
 };

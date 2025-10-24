@@ -1,10 +1,14 @@
+/* eslint-disable camelcase */
 import React from 'react';
 import { Modal, ModalBody, ModalFooter, ModalHeader, ModalVariant } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { DashboardModalFooter } from 'mod-arch-shared';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { GenAiContext } from '~/app/context/GenAiContext';
-import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
+import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
 import { deleteLSD, installLSD } from '~/app/services/llamaStackService';
+import { convertMaaSModelToAIModel } from '~/app/utilities/utils';
 import ChatbotConfigurationTable from './ChatbotConfigurationTable';
 import ChatbotConfigurationState from './ChatbotConfigurationState';
 
@@ -12,7 +16,9 @@ type ChatbotConfigurationModalProps = {
   onClose: () => void;
   lsdStatus: LlamaStackDistributionModel | null;
   /** All available AI assets models in the namespace */
-  allModels: AIModel[];
+  aiModels: AIModel[];
+  /** All available MaaS models in the namespace */
+  maasModels?: MaaSModel[];
   /** Models that are already available in the playground,
    * passing this means that the modal will be in update mode */
   existingModels?: LlamaModel[];
@@ -22,18 +28,37 @@ type ChatbotConfigurationModalProps = {
   redirectToPlayground?: boolean;
 };
 
+const SETUP_PLAYGROUND_EVENT_NAME = 'Playground Setup';
+const UPDATE_PLAYGROUND_EVENT_NAME = 'Playground Config Update';
+
 const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   onClose,
   lsdStatus,
-  allModels,
-  existingModels,
+  aiModels,
+  maasModels = [],
+  existingModels = [],
   extraSelectedModels,
   redirectToPlayground,
 }) => {
   const { namespace } = React.useContext(GenAiContext);
 
+  // Convert pure MaaS models to AIModel format so they can be used in the table
+  const maasAsAIModels: AIModel[] = React.useMemo(() => {
+    const aiModelIds = new Set(aiModels.map((model) => model.model_id));
+    // Only include MaaS models that aren't already in aiModels (i.e., not marked as AI assets)
+    return maasModels
+      .filter((maasModel) => !aiModelIds.has(maasModel.id))
+      .map(convertMaaSModelToAIModel);
+  }, [aiModels, maasModels]);
+
+  // Merge all models and MaaS models for display
+  const allModels = React.useMemo(
+    () => [...aiModels, ...maasAsAIModels],
+    [aiModels, maasAsAIModels],
+  );
+
   const preSelectedModels = React.useMemo(() => {
-    if (existingModels && existingModels.length > 0) {
+    if (existingModels.length > 0) {
       const existingModelsSet = new Set(existingModels.map((model) => model.modelId));
       const existingAIModels = allModels.filter((model) => existingModelsSet.has(model.model_id));
 
@@ -63,14 +88,25 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const [error, setError] = React.useState<Error>();
   const [alertTitle, setAlertTitle] = React.useState<string>();
 
+  const isUpdate = !!lsdStatus;
+
+  const fireErrorEvents = (e: Error) => {
+    fireFormTrackingEvent(isUpdate ? UPDATE_PLAYGROUND_EVENT_NAME : SETUP_PLAYGROUND_EVENT_NAME, {
+      outcome: TrackingOutcome.submit,
+      success: false,
+      error: e.message,
+      namespace: namespace?.name,
+    });
+  };
+
   const onSubmit = () => {
     if (selectedModels.length === 0) {
       setAlertTitle('Select at least one model');
-      setError(
-        new Error(
-          'To set up a playground, you must add at least one model. Select a model above to proceed.',
-        ),
+      const e = new Error(
+        'To set up a playground, you must add at least one model. Select a model above to proceed.',
       );
+      setError(e);
+      fireErrorEvents(e);
       return;
     }
     if (!namespace?.name) {
@@ -81,23 +117,38 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     const install = () => {
       installLSD(
         namespace.name,
-        selectedModels.map((model) => model.model_name),
+        selectedModels.map((model) => ({
+          model_name: model.isMaaSModel && model.maasModelId ? model.maasModelId : model.model_name,
+          is_maas_model: model.isMaaSModel || false,
+        })),
       )
         .then(() => {
+          fireFormTrackingEvent(
+            isUpdate ? UPDATE_PLAYGROUND_EVENT_NAME : SETUP_PLAYGROUND_EVENT_NAME,
+            {
+              outcome: TrackingOutcome.submit,
+              success: true,
+              namespace: namespace.name,
+              countModelsSelected: selectedModels.length,
+              ...(isUpdate && { countPreviousModelsSelected: existingModels.length }),
+            },
+          );
           setConfiguringPlayground(true);
         })
         .catch((e) => {
           setError(e);
+          fireErrorEvents(e);
           setConfiguringPlayground(false);
         });
     };
 
     // If LSD status is provided, delete the existing LSD and install the new models
-    if (lsdStatus) {
+    if (isUpdate) {
       deleteLSD(namespace.name, lsdStatus.name)
         .then(install)
         .catch((e) => {
           setError(e);
+          fireErrorEvents(e);
           setConfiguringPlayground(false);
         });
     } else {
@@ -109,11 +160,15 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     setConfiguringPlayground(false);
     setError(undefined);
     setAlertTitle(undefined);
+    fireFormTrackingEvent(isUpdate ? UPDATE_PLAYGROUND_EVENT_NAME : SETUP_PLAYGROUND_EVENT_NAME, {
+      outcome: TrackingOutcome.cancel,
+      namespace: namespace?.name,
+    });
     onClose();
   };
 
   return (
-    <Modal isOpen onClose={() => onBeforeClose()} variant={ModalVariant.large}>
+    <Modal isOpen onClose={onBeforeClose} variant={ModalVariant.large}>
       {!configuringPlayground && (
         <ModalHeader
           title="Configure playground"
@@ -140,9 +195,9 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
       {!configuringPlayground && (
         <ModalFooter>
           <DashboardModalFooter
-            submitLabel={existingModels ? 'Update configuration' : 'Configure'}
+            submitLabel={isUpdate ? 'Update' : 'Create'}
             onSubmit={onSubmit}
-            onCancel={() => onBeforeClose()}
+            onCancel={onBeforeClose}
             error={error}
             alertTitle={alertTitle || 'Error configuring playground'}
           />

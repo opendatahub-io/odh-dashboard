@@ -1,60 +1,77 @@
-import type { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import type { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import {
+  ConnectionTypeConfigMapObj,
+  ConnectionTypeValueType,
+} from '@odh-dashboard/internal/concepts/connectionTypes/types';
+import type { SecretKind, SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
+import type { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type {
   ModelServerOption,
   useModelServerSelectField,
 } from './fields/ModelServerTemplateSelectField';
 import type { useModelTypeField } from './fields/ModelTypeSelectField';
 import type { useExternalRouteField } from './fields/ExternalRouteField';
-import type { ModelDeploymentWizardData } from './useDeploymentWizard';
-import type { useAvailableAiAssetsFields } from './fields/AvailableAiAssetsFields';
+import type { useModelAvailabilityFields } from './fields/ModelAvailabilityFields';
 import type { useEnvironmentVariablesField } from './fields/EnvironmentVariablesField';
 import type { useModelFormatField } from './fields/ModelFormatField';
 import type { useModelLocationData } from './fields/ModelLocationInputFields';
 import type { useNumReplicasField } from './fields/NumReplicasField';
 import type { useRuntimeArgsField } from './fields/RuntimeArgsField';
 import type { useTokenAuthenticationField } from './fields/TokenAuthenticationField';
+import {
+  useCreateConnectionData,
+  type CreateConnectionData,
+} from './fields/CreateConnectionInputFields';
 
-// extensible fields
-
-export type DeploymentWizardFieldId = 'modelType' | 'modelServerTemplate';
-
-export interface DeploymentWizardFieldBase {
-  id: DeploymentWizardFieldId;
-  type: 'modifier' | 'replacement' | 'addition';
+export enum ConnectionTypeRefs {
+  S3 = 's3',
+  URI = 'uri-v1',
+  OCI = 'oci-v1',
 }
 
-export interface ModelServerTemplateField extends DeploymentWizardFieldBase {
-  id: 'modelServerTemplate';
-  type: 'modifier';
-  modelServerTemplates: ModelServerOption[];
-  isActive: (modelType: ServingRuntimeModelType) => boolean;
+export enum ModelLocationType {
+  NEW = 'new',
+  EXISTING = 'existing',
+  PVC = 'pvc',
 }
 
-// Future field types can be added here easily:
-// export interface ModelTypeField extends DeploymentWizardFieldBase {
-//   id: 'modelType';
-//   type: 'replacement';
-//   isActive: (someOtherParam: string) => boolean;
-// }
-
-// Union type approach - just add new field types to this union
-export type DeploymentWizardField = ModelServerTemplateField;
-// | ModelTypeField  // Add future field types here
-// | SomeOtherField;
-
-export const isModelServerTemplateField = (
-  field: DeploymentWizardField,
-): field is ModelServerTemplateField => {
-  // return field.id === 'modelServerTemplate';
-  return true; // Currently only ModelServerTemplateField exists
+export type ModelLocationData = {
+  type: ModelLocationType.EXISTING | ModelLocationType.NEW | ModelLocationType.PVC;
+  connectionTypeObject?: ConnectionTypeConfigMapObj;
+  connection?: string;
+  fieldValues: Record<string, ConnectionTypeValueType>;
+  additionalFields: {
+    // For S3 and OCI additional fields
+    modelPath?: string;
+    modelUri?: string;
+    pvcConnection?: string;
+  };
 };
 
-// wizard form data
+export type InitialWizardFormData = {
+  modelTypeField?: ModelTypeFieldData;
+  k8sNameDesc?: K8sNameDescriptionFieldData;
+  externalRoute?: ExternalRouteFieldData;
+  tokenAuthentication?: TokenAuthenticationFieldData;
+  existingAuthTokens?: SecretKind[];
+  numReplicas?: NumReplicasFieldData;
+  runtimeArgs?: RuntimeArgsFieldData;
+  environmentVariables?: EnvironmentVariablesFieldData;
+  hardwareProfile?: Parameters<typeof useHardwareProfileConfig>;
+  modelFormat?: SupportedModelFormats;
+  modelLocationData?: ModelLocationData;
+  modelServer?: ModelServerOption;
+  isEditing?: boolean;
+  connections?: LabeledConnection[];
+  initSelectedConnection?: LabeledConnection | undefined;
+  modelAvailability?: ModelAvailabilityFieldsData;
+  createConnectionData?: CreateConnectionData;
+  // Add more field handlers as needed
+};
 
 export type WizardFormData = {
-  initialData?: ModelDeploymentWizardData;
+  initialData?: InitialWizardFormData;
   state: {
     modelType: ReturnType<typeof useModelTypeField>;
     k8sNameDesc: ReturnType<typeof useK8sNameDescriptionFieldData>;
@@ -66,7 +83,96 @@ export type WizardFormData = {
     numReplicas: ReturnType<typeof useNumReplicasField>;
     runtimeArgs: ReturnType<typeof useRuntimeArgsField>;
     environmentVariables: ReturnType<typeof useEnvironmentVariablesField>;
-    aiAssetData: ReturnType<typeof useAvailableAiAssetsFields>;
+    modelAvailability: ReturnType<typeof useModelAvailabilityFields>;
     modelServer: ReturnType<typeof useModelServerSelectField>;
+    createConnectionData: ReturnType<typeof useCreateConnectionData>;
   };
+};
+// wizard form data
+
+// Export field data types
+export type ModelTypeFieldData = WizardFormData['state']['modelType']['data'];
+export type K8sNameDescriptionFieldData = WizardFormData['state']['k8sNameDesc']['data'];
+export type ExternalRouteFieldData = WizardFormData['state']['externalRoute']['data'];
+export type TokenAuthenticationFieldData = WizardFormData['state']['tokenAuthentication']['data'];
+export type NumReplicasFieldData = WizardFormData['state']['numReplicas']['data'];
+export type RuntimeArgsFieldData = WizardFormData['state']['runtimeArgs']['data'];
+export type EnvironmentVariablesFieldData = WizardFormData['state']['environmentVariables']['data'];
+export type ModelServerSelectFieldData = WizardFormData['state']['modelServer']['data'];
+export type CreateConnectionFieldData = WizardFormData['state']['createConnectionData']['data'];
+export type HardwareProfileConfigFieldData =
+  WizardFormData['state']['hardwareProfileConfig']['formData'];
+export type ModelFormatFieldData = WizardFormData['state']['modelFormatState']['modelFormat'];
+export type ModelAvailabilityFieldsData = WizardFormData['state']['modelAvailability']['data'];
+
+// extensible fields
+
+export type DeploymentWizardFieldId =
+  | 'modelServerTemplate'
+  | 'modelAvailability'
+  | 'externalRoute'
+  | 'tokenAuth';
+
+export type DeploymentWizardFieldBase = {
+  id: DeploymentWizardFieldId;
+  type: 'modifier' | 'replacement' | 'addition';
+  isActive: (data: Partial<WizardFormData['state']>) => boolean;
+};
+
+export type ModifierField<T extends (...args: Parameters<T>) => ReturnType<T>> =
+  DeploymentWizardFieldBase & {
+    type: 'modifier';
+    modifier: (stateInput: Parameters<T>, stateOutput: ReturnType<T>) => ReturnType<T>;
+  };
+export const isModifierField = <T extends (...args: Parameters<T>) => ReturnType<T>>(
+  field: DeploymentWizardFieldBase,
+): field is ModifierField<T> => {
+  return field.type === 'modifier';
+};
+
+// actual fields
+
+export type ModelServerTemplateField = ModifierField<typeof useModelServerSelectField> & {
+  id: 'modelServerTemplate';
+};
+export type ModelAvailabilityField = ModifierField<typeof useModelAvailabilityFields> & {
+  id: 'modelAvailability';
+};
+// todo should extend ModifierField
+export type ExternalRouteField = DeploymentWizardFieldBase & {
+  id: 'externalRoute';
+  type: 'modifier';
+  isVisible: boolean;
+};
+// todo should extend ModifierField
+export type TokenAuthField = DeploymentWizardFieldBase & {
+  id: 'tokenAuth';
+  type: 'modifier';
+  initialValue: boolean;
+};
+
+// union type
+
+export type DeploymentWizardField =
+  | ModelServerTemplateField
+  | ModelAvailabilityField
+  | ExternalRouteField
+  | TokenAuthField;
+
+export const isModelServerTemplateField = (
+  field: DeploymentWizardField,
+): field is ModelServerTemplateField => {
+  return field.id === 'modelServerTemplate';
+};
+
+export const isModelAvailabilityField = (
+  field: DeploymentWizardField,
+): field is ModelAvailabilityField => {
+  return field.id === 'modelAvailability';
+};
+export const isExternalRouteField = (field: DeploymentWizardField): field is ExternalRouteField => {
+  return field.id === 'externalRoute';
+};
+export const isTokenAuthField = (field: DeploymentWizardField): field is TokenAuthField => {
+  return field.id === 'tokenAuth';
 };

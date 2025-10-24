@@ -17,6 +17,16 @@ export type FeatureStoreObjectType =
   | 'data_set'
   | 'feature_store';
 
+export const FeatureStoreObjectToTypeMap: Record<FeatureStoreObject, FeatureStoreObjectType> = {
+  [FeatureStoreObject.ENTITIES]: 'entity',
+  [FeatureStoreObject.FEATURE_VIEWS]: 'feature_view',
+  [FeatureStoreObject.FEATURE_SERVICES]: 'feature_service',
+  [FeatureStoreObject.DATA_SETS]: 'data_set',
+  [FeatureStoreObject.DATA_SOURCES]: 'data_source',
+  [FeatureStoreObject.OVERVIEW]: 'feature_store',
+  [FeatureStoreObject.FEATURES]: 'feature',
+};
+
 export const getFeatureStoreObjectDisplayName = (
   featureStoreObject: FeatureStoreObject,
 ): string => {
@@ -145,8 +155,21 @@ export const getFeatureStoreObjectDescription = (
     case FeatureStoreObject.DATA_SETS:
       return 'View and manage datasets created from feature services. Datasets are point-in-time-correct snapshots of feature services,data and are used for training,  or validation, and analysis.';
     case FeatureStoreObject.OVERVIEW:
-      return '';
+      return 'Feature store repositories connect models to data by enabling you to store, manage, and serve ML features from your existing data sources. To consume and manage resources within feature store repositories , connect repos with your workbenches.';
     default:
       return 'Feature store object details';
   }
+};
+
+export const isNotFoundError = (error: Error | undefined): boolean => {
+  if (!error) {
+    return false;
+  }
+  const statusCode =
+    'status_code' in error
+      ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        (error['status_code' as keyof Error] as unknown as number)
+      : null;
+
+  return statusCode === 404;
 };

@@ -1,31 +1,23 @@
 import * as React from 'react';
 import { Bullseye, Content, ContentVariants, Spinner } from '@patternfly/react-core';
-import { Namespace } from 'mod-arch-core';
 import { useNavigate } from 'react-router-dom';
+import { GenAiContext } from '~/app/context/GenAiContext';
 import ModelsEmptyState from '~/app/EmptyStates/NoData';
-import { LlamaModel, AIModel } from '~/app/types';
+import useFetchAIModels from '~/app/hooks/useFetchAIModels';
+import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
-import AIModelsTable from './components/AIModelsTable';
+import AIModelsTable from '~/app/AIAssets/components/AIModelsTable';
+import useFetchMaaSModels from '~/app/hooks/useFetchMaaSModels';
 
-type AIAssetsModelsTabProps = {
-  models: AIModel[];
-  playgroundModels: LlamaModel[];
-  namespace?: Namespace;
-  loaded: boolean;
-  error?: Error;
-};
-
-const AIAssetsModelsTab: React.FC<AIAssetsModelsTabProps> = ({
-  models,
-  playgroundModels,
-  namespace,
-  loaded,
-  error,
-}) => {
+const AIAssetsModelsTab: React.FC = () => {
   const navigate = useNavigate();
+  const { namespace } = React.useContext(GenAiContext);
+  const { data: playgroundModels } = useFetchLlamaModels(namespace?.name);
+  const { data: aiModels = [], loaded, error } = useFetchAIModels(namespace?.name);
+  const { data: maasModels = [] } = useFetchMaaSModels(namespace?.name || '');
   const { data: lsdStatus } = useFetchLSDStatus(namespace?.name);
 
-  if (!loaded) {
+  if (!loaded && !error) {
     return (
       <Bullseye>
         <Spinner />
@@ -33,7 +25,7 @@ const AIAssetsModelsTab: React.FC<AIAssetsModelsTabProps> = ({
     );
   }
 
-  if (error || models.length === 0) {
+  if (error || aiModels.length === 0) {
     return (
       <ModelsEmptyState
         title="To begin you must deploy a model"
@@ -69,7 +61,12 @@ const AIAssetsModelsTab: React.FC<AIAssetsModelsTabProps> = ({
   }
 
   return (
-    <AIModelsTable models={models} playgroundModels={playgroundModels} lsdStatus={lsdStatus} />
+    <AIModelsTable
+      aiModels={aiModels}
+      maasModels={maasModels}
+      playgroundModels={playgroundModels}
+      lsdStatus={lsdStatus}
+    />
   );
 };
 

@@ -7,33 +7,21 @@ import {
   TabContent,
   TabContentBody,
   TabTitleText,
+  Label,
+  Flex,
+  FlexItem,
 } from '@patternfly/react-core';
+import { useExtensions, LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
 import GenAiCoreHeader from '~/app/GenAiCoreHeader';
 import { genAiAiAssetsRoute } from '~/app/utilities/routes';
-import { GenAiContext } from '~/app/context/GenAiContext';
-import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
-import { useMCPServers } from '~/app/hooks/useMCPServers';
-import useFetchAIModels from '~/app/hooks/useFetchAIModels';
 import AiAssetEndpointsIcon from '~/app/images/icons/AiAssetEndpointsIcon';
-import AIAssetsModelsTab from './AIAssetsModelsTab';
-import AIAssetsMCPTabWithContext from './AIAssetsMCPTabWithContext';
-
-enum AIAssetsPageTabKey {
-  MODELS = 'models',
-  MCP_SERVERS = 'mcpservers',
-}
+import { isAIAssetsTabExtension } from '~/odh/extension-points';
 
 export const AIAssetsPage: React.FC = () => {
-  const [activeTabKey, setActiveTabKey] = React.useState<string>(AIAssetsPageTabKey.MODELS);
-  const { namespace } = React.useContext(GenAiContext);
-  const { data: playgroundModels } = useFetchLlamaModels(namespace?.name);
-  const { data: models, loaded, error } = useFetchAIModels(namespace?.name);
-  const { servers: mcpServers, serversLoaded: mcpServersLoaded } = useMCPServers(
-    namespace?.name || '',
-    { autoCheckStatuses: false },
+  const tabExtensions = useExtensions(isAIAssetsTabExtension);
+  const [activeTabKey, setActiveTabKey] = React.useState<string>(
+    tabExtensions[0]?.properties.id || '',
   );
-  const modelsCount = models.length;
-  const mcpServersCount = mcpServers.length;
 
   return (
     <ApplicationsPage
@@ -44,7 +32,7 @@ export const AIAssetsPage: React.FC = () => {
           icon={AiAssetEndpointsIcon}
         />
       }
-      description="Browse endpoints for available models and MCP servers."
+      description="Browse endpoints for models and MCP servers that are available as AI assets."
       loaded
       empty={false}
     >
@@ -55,49 +43,49 @@ export const AIAssetsPage: React.FC = () => {
           aria-label="AI Assets tabs"
           role="region"
         >
-          <Tab
-            eventKey={AIAssetsPageTabKey.MODELS}
-            title={<TabTitleText>Models {loaded && `(${modelsCount})`}</TabTitleText>}
-            aria-label="Models tab"
-            tabContentId="models-tab-content"
-          />
-          <Tab
-            eventKey={AIAssetsPageTabKey.MCP_SERVERS}
-            title={
-              <TabTitleText>MCP Servers {mcpServersLoaded && `(${mcpServersCount})`}</TabTitleText>
-            }
-            aria-label="MCP Servers tab"
-            tabContentId="mcpservers-tab-content"
-          />
+          {tabExtensions.map((extension) => (
+            <Tab
+              key={extension.properties.id}
+              eventKey={extension.properties.id}
+              title={
+                <TabTitleText>
+                  {extension.properties.label ? (
+                    <Flex spaceItems={{ default: 'spaceItemsSm' }}>
+                      <FlexItem>{extension.properties.title}</FlexItem>
+                      <FlexItem>
+                        <Label color="orange" variant="outline" isCompact>
+                          {extension.properties.label}
+                        </Label>
+                      </FlexItem>
+                    </Flex>
+                  ) : (
+                    extension.properties.title
+                  )}
+                </TabTitleText>
+              }
+              aria-label={`${extension.properties.title} tab`}
+              tabContentId={`${extension.properties.id}-tab-content`}
+            />
+          ))}
         </Tabs>
       </PageSection>
+
       <PageSection>
-        <TabContent
-          id="models-tab-content"
-          activeKey={activeTabKey}
-          eventKey={AIAssetsPageTabKey.MODELS}
-          hidden={activeTabKey !== AIAssetsPageTabKey.MODELS}
-        >
-          <TabContentBody>
-            <AIAssetsModelsTab
-              models={models}
-              playgroundModels={playgroundModels}
-              namespace={namespace}
-              loaded={loaded}
-              error={error}
-            />
-          </TabContentBody>
-        </TabContent>
-        <TabContent
-          id="mcpservers-tab-content"
-          activeKey={activeTabKey}
-          eventKey={AIAssetsPageTabKey.MCP_SERVERS}
-          hidden={activeTabKey !== AIAssetsPageTabKey.MCP_SERVERS}
-        >
-          <TabContentBody>
-            {activeTabKey === AIAssetsPageTabKey.MCP_SERVERS && <AIAssetsMCPTabWithContext />}
-          </TabContentBody>
-        </TabContent>
+        {tabExtensions.map((extension) => (
+          <TabContent
+            key={extension.properties.id}
+            id={`${extension.properties.id}-tab-content`}
+            activeKey={activeTabKey}
+            eventKey={extension.properties.id}
+            hidden={activeTabKey !== extension.properties.id}
+          >
+            <TabContentBody>
+              {activeTabKey === extension.properties.id && (
+                <LazyCodeRefComponent component={extension.properties.component} />
+              )}
+            </TabContentBody>
+          </TabContent>
+        ))}
       </PageSection>
     </ApplicationsPage>
   );

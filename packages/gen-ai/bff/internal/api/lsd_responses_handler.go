@@ -6,10 +6,15 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
 // Supported streaming event types that we want to process for the Gen AI API
@@ -226,6 +231,9 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		}
 	}
 
+	// Retrieve and inject MaaS provider data for custom headers
+	providerData := app.getMaaSProviderData(ctx, createRequest.Model)
+
 	// Convert to client params (only working parameters)
 	params := llamastack.CreateResponseParams{
 		Input:              createRequest.Input,
@@ -237,6 +245,7 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		Instructions:       createRequest.Instructions,
 		Tools:              mcpServerParams,
 		PreviousResponseID: createRequest.PreviousResponseID,
+		ProviderData:       providerData,
 	}
 
 	// Handle streaming vs non-streaming responses
@@ -376,4 +385,86 @@ func (app *App) validatePreviousResponse(ctx context.Context, responseID string)
 	}
 
 	return nil
+}
+
+// getMaaSProviderData retrieves and caches MaaS tokens for models, returning provider data for injection
+func (app *App) getMaaSProviderData(ctx context.Context, modelID string) map[string]interface{} {
+	// Early return if context doesn't have required data
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+	if !ok || identity == nil {
+		return nil
+	}
+
+	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	if !ok || namespace == "" {
+		return nil
+	}
+
+	// Early check: If model ID doesn't start with "maas-", skip MaaS token injection
+	// This handles provider-prefixed format (e.g., "maas-vllm-inference-1/facebook/opt-125m")
+	if !strings.HasPrefix(modelID, constants.MaaSProviderPrefix) {
+		app.logger.Debug("Non-MaaS model (no maas- prefix in model ID), skipping token injection", "model", modelID)
+		return nil
+	}
+
+	// Get Kubernetes client
+	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		return nil
+	}
+
+	app.logger.Debug("Detected MaaS model", "model", modelID)
+
+	// Get or generate MaaS token
+	token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, modelID)
+	if token == "" {
+		return nil
+	}
+
+	// Inject token as provider data
+	app.logger.Debug("Injected MaaS provider data", "model", modelID)
+	return map[string]interface{}{
+		"vllm_api_token": token,
+	}
+}
+
+// getMaaSTokenForModel retrieves a MaaS token from cache or generates a new one
+func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.KubernetesClientInterface, identity *integrations.RequestIdentity, namespace, modelID string) string {
+	// Get username for cache key
+	username, err := k8sClient.GetUser(ctx, identity)
+	if err != nil || username == "" {
+		app.logger.Warn("Failed to get username, skipping cache", "model", modelID, "error", err)
+		return ""
+	}
+
+	// Check cache first
+	if cachedValue, found := app.memoryStore.Get(namespace, username, constants.CacheAccessTokensCategory, modelID); found {
+		// Safe type assertion to prevent panic
+		if token, ok := cachedValue.(string); ok {
+			app.logger.Debug("Using cached MaaS token", "model", modelID, "namespace", namespace)
+			return token
+		}
+		// Unexpected type in cache - log warning and continue to generate new token
+		app.logger.Warn("Unexpected type in cache, expected string", "model", modelID, "namespace", namespace, "type", fmt.Sprintf("%T", cachedValue))
+	}
+
+	// Cache miss - generate new token
+	app.logger.Debug("No MaaS token found in cache: requesting new token", "model", modelID, "namespace", namespace)
+
+	tokenResponse, err := app.repositories.MaaSModels.IssueToken(ctx, models.MaaSTokenRequest{
+		TTL: constants.MaaSTokenTTLString,
+	})
+	if err != nil {
+		app.logger.Warn("Failed to issue MaaS token", "model", modelID, "error", err)
+		return ""
+	}
+
+	// Cache the new token
+	if err := app.memoryStore.Set(namespace, username, constants.CacheAccessTokensCategory, modelID, tokenResponse.Token, constants.MaaSTokenTTLDuration); err != nil {
+		app.logger.Warn("Failed to cache MaaS token", "model", modelID, "error", err)
+	} else {
+		app.logger.Debug("Cached new MaaS token", "model", modelID, "namespace", namespace, "expiresAt", tokenResponse.ExpiresAt)
+	}
+
+	return tokenResponse.Token
 }

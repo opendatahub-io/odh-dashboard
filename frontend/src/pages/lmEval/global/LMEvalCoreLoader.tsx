@@ -2,10 +2,13 @@ import * as React from 'react';
 import { Navigate, Outlet, useParams } from 'react-router-dom';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import InvalidProject from '#~/concepts/projects/InvalidProject';
 import LMEvalNoProjects from '#~/pages/lmEval/components/LMEvalNoProjects';
 import LMEvalProjectSelector from '#~/pages/lmEval/components/LMEvalProjectSelector';
 import { LMEvalContextProvider } from './LMEvalContext';
+import { evaluationsPageDescription, evaluationsPageTitle } from './consts';
 
 type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
 type EmptyStateProps = 'emptyStatePage' | 'empty';
@@ -60,8 +63,13 @@ const LMEvalCoreLoader: React.FC<LMEvalCoreLoaderProps> = ({ getInvalidRedirectP
   return (
     <ApplicationsPage
       {...renderStateProps}
-      title="Evaluations"
-      description="Select a project to view its model evaluation runs, or start a new evaluation run. Evaluation runs help determine a model’s performance by testing it against selected evaluation benchmarks called tasks."
+      title={
+        <TitleWithIcon
+          title={evaluationsPageTitle}
+          objectType={ProjectObjectType.modelEvaluation}
+        />
+      }
+      description={evaluationsPageDescription}
       loaded
       headerContent={<LMEvalProjectSelector getRedirectPath={getInvalidRedirectPath} />}
       provideChildrenPadding

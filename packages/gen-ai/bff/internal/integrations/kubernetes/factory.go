@@ -38,6 +38,7 @@ type TokenClientFactory struct {
 	Logger *slog.Logger
 	Header string
 	Prefix string
+	Config config.EnvConfig
 }
 
 func NewTokenClientFactory(logger *slog.Logger, cfg config.EnvConfig) *TokenClientFactory {
@@ -45,6 +46,7 @@ func NewTokenClientFactory(logger *slog.Logger, cfg config.EnvConfig) *TokenClie
 		Logger: logger,
 		Header: cfg.AuthTokenHeader,
 		Prefix: cfg.AuthTokenPrefix,
+		Config: cfg,
 	}
 }
 
@@ -78,7 +80,7 @@ func (f *TokenClientFactory) GetClient(ctx context.Context) (KubernetesClientInt
 		return nil, fmt.Errorf("invalid or missing identity token")
 	}
 
-	return newTokenKubernetesClient(identity.Token, f.Logger)
+	return newTokenKubernetesClient(identity.Token, f.Logger, f.Config)
 }
 
 func (f *TokenClientFactory) ValidateRequestIdentity(identity *integrations.RequestIdentity) error {

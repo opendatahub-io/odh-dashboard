@@ -2,27 +2,37 @@ import type { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/har
 import {
   type SupportedModelFormats,
   type InferenceServiceKind,
-  KnownLabels,
 } from '@odh-dashboard/internal/k8sTypes';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
-import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
-import { InferenceServiceModel } from '@odh-dashboard/internal/api/index';
-import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
+
+import {
+  type ModelLocationData,
+  ModelLocationType,
+} from '@odh-dashboard/model-serving/types/form-data';
 import {
   applyAiAvailableAssetAnnotations,
   applyAuth,
   applyEnvironmentVariables,
   applyModelFormat,
+  applyConnectionData,
   applyRuntimeArgs,
+  applyDashboardResourceLabel,
+  applyDisplayNameDesc,
+  applyModelType,
 } from './deployUtils';
 import { applyHardwareProfileToDeployment, applyReplicas } from './hardware';
-import type { AvailableAiAssetsFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/AvailableAiAssetsFields';
+import {
+  createInferenceService,
+  patchInferenceService,
+  updateInferenceService,
+} from './api/inferenceService';
+import type { ModelAvailabilityFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/ModelAvailabilityFields';
 import type { EnvironmentVariablesFieldData } from '../../model-serving/src/components/deploymentWizard/fields/EnvironmentVariablesField';
 import type { ExternalRouteFieldData } from '../../model-serving/src/components/deploymentWizard/fields/ExternalRouteField';
 import type { NumReplicasFieldData } from '../../model-serving/src/components/deploymentWizard/fields/NumReplicasField';
 import type { RuntimeArgsFieldData } from '../../model-serving/src/components/deploymentWizard/fields/RuntimeArgsField';
 import type { TokenAuthenticationFieldData } from '../../model-serving/src/components/deploymentWizard/fields/TokenAuthenticationField';
-import type { ModelLocationData } from '../../model-serving/src/components/deploymentWizard/fields/modelLocationFields/types';
+import { CreateConnectionData } from '../../model-serving/src/components/deploymentWizard/fields/CreateConnectionInputFields';
 
 export type CreatingInferenceServiceObject = {
   project: string;
@@ -38,12 +48,15 @@ export type CreatingInferenceServiceObject = {
   numReplicas?: NumReplicasFieldData;
   runtimeArgs?: RuntimeArgsFieldData;
   environmentVariables?: EnvironmentVariablesFieldData;
-  aiAssetData?: AvailableAiAssetsFieldsData;
+  modelAvailability?: ModelAvailabilityFieldsData;
+  createConnectionData?: CreateConnectionData;
 };
 
 const assembleInferenceService = (
   data: CreatingInferenceServiceObject,
   existingInferenceService?: InferenceServiceKind,
+  dryRun?: boolean,
+  secretName?: string,
 ): InferenceServiceKind => {
   const {
     project,
@@ -51,10 +64,12 @@ const assembleInferenceService = (
     name,
     description,
     modelType,
+    modelLocationData,
+    createConnectionData,
     modelFormat,
     hardwareProfile,
     numReplicas,
-    aiAssetData,
+    modelAvailability,
     externalRoute,
     tokenAuth,
     runtimeArgs,
@@ -68,14 +83,6 @@ const assembleInferenceService = (
         metadata: {
           name: k8sName,
           namespace: project,
-          annotations: {
-            'openshift.io/display-name': name,
-            'openshift.io/description': description,
-            'opendatahub.io/model-type': modelType ?? ServingRuntimeModelType.GENERATIVE,
-          },
-          labels: {
-            [KnownLabels.DASHBOARD_RESOURCE]: 'true',
-          },
         },
         spec: {
           predictor: {
@@ -86,7 +93,26 @@ const assembleInferenceService = (
         },
       };
 
+  inferenceService = applyDisplayNameDesc(inferenceService, name, description);
+  inferenceService = applyDashboardResourceLabel(inferenceService);
+  inferenceService = applyModelType(
+    inferenceService,
+    modelType ?? ServingRuntimeModelType.GENERATIVE,
+  );
+
   inferenceService = applyModelFormat(inferenceService, modelFormat);
+
+  inferenceService = applyConnectionData(
+    inferenceService,
+    createConnectionData ?? {},
+    modelLocationData ?? {
+      type: ModelLocationType.NEW,
+      fieldValues: { URI: '' },
+      additionalFields: { modelUri: '' },
+    },
+    dryRun,
+    secretName,
+  );
 
   inferenceService = applyHardwareProfileToDeployment(inferenceService, hardwareProfile);
 
@@ -98,7 +124,7 @@ const assembleInferenceService = (
 
   inferenceService = applyAiAvailableAssetAnnotations(
     inferenceService,
-    aiAssetData ?? {
+    modelAvailability ?? {
       saveAsAiAsset: false,
       useCase: '',
     },
@@ -119,20 +145,31 @@ const assembleInferenceService = (
   return inferenceService;
 };
 
-export const createInferenceService = (
+/**
+ * Selects the appropriate method to deploy an inference service based on the existing inference service and the options.
+ * Hides the complexity of the different methods from the caller.
+ */
+export const deployInferenceService = (
   data: CreatingInferenceServiceObject,
-  inferenceService?: InferenceServiceKind,
-  dryRun?: boolean,
+  existingInferenceService?: InferenceServiceKind,
+  connectionSecretName?: string,
+  opts?: {
+    dryRun?: boolean;
+    overwrite?: boolean;
+  },
 ): Promise<InferenceServiceKind> => {
-  const assembledInferenceService = assembleInferenceService(data, inferenceService);
-
-  return k8sCreateResource<InferenceServiceKind>(
-    applyK8sAPIOptions(
-      {
-        model: InferenceServiceModel,
-        resource: assembledInferenceService,
-      },
-      { dryRun: dryRun ?? false },
-    ),
+  const newInferenceService = assembleInferenceService(
+    data,
+    existingInferenceService,
+    opts?.dryRun,
+    connectionSecretName,
   );
+
+  if (!existingInferenceService) {
+    return createInferenceService(newInferenceService, opts);
+  }
+  if (opts?.overwrite) {
+    return patchInferenceService(existingInferenceService, newInferenceService, opts);
+  }
+  return updateInferenceService(newInferenceService, opts);
 };

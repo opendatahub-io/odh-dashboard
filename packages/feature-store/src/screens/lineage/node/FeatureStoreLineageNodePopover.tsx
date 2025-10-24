@@ -160,7 +160,7 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
                 }
               }}
             >
-              View {getFsObjectTypeLabel(node.fsObjectTypes)} details page
+              View {getFsObjectTypeLabel(node.fsObjectTypes)} page
             </Button>
           </FlexItem>
           {node.fsObjectTypes === 'feature_view' && (

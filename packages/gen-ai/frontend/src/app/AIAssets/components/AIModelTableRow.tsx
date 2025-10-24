@@ -4,7 +4,7 @@ import { Td, Tr } from '@patternfly/react-table';
 import { CheckCircleIcon, ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { TableRowTitleDescription, TruncatedText } from 'mod-arch-shared';
-import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
+import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -14,14 +14,16 @@ import AIModelsTableRowInfo from './AIModelsTableRowInfo';
 type AIModelTableRowProps = {
   lsdStatus: LlamaStackDistributionModel | null;
   model: AIModel;
-  models: AIModel[];
+  aiModels: AIModel[];
+  maasModels: MaaSModel[];
   playgroundModels: LlamaModel[];
 };
 
 const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
   lsdStatus,
   model,
-  models,
+  aiModels,
+  maasModels,
   playgroundModels,
 }) => {
   const navigate = useNavigate();
@@ -32,7 +34,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
   return (
     <>
       <Tr>
-        <Td dataLabel="Model">
+        <Td dataLabel="Model deployment name">
           <>
             <TableRowTitleDescription title={<AIModelsTableRowInfo model={model} />} />
             {/* The shared TableRowTitleDescription component only accepts a string for the description
@@ -47,7 +49,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
         <Td dataLabel="External endpoint">
           <AIModelsTableRowEndpoint model={model} isExternal />
         </Td>
-        <Td dataLabel="Use Case">
+        <Td dataLabel="Use case">
           <Truncate content={model.usecase} />
         </Td>
         <Td dataLabel="Status">
@@ -72,6 +74,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
                   },
                 })
               }
+              isDisabled={model.status !== 'Running'}
             >
               Try in playground
             </Button>
@@ -91,7 +94,8 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
         <ChatbotConfigurationModal
           onClose={() => setIsConfigurationModalOpen(false)}
           lsdStatus={lsdStatus}
-          allModels={models}
+          aiModels={aiModels}
+          maasModels={maasModels}
           existingModels={playgroundModels}
           extraSelectedModels={[model]}
           redirectToPlayground

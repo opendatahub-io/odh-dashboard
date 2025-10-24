@@ -61,7 +61,7 @@ func TestAttachMaaSClient(t *testing.T) {
 			t.Error("Handler should not be called when MaaS URL is not configured")
 		})(rr, req, nil)
 
-		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+		assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
 	})
 
 	t.Run("should create real client when not in mock mode and MAAS_URL is set", func(t *testing.T) {

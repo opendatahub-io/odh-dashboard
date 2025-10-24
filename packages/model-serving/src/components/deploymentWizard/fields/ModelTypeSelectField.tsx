@@ -60,7 +60,7 @@ export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
         },
         {
           key: ServingRuntimeModelType.GENERATIVE,
-          label: 'Generative AI model (e.g. LLM)',
+          label: 'Generative AI model (Example, LLM)',
         },
       ]}
       onChange={(key) => {
@@ -71,7 +71,7 @@ export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
       onBlur={validationProps?.onBlur}
       placeholder="Select model type"
       value={modelType}
-      toggleProps={{ style: { minWidth: '250px' } }}
+      toggleProps={{ style: { minWidth: '300px' } }}
       dataTestId="model-type-select"
       isDisabled={isEditing}
     />

@@ -60,7 +60,7 @@ func TestLlamaStackListVectorStoresHandler(t *testing.T) {
 
 		// Simulate middleware: add RequestIdentity and LlamaStack client to context
 		identity := &integrations.RequestIdentity{Token: "test-token"}
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
@@ -96,7 +96,7 @@ func TestLlamaStackListVectorStoresHandler(t *testing.T) {
 
 		// Simulate middleware: add RequestIdentity and LlamaStack client to context
 		identity := &integrations.RequestIdentity{Token: "test-token"}
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
@@ -124,7 +124,7 @@ func TestLlamaStackListVectorStoresHandler(t *testing.T) {
 
 		// Simulate middleware: add RequestIdentity and LlamaStack client to context
 		identity := &integrations.RequestIdentity{Token: "test-token"}
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
@@ -152,7 +152,7 @@ func TestLlamaStackListVectorStoresHandler(t *testing.T) {
 
 		// Simulate middleware: add RequestIdentity and LlamaStack client to context
 		identity := &integrations.RequestIdentity{Token: "test-token"}
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
@@ -180,7 +180,7 @@ func TestLlamaStackListVectorStoresHandler(t *testing.T) {
 
 		// Simulate middleware: add RequestIdentity and LlamaStack client to context
 		identity := &integrations.RequestIdentity{Token: "test-token"}
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
@@ -197,7 +197,7 @@ func TestLlamaStackListVectorStoresHandler(t *testing.T) {
 
 		// Simulate middleware: add RequestIdentity and LlamaStack client to context
 		identity := &integrations.RequestIdentity{Token: "test-token"}
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
@@ -217,7 +217,7 @@ func TestLlamaStackListVectorStoresHandler(t *testing.T) {
 
 		// Simulate middleware: add RequestIdentity and LlamaStack client to context
 		identity := &integrations.RequestIdentity{Token: "test-token"}
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
@@ -265,7 +265,7 @@ func TestLlamaStackCreateVectorStoreHandler(t *testing.T) {
 
 		// Simulate middleware: add RequestIdentity and LlamaStack client to context
 		identity := &integrations.RequestIdentity{Token: "test-token"}
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
@@ -305,7 +305,7 @@ func TestLlamaStackCreateVectorStoreHandler(t *testing.T) {
 
 		// Simulate middleware: add RequestIdentity and LlamaStack client to context
 		identity := &integrations.RequestIdentity{Token: "test-token"}
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
@@ -338,7 +338,7 @@ func TestLlamaStackCreateVectorStoreHandler(t *testing.T) {
 
 		// Simulate middleware: add RequestIdentity and LlamaStack client to context
 		identity := &integrations.RequestIdentity{Token: "test-token"}
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
@@ -371,7 +371,7 @@ func TestLlamaStackCreateVectorStoreHandler(t *testing.T) {
 
 		// Simulate middleware: add RequestIdentity and LlamaStack client to context
 		identity := &integrations.RequestIdentity{Token: "test-token"}
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
@@ -401,7 +401,7 @@ func TestLlamaStackCreateVectorStoreHandler(t *testing.T) {
 
 		// Simulate middleware: add RequestIdentity and LlamaStack client to context
 		identity := &integrations.RequestIdentity{Token: "test-token"}
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
@@ -436,7 +436,7 @@ func TestLlamaStackCreateVectorStoreHandler(t *testing.T) {
 
 		// Simulate middleware: add RequestIdentity and LlamaStack client to context
 		identity := &integrations.RequestIdentity{Token: "test-token"}
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
@@ -481,7 +481,7 @@ func TestLlamaStackCreateVectorStoreHandler(t *testing.T) {
 
 		// Simulate middleware: add RequestIdentity and LlamaStack client to context
 		identity := &integrations.RequestIdentity{Token: "test-token"}
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
@@ -522,7 +522,7 @@ func TestLlamaStackDeleteVectorStoreHandler(t *testing.T) {
 		identity := &integrations.RequestIdentity{Token: "test-token"}
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "default")
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -553,7 +553,7 @@ func TestLlamaStackDeleteVectorStoreHandler(t *testing.T) {
 		identity := &integrations.RequestIdentity{Token: "test-token"}
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "default")
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -593,7 +593,7 @@ func TestLlamaStackListVectorStoreFilesHandler(t *testing.T) {
 		identity := &integrations.RequestIdentity{Token: "test-token"}
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "default")
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -629,7 +629,7 @@ func TestLlamaStackListVectorStoreFilesHandler(t *testing.T) {
 		identity := &integrations.RequestIdentity{Token: "test-token"}
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "default")
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -658,7 +658,7 @@ func TestLlamaStackListVectorStoreFilesHandler(t *testing.T) {
 		identity := &integrations.RequestIdentity{Token: "test-token"}
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "default")
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -674,7 +674,7 @@ func TestLlamaStackListVectorStoreFilesHandler(t *testing.T) {
 		identity := &integrations.RequestIdentity{Token: "test-token"}
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "default")
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -702,7 +702,7 @@ func TestLlamaStackDeleteVectorStoreFileHandler(t *testing.T) {
 		identity := &integrations.RequestIdentity{Token: "test-token"}
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "default")
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -733,7 +733,7 @@ func TestLlamaStackDeleteVectorStoreFileHandler(t *testing.T) {
 		identity := &integrations.RequestIdentity{Token: "test-token"}
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "default")
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -749,7 +749,7 @@ func TestLlamaStackDeleteVectorStoreFileHandler(t *testing.T) {
 		identity := &integrations.RequestIdentity{Token: "test-token"}
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "default")
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 

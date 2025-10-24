@@ -5,7 +5,7 @@ import { AIModel } from '~/app/types';
 export const chatbotConfigurationColumns: SortableData<AIModel>[] = [
   checkboxTableColumn(),
   {
-    label: 'Model deployment name',
+    label: 'Model name',
     field: 'display_name',
     sortable: (a, b) => a.display_name.localeCompare(b.display_name),
     width: 50,
@@ -17,9 +17,6 @@ export const chatbotConfigurationColumns: SortableData<AIModel>[] = [
     width: 20,
     info: {
       popover: AIModelStatusPopoverContent,
-      popoverProps: {
-        headerContent: 'To make a model deployment available:',
-      },
     },
   },
   {

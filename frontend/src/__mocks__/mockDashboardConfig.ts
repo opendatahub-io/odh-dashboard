@@ -22,8 +22,6 @@ export type MockDashboardConfigType = {
   disableKServeMetrics?: boolean;
   disableKServeRaw?: boolean;
   disableModelMesh?: boolean;
-  disableAcceleratorProfiles?: boolean;
-  disableHardwareProfiles?: boolean;
   disablePerformanceMetrics?: boolean;
   disableTrustyBiasMetrics?: boolean;
   disableDistributedWorkloads?: boolean;
@@ -44,7 +42,7 @@ export type MockDashboardConfigType = {
   disableKueue?: boolean;
   disableFeatureStore?: boolean;
   disableModelTraining?: boolean;
-  disableDeploymentWizard?: boolean;
+  disableModelAsService?: boolean;
   hardwareProfileOrder?: string[];
 };
 
@@ -68,8 +66,6 @@ export const mockDashboardConfig = ({
   disableKServeMetrics = true,
   disableKServeRaw = true,
   disableModelMesh = false,
-  disableAcceleratorProfiles = false,
-  disableHardwareProfiles = true,
   disablePerformanceMetrics = false,
   disableTrustyBiasMetrics = false,
   disableDistributedWorkloads = false,
@@ -85,7 +81,7 @@ export const mockDashboardConfig = ({
   disableKueue = true,
   disableFeatureStore = true,
   disableModelTraining = true,
-  disableDeploymentWizard = true,
+  disableModelAsService = true,
   hardwareProfileOrder = ['test-hardware-profile'],
   modelServerSizes = [
     {
@@ -231,8 +227,6 @@ export const mockDashboardConfig = ({
       disableKServeMetrics,
       disableKServeRaw,
       disableModelMesh,
-      disableAcceleratorProfiles,
-      disableHardwareProfiles,
       disableDistributedWorkloads,
       disableModelCatalog,
       disableModelRegistry,
@@ -247,14 +241,10 @@ export const mockDashboardConfig = ({
       disableKueue,
       disableFeatureStore,
       disableModelTraining,
-      disableDeploymentWizard,
+      disableModelAsService,
     },
     notebookController: {
       enabled: !disableNotebookController,
-      notebookTolerationSettings: {
-        enabled: true,
-        key: 'NotebooksOnlyChange',
-      },
       pvcSize: '20Gi',
     },
     groupsConfig: {

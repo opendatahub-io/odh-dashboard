@@ -10,6 +10,8 @@ import {
   getLSDstatus,
   installLSD,
   deleteLSD,
+  getMaaSModels,
+  getAAModels,
 } from '~/app/services/llamaStackService';
 import { mockLlamaModels } from '~/__mocks__/mockLlamaStackModels';
 import { mockVectorStores } from '~/__mocks__/mockVectorStores';
@@ -592,6 +594,85 @@ describe('llamaStackService', () => {
         ).rejects.toThrow('Network error');
       });
 
+      it('should handle streaming error from server', async () => {
+        const mockStreamData = jest.fn();
+
+        // Clear axios defaults to prevent interference with fetch headers
+        mockedAxios.defaults.headers.common = {};
+
+        const mockReader = {
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"delta": "Hello", "type": "response.output_text.delta"}\n',
+              ),
+            })
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"error":{"code":"500","message":"Streaming error occurred"}}\n',
+              ),
+            }),
+          cancel: jest.fn().mockResolvedValueOnce(undefined),
+          releaseLock: jest.fn(),
+        };
+
+        const mockResponse = {
+          ok: true,
+          body: {
+            getReader: () => mockReader,
+          },
+        };
+
+        mockFetch.mockResolvedValueOnce(mockResponse);
+
+        await expect(
+          createResponse(streamingRequest, testNamespace, mockStreamData),
+        ).rejects.toThrow('Streaming error occurred');
+
+        expect(mockStreamData).toHaveBeenCalledWith('Hello');
+        expect(mockStreamData).toHaveBeenCalledTimes(1);
+        expect(mockReader.cancel).toHaveBeenCalledWith('Streaming error');
+        // releaseLock is still called once in the finally block, which is correct
+        expect(mockReader.releaseLock).toHaveBeenCalledTimes(1);
+      });
+
+      it('should handle streaming error without message', async () => {
+        const mockStreamData = jest.fn();
+
+        // Clear axios defaults to prevent interference with fetch headers
+        mockedAxios.defaults.headers.common = {};
+
+        const mockReader = {
+          read: jest.fn().mockResolvedValueOnce({
+            done: false,
+            value: new TextEncoder().encode('data: {"error":{"code":"500"}}\n'),
+          }),
+          cancel: jest.fn().mockResolvedValueOnce(undefined),
+          releaseLock: jest.fn(),
+        };
+
+        const mockResponse = {
+          ok: true,
+          body: {
+            getReader: () => mockReader,
+          },
+        };
+
+        mockFetch.mockResolvedValueOnce(mockResponse);
+
+        await expect(
+          createResponse(streamingRequest, testNamespace, mockStreamData),
+        ).rejects.toThrow('An error occurred during streaming');
+
+        expect(mockStreamData).not.toHaveBeenCalled();
+        expect(mockReader.cancel).toHaveBeenCalledWith('Streaming error');
+        // releaseLock is still called once in the finally block, which is correct
+        expect(mockReader.releaseLock).toHaveBeenCalledTimes(1);
+      });
+
       it('should include axios headers in streaming request', async () => {
         const mockStreamData = jest.fn();
 
@@ -724,7 +805,11 @@ describe('llamaStackService', () => {
 
   describe('installLSD', () => {
     const project = 'test-project';
-    const models = ['model-1', 'model-2', 'model-3'];
+    const models = [
+      { model_name: 'model-1', is_maas_model: false },
+      { model_name: 'model-2', is_maas_model: false },
+      { model_name: 'model-3', is_maas_model: true },
+    ];
 
     it('should install LSD successfully', async () => {
       const mockResponse = { data: { data: mockLlamaStackDistribution } };
@@ -781,6 +866,167 @@ describe('llamaStackService', () => {
         `/gen-ai/api/v1/lsd/install?namespace=${project}`,
         { models: [] },
       );
+    });
+
+    it('should handle MaaS models', async () => {
+      const maasModels = [
+        { model_name: 'maas-model-1', is_maas_model: true },
+        { model_name: 'regular-model', is_maas_model: false },
+      ];
+      const mockResponse = { data: { data: mockLlamaStackDistribution } };
+      mockedAxios.post.mockResolvedValueOnce(mockResponse);
+
+      const result = await installLSD(project, maasModels);
+
+      expect(result).toEqual(mockLlamaStackDistribution);
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        `/gen-ai/api/v1/lsd/install?namespace=${project}`,
+        { models: maasModels },
+      );
+    });
+  });
+
+  describe('getMaaSModels', () => {
+    it('should fetch MaaS models successfully', async () => {
+      const mockMaaSModels = [
+        {
+          id: 'granite-7b-lab',
+          object: 'model',
+          created: 1672531200,
+          owned_by: 'model-namespace',
+          ready: true,
+          url: 'http://granite-7b-lab.openshift-ai-inference-tier-premium.svc.cluster.local',
+        },
+        {
+          id: 'llama-2-7b-chat',
+          object: 'model',
+          created: 1672531200,
+          owned_by: 'model-namespace',
+          ready: true,
+          url: 'http://llama-2-7b-chat.openshift-ai-inference-tier-premium.svc.cluster.local',
+        },
+      ];
+      const mockResponse = { data: { data: mockMaaSModels } };
+      mockedAxios.get.mockResolvedValueOnce(mockResponse);
+
+      const result = await getMaaSModels(testNamespace);
+
+      expect(result).toEqual(mockMaaSModels);
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        `/gen-ai/api/v1/maas/models?namespace=${testNamespace}`,
+      );
+    });
+
+    it('should handle empty MaaS models response', async () => {
+      const mockResponse = { data: { data: null } };
+      mockedAxios.get.mockResolvedValueOnce(mockResponse);
+
+      const result = await getMaaSModels(testNamespace);
+
+      expect(result).toEqual([]);
+    });
+
+    it('should handle API error with error message', async () => {
+      const mockError = {
+        response: {
+          data: {
+            error: {
+              message: 'MaaS service unavailable',
+            },
+          },
+        },
+      };
+      mockedAxios.get.mockRejectedValueOnce(mockError);
+
+      await expect(getMaaSModels(testNamespace)).rejects.toThrow('MaaS service unavailable');
+    });
+
+    it('should handle network error', async () => {
+      const mockError = new Error('Network error');
+      mockedAxios.get.mockRejectedValueOnce(mockError);
+
+      await expect(getMaaSModels(testNamespace)).rejects.toThrow('Network error');
+    });
+
+    it('should handle error without response', async () => {
+      const mockError = {};
+      mockedAxios.get.mockRejectedValueOnce(mockError);
+
+      await expect(getMaaSModels(testNamespace)).rejects.toThrow('Failed to fetch MaaS models');
+    });
+  });
+
+  describe('getAAModels', () => {
+    it('should fetch AA models successfully', async () => {
+      const mockAAModels = [
+        {
+          model_name: 'granite-7b-code',
+          model_id: 'granite-7b-code',
+          serving_runtime: 'OpenVINO Model Server',
+          api_protocol: 'v2',
+          version: 'v2025.1',
+          description: 'IBM Granite 7B model specialized for code generation tasks',
+          usecase: 'Code generation',
+          endpoints: [
+            'internal: http://granite-7b-code.test-namespace.svc.cluster.local:8080',
+            'external: https://granite-7b-code-test-namespace.example.com',
+          ],
+          status: 'Running',
+          display_name: 'Granite 7B code',
+          sa_token: {
+            name: 'granite-7b-code-sa',
+            token_name: 'granite-7b-code-sa-token-abcde',
+            token: 'token-value',
+          },
+        },
+      ];
+      const mockResponse = { data: { data: mockAAModels } };
+      mockedAxios.get.mockResolvedValueOnce(mockResponse);
+
+      const result = await getAAModels(testNamespace);
+
+      expect(result).toEqual(mockAAModels);
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        `/gen-ai/api/v1/aaa/models?namespace=${testNamespace}`,
+      );
+    });
+
+    it('should handle empty AA models response', async () => {
+      const mockResponse = { data: { data: null } };
+      mockedAxios.get.mockResolvedValueOnce(mockResponse);
+
+      const result = await getAAModels(testNamespace);
+
+      expect(result).toEqual([]);
+    });
+
+    it('should handle API error with error message', async () => {
+      const mockError = {
+        response: {
+          data: {
+            error: {
+              message: 'AA models not found',
+            },
+          },
+        },
+      };
+      mockedAxios.get.mockRejectedValueOnce(mockError);
+
+      await expect(getAAModels(testNamespace)).rejects.toThrow('AA models not found');
+    });
+
+    it('should handle network error', async () => {
+      const mockError = new Error('Network error');
+      mockedAxios.get.mockRejectedValueOnce(mockError);
+
+      await expect(getAAModels(testNamespace)).rejects.toThrow('Network error');
+    });
+
+    it('should handle error without response', async () => {
+      const mockError = {};
+      mockedAxios.get.mockRejectedValueOnce(mockError);
+
+      await expect(getAAModels(testNamespace)).rejects.toThrow('Failed to fetch AA models');
     });
   });
 

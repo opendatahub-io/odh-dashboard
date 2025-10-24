@@ -3,10 +3,37 @@ export enum ModelCatalogStringFilterKey {
   PROVIDER = 'provider',
   LICENSE = 'license',
   LANGUAGE = 'language',
+  HARDWARE_TYPE = 'hardware_type',
+  USE_CASE = 'use_case',
 }
 
 export enum ModelCatalogNumberFilterKey {
-  // TODO add number filters here
+  MIN_RPS = 'rps_mean',
+  MAX_LATENCY = 'ttft_mean',
+}
+
+export enum LatencyMetric {
+  E2E = 'E2E', // End to End
+  TTFT = 'TTFT', // Time To First Token
+  TPS = 'TPS', // Tokens Per Second
+  ITL = 'ITL', // Inter Token Latency
+}
+
+export enum LatencyPercentile {
+  Mean = 'Mean',
+  P90 = 'P90',
+  P95 = 'P95',
+  P99 = 'P99',
+}
+
+// Use getLatencyFieldName util to get values of this type
+export type LatencyMetricFieldName = `${Lowercase<LatencyMetric>}_${Lowercase<LatencyPercentile>}`;
+
+export enum UseCaseOptionValue {
+  CHATBOT = 'chatbot',
+  CODE_FIXING = 'code_fixing',
+  LONG_RAG = 'long_rag',
+  RAG = 'rag',
 }
 
 export enum ModelCatalogTask {

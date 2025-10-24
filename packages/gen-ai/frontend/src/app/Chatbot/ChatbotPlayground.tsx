@@ -13,12 +13,14 @@ import {
 import { useLocation } from 'react-router-dom';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
+import { isLlamaModelEnabled } from '~/app/utilities';
 import { DEFAULT_SYSTEM_INSTRUCTIONS, FILE_UPLOAD_CONFIG, ERROR_MESSAGES } from './const';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
 import useAlertManagement from './hooks/useAlertManagement';
 import useChatbotMessages from './hooks/useChatbotMessages';
 import useFileManagement from './hooks/useFileManagement';
+import useDarkMode from './hooks/useDarkMode';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
@@ -40,6 +42,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     models,
     modelsLoaded,
     aiModels,
+    maasModels,
     selectedModel,
     setSelectedModel,
     lastInput,
@@ -51,6 +54,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   );
   const [isStreamingEnabled, setIsStreamingEnabled] = React.useState<boolean>(true);
   const [temperature, setTemperature] = React.useState<number>(0.1);
+  const isDarkMode = useDarkMode();
 
   const location = useLocation();
   const selectedAAModel = location.state?.model;
@@ -63,10 +67,23 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         // so that when refreshing the page, the selected model is not passed again
         window.history.replaceState({}, '');
       } else {
-        setSelectedModel(models[0].id);
+        const availableModels = models.filter((model) =>
+          isLlamaModelEnabled(model.id, aiModels, maasModels),
+        );
+        if (availableModels.length > 0) {
+          setSelectedModel(availableModels[0].id);
+        }
       }
     }
-  }, [modelsLoaded, models, selectedModel, setSelectedModel, aiModels, selectedAAModel]);
+  }, [
+    modelsLoaded,
+    models,
+    selectedModel,
+    setSelectedModel,
+    aiModels,
+    maasModels,
+    selectedAAModel,
+  ]);
 
   // Custom hooks for managing different aspects of the chatbot
   const alertManagement = useAlertManagement();
@@ -148,7 +165,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         isOpen={sourceManagement.isSourceSettingsOpen}
         onToggle={sourceManagement.handleModalClose}
         onSubmitSettings={sourceManagement.handleSourceSettingsSubmit}
-        filename={sourceManagement.currentFileForSettings?.name}
         pendingFiles={sourceManagement.pendingFiles}
         isUploading={sourceManagement.isUploading}
         uploadProgress={sourceManagement.uploadProgress}
@@ -159,17 +175,24 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         input={lastInput}
         model={selectedModel}
         systemInstruction={systemInstruction}
+        files={fileManagement.files}
       />
       <Drawer isExpanded isInline position="right">
         <Divider />
         <DrawerContent panelContent={settingsPanelContent}>
           <DrawerContentBody>
             <Chatbot displayMode={ChatbotDisplayMode.embedded} data-testid="chatbot">
-              <ChatbotContent>
+              <ChatbotContent
+                style={{
+                  backgroundColor: isDarkMode
+                    ? 'var(--pf-t--global--dark--background--color--100)'
+                    : 'var(--pf-t--global--background--color--100)',
+                }}
+              >
                 <MessageBox position="bottom">
                   <ChatbotWelcomePrompt
                     title={username ? `Hello, ${username}` : 'Hello'}
-                    description="Welcome to the chat playground"
+                    description="Welcome to the model playground."
                   />
                   <ChatbotMessages
                     messageList={chatbotMessages.messages}
@@ -179,67 +202,84 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   />
                 </MessageBox>
               </ChatbotContent>
-              <ChatbotFooter>
-                <MessageBar
-                  onSendMessage={(message) => {
-                    if (typeof message === 'string') {
-                      chatbotMessages.handleMessageSend(message);
-                      setLastInput(message);
-                    }
+              <ChatbotFooter
+                style={{
+                  backgroundColor: isDarkMode
+                    ? 'var(--pf-t--global--dark--background--color--100)'
+                    : 'var(--pf-t--global--background--color--100)',
+                  borderTop: '1px solid var(--pf-t--global--border--color--default)',
+                  paddingTop: '1rem',
+                }}
+              >
+                <div
+                  style={{
+                    border: isDarkMode
+                      ? 'none'
+                      : '1px solid var(--pf-t--global--border--color--default)',
+                    borderRadius: '2.25rem',
                   }}
-                  hasAttachButton={false}
-                  isSendButtonDisabled={chatbotMessages.isMessageSendButtonDisabled}
-                  data-testid="chatbot-message-bar"
-                  onAttach={async (acceptedFiles, fileRejections, event) => {
-                    try {
-                      // Use the existing source upload functionality
-                      await sourceManagement.handleSourceDrop(event, acceptedFiles);
-                    } catch (error) {
-                      // Handle any unexpected errors during file processing
-                      const errorMessage =
-                        error instanceof Error ? error.message : 'Unknown error occurred';
+                >
+                  <MessageBar
+                    onSendMessage={(message) => {
+                      if (typeof message === 'string') {
+                        chatbotMessages.handleMessageSend(message);
+                        setLastInput(message);
+                      }
+                    }}
+                    hasAttachButton={false}
+                    isSendButtonDisabled={chatbotMessages.isMessageSendButtonDisabled}
+                    data-testid="chatbot-message-bar"
+                    onAttach={async (acceptedFiles, fileRejections, event) => {
+                      try {
+                        // Use the existing source upload functionality
+                        await sourceManagement.handleSourceDrop(event, acceptedFiles);
+                      } catch (error) {
+                        // Handle any unexpected errors during file processing
+                        const errorMessage =
+                          error instanceof Error ? error.message : 'Unknown error occurred';
+                        alertManagement.onShowErrorAlert(
+                          `Failed to process files: ${errorMessage}`,
+                          'File Upload Error',
+                        );
+                      }
+                    }}
+                    onAttachRejected={(fileRejections) => {
+                      // Handle file rejection errors with specific error types
+                      const errorMessages = fileRejections
+                        .map((rejection) => {
+                          const fileErrors = rejection.errors.map((error) => {
+                            switch (error.code) {
+                              case 'file-too-large':
+                                return ERROR_MESSAGES.FILE_TOO_LARGE;
+                              case 'too-many-files':
+                                return ERROR_MESSAGES.TOO_MANY_FILES;
+                              case 'file-invalid-type':
+                                return `File type not supported. Accepted types: ${FILE_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS}`;
+                              default:
+                                return error.message;
+                            }
+                          });
+                          return `${rejection.file.name}: ${fileErrors.join(', ')}`;
+                        })
+                        .join('; ');
+
                       alertManagement.onShowErrorAlert(
-                        `Failed to process files: ${errorMessage}`,
+                        `${ERROR_MESSAGES.FILE_UPLOAD_REJECTED}: ${errorMessages}`,
                         'File Upload Error',
                       );
-                    }
-                  }}
-                  onAttachRejected={(fileRejections) => {
-                    // Handle file rejection errors with specific error types
-                    const errorMessages = fileRejections
-                      .map((rejection) => {
-                        const fileErrors = rejection.errors.map((error) => {
-                          switch (error.code) {
-                            case 'file-too-large':
-                              return ERROR_MESSAGES.FILE_TOO_LARGE;
-                            case 'too-many-files':
-                              return ERROR_MESSAGES.TOO_MANY_FILES;
-                            case 'file-invalid-type':
-                              return `File type not supported. Accepted types: ${FILE_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS}`;
-                            default:
-                              return error.message;
-                          }
-                        });
-                        return `${rejection.file.name}: ${fileErrors.join(', ')}`;
-                      })
-                      .join('; ');
-
-                    alertManagement.onShowErrorAlert(
-                      `${ERROR_MESSAGES.FILE_UPLOAD_REJECTED}: ${errorMessages}`,
-                      'File Upload Error',
-                    );
-                  }}
-                  allowedFileTypes={FILE_UPLOAD_CONFIG.ALLOWED_FILE_TYPES}
-                  maxSize={FILE_UPLOAD_CONFIG.MAX_FILE_SIZE}
-                  maxFiles={FILE_UPLOAD_CONFIG.MAX_FILES_IN_VECTOR_STORE}
-                  buttonProps={{
-                    attach: {
-                      tooltipContent: `Upload files (${FILE_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS}, max ${FILE_UPLOAD_CONFIG.MAX_FILE_SIZE / (1024 * 1024)}MB)`,
-                      inputTestId: 'chatbot-attach-input',
-                    },
-                  }}
-                />
-                <ChatbotFootnote {...{ label: 'Bot uses AI. Check for mistakes.' }} />
+                    }}
+                    allowedFileTypes={FILE_UPLOAD_CONFIG.ALLOWED_FILE_TYPES}
+                    maxSize={FILE_UPLOAD_CONFIG.MAX_FILE_SIZE}
+                    maxFiles={FILE_UPLOAD_CONFIG.MAX_FILES_IN_VECTOR_STORE}
+                    buttonProps={{
+                      attach: {
+                        tooltipContent: `Upload files (${FILE_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS}, max ${FILE_UPLOAD_CONFIG.MAX_FILE_SIZE / (1024 * 1024)}MB)`,
+                        inputTestId: 'chatbot-attach-input',
+                      },
+                    }}
+                  />
+                </div>
+                <ChatbotFootnote {...{ label: 'This chatbot uses AI. Check for mistakes.' }} />
               </ChatbotFooter>
             </Chatbot>
           </DrawerContentBody>

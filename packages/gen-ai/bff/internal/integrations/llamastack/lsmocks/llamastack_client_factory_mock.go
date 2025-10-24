@@ -1,6 +1,8 @@
 package lsmocks
 
 import (
+	"crypto/x509"
+
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 )
 
@@ -19,8 +21,8 @@ func (f *MockClientFactory) SetMockClient(client *MockLlamaStackClient) {
 	f.mockClient = client
 }
 
-// CreateClient creates a new mock LlamaStack client (ignores baseURL for mocks)
-func (f *MockClientFactory) CreateClient(baseURL string) llamastack.LlamaStackClientInterface {
+// CreateClient creates a new mock LlamaStack client (ignores all parameters since it's a mock)
+func (f *MockClientFactory) CreateClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) llamastack.LlamaStackClientInterface {
 	if f.mockClient != nil {
 		return f.mockClient
 	}

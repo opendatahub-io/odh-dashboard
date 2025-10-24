@@ -38,7 +38,7 @@ export const extractEnvironmentVariables = (
     enabled: envVars.length > 0,
     variables: envVars.map((envVar) => ({
       name: envVar.name,
-      value: envVar.value || '',
+      value: envVar.value ?? '',
     })),
   };
 };
@@ -55,6 +55,14 @@ export const applyHardwareProfileToDeployment = (
     ...result.metadata.annotations,
     'opendatahub.io/hardware-profile-name': hardwareProfileName,
     'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
+  };
+
+  result.spec.predictor.model = {
+    ...result.spec.predictor.model,
+    resources: {
+      ...result.spec.predictor.model?.resources,
+      ...hardwareProfile.resources,
+    },
   };
 
   return result;

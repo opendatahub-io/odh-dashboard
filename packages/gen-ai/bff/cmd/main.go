@@ -15,6 +15,9 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/api"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 func main() {
@@ -37,6 +40,7 @@ func main() {
 	flag.StringVar(&cfg.AuthTokenPrefix, "auth-token-prefix", getEnvAsString("AUTH_TOKEN_PREFIX", config.DefaultAuthTokenPrefix), "Prefix used in the token header (e.g., 'Bearer ')")
 	flag.StringVar(&cfg.APIPathPrefix, "api-path-prefix", getEnvAsString("API_PATH_PREFIX", "/api/v1"), "API path prefix for BFF endpoints (e.g., /api/v1)")
 	flag.StringVar(&cfg.PathPrefix, "path-prefix", getEnvAsString("PATH_PREFIX", "/gen-ai"), "Path prefix for BFF endpoints (e.g., /gen-ai)")
+	flag.StringVar(&cfg.DistributionName, "distribution-name", getEnvAsString("DISTRIBUTION_NAME", "rh-dev"), "Custom distribution name/image")
 
 	// Llama Stack configuration
 	flag.StringVar(&cfg.LlamaStackURL, "llama-stack-url", getEnvAsString("LLAMA_STACK_URL", ""), "Llama Stack server URL for proxying requests")
@@ -47,7 +51,28 @@ func main() {
 	// Filter models configuration
 	flag.Func("filtered-model-keywords", "Filter models by keywords (comma-separated list)", newKeywordParser(&cfg.FilteredModelKeywords, getEnvAsString("FILTERED_MODEL_KEYWORDS", "")))
 
+	// TLS configuration
+	flag.Func("bundle-paths", "CA bundle file paths (comma-separated list)", newBundlePathParser(&cfg.BundlePaths, getEnvAsString("BUNDLE_PATHS", "")))
+	flag.BoolVar(&cfg.InsecureSkipVerify, "insecure-skip-verify", getEnvAsBool("INSECURE_SKIP_VERIFY", false), "Skip TLS certificate verification")
+
+	// Initialize klog flags before parsing
+	klog.InitFlags(nil)
+
 	flag.Parse()
+
+	if cfg.LogLevel == slog.LevelDebug {
+		log.SetLogger(zap.New(zap.UseDevMode(true)))
+		klog.SetLogger(log.Log)
+		if err := flag.Set("v", "4"); err != nil {
+			fmt.Println("failed to set klog verbosity", "error", err)
+		}
+	} else {
+		log.SetLogger(zap.New(zap.UseDevMode(false)))
+		klog.SetLogger(log.Log)
+		if err := flag.Set("v", "1"); err != nil {
+			fmt.Println("failed to set klog verbosity", "error", err)
+		}
+	}
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: cfg.LogLevel,
@@ -66,8 +91,8 @@ func main() {
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
 		Handler:      app.Routes(),
 		IdleTimeout:  time.Minute,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
+		ReadTimeout:  8 * time.Minute, // Allow larger file uploads (up to 10MB)
+		WriteTimeout: 8 * time.Minute, // Allow longer processing time for large PDFs
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 

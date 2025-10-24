@@ -2,9 +2,11 @@ package api
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 	"path"
 	"strings"
 
@@ -23,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/gen-ai/internal/cache"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
@@ -38,10 +41,47 @@ type App struct {
 	maasClientFactory       maas.MaaSClientFactory
 	mcpClientFactory        mcp.MCPClientFactory
 	dashboardNamespace      string
+	memoryStore             cache.MemoryStore
+	rootCAs                 *x509.CertPool
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
-	logger.Info("Initializing app with config", slog.Any("config", cfg))
+	logger.Debug("Initializing app with config", slog.Any("config", cfg))
+	var rootCAs *x509.CertPool
+
+	// Initialize CA pool if bundle paths are provided
+	if len(cfg.BundlePaths) > 0 {
+		// Start with system certs if available
+		if pool, err := x509.SystemCertPool(); err == nil {
+			rootCAs = pool
+		} else {
+			rootCAs = x509.NewCertPool()
+		}
+		var loadedAny bool
+		for _, p := range cfg.BundlePaths {
+			p = strings.TrimSpace(p)
+			if p == "" {
+				continue
+			}
+			// Read and append each PEM bundle; ignore errors per file, log at debug
+			pemBytes, readErr := os.ReadFile(p)
+			if readErr != nil {
+				logger.Debug("CA bundle not readable, skipping", slog.String("path", p), slog.Any("error", readErr))
+				continue
+			}
+			if ok := rootCAs.AppendCertsFromPEM(pemBytes); !ok {
+				logger.Debug("No certs appended from PEM bundle", slog.String("path", p))
+				continue
+			}
+			loadedAny = true
+			logger.Info("Added CA bundle", slog.String("path", p))
+		}
+		if !loadedAny {
+			// If none were loaded successfully, keep rootCAs nil to fall back to default transport behavior
+			rootCAs = nil
+			logger.Warn("No CA certificates loaded from bundle-paths; falling back to system defaults")
+		}
+	}
 
 	// Detect dashboard namespace
 	dashboardNamespace, err := helper.GetCurrentNamespace()
@@ -109,11 +149,15 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		mcpFactory = mcpmocks.NewMockedMCPClientFactory(cfg, logger)
 	} else {
 		var err error
-		mcpFactory, err = mcp.NewMCPClientFactory(cfg, logger)
+		mcpFactory, err = mcp.NewMCPClientFactory(cfg, logger, cfg.InsecureSkipVerify, rootCAs)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create MCP client factory: %w", err)
 		}
 	}
+
+	// Initialize shared memory store for caching (10 minute cleanup interval)
+	memStore := cache.NewMemoryStore()
+	logger.Info("Initialized shared memory store")
 
 	app := &App{
 		config:                  cfg,
@@ -125,6 +169,8 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		maasClientFactory:       maasClientFactory,
 		mcpClientFactory:        mcpFactory,
 		dashboardNamespace:      dashboardNamespace,
+		memoryStore:             memStore,
+		rootCAs:                 rootCAs,
 	}
 	return app, nil
 }
@@ -160,62 +206,62 @@ func (app *App) Routes() http.Handler {
 	// LlamaStack API routes
 
 	// Models (LlamaStack)
-	apiRouter.GET(constants.ModelsListPath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.AttachLlamaStackClient(app.LlamaStackModelsHandler)))))
+	apiRouter.GET(constants.ModelsListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackModelsHandler))))
 
 	// Responses (LlamaStack)
-	apiRouter.POST(constants.ResponsesPath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.AttachLlamaStackClient(app.LlamaStackCreateResponseHandler)))))
+	apiRouter.POST(constants.ResponsesPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.AttachLlamaStackClient(app.LlamaStackCreateResponseHandler)))))
 
 	// Vector Stores (LlamaStack)
-	apiRouter.GET(constants.VectorStoresListPath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.AttachLlamaStackClient(app.LlamaStackListVectorStoresHandler)))))
-	apiRouter.POST(constants.VectorStoresListPath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.AttachLlamaStackClient(app.LlamaStackCreateVectorStoreHandler)))))
-	apiRouter.DELETE(constants.VectorStoresDeletePath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.AttachLlamaStackClient(app.LlamaStackDeleteVectorStoreHandler)))))
+	apiRouter.GET(constants.VectorStoresListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackListVectorStoresHandler))))
+	apiRouter.POST(constants.VectorStoresListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackCreateVectorStoreHandler))))
+	apiRouter.DELETE(constants.VectorStoresDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackDeleteVectorStoreHandler))))
 
 	// Files (LlamaStack)
-	apiRouter.GET(constants.FilesListPath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.AttachLlamaStackClient(app.LlamaStackListFilesHandler)))))
-	apiRouter.POST(constants.FilesUploadPath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.AttachLlamaStackClient(app.LlamaStackUploadFileHandler)))))
-	apiRouter.DELETE(constants.FilesDeletePath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.AttachLlamaStackClient(app.LlamaStackDeleteFileHandler)))))
+	apiRouter.GET(constants.FilesListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackListFilesHandler))))
+	apiRouter.POST(constants.FilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackUploadFileHandler))))
+	apiRouter.DELETE(constants.FilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackDeleteFileHandler))))
 
 	// Vector Store Files (LlamaStack)
-	apiRouter.GET(constants.VectorStoreFilesListPath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.AttachLlamaStackClient(app.LlamaStackListVectorStoreFilesHandler)))))
-	apiRouter.POST(constants.VectorStoreFilesUploadPath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.AttachLlamaStackClient(app.LlamaStackUploadFileHandler))))) // Alias to FilesUploadPath
-	apiRouter.DELETE(constants.VectorStoreFilesDeletePath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.AttachLlamaStackClient(app.LlamaStackDeleteVectorStoreFileHandler)))))
+	apiRouter.GET(constants.VectorStoreFilesListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackListVectorStoreFilesHandler))))
+	apiRouter.POST(constants.VectorStoreFilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackUploadFileHandler)))) // Alias to FilesUploadPath
+	apiRouter.DELETE(constants.VectorStoreFilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackDeleteVectorStoreFileHandler))))
 
 	// Code Exporter (Template-only)
-	apiRouter.POST(constants.CodeExporterPath, app.RequireAccessToService(app.AttachNamespace(app.CodeExporterHandler)))
+	apiRouter.POST(constants.CodeExporterPath, app.AttachNamespace(app.RequireAccessToService(app.CodeExporterHandler)))
 
 	// Kubernetes routes
 
 	// AI Assets Models (Kubernetes)
-	apiRouter.GET(constants.ModelsAAPath, app.RequireAccessToService(app.AttachNamespace(app.ModelsAAHandler)))
+	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.RequireAccessToService(app.ModelsAAHandler)))
 
 	// Settings path namespace endpoints. This endpoint will get all the namespaces
-	apiRouter.GET(constants.NamespacesPath, app.RequireAccessToService(app.GetNamespaceHandler))
+	apiRouter.GET(constants.NamespacesPath, app.RequireAccessToService(app.RequireNamespaceListAccess(app.GetNamespaceHandler)))
 
 	// Identity
 	apiRouter.GET(constants.UserPath, app.RequireAccessToService(app.GetCurrentUserHandler))
 
 	// Llama Stack Distribution status endpoint
-	apiRouter.GET(constants.LlamaStackDistributionStatusPath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.LlamaStackDistributionStatusHandler))))
+	apiRouter.GET(constants.LlamaStackDistributionStatusPath, app.AttachNamespace(app.RequireAccessToService(app.LlamaStackDistributionStatusHandler)))
 
 	// Llama Stack Distribution install endpoint
-	apiRouter.POST(constants.LlamaStackDistributionInstallPath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.LlamaStackDistributionInstallHandler))))
+	apiRouter.POST(constants.LlamaStackDistributionInstallPath, app.AttachMaaSClient(app.AttachNamespace(app.RequireAccessToService(app.LlamaStackDistributionInstallHandler))))
 
 	// Llama Stack Distribution delete endpoint
-	apiRouter.DELETE(constants.LlamaStackDistributionDeletePath, app.RequireAccessToService(app.AttachNamespace(app.RequireLlamaStackAccess(app.LlamaStackDistributionDeleteHandler))))
+	apiRouter.DELETE(constants.LlamaStackDistributionDeletePath, app.AttachNamespace(app.RequireAccessToService(app.LlamaStackDistributionDeleteHandler)))
 
 	// MCP Client endpoints
-	apiRouter.GET(constants.MCPToolsPath, app.RequireAccessToService(app.MCPToolsHandler))
-	apiRouter.GET(constants.MCPStatusPath, app.RequireAccessToService(app.MCPStatusHandler))
-	apiRouter.GET(constants.MCPServersListPath, app.RequireAccessToService(app.MCPListHandler))
+	apiRouter.GET(constants.MCPToolsPath, app.AttachNamespace(app.RequireAccessToService(app.MCPToolsHandler)))
+	apiRouter.GET(constants.MCPStatusPath, app.AttachNamespace(app.RequireAccessToService(app.MCPStatusHandler)))
+	apiRouter.GET(constants.MCPServersListPath, app.AttachNamespace(app.RequireAccessToService(app.MCPListHandler)))
 
 	// MaaS API routes
 
 	// Models (MaaS)
-	apiRouter.GET(constants.MaaSModelsPath, app.RequireAccessToService(app.AttachMaaSClient(app.MaaSModelsHandler)))
+	apiRouter.GET(constants.MaaSModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSModelsHandler))))
 
 	// Tokens (MaaS)
-	apiRouter.POST(constants.MaaSTokensPath, app.RequireAccessToService(app.AttachMaaSClient(app.MaaSIssueTokenHandler)))
-	apiRouter.DELETE(constants.MaaSTokensPath, app.RequireAccessToService(app.AttachMaaSClient(app.MaaSRevokeAllTokensHandler)))
+	apiRouter.POST(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSIssueTokenHandler))))
+	apiRouter.DELETE(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSRevokeAllTokensHandler))))
 
 	// App Router
 	appMux := http.NewServeMux()

@@ -32,7 +32,7 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
           onDataChange={wizardState.state.k8sNameDesc.onDataChange}
           dataTestId="model-deployment"
           nameLabel="Model deployment name"
-          nameHelperText="This is the name of the inference service created when the model is deployed." // TODO: make this non-Kserve specific
+          nameHelperTextAbove="Name this deployment. This name is also used for the inference service created when the model is deployed."
         />
         <ModelServingHardwareProfileSection
           project={projectName}

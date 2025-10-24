@@ -4,7 +4,7 @@ import { AIModel } from '~/app/types';
 export const aiModelColumns: SortableData<AIModel>[] = [
   {
     field: 'model_name',
-    label: 'Model',
+    label: 'Model deployment name',
     sortable: true,
     width: 25,
   },
@@ -22,7 +22,7 @@ export const aiModelColumns: SortableData<AIModel>[] = [
   },
   {
     field: 'usecase',
-    label: 'Use Case',
+    label: 'Use case',
     sortable: false,
     width: 15,
   },

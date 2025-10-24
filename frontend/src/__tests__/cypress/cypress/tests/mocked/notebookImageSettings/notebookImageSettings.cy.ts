@@ -13,11 +13,7 @@ import {
   asProjectAdminUser,
 } from '#~/__tests__/cypress/cypress/utils/mockUsers';
 import { testPagination } from '#~/__tests__/cypress/cypress/utils/pagination';
-import {
-  AcceleratorProfileModel,
-  HardwareProfileModel,
-  ImageStreamModel,
-} from '#~/__tests__/cypress/cypress/utils/models';
+import { HardwareProfileModel, ImageStreamModel } from '#~/__tests__/cypress/cypress/utils/models';
 import {
   mock200Status,
   mock403Error,
@@ -26,7 +22,6 @@ import {
   mockK8sResourceList,
 } from '#~/__mocks__';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
-import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
 import {
   IdentifierResourceType,
   ImageStreamAnnotation,
@@ -348,12 +343,7 @@ describe('Workbench image settings', () => {
       ]),
     );
 
-    cy.interceptOdh(
-      'GET /api/config',
-      mockDashboardConfig({
-        disableHardwareProfiles: false,
-      }),
-    );
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
 
     cy.interceptK8s(
       'PUT',
@@ -428,17 +418,6 @@ describe('Workbench image settings', () => {
       { model: ImageStreamModel, ns: 'opendatahub', name: 'byon-123' },
       expectedImageStream,
     ).as('getNotebookImage');
-
-    cy.interceptK8sList(
-      { model: AcceleratorProfileModel, ns: 'opendatahub' },
-      mockK8sResourceList([
-        mockAcceleratorProfile({
-          name: 'test-accelerator-profile',
-          displayName: 'Test Accelerator Profile',
-          identifier: 'test-accelerator-profile',
-        }),
-      ]),
-    );
 
     cy.interceptK8sList(
       { model: HardwareProfileModel, ns: 'opendatahub' },
@@ -732,15 +711,6 @@ describe('Workbench image settings', () => {
       cy.url().should(
         'include',
         '/settings/environment-setup/workbench-images/hardware-profile/create',
-      );
-    });
-
-    it('accelerator profile create', () => {
-      cy.visitWithLogin('/workbenchImages/acceleratorProfile/create');
-      cy.findByTestId('app-page-title').contains('Create accelerator profile');
-      cy.url().should(
-        'include',
-        '/settings/environment-setup/workbench-images/accelerator-profile/create',
       );
     });
   });

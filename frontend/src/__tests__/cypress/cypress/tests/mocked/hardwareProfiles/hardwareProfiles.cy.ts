@@ -6,9 +6,7 @@ import {
   SelfSubjectAccessReviewModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { mock200Status, mockDashboardConfig, mockK8sResourceList } from '#~/__mocks__';
-import { be } from '#~/__tests__/cypress/cypress/utils/should';
 import { asProductAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
-import { testPagination } from '#~/__tests__/cypress/cypress/utils/pagination';
 import { IdentifierResourceType, SchedulingType } from '#~/types';
 import { mockSelfSubjectAccessReview } from '#~/__mocks__/mockSelfSubjectAccessReview';
 
@@ -40,53 +38,6 @@ describe('Hardware Profile', () => {
   });
 
   describe('main table', () => {
-    it('table sorting and pagination', () => {
-      const totalItems = 50;
-      cy.interceptK8sList(
-        { model: HardwareProfileModel, ns: 'opendatahub' },
-        mockK8sResourceList(
-          Array.from({ length: totalItems }, (_, i) =>
-            mockHardwareProfile({
-              name: `test-hardware-profile-${i}`,
-              displayName: `Test Hardware Profile - ${i}`,
-              description: `hardware profile ${i}`,
-            }),
-          ),
-        ),
-      );
-      hardwareProfile.visit();
-      const tableRow = hardwareProfile.getRow('Test Hardware Profile - 0');
-      tableRow.findDescription().contains('hardware profile 0');
-
-      // top pagination
-      testPagination({
-        totalItems,
-        firstElement: 'Test Hardware Profile - 0',
-        paginationVariant: 'top',
-      });
-
-      // bottom pagination
-      testPagination({
-        totalItems,
-        firstElement: 'Test Hardware Profile - 0',
-        paginationVariant: 'bottom',
-      });
-
-      //sort by Name
-      hardwareProfile.findTableHeaderButton('Name').click();
-      hardwareProfile.findTableHeaderButton('Name').should(be.sortAscending);
-      hardwareProfile.findTableHeaderButton('Name').click();
-      hardwareProfile.findTableHeaderButton('Name').should(be.sortDescending);
-
-      // sort by last modified
-      hardwareProfile.findTableHeaderButton('Last modified').click();
-      hardwareProfile.findTableHeaderButton('Last modified').should(be.sortAscending);
-      hardwareProfile.findTableHeaderButton('Last modified').click();
-      hardwareProfile.findTableHeaderButton('Last modified').should(be.sortDescending);
-
-      hardwareProfile.findCreateButton().should('be.enabled');
-    });
-
     it('table filtering and searching ', () => {
       initIntercepts();
       hardwareProfile.visit();
@@ -623,7 +574,7 @@ describe('hardware profiles - empty state', () => {
       mockSelfSubjectAccessReview({
         verb: 'create',
         resource: 'hardwareprofiles',
-        group: 'dashboard.opendatahub.io',
+        group: 'infrastructure.opendatahub.io',
         allowed: false,
       }),
     ).as('selfSubjectAccessReviewsCall');

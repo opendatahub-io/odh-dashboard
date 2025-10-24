@@ -3,11 +3,15 @@ import {
   Dropdown,
   DropdownItem,
   DropdownList,
+  Icon,
   MenuToggle,
   MenuToggleElement,
+  Tooltip,
 } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
-import { getLlamaModelDisplayName } from '~/app/utilities';
+import { getLlamaModelDisplayName, isLlamaModelEnabled } from '~/app/utilities';
 
 interface ModelDetailsDropdownProps {
   selectedModel: string;
@@ -18,14 +22,18 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
   selectedModel,
   onModelChange,
 }) => {
-  const { models, aiModels } = React.useContext(ChatbotContext);
+  const { models, aiModels, maasModels } = React.useContext(ChatbotContext);
   const [isOpen, setIsOpen] = React.useState(false);
 
   const placeholder = models.length === 0 ? 'No models available' : 'Select a model';
   const onModelSelect = (value: string) => {
     setIsOpen(false);
     onModelChange(value);
+    fireMiscTrackingEvent('Playground Model Dropdown Option Selected', {
+      selectedModel: getLlamaModelDisplayName(value, aiModels),
+    });
   };
+
   return (
     <Dropdown
       isOpen={isOpen}
@@ -53,11 +61,31 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
       shouldFocusToggleOnSelect
     >
       <DropdownList style={{ maxHeight: '300px', overflowY: 'auto' }}>
-        {models.map((option) => (
-          <DropdownItem value={option.id} key={option.id}>
-            {getLlamaModelDisplayName(option.id, aiModels)}
-          </DropdownItem>
-        ))}
+        {models.map((option) => {
+          const isDisabled = !isLlamaModelEnabled(option.id, aiModels, maasModels);
+          return (
+            <DropdownItem
+              value={option.id}
+              key={option.id}
+              actions={
+                isDisabled ? (
+                  <Tooltip content="This model is unavailable. Check the model's deployment status and resolve any issues. Update the playground's configuration to refresh the list.">
+                    <Icon
+                      status="danger"
+                      iconSize="md"
+                      style={{ marginRight: 'var(--pf-t--global--spacer--md)' }}
+                    >
+                      <ExclamationCircleIcon />
+                    </Icon>
+                  </Tooltip>
+                ) : null
+              }
+              isAriaDisabled={isDisabled}
+            >
+              {getLlamaModelDisplayName(option.id, aiModels)}
+            </DropdownItem>
+          );
+        })}
       </DropdownList>
     </Dropdown>
   );

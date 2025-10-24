@@ -21,6 +21,7 @@ export const mockVectorStores: VectorStore[] = [
     metadata: {
       description: 'Test vector store for unit tests',
       category: 'test',
+      provider_id: 'test-provider-id',
     },
   },
   {
@@ -40,6 +41,7 @@ export const mockVectorStores: VectorStore[] = [
     },
     metadata: {
       description: 'Another test vector store',
+      provider_id: 'test-provider-id',
     },
   },
 ];

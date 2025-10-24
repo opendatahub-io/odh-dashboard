@@ -13,8 +13,8 @@ import type {
 } from '~/app/types';
 import type {
   CatalogFilterOptionsList,
-  CatalogModel,
   CatalogArtifactList,
+  CatalogModel,
   CatalogModelList,
   CatalogSourceList,
 } from '~/app/modelCatalogTypes';
@@ -142,7 +142,15 @@ declare global {
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/:apiVersion/model_catalog/models',
-          options: { path: { apiVersion: string }; query: { source: string } },
+          options: {
+            path: { apiVersion: string };
+            query: {
+              source?: string;
+              filterQuery?: string;
+              sourceLabel?: string;
+              searchKeyword?: string;
+            };
+          },
           response: ApiResponse<CatalogModelList>,
         ) => Cypress.Chainable<null>) &
         ((

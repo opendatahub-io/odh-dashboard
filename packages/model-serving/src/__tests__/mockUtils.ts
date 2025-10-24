@@ -144,6 +144,14 @@ export const mockDeploymentWizardState = (
           connectionTypes: [],
           connectionTypesLoaded: true,
         },
+        createConnectionData: {
+          data: {
+            saveConnection: true,
+            nameDesc: mockK8sNameDescriptionFieldData(),
+          },
+          setData: jest.fn(),
+          project: null,
+        },
         k8sNameDesc: {
           data: mockK8sNameDescriptionFieldData(),
           onDataChange: jest.fn(),
@@ -173,12 +181,12 @@ export const mockDeploymentWizardState = (
         externalRoute: {
           data: undefined,
           setData: jest.fn(),
-          updateField: jest.fn(),
+          isVisible: true,
         },
         tokenAuthentication: {
           data: undefined,
           setData: jest.fn(),
-          updateField: jest.fn(),
+          shouldAutoCheck: false,
         },
         runtimeArgs: {
           data: undefined,
@@ -192,7 +200,7 @@ export const mockDeploymentWizardState = (
           data: undefined,
           setReplicas: jest.fn(),
         },
-        aiAssetData: {
+        modelAvailability: {
           data: {
             saveAsAiAsset: false,
             useCase: '',
@@ -205,11 +213,19 @@ export const mockDeploymentWizardState = (
           options: [],
         },
       },
+      fieldExtensions: {
+        externalRouteFields: [],
+        tokenAuthFields: [],
+      },
       loaded: {
         modelSourceLoaded: true,
         modelDeploymentLoaded: true,
         advancedOptionsLoaded: true,
         summaryLoaded: true,
+      },
+      advancedOptions: {
+        isExternalRouteVisible: true,
+        shouldAutoCheckTokens: false,
       },
     },
     overrides,

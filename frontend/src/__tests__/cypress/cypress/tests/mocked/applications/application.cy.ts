@@ -139,7 +139,7 @@ describe('Application', () => {
     }).as('getData403');
 
     // Set up the sign-out intercept before visiting the page
-    cy.interceptOdh('GET /oauth/sign_out').as('signOut');
+    cy.interceptOdh('GET /oauth2/sign_out').as('signOut');
 
     // Visit the page where the request is triggered
     cy.visit('/');

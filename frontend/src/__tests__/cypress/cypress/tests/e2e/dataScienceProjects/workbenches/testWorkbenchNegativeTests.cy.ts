@@ -12,6 +12,10 @@ import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_co
 import { retryableBeforeEach } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 import { selectNotebookImageWithBackendFallback } from '#~/__tests__/cypress/cypress/utils/oc_commands/imageStreams';
+import {
+  cleanupHardwareProfiles,
+  createCleanHardwareProfile,
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/hardwareProfiles';
 
 describe('Workbenches - negative tests', () => {
   let testData: WBNegativeTestsData;
@@ -34,15 +38,25 @@ describe('Workbenches - negative tests', () => {
       })
       .then(() => {
         cy.log(`Project ${projectName} confirmed to be created and verified successfully`);
+        // Load Hardware Profile
+        cy.log(`Creating Hardware Profile: ${testData.hardwareProfileName}`);
+        // Cleanup Hardware Profile if it already exists
+        createCleanHardwareProfile(testData.resourceYamlPath);
       }),
   );
 
+  //Cleanup: Delete Hardware Profile and the associated Project
   after(() => {
-    // Delete provisioned Project
-    if (projectName) {
-      cy.log(`Deleting Project ${projectName} after the test has finished.`);
-      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
-    }
+    // Call cleanupHardwareProfiles - use testData.hardwareProfileName to match displayName
+    cy.log(`Cleaning up Hardware Profile: ${testData.hardwareProfileName}`);
+    return cleanupHardwareProfiles(testData.hardwareProfileName).then(() => {
+      // Delete provisioned Project
+      if (projectName) {
+        cy.log(`Deleting Project ${projectName} after the test has finished.`);
+        return deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+      }
+      return cy.wrap(null);
+    });
   });
 
   it(
@@ -72,8 +86,8 @@ describe('Workbenches - negative tests', () => {
         (imageStreamName) => {
           cy.log(`Selected imagestream: ${imageStreamName}`);
 
-          createSpawnerPage.findContainerSizeInput('Small').click();
-          cy.contains('X Large').click();
+          cy.step('Select the large Hardware Profile Created');
+          createSpawnerPage.selectHardwareProfile(testData.hardwareProfileName);
           createSpawnerPage.findSubmitButton().click();
 
           // Confirm that the Workbench does not start and is at Failed status

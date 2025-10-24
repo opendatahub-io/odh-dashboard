@@ -2,6 +2,11 @@ import * as React from 'react';
 import { EmptyState, Spinner, EmptyStateBody, EmptyStateVariant } from '@patternfly/react-core';
 import { CubesIcon, UnknownIcon } from '@patternfly/react-icons';
 import { useCheckboxTableBase, Table } from 'mod-arch-shared';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { getMCPServerStatus } from '~/app/services/llamaStackService';
 import { MCPServer } from '~/app/types';
 import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
@@ -17,6 +22,8 @@ import MCPServerToolsModal from './MCPServerToolsModal';
 interface MCPServersPanelProps {
   onSelectionChange?: (selectedServers: string[]) => void;
 }
+
+const MCP_AUTH_EVENT_NAME = 'Playground MCP Auth';
 
 const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) => {
   const { namespace } = React.useContext(GenAiContext);
@@ -131,6 +138,11 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
             return newMap;
           });
 
+          fireFormTrackingEvent(MCP_AUTH_EVENT_NAME, {
+            outcome: TrackingOutcome.submit,
+            success: true,
+          });
+
           return { success: true };
         }
         setServerTokens((prev) =>
@@ -142,10 +154,20 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
         );
         const errorMsg = status.error_details?.raw_error || status.message || 'Connection failed';
         setValidationErrors((prev) => new Map(prev).set(serverUrl, errorMsg));
+        fireFormTrackingEvent(MCP_AUTH_EVENT_NAME, {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: errorMsg,
+        });
         return { success: false, error: errorMsg };
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Validation failed';
         setValidationErrors((prev) => new Map(prev).set(serverUrl, errorMsg));
+        fireFormTrackingEvent(MCP_AUTH_EVENT_NAME, {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: errorMsg,
+        });
         return { success: false, error: errorMsg };
       } finally {
         setValidatingServers((prev) => {
@@ -161,6 +183,9 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
   const handleLockClick = React.useCallback(
     async (server: MCPServer) => {
       setCheckingServers((prev) => new Set(prev).add(server.connectionUrl));
+      fireMiscTrackingEvent('Playground MCP Start Auth', {
+        mcpServerName: server.name,
+      });
 
       try {
         const statusInfo = await checkServerStatus(server.connectionUrl);
@@ -200,12 +225,18 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
   const handleToolsClick = React.useCallback((server: MCPServer) => {
     setSelectedServerForTools(server);
     setToolsModalOpen(true);
+    fireMiscTrackingEvent('Playground MCP View Tools', {
+      mcpServerName: server.name,
+    });
   }, []);
 
   const handleConfigModalClose = React.useCallback(() => {
     setConfigModalOpen(false);
     setSelectedServerForConfig(null);
     setIsSelectedServerAlreadyConnected(false);
+    fireFormTrackingEvent(MCP_AUTH_EVENT_NAME, {
+      outcome: TrackingOutcome.cancel,
+    });
   }, []);
 
   const handleToolsModalClose = React.useCallback(() => {
@@ -253,7 +284,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
 
   return (
     <>
-      <div className="mcp-servers-panel pf-v6-u-py-sm">
+      <div className="mcp-servers-panel">
         <Table
           {...tableProps}
           data={transformedServers}
@@ -271,7 +302,13 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
                 key={server.id}
                 server={server}
                 isChecked={isSelected(server)}
-                onToggleCheck={() => toggleSelection(server)}
+                onToggleCheck={() => {
+                  toggleSelection(server);
+                  fireMiscTrackingEvent('Playground MCP Select', {
+                    mcpServerName: server.name,
+                    isSelected: !isSelected(server),
+                  });
+                }}
                 onLockClick={() => handleLockClick(server)}
                 onToolsClick={() => handleToolsClick(server)}
                 isLoading={validatingServers.has(server.connectionUrl) || isChecking}

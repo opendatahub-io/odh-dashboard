@@ -2,6 +2,8 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { DropEvent } from '@patternfly/react-core';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { uploadSource } from '~/app/services/llamaStackService';
 import { ChatbotSourceSettings, FileModel } from '~/app/types';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -40,6 +42,8 @@ interface UseSourceManagementProps {
   onFileUploadComplete?: () => void;
   uploadedFiles?: FileModel[];
 }
+
+const UPLOAD_EVENT_NAME = 'Playground RAG Upload File';
 
 const useSourceManagement = ({
   onShowSuccessAlert,
@@ -113,8 +117,8 @@ const useSourceManagement = ({
       if (skippedCount > 0) {
         // const remainingSlots = availableSlots;
         onShowErrorAlert(
-          `You have reached your max files uploaded. ${skippedCount} file${skippedCount === 1 ? '' : 's'}  will not be uploaded.`,
-          'Max Files Exceeded',
+          'The maximum file number of 10 has been reached. Some files might not have been uploaded.',
+          'File limit met',
         );
       }
 
@@ -210,6 +214,13 @@ const useSourceManagement = ({
                   : fileWithSettings,
               ),
             );
+            fireFormTrackingEvent(UPLOAD_EVENT_NAME, {
+              outcome: TrackingOutcome.submit,
+              success: true,
+              chunkSize: settings.maxChunkLength,
+              chunkOverlap: settings.chunkOverlap,
+              delimiter: settings.delimiter,
+            });
             successCount++;
           } catch (error) {
             // Update this specific file status to failed
@@ -222,6 +233,11 @@ const useSourceManagement = ({
             );
             failureCount++;
             const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            fireFormTrackingEvent(UPLOAD_EVENT_NAME, {
+              outcome: TrackingOutcome.submit,
+              success: false,
+              error: errorMessage,
+            });
             errors.push(`${file.name}: ${errorMessage}`);
           }
         }
@@ -284,6 +300,10 @@ const useSourceManagement = ({
         }
       });
     }
+
+    fireFormTrackingEvent(UPLOAD_EVENT_NAME, {
+      outcome: TrackingOutcome.cancel,
+    });
 
     setIsSourceSettingsOpen(false);
     setCurrentFileForSettings(null);

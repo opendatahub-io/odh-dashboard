@@ -13,3 +13,10 @@ export const InferenceServiceModel: K8sModelCommon = {
   kind: 'InferenceService',
   plural: 'inferenceservices',
 };
+
+export const LLMInferenceServiceModel: K8sModelCommon = {
+  apiVersion: 'v1alpha1',
+  apiGroup: 'serving.kserve.io',
+  kind: 'LLMInferenceService',
+  plural: 'llminferenceservices',
+};

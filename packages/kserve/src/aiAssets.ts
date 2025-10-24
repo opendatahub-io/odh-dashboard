@@ -1,11 +1,12 @@
+import { ModelAvailabilityFieldsData } from '@odh-dashboard/model-serving/types/form-data';
 import { KServeDeployment } from './deployments';
 
-export const extractAiAssetData = (
+export const extractModelAvailabilityData = (
   kserveDeployment: KServeDeployment,
-): { saveAsAiAsset: boolean; useCase: string } => {
+): ModelAvailabilityFieldsData => {
   return {
     saveAsAiAsset:
-      kserveDeployment.model.metadata.annotations?.['opendatahub.io/genai-asset'] === 'true',
+      kserveDeployment.model.metadata.labels?.['opendatahub.io/genai-asset'] === 'true',
     useCase: kserveDeployment.model.metadata.annotations?.['opendatahub.io/genai-use-case'] || '',
   };
 };

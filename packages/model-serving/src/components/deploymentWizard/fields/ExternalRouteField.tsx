@@ -1,6 +1,9 @@
 import React from 'react';
 import { Checkbox, Stack, StackItem } from '@patternfly/react-core';
 import { z } from 'zod';
+import type { ModelServerSelectField } from './ModelServerTemplateSelectField';
+import type { ModelTypeField } from './ModelTypeSelectField';
+import type { ExternalRouteField as ExternalRouteFieldType } from '../types';
 
 // Schema
 export const externalRouteFieldSchema = z.boolean();
@@ -15,18 +18,41 @@ export const isValidExternalRoute = (value: unknown): value is ExternalRouteFiel
 export type ExternalRouteFieldHook = {
   data: ExternalRouteFieldData | undefined;
   setData: (data: ExternalRouteFieldData) => void;
+  isVisible: boolean;
 };
 
 export const useExternalRouteField = (
   existingData?: ExternalRouteFieldData,
+  externalRouteFields?: ExternalRouteFieldType[],
+  modelType?: ModelTypeField,
+  modelServer?: ModelServerSelectField,
 ): ExternalRouteFieldHook => {
+  const isVisible = React.useMemo(() => {
+    if (!modelType || !externalRouteFields) return true;
+
+    const activeField = externalRouteFields.find((field) =>
+      field.isActive({
+        modelType,
+        modelServer,
+      }),
+    );
+    return activeField?.isVisible ?? true;
+  }, [externalRouteFields, modelType, modelServer]);
+
   const [externalRouteData, setExternalRouteData] = React.useState<
     ExternalRouteFieldData | undefined
   >(existingData || false);
 
+  React.useEffect(() => {
+    if (!isVisible && externalRouteData) {
+      setExternalRouteData(false);
+    }
+  }, [isVisible, externalRouteData]);
+
   return {
     data: externalRouteData,
     setData: setExternalRouteData,
+    isVisible,
   };
 };
 

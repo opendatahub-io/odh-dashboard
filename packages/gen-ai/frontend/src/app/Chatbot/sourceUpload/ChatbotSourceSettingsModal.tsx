@@ -3,6 +3,7 @@ import {
   Alert,
   Bullseye,
   Button,
+  Content,
   Form,
   FormGroup,
   FormGroupLabelHelp,
@@ -24,23 +25,15 @@ import { ChatbotSourceSettings } from '~/app/types';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import { createVectorStore } from '~/app/services/llamaStackService';
 import { GenAiContext } from '~/app/context/GenAiContext';
+import { DEFAULT_SOURCE_SETTINGS } from './utils';
 
 type ChatbotSourceSettingsModalProps = {
   isOpen: boolean;
   onToggle: () => void;
   onSubmitSettings: (settings: ChatbotSourceSettings | null) => Promise<void>;
-  filename?: string;
   pendingFiles?: File[];
   isUploading?: boolean;
   uploadProgress?: { current: number; total: number };
-};
-
-const DEFAULT_SOURCE_SETTINGS: ChatbotSourceSettings = {
-  embeddingModel: '',
-  vectorStore: '',
-  delimiter: '',
-  maxChunkLength: 500,
-  chunkOverlap: 50,
 };
 
 const DEFAULT_VECTOR_STORE_FORM = {
@@ -51,7 +44,6 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
   isOpen,
   onToggle,
   onSubmitSettings,
-  filename,
   pendingFiles = [],
   isUploading = false,
   uploadProgress = { current: 0, total: 0 },
@@ -81,15 +73,7 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
   const [isCreatingVectorStore, setIsCreatingVectorStore] = React.useState(false);
 
   // Generate title based on number of files
-  const getTitle = () => {
-    if (pendingFiles.length > 1) {
-      return `RAG input settings - ${pendingFiles.length} files`;
-    }
-    if (filename) {
-      return `RAG input settings - ${filename}`;
-    }
-    return 'RAG input settings';
-  };
+  const getTitle = () => 'Upload files';
 
   const title = getTitle();
   const vectorStoreName = vectorStores.find(
@@ -219,8 +203,8 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
           description={
             vectorStores.length !== 0
               ? pendingFiles.length > 1
-                ? `Review the embedding settings that will be applied to all ${pendingFiles.length} files`
-                : 'Review the embedding settings that will be used to process your RAG source'
+                ? `Configure the embedding settings that will be used to process the following files.`
+                : 'Configure the embedding settings that will be used to process all files.'
               : 'No vector databases found. Please create a vector database first.'
           }
           descriptorId="source-settings-modal-box-description-form"
@@ -245,6 +229,16 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
                   </Alert>
                 </Stack>
               )}
+              {pendingFiles.length > 0 && (
+                <Content component="p">
+                  <b>Files</b>
+                  <Content component="ul">
+                    {pendingFiles.map((file) => (
+                      <li key={file.name}>{file.name}</li>
+                    ))}
+                  </Content>
+                </Content>
+              )}
               <Form id="source-settings-form" isWidthLimited>
                 <FormGroup
                   label="Vector database"
@@ -254,11 +248,13 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
                       headerContent={<div>Vector database</div>}
                       headerComponent="h2"
                       bodyContent={
-                        <div>
-                          The vector database where your document embeddings will be stored and
-                          searched. This database enables semantic search capabilities for your RAG
-                          system.
-                        </div>
+                        <Content
+                          component="p"
+                          style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)' }}
+                        >
+                          This default vector database is unique to your model playground and
+                          securely stores all uploaded files within your cluster.
+                        </Content>
                       }
                     >
                       <FormGroupLabelHelp
@@ -288,9 +284,30 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
                           headerContent={<div>Maximum chunk length</div>}
                           headerComponent="h2"
                           bodyContent={
-                            <div>
-                              The maximum length of a chunk of text to be used for embedding.
-                            </div>
+                            <>
+                              <Content
+                                component="p"
+                                style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)' }}
+                              >
+                                The maximum word count for each section of text (&quot;chunk&quot;)
+                                created from your uploaded files.
+                              </Content>
+                              <Content component="ul">
+                                <Content
+                                  component="li"
+                                  style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)' }}
+                                >
+                                  <b>Smaller chunks</b> are recommended for precise data retrieval.
+                                </Content>
+                                <Content
+                                  component="li"
+                                  style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)' }}
+                                >
+                                  <b>Larger chunks</b> are recommended for tasks requiring broader
+                                  context, such as summarization.
+                                </Content>
+                              </Content>
+                            </>
                           }
                         >
                           <FormGroupLabelHelp
@@ -322,11 +339,77 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
                           headerContent={<div>Chunk overlap</div>}
                           headerComponent="h2"
                           bodyContent={
-                            <div>
-                              The number of characters that consecutive chunks should overlap. This
-                              helps maintain context continuity across chunk boundaries and improves
-                              retrieval accuracy.
-                            </div>
+                            <>
+                              <Content
+                                component="p"
+                                style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)' }}
+                              >
+                                The number of words from the end of one text section (chunk) that
+                                are repeated at the start of the next one. This overlap helps
+                                maintain continuous context across chunks, improving model
+                                responses.
+                              </Content>
+                              <Content
+                                component="p"
+                                style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)' }}
+                              >
+                                For example, the following sentence is chunked differently depending
+                                on the chunk overlap: “Chunk overlap can improve the quality of
+                                model responses.”
+                              </Content>
+                              <Content
+                                component="p"
+                                style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)' }}
+                              >
+                                Maximum chunk length = 4, Chunk overlap = 1
+                              </Content>
+                              <Content component="ol">
+                                <Content
+                                  component="li"
+                                  style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)' }}
+                                >
+                                  Chunk overlap can improve
+                                </Content>
+                                <Content
+                                  component="li"
+                                  style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)' }}
+                                >
+                                  improve the quality of
+                                </Content>
+                                <Content
+                                  component="li"
+                                  style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)' }}
+                                >
+                                  of model responses.
+                                </Content>
+                              </Content>
+                              <Content
+                                component="p"
+                                style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)' }}
+                              >
+                                Maximum chunk length = 4, Chunk overlap = 0
+                              </Content>
+                              <Content component="ol">
+                                <Content
+                                  component="li"
+                                  style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)' }}
+                                >
+                                  Chunk overlap can improve
+                                </Content>
+                                <Content
+                                  component="li"
+                                  style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)' }}
+                                >
+                                  the quality of model
+                                </Content>
+                                <Content
+                                  component="li"
+                                  style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)' }}
+                                >
+                                  responses.
+                                </Content>
+                              </Content>
+                            </>
                           }
                         >
                           <FormGroupLabelHelp
@@ -358,11 +441,14 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
                           headerContent={<div>Delimiter</div>}
                           headerComponent="h2"
                           bodyContent={
-                            <div>
-                              A character or string used to split the document into chunks. Common
-                              delimiters include newlines (\n), periods (.), or custom separators.
-                              Leave empty to use automatic chunking.
-                            </div>
+                            <Content
+                              component="p"
+                              style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)' }}
+                            >
+                              A delimiter is a character or string that specifies where a text chunk
+                              should end. This helps define text boundaries alongside maximum chunk
+                              length and overlap, ensuring sentences or paragraphs remain intact.
+                            </Content>
                           }
                         >
                           <FormGroupLabelHelp

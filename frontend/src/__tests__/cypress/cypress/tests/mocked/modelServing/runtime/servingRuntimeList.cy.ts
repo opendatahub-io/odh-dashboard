@@ -1,7 +1,3 @@
-import {
-  mockAcceleratorProfile,
-  mockProjectScopedAcceleratorProfiles,
-} from '#~/__mocks__/mockAcceleratorProfile';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
@@ -31,8 +27,6 @@ import {
   editServingRuntimeModal,
   inferenceServiceModal,
   inferenceServiceModalEdit,
-  kserveModal,
-  kserveModalEdit,
   modelServingSection,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import { projectDetails } from '#~/__tests__/cypress/cypress/pages/projects';
@@ -43,12 +37,11 @@ import type {
   ServingRuntimeKind,
 } from '#~/k8sTypes';
 import { DeploymentMode } from '#~/k8sTypes';
-import { ServingRuntimePlatform, TolerationEffect, TolerationOperator } from '#~/types';
+import { ServingRuntimePlatform } from '#~/types';
 import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { StackCapability } from '#~/concepts/areas/types';
 import { mockDsciStatus } from '#~/__mocks__/mockDsciStatus';
 import {
-  AcceleratorProfileModel,
   HardwareProfileModel,
   InferenceServiceModel,
   NotebookModel,
@@ -71,7 +64,6 @@ import {
   mockProjectScopedHardwareProfiles,
 } from '#~/__mocks__/mockHardwareProfile';
 import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
-import { acceleratorProfileSection } from '#~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
 import { STOP_MODAL_PREFERENCE_KEY } from '#~/pages/modelServing/useStopModalPreference';
 import { mockOdhApplication } from '#~/__mocks__/mockOdhApplication';
 
@@ -80,7 +72,6 @@ type HandlersProps = {
   disableKServeAuthConfig?: boolean;
   disableServingRuntimeParams?: boolean;
   disableModelMeshConfig?: boolean;
-  disableAccelerator?: boolean;
   disableKServeRaw?: boolean;
   projectEnableModelMesh?: boolean;
   servingRuntimes?: ServingRuntimeKind[];
@@ -95,7 +86,6 @@ type HandlersProps = {
   requiredCapabilities?: StackCapability[];
   DscComponents?: DataScienceClusterKindStatus['components'];
   disableProjectScoped?: boolean;
-  disableHardwareProfiles?: boolean;
 };
 
 const initIntercepts = ({
@@ -103,11 +93,9 @@ const initIntercepts = ({
   disableKServeAuthConfig,
   disableServingRuntimeParams = true,
   disableModelMeshConfig,
-  disableAccelerator,
   disableKServeRaw = true,
   projectEnableModelMesh,
   disableProjectScoped = true,
-  disableHardwareProfiles = true,
   servingRuntimes = [
     mockServingRuntimeK8sResourceLegacy({ tolerations: [], nodeSelector: {} }),
     mockServingRuntimeK8sResource({
@@ -166,7 +154,6 @@ const initIntercepts = ({
       disableServingRuntimeParams,
       disableKServeRaw,
       disableProjectScoped,
-      disableHardwareProfiles,
     }),
   );
   // mock NIM because the model serving plugin has broader error detection
@@ -395,32 +382,6 @@ const initIntercepts = ({
     ServingRuntimeModel,
     mockServingRuntimeK8sResource({ name: 'test-model-legacy' }),
   ).as('editModelServer');
-  cy.interceptK8sList(
-    AcceleratorProfileModel,
-    mockK8sResourceList([
-      mockAcceleratorProfile({
-        name: 'migrated-gpu',
-        namespace: 'opendatahub',
-        displayName: 'NVIDIA GPU',
-        enabled: !disableAccelerator,
-        identifier: 'nvidia.com/gpu',
-        description: 'Lorem, ipsum dolor sit amet consectetur adipisicing elit. Saepe, quis',
-      }),
-      mockAcceleratorProfile({
-        name: 'small-profile',
-        displayName: 'Small Profile',
-        namespace: 'test-project',
-        enabled: !disableAccelerator,
-        tolerations: [
-          {
-            effect: TolerationEffect.NO_SCHEDULE,
-            key: 'NotebooksOnlyChange',
-            operator: TolerationOperator.EXISTS,
-          },
-        ],
-      }),
-    ]),
-  );
   cy.interceptK8sList(
     TemplateModel,
     mockK8sResourceList(
@@ -1010,34 +971,6 @@ describe('Serving Runtime List', () => {
         .next('dd')
         .should('have.text', '3');
     });
-
-    it('Check authentication section', () => {
-      initIntercepts({
-        disableModelMeshConfig: false,
-        disableKServeConfig: false,
-        servingRuntimes: [],
-        requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
-        projectEnableModelMesh: false,
-      });
-      projectDetails.visitSection('test-project', 'model-server');
-
-      modelServingSection.findDeployModelButton().click();
-
-      kserveModal.shouldBeOpen();
-
-      kserveModal.findSubmitButton().should('be.disabled');
-
-      // Test labels are correct
-      expect(
-        kserveModal.findAuthenticationSection().findByText('Token authentication').should('exist'),
-      );
-      expect(
-        kserveModal
-          .findAuthenticationSection()
-          .findByText('Require token authentication')
-          .should('exist'),
-      );
-    });
   });
 
   describe('ModelMesh model server', () => {
@@ -1162,135 +1095,11 @@ describe('Serving Runtime List', () => {
       });
     });
 
-    it('should display accelerator profile selection when both accelerator profile and project-scoped feature flag is enabled for Model mesh, while adding model server', () => {
-      initIntercepts({
-        projectEnableModelMesh: true,
-        disableKServeConfig: false,
-        disableModelMeshConfig: false,
-        disableProjectScoped: false,
-        inferenceServices: [
-          mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
-          mockInferenceServiceK8sResource({
-            name: 'another-inference-service',
-            displayName: 'Another Inference Service',
-            deleted: true,
-            isModelMesh: true,
-          }),
-          mockInferenceServiceK8sResource({
-            name: 'ovms-testing',
-            displayName: 'OVMS ONNX',
-            isModelMesh: true,
-          }),
-        ],
-      });
-
-      cy.interceptK8sList(
-        { model: AcceleratorProfileModel, ns: 'test-project' },
-        mockK8sResourceList(mockProjectScopedAcceleratorProfiles),
-      ).as('acceleratorProfiles');
-
-      projectDetails.visitSection('test-project', 'model-server');
-      modelServingSection.findAddModelServerButton().click();
-      createServingRuntimeModal.shouldBeOpen();
-
-      // verify available project-scoped accelerator profile
-      acceleratorProfileSection.findAcceleratorProfileSearchSelector().should('exist');
-      acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
-
-      const projectScopedAcceleratorProfile =
-        acceleratorProfileSection.getProjectScopedAcceleratorProfile();
-      projectScopedAcceleratorProfile
-        .find()
-        .findByRole('menuitem', { name: 'Small Profile nvidia.com/gpu', hidden: true })
-        .click();
-      acceleratorProfileSection.findProjectScopedLabel().should('exist');
-
-      // verify available global-scoped hardware profile
-      acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
-      const globalScopedHardwareProfile =
-        acceleratorProfileSection.getGlobalScopedAcceleratorProfile();
-      globalScopedHardwareProfile
-        .find()
-        .findByRole('menuitem', {
-          name: 'NVIDIA GPU Lorem, ipsum dolor sit amet consectetur adipisicing elit. Saepe, quis nvidia.com/gpu',
-          hidden: true,
-        })
-        .click();
-      acceleratorProfileSection.findGlobalScopedLabel().should('exist');
-    });
-
-    it('should display accelerator profile selection when both accelerator profile and project-scoped feature flag is enabled for Model mesh, while editing model server', () => {
-      initIntercepts({
-        projectEnableModelMesh: true,
-        disableKServeConfig: false,
-        disableModelMeshConfig: false,
-        disableAccelerator: false,
-        disableProjectScoped: false,
-        servingRuntimes: [
-          mockServingRuntimeK8sResource({
-            name: 'test-model',
-            namespace: 'test-project',
-            auth: true,
-            route: true,
-            acceleratorName: 'small-profile',
-          }),
-        ],
-      });
-
-      cy.interceptK8sList(
-        { model: AcceleratorProfileModel, ns: 'test-project' },
-        mockK8sResourceList(mockProjectScopedAcceleratorProfiles),
-      ).as('acceleratorProfiles');
-
-      projectDetails.visitSection('test-project', 'model-server');
-
-      // click on the toggle button and open edit model server
-      modelServingSection
-        .getModelMeshRow('OVMS Model Serving')
-        .find()
-        .findKebabAction('Edit model server')
-        .click();
-
-      editServingRuntimeModal.shouldBeOpen();
-      // cy.wait('@acceleratorProfile');
-      acceleratorProfileSection
-        .findAcceleratorProfileSearchSelector()
-        .should('contain.text', 'Small Profile');
-      acceleratorProfileSection.findProjectScopedLabel().should('exist');
-    });
-
-    it('Check project-scoped accelerator when enabled and selected', () => {
-      initIntercepts({
-        projectEnableModelMesh: true,
-        disableKServeConfig: false,
-        disableModelMeshConfig: false,
-        disableAccelerator: false,
-        disableProjectScoped: false,
-        servingRuntimes: [
-          mockServingRuntimeK8sResource({
-            name: 'test-model',
-            namespace: 'test-project',
-            auth: true,
-            route: true,
-            acceleratorName: 'small-profile',
-          }),
-        ],
-      });
-
-      projectDetails.visitSection('test-project', 'model-server');
-      modelServingSection.findModelServer().click();
-      modelServingSection
-        .findAcceleratorSection()
-        .should('have.text', 'AcceleratorSmall Profile Project-scoped');
-    });
-
     it('should not display hardware profile section when project is model mesh enabled and hardware profile flag is enabled', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
         disableModelMeshConfig: false,
-        disableHardwareProfiles: false,
-        disableAccelerator: false,
         disableProjectScoped: false,
         servingRuntimes: [
           mockServingRuntimeK8sResource({
@@ -1310,7 +1119,6 @@ describe('Serving Runtime List', () => {
         projectEnableModelMesh: true,
         disableKServeConfig: false,
         disableModelMeshConfig: false,
-        disableHardwareProfiles: false,
         disableProjectScoped: false,
         inferenceServices: [
           mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
@@ -1344,7 +1152,6 @@ describe('Serving Runtime List', () => {
         projectEnableModelMesh: true,
         disableKServeConfig: false,
         disableModelMeshConfig: false,
-        disableHardwareProfiles: false,
         disableProjectScoped: false,
         servingRuntimes: [
           mockServingRuntimeK8sResource({
@@ -1810,7 +1617,6 @@ describe('Serving Runtime List', () => {
         projectEnableModelMesh: false,
         disableKServeConfig: false,
         disableModelMeshConfig: true,
-        disableAccelerator: true,
         requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
       });
       projectDetails.visitSection('test-project', 'model-server');
@@ -1825,7 +1631,6 @@ describe('Serving Runtime List', () => {
         projectEnableModelMesh: false,
         disableKServeConfig: false,
         disableModelMeshConfig: true,
-        disableAccelerator: true,
         disableKServeRaw: false,
         inferenceServices: [
           mockInferenceServiceK8sResource({
@@ -1841,193 +1646,6 @@ describe('Serving Runtime List', () => {
       kserveRow.findExpansion().should(be.collapsed);
       kserveRow.findToggleButton().click();
       kserveRow.findDescriptionListItem('Token authentication').should('exist');
-    });
-  });
-
-  describe('Dry run check', () => {
-    it('Check when inference service dryRun fails', () => {
-      initIntercepts({
-        disableModelMeshConfig: true,
-        disableKServeConfig: false,
-        servingRuntimes: [],
-        rejectInferenceService: true,
-        projectEnableModelMesh: false,
-      });
-
-      projectDetails.visitSection('test-project', 'model-server');
-      modelServingSection.findDeployModelButton().click();
-      kserveModal.shouldBeOpen();
-
-      // test filling in minimum required fields
-      kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateSearchSelector().click();
-      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
-      kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
-      kserveModal.findSubmitButton().should('be.disabled');
-      kserveModal.findExistingConnectionOption().click();
-      kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
-      kserveModal
-        .findExistingConnectionSelect()
-        .findByRole('combobox')
-        .should('have.value', 'Test Secret');
-      kserveModal.findLocationPathInput().type('test-model/');
-      kserveModal.findSubmitButton().should('be.enabled');
-      kserveModal.findSubmitButton().click();
-
-      // check url should be dryRun
-      cy.wait('@createInferenceService').then((interception) => {
-        expect(interception.request.url).to.include('?dryRun=All');
-      });
-
-      // check only dryRun should execute
-      cy.get('@createInferenceService.all').then((interceptions) => {
-        expect(interceptions).to.have.length(1); // 1 dry-run request only
-      });
-    });
-
-    it('Check when serving runtime dryRun fails', () => {
-      initIntercepts({
-        disableModelMeshConfig: true,
-        disableKServeConfig: false,
-        servingRuntimes: [],
-        rejectServingRuntime: true,
-        projectEnableModelMesh: false,
-      });
-
-      projectDetails.visitSection('test-project', 'model-server');
-      modelServingSection.findDeployModelButton().click();
-      kserveModal.shouldBeOpen();
-
-      // test filling in minimum required fields
-      kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateSearchSelector().click();
-      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
-      kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
-      kserveModal.findSubmitButton().should('be.disabled');
-      kserveModal.findExistingConnectionOption().click();
-      kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
-      kserveModal
-        .findExistingConnectionSelect()
-        .findByRole('combobox')
-        .should('have.value', 'Test Secret');
-      kserveModal.findLocationPathInput().type('test-model/');
-      kserveModal.findSubmitButton().should('be.enabled');
-      kserveModal.findSubmitButton().click();
-
-      // dry run request
-      cy.wait('@createServingRuntime').then((interception) => {
-        expect(interception.request.url).to.include('?dryRun=All');
-      });
-
-      // check only dryRun should execute
-      cy.get('@createServingRuntime.all').then((interceptions) => {
-        expect(interceptions).to.have.length(1); // 1 dry-run request only
-      });
-
-      // check url should be dryRun
-    });
-  });
-
-  describe('Model size', () => {
-    it('Check model size rendered with InferenceService size', () => {
-      initIntercepts({
-        projectEnableModelMesh: false,
-        disableKServeConfig: false,
-        disableModelMeshConfig: true,
-        inferenceServices: [
-          mockInferenceServiceK8sResource({
-            name: 'llama-service',
-            displayName: 'Llama Service',
-            modelName: 'llama-service',
-            isModelMesh: false,
-            resources: {
-              limits: {
-                cpu: '2',
-                memory: '8Gi',
-              },
-              requests: {
-                cpu: '1',
-                memory: '4Gi',
-              },
-            },
-          }),
-        ],
-        servingRuntimes: [
-          mockServingRuntimeK8sResource({
-            name: 'llama-service',
-            displayName: 'Llama Service',
-            namespace: 'test-project',
-            resources: undefined,
-          }),
-        ],
-      });
-
-      projectDetails.visitSection('test-project', 'model-server');
-      const kserveRow = modelServingSection.getKServeRow('Llama Service');
-      kserveRow.findExpansion().should(be.collapsed);
-      kserveRow.findToggleButton().click();
-      kserveRow
-        .findDescriptionListItem('Model server size')
-        .next('dd')
-        .should('contain.text', 'Small');
-
-      // click on the toggle button and open edit model server
-      kserveRow.find().findKebabAction('Edit').click();
-
-      kserveModalEdit.shouldBeOpen();
-
-      kserveModalEdit.findModelServerSizeSelect().invoke('text').should('equal', 'Small');
-    });
-
-    it('Check model size rendered with InferenceService custom size', () => {
-      initIntercepts({
-        projectEnableModelMesh: false,
-        disableKServeConfig: false,
-        disableModelMeshConfig: true,
-        inferenceServices: [
-          mockInferenceServiceK8sResource({
-            name: 'llama-service',
-            displayName: 'Llama Service',
-            modelName: 'llama-service',
-            isModelMesh: false,
-            resources: {
-              limits: {
-                cpu: '1',
-                memory: '10Gi',
-              },
-              requests: {
-                cpu: '1',
-                memory: '4Gi',
-              },
-            },
-          }),
-        ],
-        servingRuntimes: [
-          mockServingRuntimeK8sResource({
-            name: 'llama-service',
-            displayName: 'Llama Service',
-            namespace: 'test-project',
-            resources: undefined,
-            disableResources: true,
-          }),
-        ],
-      });
-
-      projectDetails.visitSection('test-project', 'model-server');
-      const kserveRow = modelServingSection.getKServeRow('Llama Service');
-      kserveRow.findExpansion().should(be.collapsed);
-      kserveRow.findToggleButton().click();
-      kserveRow
-        .findDescriptionListItem('Model server size')
-        .next('dd')
-        .should('contain.text', 'Custom');
-
-      // click on the toggle button and open edit model server
-      modelServingSection.getKServeRow('Llama Service').find().findKebabAction('Edit').click();
-
-      kserveModalEdit.shouldBeOpen();
-
-      kserveModalEdit.findModelServerSizeSelect().invoke('text').should('equal', 'Custom');
     });
   });
 
@@ -2141,33 +1759,6 @@ describe('Serving Runtime List', () => {
         .click();
       editServingRuntimeModal.findServingRuntimeTemplateSearchSelector().within(() => {
         editServingRuntimeModal.findServingRuntimeVersionLabel().should('exist');
-      });
-    });
-
-    it('displays label in search selector when single-model serving is selected', () => {
-      initIntercepts({
-        projectEnableModelMesh: false,
-        disableKServeConfig: false,
-        disableModelMeshConfig: false,
-      });
-
-      projectDetails.visitSection('test-project', 'model-server');
-      modelServingSection.findDeployModelButton().click();
-      kserveModal.findServingRuntimeTemplateSearchSelector().should('exist');
-      kserveModal.findServingRuntimeTemplateSearchSelector().click();
-      kserveModal.findGlobalScopedTemplateOption('Multi Platform').within(() => {
-        kserveModal.findServingRuntimeVersionLabel().should('exist');
-      });
-      kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
-      kserveModal.findServingRuntimeTemplateSearchSelector().within(() => {
-        kserveModal.findServingRuntimeVersionLabel().should('exist');
-      });
-      kserveModal.findCloseButton().click();
-
-      // Check that the label is displayed when editing
-      modelServingSection.getKServeRow('Llama Caikit').find().findKebabAction('Edit').click();
-      kserveModalEdit.findServingRuntimeTemplateSearchSelector().within(() => {
-        kserveModalEdit.findServingRuntimeVersionLabel().should('exist');
       });
     });
   });

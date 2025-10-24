@@ -298,6 +298,11 @@ class NotebookRow extends TableRow {
   findHardwareProfileErrorPopover() {
     return cy.findByTestId('hardware-profile-column-error-popover');
   }
+
+  shouldHaveHardwareProfile(name: string) {
+    this.findHardwareProfileColumn().contains(name).should('exist');
+    return this;
+  }
 }
 
 class AttachExistingStorageModal extends Modal {
@@ -551,6 +556,15 @@ class CreateSpawnerPage {
       .findByRole('button', { name: 'Options menu' })
       .findSelectOption(name)
       .click();
+  }
+
+  findHardwareProfileSelect() {
+    return cy.findByTestId('hardware-profile-select');
+  }
+
+  selectHardwareProfile(name: string) {
+    this.findHardwareProfileSelect().click();
+    cy.findByRole('option', { name: new RegExp(name) }).click();
   }
 
   shouldHaveClusterStorageAlert() {

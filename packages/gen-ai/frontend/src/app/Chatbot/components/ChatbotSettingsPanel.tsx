@@ -15,11 +15,13 @@ import {
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ChatbotSourceUploadPanel } from '~/app/Chatbot/sourceUpload/ChatbotSourceUploadPanel';
 import { ACCORDION_ITEMS } from '~/app/Chatbot/const';
 import useAccordionState from '~/app/Chatbot/hooks/useAccordionState';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
 import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
+import useDarkMode from '~/app/Chatbot/hooks/useDarkMode';
 import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
 import MCPServersPanelWithContext from '~/app/Chatbot/mcp/MCPServersPanelWithContext';
 import UploadedFilesList from './UploadedFilesList';
@@ -60,9 +62,34 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
 }) => {
   const accordionState = useAccordionState();
   const { selectedServersCount, saveSelectedServersToPlayground } = useMCPSelectionContext();
+  const isDarkMode = useDarkMode();
+
+  const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
+  const DEFAULT_WIDTH = '460px';
+
+  // Initialize panel width from session storage or use default
+  const [panelWidth, setPanelWidth] = React.useState<string>(() => {
+    const storedWidth = sessionStorage.getItem(SETTINGS_PANEL_WIDTH);
+    return storedWidth || DEFAULT_WIDTH;
+  });
+
+  // Handle panel resize and save to session storage
+  const handlePanelResize = (
+    _event: MouseEvent | TouchEvent | React.KeyboardEvent<Element>,
+    width: number,
+  ) => {
+    const newWidth = `${width}px`;
+    setPanelWidth(newWidth);
+    sessionStorage.setItem(SETTINGS_PANEL_WIDTH, newWidth);
+  };
 
   return (
-    <DrawerPanelContent isResizable defaultSize="460px" minSize="300px">
+    <DrawerPanelContent
+      isResizable
+      defaultSize={panelWidth}
+      minSize="300px"
+      onResize={handlePanelResize}
+    >
       <DrawerPanelBody>
         <Accordion asDefinitionList={false}>
           {/* Model Details Accordion Item */}
@@ -74,12 +101,26 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             <AccordionToggle
               onClick={() => accordionState.onAccordionToggle(ACCORDION_ITEMS.MODEL_DETAILS)}
               id={ACCORDION_ITEMS.MODEL_DETAILS}
+              style={{
+                backgroundColor: isDarkMode
+                  ? 'var(--pf-v6-c-page__main-section--BackgroundColor)'
+                  : 'var(--pf-t--global--background--color--100)',
+              }}
             >
               <Title headingLevel="h2" size="lg">
                 Model details
               </Title>
             </AccordionToggle>
-            <AccordionContent id="model-details-content">
+            <AccordionContent
+              id="model-details-content"
+              style={{
+                backgroundColor: isDarkMode
+                  ? 'var(--pf-v6-c-page__main-section--BackgroundColor)'
+                  : 'var(--pf-t--global--background--color--100)',
+                margin: '0',
+                padding: '0.5rem',
+              }}
+            >
               <Form>
                 <FormGroup label="Model" fieldId="model-details">
                   <ModelDetailsDropdown
@@ -100,7 +141,14 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                   label="Temperature"
                   helpText="This controls the randomness of the model's output."
                   value={temperature}
-                  onChange={onTemperatureChange}
+                  onChange={(value) => {
+                    onTemperatureChange(value);
+                    fireMiscTrackingEvent('Playground Model Parameter Changed', {
+                      parameter: 'temperature',
+                      value,
+                    });
+                  }}
+                  max={2}
                 />
                 <FormGroup fieldId="streaming">
                   <Switch
@@ -121,11 +169,18 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             <AccordionToggle
               onClick={() => accordionState.onAccordionToggle(ACCORDION_ITEMS.SOURCES)}
               id={ACCORDION_ITEMS.SOURCES}
+              style={{
+                backgroundColor: isDarkMode
+                  ? 'var(--pf-v6-c-page__main-section--BackgroundColor)'
+                  : 'var(--pf-t--global--background--color--100)',
+              }}
             >
               <Flex
                 justifyContent={{ default: 'justifyContentSpaceBetween' }}
                 alignItems={{ default: 'alignItemsCenter' }}
-                style={{ width: '100%' }}
+                style={{
+                  width: '100%',
+                }}
               >
                 <FlexItem>
                   <Title headingLevel="h2" size="lg">
@@ -151,15 +206,27 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                       id="no-label-switch-on"
                       aria-label="Toggle uploaded mode"
                       isChecked={sourceManagement.isRawUploaded}
-                      onChange={() =>
-                        sourceManagement.setIsRawUploaded(!sourceManagement.isRawUploaded)
-                      }
+                      onChange={(_, checked) => {
+                        sourceManagement.setIsRawUploaded(checked);
+                        fireMiscTrackingEvent('Playground RAG Toggle Selected', {
+                          isRag: checked,
+                        });
+                      }}
                     />
                   </div>
                 </FlexItem>
               </Flex>
             </AccordionToggle>
-            <AccordionContent id="sources-content">
+            <AccordionContent
+              id="sources-content"
+              style={{
+                backgroundColor: isDarkMode
+                  ? 'var(--pf-v6-c-page__main-section--BackgroundColor)'
+                  : 'var(--pf-t--global--background--color--100)',
+                margin: '0',
+                padding: '0.5rem',
+              }}
+            >
               <Form>
                 <FormGroup fieldId="sources">
                   <ChatbotSourceUploadPanel
@@ -194,6 +261,11 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             <AccordionToggle
               onClick={() => accordionState.onAccordionToggle(ACCORDION_ITEMS.MCP_SERVERS)}
               id={ACCORDION_ITEMS.MCP_SERVERS}
+              style={{
+                backgroundColor: isDarkMode
+                  ? 'var(--pf-v6-c-page__main-section--BackgroundColor)'
+                  : 'var(--pf-t--global--background--color--100)',
+              }}
             >
               <Flex alignItems={{ default: 'alignItemsCenter' }}>
                 <FlexItem>
@@ -203,14 +275,22 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                 </FlexItem>
                 {selectedServersCount > 0 && (
                   <FlexItem>
-                    <Label key={1} color="blue" className="pf-v6-u-ml-sm">
+                    <Label key={1} color="blue">
                       {selectedServersCount}
                     </Label>
                   </FlexItem>
                 )}
               </Flex>
             </AccordionToggle>
-            <AccordionContent id="mcp-servers-content">
+            <AccordionContent
+              id="mcp-servers-content"
+              style={{
+                backgroundColor: isDarkMode
+                  ? 'var(--pf-v6-c-page__main-section--BackgroundColor)'
+                  : 'var(--pf-t--global--background--color--100)',
+                margin: '0',
+              }}
+            >
               <MCPServersPanelWithContext onSelectionChange={saveSelectedServersToPlayground} />
             </AccordionContent>
           </AccordionItem>

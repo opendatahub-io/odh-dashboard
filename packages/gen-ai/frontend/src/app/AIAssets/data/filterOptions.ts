@@ -1,11 +1,17 @@
-export enum AIAssetsFilterOptions {
+export enum AssetsFilterOptions {
   NAME = 'name',
   KEYWORD = 'keyword',
   USE_CASE = 'useCase',
 }
 
-export const aiAssetsFilterOptions = {
-  [AIAssetsFilterOptions.NAME]: 'Name',
-  [AIAssetsFilterOptions.KEYWORD]: 'Keyword',
-  [AIAssetsFilterOptions.USE_CASE]: 'Use Case',
+export enum AssetsFilterColors {
+  NAME = 'blue',
+  KEYWORD = 'green',
+  USE_CASE = 'purple',
+}
+
+export const assetsFilterOptions = {
+  [AssetsFilterOptions.NAME]: 'Name',
+  [AssetsFilterOptions.KEYWORD]: 'Keyword',
+  [AssetsFilterOptions.USE_CASE]: 'Use Case',
 };

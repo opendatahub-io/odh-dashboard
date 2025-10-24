@@ -88,7 +88,6 @@ describe('Workbenches - status tests', () => {
           // Use dynamic image name verification based on what was actually selected
           getImageStreamDisplayName(selectedImageStream).then((displayName) => {
             notebookRow.shouldHaveNotebookImageName(displayName);
-            notebookRow.shouldHaveContainerSize('Small');
 
             // Click on 'Running' status and validate the Progress steps
             cy.step(
@@ -96,16 +95,6 @@ describe('Workbenches - status tests', () => {
             );
             notebookRow.findHaveNotebookStatusText().click();
             workbenchStatusModal.getNotebookStatus('Running');
-
-            cy.step('Verify that each Progress Step in the list displays with a Success icon');
-            workbenchStatusModal.findProgressTab().click();
-            workbenchStatusModal.findProgressSteps().each(($step) => {
-              workbenchStatusModal.assertStepSuccess($step).then(() => {
-                workbenchStatusModal.getStepTitle($step).then((stepTitle) => {
-                  cy.log(`✅ Step "${stepTitle}" is successful`);
-                });
-              });
-            });
 
             // Click on the Events log and validate that successful list messages display
             cy.step('Navigate to Events Tab and verify successful event messages are displayed');

@@ -14,15 +14,12 @@ import { getDescriptionFromK8sResource } from '#~/concepts/k8s/utils';
 import { NotebookSize } from '#~/types';
 import NotebookStateStatus from '#~/pages/projects/notebook/NotebookStateStatus';
 import { NotebookActionsColumn } from '#~/pages/projects/notebook/NotebookActionsColumn';
-import { computeNotebooksTolerations } from '#~/utilities/tolerations';
 import { startNotebook, stopNotebook } from '#~/api';
 import { currentlyHasPipelines } from '#~/concepts/pipelines/elyra/utils';
 import { fireNotebookTrackingEvent } from '#~/pages/projects/notebook/utils';
 import useStopNotebookModalAvailability from '#~/pages/projects/notebook/useStopNotebookModalAvailability';
-import { useAppContext } from '#~/app/AppContext';
 import StopNotebookConfirmModal from '#~/pages/projects/notebook/StopNotebookConfirmModal';
 import { useNotebookKindPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import HardwareProfileTableColumn from '#~/concepts/hardwareProfiles/HardwareProfileTableColumn';
 import StateActionToggle from '#~/components/StateActionToggle';
 import { NotebookImageStatus } from './const';
@@ -31,7 +28,6 @@ import NotebookStorageBars from './NotebookStorageBars';
 import NotebookSizeDetails from './NotebookSizeDetails';
 import useNotebookImage from './useNotebookImage';
 import useNotebookDeploymentSize from './useNotebookDeploymentSize';
-import { extractAcceleratorResources } from './utils';
 import NotebookUpdateImageModal from './NotebookUpdateImageModal';
 
 type NotebookTableRowProps = {
@@ -53,9 +49,6 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const navigate = useNavigate();
   const [isExpanded, setExpanded] = React.useState(false);
   const { size: notebookSize } = useNotebookDeploymentSize(obj.notebook);
-  const acceleratorResources = extractAcceleratorResources(
-    obj.notebook.spec.template.spec.containers[0].resources,
-  );
 
   const lastDeployedSize: NotebookSize = {
     name: 'Custom',
@@ -68,26 +61,21 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
 
   const podSpecOptionsState = useNotebookKindPodSpecOptionsState(obj.notebook);
   const [dontShowModalValue] = useStopNotebookModalAvailability();
-  const { dashboardConfig } = useAppContext();
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [isUpdating, setIsUpdating] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
   const { name: notebookName, namespace: notebookNamespace } = obj.notebook.metadata;
-  const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
 
   const onStart = React.useCallback(() => {
     setInProgress(true);
-    const tolerationSettings = computeNotebooksTolerations(dashboardConfig, obj.notebook);
-    startNotebook(
-      obj.notebook,
-      tolerationSettings,
-      canEnablePipelines && !currentlyHasPipelines(obj.notebook),
-    ).then(() => {
-      fireNotebookTrackingEvent('started', obj.notebook, podSpecOptionsState);
-      obj.refresh().then(() => setInProgress(false));
-    });
-  }, [dashboardConfig, obj, canEnablePipelines, podSpecOptionsState]);
+    startNotebook(obj.notebook, canEnablePipelines && !currentlyHasPipelines(obj.notebook)).then(
+      () => {
+        fireNotebookTrackingEvent('started', obj.notebook, podSpecOptionsState);
+        obj.refresh().then(() => setInProgress(false));
+      },
+    );
+  }, [obj, canEnablePipelines, podSpecOptionsState]);
 
   const handleStop = React.useCallback(() => {
     fireNotebookTrackingEvent('stopped', obj.notebook, podSpecOptionsState);
@@ -202,16 +190,12 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
             alignItems={{ default: 'alignItemsCenter' }}
           >
             <FlexItem>
-              {isHardwareProfileAvailable ? (
-                <HardwareProfileTableColumn
-                  namespace={obj.notebook.metadata.namespace}
-                  resource={obj.notebook}
-                  containerResources={podSpecOptionsState.podSpecOptions.resources}
-                  isActive={obj.isRunning || obj.isStarting}
-                />
-              ) : (
-                notebookSize?.name ?? <i>{lastDeployedSize.name}</i>
-              )}
+              <HardwareProfileTableColumn
+                namespace={obj.notebook.metadata.namespace}
+                resource={obj.notebook}
+                containerResources={podSpecOptionsState.podSpecOptions.resources}
+                isActive={obj.isRunning || obj.isStarting}
+              />
             </FlexItem>
           </Flex>
         </Td>
@@ -252,10 +236,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
         </Td>
         <Td dataLabel="Limits">
           <ExpandableRowContent>
-            <NotebookSizeDetails
-              notebookSize={notebookSize || lastDeployedSize}
-              acceleratorResources={acceleratorResources}
-            />
+            <NotebookSizeDetails notebookSize={notebookSize || lastDeployedSize} />
           </ExpandableRowContent>
         </Td>
         <Td />

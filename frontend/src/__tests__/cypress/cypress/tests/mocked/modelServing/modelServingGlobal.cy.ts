@@ -14,13 +14,11 @@ import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/Delet
 import {
   inferenceServiceModal,
   inferenceServiceModalEdit,
-  kserveModal,
   kserveModalEdit,
   modelServingGlobal,
   modelServingSection,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import {
-  AcceleratorProfileModel,
   HardwareProfileModel,
   InferenceServiceModel,
   ProjectModel,
@@ -43,7 +41,6 @@ import {
   mockModelServingFields,
   mockOciConnectionTypeConfigMap,
 } from '#~/__mocks__/mockConnectionType';
-import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
 import {
   mockGlobalScopedHardwareProfiles,
   mockProjectScopedHardwareProfiles,
@@ -51,11 +48,6 @@ import {
 } from '#~/__mocks__/mockHardwareProfile';
 import { initInterceptsForAllProjects } from '#~/__tests__/cypress/cypress/utils/servingUtils';
 import { nimDeployModal } from '#~/__tests__/cypress/cypress/pages/components/NIMDeployModal';
-import {
-  mockGlobalScopedAcceleratorProfiles,
-  mockProjectScopedAcceleratorProfiles,
-} from '#~/__mocks__/mockAcceleratorProfile';
-import { acceleratorProfileSection } from '#~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -68,7 +60,6 @@ type HandlersProps = {
   disableKServeMetrics?: boolean;
   disableServingRuntimeParamsConfig?: boolean;
   disableProjectScoped?: boolean;
-  disableHardwareProfiles?: boolean;
   servingRuntimesTemplates?: TemplateKind[];
 };
 
@@ -83,7 +74,6 @@ const initIntercepts = ({
   disableKServeMetrics,
   disableServingRuntimeParamsConfig,
   disableProjectScoped = true,
-  disableHardwareProfiles = true,
 }: HandlersProps) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
@@ -102,19 +92,18 @@ const initIntercepts = ({
       disableKServeMetrics,
       disableServingRuntimeParams: disableServingRuntimeParamsConfig,
       disableProjectScoped,
-      disableHardwareProfiles,
     }),
   );
 
   // Mock hardware profiles
   cy.interceptK8sList(
-    { model: HardwareProfileModel, ns: 'opendatahub' },
-    mockK8sResourceList(mockGlobalScopedHardwareProfiles),
+    { model: HardwareProfileModel, ns: 'test-project' },
+    mockK8sResourceList(mockProjectScopedHardwareProfiles),
   ).as('hardwareProfiles');
 
   cy.interceptK8sList(
-    { model: HardwareProfileModel, ns: 'test-project' },
-    mockK8sResourceList(mockProjectScopedHardwareProfiles),
+    { model: HardwareProfileModel, ns: 'opendatahub' },
+    mockK8sResourceList(mockGlobalScopedHardwareProfiles),
   ).as('hardwareProfiles');
 
   cy.interceptK8sList(
@@ -222,17 +211,6 @@ const initIntercepts = ({
     ),
   );
 
-  // Mock accelerator profiles
-  cy.interceptK8sList(
-    { model: AcceleratorProfileModel, ns: 'opendatahub' },
-    mockK8sResourceList(mockGlobalScopedAcceleratorProfiles),
-  ).as('acceleratorProfiles');
-
-  cy.interceptK8sList(
-    { model: AcceleratorProfileModel, ns: 'test-project' },
-    mockK8sResourceList(mockProjectScopedAcceleratorProfiles),
-  ).as('acceleratorProfiles');
-
   cy.interceptOdh('GET /api/connection-types', [
     mockConnectionTypeConfigMap({
       displayName: 'URI - v1',
@@ -275,23 +253,6 @@ describe('Model Serving Global', () => {
 
     // Test that the button is enabled
     modelServingGlobal.findGoToProjectButton().should('be.enabled');
-  });
-
-  it('Empty State No Inference Service', () => {
-    initIntercepts({
-      projectEnableModelMesh: false,
-      inferenceServices: [],
-    });
-
-    modelServingGlobal.visit('test-project');
-
-    modelServingGlobal.shouldBeEmpty();
-
-    modelServingGlobal.clickDeployModelButtonWithRetry();
-
-    // test that you can not submit on empty
-    inferenceServiceModal.shouldBeOpen();
-    inferenceServiceModal.findSubmitButton().should('be.disabled');
   });
 
   it('All projects loading and cancel', () => {
@@ -421,80 +382,7 @@ describe('Model Serving Global', () => {
     cy.wait('@deleteModel');
   });
 
-  it('Edit model', () => {
-    initIntercepts({});
-
-    cy.interceptK8s(
-      'PUT',
-      ServingRuntimeModel,
-      mockServingRuntimeK8sResource({ name: 'test-model' }),
-    ).as('editModel');
-
-    modelServingGlobal.visit('test-project');
-
-    // user flow for editing a project
-    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
-
-    // test that you can not submit on empty
-    inferenceServiceModalEdit.shouldBeOpen();
-    inferenceServiceModalEdit.findModelNameInput().clear();
-    inferenceServiceModalEdit.findLocationPathInput().clear();
-    inferenceServiceModalEdit.findSubmitButton().should('be.disabled');
-
-    // test with invalid path name
-    inferenceServiceModalEdit.findLocationPathInput().type('/');
-    inferenceServiceModalEdit
-      .findLocationPathInputError()
-      .should('be.visible')
-      .contains('The path must not point to a root folder');
-    inferenceServiceModalEdit.findSubmitButton().should('be.disabled');
-    inferenceServiceModalEdit.findLocationPathInput().clear();
-    inferenceServiceModalEdit.findLocationPathInput().type('test//path');
-    inferenceServiceModalEdit
-      .findLocationPathInputError()
-      .should('be.visible')
-      .contains('Invalid path format');
-    inferenceServiceModalEdit.findSubmitButton().should('be.disabled');
-    inferenceServiceModalEdit.findLocationPathInput().clear();
-
-    // test that you can update the name to a different name
-    inferenceServiceModalEdit.findModelNameInput().type('Updated Model Name');
-    inferenceServiceModalEdit.findLocationPathInput().type('test-model/');
-    inferenceServiceModalEdit.findSubmitButton().should('be.enabled');
-
-    // test that user cant upload on an empty field
-    inferenceServiceModalEdit.findNewConnectionOption().click();
-    inferenceServiceModalEdit.findConnectionType(/URI/).click();
-    inferenceServiceModalEdit.findSubmitButton().should('be.disabled');
-    inferenceServiceModalEdit.findConnectionNameInput().type('Test Name');
-    inferenceServiceModalEdit.findConnectionFieldInput('URI').type('/');
-    inferenceServiceModalEdit.findConnectionFieldInput('URI').blur();
-    inferenceServiceModalEdit.findSubmitButton().should('be.disabled');
-    inferenceServiceModalEdit.findConnectionFieldInput('URI').clear().type('https://test');
-    inferenceServiceModalEdit.findSubmitButton().should('be.enabled');
-    inferenceServiceModalEdit.findExistingConnectionOption().click();
-    inferenceServiceModalEdit.findSubmitButton().click();
-
-    cy.wait('@editModel').then((interception) => {
-      const servingRuntimeMock = mockServingRuntimeK8sResource({ displayName: 'test-model' });
-      const servingRuntimeMockNoResources = mockServingRuntimeK8sResource({
-        displayName: 'test-model',
-        disableResources: true,
-        disableReplicas: true,
-        disableModelMeshAnnotations: true,
-      }); // KServe should send resources in ServingRuntime after migration
-      servingRuntimeMockNoResources.metadata.annotations = {
-        ...servingRuntimeMockNoResources.metadata.annotations,
-      };
-      delete servingRuntimeMock.metadata.annotations?.['enable-auth'];
-      delete servingRuntimeMock.metadata.annotations?.['enable-route'];
-      delete servingRuntimeMock.spec.replicas;
-      expect(interception.request.url).to.include('?dryRun=All'); //dry run request
-      expect(interception.request.body).to.eql(servingRuntimeMockNoResources);
-    });
-  });
-
-  it('Create model', () => {
+  it('Create model mesh model', () => {
     initIntercepts({
       projectEnableModelMesh: true,
     });
@@ -660,314 +548,6 @@ describe('Model Serving Global', () => {
     cy.findByText('Error creating model server').should('not.exist');
   });
 
-  it('Serving runtime helptext', () => {
-    initIntercepts({
-      projectEnableModelMesh: false,
-      disableServingRuntimeParamsConfig: false,
-    });
-    modelServingGlobal.visit('test-project');
-
-    modelServingGlobal.clickDeployModelButtonWithRetry();
-
-    kserveModal.shouldBeOpen();
-    kserveModal.findServingRuntimeTemplateHelptext().should('not.exist');
-    kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    kserveModal.findGlobalScopedTemplateOption('Caikit').click();
-    kserveModal.findServingRuntimeTemplateHelptext().should('exist');
-  });
-
-  it('Display project specific serving runtimes while deploying', () => {
-    initIntercepts({
-      projectEnableModelMesh: false,
-      disableServingRuntimeParamsConfig: false,
-      disableProjectScoped: false,
-    });
-    modelServingGlobal.visit('test-project');
-
-    modelServingGlobal.clickDeployModelButtonWithRetry();
-
-    kserveModal.shouldBeOpen();
-
-    kserveModal.findModelNameInput().should('exist');
-
-    // Check for project specific serving runtimes
-    kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    kserveModal.findProjectScopedTemplateOption('Multi Platform').click();
-    kserveModal.findProjectScopedLabel().should('exist');
-
-    // Check for global specific serving runtimes
-    kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
-    kserveModal.findGlobalScopedLabel().should('exist');
-    kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
-
-    // check model framework selection when serving runtime changes
-    kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
-    kserveModal.findModelFrameworkSelect().should('have.text', 'onnx - 1');
-
-    kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    kserveModal.findGlobalScopedTemplateOption('Caikit').click();
-    kserveModal.findModelFrameworkSelect().should('be.enabled');
-    kserveModal.findModelFrameworkSelect().should('have.text', 'Select a framework');
-
-    kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    kserveModal.findProjectScopedTemplateOption('Caikit').click();
-    kserveModal.findModelFrameworkSelect().should('be.disabled');
-    kserveModal.findModelFrameworkSelect().should('have.text', 'openvino_ir - opset1');
-  });
-
-  it('Display project scoped label on serving runtime selection on Edit', () => {
-    const projectScopedServingRuntime = mockServingRuntimeK8sResource({
-      name: 'test-project-scoped-sr',
-      isProjectScoped: true,
-      scope: 'project',
-      templateDisplayName: 'test-project-scoped-sr',
-    });
-
-    initIntercepts({
-      projectEnableModelMesh: false,
-      disableServingRuntimeParamsConfig: false,
-      disableProjectScoped: false,
-      servingRuntimes: [projectScopedServingRuntime],
-      inferenceServices: [
-        mockInferenceServiceK8sResource({
-          modelName: 'test-project-scoped-sr', // Set runtime to match serving runtime name
-        }),
-      ],
-    });
-    modelServingGlobal.visit('test-project');
-    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
-    kserveModalEdit.findServingRuntimeTemplateSearchSelector().should('be.disabled');
-    kserveModalEdit
-      .findServingRuntimeTemplateSearchSelector()
-      .should('contain.text', 'test-project-scoped-sr');
-    kserveModalEdit.findProjectScopedLabel().should('exist');
-    kserveModalEdit.findModelFrameworkSelect().should('have.text', 'onnx - 1');
-  });
-
-  it('should display hardware profile selection when both hardware profile and project-scoped feature flag is enabled', () => {
-    initIntercepts({
-      projectEnableModelMesh: false,
-      disableServingRuntimeParamsConfig: false,
-      disableProjectScoped: false,
-      disableHardwareProfiles: false,
-    });
-    modelServingGlobal.visit('test-project');
-    modelServingGlobal.findDeployModelButton().should('be.enabled');
-    modelServingGlobal.clickDeployModelButtonWithRetry();
-    kserveModal.shouldBeOpen();
-    kserveModal.findModelNameInput().should('exist');
-
-    // Verify hardware profile section exists
-    hardwareProfileSection.findHardwareProfileSearchSelector().should('exist');
-    hardwareProfileSection.findHardwareProfileSearchSelector().click();
-
-    // verify available project-scoped hardware profile
-    const projectScopedHardwareProfile = hardwareProfileSection.getProjectScopedHardwareProfile();
-    projectScopedHardwareProfile
-      .find()
-      .findByRole('menuitem', {
-        name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
-        hidden: true,
-      })
-      .click();
-    hardwareProfileSection.findProjectScopedLabel().should('exist');
-
-    // verify available global-scoped hardware profile
-    hardwareProfileSection.findHardwareProfileSearchSelector().click();
-    const globalScopedHardwareProfile = hardwareProfileSection.getGlobalScopedHardwareProfile();
-    globalScopedHardwareProfile
-      .find()
-      .findByRole('menuitem', {
-        name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
-        hidden: true,
-      })
-      .click();
-    hardwareProfileSection.findGlobalScopedLabel().should('exist');
-  });
-
-  it('Display project scoped hardware profile on serving runtime selection on Edit', () => {
-    initIntercepts({
-      projectEnableModelMesh: false,
-      disableServingRuntimeParamsConfig: false,
-      disableProjectScoped: false,
-      disableHardwareProfiles: false,
-      inferenceServices: [
-        mockInferenceServiceK8sResource({
-          namespace: 'test-project',
-          hardwareProfileName: 'large-profile-1',
-          hardwareProfileNamespace: 'test-project',
-          resources: {
-            requests: {
-              cpu: '4',
-              memory: '8Gi',
-            },
-            limits: {
-              cpu: '8',
-              memory: '16Gi',
-            },
-          },
-        }),
-      ],
-      servingRuntimes: [mockServingRuntimeK8sResource({})],
-    });
-
-    modelServingGlobal.visit('test-project');
-    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
-
-    hardwareProfileSection.findHardwareProfileSearchSelector().should('be.visible');
-
-    hardwareProfileSection
-      .findHardwareProfileSearchSelector()
-      .should('contain.text', 'Large Profile-1');
-    hardwareProfileSection.findProjectScopedLabel().should('exist');
-  });
-
-  it('should display accelerator profile selection when both accelerator profile and project-scoped feature flag is enabled', () => {
-    initIntercepts({
-      projectEnableModelMesh: false,
-      disableServingRuntimeParamsConfig: false,
-      disableProjectScoped: false,
-      disableHardwareProfiles: true,
-    });
-    modelServingGlobal.visit('test-project');
-    modelServingGlobal.clickDeployModelButtonWithRetry();
-    kserveModal.findModelNameInput().should('exist');
-
-    // Verify accelerator profile section exists
-    acceleratorProfileSection.findAcceleratorProfileSearchSelector().should('exist');
-    acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
-
-    // verify available project-scoped accelerator profile
-    const projectScopedAcceleratorProfile =
-      acceleratorProfileSection.getProjectScopedAcceleratorProfile();
-    projectScopedAcceleratorProfile
-      .find()
-      .findByRole('menuitem', {
-        name: 'Small Profile nvidia.com/gpu',
-        hidden: true,
-      })
-      .click();
-    kserveModal.findProjectScopedLabel().should('exist');
-
-    // verify available global-scoped accelerator profile
-    acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
-    const globalScopedAcceleratorProfile =
-      acceleratorProfileSection.getGlobalScopedAcceleratorProfile();
-    globalScopedAcceleratorProfile
-      .find()
-      .findByRole('menuitem', {
-        name: 'Small Profile Global nvidia.com/gpu',
-        hidden: true,
-      })
-      .click();
-    kserveModal.findGlobalScopedLabel().should('exist');
-  });
-
-  it('Display project scoped label on accelerator profile selection on Edit', () => {
-    initIntercepts({
-      projectEnableModelMesh: false,
-      disableServingRuntimeParamsConfig: false,
-      disableProjectScoped: false,
-      servingRuntimes: [
-        mockServingRuntimeK8sResource({
-          acceleratorName: 'large-profile-1',
-          acceleratorProfileNamespace: 'test-project',
-        }),
-      ],
-    });
-    modelServingGlobal.visit('test-project');
-    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
-    acceleratorProfileSection
-      .findAcceleratorProfileSearchSelector()
-      .should('contain.text', 'Large Profile-1');
-    kserveModalEdit.findProjectScopedLabel().should('exist');
-  });
-
-  it('Display Existing settings for deleted accelerator profile selection on Edit', () => {
-    initIntercepts({
-      projectEnableModelMesh: false,
-      disableServingRuntimeParamsConfig: false,
-      disableProjectScoped: false,
-      servingRuntimes: [
-        mockServingRuntimeK8sResource({
-          acceleratorName: 'large-profile-2',
-        }),
-      ],
-    });
-    modelServingGlobal.visit('test-project');
-    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
-    acceleratorProfileSection
-      .findAcceleratorProfileSearchSelector()
-      .should('contain.text', 'Existing settings');
-  });
-
-  it('Display global scoped label on serving runtime selection', () => {
-    initIntercepts({
-      projectEnableModelMesh: false,
-      disableServingRuntimeParamsConfig: false,
-      disableProjectScoped: false,
-      servingRuntimes: [
-        mockServingRuntimeK8sResource({
-          isProjectScoped: true,
-          scope: 'global',
-        }),
-      ],
-    });
-    modelServingGlobal.visit('test-project');
-    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
-    kserveModalEdit.findServingRuntimeTemplateSearchSelector().should('be.disabled');
-    kserveModalEdit
-      .findServingRuntimeTemplateSearchSelector()
-      .should('contain.text', 'OpenVINO Serving Runtime (Supports GPUs)');
-    kserveModalEdit.findGlobalScopedLabel().should('exist');
-    kserveModalEdit.findModelFrameworkSelect().should('have.text', 'onnx - 1');
-  });
-
-  it('View predefined args popover populates', () => {
-    initIntercepts({
-      projectEnableModelMesh: false,
-      disableServingRuntimeParamsConfig: false,
-    });
-    modelServingGlobal.visit('test-project');
-
-    modelServingGlobal.clickDeployModelButtonWithRetry();
-
-    kserveModal.shouldBeOpen();
-    kserveModal.findPredefinedArgsButton().scrollIntoView();
-    kserveModal.findPredefinedArgsButton().click();
-    kserveModal.findPredefinedArgsList().should('not.exist');
-    kserveModal.findPredefinedArgsTooltip().should('exist');
-    kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    kserveModal.findGlobalScopedTemplateOption('Caikit').click();
-    kserveModal.findPredefinedArgsButton().click();
-    kserveModal.findPredefinedArgsList().should('exist');
-    kserveModal.findPredefinedArgsTooltip().should('not.exist');
-    kserveModal.findPredefinedArgsList().should('include.text', '--port=8001');
-  });
-
-  it('View predefined vars popover populates', () => {
-    initIntercepts({
-      projectEnableModelMesh: false,
-      disableServingRuntimeParamsConfig: false,
-    });
-    modelServingGlobal.visit('test-project');
-
-    modelServingGlobal.clickDeployModelButtonWithRetry();
-
-    kserveModal.shouldBeOpen();
-    kserveModal.findPredefinedVarsButton().click();
-    kserveModal.findPredefinedVarsList().should('not.exist');
-    kserveModal.findPredefinedVarsTooltip().should('exist');
-    kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    kserveModal.findGlobalScopedTemplateOption('Caikit').click();
-    kserveModal.findPredefinedVarsButton().click();
-    kserveModal.findPredefinedVarsList().should('exist');
-    kserveModal.findPredefinedVarsTooltip().should('not.exist');
-    kserveModal.findPredefinedVarsList().should('include.text', 'HF_HOME=/tmp/hf_home');
-  });
-
   it('Navigate to kserve model metrics page only if enabled', () => {
     initIntercepts({});
     modelServingGlobal.visit('test-project');
@@ -1050,34 +630,6 @@ describe('Model Serving Global', () => {
       .getInferenceServiceRow('Test Inference Service')
       .findServingRuntimeVersionStatusLabel()
       .should('not.exist');
-  });
-
-  it('Should display env vars from a valueFrom secret', () => {
-    initIntercepts({
-      inferenceServices: [
-        mockInferenceServiceK8sResource({
-          env: [
-            {
-              name: 'value-from-secret-env-var',
-              valueFrom: { secretKeyRef: { name: 'test-secret', key: 'test-key' } },
-            },
-            {
-              name: 'key-value-env-var',
-              value: 'test-value',
-            },
-          ],
-        }),
-      ],
-    });
-    modelServingGlobal.visit('test-project');
-
-    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
-    kserveModalEdit.findServingRuntimeEnvVarsValue('0').should('be.disabled');
-    kserveModalEdit
-      .findServingRuntimeEnvVarsValue('0')
-      .should('have.value', '{"secretKeyRef":{"name":"test-secret","key":"test-key"}}');
-    kserveModalEdit.findServingRuntimeEnvVarsValue('1').should('not.be.disabled');
-    kserveModalEdit.findServingRuntimeEnvVarsValue('1').should('have.value', 'test-value');
   });
 
   describe('Table filter and pagination', () => {
@@ -1231,7 +783,7 @@ describe('Model Serving Global', () => {
 
   describe('Model Serving Hardware Profile Binding State Labels', () => {
     it('should show "Deleted" label when hardware profile is deleted', () => {
-      initIntercepts({ disableHardwareProfiles: false });
+      initIntercepts({});
       // Mock inference service with non-existent hardware profile annotation
       cy.interceptK8sList(
         {
@@ -1292,7 +844,6 @@ describe('Model Serving Global', () => {
 
       // Set up proper intercepts with hardware profiles enabled
       initIntercepts({
-        disableHardwareProfiles: false,
         inferenceServices: [mockInferenceService],
       });
 
@@ -1357,7 +908,6 @@ describe('Model Serving Global', () => {
 
       // Set up proper intercepts with hardware profiles enabled
       initIntercepts({
-        disableHardwareProfiles: false,
         inferenceServices: [mockInferenceService],
       });
 
@@ -1419,7 +969,6 @@ describe('Model Serving Global', () => {
       });
 
       initIntercepts({
-        disableHardwareProfiles: false,
         inferenceServices: [mockInferenceService],
       });
 

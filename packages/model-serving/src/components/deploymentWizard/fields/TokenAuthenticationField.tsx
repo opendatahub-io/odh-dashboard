@@ -16,12 +16,17 @@ import {
   getUniqueId,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
+import * as _ from 'lodash-es';
 import { z } from 'zod';
+import type { ModelServerSelectField } from './ModelServerTemplateSelectField';
+import type { ModelTypeField } from './ModelTypeSelectField';
+import type { TokenAuthField } from '../types';
 
 // Schema
 const tokenSchema = z.object({
   uuid: z.string(),
-  name: z.string().min(1, 'Service account name is required'),
+  displayName: z.string().min(1, 'Service account name is required'),
+  k8sName: z.string().optional(),
   error: z.string().optional(),
 });
 
@@ -40,18 +45,58 @@ export const isValidTokenAuthentication = (
 export type TokenAuthenticationFieldHook = {
   data: TokenAuthenticationFieldData | undefined;
   setData: (data: TokenAuthenticationFieldData) => void;
+  shouldAutoCheck: boolean;
 };
 
 export const useTokenAuthenticationField = (
   existingData?: TokenAuthenticationFieldData,
+  tokenAuthFields?: TokenAuthField[],
+  modelType?: ModelTypeField,
+  modelServer?: ModelServerSelectField,
 ): TokenAuthenticationFieldHook => {
+  const shouldAutoCheck = React.useMemo(() => {
+    if (!modelType || !tokenAuthFields) return false;
+
+    const activeField = tokenAuthFields.find((field) =>
+      field.isActive({
+        modelType,
+        modelServer,
+      }),
+    );
+    return activeField?.initialValue ?? false;
+  }, [tokenAuthFields, modelType, modelServer]);
+
+  const initialData = React.useMemo(() => {
+    // only auto check on create
+    if (shouldAutoCheck && !existingData) {
+      return [
+        {
+          uuid: getUniqueId('ml'),
+          displayName: 'default-name',
+          error: '',
+        },
+      ];
+    }
+    return existingData || [];
+  }, [shouldAutoCheck, existingData]);
+
   const [tokenAuthData, setTokenAuthData] = React.useState<
     TokenAuthenticationFieldData | undefined
-  >(existingData || []);
+  >(initialData);
+
+  const initialDataRef = React.useRef(initialData);
+  React.useEffect(() => {
+    const isInitialDataDifferent = !_.isEqual(initialData, initialDataRef.current);
+    if (isInitialDataDifferent) {
+      initialDataRef.current = initialData;
+      setTokenAuthData(initialData);
+    }
+  }, [initialData]);
 
   return {
     data: tokenAuthData,
     setData: setTokenAuthData,
+    shouldAutoCheck,
   };
 };
 
@@ -69,7 +114,7 @@ const TokenInput: React.FC<TokenInputProps> = ({
   disabled,
 }) => {
   const checkDuplicates = (name: string): boolean => {
-    const duplicates = existingTokens.filter((currentToken) => currentToken.name === name);
+    const duplicates = existingTokens.filter((currentToken) => currentToken.displayName === name);
     return duplicates.length > 0;
   };
 
@@ -88,7 +133,7 @@ const TokenInput: React.FC<TokenInputProps> = ({
       <Split>
         <SplitItem isFilled>
           <TextInput
-            value={newToken.name}
+            value={newToken.displayName}
             isRequired
             type="text"
             id="service-account-form-name"
@@ -102,7 +147,7 @@ const TokenInput: React.FC<TokenInputProps> = ({
                 item.uuid === newToken.uuid
                   ? {
                       uuid: newToken.uuid,
-                      name: value,
+                      displayName: value,
                       error: checkValid(value),
                     }
                   : item,
@@ -117,7 +162,7 @@ const TokenInput: React.FC<TokenInputProps> = ({
               >
                 {newToken.error
                   ? newToken.error
-                  : 'Enter the service account name for which the token will be generated'}
+                  : 'Enter the name of the service account for which the token will be generated'}
               </HelperTextItem>
             </HelperText>
           </FormHelperText>
@@ -156,14 +201,14 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
   allowCreate = false,
 }) => {
   const createNewToken = React.useCallback(() => {
-    const name = 'default-name';
-    const duplicated = tokens.filter((token) => token.name === name);
+    const displayName = 'default-name';
+    const duplicated = tokens.filter((token) => token.displayName === displayName);
     const duplicatedError = duplicated.length > 0 ? 'Duplicates are invalid' : '';
 
     const newTokens = [
       ...tokens,
       {
-        name,
+        displayName,
         uuid: getUniqueId('ml'),
         error: duplicatedError,
       },
@@ -176,7 +221,13 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
     <Stack hasGutter id="auth-section">
       <StackItem>
         <Checkbox
-          label="Require token authentication"
+          label={
+            <>
+              <div className="pf-v6-c-form__label-text">Require token authentication</div>
+              Requiring token authentication provides added security if you make your model
+              available to users outside of your cluster.
+            </>
+          }
           id="alt-form-checkbox-auth"
           data-testid="token-authentication-checkbox"
           name="alt-form-checkbox-auth"

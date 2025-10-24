@@ -1,15 +1,15 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Button, Tooltip } from '@patternfly/react-core';
-import { ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { Link } from 'react-router-dom';
 import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
+import { registeredModelDeploymentsRoute } from '@odh-dashboard/internal/routes/modelRegistry/registeredModels';
 import type { RegisteredModel } from '@mf/modelRegistry/compiled-types/src/app/types';
-
 import { ModelDeploymentsContext } from '../src/concepts/ModelDeploymentsContext';
 
-const DeploymentsColumn: React.FC<{ registeredModel: RegisteredModel }> = ({ registeredModel }) => {
+const DeploymentsColumn: React.FC<{
+  registeredModel: RegisteredModel;
+  preferredModelRegistryName?: string;
+}> = ({ registeredModel, preferredModelRegistryName }) => {
   const { deployments, loaded } = React.useContext(ModelDeploymentsContext);
-  const navigate = useNavigate();
 
   if (!loaded) {
     return <span>-</span>;
@@ -28,29 +28,11 @@ const DeploymentsColumn: React.FC<{ registeredModel: RegisteredModel }> = ({ reg
   if (deploymentCount === 0) {
     return <span>-</span>;
   }
-  const handleDeploymentsClick = () => {
-    navigate(`/ai-hub/deployments?registeredModelId=${registeredModel.id}`);
-  };
 
   return (
-    <div>
-      <Link
-        to={`/ai-hub/deployments?registeredModelId=${registeredModel.id}`}
-        onClick={handleDeploymentsClick}
-        style={{ textDecoration: 'none' }}
-      >
-        {deploymentCount} {deploymentCount === 1 ? 'deployment' : 'deployments'}
-      </Link>
-      <Tooltip content="View all deployments for this model">
-        <Button
-          variant="link"
-          icon={<ExternalLinkAltIcon />}
-          aria-label="View deployments"
-          onClick={handleDeploymentsClick}
-          style={{ marginLeft: '8px', padding: '0' }}
-        />
-      </Tooltip>
-    </div>
+    <Link to={registeredModelDeploymentsRoute(registeredModel.id, preferredModelRegistryName)}>
+      {deploymentCount} {deploymentCount === 1 ? 'deployment' : 'deployments'}
+    </Link>
   );
 };
 

@@ -1,25 +1,33 @@
 import { useQueryParamNamespaces } from 'mod-arch-core';
 import useGenericObjectState from 'mod-arch-core/dist/utilities/useGenericObjectState';
 import * as React from 'react';
+import { useCatalogFilterOptionList } from '~/app/hooks/modelCatalog/useCatalogFilterOptionList';
 import { useCatalogSources } from '~/app/hooks/modelCatalog/useCatalogSources';
 import useModelCatalogAPIState, {
   ModelCatalogAPIState,
 } from '~/app/hooks/modelCatalog/useModelCatalogAPIState';
 import {
+  CatalogFilterOptionsList,
   CatalogSource,
   CatalogSourceList,
+  CategoryName,
   ModelCatalogFilterKey,
   ModelCatalogFilterStates,
 } from '~/app/modelCatalogTypes';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import { ModelCatalogStringFilterKey } from '~/concepts/modelCatalog/const';
+import {
+  ModelCatalogStringFilterKey,
+  ModelCatalogNumberFilterKey,
+} from '~/concepts/modelCatalog/const';
 
 export type ModelCatalogContextType = {
   catalogSourcesLoaded: boolean;
   catalogSourcesLoadError?: Error;
   catalogSources: CatalogSourceList | null;
   selectedSource: CatalogSource | undefined;
-  updateSelectedSource: (modelRegistry: CatalogSource | undefined) => void;
+  updateSelectedSource: (source: CatalogSource | undefined) => void;
+  selectedSourceLabel: string | undefined;
+  updateSelectedSourceLabel: (sourceLabel: string | undefined) => void;
   apiState: ModelCatalogAPIState;
   refreshAPIState: () => void;
   filterData: ModelCatalogFilterStates;
@@ -27,6 +35,9 @@ export type ModelCatalogContextType = {
     key: K,
     value: ModelCatalogFilterStates[K],
   ) => void;
+  filterOptions: CatalogFilterOptionsList | null;
+  filterOptionsLoaded: boolean;
+  filterOptionsLoadError?: Error;
 };
 
 type ModelCatalogContextProviderProps = {
@@ -43,12 +54,21 @@ export const ModelCatalogContext = React.createContext<ModelCatalogContextType>(
     [ModelCatalogStringFilterKey.PROVIDER]: [],
     [ModelCatalogStringFilterKey.LICENSE]: [],
     [ModelCatalogStringFilterKey.LANGUAGE]: [],
+    [ModelCatalogStringFilterKey.HARDWARE_TYPE]: [],
+    [ModelCatalogStringFilterKey.USE_CASE]: undefined,
+    [ModelCatalogNumberFilterKey.MIN_RPS]: undefined,
+    [ModelCatalogNumberFilterKey.MAX_LATENCY]: undefined,
   },
   updateSelectedSource: () => undefined,
+  selectedSourceLabel: undefined,
+  updateSelectedSourceLabel: () => undefined,
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   apiState: { apiAvailable: false, api: null as unknown as ModelCatalogAPIState['api'] },
   refreshAPIState: () => undefined,
   setFilterData: () => undefined,
+  filterOptions: null,
+  filterOptionsLoaded: false,
+  filterOptionsLoadError: undefined,
 });
 
 export const ModelCatalogContextProvider: React.FC<ModelCatalogContextProviderProps> = ({
@@ -57,7 +77,8 @@ export const ModelCatalogContextProvider: React.FC<ModelCatalogContextProviderPr
   const hostPath = `${URL_PREFIX}/api/${BFF_API_VERSION}/model_catalog`;
   const queryParams = useQueryParamNamespaces();
   const [apiState, refreshAPIState] = useModelCatalogAPIState(hostPath, queryParams);
-  const [catalogSources, isLoaded, error] = useCatalogSources(apiState);
+  const [catalogSources, catalogSourcesLoaded, catalogSourcesLoadError] =
+    useCatalogSources(apiState);
   const [selectedSource, setSelectedSource] =
     React.useState<ModelCatalogContextType['selectedSource']>(undefined);
   const [filterData, setFilterData] = useGenericObjectState<ModelCatalogFilterStates>({
@@ -65,29 +86,47 @@ export const ModelCatalogContextProvider: React.FC<ModelCatalogContextProviderPr
     [ModelCatalogStringFilterKey.PROVIDER]: [],
     [ModelCatalogStringFilterKey.LICENSE]: [],
     [ModelCatalogStringFilterKey.LANGUAGE]: [],
+    [ModelCatalogStringFilterKey.HARDWARE_TYPE]: [],
+    [ModelCatalogStringFilterKey.USE_CASE]: undefined,
+    [ModelCatalogNumberFilterKey.MIN_RPS]: undefined,
+    [ModelCatalogNumberFilterKey.MAX_LATENCY]: undefined,
   });
+  const [filterOptions, filterOptionsLoaded, filterOptionsLoadError] =
+    useCatalogFilterOptionList(apiState);
+  const [selectedSourceLabel, setSelectedSourceLabel] = React.useState<
+    ModelCatalogContextType['selectedSourceLabel']
+  >(CategoryName.allModels);
 
   const contextValue = React.useMemo(
     () => ({
-      catalogSourcesLoaded: isLoaded,
-      catalogSourcesLoadError: error,
+      catalogSourcesLoaded,
+      catalogSourcesLoadError,
       catalogSources,
       selectedSource: selectedSource ?? undefined,
       updateSelectedSource: setSelectedSource,
+      selectedSourceLabel: selectedSourceLabel ?? undefined,
+      updateSelectedSourceLabel: setSelectedSourceLabel,
       apiState,
       refreshAPIState,
       filterData,
       setFilterData,
+      filterOptions,
+      filterOptionsLoaded,
+      filterOptionsLoadError,
     }),
     [
-      isLoaded,
-      error,
+      catalogSourcesLoaded,
+      catalogSourcesLoadError,
       catalogSources,
       selectedSource,
       apiState,
       refreshAPIState,
       filterData,
       setFilterData,
+      filterOptions,
+      filterOptionsLoaded,
+      filterOptionsLoadError,
+      selectedSourceLabel,
     ],
   );
 

@@ -1,57 +1,31 @@
 import React from 'react';
 import { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { useParams } from 'react-router-dom';
-import { K8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/types';
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { extractK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
 import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
-import { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { useModelFormatField } from './fields/ModelFormatField';
-import { ModelLocationData } from './fields/modelLocationFields/types';
-import { useModelTypeField, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
+import { useModelTypeField } from './fields/ModelTypeSelectField';
 import { useModelLocationData } from './fields/ModelLocationInputFields';
-import { useExternalRouteField, type ExternalRouteFieldData } from './fields/ExternalRouteField';
+import { useExternalRouteField } from './fields/ExternalRouteField';
+import { useTokenAuthenticationField } from './fields/TokenAuthenticationField';
+import { useNumReplicasField } from './fields/NumReplicasField';
+import { useRuntimeArgsField } from './fields/RuntimeArgsField';
+import { useEnvironmentVariablesField } from './fields/EnvironmentVariablesField';
+import { useModelAvailabilityFields } from './fields/ModelAvailabilityFields';
+import { useModelServerSelectField } from './fields/ModelServerTemplateSelectField';
 import {
-  useTokenAuthenticationField,
-  type TokenAuthenticationFieldData,
-} from './fields/TokenAuthenticationField';
-import { useNumReplicasField, type NumReplicasFieldData } from './fields/NumReplicasField';
-import { useRuntimeArgsField, type RuntimeArgsFieldData } from './fields/RuntimeArgsField';
-import {
-  useEnvironmentVariablesField,
-  type EnvironmentVariablesFieldData,
-} from './fields/EnvironmentVariablesField';
-import {
-  AvailableAiAssetsFieldsData,
-  useAvailableAiAssetsFields,
-} from './fields/AvailableAiAssetsFields';
-import {
-  useModelServerSelectField,
-  type ModelServerOption,
-} from './fields/ModelServerTemplateSelectField';
-import { isModelServerTemplateField, type WizardFormData } from './types';
-import { useWizardFieldsFromExtensions } from '../../concepts/extensionUtils';
-
-export type ModelDeploymentWizardData = {
-  modelTypeField?: ModelTypeFieldData;
-  k8sNameDesc?: K8sNameDescriptionFieldData;
-  externalRoute?: ExternalRouteFieldData;
-  tokenAuthentication?: TokenAuthenticationFieldData;
-  numReplicas?: NumReplicasFieldData;
-  runtimeArgs?: RuntimeArgsFieldData;
-  environmentVariables?: EnvironmentVariablesFieldData;
-  hardwareProfile?: Parameters<typeof useHardwareProfileConfig>;
-  modelFormat?: SupportedModelFormats;
-  modelLocationData?: ModelLocationData;
-  modelServer?: ModelServerOption;
-  isEditing?: boolean;
-  connections?: LabeledConnection[];
-  initSelectedConnection?: LabeledConnection | undefined;
-  aiAssetData?: AvailableAiAssetsFieldsData;
-  // Add more field handlers as needed
-};
+  isExternalRouteField,
+  isTokenAuthField,
+  type ExternalRouteField,
+  type InitialWizardFormData,
+  type TokenAuthField,
+  type WizardFormData,
+} from './types';
+import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
+import { useExtensionStateModifier, useWizardFieldsFromExtensions } from './dynamicFormUtils';
 
 export type UseModelDeploymentWizardState = WizardFormData & {
   loaded: {
@@ -60,10 +34,18 @@ export type UseModelDeploymentWizardState = WizardFormData & {
     advancedOptionsLoaded: boolean;
     summaryLoaded: boolean;
   };
+  fieldExtensions: {
+    externalRouteFields: ExternalRouteField[];
+    tokenAuthFields: TokenAuthField[];
+  };
+  advancedOptions: {
+    isExternalRouteVisible: boolean;
+    shouldAutoCheckTokens: boolean;
+  };
 };
 
 export const useModelDeploymentWizard = (
-  initialData?: ModelDeploymentWizardData,
+  initialData?: InitialWizardFormData,
 ): UseModelDeploymentWizardState => {
   const [fields] = useWizardFieldsFromExtensions();
 
@@ -75,6 +57,11 @@ export const useModelDeploymentWizard = (
   const modelLocationData = useModelLocationData(
     currentProject ?? null,
     initialData?.modelLocationData,
+  );
+  const createConnectionData = useCreateConnectionData(
+    currentProject ?? null,
+    initialData?.createConnectionData,
+    modelLocationData.data,
   );
 
   // loaded state
@@ -116,18 +103,22 @@ export const useModelDeploymentWizard = (
       [modelType.data],
     ),
   );
-  const modelServerTemplateFields = React.useMemo(() => {
-    return fields.filter(isModelServerTemplateField);
-  }, [fields]);
-  const modelServer = useModelServerSelectField(
-    modelServerTemplateFields,
-    initialData?.modelServer,
-    currentProject?.metadata.name,
-    modelFormatState.templatesFilteredForModelType,
-    modelType.data === ServingRuntimeModelType.GENERATIVE // Don't pass model format for generative models
-      ? undefined
-      : modelFormatState.modelFormat,
-    modelType.data,
+
+  const modelServer = useExtensionStateModifier(
+    'modelServerTemplate',
+    useModelServerSelectField,
+    [
+      initialData?.modelServer,
+      currentProject?.metadata.name,
+      modelFormatState.templatesFilteredForModelType,
+      modelType.data === ServingRuntimeModelType.GENERATIVE // Don't pass model format for generative models
+        ? undefined
+        : modelFormatState.modelFormat,
+      modelType.data,
+    ],
+    {
+      modelType,
+    },
   );
 
   const numReplicas = useNumReplicasField(initialData?.numReplicas ?? undefined);
@@ -138,14 +129,41 @@ export const useModelDeploymentWizard = (
   }, [modelFormatState.loaded, hardwareProfileConfig.profilesLoaded]);
 
   // Step 3: Advanced Options - Individual Fields
-  const externalRoute = useExternalRouteField(initialData?.externalRoute ?? undefined);
+  const modelAvailability = useExtensionStateModifier(
+    'modelAvailability',
+    useModelAvailabilityFields,
+    [initialData?.modelAvailability, modelType.data],
+    {
+      modelType,
+      modelServer,
+    },
+  );
+
+  const externalRouteFields = React.useMemo(() => {
+    return fields.filter(isExternalRouteField);
+  }, [fields]);
+
+  const tokenAuthFields = React.useMemo(() => {
+    return fields.filter(isTokenAuthField);
+  }, [fields]);
+
+  const fieldExtensions = {
+    externalRouteFields,
+    tokenAuthFields,
+  };
+
+  const externalRoute = useExternalRouteField(
+    initialData?.externalRoute ?? undefined,
+    externalRouteFields,
+    modelType,
+    modelServer,
+  );
 
   const tokenAuthentication = useTokenAuthenticationField(
     initialData?.tokenAuthentication ?? undefined,
-  );
-  const aiAssetData = useAvailableAiAssetsFields(
-    initialData?.aiAssetData ?? undefined,
-    modelType.data,
+    tokenAuthFields,
+    modelType,
+    modelServer,
   );
 
   const runtimeArgs = useRuntimeArgsField(initialData?.runtimeArgs ?? undefined);
@@ -162,13 +180,17 @@ export const useModelDeploymentWizard = (
       k8sNameDesc,
       hardwareProfileConfig,
       modelFormatState,
-      modelLocationData,
+      modelLocationData: {
+        ...modelLocationData,
+        selectedConnection: modelLocationData.selectedConnection,
+      },
+      createConnectionData,
       externalRoute,
       tokenAuthentication,
       numReplicas,
       runtimeArgs,
       environmentVariables,
-      aiAssetData,
+      modelAvailability,
       modelServer,
     },
     loaded: {
@@ -176,6 +198,11 @@ export const useModelDeploymentWizard = (
       modelDeploymentLoaded,
       advancedOptionsLoaded: true, // TODO: Update if these get dependencies that we need to wait for
       summaryLoaded: true, // TODO: Update if these get dependencies that we need to wait for
+    },
+    fieldExtensions,
+    advancedOptions: {
+      isExternalRouteVisible: externalRoute.isVisible,
+      shouldAutoCheckTokens: tokenAuthentication.shouldAutoCheck,
     },
   };
 };

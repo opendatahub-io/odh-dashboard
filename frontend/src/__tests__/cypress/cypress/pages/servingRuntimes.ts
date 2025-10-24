@@ -102,6 +102,18 @@ class ServingRuntimes {
     return cy.findByTestId('custom-serving-api-protocol-selection');
   }
 
+  findSelectModelTypes() {
+    return cy.findByTestId('custom-serving-model-type-selection').find('button');
+  }
+
+  findPredictiveModelOption() {
+    return cy.findByTestId('model-type-option-predictive').find('input[type="checkbox"]');
+  }
+
+  findGenerativeAIModelOption() {
+    return cy.findByTestId('model-type-option-generative').find('input[type="checkbox"]');
+  }
+
   shouldDisplayAPIProtocolValues(values: ServingRuntimeAPIProtocol[]) {
     this.findSelectAPIProtocolButton().click();
     values.forEach((value) => cy.findByRole('option', { name: value }).should('exist'));
@@ -110,6 +122,18 @@ class ServingRuntimes {
 
   selectAPIProtocol(value: string) {
     cy.findByRole('option', { name: value }).click();
+  }
+
+  findSelectModelTypeButton() {
+    return cy.findByTestId('custom-serving-model-type-selection').find('button');
+  }
+
+  selectModelType(value: 'Predictive model' | 'Generative AI model (e.g., LLM)') {
+    cy.contains('.pf-v6-c-menu__item-text', value).click();
+    // Close the dropdown by clicking the toggle button again
+    this.findSelectModelTypeButton().click();
+    // Wait for the dropdown to close
+    cy.get('.pf-v6-c-menu').should('not.exist');
   }
 
   uploadYaml(filePath: string) {

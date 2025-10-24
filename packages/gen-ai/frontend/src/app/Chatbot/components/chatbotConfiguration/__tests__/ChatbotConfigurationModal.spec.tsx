@@ -4,7 +4,6 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AIModel, LlamaModel } from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
-
 // Mock the table to surface the selectedModels prop for easy assertions
 jest.mock('~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationTable', () => ({
   __esModule: true,
@@ -29,9 +28,10 @@ const createAIModel = (overrides: Partial<AIModel>): AIModel => ({
     token_name: '',
     token: '',
   },
+  isMaaSModel: false,
+  maasModelId: undefined,
   ...overrides,
 });
-
 const renderModal = (props: {
   allModels: AIModel[];
   existingModels?: LlamaModel[];
@@ -42,7 +42,7 @@ const renderModal = (props: {
       <ChatbotConfigurationModal
         onClose={() => undefined}
         lsdStatus={null}
-        allModels={props.allModels}
+        aiModels={props.allModels}
         existingModels={props.existingModels}
         extraSelectedModels={props.extraSelectedModels}
       />
@@ -119,5 +119,55 @@ describe('ChatbotConfigurationModal preSelectedModels', () => {
   test('falls back to allModels when neither existing nor extra are provided', () => {
     renderModal({ allModels });
     expect(getSelectedModelNames()).toEqual(['mA', 'mB', 'mC']);
+  });
+});
+
+describe('ChatbotConfigurationModal MaaS model support', () => {
+  test('createAIModel helper creates regular model by default', () => {
+    const model = createAIModel({ model_name: 'test-model' });
+    expect(model.isMaaSModel).toBe(false);
+    expect(model.maasModelId).toBeUndefined();
+  });
+
+  test('createAIModel helper can create MaaS model', () => {
+    const model = createAIModel({
+      model_name: 'granite-7b-lab',
+      isMaaSModel: true,
+      maasModelId: 'granite-7b-lab',
+    });
+    expect(model.isMaaSModel).toBe(true);
+    expect(model.maasModelId).toBe('granite-7b-lab');
+  });
+
+  test('includes MaaS models in selection', () => {
+    const regularModel = createAIModel({ model_name: 'regular-model', display_name: 'Regular' });
+    const maasModel = createAIModel({
+      model_name: 'granite-7b-lab',
+      display_name: 'Granite MaaS',
+      isMaaSModel: true,
+      maasModelId: 'granite-7b-lab',
+    });
+    const allModels = [regularModel, maasModel];
+
+    renderModal({ allModels });
+
+    expect(getSelectedModelNames()).toEqual(['regular-model', 'granite-7b-lab']);
+  });
+
+  test('MaaS models are properly serialized in selected models', () => {
+    const maasModel = createAIModel({
+      model_name: 'llama-2-7b-chat',
+      display_name: 'Llama 2 Chat',
+      isMaaSModel: true,
+      maasModelId: 'llama-2-7b-chat',
+    });
+
+    renderModal({ allModels: [maasModel] });
+
+    const json = screen.getByTestId('selected-models').textContent || '[]';
+    const parsed = JSON.parse(json) as AIModel[];
+
+    expect(parsed[0].isMaaSModel).toBe(true);
+    expect(parsed[0].maasModelId).toBe('llama-2-7b-chat');
   });
 });

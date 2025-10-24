@@ -165,11 +165,15 @@ class ServingModal extends Modal {
   }
 
   findProjectScopedLabel() {
-    return this.find().findByTestId('project-scoped-label');
+    return this.findServingRuntimeTemplateSearchSelector()
+      .parent()
+      .findByTestId('project-scoped-label');
   }
 
   findGlobalScopedLabel() {
-    return this.find().findByTestId('global-scoped-label');
+    return this.findServingRuntimeTemplateSearchSelector()
+      .parent()
+      .findByTestId('global-scoped-label');
   }
 
   getProjectScopedServingRuntime() {
@@ -927,7 +931,7 @@ class ModelServingSection {
 
 class ModelServingWizard extends Wizard {
   constructor(private edit = false) {
-    super('Deploy a model', 'Deploy model');
+    super('Deploy a model', edit ? 'Update deployment' : 'Deploy model');
   }
 
   findModelSourceStep() {
@@ -1030,6 +1034,10 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('pvc-path-prefix');
   }
 
+  findPVCSelectValue() {
+    return cy.findByTestId('pvc-connection-selector').findByRole('combobox');
+  }
+
   findOCIModelURI() {
     return cy.findByTestId('model-uri');
   }
@@ -1053,6 +1061,10 @@ class ModelServingWizard extends Wizard {
   findExistingConnectionSelectOption(name: string) {
     cy.findByRole('listbox');
     return cy.findByText(name);
+  }
+
+  findSaveConnectionCheckbox() {
+    return cy.findByTestId('save-connection-checkbox');
   }
 
   findExternalRouteCheckbox() {
@@ -1141,6 +1153,10 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('save-as-ai-asset-checkbox');
   }
 
+  findSaveAsMaaSCheckbox() {
+    return cy.findByTestId('save-as-maas-checkbox');
+  }
+
   findUseCaseInput() {
     return cy.findByTestId('use-case-input');
   }
@@ -1175,6 +1191,14 @@ class ModelServingWizard extends Wizard {
 
   findMemoryLimitButton(type: 'Plus' | 'Minus') {
     return cy.findByTestId('memory-limits-input').findByRole('button', { name: type });
+  }
+
+  findErrorMessageAlert() {
+    return cy.findByTestId('error-message-alert');
+  }
+
+  findUpdateDeploymentButton() {
+    return cy.findByRole('button', { name: 'Update deployment' });
   }
 }
 

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Tr, Td } from '@patternfly/react-table';
 import { CheckboxTd, ResourceNameTooltip, TableRowTitleDescription } from 'mod-arch-shared';
-import { Icon } from '@patternfly/react-core';
+import { Icon, Label, Popover, Flex, FlexItem } from '@patternfly/react-core';
 import { CheckCircleIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { AIModel } from '~/app/types';
 import { convertAIModelToK8sResource } from '~/app/utilities/utils';
@@ -27,9 +27,26 @@ const ChatbotConfigurationTableRow: React.FC<ChatbotConfigurationTableRowProps> 
     <Td dataLabel="Model deployment name">
       <TableRowTitleDescription
         title={
-          <ResourceNameTooltip resource={convertAIModelToK8sResource(model)}>
-            {model.display_name}
-          </ResourceNameTooltip>
+          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+            <FlexItem>
+              {model.isMaaSModel ? (
+                model.display_name
+              ) : (
+                <ResourceNameTooltip resource={convertAIModelToK8sResource(model)}>
+                  {model.display_name}
+                </ResourceNameTooltip>
+              )}
+            </FlexItem>
+            {model.isMaaSModel && (
+              <FlexItem>
+                <Popover aria-label="Models as a Service" bodyContent={<>Models as a Service</>}>
+                  <Label color="orange" aria-label="Model as a Service">
+                    MaaS
+                  </Label>
+                </Popover>
+              </FlexItem>
+            )}
+          </Flex>
         }
         description={model.description}
         descriptionAsMarkdown

@@ -16,7 +16,12 @@ type LlamaStackDistributionResponse struct {
 
 // LlamaStackDistributionInstallRequest represents the request body for installing models
 type LlamaStackDistributionInstallRequest struct {
-	Models []string `json:"models"`
+	Models []InstallModel `json:"models"`
+}
+
+type InstallModel struct {
+	ModelName   string `json:"model_name"`
+	IsMaaSModel bool   `json:"is_maas_model"`
 }
 
 type LlamaStackDistributionInstallModel struct {

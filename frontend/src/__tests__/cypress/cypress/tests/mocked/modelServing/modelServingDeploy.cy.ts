@@ -35,8 +35,13 @@ import {
   mockModelServingFields,
   mockOciConnectionTypeConfigMap,
 } from '#~/__mocks__/mockConnectionType';
-import { mockCustomSecretK8sResource } from '../../../../../../__mocks__/mockSecretK8sResource';
+import {
+  mockCustomSecretK8sResource,
+  mockURISecretK8sResource,
+  mockSecretK8sResource,
+} from '../../../../../../__mocks__/mockSecretK8sResource';
 import { mockPVCK8sResource } from '../../../../../../__mocks__/mockPVCK8sResource';
+import { isGeneratedSecretName } from '../../../../../../api/k8s/secrets';
 
 const initIntercepts = ({
   modelType,
@@ -60,7 +65,6 @@ const initIntercepts = ({
       disableModelMesh: true,
       disableNIMModelServing: true,
       disableKServe: false,
-      disableDeploymentWizard: false,
     }),
   );
   // used by addSupportServingPlatformProject
@@ -98,6 +102,18 @@ const initIntercepts = ({
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'opendatahub' },
     mockK8sResourceList(mockGlobalScopedHardwareProfiles),
+  );
+
+  cy.interceptK8sList(
+    { model: SecretModel, ns: 'test-project' },
+    mockK8sResourceList([
+      mockURISecretK8sResource({ namespace: 'test-project' }),
+      mockURISecretK8sResource({
+        namespace: 'test-project',
+        name: 'test-uri-secret-2',
+        displayName: 'Test URI Secret 2',
+      }),
+    ]),
   );
 
   cy.interceptK8sList(
@@ -161,7 +177,10 @@ const initIntercepts = ({
     },
     {
       statusCode: 200,
-      body: mockInferenceServiceK8sResource({ name: 'test-model', modelType }),
+      body: mockInferenceServiceK8sResource({
+        name: 'test-model',
+        modelType,
+      }),
     },
   ).as('createInferenceService');
 
@@ -325,12 +344,18 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist');
     modelServingWizard
-      .findModelTypeSelectOption('Generative AI model (e.g. LLM)')
+      .findModelTypeSelectOption('Generative AI model (Example, LLM)')
       .should('exist')
       .click();
     modelServingWizard.findModelLocationSelect().should('exist');
-    modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
-    modelServingWizard.findUrilocationInput().should('exist').type('https://test');
+    modelServingWizard.findModelLocationSelectOption('Existing connection').should('exist').click();
+    modelServingWizard.findExistingConnectionSelect().should('exist').click();
+    modelServingWizard
+      .findExistingConnectionSelectOption('Test URI Secret')
+      .should('exist')
+      .click();
+
+    modelServingWizard.findSaveConnectionCheckbox().should('not.exist');
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
@@ -384,14 +409,11 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findServiceNameAlert().should('not.exist');
     modelServingWizard.findRemoveServiceAccountByIndex(1).click();
     modelServingWizard.findServiceAccountByIndex(0).clear();
-    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findSubmitButton().should('be.disabled'); //TODO: Change back to findNextButton() when submit page is added
     modelServingWizard.findServiceAccountByIndex(0).clear().type('new name');
-    modelServingWizard.findNextButton().should('be.enabled');
-
-    modelServingWizard.findNextButton().should('be.enabled').click();
+    // modelServingWizard.findNextButton().should('be.enabled').click(); //TODO: Uncomment when submit page is added
 
     // Step 4: Summary
-
     modelServingWizard.findSubmitButton().should('be.enabled').click();
 
     // dry run request
@@ -401,6 +423,7 @@ describe('Model Serving Deploy Wizard', () => {
         namespace: 'test-project',
         labels: {
           'opendatahub.io/dashboard': 'true',
+          'opendatahub.io/genai-asset': 'true',
           'networking.kserve.io/visibility': 'exposed',
         },
         annotations: {
@@ -410,7 +433,6 @@ describe('Model Serving Deploy Wizard', () => {
           'opendatahub.io/hardware-profile-name': 'small-profile',
           'opendatahub.io/model-type': 'generative',
           'security.opendatahub.io/enable-auth': 'true',
-          'opendatahub.io/genai-asset': 'true',
           'opendatahub.io/genai-use-case': 'test',
         },
       },
@@ -611,11 +633,19 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelSourceStep().should('be.enabled');
     modelServingWizard.findModelDeploymentStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
-    modelServingWizard.findModelTypeSelectOption('Generative AI model (e.g. LLM)').should('exist');
+    modelServingWizard
+      .findModelTypeSelectOption('Generative AI model (Example, LLM)')
+      .should('exist');
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
     modelServingWizard.findModelLocationSelect().should('exist');
-    modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
-    modelServingWizard.findUrilocationInput().should('exist').type('https://test');
+    modelServingWizard.findModelLocationSelectOption('Existing connection').should('exist').click();
+    modelServingWizard.findExistingConnectionSelect().should('exist').click();
+    modelServingWizard
+      .findExistingConnectionSelectOption('Test URI Secret')
+      .should('exist')
+      .click();
+    modelServingWizard.findExistingConnectionValue().should('have.value', 'Test URI Secret');
+    modelServingWizard.findSaveConnectionCheckbox().should('not.exist');
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
@@ -656,7 +686,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findEnvVariableName('0').clear().type('valid_name');
     modelServingWizard.findEnvVariableValue('0').type('test-value');
 
-    modelServingWizard.findNextButton().should('be.enabled').click();
+    // modelServingWizard.findNextButton().should('be.enabled').click(); //TODO: Uncomment when submit page is added
 
     // Step 4: Summary
 
@@ -778,6 +808,9 @@ describe('Model Serving Deploy Wizard', () => {
     // test filling in minimum required fields
     modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
     modelServingWizard.findUrilocationInput().should('exist').type('https://test');
+    modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
+    modelServingWizard.findSaveConnectionCheckbox().click();
+    modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
@@ -785,7 +818,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
     modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
-    modelServingWizard.findNextButton().should('be.enabled').click();
+    // modelServingWizard.findNextButton().should('be.enabled').click(); //TODO: Uncomment when submit page is added
 
     // test submitting form, an error should appear
     modelServingWizard.findSubmitButton().should('be.enabled').click();
@@ -800,7 +833,8 @@ describe('Model Serving Deploy Wizard', () => {
       expect(interception.request.url).to.include('?dryRun=All');
     });
 
-    // Add error message validation - cy.findByText('Error creating model server');
+    // error message validation
+    modelServingWizard.findErrorMessageAlert().should('be.visible').contains('Error');
 
     // the serving runtime should NOT have been created
     cy.get('@createServingRuntime.all').then((interceptions) => {
@@ -832,6 +866,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
     modelServingWizard.findUrilocationInput().should('exist').type('https://test');
+    modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
+    modelServingWizard.findSaveConnectionCheckbox().click();
+    modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
     // Step 2: Model Deployment
@@ -874,6 +911,11 @@ describe('Model Serving Deploy Wizard', () => {
 
     modelServingWizard.findModelLocationSelect().should('exist');
     modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
+
+    modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
+    modelServingWizard.findSaveConnectionCheckbox().click();
+    modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
+
     modelServingWizard.findUrilocationInput().should('exist').type('https://test');
     // Trigger blur event to activate validation
     modelServingWizard.findUrilocationInput().blur();
@@ -936,6 +978,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
     modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
     modelServingWizard.findUrilocationInput().should('exist').type('https://test');
+    modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
+    modelServingWizard.findSaveConnectionCheckbox().click();
+    modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
     modelServingWizard.findNextButton().should('be.enabled').click();
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
@@ -944,7 +989,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Verify submit is enabled before testing env vars
-    modelServingWizard.findNextButton().should('be.enabled');
+    modelServingWizard.findSubmitButton().should('be.enabled'); //TODO: Change back to findNextButton() when submit page is added
 
     // Add environment variable with invalid name
     modelServingWizard.findEnvVariablesCheckbox().click();
@@ -954,8 +999,7 @@ describe('Model Serving Deploy Wizard', () => {
       'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
     ).should('be.visible');
     // Verify submit is disabled with invalid env var
-    // TODO: Uncomment when fixed
-    // modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findSubmitButton().should('be.disabled'); //TODO: Change back to findNextButton() when submit page is added
 
     // Test invalid env var name with special characters
     modelServingWizard.findEnvVariableName('0').clear().type('invalid@name');
@@ -963,8 +1007,7 @@ describe('Model Serving Deploy Wizard', () => {
       'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
     ).should('be.visible');
     // Verify submit is disabled with invalid env var
-    // TODO: Uncomment when fixed
-    //modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findSubmitButton().should('be.disabled'); //TODO: Change back to findNextButton() when submit page is added
 
     // Test valid env var name
     modelServingWizard.findEnvVariableName('0').clear().type('VALID_NAME');
@@ -972,7 +1015,7 @@ describe('Model Serving Deploy Wizard', () => {
       'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
     ).should('not.exist');
     // Verify submit is enabled with valid env var
-    modelServingWizard.findNextButton().should('be.enabled');
+    modelServingWizard.findSubmitButton().should('be.enabled'); //TODO: Change back to findNextButton() when submit page is added
   });
 
   it('Deploy OCI Model and check paste functionality', () => {
@@ -1033,7 +1076,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
     //Step 3: Advanced Options
-    modelServingWizard.findNextButton().should('be.enabled').click();
+    // modelServingWizard.findNextButton().should('be.enabled').click(); //TODO: Uncomment when submit page is added
     //Step 4: Summary
     modelServingWizard.findSubmitButton().should('be.enabled').click();
 
@@ -1118,6 +1161,19 @@ describe('Model Serving Deploy Wizard', () => {
       { model: ServingRuntimeModel, ns: 'test-project' },
       mockK8sResourceList([mockServingRuntimeK8sResource({})]),
     );
+    cy.interceptK8s(
+      'GET',
+      { model: SecretModel, ns: 'test-project', name: 'test-model-token' },
+      {
+        statusCode: 200,
+        body: {
+          apiVersion: 'v1',
+          kind: 'Secret',
+          metadata: { name: 'test-model-token', namespace: 'test-project' },
+          data: { token: btoa('test-token') },
+        },
+      },
+    ).as('getTokenSecret');
 
     cy.intercept(
       'GET',
@@ -1150,7 +1206,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelLocationSelectOption('Cluster storage').should('exist').click();
-    modelServingWizard.findExistingConnectionValue().should('have.value', 'Test PVC');
+    modelServingWizard.findPVCSelectValue().should('have.value', 'Test PVC');
     modelServingWizard.findPVCPathPrefix().should('contain.text', 'pvc://test-pvc/');
     modelServingWizard.findLocationPathInput().should('have.value', 'test-path');
     modelServingWizard.findNextButton().should('be.enabled').click();
@@ -1161,7 +1217,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
     //Step 3: Advanced Options
-    modelServingWizard.findNextButton().should('be.enabled').click();
+    // modelServingWizard.findNextButton().should('be.enabled').click(); //TODO: Uncomment when submit page is added
     //Step 4: Summary
     modelServingWizard.findSubmitButton().should('be.enabled').click();
 
@@ -1244,6 +1300,7 @@ describe('Model Serving Deploy Wizard', () => {
         mockInferenceServiceK8sResource({
           modelType: ServingRuntimeModelType.PREDICTIVE,
           hasExternalRoute: true,
+          secretName: 'test-uri-secret',
           hardwareProfileName: 'large-profile',
           hardwareProfileNamespace: 'opendatahub',
           description: 'test-description',
@@ -1257,7 +1314,6 @@ describe('Model Serving Deploy Wizard', () => {
               memory: '16Gi',
             },
           },
-          storageUri: 'https://test',
         }),
       ]),
     );
@@ -1271,7 +1327,10 @@ describe('Model Serving Deploy Wizard', () => {
 
     // Step 1: Model source
     modelServingWizardEdit.findModelLocationSelect().should('exist');
-    modelServingWizardEdit.findUrilocationInput().should('have.value', 'https://test');
+    modelServingWizardEdit.findModelLocationSelectOption('Existing connection').should('exist');
+    modelServingWizardEdit.findExistingConnectionSelect().should('exist');
+    modelServingWizardEdit.findExistingConnectionValue().should('have.value', 'Test URI Secret');
+    modelServingWizardEdit.findSaveConnectionCheckbox().should('not.exist');
     modelServingWizardEdit.findModelSourceStep().should('be.enabled');
     modelServingWizardEdit.findNextButton().should('be.enabled');
 
@@ -1307,7 +1366,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findExternalRouteCheckbox().should('be.checked');
     modelServingWizardEdit.findTokenAuthenticationCheckbox().click();
     modelServingWizardEdit.findServiceAccountByIndex(0).should('have.value', 'default-name');
-    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+    modelServingWizardEdit.findUpdateDeploymentButton().should('be.enabled').click(); //TODO: Change back to findNextButton() when submit page is added
   });
 
   it('Verify cpu and memory request and limits values when editing KServe model', () => {
@@ -1343,6 +1402,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingGlobal.visit('test-project');
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
     // Step 1: Model source
+    modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
+    modelServingWizard.findSaveConnectionCheckbox().click();
+    modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
@@ -1380,6 +1442,115 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findNextButton().should('be.enabled');
   });
 
+  it('Should create a new connection with a generated secret name', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.GENERATIVE });
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    cy.interceptK8s('POST', { model: SecretModel, ns: 'test-project' }, (req) => {
+      const secretName = req.body.metadata.name;
+      req.reply(mockSecretK8sResource({ name: secretName }));
+    }).as('createSecret');
+    cy.interceptK8s('GET', { model: SecretModel, ns: 'test-project' }, (req) => {
+      const secretName = req.url.split('/').pop();
+
+      if (secretName?.startsWith('secret-')) {
+        req.reply({
+          statusCode: 200,
+          body: mockSecretK8sResource({ name: secretName }),
+        });
+      } else {
+        req.reply({
+          statusCode: 200,
+          body: { apiVersion: 'v1', items: [], kind: 'SecretList', metadata: {} },
+        });
+      }
+    }).as('getSecret');
+    cy.intercept('GET', '/api/k8s/api/v1/namespaces/test-project/secrets/*', (req) => {
+      const secretName = req.url.split('/').pop();
+      if (secretName?.startsWith('secret-')) {
+        req.reply({
+          statusCode: 200,
+          body: {
+            apiVersion: 'v1',
+            kind: 'Secret',
+            metadata: { name: secretName, namespace: 'test-project' },
+            stringData: {},
+          },
+        });
+      } else {
+        req.continue();
+      }
+    }).as('fetchGeneratedSecretGets');
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findDeployModelButton().click();
+
+    // Step 1: Model source
+    modelServingWizard.findModelSourceStep().should('be.enabled');
+    modelServingWizard.findModelDeploymentStep().should('be.disabled');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist');
+    modelServingWizard
+      .findModelTypeSelectOption('Generative AI model (Example, LLM)')
+      .should('exist')
+      .click();
+    modelServingWizard.findModelLocationSelect().should('exist');
+    modelServingWizard.findModelLocationSelectOption('URI - v1').should('exist').click();
+    modelServingWizard.findUrilocationInput().type('https://testinguri');
+
+    modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
+    modelServingWizard.findSaveConnectionCheckbox().click();
+    modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Step 2: Model deployment
+    modelServingWizard.findModelDeploymentStep().should('be.enabled');
+    modelServingWizard.findAdvancedOptionsStep().should('be.disabled');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findModelDeploymentNameInput().type('test-model');
+    hardwareProfileSection.findSelect().should('contain.text', 'Small');
+
+    modelServingWizard.findModelFormatSelect().should('not.exist');
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().should('exist');
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.findGlobalScopedTemplateOption('vLLM NVIDIA').should('exist').click();
+
+    modelServingWizard.findNumReplicasInput().should('exist');
+    modelServingWizard.findNumReplicasInputField().should('have.value', '1');
+
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Step 3: Advanced Options
+    modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+    // modelServingWizard.findNextButton().should('be.enabled').click(); //TODO: Uncomment when submit page is added
+
+    // Step 4: Summary
+    modelServingWizard.findSubmitButton().should('be.enabled').click();
+
+    cy.wait('@createSecret').then((interception) => {
+      expect(interception.request.body.metadata.name).to.satisfy(isGeneratedSecretName);
+      expect(interception.request.body.metadata.namespace).to.equal('test-project');
+      expect(interception.request.body.metadata.labels['opendatahub.io/dashboard']).to.equal(
+        'false',
+      );
+      expect(
+        interception.request.body.metadata.annotations['opendatahub.io/connection-type-protocol'],
+      ).to.equal('uri');
+      expect(interception.request.body.stringData.URI).to.equal('https://testinguri');
+    });
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+    });
+
+    cy.wait('@createInferenceService').then((interception) => {
+      const { annotations } = interception.request.body.metadata;
+      expect(annotations).to.have.property('opendatahub.io/connections');
+      expect(isGeneratedSecretName(annotations['opendatahub.io/connections'])).to.equal(true);
+    });
+  });
+
   describe('redirect from v2 to v3 route', () => {
     beforeEach(() => {
       initIntercepts({});
@@ -1392,6 +1563,16 @@ describe('Model Serving Deploy Wizard', () => {
     });
 
     it('deploy edit', () => {
+      cy.interceptK8sList(
+        { model: InferenceServiceModel, ns: 'test-project' },
+        mockK8sResourceList([
+          mockInferenceServiceK8sResource({ name: 'test-model', namespace: 'test-project' }),
+        ]),
+      );
+      cy.interceptK8sList(
+        { model: ServingRuntimeModel, ns: 'test-project' },
+        mockK8sResourceList([mockServingRuntimeK8sResource({ namespace: 'test-project' })]),
+      );
       cy.visitWithLogin(`/modelServing/test-project/deploy/edit/test-model`);
       cy.findByTestId('app-page-title').contains('Edit model deployment');
       cy.url().should('include', '/ai-hub/deployments/test-project/deploy/edit/test-model');

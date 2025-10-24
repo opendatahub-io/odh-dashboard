@@ -1,3 +1,4 @@
+import { mockHardwareProfile } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
 import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
 import { mockK8sResourceList, mockNotebookK8sResource } from '#~/__mocks__';
 import type { RoleBindingSubject } from '#~/k8sTypes';
@@ -15,8 +16,7 @@ import {
 import type { AllowedUser } from '#~/pages/notebookController/screens/admin/types';
 import { testPagination } from '#~/__tests__/cypress/cypress/utils/pagination';
 import { mockStartNotebookData } from '#~/__mocks__/mockStartNotebookData';
-import { mockRouteK8sResource } from '#~/__mocks__/mockRouteK8sResource';
-import { RouteModel, ImageStreamModel } from '#~/__tests__/cypress/cypress/utils/models';
+import { ImageStreamModel, HardwareProfileModel } from '#~/__tests__/cypress/cypress/utils/models';
 import { mockImageStreamK8sResourceList } from '#~/__mocks__/mockImageStreamK8sResource';
 
 const groupSubjects: RoleBindingSubject[] = [
@@ -48,6 +48,11 @@ const initIntercepts = ({
   cy.interceptK8sList(
     { model: ImageStreamModel, ns: 'opendatahub' },
     mockK8sResourceList(mockImageStreamK8sResourceList()),
+  );
+
+  cy.interceptK8sList(
+    { model: HardwareProfileModel, ns: 'opendatahub' },
+    mockK8sResourceList([mockHardwareProfile({})]),
   );
 };
 
@@ -128,7 +133,6 @@ describe('Administration Tab', () => {
       mockAllowedUsers({}),
       mockAllowedUsers({ username: 'regularuser1', lastActivity: 'Now' }),
     ];
-    cy.interceptK8s(RouteModel, mockRouteK8sResource({})).as('getWorkbenchURL');
     initIntercepts({ allowedUsers });
     cy.interceptOdh(
       'GET /api/notebooks/openshift-ai-notebooks/:username/status',
@@ -142,8 +146,6 @@ describe('Administration Tab', () => {
     notebookController.visit();
     notebookController.findAdministrationTab().click();
 
-    cy.wait('@getWorkbenchURL');
-
     const userRow = administration.getRow('regularuser1');
     userRow.shouldHavePrivilege('User');
     userRow.shouldHaveLastActivity('Just now');
@@ -153,11 +155,7 @@ describe('Administration Tab', () => {
     stopNotebookModal.findStopNotebookServerButton().should('be.enabled');
     stopNotebookModal
       .findNotebookRouteLink()
-      .should(
-        'have.attr',
-        'href',
-        `https://${mockRouteK8sResource({}).spec.host}/notebook/test-project/test-notebook`,
-      );
+      .should('have.attr', 'href', '/notebook/test-project/test-notebook');
     stopNotebookModal.findStopNotebookServerButton().click();
 
     cy.wait('@stopNotebookServer').then((interception) => {
@@ -186,13 +184,23 @@ describe('Administration Tab', () => {
     notebookController.findAppTitle().should('not.contain', 'Administration');
   });
 
+  it('The table should load and be empty when there are no allowed users', () => {
+    initIntercepts({ allowedUsers: [] });
+    notebookController.visit();
+    notebookController.findAdministrationTab().click();
+    administration.findRows().should('have.length', 0);
+    administration.findTableHeaderButton('User').should('exist');
+    administration.findTableHeaderButton('Privilege').should('exist');
+    administration.findTableHeaderButton('Last activity').should('exist');
+    administration.findTableHeaderButton('Workbench status').should('exist');
+  });
+
   it('Validate that clicking on "Stop all workbenches" button will show dialog for stopping multiple workbenches', () => {
     const allowedUsers = [
       mockAllowedUsers({ username: 'regularuser2', lastActivity: 'Now' }),
       mockAllowedUsers({ username: 'regularuser1', lastActivity: 'Now' }),
     ];
     initIntercepts({ allowedUsers });
-    cy.interceptK8s(RouteModel, mockRouteK8sResource({})).as('getWorkbenchURL');
     administration.mockGetNotebookStatus('jupyter-nb-regularuser1');
     administration.mockGetNotebookStatus('jupyter-nb-regularuser2');
     cy.interceptOdh('PATCH /api/notebooks', mockStartNotebookData({})).as('stopNotebookServer');
@@ -216,7 +224,6 @@ describe('Administration Tab', () => {
     initIntercepts({ allowedUsers });
     cy.interceptOdh('PATCH /api/notebooks', mockStartNotebookData({})).as('stopNotebookServer');
     administration.mockGetNotebookStatus('jupyter-nb-regularuser1');
-    cy.interceptK8s(RouteModel, mockRouteK8sResource({})).as('getWorkbenchURL');
 
     notebookController.visit();
     notebookController.findAdministrationTab().click();
@@ -229,11 +236,7 @@ describe('Administration Tab', () => {
     stopNotebookModal.findStopNotebookTitle().should('have.text', 'Stop workbench?');
     stopNotebookModal
       .findNotebookRouteLink()
-      .should(
-        'have.attr',
-        'href',
-        `https://${mockRouteK8sResource({}).spec.host}/notebook/test-project/test-notebook`,
-      );
+      .should('have.attr', 'href', '/notebook/test-project/test-notebook');
     stopNotebookModal.findStopNotebookServerButton().click();
 
     cy.wait('@stopNotebookServer');

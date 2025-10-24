@@ -107,7 +107,6 @@ export type ClusterSettingsType = {
   userTrackingEnabled: boolean;
   pvcSize: number;
   cullerTimeout: number;
-  notebookTolerationSettings: TolerationSettings | null;
   modelServingPlatformEnabled: ModelServingPlatformEnabled;
 };
 
@@ -415,7 +414,6 @@ export type NotebookRunningState = {
   notebook: Notebook | null;
   isRunning: boolean;
   podUID: string;
-  notebookLink: string;
 };
 
 export type Route = {

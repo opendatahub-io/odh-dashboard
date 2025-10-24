@@ -4,7 +4,6 @@ import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import useGenericObjectState from '#~/utilities/useGenericObjectState';
 import { ContainerResources, NodeSelector, Toleration } from '#~/types';
 import { isCpuLimitLarger, isMemoryLimitLarger } from '#~/utilities/valueUnits';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import { isHardwareProfileEnabled } from '#~/pages/hardwareProfiles/utils.ts';
 import { useDashboardNamespace } from '#~/redux/selectors';
@@ -133,14 +132,9 @@ export const useHardwareProfileConfig = (
     profilesLoadError = dashboardProfilesLoadError || projectScopedProfilesLoadError;
   }
 
-  const hardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
-  const isFormDataValid = React.useMemo(
-    () => (hardwareProfilesAvailable ? isHardwareProfileConfigValid(formData) : true),
-    [formData, hardwareProfilesAvailable],
-  );
+  const isFormDataValid = React.useMemo(() => isHardwareProfileConfigValid(formData), [formData]);
 
   const { dashboardNamespace } = useDashboardNamespace();
-
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const { kueueFilteringState } = useKueueConfiguration(currentProject);
 
@@ -172,7 +166,10 @@ export const useHardwareProfileConfig = (
         }
 
         initialHardwareProfile.current = selectedProfile;
-        setFormData('resources', resources);
+        const mergedResources = selectedProfile
+          ? mergeProfileIdentifiersIntoResources(resources, selectedProfile)
+          : resources;
+        setFormData('resources', mergedResources);
         setFormData('useExistingSettings', !selectedProfile);
         setFormData('selectedProfile', selectedProfile);
       }
@@ -215,5 +212,46 @@ export const useHardwareProfileConfig = (
     resetFormData,
     profilesLoaded,
     profilesLoadError,
+  };
+};
+
+const mergeProfileIdentifiersIntoResources = (
+  existingResources: ContainerResources,
+  hardwareProfile: HardwareProfileKind,
+): ContainerResources => {
+  if (!hardwareProfile.spec.identifiers || hardwareProfile.spec.identifiers.length === 0) {
+    return { requests: {}, limits: {} };
+  }
+  const profileResources = getContainerResourcesFromHardwareProfile(hardwareProfile);
+  const profileIdentifierKeys = new Set(
+    hardwareProfile.spec.identifiers.map((id) => id.identifier),
+  );
+  const mergedRequests = { ...(existingResources.requests || {}) };
+  const mergedLimits = { ...(existingResources.limits || {}) };
+
+  Object.keys(mergedRequests).forEach((key) => {
+    if (!profileIdentifierKeys.has(key)) {
+      delete mergedRequests[key];
+    }
+  });
+  Object.keys(mergedLimits).forEach((key) => {
+    if (!profileIdentifierKeys.has(key)) {
+      delete mergedLimits[key];
+    }
+  });
+
+  hardwareProfile.spec.identifiers.forEach((identifier) => {
+    if (!(identifier.identifier in mergedRequests)) {
+      mergedRequests[identifier.identifier] =
+        profileResources.requests?.[identifier.identifier] ?? identifier.defaultCount;
+    }
+    if (!(identifier.identifier in mergedLimits)) {
+      mergedLimits[identifier.identifier] =
+        profileResources.limits?.[identifier.identifier] ?? identifier.defaultCount;
+    }
+  });
+  return {
+    requests: mergedRequests,
+    limits: mergedLimits,
   };
 };

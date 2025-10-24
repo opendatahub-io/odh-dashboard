@@ -107,7 +107,8 @@ func (app *App) LlamaStackListVectorStoresHandler(w http.ResponseWriter, r *http
 	// TEMPORARY: If no vectorstore found for this user, create one automatically
 	if !foundUserVectorStore {
 		createParams := llamastack.CreateVectorStoreParams{
-			Name: hashedUsername,
+			Name:       hashedUsername,
+			ProviderID: constants.DefaultVectorStoreProvider,
 			Metadata: map[string]string{
 				"created_by": "auto-provisioning",
 				"username":   username,
