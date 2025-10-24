@@ -15,6 +15,7 @@ import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
 import { mockCatalogModel } from '#~/__mocks__/mockCatalogModel';
 import { mockModelCatalogSource } from '#~/__mocks__/mockModelCatalogSource';
 import type { ModelCatalogSource } from '#~/concepts/modelCatalog/types';
+import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 type HandlersProps = {
   modelRegistries?: ServiceKind[];
@@ -37,8 +38,8 @@ const initIntercepts = ({
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      installedComponents: {
-        'model-registry-operator': true,
+      components: {
+        [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
       },
     }),
   );

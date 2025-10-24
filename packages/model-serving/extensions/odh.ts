@@ -7,7 +7,10 @@ import type {
 } from '@odh-dashboard/plugin-core/extension-points';
 // Allow this import as it consists of types and enums only.
 // eslint-disable-next-line no-restricted-syntax
-import { StackComponent, SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+import {
+  DataScienceStackComponent,
+  SupportedArea,
+} from '@odh-dashboard/internal/concepts/areas/types';
 
 const PLUGIN_MODEL_SERVING = SupportedArea.K_SERVE;
 
@@ -28,7 +31,7 @@ const extensions: (
     properties: {
       id: PLUGIN_MODEL_SERVING,
       featureFlags: ['disableKServe'],
-      requiredComponents: [StackComponent.K_SERVE],
+      requiredComponents: [DataScienceStackComponent.K_SERVE],
       reliantAreas: [SupportedArea.MODEL_SERVING],
     },
   },

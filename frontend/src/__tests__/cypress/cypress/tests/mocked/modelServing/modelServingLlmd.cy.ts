@@ -35,6 +35,7 @@ import {
   mockCustomSecretK8sResource,
   mockSecretK8sResource,
 } from '#~/__mocks__/mockSecretK8sResource';
+import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 const initIntercepts = ({
   llmInferenceServices = [],
@@ -48,9 +49,9 @@ const initIntercepts = ({
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      installedComponents: {
-        kserve: true,
-        'model-mesh': false,
+      components: {
+        [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
+        [DataScienceStackComponent.MODEL_MESH_SERVING]: { managementState: 'Removed' },
       },
     }),
   );
