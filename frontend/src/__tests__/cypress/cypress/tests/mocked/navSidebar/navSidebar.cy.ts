@@ -13,11 +13,13 @@ describe('Nav Sidebar model section', () => {
       mockDashboardConfig({
         disableModelCatalog: true,
         disableModelRegistry: true,
+        genAiStudio: false,
         disableModelServing: true,
         disableFineTuning: true,
       }),
     );
     navSidebar.visit();
+    navSidebar.findNavSection('Gen AI studio').should('not.exist');
     navSidebar.findNavSection('AI hub').should('not.exist');
   });
 
@@ -28,11 +30,13 @@ describe('Nav Sidebar model section', () => {
         disableModelCatalog: false,
         disableModelRegistry: false,
         disableModelServing: true,
+        genAiStudio: true,
         disableFineTuning: true,
       }),
     );
     navSidebar.visit();
     navSidebar.findNavSection('AI hub').should('exist');
+    navSidebar.findNavSection('Gen AI studio').should('exist');
     navSidebar.findNavItem({ name: 'Catalog', rootSection: 'AI hub' }).should('exist');
     navSidebar.findNavItem({ name: 'Registry', rootSection: 'AI hub' }).should('exist');
     navSidebar.findNavItem({ name: 'Deployments', rootSection: 'AI hub' }).should('not.exist');
