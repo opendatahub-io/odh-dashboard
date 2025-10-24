@@ -12,6 +12,9 @@ import {
   HelperText,
   HelperTextItem,
   Skeleton,
+  Label,
+  Flex,
+  FlexItem,
 } from '@patternfly/react-core';
 import { DeploymentEndpoint } from '../../../extension-points';
 
@@ -44,11 +47,13 @@ const EndpointListItem: React.FC<{ endpoint: DeploymentEndpoint }> = ({ endpoint
 type DeploymentEndpointsPopupButtonProps = {
   endpoints?: DeploymentEndpoint[];
   loading: boolean;
+  apiProtocol?: string;
 };
 
 export const DeploymentEndpointsPopupButton: React.FC<DeploymentEndpointsPopupButtonProps> = ({
   endpoints,
   loading,
+  apiProtocol,
 }) => {
   if (loading) {
     return <Skeleton />;
@@ -73,7 +78,18 @@ export const DeploymentEndpointsPopupButton: React.FC<DeploymentEndpointsPopupBu
   return (
     <Popover
       data-testid={hasExternalEndpoints ? 'external-service-popover' : 'internal-service-popover'}
-      headerContent="Inference endpoints"
+      headerContent={
+        <Flex>
+          <FlexItem>Inference endpoints</FlexItem>
+          {apiProtocol && (
+            <FlexItem>
+              <Label data-testid="api-protocol-label" color="yellow">
+                {apiProtocol}
+              </Label>
+            </FlexItem>
+          )}
+        </Flex>
+      }
       aria-label={hasExternalEndpoints ? 'External Service Info' : 'Internal Service Info'}
       hasAutoWidth
       bodyContent={

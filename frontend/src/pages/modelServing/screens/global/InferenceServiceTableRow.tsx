@@ -22,9 +22,9 @@ import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
 import InferenceServiceServingRuntime from './InferenceServiceServingRuntime';
-import InferenceServiceAPIProtocol from './InferenceServiceAPIProtocol';
 import { ColumnField } from './data';
 import InferenceServiceLastDeployed from './InferenceServiceLastDeployed';
+import InferenceServiceAPIProtocol from './InferenceServiceAPIProtocol';
 
 type InferenceServiceTableRowProps = {
   obj: InferenceServiceKind;
