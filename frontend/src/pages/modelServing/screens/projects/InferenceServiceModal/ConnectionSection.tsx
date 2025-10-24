@@ -505,45 +505,8 @@ export const ConnectionSection: React.FC<Props> = ({
               )
             }
           />
-          {(pvcs && pvcs.length > 0) || pvcNameFromUri ? (
-            <Radio
-              label="Existing cluster storage"
-              name="pvc-serving-radio"
-              id="pvc-serving-radio"
-              data-testid="pvc-serving-radio"
-              isChecked={data.storage.type === InferenceServiceStorageType.PVC_STORAGE}
-              onChange={() => {
-                setConnection(undefined);
-                setData('storage', {
-                  ...data.storage,
-                  type: InferenceServiceStorageType.PVC_STORAGE,
-                  uri: undefined,
-                  alert: undefined,
-                });
-              }}
-              body={
-                data.storage.type === InferenceServiceStorageType.PVC_STORAGE && (
-                  <PvcSelect
-                    pvcs={pvcs}
-                    selectedPVC={selectedPVC}
-                    onSelect={(selection?: PersistentVolumeClaimKind | undefined) => {
-                      setData('storage', {
-                        ...data.storage,
-                        type: InferenceServiceStorageType.PVC_STORAGE,
-                        pvcConnection: selection?.metadata.name ?? '',
-                      });
-                    }}
-                    setModelUri={(uri) => setData('storage', { ...data.storage, uri })}
-                    setIsConnectionValid={setIsConnectionValid}
-                    existingUriOption={existingUriOption}
-                    pvcNameFromUri={pvcNameFromUri}
-                  />
-                )
-              }
-            />
-          ) : null}
         </>
-      ) : pvcs && pvcs.length === 0 ? ( // No connections and no pvcs
+      ) : pvcs && pvcs.length === 0 ? ( // No connections and no pvcs: auto-show the new connection field
         <FormGroup
           name="new-connection"
           id="new-connection"
@@ -573,13 +536,12 @@ export const ConnectionSection: React.FC<Props> = ({
           </Stack>
         </FormGroup>
       ) : (
-        // No connections, but there are pvcs
+        // No connections, but there are pvcs show the new connection radio and pvc radio
         <Radio
           name="new-connection-radio"
           id="new-connection-radio"
           data-testid="new-connection-radio"
           label="Create connection"
-          className="pf-v6-u-mb-lg"
           isChecked={data.storage.type === InferenceServiceStorageType.NEW_STORAGE}
           onChange={() => {
             setConnection(undefined);
@@ -622,6 +584,43 @@ export const ConnectionSection: React.FC<Props> = ({
           }
         />
       )}
+      {(pvcs && pvcs.length > 0) || pvcNameFromUri ? (
+        <Radio
+          label="Existing cluster storage"
+          name="pvc-serving-radio"
+          id="pvc-serving-radio"
+          data-testid="pvc-serving-radio"
+          isChecked={data.storage.type === InferenceServiceStorageType.PVC_STORAGE}
+          onChange={() => {
+            setConnection(undefined);
+            setData('storage', {
+              ...data.storage,
+              type: InferenceServiceStorageType.PVC_STORAGE,
+              uri: undefined,
+              alert: undefined,
+            });
+          }}
+          body={
+            data.storage.type === InferenceServiceStorageType.PVC_STORAGE && (
+              <PvcSelect
+                pvcs={pvcs}
+                selectedPVC={selectedPVC}
+                onSelect={(selection?: PersistentVolumeClaimKind | undefined) => {
+                  setData('storage', {
+                    ...data.storage,
+                    type: InferenceServiceStorageType.PVC_STORAGE,
+                    pvcConnection: selection?.metadata.name ?? '',
+                  });
+                }}
+                setModelUri={(uri) => setData('storage', { ...data.storage, uri })}
+                setIsConnectionValid={setIsConnectionValid}
+                existingUriOption={existingUriOption}
+                pvcNameFromUri={pvcNameFromUri}
+              />
+            )
+          }
+        />
+      ) : null}
     </>
   );
 };
