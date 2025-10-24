@@ -1,0 +1,79 @@
+name: Apply PR Image Expiry Label
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-image-expiry-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Default Quay image repo; can be overridden by secret if provided
+  QUAY_ODH_DASHBOARD_IMAGE_REPO: ${{ secrets.QUAY_ODH_DASHBOARD_IMAGE_REPO || 'quay.io/opendatahub/odh-dashboard' }}
+  EXPIRES_AFTER: 21d
+
+jobs:
+  apply-expiry-label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install crane
+        shell: bash
+        run: |
+          set -euo pipefail
+          CRANE_TGZ="crane_Linux_x86_64.tar.gz"
+          curl -fsSL -o "$CRANE_TGZ" https://github.com/google/go-containerregistry/releases/latest/download/$CRANE_TGZ
+          sudo tar -xzf "$CRANE_TGZ" -C /usr/local/bin crane
+          crane version
+
+      - name: Login to Quay
+        env:
+          QUAY_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}
+          QUAY_ROBOT_USERNAME: ${{ secrets.QUAY_ROBOT_USERNAME }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${QUAY_ROBOT_USERNAME:-}" || -z "${QUAY_TOKEN:-}" ]]; then
+            echo "Quay credentials not available; skipping label application." && exit 0
+          fi
+          crane auth login quay.io -u "$QUAY_ROBOT_USERNAME" -p "$QUAY_TOKEN"
+
+      - name: Apply expiry label to PR image (best-effort)
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${PR_NUMBER:-}" ]]; then
+            echo "Not a pull_request event; nothing to do." && exit 0
+          fi
+
+          IMAGE_REF="${QUAY_ODH_DASHBOARD_IMAGE_REPO}:pr-${PR_NUMBER}"
+          echo "Target image: $IMAGE_REF"
+
+          # Wait for the PR image to exist (Konflux/AppStudio push) up to ~2 minutes
+          for i in {1..12}; do
+            if crane manifest "$IMAGE_REF" >/dev/null 2>&1; then
+              echo "Found image $IMAGE_REF"
+              break
+            fi
+            echo "Image not found yet. Retry $i/12 ..."
+            sleep 10
+          done
+
+          if ! crane manifest "$IMAGE_REF" >/dev/null 2>&1; then
+            echo "PR image not available; skipping label application." && exit 0
+          fi
+
+          echo "Applying label quay.expires-after=${EXPIRES_AFTER} to $IMAGE_REF"
+          crane mutate --label "quay.expires-after=${EXPIRES_AFTER}" "$IMAGE_REF"
+          echo "Label applied." 
+
+
