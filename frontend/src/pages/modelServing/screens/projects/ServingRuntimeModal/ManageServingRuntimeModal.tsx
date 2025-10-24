@@ -31,7 +31,7 @@ import K8sNameDescriptionField, {
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { isK8sNameDescriptionDataValid } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import { useProfileIdentifiers } from '#~/concepts/hardwareProfiles/utils';
-import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
 import useModelServerSizeValidation from '#~/pages/modelServing/screens/projects/useModelServerSizeValidation.ts';
 import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
@@ -72,8 +72,8 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   );
 
   const profileIdentifiers = useProfileIdentifiers(
-    podSpecOptionsState.acceleratorProfile.formData.profile,
     podSpecOptionsState.hardwareProfile.formData.selectedProfile,
+    podSpecOptionsState.acceleratorProfile.formData.profile,
   );
 
   const [actionInProgress, setActionInProgress] = React.useState(false);

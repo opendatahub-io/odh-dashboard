@@ -1,14 +1,9 @@
-import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import * as _ from 'lodash-es';
 import { Toleration } from '#~/types';
 import { AcceleratorProfileState } from './useReadAcceleratorState';
 import { AcceleratorProfileFormData } from './useAcceleratorProfileFormState';
 
-export type TolerationChanges = {
-  type: 'add' | 'remove' | 'replace' | 'nothing';
-  settings: Toleration[];
-};
-
+/** @deprecated in modelMesh deprecation path */
 export const determineTolerations = (
   initialAcceleratorProfile?: AcceleratorProfileState,
   selectedAcceleratorProfile?: AcceleratorProfileFormData,
@@ -34,25 +29,4 @@ export const determineTolerations = (
   // remove duplicated tolerations
   tolerations = _.uniqWith(tolerations, _.isEqual);
   return tolerations;
-};
-
-export const getTolerationPatch = (tolerationChanges: TolerationChanges): Patch | null => {
-  const tolerationPath = '/spec/template/spec/tolerations';
-  switch (tolerationChanges.type) {
-    case 'remove':
-      return {
-        op: tolerationChanges.type,
-        path: tolerationPath,
-      };
-    case 'replace':
-    case 'add':
-      return {
-        op: tolerationChanges.type,
-        path: tolerationPath,
-        value: tolerationChanges.settings,
-      };
-    case 'nothing':
-    default:
-      return null;
-  }
 };
