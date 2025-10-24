@@ -82,8 +82,9 @@ const getStatusSections = (projectName: string): StatusSection[] => [
       {
         key: 'modelLocationData-newConnection',
         label: 'New connection',
-        comp: (state) =>
-          state.modelLocationData.data?.type === ModelLocationType.NEW ? 'Yes' : 'No',
+        comp: () => 'Yes',
+        isVisible: (wizardState) =>
+          wizardState.state.modelLocationData.data?.type === ModelLocationType.NEW,
       },
       {
         key: 'createConnectionData-name',
@@ -135,8 +136,8 @@ const getStatusSections = (projectName: string): StatusSection[] => [
                   </div>
                 );
               })}
-              {additionalFields.modelPath && <div>Model path: {additionalFields.modelPath}</div>}
-              {additionalFields.modelUri && <div>Model URI: {additionalFields.modelUri}</div>}
+              {additionalFields.modelPath && <>Model path: {additionalFields.modelPath}</>}
+              {additionalFields.modelUri && <>Model URI: {additionalFields.modelUri}</>}
             </>
           );
         },
@@ -157,8 +158,8 @@ const getStatusSections = (projectName: string): StatusSection[] => [
 
           return (
             <>
-              {additionalFields.pvcConnection && <div>PVC: {additionalFields.pvcConnection}</div>}
-              {additionalFields.modelPath && <div>Path: {additionalFields.modelPath}</div>}
+              {additionalFields.pvcConnection && <>PVC: {additionalFields.pvcConnection}</>}
+              {additionalFields.modelPath && <>Path: {additionalFields.modelPath}</>}
             </>
           );
         },
@@ -213,7 +214,7 @@ const getStatusSections = (projectName: string): StatusSection[] => [
       {
         key: 'numReplicas',
         label: 'Replicas',
-        comp: (state) => state.numReplicas.data || 1,
+        comp: (state) => state.numReplicas.data ?? 1,
       },
     ],
   },
@@ -278,8 +279,8 @@ const getStatusSections = (projectName: string): StatusSection[] => [
           );
           return (
             <>
-              <div>{allArgs.length}</div>
-              <div>{allArgs.join(', ')}</div>
+              <>{allArgs.length}</>
+              <>{allArgs.join(', ')}</>
             </>
           );
         },
@@ -295,7 +296,7 @@ const getStatusSections = (projectName: string): StatusSection[] => [
           }
           return (
             <>
-              <div>{envVars.variables.length}</div>
+              <>{envVars.variables.length}</>
               {envVars.variables.map((envVar, index: number) => (
                 <div key={index}>
                   {envVar.name}, {envVar.value}
@@ -314,7 +315,7 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
   wizardState,
   projectName,
 }) => {
-  const statusSections = getStatusSections(projectName);
+  const statusSections = React.useMemo(() => getStatusSections(projectName), [projectName]);
 
   return (
     <Form>
