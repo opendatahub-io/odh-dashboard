@@ -12,10 +12,6 @@ import { mockModelVersionList } from '#~/__mocks__/mockModelVersionList';
 import { mockModelVersion } from '#~/__mocks__/mockModelVersion';
 import { mockRegisteredModel } from '#~/__mocks__/mockRegisteredModel';
 import { mockModelRegistry } from '#~/__mocks__/mockModelRegistryService';
-import {
-  asProjectEditUser,
-  asProductAdminUser,
-} from '#~/__tests__/cypress/cypress/utils/mockUsers';
 import { mockSelfSubjectRulesReview } from '#~/__mocks__/mockSelfSubjectRulesReview';
 import { mockSelfSubjectAccessReview } from '#~/__mocks__/mockSelfSubjectAccessReview';
 import {
@@ -272,9 +268,7 @@ describe('Model Registry core', () => {
     appChrome.findNavItem({ name: 'Registry', rootSection: 'AI hub' }).should('exist');
   });
 
-  // does not work because of ModelRegistryCoreLoader line 66. TODO: Fix this test and investigate this line.
-  it.skip('Shows admin empty state for users with model registry creation permissions', () => {
-    asProductAdminUser();
+  it('Shows admin empty state for users with model registry creation permissions', () => {
     initIntercepts({
       disableModelRegistryFeature: false,
       modelRegistries: [],
@@ -282,8 +276,6 @@ describe('Model Registry core', () => {
       allowed: true,
     });
 
-    // TODO: Fix this function
-    // modelRegistry.visit();
     cy.interceptOdh(
       `GET /model-registry/api/:apiVersion/user`,
       {
@@ -291,8 +283,7 @@ describe('Model Registry core', () => {
       },
       { data: { userId: 'user@example.com', clusterAdmin: true } },
     );
-    cy.visitWithLogin('/ai-hub/registry/modelregistry-sample');
-
+    modelRegistry.visit();
     appChrome.findNavSection('AI hub').should('exist');
 
     // Check for admin-specific content
@@ -310,7 +301,6 @@ describe('Model Registry core', () => {
   });
 
   it('Shows non-admin empty state for users without model registry creation permissions', () => {
-    asProjectEditUser();
     initIntercepts({
       disableModelRegistryFeature: false,
       modelRegistries: [],
@@ -318,16 +308,14 @@ describe('Model Registry core', () => {
       allowed: false,
     });
 
-    // TODO: Fix this function
-    // modelRegistry.visit();
     cy.interceptOdh(
       `GET /model-registry/api/:apiVersion/user`,
       {
         path: { apiVersion: MODEL_REGISTRY_API_VERSION },
       },
-      { data: { userId: 'user@example.com', clusterAdmin: true } },
+      { data: { userId: 'user@example.com', clusterAdmin: false } },
     );
-    cy.visitWithLogin('/ai-hub/registry/modelregistry-sample');
+    modelRegistry.visit();
     appChrome.findNavSection('AI hub').should('exist');
 
     // Check for non-admin specific content
@@ -341,20 +329,14 @@ describe('Model Registry core', () => {
       modelRegistry.findEmptyStateNonAdminHelpButton().should('exist');
     });
   });
-});
 
-// This test is skipped because we do not check for more than cluster admin access levels.
-describe.skip('Register Model button', () => {
   it('should be accessible for non-admin users', () => {
-    asProjectEditUser();
     initIntercepts({
       disableModelRegistryFeature: false,
       allowed: false,
     });
 
-    // TODO: Fix this function
-    // modelRegistry.visit();
-    cy.visitWithLogin('/ai-hub/registry/modelregistry-sample');
+    modelRegistry.visit();
     appChrome.findNavSection('AI hub').should('exist');
     modelRegistry.shouldModelRegistrySelectorExist();
   });
