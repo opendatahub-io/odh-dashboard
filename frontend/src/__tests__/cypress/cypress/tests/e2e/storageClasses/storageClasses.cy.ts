@@ -25,7 +25,7 @@ const scAccessModeName2 = `${scName}-vsphere-volume`;
 
 // Using testIsolation will reuse the login (cache)
 // describe('An admin user can manage Storage Classes', { testIsolation: false }, () => {
-describe('[Automation Bug: RHOAIENG-34808]An admin user can manage Storage Classes from Settings -> Storage classes view', () => {
+describe('[Product Bug: RHOAIENG-34808] An admin user can manage Storage Classes from Settings -> Storage classes view', () => {
   let createdStorageClasses: string[];
   let accessModeStorageClasses: string[];
   retryableBefore(() => {
@@ -58,7 +58,7 @@ describe('[Automation Bug: RHOAIENG-34808]An admin user can manage Storage Class
 
   it(
     'An admin user can enable a disabled Storage Class',
-    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent', '@Maintain'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent', '@Bug'] },
     () => {
       cy.step('Navigate to Storage Classes view');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -95,7 +95,7 @@ describe('[Automation Bug: RHOAIENG-34808]An admin user can manage Storage Class
 
   it(
     'An admin user can disable an enabled Storage Class',
-    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent', '@Maintain'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent', '@Bug'] },
     () => {
       cy.step('Navigate to Storage Classes view');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -127,7 +127,7 @@ describe('[Automation Bug: RHOAIENG-34808]An admin user can manage Storage Class
 
   it(
     'An admin user can set an enabled Storage Class as the default one',
-    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent', '@Maintain'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent', '@Bug'] },
     () => {
       cy.step('Navigate to Storage Classes view');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -155,7 +155,7 @@ describe('[Automation Bug: RHOAIENG-34808]An admin user can manage Storage Class
 
   it(
     'An admin user can edit the access mode of a storage class',
-    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent', '@Maintain'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent', '@Bug'] },
     () => {
       cy.step('Navigate to Storage Classes view');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -180,7 +180,7 @@ describe('[Automation Bug: RHOAIENG-34808]An admin user can manage Storage Class
       storageClassEditModal
         .findAccessModeCheckbox(AccessMode.RWOP)
         .should('be.disabled')
-        .should('not.be.checked');
+        .and('not.be.checked');
 
       cy.step('Change access modes - enable ReadWriteMany and ReadOnlyMany');
       storageClassEditModal.findAccessModeCheckbox(AccessMode.RWX).click();

@@ -143,6 +143,8 @@ export type WBStatusTestData = {
 
 export type WBNegativeTestsData = {
   wbNegativeTestNamespace: string;
+  hardwareProfileName: string;
+  resourceYamlPath: string;
   invalidResourceNames: string[];
 };
 
