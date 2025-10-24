@@ -1,16 +1,11 @@
 name: Test
 on: [push, pull_request]
-
-# Concurrency control: Only run latest tests for each PR/branch
-# Cancel in-progress runs when new commits are pushed
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: tests-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
-
 env:
-  NODE_VERSION: 22.x
+  NODE_VERSION: 20.x
   DO_NOT_TRACK: 1
-  NODE_MODULES_CACHE_VERSION: 1
 jobs:
   Setup:
     runs-on: ubuntu-latest
@@ -23,7 +18,7 @@ jobs:
       - name: Generate modules cache key
         id: key
         run: |
-          echo "modules-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ env.NODE_MODULES_CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}" >> $GITHUB_OUTPUT
+          echo "modules-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-${{ hashFiles('**/package-lock.json') }}" >> $GITHUB_OUTPUT
       - name: Node.js modules cache
         uses: actions/cache@v4
         id: modules-cache
@@ -37,7 +32,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Check for uncommitted changes
         run: git diff --exit-code
@@ -142,13 +137,13 @@ jobs:
           set -x  # Enable debug mode to see each command
 
           echo "Checking directory structure..."
-          ls -la packages/cypress/cypress/tests/ || echo "Base test directory not found"
+          ls -la frontend/src/__tests__/cypress/cypress/tests/ || echo "Base test directory not found"
 
-          if [ -d "packages/cypress/cypress/tests/mocked" ]; then
+          if [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked" ]; then
             echo "Found mocked tests directory"
             
             # Get directories and create JSON array - force compact output with -c
-            DIRS=$(cd packages/cypress/cypress/tests/mocked && \
+            DIRS=$(cd frontend/src/__tests__/cypress/cypress/tests/mocked && \
                   find . -name "*.cy.*" -printf "%h\n" | sed 's|^\./||' | sort -u | \
                   jq -R . | jq -c -s .)
             
@@ -174,10 +169,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
-          cache-dependency-path: |
-            packages/model-registry/upstream/bff/go.sum
-            packages/gen-ai/bff/go.sum
+          go-version: '1.21'
       - name: Restore cache
         uses: actions/cache/restore@v4
         with:
@@ -278,7 +270,7 @@ jobs:
           if [ "${{ matrix.test-group }}" == "default" ]; then
             npm run test:cypress-ci:coverage:nobuild
           else
-            npm run test:cypress-ci:coverage:nobuild -- --spec "../packages/cypress/cypress/tests/mocked/${{ matrix.test-group }}/*"
+            npm run test:cypress-ci:coverage:nobuild -- --spec "src/__tests__/cypress/cypress/tests/mocked/${{ matrix.test-group }}/*"
           fi
         working-directory: ./frontend
       - name: Test group name
@@ -289,12 +281,12 @@ jobs:
         if: ${{ always() }}
         with:
           name: cypress-results-${{ env.TEST_GROUP_NAME }}
-          path: ./packages/cypress/results/mocked
+          path: ./frontend/src/__tests__/cypress/results/mocked
       - name: Upload Cypress coverage
         uses: actions/upload-artifact@v4
         with:
           name: cypress-coverage-${{ env.TEST_GROUP_NAME }}
-          path: ./packages/cypress/coverage
+          path: ./frontend/src/__tests__/cypress/coverage
 
   Combine-Results-and-Upload:
     needs: [Unit-Tests, Cypress-Mock-Tests]
