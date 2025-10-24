@@ -14,6 +14,7 @@ import { AdvancedSettingsStepContent } from './steps/AdvancedOptionsStep';
 import { ModelDeploymentStepContent } from './steps/ModelDeploymentStep';
 import { useDeployMethod } from './useDeployMethod';
 import type { InitialWizardFormData } from './types';
+import { ExitDeploymentModal } from './CancelDeploymentModal';
 import { WizardFooterWithDisablingNext } from '../generic/WizardFooterWithDisablingNext';
 
 type ModelDeploymentWizardProps = {
@@ -36,9 +37,16 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
 
+  const [isExitModalOpen, setIsExitModalOpen] = React.useState(false);
+
   const exitWizard = React.useCallback(() => {
     navigate(getDeploymentWizardExitRoute(location.pathname));
   }, [navigate, location.pathname]);
+
+  const handleExitConfirm = React.useCallback(() => {
+    setIsExitModalOpen(false);
+    exitWizard();
+  }, [exitWizard]);
 
   const wizardState = useModelDeploymentWizard(existingData);
   const validation = useModelDeploymentWizardValidation(wizardState.state);
@@ -164,7 +172,17 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
 
   return (
     <ApplicationsPage title={title} description={description} loaded empty={false}>
-      <Wizard onClose={exitWizard} onSave={() => onSave()} footer={wizardFooter}>
+      {isExitModalOpen && (
+        <ExitDeploymentModal
+          onClose={() => setIsExitModalOpen(false)}
+          onConfirm={handleExitConfirm}
+        />
+      )}
+      <Wizard
+        onClose={() => setIsExitModalOpen(true)}
+        onSave={() => onSave()}
+        footer={wizardFooter}
+      >
         <WizardStep name="Model details" id="source-model-step">
           {wizardState.loaded.modelSourceLoaded ? (
             <ModelSourceStepContent wizardState={wizardState} validation={validation.modelSource} />
