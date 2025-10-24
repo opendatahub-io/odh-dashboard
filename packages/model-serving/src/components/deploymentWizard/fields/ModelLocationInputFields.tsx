@@ -26,6 +26,7 @@ import { containsOnlySlashes, isS3PathValid } from '@odh-dashboard/internal/util
 import { ExistingConnectionField } from './modelLocationFields/ExistingConnectionField';
 import NewConnectionField from './modelLocationFields/NewConnectionField';
 import { PvcSelectField } from './modelLocationFields/PVCSelectField';
+import { CustomTypeSelectField } from './modelLocationFields/CustomTypeSelectField';
 import { ConnectionTypeRefs, ModelLocationData, ModelLocationType } from '../types';
 
 export type ModelLocationDataField = {
@@ -223,14 +224,14 @@ export const isValidModelLocationData = (
 };
 
 const hasRequiredConnectionTypeFields = (modelLocationData: ModelLocationData): boolean => {
+  if (!modelLocationData.connectionTypeObject) return false;
   const dataFields =
-    modelLocationData.connectionTypeObject?.data?.fields?.filter(
+    modelLocationData.connectionTypeObject.data?.fields?.filter(
       (field): field is ConnectionTypeDataField => 'envVar' in field && 'required' in field,
     ) || [];
 
   const requiredFields = dataFields.filter((field) => field.required).map((field) => field.envVar);
   if (
-    modelLocationData.connectionTypeObject &&
     isModelServingCompatible(
       modelLocationData.connectionTypeObject,
       ModelServingCompatibleTypes.S3ObjectStorage,
@@ -300,6 +301,9 @@ type ModelLocationInputFieldsProps = {
   resetModelLocationData: () => void;
   modelLocationData?: ModelLocationData;
   pvcs: PersistentVolumeClaimKind[];
+  showCustomTypeSelect: boolean;
+  customTypeOptions?: ConnectionTypeConfigMapObj[];
+  customTypeKey: string | undefined;
 };
 
 export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> = ({
@@ -313,6 +317,9 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
   resetModelLocationData,
   modelLocationData,
   pvcs,
+  showCustomTypeSelect,
+  customTypeOptions,
+  customTypeKey,
 }) => {
   const pvcNameFromUri: string | undefined = React.useMemo(() => {
     // Get the PVC name from the URI if it's a PVC URI
@@ -366,17 +373,35 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
     );
   }
   if (modelLocation === ModelLocationType.NEW) {
-    if (selectedConnectionType) {
-      return (
-        <NewConnectionField
-          connectionType={selectedConnectionType}
-          setModelLocationData={setModelLocationData}
-          modelLocationData={modelLocationData}
-        />
-      );
-    }
+    return (
+      <>
+        {showCustomTypeSelect ? (
+          <CustomTypeSelectField
+            typeOptions={customTypeOptions ?? []}
+            onSelect={(connectionType: ConnectionTypeConfigMapObj) => {
+              setModelLocationData({
+                type: ModelLocationType.NEW,
+                connectionTypeObject: connectionType,
+                fieldValues: {},
+                additionalFields: {},
+              });
+            }}
+            typeKey={customTypeKey ?? ''}
+            selectedConnectionType={selectedConnectionType}
+          />
+        ) : null}
+        {selectedConnectionType ? (
+          <NewConnectionField
+            connectionType={selectedConnectionType}
+            setModelLocationData={setModelLocationData}
+            modelLocationData={modelLocationData}
+          />
+        ) : null}
+      </>
+    );
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (modelLocation === ModelLocationType.PVC) {
     return (
       <PvcSelectField
