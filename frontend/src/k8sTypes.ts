@@ -1290,8 +1290,9 @@ export type DashboardCommonConfig = {
   disableLMEval: boolean;
   disableKueue: boolean;
   disableModelTraining: boolean;
-  disableModelAsService: boolean;
   disableFeatureStore?: boolean;
+  genAiStudio?: boolean;
+  modelAsService?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition

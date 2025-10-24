@@ -72,8 +72,13 @@ export const isAreaAvailable = (
     const state = dscStatus.components[statusKey]?.managementState;
     return state === 'Managed' || state === 'Unmanaged';
   };
+
+  // Check if area exists in the internal state map
+  const hasAreaConfig = !!(area in options.internalStateMap);
+
+  // If area doesn't exist, use empty config to avoid errors
   const { devFlags, featureFlags, requiredComponents, reliantAreas, requiredCapabilities } =
-    options.internalStateMap[area];
+    hasAreaConfig ? options.internalStateMap[area] : {};
 
   const reliantAreasState = reliantAreas
     ? reliantAreas.reduce<IsAreaAvailableStatus['reliantAreas']>(
@@ -141,6 +146,7 @@ export const isAreaAvailable = (
 
   return {
     status:
+      hasAreaConfig &&
       hasMetReliantAreas &&
       hasMetFeatureFlags &&
       hasMetRequiredComponents &&

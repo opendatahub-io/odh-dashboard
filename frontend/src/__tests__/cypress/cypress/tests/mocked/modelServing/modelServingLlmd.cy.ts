@@ -50,6 +50,7 @@ const initIntercepts = ({
     mockDscStatus({
       installedComponents: {
         kserve: true,
+        llamastackoperator: true,
         'model-mesh': false,
       },
     }),
@@ -60,7 +61,8 @@ const initIntercepts = ({
       disableModelMesh: true,
       disableNIMModelServing: true,
       disableKServe: false,
-      disableModelAsService: false, // Enable MaaS for testing
+      genAiStudio: true,
+      modelAsService: true, // Enable MaaS for testing
     }),
   );
   cy.interceptOdh('GET /api/components', null, []);
