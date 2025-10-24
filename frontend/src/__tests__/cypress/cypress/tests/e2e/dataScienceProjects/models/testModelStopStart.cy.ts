@@ -57,7 +57,7 @@ describe('[Automation Bug: RHOAIENG-32898] A model can be stopped and started', 
   it(
     'Verify that a model can be stopped and started',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent', '@Maintain'],
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@ci-dashboard-set-2', '@NonConcurrent', '@Maintain'],
     },
     () => {
       cy.log('Model Name:', modelName);
