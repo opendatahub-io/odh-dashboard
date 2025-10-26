@@ -1,5 +1,5 @@
 # Frontend build stage
-FROM registry.access.redhat.com/ubi9/nodejs-20 AS ui-builder
+FROM registry.access.redhat.com/ubi9/nodejs-22 AS ui-builder
 COPY ./frontend/ ./
 RUN npm cache clean --force && npm ci --omit=optional && npm run build
 

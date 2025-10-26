@@ -1,8 +1,8 @@
 # Build arguments
 ARG SOURCE_CODE=.
 
-# Use ubi9/nodejs-20 as default base image
-ARG BASE_IMAGE="registry.access.redhat.com/ubi9/nodejs-20:latest"
+# Use ubi9/nodejs-22 as default base image
+ARG BASE_IMAGE="registry.access.redhat.com/ubi9/nodejs-22:latest"
 
 FROM ${BASE_IMAGE} as builder
 
