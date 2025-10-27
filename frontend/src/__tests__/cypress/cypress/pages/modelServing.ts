@@ -81,8 +81,8 @@ class ModelServingGlobal {
   }
 
   selectSingleServingModelButtonIfExists() {
-    cy.get('body').then(($body) => {
-      if ($body.find('[data-testid="kserve-select-button"]').length > 0) {
+    cy.get('[data-testid="kserve-select-button"]').then(($button) => {
+      if ($button.length > 0) {
         this.findSingleServingModelButton().click();
       }
     });
@@ -1056,10 +1056,6 @@ class ModelServingWizard extends Wizard {
 
   findUrilocationInputError() {
     return cy.findByTestId('uri-form-field-helper-text');
-  }
-
-  findExistingPVCSelectValue() {
-    return cy.findByTestId('pvc-connection-selector');
   }
 
   findExistingConnectionSelect() {

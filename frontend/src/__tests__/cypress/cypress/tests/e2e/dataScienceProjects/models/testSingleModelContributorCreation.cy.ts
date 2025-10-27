@@ -84,19 +84,26 @@ describe('Verify Model Creation and Validation using the UI', () => {
       modelServingGlobal.findDeployModelButton().click();
 
       // Launch a Single Serving Model and select the required entries
-      cy.step('Launch a Single Serving Model using Generative AI model (Example, LLM)');
+      cy.step('Launch a Single Serving Model using OpenVINO Model Server');
       // Step 1: Model Source
       modelServingWizard.findModelLocationSelectOption('Existing connection').click();
       modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
-      modelServingWizard.findModelTypeSelectOption('Generative AI model (Example, LLM)').click();
+      modelServingWizard.findModelTypeSelectOption('Predictive model').click();
       modelServingWizard.findNextButton().click();
       // Step 2: Model Deployment
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-      modelServingWizard
-        .findGlobalScopedTemplateOption('vLLM Intel Gaudi Accelerator ServingRuntime for KServe')
-        .should('exist')
-        .click();
+      modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
+      // Only interact with serving runtime template selector if it's not disabled
+      // (it may be disabled when only one option is available)
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().then(($selector) => {
+        if (!$selector.is(':disabled')) {
+          cy.wrap($selector).click();
+          modelServingWizard
+            .findGlobalScopedTemplateOption('OpenVINO Model Server')
+            .should('exist')
+            .click();
+        }
+      });
       modelServingWizard.findNextButton().click();
       //Step 3: Advanced Options
       modelServingWizard.findSubmitButton().click();

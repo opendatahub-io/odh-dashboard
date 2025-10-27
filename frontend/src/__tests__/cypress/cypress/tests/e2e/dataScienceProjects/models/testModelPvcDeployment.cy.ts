@@ -72,7 +72,7 @@ describe('Verify a model can be deployed from a PVC', () => {
     'should deploy a model from a PVC',
     { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing'] },
     () => {
-      cy.step('log into application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}');
+      cy.step(`log into application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       // Navigate to the project

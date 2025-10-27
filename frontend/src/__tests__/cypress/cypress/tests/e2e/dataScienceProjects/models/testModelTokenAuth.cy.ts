@@ -15,7 +15,7 @@ import {
   provisionProjectForModelServing,
   verifyModelExternalToken,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
-//import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 
 let testData: DataScienceProjectData;
@@ -51,7 +51,7 @@ describe('A model can be deployed with token auth', () => {
   after(() => {
     // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
     // TODO: Review this timeout once RHOAIENG-19969 is resolved
-    //deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
+    deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
   });
 
   it(
@@ -125,7 +125,7 @@ describe('A model can be deployed with token auth', () => {
       );
 
       // Verify the model is not accessible without a token
-      cy.step('Verify the model is not accessible without a token');
+      // cy.step('Verify the model is not accessible without a token');
       modelExternalTester(modelName, projectName).then(({ response }) => {
         expect(response.status).to.equal(401);
       });

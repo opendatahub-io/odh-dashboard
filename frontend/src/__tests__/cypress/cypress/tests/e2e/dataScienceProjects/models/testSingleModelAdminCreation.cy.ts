@@ -1,5 +1,5 @@
 import type { DataScienceProjectData } from '#~/__tests__/cypress/cypress/types';
-//import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { loadDSPFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import { projectListPage, projectDetails } from '#~/__tests__/cypress/cypress/pages/projects';
@@ -50,7 +50,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
   after(() => {
     // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
     // TODO: Review this timeout once RHOAIENG-19969 is resolved
-    //deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
+    deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
   });
 
   it(
@@ -102,6 +102,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       modelServingWizard.findNextButton().click();
       //Step 3: Advanced Options
       // Enable Model access through an external route
+      cy.step('Allow Model to be accessed from an External route without Authentication');
       modelServingWizard.findExternalRouteCheckbox().click();
       modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
       modelServingWizard.findServiceAccountByIndex(0).clear();
