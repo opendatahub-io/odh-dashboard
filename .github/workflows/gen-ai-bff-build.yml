@@ -19,9 +19,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-concurrency:
-  group: genai-bff-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
 
