@@ -5,7 +5,6 @@ import { mockModelVersionList } from '#~/__mocks__/mockModelVersionList';
 import { mockModelVersion } from '#~/__mocks__/mockModelVersion';
 import { archiveModelRegistry } from '#~/__tests__/cypress/cypress/pages/archiveModelRegistry';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
-import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
 import { mockModelRegistry } from '#~/__mocks__';
 
 const MODEL_REGISTRY_API_VERSION = 'v1';
@@ -38,14 +37,6 @@ const initIntercepts = ({
     'GET /api/config',
     mockDashboardConfig({
       disableModelRegistry: false,
-    }),
-  );
-  cy.interceptOdh(
-    'GET /api/dsc/status',
-    mockDscStatus({
-      installedComponents: {
-        'model-registry-operator': true,
-      },
     }),
   );
   cy.interceptOdh(
