@@ -123,7 +123,7 @@ describe('A model can be deployed with token auth', () => {
       );
 
       // Verify the model is not accessible without a token
-      // cy.step('Verify the model is not accessible without a token');
+      cy.step('Verify the model is not accessible without a token');
       modelExternalTester(modelName, projectName).then(({ response }) => {
         expect(response.status).to.equal(401);
       });
