@@ -9,7 +9,6 @@ spec:
   provider: Elastic
   description: |-
     Build transformative RAG applications, proactively resolve observability issues, and address complex security threats — all with the power of Search AI.
-  kfdefApplications: []
   route: ''
   img: >-
     <svg width="500" height="172" viewBox="0 0 500 172" fill="none" xmlns="http://www.w3.org/2000/svg">
