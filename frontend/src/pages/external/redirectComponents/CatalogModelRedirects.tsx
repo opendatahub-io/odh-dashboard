@@ -4,8 +4,7 @@ import { Button } from '@patternfly/react-core';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import RedirectErrorState from '#~/pages/external/RedirectErrorState';
 import { useRedirect } from '#~/utilities/useRedirect';
-
-const modelCatalogRoute = '/ai-hub/catalog';
+import { modelCatalogRoute } from '#~/routes/modelCatalog/catalogModelDetails';
 
 /**
  * Handles redirects from external URLs to internal catalog model details routes.
@@ -33,15 +32,12 @@ const CatalogModelRedirects: React.FC = () => {
         'Invalid catalog model path. Expected: /external/catalog/{sourceId}/{modelName}',
       );
     }
-
     const [sourceId, ...modelNameParts] = pathParts;
+    const modelName = modelNameParts.join('/');
 
-    if (!sourceId || modelNameParts.length === 0) {
+    if (!sourceId || !modelName) {
       throw new Error('Missing required parameters: sourceId or modelName');
     }
-
-    // Join remaining parts as modelName (in case it contains slashes/encoded characters)
-    const modelName = modelNameParts.join('/');
 
     return `${modelCatalogRoute}/${sourceId}/${modelName}`;
   }, [location.pathname]);
