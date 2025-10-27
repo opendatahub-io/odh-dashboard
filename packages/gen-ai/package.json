@@ -23,6 +23,14 @@
       "port": 8043
     }
   },
+  "scripts": {
+    "install:module": "npm install --prefix frontend",
+    "cypress:server:build": "cd frontend && DIST_DIR=./public-cypress DEPLOYMENT_MODE=federated npm run build",
+    "cypress:server:build:coverage": "COVERAGE=true npm run cypress:server:build",
+    "cypress:server": "cd frontend && serve ./public-cypress -p 9102 -s -L",
+    "cypress:server:dev": "cd frontend && DEPLOYMENT_MODE=federated PORT=9102 npm run start:dev",
+    "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9102"
+  },
   "dependencies": {
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/plugin-core": "*"

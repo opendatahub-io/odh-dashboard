@@ -22,18 +22,15 @@ import { modelVersionArchive } from '#~/__tests__/cypress/cypress/pages/modelReg
 import { modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry';
 import { mockModelRegistry, mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
 import { KnownLabels } from '#~/k8sTypes';
+import { mockModelArtifact } from '#~/__mocks__/mockModelArtifact';
 
 const MODEL_REGISTRY_API_VERSION = 'v1';
 
 type HandlersProps = {
-  registeredModelsSize?: number;
   modelVersions?: ModelVersion[];
 };
 
 const initIntercepts = ({
-  // TODO: Investigate if this line is needed.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  registeredModelsSize = 4,
   modelVersions = [
     mockModelVersion({
       name: 'model version 1',
@@ -198,6 +195,22 @@ const initIntercepts = ({
     },
     { data: { userId: 'user@example.com', clusterAdmin: true } },
   );
+
+  cy.interceptOdh(
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId/artifacts`,
+    {
+      path: {
+        modelRegistryName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: 2,
+      },
+    },
+    {
+      data: mockModelArtifactList({
+        items: [mockModelArtifact({})],
+      }),
+    },
+  );
 };
 
 describe('Archiving version', () => {
@@ -208,16 +221,14 @@ describe('Archiving version', () => {
     modelVersionArchive.findVersionDeploymentTab().should('exist');
   });
 
-  // TODO: Fix this test
-  it.skip('Archived version details page does not have the Deployments tab', () => {
+  it('Archived version details page does not have the Deployments tab', () => {
     initIntercepts({});
     modelVersionArchive.visitArchiveVersionDetail();
     modelVersionArchive.findVersionDetailsTab().should('exist');
     modelVersionArchive.findVersionDeploymentTab().should('not.exist');
   });
 
-  // TODO: Fix this test
-  it.skip('Cannot archive version that has a deployment from versions table', () => {
+  it('Cannot archive version that has a deployment from versions table', () => {
     cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
     cy.interceptK8sList(
       InferenceServiceModel,
@@ -238,8 +249,7 @@ describe('Archiving version', () => {
     modelVersionRow.findKebabAction('Archive model version').should('have.attr', 'aria-disabled');
   });
 
-  // TODO: Fix this test
-  it.skip('Cannot archive model that has versions with a deployment', () => {
+  it('Cannot archive model that has versions with a deployment', () => {
     cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
     cy.interceptK8sList(
       InferenceServiceModel,
@@ -255,16 +265,23 @@ describe('Archiving version', () => {
       .should('have.attr', 'aria-disabled');
   });
 
-  // TODO: Fix this test
-  it.skip('Cannot archive model version with deployment from the version detail page', () => {
+  it('Cannot archive model version with deployment from the version detail page', () => {
     cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
     cy.interceptK8sList(
       InferenceServiceModel,
-      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+      mockK8sResourceList([
+        mockInferenceServiceK8sResource({
+          additionalLabels: {
+            [KnownLabels.REGISTERED_MODEL_ID]: '1',
+            [KnownLabels.MODEL_VERSION_ID]: '3',
+          },
+        }),
+      ]),
     );
     initIntercepts({});
     modelVersionArchive.visitModelVersionDetails();
-    cy.findByTestId('model-version-details-action-button')
+    modelVersionArchive
+      .findModelVersionsDetailsHeaderAction()
       .findDropdownItem('Archive model version')
       .should('have.attr', 'aria-disabled');
   });

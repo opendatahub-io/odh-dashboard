@@ -22,7 +22,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
     properties: {
       id: PLUGIN_GEN_AI,
       requiredComponents: [StackComponent.LLAMA_STACK_OPERATOR],
-      devFlags: ['Gen AI plugin'],
+      featureFlags: ['genAiStudio'],
     },
   },
   {
@@ -30,7 +30,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
     properties: {
       id: MODEL_AS_SERVICE,
       reliantAreas: [PLUGIN_GEN_AI],
-      devFlags: ['Model as a service'],
+      featureFlags: ['modelAsService'],
     },
   },
   {

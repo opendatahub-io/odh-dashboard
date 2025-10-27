@@ -76,7 +76,7 @@ spec:
                       description: 'DEPRECATED: Accelerator Profiles are replaced by Hardware Profiles. This field will be removed in a future version.'
                     disableHardwareProfiles:
                       type: boolean
-                      description: "DEPRECATED: Hardware Profiles are GA and cannot be disabled via this field. This field will be removed in a future version."
+                      description: 'DEPRECATED: Hardware Profiles are GA and cannot be disabled via this field. This field will be removed in a future version.'
                     disableDistributedWorkloads:
                       type: boolean
                     disableModelCatalog:
@@ -98,6 +98,10 @@ spec:
                     disableLMEval:
                       type: boolean
                     disableFeatureStore:
+                      type: boolean
+                    genAiStudio:
+                      type: boolean
+                    modelAsService:
                       type: boolean
                   x-kubernetes-validations:
                     - rule: '!has(self.disableAcceleratorProfiles) || self.disableAcceleratorProfiles == oldSelf.disableAcceleratorProfiles'

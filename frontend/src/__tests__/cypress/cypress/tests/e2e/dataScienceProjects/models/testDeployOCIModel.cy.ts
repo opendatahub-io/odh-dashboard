@@ -44,7 +44,7 @@ const updateSecretDetailsFile = (
 };
 
 describe(
-  'A user can create an OCI connection and deploy a model with it',
+  '[Automation Bug: RHOAIENG-32898] A user can create an OCI connection and deploy a model with it',
   { testIsolation: false },
   () => {
     let testData: DeployOCIModelData;

@@ -1,6 +1,8 @@
-# testWorkbenchNegativeTests.cy.ts Test Data #
-  wbNegativeTestNamespace: 'dsp-wb-negative-test'
-  invalidResourceNames:
+# testWorkbenchNegativeTests.cy.ts Test Data
+wbNegativeTestNamespace: 'dsp-wb-negative-test'
+hardwareProfileName: 'cypress-hwp-negative-test-large'
+resourceYamlPath: 'resources/hardwareProfile/workbench_negative_test.yaml'
+invalidResourceNames:
   - Test-workbench
   - test workbench
   - test.workbench
