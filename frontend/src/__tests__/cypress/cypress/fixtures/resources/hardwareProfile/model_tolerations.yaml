@@ -20,7 +20,10 @@ spec:
       maxCount: 8Gi
       minCount: 2Gi
       resourceType: Memory
-  tolerations:
-    - effect: PreferNoSchedule
-      key: test-taint
-      operator: Equal
+  scheduling:
+    type: Node
+    node:
+      tolerations:
+        - effect: PreferNoSchedule
+          key: test-taint
+          operator: Equal
