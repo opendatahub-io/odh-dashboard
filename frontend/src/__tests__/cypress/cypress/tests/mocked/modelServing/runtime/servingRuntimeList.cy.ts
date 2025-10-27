@@ -97,6 +97,7 @@ type HandlersProps = {
   DscComponents?: DataScienceClusterKindStatus['components'];
   disableProjectScoped?: boolean;
   disableHardwareProfiles?: boolean;
+  noProjectConnections?: boolean;
 };
 import { STOP_MODAL_PREFERENCE_KEY } from '#~/pages/modelServing/useStopModalPreference';
 import { mockOdhApplication } from '#~/__mocks__/mockOdhApplication';
@@ -146,6 +147,7 @@ const initIntercepts = ({
   rejectConnection = false,
   requiredCapabilities = [],
   DscComponents,
+  noProjectConnections = false,
 }: HandlersProps) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
@@ -219,7 +221,12 @@ const initIntercepts = ({
     InferenceServiceModel,
     mockInferenceServiceK8sResource({ name: 'llama-service' }),
   );
-  cy.interceptK8sList(SecretModel, mockK8sResourceList([mockSecretK8sResource({})]));
+  cy.interceptK8sList(
+    SecretModel,
+    noProjectConnections
+      ? mockK8sResourceList([])
+      : mockK8sResourceList([mockSecretK8sResource({})]),
+  );
   // used by addSupportServingPlatformProject
   cy.interceptOdh(
     'GET /api/namespaces/:namespace/:context',
@@ -2383,6 +2390,7 @@ describe('Serving Runtime List', () => {
         disableServingRuntimeParams: false,
         requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
         projectEnableModelMesh: false,
+        noProjectConnections: true,
       });
       cy.intercept(
         'GET',
@@ -2414,7 +2422,10 @@ describe('Serving Runtime List', () => {
       kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       // Auto-selects the only pvc
-      kserveModal.findPVCConnectionOption().scrollIntoView().should('be.visible').click();
+      kserveModal.findPVCConnectionOption().scrollIntoView().should('be.visible');
+      kserveModal.findExistingConnectionOption().should('not.exist');
+      kserveModal.findNewConnectionOption().should('be.visible');
+      kserveModal.findPVCConnectionOption().click();
       kserveModal.findLocationPathInput().should('have.value', 'test-path');
       kserveModal.findSubmitButton().should('be.enabled');
       kserveModal.findSubmitButton().click();
