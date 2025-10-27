@@ -25,17 +25,16 @@ import {
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { ConnectionTypeFieldType } from '#~/concepts/connectionTypes/types';
 import { ServingRuntimePlatform } from '#~/types';
+import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 export const initDeployPrefilledModelIntercepts = ({
   modelMeshInstalled = true,
-  kServeInstalled = true,
   disableKServe = false,
   disableModelMesh = false,
   disableProjectScoped = true,
   isEmpty = false,
 }: {
   modelMeshInstalled?: boolean;
-  kServeInstalled?: boolean;
   disableKServe?: boolean;
   disableModelMesh?: boolean;
   disableProjectScoped?: boolean;
@@ -55,10 +54,12 @@ export const initDeployPrefilledModelIntercepts = ({
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      installedComponents: {
-        kserve: kServeInstalled,
-        'model-mesh': modelMeshInstalled,
-        'model-registry-operator': true,
+      components: {
+        [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
+        [DataScienceStackComponent.MODEL_MESH_SERVING]: {
+          managementState: modelMeshInstalled ? 'Managed' : 'Removed',
+        },
+        [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
       },
     }),
   );
