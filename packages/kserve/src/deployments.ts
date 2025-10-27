@@ -2,7 +2,6 @@ import React from 'react';
 import {
   InferenceServiceKind,
   K8sAPIOptions,
-  KnownLabels,
   ProjectKind,
   ServingRuntimeKind,
 } from '@odh-dashboard/internal/k8sTypes';
@@ -30,7 +29,7 @@ export const isKServeDeployment = (deployment: Deployment): deployment is KServe
 export const useWatchDeployments = (
   project?: ProjectKind,
   labelSelectors?: { [key: string]: string },
-  mrName?: string,
+  filterFn?: (inferenceService: InferenceServiceKind) => boolean,
   opts?: K8sAPIOptions,
 ): [KServeDeployment[] | undefined, boolean, Error | undefined] => {
   const [inferenceServices, inferenceServiceLoaded, inferenceServiceError] =
@@ -43,18 +42,17 @@ export const useWatchDeployments = (
     project,
     opts,
   );
-  let inferenceServicesWithMrNameFilter = inferenceServices;
-  if (mrName) {
-    inferenceServicesWithMrNameFilter = inferenceServices.filter(
-      (inferenceService) =>
-        inferenceService.metadata.labels?.[KnownLabels.MODEL_REGISTRY_NAME] === mrName ||
-        !inferenceService.metadata.labels?.[KnownLabels.MODEL_REGISTRY_NAME],
-    );
-  }
+
+  const filteredInferenceServices = React.useMemo(() => {
+    if (!filterFn) {
+      return inferenceServices;
+    }
+    return inferenceServices.filter(filterFn);
+  }, [inferenceServices, filterFn]);
 
   const deployments: KServeDeployment[] = React.useMemo(
     () =>
-      inferenceServicesWithMrNameFilter.map((inferenceService) => {
+      filteredInferenceServices.map((inferenceService) => {
         const servingRuntime = servingRuntimes.find(
           (sr) => sr.metadata.name === inferenceService.spec.predictor.model?.runtime,
         );
@@ -69,7 +67,7 @@ export const useWatchDeployments = (
             : undefined,
         };
       }),
-    [inferenceServices, servingRuntimes, deploymentPods],
+    [filteredInferenceServices, servingRuntimes, deploymentPods],
   );
 
   return [

@@ -1,5 +1,6 @@
 import React from 'react';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
+import { useModelRegistryFilter } from './useModelRegistryFilter';
 import {
   ModelDeploymentsContext,
   ModelDeploymentsProvider,
@@ -37,9 +38,14 @@ const DeploymentsContextProvider: React.FC<DeploymentsContextProviderProps> = ({
   mrName,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
+  const filterFn = useModelRegistryFilter(mrName);
 
   return (
-    <ModelDeploymentsProvider projects={projects} labelSelectors={labelSelectors} mrName={mrName}>
+    <ModelDeploymentsProvider
+      projects={projects}
+      labelSelectors={labelSelectors}
+      filterFn={filterFn}
+    >
       <ModelDeploymentsProviderContent>{children}</ModelDeploymentsProviderContent>
     </ModelDeploymentsProvider>
   );

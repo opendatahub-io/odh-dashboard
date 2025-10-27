@@ -31,7 +31,7 @@ type PlatformDeploymentWatcherProps = {
   ) => void;
   unloadPlatformDeployments: (platformId: string) => void;
   labelSelectors?: { [key: string]: string };
-  mrName?: string;
+  filterFn?: (model: Deployment['model']) => boolean;
 };
 
 const PlatformDeploymentWatcher: React.FC<PlatformDeploymentWatcherProps> = ({
@@ -41,7 +41,7 @@ const PlatformDeploymentWatcher: React.FC<PlatformDeploymentWatcherProps> = ({
   labelSelectors,
   onStateChange,
   unloadPlatformDeployments,
-  mrName,
+  filterFn,
 }) => {
   const useWatchDeployments = watcher.properties.watch;
 
@@ -50,7 +50,7 @@ const PlatformDeploymentWatcher: React.FC<PlatformDeploymentWatcherProps> = ({
   const [allDeployments, loaded, error] = useWatchDeployments(
     projectToScope,
     labelSelectors,
-    mrName,
+    filterFn,
   );
 
   // Filter deployments to only include those from the specified projects
@@ -81,14 +81,14 @@ type ModelDeploymentsProviderProps = {
   projects: ProjectKind[];
   labelSelectors?: { [key: string]: string };
   children: React.ReactNode;
-  mrName?: string;
+  filterFn?: (model: Deployment['model']) => boolean;
 };
 
 export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> = ({
   projects,
   labelSelectors,
   children,
-  mrName,
+  filterFn,
 }) => {
   const [deploymentWatchers, deploymentWatchersLoaded] = useResolvedExtensions(
     isModelServingPlatformWatchDeployments,
@@ -169,7 +169,7 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
               labelSelectors={labelSelectors}
               onStateChange={updatePlatformDeployments}
               unloadPlatformDeployments={unloadPlatformDeployments}
-              mrName={mrName}
+              filterFn={filterFn}
             />
           );
         })
