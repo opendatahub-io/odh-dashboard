@@ -506,7 +506,7 @@ export const ConnectionSection: React.FC<Props> = ({
             }
           />
         </>
-      ) : pvcs && pvcs.length === 0 ? ( // No connections and no pvcs: auto-show the new connection field
+      ) : pvcs && pvcs.length === 0 && !existingUriOption ? ( // No connections, no pvcs, no existing URI: auto-show the new connection field (not the radio)
         <FormGroup
           name="new-connection"
           id="new-connection"
@@ -536,7 +536,7 @@ export const ConnectionSection: React.FC<Props> = ({
           </Stack>
         </FormGroup>
       ) : (
-        // No connections, but there are pvcs show the new connection radio and pvc radio
+        // No connections, but there are pvcs show the new connection radio
         <Radio
           name="new-connection-radio"
           id="new-connection-radio"
