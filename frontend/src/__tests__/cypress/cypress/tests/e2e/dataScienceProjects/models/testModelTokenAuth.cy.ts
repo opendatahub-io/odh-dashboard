@@ -103,10 +103,8 @@ describe('A model can be deployed with token auth', () => {
       cy.step('Enable Model access through an external route');
       modelServingWizard.findExternalRouteCheckbox().click();
       modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
-      modelServingWizard.findServiceAccountByIndex(0).clear();
       modelServingWizard.findServiceAccountByIndex(0).clear().type('secret');
       modelServingWizard.findAddServiceAccountButton().click();
-      modelServingWizard.findServiceAccountByIndex(1).clear();
       modelServingWizard.findServiceAccountByIndex(1).clear().type('secret2');
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(testData.singleModelName);

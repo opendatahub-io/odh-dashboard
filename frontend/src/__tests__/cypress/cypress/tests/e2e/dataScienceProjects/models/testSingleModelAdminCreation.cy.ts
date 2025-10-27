@@ -56,7 +56,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
   it(
     'Verify that an Admin can Serve, Query a Single Model using both the UI and External links',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@ODS-2626', '@Dashboard', '@Modelserving', '@NonConcurrent'],
+      tags: ['@Smoke', '@SmokeSet3', '@ODS-2626', '@Dashboard', '@ModelServing', '@NonConcurrent'],
     },
     () => {
       cy.log('Model Name:', modelName);
@@ -105,10 +105,8 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       cy.step('Allow Model to be accessed from an External route without Authentication');
       modelServingWizard.findExternalRouteCheckbox().click();
       modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
-      modelServingWizard.findServiceAccountByIndex(0).clear();
       modelServingWizard.findServiceAccountByIndex(0).clear().type('secret');
       modelServingWizard.findAddServiceAccountButton().click();
-      modelServingWizard.findServiceAccountByIndex(1).clear();
       modelServingWizard.findServiceAccountByIndex(1).clear().type('secret2');
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(testData.singleModelAdminName);
