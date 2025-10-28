@@ -8,6 +8,7 @@ import {
   ProjectsFilterOptions,
 } from '#~/pages/projects/screens/projects/const';
 import WhosMyAdministrator from '#~/components/WhosMyAdministrator';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import NewProjectButton from './NewProjectButton';
 
 type ProjectsToolbarProps = {
@@ -23,17 +24,27 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
 }) => {
   const navigate = useNavigate();
 
+  // TODO: Define actual project type options
+  const projectTypeOptions: SimpleSelectOption[] = [
+    { key: 'data-science', label: 'Data Science' },
+    { key: 'model-serving', label: 'Model Serving' },
+    { key: 'general', label: 'General' },
+  ];
+
   return (
     <FilterToolbar<keyof typeof projectsFilterOptions>
       data-testid="projects-table-toolbar"
       filterOptions={projectsFilterOptions}
       filterOptionRenders={{
-        [ProjectsFilterOptions.projectType]: ({ onChange, ...props }) => (
-          <BulkSelect
+        [ProjectsFilterOptions.projectType]: ({ value, onChange, ...props }) => (
+          <SimpleSelect
             {...props}
+            value={value ?? ''}
             aria-label="Filter by project type"
             placeholder="Filter by project type"
-            onChange={onChange}
+            options={projectTypeOptions}
+            onChange={(v) => onChange(v)}
+            popperProps={{ maxWidth: undefined }}
           />
         ),
         [ProjectsFilterOptions.name]: ({ onChange, ...props }) => (
