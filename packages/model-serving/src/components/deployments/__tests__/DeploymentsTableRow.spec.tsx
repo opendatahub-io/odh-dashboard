@@ -70,8 +70,6 @@ describe('DeploymentsTableRow', () => {
     expect(screen.getByRole('button', { name: 'More info' })).toBeInTheDocument();
     // Inference endpoint Column
     expect(screen.getByText('Failed to get endpoint for this deployed model.')).toBeInTheDocument();
-    // API protocol Column
-    expect(screen.getByText('Not defined')).toBeInTheDocument();
     // Status Column
     expect(screen.getByText('Inference Service Status')).toBeInTheDocument();
 
@@ -226,26 +224,39 @@ describe('DeploymentsTableRow', () => {
       expect(screen.getByText('https://internal-endpoint.com')).toBeInTheDocument();
       expect(screen.getByText('https://external-endpoint.com')).toBeInTheDocument();
     });
-  });
 
-  it('should render the row with an api protocol', () => {
-    render(
-      <table>
-        <tbody>
-          <DeploymentRow
-            deployment={mockDeployment({
-              server: undefined,
-              apiProtocol: 'REST',
-            })}
-            platformColumns={[]}
-            onDelete={onDelete}
-            onEdit={onEdit}
-            rowIndex={0}
-          />
-        </tbody>
-      </table>,
-    );
+    it('should render the row with API protocol', async () => {
+      render(
+        <table>
+          <tbody>
+            <DeploymentRow
+              deployment={mockDeployment({
+                apiProtocol: 'REST',
+                endpoints: [
+                  {
+                    type: 'internal',
+                    name: 'test-endpoint',
+                    url: 'https://internal-endpoint.com',
+                  },
+                ],
+              })}
+              platformColumns={[]}
+              onDelete={onDelete}
+              onEdit={onEdit}
+              rowIndex={0}
+            />
+          </tbody>
+        </table>,
+      );
 
-    expect(screen.getByText('REST')).toBeInTheDocument();
+      const button = screen.getByRole('button', { name: 'Internal endpoint' });
+      expect(button).toBeInTheDocument();
+      await act(async () => {
+        fireEvent.click(button);
+      });
+      expect(screen.getByText('https://internal-endpoint.com')).toBeInTheDocument();
+      expect(screen.getByTestId('api-protocol-label')).toBeInTheDocument();
+      expect(screen.getByTestId('api-protocol-label')).toHaveTextContent('REST');
+    });
   });
 });

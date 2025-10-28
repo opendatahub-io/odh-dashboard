@@ -1,6 +1,5 @@
 import React from 'react';
 import { Td, Tbody } from '@patternfly/react-table';
-import { Label, Content, ContentVariants } from '@patternfly/react-core';
 import ResourceActionsColumn from '@odh-dashboard/internal/components/ResourceActionsColumn';
 import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
 import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';
@@ -109,13 +108,6 @@ export const DeploymentRow: React.FC<{
             deployment={deployment}
             stoppedStates={deployment.status?.stoppedStates}
           />
-        </Td>
-        <Td dataLabel="API protocol">
-          {deployment.apiProtocol ? (
-            <Label color="yellow">{deployment.apiProtocol}</Label>
-          ) : (
-            <Content component={ContentVariants.small}>Not defined</Content>
-          )}
         </Td>
         <DeploymentHardwareProfileCell deployment={deployment} />
         <Td dataLabel="Last deployed">
