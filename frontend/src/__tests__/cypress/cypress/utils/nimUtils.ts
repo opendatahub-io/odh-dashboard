@@ -50,7 +50,6 @@ export const initInterceptsToEnableNim = ({ hasAllModels = false }: EnableNimCon
     mockDscStatus({
       components: {
         [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
-        [DataScienceStackComponent.MODEL_MESH_SERVING]: { managementState: 'Managed' },
       },
     }),
   );
@@ -59,7 +58,6 @@ export const initInterceptsToEnableNim = ({ hasAllModels = false }: EnableNimCon
     'GET /api/config',
     mockDashboardConfig({
       disableKServe: false,
-      disableModelMesh: false,
       disableNIMModelServing: false,
     }),
   );
