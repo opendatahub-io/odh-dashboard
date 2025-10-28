@@ -1,7 +1,6 @@
 import * as _ from 'lodash';
 import { V1ConfigMap, V1Role, V1RoleBinding, V1RoleBindingList } from '@kubernetes/client-node';
 import {
-  AcceleratorProfileKind,
   BuildPhase,
   BuildKind,
   BuildStatus,
@@ -16,8 +15,6 @@ import {
   SubscriptionKind,
   SubscriptionStatusData,
   Template,
-  TolerationEffect,
-  TolerationOperator,
   DataScienceClusterKindStatus,
   KnownLabels,
   AuthKind,
@@ -31,9 +28,14 @@ import {
 } from './resourceWatcher';
 import { getComponentFeatureFlags } from './features';
 import { blankDashboardCR } from './constants';
-import { getLink, getRouteForClusterId, getServiceLink } from './componentUtils';
+import {
+  getLink,
+  getRouteForClusterId,
+  getServiceLink,
+  getIsAppEnabled,
+  getRouteForApplication,
+} from './componentUtils';
 import { isHttpError } from '../utils';
-import { getDetectedAccelerators } from '../routes/api/accelerators/acceleratorUtils';
 import { FastifyRequest } from 'fastify';
 import { fetchClusterStatus } from './dsc';
 
@@ -955,98 +957,6 @@ export const cleanupKserveRoleBindings = async (fastify: KubeFastifyInstance): P
     };
 
     await Promise.all(kserveSARoleBindings.map(replaceRoleBinding));
-
-    await createSuccessfulMigrationConfigMap(fastify, CONFIG_MAP_NAME, DESCRIPTION);
-  }
-};
-
-/**
- * Converts GPU usage to use accelerator by adding an accelerator profile CRD to the cluster if GPU usage is detected
- */
-// TODO copy this approach for migrating for https://issues.redhat.com/browse/RHOAIENG-11010
-export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> => {
-  // When we startup — in kube.ts we can handle a migration (catch ALL promise errors — exit gracefully and use fastify logging)
-  // Check for migration-gpu-status configmap in dashboard namespace — if found, exit early
-  const CONFIG_MAP_NAME = 'migration-gpu-status';
-  const DESCRIPTION = 'GPU';
-
-  const continueProcessing = await shouldMigrationContinue(fastify, CONFIG_MAP_NAME, DESCRIPTION);
-
-  if (continueProcessing) {
-    // Read existing AcceleratorProfiles
-    const acceleratorProfilesResponse = await fastify.kube.customObjectsApi
-      .listNamespacedCustomObject(
-        'dashboard.opendatahub.io',
-        'v1',
-        fastify.kube.namespace,
-        'acceleratorprofiles',
-      )
-      .catch((e) => {
-        console.log(e);
-        // If error shows up — CRD may not be installed, exit early
-        throw `A ${e.statusCode} error occurred when trying to fetch accelerator profiles: ${
-          e.response?.body?.message || e?.response?.statusMessage
-        }`;
-      });
-
-    const acceleratorProfiles = (
-      acceleratorProfilesResponse?.body as {
-        items: AcceleratorProfileKind[];
-      }
-    )?.items;
-
-    // If not error and no profiles detected:
-    if (
-      acceleratorProfiles &&
-      Array.isArray(acceleratorProfiles) &&
-      acceleratorProfiles.length === 0
-    ) {
-      // if gpu detected on cluster, create our default migrated-gpu
-      const acceleratorDetected = await getDetectedAccelerators(fastify);
-      const hasNvidiaNodes = Object.keys(acceleratorDetected.total).some(
-        (nodeKey) => nodeKey === 'nvidia.com/gpu',
-      );
-
-      if (acceleratorDetected.configured && hasNvidiaNodes) {
-        const payload: AcceleratorProfileKind = {
-          kind: 'AcceleratorProfile',
-          apiVersion: 'dashboard.opendatahub.io/v1',
-          metadata: {
-            name: 'migrated-gpu',
-            namespace: fastify.kube.namespace,
-          },
-          spec: {
-            displayName: 'NVIDIA GPU',
-            identifier: 'nvidia.com/gpu',
-            enabled: true,
-            tolerations: [
-              {
-                effect: TolerationEffect.NO_SCHEDULE,
-                key: 'nvidia.com/gpu',
-                operator: TolerationOperator.EXISTS,
-              },
-            ],
-          },
-        };
-
-        try {
-          await fastify.kube.customObjectsApi.createNamespacedCustomObject(
-            'dashboard.opendatahub.io',
-            'v1',
-            fastify.kube.namespace,
-            'acceleratorprofiles',
-            payload,
-          );
-        } catch (e) {
-          // If bad detection — exit early and dont create config
-          throw `A ${
-            e.statusCode
-          } error occurred when trying to add migrated-gpu accelerator profile: ${
-            e.response?.body?.message || e?.response?.statusMessage
-          }`;
-        }
-      }
-    }
 
     await createSuccessfulMigrationConfigMap(fastify, CONFIG_MAP_NAME, DESCRIPTION);
   }
