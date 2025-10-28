@@ -9,6 +9,7 @@ import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceName
 import StateActionToggle from '@odh-dashboard/internal/components/StateActionToggle';
 import { DeploymentHardwareProfileCell } from '@odh-dashboard/internal/concepts/hardwareProfiles/DeploymentHardwareProfileCell';
 import { DeploymentRowExpandedSection } from './DeploymentsTableRowExpandedSection';
+import { useNavigateToDeploymentWizard } from '../../deploymentWizard/useNavigateToDeploymentWizard';
 import DeploymentLastDeployed from '../DeploymentLastDeployed';
 import DeploymentStatus from '../DeploymentStatus';
 import DeployedModelsVersion from '../DeployedModelsVersion';
@@ -28,10 +29,9 @@ export const DeploymentRow: React.FC<{
   deployment: Deployment;
   platformColumns: DeploymentsTableColumn[];
   onDelete: (deployment: Deployment) => void;
-  onEdit: (deployment: Deployment) => void;
   rowIndex: number;
   showExpandedToggle?: boolean;
-}> = ({ deployment, platformColumns, onDelete, onEdit, rowIndex, showExpandedToggle }) => {
+}> = ({ deployment, platformColumns, onDelete, rowIndex, showExpandedToggle }) => {
   const metricsExtension = useDeploymentExtension(isModelServingMetricsExtension, deployment);
 
   const startStopActionExtension = useDeploymentExtension(
@@ -43,6 +43,8 @@ export const DeploymentRow: React.FC<{
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
 
   const { watchDeployment } = useModelDeploymentNotification(deployment);
+
+  const navigateToDeploymentWizard = useNavigateToDeploymentWizard(deployment);
 
   const onStart = React.useCallback(() => {
     if (!startStopActionExtension) return;
@@ -140,7 +142,7 @@ export const DeploymentRow: React.FC<{
               {
                 title: 'Edit',
                 onClick: () => {
-                  onEdit(deployment);
+                  navigateToDeploymentWizard(deployment.model.metadata.namespace);
                 },
                 isDisabled:
                   deployment.status?.stoppedStates?.isStarting ||
