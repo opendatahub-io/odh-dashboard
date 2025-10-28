@@ -10,67 +10,56 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
-import { useNavigate } from 'react-router-dom';
+import { useBrowserStorage } from '@odh-dashboard/internal/components/browserStorage/BrowserStorageContext';
 import validatedModelsBannerImg from '@odh-dashboard/internal/images/validated-models-banner.svg';
 
 const BANNER_STORAGE_KEY = 'odh.dashboard.modelCatalog.validatedModelsBanner.dismissed';
 
 const ValidatedModelsBanner: React.FC = () => {
-  const navigate = useNavigate();
-  const [isDismissed, setIsDismissed] = React.useState(() => {
-    try {
-      return localStorage.getItem(BANNER_STORAGE_KEY) === 'true';
-    } catch (e) {
-      // If localStorage is not available, don't show the banner
-      return true;
-    }
-  });
+  const [isDismissed, setIsDismissed] = useBrowserStorage<boolean>(BANNER_STORAGE_KEY, false);
 
   const handleDismiss = React.useCallback(() => {
-    try {
-      localStorage.setItem(BANNER_STORAGE_KEY, 'true');
-      setIsDismissed(true);
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn('Failed to save banner dismissal state:', e);
-    }
-  }, []);
+    setIsDismissed(true);
+  }, [setIsDismissed]);
 
   const handleExploreClick = React.useCallback(() => {
-    navigate('/ai-hub/catalog');
-  }, [navigate]);
-
-  // Don't render if dismissed
+    window.location.href = '/ai-hub/catalog?validated=true';
+  }, []);
   if (isDismissed) {
     return null;
   }
 
   return (
-    <Card variant="secondary" data-testid="validated-models-banner">
-      <CardHeader
-        actions={{
-          actions: (
-            <Button
-              variant="plain"
-              aria-label="Dismiss banner"
-              onClick={handleDismiss}
-              icon={<TimesIcon />}
-              data-testid="dismiss-banner-button"
-            />
-          ),
+    <Card
+      variant="secondary"
+      data-testid="validated-models-banner"
+      style={{ marginBottom: 'var(--pf-v6-global--spacer--md)', position: 'relative' }}
+    >
+      <Button
+        variant="plain"
+        aria-label="Dismiss banner"
+        onClick={handleDismiss}
+        icon={<TimesIcon />}
+        data-testid="dismiss-banner-button"
+        style={{
+          position: 'absolute',
+          top: '8px',
+          right: '8px',
+          zIndex: 1,
         }}
-      >
-        <Title headingLevel="h3" size="lg">
-          Validated models by Red Hat AI
-        </Title>
-      </CardHeader>
+      />
+
       <Flex
         direction={{ default: 'row' }}
         alignItems={{ default: 'alignItemsStretch' }}
         flexWrap={{ default: 'nowrap' }}
       >
-        {/* Left side: Content */}
         <Flex flex={{ default: 'flex_1' }} direction={{ default: 'column' }}>
+          <CardHeader>
+            <Title headingLevel="h3" size="lg">
+              Validated models by Red Hat AI
+            </Title>
+          </CardHeader>
           <CardBody>
             <p>
               Validated models by Red Hat AI offer confidence, predictability, and flexibility when
@@ -88,12 +77,18 @@ const ValidatedModelsBanner: React.FC = () => {
           </CardFooter>
         </Flex>
 
-        {/* Right side: Banner image */}
-        <FlexItem alignSelf={{ default: 'alignSelfStretch' }}>
+        <FlexItem alignSelf={{ default: 'alignSelfStretch' }} style={{ overflow: 'hidden' }}>
           <img
             src={validatedModelsBannerImg}
             alt="Red Hat AI validated models illustration"
-            aria-label="Red Hat AI validated models illustration"
+            style={{
+              width: '100%',
+              height: '100%',
+              minHeight: '200px',
+              objectFit: 'cover',
+              objectPosition: 'center',
+              display: 'block',
+            }}
           />
         </FlexItem>
       </Flex>
