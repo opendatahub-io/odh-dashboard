@@ -643,20 +643,8 @@ class ModelServingRow extends TableRow {
     return this;
   }
 
-  findExpandButton() {
-    return this.find().find('[data-label="Model Server Name"] button');
-  }
-
-  findDeployModelButton() {
-    return this.find().findByTestId('deploy-model-button');
-  }
-
   findExpansion() {
     return this.find().siblings();
-  }
-
-  findDeployedModelExpansionButton() {
-    return this.find().find('[data-label="Deployed models"] button');
   }
 
   findInternalServiceButton() {
