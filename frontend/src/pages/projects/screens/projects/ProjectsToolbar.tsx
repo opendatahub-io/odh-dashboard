@@ -1,5 +1,18 @@
 import * as React from 'react';
-import { SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
+import {
+  SearchInput,
+  ToolbarGroup,
+  ToolbarItem,
+  Dropdown,
+  MenuToggle,
+  DropdownList,
+  DropdownItem,
+  Badge,
+  Label,
+  Flex,
+  FlexItem,
+} from '@patternfly/react-core';
+import { FilterIcon, CheckIcon, StarIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import FilterToolbar from '#~/components/FilterToolbar';
 import {
@@ -9,7 +22,6 @@ import {
   ProjectsFilterOptions,
 } from '#~/pages/projects/screens/projects/const';
 import WhosMyAdministrator from '#~/components/WhosMyAdministrator';
-import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import NewProjectButton from './NewProjectButton';
 
 type ProjectsToolbarProps = {
@@ -28,30 +40,119 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
   fullProjectNum,
 }) => {
   const navigate = useNavigate();
+  const [isProjectTypeDropdownOpen, setIsProjectTypeDropdownOpen] = React.useState(false);
 
-  // TODO: Define actual project type options
-  const projectTypeOptions: SimpleSelectOption[] = [
-    { key: 'All', label: `All - ${fullProjectNum}` },
-    { key: aiProjectFilterKey, label: `AI Projects - ${aiProjectNum}` },
+  const currentProjectType = filterData[ProjectsFilterOptions.projectType] || 'All';
+  const isAISelected = currentProjectType === aiProjectFilterKey;
+  const currentCount = isAISelected ? aiProjectNum : fullProjectNum;
+  const currentLabel = isAISelected ? 'A.I. projects' : 'All projects';
+
+  const projectTypeOptions = [
+    {
+      key: 'All',
+      label: 'All projects',
+      description: 'All projects that you have access to',
+      count: fullProjectNum,
+      isAI: false,
+    },
+    {
+      key: aiProjectFilterKey,
+      label: 'A.I. projects',
+      description: 'Projects configured for AI resources',
+      count: aiProjectNum,
+      isAI: true,
+    },
   ];
 
-  console.log('77b aiProjectNum', aiProjectNum);
-  console.log('77a fullProjectNum', fullProjectNum);
   return (
     <FilterToolbar<keyof typeof projectsFilterOptions>
       data-testid="projects-table-toolbar"
       filterOptions={projectsFilterOptions}
       filterOptionRenders={{
-        [ProjectsFilterOptions.projectType]: ({ value, onChange, ...props }) => (
-          <SimpleSelect
-            {...props}
-            value={value ?? ''}
-            aria-label="Filter by project type"
-            placeholder="Filter by project type"
-            options={projectTypeOptions}
-            onChange={(v) => onChange(v)}
-            popperProps={{ maxWidth: undefined }}
-          />
+        [ProjectsFilterOptions.projectType]: () => (
+          <Dropdown
+            isOpen={isProjectTypeDropdownOpen}
+            onOpenChange={setIsProjectTypeDropdownOpen}
+            toggle={(toggleRef) => (
+              <MenuToggle
+                ref={toggleRef}
+                onClick={() => setIsProjectTypeDropdownOpen(!isProjectTypeDropdownOpen)}
+                isExpanded={isProjectTypeDropdownOpen}
+                style={{ minWidth: '300px' }}
+              >
+                <Flex
+                  spaceItems={{ default: 'spaceItemsSm' }}
+                  alignItems={{ default: 'alignItemsCenter' }}
+                >
+                  <FlexItem>
+                    <FilterIcon />
+                  </FlexItem>
+                  <FlexItem>{currentLabel}</FlexItem>
+                  <FlexItem>
+                    <Badge isRead>{currentCount}</Badge>
+                  </FlexItem>
+                  {isAISelected && (
+                    <FlexItem>
+                      <Label color="blue" icon={<StarIcon />}>
+                        AI
+                      </Label>
+                    </FlexItem>
+                  )}
+                </Flex>
+              </MenuToggle>
+            )}
+            popperProps={{ appendTo: 'inline' }}
+          >
+            <DropdownList>
+              {projectTypeOptions.map((option) => (
+                <DropdownItem
+                  key={option.key}
+                  onClick={() => {
+                    onFilterUpdate(ProjectsFilterOptions.projectType, option.key);
+                    setIsProjectTypeDropdownOpen(false);
+                  }}
+                >
+                  <Flex
+                    direction={{ default: 'column' }}
+                    spaceItems={{ default: 'spaceItemsNone' }}
+                    style={{ width: '100%' }}
+                  >
+                    <FlexItem>
+                      <Flex
+                        spaceItems={{ default: 'spaceItemsSm' }}
+                        alignItems={{ default: 'alignItemsCenter' }}
+                      >
+                        <FlexItem style={{ fontWeight: 'bold' }}>{option.label}</FlexItem>
+                        <FlexItem>
+                          <Badge isRead>{option.count}</Badge>
+                        </FlexItem>
+                        {option.isAI && (
+                          <FlexItem>
+                            <Label color="blue" icon={<StarIcon />}>
+                              AI
+                            </Label>
+                          </FlexItem>
+                        )}
+                        <FlexItem spacer={{ default: 'spacerNone' }} style={{ marginLeft: 'auto' }}>
+                          {currentProjectType === option.key && (
+                            <CheckIcon color="var(--pf-v5-global--primary-color--100)" />
+                          )}
+                        </FlexItem>
+                      </Flex>
+                    </FlexItem>
+                    <FlexItem
+                      style={{
+                        color: 'var(--pf-v5-global--Color--200)',
+                        fontSize: 'var(--pf-v5-global--FontSize--sm)',
+                      }}
+                    >
+                      {option.description}
+                    </FlexItem>
+                  </Flex>
+                </DropdownItem>
+              ))}
+            </DropdownList>
+          </Dropdown>
         ),
         [ProjectsFilterOptions.name]: ({ onChange, ...props }) => (
           <SearchInput

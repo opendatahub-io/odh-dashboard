@@ -9,6 +9,7 @@ import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import ProjectsToolbar from '#~/pages/projects/screens/projects/ProjectsToolbar';
 import {
+  aiProjectFilterKey,
   initialProjectsFilterData,
   ProjectsFilterDataType,
 } from '#~/pages/projects/screens/projects/const';
@@ -54,7 +55,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
       projects.filter((project) => {
         const nameFilter = filterData.Name?.toLowerCase();
         const userFilter = filterData.User?.toLowerCase();
-        const aiProjectFilter = filterData.ProjectType?.toLowerCase() === 'ai-projects';
+        const aiProjectFilter = filterData.ProjectType === aiProjectFilterKey;
 
         if (aiProjectFilter) {
           if (!isAiProject(project)) {
