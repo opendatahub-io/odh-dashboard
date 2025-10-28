@@ -28,6 +28,14 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
       data-testid="projects-table-toolbar"
       filterOptions={projectsFilterOptions}
       filterOptionRenders={{
+        [ProjectsFilterOptions.projectType]: ({ onChange, ...props }) => (
+          <BulkSelect
+            {...props}
+            aria-label="Filter by project type"
+            placeholder="Filter by project type"
+            onChange={onChange}
+          />
+        ),
         [ProjectsFilterOptions.name]: ({ onChange, ...props }) => (
           <SearchInput
             {...props}
