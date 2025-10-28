@@ -94,11 +94,11 @@ describe('AboutDialog', () => {
     };
     dscStatus = {
       components: {
-        [DataScienceStackComponent.CODE_FLARE]: {
+        [DataScienceStackComponent.K_SERVE]: {
           releases: [
             {
-              name: 'CodeFlare operator',
-              repoUrl: 'https://github.com/project-codeflare/codeflare-operator',
+              name: 'KServe',
+              repoUrl: 'https://github.com/kserve/kserve',
               version: '1.12.0',
             },
           ],
@@ -163,7 +163,7 @@ describe('AboutDialog', () => {
     expect(componentReleasesTableHeader.textContent).toContain('ODH');
     expect(componentReleasesTableRows).not.toHaveLength(0);
     const hasComponentReleasesMetadata = componentReleasesTableRows.some(
-      (row) => row.textContent.includes('CodeFlare') && row.textContent.includes('1.12.0'),
+      (row) => row.textContent.includes('KServe') && row.textContent.includes('1.12.0'),
     );
     expect(hasComponentReleasesMetadata).toBe(true);
   });
@@ -210,7 +210,7 @@ describe('AboutDialog', () => {
     expect(componentReleasesTableHeader.textContent).toContain('RHOAI');
     expect(componentReleasesTableRows).not.toHaveLength(0);
     const hasComponentReleasesMetadata = componentReleasesTableRows.some(
-      (row) => row.textContent.includes('CodeFlare') && row.textContent.includes('1.12.0'),
+      (row) => row.textContent.includes('KServe') && row.textContent.includes('1.12.0'),
     );
     expect(hasComponentReleasesMetadata).toBe(true);
   });

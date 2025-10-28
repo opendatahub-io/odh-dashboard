@@ -215,7 +215,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
 
 /** Maps each DataScienceStackComponent to its human-readable name **/
 export const DataScienceStackComponentMap: Record<string, string> = {
-  [DataScienceStackComponent.CODE_FLARE]: 'CodeFlare',
   [DataScienceStackComponent.DASHBOARD]: 'Dashboard',
   [DataScienceStackComponent.DS_PIPELINES]: 'Pipelines',
   [DataScienceStackComponent.KUEUE]: 'Kueue',

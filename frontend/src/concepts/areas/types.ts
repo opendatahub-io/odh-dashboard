@@ -90,11 +90,10 @@ export enum SupportedArea {
 
 export type SupportedAreaType = SupportedArea | string;
 
-/** The possible V1 component names that are used as keys in the `components` object of the DSC Status.
- * Each component's key (e.g., 'codeflare', 'dashboard', etc.) maps to a specific component status.
+/** The possible V2 component names that are used as keys in the `components` object of the DSC Status.
+ * Each component's key (e.g., 'kserve', 'dashboard', etc.) maps to a specific component status.
  **/
 export enum DataScienceStackComponent {
-  CODE_FLARE = 'codeflare',
   DASHBOARD = 'dashboard',
   DS_PIPELINES = 'datasciencepipelines',
   K_SERVE = 'kserve',
