@@ -62,7 +62,6 @@ const setupMocksForMRSettingAccess = ({
           managementState: 'Managed',
           registriesNamespace: 'odh-model-registries',
         },
-        [DataScienceStackComponent.MODEL_MESH_SERVING]: { managementState: 'Managed' },
       },
     }),
   );
