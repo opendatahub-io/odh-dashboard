@@ -1271,7 +1271,7 @@ describe('NavSection', () => {
           title: 'Without Group',
           href: '/withoutGroup',
           section: 'settings',
-          // No group property (should use default '8_default')
+          // No group property (should use default)
         },
         flags: {},
       };
@@ -1287,7 +1287,7 @@ describe('NavSection', () => {
         await userEvent.setup().click(expandButton);
       }
 
-      // Child with group should come first (1_early < 8_default)
+      // Child with group should come first
       await waitFor(() => {
         const items = screen.getAllByRole('link');
         expect(items[0]).toHaveTextContent('With Group');
