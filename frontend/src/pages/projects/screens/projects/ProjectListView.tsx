@@ -21,6 +21,16 @@ type ProjectListViewProps = {
   allowCreate: boolean;
 };
 
+const isAiProject = (project: ProjectKind) => {
+  return project.metadata.labels?.['opendatahub.io/dashboard'] === 'true';
+};
+
+const getAiProjects = (projects: ProjectKind[]) => {
+  return projects.filter((project) => {
+    return isAiProject(project);
+  });
+};
+
 const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
   const { projects } = React.useContext(ProjectsContext);
   const navigate = useNavigate();
@@ -30,12 +40,27 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
     () => setFilterData(initialProjectsFilterData),
     [setFilterData],
   );
+
+  const [aiProjectNum, setAiProjectNum] = React.useState(0);
+  const [fullProjectNum, setFullProjectNum] = React.useState(projects.length || 0);
+
+  React.useEffect(() => {
+    setAiProjectNum(getAiProjects(projects).length || 0);
+    setFullProjectNum(projects.length || 0);
+  }, [projects]);
+
   const filteredProjects = React.useMemo(
     () =>
       projects.filter((project) => {
         const nameFilter = filterData.Name?.toLowerCase();
         const userFilter = filterData.User?.toLowerCase();
+        const aiProjectFilter = filterData.ProjectType?.toLowerCase() === 'ai-projects';
 
+        if (aiProjectFilter) {
+          if (!isAiProject(project)) {
+            return false;
+          }
+        }
         if (
           nameFilter &&
           !getDisplayNameFromK8sResource(project).toLowerCase().includes(nameFilter)
@@ -93,6 +118,8 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
             allowCreate={allowCreate}
             filterData={filterData}
             onFilterUpdate={onFilterUpdate}
+            aiProjectNum={aiProjectNum}
+            fullProjectNum={fullProjectNum}
           />
         }
       />

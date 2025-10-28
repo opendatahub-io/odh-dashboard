@@ -4,6 +4,8 @@ export enum ProjectsFilterOptions {
   user = 'User',
 }
 
+export const aiProjectFilterKey = 'AI Projects';
+
 export const projectsFilterOptions = {
   [ProjectsFilterOptions.projectType]: 'ProjectType',
   [ProjectsFilterOptions.name]: 'Name',
@@ -13,7 +15,7 @@ export const projectsFilterOptions = {
 export type ProjectsFilterDataType = Record<ProjectsFilterOptions, string | undefined>;
 
 export const initialProjectsFilterData: ProjectsFilterDataType = {
-  [ProjectsFilterOptions.projectType]: '',
+  [ProjectsFilterOptions.projectType]: aiProjectFilterKey,
   [ProjectsFilterOptions.name]: '',
   [ProjectsFilterOptions.user]: '',
 };
