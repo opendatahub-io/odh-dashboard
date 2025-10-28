@@ -45,12 +45,15 @@ import {
 } from '#~/__mocks__/mockHardwareProfile';
 import { STOP_MODAL_PREFERENCE_KEY } from '#~/pages/modelServing/useStopModalPreference';
 import { mockOdhApplication } from '#~/__mocks__/mockOdhApplication';
+import { mockNimServingRuntimeTemplate } from '#~/__mocks__/mockNimResource';
 
 type HandlersProps = {
   disableKServe?: boolean;
   disableKServeAuth?: boolean;
   disableServingRuntimeParams?: boolean;
   disableKServeRaw?: boolean;
+  disableKServeMetrics?: boolean;
+  disableNIMConfig?: boolean;
   projectEnableModelMesh?: boolean;
   servingRuntimes?: ServingRuntimeKind[];
   inferenceServices?: InferenceServiceKind[];
@@ -64,10 +67,12 @@ type HandlersProps = {
   requiredCapabilities?: StackCapability[];
   DscComponents?: DataScienceClusterKindStatus['components'];
   disableProjectScoped?: boolean;
+  templates?: boolean;
 };
 
 const initIntercepts = ({
   disableKServe = false,
+  disableKServeMetrics,
   disableKServeAuth,
   disableServingRuntimeParams = true,
   disableKServeRaw = true,
@@ -101,6 +106,8 @@ const initIntercepts = ({
   ],
   rejectAddSupportServingPlatformProject = false,
   requiredCapabilities = [],
+  templates = false,
+  disableNIMConfig = true,
   DscComponents,
 }: HandlersProps) => {
   cy.interceptOdh(
@@ -126,6 +133,7 @@ const initIntercepts = ({
       disableServingRuntimeParams,
       disableKServeRaw,
       disableProjectScoped,
+      disableKServeMetrics,
     }),
   );
   cy.interceptK8s(ODHDashboardConfigModel, mockDashboardConfig({}));
@@ -196,27 +204,56 @@ const initIntercepts = ({
   );
   cy.interceptK8s(ServingRuntimeModel, mockServingRuntimeK8sResource({}));
   cy.interceptK8sList(
-    TemplateModel,
-    mockK8sResourceList(
-      [
-        mockServingRuntimeTemplateK8sResource({
-          name: 'template-2',
-          displayName: 'Caikit',
-          platforms: [ServingRuntimePlatform.SINGLE],
-        }),
-        mockServingRuntimeTemplateK8sResource({
-          name: 'template-4',
-          displayName: 'Serving Runtime with No Annotations',
-        }),
-        mockInvalidTemplateK8sResource({}),
-      ],
-      { namespace: 'opendatahub' },
-    ),
-  );
+    { model: TemplateModel, ns: 'opendatahub' },
+    mockK8sResourceList([
+      ...(templates
+        ? [
+            mockServingRuntimeTemplateK8sResource({
+              name: 'template-2',
+              displayName: 'Caikit',
+              platforms: [ServingRuntimePlatform.SINGLE],
+            }),
+            mockServingRuntimeTemplateK8sResource({
+              name: 'template-4',
+              displayName: 'Serving Runtime with No Annotations',
+            }),
+            mockInvalidTemplateK8sResource({}),
+          ]
+        : []),
+      ...(!disableNIMConfig ? [mockNimServingRuntimeTemplate()] : []),
+    ]),
+  ).as('templates');
 };
 
 describe('Serving Runtime List', () => {
-  describe('No serving platform available', () => {
+  describe('model serving platform', () => {
+    const servingRuntimes = [mockServingRuntimeK8sResource({})];
+    const inferenceServices = [mockInferenceServiceK8sResource({})];
+    const initModelServingIntercepts = ({ isEmpty = false }) => {
+      if (isEmpty) {
+        cy.interceptK8sList(
+          {
+            model: ServingRuntimeModel,
+            ns: 'test-project',
+          },
+          mockK8sResourceList([], { namespace: 'test-project' }),
+        );
+        cy.interceptK8sList(
+          {
+            model: InferenceServiceModel,
+            ns: 'test-project',
+          },
+          mockK8sResourceList([], { namespace: 'test-project' }),
+        );
+      } else {
+        cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(servingRuntimes));
+        cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList(inferenceServices));
+      }
+    };
+    beforeEach(() => {
+      initModelServingIntercepts({});
+    });
+
     it('No model serving platform available', () => {
       initIntercepts({
         disableKServe: true,
@@ -227,6 +264,59 @@ describe('Serving Runtime List', () => {
       projectDetails.visitSection('test-project', 'model-server');
 
       cy.findByText('No model serving platform selected').should('be.visible');
+    });
+
+    it('Only single serving platform enabled, no serving runtimes templates', () => {
+      initIntercepts({
+        disableKServe: false,
+      });
+      initModelServingIntercepts({ isEmpty: true });
+      projectDetails.visitSection('test-project', 'model-server');
+      cy.wait('@templates');
+      projectDetails.findTopLevelDeployModelButton().should('have.attr', 'aria-disabled');
+      projectDetails.findTopLevelDeployModelButton().trigger('mouseenter');
+      projectDetails.findDeployModelTooltip().should('exist');
+    });
+
+    it('Both model serving platforms are enabled, single-model platform is selected, no serving runtimes templates', () => {
+      initIntercepts({
+        disableKServe: false,
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+      projectDetails.findTopLevelDeployModelButton().should('have.attr', 'aria-disabled');
+      projectDetails.findTopLevelDeployModelButton().trigger('mouseenter');
+      projectDetails.findDeployModelTooltip().should('exist');
+    });
+
+    it('Single model serving platform is enabled', () => {
+      initIntercepts({ templates: true, disableKServe: false });
+      initModelServingIntercepts({ isEmpty: true });
+      projectDetails.visit('test-project');
+      projectDetails.shouldBeEmptyState('Deployments', 'model-server', true);
+      projectDetails.findServingPlatformLabel().should('have.text', 'Single-model serving enabled');
+    });
+
+    it('Shows KServe metrics only when available', () => {
+      initIntercepts({ templates: true, disableKServe: false });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      projectDetails.getKserveModelMetricLink('Test Inference Service').should('not.exist');
+
+      initIntercepts({
+        templates: true,
+        disableKServe: false,
+        disableKServeMetrics: false,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            activeModelState: 'Loaded',
+          }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      projectDetails.getKserveModelMetricLink('Test Inference Service').should('be.visible');
+      projectDetails.getKserveModelMetricLink('Test Inference Service').click();
+      cy.findByTestId('app-page-title').should('have.text', 'Test Inference Service metrics');
     });
   });
 

@@ -470,65 +470,6 @@ describe('Project Details', () => {
       deleteProjectModal.findCancelButton().click();
       deleteProjectModal.shouldBeOpen(false);
     });
-
-    it('Both model serving platforms are disabled', () => {
-      initIntercepts({ disableKServe: true });
-      projectDetails.visit('test-project');
-      projectDetails.shouldHaveNoPlatformSelectedText();
-    });
-
-    it('Only single serving platform enabled, no serving runtimes templates', () => {
-      initIntercepts({
-        disableKServe: false,
-      });
-      initModelServingIntercepts({ isEmpty: true });
-      projectDetails.visitSection('test-project', 'model-server');
-      cy.wait('@templates');
-      projectDetails.findTopLevelDeployModelButton().should('have.attr', 'aria-disabled');
-      projectDetails.findTopLevelDeployModelButton().trigger('mouseenter');
-      projectDetails.findDeployModelTooltip().should('exist');
-    });
-
-    it('Both model serving platforms are enabled, single-model platform is selected, no serving runtimes templates', () => {
-      initIntercepts({
-        disableKServe: false,
-      });
-      projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.findTopLevelDeployModelButton().should('have.attr', 'aria-disabled');
-      projectDetails.findTopLevelDeployModelButton().trigger('mouseenter');
-      projectDetails.findDeployModelTooltip().should('exist');
-    });
-
-    it('Single model serving platform is enabled', () => {
-      initIntercepts({ templates: true, disableKServe: false });
-      initModelServingIntercepts({ isEmpty: true });
-      projectDetails.visit('test-project');
-      projectDetails.shouldBeEmptyState('Deployments', 'model-server', true);
-      projectDetails.findServingPlatformLabel().should('have.text', 'Single-model serving enabled');
-    });
-
-    it('Shows KServe metrics only when available', () => {
-      initIntercepts({ templates: true, disableKServe: false });
-
-      projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.getKserveModelMetricLink('Test Inference Service').should('not.exist');
-
-      initIntercepts({
-        templates: true,
-        disableKServe: false,
-        disableKServeMetrics: false,
-        inferenceServices: [
-          mockInferenceServiceK8sResource({
-            activeModelState: 'Loaded',
-          }),
-        ],
-      });
-
-      projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.getKserveModelMetricLink('Test Inference Service').should('be.visible');
-      projectDetails.getKserveModelMetricLink('Test Inference Service').click();
-      cy.findByTestId('app-page-title').should('have.text', 'Test Inference Service metrics');
-    });
   });
 
   describe('No empty project details', () => {
