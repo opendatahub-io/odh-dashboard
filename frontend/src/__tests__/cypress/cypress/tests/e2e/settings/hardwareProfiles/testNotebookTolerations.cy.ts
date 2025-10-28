@@ -97,7 +97,7 @@ describe('Notebooks - tolerations tests', () => {
 
       // Validate that the toleration applied earlier displays in the newly created pod
       cy.step('Validate the Tolerations for the pod include the newly added toleration');
-      checkNotebookTolerations('jupyter-nb', {
+      checkNotebookTolerations('jupyter-nb-faketodelete', {
         key: 'test-taint',
         operator: 'Equal',
         effect: testData.tolerationValue,
