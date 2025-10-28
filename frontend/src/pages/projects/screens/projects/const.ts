@@ -1,9 +1,11 @@
 export enum ProjectsFilterOptions {
+  projectType = 'ProjectType',
   name = 'Name',
   user = 'User',
 }
 
 export const projectsFilterOptions = {
+  [ProjectsFilterOptions.projectType]: 'ProjectType',
   [ProjectsFilterOptions.name]: 'Name',
   [ProjectsFilterOptions.user]: 'User',
 };
@@ -11,6 +13,7 @@ export const projectsFilterOptions = {
 export type ProjectsFilterDataType = Record<ProjectsFilterOptions, string | undefined>;
 
 export const initialProjectsFilterData: ProjectsFilterDataType = {
+  [ProjectsFilterOptions.projectType]: '',
   [ProjectsFilterOptions.name]: '',
   [ProjectsFilterOptions.user]: '',
 };
