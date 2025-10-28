@@ -321,7 +321,7 @@ describe('Model Serving Deploy Wizard', () => {
     cy.url().should('include', 'ai-hub/deployments/test-project/deploy/create');
     cy.findByRole('button', { name: 'Cancel' }).click();
     modelServingWizard.findDiscardButton().click();
-    cy.url().should('include', 'ai-hub/deployments/test-project/');
+    cy.url().should('eq', `${Cypress.config().baseUrl ?? ''}/ai-hub/deployments/test-project/`);
 
     modelServingSection.visit('test-project');
     modelServingSection.findDeployModelButton().click();
