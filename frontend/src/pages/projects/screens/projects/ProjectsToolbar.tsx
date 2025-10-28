@@ -3,6 +3,7 @@ import { SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import FilterToolbar from '#~/components/FilterToolbar';
 import {
+  aiProjectFilterKey,
   ProjectsFilterDataType,
   projectsFilterOptions,
   ProjectsFilterOptions,
@@ -15,22 +16,27 @@ type ProjectsToolbarProps = {
   allowCreate: boolean;
   filterData: ProjectsFilterDataType;
   onFilterUpdate: (key: string, value?: string | { label: string; value: string }) => void;
+  aiProjectNum: number;
+  fullProjectNum: number;
 };
 
 const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
   allowCreate,
   filterData,
   onFilterUpdate,
+  aiProjectNum,
+  fullProjectNum,
 }) => {
   const navigate = useNavigate();
 
   // TODO: Define actual project type options
   const projectTypeOptions: SimpleSelectOption[] = [
-    { key: 'data-science', label: 'Data Science' },
-    { key: 'model-serving', label: 'Model Serving' },
-    { key: 'general', label: 'General' },
+    { key: 'All', label: `All - ${fullProjectNum}` },
+    { key: aiProjectFilterKey, label: `AI Projects - ${aiProjectNum}` },
   ];
 
+  console.log('77b aiProjectNum', aiProjectNum);
+  console.log('77a fullProjectNum', fullProjectNum);
   return (
     <FilterToolbar<keyof typeof projectsFilterOptions>
       data-testid="projects-table-toolbar"
