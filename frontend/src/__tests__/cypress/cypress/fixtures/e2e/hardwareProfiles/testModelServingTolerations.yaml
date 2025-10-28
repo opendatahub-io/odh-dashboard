@@ -3,6 +3,6 @@ modelServingTolerationsTestNamespace: 'dsp-model-tolerations-test'
 resourceYamlPath: "resources/hardwareProfile/model_tolerations.yaml"
 hardwareProfileName: "cypress-hardware-profile-model"
 tolerationValue: "PreferNoSchedule"
-hardwareProfileDeploymentSize: "cypress-hardware-profile-model CPU: Request = 2 Cores; Limit = 2 Cores; Memory: Request = 4 GiB; Limit = 4 GiB"
+hardwareProfileDeploymentSize: "cypress-hardware-profile-model Compatible CPU: Request = 2 Cores; Limit = 2 Cores; Memory: Request = 4 GiB; Limit = 4 GiB"
 modelName: "cypress-toleration-single-model"
 modelFilePath: "flan-t5-small/flan-t5-small-caikit"
