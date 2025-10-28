@@ -33,6 +33,7 @@ type ServingRuntimeDetailsProps = {
   isvc?: InferenceServiceKind;
 };
 
+/* @deprecated -- only in deprecation paths (modelmesh) */
 const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, obj, isvc }) => {
   const { dashboardConfig } = React.useContext(AppContext);
   const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
