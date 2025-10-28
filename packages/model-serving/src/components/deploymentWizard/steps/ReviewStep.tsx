@@ -279,7 +279,7 @@ const getStatusSections = (projectName: string): StatusSection[] => [
           );
           return (
             <>
-              <>{allArgs.length}</>
+              <div>{allArgs.length}</div>
               <>{allArgs.join(', ')}</>
             </>
           );
