@@ -26,6 +26,8 @@ describe('Notebooks - tolerations tests', () => {
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as NotebookTolerationsTestData;
 
+        // Check if a notebook is running and delete if it is
+        deleteNotebook('jupyter-nb');
         // Load Hardware Profile
         cy.log(`Loaded Hardware Profile Name: ${testData.hardwareProfileName}`);
         // Cleanup Hardware Profile if it already exists
