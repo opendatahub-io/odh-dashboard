@@ -16,14 +16,6 @@ class ServingRuntimeRow {
     return this;
   }
 
-  shouldBeMultiModel(enabled = true) {
-    this.find()
-      .findByTestId('serving-runtime-platform-label')
-      .findByTestId('multi-model')
-      .should(enabled ? 'exist' : 'not.exist');
-    return this;
-  }
-
   shouldBeSingleModel(enabled = true) {
     this.find()
       .findByTestId('serving-runtime-platform-label')
@@ -70,11 +62,6 @@ class ServingRuntimes {
 
   findAppTitle() {
     return cy.findByTestId('app-page-title');
-  }
-
-  shouldBeMultiModel(enabled = true) {
-    cy.findByTestId('multi-model-serving-enabled').should(enabled ? 'exist' : 'not.exist');
-    return this;
   }
 
   shouldBeSingleModel(enabled = true) {

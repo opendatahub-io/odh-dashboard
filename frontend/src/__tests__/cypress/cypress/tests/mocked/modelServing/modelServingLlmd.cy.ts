@@ -52,14 +52,12 @@ const initIntercepts = ({
       components: {
         [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
         [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
-        [DataScienceStackComponent.MODEL_MESH_SERVING]: { managementState: 'Removed' },
       },
     }),
   );
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
-      disableModelMesh: true,
       disableNIMModelServing: true,
       disableKServe: false,
       genAiStudio: true,
