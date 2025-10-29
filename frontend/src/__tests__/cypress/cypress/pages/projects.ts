@@ -22,6 +22,15 @@ class ProjectListToolbar extends Contextual<HTMLElement> {
   findSearchInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('filter-toolbar-text-field');
   }
+
+  findProjectTypeDropdown(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByRole('button', { name: /projects/ });
+  }
+
+  selectProjectType(projectType: string): void {
+    this.findProjectTypeDropdown().click();
+    cy.findByRole('menuitem', { name: new RegExp(projectType, 'i') }).click();
+  }
 }
 
 class NotebookRow extends TableRow {

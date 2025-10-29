@@ -234,6 +234,78 @@ describe('Projects details', () => {
     projectListPage.getProjectRow('Test Project').find().should('exist');
   });
 
+  it('should filter by AI projects', () => {
+    const mockProjects: ProjectKind[] = [
+      mockProjectK8sResource({
+        k8sName: 'ai-project-1',
+        displayName: 'AI Project 1',
+        isDSProject: true,
+      }),
+      mockProjectK8sResource({
+        k8sName: 'ai-project-2',
+        displayName: 'AI Project 2',
+        isDSProject: true,
+      }),
+      mockProjectK8sResource({
+        k8sName: 'non-ai-project',
+        displayName: 'Non-AI Project',
+        isDSProject: false,
+      }),
+    ];
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList(mockProjects));
+    projectListPage.visit();
+
+    // Select "AI Projects" from the project type dropdown
+    const projectListToolbar = projectListPage.getTableToolbar();
+    projectListToolbar.selectProjectType('AI Projects');
+
+    // Verify only AI projects are shown
+    projectListPage.getProjectRow('AI Project 1').find().should('exist');
+    projectListPage.getProjectRow('AI Project 2').find().should('exist');
+    projectListPage.findProjectLink('Non-AI Project').should('not.exist');
+  });
+
+  it('should filter by AI projects and name', () => {
+    const mockProjects: ProjectKind[] = [
+      mockProjectK8sResource({
+        k8sName: 'ai-project-alpha',
+        displayName: 'AI Project Alpha',
+        isDSProject: true,
+      }),
+      mockProjectK8sResource({
+        k8sName: 'ai-project-beta',
+        displayName: 'AI Project Beta',
+        isDSProject: true,
+      }),
+      mockProjectK8sResource({
+        k8sName: 'ai-project-gamma',
+        displayName: 'AI Project Gamma',
+        isDSProject: true,
+      }),
+      mockProjectK8sResource({
+        k8sName: 'non-ai-project',
+        displayName: 'Non-AI Project Alpha',
+        isDSProject: false,
+      }),
+    ];
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList(mockProjects));
+    projectListPage.visit();
+
+    // Select "AI Projects" from the project type dropdown
+    const projectListToolbar = projectListPage.getTableToolbar();
+    projectListToolbar.selectProjectType('AI Projects');
+
+    // Then filter by name
+    projectListToolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Name').click();
+    projectListToolbar.findFilterInput('name').type('Alpha');
+
+    // Verify only AI Project Alpha is shown (not Non-AI Project Alpha)
+    projectListPage.getProjectRow('AI Project Alpha').find().should('exist');
+    projectListPage.findProjectLink('AI Project Beta').should('not.exist');
+    projectListPage.findProjectLink('AI Project Gamma').should('not.exist');
+    projectListPage.findProjectLink('Non-AI Project Alpha').should('not.exist');
+  });
+
   it('should show list of workbenches when the column is expanded', () => {
     cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
     cy.interceptK8sList(
