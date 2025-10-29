@@ -3,7 +3,6 @@ import { mockDscStatus } from '#~/__mocks__';
 import { mockComponents } from '#~/__mocks__/mockComponents';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
 import { mockRegisteredModelList } from '#~/__mocks__/mockRegisteredModelsList';
-import { mockStatus } from '#~/__mocks__/mockStatus';
 import { modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry';
 import {
   SelfSubjectAccessReviewModel,
@@ -123,9 +122,6 @@ const initIntercepts = ({
   ],
   allowed = true,
 }: HandlersProps) => {
-  // Set default user status
-  cy.interceptOdh('GET /api/status', mockStatus({ isAdmin: false }));
-
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
@@ -201,6 +197,14 @@ const initIntercepts = ({
       path: { apiVersion: MODEL_REGISTRY_API_VERSION },
     },
     { data: [{ metadata: { name: 'odh-model-registries' } }] },
+  );
+
+  cy.interceptOdh(
+    `GET /model-registry/api/:apiVersion/user`,
+    {
+      path: { apiVersion: MODEL_REGISTRY_API_VERSION },
+    },
+    { data: { userId: 'user@example.com', clusterAdmin: true } },
   );
 
   cy.interceptOdh(
