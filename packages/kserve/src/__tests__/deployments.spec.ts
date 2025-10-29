@@ -5,12 +5,15 @@ import type {
   ServingRuntimeKind,
   PodKind,
 } from '@odh-dashboard/internal/k8sTypes';
-import type { KServeDeployment } from '../../../../kserve/src/deployments';
-import { useWatchDeployments } from '../../../../kserve/src/deployments';
-import * as watchModule from '../../../../kserve/src/api/watch';
+import { mockInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockInferenceServiceK8sResource';
+import { mockServingRuntimeK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeK8sResource';
+import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
+import type { KServeDeployment } from '../deployments';
+import { useWatchDeployments } from '../deployments';
+import * as watchModule from '../api/watch';
 
 // Mock the watch module
-jest.mock('../../../../kserve/src/api/watch');
+jest.mock('../api/watch');
 
 const mockUseWatchInferenceServices = watchModule.useWatchInferenceServices as jest.Mock;
 const mockUseWatchServingRuntimes = watchModule.useWatchServingRuntimes as jest.Mock;
@@ -18,78 +21,6 @@ const mockUseWatchDeploymentPods = watchModule.useWatchDeploymentPods as jest.Mo
 
 // Type helper for hook return value
 type DeploymentHookResult = [KServeDeployment[] | undefined, boolean, Error | undefined];
-
-// Helper to create mock InferenceService
-const createMockInferenceService = (
-  name: string,
-  namespace: string,
-  labels?: Record<string, string>,
-  runtime?: string,
-): InferenceServiceKind => ({
-  apiVersion: 'serving.kserve.io/v1beta1',
-  kind: 'InferenceService',
-  metadata: {
-    name,
-    namespace,
-    labels: labels || {},
-    uid: `uid-${name}`,
-    resourceVersion: '1',
-    creationTimestamp: '2024-01-01T00:00:00Z',
-  },
-  spec: {
-    predictor: {
-      model: {
-        modelFormat: {
-          name: 'pytorch',
-        },
-        runtime,
-        storageUri: 's3://bucket/model',
-      },
-    },
-  },
-  status: {
-    url: 'http://model.test-project.svc.cluster.local',
-  },
-});
-
-// Helper to create mock ServingRuntime
-const createMockServingRuntime = (name: string, namespace: string): ServingRuntimeKind => ({
-  apiVersion: 'serving.kserve.io/v1alpha1',
-  kind: 'ServingRuntime',
-  metadata: {
-    name,
-    namespace,
-    uid: `uid-${name}`,
-    resourceVersion: '1',
-    creationTimestamp: '2024-01-01T00:00:00Z',
-  },
-  spec: {
-    supportedModelFormats: [
-      {
-        name: 'pytorch',
-        version: '1',
-      },
-    ],
-    containers: [
-      {
-        name: 'kserve-container',
-        image: 'pytorch/torchserve:latest',
-      },
-    ],
-  },
-});
-
-// Helper to create mock Project
-const createMockProject = (name: string): ProjectKind => ({
-  apiVersion: 'project.openshift.io/v1',
-  kind: 'Project',
-  metadata: {
-    name,
-    uid: `uid-${name}`,
-    resourceVersion: '1',
-    creationTimestamp: '2024-01-01T00:00:00Z',
-  },
-});
 
 describe('useWatchDeployments', () => {
   let mockProject: ProjectKind;
@@ -100,19 +31,34 @@ describe('useWatchDeployments', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockProject = createMockProject('test-project');
+    mockProject = mockProjectK8sResource({ k8sName: 'test-project' });
 
     // Create mock inference services
     mockInferenceServices = [
-      createMockInferenceService('model-1', 'test-project', { app: 'test' }, 'runtime-1'),
-      createMockInferenceService('model-2', 'test-project', { app: 'test' }, 'runtime-1'),
-      createMockInferenceService('model-3', 'test-project', { app: 'other' }, 'runtime-2'),
+      mockInferenceServiceK8sResource({
+        name: 'model-1',
+        namespace: 'test-project',
+        additionalLabels: { app: 'test' },
+        modelName: 'runtime-1',
+      }),
+      mockInferenceServiceK8sResource({
+        name: 'model-2',
+        namespace: 'test-project',
+        additionalLabels: { app: 'test' },
+        modelName: 'runtime-1',
+      }),
+      mockInferenceServiceK8sResource({
+        name: 'model-3',
+        namespace: 'test-project',
+        additionalLabels: { app: 'other' },
+        modelName: 'runtime-2',
+      }),
     ];
 
     // Create mock serving runtimes
     mockServingRuntimes = [
-      createMockServingRuntime('runtime-1', 'test-project'),
-      createMockServingRuntime('runtime-2', 'test-project'),
+      mockServingRuntimeK8sResource({ name: 'runtime-1', namespace: 'test-project' }),
+      mockServingRuntimeK8sResource({ name: 'runtime-2', namespace: 'test-project' }),
     ];
 
     mockPods = [];
@@ -172,12 +118,11 @@ describe('useWatchDeployments', () => {
   });
 
   it('should handle deployment without matching serving runtime', () => {
-    const inferenceServiceWithoutRuntime = createMockInferenceService(
-      'model-no-runtime',
-      'test-project',
-      {},
-      'nonexistent-runtime',
-    );
+    const inferenceServiceWithoutRuntime = mockInferenceServiceK8sResource({
+      name: 'model-no-runtime',
+      namespace: 'test-project',
+      modelName: 'nonexistent-runtime',
+    });
 
     mockUseWatchInferenceServices.mockReturnValue([
       [inferenceServiceWithoutRuntime],
@@ -274,7 +219,11 @@ describe('useWatchDeployments', () => {
     // Add a new inference service
     const newInferenceServices = [
       ...mockInferenceServices,
-      createMockInferenceService('model-4', 'test-project', {}, 'runtime-1'),
+      mockInferenceServiceK8sResource({
+        name: 'model-4',
+        namespace: 'test-project',
+        modelName: 'runtime-1',
+      }),
     ];
 
     mockUseWatchInferenceServices.mockReturnValue([newInferenceServices, true, undefined]);
@@ -334,27 +283,41 @@ describe('useWatchDeployments', () => {
   it('should work without a project', () => {
     const renderResult = testHook(useWatchDeployments)(undefined, undefined, undefined);
 
+    const [deployments] = renderResult.result.current as DeploymentHookResult;
+
     expect(mockUseWatchInferenceServices).toHaveBeenCalledWith(undefined, undefined, undefined);
-    expect(renderResult.result.current[0]).toHaveLength(3);
+    expect(deployments).toHaveLength(3);
   });
 
   it('should handle complex filterFn logic', () => {
     // Add more specific labels to test complex filtering
     const servicesWithLabels = [
-      createMockInferenceService('model-1', 'test-project', {
-        app: 'test',
-        version: 'v1',
-        environment: 'prod',
+      mockInferenceServiceK8sResource({
+        name: 'model-1',
+        namespace: 'test-project',
+        additionalLabels: {
+          app: 'test',
+          version: 'v1',
+          environment: 'prod',
+        },
       }),
-      createMockInferenceService('model-2', 'test-project', {
-        app: 'test',
-        version: 'v2',
-        environment: 'dev',
+      mockInferenceServiceK8sResource({
+        name: 'model-2',
+        namespace: 'test-project',
+        additionalLabels: {
+          app: 'test',
+          version: 'v2',
+          environment: 'dev',
+        },
       }),
-      createMockInferenceService('model-3', 'test-project', {
-        app: 'other',
-        version: 'v1',
-        environment: 'prod',
+      mockInferenceServiceK8sResource({
+        name: 'model-3',
+        namespace: 'test-project',
+        additionalLabels: {
+          app: 'other',
+          version: 'v1',
+          environment: 'prod',
+        },
       }),
     ];
 
