@@ -31,6 +31,28 @@ class ProjectListToolbar extends Contextual<HTMLElement> {
     this.findProjectTypeDropdown().click();
     cy.findByRole('menuitem', { name: new RegExp(projectType, 'i') }).click();
   }
+
+  findProjectTypeFilterButton() {
+    return this.find().find('[data-testid="filter-toolbar-text-field"]').find('button');
+  }
+
+  findAIProjectLabel() {
+    return this.findProjectTypeFilterButton().contains('span', 'AI');
+  }
+
+  shouldHaveAIProjectPill(): void {
+    // Look for a span containing exactly "AI" text within the project type button
+    this.findProjectTypeFilterButton().within(() => {
+      cy.contains('span', /^AI$/).should('exist').and('be.visible');
+    });
+  }
+
+  shouldNotHaveAIProjectPill(): void {
+    // Verify there's no span with exactly "AI" text in the project type button
+    this.findProjectTypeFilterButton().within(() => {
+      cy.contains('span', /^AI$/).should('not.exist');
+    });
+  }
 }
 
 class NotebookRow extends TableRow {
