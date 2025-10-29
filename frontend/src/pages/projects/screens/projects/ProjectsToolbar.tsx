@@ -1,6 +1,8 @@
 import * as React from 'react';
 import {
   SearchInput,
+  Toolbar,
+  ToolbarContent,
   ToolbarGroup,
   ToolbarItem,
   Dropdown,
@@ -14,11 +16,9 @@ import {
 } from '@patternfly/react-core';
 import { FilterIcon, CheckIcon, StarIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import FilterToolbar from '#~/components/FilterToolbar';
 import {
   aiProjectFilterKey,
   ProjectsFilterDataType,
-  projectsFilterOptions,
   ProjectsFilterOptions,
 } from '#~/pages/projects/screens/projects/const';
 import WhosMyAdministrator from '#~/components/WhosMyAdministrator';
@@ -65,132 +65,134 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
   ];
 
   return (
-    <FilterToolbar<keyof typeof projectsFilterOptions>
-      data-testid="projects-table-toolbar"
-      filterOptions={projectsFilterOptions}
-      filterOptionRenders={{
-        [ProjectsFilterOptions.projectType]: () => (
-          <Dropdown
-            isOpen={isProjectTypeDropdownOpen}
-            onOpenChange={setIsProjectTypeDropdownOpen}
-            toggle={(toggleRef) => (
-              <MenuToggle
-                ref={toggleRef}
-                onClick={() => setIsProjectTypeDropdownOpen(!isProjectTypeDropdownOpen)}
-                isExpanded={isProjectTypeDropdownOpen}
-                style={{ minWidth: '300px' }}
-              >
-                <Flex
-                  spaceItems={{ default: 'spaceItemsSm' }}
-                  alignItems={{ default: 'alignItemsCenter' }}
-                >
-                  <FlexItem>
-                    <FilterIcon />
-                  </FlexItem>
-                  <FlexItem>{currentLabel}</FlexItem>
-                  <FlexItem>
-                    <Badge isRead>{currentCount}</Badge>
-                  </FlexItem>
-                  {isAISelected && (
-                    <FlexItem>
-                      <Label color="blue" icon={<StarIcon />}>
-                        AI
-                      </Label>
-                    </FlexItem>
-                  )}
-                </Flex>
-              </MenuToggle>
-            )}
-            popperProps={{ appendTo: 'inline' }}
-          >
-            <DropdownList>
-              {projectTypeOptions.map((option) => (
-                <DropdownItem
-                  key={option.key}
-                  onClick={() => {
-                    onFilterUpdate(ProjectsFilterOptions.projectType, option.key);
-                    setIsProjectTypeDropdownOpen(false);
-                  }}
+    <Toolbar data-testid="projects-table-toolbar">
+      <ToolbarContent>
+        <ToolbarGroup variant="filter-group">
+          <ToolbarItem>
+            <Dropdown
+              isOpen={isProjectTypeDropdownOpen}
+              onOpenChange={setIsProjectTypeDropdownOpen}
+              toggle={(toggleRef) => (
+                <MenuToggle
+                  ref={toggleRef}
+                  onClick={() => setIsProjectTypeDropdownOpen(!isProjectTypeDropdownOpen)}
+                  isExpanded={isProjectTypeDropdownOpen}
+                  style={{ minWidth: '300px' }}
                 >
                   <Flex
-                    direction={{ default: 'column' }}
-                    spaceItems={{ default: 'spaceItemsNone' }}
-                    style={{ width: '100%' }}
+                    spaceItems={{ default: 'spaceItemsSm' }}
+                    alignItems={{ default: 'alignItemsCenter' }}
                   >
                     <FlexItem>
-                      <Flex
-                        spaceItems={{ default: 'spaceItemsSm' }}
-                        alignItems={{ default: 'alignItemsCenter' }}
-                      >
-                        <FlexItem style={{ fontWeight: 'bold' }}>{option.label}</FlexItem>
-                        <FlexItem>
-                          <Badge isRead>{option.count}</Badge>
-                        </FlexItem>
-                        {option.isAI && (
-                          <FlexItem>
-                            <Label color="blue" icon={<StarIcon />}>
-                              AI
-                            </Label>
-                          </FlexItem>
-                        )}
-                        <FlexItem spacer={{ default: 'spacerNone' }} style={{ marginLeft: 'auto' }}>
-                          {currentProjectType === option.key && (
-                            <CheckIcon color="var(--pf-v5-global--primary-color--100)" />
-                          )}
-                        </FlexItem>
-                      </Flex>
+                      <FilterIcon />
                     </FlexItem>
-                    <FlexItem
-                      style={{
-                        color: 'var(--pf-v5-global--Color--200)',
-                        fontSize: 'var(--pf-v5-global--FontSize--sm)',
-                      }}
-                    >
-                      {option.description}
+                    <FlexItem>{currentLabel}</FlexItem>
+                    <FlexItem>
+                      <Badge isRead>{currentCount}</Badge>
                     </FlexItem>
+                    {isAISelected && (
+                      <FlexItem>
+                        <Label color="blue" icon={<StarIcon />}>
+                          AI
+                        </Label>
+                      </FlexItem>
+                    )}
                   </Flex>
-                </DropdownItem>
-              ))}
-            </DropdownList>
-          </Dropdown>
-        ),
-        [ProjectsFilterOptions.name]: ({ onChange, ...props }) => (
-          <SearchInput
-            {...props}
-            aria-label="Filter by name"
-            placeholder="Filter by name"
-            onChange={(_event, value) => onChange(value)}
-          />
-        ),
-        [ProjectsFilterOptions.user]: ({ onChange, ...props }) => (
-          <SearchInput
-            {...props}
-            aria-label="Filter by user"
-            placeholder="Filter by user"
-            onChange={(_event, value) => onChange(value)}
-          />
-        ),
-      }}
-      filterData={filterData}
-      onFilterUpdate={onFilterUpdate}
-    >
-      <ToolbarGroup>
-        <ToolbarItem>
-          {allowCreate ? (
-            <NewProjectButton
-              onProjectCreated={(projectName) => navigate(`/projects/${projectName}`)}
+                </MenuToggle>
+              )}
+              popperProps={{ appendTo: 'inline' }}
+            >
+              <DropdownList>
+                {projectTypeOptions.map((option) => (
+                  <DropdownItem
+                    key={option.key}
+                    onClick={() => {
+                      onFilterUpdate(ProjectsFilterOptions.projectType, option.key);
+                      setIsProjectTypeDropdownOpen(false);
+                    }}
+                  >
+                    <Flex
+                      direction={{ default: 'column' }}
+                      spaceItems={{ default: 'spaceItemsNone' }}
+                      style={{ width: '100%' }}
+                    >
+                      <FlexItem>
+                        <Flex
+                          spaceItems={{ default: 'spaceItemsSm' }}
+                          alignItems={{ default: 'alignItemsCenter' }}
+                        >
+                          <FlexItem style={{ fontWeight: 'bold' }}>{option.label}</FlexItem>
+                          <FlexItem>
+                            <Badge isRead>{option.count}</Badge>
+                          </FlexItem>
+                          {option.isAI && (
+                            <FlexItem>
+                              <Label color="blue" icon={<StarIcon />}>
+                                AI
+                              </Label>
+                            </FlexItem>
+                          )}
+                          <FlexItem
+                            spacer={{ default: 'spacerNone' }}
+                            style={{ marginLeft: 'auto' }}
+                          >
+                            {currentProjectType === option.key && (
+                              <CheckIcon color="var(--pf-v5-global--primary-color--100)" />
+                            )}
+                          </FlexItem>
+                        </Flex>
+                      </FlexItem>
+                      <FlexItem
+                        style={{
+                          color: 'var(--pf-v5-global--Color--200)',
+                          fontSize: 'var(--pf-v5-global--FontSize--sm)',
+                        }}
+                      >
+                        {option.description}
+                      </FlexItem>
+                    </Flex>
+                  </DropdownItem>
+                ))}
+              </DropdownList>
+            </Dropdown>
+          </ToolbarItem>
+          <ToolbarItem>
+            <SearchInput
+              value={filterData[ProjectsFilterOptions.name] || ''}
+              aria-label="Filter by name"
+              placeholder="Filter by name"
+              onChange={(_event, value) => onFilterUpdate(ProjectsFilterOptions.name, value)}
+              onClear={() => onFilterUpdate(ProjectsFilterOptions.name, '')}
             />
-          ) : (
-            <WhosMyAdministrator
-              buttonLabel="Need another project?"
-              headerContent="Need another project?"
-              leadText="To request a new project, contact your administrator."
-              contentTestId="projects-admin-help-content"
+          </ToolbarItem>
+          <ToolbarItem>
+            <SearchInput
+              value={filterData[ProjectsFilterOptions.user] || ''}
+              aria-label="Filter by user"
+              placeholder="Filter by user"
+              onChange={(_event, value) => onFilterUpdate(ProjectsFilterOptions.user, value)}
+              onClear={() => onFilterUpdate(ProjectsFilterOptions.user, '')}
             />
-          )}
-        </ToolbarItem>
-      </ToolbarGroup>
-    </FilterToolbar>
+          </ToolbarItem>
+        </ToolbarGroup>
+        <ToolbarGroup>
+          <ToolbarItem>
+            {allowCreate ? (
+              <NewProjectButton
+                onProjectCreated={(projectName) => navigate(`/projects/${projectName}`)}
+              />
+            ) : (
+              <WhosMyAdministrator
+                buttonLabel="Need another project?"
+                headerContent="Need another project?"
+                leadText="To request a new project, contact your administrator."
+                contentTestId="projects-admin-help-content"
+              />
+            )}
+          </ToolbarItem>
+        </ToolbarGroup>
+      </ToolbarContent>
+    </Toolbar>
   );
 };
 
