@@ -64,7 +64,7 @@ export const RuntimeArgsField: React.FC<RuntimeArgsFieldProps> = ({
   };
 
   const handleTextAreaChange = (_e: React.FormEvent<HTMLTextAreaElement>, textValue: string) => {
-    const newData = { ...data, args: textValue.split('\n').filter((arg) => arg.trim() !== '') };
+    const newData = { ...data, args: textValue.split('\n') };
     onChange?.(newData);
   };
 

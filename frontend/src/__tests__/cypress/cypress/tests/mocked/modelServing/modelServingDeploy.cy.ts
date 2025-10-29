@@ -405,9 +405,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findServiceNameAlert().should('not.exist');
     modelServingWizard.findRemoveServiceAccountByIndex(1).click();
     modelServingWizard.findServiceAccountByIndex(0).clear();
-    modelServingWizard.findSubmitButton().should('be.disabled'); //TODO: Change back to findNextButton() when submit page is added
+    modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findServiceAccountByIndex(0).clear().type('new name');
-    // modelServingWizard.findNextButton().should('be.enabled').click(); //TODO: Uncomment when submit page is added
+    modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 4: Summary
     modelServingWizard.findSubmitButton().should('be.enabled').click();
@@ -682,7 +682,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findEnvVariableName('0').clear().type('valid_name');
     modelServingWizard.findEnvVariableValue('0').type('test-value');
 
-    // modelServingWizard.findNextButton().should('be.enabled').click(); //TODO: Uncomment when submit page is added
+    modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 4: Summary
 
@@ -814,7 +814,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
     modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
-    // modelServingWizard.findNextButton().should('be.enabled').click(); //TODO: Uncomment when submit page is added
+    modelServingWizard.findNextButton().should('be.enabled').click();
 
     // test submitting form, an error should appear
     modelServingWizard.findSubmitButton().should('be.enabled').click();
@@ -985,7 +985,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Verify submit is enabled before testing env vars
-    modelServingWizard.findSubmitButton().should('be.enabled'); //TODO: Change back to findNextButton() when submit page is added
+    modelServingWizard.findNextButton().should('be.enabled');
 
     // Add environment variable with invalid name
     modelServingWizard.findEnvVariablesCheckbox().click();
@@ -995,7 +995,7 @@ describe('Model Serving Deploy Wizard', () => {
       'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
     ).should('be.visible');
     // Verify submit is disabled with invalid env var
-    modelServingWizard.findSubmitButton().should('be.disabled'); //TODO: Change back to findNextButton() when submit page is added
+    modelServingWizard.findNextButton().should('be.disabled');
 
     // Test invalid env var name with special characters
     modelServingWizard.findEnvVariableName('0').clear().type('invalid@name');
@@ -1003,7 +1003,7 @@ describe('Model Serving Deploy Wizard', () => {
       'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
     ).should('be.visible');
     // Verify submit is disabled with invalid env var
-    modelServingWizard.findSubmitButton().should('be.disabled'); //TODO: Change back to findNextButton() when submit page is added
+    modelServingWizard.findNextButton().should('be.disabled');
 
     // Test valid env var name
     modelServingWizard.findEnvVariableName('0').clear().type('VALID_NAME');
@@ -1011,7 +1011,7 @@ describe('Model Serving Deploy Wizard', () => {
       'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
     ).should('not.exist');
     // Verify submit is enabled with valid env var
-    modelServingWizard.findSubmitButton().should('be.enabled'); //TODO: Change back to findNextButton() when submit page is added
+    modelServingWizard.findNextButton().should('be.enabled');
   });
 
   it('Deploy OCI Model and check paste functionality', () => {
@@ -1072,7 +1072,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
     //Step 3: Advanced Options
-    // modelServingWizard.findNextButton().should('be.enabled').click(); //TODO: Uncomment when submit page is added
+    modelServingWizard.findNextButton().should('be.enabled').click();
     //Step 4: Summary
     modelServingWizard.findSubmitButton().should('be.enabled').click();
 
@@ -1213,7 +1213,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
     //Step 3: Advanced Options
-    // modelServingWizard.findNextButton().should('be.enabled').click(); //TODO: Uncomment when submit page is added
+    modelServingWizard.findNextButton().should('be.enabled').click();
     //Step 4: Summary
     modelServingWizard.findSubmitButton().should('be.enabled').click();
 
@@ -1362,7 +1362,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findExternalRouteCheckbox().should('be.checked');
     modelServingWizardEdit.findTokenAuthenticationCheckbox().click();
     modelServingWizardEdit.findServiceAccountByIndex(0).should('have.value', 'default-name');
-    modelServingWizardEdit.findUpdateDeploymentButton().should('be.enabled').click(); //TODO: Change back to findNextButton() when submit page is added
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+    modelServingWizardEdit.findUpdateDeploymentButton().should('be.enabled').click();
   });
 
   it('Verify cpu and memory request and limits values when editing KServe model', () => {
@@ -1520,7 +1522,7 @@ describe('Model Serving Deploy Wizard', () => {
 
     // Step 3: Advanced Options
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
-    // modelServingWizard.findNextButton().should('be.enabled').click(); //TODO: Uncomment when submit page is added
+    modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 4: Summary
     modelServingWizard.findSubmitButton().should('be.enabled').click();

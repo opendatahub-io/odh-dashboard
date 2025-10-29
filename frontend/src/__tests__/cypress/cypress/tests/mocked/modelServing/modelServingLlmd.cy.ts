@@ -175,7 +175,10 @@ describe('Model Serving LLMD', () => {
         .findExternalServicePopover()
         .findByText('http://us-east-1.elb.amazonaws.com/test-project/facebook-opt-125m-single')
         .should('exist');
-      row.findAPIProtocol().should('have.text', 'REST');
+      row
+        .findExternalServicePopover()
+        .findByTestId('api-protocol-label')
+        .should('have.text', 'REST');
       row.findLastDeployed().should('have.text', '17 Mar 2023');
       row.findStatusLabel('Started');
 
@@ -310,7 +313,7 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       // Step 3: Advanced Options
-      modelServingWizard.findSubmitButton().should('be.enabled'); //TODO: Change back to findNextButton() when submit page is added
+      modelServingWizard.findNextButton().should('be.enabled');
       modelServingWizard.findExternalRouteCheckbox().should('not.exist');
       modelServingWizard.findTokenAuthenticationCheckbox().should('be.enabled');
       modelServingWizard.findTokenAuthenticationCheckbox().click();
@@ -321,7 +324,7 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.findAddVariableButton().click();
       modelServingWizard.findEnvVariableName('0').clear().type('MY_ENV');
       modelServingWizard.findEnvVariableValue('0').type('MY_VALUE');
-      // modelServingWizard.findNextButton().should('be.enabled').click(); //TODO: Uncomment when submit page is added
+      modelServingWizard.findNextButton().should('be.enabled').click();
 
       // Step 4: Summary
       modelServingWizard.findSubmitButton().should('be.enabled').click();
@@ -470,7 +473,7 @@ describe('Model Serving LLMD', () => {
       modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
       // Step 3: Advanced Options
-      //modelServingWizardEdit.findNextButton().should('be.enabled'); //TODO: Uncomment when summary page is added back
+      modelServingWizardEdit.findNextButton().should('be.enabled');
       modelServingWizardEdit.findTokenAuthenticationCheckbox().should('be.checked');
       modelServingWizardEdit.findTokenAuthenticationCheckbox().click();
       modelServingWizardEdit.findTokenAuthenticationCheckbox().should('not.be.checked');
@@ -478,7 +481,7 @@ describe('Model Serving LLMD', () => {
       modelServingWizardEdit.findRuntimeArgsTextBox().type('--arg=value1');
       modelServingWizardEdit.findEnvVariableName('0').clear().type('MY_ENV');
       modelServingWizardEdit.findEnvVariableValue('0').clear().type('MY_VALUE');
-      //modelServingWizardEdit.findNextButton().should('be.enabled').click(); //TODO: Uncomment when summary page is added back
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
       // Step 4: Summary
       modelServingWizardEdit.findSubmitButton().should('be.enabled').click();
@@ -538,7 +541,7 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.findSaveAsMaaSCheckbox().click();
       modelServingWizard.findSaveAsMaaSCheckbox().should('be.checked');
       modelServingWizard.findUseCaseInput().should('be.visible').type('Test MaaS use case');
-      // modelServingWizard.findNextButton().click(); //TODO: Uncomment when summary page is added
+      modelServingWizard.findNextButton().click();
 
       // Submit and verify MaaS-specific annotations and gateway refs
       modelServingWizard.findSubmitButton().click();
