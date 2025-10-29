@@ -53,4 +53,5 @@ oc new-app ${REPO_URL}#${BRANCH} \
   --name=genai-bff
 
 # Expose the service
-oc expose svc/genai-bff
+oc create route edge --service=genai-bff
+
