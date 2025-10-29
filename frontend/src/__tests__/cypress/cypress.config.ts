@@ -53,6 +53,7 @@ export default defineConfig({
   chromeWebSecurity: false,
   viewportWidth: 1920,
   viewportHeight: 1080,
+  videoCompression: true,
   numTestsKeptInMemory: 1,
   video: true,
   screenshotsFolder: `${resultsDir}/screenshots`,

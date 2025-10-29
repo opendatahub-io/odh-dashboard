@@ -32,11 +32,10 @@ const MODEL_REGISTRY_API_VERSION = 'v1';
 type HandlersProps = {
   registeredModelsSize?: number;
   modelVersions?: ModelVersion[];
-  modelMeshInstalled?: boolean;
   disableProjectScoped?: boolean;
   isEmpty?: boolean;
   disableKServe?: boolean;
-  disableModelMesh?: boolean;
+  disableNIMModelServing?: boolean;
 };
 
 const registeredModelMocked = mockRegisteredModel({ name: 'test-1' });
@@ -61,17 +60,15 @@ const initIntercepts = ({
     mockModelVersion({ id: '4', name: 'test model version 3' }),
     mockModelVersion({ id: '5', name: 'test model version 4' }),
   ],
-  modelMeshInstalled = true,
   disableProjectScoped = true,
   disableKServe = false,
-  disableModelMesh = false,
+  disableNIMModelServing = true,
   isEmpty = false,
 }: HandlersProps) => {
   initDeployPrefilledModelIntercepts({
-    modelMeshInstalled,
     disableProjectScoped,
     disableKServe,
-    disableModelMesh,
+    disableNIMModelServing,
     isEmpty,
   });
 
@@ -315,16 +312,6 @@ describe('Deploy action button', () => {
 });
 
 describe('Model version deploy kebab action works', () => {
-  it('Deploy model version on unsupported multi-model platform', () => {
-    initIntercepts({ modelMeshInstalled: false });
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow('test model version');
-    modelVersionRow.findKebabAction('Deploy').click();
-    cy.wait('@getProjects');
-    modelVersionDeployModal.selectProjectByName('Model mesh project');
-    cy.findByText('Multi-model platform is not installed').should('exist');
-  });
-
   it('does not show deploy in the kebab menu option when model serving is disabled', () => {
     initIntercepts({});
     cy.interceptOdh(
@@ -342,7 +329,7 @@ describe('Model version deploy kebab action works', () => {
   });
 
   it('shows a disabled deploy menu option in the kebab menu for the model with OCI URI when kserve is disabled', () => {
-    initIntercepts({ disableKServe: true, disableModelMesh: true });
+    initIntercepts({ disableKServe: true });
     cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version 4');
     modelVersionRow.findKebabAction('Deploy').should('have.attr', 'aria-disabled');
@@ -351,32 +338,13 @@ describe('Model version deploy kebab action works', () => {
 
 describe('Deploy model version', () => {
   it('Deploy model version on unsupported single-model platform', () => {
-    initIntercepts({ disableKServe: true, disableModelMesh: true });
+    initIntercepts({ disableKServe: true });
     modelVersionDetails.visit();
     modelVersionDetails.findDeployModelButton().click();
     cy.findByRole('tooltip').should(
       'contain.text',
       'To enable model serving, an administrator must first select a model serving platform in the cluster settings.',
     );
-  });
-
-  it('Deploy model version on a project which platform is not selected', () => {
-    initIntercepts({});
-    modelVersionDetails.visit();
-    modelVersionDetails.findDeployModelButton().click();
-    modelVersionDeployModal.selectProjectByName('Test project');
-    cy.findByText(
-      'To deploy a model, you must first select a model serving platform for this project.',
-    ).should('exist');
-  });
-
-  it('Deploy model version on a model mesh project that has no model servers', () => {
-    initIntercepts({});
-    modelVersionDetails.visit();
-    modelVersionDetails.findDeployModelButton().click();
-    cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([]));
-    modelVersionDeployModal.selectProjectByName('Model mesh project');
-    cy.findByText('To deploy a model, you must first configure a model server.').should('exist');
   });
 
   it('OCI info alert is visible in case of OCI models', () => {
@@ -477,7 +445,7 @@ describe('Deploy model version', () => {
     cy.contains('Global serving runtimes').should('be.visible');
 
     // Search for a value that exists in Project-scoped serving runtimes but not in Global serving runtimes
-    kserveModal.findServingRuntimeTemplateSearchInput().should('be.visible').type('OpenVino');
+    kserveModal.findServingRuntimeTemplateSearchInput().should('be.visible').type('OpenVino local');
 
     // Wait for and verify the groups are visible
     cy.contains('Project-scoped serving runtimes').should('be.visible');
@@ -505,7 +473,7 @@ describe('Deploy model version', () => {
 
     // Check for global specific serving runtimes
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
+    kserveModal.findGlobalScopedTemplateOption('OpenVINO').click();
     kserveModal.findGlobalScopedLabel().should('exist');
     kserveModal.findModelFrameworkSelect().should('be.enabled');
     kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
@@ -517,7 +485,7 @@ describe('Deploy model version', () => {
 
     // check model framework selection when serving runtime changes
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
+    kserveModal.findGlobalScopedTemplateOption('OpenVINO').click();
     kserveModal.findModelFrameworkSelect().should('have.text', 'onnx - 1');
 
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
@@ -570,7 +538,7 @@ describe('Deploy model version', () => {
     kserveModal.findModelFrameworkSelect().should('be.disabled');
     cy.findByText('The format of the source model is').should('not.exist');
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
+    kserveModal.findGlobalScopedTemplateOption('OpenVINO').click();
     kserveModal.findModelFrameworkSelect().should('be.enabled');
     cy.findByText(
       `The format of the source model is ${modelArtifactMocked.modelFormatName ?? ''} - ${
@@ -600,7 +568,7 @@ describe('Deploy model version', () => {
     kserveModal.findModelFrameworkSelect().should('be.disabled');
     cy.findByText('The format of the source model is').should('not.exist');
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
+    kserveModal.findGlobalScopedTemplateOption('OpenVINO').click();
     kserveModal.findModelFrameworkSelect().should('be.enabled');
     cy.findByText(
       `The format of the source model is ${modelArtifactMocked.modelFormatName ?? ''} - ${

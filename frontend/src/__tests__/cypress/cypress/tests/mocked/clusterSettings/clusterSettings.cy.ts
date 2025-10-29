@@ -37,7 +37,6 @@ describe('Cluster Settings', () => {
       mockDscStatus({
         components: {
           [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
-          [DataScienceStackComponent.MODEL_MESH_SERVING]: { managementState: 'Managed' },
         },
       }),
     );
