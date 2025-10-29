@@ -306,6 +306,46 @@ describe('Projects details', () => {
     projectListPage.findProjectLink('Non-AI Project Alpha').should('not.exist');
   });
 
+  it('should show AI pill when AI Projects filter is selected', () => {
+    const mockProjects: ProjectKind[] = [
+      mockProjectK8sResource({
+        k8sName: 'ai-project-1',
+        displayName: 'AI Project 1',
+        isDSProject: true,
+      }),
+      mockProjectK8sResource({
+        k8sName: 'non-ai-project',
+        displayName: 'Non-AI Project',
+        isDSProject: false,
+      }),
+    ];
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList(mockProjects));
+    projectListPage.visit();
+
+    const projectListToolbar = projectListPage.getTableToolbar();
+
+    // Initially, AI projects are shown by default:
+    projectListToolbar.shouldHaveAIProjectPill();
+
+    // Select "All projects"
+    projectListToolbar.selectProjectType('All projects');
+
+    // when "All" is selected, the AI pill should not be visible
+    projectListToolbar.shouldNotHaveAIProjectPill();
+
+    // Select "AI Projects" from the dropdown
+    projectListToolbar.selectProjectType('AI Projects');
+
+    // Verify the AI pill is now visible
+    projectListToolbar.shouldHaveAIProjectPill();
+
+    // Select "All projects" again
+    projectListToolbar.selectProjectType('All projects');
+
+    // Verify the AI pill is no longer visible
+    projectListToolbar.shouldNotHaveAIProjectPill();
+  });
+
   it('should show list of workbenches when the column is expanded', () => {
     cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
     cy.interceptK8sList(
