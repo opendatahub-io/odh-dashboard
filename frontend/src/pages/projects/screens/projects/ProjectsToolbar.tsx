@@ -57,7 +57,7 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
     },
     {
       key: aiProjectFilterKey,
-      label: 'A.I. projects',
+      label: aiProjectFilterKey,
       description: 'Projects configured for AI resources',
       count: aiProjectNum,
       isAI: true,
