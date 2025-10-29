@@ -49,7 +49,7 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
 
   const projectTypeOptions = [
     {
-      key: 'All',
+      key: '',
       label: 'All projects',
       description: 'All projects that you have access to',
       count: fullProjectNum,
