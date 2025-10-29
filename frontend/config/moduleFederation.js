@@ -111,6 +111,11 @@ module.exports = {
                 requiredVersion: deps['@odh-dashboard/plugin-core'],
                 eager: true,
               },
+              '@odh-dashboard/internal/concepts/userSSAR': {
+                singleton: true,
+                requiredVersion: deps['@odh-dashboard/internal/concepts/userSSAR'],
+                eager: true,
+              },
             },
             exposes: {},
             dts: updateTypes,

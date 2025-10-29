@@ -17,7 +17,6 @@ import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDs
 
 const ModelRegistryWrapperContent: React.FC = () => {
   const { configSettings, userSettings, loaded, loadError } = useSettings();
-  const isAdmin = userSettings?.clusterAdmin || false;
   if (loadError) {
     return <div>Error: {loadError.message}</div>;
   }
@@ -35,7 +34,7 @@ const ModelRegistryWrapperContent: React.FC = () => {
         <BrowserStorageContextProvider>
           <NotificationContextProvider>
             <ModelRegistrySelectorContextProvider>
-              <ModelRegistryRoutes isAdminUser={isAdmin} />
+              <ModelRegistryRoutes />
             </ModelRegistrySelectorContextProvider>
           </NotificationContextProvider>
         </BrowserStorageContextProvider>

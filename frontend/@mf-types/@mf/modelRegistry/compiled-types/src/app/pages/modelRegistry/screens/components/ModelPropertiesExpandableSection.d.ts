@@ -5,6 +5,8 @@ type ModelPropertiesExpandableSectionProps = {
     isArchive?: boolean;
     saveEditedCustomProperties: (properties: ModelRegistryCustomProperties) => Promise<unknown>;
     isExpandedByDefault?: boolean;
+    onEditingChange?: (isEditing: boolean) => void;
+    modelName?: string;
 };
 declare const ModelPropertiesExpandableSection: React.FC<ModelPropertiesExpandableSectionProps>;
 export default ModelPropertiesExpandableSection;

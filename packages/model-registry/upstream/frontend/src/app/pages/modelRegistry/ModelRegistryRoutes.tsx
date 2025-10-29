@@ -22,11 +22,7 @@ import {
   isModelRegistryDetailsTabExtension,
 } from '~/odh/extension-points';
 
-interface ModelRegistryRoutesProps {
-  isAdminUser?: boolean;
-}
-
-const ModelRegistryRoutes: React.FC<ModelRegistryRoutesProps> = ({ isAdminUser = false }) => {
+const ModelRegistryRoutes: React.FC = () => {
   const tabExtensions = useExtensions(isModelRegistryVersionDetailsTabExtension);
   const detailsTabExtensions = useExtensions(isModelRegistryDetailsTabExtension);
   return (
@@ -36,7 +32,6 @@ const ModelRegistryRoutes: React.FC<ModelRegistryRoutesProps> = ({ isAdminUser =
         element={
           <OdhModelRegistryCoreLoader
             getInvalidRedirectPath={(modelRegistry) => modelRegistryUrl(modelRegistry)}
-            isAdminUser={isAdminUser}
           />
         }
       >
