@@ -80,14 +80,6 @@ class ModelServingGlobal {
     return cy.findByTestId('kserve-select-button');
   }
 
-  selectSingleServingModelButtonIfExists() {
-    cy.get('body').then(($body) => {
-      if ($body.find('[data-testid="kserve-select-button"]').length > 0) {
-        this.findSingleServingModelButton().click();
-      }
-    });
-  }
-
   findMultiModelButton() {
     return cy.findByTestId('model-mesh-select-button');
   }

@@ -1,7 +1,6 @@
 import {
+  inferenceServiceModal,
   modelServingGlobal,
-  modelServingSection,
-  modelServingWizard,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import { AWS_BUCKETS } from '#~/__tests__/cypress/cypress/utils/s3Buckets';
 import {
@@ -40,7 +39,7 @@ const awsBucketRegion = AWS_BUCKETS.BUCKET_1.REGION;
 const podName = 'pvc-loader-pod';
 const uuid = generateTestUUID();
 
-describe('Verify a model can be deployed from a PVC', () => {
+describe('[Automation Bug: RHOAIENG-32898] Verify a model can be deployed from a PVC', () => {
   retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
       if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
@@ -70,9 +69,9 @@ describe('Verify a model can be deployed from a PVC', () => {
   });
   it(
     'should deploy a model from a PVC',
-    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing'] },
+    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@Maintain'] },
     () => {
-      cy.step(`log into application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
+      cy.step('log into application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       // Navigate to the project
@@ -88,11 +87,11 @@ describe('Verify a model can be deployed from a PVC', () => {
 
       // Enter cluster storage details
       cy.step('Enter cluster storage details');
-      addClusterStorageModal.findNameInput().clear().type(pvStorageName);
+      addClusterStorageModal.findNameInput().type(pvStorageName);
 
       addClusterStorageModal.findModelStorageRadio().click();
-      addClusterStorageModal.findModelPathInput().clear().type(modelFilePath);
-      addClusterStorageModal.findModelNameInput().clear().type(modelName);
+      addClusterStorageModal.findModelPathInput().type(modelFilePath);
+      addClusterStorageModal.findModelNameInput().type(modelName);
 
       addClusterStorageModal.findSubmitButton().click({ force: true });
 
@@ -128,34 +127,18 @@ describe('Verify a model can be deployed from a PVC', () => {
       // Deploy the model
       cy.step('Deploy the model');
       projectDetails.findSectionTab('model-server').click();
-      // If we have only one serving model platform, then it is selected by default.
-      // So we don't need to click the button.
-      modelServingGlobal.selectSingleServingModelButtonIfExists();
+      modelServingGlobal.findSingleServingModelButton().click();
       modelServingGlobal.findDeployModelButton().click();
-      // Step 1: Model Source
-      modelServingWizard.findModelLocationSelectOption('Cluster storage').click();
+      inferenceServiceModal.findModelNameInput().type(modelName);
+      inferenceServiceModal.findServingRuntimeTemplateSearchSelector().click();
+      inferenceServiceModal.findGlobalScopedTemplateOption('OpenVINO Model Server').click();
+      inferenceServiceModal.findModelFrameworkSelect().click();
+      inferenceServiceModal.findOpenVinoIROpSet13().click();
       // There's only one PVC so it's automatically selected
-      modelServingWizard.findPVCSelectValue().should('have.value', pvStorageName);
-      modelServingWizard.findModelTypeSelectOption('Predictive model').click();
-      modelServingWizard.findNextButton().click();
-      // Step 2: Model Deployment
-      modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
-      modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
-      // Only interact with serving runtime template selector if it's not disabled
-      // (it may be disabled when only one option is available)
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().then(($selector) => {
-        if (!$selector.is(':disabled')) {
-          cy.wrap($selector).click();
-          modelServingWizard
-            .findGlobalScopedTemplateOption('OpenVINO Model Server')
-            .should('exist')
-            .click();
-        }
-      });
-      modelServingWizard.findNextButton().click();
-      //Step 3: Advanced Options
-      modelServingWizard.findSubmitButton().click();
-      modelServingSection.findModelServerDeployedName(testData.singleModelName);
+      inferenceServiceModal.findExistingPVCConnectionOption().click();
+      inferenceServiceModal.findSubmitButton().should('be.enabled').click();
+      inferenceServiceModal.shouldBeOpen(false);
+
       //Verify the model created and is running
       cy.step('Verify that the Model is running');
       // For KServe Raw deployments, we only need to check Ready condition

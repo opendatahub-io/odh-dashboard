@@ -1,8 +1,8 @@
 import {
   modelServingGlobal,
   modelServingSection,
-  modelServingWizard,
-} from '#~/__tests__/cypress/cypress/pages/modelServing';
+  inferenceServiceModal,
+} from '#~/__tests__/cypress/cypress/pages/modelServing.ts';
 import { projectDetails, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
 import type { DataScienceProjectData } from '#~/__tests__/cypress/cypress/types';
 import { loadDSPFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
@@ -19,12 +19,12 @@ import { MODEL_STATUS_TIMEOUT } from '#~/__tests__/cypress/cypress/support/timeo
 
 let testData: DataScienceProjectData;
 let projectName: string;
-let modelFilePath: string;
 let modelName: string;
+let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('A model can be stopped and started', () => {
+describe('[Automation Bug: RHOAIENG-32898] A model can be stopped and started', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
     return loadDSPFixture('e2e/dataScienceProjects/testModelStopStart.yaml').then(
@@ -57,7 +57,7 @@ describe('A model can be stopped and started', () => {
   it(
     'Verify that a model can be stopped and started',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent', '@Maintain'],
     },
     () => {
       cy.log('Model Name:', modelName);
@@ -73,35 +73,19 @@ describe('A model can be stopped and started', () => {
       // Navigate to Model Serving section and Deploy a Model
       cy.step('Navigate to Model Serving and deploy a Model');
       projectDetails.findSectionTab('model-server').click();
-      // If we have only one serving model platform, then it is selected by default.
-      // So we don't need to click the button.
-      modelServingGlobal.selectSingleServingModelButtonIfExists();
+      modelServingGlobal.findSingleServingModelButton().click();
+      modelServingGlobal.findDeployModelButton().click();
 
       // Deploy a Model
       cy.step('Deploy a Model');
-      modelServingGlobal.findDeployModelButton().click();
-      // Step 1: Model Source
-      modelServingWizard.findModelLocationSelectOption('Existing connection').click();
-      modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
-      modelServingWizard.findModelTypeSelectOption('Predictive model').click();
-      modelServingWizard.findNextButton().click();
-      // Step 2: Model Deployment
-      modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
-      modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
-      // Only interact with serving runtime template selector if it's not disabled
-      // (it may be disabled when only one option is available)
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().then(($selector) => {
-        if (!$selector.is(':disabled')) {
-          cy.wrap($selector).click();
-          modelServingWizard
-            .findGlobalScopedTemplateOption('OpenVINO Model Server')
-            .should('exist')
-            .click();
-        }
-      });
-      modelServingWizard.findNextButton().click();
-      //Step 3: Advanced Options
-      modelServingWizard.findSubmitButton().click();
+      inferenceServiceModal.findModelNameInput().type(testData.singleModelName);
+      inferenceServiceModal.findServingRuntimeTemplateSearchSelector().click();
+      inferenceServiceModal.findGlobalScopedTemplateOption('OpenVINO Model Server').click();
+      inferenceServiceModal.findModelFrameworkSelect().click();
+      inferenceServiceModal.findOpenVinoIROpSet13().click();
+      inferenceServiceModal.findLocationPathInput().type(modelFilePath);
+      inferenceServiceModal.findSubmitButton().click();
+      inferenceServiceModal.shouldBeOpen(false);
       modelServingSection.findModelServerDeployedName(testData.singleModelName);
       const kServeRow = modelServingSection.getKServeRow(testData.singleModelName);
 
