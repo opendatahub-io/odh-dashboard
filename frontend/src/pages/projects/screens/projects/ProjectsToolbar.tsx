@@ -77,7 +77,6 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
                   ref={toggleRef}
                   onClick={() => setIsProjectTypeDropdownOpen(!isProjectTypeDropdownOpen)}
                   isExpanded={isProjectTypeDropdownOpen}
-                  style={{ minWidth: '300px' }}
                 >
                   <Flex
                     spaceItems={{ default: 'spaceItemsSm' }}
@@ -114,7 +113,6 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
                     <Flex
                       direction={{ default: 'column' }}
                       spaceItems={{ default: 'spaceItemsNone' }}
-                      style={{ width: '100%' }}
                     >
                       <FlexItem>
                         <Flex
