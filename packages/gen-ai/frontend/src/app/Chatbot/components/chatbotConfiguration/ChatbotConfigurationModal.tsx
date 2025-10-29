@@ -183,7 +183,10 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
       )}
       <ModalBody>
         {configuringPlayground ? (
-          <ChatbotConfigurationState redirectToPlayground={redirectToPlayground} />
+          <ChatbotConfigurationState
+            redirectToPlayground={redirectToPlayground}
+            onClose={onBeforeClose}
+          />
         ) : (
           <ChatbotConfigurationTable
             allModels={allModels}
