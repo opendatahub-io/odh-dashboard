@@ -23,7 +23,11 @@ const ValidatedModelsBanner: React.FC = () => {
   }, [setIsDismissed]);
 
   const handleExploreClick = React.useCallback(() => {
-    window.location.href = '/ai-hub/catalog?validated=true';
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('validated', 'true');
+    window.history.pushState({}, '', currentUrl.toString());
+
+    window.dispatchEvent(new PopStateEvent('popstate', { state: {} }));
   }, []);
   if (isDismissed) {
     return null;
