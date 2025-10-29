@@ -88,6 +88,7 @@ export const getNIMServingRuntimeTemplate = async (
 export const updateServingRuntimeTemplate = (
   servingRuntime: ServingRuntimeKind,
   pvcName: string,
+  pvcSubPath?: string, // ← NEW: Optional subPath parameter
 ): ServingRuntimeKind => {
   const updatedServingRuntime = { ...servingRuntime };
 
@@ -98,6 +99,10 @@ export const updateServingRuntimeTemplate = (
           return {
             ...volumeMount,
             name: pvcName,
+            // ← NEW: Add subPath if provided
+            // SubPath allows mounting a subdirectory of the PVC
+            // Example: subPath: "/llama-3.1-8b-instruct"
+            ...(pvcSubPath ? { subPath: pvcSubPath } : {}),
           };
         }
         return volumeMount;
@@ -130,9 +135,6 @@ export const updateServingRuntimeTemplate = (
   return updatedServingRuntime;
 };
 
-/**
- * Check how many ServingRuntimes are using a specific PVC
- */
 export const checkPVCUsage = async (
   pvcName: string,
   namespace: string,
@@ -185,6 +187,8 @@ export const getNIMResourcesToDelete = async (
   }
 
   // Handle PVC deletion with reference counting
+  // IMPORTANT: With subPath support, multiple deployments may share the same PVC
+  // We only delete the PVC when NO deployments are using it anymore
   const pvcName = servingRuntime.spec.volumes?.find((vol) =>
     vol.persistentVolumeClaim?.claimName.startsWith('nim-pvc'),
   )?.persistentVolumeClaim?.claimName;
@@ -195,6 +199,7 @@ export const getNIMResourcesToDelete = async (
       const pvcUsage = await checkPVCUsage(pvcName, projectName);
 
       // Only delete PVC if this is the last deployment using it
+      // With subPath, this might be one of several deployments on the same PVC
       if (pvcUsage.count <= 1) {
         // eslint-disable-next-line no-console
         console.log(`Deleting PVC ${pvcName} - no other deployments using it`);

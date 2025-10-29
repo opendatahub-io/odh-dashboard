@@ -162,6 +162,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   const [pvcMode, setPvcMode] = React.useState<PVCMode>('create-new');
   const [existingPvcName, setExistingPvcName] = React.useState<string>('');
   const [modelPath, setModelPath] = React.useState<string>(DEFAULT_MODEL_PATH);
+  const [pvcSubPath, setPvcSubPath] = React.useState<string>('');
   const [selectedModelName, setSelectedModelName] = React.useState<string>('');
 
   // Add useEffect to track selected model from inference service data
@@ -269,6 +270,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     setPvcMode('create-new');
     setExistingPvcName('');
     setModelPath(DEFAULT_MODEL_PATH);
+    setPvcSubPath('');
   };
 
   const setErrorModal = (e: Error) => {
@@ -293,7 +295,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
 
     const finalServingRuntime =
       !editInfo && servingRuntimeSelected
-        ? updateServingRuntimeTemplate(servingRuntimeSelected, nimPVCName)
+        ? updateServingRuntimeTemplate(servingRuntimeSelected, nimPVCName, pvcSubPath || undefined)
         : servingRuntimeSelected;
 
     const submitServingRuntimeResources = getSubmitServingRuntimeResourcesFn(
@@ -441,9 +443,11 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
                 setExistingPvcName={setExistingPvcName}
                 modelPath={modelPath}
                 setModelPath={setModelPath}
+                pvcSubPath={pvcSubPath}
+                setPvcSubPath={setPvcSubPath}
                 isEditing={!!editInfo}
-                selectedModel={selectedModelName} // Add this prop
-                namespace={namespace} // Add this prop
+                selectedModel={selectedModelName}
+                namespace={namespace}
               />
             </StackItem>
             <StackItem>
