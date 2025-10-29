@@ -126,7 +126,7 @@ export type ModelServingPlatformWatchDeploymentsExtension<D extends Deployment =
         (
           project?: ProjectKind,
           labelSelectors?: { [key: string]: string },
-          mrName?: string,
+          filterFn?: (model: D['model']) => boolean,
           opts?: K8sAPIOptions,
         ) => [D[] | undefined, boolean, Error | undefined]
       >;
