@@ -1,5 +1,5 @@
 import { GenericObjectState } from 'mod-arch-core';
-import { ModelRegistryCustomProperties } from '~/app/types';
+import { ModelRegistryCustomProperties, ModelArtifact } from '~/app/types';
 export declare enum ModelLocationType {
     ObjectStorage = "Object storage",
     URI = "URI"
@@ -17,6 +17,7 @@ export type RegistrationCommonFormData = {
     modelLocationURI: string;
     versionCustomProperties?: ModelRegistryCustomProperties;
     modelCustomProperties?: ModelRegistryCustomProperties;
+    additionalArtifactProperties?: Partial<ModelArtifact>;
 };
 export type RegisterModelFormData = RegistrationCommonFormData & {
     modelName: string;
@@ -30,4 +31,4 @@ export type RegisterCatalogModelFormData = RegisterModelFormData & {
 };
 export declare const useRegisterModelData: () => GenericObjectState<RegisterModelFormData>;
 export declare const useRegisterVersionData: (registeredModelId?: string) => GenericObjectState<RegisterVersionFormData>;
-export declare const useRegisterCatalogModelData: () => GenericObjectState<RegisterCatalogModelFormData>;
+export declare const useRegisterCatalogModelData: (initialData?: Partial<RegisterCatalogModelFormData>) => GenericObjectState<RegisterCatalogModelFormData>;

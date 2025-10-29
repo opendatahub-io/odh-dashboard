@@ -4,7 +4,9 @@ type ModelPropertiesTableRowProps = {
     allExistingKeys: string[];
     setIsEditing: (isEditing: boolean) => void;
     isSavingEdits: boolean;
+    modelName?: string;
     isArchive?: boolean;
+    showDeleteModal?: boolean;
     setIsSavingEdits: (isSaving: boolean) => void;
     saveEditedProperty: (oldKey: string, newPair: KeyValuePair) => Promise<unknown>;
 } & EitherNotBoth<{

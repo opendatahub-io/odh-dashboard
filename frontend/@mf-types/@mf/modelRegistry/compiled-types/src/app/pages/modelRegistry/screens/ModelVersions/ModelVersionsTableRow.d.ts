@@ -5,6 +5,7 @@ type ModelVersionsTableRowProps = {
     isArchiveRow?: boolean;
     isArchiveModel?: boolean;
     hasDeployment?: boolean;
+    loaded?: boolean;
     refresh: () => void;
 };
 declare const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps>;

@@ -3,6 +3,7 @@ import { mockDscStatus } from '#~/__mocks__';
 import { mockComponents } from '#~/__mocks__/mockComponents';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
 import { mockRegisteredModelList } from '#~/__mocks__/mockRegisteredModelsList';
+import { mockStatus } from '#~/__mocks__/mockStatus';
 import { modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry';
 import {
   SelfSubjectAccessReviewModel,
@@ -122,6 +123,9 @@ const initIntercepts = ({
   ],
   allowed = true,
 }: HandlersProps) => {
+  // Set default user status
+  cy.interceptOdh('GET /api/status', mockStatus({ isAdmin: false }));
+
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
@@ -200,14 +204,6 @@ const initIntercepts = ({
   );
 
   cy.interceptOdh(
-    `GET /model-registry/api/:apiVersion/user`,
-    {
-      path: { apiVersion: MODEL_REGISTRY_API_VERSION },
-    },
-    { data: { userId: 'user@example.com', clusterAdmin: true } },
-  );
-
-  cy.interceptOdh(
     `GET /model-registry/api/:apiVersion/model_registry`,
     {
       path: { apiVersion: MODEL_REGISTRY_API_VERSION },
@@ -277,20 +273,13 @@ describe('Model Registry core', () => {
       allowed: true,
     });
 
-    cy.interceptOdh(
-      `GET /model-registry/api/:apiVersion/user`,
-      {
-        path: { apiVersion: MODEL_REGISTRY_API_VERSION },
-      },
-      { data: { userId: 'user@example.com', clusterAdmin: true } },
-    );
     modelRegistry.visit();
     appChrome.findNavSection('AI hub').should('exist');
 
-    // Check for admin-specific content
+    // Wait for the access check to complete and verify admin-specific content
+    modelRegistry.findEmptyStateAdminTitle().should('exist');
     modelRegistry.findModelRegistryEmptyState().should('exist');
     modelRegistry.findModelRegistryEmptyState().within(() => {
-      modelRegistry.findEmptyStateAdminTitle().should('exist');
       modelRegistry.findEmptyStateAdminDescription().should('exist');
       modelRegistry.findEmptyStateAdminInstructions().should('exist');
       modelRegistry.findEmptyStateAdminSettingsLink().should('exist');
@@ -309,13 +298,6 @@ describe('Model Registry core', () => {
       allowed: false,
     });
 
-    cy.interceptOdh(
-      `GET /model-registry/api/:apiVersion/user`,
-      {
-        path: { apiVersion: MODEL_REGISTRY_API_VERSION },
-      },
-      { data: { userId: 'user@example.com', clusterAdmin: false } },
-    );
     modelRegistry.visit();
     appChrome.findNavSection('AI hub').should('exist');
 
@@ -331,7 +313,7 @@ describe('Model Registry core', () => {
     });
   });
 
-  it('should be accessible for non-admin users', () => {
+  it('Should be accessible for non-admin users', () => {
     initIntercepts({
       disableModelRegistryFeature: false,
       allowed: false,

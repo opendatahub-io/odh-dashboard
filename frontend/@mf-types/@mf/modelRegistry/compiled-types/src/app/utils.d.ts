@@ -1,4 +1,4 @@
-import { ModelVersion, RegisteredModel } from '~/app/types';
+import { ModelRegistryCustomProperties, ModelVersion, RegisteredModel } from '~/app/types';
 export type ObjectStorageFields = {
     endpoint: string;
     bucket: string;
@@ -19,3 +19,6 @@ export declare const filterArchiveVersions: (modelVersions: ModelVersion[]) => M
 export declare const filterLiveVersions: (modelVersions: ModelVersion[]) => ModelVersion[];
 export declare const filterArchiveModels: (registeredModels: RegisteredModel[]) => RegisteredModel[];
 export declare const filterLiveModels: (registeredModels: RegisteredModel[]) => RegisteredModel[];
+export declare const getStringValue: <T extends ModelRegistryCustomProperties>(customProperties: T | undefined, key: keyof T) => string;
+export declare const getIntValue: <T extends ModelRegistryCustomProperties>(customProperties: T | undefined, key: keyof T) => number;
+export declare const getDoubleValue: <T extends ModelRegistryCustomProperties>(customProperties: T | undefined, key: keyof T) => number;
