@@ -12,7 +12,7 @@
     "@typescript-eslint/eslint-plugin": "^7.1.1",
     "@typescript-eslint/parser": "^7.1.1",
     "eslint": "^8.57.0",
-    "eslint-config-prettier": "^8.6.0",
+    "eslint-config-prettier": "^10.0.0",
     "eslint-import-resolver-node": "^0.3.7",
     "eslint-import-resolver-typescript": "^3.5.3",
     "eslint-plugin-no-barrel-files": "^1.2.1",
