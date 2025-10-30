@@ -1,6 +1,7 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { Deployment } from '../../../../extension-points';
 import { mockExtensions } from '../../../__tests__/mockUtils';
@@ -12,6 +13,27 @@ jest.mock('@odh-dashboard/plugin-core');
 jest.mock('../../../concepts/useModelDeploymentNotification', () => ({
   useModelDeploymentNotification: () => ({
     watchDeployment: jest.fn(),
+  }),
+}));
+
+// Mock the useStopModalPreference hook
+jest.mock('../../../concepts/useStopModalPreference', () => ({
+  __esModule: true,
+  default: () => [false, jest.fn()],
+}));
+
+// Mock the useDeploymentExtension hook
+jest.mock('../../../concepts/extensionUtils', () => ({
+  useDeploymentExtension: () => null,
+  useResolvedDeploymentExtension: () => [null, true, []],
+}));
+
+// Mock the useExtractFormDataFromDeployment hook
+jest.mock('../../deploymentWizard/useExtractFormDataFromDeployment', () => ({
+  useExtractFormDataFromDeployment: () => ({
+    formData: undefined,
+    loaded: true,
+    error: undefined,
   }),
 }));
 
@@ -39,25 +61,27 @@ const mockDeployment = (partial: Partial<Deployment> = {}) => ({
   apiProtocol: partial.apiProtocol,
 });
 
+// Helper function to wrap components with Router for testing
+const renderWithRouter = (component: React.ReactElement) => {
+  return render(<MemoryRouter>{component}</MemoryRouter>);
+};
+
 describe('DeploymentsTableRow', () => {
   let onDelete: jest.Mock;
-  let onEdit: jest.Mock;
 
   beforeEach(() => {
     onDelete = jest.fn();
-    onEdit = jest.fn();
     mockExtensions();
   });
 
   it('should render the basic row', async () => {
-    render(
+    renderWithRouter(
       <table>
         <tbody>
           <DeploymentRow
             deployment={mockDeployment({})}
             platformColumns={[]}
             onDelete={onDelete}
-            onEdit={onEdit}
             rowIndex={0}
           />
         </tbody>
@@ -81,7 +105,7 @@ describe('DeploymentsTableRow', () => {
   });
 
   it('should render with platform columns', () => {
-    render(
+    renderWithRouter(
       <table>
         <tbody>
           <DeploymentRow
@@ -95,7 +119,6 @@ describe('DeploymentsTableRow', () => {
               },
             ]}
             onDelete={onDelete}
-            onEdit={onEdit}
             rowIndex={0}
           />
         </tbody>
@@ -106,7 +129,7 @@ describe('DeploymentsTableRow', () => {
   });
 
   it('should render the row with a status', () => {
-    render(
+    renderWithRouter(
       <table>
         <tbody>
           <DeploymentRow
@@ -115,7 +138,6 @@ describe('DeploymentsTableRow', () => {
             })}
             platformColumns={[]}
             onDelete={onDelete}
-            onEdit={onEdit}
             rowIndex={0}
           />
         </tbody>
@@ -127,7 +149,7 @@ describe('DeploymentsTableRow', () => {
 
   describe('Inference endpoints', () => {
     it('should render the row with internal inference endpoint', async () => {
-      render(
+      renderWithRouter(
         <table>
           <tbody>
             <DeploymentRow
@@ -142,7 +164,6 @@ describe('DeploymentsTableRow', () => {
               })}
               platformColumns={[]}
               onDelete={onDelete}
-              onEdit={onEdit}
               rowIndex={0}
             />
           </tbody>
@@ -158,7 +179,7 @@ describe('DeploymentsTableRow', () => {
     });
 
     it('should render the row with external inference endpoint', async () => {
-      render(
+      renderWithRouter(
         <table>
           <tbody>
             <DeploymentRow
@@ -173,7 +194,6 @@ describe('DeploymentsTableRow', () => {
               })}
               platformColumns={[]}
               onDelete={onDelete}
-              onEdit={onEdit}
               rowIndex={0}
             />
           </tbody>
@@ -189,7 +209,7 @@ describe('DeploymentsTableRow', () => {
     });
 
     it('should render the row with multiple inference endpoints', async () => {
-      render(
+      renderWithRouter(
         <table>
           <tbody>
             <DeploymentRow
@@ -209,7 +229,6 @@ describe('DeploymentsTableRow', () => {
               })}
               platformColumns={[]}
               onDelete={onDelete}
-              onEdit={onEdit}
               rowIndex={0}
             />
           </tbody>
@@ -226,7 +245,7 @@ describe('DeploymentsTableRow', () => {
     });
 
     it('should render the row with API protocol', async () => {
-      render(
+      renderWithRouter(
         <table>
           <tbody>
             <DeploymentRow
@@ -242,7 +261,6 @@ describe('DeploymentsTableRow', () => {
               })}
               platformColumns={[]}
               onDelete={onDelete}
-              onEdit={onEdit}
               rowIndex={0}
             />
           </tbody>

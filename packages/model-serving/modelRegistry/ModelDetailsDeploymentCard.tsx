@@ -23,6 +23,7 @@ import TypedObjectIcon from '@odh-dashboard/internal/concepts/design/TypedObject
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { useModelRegistryFilter } from './useModelRegistryFilter';
 import DeploymentLastDeployed from '../src/components/deployments/DeploymentLastDeployed';
 import {
   ModelDeploymentsContext,
@@ -152,8 +153,14 @@ const ModelDetailsDeploymentCard: React.FC<{ rmId?: string; mrName?: string }> =
     };
   }, [rmId]);
 
+  const filterFn = useModelRegistryFilter(mrName);
+
   return (
-    <ModelDeploymentsProvider projects={projects} labelSelectors={labelSelectors} mrName={mrName}>
+    <ModelDeploymentsProvider
+      projects={projects}
+      labelSelectors={labelSelectors}
+      filterFn={filterFn}
+    >
       <Card>
         <CardTitle>Latest deployments</CardTitle>
         <DeploymentCard rmId={rmId} preferredModelRegistry={mrName} />

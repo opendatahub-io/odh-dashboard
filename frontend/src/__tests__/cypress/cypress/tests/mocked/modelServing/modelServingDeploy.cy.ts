@@ -310,15 +310,24 @@ describe('Model Serving Deploy Wizard', () => {
 
     modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
+    cy.url().should('include', 'ai-hub/deployments/test-project/deploy/create');
     cy.findByRole('heading', { name: 'Deploy a model' }).should('exist');
     cy.findByRole('button', { name: 'Cancel' }).click();
-    cy.url().should('include', '/deployments/test-project');
+    modelServingWizard.findCancelButton().click();
+    cy.url().should('include', 'ai-hub/deployments/test-project/deploy/create');
+    cy.findByRole('button', { name: 'Cancel' }).click();
+    modelServingWizard.findDiscardButton().click();
+    cy.url().should('eq', `${Cypress.config().baseUrl ?? ''}/ai-hub/deployments/test-project/`);
 
     modelServingSection.visit('test-project');
     modelServingSection.findDeployModelButton().click();
     cy.findByRole('heading', { name: 'Deploy a model' }).should('exist');
     cy.findByRole('button', { name: 'Cancel' }).click();
-    cy.url().should('include', '/projects/test-project');
+    modelServingWizard.findCancelButton().click();
+    cy.url().should('not.include', 'projects/test-project/?section=model-server');
+    cy.findByRole('button', { name: 'Cancel' }).click();
+    modelServingWizard.findDiscardButton().click();
+    cy.url().should('include', 'projects/test-project/?section=model-server');
   });
 
   it('Create a new generative deployment and submit', () => {
@@ -1555,25 +1564,9 @@ describe('Model Serving Deploy Wizard', () => {
     });
 
     it('deploy create', () => {
-      cy.visitWithLogin(`/modelServing/test-project/deploy/create`);
+      cy.visitWithLogin(`/modelServing/test-project/deploy`);
       cy.findByTestId('app-page-title').contains('Deploy a model');
-      cy.url().should('include', '/ai-hub/deployments/test-project/deploy/create');
-    });
-
-    it('deploy edit', () => {
-      cy.interceptK8sList(
-        { model: InferenceServiceModel, ns: 'test-project' },
-        mockK8sResourceList([
-          mockInferenceServiceK8sResource({ name: 'test-model', namespace: 'test-project' }),
-        ]),
-      );
-      cy.interceptK8sList(
-        { model: ServingRuntimeModel, ns: 'test-project' },
-        mockK8sResourceList([mockServingRuntimeK8sResource({ namespace: 'test-project' })]),
-      );
-      cy.visitWithLogin(`/modelServing/test-project/deploy/edit/test-model`);
-      cy.findByTestId('app-page-title').contains('Edit model deployment');
-      cy.url().should('include', '/ai-hub/deployments/test-project/deploy/edit/test-model');
+      cy.url().should('include', '/ai-hub/deployments/test-project/deploy');
     });
   });
 });

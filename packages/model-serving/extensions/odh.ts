@@ -93,16 +93,6 @@ const extensions: (
       required: [PLUGIN_MODEL_SERVING],
     },
   },
-  {
-    type: 'app.route',
-    properties: {
-      path: '/projects/:namespace/deploy/*',
-      component: () => import('../src/ModelDeploymentWizardRoutes'),
-    },
-    flags: {
-      required: [PLUGIN_MODEL_SERVING],
-    },
-  },
 ];
 
 export default extensions;

@@ -1,12 +1,12 @@
 import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Spinner, Wizard, WizardStep } from '@patternfly/react-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { getGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
 import { Deployment } from 'extension-points';
-import { getDeploymentWizardExitRoute, deployModel } from './utils';
+import { deployModel } from './utils';
 import { useModelDeploymentWizard } from './useDeploymentWizard';
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
 import { ModelSourceStepContent } from './steps/ModelSourceStep';
@@ -15,6 +15,7 @@ import { ModelDeploymentStepContent } from './steps/ModelDeploymentStep';
 import { ReviewStepContent } from './steps/ReviewStep';
 import { useDeployMethod } from './useDeployMethod';
 import type { InitialWizardFormData } from './types';
+import { ExitDeploymentModal } from './CancelDeploymentModal';
 import { WizardFooterWithDisablingNext } from '../generic/WizardFooterWithDisablingNext';
 
 type ModelDeploymentWizardProps = {
@@ -24,6 +25,7 @@ type ModelDeploymentWizardProps = {
   existingData?: InitialWizardFormData;
   project: ProjectKind;
   existingDeployment?: Deployment;
+  returnRoute?: string;
 };
 
 const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
@@ -33,13 +35,20 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   existingData,
   project,
   existingDeployment,
+  returnRoute,
 }) => {
   const navigate = useNavigate();
-  const location = useLocation();
+
+  const [isExitModalOpen, setIsExitModalOpen] = React.useState(false);
 
   const exitWizard = React.useCallback(() => {
-    navigate(getDeploymentWizardExitRoute(location.pathname));
-  }, [navigate, location.pathname]);
+    navigate(returnRoute ?? '/ai-hub/deployments');
+  }, [navigate, returnRoute]);
+
+  const handleExitConfirm = React.useCallback(() => {
+    setIsExitModalOpen(false);
+    exitWizard();
+  }, [exitWizard]);
 
   const wizardState = useModelDeploymentWizard(existingData);
   const validation = useModelDeploymentWizardValidation(wizardState.state);
@@ -157,7 +166,17 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
 
   return (
     <ApplicationsPage title={title} description={description} loaded empty={false}>
-      <Wizard onClose={exitWizard} onSave={() => onSave()} footer={wizardFooter}>
+      {isExitModalOpen && (
+        <ExitDeploymentModal
+          onClose={() => setIsExitModalOpen(false)}
+          onConfirm={handleExitConfirm}
+        />
+      )}
+      <Wizard
+        onClose={() => setIsExitModalOpen(true)}
+        onSave={() => onSave()}
+        footer={wizardFooter}
+      >
         <WizardStep name="Model details" id="source-model-step">
           {wizardState.loaded.modelSourceLoaded ? (
             <ModelSourceStepContent wizardState={wizardState} validation={validation.modelSource} />
