@@ -218,7 +218,7 @@
     "cypress-multi-reporters": "^1.6.4",
     "cypress-plugin-steps": "^1.1.1",
     "eslint": "^8.57.0",
-    "eslint-config-prettier": "^8.6.0",
+    "eslint-config-prettier": "^10.0.0",
     "eslint-import-resolver-node": "^0.3.7",
     "eslint-import-resolver-typescript": "^3.5.3",
     "eslint-plugin-cypress": "^3.3.0",
