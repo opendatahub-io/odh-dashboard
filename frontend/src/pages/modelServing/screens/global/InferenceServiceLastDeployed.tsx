@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { InferenceServiceKind } from '#~/k8sTypes';
-import { getInferenceServiceStoppedStatus, isModelMesh } from '#~/pages/modelServing/utils';
+import { getInferenceServiceStoppedStatus } from '#~/pages/modelServing/utils';
 import { LastDeployed } from '#~/components/LastDeployed.tsx';
 
 type InferenceServiceLastDeployedProps = {
@@ -12,7 +12,7 @@ const InferenceServiceLastDeployed: React.FC<InferenceServiceLastDeployedProps> 
 }) => {
   const { isStopped } = getInferenceServiceStoppedStatus(inferenceService);
 
-  if (isStopped || isModelMesh(inferenceService)) {
+  if (isStopped) {
     return <>-</>;
   }
 

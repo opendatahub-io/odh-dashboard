@@ -9,10 +9,15 @@ import {
   k8sPatchResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { InferenceServiceModel, PodModel } from '#~/api/models';
-import { InferenceServiceKind, K8sAPIOptions, KnownLabels, PodKind } from '#~/k8sTypes';
+import {
+  InferenceServiceKind,
+  K8sAPIOptions,
+  KnownLabels,
+  PodKind,
+  DeploymentMode,
+} from '#~/k8sTypes';
 import { CreatingInferenceServiceObject } from '#~/pages/modelServing/screens/types';
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
-import { getInferenceServiceDeploymentMode } from '#~/pages/modelServing/screens/projects/utils';
 import { parseCommandLine } from '#~/api/k8s/utils';
 import { ModelServingPodSpecOptions } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import { getModelServingProjects } from '#~/api';
@@ -110,9 +115,7 @@ export const assembleInferenceService = (
   const annotations = { ...updatedInferenceService.metadata.annotations };
 
   annotations['openshift.io/display-name'] = data.name.trim();
-  annotations['serving.kserve.io/deploymentMode'] = getInferenceServiceDeploymentMode(
-    !!isModelMesh,
-  );
+  annotations['serving.kserve.io/deploymentMode'] = DeploymentMode.RawDeployment;
 
   const dashboardNamespace = data.dashboardNamespace ?? '';
   if (!isModelMesh && podSpecOptions && podSpecOptions.selectedHardwareProfile) {

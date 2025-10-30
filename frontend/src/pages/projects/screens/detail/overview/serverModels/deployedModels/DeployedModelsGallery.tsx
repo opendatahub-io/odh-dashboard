@@ -13,8 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { SearchIcon } from '@patternfly/react-icons';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
-import { isModelMesh } from '#~/pages/modelServing/utils';
-import { getPodsForKserve, getPodsForModelMesh } from '#~/api';
+import { getPodsForKserve } from '#~/api';
 import {
   checkModelPodStatus,
   getInferenceServiceModelState,
@@ -67,9 +66,11 @@ const DeployedModelsGallery: React.FC<DeployedModelsGalleryProps> = ({
     const getServicesForStatus = async () => {
       for (const deployedModel of deployedModels) {
         try {
-          const modelPods = await (!isModelMesh(deployedModel)
-            ? getPodsForKserve
-            : getPodsForModelMesh)(namespace, deployedModel.spec.predictor.model?.runtime ?? '');
+          // Always use KServe (no ModelMesh)
+          const modelPods = await getPodsForKserve(
+            namespace,
+            deployedModel.spec.predictor.model?.runtime ?? '',
+          );
           if (!canceled) {
             updateServiceState(deployedModel, checkModelPodStatus(modelPods[0]));
           }
