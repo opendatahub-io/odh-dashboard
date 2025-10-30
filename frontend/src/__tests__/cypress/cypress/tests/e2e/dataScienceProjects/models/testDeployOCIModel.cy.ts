@@ -130,6 +130,8 @@ describe(
         });
         modelServingWizard.findNextButton().click();
         // Step 3: Advanced Options
+        modelServingWizard.findNextButton().click();
+        // Step 4: Review
         modelServingWizard.findSubmitButton().click();
         modelServingSection.findModelServerDeployedName(modelDeploymentName);
         //Verify the model created and is running
