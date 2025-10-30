@@ -101,7 +101,7 @@
     "lodash-es": "^4.17.15",
     "mod-arch-core": "~1.0.2",
     "mod-arch-kubeflow": "~1.0.2",
-    "mod-arch-shared": "~1.0.2",
+    "mod-arch-shared": "~1.1.0",
     "react": "^18",
     "react-dom": "^18",
     "react-router": "^7.5.2",
