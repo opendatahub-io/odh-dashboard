@@ -67,7 +67,7 @@
     "eslint-plugin-no-barrel-files": "^1.2.1",
     "fastify-cli": "^5.7.1",
     "nodemon": "^3.0.2",
-    "pino-pretty": "^9.4.0",
+    "pino-pretty": "^13.0.0",
     "prettier": "^2.2.1",
     "rimraf": "^3.0.2",
     "ts-protoc-gen": "^0.10.0",
