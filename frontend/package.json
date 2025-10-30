@@ -63,7 +63,7 @@
     "test:cypress:e2e:open": "cd src/__tests__/cypress && npx cypress open --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\""
   },
   "dependencies": {
-    "@module-federation/runtime": "^0.15.0",
+    "@module-federation/runtime": "^0.21.0",
     "@monaco-editor/react": "^4.6.0",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
     "@openshift/dynamic-plugin-sdk-utils": "^5.0.1",
