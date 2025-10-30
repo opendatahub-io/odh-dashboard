@@ -11,6 +11,7 @@ import PVCSizeSettings from '#~/pages/clusterSettings/PVCSizeSettings';
 import CullerSettings from '#~/pages/clusterSettings/CullerSettings';
 import TelemetrySettings from '#~/pages/clusterSettings/TelemetrySettings';
 import ModelServingPlatformSettings from '#~/pages/clusterSettings/ModelServingPlatformSettings';
+import ModelDeploymentSettings from '#~/pages/clusterSettings/ModelDeploymentSettings';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
@@ -29,6 +30,8 @@ const ClusterSettings: React.FC = () => {
   const [pvcSize, setPvcSize] = React.useState<number>(DEFAULT_PVC_SIZE);
   const [userTrackingEnabled, setUserTrackingEnabled] = React.useState(false);
   const [cullerTimeout, setCullerTimeout] = React.useState(DEFAULT_CULLER_TIMEOUT);
+  const [useDistributedInferencing, setUseDistributedInferencing] = React.useState(false);
+  const [defaultDeploymentStrategy, setDefaultDeploymentStrategy] = React.useState('rolling');
   const { dashboardConfig } = useAppContext();
   const modelServingEnabled = useIsAreaAvailable(SupportedArea.MODEL_SERVING).status;
 
@@ -40,18 +43,30 @@ const ClusterSettings: React.FC = () => {
   React.useEffect(() => {
     fetchClusterSettings()
       .then((fetchedClusterSettings: ClusterSettingsType) => {
-        setClusterSettings(fetchedClusterSettings);
-        setPvcSize(fetchedClusterSettings.pvcSize);
-        setCullerTimeout(fetchedClusterSettings.cullerTimeout);
-        setUserTrackingEnabled(fetchedClusterSettings.userTrackingEnabled);
-        setModelServingEnabledPlatforms(fetchedClusterSettings.modelServingPlatformEnabled);
+        // Get modelServing settings from dashboard config
+        const modelServingConfig = dashboardConfig.spec.modelServing || {};
+        const useDistInferencing = modelServingConfig.isLLMdDefault ?? false;
+        const deploymentStrategy = modelServingConfig.deploymentStrategy ?? 'rolling';
+
+        const normalizedSettings: ClusterSettingsType = {
+          ...fetchedClusterSettings,
+          useDistributedInferencing: useDistInferencing,
+          defaultDeploymentStrategy: deploymentStrategy,
+        };
+        setClusterSettings(normalizedSettings);
+        setPvcSize(normalizedSettings.pvcSize);
+        setCullerTimeout(normalizedSettings.cullerTimeout);
+        setUserTrackingEnabled(normalizedSettings.userTrackingEnabled);
+        setModelServingEnabledPlatforms(normalizedSettings.modelServingPlatformEnabled);
+        setUseDistributedInferencing(useDistInferencing);
+        setDefaultDeploymentStrategy(deploymentStrategy);
         setLoaded(true);
         setLoadError(undefined);
       })
       .catch((e) => {
         setLoadError(e);
       });
-  }, []);
+  }, [dashboardConfig]);
 
   const isSettingsChanged = React.useMemo(
     () =>
@@ -60,16 +75,28 @@ const ClusterSettings: React.FC = () => {
         cullerTimeout,
         userTrackingEnabled,
         modelServingPlatformEnabled: modelServingEnabledPlatforms,
+        useDistributedInferencing,
+        defaultDeploymentStrategy,
       }),
-    [clusterSettings, pvcSize, cullerTimeout, userTrackingEnabled, modelServingEnabledPlatforms],
+    [
+      clusterSettings,
+      pvcSize,
+      cullerTimeout,
+      userTrackingEnabled,
+      modelServingEnabledPlatforms,
+      useDistributedInferencing,
+      defaultDeploymentStrategy,
+    ],
   );
 
-  const handleSaveButtonClicked = () => {
+  const handleSaveButtonClicked = async () => {
     const newClusterSettings: ClusterSettingsType = {
       pvcSize,
       cullerTimeout,
       userTrackingEnabled,
       modelServingPlatformEnabled: modelServingEnabledPlatforms,
+      useDistributedInferencing,
+      defaultDeploymentStrategy,
     };
 
     const clusterSettingsUnchanged = _.isEqual(clusterSettings, newClusterSettings);
@@ -92,32 +119,32 @@ const ClusterSettings: React.FC = () => {
         throw new Error(response.error);
       }
       setClusterSettings(newClusterSettings);
-    });
 
-    clusterSettingsPromise
-      .then(() => {
-        dispatch(
-          addNotification({
-            status: AlertVariant.success,
-            title: 'Cluster settings changes saved',
-            message: 'It may take up to 2 minutes for configuration changes to be applied.',
-            timestamp: new Date(),
-          }),
-        );
-      })
-      .catch((error) => {
-        dispatch(
-          addNotification({
-            status: AlertVariant.danger,
-            title: 'Error',
-            message: error.message,
-            timestamp: new Date(),
-          }),
-        );
-      })
-      .finally(() => {
-        setSaving(false);
-      });
+      clusterSettingsPromise
+        .then(() => {
+          dispatch(
+            addNotification({
+              status: AlertVariant.success,
+              title: 'Cluster settings changes saved',
+              message: 'It may take up to 2 minutes for configuration changes to be applied.',
+              timestamp: new Date(),
+            }),
+          );
+        })
+        .catch((error) => {
+          dispatch(
+            addNotification({
+              status: AlertVariant.danger,
+              title: 'Error',
+              message: error.message,
+              timestamp: new Date(),
+            }),
+          );
+        })
+        .finally(() => {
+          setSaving(false);
+        });
+    });
   };
 
   return (
@@ -140,6 +167,20 @@ const ClusterSettings: React.FC = () => {
               initialValue={clusterSettings.modelServingPlatformEnabled}
               enabledPlatforms={modelServingEnabledPlatforms}
               setEnabledPlatforms={setModelServingEnabledPlatforms}
+            />
+          </StackItem>
+        )}
+        {modelServingEnabled && (
+          <StackItem>
+            <ModelDeploymentSettings
+              initialUseDistributedInferencing={clusterSettings.useDistributedInferencing ?? false}
+              initialDefaultDeploymentStrategy={
+                clusterSettings.defaultDeploymentStrategy ?? 'rolling'
+              }
+              useDistributedInferencing={useDistributedInferencing}
+              setUseDistributedInferencing={setUseDistributedInferencing}
+              defaultDeploymentStrategy={defaultDeploymentStrategy}
+              setDefaultDeploymentStrategy={setDefaultDeploymentStrategy}
             />
           </StackItem>
         )}
