@@ -1,34 +1,38 @@
 import React from 'react';
 import { ContainerResources } from '#~/types';
+import { assemblePodSpecOptions } from '#~/utilities/podSpec';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import useServingAcceleratorProfileFormState from '#~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
 import { useAppContext } from '#~/app/AppContext';
 import { getModelServingSizes } from '#~/concepts/modelServing/modelServingSizesUtils';
 import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
-import { ModelServingSize } from '#~/pages/modelServing/screens/types';
 import { getInferenceServiceSize } from '#~/pages/modelServing/utils';
-import useServingHardwareProfileConfig from './useServingHardwareProfileConfig';
-import { PodSpecOptions, HardwarePodSpecOptionsState } from './types';
+import { isGpuDisabled } from '#~/pages/modelServing/screens/projects/utils';
+import useServingHardwareProfileConfig from '#~/concepts/hardwareProfiles/useServingHardwareProfileConfig';
+import { PodSpecOptionsAcceleratorState } from '#~/concepts/hardwareProfiles/types';
+import {
+  ModelServingPodSpecOptions,
+  ModelServingSizeState,
+} from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 
-export type ModelServingPodSpecOptions = PodSpecOptions & {
-  selectedModelSize?: ModelServingSize;
-};
-
-export type ModelServingSizeState = {
-  sizes: ModelServingSize[];
-  selectedSize: ModelServingSize;
-  setSelectedSize: (modelSize: ModelServingSize) => void;
-};
-
-export type ModelServingHardwareProfileState =
-  HardwarePodSpecOptionsState<ModelServingPodSpecOptions> & {
+export type ModelServingPodSpecOptionsState =
+  PodSpecOptionsAcceleratorState<ModelServingPodSpecOptions> & {
     modelSize: ModelServingSizeState;
   };
 
-export const useModelServingHardwareProfileState = (
+// HERE: go through and find all the places that use this and replace with the new useServingHardwareProfileConfig
+// todo:  get NIM set up so i can test it.
+
+// every file that is *only* used by this file should be marked as deprecated.
+// it will be marked as deprecated and with the label: accel-modelMesh-deprecated
+// everything with this label can all be removed when the modelmesh classes are removed
+
+/** @deprecated -- accelerator profiles are removed as of 3.0; and only modelmesh uses this (which is itself deprecated) */
+export const useModelServingPodSpecOptionsState = (
   servingRuntime?: ServingRuntimeKind,
   inferenceService?: InferenceServiceKind,
   isModelMesh?: boolean,
-): ModelServingHardwareProfileState => {
+): ModelServingPodSpecOptionsState => {
   const { dashboardConfig } = useAppContext();
   const sizes = useDeepCompareMemoize(getModelServingSizes(dashboardConfig));
   const existingSize = useDeepCompareMemoize(
@@ -43,7 +47,20 @@ export const useModelServingHardwareProfileState = (
     }
   }, [inferenceService, existingSize]);
 
+  const acceleratorProfile = useServingAcceleratorProfileFormState(
+    servingRuntime,
+    inferenceService,
+  );
   const hardwareProfile = useServingHardwareProfileConfig(inferenceService);
+
+  // Handle GPU disabled state
+  const controlledAcceleratorProfile = {
+    ...acceleratorProfile,
+    formData:
+      servingRuntime && isGpuDisabled(servingRuntime)
+        ? { count: 0, useExistingSettings: false }
+        : acceleratorProfile.formData,
+  };
 
   let podSpecOptions: ModelServingPodSpecOptions = {
     resources: {},
@@ -80,7 +97,6 @@ export const useModelServingHardwareProfileState = (
       };
     }
   } else {
-    // For ModelMesh, use basic resource settings without accelerator profile
     const resourceSettings: ContainerResources = {
       requests: {
         cpu: modelSize.resources.requests?.cpu,
@@ -92,10 +108,20 @@ export const useModelServingHardwareProfileState = (
       },
     };
 
+    const { tolerations: newTolerations, resources: newResources } = assemblePodSpecOptions(
+      resourceSettings,
+      acceleratorProfile.initialState,
+      acceleratorProfile.formData,
+      existingTolerations,
+      undefined,
+      existingResources,
+    );
+
     podSpecOptions = {
-      resources: resourceSettings,
-      tolerations: existingTolerations,
+      resources: newResources,
+      tolerations: newTolerations,
       nodeSelector: existingNodeSelector,
+      selectedAcceleratorProfile: acceleratorProfile.formData.profile,
     };
   }
 
@@ -105,6 +131,7 @@ export const useModelServingHardwareProfileState = (
       selectedSize: modelSize,
       setSelectedSize: setModelSize,
     },
+    acceleratorProfile: controlledAcceleratorProfile,
     hardwareProfile,
     podSpecOptions,
   };

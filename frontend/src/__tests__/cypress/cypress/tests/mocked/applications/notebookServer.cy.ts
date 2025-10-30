@@ -259,8 +259,6 @@ describe('NotebookServer', () => {
 
     cy.wait('@startNotebookServer').then((interception) => {
       const { podSpecOptions } = interception.request.body as NotebookData;
-
-      expect(podSpecOptions.selectedAcceleratorProfile).to.eq(undefined);
       expect(podSpecOptions.selectedHardwareProfile).not.to.eq(undefined);
       expect(
         podSpecOptions.selectedHardwareProfile?.metadata.annotations?.[

@@ -196,14 +196,10 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
 
   const podSpecOptionsState = useNotebookKindPodSpecOptionsState(existingNotebook);
   const {
-    acceleratorProfile: { formData: acceleratorProfileFormData },
     hardwareProfile: { formData: hardwareProfileFormData },
   } = podSpecOptionsState;
 
-  const profileIdentifiers = useProfileIdentifiers(
-    acceleratorProfileFormData.profile,
-    hardwareProfileFormData.selectedProfile,
-  );
+  const profileIdentifiers = useProfileIdentifiers(hardwareProfileFormData.selectedProfile);
 
   const isHardwareProfileSupported = React.useCallback(
     (profile: HardwareProfileKind) => {

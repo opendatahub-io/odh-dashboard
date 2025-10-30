@@ -29,8 +29,22 @@ export type PodSpecOptions = {
   selectedHardwareProfile?: HardwareProfileKind;
 };
 
-export type PodSpecOptionsState<T extends PodSpecOptions> = {
+export type HardwarePodSpecOptions = {
+  resources?: ContainerResources;
+  tolerations?: Toleration[];
+  nodeSelector?: NodeSelector;
+  selectedHardwareProfile?: HardwareProfileKind;
+};
+
+// @deprecated.  leaving in only for deprecated code to use (ie, modelmesh)
+// only in modelmesh deprecation path
+export type PodSpecOptionsAcceleratorState<T extends PodSpecOptions> = {
   acceleratorProfile: ReturnType<typeof useAcceleratorProfileFormState>;
+  hardwareProfile: ReturnType<typeof useHardwareProfileConfig>;
+  podSpecOptions: T;
+};
+
+export type HardwarePodSpecOptionsState<T extends HardwarePodSpecOptions> = {
   hardwareProfile: ReturnType<typeof useHardwareProfileConfig>;
   podSpecOptions: T;
 };

@@ -47,8 +47,8 @@ export const formatResource = (identifier: string, request: string, limit: strin
   `${identifier}: Request = ${request}; Limit = ${limit}`;
 
 export const useProfileIdentifiers = (
-  acceleratorProfile?: AcceleratorProfileKind,
   hardwareProfile?: HardwareProfileKind,
+  acceleratorProfile?: AcceleratorProfileKind,
 ): string[] => {
   const [identifiers, setIdentifiers] = React.useState<string[]>([]);
 
