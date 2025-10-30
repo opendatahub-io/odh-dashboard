@@ -1,0 +1,102 @@
+import React from 'react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { ProjectsContext, byName } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
+import {
+  Bullseye,
+  Button,
+  EmptyStateActions,
+  EmptyStateFooter,
+  EmptyStateBody,
+  EmptyState,
+  Spinner,
+} from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import ModelDeploymentWizard from './ModelDeploymentWizard';
+import { ModelDeploymentsProvider } from '../../concepts/ModelDeploymentsContext';
+import { useAvailableClusterPlatforms } from '../../concepts/useAvailableClusterPlatforms';
+import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
+
+const ErrorContent: React.FC<{ error: Error }> = ({ error }) => {
+  const navigate = useNavigate();
+  return (
+    <Bullseye>
+      <EmptyState
+        headingLevel="h4"
+        icon={ExclamationCircleIcon}
+        titleText="Unable to load model deployment wizard"
+      >
+        <EmptyStateBody>{error.message}</EmptyStateBody>
+        <EmptyStateFooter>
+          <EmptyStateActions>
+            <Button variant="primary" onClick={() => navigate(`/ai-hub/deployments/`)}>
+              Return to deployments
+            </Button>
+          </EmptyStateActions>
+        </EmptyStateFooter>
+      </EmptyState>
+    </Bullseye>
+  );
+};
+
+export const ModelDeploymentWizardPage: React.FC = () => {
+  const { namespace } = useParams();
+  const location = useLocation();
+
+  // Extract state from navigation
+  const existingData = location.state?.initialData;
+  const existingDeployment = location.state?.existingDeployment;
+  const returnRoute = location.state?.returnRoute;
+
+  const { projects, loaded: projectsLoaded } = React.useContext(ProjectsContext);
+  const currentProject = React.useMemo(
+    () => projects.find(byName(namespace)),
+    [projects, namespace],
+  );
+
+  const { clusterPlatforms, clusterPlatformsLoaded, clusterPlatformsError } =
+    useAvailableClusterPlatforms();
+  const { activePlatform } = useProjectServingPlatform(currentProject, clusterPlatforms);
+
+  if (!projectsLoaded || !clusterPlatformsLoaded) {
+    return (
+      <Bullseye>
+        <Spinner />
+      </Bullseye>
+    );
+  }
+
+  if (!currentProject || !activePlatform || clusterPlatformsError) {
+    return (
+      <ErrorContent
+        error={
+          clusterPlatformsError ??
+          new Error(
+            !currentProject
+              ? `Project ${namespace ?? ''} not found.`
+              : !activePlatform
+              ? 'No model serving platform is configured for this project.'
+              : 'Unable to edit model deployment.',
+          )
+        }
+      />
+    );
+  }
+
+  return (
+    <ModelDeploymentsProvider projects={[currentProject]}>
+      <ModelDeploymentWizard
+        project={currentProject}
+        title={existingDeployment ? 'Edit model deployment' : 'Deploy a model'}
+        primaryButtonText={existingDeployment ? 'Update deployment' : 'Deploy model'}
+        description={
+          existingDeployment
+            ? 'Update your model deployment configuration.'
+            : 'Configure deployment options for this model version.'
+        }
+        existingData={existingData}
+        existingDeployment={existingDeployment}
+        returnRoute={returnRoute}
+      />
+    </ModelDeploymentsProvider>
+  );
+};
