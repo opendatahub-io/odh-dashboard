@@ -33,7 +33,7 @@ describe('Storage classes', () => {
       storageClassesPage.findEmptyState().should('be.visible');
     });
 
-    it('does not automatically set a default storage class when no config is found, and can edit to make it valid.', () => {
+    it('Sets a placeholder config when no config is found.', () => {
       const storageClassWithoutConfig = {
         ...openshiftDefaultStorageClass,
         metadata: {
@@ -44,10 +44,15 @@ describe('Storage classes', () => {
       storageClassesPage.mockGetStorageClasses([storageClassWithoutConfig]);
       storageClassesPage.visit();
 
-      const storageClassTableRow =
-        storageClassesTable.getRowByStorageClassName('openshift-default-sc');
-
-      storageClassTableRow.find().findByTestId('corrupted-metadata-alert').should('be.visible');
+      const storageClassTableRow = storageClassesTable.getRowByName('openshift-default-sc');
+      storageClassTableRow.findDisplayNameValue().should('contain.text', 'openshift-default-sc');
+      storageClassTableRow.findEnableValue().findByTestId('enable-switch').should('be.checked');
+      storageClassTableRow
+        .findDefaultValue()
+        .findByTestId('set-default-radio')
+        .should('not.be.checked');
+      // Last modified is the current date, so we can't test the exact value. But something should be there.
+      storageClassTableRow.findLastModifiedValue().should('not.contain.text', '-');
     });
 
     it('renders table with data', () => {

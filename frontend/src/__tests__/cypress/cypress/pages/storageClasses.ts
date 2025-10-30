@@ -127,10 +127,6 @@ class StorageClassesTable {
     return this.getRowByName(name, 'Display name');
   }
 
-  getRowByStorageClassName(name: string) {
-    return this.getRowByName(name, 'OpenShift storage class');
-  }
-
   getTableToolbar() {
     return new StorageClassesToolbar(() => cy.findByTestId('sc-table-toolbar'));
   }

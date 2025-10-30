@@ -16,7 +16,15 @@ export const getStorageClassConfig = (
     );
     return storageClassConfig;
   } catch {
-    return undefined;
+    return {
+      displayName: storageClass.metadata.name,
+      isEnabled: true,
+      isDefault: false,
+      lastModified: new Date().toISOString(),
+      accessModeSettings: {
+        [AccessMode.RWO]: true,
+      },
+    };
   }
 };
 
