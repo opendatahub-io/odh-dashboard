@@ -13,7 +13,6 @@ import { Link } from 'react-router-dom';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import InferenceServiceStatus from '#~/pages/modelServing/screens/global/InferenceServiceStatus';
-import { isModelMesh } from '#~/pages/modelServing/utils';
 import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import InferenceServiceServingRuntime from '#~/pages/modelServing/screens/global/InferenceServiceServingRuntime';
 import InferenceServiceEndpoint from '#~/pages/modelServing/screens/global/InferenceServiceEndpoint';
@@ -34,10 +33,9 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
 }) => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
 
-  const modelMesh = isModelMesh(inferenceService);
-  const modelMeshMetricsSupported = modelMetricsEnabled && modelMesh;
+  // Always KServe (no ModelMesh)
   const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
-  const kserveMetricsSupported = modelMetricsEnabled && kserveMetricsEnabled && !modelMesh;
+  const kserveMetricsSupported = modelMetricsEnabled && kserveMetricsEnabled;
 
   const displayName = getDisplayNameFromK8sResource(inferenceService);
 
@@ -52,7 +50,7 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
             <FlexItem>
               <InferenceServiceStatus
                 inferenceService={inferenceService}
-                isKserve={!isModelMesh(inferenceService)}
+                isKserve={true} // Always KServe
                 stoppedStates={{
                   isStarting,
                   isStopping,
@@ -63,9 +61,7 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
             </FlexItem>
             <FlexItem>
               <ResourceNameTooltip resource={inferenceService}>
-                {!isStarting &&
-                !isFailed &&
-                (modelMeshMetricsSupported || kserveMetricsSupported) ? (
+                {!isStarting && !isFailed && kserveMetricsSupported ? (
                   <Link
                     data-testid={`metrics-link-${displayName}`}
                     to={`/projects/${inferenceService.metadata.namespace}/metrics/model/${inferenceService.metadata.name}`}
@@ -104,7 +100,7 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
           <InferenceServiceEndpoint
             inferenceService={inferenceService}
             servingRuntime={servingRuntime}
-            isKserve={!isModelMesh(inferenceService)}
+            isKserve={true} // Always KServe
             modelState={{ isStarting, isStopping, isStopped, isRunning, isFailed }}
           />
         </CardFooter>

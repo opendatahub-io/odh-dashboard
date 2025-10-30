@@ -1,10 +1,5 @@
 import { DashboardCommonConfig } from '#~/k8sTypes';
-import {
-  StackCapability,
-  SupportedArea,
-  SupportedAreasState,
-  DataScienceStackComponent,
-} from './types';
+import { SupportedArea, SupportedAreasState, DataScienceStackComponent } from './types';
 
 export const techPreviewFlags = {
   disableModelRegistry: true,
@@ -114,7 +109,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.K_SERVE_AUTH]: {
     featureFlags: ['disableKServeAuth'],
     reliantAreas: [SupportedArea.K_SERVE],
-    requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
   },
   [SupportedArea.K_SERVE_METRICS]: {
     featureFlags: ['disableKServeMetrics'],

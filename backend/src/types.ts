@@ -990,11 +990,6 @@ export type DataScienceClusterKindStatus = {
   components?: {
     [key: string]: DataScienceClusterComponentStatus;
   } & {
-    /** Status of KServe, including deployment mode and serverless configuration. */
-    kserve?: DataScienceClusterComponentStatus & {
-      defaultDeploymentMode?: string;
-      serverlessMode?: string;
-    };
     /** Status of Model Registry, including its namespace configuration. */
     modelregistry?: DataScienceClusterComponentStatus & {
       registriesNamespace?: string;

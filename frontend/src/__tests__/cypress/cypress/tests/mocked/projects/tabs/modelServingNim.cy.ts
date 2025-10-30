@@ -100,7 +100,7 @@ describe('NIM Model Serving', () => {
       // Temp until KEDA is supported
       nimDeployModal.findNimModelReplicas().should('have.value', '1');
 
-      /* Disabled until KEDA is supported -- Serverless has been removed */
+      /* TODO: Enable replica validation when KEDA autoscaling is supported */
       // // Validate model replicas
       // nimDeployModal.findMinReplicasInput().should('have.value', '1');
       // nimDeployModal.findMinReplicasPlusButton().should('be.disabled');

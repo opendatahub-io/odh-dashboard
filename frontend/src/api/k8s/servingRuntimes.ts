@@ -31,12 +31,10 @@ export const assembleServingRuntime = (
   isCustomServingRuntimesEnabled: boolean,
   podSpecOptions: ModelServingPodSpecOptions,
   isEditing?: boolean,
-  isModelMesh?: boolean,
 ): ServingRuntimeKind => {
   const {
     name: displayName,
     k8sName,
-    numReplicas,
     externalRoute,
     tokenAuth,
     imageName,
@@ -108,12 +106,8 @@ export const assembleServingRuntime = (
     };
   }
 
+  // KServe doesn't use replicas (removed ModelMesh logic)
   delete updatedServingRuntime.spec.replicas;
-  if (isModelMesh) {
-    updatedServingRuntime.spec.replicas = numReplicas;
-  }
-
-  const { tolerations, resources, nodeSelector } = podSpecOptions;
 
   updatedServingRuntime.spec.containers = servingRuntime.spec.containers.map(
     (container): ServingContainer => {
@@ -129,9 +123,9 @@ export const assembleServingRuntime = (
 
       const containerWithoutResources = _.omit(updatedContainer, 'resources');
 
+      // KServe containers don't include resources (removed ModelMesh logic)
       return {
         ...containerWithoutResources,
-        ...(isModelMesh ? { resources } : {}),
         volumeMounts,
       };
     },
@@ -148,14 +142,7 @@ export const assembleServingRuntime = (
     updatedServingRuntime.spec.supportedModelFormats = [supportedModelFormatsObj];
   }
 
-  if (isModelMesh) {
-    if (tolerations) {
-      updatedServingRuntime.spec.tolerations = tolerations;
-    }
-    if (nodeSelector) {
-      updatedServingRuntime.spec.nodeSelector = nodeSelector;
-    }
-  }
+  // KServe doesn't use tolerations/nodeSelector at ServingRuntime level (removed ModelMesh logic)
 
   // Volume mount for /dev/shm
   const volumes = updatedServingRuntime.spec.volumes || [];
@@ -232,10 +219,8 @@ export const updateServingRuntime = (options: {
   isCustomServingRuntimesEnabled: boolean;
   opts?: K8sAPIOptions;
   podSpecOptions: ModelServingPodSpecOptions;
-  isModelMesh?: boolean;
 }): Promise<ServingRuntimeKind> => {
-  const { data, existingData, isCustomServingRuntimesEnabled, opts, podSpecOptions, isModelMesh } =
-    options;
+  const { data, existingData, isCustomServingRuntimesEnabled, opts, podSpecOptions } = options;
 
   const updatedServingRuntime = assembleServingRuntime(
     data,
@@ -244,7 +229,6 @@ export const updateServingRuntime = (options: {
     isCustomServingRuntimesEnabled,
     podSpecOptions,
     true,
-    isModelMesh,
   );
 
   return k8sUpdateResource<ServingRuntimeKind>(
@@ -265,17 +249,9 @@ export const createServingRuntime = (options: {
   isCustomServingRuntimesEnabled: boolean;
   opts?: K8sAPIOptions;
   podSpecOptions: ModelServingPodSpecOptions;
-  isModelMesh?: boolean;
 }): Promise<ServingRuntimeKind> => {
-  const {
-    data,
-    namespace,
-    servingRuntime,
-    isCustomServingRuntimesEnabled,
-    opts,
-    podSpecOptions,
-    isModelMesh,
-  } = options;
+  const { data, namespace, servingRuntime, isCustomServingRuntimesEnabled, opts, podSpecOptions } =
+    options;
   const assembledServingRuntime = assembleServingRuntime(
     data,
     namespace,
@@ -283,7 +259,6 @@ export const createServingRuntime = (options: {
     isCustomServingRuntimesEnabled,
     podSpecOptions,
     false,
-    isModelMesh,
   );
 
   return k8sCreateResource<ServingRuntimeKind>(
