@@ -26,7 +26,7 @@ const ChatbotConfigurationState: React.FC<ChatbotConfigurationStateProps> = ({
     }
   }, [lsdStatus]);
 
-  // Auto-close modal after 3 seconds when playground is successfully created
+  // Auto-close modal after 5 seconds when playground is successfully created
   React.useEffect(() => {
     if (lsdStatus?.phase === 'Ready') {
       const timer = setTimeout(() => {
