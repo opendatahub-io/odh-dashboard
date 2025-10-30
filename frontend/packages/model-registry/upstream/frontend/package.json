@@ -70,7 +70,7 @@
     "react-refresh": "^0.14.2",
     "regenerator-runtime": "^0.14.1",
     "sass": "^1.87.0",
-    "sass-loader": "^13.3.3",
+    "sass-loader": "^16.0.0",
     "speed-measure-webpack-plugin": "^1.5.0",
     "style-loader": "^4.0.0",
     "svg-url-loader": "^8.0.0",
