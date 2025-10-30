@@ -314,6 +314,11 @@ export const updateNotebook = (
   oldNotebook.spec.template.spec.nodeSelector = {};
   container.resources = {};
 
+  // Clear old volumes and volumeMounts to prevent lodash merge from
+  // merging them by array index, which creates corrupted volumes with multiple types
+  oldNotebook.spec.template.spec.volumes = [];
+  container.volumeMounts = [];
+
   return k8sUpdateResource<NotebookKind>(
     applyK8sAPIOptions(
       {
