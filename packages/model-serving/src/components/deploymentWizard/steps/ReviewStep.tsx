@@ -14,7 +14,7 @@ import { ModelLocationType } from '../types';
 
 type ReviewStepContentProps = {
   wizardState: UseModelDeploymentWizardState;
-  projectName: string;
+  projectName?: string;
 };
 
 type WizardState = UseModelDeploymentWizardState['state'];
@@ -315,7 +315,7 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
   wizardState,
   projectName,
 }) => {
-  const statusSections = React.useMemo(() => getStatusSections(projectName), [projectName]);
+  const statusSections = React.useMemo(() => getStatusSections(projectName ?? ''), [projectName]);
 
   return (
     <Form>

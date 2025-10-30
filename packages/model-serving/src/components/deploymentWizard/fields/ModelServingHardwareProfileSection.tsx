@@ -59,7 +59,7 @@ export const createAcceleratorProfileStub = (): UseAcceleratorProfileFormResult 
 
 type ModelServingHardwareProfileSectionComponentProps = {
   hardwareProfileConfig: UseHardwareProfileConfigResult;
-  project: string;
+  project?: string;
   isEditing?: boolean;
 };
 

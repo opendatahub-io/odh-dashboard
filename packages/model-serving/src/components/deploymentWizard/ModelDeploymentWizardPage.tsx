@@ -65,11 +65,10 @@ export const ModelDeploymentWizardPage: React.FC = () => {
     );
   }
 
-  if (!currentProject || !activePlatform || clusterPlatformsError) {
+  if (clusterPlatformsError) {
     return (
       <ErrorContent
         error={
-          clusterPlatformsError ??
           new Error(
             !currentProject
               ? `Project ${namespace ?? ''} not found.`
@@ -83,7 +82,7 @@ export const ModelDeploymentWizardPage: React.FC = () => {
   }
 
   return (
-    <ModelDeploymentsProvider projects={[currentProject]}>
+    <ModelDeploymentsProvider projects={currentProject ? [currentProject] : undefined}>
       <ModelDeploymentWizard
         project={currentProject}
         title={existingDeployment ? 'Edit model deployment' : 'Deploy a model'}

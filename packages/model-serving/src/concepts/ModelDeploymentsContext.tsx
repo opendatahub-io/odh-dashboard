@@ -78,7 +78,7 @@ const PlatformDeploymentWatcher: React.FC<PlatformDeploymentWatcherProps> = ({
 };
 
 type ModelDeploymentsProviderProps = {
-  projects: ProjectKind[];
+  projects?: ProjectKind[];
   labelSelectors?: { [key: string]: string };
   children: React.ReactNode;
   filterFn?: (model: Deployment['model']) => boolean;
@@ -151,8 +151,8 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
 
   return (
     <ModelDeploymentsContext.Provider value={contextValue}>
-      {
-        // the only way to dynamically call hooks (useWatchDeployments) is to render them in dynamic components
+      {projects &&
+        projects.length > 0 &&
         deploymentWatchers.map((watcher) => {
           const platformId = watcher.properties.platform;
 
@@ -172,8 +172,7 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
               filterFn={filterFn}
             />
           );
-        })
-      }
+        })}
       {children}
     </ModelDeploymentsContext.Provider>
   );
