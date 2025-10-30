@@ -65,7 +65,7 @@
     "@typescript-eslint/parser": "^7.1.1",
     "babel-eslint": "^10.1.0",
     "eslint-plugin-no-barrel-files": "^1.2.1",
-    "fastify-cli": "^5.7.1",
+    "fastify-cli": "^7.0.0",
     "nodemon": "^3.0.2",
     "pino-pretty": "^9.4.0",
     "prettier": "^2.2.1",
