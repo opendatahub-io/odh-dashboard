@@ -50,7 +50,7 @@
     "@fastify/static": "^6.10.2",
     "@fastify/websocket": "^8.3.1",
     "@kubernetes/client-node": "^0.12.2",
-    "dotenv": "^16.4.7",
+    "dotenv": "^17.0.0",
     "fastify": "^4.28.1",
     "fastify-plugin": "^4.5.1",
     "http-errors": "^1.8.0",
