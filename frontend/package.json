@@ -188,7 +188,7 @@
     "victory-zoom-container": "^37.3.6",
     "webpack": "^5.96.1",
     "webpack-bundle-analyzer": "^4.7.0",
-    "webpack-cli": "^5.1.4",
+    "webpack-cli": "^6.0.0",
     "webpack-dev-server": "^5.1.0",
     "webpack-merge": "^6.0.1",
     "webpack-virtual-modules": "^0.6.2",
