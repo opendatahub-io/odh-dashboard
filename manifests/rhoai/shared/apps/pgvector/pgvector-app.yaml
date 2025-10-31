@@ -10,7 +10,6 @@ spec:
   description: |-
     EDB Postgres AI - solution including Pgvector
     Use powerful hybrid search for AI RAG and multimodal AI recommender applications with EDB's vector database solution including Pgvector. Combine AI, transactional, and analytical workloads with native vector index search, enterprise-grade security, and scalability in a unified Postgres environment.
-  kfdefApplications: []
   route: ''
   img: >-
     <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
