@@ -25,9 +25,17 @@ describe('searchUtils', () => {
       expect(result).toBe(`/develop-train/feature-store/data-sources/${testProject}/${testName}`);
     });
 
-    it('should return features route for feature type', () => {
+    it('should return features route for feature type with featureView', () => {
+      const featureView = 'test-feature-view';
+      const result = getFeatureStoreRoute('feature', testProject, testName, featureView);
+      expect(result).toBe(
+        `/develop-train/feature-store/features/${testProject}/${featureView}/${testName}`,
+      );
+    });
+
+    it('should return features route for feature type without featureView', () => {
       const result = getFeatureStoreRoute('feature', testProject, testName);
-      expect(result).toBe(`/develop-train/feature-store/features/${testProject}`);
+      expect(result).toBe(`/develop-train/feature-store/features/${testProject}//${testName}`);
     });
 
     it('should return feature view route for featureView type', () => {
@@ -59,6 +67,22 @@ describe('searchUtils', () => {
       const result = getFeatureStoreRoute('entity', specialProject, specialName);
       expect(result).toBe(`/develop-train/feature-store/entities/${specialProject}/${specialName}`);
     });
+
+    it('should handle special characters in featureView for feature type', () => {
+      const specialProject = 'project-with-dashes';
+      const specialName = 'feature-name';
+      const specialFeatureView = 'feature-view_with-special';
+
+      const result = getFeatureStoreRoute(
+        'feature',
+        specialProject,
+        specialName,
+        specialFeatureView,
+      );
+      expect(result).toBe(
+        `/develop-train/feature-store/features/${specialProject}/${specialFeatureView}/${specialName}`,
+      );
+    });
   });
 
   describe('groupResultsByCategory test cases', () => {
@@ -68,6 +92,7 @@ describe('searchUtils', () => {
       title: string,
       type: string,
       project: string = TEST_PROJECTS.DEFAULT,
+      featureView?: string,
     ): ISearchItem => ({
       id,
       category,
@@ -75,6 +100,7 @@ describe('searchUtils', () => {
       description: `Description for ${title}`,
       type,
       project,
+      featureView,
     });
 
     const createRealisticMockData = (): ISearchItem[] => [
@@ -101,6 +127,7 @@ describe('searchUtils', () => {
         description: 'Outstanding credit card balance',
         type: 'feature',
         project: TEST_PROJECTS.PRIMARY,
+        featureView: 'loan_features',
       },
       {
         id: '4',
