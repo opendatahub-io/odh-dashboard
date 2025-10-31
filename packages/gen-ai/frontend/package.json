@@ -125,5 +125,5 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "ts-jest": "^29.2.5"
   },
-  "packageManager": "npm@10.9.2"
+  "packageManager": "npm@11.6.2"
 }
