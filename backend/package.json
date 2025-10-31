@@ -70,7 +70,7 @@
     "globals": "^16.4.0",
     "nodemon": "^3.0.2",
     "pino-pretty": "^9.4.0",
-    "rimraf": "^3.0.2",
+    "rimraf": "^6.0.0",
     "ts-protoc-gen": "^0.10.0",
     "tslib": "^2.0.3",
     "typescript": "^5.8.3"
