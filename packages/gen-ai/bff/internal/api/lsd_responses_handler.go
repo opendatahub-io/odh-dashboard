@@ -232,7 +232,7 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Retrieve and inject MaaS provider data for custom headers
-	providerData := app.getMaaSProviderData(ctx, createRequest.Model)
+	providerData := app.getProviderData(ctx, createRequest.Model)
 
 	// Convert to client params (only working parameters)
 	params := llamastack.CreateResponseParams{
@@ -388,7 +388,7 @@ func (app *App) validatePreviousResponse(ctx context.Context, responseID string)
 }
 
 // getMaaSProviderData retrieves and caches MaaS tokens for models, returning provider data for injection
-func (app *App) getMaaSProviderData(ctx context.Context, modelID string) map[string]interface{} {
+func (app *App) getProviderData(ctx context.Context, modelID string) map[string]interface{} {
 	// Early return if context doesn't have required data
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil {
@@ -400,10 +400,10 @@ func (app *App) getMaaSProviderData(ctx context.Context, modelID string) map[str
 		return nil
 	}
 
-	// Early check: If model ID doesn't start with "maas-", skip MaaS token injection
-	// This handles provider-prefixed format (e.g., "maas-vllm-inference-1/facebook/opt-125m")
-	if !strings.HasPrefix(modelID, constants.MaaSProviderPrefix) {
-		app.logger.Debug("Non-MaaS model (no maas- prefix in model ID), skipping token injection", "model", modelID)
+	// Early check: If model ID doesn't start with "maas-" or "llmd-", skip MaaS token injection
+	// This handles provider-prefixed format (e.g., "maas-vllm-inference-1/facebook/opt-125m" or "llmd-vllm-inference-1/facebook/opt-125m")
+	if !strings.HasPrefix(modelID, constants.MaaSProviderPrefix) && !strings.HasPrefix(modelID, constants.LLMDProviderPrefix) {
+		app.logger.Debug("Non-MaaS or LLMD model (no maas- or llmd- prefix in model ID), skipping token injection", "model", modelID)
 		return nil
 	}
 
@@ -415,10 +415,20 @@ func (app *App) getMaaSProviderData(ctx context.Context, modelID string) map[str
 
 	app.logger.Debug("Detected MaaS model", "model", modelID)
 
+	var token string
 	// Get or generate MaaS token
-	token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, modelID)
-	if token == "" {
-		return nil
+	if strings.HasPrefix(modelID, constants.MaaSProviderPrefix) {
+		token = app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, modelID)
+		if token == "" {
+			return nil
+		}
+	}
+
+	if strings.HasPrefix(modelID, constants.LLMDProviderPrefix) {
+		token = app.getLLMDTokenForModel(identity, namespace, modelID)
+		if token == "" {
+			return nil
+		}
 	}
 
 	// Inject token as provider data
@@ -467,4 +477,16 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 	}
 
 	return tokenResponse.Token
+}
+
+// getLLMDTokenForModel extracts the OpenShift JWT token for LLMD models
+func (app *App) getLLMDTokenForModel(identity *integrations.RequestIdentity, namespace, modelID string) string {
+	// For LLMD models, use the OpenShift JWT token directly
+	if identity.Token == "" {
+		app.logger.Warn("No OpenShift JWT token available for LLMD model", "model", modelID, "namespace", namespace)
+		return ""
+	}
+
+	app.logger.Debug("Using OpenShift JWT token for LLMD model", "model", modelID, "namespace", namespace)
+	return identity.Token
 }
