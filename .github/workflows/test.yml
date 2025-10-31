@@ -1,5 +1,8 @@
 name: Test
 on: [push, pull_request]
+concurrency:
+  group: tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 env:
   NODE_VERSION: 20.x
   DO_NOT_TRACK: 1

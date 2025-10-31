@@ -17,6 +17,7 @@ on:
       - '!**.md'
 env:
   NODE_VERSION: 20
+
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
