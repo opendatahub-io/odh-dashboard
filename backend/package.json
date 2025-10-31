@@ -44,7 +44,7 @@
     "@fastify/http-proxy": "^9.5.0",
     "@fastify/sensible": "^5.2.0",
     "@fastify/static": "^6.10.2",
-    "@fastify/websocket": "^8.3.1",
+    "@fastify/websocket": "^11.0.0",
     "@kubernetes/client-node": "^0.12.2",
     "dotenv": "^16.4.7",
     "fastify": "^4.28.1",
