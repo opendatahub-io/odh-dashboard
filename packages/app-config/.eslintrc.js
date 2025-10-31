@@ -4,4 +4,4 @@ module.exports = require('@odh-dashboard/eslint-config')
       'no-barrel-files/no-barrel-files': 'off',
     },
   })
-  .recommendedReactTypescript(__dirname);
+  .recommendedTypescript(__dirname);

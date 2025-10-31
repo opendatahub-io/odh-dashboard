@@ -8,7 +8,7 @@ import {
 } from '@odh-dashboard/internal/k8sTypes';
 import { isServingRuntimeKind } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { Form, Stack, StackItem, Alert, FormGroup, FormSection } from '@patternfly/react-core';
-import { useAccessReview } from '../../../../../../frontend/src/api';
+import { useAccessReview } from '@odh-dashboard/internal/api/index';
 import { ExternalRouteField } from '../fields/ExternalRouteField';
 import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
 import { RuntimeArgsField } from '../fields/RuntimeArgsField';

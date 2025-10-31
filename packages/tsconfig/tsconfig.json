@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "rootDir": "${configDir}",
     "module": "esnext",
     "target": "es2021",
     "lib": ["es2021", "dom", "ES2023.Array"],
@@ -11,7 +12,6 @@
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "noImplicitAny": true,
-    "allowJs": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
@@ -21,6 +21,8 @@
     "baseUrl": "${configDir}",
     "noEmit": true,
     "allowImportingTsExtensions": true,
+    "outDir": "${configDir}/dist",
+    "emitDeclarationOnly": false,
     "paths": {
       "@mf/*": ["../../frontend/@mf-types/@mf/*"]
     }
