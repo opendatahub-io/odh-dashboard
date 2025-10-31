@@ -4,7 +4,11 @@ import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeValueType,
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import type { SecretKind, SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
+import type {
+  ProjectKind,
+  SecretKind,
+  SupportedModelFormats,
+} from '@odh-dashboard/internal/k8sTypes';
 import type { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type {
   ModelServerOption,
@@ -23,6 +27,7 @@ import {
   useCreateConnectionData,
   type CreateConnectionData,
 } from './fields/CreateConnectionInputFields';
+import { useProjectSection } from './fields/ProjectSection';
 
 export enum ConnectionTypeRefs {
   S3 = 's3',
@@ -50,6 +55,7 @@ export type ModelLocationData = {
 };
 
 export type InitialWizardFormData = {
+  project?: ProjectKind | null;
   modelTypeField?: ModelTypeFieldData;
   k8sNameDesc?: K8sNameDescriptionFieldData;
   externalRoute?: ExternalRouteFieldData;
@@ -73,6 +79,7 @@ export type InitialWizardFormData = {
 export type WizardFormData = {
   initialData?: InitialWizardFormData;
   state: {
+    project: ReturnType<typeof useProjectSection>;
     modelType: ReturnType<typeof useModelTypeField>;
     k8sNameDesc: ReturnType<typeof useK8sNameDescriptionFieldData>;
     hardwareProfileConfig: ReturnType<typeof useHardwareProfileConfig>;

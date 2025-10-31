@@ -25,7 +25,7 @@ const accessReviewResource: AccessReviewResourceAttributes = {
 
 type AdvancedSettingsStepContentProps = {
   wizardState: UseModelDeploymentWizardState;
-  project: ProjectKind;
+  project?: ProjectKind;
 };
 
 export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentProps> = ({
@@ -83,7 +83,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
 
   const [allowCreate] = useAccessReview({
     ...accessReviewResource,
-    namespace: project.metadata.name,
+    namespace: project?.metadata.name ?? undefined,
   });
 
   const handleExternalRouteChange = (checked: boolean) => {

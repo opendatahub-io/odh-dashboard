@@ -73,6 +73,16 @@ const extensions: (
   {
     type: 'app.route',
     properties: {
+      path: '/ai-hub/deployments/deploy',
+      component: () => import('../src/ModelDeploymentWizardRoutes'),
+    },
+    flags: {
+      required: [PLUGIN_MODEL_SERVING],
+    },
+  },
+  {
+    type: 'app.route',
+    properties: {
       path: '/ai-hub/deployments/:namespace?/*',
       component: () => import('../src/GlobalModelsRoutes'),
     },

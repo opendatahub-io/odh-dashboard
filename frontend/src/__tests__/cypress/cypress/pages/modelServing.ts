@@ -916,6 +916,10 @@ class ModelServingWizard extends Wizard {
     super('Deploy a model', edit ? 'Update deployment' : 'Deploy model');
   }
 
+  visit(project?: string) {
+    cy.visitWithLogin(`/ai-hub/deployments${project ? `/${project}/deploy` : '/deploy'}`);
+  }
+
   findModelSourceStep() {
     return this.findStep('source-model-step');
   }
@@ -934,6 +938,14 @@ class ModelServingWizard extends Wizard {
 
   findModelTypeSelectOption(name: string) {
     return this.findModelTypeSelect().findSelectOption(name);
+  }
+
+  findModelDeploymentProjectSelector() {
+    return cy.findByTestId('deploy-model-project-selector-toggle');
+  }
+
+  findModelDeploymentProjectSelectorOption(name: string) {
+    return cy.findByTestId('deploy-model-project-selector-menu').findByRole('menuitem', { name });
   }
 
   findModelDeploymentNameInput() {

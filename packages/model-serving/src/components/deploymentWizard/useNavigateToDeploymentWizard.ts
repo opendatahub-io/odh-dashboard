@@ -55,12 +55,6 @@ export const useNavigateToDeploymentWizard = (
   // Memoize the navigation function to prevent unnecessary re-renders
   return React.useCallback(
     (projectName: string): void => {
-      // Validate project name is not empty
-      if (!projectName || projectName.trim() === '') {
-        console.warn('useNavigateToDeploymentWizard: projectName cannot be empty');
-        return;
-      }
-
       // If we're editing a deployment, wait for form data to load
       if (deployment && !loaded) {
         console.warn(

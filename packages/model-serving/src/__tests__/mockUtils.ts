@@ -11,6 +11,7 @@ import type { Extension, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
 import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/internal/__mocks__/mockK8sNameDescriptionFieldData';
 import { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
 import { ModelServingPlatform } from '../concepts/useProjectServingPlatform';
 import type { UseModelDeploymentWizardState } from '../components/deploymentWizard/useDeploymentWizard';
 
@@ -128,6 +129,15 @@ export const mockDeploymentWizardState = (
     {
       initialData: undefined,
       state: {
+        project: {
+          initialProject: mockProjectK8sResource({
+            k8sName: 'test-project',
+          }),
+          project: mockProjectK8sResource({
+            k8sName: 'test-project',
+          }),
+          setProject: jest.fn(),
+        },
         modelType: {
           data: ServingRuntimeModelType.GENERATIVE,
           setData: jest.fn(),

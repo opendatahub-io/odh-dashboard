@@ -60,7 +60,7 @@ type ModelLocationSelectFieldProps = {
   modelLocation?: ModelLocationData['type'];
   validationProps?: FieldValidationProps;
   validationIssues?: ZodIssue[];
-  project: ProjectKind | null;
+  project?: ProjectKind | null;
   setModelLocationData: (data: ModelLocationData | undefined) => void;
   resetModelLocationData: () => void;
   modelLocationData?: ModelLocationData;
@@ -92,7 +92,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
   const [modelServingConnectionTypes, connectionTypesLoaded] = useWatchConnectionTypes(true);
   const pvcs = usePvcs(project?.metadata.name ?? '');
   const { selectedConnection, connections, setSelectedConnection } = useModelLocationData(
-    project,
+    project ?? null,
     modelLocationData,
   );
   const filteredConnections = React.useMemo(() => {
