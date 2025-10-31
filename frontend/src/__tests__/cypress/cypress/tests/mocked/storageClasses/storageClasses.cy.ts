@@ -33,6 +33,28 @@ describe('Storage classes', () => {
       storageClassesPage.findEmptyState().should('be.visible');
     });
 
+    it('Sets a placeholder config when no config is found.', () => {
+      const storageClassWithoutConfig = {
+        ...openshiftDefaultStorageClass,
+        metadata: {
+          ...openshiftDefaultStorageClass.metadata,
+          annotations: undefined,
+        },
+      };
+      storageClassesPage.mockGetStorageClasses([storageClassWithoutConfig]);
+      storageClassesPage.visit();
+
+      const storageClassTableRow = storageClassesTable.getRowByName('openshift-default-sc');
+      storageClassTableRow.findDisplayNameValue().should('contain.text', 'openshift-default-sc');
+      storageClassTableRow.findEnableValue().findByTestId('enable-switch').should('be.checked');
+      storageClassTableRow
+        .findDefaultValue()
+        .findByTestId('set-default-radio')
+        .should('not.be.checked');
+      // Last modified is the current date, so we can't test the exact value. But something should be there.
+      storageClassTableRow.findLastModifiedValue().should('not.contain.text', '-');
+    });
+
     it('renders table with data', () => {
       storageClassesPage.mockGetStorageClasses();
       storageClassesPage.visit();
