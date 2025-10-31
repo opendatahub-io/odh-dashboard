@@ -155,7 +155,7 @@
     "raw-loader": "^4.0.2",
     "react-refresh": "^0.14.2",
     "regenerator-runtime": "^0.13.7",
-    "rimraf": "^3.0.2",
+    "rimraf": "^6.0.0",
     "sass": "^1.56.2",
     "sass-loader": "^13.2.0",
     "slnodejs": "^6.1.910",
