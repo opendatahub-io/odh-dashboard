@@ -125,8 +125,8 @@ describe('Verify a model can be deployed from a PVC', () => {
       cy.step('Verify S3 copy completed');
       verifyS3CopyCompleted(podName, projectName);
 
-      // Deploy the model
-      cy.step('Deploy the model');
+      // Deploy the model with PVC
+      cy.step('Deploy the model with PVC');
       projectDetails.findSectionTab('model-server').click();
       // If we have only one serving model platform, then it is selected by default.
       // So we don't need to click the button.
