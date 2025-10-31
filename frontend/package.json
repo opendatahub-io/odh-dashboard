@@ -160,7 +160,7 @@
     "sass-loader": "^13.2.0",
     "slnodejs": "^6.1.910",
     "speed-measure-webpack-plugin": "^1.5.0",
-    "style-loader": "^2.0.0",
+    "style-loader": "^4.0.0",
     "svg-url-loader": "^6.0.0",
     "swc-loader": "^0.2.6",
     "terser-webpack-plugin": "^5.3.6",
