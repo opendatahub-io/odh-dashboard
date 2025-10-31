@@ -78,7 +78,7 @@ Workspace Dockerfiles support parameterization through build arguments:
 | `MODULE_NAME` | Name of the module to build | `template` |
 | `UI_SOURCE_CODE` | Path to UI source relative to repo root | `./packages/${MODULE_NAME}/upstream/frontend` |
 | `BFF_SOURCE_CODE` | Path to BFF source relative to repo root | `./packages/${MODULE_NAME}/upstream/bff` |
-| `NODE_BASE_IMAGE` | Base image for Node.js build stage | `registry.access.redhat.com/ubi9/nodejs-20:latest` |
+| `NODE_BASE_IMAGE` | Base image for Node.js build stage | `registry.access.redhat.com/ubi9/nodejs-22:latest` |
 | `GOLANG_BASE_IMAGE` | Base image for Go build stage | `registry.access.redhat.com/ubi9/go-toolset:1.24` |
 | `DISTROLESS_BASE_IMAGE` | Base image for final runtime stage | `registry.access.redhat.com/ubi9-minimal:latest` |
 
