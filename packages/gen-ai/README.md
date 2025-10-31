@@ -174,6 +174,37 @@ docker run -p 8080:8080 \
   gen-ai
 ```
 
+### Running the Standalone GenAI Playground on OpenShift
+
+A complimentary script is provided to build and run GenAI Studio as standalone application
+in OpenShift by using the build and deploy capacities of OpenShift through the `oc new-app` command.
+
+
+Prerequisites:
+- Logged into OpenShift (`oc login`) and a target project selected (`oc project <name>`)
+- Current git branch tracks a remote and the remote fetch URL uses HTTPS
+- A browser extension that allows "Autorization: Bearer <oc whoami -t >" token
+
+Run from the repository root:
+
+```bash
+./packages/gen-ai/build.openshift.sh
+```
+
+What the script does (high level):
+- Detects repo URL and current branch; validates HTTPS fetch URL
+- Creates a Docker BuildConfig via `oc new-app` (scoped to `packages/gen-ai`)
+- Patches the BuildConfig to use `packages/gen-ai/Dockerfile`
+- Cancels the auto-triggered first build and starts a new one
+- Waits for the Service and creates an edge Route on port 8080
+- Prints the public Route URL when ready
+
+Cleanup (optional): use your usual `oc delete` flow, or run the companion cleanup script if available:
+
+```bash
+./packages/gen-ai/clean.openshift.sh
+```
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
