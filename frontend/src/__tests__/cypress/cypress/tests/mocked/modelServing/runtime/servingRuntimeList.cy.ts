@@ -113,6 +113,7 @@ const initIntercepts = ({
   requiredCapabilities = [],
   templates = false,
   disableNIMConfig = true,
+  enableNIM = false,
   DscComponents,
 }: HandlersProps) => {
   cy.interceptOdh(
@@ -139,6 +140,7 @@ const initIntercepts = ({
       disableKServeRaw,
       disableProjectScoped,
       disableKServeMetrics,
+      disableNIMModelServing: disableNIMConfig,
     }),
   );
   cy.interceptK8s(ODHDashboardConfigModel, mockDashboardConfig({}));
@@ -148,8 +150,8 @@ const initIntercepts = ({
     'GET /api/integrations/:internalRoute',
     { path: { internalRoute: 'nim' } },
     {
-      isInstalled: false,
-      isEnabled: false,
+      isInstalled: !disableNIMConfig,
+      isEnabled: !disableNIMConfig,
       canInstall: false,
       error: '',
     },
@@ -161,7 +163,7 @@ const initIntercepts = ({
     mockK8sResourceList([
       mockProjectK8sResource({
         enableModelMesh: projectEnableModelMesh,
-        enableNIM: !disableNIMConfig,
+        enableNIM,
       }),
     ]),
   );
@@ -169,7 +171,7 @@ const initIntercepts = ({
     ProjectModel,
     mockProjectK8sResource({
       enableModelMesh: projectEnableModelMesh,
-      enableNIM: !disableNIMConfig,
+      enableNIM,
     }),
   );
   cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList(inferenceServices));
@@ -570,6 +572,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
+        projectEnableModelMesh: false,
         enableNIM: true,
       });
       projectDetails.visitSection('test-project', 'overview');
