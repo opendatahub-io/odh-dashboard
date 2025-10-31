@@ -136,7 +136,7 @@
     "css-loader": "^5.2.7",
     "css-minimizer-webpack-plugin": "^4.2.2",
     "dotenv": "^16.4.7",
-    "dotenv-expand": "^5.1.0",
+    "dotenv-expand": "^12.0.0",
     "dotenv-webpack": "^6.0.0",
     "eslint-plugin-markdown": "^5.1.0",
     "eslint-plugin-no-barrel-files": "^1.2.1",
