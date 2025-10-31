@@ -101,6 +101,8 @@ describe('A model can be stopped and started', () => {
       });
       modelServingWizard.findNextButton().click();
       //Step 3: Advanced Options
+      modelServingWizard.findNextButton().click();
+      //Step 4: Review
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(testData.singleModelName);
       const kServeRow = modelServingSection.getKServeRow(testData.singleModelName);

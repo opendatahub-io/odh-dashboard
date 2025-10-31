@@ -116,6 +116,8 @@ describe('[Automation Bug: RHOAIENG-32898] Verify Admin Single Model Creation an
       modelServingWizard.findServiceAccountByIndex(0).clear().type('secret');
       modelServingWizard.findAddServiceAccountButton().click();
       modelServingWizard.findServiceAccountByIndex(1).clear().type('secret2');
+      modelServingWizard.findNextButton().click();
+      //Step 4: Review
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(testData.singleModelAdminName);
 

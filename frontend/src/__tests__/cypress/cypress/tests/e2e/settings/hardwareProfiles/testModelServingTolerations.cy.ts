@@ -158,6 +158,8 @@ describe('ModelServing - tolerations tests', () => {
       });
       modelServingWizard.findNextButton().click();
       // Step 3: Advanced Options
+      modelServingWizard.findNextButton().click();
+      // Step 4: Review
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(modelName);
 
