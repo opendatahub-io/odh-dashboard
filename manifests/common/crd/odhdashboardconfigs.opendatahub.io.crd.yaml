@@ -232,3 +232,14 @@ spec:
                   type: array
                   items:
                     type: string
+                # Model serving deployment configurations
+                modelServing:
+                  type: object
+                  properties:
+                    deploymentStrategy:
+                      type: string
+                      enum:
+                        - rolling
+                        - recreate
+                    isLLMdDefault:
+                      type: boolean

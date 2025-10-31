@@ -127,3 +127,28 @@ export const patchDashboardConfigHardwareProfileOrder = (
       opts,
     ),
   );
+
+export const patchDashboardConfigModelServing = (
+  modelServing: {
+    deploymentStrategy?: string;
+    isLLMdDefault?: boolean;
+  },
+  ns: string,
+  opts?: K8sAPIOptions,
+): Promise<DashboardConfigKind> =>
+  k8sPatchResource<DashboardConfigKind>(
+    applyK8sAPIOptions(
+      {
+        model: ODHDashboardConfigModel,
+        queryOptions: { name: DASHBOARD_CONFIG, ns },
+        patches: [
+          {
+            op: 'add',
+            path: '/spec/modelServing',
+            value: modelServing,
+          },
+        ],
+      },
+      opts,
+    ),
+  );
