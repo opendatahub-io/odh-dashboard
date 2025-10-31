@@ -1043,14 +1043,29 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 
 			// Extract details from the model configuration
 			modelID := modelDetails["model_id"].(string)
-			providerID := fmt.Sprintf("vllm-inference-%d", i+1)
 			modelType := modelDetails["model_type"].(string)
 			endpointURL := modelDetails["endpoint_url"].(string)
 			metadata := modelDetails["metadata"].(map[string]interface{})
 
+			// Check if this is an llmd model to determine providerID prefix
+			isLLMD := false
+			if isLLMDVal, exists := modelDetails["is_llmd"]; exists {
+				if isLLMDBool, ok := isLLMDVal.(bool); ok {
+					isLLMD = isLLMDBool
+				}
+			}
+
+			// Set providerID based on whether it's an llmd model
+			var providerID string
+			if isLLMD {
+				providerID = fmt.Sprintf("llmd-vllm-inference-%d", i+1)
+			} else {
+				providerID = fmt.Sprintf("vllm-inference-%d", i+1)
+			}
+
 			// Create provider and model for regular model
 			addProviderAndModel(config, providerID, endpointURL, i, modelID, modelType, metadata)
-			kc.Logger.Info("Added regular LLM model to configuration", "model", modelID, "endpoint", endpointURL)
+			kc.Logger.Info("Added LLM model to configuration", "model", modelID, "endpoint", endpointURL, "providerID", providerID)
 
 		}
 	}
@@ -1105,11 +1120,13 @@ func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.C
 		// Use the actual model name from LLMInferenceService spec instead of service name
 		actualModelName := *targetLLMSVC.Spec.Model.Name
 		kc.Logger.Info("using LLMInferenceService for model", "serviceName", modelID, "actualModelName", actualModelName, "endpoint", endpointURL)
+		// LLMInferenceService models are always llmd models
 		return map[string]interface{}{
 			"model_id":     actualModelName, // Use the actual model name from spec.model.name
 			"model_type":   modelType,
 			"metadata":     metadata,
 			"endpoint_url": endpointURL,
+			"is_llmd":      true,
 		}, nil
 	}
 
@@ -1168,12 +1185,14 @@ func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.C
 	// All models are LLM models using vllm-inference
 	modelType := "llm"
 
+	// InferenceService models are not llmd (llmd models use LLMInferenceService, which returns early above)
 	kc.Logger.Info("Using InferenceService for model", "modelID", modelID, "endpoint", internalURLStr)
 	return map[string]interface{}{
 		"model_id":     strings.ReplaceAll(modelID, ":", "-"),
 		"model_type":   modelType,
 		"metadata":     metadata,
 		"endpoint_url": internalURLStr,
+		"is_llmd":      false,
 	}, nil
 }
 
