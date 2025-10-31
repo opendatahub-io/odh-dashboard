@@ -1,10 +1,9 @@
 import * as React from 'react';
-import ManageInferenceServiceModal from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
 import { SortableData, Table } from '#~/components/table';
 import { InferenceServiceKind, ProjectKind, SecretKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
-import { isModelMesh } from '#~/pages/modelServing/utils';
+
 import ManageKServeModal from '#~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import ResourceTr from '#~/components/ResourceTr';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
@@ -92,13 +91,9 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
       {deleteInferenceService ? (
         <DeleteInferenceServiceModal
           inferenceService={deleteInferenceService}
-          servingRuntime={
-            !isModelMesh(deleteInferenceService)
-              ? servingRuntimes.find(
-                  (sr) => sr.metadata.name === deleteInferenceService.spec.predictor.model?.runtime,
-                )
-              : undefined
-          }
+          servingRuntime={servingRuntimes.find(
+            (sr) => sr.metadata.name === deleteInferenceService.spec.predictor.model?.runtime,
+          )}
           onClose={(deleted) => {
             fireFormTrackingEvent(eventName, {
               outcome: deleted ? TrackingOutcome.submit : TrackingOutcome.cancel,
@@ -111,22 +106,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
           }}
         />
       ) : null}
-      {!!editInferenceService && isModelMesh(editInferenceService) ? (
-        <ManageInferenceServiceModal
-          editInfo={editInferenceService}
-          onClose={(edited) => {
-            fireFormTrackingEvent('Model Updated', {
-              outcome: edited ? TrackingOutcome.submit : TrackingOutcome.cancel,
-              type: 'multi',
-            });
-            if (edited) {
-              refresh?.();
-            }
-            setEditInferenceService(undefined);
-          }}
-        />
-      ) : null}
-      {!!editInferenceService && !isModelMesh(editInferenceService)
+      {editInferenceService
         ? (() => {
             const projectForEdit = projects.find(byName(editInferenceService.metadata.namespace));
             const isNIM = projectForEdit ? isProjectNIMSupported(projectForEdit) : false;

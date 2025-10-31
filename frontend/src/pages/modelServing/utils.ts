@@ -31,7 +31,6 @@ import {
   ServiceAccountKind,
   RoleKind,
   ServingContainer,
-  DeploymentMode,
   PersistentVolumeClaimKind,
 } from '#~/k8sTypes';
 import { ContainerResources } from '#~/types';
@@ -363,10 +362,6 @@ export const isModelServerEditInfoChanged = (
           createData.tokens.map((token) => token.name).toSorted(),
         ))
     : true;
-
-export const isModelMesh = (inferenceService: InferenceServiceKind): boolean =>
-  inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] ===
-  DeploymentMode.ModelMesh;
 
 export const isModelServingStopped = (inferenceService?: InferenceServiceKind): boolean =>
   inferenceService?.metadata.annotations?.['serving.kserve.io/stop'] === 'true';

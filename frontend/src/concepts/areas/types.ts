@@ -15,8 +15,8 @@ export type IsAreaAvailableStatus = {
   devFlags: { [key in string]?: 'on' | 'off' } | null; // simplified. `disableX` flags are weird to read
   featureFlags: { [key in FeatureFlag]?: 'on' | 'off' } | null; // simplified. `disableX` flags are weird to read
   reliantAreas: { [key in SupportedAreaType]?: boolean } | null; // only needs 1 to be true
-  requiredComponents: { [key in DataScienceStackComponent]?: boolean } | null;
   requiredCapabilities: { [key in StackCapability]?: boolean } | null;
+  requiredComponents: { [key in DataScienceStackComponent]?: boolean } | null;
   customCondition: (conditionFunc: CustomConditionFunction) => boolean;
 };
 
@@ -108,11 +108,11 @@ export enum DataScienceStackComponent {
   LLAMA_STACK_OPERATOR = 'llamastackoperator',
 }
 
-/** Capabilities of the Operator. Part of the DSCI Status. */
-export enum StackCapability {
-  SERVICE_MESH = 'CapabilityServiceMesh',
-  SERVICE_MESH_AUTHZ = 'CapabilityServiceMeshAuthorization',
-}
+/**
+ * Capabilities of the Operator. Part of the DSCI Status.
+ * Preserved as string type for future capabilities.
+ */
+export type StackCapability = string;
 
 /**
  * Optional function to check for a condition that is not covered by other checks.

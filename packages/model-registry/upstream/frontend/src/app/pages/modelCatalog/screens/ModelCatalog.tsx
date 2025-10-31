@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { PageSection, Sidebar, SidebarContent, SidebarPanel } from '@patternfly/react-core';
 import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-shared';
+import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
+import { isModelCatalogBannerExtension } from '~/odh/extension-points';
 import ScrollViewOnMount from '~/app/shared/components/ScrollViewOnMount';
 import ModelCatalogFilters from '~/app/pages/modelCatalog/components/ModelCatalogFilters';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
@@ -13,14 +15,26 @@ import { CategoryName } from '~/app/modelCatalogTypes';
 import ModelCatalogSourceLabelSelectorNavigator from './ModelCatalogSourceLabelSelectorNavigator';
 import ModelCatalogAllModelsView from './ModelCatalogAllModelsView';
 import ModelCatalogGalleryView from './ModelCatalogGalleryView';
+import { useSearchParams } from 'react-router-dom';
 
 const ModelCatalog: React.FC = () => {
   const [searchTerm, setSearchTerm] = React.useState('');
-  const { selectedSourceLabel, filterData, setFilterData } = React.useContext(ModelCatalogContext);
+  const { selectedSourceLabel, filterData, setFilterData, updateSelectedSourceLabel } = React.useContext(ModelCatalogContext);
   const filtersApplied = hasFiltersApplied(filterData);
   const isAllModelsView =
     selectedSourceLabel === CategoryName.allModels && !searchTerm && !filtersApplied;
 
+  const bannerExtensions = useExtensions(isModelCatalogBannerExtension);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  React.useEffect(() => {
+    const validatedParam = searchParams.get('validated');
+    if (validatedParam === 'true') {
+      setSearchParams({});
+      updateSelectedSourceLabel('Red Hat AI validated');
+    }
+  }, [searchParams, setSearchParams, updateSelectedSourceLabel]);
+  
   const handleSearch = React.useCallback((term: string) => {
     setSearchTerm(term);
   }, []);
@@ -54,6 +68,12 @@ const ModelCatalog: React.FC = () => {
         loaded
         provideChildrenPadding
       >
+        {bannerExtensions.map((extension) => (
+          <LazyCodeRefComponent
+            key={extension.properties.id}
+            component={extension.properties.component}
+          />
+        ))}
         <Sidebar hasBorder hasGutter>
           <SidebarPanel>
             <ModelCatalogFilters />
