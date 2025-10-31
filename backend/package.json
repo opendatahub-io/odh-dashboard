@@ -43,7 +43,7 @@
     "test-unit-coverage": "jest --silent --coverage"
   },
   "dependencies": {
-    "@fastify/accepts": "^4.3.0",
+    "@fastify/accepts": "^5.0.0",
     "@fastify/autoload": "^5.7.1",
     "@fastify/http-proxy": "^9.5.0",
     "@fastify/sensible": "^5.2.0",
