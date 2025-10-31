@@ -21,7 +21,7 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
     "core-js": "^3.37.1",
-    "expect": "^29.7.0",
+    "expect": "^30.0.0",
     "react": "^18",
     "react-dom": "^18"
   }
