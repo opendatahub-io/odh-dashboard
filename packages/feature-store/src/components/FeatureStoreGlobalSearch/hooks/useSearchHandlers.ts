@@ -10,6 +10,7 @@ export interface ISearchItem {
   category: string;
   type: string;
   project: string;
+  featureView?: string;
 }
 
 export interface UseSearchHandlersOptions {
@@ -87,7 +88,12 @@ export const useSearchHandlers = (
       const projectToUse = project && project.trim() !== '' ? project : selectedItem.project;
 
       if (selectedItem.type && projectToUse) {
-        const route = getFeatureStoreRoute(selectedItem.type, projectToUse, selectedItem.title);
+        const route = getFeatureStoreRoute(
+          selectedItem.type,
+          projectToUse,
+          selectedItem.title,
+          selectedItem.featureView ?? '',
+        );
         if (route) {
           navigate(route);
         }
