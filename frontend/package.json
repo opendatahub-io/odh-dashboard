@@ -67,7 +67,7 @@
     "@monaco-editor/react": "^4.6.0",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
     "@openshift/dynamic-plugin-sdk-utils": "^5.0.1",
-    "@patternfly/chatbot": "^2.2.1",
+    "@patternfly/chatbot": "^6.0.0",
     "@patternfly/patternfly": "^6.2.3",
     "@patternfly/quickstarts": "^6.2.0",
     "@patternfly/react-catalog-view-extension": "^6.1.0",
