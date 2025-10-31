@@ -310,24 +310,24 @@ describe('Model Serving Deploy Wizard', () => {
 
     modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
-    cy.url().should('include', 'ai-hub/deployments/test-project/deploy/create');
+    cy.url().should('include', 'ai-hub/deployments/test-project/deploy');
     cy.findByRole('heading', { name: 'Deploy a model' }).should('exist');
     cy.findByRole('button', { name: 'Cancel' }).click();
     modelServingWizard.findCancelButton().click();
-    cy.url().should('include', 'ai-hub/deployments/test-project/deploy/create');
+    cy.url().should('include', 'ai-hub/deployments/test-project/deploy');
     cy.findByRole('button', { name: 'Cancel' }).click();
     modelServingWizard.findDiscardButton().click();
-    cy.url().should('eq', `${Cypress.config().baseUrl ?? ''}/ai-hub/deployments/test-project/`);
+    cy.url().should('eq', `${Cypress.config().baseUrl ?? ''}/ai-hub/deployments/test-project`);
 
     modelServingSection.visit('test-project');
     modelServingSection.findDeployModelButton().click();
     cy.findByRole('heading', { name: 'Deploy a model' }).should('exist');
     cy.findByRole('button', { name: 'Cancel' }).click();
     modelServingWizard.findCancelButton().click();
-    cy.url().should('not.include', 'projects/test-project/?section=model-server');
+    cy.url().should('not.include', 'projects/test-project?section=model-server');
     cy.findByRole('button', { name: 'Cancel' }).click();
     modelServingWizard.findDiscardButton().click();
-    cy.url().should('include', 'projects/test-project/?section=model-server');
+    cy.url().should('include', 'projects/test-project?section=model-server');
   });
 
   it('Create a new generative deployment and submit', () => {

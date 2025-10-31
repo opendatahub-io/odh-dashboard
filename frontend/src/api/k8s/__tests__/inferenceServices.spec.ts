@@ -73,27 +73,6 @@ describe('assembleInferenceService', () => {
     );
   });
 
-  it('should have the right annotations when creating for modelmesh', async () => {
-    const inferenceService = assembleInferenceService(
-      mockInferenceServiceModalData({}),
-      undefined,
-      undefined,
-      true,
-    );
-
-    expect(inferenceService.metadata.annotations).toBeDefined();
-    expect(inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe(
-      DeploymentMode.ModelMesh,
-    );
-    expect(
-      inferenceService.metadata.annotations?.['serving.knative.openshift.io/enablePassthrough'],
-    ).toBe(undefined);
-    expect(inferenceService.metadata.annotations?.['sidecar.istio.io/inject']).toBe(undefined);
-    expect(inferenceService.metadata.annotations?.['sidecar.istio.io/rewriteAppHTTPProbers']).toBe(
-      undefined,
-    );
-  });
-
   it('should have the right labels when creating for Kserve with public route', async () => {
     const inferenceService = assembleInferenceService(
       mockInferenceServiceModalData({ externalRoute: true }),

@@ -123,16 +123,8 @@ describe('[Automation Bug: RHOAIENG-32898] Verify Admin Single Model Creation an
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
-      // For KServe Raw deployments, we only need to check Ready condition
-      // LatestDeploymentReady is specific to Serverless deployments
-      checkInferenceServiceState(
-        testData.singleModelAdminName,
-        projectName,
-        {
-          checkReady: true,
-        },
-        'RawDeployment',
-      );
+      // Verify model deployment is ready
+      checkInferenceServiceState(testData.singleModelAdminName, projectName, { checkReady: true });
       // Note reload is required as status tooltip was not found due to a stale element
       cy.reload();
       modelServingSection.findModelMetricsLink(testData.singleModelAdminName);

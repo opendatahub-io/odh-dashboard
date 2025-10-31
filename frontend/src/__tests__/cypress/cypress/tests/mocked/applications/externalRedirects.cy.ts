@@ -1,4 +1,5 @@
 import {
+  catalogModelRedirect,
   elyraRedirect,
   externalRedirect,
   pipelinesSdkRedirect,
@@ -36,6 +37,38 @@ describe('External Redirects', () => {
       externalRedirect.visit('/external/elyra/test-namespace/invalid');
       externalRedirect.findErrorState().should('exist');
       elyraRedirect.findPipelinesButton().should('exist');
+    });
+  });
+
+  describe('Catalog Model Redirects', () => {
+    it('should redirect catalog model URLs correctly', () => {
+      // Test catalog model URL redirect with 2 parameters
+      externalRedirect.visit('/external/catalog/redhat_ai_validated_models/DeepSeek-R1-model');
+      cy.url().should('include', '/ai-hub/catalog/redhat_ai_validated_models/DeepSeek-R1-model');
+    });
+
+    it('should handle model names with additional path segments', () => {
+      // Test model names that might contain slashes
+      externalRedirect.visit('/external/catalog/my-source/org/model/version');
+      cy.url().should('include', '/ai-hub/catalog/my-source/org/model/version');
+    });
+
+    it('should handle invalid catalog URL format - missing parameters', () => {
+      externalRedirect.visit('/external/catalog/only-source-id');
+      externalRedirect.findErrorState().should('exist');
+      catalogModelRedirect.findModelCatalogButton().should('exist');
+    });
+
+    it('should handle invalid catalog URL format - empty path', () => {
+      externalRedirect.visit('/external/catalog/');
+      externalRedirect.findErrorState().should('exist');
+      catalogModelRedirect.findModelCatalogButton().should('exist');
+    });
+
+    it('should allow navigation to model catalog on error', () => {
+      externalRedirect.visit('/external/catalog/invalid');
+      catalogModelRedirect.findModelCatalogButton().click();
+      cy.url().should('include', '/ai-hub/catalog');
     });
   });
 

@@ -500,7 +500,6 @@ export type SupportedModelFormats = {
 };
 
 export enum DeploymentMode {
-  ModelMesh = 'ModelMesh',
   RawDeployment = 'RawDeployment',
 }
 
@@ -1424,7 +1423,6 @@ export type DataScienceClusterKind = K8sResourceCommon & {
     } & {
       /** KServe and ModelRegistry components, including further specific configuration. */
       [DataScienceStackComponent.K_SERVE]?: DataScienceClusterComponent & {
-        defaultDeploymentMode?: string;
         nim: {
           managementState: string;
         };
@@ -1477,16 +1475,11 @@ export type DataScienceClusterKindStatus = {
    * This field maps each component of the Data Science Cluster to its corresponding status.
    * The majority of components use `DataScienceClusterComponentStatus`, which includes
    * management state and release details. However, some components require additional
-   * specialized fields, such as `kserve` and `modelregistry`.
+   * specialized fields, such as `modelregistry` and `workbenches`.
    */
   components?: {
     [key in DataScienceStackComponent]?: DataScienceClusterComponentStatus;
   } & {
-    /** Status of KServe, including deployment mode and serverless configuration. */
-    [DataScienceStackComponent.K_SERVE]?: DataScienceClusterComponentStatus & {
-      defaultDeploymentMode?: string;
-      serverlessMode?: string;
-    };
     /** Status of Model Registry, including its namespace configuration. */
     [DataScienceStackComponent.MODEL_REGISTRY]?: DataScienceClusterComponentStatus & {
       registriesNamespace?: string;
