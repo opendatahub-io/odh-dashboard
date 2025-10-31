@@ -53,7 +53,7 @@
     "dotenv": "^16.4.7",
     "fastify": "^4.28.1",
     "fastify-plugin": "^4.5.1",
-    "http-errors": "^1.8.0",
+    "http-errors": "^2.0.0",
     "js-yaml": "^4.0.0",
     "llama-stack-client": "^0.2.7",
     "lodash": "^4.17.21",
@@ -63,7 +63,7 @@
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
-    "@types/http-errors": "^1.8.0",
+    "@types/http-errors": "^2.0.0",
     "@types/lodash": "^4.14.182",
     "@types/node": "^18.14.5",
     "fastify-cli": "^5.7.1",
