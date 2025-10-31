@@ -48,7 +48,7 @@
     "@kubernetes/client-node": "^0.12.2",
     "dotenv": "^16.4.7",
     "fastify": "^4.28.1",
-    "fastify-plugin": "^4.5.1",
+    "fastify-plugin": "^5.0.0",
     "http-errors": "^1.8.0",
     "js-yaml": "^4.0.0",
     "llama-stack-client": "^0.2.7",
