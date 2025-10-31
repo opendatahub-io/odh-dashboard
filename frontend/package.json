@@ -89,7 +89,7 @@
     "classnames": "^2.2.6",
     "compare-versions": "^3.6.0",
     "dompurify": "^3.2.4",
-    "google-protobuf": "^3.11.2",
+    "google-protobuf": "^4.0.0",
     "grpc-web": "^1.2.1",
     "llama-stack-client": "^0.2.6",
     "lodash-es": "^4.17.15",
