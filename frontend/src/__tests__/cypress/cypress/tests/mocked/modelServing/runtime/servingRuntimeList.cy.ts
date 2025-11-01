@@ -568,13 +568,13 @@ describe('Serving Runtime List', () => {
     });
 
     it('Un-select NIM serving on overview tab', () => {
-      initModelServingIntercepts({ isEmpty: true });
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
         projectEnableModelMesh: false,
         enableNIM: true,
       });
+      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'overview');
       projectDetails.findResetPlatformButton().click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
