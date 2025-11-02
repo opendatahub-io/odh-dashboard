@@ -2,7 +2,14 @@
 
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { ProjectKind, SecretKind, ServingRuntimeKind, TemplateKind } from '#~/k8sTypes';
-import { deletePvc, deleteSecret, getTemplate, listNIMAccounts, listServingRuntimes } from '#~/api';
+import {
+  deletePvc,
+  deleteSecret,
+  getPvc,
+  getTemplate,
+  listNIMAccounts,
+  listServingRuntimes,
+} from '#~/api';
 import { fetchInferenceServiceCount } from '#~/pages/modelServing/screens/projects/utils';
 
 export const getNGCSecretType = (isNGC: boolean): string =>
@@ -199,11 +206,33 @@ export const getNIMResourcesToDelete = async (
       const pvcUsage = await checkPVCUsage(pvcName, projectName);
 
       // Only delete PVC if this is the last deployment using it
-      // With subPath, this might be one of several deployments on the same PVC
       if (pvcUsage.count <= 1) {
-        // eslint-disable-next-line no-console
-        console.log(`Deleting PVC ${pvcName} - no other deployments using it`);
-        resourcesToDelete.push(deletePvc(pvcName, projectName).then(() => undefined));
+        // Check if PVC is Dashboard-managed before deleting
+        try {
+          const pvc = await getPvc(projectName, pvcName);
+          const isDashboardManaged = pvc.metadata.labels?.['opendatahub.io/managed'] === 'true';
+
+          if (isDashboardManaged) {
+            // Dashboard created this PVC → safe to delete
+            // eslint-disable-next-line no-console
+            console.log(
+              `Deleting Dashboard-managed PVC ${pvcName} - no other deployments using it`,
+            );
+            resourcesToDelete.push(deletePvc(pvcName, projectName).then(() => undefined));
+          } else {
+            // User provided this PVC (BYO-PVC) → preserve it
+            // eslint-disable-next-line no-console
+            console.log(
+              `Preserving BYO-PVC ${pvcName} - not Dashboard-managed (user-provided PVC will not be deleted)`,
+            );
+          }
+        } catch (pvcFetchError) {
+          // If we can't fetch PVC metadata, err on the side of caution
+          // eslint-disable-next-line no-console
+          console.error(`Error fetching PVC metadata for ${pvcName}:`, pvcFetchError);
+          // eslint-disable-next-line no-console
+          console.log(`Preserving PVC ${pvcName} - could not verify if Dashboard-managed`);
+        }
       } else {
         // eslint-disable-next-line no-console
         console.log(

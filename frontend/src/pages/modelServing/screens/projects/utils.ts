@@ -644,6 +644,10 @@ export const createNIMPVC = (
       dryRun,
     },
     true,
+    undefined,
+    {
+      'opendatahub.io/managed': 'true',
+    },
   );
 
 export const getCreateInferenceServiceLabels = (
