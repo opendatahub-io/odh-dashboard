@@ -37,7 +37,6 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
   const localQueueName = job.metadata.labels?.['kueue.x-k8s.io/queue-name'];
 
   const status = jobStatus || getTrainingJobStatusSync(job);
-  console.log('status', job.metadata.name, status);
   const isPaused = status === TrainingJobState.PAUSED;
   const isPreempted = status === TrainingJobState.PREEMPTED;
   const isQueued = status === TrainingJobState.QUEUED;

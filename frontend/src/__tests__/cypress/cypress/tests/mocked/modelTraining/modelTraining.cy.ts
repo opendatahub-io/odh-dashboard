@@ -1,11 +1,8 @@
 /* eslint-disable camelcase */
+import { mockTrainJobK8sResourceList } from '@odh-dashboard/model-training/__mocks__/mockTrainJobK8sResource';
+import { TrainingJobState } from '@odh-dashboard/model-training/types';
 import { asClusterAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
-import {
-  mockDashboardConfig,
-  mockK8sResourceList,
-  mockProjectK8sResource,
-  mockTrainJobK8sResourceList,
-} from '#~/__mocks__';
+import { mockDashboardConfig, mockK8sResourceList, mockProjectK8sResource } from '#~/__mocks__';
 import {
   modelTrainingGlobal,
   trainingJobTable,
@@ -13,7 +10,6 @@ import {
 import { ProjectModel } from '#~/__tests__/cypress/cypress/utils/models';
 import { LocalQueueModel, TrainJobModel } from '#~/api/models';
 import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
-import { TrainingJobState } from '#~/../../../../../../packages/model-training/src/types';
 
 const projectName = 'test-model-training-project';
 const projectDisplayName = 'Test Model Training Project';
@@ -144,7 +140,7 @@ describe('Model Training', () => {
     imageClassificationRow.findTrainingJobName().should('contain', 'image-classification-job');
     imageClassificationRow.findProject().should('contain', projectDisplayName);
     imageClassificationRow.findNodes().should('contain', '4');
-    imageClassificationRow.findClusterQueue().should('contain', 'test-cluster-queue');
+    imageClassificationRow.findClusterQueue().should('contain', 'training-queue');
     imageClassificationRow.findStatus().should('contain', 'Running');
   });
 

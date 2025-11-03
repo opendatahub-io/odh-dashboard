@@ -70,6 +70,7 @@ export const patchWorkloadHibernation = async (
   isHibernated: boolean,
   opts?: K8sAPIOptions,
 ): Promise<WorkloadKind> => {
+  const patchOp = workload.spec.active === undefined ? 'add' : 'replace';
   const result = await k8sPatchResource<WorkloadKind>(
     applyK8sAPIOptions(
       {
@@ -80,7 +81,7 @@ export const patchWorkloadHibernation = async (
         },
         patches: [
           {
-            op: 'replace',
+            op: patchOp,
             path: '/spec/active',
             value: !isHibernated,
           },
@@ -98,6 +99,7 @@ export const patchTrainJobSuspension = async (
   isSuspended: boolean,
   opts?: K8sAPIOptions,
 ): Promise<TrainJobKind> => {
+  const patchOp = job.spec.suspend === undefined ? 'add' : 'replace';
   const result = await k8sPatchResource<TrainJobKind>(
     applyK8sAPIOptions(
       {
@@ -108,7 +110,7 @@ export const patchTrainJobSuspension = async (
         },
         patches: [
           {
-            op: 'replace',
+            op: patchOp,
             path: '/spec/suspend',
             value: isSuspended,
           },

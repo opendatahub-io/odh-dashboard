@@ -1,7 +1,7 @@
 import * as _ from 'lodash-es';
-import { genUID } from './mockUtils';
-import { TrainingJobState } from '../../../packages/model-training/src/types';
-import { TrainJobKind } from '../../../packages/model-training/src/k8sTypes';
+import { genUID } from '@odh-dashboard/internal/__mocks__/mockUtils';
+import { TrainJobKind } from '@odh-dashboard/model-training/k8sTypes';
+import { TrainingJobState } from '@odh-dashboard/model-training/types';
 
 type MockResourceConfigType = {
   name?: string;
@@ -11,6 +11,7 @@ type MockResourceConfigType = {
   numNodes?: number;
   status?: TrainingJobState;
   localQueueName?: string;
+  suspend?: boolean;
   gpuLimit?: number;
   cpuLimit?: string;
   memoryLimit?: string;
@@ -47,6 +48,7 @@ export const mockTrainJobK8sResource = ({
   numNodes = 3,
   status = TrainingJobState.RUNNING,
   localQueueName = 'default-queue',
+  suspend = false,
   gpuLimit = 1,
   cpuLimit = '2',
   memoryLimit = '4Gi',
@@ -108,7 +110,7 @@ export const mockTrainJobK8sResource = ({
       },
       spec: {
         runtimeRef,
-        suspend: false,
+        suspend,
         trainer: {
           numNodes,
           resourcesPerNode: {

@@ -14,7 +14,6 @@ const DeleteTrainingJobModal: React.FC<DeleteTrainingJobModalProps> = ({
 }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
-  console.log('trainingJob', trainingJob);
 
   const onBeforeClose = (deleted: boolean) => {
     onClose(deleted);
