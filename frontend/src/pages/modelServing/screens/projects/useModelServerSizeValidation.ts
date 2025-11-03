@@ -3,6 +3,7 @@ import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/de
 import { modelServingSizeSchema } from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/validationUtils.ts';
 import { useValidation } from '#~/utilities/useValidation.ts';
 
+// todo: remove the deprecated ModelServingPodSpecOptionsState once modelmesh is removed
 const useModelServerSizeValidation = (
   podSpecOptionsState: ModelServingPodSpecOptionsState | ModelServingHardwareProfileState,
 ): { isValid: boolean } => {
