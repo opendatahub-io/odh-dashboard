@@ -60,7 +60,7 @@ class ModelRegistrySettings {
 
   findNavItem() {
     return appChrome.findNavItem({
-      name: 'Model registry settings',
+      name: 'AI registry settings',
       rootSection: 'Settings',
       subSection: 'Model resources and operations',
     });
