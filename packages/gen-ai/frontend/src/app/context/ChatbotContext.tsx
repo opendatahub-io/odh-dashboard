@@ -1,5 +1,4 @@
 import React from 'react';
-import { Namespace } from 'mod-arch-core';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
 import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
@@ -28,7 +27,6 @@ type ChatbotContextProps = {
 
 type ChatbotContextProviderProps = {
   children: React.ReactNode;
-  namespace: Namespace | undefined;
 };
 
 export const ChatbotContext = React.createContext<ChatbotContextProps>({
@@ -51,10 +49,7 @@ export const ChatbotContext = React.createContext<ChatbotContextProps>({
   setLastInput: () => undefined,
 });
 
-export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
-  children,
-  namespace,
-}) => {
+export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({ children }) => {
   const [selectedModel, setSelectedModel] = React.useState('');
   const [lastInput, setLastInput] = React.useState('');
   const [activelyRefreshing, setActivelyRefreshing] = React.useState(true);
@@ -63,26 +58,22 @@ export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
     loaded: lsdStatusLoaded,
     error: lsdStatusError,
     refresh: lsdStatusRefresh,
-  } = useFetchLSDStatus(namespace?.name, activelyRefreshing);
+  } = useFetchLSDStatus(activelyRefreshing);
 
-  const {
-    data: aiModels,
-    loaded: aiModelsLoaded,
-    error: aiModelsError,
-  } = useFetchAIModels(namespace?.name);
+  const { data: aiModels, loaded: aiModelsLoaded, error: aiModelsError } = useFetchAIModels();
 
   const {
     data: maasModels,
     loaded: maasModelsLoaded,
     error: maasModelsError,
-  } = useFetchMaaSModels(namespace?.name || '');
+  } = useFetchMaaSModels();
 
   const {
     data: models,
     loaded: modelsLoaded,
     error: modelsError,
     refresh: modelsRefresh,
-  } = useFetchLlamaModels(namespace?.name, lsdStatus?.phase !== 'Ready');
+  } = useFetchLlamaModels(lsdStatus?.phase !== 'Ready');
 
   const refresh = React.useCallback(() => {
     lsdStatusRefresh();

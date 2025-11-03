@@ -3,12 +3,19 @@ import * as React from 'react';
 import { waitFor } from '@testing-library/react';
 import { useFetchState } from 'mod-arch-core';
 import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
-import { getLSDstatus } from '~/app/services/llamaStackService';
+import { getLSDStatus } from '~/app/services/llamaStackService';
 import {
   mockLlamaStackDistribution,
   mockLlamaStackDistributionError,
 } from '~/__mocks__/mockLlamaStackDistribution';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
+
+// Mock utilities/const to avoid asEnumMember error
+jest.mock('~/app/utilities/const', () => ({
+  URL_PREFIX: '/gen-ai',
+  DEPLOYMENT_MODE: 'federated',
+  MCP_SERVERS_SESSION_STORAGE_KEY: 'gen-ai-playground-servers',
+}));
 
 // Mock mod-arch-core to avoid React context issues
 jest.mock('mod-arch-core', () => ({
@@ -23,11 +30,11 @@ jest.mock('mod-arch-core', () => ({
 
 // Mock the llamaStackService
 jest.mock('~/app/services/llamaStackService', () => ({
-  getLSDstatus: jest.fn(),
+  getLSDStatus: jest.fn(),
 }));
 
 const mockUseFetchState = jest.mocked(useFetchState);
-const mockGetLSDstatus = jest.mocked(getLSDstatus);
+const mockGetLSDstatus = jest.mocked(getLSDStatus);
 
 describe('useFetchLSDStatus', () => {
   beforeEach(() => {
@@ -47,12 +54,12 @@ describe('useFetchLSDStatus', () => {
     });
   });
 
-  it('should return error when getLSDstatus API fails', async () => {
+  it('should return error when getLSDStatus API fails', async () => {
     const mockError = new Error('Failed to fetch LSD status');
-    mockGetLSDstatus.mockRejectedValue(mockError);
+    mockGetLSDstatus.mockReturnValue(jest.fn().mockRejectedValue(mockError));
     mockUseFetchState.mockReturnValue([null, false, mockError, jest.fn()]);
 
-    const { result } = testHook(useFetchLSDStatus)('test-project');
+    const { result } = testHook(useFetchLSDStatus)();
 
     await waitFor(() => {
       const { error } = result.current;
@@ -63,10 +70,10 @@ describe('useFetchLSDStatus', () => {
 
   it('should fetch LSD status successfully when project is provided', async () => {
     const mockRefresh = jest.fn();
-    mockGetLSDstatus.mockResolvedValue(mockLlamaStackDistribution);
+    mockGetLSDstatus.mockReturnValue(jest.fn().mockResolvedValue(mockLlamaStackDistribution));
     mockUseFetchState.mockReturnValue([mockLlamaStackDistribution, true, undefined, mockRefresh]);
 
-    const { result } = testHook(useFetchLSDStatus)('test-project');
+    const { result } = testHook(useFetchLSDStatus)();
 
     await waitFor(() => {
       const { data, loaded, error, refresh } = result.current;
@@ -81,10 +88,10 @@ describe('useFetchLSDStatus', () => {
     const mockRefresh = jest.fn();
     // When no LSD is found, the service throws an error or returns empty response
     const noLSDError = new Error('No LlamaStack Distribution found');
-    mockGetLSDstatus.mockRejectedValue(noLSDError);
+    mockGetLSDstatus.mockReturnValue(jest.fn().mockRejectedValue(noLSDError));
     mockUseFetchState.mockReturnValue([null, true, noLSDError, mockRefresh]);
 
-    const { result } = testHook(useFetchLSDStatus)('test-project');
+    const { result } = testHook(useFetchLSDStatus)();
 
     await waitFor(() => {
       const { data, loaded, error } = result.current;
@@ -98,7 +105,7 @@ describe('useFetchLSDStatus', () => {
     const mockRefresh = jest.fn();
     mockUseFetchState.mockReturnValue([null, false, undefined, mockRefresh]);
 
-    const { result } = testHook(useFetchLSDStatus)('test-project');
+    const { result } = testHook(useFetchLSDStatus)();
 
     await waitFor(() => {
       const { data, loaded, error } = result.current;
@@ -108,18 +115,17 @@ describe('useFetchLSDStatus', () => {
     });
   });
 
-  it('should call getLSDstatus with correct project parameter', async () => {
-    const testProject = 'my-test-project';
+  it('should call getLSDStatus with correct project parameter', async () => {
     const mockRefresh = jest.fn();
-    mockGetLSDstatus.mockResolvedValue(mockLlamaStackDistribution);
+    mockGetLSDstatus.mockReturnValue(jest.fn().mockResolvedValue(mockLlamaStackDistribution));
     mockUseFetchState.mockReturnValue([mockLlamaStackDistribution, true, undefined, mockRefresh]);
 
-    testHook(useFetchLSDStatus)(testProject);
+    testHook(useFetchLSDStatus)();
   });
 
   it('should handle LSD in error state', async () => {
     const mockRefresh = jest.fn();
-    mockGetLSDstatus.mockResolvedValue(mockLlamaStackDistributionError);
+    mockGetLSDstatus.mockReturnValue(jest.fn().mockResolvedValue(mockLlamaStackDistributionError));
     mockUseFetchState.mockReturnValue([
       mockLlamaStackDistributionError,
       true,
@@ -127,7 +133,7 @@ describe('useFetchLSDStatus', () => {
       mockRefresh,
     ]);
 
-    const { result } = testHook(useFetchLSDStatus)('test-project');
+    const { result } = testHook(useFetchLSDStatus)();
 
     await waitFor(() => {
       const { data, loaded, error } = result.current;
@@ -140,16 +146,16 @@ describe('useFetchLSDStatus', () => {
 
   it('should handle project parameter changes', async () => {
     const mockRefresh = jest.fn();
-    mockGetLSDstatus.mockResolvedValue(mockLlamaStackDistribution);
+    mockGetLSDstatus.mockReturnValue(jest.fn().mockResolvedValue(mockLlamaStackDistribution));
     mockUseFetchState.mockReturnValue([mockLlamaStackDistribution, true, undefined, mockRefresh]);
 
-    const { result, rerender } = testHook(useFetchLSDStatus)('project-1');
+    const { result, rerender } = testHook(useFetchLSDStatus)();
 
     await waitFor(() => {
       expect(result.current.data).toEqual(mockLlamaStackDistribution);
     });
 
-    rerender('project-2');
+    rerender();
 
     // Verify that useFetchState was called again with new callback
     expect(mockUseFetchState).toHaveBeenCalledTimes(2);
@@ -173,12 +179,12 @@ describe('useFetchLSDStatus', () => {
     const mockRefresh = jest.fn();
     mockUseFetchState.mockReturnValue([mockLlamaStackDistribution, true, undefined, mockRefresh]);
 
-    const { result, rerender } = testHook(useFetchLSDStatus)('test-project');
+    const { result, rerender } = testHook(useFetchLSDStatus)();
 
     const initialRefresh = result.current.refresh;
 
     // Re-render with same project
-    rerender('test-project');
+    rerender();
 
     expect(result.current.refresh).toBe(initialRefresh);
     expect(result.current.refresh).toBe(mockRefresh);
@@ -186,10 +192,10 @@ describe('useFetchLSDStatus', () => {
 
   it('should handle network timeout errors', async () => {
     const timeoutError = new Error('Network timeout');
-    mockGetLSDstatus.mockRejectedValue(timeoutError);
+    mockGetLSDstatus.mockReturnValue(jest.fn().mockRejectedValue(timeoutError));
     mockUseFetchState.mockReturnValue([null, false, timeoutError, jest.fn()]);
 
-    const { result } = testHook(useFetchLSDStatus)('test-project');
+    const { result } = testHook(useFetchLSDStatus)();
 
     await waitFor(() => {
       const { error } = result.current;
@@ -200,10 +206,10 @@ describe('useFetchLSDStatus', () => {
 
   it('should handle server error responses', async () => {
     const serverError = new Error('Internal server error');
-    mockGetLSDstatus.mockRejectedValue(serverError);
+    mockGetLSDstatus.mockReturnValue(jest.fn().mockRejectedValue(serverError));
     mockUseFetchState.mockReturnValue([null, false, serverError, jest.fn()]);
 
-    const { result } = testHook(useFetchLSDStatus)('test-project');
+    const { result } = testHook(useFetchLSDStatus)();
 
     await waitFor(() => {
       const { error } = result.current;

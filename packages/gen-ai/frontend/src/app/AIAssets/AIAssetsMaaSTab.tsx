@@ -12,10 +12,10 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 const AIAssetsMaaSTab: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = React.useContext(GenAiContext);
-  const { data: models = [], loaded, error } = useFetchMaaSModels(namespace?.name || '');
-  const { data: playgroundModels = [] } = useFetchLlamaModels(namespace?.name);
-  const { data: lsdStatus } = useFetchLSDStatus(namespace?.name);
-  const { data: aiModels = [] } = useFetchAIModels(namespace?.name);
+  const { data: models = [], loaded, error } = useFetchMaaSModels();
+  const { data: playgroundModels = [] } = useFetchLlamaModels();
+  const { data: lsdStatus } = useFetchLSDStatus();
+  const { data: aiModels = [] } = useFetchAIModels();
 
   if (!loaded && !error) {
     return (

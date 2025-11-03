@@ -1,12 +1,24 @@
 import * as React from 'react';
-import { useFetchState, FetchStateObject, FetchStateCallbackPromise } from 'mod-arch-core';
+import {
+  useFetchState,
+  FetchStateObject,
+  FetchStateCallbackPromise,
+  APIOptions,
+  NotReadyError,
+} from 'mod-arch-core';
 import { MaaSModel } from '~/app/types';
-import { getMaaSModels } from '~/app/services/llamaStackService';
+import { useGenAiAPI } from './useGenAiAPI';
 
-const useFetchMaaSModels = (namespace: string): FetchStateObject<MaaSModel[]> => {
+const useFetchMaaSModels = (): FetchStateObject<MaaSModel[]> => {
+  const { api, apiAvailable } = useGenAiAPI();
   const fetchMaaSModels = React.useCallback<FetchStateCallbackPromise<MaaSModel[]>>(
-    async () => getMaaSModels(namespace),
-    [namespace],
+    async (opts: APIOptions) => {
+      if (!apiAvailable) {
+        return Promise.reject(new NotReadyError('API not yet available'));
+      }
+      return api.getMaaSModels(opts).then((r) => r);
+    },
+    [api, apiAvailable],
   );
 
   const [data, loaded, error, refresh] = useFetchState(fetchMaaSModels, [], {

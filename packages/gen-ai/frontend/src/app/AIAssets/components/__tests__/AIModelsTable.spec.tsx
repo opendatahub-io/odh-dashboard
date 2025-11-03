@@ -7,21 +7,11 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 import type { AIModel, LlamaModel, MaaSModel } from '~/app/types';
 import AIModelsTable from '~/app/AIAssets/components/AIModelsTable';
 import useAIModelsFilter from '~/app/AIAssets/hooks/useAIModelsFilter';
+import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 
 jest.mock('~/app/AIAssets/hooks/useAIModelsFilter');
 
 const mockUseAIModelsFilter = jest.mocked(useAIModelsFilter);
-
-const mockGenAiContextValue = {
-  namespace: { name: 'test-namespace' },
-  nsModel: undefined,
-  loaded: true,
-  error: undefined,
-  refresh: jest.fn(),
-  isConfigured: true,
-  configuration: undefined,
-  crossProjectEnabledNamespaces: [],
-};
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <MemoryRouter>

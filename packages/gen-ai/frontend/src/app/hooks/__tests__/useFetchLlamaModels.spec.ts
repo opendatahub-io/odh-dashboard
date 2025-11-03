@@ -3,9 +3,16 @@ import * as React from 'react';
 import { waitFor } from '@testing-library/react';
 import { useFetchState } from 'mod-arch-core';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
-import { getModels } from '~/app/services/llamaStackService';
+import { getAAModels } from '~/app/services/llamaStackService';
 import { mockLlamaModels } from '~/__mocks__/mockLlamaStackModels';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
+
+// Mock utilities/const to avoid asEnumMember error
+jest.mock('~/app/utilities/const', () => ({
+  URL_PREFIX: '/gen-ai',
+  DEPLOYMENT_MODE: 'federated',
+  MCP_SERVERS_SESSION_STORAGE_KEY: 'gen-ai-playground-servers',
+}));
 
 // Mock mod-arch-core to avoid React context issues
 jest.mock('mod-arch-core', () => ({
@@ -20,11 +27,11 @@ jest.mock('mod-arch-core', () => ({
 
 // Mock the llamaStackService
 jest.mock('~/app/services/llamaStackService', () => ({
-  getModels: jest.fn(),
+  getAAModels: jest.fn(),
 }));
 
 const mockUseFetchState = jest.mocked(useFetchState);
-const mockGetModels = jest.mocked(getModels);
+const mockGetModels = jest.mocked(getAAModels);
 
 describe('useFetchLlamaModels', () => {
   beforeEach(() => {
@@ -44,12 +51,12 @@ describe('useFetchLlamaModels', () => {
     });
   });
 
-  it('should return error when getModels API fails', async () => {
+  it('should return error when getAAModels API fails', async () => {
     const mockError = new Error('Failed to fetch models');
-    mockGetModels.mockRejectedValue(mockError);
+    mockGetModels.mockReturnValue(jest.fn().mockRejectedValue(mockError));
     mockUseFetchState.mockReturnValue([[], false, mockError, jest.fn()]);
 
-    const { result } = testHook(useFetchLlamaModels)('test-project');
+    const { result } = testHook(useFetchLlamaModels)();
 
     await waitFor(() => {
       const { error } = result.current;
@@ -60,10 +67,10 @@ describe('useFetchLlamaModels', () => {
 
   it('should fetch Llama models successfully when project is provided', async () => {
     const mockRefresh = jest.fn();
-    mockGetModels.mockResolvedValue(mockLlamaModels);
+    mockGetModels.mockReturnValue(jest.fn().mockResolvedValue(mockLlamaModels));
     mockUseFetchState.mockReturnValue([mockLlamaModels, true, undefined, mockRefresh]);
 
-    const { result } = testHook(useFetchLlamaModels)('test-project');
+    const { result } = testHook(useFetchLlamaModels)();
 
     await waitFor(() => {
       const { data, loaded, error, refresh } = result.current;
@@ -76,10 +83,10 @@ describe('useFetchLlamaModels', () => {
 
   it('should return empty array when no models are available', async () => {
     const mockRefresh = jest.fn();
-    mockGetModels.mockResolvedValue([]);
+    mockGetModels.mockReturnValue(jest.fn().mockResolvedValue([]));
     mockUseFetchState.mockReturnValue([[], true, undefined, mockRefresh]);
 
-    const { result } = testHook(useFetchLlamaModels)('test-project');
+    const { result } = testHook(useFetchLlamaModels)();
 
     await waitFor(() => {
       const { data, loaded, error } = result.current;
@@ -93,7 +100,7 @@ describe('useFetchLlamaModels', () => {
     const mockRefresh = jest.fn();
     mockUseFetchState.mockReturnValue([[], false, undefined, mockRefresh]);
 
-    const { result } = testHook(useFetchLlamaModels)('test-project');
+    const { result } = testHook(useFetchLlamaModels)();
 
     await waitFor(() => {
       const { data, loaded, error } = result.current;

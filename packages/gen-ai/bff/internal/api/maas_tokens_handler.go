@@ -28,7 +28,11 @@ func (app *App) MaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 
-	err = app.WriteJSON(w, http.StatusCreated, tokenResponse, nil)
+	tokenResponseEnvelope := Envelope[models.MaaSTokenResponse, None]{
+		Data: *tokenResponse,
+	}
+
+	err = app.WriteJSON(w, http.StatusCreated, tokenResponseEnvelope, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

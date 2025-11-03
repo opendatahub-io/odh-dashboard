@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { getMCPServerTools } from '~/app/services/llamaStackService';
 import { MCPToolsStatus, MCPToolFromAPI } from '~/app/types';
+import { useGenAiAPI } from './useGenAiAPI';
 
 export type UseMCPServerToolsReturn = {
   tools: MCPToolFromAPI[];
@@ -12,7 +12,6 @@ export type UseMCPServerToolsReturn = {
 };
 
 export const useMCPServerTools = (
-  namespace: string,
   serverUrl: string,
   mcpBearerToken?: string,
   enabled = true,
@@ -22,9 +21,10 @@ export const useMCPServerTools = (
   const [toolsLoadError, setToolsLoadError] = React.useState<Error | null>(null);
   const [toolsStatus, setToolsStatus] = React.useState<MCPToolsStatus | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
+  const { api, apiAvailable } = useGenAiAPI();
 
   const fetchTools = React.useCallback(async () => {
-    if (!namespace || !serverUrl || !enabled) {
+    if (!serverUrl || !enabled || !apiAvailable) {
       setTools([]);
       setToolsLoaded(true);
       setToolsLoadError(null);
@@ -36,7 +36,43 @@ export const useMCPServerTools = (
     setToolsLoadError(null);
 
     try {
-      const response = await getMCPServerTools(namespace, serverUrl, mcpBearerToken);
+      const headers: Record<string, string> = {};
+      if (mcpBearerToken && mcpBearerToken.trim() !== '') {
+        const token = mcpBearerToken.startsWith('Bearer ')
+          ? mcpBearerToken
+          : `Bearer ${mcpBearerToken}`;
+        headers['X-MCP-Bearer'] = token;
+      }
+      /* eslint-disable camelcase */
+      const response = await api
+        .getMCPServerTools(
+          {
+            server_url: serverUrl,
+          },
+          { headers },
+        )
+        .catch((error) => {
+          const errorResponse: MCPToolsStatus = {
+            server_url: serverUrl,
+            status: 'error',
+            message: 'Connection failed',
+            last_checked: Date.now(),
+            server_info: {
+              name: 'unknown',
+              version: 'N/A',
+              protocol_version: '',
+            },
+            tools: [],
+            error_details: {
+              code: 'CONNECTION_FAILED',
+              status_code: 503,
+              raw_error: error instanceof Error ? error.message : 'Unknown connection error',
+            },
+          };
+
+          return errorResponse;
+        });
+      /* eslint-enable camelcase */
 
       setToolsStatus(response);
 
@@ -58,7 +94,7 @@ export const useMCPServerTools = (
       setToolsLoaded(true);
       setIsLoading(false);
     }
-  }, [namespace, serverUrl, mcpBearerToken, enabled]);
+  }, [serverUrl, enabled, mcpBearerToken, apiAvailable, api]);
 
   const refetch = React.useCallback(() => {
     setToolsLoaded(false);

@@ -7,8 +7,8 @@ import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
-import { deleteLSD, installLSD } from '~/app/services/llamaStackService';
 import { convertMaaSModelToAIModel } from '~/app/utilities/utils';
+import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import ChatbotConfigurationTable from './ChatbotConfigurationTable';
 import ChatbotConfigurationState from './ChatbotConfigurationState';
 
@@ -41,6 +41,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   redirectToPlayground,
 }) => {
   const { namespace } = React.useContext(GenAiContext);
+  const { api, apiAvailable } = useGenAiAPI();
 
   // Convert pure MaaS models to AIModel format so they can be used in the table
   const maasAsAIModels: AIModel[] = React.useMemo(() => {
@@ -109,26 +110,27 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
       fireErrorEvents(e);
       return;
     }
-    if (!namespace?.name) {
-      setError(new Error('Namespace is required'));
+    if (!apiAvailable) {
+      setError(new Error('API is not available'));
       return;
     }
 
     const install = () => {
-      installLSD(
-        namespace.name,
-        selectedModels.map((model) => ({
-          model_name: model.isMaaSModel && model.maasModelId ? model.maasModelId : model.model_name,
-          is_maas_model: model.isMaaSModel || false,
-        })),
-      )
+      api
+        .installLSD({
+          models: selectedModels.map((model) => ({
+            model_name:
+              model.isMaaSModel && model.maasModelId ? model.maasModelId : model.model_name,
+            is_maas_model: model.isMaaSModel || false,
+          })),
+        })
         .then(() => {
           fireFormTrackingEvent(
             isUpdate ? UPDATE_PLAYGROUND_EVENT_NAME : SETUP_PLAYGROUND_EVENT_NAME,
             {
               outcome: TrackingOutcome.submit,
               success: true,
-              namespace: namespace.name,
+              namespace: namespace?.name,
               countModelsSelected: selectedModels.length,
               ...(isUpdate && { countPreviousModelsSelected: existingModels.length }),
             },
@@ -144,7 +146,10 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
 
     // If LSD status is provided, delete the existing LSD and install the new models
     if (isUpdate) {
-      deleteLSD(namespace.name, lsdStatus.name)
+      api
+        .deleteLSD({
+          name: lsdStatus.name,
+        })
         .then(install)
         .catch((e) => {
           setError(e);
