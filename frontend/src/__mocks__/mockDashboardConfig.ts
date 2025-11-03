@@ -36,7 +36,6 @@ export type MockDashboardConfigType = {
   notebookSizes?: NotebookSize[];
   disableNIMModelServing?: boolean;
   disableFineTuning?: boolean;
-  disableLlamaStackChatBot?: boolean;
   modelServerSizes?: ModelServingSize[];
   disableLMEval?: boolean;
   disableKueue?: boolean;
@@ -79,7 +78,6 @@ export const mockDashboardConfig = ({
   disableStorageClasses = false,
   disableNotebookController = false,
   disableNIMModelServing = false,
-  disableLlamaStackChatBot = false,
   disableLMEval = true,
   disableKueue = true,
   disableFeatureStore = true,
@@ -240,7 +238,6 @@ export const mockDashboardConfig = ({
       disableNIMModelServing,
       disableAdminConnectionTypes: false,
       disableFineTuning,
-      disableLlamaStackChatBot,
       disableLMEval,
       disableKueue,
       disableFeatureStore,
