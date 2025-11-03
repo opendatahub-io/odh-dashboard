@@ -7,6 +7,7 @@ import { fetchClusterSettings, updateClusterSettings } from '#~/services/cluster
 import { ClusterSettingsType, ModelServingPlatformEnabled } from '#~/types';
 import { addNotification } from '#~/redux/actions/actions';
 import { useAppDispatch } from '#~/redux/hooks';
+import { patchDashboardConfigModelServing } from '#~/api/k8s/dashboardConfig';
 import PVCSizeSettings from '#~/pages/clusterSettings/PVCSizeSettings';
 import CullerSettings from '#~/pages/clusterSettings/CullerSettings';
 import TelemetrySettings from '#~/pages/clusterSettings/TelemetrySettings';
@@ -114,37 +115,57 @@ const ClusterSettings: React.FC = () => {
 
     setSaving(true);
 
-    const clusterSettingsPromise = updateClusterSettings(newClusterSettings).then((response) => {
+    try {
+      const response = await updateClusterSettings({
+        pvcSize,
+        cullerTimeout,
+        userTrackingEnabled,
+        modelServingPlatformEnabled: modelServingEnabledPlatforms,
+      });
+
       if (!response.success) {
         throw new Error(response.error);
       }
+
+      if (
+        useDistributedInferencing !== clusterSettings.useDistributedInferencing ||
+        defaultDeploymentStrategy !== clusterSettings.defaultDeploymentStrategy
+      ) {
+        const { metadata } = dashboardConfig;
+        if (!metadata?.namespace) {
+          throw new Error('Dashboard config namespace not found');
+        }
+        await patchDashboardConfigModelServing(
+          {
+            deploymentStrategy: defaultDeploymentStrategy,
+            isLLMdDefault: useDistributedInferencing,
+          },
+          metadata.namespace,
+        );
+      }
+
       setClusterSettings(newClusterSettings);
 
-      clusterSettingsPromise
-        .then(() => {
-          dispatch(
-            addNotification({
-              status: AlertVariant.success,
-              title: 'Cluster settings changes saved',
-              message: 'It may take up to 2 minutes for configuration changes to be applied.',
-              timestamp: new Date(),
-            }),
-          );
-        })
-        .catch((error) => {
-          dispatch(
-            addNotification({
-              status: AlertVariant.danger,
-              title: 'Error',
-              message: error.message,
-              timestamp: new Date(),
-            }),
-          );
-        })
-        .finally(() => {
-          setSaving(false);
-        });
-    });
+      dispatch(
+        addNotification({
+          status: AlertVariant.success,
+          title: 'Cluster settings changes saved',
+          message: 'It may take up to 2 minutes for configuration changes to be applied.',
+          timestamp: new Date(),
+        }),
+      );
+    } catch (error) {
+      dispatch(
+        addNotification({
+          status: AlertVariant.danger,
+          title: 'Error',
+          message: error instanceof Error ? error.message : 'Unknown error',
+          timestamp: new Date(),
+        }),
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

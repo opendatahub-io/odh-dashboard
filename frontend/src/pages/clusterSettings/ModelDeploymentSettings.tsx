@@ -1,17 +1,18 @@
 import * as React from 'react';
 import {
+  Button,
   Flex,
   FlexItem,
   HelperText,
   HelperTextItem,
+  Popover,
+  Radio,
   Stack,
   StackItem,
   Switch,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
 import SettingSection from '#~/components/SettingSection';
-import SimpleSelect from '#~/components/SimpleSelect';
-import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
 
 type ModelDeploymentSettingsProps = {
   initialUseDistributedInferencing: boolean;
@@ -21,11 +22,6 @@ type ModelDeploymentSettingsProps = {
   defaultDeploymentStrategy: string;
   setDefaultDeploymentStrategy: (value: string) => void;
 };
-
-const deploymentStrategyOptions = [
-  { key: 'rolling', label: 'Rolling update' },
-  { key: 'recreate', label: 'Recreate' },
-];
 
 const ModelDeploymentSettings: React.FC<ModelDeploymentSettingsProps> = ({
   useDistributedInferencing,
@@ -56,11 +52,20 @@ const ModelDeploymentSettings: React.FC<ModelDeploymentSettingsProps> = ({
           />
         </StackItem>
         <StackItem style={{ marginLeft: '40px', marginTop: '-10px' }}>
-          <HelperText>
-            <HelperTextItem icon={<OutlinedQuestionCircleIcon />}>
+          <Popover
+            headerContent="About distributed inferencing"
+            bodyContent={<>PLACEHOLDER TEXT</>} //Waiting on UX decision
+          >
+            <Button
+              variant="link"
+              icon={<OutlinedQuestionCircleIcon />}
+              iconPosition="start"
+              isInline
+              style={{ textDecoration: 'none' }}
+            >
               Tell me more about distributed inferencing
-            </HelperTextItem>
-          </HelperText>
+            </Button>
+          </Popover>
         </StackItem>
         {!useDistributedInferencing && (
           <StackItem>
@@ -72,7 +77,7 @@ const ModelDeploymentSettings: React.FC<ModelDeploymentSettingsProps> = ({
             </HelperText>
           </StackItem>
         )}
-        <StackItem>
+        <StackItem style={{ marginTop: '20px' }}>
           <Flex
             spaceItems={{ default: 'spaceItemsXs' }}
             alignItems={{ default: 'alignItemsCenter' }}
@@ -80,18 +85,43 @@ const ModelDeploymentSettings: React.FC<ModelDeploymentSettingsProps> = ({
             <FlexItem>
               <div className="pf-v6-u-font-weight-bold">Default deployment strategy</div>
             </FlexItem>
-            <DashboardHelpTooltip content={<>TEMP resource.</>} />
           </Flex>
         </StackItem>
         <StackItem>
-          <SimpleSelect
-            id="deployment-strategy-select"
-            options={deploymentStrategyOptions}
-            value={defaultDeploymentStrategy}
-            onChange={(key) => setDefaultDeploymentStrategy(key)}
-            dataTestId="deployment-strategy-select"
-            toggleProps={{ style: { width: '180px' } }}
-          />
+          <Stack hasGutter>
+            <StackItem>
+              <Radio
+                id="deployment-strategy-rolling"
+                name="deployment-strategy"
+                label={<span className="pf-v6-u-font-weight-bold">Rolling update</span>}
+                description={
+                  <>
+                    Existing inference service pods are terminated <u>after</u> new ones are
+                    started. This ensures zero downtime and continuous availability.
+                  </>
+                }
+                isChecked={defaultDeploymentStrategy === 'rolling'}
+                onChange={() => setDefaultDeploymentStrategy('rolling')}
+                data-testid="deployment-strategy-rolling"
+              />
+            </StackItem>
+            <StackItem>
+              <Radio
+                id="deployment-strategy-recreate"
+                name="deployment-strategy"
+                label={<span className="pf-v6-u-font-weight-bold">Recreate</span>}
+                description={
+                  <>
+                    All existing inference service pods are terminated <u>before</u> any new ones
+                    are started. This saves resources but guarantees a period of downtime.
+                  </>
+                }
+                isChecked={defaultDeploymentStrategy === 'recreate'}
+                onChange={() => setDefaultDeploymentStrategy('recreate')}
+                data-testid="deployment-strategy-recreate"
+              />
+            </StackItem>
+          </Stack>
         </StackItem>
       </Stack>
     </SettingSection>

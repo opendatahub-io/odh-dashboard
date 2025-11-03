@@ -41,10 +41,15 @@ const initIntercepts = ({
   llmInferenceServices = [],
   inferenceServices = [],
   servingRuntimes = [],
+  modelServing,
 }: {
   llmInferenceServices?: LLMInferenceServiceKind[];
   inferenceServices?: InferenceServiceKind[];
   servingRuntimes?: ServingRuntimeKind[];
+  modelServing?: {
+    deploymentStrategy?: string;
+    isLLMdDefault?: boolean;
+  };
 }) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
@@ -62,6 +67,7 @@ const initIntercepts = ({
       disableKServe: false,
       genAiStudio: true,
       modelAsService: true, // Enable MaaS for testing
+      modelServing,
     }),
   );
   cy.interceptOdh('GET /api/components', null, []);
@@ -105,6 +111,11 @@ const initIntercepts = ({
           name: 'template-2',
           displayName: 'OpenVINO',
           modelTypes: [ServingRuntimeModelType.PREDICTIVE],
+        }),
+        mockServingRuntimeTemplateK8sResource({
+          name: 'llmd-serving',
+          displayName: 'Distributed Inference Server with llm-d',
+          modelTypes: [ServingRuntimeModelType.GENERATIVE],
         }),
         mockServingRuntimeTemplateK8sResource({
           name: 'template-5',
@@ -279,7 +290,11 @@ describe('Model Serving LLMD', () => {
 
   describe('creating an LLMD deployment', () => {
     it('should create an LLMD deployment', () => {
-      initIntercepts({});
+      initIntercepts({
+        modelServing: {
+          isLLMdDefault: true,
+        },
+      });
 
       // Visit the model serving page
       modelServingGlobal.visit('test-project');
@@ -301,11 +316,9 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.findModelDeploymentDescriptionInput().type('test-llmd-description');
 
       hardwareProfileSection.findSelect().should('contain.text', 'Small');
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
       modelServingWizard
-        .findGlobalScopedTemplateOption('Distributed Inference Server with llm-d')
-        .should('exist')
-        .click();
+        .findServingRuntimeTemplateSearchSelector()
+        .should('contain.text', 'Distributed Inference Server with llm-d');
 
       modelServingWizard.findNumReplicasInputField().should('have.value', '1');
       modelServingWizard.findNumReplicasPlusButton().click();
@@ -514,7 +527,11 @@ describe('Model Serving LLMD', () => {
 
   describe('Deploy LLMD with MaaS enabled', () => {
     it('should create an LLMD deployment with MaaS enabled', () => {
-      initIntercepts({});
+      initIntercepts({
+        modelServing: {
+          isLLMdDefault: false,
+        },
+      });
 
       // Navigate to wizard and set up basic deployment
       modelServingGlobal.visit('test-project');
