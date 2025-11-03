@@ -21,6 +21,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -156,21 +157,86 @@ func newTokenKubernetesClient(token string, logger *slog.Logger, envConfig confi
 	}, nil
 }
 
-// RequestIdentity is unused because the token already represents the user identity.
-// This endpoint is used only on dev mode that is why is safe to ignore permissions errors
-func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *integrations.RequestIdentity) ([]corev1.Namespace, error) {
+// GetNamespaces returns namespaces accessible to the user.
+// For cluster admins, returns all namespaces.
+// For regular users, uses OpenShift Projects API which returns only accessible projects.
+func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, identity *integrations.RequestIdentity) ([]corev1.Namespace, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	// Using controller-runtime client - much simpler!
-	var nsList corev1.NamespaceList
-	err := kc.Client.List(ctx, &nsList)
-	if err != nil {
-		kc.Logger.Error("user is not allowed to list namespaces or failed to list namespaces")
-		return []corev1.Namespace{}, fmt.Errorf("failed to list namespaces: %w", err)
+	// Check for nil identity
+	if identity == nil {
+		kc.Logger.Error("identity is nil")
+		return nil, fmt.Errorf("identity cannot be nil")
 	}
 
-	return nsList.Items, nil
+	// Create a dynamic client with user token
+	userConfig := rest.CopyConfig(kc.Config)
+	userConfig.BearerToken = identity.Token
+	userConfig.BearerTokenFile = ""
+
+	// Create controller-runtime client with user token
+	userClient, err := client.New(userConfig, client.Options{Scheme: kc.Client.Scheme()})
+	if err != nil {
+		kc.Logger.Error("failed to create user client", "error", err)
+		return nil, fmt.Errorf("failed to create user client: %w", err)
+	}
+
+	// Try cluster-wide namespace list first (works for admins)
+	var nsList corev1.NamespaceList
+	err = userClient.List(ctx, &nsList)
+	if err == nil {
+		// User can list namespaces cluster-wide (admin path)
+		kc.Logger.Debug("user can list namespaces cluster-wide",
+			"count", len(nsList.Items))
+		return nsList.Items, nil
+	}
+
+	// User cannot list cluster-wide, use OpenShift Projects API
+	// This API returns only projects the user has access to
+	kc.Logger.Debug("falling back to OpenShift Projects API", "error", err)
+
+	// Use Unstructured to query project.openshift.io/v1 projects
+	projectList := &unstructured.UnstructuredList{}
+	projectList.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "project.openshift.io",
+		Version: "v1",
+		Kind:    "ProjectList",
+	})
+
+	err = userClient.List(ctx, projectList)
+	if err != nil {
+		kc.Logger.Error("failed to list OpenShift projects", "error", err)
+		return nil, fmt.Errorf("failed to list projects: %w", err)
+	}
+
+	// Convert projects to namespaces
+	namespaces := make([]corev1.Namespace, 0, len(projectList.Items))
+	for _, project := range projectList.Items {
+		projectName := project.GetName()
+
+		// Fetch full namespace object
+		ns := &corev1.Namespace{}
+		err := userClient.Get(ctx, types.NamespacedName{Name: projectName}, ns)
+		if err != nil {
+			kc.Logger.Warn("failed to get namespace details", "namespace", projectName, "error", err)
+			// Create minimal namespace if we can't fetch full details
+			namespaces = append(namespaces, corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        projectName,
+					Annotations: project.GetAnnotations(),
+					Labels:      project.GetLabels(),
+				},
+			})
+		} else {
+			namespaces = append(namespaces, *ns)
+		}
+	}
+
+	kc.Logger.Debug("listed namespaces via OpenShift Projects API",
+		"count", len(namespaces))
+
+	return namespaces, nil
 }
 
 // CanListNamespaces performs a SubjectAccessReview to check if the user has permission to list namespaces
