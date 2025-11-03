@@ -45,6 +45,13 @@ export const formatNodeSelector = (selector: NodeSelector): string[] =>
 export const formatResource = (identifier: string, request: string, limit: string): string =>
   `${identifier}: Request = ${request}; Limit = ${limit}`;
 
+/**
+ * changed order of arguments so that the deprecated accelerator profile is last;
+ * to make it optional.
+ *
+ * when we finish removing modelmesh and fine tuning (the only place that still has the accelerator profile argument)
+ * then remove the accelerator profile argument and remove all unreachable/deprecated code.
+ */
 export const useProfileIdentifiers = (
   hardwareProfile?: HardwareProfileKind,
   acceleratorProfile?: AcceleratorProfileKind,
