@@ -14,7 +14,7 @@ import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { getModelServingSizes } from '#~/concepts/modelServing/modelServingSizesUtils';
 import { getResourceSize } from '#~/pages/modelServing/utils';
 import { formatMemory } from '#~/utilities/valueUnits';
-import useServingHardwareProfileConfig from '#~/concepts/hardwareProfiles/useServingHardwareProfileConfig';
+import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
 import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 import ScopedLabel from '#~/components/ScopedLabel';
 import { ScopedType } from '#~/pages/modelServing/screens/const';
