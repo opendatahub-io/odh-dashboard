@@ -7,51 +7,25 @@ import { TrustyAICRState } from '#~/__tests__/cypress/cypress/pages/components/T
 import { TableRow } from '#~/__tests__/cypress/cypress/pages/components/table';
 
 class ProjectListToolbar extends Contextual<HTMLElement> {
-  findToggleButton(id: string) {
-    return this.find().pfSwitch(id).click();
+  findNameFilter(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('project-list-name-filter');
   }
 
-  findFilterMenuOption(id: string, name: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findToggleButton(id).parents().findByRole('menuitem', { name });
+  findUserFilter(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('project-list-user-filter');
   }
 
-  findFilterInput(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByLabelText(`Filter by ${name}`);
-  }
-
-  findSearchInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('filter-toolbar-text-field');
-  }
-
-  findProjectTypeDropdown(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByRole('button', { name: /projects/ });
+  findProjectTypeDropdownToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('project-type-dropdown-toggle');
   }
 
   selectProjectType(projectType: string): void {
-    this.findProjectTypeDropdown().click();
+    this.findProjectTypeDropdownToggle().click();
     cy.findByRole('menuitem', { name: new RegExp(projectType, 'i') }).click();
   }
 
-  findProjectTypeFilterButton() {
-    return this.find().find('[data-testid="filter-toolbar-text-field"]').find('button');
-  }
-
   findAIProjectLabel() {
-    return this.findProjectTypeFilterButton().contains('span', 'AI');
-  }
-
-  shouldHaveAIProjectPill(): void {
-    // Look for a span containing exactly "AI" text within the project type button
-    this.findProjectTypeFilterButton().within(() => {
-      cy.contains('span', /^AI$/).should('exist').and('be.visible');
-    });
-  }
-
-  shouldNotHaveAIProjectPill(): void {
-    // Verify there's no span with exactly "AI" text in the project type button
-    this.findProjectTypeFilterButton().within(() => {
-      cy.contains('span', /^AI$/).should('not.exist');
-    });
+    return this.find().findByTestId('ai-project-label');
   }
 }
 
@@ -194,8 +168,7 @@ class ProjectListPage {
    */
   filterProjectByName = (projectName: string) => {
     const projectListToolbar = projectListPage.getTableToolbar();
-    projectListToolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Name').click();
-    projectListToolbar.findSearchInput().type(projectName);
+    projectListToolbar.findNameFilter().type(projectName);
   };
 }
 
