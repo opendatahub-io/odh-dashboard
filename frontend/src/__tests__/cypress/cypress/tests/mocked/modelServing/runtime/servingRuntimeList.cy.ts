@@ -516,7 +516,6 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
-        enableNIM: true,
       });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
