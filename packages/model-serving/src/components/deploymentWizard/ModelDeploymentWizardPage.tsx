@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ProjectsContext, byName } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import {
   Bullseye,
@@ -39,19 +39,18 @@ const ErrorContent: React.FC<{ error: Error }> = ({ error }) => {
 };
 
 export const ModelDeploymentWizardPage: React.FC = () => {
-  const { namespace } = useParams();
   const location = useLocation();
 
   // Extract state from navigation
   const existingData = location.state?.initialData;
   const existingDeployment = location.state?.existingDeployment;
   const returnRoute = location.state?.returnRoute;
+  const projectName = location.state?.projectName;
 
   const { projects, loaded: projectsLoaded } = React.useContext(ProjectsContext);
-  const currentProject = React.useMemo(
-    () => projects.find(byName(namespace)),
-    [projects, namespace],
-  );
+  const currentProject = React.useMemo(() => {
+    return projectName ? projects.find(byName(projectName)) : undefined;
+  }, [projects, projectName]);
 
   const { clusterPlatforms, clusterPlatformsLoaded, clusterPlatformsError } =
     useAvailableClusterPlatforms();
@@ -71,7 +70,7 @@ export const ModelDeploymentWizardPage: React.FC = () => {
         error={
           new Error(
             !currentProject
-              ? `Project ${namespace ?? ''} not found.`
+              ? `Project ${projectName ?? ''} not found.`
               : !activePlatform
               ? 'No model serving platform is configured for this project.'
               : 'Unable to edit model deployment.',

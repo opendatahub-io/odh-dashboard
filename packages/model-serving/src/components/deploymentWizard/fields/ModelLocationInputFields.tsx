@@ -188,7 +188,7 @@ export const useModelLocationData = (
     connectionTypesLoaded,
     selectedConnection,
     setSelectedConnection: updateSelectedConnection,
-    isLoadingSecretData: !isStableState,
+    isLoadingSecretData: !isStableState && !!project?.metadata.name,
   };
 };
 

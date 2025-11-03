@@ -34,7 +34,7 @@ type StatusSection = {
   items: StatusItem[];
 };
 
-const getStatusSections = (projectName: string): StatusSection[] => [
+const getStatusSections = (projectName?: string): StatusSection[] => [
   {
     title: 'Model details',
     items: [
@@ -315,7 +315,7 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
   wizardState,
   projectName,
 }) => {
-  const statusSections = React.useMemo(() => getStatusSections(projectName ?? ''), [projectName]);
+  const statusSections = React.useMemo(() => getStatusSections(projectName), [projectName]);
 
   return (
     <Form>

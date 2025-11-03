@@ -40,7 +40,7 @@ import { type Deployment } from '../../../extension-points';
  */
 export const useNavigateToDeploymentWizard = (
   deployment?: Deployment | null,
-): ((projectName: string) => void) => {
+): ((projectName?: string) => void) => {
   const navigate: NavigateFunction = useNavigate();
 
   // Load hooks needed for the deployment wizard
@@ -54,7 +54,7 @@ export const useNavigateToDeploymentWizard = (
 
   // Memoize the navigation function to prevent unnecessary re-renders
   return React.useCallback(
-    (projectName: string): void => {
+    (projectName?: string): void => {
       // If we're editing a deployment, wait for form data to load
       if (deployment && !loaded) {
         console.warn(
@@ -70,8 +70,8 @@ export const useNavigateToDeploymentWizard = (
       }
 
       // Navigate to deployment wizard with state data
-      navigate(getDeploymentWizardRoute(projectName), {
-        state: { initialData: formData, existingDeployment: deployment, returnRoute },
+      navigate(getDeploymentWizardRoute(), {
+        state: { initialData: formData, existingDeployment: deployment, returnRoute, projectName },
       });
     },
     [navigate, formData, loaded, error, deployment, returnRoute],

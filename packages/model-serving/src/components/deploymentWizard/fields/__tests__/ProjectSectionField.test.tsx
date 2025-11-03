@@ -1,5 +1,5 @@
-import React, { act } from 'react';
-import { render, screen, renderHook, fireEvent } from '@testing-library/react';
+import React from 'react';
+import { render, screen, renderHook, fireEvent, act } from '@testing-library/react';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
 import ProjectSection, { isValidProject, useProjectSection } from '../ProjectSection';

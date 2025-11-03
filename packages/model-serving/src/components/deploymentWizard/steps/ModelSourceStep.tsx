@@ -33,10 +33,7 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
   wizardState,
   validation,
 }) => {
-  if (
-    wizardState.state.modelLocationData.isLoadingSecretData &&
-    wizardState.state.project.project
-  ) {
+  if (wizardState.state.modelLocationData.isLoadingSecretData) {
     return (
       <Bullseye>
         <Spinner />

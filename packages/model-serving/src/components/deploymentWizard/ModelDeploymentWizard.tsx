@@ -53,7 +53,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   const wizardState = useModelDeploymentWizard(existingData, project);
   const validation = useModelDeploymentWizardValidation(wizardState.state);
   const currentProject =
-    wizardState.state.project.initialProject ?? wizardState.state.project.project ?? null;
+    wizardState.state.project.initialProject ?? wizardState.state.project.project ?? undefined;
 
   const { deployMethod, deployMethodLoaded } = useDeployMethod(wizardState.state);
 
@@ -146,7 +146,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       deployMethodLoaded,
       existingDeployment,
       exitWizard,
-      currentProject?.metadata.name ?? undefined,
+      currentProject?.metadata.name,
       secretName,
       validation.isModelDeploymentStepValid,
       validation.isModelSourceStepValid,
@@ -195,7 +195,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         >
           {wizardState.loaded.modelDeploymentLoaded ? (
             <ModelDeploymentStepContent
-              projectName={currentProject?.metadata.name ?? undefined}
+              projectName={currentProject?.metadata.name}
               wizardState={wizardState}
             />
           ) : (
@@ -208,10 +208,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           isDisabled={!validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid}
         >
           {wizardState.loaded.advancedOptionsLoaded ? (
-            <AdvancedSettingsStepContent
-              wizardState={wizardState}
-              project={currentProject ?? undefined}
-            />
+            <AdvancedSettingsStepContent wizardState={wizardState} project={currentProject} />
           ) : (
             <Spinner />
           )}
@@ -228,7 +225,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           {wizardState.loaded.summaryLoaded ? (
             <ReviewStepContent
               wizardState={wizardState}
-              projectName={currentProject?.metadata.name ?? undefined}
+              projectName={currentProject?.metadata.name}
             />
           ) : (
             <Spinner />

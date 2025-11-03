@@ -68,11 +68,15 @@ const PlatformDeploymentWatcher: React.FC<PlatformDeploymentWatcherProps> = ({
   }, [allDeployments, projects]);
 
   React.useEffect(() => {
+    // Prevent infinite updates when no project is selected
+    if (!projects.length && !loaded) {
+      return;
+    }
     onStateChange(platformId, { deployments: filteredDeployments, loaded, error });
     return () => {
       unloadPlatformDeployments(platformId);
     };
-  }, [platformId, filteredDeployments, loaded, error, onStateChange, unloadPlatformDeployments]);
+  }, [platformId, loaded, error, onStateChange, unloadPlatformDeployments, projects.length]);
 
   return null;
 };
@@ -151,28 +155,26 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
 
   return (
     <ModelDeploymentsContext.Provider value={contextValue}>
-      {projects &&
-        projects.length > 0 &&
-        deploymentWatchers.map((watcher) => {
-          const platformId = watcher.properties.platform;
+      {deploymentWatchers.map((watcher) => {
+        const platformId = watcher.properties.platform;
 
-          if (!deploymentWatchersLoaded) {
-            return null;
-          }
+        if (!deploymentWatchersLoaded) {
+          return null;
+        }
 
-          return (
-            <PlatformDeploymentWatcher
-              key={platformId}
-              platformId={platformId}
-              watcher={watcher}
-              projects={projects}
-              labelSelectors={labelSelectors}
-              onStateChange={updatePlatformDeployments}
-              unloadPlatformDeployments={unloadPlatformDeployments}
-              filterFn={filterFn}
-            />
-          );
-        })}
+        return (
+          <PlatformDeploymentWatcher
+            key={platformId}
+            platformId={platformId}
+            watcher={watcher}
+            projects={projects ?? []}
+            labelSelectors={labelSelectors}
+            onStateChange={updatePlatformDeployments}
+            unloadPlatformDeployments={unloadPlatformDeployments}
+            filterFn={filterFn}
+          />
+        );
+      })}
       {children}
     </ModelDeploymentsContext.Provider>
   );

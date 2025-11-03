@@ -52,10 +52,7 @@ export const useModelDeploymentWizard = (
   // Step 1: Model Source
   const modelType = useModelTypeField(initialData?.modelTypeField);
   const project = useProjectSection(initialProject);
-  const modelLocationData = useModelLocationData(
-    project.project ?? null,
-    initialData?.modelLocationData,
-  );
+  const modelLocationData = useModelLocationData(project.project, initialData?.modelLocationData);
   const createConnectionData = useCreateConnectionData(
     project.project ?? null,
     initialData?.createConnectionData,
@@ -65,7 +62,7 @@ export const useModelDeploymentWizard = (
   // loaded state
   const modelSourceLoaded = React.useMemo(() => {
     return modelLocationData.connectionTypesLoaded;
-  }, [modelLocationData.connectionsLoaded, modelLocationData.connectionTypesLoaded]);
+  }, [modelLocationData.connectionTypesLoaded]);
 
   // Step 2: Model Deployment
   const k8sNameDesc = useK8sNameDescriptionFieldData({

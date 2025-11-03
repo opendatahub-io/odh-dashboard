@@ -39,7 +39,7 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
           nameHelperTextAbove="Name this deployment. This name is also used for the inference service created when the model is deployed."
         />
         <ModelServingHardwareProfileSection
-          project={projectName ?? undefined}
+          project={projectName}
           hardwareProfileConfig={wizardState.state.hardwareProfileConfig}
           isEditing={wizardState.initialData?.isEditing}
         />

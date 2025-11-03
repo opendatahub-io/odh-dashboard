@@ -916,8 +916,8 @@ class ModelServingWizard extends Wizard {
     super('Deploy a model', edit ? 'Update deployment' : 'Deploy model');
   }
 
-  visit(project?: string) {
-    cy.visitWithLogin(`/ai-hub/deployments${project ? `/${project}/deploy` : '/deploy'}`);
+  visit() {
+    cy.visitWithLogin(`/ai-hub/deployments/deploy`);
   }
 
   findModelSourceStep() {

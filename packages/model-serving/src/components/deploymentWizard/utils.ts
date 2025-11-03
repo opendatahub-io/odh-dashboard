@@ -18,11 +18,8 @@ import {
 import type { Deployment, DeploymentEndpoint } from '../../../extension-points';
 import { isDeploymentAuthEnabled } from '../../concepts/auth';
 
-export const getDeploymentWizardRoute = (projectName?: string): string => {
-  if (!projectName) {
-    return '/ai-hub/deployments/deploy';
-  }
-  return `/ai-hub/deployments/${projectName}/deploy`;
+export const getDeploymentWizardRoute = (): string => {
+  return '/ai-hub/deployments/deploy';
 };
 
 export const getModelTypeFromDeployment = (
