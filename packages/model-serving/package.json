@@ -13,6 +13,12 @@
   "exports": {
     "./extensions": "./extensions/index.ts",
     "./extension-points": "./extension-points/index.ts",
+    "./components/*": [
+      "./src/components/*",
+      "./src/components/*.ts",
+      "./src/components/*.d.ts",
+      "./src/components/*.tsx"
+    ],
     "./types/form-data": "./src/components/deploymentWizard/types.ts"
   },
   "dependencies": {
