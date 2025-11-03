@@ -28,7 +28,6 @@ import { ModelDeploymentState } from '#~/pages/modelServing/screens/types';
 import { modelServingGlobal } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import { ModelRegistryMetadataType, ModelSourceKind } from '#~/concepts/modelRegistry/types';
 import { KnownLabels } from '#~/k8sTypes';
-import { asProjectEditUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
 import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 const MODEL_REGISTRY_API_VERSION = 'v1';
@@ -313,62 +312,39 @@ describe('Model version details', () => {
       modelVersionDetails.findRegisteredFromTitle().should('exist');
     });
 
-    // TODO: Unskip when pipeline is in model version details.
-    it.skip('Model version details tab registered from pipeline', () => {
-      modelVersionDetails.findVersionId().contains('1');
-      modelVersionDetails.findRegisteredFromPipeline().should('exist');
-      modelVersionDetails
-        .findRegisteredFromPipeline()
-        .should('have.text', 'Run pipeline-run-test inTest Project');
-      modelVersionDetails.findDescription().should('have.text', 'Description of model version');
-      modelVersionDetails.findPipelineRunLink().should('have.text', 'Run pipeline-run-test in');
-      modelVersionDetails.findPipelineRunLink().click();
-      verifyRelativeURL('/develop-train/pipelines/runs/test-project/runs/pipelinerun1');
-    });
-
-    // TODO: Unskip when pipeline is in model version details.
-    it.skip('Pipeline run link unavailable for users without project access.', () => {
-      asProjectEditUser();
-      initIntercepts(true);
-      modelVersionDetails.visit();
-      modelVersionDetails.shouldNotHavePipelineRunLink();
-      modelVersionDetails.findPipelineRunLink().should('contain.text', 'pipeline-run-test');
-      modelVersionDetails.findProjectAccessInfoButton().click();
-      modelVersionDetails.shouldHaveProjectAccessInfo();
-    });
-  });
-
-  describe('Discard unsaved changes', () => {
-    beforeEach(() => {
-      initIntercepts();
-      modelVersionDetails.visit();
-    });
-
-    // We do not have the delete modal yet.
-    it.skip('should show discard modal when editing and moving to Deployments tab', () => {
-      modelVersionDetails.findEditLabelsButton().click();
-      modelVersionDetails.findAddLabelButton().click();
-      cy.findByTestId('editable-label-group').within(() => {
-        cy.contains('New Label').should('exist').click();
+    // these tests will be fixed in this issue: https://issues.redhat.com/browse/RHOAIENG-34543 - we can enable/fix them after sync
+    describe('Discard unsaved changes', () => {
+      beforeEach(() => {
+        initIntercepts();
+        modelVersionDetails.visit();
       });
 
-      modelVersionDetails.findRegisteredDeploymentsTab().click();
-      navigationBlockerModal.findDiscardUnsavedChanges().should('exist');
-      navigationBlockerModal.findDiscardButton().click();
-      modelVersionDetails.findDetailsTab().click();
-    });
+      // We do not have the delete modal yet.
+      it.skip('should show discard modal when editing and moving to Deployments tab', () => {
+        modelVersionDetails.findEditLabelsButton().click();
+        modelVersionDetails.findAddLabelButton().click();
+        cy.findByTestId('editable-label-group').within(() => {
+          cy.contains('New Label').should('exist').click();
+        });
 
-    // We do not have the delete modal yet.
-    it.skip('should continue editing when clicking cancel', () => {
-      modelVersionDetails.findEditLabelsButton().click();
-      modelVersionDetails.findAddLabelButton().click();
-      cy.findByTestId('editable-label-group').within(() => {
-        cy.contains('New Label').should('exist').click();
+        modelVersionDetails.findRegisteredDeploymentsTab().click();
+        navigationBlockerModal.findDiscardUnsavedChanges().should('exist');
+        navigationBlockerModal.findDiscardButton().click();
+        modelVersionDetails.findDetailsTab().click();
       });
 
-      modelVersionDetails.findRegisteredDeploymentsTab().click();
-      navigationBlockerModal.findCloseModal().click();
-      cy.findByTestId('editable-labels-group-save').should('exist');
+      // We do not have the delete modal yet.
+      it.skip('should continue editing when clicking cancel', () => {
+        modelVersionDetails.findEditLabelsButton().click();
+        modelVersionDetails.findAddLabelButton().click();
+        cy.findByTestId('editable-label-group').within(() => {
+          cy.contains('New Label').should('exist').click();
+        });
+
+        modelVersionDetails.findRegisteredDeploymentsTab().click();
+        navigationBlockerModal.findCloseModal().click();
+        cy.findByTestId('editable-labels-group-save').should('exist');
+      });
     });
   });
 

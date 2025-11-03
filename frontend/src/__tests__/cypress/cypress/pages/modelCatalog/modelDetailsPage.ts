@@ -1,10 +1,8 @@
 class ModelDetailsPage {
   visit() {
-    const sourceName = 'Red%20Hat';
-    const repositoryName = 'rhelai1';
-    const modelName = 'granite-8b-code-instruct';
-    const tag = '1%252E3%252E0';
-    cy.visitWithLogin(`/ai-hub/catalog/${sourceName}/${repositoryName}/${modelName}/${tag}`);
+    const sourceName = 'redhat_ai_models';
+    const modelName = 'granite-7b-redhat-lab';
+    cy.visitWithLogin(`/ai-hub/catalog/${sourceName}/${modelName}/overview`);
     this.wait();
   }
 
@@ -18,7 +16,7 @@ class ModelDetailsPage {
   }
 
   findDeployModelButton() {
-    return cy.findByTestId('deploy-model-button');
+    return cy.findByTestId('deploy-button');
   }
 
   findTuneModelButton() {
