@@ -70,6 +70,7 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
         <ToolbarGroup variant="filter-group">
           <ToolbarItem>
             <Dropdown
+              data-testid="project-type-dropdown"
               isOpen={isProjectTypeDropdownOpen}
               onOpenChange={setIsProjectTypeDropdownOpen}
               toggle={(toggleRef) => (
@@ -77,6 +78,7 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
                   ref={toggleRef}
                   onClick={() => setIsProjectTypeDropdownOpen(!isProjectTypeDropdownOpen)}
                   isExpanded={isProjectTypeDropdownOpen}
+                  data-testid="project-type-dropdown-toggle"
                 >
                   <Flex
                     spaceItems={{ default: 'spaceItemsSm' }}
@@ -91,7 +93,7 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
                     </FlexItem>
                     {isAISelected && (
                       <FlexItem>
-                        <Label color="blue" icon={<StarIcon />}>
+                        <Label color="blue" icon={<StarIcon />} data-testid="ai-project-label">
                           AI
                         </Label>
                       </FlexItem>
@@ -156,6 +158,7 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
           </ToolbarItem>
           <ToolbarItem>
             <SearchInput
+              data-testid="project-list-name-filter"
               value={filterData[ProjectsFilterOptions.name] || ''}
               aria-label="Filter by name"
               placeholder="Filter by name"
@@ -165,6 +168,7 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
           </ToolbarItem>
           <ToolbarItem>
             <SearchInput
+              data-testid="project-list-user-filter"
               value={filterData[ProjectsFilterOptions.user] || ''}
               aria-label="Filter by user"
               placeholder="Filter by user"
