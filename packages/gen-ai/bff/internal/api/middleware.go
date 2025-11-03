@@ -156,49 +156,6 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 	}
 }
 
-// RequireNamespaceListAccess middleware checks if the user can list namespaces
-// This performs a SubjectAccessReview to verify cluster-scoped namespace listing permissions
-func (app *App) RequireNamespaceListAccess(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		// If authentication is disabled, skip SAR check
-		if app.config.AuthMethod == config.AuthMethodDisabled {
-			next(w, r, ps)
-			return
-		}
-
-		ctx := r.Context()
-		identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
-		if !ok || identity == nil {
-			app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-			return
-		}
-
-		// Get Kubernetes client to perform SAR
-		k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-		if err != nil {
-			app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
-			return
-		}
-
-		// Perform SubjectAccessReview to check if user can list namespaces (cluster-scoped)
-		allowed, err := k8sClient.CanListNamespaces(ctx, identity)
-		if err != nil {
-			app.serverErrorResponse(w, r, fmt.Errorf("failed to check namespace listing permissions: %w", err))
-			return
-		}
-
-		if !allowed {
-			app.forbiddenResponse(w, r, "user does not have permission to list namespaces")
-			return
-		}
-
-		logger := helper.GetContextLoggerFromReq(r)
-		logger.Debug("User authorized to list namespaces")
-
-		next(w, r, ps)
-	}
-}
-
 func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		namespace := r.URL.Query().Get(string(constants.NamespaceQueryParameterKey))
