@@ -235,7 +235,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.RequireAccessToService(app.ModelsAAHandler)))
 
 	// Settings path namespace endpoints. This endpoint will get all the namespaces
-	apiRouter.GET(constants.NamespacesPath, app.RequireAccessToService(app.RequireNamespaceListAccess(app.GetNamespaceHandler)))
+	apiRouter.GET(constants.NamespacesPath, app.RequireAccessToService(app.GetNamespaceHandler))
 
 	// Identity
 	apiRouter.GET(constants.UserPath, app.RequireAccessToService(app.GetCurrentUserHandler))
