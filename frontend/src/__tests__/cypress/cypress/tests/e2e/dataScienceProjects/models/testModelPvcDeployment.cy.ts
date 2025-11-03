@@ -158,16 +158,8 @@ describe('Verify a model can be deployed from a PVC', () => {
       modelServingSection.findModelServerDeployedName(testData.singleModelName);
       //Verify the model created and is running
       cy.step('Verify that the Model is running');
-      // For KServe Raw deployments, we only need to check Ready condition
-      // LatestDeploymentReady is specific to Serverless deployments
-      checkInferenceServiceState(
-        testData.singleModelName,
-        projectName,
-        {
-          checkReady: true,
-        },
-        'RawDeployment',
-      );
+      // Verify model deployment is ready
+      checkInferenceServiceState(testData.singleModelName, projectName, { checkReady: true });
     },
   );
 });

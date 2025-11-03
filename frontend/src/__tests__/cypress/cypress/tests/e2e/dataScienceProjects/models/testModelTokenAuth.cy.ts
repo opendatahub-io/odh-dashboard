@@ -111,16 +111,8 @@ describe('[Automation Bug: RHOAIENG-32898] A model can be deployed with token au
 
       // Verify the model created
       cy.step('Verify that the Model is running');
-      // For KServe Raw deployments, we only need to check Ready condition
-      // LatestDeploymentReady is specific to Serverless deployments
-      checkInferenceServiceState(
-        testData.singleModelName,
-        projectName,
-        {
-          checkReady: true,
-        },
-        'RawDeployment',
-      );
+      // Verify model deployment is ready
+      checkInferenceServiceState(testData.singleModelName, projectName, { checkReady: true });
 
       // Verify the model is not accessible without a token
       cy.step('Verify the model is not accessible without a token');

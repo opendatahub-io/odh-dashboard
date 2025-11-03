@@ -1,6 +1,5 @@
 import React from 'react';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
+import type { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
 import {
   ImageStreamKind,
   AcceleratorProfileKind,

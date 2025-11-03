@@ -2,13 +2,13 @@ import React, { useMemo, useCallback } from 'react';
 import { Toolbar, ToolbarContent, ToolbarItem, Switch } from '@patternfly/react-core';
 import FilterToolbar from '@odh-dashboard/internal/components/FilterToolbar';
 import {
+  MultiSelection,
+  type SelectionOptions,
+} from '@odh-dashboard/internal/components/MultiSelection';
+import {
   extractFilterOptionsFromLineage,
   extractFilterOptionsFromFeatureViewLineage,
 } from '../screens/lineage/utils';
-import {
-  MultiSelection,
-  type SelectionOptions,
-} from '../../../../frontend/src/components/MultiSelection';
 import {
   FeatureStoreLineageToolbarProps,
   FeatureStoreLineageSearchFilters,

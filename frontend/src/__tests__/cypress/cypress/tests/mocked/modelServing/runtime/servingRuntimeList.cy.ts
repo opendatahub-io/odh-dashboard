@@ -29,7 +29,7 @@ import type {
   ServingRuntimeKind,
 } from '#~/k8sTypes';
 import { ServingRuntimePlatform } from '#~/types';
-import { StackCapability, DataScienceStackComponent } from '#~/concepts/areas/types';
+import { DataScienceStackComponent } from '#~/concepts/areas/types';
 import { mockDsciStatus } from '#~/__mocks__/mockDsciStatus';
 import {
   HardwareProfileModel,
@@ -69,7 +69,6 @@ type HandlersProps = {
   rejectInferenceService?: boolean;
   rejectServingRuntime?: boolean;
   rejectConnection?: boolean;
-  requiredCapabilities?: StackCapability[];
   DscComponents?: DataScienceClusterKindStatus['components'];
   disableProjectScoped?: boolean;
   templates?: boolean;
@@ -125,12 +124,7 @@ const initIntercepts = ({
       },
     }),
   );
-  cy.interceptOdh(
-    'GET /api/dsci/status',
-    mockDsciStatus({
-      requiredCapabilities,
-    }),
-  );
+  cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
@@ -745,9 +739,7 @@ describe('Serving Runtime List', () => {
 
   describe('Check token section in serving runtime details', () => {
     it('Check token section is enabled if capability is enabled', () => {
-      initIntercepts({
-        requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
-      });
+      initIntercepts({});
       projectDetails.visitSection('test-project', 'model-server');
       const kserveRow = modelServingSection.getKServeRow('Llama Caikit');
       kserveRow.findExpansion().should(be.collapsed);
