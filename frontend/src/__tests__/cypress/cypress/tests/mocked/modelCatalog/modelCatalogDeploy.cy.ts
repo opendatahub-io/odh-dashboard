@@ -15,13 +15,15 @@ import { modelCatalogDeployModal } from '#~/__tests__/cypress/cypress/pages/mode
 type HandlersProps = {
   catalogModels?: ModelCatalogSource[];
   isEmpty?: boolean;
+  disableKServe?: boolean;
 };
 
 const initIntercepts = ({
   catalogModels = [mockModelCatalogSource({})],
   isEmpty = false,
+  disableKServe = false,
 }: HandlersProps) => {
-  initDeployPrefilledModelIntercepts({ isEmpty });
+  initDeployPrefilledModelIntercepts({ isEmpty, disableKServe });
 
   cy.interceptK8s(
     {
@@ -41,12 +43,13 @@ const initIntercepts = ({
   );
 };
 
-// TODO: Fix these tests
-describe.skip('Deploy catalog model', () => {
+describe('Deploy catalog model', () => {
   it('Error if kserve is not enabled', () => {
-    // Intercept the config to disable kserve like in modelVersionDeploy.cy.ts
-    initIntercepts({});
+    initIntercepts({ disableKServe: true });
     modelDetailsPage.visit();
+    // Wait for page to load
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
+    cy.wait(5000);
     modelDetailsPage.findDeployModelButton().should('have.attr', 'aria-disabled', 'true');
     modelDetailsPage.findDeployModelButton().focus();
     cy.findByRole('tooltip').should(
@@ -58,6 +61,9 @@ describe.skip('Deploy catalog model', () => {
   it('Allow using a project with no platform selected (it will use kserve)', () => {
     initIntercepts({});
     modelDetailsPage.visit();
+    // Wait for page to load
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
+    cy.wait(5000);
     modelDetailsPage.findDeployModelButton().click();
     modelCatalogDeployModal.selectProjectByName('Test project');
     modelDetailsPage.findDeployModelButton().should('be.enabled');
@@ -74,12 +80,15 @@ describe.skip('Deploy catalog model', () => {
   it('Selects Current URI in case of built-in registry OCI connections', () => {
     initIntercepts({});
     modelDetailsPage.visit();
+    // Wait for page to load
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
+    cy.wait(5000);
     modelDetailsPage.findDeployModelButton().click();
     modelCatalogDeployModal.selectProjectByName('KServe project');
 
     // Validate name input field
     kserveModal.findModelNameInput().should('exist');
-    kserveModal.findModelNameInput().should('have.value', 'granite-8b-code-instruct - 1.3.0');
+    kserveModal.findModelNameInput().should('have.value', 'granite-7b-redhat-lab');
 
     // Validate model framework section
     kserveModal.findModelFrameworkSelect().should('be.disabled');
@@ -88,15 +97,18 @@ describe.skip('Deploy catalog model', () => {
     // Validate connection section
     kserveModal.findExistingUriOption().should('be.checked');
     kserveModal.find().within(() => {
-      cy.findByText(
-        'oci://registry.redhat.io/rhelai1/granite-8b-code-instruct:1.3-1732870892',
-      ).should('exist');
+      cy.findByText('oci://registry.redhat.io/rhelai1/modelcar-granite-7b-redhat-lab:1.4.0').should(
+        'exist',
+      );
     });
   });
 
   it('Deploy modal will show spinner, if the data is still loading', () => {
     initIntercepts({ isEmpty: true });
     modelDetailsPage.visit();
+    // Wait for page to load
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
+    cy.wait(5000);
     modelDetailsPage.findDeployModelButton().click();
     modelCatalogDeployModal.selectProjectByName('KServe project');
     kserveModal.findSpinner().should('exist');

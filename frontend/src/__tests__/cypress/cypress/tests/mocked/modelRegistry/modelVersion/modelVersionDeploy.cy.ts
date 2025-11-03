@@ -78,9 +78,14 @@ const initIntercepts = ({
   );
 
   cy.interceptOdh(
-    'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models',
-    { path: { serviceName: 'modelregistry-sample', apiVersion: MODEL_REGISTRY_API_VERSION } },
-    mockRegisteredModelList({ size: registeredModelsSize }),
+    'GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/registered_models',
+    { path: { modelRegistryName: 'modelregistry-sample', apiVersion: MODEL_REGISTRY_API_VERSION } },
+    {
+      data: mockRegisteredModelList({
+        items: [mockRegisteredModel({})],
+        size: registeredModelsSize,
+      }),
+    },
   );
 
   cy.interceptOdh(

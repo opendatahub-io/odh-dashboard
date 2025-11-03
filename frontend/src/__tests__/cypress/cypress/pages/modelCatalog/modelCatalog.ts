@@ -46,11 +46,11 @@ class ModelCatalog {
   }
 
   findModelCatalogModelDetailLink(modelName: string) {
-    return cy.findByTestId(`model-catalog-detail-link`).contains(modelName);
+    return cy.findAllByTestId(`model-catalog-card-name`).contains(modelName);
   }
 
   findModelCatalogCards() {
-    return cy.findByTestId('model-catalog-cards');
+    return cy.findAllByTestId('model-catalog-card');
   }
 
   findModelCatalogCard(modelName: string) {
