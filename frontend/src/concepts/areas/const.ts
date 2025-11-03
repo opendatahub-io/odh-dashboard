@@ -9,7 +9,6 @@ export const techPreviewFlags = {
 
 export const devTemporaryFeatureFlags = {
   disableKueue: true,
-  disableLlamaStackChatBot: true, // internal dev only
   disableProjectScoped: true,
 } satisfies Partial<DashboardCommonConfig>;
 
@@ -184,11 +183,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
       SupportedArea.MODEL_CATALOG,
       SupportedArea.MODEL_REGISTRY,
     ],
-  },
-  [SupportedArea.LLAMA_STACK_CHAT_BOT]: {
-    featureFlags: ['disableLlamaStackChatBot'],
-    reliantAreas: [SupportedArea.MODEL_SERVING],
-    //TODO: Add Llama Stack component when details known.
   },
   [SupportedArea.LM_EVAL]: {
     featureFlags: ['disableLMEval'],

@@ -17,5 +17,6 @@ resources:
   - fetch-hardwares.rbac.yaml
   - fetch-nim-account.rbac.yaml
   - aggregate-permissions.rbac.yaml
+  - gen-ai-aa-mcp-servers.rbac.yaml
   - kube-rbac-proxy-config.yaml
   - httproute.yaml

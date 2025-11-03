@@ -70,7 +70,6 @@ type HandlersProps = {
   rejectAddSupportServingPlatformProject?: boolean;
   disableWorkbenches?: boolean;
   namespace?: string;
-  disableLlamaStackChatBot?: boolean;
   disableKueue?: boolean;
   inferenceServices?: InferenceServiceKind[];
   servingRuntimes?: ServingRuntimeKind[];
@@ -96,7 +95,6 @@ const initIntercepts = ({
   rejectAddSupportServingPlatformProject = false,
   disableWorkbenches = false,
   namespace = 'test-project',
-  disableLlamaStackChatBot = false,
   disableKueue = true,
   inferenceServices = [],
   servingRuntimes = [],
@@ -151,7 +149,6 @@ const initIntercepts = ({
       disableKServe,
       disableNIMModelServing: disableNIMConfig,
       disableKServeMetrics,
-      disableLlamaStackChatBot,
       disableKueue,
     }),
   );
@@ -542,87 +539,6 @@ describe('Project Details', () => {
       projectDetails.shouldBeEmptyState('Workbenches', 'workbenches', false);
       projectDetails.shouldBeEmptyState('Cluster storage', 'cluster-storages', false);
       projectDetails.shouldBeEmptyState('Pipelines', 'pipelines-projects', false);
-    });
-
-    it('Chatbot disabled in the cluster', () => {
-      initIntercepts({
-        disableLlamaStackChatBot: true,
-      });
-
-      projectDetails.visit('test-project');
-      cy.findByTestId('chatbot-tab').should('not.exist');
-    });
-
-    it('Chatbot enabled in the cluster', () => {
-      initIntercepts({
-        disableLlamaStackChatBot: false,
-      });
-
-      projectDetails.visit('test-project');
-      cy.findByTestId('chatbot-tab').should('exist');
-      cy.findByRole('tab', { name: 'Chatbot' }).click();
-      cy.findByTestId('chatbot').should('exist');
-    });
-
-    it('Checks that the chatbot sends messages correctly', () => {
-      initIntercepts({
-        disableLlamaStackChatBot: false,
-      });
-      cy.intercept('GET', '/api/llama-stack/models/list', (req) => {
-        req.reply({
-          statusCode: 200,
-          body: [
-            {
-              identifier: 'all-MiniLM-L6-v2',
-              provider_resource_id: 'all-minilm:latest',
-              provider_id: 'ollama',
-              type: 'model',
-              metadata: { embedding_dimension: 384 },
-              model_type: 'embedding',
-            },
-            {
-              identifier: 'llama3.2:latest',
-              provider_resource_id: 'llama3.2:latest',
-              provider_id: 'ollama',
-              type: 'model',
-              metadata: {},
-              model_type: 'llm',
-            },
-          ],
-        });
-      }).as('getModels');
-
-      cy.intercept('POST', '/api/llama-stack/chat/complete', (req) => {
-        expect(req.body.model_id).to.eq('llama3.2:latest');
-        expect(req.body.messages[0].content).to.match(/hello/i);
-        req.reply({
-          statusCode: 200,
-          body: {
-            completion_message: {
-              role: 'assistant',
-              content: 'Hello from bot!',
-              stop_reason: 'end_of_turn',
-              tool_calls: [],
-            },
-            metrics: [],
-            logprobs: null,
-          },
-        });
-      }).as('sendChatMessage');
-
-      projectDetails.visit('test-project');
-
-      cy.findByTestId('chatbot-tab').click();
-      cy.findByTestId('chatbot').should('exist');
-
-      cy.wait('@getModels');
-
-      cy.findByTestId('chatbot-message-bar').should('be.visible').click();
-      cy.findByTestId('chatbot-message-bar').type('hello{enter}');
-
-      cy.wait('@sendChatMessage');
-
-      cy.contains('Hello from bot!').should('exist');
     });
 
     it('Notebook with outdated Elyra image shows alert and v2 pipeline server', () => {

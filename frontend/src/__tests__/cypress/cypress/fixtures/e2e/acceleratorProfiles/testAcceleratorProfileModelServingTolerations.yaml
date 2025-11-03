@@ -1,6 +1,0 @@
-# testAcceleratorProfileModelServingTolerations.cy.ts Test Data #
-modelServingTolerationsTestNamespace: 'dsp-model-tolerations-test'
-resourceYamlPath: "resources/acceleratorProfile/acceleratorProfile.yaml"
-acceleratorProfileName: "cypress-accelerator-profile-model"
-modelName: "cypress-accelerator-profile-single-model"
-modelFilePath: "flan-t5-small/flan-t5-small-caikit"

@@ -89,7 +89,6 @@
     "dompurify": "^3.2.4",
     "google-protobuf": "^3.11.2",
     "grpc-web": "^1.2.1",
-    "llama-stack-client": "^0.2.6",
     "lodash-es": "^4.17.15",
     "long": "^5.2.3",
     "monaco-editor": "^0.50.0",
