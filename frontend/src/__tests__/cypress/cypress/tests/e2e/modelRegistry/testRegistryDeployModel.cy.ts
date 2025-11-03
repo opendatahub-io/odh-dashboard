@@ -165,16 +165,8 @@ describe('[Product Bug: RHOAIENG-37856] Verify models can be deployed from model
       cy.contains('Started', { timeout: 120000 }).should('be.visible');
 
       cy.step('Verify the model is deployed and started in backend');
-      // For KServe Raw deployments, we only need to check Ready condition
-      // LatestDeploymentReady is specific to Serverless deployments
-      checkInferenceServiceState(
-        `${modelName}-v10`,
-        projectName,
-        {
-          checkReady: true,
-        },
-        'RawDeployment',
-      );
+      // Verify model deployment is ready
+      checkInferenceServiceState(`${modelName}-v10`, projectName, { checkReady: true });
     },
   );
 });

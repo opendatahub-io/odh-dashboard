@@ -9,7 +9,6 @@ spec:
   provider: IBM
   description: >-
     IBM® watsonx.ai is part of the IBM watsonx AI and data platform, bringing together new generative AI capabilities powered by foundation models and traditional machine learning (ML) into a powerful studio spanning the AI lifecycle.
-  kfdefApplications: []
   route: ''
   csvName: ''
   serviceName: ''

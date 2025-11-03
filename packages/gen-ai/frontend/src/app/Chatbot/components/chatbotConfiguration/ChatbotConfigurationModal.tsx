@@ -167,6 +167,14 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     onClose();
   };
 
+  const onSuccessClose = () => {
+    setConfiguringPlayground(false);
+    setError(undefined);
+    setAlertTitle(undefined);
+    // No cancel tracking event here – success was already tracked
+    onClose();
+  };
+
   return (
     <Modal isOpen onClose={onBeforeClose} variant={ModalVariant.large}>
       {!configuringPlayground && (
@@ -183,7 +191,10 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
       )}
       <ModalBody>
         {configuringPlayground ? (
-          <ChatbotConfigurationState redirectToPlayground={redirectToPlayground} />
+          <ChatbotConfigurationState
+            redirectToPlayground={redirectToPlayground}
+            onClose={onSuccessClose}
+          />
         ) : (
           <ChatbotConfigurationTable
             allModels={allModels}

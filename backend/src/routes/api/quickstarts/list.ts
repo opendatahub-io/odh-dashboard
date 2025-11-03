@@ -1,6 +1,6 @@
 import { QuickStart } from '../../../types';
 import { getQuickStarts } from '../../../utils/resourceUtils';
-import { checkJupyterEnabled } from '../../../utils/componentUtils';
+import { checkJupyterEnabled } from '../../../utils/resourceUtils';
 
 export const listQuickStarts = (): Promise<QuickStart[]> =>
   Promise.resolve(

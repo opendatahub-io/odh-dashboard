@@ -8,11 +8,7 @@ import {
 } from '#~/__mocks__';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
 import { mockRegisteredModelList } from '#~/__mocks__/mockRegisteredModelsList';
-import {
-  InferenceServiceModel,
-  ProjectModel,
-  ServiceModel,
-} from '#~/__tests__/cypress/cypress/utils/models';
+import { InferenceServiceModel, ProjectModel } from '#~/__tests__/cypress/cypress/utils/models';
 import { mockModelVersionList } from '#~/__mocks__/mockModelVersionList';
 import { mockModelVersion } from '#~/__mocks__/mockModelVersion';
 import type { ModelVersion } from '#~/concepts/modelRegistry/types';
@@ -20,7 +16,7 @@ import { ModelRegistryMetadataType, ModelState } from '#~/concepts/modelRegistry
 import { mockRegisteredModel } from '#~/__mocks__/mockRegisteredModel';
 import { modelVersionArchive } from '#~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionArchive';
 import { modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry';
-import { mockModelRegistry, mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
+import { mockModelRegistry } from '#~/__mocks__/mockModelRegistryService';
 import { KnownLabels } from '#~/k8sTypes';
 import { DataScienceStackComponent } from '#~/concepts/areas/types';
 import { mockModelArtifact } from '#~/__mocks__/mockModelArtifact';
@@ -91,14 +87,6 @@ const initIntercepts = ({
     mockDashboardConfig({
       disableModelRegistry: false,
     }),
-  );
-
-  cy.interceptK8sList(
-    ServiceModel,
-    mockK8sResourceList([
-      mockModelRegistryService({ name: 'modelregistry-sample' }),
-      mockModelRegistryService({ name: 'modelregistry-sample-2' }),
-    ]),
   );
 
   cy.interceptOdh(

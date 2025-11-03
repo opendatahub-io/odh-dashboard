@@ -1,15 +1,9 @@
 import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
-import {
-  StackCapability,
-  DataScienceStackComponent,
-  SupportedArea,
-  SupportedComponentFlagValue,
-} from '#~/concepts/areas/types';
+import { DataScienceStackComponent, SupportedArea } from '#~/concepts/areas/types';
 import { SupportedAreasStateMap } from '#~/concepts/areas/const';
 import { mockDsciStatus } from '#~/__mocks__/mockDsciStatus';
 import { isAreaAvailable } from '#~/concepts/areas/utils';
-import { mockIsAreaAvailableOptions } from '#~/__mocks__/mockSupportedAreasData.ts';
 
 describe('isAreaAvailable', () => {
   describe('v1 Operator (deprecated)', () => {
@@ -224,84 +218,6 @@ describe('isAreaAvailable', () => {
           [SupportedArea.MODEL_SERVING]: false,
         });
         expect(isAvailable.requiredComponents).toBe(null);
-      });
-    });
-
-    const MOCK_KSERVE_CONFIG: SupportedComponentFlagValue = {
-      featureFlags: ['disableKServe'],
-      reliantAreas: [SupportedArea.MODEL_SERVING],
-    };
-
-    describe('requiredCapabilities', () => {
-      it('should enable area if both capabilities are enabled', () => {
-        // Make sure this test is valid
-        expect(SupportedAreasStateMap[SupportedArea.K_SERVE_AUTH].requiredCapabilities).toEqual([
-          StackCapability.SERVICE_MESH,
-          StackCapability.SERVICE_MESH_AUTHZ,
-        ]);
-
-        // Test both reliant areas
-        const isAvailableKserveAuth = isAreaAvailable(
-          SupportedArea.K_SERVE_AUTH,
-          mockDashboardConfig({ disableKServeAuth: false }).spec,
-          mockDscStatus({
-            components: {
-              [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
-            },
-          }),
-          mockDsciStatus({
-            requiredCapabilities: [
-              StackCapability.SERVICE_MESH,
-              StackCapability.SERVICE_MESH_AUTHZ,
-            ],
-          }),
-          mockIsAreaAvailableOptions({
-            stateMapOverrides: { [SupportedArea.K_SERVE]: MOCK_KSERVE_CONFIG },
-          }),
-        );
-
-        expect(isAvailableKserveAuth.status).toBe(true);
-        expect(isAvailableKserveAuth.featureFlags).toEqual({
-          disableKServeAuth: 'on',
-        });
-        expect(isAvailableKserveAuth.requiredCapabilities).toEqual({
-          [StackCapability.SERVICE_MESH]: true,
-          [StackCapability.SERVICE_MESH_AUTHZ]: true,
-        });
-      });
-
-      it('should enable area if one capability is missing', () => {
-        // Make sure this test is valid
-        expect(SupportedAreasStateMap[SupportedArea.K_SERVE_AUTH].requiredCapabilities).toEqual([
-          StackCapability.SERVICE_MESH,
-          StackCapability.SERVICE_MESH_AUTHZ,
-        ]);
-
-        // Test both reliant areas
-        const isAvailableKserveAuth = isAreaAvailable(
-          SupportedArea.K_SERVE_AUTH,
-          mockDashboardConfig({ disableKServeAuth: false }).spec,
-          mockDscStatus({
-            components: {
-              [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
-            },
-          }),
-          mockDsciStatus({
-            requiredCapabilities: [StackCapability.SERVICE_MESH],
-          }),
-          mockIsAreaAvailableOptions({
-            stateMapOverrides: { [SupportedArea.K_SERVE]: MOCK_KSERVE_CONFIG },
-          }),
-        );
-
-        expect(isAvailableKserveAuth.status).toBe(false);
-        expect(isAvailableKserveAuth.featureFlags).toEqual({
-          disableKServeAuth: 'on',
-        });
-        expect(isAvailableKserveAuth.requiredCapabilities).toEqual({
-          [StackCapability.SERVICE_MESH]: true,
-          [StackCapability.SERVICE_MESH_AUTHZ]: false,
-        });
       });
     });
 

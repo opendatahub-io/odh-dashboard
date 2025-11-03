@@ -18,7 +18,10 @@
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
-    "@odh-dashboard/feature-store": "*"
+    "@odh-dashboard/feature-store": "*",
+    "@odh-dashboard/llmd-serving": "*",
+    "@odh-dashboard/model-serving": "*",
+    "https-proxy-agent": "^7.0.6"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*"

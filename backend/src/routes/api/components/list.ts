@@ -5,7 +5,7 @@ import {
   updateApplications,
   isIntegrationApp,
 } from '../../../utils/resourceUtils';
-import { checkJupyterEnabled, getRouteForApplication } from '../../../utils/componentUtils';
+import { checkJupyterEnabled, getRouteForApplication } from '../../../utils/resourceUtils';
 
 export const listComponents = async (
   fastify: KubeFastifyInstance,

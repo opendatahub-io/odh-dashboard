@@ -34,6 +34,13 @@ class ElyraRedirect {
   }
 }
 
+class CatalogModelRedirect {
+  findModelCatalogButton() {
+    return cy.findByRole('button', { name: 'Go to Model Catalog' });
+  }
+}
+
 export const externalRedirect = new ExternalRedirect();
 export const pipelinesSdkRedirect = new PipelinesSdkRedirect();
 export const elyraRedirect = new ElyraRedirect();
+export const catalogModelRedirect = new CatalogModelRedirect();
