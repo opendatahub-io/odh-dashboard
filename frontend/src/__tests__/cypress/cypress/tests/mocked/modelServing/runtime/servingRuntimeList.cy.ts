@@ -109,7 +109,6 @@ const initIntercepts = ({
     }),
   ],
   rejectAddSupportServingPlatformProject = false,
-  requiredCapabilities = [],
   templates = false,
   disableNIMConfig = true,
   enableNIM = false,
