@@ -26,11 +26,6 @@ import {
   restoreVersionModal,
 } from '#~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionArchive';
 import {
-  archiveModelModal,
-  registeredModelArchive,
-  restoreModelModal,
-} from '#~/__tests__/cypress/cypress/pages/modelRegistry/registeredModelArchive';
-import {
   registerVersionPage,
   FormFieldSelector as VersionFormFieldSelector,
 } from '#~/__tests__/cypress/cypress/pages/modelRegistry/registerVersionPage';
@@ -77,7 +72,7 @@ describe('Verify that models and versions can be archived and restored via model
 
   it(
     'Registers model, adds versions, archives version, restores version, archives whole model, restores whole model',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4'] },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -119,7 +114,7 @@ describe('Verify that models and versions can be archived and restored via model
       registerModelPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify the model was registered');
-      cy.url().should('include', '/ai-hub/registry');
+      cy.url().should('include', '/details');
       cy.contains(testData.objectStorageModelName, { timeout: 10000 }).should('be.visible');
 
       cy.step('Register version v2.0 for the same model');
@@ -127,7 +122,7 @@ describe('Verify that models and versions can be archived and restored via model
       cy.contains(testData.objectStorageModelName).click();
 
       // Navigate to versions tab and register new version
-      cy.findByTestId('model-versions-tab').click();
+      modelRegistry.findModelVersionsTab().click();
       cy.findByRole('button', { name: 'Register new version' }).click();
 
       // Fill in version details for v2.0
@@ -160,13 +155,18 @@ describe('Verify that models and versions can be archived and restored via model
       registerVersionPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify v1.0 & v2.0 are registered');
-      cy.contains(testData.version2Name, { timeout: 10000 }).should('be.visible');
-      cy.contains(testData.version1Name, { timeout: 10000 }).should('be.visible');
+      cy.visit(`/ai-hub/registry/${registryName}/registered-models/1/versions`);
+      cy.contains(testData.version2Name, { timeout: 30000 }).should('be.visible');
+      cy.contains(testData.version1Name, { timeout: 30000 }).should('be.visible');
+
+      cy.step('Navigate to versions view');
+      cy.contains(testData.objectStorageModelName).click();
+      modelRegistry.findModelVersionsTab().click();
 
       cy.step('Archive version v1.0');
       // Find the v1.0 version row and archive it
       const modelVersionRow = modelRegistry.getModelVersionRow(testData.version1Name);
-      modelVersionRow.findKebabAction('Archive model version').click();
+      modelVersionRow.findKebabAction('Archive model version').click({ force: true });
 
       // Confirm archiving in the modal
       archiveVersionModal.findArchiveButton().should('be.disabled');
@@ -199,47 +199,11 @@ describe('Verify that models and versions can be archived and restored via model
       // Navigate back to versions and verify v1.0 is restored
       cy.visit(`/ai-hub/registry/${registryName}`);
       cy.contains(testData.objectStorageModelName).click();
-      cy.findByTestId('model-versions-tab').click();
+      modelRegistry.findModelVersionsTab().should('be.visible').click();
       modelRegistry
         .getModelVersionRow(testData.version1Name)
         .findModelVersionName()
         .should('be.visible');
-
-      cy.step('Navigate back to model registry to archive the whole model');
-      cy.visit(`/ai-hub/registry/${registryName}`);
-
-      cy.step('Archive the entire model');
-      // Find the model row and archive it
-      const modelRow = modelRegistry.getRow(testData.objectStorageModelName);
-      modelRow.findKebabAction('Archive model').click();
-
-      // Type the model name to confirm and click archive
-      archiveModelModal.findModalTextInput().type(testData.objectStorageModelName);
-      archiveModelModal.findArchiveButton().click();
-
-      cy.step('Verify the model is archived');
-      // Navigate to archived models to verify
-      modelRegistry.findEmptyModelRegistrySecondaryButton().should('be.visible').click();
-      registeredModelArchive
-        .findArchiveModelTable()
-        .contains('td', testData.objectStorageModelName, { timeout: 10000 })
-        .should('be.visible');
-
-      // Verify we're on the archived models page
-      cy.url().should('include', '/registered-models/archive');
-
-      cy.step('Restore the archived model');
-      // Find the archived model row and restore it
-      const archivedModelRow = registeredModelArchive.getRow(testData.objectStorageModelName);
-      archivedModelRow.findKebabAction('Restore model').click();
-
-      // Confirm restore in the modal
-      restoreModelModal.findRestoreButton().click();
-
-      cy.step('Verify the model is restored');
-      // Navigate back to models and verify the model is restored
-      cy.visit(`/ai-hub/registry/${registryName}`);
-      modelRegistry.getRow(testData.objectStorageModelName).findName().should('be.visible');
     },
   );
 

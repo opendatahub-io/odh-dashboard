@@ -18,9 +18,8 @@ import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerat
 import type { ModelRegistryTestData } from '#~/__tests__/cypress/cypress/types';
 import { modelVersionDeployModal } from '#~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDeployModal';
 import { clickRegisterModelButton } from '#~/__tests__/cypress/cypress/utils/modelRegistryUtils';
-import { kserveModal, modelServingGlobal } from '#~/__tests__/cypress/cypress/pages/modelServing';
+import { kserveModal } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import { checkInferenceServiceState } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
-import { projectDetails } from '#~/__tests__/cypress/cypress/pages/projects';
 import { createCleanProject } from '#~/__tests__/cypress/cypress/utils/projectChecker';
 import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { AWS_BUCKETS } from '#~/__tests__/cypress/cypress/utils/s3Buckets';
@@ -74,7 +73,7 @@ describe('Verify models can be deployed from model registry', () => {
 
   it(
     'Registers a model and deploys it via model registry',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4'] },
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -122,7 +121,7 @@ describe('Verify models can be deployed from model registry', () => {
       registerModelPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify the model was registered');
-      cy.url().should('include', '/ai-hub/registry');
+      cy.url().should('include', '/details');
       cy.contains(modelName, { timeout: 10000 }).should('be.visible');
 
       cy.step('Verify the model exists in the database');
@@ -135,23 +134,6 @@ describe('Verify models can be deployed from model registry', () => {
       cy.step('Deploy the model from the versions table');
       const modelVersionRow = modelRegistry.getModelVersionRow(testData.version1Name);
       modelVersionRow.findKebabAction('Deploy').click();
-
-      cy.step('Select the project for deployment');
-      modelVersionDeployModal.selectProjectByName(projectName);
-
-      // Configure model serving platform for the project
-      cy.step('Configure model serving platform for the project');
-      modelVersionDeployModal.findGoToProjectPageLink().click();
-
-      cy.url().should('include', projectName);
-
-      modelServingGlobal.findSingleServingModelButton().click();
-
-      cy.step('Click deploy from registry button');
-      projectDetails.findBackToRegistryButton().click();
-
-      cy.step('Click deploy button to deploy the model');
-      projectDetails.findTopLevelDeployModelButton().click();
 
       cy.step('Select the project for deployment');
       modelVersionDeployModal.selectProjectByName(projectName);
@@ -176,8 +158,9 @@ describe('Verify models can be deployed from model registry', () => {
       cy.step('Submit the deployment');
       kserveModal.findSubmitButton().click();
 
-      // Check deployment status in model registry deployments view
-      modelRegistry.findDeploymentsTab().click();
+      // Check deployment link and verify status in deployments view
+      modelRegistry.navigate();
+      cy.contains('1 deployment').should('be.visible').click();
       cy.contains(modelName, { timeout: 30000 }).should('be.visible');
       cy.contains('Started', { timeout: 120000 }).should('be.visible');
 
