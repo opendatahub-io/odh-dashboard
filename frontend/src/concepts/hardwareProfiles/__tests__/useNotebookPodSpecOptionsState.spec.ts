@@ -97,10 +97,10 @@ describe('useNotebookPodSpecOptionsState', () => {
       hardwareProfile: expect.any(Object),
       podSpecOptions: {
         resources: {
-          nodeSelector: undefined,
           requests: {},
           limits: {},
         },
+        nodeSelector: undefined,
         selectedHardwareProfile: undefined,
         tolerations: undefined,
       },
