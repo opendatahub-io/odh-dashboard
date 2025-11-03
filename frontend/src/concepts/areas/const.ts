@@ -194,10 +194,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MODEL_TRAINING]: {
     featureFlags: ['disableModelTraining'],
-    requiredComponents: [
-      DataScienceStackComponent.TRAINING_OPERATOR,
-      DataScienceStackComponent.KUEUE,
-    ],
   },
 };
 

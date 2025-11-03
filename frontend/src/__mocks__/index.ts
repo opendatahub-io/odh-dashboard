@@ -29,3 +29,4 @@ export * from './mockInferenceServiceK8sResource';
 export * from './mockStorageClasses';
 export * from './mockConfigMapSecrets';
 export * from './mockLMEvaluation';
+export * from './mockTrainJobK8sResource';
