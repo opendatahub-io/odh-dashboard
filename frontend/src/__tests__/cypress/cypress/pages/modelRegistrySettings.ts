@@ -55,7 +55,7 @@ class ModelRegistrySettings {
 
   private findHeading() {
     cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('Model registry settings');
+    cy.findByTestId('app-page-title').contains('AI registry settings');
   }
 
   findNavItem() {
