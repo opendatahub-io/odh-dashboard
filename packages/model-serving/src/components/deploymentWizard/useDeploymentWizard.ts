@@ -6,7 +6,6 @@ import { extractK8sNameDescriptionFieldData } from '@odh-dashboard/internal/conc
 import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
 import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
-import { useAppContext } from '@odh-dashboard/internal/app/AppContext';
 import { useModelFormatField } from './fields/ModelFormatField';
 import { useModelTypeField } from './fields/ModelTypeSelectField';
 import { useModelLocationData } from './fields/ModelLocationInputFields';
@@ -49,7 +48,6 @@ export const useModelDeploymentWizard = (
   initialData?: InitialWizardFormData,
 ): UseModelDeploymentWizardState => {
   const [fields] = useWizardFieldsFromExtensions();
-  const { dashboardConfig } = useAppContext();
 
   // Step 1: Model Source
   const modelType = useModelTypeField(initialData?.modelTypeField);
@@ -122,30 +120,6 @@ export const useModelDeploymentWizard = (
       modelType,
     },
   );
-
-  React.useEffect(() => {
-    const LLMD_SERVING_ID = 'llmd-serving';
-    const useDistributedInferencing = dashboardConfig.spec.modelServing?.isLLMdDefault ?? false;
-
-    if (
-      modelType.data === ServingRuntimeModelType.GENERATIVE &&
-      !initialData?.modelServer &&
-      !modelServer.data &&
-      modelServer.options.some((o) => o.name === LLMD_SERVING_ID) &&
-      useDistributedInferencing
-    ) {
-      const llmdOption = modelServer.options.find((o) => o.name === LLMD_SERVING_ID);
-      if (llmdOption) {
-        modelServer.setData(llmdOption);
-      }
-    }
-  }, [
-    modelType.data,
-    modelServer.options.length,
-    modelServer.data,
-    initialData?.modelServer,
-    dashboardConfig,
-  ]);
 
   const numReplicas = useNumReplicasField(initialData?.numReplicas ?? undefined);
 

@@ -46,10 +46,6 @@ export type MockDashboardConfigType = {
   disableModelTraining?: boolean;
 
   hardwareProfileOrder?: string[];
-  modelServing?: {
-    deploymentStrategy?: string;
-    isLLMdDefault?: boolean;
-  };
 };
 
 export const mockDashboardConfig = ({
@@ -89,7 +85,6 @@ export const mockDashboardConfig = ({
   disableFeatureStore = true,
   disableModelTraining = true,
   hardwareProfileOrder = ['test-hardware-profile'],
-  modelServing,
   modelServerSizes = [
     {
       name: 'Small',
@@ -264,6 +259,5 @@ export const mockDashboardConfig = ({
     templateOrder: ['test-model'],
     templateDisablement: ['test-model'],
     hardwareProfileOrder,
-    ...(modelServing && { modelServing }),
   },
 });
