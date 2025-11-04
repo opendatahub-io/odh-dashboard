@@ -175,6 +175,7 @@ const initIntercepts = ({
     'GET /api/config',
     mockDashboardConfig({
       disableProjectScoped,
+      pvcSize: '8Gi',
     }),
   );
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
@@ -572,7 +573,7 @@ describe('Workbench page', () => {
     // cluster storage
     const storageTableRow = createSpawnerPage.getStorageTable().getRowById(0);
     storageTableRow.findNameValue().should('have.text', 'test-project-storage');
-    storageTableRow.findStorageSizeValue().should('have.text', 'Max 20GiB');
+    storageTableRow.findStorageSizeValue().should('have.text', 'Max 8GiB');
     storageTableRow.findMountPathValue().should('have.text', '/opt/app-root/src/');
 
     createSpawnerPage.findSubmitButton().click();
@@ -600,24 +601,6 @@ describe('Workbench page', () => {
       });
     });
     verifyRelativeURL('/projects/test-project?section=workbenches');
-  });
-
-  it('Correct default storage size pops up when set in the dashboard config', () => {
-    initIntercepts({
-      isEmpty: true,
-    });
-    cy.interceptOdh(
-      'GET /api/config',
-      mockDashboardConfig({
-        pvcSize: '8Gi',
-      }),
-    );
-    workbenchPage.visit('test-project');
-    workbenchPage.findCreateButton().click();
-    const storageTableRow = createSpawnerPage.getStorageTable().getRowById(0);
-    storageTableRow.findNameValue().should('have.text', 'storage');
-    storageTableRow.findStorageSizeValue().should('have.text', 'Max 8GiB');
-    storageTableRow.findMountPathValue().should('have.text', '/opt/app-root/src/');
   });
 
   it('Display and select project-scoped and global-scoped notebook images while creating', () => {
