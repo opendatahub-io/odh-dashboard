@@ -1122,7 +1122,14 @@ export type WorkloadCondition = {
   observedGeneration?: number;
   reason: string;
   status: 'True' | 'False' | 'Unknown';
-  type: 'QuotaReserved' | 'Admitted' | 'PodsReady' | 'Finished' | 'Evicted' | 'Failed';
+  type:
+    | 'QuotaReserved'
+    | 'Admitted'
+    | 'PodsReady'
+    | 'Finished'
+    | 'Evicted'
+    | 'Preempted'
+    | 'Failed';
 };
 
 export type WorkloadPriorityClassKind = K8sResourceCommon & {
@@ -1287,7 +1294,7 @@ export type DashboardCommonConfig = {
   disableFineTuning: boolean;
   disableLMEval: boolean;
   disableKueue: boolean;
-  disableModelTraining: boolean;
+  modelTraining: boolean;
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
   modelAsService?: boolean;
