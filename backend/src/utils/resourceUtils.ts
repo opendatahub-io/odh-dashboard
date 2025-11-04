@@ -28,13 +28,7 @@ import {
 } from './resourceWatcher';
 import { getComponentFeatureFlags } from './features';
 import { blankDashboardCR } from './constants';
-import {
-  getLink,
-  getRouteForClusterId,
-  getServiceLink,
-  getIsAppEnabled,
-  getRouteForApplication,
-} from './componentUtils';
+import { getLink, getRouteForClusterId, getServiceLink } from './componentUtils';
 import { isHttpError } from '../utils';
 import { FastifyRequest } from 'fastify';
 import { fetchClusterStatus } from './dsc';
