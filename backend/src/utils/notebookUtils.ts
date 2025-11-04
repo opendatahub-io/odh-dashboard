@@ -180,7 +180,6 @@ export const assembleNotebook = async (
     tolerations,
     affinity,
     nodeSelector,
-    selectedAcceleratorProfile,
     selectedHardwareProfile,
     lastSizeSelection,
   } = podSpecOptions;
@@ -222,7 +221,6 @@ export const assembleNotebook = async (
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'opendatahub.io/username': username,
         'kubeflow-resource-stopped': null,
-        'opendatahub.io/accelerator-name': selectedAcceleratorProfile?.metadata.name || '',
         'opendatahub.io/hardware-profile-name': selectedHardwareProfile?.metadata.name || '',
         'opendatahub.io/hardware-profile-namespace':
           selectedHardwareProfile?.metadata.namespace || '',

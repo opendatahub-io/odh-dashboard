@@ -482,7 +482,6 @@ export type BYONImage = {
   visible: boolean;
   software: BYONImagePackage[];
   packages: BYONImagePackage[];
-  recommendedAcceleratorIdentifiers: string[];
 };
 
 export type ImageInfo = {
@@ -717,13 +716,6 @@ export type MachineSetList = {
   items: MachineSet[];
 } & K8sResourceCommon;
 
-export type DetectedAccelerators = {
-  configured: boolean;
-  available: { [key: string]: number };
-  total: { [key: string]: number };
-  allocated: { [key: string]: number };
-};
-
 export type EnvironmentVariable = EitherNotBoth<
   { value: string | number },
   {
@@ -781,7 +773,6 @@ export type PodSpecOptions = {
   nodeSelector: NodeSelector;
   affinity: PodAffinity;
   lastSizeSelection?: string;
-  selectedAcceleratorProfile?: AcceleratorProfileKind;
   selectedHardwareProfile?: HardwareProfileKind;
 };
 
@@ -793,11 +784,6 @@ export type NotebookData = {
   state: NotebookState;
   username?: string;
   storageClassName?: string;
-};
-
-export type AcceleratorProfileState = {
-  acceleratorProfile: AcceleratorProfileKind;
-  count: number;
 };
 
 type DisplayNameAnnotations = Partial<{
@@ -945,22 +931,6 @@ export type HardwareProfileKind = K8sResourceCommon & {
       resourceType?: string;
     }[];
     nodeSelector?: NodeSelector;
-  };
-};
-
-export type AcceleratorProfileKind = K8sResourceCommon & {
-  metadata: {
-    name: string;
-    annotations?: Partial<{
-      'opendatahub.io/modified-date': string;
-    }>;
-  };
-  spec: {
-    displayName: string;
-    enabled: boolean;
-    identifier: string;
-    description?: string;
-    tolerations?: Toleration[];
   };
 };
 
