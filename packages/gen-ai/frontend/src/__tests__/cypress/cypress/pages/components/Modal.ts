@@ -55,8 +55,19 @@ export class TokenAuthModal extends Modal {
       .first();
   }
 
-  findAuthorizeButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByRole('button', { name: /^Authorize$/i });
+  findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    // Try to find either "Authorize" or "Configure" button
+    return this.find().then(($modal) => {
+      const $authorize = $modal.find('button').filter((_, el) => {
+        const text = Cypress.$(el).text().trim();
+        return /^(Authorize|Configure)$/i.test(text);
+      });
+      if ($authorize.length > 0) {
+        return cy.wrap($authorize.first());
+      }
+      // Fallback to primary button
+      return cy.wrap($modal.find('button.pf-m-primary').first());
+    });
   }
 
   enterToken(token: string): void {
@@ -65,7 +76,7 @@ export class TokenAuthModal extends Modal {
 
   submit(): void {
     cy.log('Submitting authorization...');
-    this.findAuthorizeButton().should('be.visible').click({ force: true });
+    this.findSubmitButton().should('be.visible').click({ force: true });
     cy.log('Authorization button clicked, waiting for modal to close...');
   }
 
@@ -81,8 +92,24 @@ export class MCPToolsModal extends Modal {
     super();
   }
 
+  waitForContentReady(): void {
+    // Wait for either the table to appear or an error/empty state message
+    // This handles both loading completion and error states
+    this.find().within(() => {
+      cy.get(
+        '[data-testid="mcp-tools-modal-table"], table, [role="table"], [role="grid"], .pf-v6-c-alert, [class*="pf-v6-u-text-align-center"]',
+        { timeout: 30000 },
+      ).should('exist');
+    });
+  }
+
   findTable(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('table, [role="table"], [role="grid"]');
+    // Wait for content to be ready first
+    this.waitForContentReady();
+    // Use data-testid for more reliable selection, with fallbacks
+    return this.find().find(
+      '[data-testid="mcp-tools-modal-table"], table, [role="table"], [role="grid"]',
+    );
   }
 
   findToolRows(): Cypress.Chainable<JQuery<HTMLElement>> {

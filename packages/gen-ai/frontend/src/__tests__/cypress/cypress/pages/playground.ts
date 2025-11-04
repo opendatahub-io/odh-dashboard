@@ -146,6 +146,24 @@ class Playground {
   verifyServerChecked(serverName: string): void {
     this.getServerRow(serverName).shouldBeChecked();
   }
+
+  findConfigureModal(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.get('[role="dialog"]');
+  }
+
+  hasConfigureModal(): Cypress.Chainable<boolean> {
+    return cy.get('body').then(($body) => {
+      return cy.wrap($body.find('[role="dialog"]').length > 0);
+    });
+  }
+
+  verifyOnlyOneServerChecked(): void {
+    this.findMCPPanel().find('input[type="checkbox"]:checked').should('have.length', 1);
+  }
+
+  findCheckedServersCount(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findMCPPanel().find('input[type="checkbox"]:checked');
+  }
 }
 
 export const playground = new Playground();

@@ -1,0 +1,13 @@
+defaultNamespace: crimson-show
+
+servers:
+  github:
+    name: GitHub-MCP-Server
+    url: https://api.githubcopilot.com/mcp
+  filesystem:
+    name: Filesystem-MCP-Server
+
+tokens:
+  valid: ghp_validTestToken123456789
+  invalid: ghp_invalidToken
+  test: test_token_value

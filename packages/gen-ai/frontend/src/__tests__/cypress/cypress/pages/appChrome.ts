@@ -30,6 +30,26 @@ class AppChrome {
   findBody(): Cypress.Chainable<JQuery<HTMLBodyElement>> {
     return cy.get('body', { timeout: 15000 });
   }
+
+  navigateToPath(path: string): void {
+    cy.visit(path);
+    this.waitForPageLoad();
+  }
+
+  verifyPathname(expectedPath: string | string[]): void {
+    const paths = Array.isArray(expectedPath) ? expectedPath : [expectedPath];
+    cy.location('pathname').should((pathname) => {
+      expect(paths).to.include(pathname);
+    });
+  }
+
+  verifyPathnameContains(pathPart: string): void {
+    cy.location('pathname').should('include', pathPart);
+  }
+
+  verifyPathnameExists(): void {
+    cy.location('pathname').should('exist');
+  }
 }
 
 export const appChrome = new AppChrome();

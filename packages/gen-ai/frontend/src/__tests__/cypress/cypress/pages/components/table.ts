@@ -13,4 +13,9 @@ export class TableRow extends Contextual<HTMLTableRowElement> {
     this.findCheckbox().should('be.checked');
     return this;
   }
+
+  shouldNotBeChecked(): this {
+    this.findCheckbox().should('not.be.checked');
+    return this;
+  }
 }

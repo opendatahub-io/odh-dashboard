@@ -1,5 +1,4 @@
 import '@testing-library/cypress/add-commands';
-import './application';
 import './genai';
 import './testConfig';
 
