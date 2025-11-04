@@ -602,6 +602,24 @@ describe('Workbench page', () => {
     verifyRelativeURL('/projects/test-project?section=workbenches');
   });
 
+  it('Correct default storage size pops up when set in the dashboard config', () => {
+    initIntercepts({
+      isEmpty: true,
+    });
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        pvcSize: '8Gi',
+      }),
+    );
+    workbenchPage.visit('test-project');
+    workbenchPage.findCreateButton().click();
+    const storageTableRow = createSpawnerPage.getStorageTable().getRowById(0);
+    storageTableRow.findNameValue().should('have.text', 'storage');
+    storageTableRow.findStorageSizeValue().should('have.text', 'Max 8GiB');
+    storageTableRow.findMountPathValue().should('have.text', '/opt/app-root/src/');
+  });
+
   it('Display and select project-scoped and global-scoped notebook images while creating', () => {
     initIntercepts({
       disableProjectScoped: false,

@@ -127,7 +127,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
             storageType: StorageType.NEW_PVC,
             name: k8sNameDescriptionData.data.name || defaultClusterStorage.name,
             description: defaultClusterStorage.description,
-            size: defaultClusterStorage.size || defaultNotebookSize,
+            size: defaultNotebookSize || defaultClusterStorage.size,
             storageClassName: defaultStorageClassName,
             mountPath: defaultClusterStorage.mountPath,
             accessMode: defaultClusterStorage.accessMode,
