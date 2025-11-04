@@ -1,37 +1,38 @@
 import * as React from 'react';
 import { FormGroup, Content, Popover, Button } from '@patternfly/react-core';
 import { HelpIcon } from '@patternfly/react-icons';
-import ProjectSelector from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSelector';
-import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import ProjectSelector from '@odh-dashboard/internal/concepts/projects/ProjectSelector';
 
 type ProjectSectionType = {
-  initialProject?: ProjectKind | null;
-  project?: ProjectKind | null;
-  setProject: (project: ProjectKind | null) => void;
+  initialProjectName?: string;
+  projectName?: string;
+  setProjectName: (projectName?: string) => void;
 };
 
-export const isValidProject = (project: ProjectKind | null): boolean => {
-  return !!project?.metadata.name;
+export const isValidProjectName = (projectName?: string): boolean => {
+  return !!projectName;
 };
 
-export const useProjectSection = (
-  initialProject?: ProjectKind | null,
-): {
-  initialProject?: ProjectKind | null;
-  project: ProjectKind | null;
-  setProject: (project: ProjectKind | null) => void;
-} => {
-  const [project, setProject] = React.useState<ProjectKind | null>(initialProject ?? null);
-  return { initialProject, project, setProject };
+export const useProjectSection = (initialProjectName?: string): ProjectSectionType => {
+  const [projectName, setProjectName] = React.useState<string | undefined>(initialProjectName);
+  return { initialProjectName, projectName, setProjectName };
 };
 
-const ProjectSection: React.FC<ProjectSectionType> = ({ initialProject, project, setProject }) => {
-  if (!initialProject) {
+const ProjectSection: React.FC<ProjectSectionType> = ({
+  initialProjectName,
+  projectName,
+  setProjectName,
+}) => {
+  if (!initialProjectName) {
     return (
-      <ProjectSelector
-        selectedProject={project ?? null}
-        setSelectedProject={(newProject: ProjectKind | null) => setProject(newProject ?? null)}
-      />
+      <FormGroup label="Project" isRequired>
+        <ProjectSelector
+          namespace={projectName ?? ''}
+          onSelection={(newProjectName: string) => setProjectName(newProjectName)}
+          placeholder="Select target project"
+          isFullWidth
+        />
+      </FormGroup>
     );
   }
 
@@ -55,7 +56,7 @@ const ProjectSection: React.FC<ProjectSectionType> = ({ initialProject, project,
         </>
       }
     >
-      <Content component="p">{project?.metadata.name}</Content>
+      <Content component="p">{projectName}</Content>
     </FormGroup>
   );
 };

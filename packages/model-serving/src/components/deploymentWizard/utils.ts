@@ -84,7 +84,7 @@ export const deployModel = async (
   overwrite?: boolean,
   initialWizardData?: InitialWizardFormData,
 ): Promise<void> => {
-  const projectName = wizardState.state.project.project?.metadata.name ?? '';
+  const { projectName } = wizardState.state.project;
   if (!projectName) {
     throw new Error('Project is required');
   }

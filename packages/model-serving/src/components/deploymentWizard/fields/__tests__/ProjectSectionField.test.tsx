@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, renderHook, fireEvent, act } from '@testing-library/react';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
-import ProjectSection, { isValidProject, useProjectSection } from '../ProjectSection';
+import ProjectSection, { isValidProjectName, useProjectSection } from '../ProjectSection';
 
 const mockProject = mockProjectK8sResource({
   k8sName: 'test-project',
@@ -39,54 +39,63 @@ describe('ProjectSection', () => {
 
   describe('isValidProject', () => {
     it('should return true for valid project', () => {
-      expect(isValidProject(mockProject)).toBe(true);
+      expect(isValidProjectName(mockProject.metadata.name)).toBe(true);
     });
 
     it('should return false for null project', () => {
-      expect(isValidProject(null)).toBe(false);
+      expect(isValidProjectName(undefined)).toBe(false);
     });
   });
 
   describe('useProjectSection hook', () => {
-    it('should initialize with null by default', () => {
+    it('should initialize with undefined by default', () => {
       const { result } = renderHook(() => useProjectSection());
-      expect(result.current.project).toBeNull();
-      expect(result.current.initialProject).toBeUndefined();
+      expect(result.current.projectName).toBeUndefined();
+      expect(result.current.initialProjectName).toBeUndefined();
     });
 
     it('should initialize with provided initial project', () => {
-      const { result } = renderHook(() => useProjectSection(mockProject));
-      expect(result.current.project).toEqual(mockProject);
-      expect(result.current.initialProject).toEqual(mockProject);
+      const { result } = renderHook(() => useProjectSection(mockProject.metadata.name));
+      expect(result.current.projectName).toEqual(mockProject.metadata.name);
+      expect(result.current.initialProjectName).toEqual(mockProject.metadata.name);
     });
 
     it('should update project state', () => {
       const { result } = renderHook(() => useProjectSection());
 
       act(() => {
-        result.current.setProject(mockProject);
+        result.current.setProjectName(mockProject.metadata.name);
       });
 
-      expect(result.current.project).toEqual(mockProject);
+      expect(result.current.projectName).toEqual(mockProject.metadata.name);
     });
   });
 
   describe('Component without initial project', () => {
     it('should render ProjectSelector when no initial project', () => {
-      render(<ProjectSection initialProject={null} project={null} setProject={mockSetProject} />);
-      expect(screen.getByText('Select target project')).toBeInTheDocument();
-    });
-
-    it('should render ProjectSelector when initial project is undefined', () => {
       render(
-        <ProjectSection initialProject={undefined} project={null} setProject={mockSetProject} />,
+        <ProjectSection
+          initialProjectName={undefined}
+          projectName={undefined}
+          setProjectName={mockSetProject}
+        />,
+        {
+          wrapper: MockProjectsProvider,
+        },
       );
       expect(screen.getByText('Select target project')).toBeInTheDocument();
     });
     it('should call setProject when ProjectSelector calls setSelectedProject', async () => {
-      render(<ProjectSection initialProject={null} project={null} setProject={mockSetProject} />, {
-        wrapper: MockProjectsProvider,
-      });
+      render(
+        <ProjectSection
+          initialProjectName={undefined}
+          projectName={undefined}
+          setProjectName={mockSetProject}
+        />,
+        {
+          wrapper: MockProjectsProvider,
+        },
+      );
       const projectSelector = screen.getByText('Select target project');
       await act(async () => {
         fireEvent.click(projectSelector);
@@ -95,7 +104,7 @@ describe('ProjectSection', () => {
       await act(async () => {
         fireEvent.click(option);
       });
-      expect(mockSetProject).toHaveBeenCalledWith(mockProject);
+      expect(mockSetProject).toHaveBeenCalledWith(mockProject.metadata.name);
     });
   });
 
@@ -103,9 +112,9 @@ describe('ProjectSection', () => {
     it('should render FormGroup with project name when initial project is provided', () => {
       render(
         <ProjectSection
-          initialProject={mockProject}
-          project={mockProject}
-          setProject={mockSetProject}
+          initialProjectName={mockProject.metadata.name}
+          projectName={mockProject.metadata.name}
+          setProjectName={mockSetProject}
         />,
       );
       expect(screen.getByText('test-project')).toBeInTheDocument();

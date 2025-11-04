@@ -23,7 +23,6 @@ import {
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
-import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import usePvcs from '@odh-dashboard/internal/pages/modelServing/usePvcs';
 import { ModelLocationInputFields, useModelLocationData } from './ModelLocationInputFields';
 import { ModelLocationData, ModelLocationType } from '../types';
@@ -60,7 +59,7 @@ type ModelLocationSelectFieldProps = {
   modelLocation?: ModelLocationData['type'];
   validationProps?: FieldValidationProps;
   validationIssues?: ZodIssue[];
-  project: ProjectKind | null;
+  projectName?: string;
   setModelLocationData: (data: ModelLocationData | undefined) => void;
   resetModelLocationData: () => void;
   modelLocationData?: ModelLocationData;
@@ -69,7 +68,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
   modelLocation,
   validationProps,
   validationIssues = [],
-  project,
+  projectName,
   setModelLocationData,
   resetModelLocationData,
   modelLocationData,
@@ -90,9 +89,9 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     value: ModelLocationType.NEW,
   };
   const [modelServingConnectionTypes, connectionTypesLoaded] = useWatchConnectionTypes(true);
-  const pvcs = usePvcs(project?.metadata.name ?? '');
+  const pvcs = usePvcs(projectName);
   const { selectedConnection, connections, setSelectedConnection } = useModelLocationData(
-    project,
+    projectName,
     modelLocationData,
   );
   const filteredConnections = React.useMemo(() => {

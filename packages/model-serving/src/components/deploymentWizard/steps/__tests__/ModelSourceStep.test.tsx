@@ -4,7 +4,6 @@ import { useWizardContext, useWizardFooter, ValidatedOptions } from '@patternfly
 import { z } from 'zod';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/internal/__mocks__/mockK8sNameDescriptionFieldData';
-import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
 import { ModelSourceStepContent } from '../ModelSourceStep';
 import { modelTypeSelectFieldSchema } from '../../fields/ModelTypeSelectField';
 import { mockDeploymentWizardState } from '../../../../__tests__/mockUtils';
@@ -104,9 +103,7 @@ describe('ModelSourceStep', () => {
           wizardState={mockDeploymentWizardState({
             state: {
               project: {
-                project: mockProjectK8sResource({
-                  k8sName: 'test-project',
-                }),
+                projectName: 'test-project',
               },
               createConnectionData: {
                 data: {
@@ -137,9 +134,7 @@ describe('ModelSourceStep', () => {
       const wizardDataWithSelection = mockDeploymentWizardState({
         state: {
           project: {
-            project: mockProjectK8sResource({
-              k8sName: 'test-project',
-            }),
+            projectName: 'test-project',
           },
           modelType: {
             data: ServingRuntimeModelType.GENERATIVE,

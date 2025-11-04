@@ -24,7 +24,7 @@ export const ModelDeploymentsContext = React.createContext<ModelDeploymentsConte
 type PlatformDeploymentWatcherProps = {
   platformId: string;
   watcher: ModelServingPlatformWatchDeployments;
-  projects: ProjectKind[];
+  projects?: ProjectKind[];
   onStateChange: (
     platformId: string,
     state: { deployments?: Deployment[]; loaded: boolean; error?: Error },
@@ -46,7 +46,7 @@ const PlatformDeploymentWatcher: React.FC<PlatformDeploymentWatcherProps> = ({
   const useWatchDeployments = watcher.properties.watch;
 
   // If there's only 1 project, scope the call to that project, otherwise call without project scoping
-  const projectToScope = projects.length === 1 ? projects[0] : undefined;
+  const projectToScope = projects?.length === 1 ? projects[0] : undefined;
   const [allDeployments, loaded, error] = useWatchDeployments(
     projectToScope,
     labelSelectors,
@@ -55,11 +55,11 @@ const PlatformDeploymentWatcher: React.FC<PlatformDeploymentWatcherProps> = ({
 
   // Filter deployments to only include those from the specified projects
   const filteredDeployments = React.useMemo(() => {
-    if (!allDeployments || projects.length === 1) {
+    if (!allDeployments || projects?.length === 1) {
       return allDeployments;
     }
 
-    const projectNames = new Set(projects.map((p) => p.metadata.name));
+    const projectNames = new Set(projects?.map((p) => p.metadata.name));
     return allDeployments.filter((deployment) => {
       // Check if deployment belongs to one of our projects
       const deploymentNamespace = deployment.model.metadata.namespace;
@@ -68,15 +68,11 @@ const PlatformDeploymentWatcher: React.FC<PlatformDeploymentWatcherProps> = ({
   }, [allDeployments, projects]);
 
   React.useEffect(() => {
-    // Prevent infinite updates when no project is selected
-    if (!projects.length && !loaded) {
-      return;
-    }
     onStateChange(platformId, { deployments: filteredDeployments, loaded, error });
     return () => {
       unloadPlatformDeployments(platformId);
     };
-  }, [platformId, loaded, error, onStateChange, unloadPlatformDeployments, projects.length]);
+  }, [platformId, loaded, error, onStateChange, unloadPlatformDeployments]);
 
   return null;
 };
@@ -167,7 +163,7 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
             key={platformId}
             platformId={platformId}
             watcher={watcher}
-            projects={projects ?? []}
+            projects={projects}
             labelSelectors={labelSelectors}
             onStateChange={updatePlatformDeployments}
             unloadPlatformDeployments={unloadPlatformDeployments}

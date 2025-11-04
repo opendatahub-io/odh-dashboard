@@ -50,10 +50,9 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     exitWizard();
   }, [exitWizard]);
 
-  const wizardState = useModelDeploymentWizard(existingData, project);
+  const wizardState = useModelDeploymentWizard(existingData, project?.metadata.name);
   const validation = useModelDeploymentWizardValidation(wizardState.state);
-  const currentProject =
-    wizardState.state.project.initialProject ?? wizardState.state.project.project ?? undefined;
+  const currentProjectName = wizardState.state.project.projectName ?? undefined;
 
   const { deployMethod, deployMethodLoaded } = useDeployMethod(wizardState.state);
 
@@ -109,7 +108,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           // shouldn't happen, but just in case
           throw new Error('Invalid form data');
         }
-        if (!currentProject) {
+        if (!currentProjectName) {
           throw new Error('Select a project before deploying.');
         }
 
@@ -146,7 +145,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       deployMethodLoaded,
       existingDeployment,
       exitWizard,
-      currentProject?.metadata.name,
+      currentProjectName,
       secretName,
       validation.isModelDeploymentStepValid,
       validation.isModelSourceStepValid,
@@ -195,7 +194,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         >
           {wizardState.loaded.modelDeploymentLoaded ? (
             <ModelDeploymentStepContent
-              projectName={currentProject?.metadata.name}
+              projectName={currentProjectName}
               wizardState={wizardState}
             />
           ) : (
@@ -208,7 +207,10 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           isDisabled={!validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid}
         >
           {wizardState.loaded.advancedOptionsLoaded ? (
-            <AdvancedSettingsStepContent wizardState={wizardState} project={currentProject} />
+            <AdvancedSettingsStepContent
+              wizardState={wizardState}
+              projectName={currentProjectName}
+            />
           ) : (
             <Spinner />
           )}
@@ -223,10 +225,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           }
         >
           {wizardState.loaded.summaryLoaded ? (
-            <ReviewStepContent
-              wizardState={wizardState}
-              projectName={currentProject?.metadata.name}
-            />
+            <ReviewStepContent wizardState={wizardState} projectName={currentProjectName} />
           ) : (
             <Spinner />
           )}

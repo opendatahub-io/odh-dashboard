@@ -2,7 +2,7 @@ import React from 'react';
 import { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { extractK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
-import type { ProjectKind, SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
+import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { useModelFormatField } from './fields/ModelFormatField';
 import { useModelTypeField } from './fields/ModelTypeSelectField';
@@ -45,16 +45,19 @@ export type UseModelDeploymentWizardState = WizardFormData & {
 
 export const useModelDeploymentWizard = (
   initialData?: InitialWizardFormData,
-  initialProject?: ProjectKind | null,
+  initialProjectName?: string | undefined,
 ): UseModelDeploymentWizardState => {
   const [fields] = useWizardFieldsFromExtensions();
 
   // Step 1: Model Source
   const modelType = useModelTypeField(initialData?.modelTypeField);
-  const project = useProjectSection(initialProject);
-  const modelLocationData = useModelLocationData(project.project, initialData?.modelLocationData);
+  const project = useProjectSection(initialProjectName);
+  const modelLocationData = useModelLocationData(
+    project.projectName,
+    initialData?.modelLocationData,
+  );
   const createConnectionData = useCreateConnectionData(
-    project.project ?? null,
+    project.projectName,
     initialData?.createConnectionData,
     modelLocationData.data,
   );
@@ -72,7 +75,7 @@ export const useModelDeploymentWizard = (
   const modelFormatState = useModelFormatField(
     initialData?.modelFormat,
     modelType.data,
-    project.project?.metadata.name,
+    project.projectName,
     React.useCallback(
       (
         newFormat: SupportedModelFormats | undefined,
@@ -96,7 +99,7 @@ export const useModelDeploymentWizard = (
     useModelServerSelectField,
     [
       initialData?.modelServer,
-      project.project?.metadata.name,
+      project.projectName,
       modelFormatState.templatesFilteredForModelType,
       modelType.data === ServingRuntimeModelType.GENERATIVE // Don't pass model format for generative models
         ? undefined

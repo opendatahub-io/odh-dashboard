@@ -328,12 +328,12 @@ describe('ModelLocationSelectField', () => {
   });
   describe('useModelLocationData hook', () => {
     it('should initialize with undefined by default', () => {
-      const { result } = renderHook(() => useModelLocationData(null));
+      const { result } = renderHook(() => useModelLocationData(undefined));
       expect(result.current.data).toBeUndefined();
     });
     it('should initialize with existing data', () => {
       const { result } = renderHook(() =>
-        useModelLocationData(null, {
+        useModelLocationData(undefined, {
           type: ModelLocationType.NEW,
           fieldValues: { URI: 'uri://test' },
           additionalFields: {},
@@ -346,7 +346,7 @@ describe('ModelLocationSelectField', () => {
       });
     });
     it('should update model location data', () => {
-      const { result } = renderHook(() => useModelLocationData(null));
+      const { result } = renderHook(() => useModelLocationData(undefined));
       act(() => {
         result.current.setData({
           type: ModelLocationType.NEW,
@@ -370,7 +370,7 @@ describe('ModelLocationSelectField', () => {
       render(
         <ModelLocationSelectField
           setModelLocationData={mockSetModelLocationData}
-          project={null}
+          projectName={undefined}
           resetModelLocationData={jest.fn()}
         />,
       );
@@ -382,7 +382,7 @@ describe('ModelLocationSelectField', () => {
         <ModelLocationSelectField
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
-          project={null}
+          projectName={undefined}
           resetModelLocationData={jest.fn()}
           modelLocationData={{
             type: ModelLocationType.NEW,
@@ -410,7 +410,7 @@ describe('ModelLocationSelectField', () => {
         <ModelLocationSelectField
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
-          project={null}
+          projectName={undefined}
           resetModelLocationData={jest.fn()}
           modelLocationData={{
             type: ModelLocationType.NEW,
@@ -450,7 +450,7 @@ describe('ModelLocationSelectField', () => {
         <ModelLocationSelectField
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
-          project={null}
+          projectName={undefined}
           resetModelLocationData={jest.fn()}
           modelLocationData={{
             type: ModelLocationType.NEW,
@@ -479,7 +479,7 @@ describe('ModelLocationSelectField', () => {
         <ModelLocationSelectField
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
-          project={null}
+          projectName={undefined}
           resetModelLocationData={jest.fn()}
           modelLocationData={{
             type: ModelLocationType.NEW,
@@ -519,7 +519,7 @@ describe('ModelLocationSelectField', () => {
         <ModelLocationSelectField
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
-          project={null}
+          projectName={undefined}
           resetModelLocationData={jest.fn()}
           modelLocationData={{
             type: ModelLocationType.NEW,
@@ -551,7 +551,7 @@ describe('ModelLocationSelectField', () => {
         <ModelLocationSelectField
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
-          project={null}
+          projectName={undefined}
           resetModelLocationData={jest.fn()}
           modelLocationData={{
             type: ModelLocationType.NEW,
@@ -594,7 +594,7 @@ describe('ModelLocationSelectField', () => {
         <ModelLocationSelectField
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
-          project={null}
+          projectName={undefined}
           resetModelLocationData={jest.fn()}
           modelLocationData={newData}
         />,

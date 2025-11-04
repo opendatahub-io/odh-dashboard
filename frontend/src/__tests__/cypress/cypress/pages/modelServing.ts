@@ -941,11 +941,11 @@ class ModelServingWizard extends Wizard {
   }
 
   findModelDeploymentProjectSelector() {
-    return cy.findByTestId('deploy-model-project-selector-toggle');
+    return cy.findByTestId('project-selector-toggle');
   }
 
   findModelDeploymentProjectSelectorOption(name: string) {
-    return cy.findByTestId('deploy-model-project-selector-menu').findByRole('menuitem', { name });
+    return cy.findByTestId('project-selector-menuList').findByRole('menuitem', { name });
   }
 
   findModelDeploymentNameInput() {

@@ -27,9 +27,9 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
     <Form>
       <FormSection title="Model deployment">
         <ProjectSection
-          initialProject={wizardState.state.project.initialProject}
-          project={wizardState.state.project.project}
-          setProject={wizardState.state.project.setProject}
+          initialProjectName={wizardState.state.project.initialProjectName}
+          projectName={wizardState.state.project.projectName}
+          setProjectName={wizardState.state.project.setProjectName}
         />
         <K8sNameDescriptionField
           data={wizardState.state.k8sNameDesc.data}
