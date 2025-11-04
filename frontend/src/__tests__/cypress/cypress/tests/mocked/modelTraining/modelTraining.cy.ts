@@ -6,6 +6,7 @@ import { mockDashboardConfig, mockK8sResourceList, mockProjectK8sResource } from
 import {
   modelTrainingGlobal,
   trainingJobTable,
+  trainingJobDetailsDrawer,
 } from '#~/__tests__/cypress/cypress/pages/modelTraining';
 import { ProjectModel } from '#~/__tests__/cypress/cypress/utils/models';
 import { LocalQueueModel, TrainJobModel } from '#~/api/models';
@@ -151,5 +152,84 @@ describe('Model Training', () => {
     modelTrainingGlobal
       .findEmptyStateDescription()
       .should('contain', 'No training jobs have been found in this project.');
+  });
+
+  describe('Training Job Details Drawer', () => {
+    it('should open drawer when clicking on a training job name', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      trainingJobDetailsDrawer.shouldBeClosed();
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.clickName();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+    });
+
+    it('should navigate between tabs in the drawer', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('nlp-model-training');
+      row.clickName();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+
+      trainingJobDetailsDrawer.findTab('Training details').should('exist');
+      trainingJobDetailsDrawer.findTab('Resources').should('exist');
+      trainingJobDetailsDrawer.findTab('Pods').should('exist');
+      trainingJobDetailsDrawer.findTab('Logs').should('exist');
+
+      trainingJobDetailsDrawer.selectTab('Resources');
+      trainingJobDetailsDrawer.findActiveTabContent().should('contain', 'Resources content');
+
+      trainingJobDetailsDrawer.selectTab('Pods');
+      trainingJobDetailsDrawer.findActiveTabContent().should('contain', 'Pods content');
+
+      trainingJobDetailsDrawer.selectTab('Logs');
+      trainingJobDetailsDrawer.findActiveTabContent().should('contain', 'Logs content');
+    });
+
+    it('should close drawer when clicking close button', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('failed-training-job');
+      row.clickName();
+      trainingJobDetailsDrawer.shouldBeOpen();
+
+      trainingJobDetailsDrawer.close();
+      trainingJobDetailsDrawer.shouldBeClosed();
+    });
+
+    it('should show kebab menu with delete option', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('a-first-job');
+      row.clickName();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+
+      trainingJobDetailsDrawer.clickKebabMenu();
+
+      trainingJobDetailsDrawer.findKebabMenuItem('Delete').should('exist');
+    });
+
+    it('should switch between different jobs in the drawer', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const firstRow = trainingJobTable.getTableRow('image-classification-job');
+      firstRow.clickName();
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.findTitle().should('contain', 'image-classification-job');
+
+      const secondRow = trainingJobTable.getTableRow('nlp-model-training');
+      secondRow.clickName();
+
+      trainingJobDetailsDrawer.findTitle().should('contain', 'nlp-model-training');
+    });
   });
 });
