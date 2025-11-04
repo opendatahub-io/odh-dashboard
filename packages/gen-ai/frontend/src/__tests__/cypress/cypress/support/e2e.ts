@@ -16,6 +16,20 @@
 // Import commands.ts using ES2015 syntax:
 import '~/__tests__/cypress/cypress/support/commands';
 import { getOcToken } from '~/__tests__/cypress/cypress/utils/oc_commands/auth';
+import { addCommands as addWebsocketCommands } from '~/__tests__/cypress/cypress/support/websockets';
+
+// Add websocket commands
+addWebsocketCommands();
+
+// Extend Cypress types to support tags
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace Cypress {
+    interface TestConfigOverrides {
+      tags?: string[];
+    }
+  }
+}
 
 // Alternatively you can use CommonJS syntax:
 // require('./commands')

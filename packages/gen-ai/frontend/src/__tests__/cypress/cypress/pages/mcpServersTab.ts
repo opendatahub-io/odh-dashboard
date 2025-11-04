@@ -175,7 +175,14 @@ class MCPServersTab {
   }
 
   verifyEmptyState(): void {
-    cy.contains('No MCP configuration found', { timeout: 10000 }).should('be.visible');
+    // Check for either "No MCP configuration found" (error state) or "No valid MCP servers available" (empty state)
+    cy.get('body').should(($body) => {
+      const text = $body.text();
+      const hasEmptyState =
+        text.includes('No MCP configuration found') ||
+        text.includes('No valid MCP servers available');
+      expect(hasEmptyState).to.be.true; // eslint-disable-line @typescript-eslint/no-unused-expressions
+    });
     cy.log('Empty state is displayed correctly');
   }
 }

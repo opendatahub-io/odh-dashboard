@@ -39,9 +39,9 @@ export interface TestConfig {
 }
 
 Cypress.Commands.add('getTestConfig', () => {
-  // Load test-variables.json
-  return cy.fixture('test-variables.json').then((config: TestConfig) => {
-    return config;
+  // Load test-variables.yml using the readJSON task (which handles both JSON and YAML)
+  return cy.task('readJSON', 'test-variables.yml').then((config) => {
+    return config as TestConfig;
   });
 });
 

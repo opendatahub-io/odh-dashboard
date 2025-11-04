@@ -5,7 +5,7 @@ import {
 } from '~/__tests__/cypress/cypress/support/commands/common';
 
 describe('App Tests', () => {
-  beforeEach(() => {
+  before(() => {
     visitApp();
     waitForPageLoad();
   });

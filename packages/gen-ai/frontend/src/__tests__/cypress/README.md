@@ -1,242 +1,212 @@
 # Gen-AI Cypress E2E Tests
 
-## ⚠️ MANDATORY: Before Running Tests
-
-**You MUST complete these steps before running any E2E tests:**
-
-### 1. Configure Test Variables
-
-Copy the example file and update with your credentials:
-
-```bash
-cd src/__tests__/cypress/cypress/fixtures
-cp test-variables.json.example test-variables.json
-# Edit test-variables.json with your actual values
-```
-
-**Required fields in `test-variables.json`:**
-
-- `CLUSTER.SERVER`: Your OpenShift cluster URL
-- `CLUSTER.NAMESPACE`: Default namespace (e.g., "team-crimson")
-- `MCP_SERVERS.GITHUB_TOKEN`: GitHub PAT token for MCP authentication
-
-### 2. Connect to OpenShift Cluster
-
-```bash
-# Login to your cluster
-oc login --server=https://your-cluster:6443
-
-# Verify connection
-oc whoami
-oc config current-context
-```
-
-### 3. Verify Prerequisites
-
-Before running tests, confirm:
-
-- [ ] `test-variables.json` is configured with correct values
-- [ ] Connected to the correct OpenShift cluster (`oc whoami` works)
-- [ ] All required services are running (Dashboard, Gen-AI remote, BFF)
-
-**❌ DO NOT proceed without completing these steps!**
-
----
-
 ## Overview
 
-This directory contains Cypress end-to-end tests for the Gen-AI plugin. The tests run in **federated mode**, where Gen-AI is loaded as a remote module into the ODH Dashboard, testing the plugin exactly as it runs in production.
+This directory contains Cypress end-to-end tests for the Gen-AI plugin. Tests run in **federated mode**, where Gen-AI loads as a remote module into the ODH Dashboard.
 
-## Architecture
+## Prerequisites
 
-### E2E Mode (Real Integration)
+### Required Configuration
 
-```text
-┌─────────────────────┐
-│  Cypress Test       │
-└──────────┬──────────┘
-           │ http://localhost:4010
-           ↓
-┌─────────────────────────────────────┐
-│  ODH Dashboard (Host)               │
-│  Port 4010                          │
-│  - Loads Gen-AI as remote module    │
-│  - Proxies /gen-ai/api → 9001       │
-└──────────┬──────────────────────────┘
-           │ Module Federation
-           ↓
-┌─────────────────────┐     Proxies /gen-ai/api
-│  Gen-AI Frontend    │ ───────────────────────┐
-│  Remote Module      │                        │
-│  Port 9102          │                        │
-└─────────────────────┘                        │
-                                               ↓
-                                    ┌─────────────────────┐
-                                    │  Gen-AI BFF         │
-                                    │  Port 9001          │
-                                    └──────────┬──────────┘
-                                              │ oc token auth
-                                              ↓
-                                    ┌─────────────────────┐
-                                    │  OpenShift/K8s      │
-                                    │  Real Cluster       │
-                                    └─────────────────────┘
+**You MUST configure test variables before running E2E tests:**
+
+```bash
+cd src/__tests__/cypress
+cp test-variables.yml.example test-variables.yml
+# Edit test-variables.yml with your actual values
 ```
 
-**Key Points**:
+**Required fields:**
 
-- Tests run against ODH Dashboard on **port 4010** (not directly against Gen-AI)
-- Gen-AI loads as a **remote module** on port 9102
-- API calls are **proxied** through Dashboard: `/gen-ai/api` → BFF on port 9001
-- Uses **real Kubernetes APIs** and authentication
+- `CLUSTER.SERVER`: Your OpenShift cluster URL
+- `CLUSTER.NAMESPACE`: Default namespace
+- `MCP_SERVERS.GITHUB_TOKEN`: GitHub PAT token for MCP authentication
+
+### OpenShift Connection
+
+```bash
+oc login --server=https://your-cluster:6443
+oc whoami  # Verify connection
+```
 
 ## Running Tests
 
-### Prerequisites
+### E2E Tests (Live Cluster)
 
-1. **OpenShift Login** (for real API tests):
+Tests run against real cluster with actual backend APIs.
 
-   ```bash
-   oc login --server=https://your-cluster:6443
-   oc whoami -t  # Verify token is available
-   ```
-
-2. **Required Services Running**:
-   - ODH Dashboard on port 4010
-   - Gen-AI remote module on port 9102
-   - Gen-AI BFF on port 9001
-
-### Quick Start
-
-#### Interactive Mode (Development)
-
-**Terminal 1: Start ODH Dashboard Frontend**
+**Interactive mode:**
 
 ```bash
-# From repo/frontend root
-npm run start:dev
-# Dashboard will start on port 4010
-```
-
-**Terminal 2: Start ODH Dashboard Backend**
-
-```bash
-# From repo/backend root
-npm run start:dev
-# Dashboard will start on port 4010
-```
-
-**Terminal 3: Start Gen-AI Remote Module**
-
-```bash
-cd packages/gen-ai
-make dev-start
-# Gen-AI remote module will start on port 9102
-```
-
-**Terminal 4: Open Cypress**
-
-```bash
-cd packages/gen-ai/frontend
 npm run cypress:open:e2e
 ```
 
-#### Headless Mode (CI/Testing)
+**Headless mode:**
 
 ```bash
-# Assuming all services are running
-cd packages/gen-ai/frontend
 npm run cypress:run:e2e
 ```
 
-## Available Scripts
+### Mocked Tests (No Cluster Required)
 
-| Script | Purpose |
-|--------|---------|
-| `cypress:open` | Opens Cypress GUI (base command) |
-| `cypress:open:e2e` | Opens Cypress for E2E tests against Dashboard (port 4010) |
-| `cypress:run` | Runs tests headless with Chrome (base command) |
-| `cypress:run:e2e` | Runs E2E tests headless against Dashboard |
+Tests run with mocked backend APIs.
+
+**Interactive mode:**
+
+```bash
+npm run cypress:open
+```
+
+**Headless mode:**
+
+```bash
+npm run cypress:run:mock
+```
+
+**CI mode (starts dev server automatically):**
+
+```bash
+npm run test:cypress-ci
+```
+
+## Test Filtering with Tags
+
+Use `@cypress/grep` plugin to run specific tests:
+
+```bash
+# Run smoke tests only
+npm run cypress:run:mock -- --env grepTags=@Smoke
+
+# Run MCP server tests
+npm run cypress:run:mock -- --env grepTags=@MCPServers
+
+# Combine tags (AND)
+npm run cypress:run:mock -- --env grepTags="@Smoke+@MCPServers"
+
+# Combine tags (OR)
+npm run cypress:run:e2e -- --env grepTags="@Smoke,@Authentication"
+```
+
+**Available tags:**
+
+- `@Smoke` - Critical smoke tests
+- `@GenAI` - Gen-AI specific tests
+- `@MCPServers` - MCP server functionality
+- `@Authentication` - Authentication flows
 
 ## Directory Structure
 
-```
+```text
 src/__tests__/cypress/
 ├── cypress/
-│   ├── fixtures/              # Test data
-│   │   └── example.json
-│   ├── pages/                 # Page Object Model (POM)
-│   │   ├── aiAssets.ts       # AI Assets page actions
-│   │   ├── appChrome.ts      # App chrome/navigation
-│   │   ├── mcpServersTab.ts  # MCP Servers tab interactions
-│   │   ├── playground.ts     # Playground page actions
-│   │   └── components/       # Reusable component interactions
-│   │       ├── Contextual.ts
-│   │       ├── Modal.ts      # Modal dialogs (auth, tools, etc.)
-│   │       └── table.ts
+│   ├── __mocks__/                    # TypeScript mock functions
+│   │   ├── index.ts
+│   │   ├── mockNamespaces.ts
+│   │   ├── mockMCPServers.ts
+│   │   ├── mockMCPResponses.ts      # MCP API response interceptors
+│   │   └── mockEmptyResponse.ts
+│   ├── fixtures/                     # Test data files
+│   │   ├── e2e/
+│   │   │   └── mcpServers/          # MCP E2E test config (YAML)
+│   │   └── mocked/
+│   │       └── mcpServers/          # MCP mocked responses (JSON)
+│   ├── pages/                        # Page Object Model (POM)
+│   │   ├── aiAssets.ts
+│   │   ├── appChrome.ts
+│   │   ├── mcpServersTab.ts
+│   │   ├── playground.ts
+│   │   └── components/              # Reusable component interactions
 │   ├── support/
-│   │   ├── commands/         # Custom Cypress commands
-│   │   │   ├── application.ts
-│   │   │   ├── genai.ts     # Gen-AI specific commands
-│   │   │   └── index.ts
-│   │   └── e2e.ts           # Global setup & auth
+│   │   ├── commands/                # Custom Cypress commands
+│   │   ├── helpers/
+│   │   │   └── mcpServers/         # MCP-specific test helpers
+│   │   ├── e2e.ts                  # Global setup & auth
+│   │   └── websockets.ts           # WebSocket support
 │   ├── tests/
-│   │   └── e2e/             # E2E test files
-│   │       ├── aiAssets/
-│   │       │   └── mcpServers.cy.ts  # Full MCP server flow
-│   │       └── smoke/
-│   │           ├── app.cy.ts         # App smoke tests
-│   │           └── namespaces.cy.ts  # Namespace loading
-│   └── utils/
-│       ├── helpers.ts       # Test helper functions
-│       └── testConfig.ts    # Environment configuration
-├── cypress.config.ts        # Main Cypress configuration
-├── tsconfig.json           # TypeScript config for tests
-├── webpack.config.ts       # Webpack preprocessor config
-└── README.md              # This file
+│   │   ├── e2e/                    # E2E tests (live cluster)
+│   │   └── mocked/                 # Mocked tests (no cluster)
+│   └── utils/                      # Test utilities
+│       ├── apiRequests.ts
+│       ├── helpers.ts
+│       ├── logger.ts
+│       ├── testConfig.ts
+│       └── oc_commands/            # OpenShift CLI utilities
+├── cypress.config.ts               # Cypress configuration
+├── test-variables.yml              # Test configuration (gitignored)
+├── test-variables.yml.example      # Test configuration template
+└── README.md                       # This file
 ```
 
-## Test Structure
+**Organization:**
 
-### Page Object Model (POM)
+- **Nested `mcpServers/` folders**: MCP-specific code grouped in dedicated subdirectories
+- **YAML for E2E configs**: Test configuration data in `fixtures/e2e/`
+- **JSON for mocked responses**: API response fixtures in `fixtures/mocked/`
 
-Tests use the Page Object Model pattern to separate UI interactions from test logic:
+## Mock Functions
+
+Mocked tests use TypeScript mock functions following the ODH Dashboard pattern.
+
+### Usage
 
 ```typescript
-// cypress/pages/aiAssets.ts
-class AIAssets {
-  visit(namespace?: string): void {
-    if (namespace) {
-      cy.visit(`/gen-ai-studio/assets/${namespace}`);
-    } else {
-      cy.visit('/gen-ai-studio/assets');
-    }
-  }
+import { mockNamespaces, mockMCPServers } from '~/__tests__/cypress/cypress/__mocks__';
+import {
+  loadMCPTestConfig,
+  setupBaseMCPServerMocks,
+} from '~/__tests__/cypress/cypress/support/helpers/mcpServers/mcpServersTestHelpers';
 
-  switchToMCPServersTab(): void {
-    this.findMCPServersTab().click();
-  }
-}
+describe('AI Assets (Mocked)', () => {
+  let config: MCPTestConfig;
 
-export const aiAssets = new AIAssets();
+  before(() => {
+    loadMCPTestConfig().then((data) => {
+      config = data;
+    });
+  });
+
+  beforeEach(() => {
+    setupBaseMCPServerMocks(config, { lsdStatus: 'Ready' });
+
+    cy.interceptGenAi(
+      'GET /api/v1/aaa/mcps',
+      { query: { namespace: config.defaultNamespace } },
+      mockMCPServers([mockMCPServer({ name: 'GitHub-MCP-Server', status: 'Ready' })]),
+    );
+  });
+
+  it('should display servers', () => {
+    // Test implementation
+  });
+});
 ```
 
-### Custom Commands
+### Available Mock Functions
 
-Custom commands extend Cypress functionality:
+**General Mocks:**
 
-```typescript
-// Usage in tests
-cy.enableGenAiFeature();  // Enable feature flag
-cy.getAuthToken();        // Get OpenShift token
-cy.apiRequest('/gen-ai/api/v1/namespaces');  // Make authenticated API call
-cy.selectMCPServer('GitHub-MCP-Server');     // Select MCP server
-cy.authenticateMCPServer('GitHub-MCP-Server', token);  // Authenticate
-```
+- `mockNamespaces()` - Namespace list responses
+- `mockMCPServers()` - MCP server list responses
+- `mockMCPServer()` - Individual MCP server object
+- `mockEmptyList()` - Empty data arrays
+- `mockStatus()` - Status responses
+
+**MCP API Response Interceptors:**
+
+- `mockMCPStatusInterceptor(token, serverUrl)` - Intercepts MCP status endpoint
+- `mockMCPStatusError(errorType, serverUrl)` - Returns error responses (400/401)
+- `mockMCPToolsInterceptor(token, serverUrl)` - Intercepts MCP tools endpoint
+
+**MCP Test Helpers:**
+
+- `loadMCPTestConfig()` - Loads test configuration from YAML
+- `setupBaseMCPServerMocks(config, options)` - Sets up common API intercepts
 
 ## Writing Tests
 
-### Example Test
+### Page Object Model
+
+Tests use the Page Object Model pattern to separate UI interactions from test logic:
 
 ```typescript
 import { appChrome } from '~/pages/appChrome';
@@ -244,61 +214,58 @@ import { aiAssets } from '~/pages/aiAssets';
 import { mcpServersTab } from '~/pages/mcpServersTab';
 
 describe('MCP Servers', () => {
-  before(() => {
-    if (!Cypress.env('MOCK')) {
-      cy.getAuthToken();
-    }
-  });
-
-  it('should select and configure MCP server', () => {
-    // Enable Gen-AI feature and visit
+  it('should navigate to MCP servers tab', () => {
     appChrome.visit();
-    
-    // Navigate to AI Assets
     aiAssets.visit('team-crimson');
     aiAssets.switchToMCPServersTab();
-    
-    // Select specific server
-    mcpServersTab.selectServerByName('GitHub-MCP-Server', {
-      verifyStatus: 'Token required'
-    });
-    
-    // Navigate to Playground
-    mcpServersTab.clickPlaygroundAction();
+    mcpServersTab.shouldBeVisible();
   });
 });
 ```
 
+### Custom Commands
+
+```typescript
+cy.interceptGenAi('GET /api/v1/namespaces', mockNamespaces());
+cy.step('Navigate to playground'); // Log test steps
+cy.getTestConfig(); // Load test variables
+```
+
 ### Best Practices
 
-1. **Use Page Objects** - Keep UI interactions in page objects, not in tests
-2. **Use Custom Commands** - Reuse common operations via custom commands
-3. **Direct Selection** - When you know exact names, select directly (don't extract/search)
-4. **Wait for Elements** - Use `.should('be.visible')` instead of fixed waits
-5. **Type Safety** - Add proper TypeScript types for better IDE support
+1. **Use Page Objects** - Keep UI interactions in page objects
+2. **Use Custom Commands** - Reuse common operations
+3. **Wait for Elements** - Use `.should('be.visible')` instead of fixed waits
+4. **Type Safety** - Add proper TypeScript types
+5. **Test Data** - Use YAML fixtures for E2E, mock functions for mocked tests
 
 ## Configuration
 
-### cypress.config.ts
-
-- **baseUrl**: `http://localhost:4010` (ODH Dashboard)
-- **specPattern**: `cypress/tests/e2e/**/*.cy.ts` (E2E tests only)
-- **video**: Enabled, deleted on pass
-- **screenshots**: On failure only
-- **reporters**: Mochawesome + JUnit
-
 ### Environment Variables
 
-Set via `BASE_URL` environment variable:
+Set via environment or test scripts:
 
 ```bash
 BASE_URL=http://localhost:4010 npm run cypress:open:e2e
 ```
 
+**Available variables:**
+
+- `BASE_URL` - Dashboard URL (default: <http://localhost:4010> for E2E, <http://localhost:8080> for mocked)
+- `CY_MOCK` - Enables mocked test mode (set by `cypress:run:mock` script)
+- `CY_WS_PORT` - WebSocket server port for mocked tests
+
 ### Authentication
 
-Tests automatically:
+E2E tests automatically:
 
 1. Get OpenShift token via `oc whoami -t`
 2. Store in `Cypress.env('AUTH_TOKEN')`
 3. Add `Authorization: Bearer <token>` to API requests
+
+## Additional Documentation
+
+For comprehensive Cypress testing guidelines, see:
+
+- [Main Testing Documentation](/docs/testing.md) - Overall testing strategy
+- [Cypress E2E Rules](/.cursor/rules/cypress-e2e.mdc) - Detailed E2E test guidelines
