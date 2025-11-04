@@ -63,6 +63,7 @@ type HandlersProps = {
     global: HardwareProfileKind[];
     project: HardwareProfileKind[];
   };
+  pvcSize?: string;
 };
 
 const initIntercepts = ({
@@ -161,6 +162,7 @@ const initIntercepts = ({
     }),
   ],
   hardwareProfiles,
+  pvcSize,
 }: HandlersProps) => {
   cy.interceptK8sList(StorageClassModel, mockStorageClassList());
   cy.interceptOdh(
@@ -175,7 +177,7 @@ const initIntercepts = ({
     'GET /api/config',
     mockDashboardConfig({
       disableProjectScoped,
-      pvcSize: '8Gi',
+      pvcSize,
     }),
   );
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
@@ -515,6 +517,7 @@ describe('Workbench page', () => {
   it('Create workbench', () => {
     initIntercepts({
       isEmpty: true,
+      pvcSize: '8Gi',
     });
     workbenchPage.visit('test-project');
     workbenchPage.findCreateButton().click();
