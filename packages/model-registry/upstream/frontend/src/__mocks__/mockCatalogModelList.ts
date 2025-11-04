@@ -1,5 +1,5 @@
-import { CatalogModel, CatalogModelList } from '~/app/modelCatalogTypes';
-import { ModelRegistryMetadataType } from '~/app/types';
+import { CatalogModel, CatalogModelList } from '../app/modelCatalogTypes';
+import { ModelRegistryMetadataType } from '../app/types';
 
 export const mockCatalogModel = (partial?: Partial<CatalogModel>): CatalogModel => ({
   // eslint-disable-next-line camelcase

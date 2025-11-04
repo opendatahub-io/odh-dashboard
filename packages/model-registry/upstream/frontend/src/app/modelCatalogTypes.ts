@@ -8,7 +8,7 @@ import {
   ModelCatalogNumberFilterKey,
   LatencyMetricFieldName,
   UseCaseOptionValue,
-} from '~/concepts/modelCatalog/const';
+} from '../concepts/modelCatalog/const';
 import {
   ModelRegistryCustomProperties,
   ModelRegistryCustomPropertyString,

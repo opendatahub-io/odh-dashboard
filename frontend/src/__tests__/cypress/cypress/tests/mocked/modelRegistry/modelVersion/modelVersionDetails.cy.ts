@@ -314,11 +314,6 @@ describe('Model version details', () => {
 
     // these tests will be fixed in this issue: https://issues.redhat.com/browse/RHOAIENG-34543 - we can enable/fix them after sync
     describe('Discard unsaved changes', () => {
-      beforeEach(() => {
-        initIntercepts();
-        modelVersionDetails.visit();
-      });
-
       // We do not have the delete modal yet.
       it.skip('should show discard modal when editing and moving to Deployments tab', () => {
         modelVersionDetails.findEditLabelsButton().click();
