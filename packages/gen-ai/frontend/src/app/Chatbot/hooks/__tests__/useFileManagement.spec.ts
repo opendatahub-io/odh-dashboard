@@ -287,10 +287,13 @@ describe('useFileManagement', () => {
         expect(result.current.isDeleting).toBe(false);
       });
 
-      expect(mockDeleteVectorStoreFile).toHaveBeenCalledWith({
-        vector_store_id: VECTOR_STORE_ID,
-        file_id: FILE_ID_1,
-      });
+      expect(mockDeleteVectorStoreFile).toHaveBeenCalledWith(
+        {},
+        {
+          vector_store_id: VECTOR_STORE_ID,
+          file_id: FILE_ID_1,
+        },
+      );
       expect(result.current.files).toHaveLength(1);
       expect(result.current.files[0].id).toBe(FILE_ID_2);
       expect(mockOnShowDeleteSuccessAlert).toHaveBeenCalled();

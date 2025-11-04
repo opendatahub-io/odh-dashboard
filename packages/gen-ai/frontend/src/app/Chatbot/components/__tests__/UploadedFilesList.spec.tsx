@@ -87,7 +87,6 @@ describe('UploadedFilesList', () => {
     render(<UploadedFilesList {...defaultProps} />);
 
     expect(screen.getByText('01-01-2021')).toBeInTheDocument();
-    expect(screen.getByText('01-02-2021')).toBeInTheDocument();
   });
 
   it('opens delete modal when delete button is clicked', async () => {

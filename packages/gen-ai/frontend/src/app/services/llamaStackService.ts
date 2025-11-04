@@ -352,7 +352,7 @@ export const createVectorStore = modArchRestCREATE<VectorStore, CreateVectorStor
   '/lsd/vectorstores',
 );
 export const listVectorStoreFiles = modArchRestGET<VectorStoreFile[]>('/lsd/vectorstores/files');
-export const deleteVectorStoreFile = modArchRestDELETE<string, Record<string, unknown>>(
+export const deleteVectorStoreFile = modArchRestDELETE<string, Record<string, never>>(
   '/lsd/vectorstores/files/delete',
 );
 export const uploadSource = axiosCREATE<FileUploadResult, FormData>('/lsd/files/upload');

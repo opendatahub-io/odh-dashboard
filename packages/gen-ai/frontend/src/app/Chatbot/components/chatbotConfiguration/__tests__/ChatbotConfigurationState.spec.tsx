@@ -4,24 +4,15 @@ import { MemoryRouter } from 'react-router-dom';
 import ChatbotConfigurationState from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationState';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
+import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 
 jest.mock('~/app/hooks/useFetchLSDStatus');
 
 const mockUseFetchLSDStatus = jest.mocked(useFetchLSDStatus);
 
-const mockNamespace = { name: 'test-namespace', displayName: 'Test Namespace' };
-
-const mockGenAiContextValue = {
-  namespace: mockNamespace,
-  isLoading: false,
-  error: undefined,
-};
-
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <MemoryRouter>
-    <GenAiContext.Provider value={mockGenAiContextValue as React.ContextType<typeof GenAiContext>}>
-      {children}
-    </GenAiContext.Provider>
+    <GenAiContext.Provider value={mockGenAiContextValue}>{children}</GenAiContext.Provider>
   </MemoryRouter>
 );
 

@@ -2,7 +2,7 @@ import React from 'react';
 import { GenAiContext } from '~/app/context/GenAiContext';
 
 export const mockGenAiContextValue: React.ContextType<typeof GenAiContext> = {
-  namespace: { name: 'test-namespace' },
+  namespace: { name: 'test-namespace', displayName: 'Test Namespace' },
   apiState: {
     apiAvailable: true,
     api: {
