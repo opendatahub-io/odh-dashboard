@@ -1,11 +1,4 @@
 /* eslint-disable camelcase */
-import { mockK8sResourceList } from '#~/__mocks__';
-import { ServingRuntimeModel } from '#~/__tests__/cypress/cypress/utils/models';
-import { modelDetailsPage } from '#~/__tests__/cypress/cypress/pages/modelCatalog/modelDetailsPage';
-import { kserveModal } from '#~/__tests__/cypress/cypress/pages/modelServing';
-import { initDeployPrefilledModelIntercepts } from '#~/__tests__/cypress/cypress/utils/modelServingUtils';
-import type { ModelCatalogSource } from '#~/concepts/modelCatalog/types';
-import { modelCatalogDeployModal } from '#~/__tests__/cypress/cypress/pages/modelCatalog/modelCatalogDeployModal';
 import {
   mockCatalogAccuracyMetricsArtifact,
   mockCatalogModelArtifact,
@@ -17,11 +10,18 @@ import {
   mockCatalogModelList,
   mockCatalogModel,
 } from '@odh-dashboard/model-registry/mocks/mockCatalogModelList';
-import { CatalogSource } from '@odh-dashboard/model-registry/types/';
+import type { CatalogSource } from '@odh-dashboard/model-registry/types/';
 import {
   mockCatalogSource,
   mockCatalogSourceList,
 } from '@odh-dashboard/model-registry/mocks/mockCatalogSourceList';
+import { mockK8sResourceList } from '#~/__mocks__';
+import { ServingRuntimeModel } from '#~/__tests__/cypress/cypress/utils/models';
+import { modelDetailsPage } from '#~/__tests__/cypress/cypress/pages/modelCatalog/modelDetailsPage';
+import { kserveModal } from '#~/__tests__/cypress/cypress/pages/modelServing';
+import { initDeployPrefilledModelIntercepts } from '#~/__tests__/cypress/cypress/utils/modelServingUtils';
+import type { ModelCatalogSource } from '#~/concepts/modelCatalog/types';
+import { modelCatalogDeployModal } from '#~/__tests__/cypress/cypress/pages/modelCatalog/modelCatalogDeployModal';
 
 export const MODEL_CATALOG_API_VERSION = 'v1';
 export const MODEL_REGISTRY_API_VERSION = 'v1';
