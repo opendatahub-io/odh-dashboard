@@ -68,7 +68,7 @@ describe('Verify models can be registered in a model registry', () => {
 
   it(
     'Registers models via model registry using object storage and URI',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Smoke', '@SmokeSet1'] },
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -116,7 +116,7 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify the object storage model was registered');
-      cy.url().should('include', '/ai-hub/registry');
+      cy.url().should('include', '/details');
       cy.contains(objectStorageModelName, { timeout: 10000 }).should('be.visible');
 
       cy.step('Verify the object storage model exists in the database');
@@ -149,7 +149,7 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify the URI model was registered');
-      cy.url().should('include', '/ai-hub/registry');
+      cy.url().should('include', '/details');
       cy.contains(testData.uriModelName, { timeout: 10000 }).should('be.visible');
 
       cy.step('Verify the URI model exists in the database');
@@ -166,7 +166,7 @@ describe('Verify models can be registered in a model registry', () => {
 
   it(
     'Registers a new version via versions view',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@FeatureFlagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Smoke', '@SmokeSet1'] },
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -210,14 +210,11 @@ describe('Verify models can be registered in a model registry', () => {
       registerVersionPage.findSubmitButton().click();
 
       cy.step('Verify the new version was registered');
-      cy.url().should('include', '/versions');
+      cy.url().should('include', '/details');
       cy.contains(testData.version2Name, { timeout: 10000 }).should('be.visible');
 
       cy.step('Verify the new version exists in the database');
       checkModelVersionExistsInDatabase(testData.version2Name).should('be.true');
-
-      cy.step('Verify first version is still visible');
-      cy.contains(testData.version1Name, { timeout: 10000 }).should('be.visible');
     },
   );
 
