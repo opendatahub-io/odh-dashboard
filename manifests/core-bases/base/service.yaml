@@ -1,13 +1,13 @@
 kind: Service
 apiVersion: v1
 metadata:
-  name: odh-dashboard
+  name: dashboard
   annotations:
     service.beta.openshift.io/serving-cert-secret-name: dashboard-proxy-tls
     service.beta.kubernetes.io/backend-protocol: HTTPS
 spec:
   selector:
-    deployment: odh-dashboard
+    deployment: dashboard
   ports:
     - name: dashboard-ui
       protocol: TCP
