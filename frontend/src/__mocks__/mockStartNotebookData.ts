@@ -56,7 +56,6 @@ export const mockStartNotebookData = ({
     ],
     nodeSelector: {},
     lastSizeSelection: 'small',
-    selectedAcceleratorProfile: undefined,
     selectedHardwareProfile: undefined,
   },
   volumes: [

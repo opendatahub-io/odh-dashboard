@@ -1,16 +1,31 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
-import { mockDashboardConfig, mockNotebookK8sResource } from '#~/__mocks__';
-import { DEFAULT_NOTEBOOK_SIZES } from '#~/pages/projects/screens/spawner/const';
-import { Notebook } from '#~/types';
+import { mockDashboardConfig, mockServingRuntimeK8sResource } from '#~/__mocks__';
 import * as areasUtils from '#~/concepts/areas';
 import * as appContext from '#~/app/AppContext';
-import { useNotebookSizeState } from '#~/pages/projects/screens/spawner/useNotebookSizeState';
-import { usePreferredNotebookSize } from '#~/pages/notebookController/screens/server/usePreferredNotebookSize';
-import { useNotebookPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
-import useNotebookHardwareProfileConfig from '#~/concepts/hardwareProfiles/useNotebookHardwareProfileConfig';
+import useServingHardwareProfileConfig from '#~/concepts/hardwareProfiles/useServingHardwareProfileConfig';
+import useServingAcceleratorProfileFormState from '#~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
+import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
+import { ModelServingSize } from '#~/pages/modelServing/screens/types';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
+
+const DEFAULT_MODEL_SIZES: ModelServingSize[] = [
+  {
+    name: 'Small',
+    resources: {
+      requests: { cpu: '1', memory: '2Gi' },
+      limits: { cpu: '2', memory: '4Gi' },
+    },
+  },
+  {
+    name: 'Medium',
+    resources: {
+      requests: { cpu: '2', memory: '4Gi' },
+      limits: { cpu: '4', memory: '8Gi' },
+    },
+  },
+];
 
 jest.mock('#~/concepts/areas', () => ({
   ...jest.requireActual('#~/concepts/areas'),
@@ -21,26 +36,22 @@ jest.mock('#~/app/AppContext', () => ({
   useAppContext: jest.fn(),
 }));
 
-jest.mock('#~/pages/projects/screens/spawner/useNotebookSizeState', () => ({
-  useNotebookSizeState: jest.fn(),
+jest.mock('#~/concepts/hardwareProfiles/useServingHardwareProfileConfig', () => ({
+  __esModule: true,
+  default: jest.fn(),
 }));
 
-jest.mock('#~/pages/notebookController/screens/server/usePreferredNotebookSize', () => ({
-  usePreferredNotebookSize: jest.fn(),
-}));
-
-jest.mock('../useNotebookHardwareProfileConfig', () => ({
+jest.mock('#~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
 
 const mockUseIsAreaAvailable = jest.mocked(areasUtils.useIsAreaAvailable);
 const mockUseAppContext = jest.mocked(appContext.useAppContext);
-const mockUseNotebookSizeState = jest.mocked(useNotebookSizeState);
-const mockUsePreferredNotebookSize = jest.mocked(usePreferredNotebookSize);
-const mockUseHardwareProfileConfig = jest.mocked(useNotebookHardwareProfileConfig);
+const mockUseHardwareProfileConfig = jest.mocked(useServingHardwareProfileConfig);
+const mockUseAcceleratorProfileFormState = jest.mocked(useServingAcceleratorProfileFormState);
 
-describe('useNotebookPodSpecOptionsState', () => {
+describe('useModelServingPodSpecOptionsState', () => {
   beforeEach(() => {
     mockUseIsAreaAvailable.mockReturnValue({
       status: true,
@@ -54,23 +65,11 @@ describe('useNotebookPodSpecOptionsState', () => {
 
     mockUseAppContext.mockReturnValue({
       dashboardConfig: mockDashboardConfig({
-        notebookSizes: DEFAULT_NOTEBOOK_SIZES,
+        modelServerSizes: DEFAULT_MODEL_SIZES,
       }),
       buildStatuses: [],
       storageClasses: [],
       isRHOAI: false,
-    });
-
-    mockUseNotebookSizeState.mockReturnValue({
-      selectedSize: DEFAULT_NOTEBOOK_SIZES[0],
-      setSelectedSize: jest.fn(),
-      sizes: DEFAULT_NOTEBOOK_SIZES,
-    });
-
-    mockUsePreferredNotebookSize.mockReturnValue({
-      selectedSize: DEFAULT_NOTEBOOK_SIZES[0],
-      setSelectedSize: jest.fn(),
-      sizes: DEFAULT_NOTEBOOK_SIZES,
     });
 
     mockUseHardwareProfileConfig.mockReturnValue({
@@ -86,23 +85,44 @@ describe('useNotebookPodSpecOptionsState', () => {
       profilesLoaded: true,
       profilesLoadError: undefined,
     });
+
+    mockUseAcceleratorProfileFormState.mockReturnValue({
+      formData: { profile: undefined, count: 0, useExistingSettings: false },
+      initialState: {
+        acceleratorProfile: undefined,
+        acceleratorProfiles: [],
+        count: 0,
+        unknownProfileDetected: false,
+      },
+      loaded: true,
+      loadError: undefined,
+      setFormData: jest.fn(),
+      resetFormData: jest.fn(),
+      refresh: jest.fn(),
+    });
   });
 
   it('should initialize with default values', () => {
-    const renderResult = testHook(useNotebookPodSpecOptionsState)();
+    const renderResult = testHook(useModelServingPodSpecOptionsState)();
     const state = renderResult.result.current;
 
     expect(state).toEqual({
-      notebooksSize: expect.any(Object),
+      modelSize: {
+        sizes: DEFAULT_MODEL_SIZES,
+        selectedSize: DEFAULT_MODEL_SIZES[0],
+        setSelectedSize: expect.any(Function),
+      },
+      acceleratorProfile: expect.any(Object),
       hardwareProfile: expect.any(Object),
       podSpecOptions: {
         resources: {
           requests: {},
           limits: {},
         },
-        nodeSelector: undefined,
-        selectedHardwareProfile: undefined,
         tolerations: undefined,
+        nodeSelector: undefined,
+        selectedAcceleratorProfile: undefined,
+        selectedHardwareProfile: undefined,
       },
     });
   });
@@ -130,46 +150,30 @@ describe('useNotebookPodSpecOptionsState', () => {
       profilesLoadError: undefined,
     });
 
-    const renderResult = testHook(useNotebookPodSpecOptionsState)();
+    const renderResult = testHook(useModelServingPodSpecOptionsState)();
     const state = renderResult.result.current;
 
     expect(state.podSpecOptions).toEqual({
       resources: {
-        requests: {
-          cpu: '1',
-          memory: '1Gi',
-        },
-        limits: {
-          cpu: '10',
-          memory: '10Gi',
-        },
+        requests: { cpu: '1', memory: '1Gi' },
+        limits: { cpu: '10', memory: '10Gi' },
       },
       tolerations: hardwareProfile.spec.scheduling?.node?.tolerations,
       nodeSelector: hardwareProfile.spec.scheduling?.node?.nodeSelector,
+      selectedAcceleratorProfile: undefined,
       selectedHardwareProfile: hardwareProfile,
     });
   });
 
   it('should use existing settings when useExistingSettings is true', () => {
     const resources = {
-      requests: {
-        cpu: '1',
-        memory: '1Gi',
-      },
+      requests: { cpu: '1', memory: '1Gi' },
       limits: { cpu: '10', memory: '10Gi' },
     };
-    const notebook = mockNotebookK8sResource({
+    const servingRuntime = mockServingRuntimeK8sResource({
       resources,
-      opts: {
-        spec: {
-          template: {
-            spec: {
-              tolerations: [{ key: 'existing-key', value: 'existing-value' }],
-              nodeSelector: { 'existing-label': 'existing-value' },
-            },
-          },
-        },
-      },
+      tolerations: [{ key: 'existing-key', value: 'existing-value' }],
+      nodeSelector: { 'existing-label': 'existing-value' },
     });
 
     mockUseHardwareProfileConfig.mockReturnValue({
@@ -189,13 +193,13 @@ describe('useNotebookPodSpecOptionsState', () => {
       profilesLoadError: undefined,
     });
 
-    const renderResult = testHook(useNotebookPodSpecOptionsState)(notebook as Notebook);
+    const renderResult = testHook(useModelServingPodSpecOptionsState)(servingRuntime);
     const state = renderResult.result.current;
 
     expect(state.podSpecOptions).toMatchObject({
-      resources: notebook.spec.template.spec.containers[0].resources,
-      tolerations: notebook.spec.template.spec.tolerations,
-      nodeSelector: notebook.spec.template.spec.nodeSelector,
+      resources: servingRuntime.spec.containers[0].resources,
+      tolerations: servingRuntime.spec.tolerations,
+      nodeSelector: servingRuntime.spec.nodeSelector,
     });
   });
 
@@ -210,11 +214,14 @@ describe('useNotebookPodSpecOptionsState', () => {
       customCondition: () => false,
     });
 
-    const renderResult = testHook(useNotebookPodSpecOptionsState)();
+    const renderResult = testHook(useModelServingPodSpecOptionsState)();
     const state = renderResult.result.current;
 
     expect(state.podSpecOptions).toEqual({
-      resources: expect.any(Object),
+      resources: {
+        requests: {},
+        limits: {},
+      },
       tolerations: undefined,
       nodeSelector: undefined,
       selectedHardwareProfile: undefined,

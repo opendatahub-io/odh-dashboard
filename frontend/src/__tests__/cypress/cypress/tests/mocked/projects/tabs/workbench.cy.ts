@@ -1425,7 +1425,6 @@ describe('Workbench page', () => {
             'openshift.io/description': '',
             'openshift.io/display-name': 'Test Notebook',
             'opendatahub.io/image-display-name': 'Test Image',
-            'opendatahub.io/accelerator-name': '',
           },
         },
         spec: {
@@ -1501,7 +1500,6 @@ describe('Workbench page', () => {
             'openshift.io/description': '',
             'openshift.io/display-name': 'Test Notebook',
             'opendatahub.io/image-display-name': 'Test Image',
-            'opendatahub.io/accelerator-name': '',
           },
         },
         spec: {

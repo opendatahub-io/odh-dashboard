@@ -55,7 +55,6 @@ export const fireNotebookTrackingEvent = (
     outcome: TrackingOutcome.submit,
     podSpecOptions: JSON.stringify({
       notebookSize: podSpecOptionsState.notebooksSize.selectedSize,
-      acceleratorProfile: podSpecOptionsState.acceleratorProfile.formData.profile?.metadata.name,
       hardwareProfile: podSpecOptionsState.hardwareProfile.formData.selectedProfile?.metadata.name,
       resources: podSpecOptionsState.podSpecOptions.resources,
       tolerations: podSpecOptionsState.podSpecOptions.tolerations,
