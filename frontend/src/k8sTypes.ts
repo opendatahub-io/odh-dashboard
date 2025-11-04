@@ -1294,7 +1294,7 @@ export type DashboardCommonConfig = {
   disableFineTuning: boolean;
   disableLMEval: boolean;
   disableKueue: boolean;
-  disableModelTraining: boolean;
+  modelTraining: boolean;
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
   modelAsService?: boolean;

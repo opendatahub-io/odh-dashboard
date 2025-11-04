@@ -93,12 +93,10 @@ const mockLocalQueues = [
 ];
 
 const initIntercepts = ({ isEmpty = false }: { isEmpty?: boolean } = {}) => {
-  // cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
-
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
-      disableModelTraining: false,
+      modelTraining: true,
     }),
   );
 
@@ -140,8 +138,8 @@ describe('Model Training', () => {
     imageClassificationRow.findTrainingJobName().should('contain', 'image-classification-job');
     imageClassificationRow.findProject().should('contain', projectDisplayName);
     imageClassificationRow.findNodes().should('contain', '4');
-    imageClassificationRow.findClusterQueue().should('contain', 'training-queue');
-    imageClassificationRow.findStatus().should('contain', 'Running');
+    imageClassificationRow.findClusterQueue().should('contain', 'test-cluster-queue');
+    imageClassificationRow.findStatus().should('contain', TrainingJobState.RUNNING);
   });
 
   it('should show empty state when no training jobs exist', () => {
@@ -152,6 +150,6 @@ describe('Model Training', () => {
     modelTrainingGlobal.findEmptyState().should('contain', 'No training jobs');
     modelTrainingGlobal
       .findEmptyStateDescription()
-      .should('contain', 'No PyTorch training jobs have been found in this project');
+      .should('contain', 'No training jobs have been found in this project.');
   });
 });

@@ -58,7 +58,7 @@ export const advancedAIMLFlags = {
   disableFeatureStore: false,
   disableFineTuning: true,
   disableLMEval: true,
-  disableModelTraining: true,
+  modelTraining: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Combined feature flags object
@@ -193,7 +193,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     requiredComponents: [DataScienceStackComponent.FEAST_OPERATOR],
   },
   [SupportedArea.MODEL_TRAINING]: {
-    featureFlags: ['disableModelTraining'],
+    featureFlags: ['modelTraining'],
   },
 };
 
