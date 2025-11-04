@@ -101,12 +101,15 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
       setError(null);
 
       try {
-        await api.deleteVectorStoreFile({
-          /* eslint-disable camelcase */
-          vector_store_id: currentVectorStoreId,
-          file_id: fileId,
-          /* eslint-enable camelcase */
-        });
+        await api.deleteVectorStoreFile(
+          {},
+          {
+            /* eslint-disable camelcase */
+            vector_store_id: currentVectorStoreId,
+            file_id: fileId,
+            /* eslint-enable camelcase */
+          },
+        );
         // Remove the deleted file from the local state
         setFiles((prevFiles) => prevFiles.filter((file) => file.id !== fileId));
         fireFormTrackingEvent(DELETE_EVENT_NAME, {

@@ -377,15 +377,10 @@ export type ModArchRestDELETE<T, D> = (
   opts?: APIOptions,
 ) => Promise<T>;
 
-export type ModArchRestDELETEWithoutData<T> = (
-  queryParams?: Record<string, unknown>,
-  opts?: APIOptions,
-) => Promise<T>;
-
 type ListVectorStores = ModArchRestGET<VectorStore[]>;
 type ListVectorStoreFiles = ModArchRestGET<VectorStoreFile[]>;
 type CreateVectorStore = ModArchRestCREATE<VectorStore, CreateVectorStoreRequest>;
-type DeleteVectorStoreFile = ModArchRestDELETEWithoutData<string>;
+type DeleteVectorStoreFile = ModArchRestDELETE<string, Record<string, unknown>>;
 type GetLSDModels = ModArchRestGET<LlamaModel[]>;
 type UploadSource = ModArchRestCREATE<FileUploadResult, FormData>;
 type CreateResponse = (

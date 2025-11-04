@@ -30,7 +30,6 @@ import {
   DeleteLSDRequest,
   AAModelResponse,
   CreateVectorStoreRequest,
-  ModArchRestDELETEWithoutData,
   ModArchRestDELETE,
   ModArchRestCREATE,
   ModArchRestGET,
@@ -294,22 +293,6 @@ const modArchRestDELETE =
       throw new Error('Invalid response format');
     });
 
-const modArchRestDELETEWithoutData =
-  <T>(path: string) =>
-  (
-    hostPath: string,
-    baseQueryParams: Record<string, unknown> = {},
-  ): ModArchRestDELETEWithoutData<T> =>
-  (queryParams: Record<string, unknown> = {}, opts: APIOptions = {}) =>
-    handleRestFailures(
-      restDELETE<T>(hostPath, path, {}, { ...baseQueryParams, ...queryParams }, opts),
-    ).then((response) => {
-      if (isModArchResponse<T>(response)) {
-        return response.data;
-      }
-      throw new Error('Invalid response format');
-    });
-
 // Axios-backed CREATE for non-JSON payloads (e.g., multipart/form-data), aligned with mod-arch shape
 const buildApiUrl = (
   hostPath: string,
@@ -369,7 +352,7 @@ export const createVectorStore = modArchRestCREATE<VectorStore, CreateVectorStor
   '/lsd/vectorstores',
 );
 export const listVectorStoreFiles = modArchRestGET<VectorStoreFile[]>('/lsd/vectorstores/files');
-export const deleteVectorStoreFile = modArchRestDELETEWithoutData<string>(
+export const deleteVectorStoreFile = modArchRestDELETE<string, Record<string, unknown>>(
   '/lsd/vectorstores/files/delete',
 );
 export const uploadSource = axiosCREATE<FileUploadResult, FormData>('/lsd/files/upload');
