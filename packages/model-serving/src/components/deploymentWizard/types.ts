@@ -46,6 +46,7 @@ export type ModelLocationData = {
   type: ModelLocationType.EXISTING | ModelLocationType.NEW | ModelLocationType.PVC;
   connectionTypeObject?: ConnectionTypeConfigMapObj;
   connection?: string;
+  disableInputFields?: boolean;
   fieldValues: Record<string, ConnectionTypeValueType>;
   additionalFields: {
     // For S3 and OCI additional fields
@@ -56,6 +57,7 @@ export type ModelLocationData = {
 };
 
 export type InitialWizardFormData = {
+  wizardStartIndex?: number;
   project?: ProjectKind | null;
   modelTypeField?: ModelTypeFieldData;
   k8sNameDesc?: K8sNameDescriptionFieldData;

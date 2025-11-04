@@ -333,7 +333,7 @@ describe('ModelLocationSelectField', () => {
     });
     it('should initialize with existing data', () => {
       const { result } = renderHook(() =>
-        useModelLocationData(undefined, {
+        useModelLocationData('project-name', {
           type: ModelLocationType.NEW,
           fieldValues: { URI: 'uri://test' },
           additionalFields: {},

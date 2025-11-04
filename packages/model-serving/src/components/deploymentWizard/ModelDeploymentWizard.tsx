@@ -179,6 +179,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         onClose={() => setIsExitModalOpen(true)}
         onSave={() => onSave()}
         footer={wizardFooter}
+        startIndex={wizardState.initialData?.wizardStartIndex ?? 1}
       >
         <WizardStep name="Model details" id="source-model-step">
           {wizardState.loaded.modelSourceLoaded ? (

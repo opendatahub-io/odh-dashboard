@@ -300,3 +300,21 @@ export const isDeploymentWizardFieldExtension = <D extends Deployment = Deployme
   extension: Extension,
 ): extension is DeploymentWizardFieldExtension<D> =>
   extension.type === 'model-serving.deployment/wizard-field';
+
+export type ModelServingNavigateToWizardExtension = Extension<
+  'model-serving.deployment/navigate-wizard',
+  {
+    useNavigateToDeploymentWizard: CodeRef<
+      (
+        deployment?: Deployment | null,
+        initialData?: InitialWizardFormData | null,
+        returnRouteValue?: string,
+      ) => (projectName?: string) => void
+    >;
+  }
+>;
+
+export const isModelServingNavigateToWizardExtension = (
+  extension: Extension,
+): extension is ModelServingNavigateToWizardExtension =>
+  extension.type === 'model-serving.deployment/navigate-wizard';
