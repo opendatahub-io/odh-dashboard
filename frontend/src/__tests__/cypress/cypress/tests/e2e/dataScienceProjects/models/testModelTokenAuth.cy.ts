@@ -25,7 +25,7 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('[Automation Bug: RHOAIENG-32898] A model can be deployed with token auth', () => {
+describe('[Product Bug: RHOAIENG-37899] A model can be deployed with token auth', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
     return loadDSPFixture('e2e/dataScienceProjects/testModelTokenAuth.yaml').then(
@@ -56,7 +56,7 @@ describe('[Automation Bug: RHOAIENG-32898] A model can be deployed with token au
 
   it(
     'Verify that a model can be deployed with token auth',
-    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@Maintain'] },
+    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@Bug'] },
     () => {
       cy.log('Model Name:', modelName);
       cy.step(`Log into the application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
@@ -106,6 +106,8 @@ describe('[Automation Bug: RHOAIENG-32898] A model can be deployed with token au
       modelServingWizard.findServiceAccountByIndex(0).clear().type('secret');
       modelServingWizard.findAddServiceAccountButton().click();
       modelServingWizard.findServiceAccountByIndex(1).clear().type('secret2');
+      modelServingWizard.findNextButton().click();
+      //Step 4: Review
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(testData.singleModelName);
 
