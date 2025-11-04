@@ -8,7 +8,13 @@
     "type-check": "tsc --noEmit"
   },
   "exports": {
-    "./extensions": "./extensions.ts"
+    "./extensions": "./extensions.ts",
+    "./types": "./src/types.ts",
+    "./k8sTypes": "./src/k8sTypes.ts",
+    "./__mocks__/*": [
+      "./src/__mocks__/*",
+      "./src/__mocks__/*.ts"
+    ]
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
