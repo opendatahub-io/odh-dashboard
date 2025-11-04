@@ -49,9 +49,13 @@ export const assemblePvc = (
     metadata: {
       name,
       namespace,
-      ...(hideFromUI !== true && {
+      ...((hideFromUI !== true || additionalLabels) && {
         labels: {
-          [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+          // Add dashboard-resource label only if not hidden from UI
+          ...(hideFromUI !== true && {
+            [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+          }),
+          // Always add custom labels if provided (regardless of hideFromUI)
           ...(additionalLabels || {}),
         },
       }),
