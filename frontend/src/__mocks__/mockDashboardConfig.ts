@@ -44,6 +44,7 @@ export type MockDashboardConfigType = {
   modelAsService?: boolean;
   modelTraining?: boolean;
   hardwareProfileOrder?: string[];
+  pvcSize?: string;
 };
 
 export const mockDashboardConfig = ({
@@ -191,6 +192,7 @@ export const mockDashboardConfig = ({
       },
     },
   ],
+  pvcSize = '20Gi',
 }: MockDashboardConfigType): DashboardConfigKind => ({
   apiVersion: 'opendatahub.io/v1alpha',
   kind: 'OdhDashboardConfig',
@@ -244,7 +246,7 @@ export const mockDashboardConfig = ({
     },
     notebookController: {
       enabled: !disableNotebookController,
-      pvcSize: '20Gi',
+      pvcSize,
     },
     groupsConfig: {
       adminGroups: 'openshift-ai-admins',
