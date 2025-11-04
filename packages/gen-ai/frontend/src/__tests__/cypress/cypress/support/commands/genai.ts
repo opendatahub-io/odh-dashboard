@@ -39,7 +39,7 @@ declare global {
 }
 
 Cypress.Commands.add('enableGenAiFeature', () => {
-  appChrome.visit(['Gen AI plugin']);
+  appChrome.visit(['genAiStudio']);
 });
 
 Cypress.Commands.add('getAuthToken', () => {

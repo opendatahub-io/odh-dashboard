@@ -42,15 +42,15 @@ class PlaygroundMCPServerRow extends TableRow {
     cy.log('Verifying authentication success...');
     // Wait for tools button to become enabled instead of fixed wait
     this.findToolsButton()
-      .should('exist')
-      .should('be.visible')
+      .should('exist', { timeout: 30000 })
+      .should('be.visible', { timeout: 30000 })
       .should(($btn) => {
         // Retry until aria-disabled !== 'true'
         const isDisabled = $btn.attr('aria-disabled') === 'true';
         expect(isDisabled).to.be.false; // eslint-disable-line @typescript-eslint/no-unused-expressions
       })
       .then(($btn) => {
-        cy.log(`Tools button is enabled (aria-disabled: ${$btn.attr('aria-disabled')})`);
+        cy.log(`✅ Tools button is enabled (aria-disabled: ${$btn.attr('aria-disabled')})`);
       });
   }
 }

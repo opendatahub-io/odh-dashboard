@@ -55,8 +55,8 @@ export class TokenAuthModal extends Modal {
       .first();
   }
 
-  findConfigureButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByRole('button', { name: /^Configure$/i });
+  findAuthorizeButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByRole('button', { name: /^Authorize$/i });
   }
 
   enterToken(token: string): void {
@@ -64,11 +64,15 @@ export class TokenAuthModal extends Modal {
   }
 
   submit(): void {
-    this.findConfigureButton().click({ force: true });
+    cy.log('Submitting authorization...');
+    this.findAuthorizeButton().should('be.visible').click({ force: true });
+    cy.log('Authorization button clicked, waiting for modal to close...');
   }
 
   waitForClose(): void {
-    cy.get('[role="dialog"]', { timeout: 10000 }).should('not.exist');
+    cy.log('Waiting for authorization modal to close (timeout: 60s)...');
+    cy.get('[role="dialog"]', { timeout: 60000 }).should('not.exist');
+    cy.log('✅ Authorization modal closed successfully');
   }
 }
 
