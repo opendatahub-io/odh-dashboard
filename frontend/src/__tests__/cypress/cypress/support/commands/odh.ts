@@ -20,6 +20,13 @@ import type {
   FeatureStoreLineage,
   FeatureViewLineage,
 } from '@odh-dashboard/feature-store/types/lineage';
+import type {
+  CatalogArtifactList,
+  CatalogFilterOptionsList,
+  CatalogModel,
+  CatalogModelList,
+  CatalogSourceList,
+} from '@odh-dashboard/model-registry/types/';
 import type { BaseMetricCreationResponse, BaseMetricListResponse } from '#~/api';
 import type {
   ModelArtifact,
@@ -80,13 +87,6 @@ import type { NimServingResponse } from '#~/__mocks__/mockNimResource';
 import type { BuildMockPipelinveVersionsType } from '#~/__mocks__';
 import type { ArtifactStorage } from '#~/concepts/pipelines/types';
 import type { ConnectionTypeConfigMap } from '#~/concepts/connectionTypes/types';
-import {
-  CatalogArtifactList,
-  CatalogFilterOptionsList,
-  CatalogModel,
-  CatalogModelList,
-  CatalogSourceList,
-} from '@odh-dashboard/model-registry/types/';
 
 type SuccessErrorResponse = {
   success: boolean;

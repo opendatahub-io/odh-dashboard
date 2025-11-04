@@ -1,14 +1,6 @@
 /* eslint-disable camelcase */
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { mockDscStatus } from '#~/__mocks__';
-import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
-import { modelCatalog } from '#~/__tests__/cypress/cypress/pages/modelCatalog/modelCatalog';
-import { ServiceModel } from '#~/__tests__/cypress/cypress/utils/models';
-import { mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
-import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
-import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
-import { DataScienceStackComponent } from '#~/concepts/areas/types';
-import { CatalogSource } from '@odh-dashboard/model-registry/types/modelCatalogTypes';
+import type { CatalogSource } from '@odh-dashboard/model-registry/types/modelCatalogTypes';
 import {
   mockCatalogSource,
   mockCatalogSourceList,
@@ -24,6 +16,14 @@ import {
   mockCatalogAccuracyMetricsArtifact,
   mockCatalogModelArtifactList,
 } from '@odh-dashboard/model-registry/mocks/mockCatalogModelArtifactList';
+import { mockDscStatus } from '#~/__mocks__';
+import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
+import { modelCatalog } from '#~/__tests__/cypress/cypress/pages/modelCatalog/modelCatalog';
+import { ServiceModel } from '#~/__tests__/cypress/cypress/utils/models';
+import { mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
+import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 export const MODEL_CATALOG_API_VERSION = 'v1';
 export const MODEL_REGISTRY_API_VERSION = 'v1';
