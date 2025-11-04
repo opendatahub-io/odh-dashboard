@@ -1,8 +1,9 @@
 class AppChrome {
   visit(featureFlags?: string[]): void {
-    const flags = featureFlags || ['Gen AI plugin'];
+    const flags = featureFlags || ['genAiStudio'];
     const flagsParam = flags.map((f) => `${encodeURIComponent(f)}=true`).join('&');
-    cy.visit(`/?devFeatureFlags=${flagsParam}`);
+    const url = flagsParam ? `/?devFeatureFlags=${flagsParam}` : '/';
+    cy.visit(url);
     this.waitForPageLoad();
   }
 
