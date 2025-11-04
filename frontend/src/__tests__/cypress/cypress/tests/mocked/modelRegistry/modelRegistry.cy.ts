@@ -191,14 +191,6 @@ const initIntercepts = ({
   );
 
   cy.interceptOdh(
-    `GET /model-registry/api/:apiVersion/user`,
-    {
-      path: { apiVersion: MODEL_REGISTRY_API_VERSION },
-    },
-    { data: { userId: 'user@example.com', clusterAdmin: true } },
-  );
-
-  cy.interceptOdh(
     `GET /model-registry/api/:apiVersion/model_registry`,
     {
       path: { apiVersion: MODEL_REGISTRY_API_VERSION },

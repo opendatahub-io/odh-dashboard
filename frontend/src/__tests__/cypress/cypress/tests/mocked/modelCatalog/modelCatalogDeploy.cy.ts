@@ -1,45 +1,139 @@
 /* eslint-disable camelcase */
 import { mockK8sResourceList } from '#~/__mocks__';
-import { ConfigMapModel, ServingRuntimeModel } from '#~/__tests__/cypress/cypress/utils/models';
+import { ServingRuntimeModel } from '#~/__tests__/cypress/cypress/utils/models';
 import { modelDetailsPage } from '#~/__tests__/cypress/cypress/pages/modelCatalog/modelDetailsPage';
 import { kserveModal } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import { initDeployPrefilledModelIntercepts } from '#~/__tests__/cypress/cypress/utils/modelServingUtils';
 import type { ModelCatalogSource } from '#~/concepts/modelCatalog/types';
-import { mockModelCatalogSource } from '#~/__mocks__/mockModelCatalogSource';
-import {
-  mockModelCatalogConfigMap,
-  mockUnmanagedModelCatalogConfigMap,
-} from '#~/__mocks__/mockModelCatalogConfigMap';
 import { modelCatalogDeployModal } from '#~/__tests__/cypress/cypress/pages/modelCatalog/modelCatalogDeployModal';
+import {
+  mockCatalogAccuracyMetricsArtifact,
+  mockCatalogModelArtifact,
+  mockCatalogModelArtifactList,
+  mockCatalogPerformanceMetricsArtifact,
+} from '@odh-dashboard/model-registry/mocks/mockCatalogModelArtifactList';
+import { mockCatalogFilterOptionsList } from '@odh-dashboard/model-registry/mocks/mockCatalogFilterOptionsList';
+import {
+  mockCatalogModelList,
+  mockCatalogModel,
+} from '@odh-dashboard/model-registry/mocks/mockCatalogModelList';
+import { CatalogSource } from '@odh-dashboard/model-registry/types/';
+import {
+  mockCatalogSource,
+  mockCatalogSourceList,
+} from '@odh-dashboard/model-registry/mocks/mockCatalogSourceList';
+
+export const MODEL_CATALOG_API_VERSION = 'v1';
+export const MODEL_REGISTRY_API_VERSION = 'v1';
 
 type HandlersProps = {
   catalogModels?: ModelCatalogSource[];
   isEmpty?: boolean;
   disableKServe?: boolean;
+  sources?: CatalogSource[];
+  modelsPerCategory?: number;
 };
 
 const initIntercepts = ({
-  catalogModels = [mockModelCatalogSource({})],
   isEmpty = false,
   disableKServe = false,
+  modelsPerCategory = 4,
+  sources = [mockCatalogSource({}), mockCatalogSource({ id: 'source-2', name: 'source 2' })],
 }: HandlersProps) => {
   initDeployPrefilledModelIntercepts({ isEmpty, disableKServe });
-
-  cy.interceptK8s(
+  cy.interceptOdh(
+    `GET /model-registry/api/:apiVersion/namespaces`,
     {
-      model: ConfigMapModel,
-      ns: 'opendatahub',
-      name: 'model-catalog-sources',
+      path: { apiVersion: MODEL_REGISTRY_API_VERSION },
     },
-    mockModelCatalogConfigMap(catalogModels),
+    { data: [{ metadata: { name: 'odh-model-registries' } }] },
   );
-  cy.interceptK8s(
+
+  cy.interceptOdh(
+    `GET /model-registry/api/:apiVersion/user`,
     {
-      model: ConfigMapModel,
-      ns: 'opendatahub',
-      name: 'model-catalog-unmanaged-sources',
+      path: { apiVersion: MODEL_REGISTRY_API_VERSION },
     },
-    mockUnmanagedModelCatalogConfigMap(catalogModels),
+    { data: { userId: 'user@example.com', clusterAdmin: true } },
+  );
+
+  cy.interceptOdh(
+    `GET /model-registry/api/:apiVersion/model_catalog/sources`,
+    {
+      path: { apiVersion: MODEL_CATALOG_API_VERSION },
+    },
+    {
+      data: mockCatalogSourceList({
+        items: sources,
+      }),
+    },
+  );
+
+  sources.forEach((source) => {
+    source.labels.forEach((label) => {
+      cy.interceptOdh(
+        `GET /model-registry/api/:apiVersion/model_catalog/models`,
+        {
+          path: { apiVersion: MODEL_CATALOG_API_VERSION },
+          query: {
+            sourceLabel: label,
+          },
+        },
+        {
+          data: mockCatalogModelList({
+            items: Array.from({ length: modelsPerCategory }, (_, i) =>
+              mockCatalogModel({
+                name: `${label.toLowerCase()}-model-${i + 1}`,
+                // eslint-disable-next-line camelcase
+                source_id: source.id,
+              }),
+            ),
+          }),
+        },
+      );
+    });
+  });
+
+  cy.interceptOdh(
+    `GET /model-registry/api/:apiVersion/model_catalog/models/filter_options`,
+    {
+      path: { apiVersion: MODEL_CATALOG_API_VERSION },
+    },
+    { data: mockCatalogFilterOptionsList() },
+  );
+
+  cy.interceptOdh(
+    `GET /model-registry/api/:apiVersion/model_catalog/sources/:sourceId/models/:modelName`,
+    {
+      path: {
+        apiVersion: MODEL_CATALOG_API_VERSION,
+        sourceId: 'source-2',
+        modelName: 'sample%20category%201-model-1',
+      },
+    },
+    { data: mockCatalogModel({ name: 'sample-category-1-model-1', source_id: 'source-2' }) },
+  );
+
+  cy.interceptOdh(
+    `GET /model-registry/api/:apiVersion/model_catalog/sources/:sourceId/artifacts/:modelName`,
+    {
+      path: {
+        apiVersion: MODEL_CATALOG_API_VERSION,
+        sourceId: 'source-2',
+        modelName: 'sample%20category%201-model-1',
+      },
+    },
+    {
+      data: mockCatalogModelArtifactList({
+        items: [
+          mockCatalogPerformanceMetricsArtifact({}),
+          mockCatalogAccuracyMetricsArtifact({}),
+          mockCatalogModelArtifact({
+            uri: 'oci://registry.redhat.io/rhelai1/modelcar-granite-7b-redhat-lab:1.4.0',
+          }),
+        ],
+      }),
+    },
   );
 };
 
@@ -47,6 +141,7 @@ describe('Deploy catalog model', () => {
   it('Error if kserve is not enabled', () => {
     initIntercepts({ disableKServe: true });
     modelDetailsPage.visit();
+
     // Wait for page to load
     // eslint-disable-next-line cypress/no-unnecessary-waiting
     cy.wait(5000);
@@ -54,7 +149,7 @@ describe('Deploy catalog model', () => {
     modelDetailsPage.findDeployModelButton().focus();
     cy.findByRole('tooltip').should(
       'contain.text',
-      'To deploy this model, an administrator must first enable single-model serving in the cluster settings.',
+      'To enable model serving, an administrator must first select a model serving platform in the cluster settings.',
     );
   });
 
@@ -88,7 +183,7 @@ describe('Deploy catalog model', () => {
 
     // Validate name input field
     kserveModal.findModelNameInput().should('exist');
-    kserveModal.findModelNameInput().should('have.value', 'granite-7b-redhat-lab');
+    kserveModal.findModelNameInput().should('have.value', 'sample-category-1-model-1');
 
     // Validate model framework section
     kserveModal.findModelFrameworkSelect().should('be.disabled');

@@ -1,7 +1,7 @@
 class ModelDetailsPage {
   visit() {
-    const sourceName = 'redhat_ai_models';
-    const modelName = 'granite-7b-redhat-lab';
+    const sourceName = 'source-2';
+    const modelName = 'sample%20category%201-model-1';
     cy.visitWithLogin(`/ai-hub/catalog/${sourceName}/${modelName}/overview`);
     this.wait();
   }

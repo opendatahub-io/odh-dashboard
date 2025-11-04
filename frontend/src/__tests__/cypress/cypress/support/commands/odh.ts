@@ -80,6 +80,13 @@ import type { NimServingResponse } from '#~/__mocks__/mockNimResource';
 import type { BuildMockPipelinveVersionsType } from '#~/__mocks__';
 import type { ArtifactStorage } from '#~/concepts/pipelines/types';
 import type { ConnectionTypeConfigMap } from '#~/concepts/connectionTypes/types';
+import {
+  CatalogArtifactList,
+  CatalogFilterOptionsList,
+  CatalogModel,
+  CatalogModelList,
+  CatalogSourceList,
+} from '@odh-dashboard/model-registry/types/';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -181,6 +188,42 @@ declare global {
             path: { modelRegistryName: string; apiVersion: string; registeredModelId: number };
           },
           response: { data: OdhResponse<ModelVersionList> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /model-registry/api/:apiVersion/model_catalog/sources',
+          options: {
+            path: { apiVersion: string };
+          },
+          response: { data: OdhResponse<CatalogSourceList> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /model-registry/api/:apiVersion/model_catalog/models',
+          options: {
+            path: { apiVersion: string };
+            query: { sourceLabel: string };
+          },
+          response: { data: OdhResponse<CatalogModelList> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /model-registry/api/:apiVersion/model_catalog/models/filter_options',
+          options: {
+            path: { apiVersion: string };
+          },
+          response: { data: OdhResponse<CatalogFilterOptionsList> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /model-registry/api/:apiVersion/model_catalog/sources/:sourceId/models/:modelName',
+          options: {
+            path: { apiVersion: string; sourceId: string; modelName: string };
+          },
+          response: { data: OdhResponse<CatalogModel> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /model-registry/api/:apiVersion/model_catalog/sources/:sourceId/artifacts/:modelName',
+          options: {
+            path: { apiVersion: string; sourceId: string; modelName: string };
+          },
+          response: { data: OdhResponse<CatalogArtifactList> },
         ) => Cypress.Chainable<null>) &
         ((
           type: 'DELETE /api/accelerator-profiles/:name',
