@@ -2,11 +2,11 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: odh-dashboard-allow-ports
+  name: dashboard-allow-ports
 spec:
   podSelector:
     matchLabels:
-      deployment: odh-dashboard
+      deployment: dashboard
   policyTypes:
     - Ingress
   ingress:

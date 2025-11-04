@@ -21,7 +21,7 @@ data:
           "port": 8080
         },
         "service": {
-          "name": "rhods-dashboard",
+          "name": "dashboard",
           "namespace": "redhat-ods-applications",
           "port": 8043
         }
@@ -42,7 +42,7 @@ data:
             "port": 8080
           },
           "service": {
-            "name": "rhods-dashboard",
+            "name": "dashboard",
             "namespace": "redhat-ods-applications",
             "port": 8143
         }

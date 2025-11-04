@@ -1,51 +1,54 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-commonLabels:
-  app: rhods-dashboard
-  app.kubernetes.io/part-of: rhods-dashboard
 resources:
-  - ../shared
-  - ./apps
+- ../shared
+- ./apps
 configMapGenerator:
-  - name: rhoai-dashboard-params
-    env: params.env
+- envs:
+  - params.env
+  name: rhoai-dashboard-params
 generatorOptions:
   disableNameSuffixHash: true
 vars:
-  - name: odh-dashboard-image
-    objref:
-      kind: ConfigMap
-      name: rhoai-dashboard-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.odh-dashboard-image
-  - name: kube-rbac-proxy
-    objref:
-      kind: ConfigMap
-      name: rhoai-dashboard-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.kube-rbac-proxy
-  - name: section-title
-    objref:
-      kind: ConfigMap
-      name: rhoai-dashboard-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.section-title
-  - name: dashboard-url
-    objref:
-      kind: ConfigMap
-      name: rhoai-dashboard-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.dashboard-url
-  - name: gateway-name
-    objref:
-      kind: ConfigMap
-      name: rhoai-dashboard-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.gateway-name
+- fieldref:
+    fieldPath: data.odh-dashboard-image
+  name: odh-dashboard-image
+  objref:
+    apiVersion: v1
+    kind: ConfigMap
+    name: rhoai-dashboard-params
+- fieldref:
+    fieldPath: data.kube-rbac-proxy
+  name: kube-rbac-proxy
+  objref:
+    apiVersion: v1
+    kind: ConfigMap
+    name: rhoai-dashboard-params
+- fieldref:
+    fieldPath: data.section-title
+  name: section-title
+  objref:
+    apiVersion: v1
+    kind: ConfigMap
+    name: rhoai-dashboard-params
+- fieldref:
+    fieldPath: data.dashboard-url
+  name: dashboard-url
+  objref:
+    apiVersion: v1
+    kind: ConfigMap
+    name: rhoai-dashboard-params
+- fieldref:
+    fieldPath: data.gateway-name
+  name: gateway-name
+  objref:
+    apiVersion: v1
+    kind: ConfigMap
+    name: rhoai-dashboard-params
 configurations:
-  - params.yaml
+- params.yaml
+labels:
+- includeSelectors: true
+  pairs:
+    app: dashboard
+    app.kubernetes.io/part-of: dashboard
