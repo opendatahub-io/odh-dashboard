@@ -440,7 +440,7 @@ describe('Model Serving LLMD', () => {
       modelServingGlobal.getModelRow('Test LLM Inference Service').findKebabAction('Edit').click();
 
       // Step 1: Model source
-      modelServingWizardEdit.findModelLocationSelectOption('URI').click();
+      modelServingWizardEdit.findModelLocationSelectOption('URI - v1').click();
       modelServingWizardEdit.findUrilocationInput().clear().type('hf://updated-uri');
 
       modelServingWizardEdit
@@ -521,7 +521,7 @@ describe('Model Serving LLMD', () => {
       modelServingGlobal.findDeployModelButton().click();
 
       // Quick setup: Model source and deployment
-      modelServingWizard.findModelLocationSelectOption('URI').click();
+      modelServingWizard.findModelLocationSelectOption('URI - v1').click();
       modelServingWizard.findUrilocationInput().type('hf://coolmodel/coolmodel');
       modelServingWizard.findSaveConnectionCheckbox().click(); // Uncheck to simplify
       modelServingWizard.findModelTypeSelectOption('Generative AI model (Example, LLM)').click();

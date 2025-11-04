@@ -67,6 +67,10 @@ export type DashboardConfig = K8sResourceCommon & {
     templateOrder?: string[];
     templateDisablement?: string[];
     hardwareProfileOrder?: string[];
+    modelServing?: {
+      deploymentStrategy?: string;
+      isLLMdDefault?: boolean;
+    };
   };
 };
 
