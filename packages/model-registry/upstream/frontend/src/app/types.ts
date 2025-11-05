@@ -1,5 +1,5 @@
 import { APIOptions } from 'mod-arch-core';
-import { ModelSourceProperties } from '~/concepts/modelRegistry/types';
+import { ModelSourceProperties } from '../concepts/modelRegistry/types';
 
 export enum ModelState {
   LIVE = 'LIVE',
