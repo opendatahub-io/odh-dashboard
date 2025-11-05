@@ -306,7 +306,7 @@ describe('updateStorageClassConfig', () => {
         },
       ],
     });
-    expect(mockGetResource).toBeCalledTimes(1);
+    expect(mockGetResource).toHaveBeenCalledTimes(1);
     expect(mockPatchResource).toHaveBeenCalledTimes(1);
   });
 });
