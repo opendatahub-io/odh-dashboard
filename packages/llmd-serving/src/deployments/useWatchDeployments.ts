@@ -48,5 +48,9 @@ export const useWatchDeployments = (
     [filteredLlmInferenceServices],
   );
 
-  return [deployments, llmInferenceServiceLoaded, llmInferenceServiceError];
+  return [
+    deployments,
+    llmInferenceServiceLoaded, // Only require LLMInferenceServices to be loaded
+    llmInferenceServiceError,
+  ];
 };
