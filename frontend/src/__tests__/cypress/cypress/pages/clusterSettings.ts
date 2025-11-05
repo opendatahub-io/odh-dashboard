@@ -52,7 +52,7 @@ class ModelDeploymentSettings extends ClusterSettings {
 
   findAlert() {
     return cy.findByText(
-      'To enable distributed inferencing you must first configure the inferencing gateway in the LLMInferenceService.',
+      'To use distributed inferencing, you must configure the inferencing gateway on your cluster.',
     );
   }
 

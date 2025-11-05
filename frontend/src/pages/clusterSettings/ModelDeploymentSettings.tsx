@@ -53,8 +53,14 @@ const ModelDeploymentSettings: React.FC<ModelDeploymentSettingsProps> = ({
         </StackItem>
         <StackItem style={{ marginLeft: '40px', marginTop: '-10px' }}>
           <Popover
-            headerContent="About distributed inferencing"
-            bodyContent={<>PLACEHOLDER TEXT</>} //Waiting on UX decision
+            bodyContent={
+              <>
+                Distributed inferencing divides large AI workloads, such as LLMs, across your
+                cluster nodes and GPUs to deliver high throughput and low latency. The LLM-D
+                framework optimizes this by using intelligent scheduling and managing separate
+                prefill and decode stages to optimize resource usage.
+              </>
+            }
           >
             <Button
               variant="link"
@@ -71,8 +77,8 @@ const ModelDeploymentSettings: React.FC<ModelDeploymentSettingsProps> = ({
           <StackItem>
             <HelperText>
               <HelperTextItem variant="warning" icon={<ExclamationTriangleIcon />}>
-                To enable distributed inferencing you must first configure the inferencing gateway
-                in the LLMInferenceService.
+                To use distributed inferencing, you must configure the inferencing gateway on your
+                cluster.
               </HelperTextItem>
             </HelperText>
           </StackItem>
