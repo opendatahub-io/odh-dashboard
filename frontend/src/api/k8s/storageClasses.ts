@@ -12,6 +12,7 @@ import {
 } from '#~/k8sTypes';
 import { StorageClassModel } from '#~/api/models';
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
+import { getDefaultStorageClassConfig } from '#~/pages/storageClasses/utils.ts';
 
 export const getStorageClasses = (): Promise<StorageClassKind[]> =>
   k8sListResource<StorageClassKind>({
@@ -59,7 +60,12 @@ export const updateStorageClassConfig = async (
   patches.push({
     op: oldConfig ? 'replace' : 'add',
     path: '/metadata/annotations/opendatahub.io~1sc-config',
-    value: config ? getStorageClassUpdateValue(config, oldConfig) : '',
+    value: config
+      ? getStorageClassUpdateValue(
+          config,
+          oldConfig || JSON.stringify(getDefaultStorageClassConfig(oldStorageClassResource)),
+        )
+      : '',
   });
 
   return k8sPatchResource(

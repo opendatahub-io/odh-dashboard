@@ -7,6 +7,20 @@ import {
 } from '#~/k8sTypes';
 import { AccessMode, StorageProvisioner, provisionerAccessModes } from './storageEnums';
 
+export const getDefaultStorageClassConfig = (
+  storageClass: StorageClassKind,
+): StorageClassConfig => {
+  return {
+    displayName: storageClass.metadata.name,
+    isEnabled: true,
+    isDefault: false,
+    lastModified: new Date().toISOString(),
+    accessModeSettings: {
+      [AccessMode.RWO]: true,
+    },
+  };
+};
+
 export const getStorageClassConfig = (
   storageClass: StorageClassKind,
 ): StorageClassConfig | undefined => {
@@ -16,15 +30,7 @@ export const getStorageClassConfig = (
     );
     return storageClassConfig;
   } catch {
-    return {
-      displayName: storageClass.metadata.name,
-      isEnabled: true,
-      isDefault: false,
-      lastModified: new Date().toISOString(),
-      accessModeSettings: {
-        [AccessMode.RWO]: true,
-      },
-    };
+    return getDefaultStorageClassConfig(storageClass);
   }
 };
 

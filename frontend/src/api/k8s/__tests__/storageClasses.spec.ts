@@ -12,6 +12,7 @@ import {
   getStorageClasses,
   updateStorageClassConfig,
 } from '#~/api/k8s/storageClasses';
+import { getDefaultStorageClassConfig } from '#~/pages/storageClasses/utils.ts';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
@@ -73,23 +74,18 @@ describe('getStorageClass', () => {
 
 describe('updateStorageClassConfig', () => {
   it('should add a storage class config if it does not exist', async () => {
-    const lastModifiedDate = new Date().toISOString();
-    const config = {
+    const patchedConfig = {
       isDefault: true,
       isEnabled: true,
       displayName: 'openshift-default-sc',
     };
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { annotations, ...metadata } = mockStorageClasses[0].metadata;
+    const defaultConfig = getDefaultStorageClassConfig(mockStorageClasses[0]);
     const mockedNoConfigStorageClass: StorageClassKind = {
       ...mockStorageClasses[0],
       metadata: {
-        ...metadata,
+        ...mockStorageClasses[0].metadata,
+        annotations: undefined,
       },
-    };
-    const fullConfig = {
-      ...config,
-      lastModified: lastModifiedDate,
     };
     const returnedValue = {
       ...mockStorageClasses[0],
@@ -97,13 +93,16 @@ describe('updateStorageClassConfig', () => {
         ...mockStorageClasses[0].metadata,
         annotations: {
           ...mockStorageClasses[0].metadata.annotations,
-          [MetadataAnnotation.OdhStorageClassConfig]: JSON.stringify(fullConfig),
+          [MetadataAnnotation.OdhStorageClassConfig]: JSON.stringify({
+            ...defaultConfig,
+            ...patchedConfig,
+          }),
         },
       },
     };
     mockGetResource.mockResolvedValue(mockedNoConfigStorageClass);
     mockPatchResource.mockResolvedValue(returnedValue);
-    const result = await updateStorageClassConfig('openshift-default-sc', config);
+    await updateStorageClassConfig('openshift-default-sc', patchedConfig);
     expect(mockGetResource).toHaveBeenCalledWith({
       model: StorageClassModel,
       queryOptions: {
@@ -132,35 +131,44 @@ describe('updateStorageClassConfig', () => {
         },
       ],
     });
-    expect(mockGetResource).toBeCalledTimes(1);
-    expect(mockPatchResource).toBeCalledTimes(1);
-    expect(result).toStrictEqual(fullConfig);
+    const actualCall = mockPatchResource.mock.calls[0][0];
+    const actualValue = actualCall.patches[1].value;
+    // Done to prevent type assertions
+    if (typeof actualValue === 'string') {
+      const actualValueJson = JSON.parse(actualValue);
+      expect({ ...actualValueJson, lastModified: expect.anything() }).toStrictEqual({
+        ...defaultConfig,
+        ...patchedConfig,
+        lastModified: expect.anything(),
+      });
+    } else {
+      throw new Error('Actual value is not a string');
+    }
+    expect(mockGetResource).toHaveBeenCalledTimes(1);
+    expect(mockPatchResource).toHaveBeenCalledTimes(1);
   });
 
   it('should patch a storage class config', async () => {
-    const lastModifiedDate = new Date().toISOString();
-    const config = { isEnabled: false };
-    const fullConfig = {
-      ...(mockStorageClasses[0].metadata.annotations?.[MetadataAnnotation.OdhStorageClassConfig] &&
-        JSON.parse(
-          mockStorageClasses[0].metadata.annotations[MetadataAnnotation.OdhStorageClassConfig],
-        )),
-      ...config,
-      lastModified: lastModifiedDate,
-    };
+    const patchedConfig = { isEnabled: false };
+    const currentConfig = JSON.parse(
+      mockStorageClasses[0].metadata.annotations?.[MetadataAnnotation.OdhStorageClassConfig] || '',
+    );
     const returnedValue = {
       ...mockStorageClasses[0],
       metadata: {
         ...mockStorageClasses[0].metadata,
         annotations: {
           ...mockStorageClasses[0].metadata.annotations,
-          [MetadataAnnotation.OdhStorageClassConfig]: JSON.stringify(fullConfig),
+          [MetadataAnnotation.OdhStorageClassConfig]: JSON.stringify({
+            ...currentConfig,
+            ...patchedConfig,
+          }),
         },
       },
     };
     mockGetResource.mockResolvedValue(mockStorageClasses[0]);
     mockPatchResource.mockResolvedValue(returnedValue);
-    const result = await updateStorageClassConfig('openshift-default-sc', config);
+    await updateStorageClassConfig('openshift-default-sc', patchedConfig);
     expect(mockGetResource).toHaveBeenCalledWith({
       model: StorageClassModel,
       queryOptions: {
@@ -184,33 +192,40 @@ describe('updateStorageClassConfig', () => {
         },
       ],
     });
-    expect(mockGetResource).toBeCalledTimes(1);
-    expect(mockPatchResource).toBeCalledTimes(1);
-    expect(result).toStrictEqual(fullConfig);
+    const actualCall = mockPatchResource.mock.calls[0][0];
+    const actualValue = actualCall.patches[0].value;
+    // Done to prevent type assertions
+    if (typeof actualValue === 'string') {
+      const actualValueJson = JSON.parse(actualValue);
+      expect({ ...actualValueJson, lastModified: expect.anything() }).toStrictEqual({
+        ...currentConfig,
+        ...patchedConfig,
+        lastModified: expect.anything(),
+      });
+    } else {
+      throw new Error('Actual value is not a string');
+    }
+    expect(mockGetResource).toHaveBeenCalledTimes(1);
+    expect(mockPatchResource).toHaveBeenCalledTimes(1);
   });
 
   it('should patch an invalid storage class config when choosing to repair it', async () => {
-    const lastModifiedDate = new Date().toISOString();
-    const config = {
-      isDefault: true,
+    const patchedConfig = {
       isEnabled: true,
-      displayName: 'openshift-default-sc',
     };
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { annotations, ...metadata } = mockStorageClasses[0].metadata;
+    const currentConfig = {
+      displayName: 'openshift-default-sc',
+      isDefault: true,
+      lastModified: new Date().toISOString(),
+    };
     const mockedInvalidConfigStorageClass: StorageClassKind = {
       ...mockStorageClasses[0],
       metadata: {
-        ...metadata,
+        ...mockStorageClasses[0].metadata,
         annotations: {
-          [MetadataAnnotation.OdhStorageClassConfig]:
-            '{"displayName:"openshift-default-sc","isDefault":true,"isEnabled":true,"lastModified":"2024-08-22T15:42:53.101Z"}',
+          [MetadataAnnotation.OdhStorageClassConfig]: JSON.stringify(currentConfig),
         },
       },
-    };
-    const fullConfig = {
-      ...config,
-      lastModified: lastModifiedDate,
     };
     const returnedValue = {
       ...mockStorageClasses[0],
@@ -218,13 +233,16 @@ describe('updateStorageClassConfig', () => {
         ...mockStorageClasses[0].metadata,
         annotations: {
           ...mockStorageClasses[0].metadata.annotations,
-          [MetadataAnnotation.OdhStorageClassConfig]: JSON.stringify(fullConfig),
+          [MetadataAnnotation.OdhStorageClassConfig]: JSON.stringify({
+            ...currentConfig,
+            ...patchedConfig,
+          }),
         },
       },
     };
     mockGetResource.mockResolvedValue(mockedInvalidConfigStorageClass);
     mockPatchResource.mockResolvedValue(returnedValue);
-    const result = await updateStorageClassConfig('openshift-default-sc', config);
+    await updateStorageClassConfig('openshift-default-sc', patchedConfig);
     expect(mockGetResource).toHaveBeenCalledWith({
       model: StorageClassModel,
       queryOptions: {
@@ -248,9 +266,21 @@ describe('updateStorageClassConfig', () => {
         },
       ],
     });
-    expect(mockGetResource).toBeCalledTimes(1);
-    expect(mockPatchResource).toBeCalledTimes(1);
-    expect(result).toStrictEqual(fullConfig);
+    const actualCall = mockPatchResource.mock.calls[0][0];
+    const actualValue = actualCall.patches[0].value;
+    // Done to prevent type assertions
+    if (typeof actualValue === 'string') {
+      const actualValueJson = JSON.parse(actualValue);
+      expect({ ...actualValueJson, lastModified: expect.anything() }).toStrictEqual({
+        ...currentConfig,
+        ...patchedConfig,
+        lastModified: expect.anything(),
+      });
+    } else {
+      throw new Error('Actual value is not a string');
+    }
+    expect(mockGetResource).toHaveBeenCalledTimes(1);
+    expect(mockPatchResource).toHaveBeenCalledTimes(1);
   });
 
   it('should handle errors when patching a storage class config', async () => {
