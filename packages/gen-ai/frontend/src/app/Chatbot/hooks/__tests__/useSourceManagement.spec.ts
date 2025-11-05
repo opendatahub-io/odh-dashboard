@@ -295,10 +295,8 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceSettingsSubmit(mockSourceSettings);
       });
 
-      // Check that uploadSource was called with FormData and options
-      expect(mockUploadSource).toHaveBeenCalledWith(expect.any(FormData), {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      // Check that uploadSource was called with FormData
+      expect(mockUploadSource).toHaveBeenCalledWith(expect.any(FormData));
 
       // Verify FormData contents
       const formDataCall = mockUploadSource.mock.calls[0][0] as FormData;
@@ -342,10 +340,8 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceSettingsSubmit(mockSourceSettings);
       });
 
-      // Check that uploadSource was called with FormData and options
-      expect(mockUploadSource).toHaveBeenCalledWith(expect.any(FormData), {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      // Check that uploadSource was called with FormData
+      expect(mockUploadSource).toHaveBeenCalledWith(expect.any(FormData));
       expect(mockOnShowErrorAlert).toHaveBeenCalled();
       expect(mockOnShowSuccessAlert).not.toHaveBeenCalled();
 
@@ -541,10 +537,8 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceSettingsSubmit(partialSettings);
       });
 
-      // Check that uploadSource was called with FormData and options
-      expect(mockUploadSource).toHaveBeenCalledWith(expect.any(FormData), {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      // Check that uploadSource was called with FormData
+      expect(mockUploadSource).toHaveBeenCalledWith(expect.any(FormData));
 
       // Verify FormData contents (partial settings without optional fields)
       const formDataCall = mockUploadSource.mock.calls[0][0] as FormData;

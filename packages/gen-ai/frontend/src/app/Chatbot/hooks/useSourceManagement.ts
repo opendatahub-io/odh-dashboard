@@ -214,11 +214,8 @@ const useSourceManagement = ({
             }
             formData.append('vector_store_id', settings.vectorStore);
 
-            await api.uploadSource(formData, {
-              headers: {
-                'Content-Type': 'multipart/form-data',
-              },
-            });
+            // No need to set multipart/form-data headers as it is will be set automatically with the boundary
+            await api.uploadSource(formData);
 
             // Update this specific file status to uploaded
             setFilesWithSettings((prev) =>

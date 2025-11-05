@@ -7,7 +7,6 @@ import {
   restDELETE,
   restGET,
 } from 'mod-arch-core';
-import axiosInstance from '~/app/utilities/axios';
 import {
   BackendResponseData,
   CodeExportRequest,
@@ -265,20 +264,17 @@ const modArchRestGET =
     });
 
 const modArchRestCREATE =
-  <T, D>(path: string) =>
+  <T, D extends Record<string, unknown> | FormData>(path: string) =>
   (hostPath: string, baseQueryParams: Record<string, unknown> = {}): ModArchRestCREATE<T, D> =>
   (data: D, opts: APIOptions = {}) =>
-    handleRestFailures(
-      // the method only accepts a Record<string, unknown>
-      // however, we can pass any type of data as long as it is compatible with the API (e.g. FormData)
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      restCREATE<T>(hostPath, path, data as Record<string, unknown>, baseQueryParams, opts),
-    ).then((response) => {
-      if (isModArchResponse<T>(response)) {
-        return response.data;
-      }
-      throw new Error('Invalid response format');
-    });
+    handleRestFailures(restCREATE<T>(hostPath, path, data, baseQueryParams, opts)).then(
+      (response) => {
+        if (isModArchResponse<T>(response)) {
+          return response.data;
+        }
+        throw new Error('Invalid response format');
+      },
+    );
 
 const modArchRestDELETE =
   <T, D extends Record<string, unknown> = Record<string, unknown>>(path: string) =>
@@ -320,24 +316,6 @@ const buildApiUrl = (
   return `${base}${path}${queryString ? `?${queryString}` : ''}`;
 };
 
-const axiosCREATE =
-  <T, D>(path: string) =>
-  (hostPath: string, baseQueryParams: Record<string, unknown> = {}): ModArchRestCREATE<T, D> =>
-  (data: D, opts: APIOptions = {}) =>
-    axiosInstance
-      .post(buildApiUrl(hostPath, path, baseQueryParams), data, opts)
-      .then((response) => {
-        const body = response.data;
-        if (isModArchResponse<T>(body)) {
-          return body.data;
-        }
-        throw new Error('Invalid response format');
-      })
-      .catch((error) => {
-        const message = error.response?.data?.error?.message || error.message || 'Request failed';
-        throw new Error(message);
-      });
-
 /** LSD endpoints */
 // Llama Stack Distribution
 export const getLSDStatus = modArchRestGET<LlamaStackDistributionModel>('/lsd/status');
@@ -355,7 +333,7 @@ export const listVectorStoreFiles = modArchRestGET<VectorStoreFile[]>('/lsd/vect
 export const deleteVectorStoreFile = modArchRestDELETE<string, Record<string, never>>(
   '/lsd/vectorstores/files/delete',
 );
-export const uploadSource = axiosCREATE<FileUploadResult, FormData>('/lsd/files/upload');
+export const uploadSource = modArchRestCREATE<FileUploadResult, FormData>('/lsd/files/upload');
 
 // LSD Models
 export const getLSDModels = modArchRestGET<LlamaModel[]>('/lsd/models');

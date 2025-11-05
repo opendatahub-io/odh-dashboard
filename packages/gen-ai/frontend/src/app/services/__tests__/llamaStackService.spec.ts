@@ -1,5 +1,4 @@
 /* eslint-disable camelcase */
-import axios from '~/app/utilities/axios';
 import {
   getLSDModels,
   listVectorStores,
@@ -32,10 +31,6 @@ import {
   MCPToolsStatus,
   MCPServerInfo,
 } from '~/app/types';
-
-// Mock axios
-jest.mock('~/app/utilities/axios');
-const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 // Mock mod-arch-core
 jest.mock('mod-arch-core', () => ({
@@ -203,7 +198,7 @@ describe('llamaStackService', () => {
     };
 
     it('should upload source successfully with all settings', async () => {
-      mockedAxios.post.mockResolvedValueOnce({ data: { data: mockUploadResult } });
+      mockedRestCREATE.mockResolvedValueOnce({ data: mockUploadResult });
 
       const formData = new FormData();
       formData.append('file', mockFile);
@@ -211,23 +206,19 @@ describe('llamaStackService', () => {
       formData.append('max_chunk_size_tokens', '1000');
       formData.append('vector_store_id', 'test-vector-store');
 
-      const result = await uploadSource(URL_PREFIX, { namespace: testNamespace })(formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const result = await uploadSource(URL_PREFIX, { namespace: testNamespace })(formData);
 
       expect(result).toEqual(mockUploadResult);
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        `/gen-ai/lsd/files/upload?namespace=${testNamespace}`,
+      expect(mockedRestCREATE).toHaveBeenCalledWith(
+        URL_PREFIX,
+        '/lsd/files/upload',
         expect.any(FormData),
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        },
+        expect.objectContaining({ namespace: testNamespace }),
+        {},
       );
 
       // Verify FormData content
-      const formDataCall = mockedAxios.post.mock.calls[0][1] as FormData;
+      const formDataCall = mockedRestCREATE.mock.calls[0][2] as FormData;
       expect(formDataCall.get('file')).toBe(mockFile);
       expect(formDataCall.get('chunk_overlap_tokens')).toBe('100');
       expect(formDataCall.get('max_chunk_size_tokens')).toBe('1000');
@@ -235,20 +226,18 @@ describe('llamaStackService', () => {
     });
 
     it('should upload source successfully with minimal settings', async () => {
-      mockedAxios.post.mockResolvedValueOnce({ data: { data: mockUploadResult } });
+      mockedRestCREATE.mockResolvedValueOnce({ data: mockUploadResult });
 
       const formData = new FormData();
       formData.append('file', mockFile);
       formData.append('vector_store_id', 'test-vector-store');
 
-      const result = await uploadSource(URL_PREFIX, { namespace: testNamespace })(formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const result = await uploadSource(URL_PREFIX, { namespace: testNamespace })(formData);
 
       expect(result).toEqual(mockUploadResult);
 
       // Verify FormData content without optional fields
-      const formDataCall = mockedAxios.post.mock.calls[0][1] as FormData;
+      const formDataCall = mockedRestCREATE.mock.calls[0][2] as FormData;
       expect(formDataCall.get('file')).toBe(mockFile);
       expect(formDataCall.get('chunk_overlap_tokens')).toBeNull();
       expect(formDataCall.get('max_chunk_size_tokens')).toBeNull();
@@ -257,29 +246,25 @@ describe('llamaStackService', () => {
 
     it('should handle upload error', async () => {
       const mockError = new Error('File upload failed');
-      mockedAxios.post.mockRejectedValueOnce(mockError);
+      mockedRestCREATE.mockRejectedValueOnce(mockError);
 
       const formData = new FormData();
       formData.append('file', mockFile);
 
       await expect(
-        uploadSource(URL_PREFIX, { namespace: testNamespace })(formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        }),
+        uploadSource(URL_PREFIX, { namespace: testNamespace })(formData),
       ).rejects.toThrow();
     });
 
     it('should handle error without response', async () => {
       const mockError = new Error('Request failed');
-      mockedAxios.post.mockRejectedValueOnce(mockError);
+      mockedRestCREATE.mockRejectedValueOnce(mockError);
 
       const formData = new FormData();
       formData.append('file', mockFile);
 
       await expect(
-        uploadSource(URL_PREFIX, { namespace: testNamespace })(formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        }),
+        uploadSource(URL_PREFIX, { namespace: testNamespace })(formData),
       ).rejects.toThrow();
     });
   });
