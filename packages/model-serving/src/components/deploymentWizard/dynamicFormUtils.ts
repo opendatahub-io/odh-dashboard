@@ -1,17 +1,50 @@
 import React from 'react';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
-import type { DeploymentWizardField, DeploymentWizardFieldId, WizardFormData } from './types';
-import { isModifierField } from './types';
+import type {
+  DeploymentWizardField,
+  DeploymentWizardFieldId,
+  ModelServerTemplateField,
+  ModelAvailabilityField,
+  ExternalRouteField,
+  TokenAuthField,
+} from './types';
 import { isDeploymentWizardFieldExtension } from '../../../extension-points';
 
-export const useWizardFieldsFromExtensions = (
-  fieldId?: DeploymentWizardFieldId,
-): [DeploymentWizardField[], boolean, Error[]] => {
+// Type mapping from field ID to specific field type
+type FieldIdToTypeMap = {
+  modelServerTemplate: ModelServerTemplateField;
+  modelAvailability: ModelAvailabilityField;
+  externalRoute: ExternalRouteField;
+  tokenAuth: TokenAuthField;
+};
+
+// Helper type to extract the field type based on the field ID
+type ExtractFieldType<T extends DeploymentWizardFieldId | undefined> = T extends undefined
+  ? DeploymentWizardField
+  : T extends DeploymentWizardFieldId
+  ? FieldIdToTypeMap[T]
+  : never;
+
+// Overload signatures for better type inference
+export function useWizardFieldsFromExtensions<T extends DeploymentWizardFieldId>(
+  fieldId: T,
+): [ExtractFieldType<T>[], boolean, Error[]];
+export function useWizardFieldsFromExtensions(
+  fieldId?: undefined,
+): [DeploymentWizardField[], boolean, Error[]];
+
+// Implementation
+export function useWizardFieldsFromExtensions<T extends DeploymentWizardFieldId | undefined>(
+  fieldId?: T,
+): [ExtractFieldType<T>[], boolean, Error[]] {
   const [extensions, loaded, errors] = useResolvedExtensions(isDeploymentWizardFieldExtension);
+  // Type assertion is safe here: when fieldId is provided, the filter ensures all returned
+  // fields match that ID, and the overload signatures guarantee the correct return type
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const fields = React.useMemo(() => {
     const all = extensions.map((ext) => ext.properties.field);
     return fieldId ? all.filter((field) => field.id === fieldId) : all;
-  }, [extensions, fieldId]);
+  }, [extensions, fieldId]) as ExtractFieldType<T>[];
 
   return React.useMemo(
     () => [
@@ -21,53 +54,4 @@ export const useWizardFieldsFromExtensions = (
     ],
     [fields, loaded, errors],
   );
-};
-
-/**
- * A React hook that allows extensions to modify the state output of existing hooks in the deployment wizard.
- *
- * This hook enables a plugin architecture where extensions can intercept and transform the results
- * of wizard field hooks without directly modifying the original implementation. It looks for active
- * modifier extensions matching the specified field ID and applies their transformations to the hook's output.
- *
- * @template OriginalHook - The type of the original hook function being modified
- * @param fieldId - The unique identifier for the deployment wizard field that extensions can target
- * @param originalHook - The original hook function whose output may be modified by extensions
- * @param hookArgs - The input parameters to pass to the original hook
- * @param formData - The current form state used to determine which extensions are active. This will be limited to data from hooks that have already been called.
- * @returns The potentially modified output from the original hook, or the original output if no active modifier extensions are found
- *
- * @example
- * ```tsx
- * const modelServer = useExtensionStateModifier(
- *   'modelServerTemplate',
- *   useModelServerSelectField,
- *   [initialData?.modelServer, projectName, templates, modelFormat, modelType],
- *   { modelType, modelFormat }
- * );
- * ```
- */
-export const useExtensionStateModifier = <
-  OriginalHook extends (...args: Parameters<OriginalHook>) => ReturnType<OriginalHook>,
->(
-  fieldId: DeploymentWizardFieldId,
-  originalHook: OriginalHook,
-  hookArgs: Parameters<OriginalHook>,
-  formData: Partial<WizardFormData['state']>,
-): ReturnType<OriginalHook> => {
-  const [extensionFields] = useWizardFieldsFromExtensions(fieldId);
-
-  const originalOutput = originalHook(...hookArgs);
-
-  return React.useMemo(() => {
-    const activeExtension = extensionFields.find(
-      (field) => field.id === fieldId && field.isActive(formData),
-    );
-
-    if (activeExtension && isModifierField<OriginalHook>(activeExtension)) {
-      return activeExtension.modifier(hookArgs, originalOutput);
-    }
-
-    return originalOutput;
-  }, [extensionFields, fieldId, hookArgs, originalOutput, formData]);
-};
+}

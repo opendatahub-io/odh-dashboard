@@ -1,7 +1,6 @@
 import React from 'react';
 import { Form, FormSection } from '@patternfly/react-core';
 import K8sNameDescriptionField from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { useProfileIdentifiers } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import ProjectSection from '../fields/ProjectSection';
 import { ModelServingHardwareProfileSection } from '../fields/ModelServingHardwareProfileSection';
@@ -18,10 +17,6 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
   projectName,
   wizardState,
 }) => {
-  const profileIdentifiers = useProfileIdentifiers(
-    wizardState.state.hardwareProfileConfig.formData.selectedProfile,
-  );
-
   return (
     <Form>
       <FormSection title="Model deployment">
@@ -50,9 +45,7 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
         )}
         <ModelServerTemplateSelectField
           modelServerState={wizardState.state.modelServer}
-          profileIdentifiers={profileIdentifiers}
-          modelFormat={wizardState.state.modelFormatState.modelFormat}
-          modelType={wizardState.state.modelType.data}
+          hardwareProfile={wizardState.state.hardwareProfileConfig.formData.selectedProfile}
           isEditing={wizardState.initialData?.isEditing}
         />
         <NumReplicasField replicaState={wizardState.state.numReplicas} />

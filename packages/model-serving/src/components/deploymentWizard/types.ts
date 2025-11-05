@@ -29,6 +29,7 @@ import {
   type CreateConnectionData,
 } from './fields/CreateConnectionInputFields';
 import { useProjectSection } from './fields/ProjectSection';
+import type { ModelServingClusterSettings } from '../../concepts/useModelServingClusterSettings';
 
 export enum ConnectionTypeRefs {
   S3 = 's3',
@@ -127,41 +128,35 @@ export type DeploymentWizardFieldId =
   | 'tokenAuth'
   | 'deploymentStrategy';
 
-export type DeploymentWizardFieldBase = {
-  id: DeploymentWizardFieldId;
+export type DeploymentWizardFieldBase<
+  ID extends DeploymentWizardFieldId,
+  IsActive extends (...args: Parameters<IsActive>) => ReturnType<IsActive>,
+> = {
+  id: ID;
   type: 'modifier' | 'replacement' | 'addition';
-  isActive: (data: Partial<WizardFormData['state']>) => boolean;
-};
-
-export type ModifierField<T extends (...args: Parameters<T>) => ReturnType<T>> =
-  DeploymentWizardFieldBase & {
-    type: 'modifier';
-    modifier: (stateInput: Parameters<T>, stateOutput: ReturnType<T>) => ReturnType<T>;
-  };
-export const isModifierField = <T extends (...args: Parameters<T>) => ReturnType<T>>(
-  field: DeploymentWizardFieldBase,
-): field is ModifierField<T> => {
-  return field.type === 'modifier';
+  isActive: IsActive;
 };
 
 // actual fields
 
-export type ModelServerTemplateField = ModifierField<typeof useModelServerSelectField> & {
-  id: 'modelServerTemplate';
+export type ModelServerTemplateField = DeploymentWizardFieldBase<
+  'modelServerTemplate',
+  (modelType?: ModelTypeFieldData) => boolean
+> & {
+  extraOptions?: ModelServerOption[];
+  suggestion?: (clusterSettings?: ModelServingClusterSettings) => ModelServerOption | undefined;
 };
-export type ModelAvailabilityField = ModifierField<typeof useModelAvailabilityFields> & {
+export type ModelAvailabilityField = DeploymentWizardFieldBase<
+  'modelAvailability',
+  (modelType?: ModelTypeFieldData, modelServer?: ModelServerSelectFieldData) => boolean
+> & {
   id: 'modelAvailability';
+  showSaveAsMaaS?: boolean;
 };
-// todo should extend ModifierField
-export type ExternalRouteField = DeploymentWizardFieldBase & {
-  id: 'externalRoute';
-  type: 'modifier';
+export type ExternalRouteField = DeploymentWizardFieldBase<'externalRoute', () => boolean> & {
   isVisible: boolean;
 };
-// todo should extend ModifierField
-export type TokenAuthField = DeploymentWizardFieldBase & {
-  id: 'tokenAuth';
-  type: 'modifier';
+export type TokenAuthField = DeploymentWizardFieldBase<'tokenAuth', () => boolean> & {
   initialValue: boolean;
 };
 

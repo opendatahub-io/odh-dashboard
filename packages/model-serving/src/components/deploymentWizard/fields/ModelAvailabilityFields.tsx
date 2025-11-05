@@ -13,6 +13,8 @@ import {
 import { z } from 'zod';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { ModelTypeFieldData } from './ModelTypeSelectField';
+import { ModelServerSelectFieldData } from '../types';
+import { useWizardFieldsFromExtensions } from '../dynamicFormUtils';
 
 export type ModelAvailabilityFieldsData = {
   saveAsAiAsset: boolean;
@@ -36,10 +38,29 @@ export const modelAvailabilityFieldsSchema = z.custom<ModelAvailabilityFieldsDat
   return isValidModelAvailabilityFieldsData();
 });
 
+const useModelAvailabilityExtensions = (
+  modelType?: ModelTypeFieldData,
+  modelServer?: ModelServerSelectFieldData,
+): { showSaveAsMaaS?: boolean } => {
+  const [fieldExtensions] = useWizardFieldsFromExtensions('modelAvailability');
+  return React.useMemo(
+    () => ({
+      showSaveAsMaaS: fieldExtensions.find((field) => field.isActive(modelType, modelServer))
+        ?.showSaveAsMaaS,
+    }),
+    [fieldExtensions, modelType, modelServer],
+  );
+};
+
 export const useModelAvailabilityFields = (
   existingData?: ModelAvailabilityFieldsData,
   modelType?: ModelTypeFieldData,
+  modelServer?: ModelServerSelectFieldData,
 ): ModelAvailabilityFields => {
+  const { showSaveAsMaaS: extensionShowSaveAsMaaS } = useModelAvailabilityExtensions(
+    modelType,
+    modelServer,
+  );
   const [data, setData] = React.useState<ModelAvailabilityFieldsData>(
     existingData ?? {
       saveAsAiAsset: false,
@@ -63,6 +84,7 @@ export const useModelAvailabilityFields = (
     data: AiAssetData,
     setData,
     showField: modelType === ServingRuntimeModelType.GENERATIVE,
+    showSaveAsMaaS: extensionShowSaveAsMaaS,
   };
 };
 

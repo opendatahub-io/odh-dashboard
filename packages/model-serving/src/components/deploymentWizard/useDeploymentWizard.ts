@@ -26,7 +26,7 @@ import {
   type WizardFormData,
 } from './types';
 import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
-import { useExtensionStateModifier, useWizardFieldsFromExtensions } from './dynamicFormUtils';
+import { useWizardFieldsFromExtensions } from './dynamicFormUtils';
 import { useProjectSection } from './fields/ProjectSection';
 
 export type UseModelDeploymentWizardState = WizardFormData & {
@@ -93,27 +93,19 @@ export const useModelDeploymentWizard = (
           prevFormat !== undefined
         ) {
           modelServer.setData(null);
+          modelServer.setIsAutoSelectChecked(undefined);
         }
       },
       [modelType.data],
     ),
   );
 
-  const modelServer = useExtensionStateModifier(
-    'modelServerTemplate',
-    useModelServerSelectField,
-    [
-      initialData?.modelServer,
-      project.projectName,
-      modelFormatState.templatesFilteredForModelType,
-      modelType.data === ServingRuntimeModelType.GENERATIVE // Don't pass model format for generative models
-        ? undefined
-        : modelFormatState.modelFormat,
-      modelType.data,
-    ],
-    {
-      modelType,
-    },
+  const modelServer = useModelServerSelectField(
+    initialData?.modelServer,
+    modelFormatState.templatesFilteredForModelType,
+    modelFormatState.modelFormat,
+    modelType.data,
+    hardwareProfileConfig.formData.selectedProfile,
   );
 
   const numReplicas = useNumReplicasField(initialData?.numReplicas ?? undefined);
@@ -124,18 +116,9 @@ export const useModelDeploymentWizard = (
   }, [hardwareProfileConfig.profilesLoaded]);
 
   // Step 3: Advanced Options - Individual Fields
-  const modelAvailabilityFormData = React.useMemo(
-    () => ({
-      modelType,
-      modelServer,
-    }),
-    [modelType, modelServer],
-  );
-  const modelAvailability = useExtensionStateModifier(
-    'modelAvailability',
-    useModelAvailabilityFields,
-    [initialData?.modelAvailability, modelType.data],
-    modelAvailabilityFormData,
+  const modelAvailability = useModelAvailabilityFields(
+    initialData?.modelAvailability,
+    modelType.data,
   );
 
   const externalRouteFields = React.useMemo(() => {
