@@ -106,7 +106,7 @@ export const assembleServingRuntime = (
     };
   }
 
-  // KServe doesn't use replicas (removed ModelMesh logic)
+  // KServe doesn't use replicas
   delete updatedServingRuntime.spec.replicas;
 
   updatedServingRuntime.spec.containers = servingRuntime.spec.containers.map(
@@ -123,7 +123,7 @@ export const assembleServingRuntime = (
 
       const containerWithoutResources = _.omit(updatedContainer, 'resources');
 
-      // KServe containers don't include resources (removed ModelMesh logic)
+      // KServe containers don't include resources
       return {
         ...containerWithoutResources,
         volumeMounts,
@@ -142,7 +142,7 @@ export const assembleServingRuntime = (
     updatedServingRuntime.spec.supportedModelFormats = [supportedModelFormatsObj];
   }
 
-  // KServe doesn't use tolerations/nodeSelector at ServingRuntime level (removed ModelMesh logic)
+  // KServe doesn't use tolerations/nodeSelector at ServingRuntime level
 
   // Volume mount for /dev/shm
   const volumes = updatedServingRuntime.spec.volumes || [];

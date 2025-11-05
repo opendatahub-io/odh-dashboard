@@ -296,7 +296,7 @@ describe('useAvailableClusterPlatforms', () => {
     const vllmPlatform = mockModelServingPlatform({
       id: 'vllm',
       title: 'vLLM',
-      namespaceApplicationCase: NamespaceApplicationCase.MODEL_MESH_PROMOTION,
+      namespaceApplicationCase: NamespaceApplicationCase.KSERVE_PROMOTION,
     });
     vllmPlatform.properties.manage.clusterRequirements = {
       integrationAppName: 'vllm-service',

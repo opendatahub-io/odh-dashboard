@@ -40,11 +40,7 @@ const extensions: (
         namespaceApplicationCase: NamespaceApplicationCase.KSERVE_PROMOTION,
         priority: 0,
         default: true,
-        projectRequirements: {
-          labels: {
-            'modelmesh-enabled': 'false',
-          },
-        },
+        projectRequirements: {},
       },
       enableCardText: {
         title: 'Enable model serving',

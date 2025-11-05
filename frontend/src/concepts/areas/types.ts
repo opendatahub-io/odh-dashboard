@@ -53,7 +53,6 @@ export enum SupportedArea {
   K_SERVE_AUTH = 'kserve-auth',
   K_SERVE_METRICS = 'kserve-metrics',
   K_SERVE_RAW = 'kserve-raw',
-  MODEL_MESH = 'model-mesh',
   BIAS_METRICS = 'bias-metrics',
   PERFORMANCE_METRICS = 'performance-metrics',
   TRUSTY_AI = 'trusty-ai',
@@ -98,7 +97,6 @@ export enum DataScienceStackComponent {
   DS_PIPELINES = 'datasciencepipelines',
   K_SERVE = 'kserve',
   KUEUE = 'kueue',
-  MODEL_MESH_SERVING = 'modelmeshserving',
   MODEL_REGISTRY = 'modelregistry',
   FEAST_OPERATOR = 'feastoperator',
   RAY = 'ray',
@@ -135,7 +133,7 @@ export type SupportedComponentFlagValue = {
   /**
    * An area can be reliant on another area being enabled. The list is "OR"-ed together.
    *
-   * Example, Model Serving is a shell for either KServe or ModelMesh. It has no value on its own.
+   * Example, Model Serving is a shell for KServe. It has no value on its own.
    * It can also be a chain of reliance... example, Custom Runtimes is a Model Serving feature.
    *
    * TODO: support AND -- maybe double array?

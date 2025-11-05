@@ -7,21 +7,15 @@ import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 
 const CustomServingRuntimeHeaderLabels: React.FC = () => {
   const kServeEnabled = useIsAreaAvailable(SupportedArea.K_SERVE).status;
-  const modelMeshEnabled = useIsAreaAvailable(SupportedArea.MODEL_MESH).status;
 
-  if (!kServeEnabled && !modelMeshEnabled) {
+  if (!kServeEnabled) {
     return null;
   }
 
   return (
     <Flex gap={{ default: 'gapMd' }}>
       <LabelGroup>
-        {kServeEnabled && (
-          <Label data-testid="single-model-serving-enabled">Single-model serving enabled</Label>
-        )}
-        {modelMeshEnabled && (
-          <Label data-testid="multi-model-serving-enabled">Multi-model serving enabled</Label>
-        )}
+        <Label data-testid="single-model-serving-enabled">Single-model serving enabled</Label>
       </LabelGroup>
       <Popover
         showClose

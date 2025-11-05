@@ -116,7 +116,6 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const podSpecOptionsState = useModelServingHardwareProfileState(
     editInfo?.servingRuntimeEditInfo?.servingRuntime,
     editInfo?.inferenceServiceEditInfo,
-    false,
   );
   const { data: kServeNameDesc, onDataChange: setKserveNameDesc } = useK8sNameDescriptionFieldData({
     initialData: editInfo?.inferenceServiceEditInfo,
@@ -282,7 +281,6 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       NamespaceApplicationCase.KSERVE_PROMOTION,
       projectContext?.currentProject,
       servingRuntimeName,
-      false,
     );
 
     const inferenceServiceName = servingRuntimeName;
@@ -295,7 +293,6 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       editInfo?.inferenceServiceEditInfo,
       servingRuntimeName,
       inferenceServiceName,
-      false,
       podSpecOptionsState.podSpecOptions,
       allowCreate,
       editInfo?.secrets,
@@ -407,7 +404,6 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                   podSpecOptionState={podSpecOptionsState}
                   projectName={namespace}
                   servingRuntimeSelected={servingRuntimeSelected}
-                  infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
                   isEditing={!!editInfo}
                 />
                 <AuthServingRuntimeSection

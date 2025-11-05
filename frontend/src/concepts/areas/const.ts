@@ -43,7 +43,6 @@ export const modelServingFlags = {
   disableKServeAuth: false,
   disableKServeMetrics: false,
   disableKServeRaw: false,
-  disableModelMesh: false,
   disableNIMModelServing: false,
   disablePerformanceMetrics: false,
   disableTrustyBiasMetrics: false,
@@ -116,10 +115,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.K_SERVE_RAW]: {
     featureFlags: ['disableKServeRaw'],
     reliantAreas: [SupportedArea.K_SERVE, SupportedArea.MODEL_SERVING],
-  },
-  [SupportedArea.MODEL_MESH]: {
-    featureFlags: ['disableModelMesh'],
-    requiredComponents: [DataScienceStackComponent.MODEL_MESH_SERVING],
   },
   [SupportedArea.MODEL_SERVING]: {
     featureFlags: ['disableModelServing'],
@@ -205,7 +200,6 @@ export const DataScienceStackComponentMap: Record<string, string> = {
   [DataScienceStackComponent.MODEL_REGISTRY]: 'Model registry',
   [DataScienceStackComponent.FEAST_OPERATOR]: 'Feast operator',
   [DataScienceStackComponent.K_SERVE]: 'Model server and metrics',
-  [DataScienceStackComponent.MODEL_MESH_SERVING]: 'Model server and metrics',
   [DataScienceStackComponent.RAY]: 'Ray',
   [DataScienceStackComponent.TRAINING_OPERATOR]: 'Training operator',
   [DataScienceStackComponent.TRUSTY_AI]: 'TrustyAI',

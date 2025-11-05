@@ -2,7 +2,6 @@ import * as React from 'react';
 import {
   ConfigMapKind,
   InferenceServiceKind,
-  KnownLabels,
   PersistentVolumeClaimKind,
   ProjectKind,
   SecretKind,
@@ -19,7 +18,6 @@ import {
   ServingRuntimeEditInfo,
 } from '#~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '#~/types';
-import { platformKeyMap } from '#~/pages/modelServing/screens/const';
 import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { EMPTY_AWS_SECRET_DATA } from '#~/pages/projects/dataConnections/const';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
@@ -267,8 +265,6 @@ export const getProjectModelServingPlatform = (
   const {
     kServe: { enabled: kServeEnabled, installed: kServeInstalled },
     kServeNIM: { enabled: nimEnabled },
-    modelMesh: { enabled: modelMeshEnabled, installed: modelMeshInstalled },
-    platformEnabledCount,
   } = platformStatuses;
 
   if (!project) {
@@ -276,42 +272,21 @@ export const getProjectModelServingPlatform = (
     return {};
   }
 
-  if (project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT] === undefined) {
-    // Auto-select logic
-    if (platformEnabledCount !== 1) {
-      return {};
-    }
-    if (modelMeshEnabled) {
-      return { platform: ServingRuntimePlatform.MULTI };
-    }
-    if (kServeEnabled) {
-      return { platform: ServingRuntimePlatform.SINGLE };
-    }
-    if (nimEnabled) {
-      // TODO: this is weird, it relies on KServe today... so it's never "only installed"
-      return { platform: ServingRuntimePlatform.SINGLE };
-    }
-
-    // TODO: unreachable code unless adding a new platform? probably should throw an error
-  } else if (project.metadata.labels[KnownLabels.MODEL_SERVING_PROJECT] === 'true') {
-    // Model mesh logic
+  // In DSC v2, all projects use KServe (single-model serving)
+  if (kServeEnabled || nimEnabled) {
     return {
-      platform: ServingRuntimePlatform.MULTI,
-      error: modelMeshInstalled ? undefined : new Error('Multi-model platform is not installed'),
+      platform: ServingRuntimePlatform.SINGLE,
+      error: kServeInstalled ? undefined : new Error('Single-model platform is not installed'),
     };
   }
 
-  // KServe logic
-  return {
-    platform: ServingRuntimePlatform.SINGLE,
-    error: kServeInstalled ? undefined : new Error('Single-model platform is not installed'),
-  };
+  // No platforms available
+  return {};
 };
 
 const createInferenceServiceAndDataConnection = async (
   inferenceServiceData: CreatingInferenceServiceObject,
   editInfo?: InferenceServiceKind,
-  isModelMesh?: boolean,
   podSpecOptions?: ModelServingPodSpecOptions,
   dryRun = false,
   isStorageNeeded?: boolean,
@@ -359,7 +334,6 @@ const createInferenceServiceAndDataConnection = async (
       },
       editInfo,
       secret?.metadata.name,
-      isModelMesh,
       podSpecOptions,
       dryRun,
       isStorageNeeded,
@@ -375,7 +349,6 @@ const createInferenceServiceAndDataConnection = async (
         imagePullSecrets,
       },
       secret?.metadata.name,
-      isModelMesh,
       podSpecOptions,
       dryRun,
       isStorageNeeded,
@@ -389,7 +362,6 @@ export const getSubmitInferenceServiceResourceFn = (
   editInfo: InferenceServiceKind | undefined,
   servingRuntimeName: string,
   inferenceServiceName: string,
-  isModelMesh?: boolean,
   podSpecOptions?: ModelServingPodSpecOptions,
   allowCreate?: boolean,
   secrets?: SecretKind[],
@@ -413,27 +385,23 @@ export const getSubmitInferenceServiceResourceFn = (
     createInferenceServiceAndDataConnection(
       inferenceServiceData,
       editInfo,
-      isModelMesh,
       podSpecOptions,
       dryRun,
       isStorageNeeded,
       connection,
     ).then((inferenceService) => {
-      if (!isModelMesh) {
-        return setUpTokenAuth(
-          createData,
-          inferenceServiceName,
-          createData.project,
-          createTokenAuth,
-          inferenceService,
-          isModelMesh,
-          secrets || [],
-          {
-            dryRun,
-          },
-        );
-      }
-      return Promise.resolve();
+      // All projects now use KServe (single-model serving)
+      return setUpTokenAuth(
+        createData,
+        inferenceServiceName,
+        createData.project,
+        createTokenAuth,
+        inferenceService,
+        secrets || [],
+        {
+          dryRun,
+        },
+      );
     });
 };
 
@@ -456,7 +424,6 @@ export const getSubmitServingRuntimeResourcesFn = (
   servingPlatformEnablement: NamespaceApplicationCase,
   currentProject?: ProjectKind,
   name?: string,
-  isModelMesh?: boolean,
 ): ((opts: { dryRun?: boolean }) => Promise<void | (string | void | ServingRuntimeKind)[]>) => {
   if (!servingRuntimeSelected) {
     return () =>
@@ -481,7 +448,7 @@ export const getSubmitServingRuntimeResourcesFn = (
 
   return ({ dryRun = false }) =>
     Promise.all([
-      ...(currentProject && currentProject.metadata.labels?.['modelmesh-enabled'] === undefined
+      ...(currentProject
         ? [
             addSupportServingPlatformProject(
               currentProject.metadata.name,
@@ -499,22 +466,18 @@ export const getSubmitServingRuntimeResourcesFn = (
               opts: { dryRun },
               podSpecOptions,
             }),
-            ...(isModelMesh
-              ? [
-                  setUpTokenAuth(
-                    servingRuntimeData,
-                    createData.k8sName,
-                    namespace,
-                    createTokenAuth,
-                    editInfo.servingRuntime,
-                    isModelMesh,
-                    editInfo.secrets,
-                    {
-                      dryRun,
-                    },
-                  ),
-                ]
-              : []),
+            // Always set up token auth for KServe
+            setUpTokenAuth(
+              servingRuntimeData,
+              createData.k8sName,
+              namespace,
+              createTokenAuth,
+              editInfo.servingRuntime,
+              editInfo.secrets,
+              {
+                dryRun,
+              },
+            ),
           ]
         : [
             createServingRuntime({
@@ -525,21 +488,18 @@ export const getSubmitServingRuntimeResourcesFn = (
               opts: { dryRun },
               podSpecOptions,
             }).then((servingRuntime) => {
-              if (isModelMesh) {
-                return setUpTokenAuth(
-                  servingRuntimeData,
-                  createData.k8sName,
-                  namespace,
-                  createTokenAuth,
-                  servingRuntime,
-                  isModelMesh,
-                  [],
-                  {
-                    dryRun,
-                  },
-                );
-              }
-              return Promise.resolve();
+              // Always set up token auth for KServe
+              return setUpTokenAuth(
+                servingRuntimeData,
+                createData.k8sName,
+                namespace,
+                createTokenAuth,
+                servingRuntime,
+                [],
+                {
+                  dryRun,
+                },
+              );
             }),
           ]),
     ]);
@@ -707,11 +667,8 @@ export function isCurrentServingPlatformEnabled(
   currentPlatform: ServingRuntimePlatform | undefined,
   statuses: ServingPlatformStatuses,
 ): boolean {
-  if (!currentPlatform) {
-    return false;
-  }
-  const mappedKey = platformKeyMap[currentPlatform];
-  return statuses[mappedKey].enabled;
+  // Only single-model serving (KServe) is supported
+  return !!currentPlatform && statuses.kServe.enabled;
 }
 
 export const VALID_ENV_VARNAME_REGEX = /^[A-Za-z_][A-Za-z0-9_\-.]*$/;

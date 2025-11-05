@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { getPodsForKserve, getPodsForModelMesh } from '#~/api';
+import { getPodsForKserve } from '#~/api';
 import useFetchState, { FetchState } from '#~/utilities/useFetchState';
 import { ModelStatus } from '#~/pages/modelServing/screens/types';
 import { checkModelPodStatus } from '#~/concepts/modelServingKServe/kserveStatusUtils';
@@ -10,8 +10,7 @@ export const useModelStatus = (
   isKserve: boolean,
 ): FetchState<ModelStatus | null> => {
   const fetchSecret = React.useCallback<() => Promise<ModelStatus | null>>(() => {
-    const fetchFunction = isKserve ? getPodsForKserve : getPodsForModelMesh;
-    return fetchFunction(namespace, name)
+    return getPodsForKserve(namespace, name)
       .then((model) => checkModelPodStatus(model[0]))
       .catch((e) => {
         if (e.statusObject?.code === 404) {

@@ -80,7 +80,6 @@
                   "f:disableISVBadges": {},
                   "f:disableInfo": {},
                   "f:disableKServe": {},
-                  "f:disableModelMesh": {},
                   "f:disableModelServing": {},
                   "f:disablePipelines": {},
                   "f:disableProjectSharing": {},
@@ -115,8 +114,7 @@
           "disableProjectSharing": false,
           "disableCustomServingRuntimes": false,
           "disablePipelines": false,
-          "disableKServe": false,
-          "disableModelMesh": false
+          "disableKServe": false
         },
         "notebookController": {
           "enabled": true,

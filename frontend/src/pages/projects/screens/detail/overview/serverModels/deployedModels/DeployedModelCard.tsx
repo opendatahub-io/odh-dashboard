@@ -33,7 +33,7 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
 }) => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
 
-  // Always KServe (no ModelMesh)
+  // Always KServe
   const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
   const kserveMetricsSupported = modelMetricsEnabled && kserveMetricsEnabled;
 

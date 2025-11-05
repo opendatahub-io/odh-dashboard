@@ -7,7 +7,7 @@ const useProjectErrorForPrefilledModel = (
   platform?: ServingRuntimePlatform,
 ): { loaded: boolean; error: Error | undefined } => {
   const {
-    servingRuntimes: { data: servingRuntimes, loaded, error },
+    servingRuntimes: { loaded, error },
   } = React.useContext(ModelServingContext);
 
   // If project is not selected, there is no error
@@ -27,16 +27,6 @@ const useProjectErrorForPrefilledModel = (
 
   if (error) {
     return { loaded: true, error };
-  }
-
-  // If the platform is MULTI but it doesn't have a server
-  if (platform === ServingRuntimePlatform.MULTI) {
-    if (loaded && servingRuntimes.items.length === 0) {
-      return {
-        loaded,
-        error: new Error('To deploy a model, you must first configure a model server.'),
-      };
-    }
   }
 
   return { loaded, error: undefined };

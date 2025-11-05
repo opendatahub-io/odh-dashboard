@@ -3,7 +3,7 @@ import { Alert, FormGroup, MenuItem, Stack, StackItem, Truncate } from '@pattern
 import { Link } from 'react-router-dom';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
-import { KnownLabels, ProjectKind } from '#~/k8sTypes';
+import { ProjectKind } from '#~/k8sTypes';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import SearchSelector from '#~/components/searchSelector/SearchSelector';
 
@@ -12,7 +12,6 @@ type ProjectSelectorProps = {
   setSelectedProject: (project: ProjectKind | null) => void;
   error?: Error;
   projectLinkExtraUrlParams?: Record<string, string | undefined>;
-  isOciModel?: boolean;
 };
 
 const ProjectSelector: React.FC<ProjectSelectorProps> = ({
@@ -20,14 +19,8 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   setSelectedProject,
   error,
   projectLinkExtraUrlParams,
-  isOciModel,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
-  const kserveProjects = projects.filter(
-    (project) =>
-      !project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT] ||
-      project.metadata.labels[KnownLabels.MODEL_SERVING_PROJECT] === 'false',
-  );
   const [searchText, setSearchText] = React.useState('');
   const bySearchText = React.useCallback(
     (project: ProjectKind) =>
@@ -36,7 +29,8 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
     [searchText],
   );
 
-  const filteredProjects = isOciModel ? kserveProjects : projects;
+  // All projects now support model serving (KServe only)
+  const filteredProjects = projects;
   const visibleProjects = filteredProjects.filter(bySearchText);
   const projectLinkUrlParams = new URLSearchParams();
   projectLinkUrlParams.set('section', ProjectSectionID.MODEL_SERVER);

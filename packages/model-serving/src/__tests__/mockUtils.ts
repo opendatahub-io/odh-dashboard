@@ -18,11 +18,7 @@ import { deploymentStrategyRolling } from '../components/deploymentWizard/fields
 export const mockModelServingPlatform = ({
   id = 'kserve',
   namespaceApplicationCase = NamespaceApplicationCase.KSERVE_PROMOTION,
-  enabledProjectMetadata = {
-    labels: {
-      'modelmesh-enabled': 'false',
-    },
-  },
+  enabledProjectMetadata = {},
   title = 'KServe',
   description = 'KServe',
   selectText = 'Select',

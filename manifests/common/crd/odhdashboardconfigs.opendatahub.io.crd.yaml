@@ -69,8 +69,6 @@ spec:
                       type: boolean
                     disableKServeRaw:
                       type: boolean
-                    disableModelMesh:
-                      type: boolean
                     disableAcceleratorProfiles:
                       type: boolean
                       description: 'DEPRECATED: Accelerator Profiles are replaced by Hardware Profiles. This field will be removed in a future version.'

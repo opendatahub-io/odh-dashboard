@@ -13,18 +13,15 @@ import type {
  * in the Cluster Settings based on the provided dashboard configuration.
  *
  * This function checks whether the Model Serving feature is enabled or disabled,
- * and subsequently verifies the state of the Multi-Platform and Single-Platform
- * checkboxes based on their respective enable/disable flags.
+ * and subsequently verifies the state of the Single-Platform checkbox.
  *
- * - If Model Serving is disabled, both checkboxes should not be visible.
+ * - If Model Serving is disabled, the checkbox should not be visible.
  * - If Model Serving is enabled:
- *   - The Multi-Platform Checkbox will be checked if Model Mesh is enabled;
- *     otherwise, it will not be checked.
  *   - The Single-Platform Checkbox will be checked if KServe is enabled;
  *     otherwise, it will not be checked.
  *
  * @param dashboardConfig The Model Serving Platform configuration object containing
- *                        settings related to model serving, model mesh, and KServe.
+ *                        settings related to model serving and KServe.
  */
 export const validateModelServingPlatforms = (dashboardConfig: DashboardConfig): void => {
   /* eslint-disable @typescript-eslint/no-unnecessary-condition */

@@ -66,7 +66,7 @@ const DeployedModelsGallery: React.FC<DeployedModelsGalleryProps> = ({
     const getServicesForStatus = async () => {
       for (const deployedModel of deployedModels) {
         try {
-          // Always use KServe (no ModelMesh)
+          // Always use KServe
           const modelPods = await getPodsForKserve(
             namespace,
             deployedModel.spec.predictor.model?.runtime ?? '',

@@ -12,7 +12,7 @@ import {
 
 describe('NIM Models Deployments', () => {
   it('should be listed in the global models list', () => {
-    initInterceptsToEnableNim({ hasAllModels: false });
+    initInterceptsToEnableNim();
     cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([mockNimInferenceService()]));
     cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([mockNimServingRuntime()]));
 
@@ -41,7 +41,7 @@ describe('NIM Models Deployments', () => {
   });
 
   it('should be allowed to be deleted and edit', () => {
-    initInterceptsToEnableNim({});
+    initInterceptsToEnableNim();
     cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([mockNimInferenceService()]));
     cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([mockNimServingRuntime()]));
 

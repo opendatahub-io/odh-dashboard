@@ -25,19 +25,19 @@ describe('useProjectServingPlatform', () => {
       const project = mockProjectK8sResource({});
       const platform = mockModelServingPlatform({});
       const { result } = renderHook(() => useProjectServingPlatform(project, [platform]));
-      expect(result.current.projectPlatform).toBeNull();
+      expect(result.current.projectPlatform).toEqual(platform);
       expect(result.current.activePlatform).toEqual(platform);
     });
 
-    it('return no platform if 2 platforms available', () => {
+    it('return first platform if 2 platforms available with no requirements', () => {
       const project = mockProjectK8sResource({});
       const platform1 = mockModelServingPlatform({ id: 'kserve-1' });
       const platform2 = mockModelServingPlatform({ id: 'kserve-2' });
       const { result } = renderHook(() =>
         useProjectServingPlatform(project, [platform1, platform2]),
       );
-      expect(result.current.projectPlatform).toBeNull();
-      expect(result.current.activePlatform).toBeNull();
+      expect(result.current.projectPlatform).toEqual(platform1);
+      expect(result.current.activePlatform).toEqual(platform1);
     });
 
     it('return project platform if set', () => {
