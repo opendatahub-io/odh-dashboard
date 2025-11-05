@@ -49,7 +49,7 @@ import {
 import { STOP_MODAL_PREFERENCE_KEY } from '#~/pages/modelServing/useStopModalPreference';
 import { mockOdhApplication } from '#~/__mocks__/mockOdhApplication';
 import { mockNimServingRuntimeTemplate } from '#~/__mocks__/mockNimResource';
-import { NamespaceApplicationCase } from '../../../../../../../pages/projects/types';
+import { NamespaceApplicationCase } from '#~/pages/projects/types';
 
 type HandlersProps = {
   disableKServe?: boolean;

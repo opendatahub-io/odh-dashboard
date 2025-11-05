@@ -54,7 +54,6 @@ type HandlersProps = {
   imageStreamName?: string;
   imageStreamTag?: string;
   disableKServe?: boolean;
-  disableKServeMetrics?: boolean;
   disableNIMConfig?: boolean;
   enableModelMesh?: boolean;
   enableNIM?: boolean;
@@ -76,7 +75,6 @@ type HandlersProps = {
 
 const initIntercepts = ({
   disableKServe,
-  disableKServeMetrics,
   disableNIMConfig = true,
   enableModelMesh,
   enableNIM = false,
@@ -147,7 +145,6 @@ const initIntercepts = ({
     mockDashboardConfig({
       disableKServe,
       disableNIMModelServing: disableNIMConfig,
-      disableKServeMetrics,
       disableKueue,
     }),
   );
