@@ -96,6 +96,7 @@ const assembleInferenceService = (
 
   inferenceService = applyDisplayNameDesc(inferenceService, name, description);
   inferenceService = applyDashboardResourceLabel(inferenceService);
+
   inferenceService = applyModelType(
     inferenceService,
     modelType ?? ServingRuntimeModelType.GENERATIVE,

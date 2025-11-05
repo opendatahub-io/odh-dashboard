@@ -13,6 +13,7 @@ import {
 import * as _ from 'lodash-es';
 import { k8sMergePatchResource } from '@odh-dashboard/internal/api/k8sUtils';
 import { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import { type ModelDeployPrefillInfo } from '@odh-dashboard/internal/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 import { applyHardwareProfileConfig, applyReplicas } from './hardware';
 import { setUpTokenAuth } from './deployUtils';
 import {
@@ -21,6 +22,7 @@ import {
   applyModelLocation,
   applyDisplayNameDesc,
   applyDashboardResourceLabel,
+  applyModelRegistryLabels,
 } from './model';
 import { applyModelAvailabilityData } from '../wizardFields/modelAvailability';
 import { LLMD_SERVING_ID } from '../../extensions/extensions';
@@ -179,6 +181,7 @@ type CreateLLMdInferenceServiceParams = {
   environmentVariables?: EnvironmentVariablesFieldData;
   modelAvailability?: ModelAvailabilityFieldsData;
   tokenAuthentication?: { displayName: string; uuid: string; error?: string }[];
+  modelRegistryInfo?: ModelDeployPrefillInfo['modelRegistryInfo'];
 };
 
 const assembleLLMdInferenceServiceKind = (
@@ -200,6 +203,7 @@ const assembleLLMdInferenceServiceKind = (
     environmentVariables,
     modelAvailability,
     tokenAuthentication,
+    modelRegistryInfo,
   } = data;
   let llmdInferenceService: LLMInferenceServiceKind = existingDeployment
     ? {
@@ -231,6 +235,8 @@ const assembleLLMdInferenceServiceKind = (
       };
   llmdInferenceService = applyDisplayNameDesc(llmdInferenceService, displayName, description);
   llmdInferenceService = applyDashboardResourceLabel(llmdInferenceService);
+
+  llmdInferenceService = applyModelRegistryLabels(llmdInferenceService, modelRegistryInfo);
 
   llmdInferenceService = applyModelLocation(
     llmdInferenceService,
@@ -279,6 +285,7 @@ export const deployLLMdDeployment = async (
     environmentVariables: wizardData.environmentVariables.data,
     modelAvailability: wizardData.modelAvailability.data,
     tokenAuthentication: wizardData.tokenAuthentication.data,
+    modelRegistryInfo: initialWizardData?.modelRegistryInfo,
   };
   const llmdInferenceService = !existingDeployment
     ? await createLLMInferenceServiceKind(llmdInferenceServiceData, dryRun, connectionSecretName)

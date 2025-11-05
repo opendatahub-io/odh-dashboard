@@ -25,7 +25,7 @@ import { ConnectionTypeRefs, ModelLocationData, ModelLocationType } from '../../
 import { isExistingModelLocation } from '../../utils';
 
 type ExistingConnectionFieldProps = {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   connectionTypes: ConnectionTypeConfigMapObj[];
   projectConnections: Connection[];
   selectedConnection?: Connection;
@@ -33,7 +33,7 @@ type ExistingConnectionFieldProps = {
   selectedConnectionType?: ConnectionTypeConfigMapObj;
   labelHelp?: React.ReactElement;
   setModelLocationData?: (data: ModelLocationData | undefined) => void;
-  resetModelLocationData: () => void;
+  resetModelLocationData?: () => void;
   modelLocationData?: ModelLocationData;
 };
 
@@ -95,7 +95,7 @@ export const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = (
                 (!selectedConnection ||
                   getResourceNameFromK8sResource(selectedConnection) !== value)
               ) {
-                resetModelLocationData();
+                resetModelLocationData?.();
               }
 
               const newConnection = projectConnections.find(
