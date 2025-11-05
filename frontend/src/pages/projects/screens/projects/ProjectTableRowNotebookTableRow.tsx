@@ -9,9 +9,9 @@ import { startNotebook, stopNotebook } from '#~/api';
 import useStopNotebookModalAvailability from '#~/pages/projects/notebook/useStopNotebookModalAvailability';
 import { fireNotebookTrackingEvent } from '#~/pages/projects/notebook/utils';
 import StopNotebookConfirmModal from '#~/pages/projects/notebook/StopNotebookConfirmModal';
-import { useNotebookKindPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import StateActionToggle from '#~/components/StateActionToggle';
 import { currentlyHasPipelines } from '#~/concepts/pipelines/elyra/utils.ts';
+import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils.ts';
 import { useHardwareProfileBindingState } from '#~/concepts/hardwareProfiles/useHardwareProfileBindingState';
 import { getDeletedHardwareProfilePatches } from '#~/concepts/hardwareProfiles/utils';
 
@@ -28,7 +28,7 @@ const ProjectTableRowNotebookTableRow: React.FC<ProjectTableRowNotebookTableRowP
   enablePipelines,
 }) => {
   const { notebook, refresh } = notebookState;
-  const podSpecOptionsState = useNotebookKindPodSpecOptionsState(notebook);
+  const { podSpecOptionsState } = useNotebookHardwareProfile(notebook);
   const [dontShowModalValue] = useStopNotebookModalAvailability();
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);

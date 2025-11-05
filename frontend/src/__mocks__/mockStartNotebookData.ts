@@ -1,4 +1,4 @@
-import { ImageStreamKind } from '#~/k8sTypes';
+import { ImageStreamKind, NotebookKind } from '#~/k8sTypes';
 import {
   ConfigMapCategory,
   EnvironmentVariableType,
@@ -9,6 +9,7 @@ import {
   StorageType,
 } from '#~/pages/projects/types';
 import { mockK8sNameDescriptionFieldData } from '#~/__mocks__/mockK8sNameDescriptionFieldData';
+import { mockUseAssignHardwareProfileResult } from '#~/__mocks__/mockUseAssignHardwareProfileResult';
 
 type MockResourceConfigType = {
   volumeName?: string;
@@ -37,7 +38,7 @@ export const mockStartNotebookData = ({
       name: 'v1.0.0',
     },
   },
-  podSpecOptions: {
+  hardwareProfileOptions: mockUseAssignHardwareProfileResult<NotebookKind>({
     resources: {
       requests: {
         memory: '2Gi',
@@ -55,9 +56,8 @@ export const mockStartNotebookData = ({
       },
     ],
     nodeSelector: {},
-    lastSizeSelection: 'small',
     selectedHardwareProfile: undefined,
-  },
+  }),
   volumes: [
     {
       name: volumeName,
