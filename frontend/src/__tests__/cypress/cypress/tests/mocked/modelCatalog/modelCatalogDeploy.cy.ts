@@ -5,7 +5,6 @@ import {
   mockCatalogModelArtifactList,
   mockCatalogPerformanceMetricsArtifact,
 } from '@odh-dashboard/model-registry/mocks/mockCatalogModelArtifactList';
-import { mockCatalogFilterOptionsList } from '@odh-dashboard/model-registry/mocks/mockCatalogFilterOptionsList';
 import {
   mockCatalogModelList,
   mockCatalogModel,
@@ -95,14 +94,6 @@ const initIntercepts = ({
   });
 
   cy.interceptOdh(
-    `GET /model-registry/api/:apiVersion/model_catalog/models/filter_options`,
-    {
-      path: { apiVersion: MODEL_CATALOG_API_VERSION },
-    },
-    { data: mockCatalogFilterOptionsList() },
-  );
-
-  cy.interceptOdh(
     `GET /model-registry/api/:apiVersion/model_catalog/sources/:sourceId/models/:modelName`,
     {
       path: {
@@ -112,7 +103,7 @@ const initIntercepts = ({
       },
     },
     { data: mockCatalogModel({ name: 'sample-category-1-model-1', source_id: 'source-2' }) },
-  );
+  ).as('loadModel');
 
   cy.interceptOdh(
     `GET /model-registry/api/:apiVersion/model_catalog/sources/:sourceId/artifacts/:modelName`,
@@ -134,7 +125,7 @@ const initIntercepts = ({
         ],
       }),
     },
-  );
+  ).as('loadArtifacts');
 };
 
 describe('Deploy catalog model', () => {
@@ -142,9 +133,8 @@ describe('Deploy catalog model', () => {
     initIntercepts({ disableKServe: true });
     modelDetailsPage.visit();
 
-    // Wait for page to load
-    // eslint-disable-next-line cypress/no-unnecessary-waiting
-    cy.wait(5000);
+    cy.wait('@loadModel');
+    cy.wait('@loadArtifacts');
     modelDetailsPage.findDeployModelButton().should('have.attr', 'aria-disabled', 'true');
     modelDetailsPage.findDeployModelButton().focus();
     cy.findByRole('tooltip').should(
@@ -156,9 +146,9 @@ describe('Deploy catalog model', () => {
   it('Allow using a project with no platform selected (it will use kserve)', () => {
     initIntercepts({});
     modelDetailsPage.visit();
-    // Wait for page to load
-    // eslint-disable-next-line cypress/no-unnecessary-waiting
-    cy.wait(5000);
+
+    cy.wait('@loadModel');
+    cy.wait('@loadArtifacts');
     modelDetailsPage.findDeployModelButton().click();
     modelCatalogDeployModal.selectProjectByName('Test project');
     modelDetailsPage.findDeployModelButton().should('be.enabled');
@@ -175,9 +165,9 @@ describe('Deploy catalog model', () => {
   it('Selects Current URI in case of built-in registry OCI connections', () => {
     initIntercepts({});
     modelDetailsPage.visit();
-    // Wait for page to load
-    // eslint-disable-next-line cypress/no-unnecessary-waiting
-    cy.wait(5000);
+
+    cy.wait('@loadModel');
+    cy.wait('@loadArtifacts');
     modelDetailsPage.findDeployModelButton().click();
     modelCatalogDeployModal.selectProjectByName('KServe project');
 
@@ -201,9 +191,9 @@ describe('Deploy catalog model', () => {
   it('Deploy modal will show spinner, if the data is still loading', () => {
     initIntercepts({ isEmpty: true });
     modelDetailsPage.visit();
-    // Wait for page to load
-    // eslint-disable-next-line cypress/no-unnecessary-waiting
-    cy.wait(5000);
+
+    cy.wait('@loadModel');
+    cy.wait('@loadArtifacts');
     modelDetailsPage.findDeployModelButton().click();
     modelCatalogDeployModal.selectProjectByName('KServe project');
     kserveModal.findSpinner().should('exist');
