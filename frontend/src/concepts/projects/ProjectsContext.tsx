@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useProjects } from '#~/api';
 import { FetchState } from '#~/utilities/useFetchState';
-import { KnownLabels, ProjectKind } from '#~/k8sTypes';
+import { ProjectKind } from '#~/k8sTypes';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { isAvailableProject } from './utils';
@@ -67,10 +67,8 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
             if (project.status?.phase === 'Active') {
               // Project that is active
               states.projects.push(project);
-              if (project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT]) {
-                // Model Serving active projects
-                states.modelServingProjects.push(project);
-              }
+              // All active projects support model serving (KServe only)
+              states.modelServingProjects.push(project);
             } else {
               // Non 'Active' -- aka terminating
               states.nonActiveProjects.push(project);

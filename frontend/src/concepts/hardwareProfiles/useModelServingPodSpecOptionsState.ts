@@ -1,5 +1,4 @@
 import React from 'react';
-import { ContainerResources } from '#~/types';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { useAppContext } from '#~/app/AppContext';
 import { getModelServingSizes } from '#~/concepts/modelServing/modelServingSizesUtils';
@@ -27,7 +26,6 @@ export type ModelServingHardwareProfileState =
 export const useModelServingHardwareProfileState = (
   servingRuntime?: ServingRuntimeKind,
   inferenceService?: InferenceServiceKind,
-  isModelMesh?: boolean,
 ): ModelServingHardwareProfileState => {
   const { dashboardConfig } = useAppContext();
   const sizes = useDeepCompareMemoize(getModelServingSizes(dashboardConfig));
@@ -60,42 +58,23 @@ export const useModelServingHardwareProfileState = (
   const existingNodeSelector =
     inferenceService?.spec.predictor.nodeSelector || servingRuntime?.spec.nodeSelector;
 
-  if (!isModelMesh) {
-    const annotationData = {
-      selectedHardwareProfile: hardwareProfile.formData.selectedProfile,
-    };
-    if (hardwareProfile.formData.useExistingSettings) {
-      podSpecOptions = {
-        resources: existingResources,
-        tolerations: existingTolerations,
-        nodeSelector: existingNodeSelector,
-        ...annotationData,
-      };
-    } else {
-      podSpecOptions = {
-        resources: hardwareProfile.formData.resources,
-        tolerations: hardwareProfile.formData.selectedProfile?.spec.scheduling?.node?.tolerations,
-        nodeSelector: hardwareProfile.formData.selectedProfile?.spec.scheduling?.node?.nodeSelector,
-        ...annotationData,
-      };
-    }
-  } else {
-    // For ModelMesh, use basic resource settings without accelerator profile
-    const resourceSettings: ContainerResources = {
-      requests: {
-        cpu: modelSize.resources.requests?.cpu,
-        memory: modelSize.resources.requests?.memory,
-      },
-      limits: {
-        cpu: modelSize.resources.limits?.cpu,
-        memory: modelSize.resources.limits?.memory,
-      },
-    };
-
+  // Always apply KServe pod spec options
+  const annotationData = {
+    selectedHardwareProfile: hardwareProfile.formData.selectedProfile,
+  };
+  if (hardwareProfile.formData.useExistingSettings) {
     podSpecOptions = {
-      resources: resourceSettings,
+      resources: existingResources,
       tolerations: existingTolerations,
       nodeSelector: existingNodeSelector,
+      ...annotationData,
+    };
+  } else {
+    podSpecOptions = {
+      resources: hardwareProfile.formData.resources,
+      tolerations: hardwareProfile.formData.selectedProfile?.spec.scheduling?.node?.tolerations,
+      nodeSelector: hardwareProfile.formData.selectedProfile?.spec.scheduling?.node?.nodeSelector,
+      ...annotationData,
     };
   }
 

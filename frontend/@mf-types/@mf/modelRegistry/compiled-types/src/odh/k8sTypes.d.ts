@@ -1,7 +1,6 @@
 export declare enum KnownLabels {
     DASHBOARD_RESOURCE = "opendatahub.io/dashboard",
     PROJECT_SHARING = "opendatahub.io/project-sharing",
-    MODEL_SERVING_PROJECT = "modelmesh-enabled",
     DATA_CONNECTION_AWS = "opendatahub.io/managed",
     LABEL_SELECTOR_MODEL_REGISTRY = "component=model-registry",
     LABEL_SELECTOR_DATA_SCIENCE_PIPELINES = "data-science-pipelines",

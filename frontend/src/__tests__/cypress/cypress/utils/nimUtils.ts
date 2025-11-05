@@ -39,12 +39,8 @@ import { DataScienceStackComponent } from '#~/concepts/areas/types';
    ###### Interception Initialization Utilities ######
    ################################################### */
 
-type EnableNimConfigType = {
-  hasAllModels?: boolean;
-};
-
 // intercept all APIs required for enabling NIM
-export const initInterceptsToEnableNim = ({ hasAllModels = false }: EnableNimConfigType): void => {
+export const initInterceptsToEnableNim = (): void => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
@@ -76,7 +72,7 @@ export const initInterceptsToEnableNim = ({ hasAllModels = false }: EnableNimCon
   );
 
   cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
-  cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockNimProject({ hasAllModels })]));
+  cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockNimProject({})]));
 
   const templateMock = mockNimServingRuntimeTemplate();
   cy.interceptK8sList(TemplateModel, mockK8sResourceList([templateMock]));

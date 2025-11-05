@@ -25,7 +25,6 @@ import { getModelServingProjects } from '#~/api';
 const applyAuthToInferenceService = (
   inferenceService: InferenceServiceKind,
   tokenAuth: boolean,
-  isModelMesh?: boolean,
 ) => {
   const updateInferenceService = structuredClone(inferenceService);
   if (!updateInferenceService.metadata.annotations) {
@@ -33,8 +32,8 @@ const applyAuthToInferenceService = (
   }
   delete updateInferenceService.metadata.annotations['security.opendatahub.io/enable-auth'];
 
-  // KServe
-  if (!isModelMesh && tokenAuth) {
+  // Always apply auth for KServe
+  if (tokenAuth) {
     updateInferenceService.metadata.annotations['security.opendatahub.io/enable-auth'] = 'true';
   }
 
@@ -44,7 +43,6 @@ const applyAuthToInferenceService = (
 const applyRoutingToInferenceService = (
   inferenceService: InferenceServiceKind,
   externalRoute: boolean,
-  isModelMesh?: boolean,
 ) => {
   const updateInferenceService = structuredClone(inferenceService);
   if (!updateInferenceService.metadata.labels) {
@@ -53,11 +51,9 @@ const applyRoutingToInferenceService = (
   delete updateInferenceService.metadata.labels['networking.knative.dev/visibility'];
   delete updateInferenceService.metadata.labels['networking.kserve.io/visibility'];
 
-  // KServe
-  if (!isModelMesh) {
-    if (externalRoute) {
-      updateInferenceService.metadata.labels['networking.kserve.io/visibility'] = 'exposed';
-    }
+  // Always apply KServe routing
+  if (externalRoute) {
+    updateInferenceService.metadata.labels['networking.kserve.io/visibility'] = 'exposed';
   }
 
   return updateInferenceService;
@@ -67,7 +63,6 @@ export const assembleInferenceService = (
   data: CreatingInferenceServiceObject,
   secretKey?: string,
   editName?: string,
-  isModelMesh?: boolean,
   inferenceService?: InferenceServiceKind,
   isStorageNeeded?: boolean,
   podSpecOptions?: ModelServingPodSpecOptions,
@@ -118,7 +113,7 @@ export const assembleInferenceService = (
   annotations['serving.kserve.io/deploymentMode'] = DeploymentMode.RawDeployment;
 
   const dashboardNamespace = data.dashboardNamespace ?? '';
-  if (!isModelMesh && podSpecOptions && podSpecOptions.selectedHardwareProfile) {
+  if (podSpecOptions && podSpecOptions.selectedHardwareProfile) {
     annotations['opendatahub.io/hardware-profile-name'] =
       podSpecOptions.selectedHardwareProfile.metadata.name;
     if (podSpecOptions.selectedHardwareProfile.metadata.namespace === project) {
@@ -139,11 +134,10 @@ export const assembleInferenceService = (
   const spec = { ...updatedInferenceService.spec };
   const predictor = { ...spec.predictor };
 
-  if (!isModelMesh) {
-    predictor.minReplicas = minReplicas;
-    predictor.maxReplicas = maxReplicas;
-    predictor.imagePullSecrets = imagePullSecrets;
-  }
+  // Always apply KServe configuration
+  predictor.minReplicas = minReplicas;
+  predictor.maxReplicas = maxReplicas;
+  predictor.imagePullSecrets = imagePullSecrets;
 
   const model = { ...predictor.model };
   model.modelFormat = {
@@ -172,18 +166,10 @@ export const assembleInferenceService = (
 
   updatedInferenceService.spec = spec;
 
-  updatedInferenceService = applyAuthToInferenceService(
-    updatedInferenceService,
-    tokenAuth,
-    isModelMesh,
-  );
-  updatedInferenceService = applyRoutingToInferenceService(
-    updatedInferenceService,
-    externalRoute,
-    isModelMesh,
-  );
+  updatedInferenceService = applyAuthToInferenceService(updatedInferenceService, tokenAuth);
+  updatedInferenceService = applyRoutingToInferenceService(updatedInferenceService, externalRoute);
 
-  if (!isModelMesh && podSpecOptions) {
+  if (podSpecOptions) {
     const { tolerations, resources, nodeSelector } = podSpecOptions;
     if (!podSpecOptions.selectedHardwareProfile) {
       if (tolerations) {
@@ -295,7 +281,6 @@ export const getInferenceServicePods = (
 export const createInferenceService = (
   data: CreatingInferenceServiceObject,
   secretKey?: string,
-  isModelMesh?: boolean,
   podSpecOptions?: ModelServingPodSpecOptions,
   dryRun = false,
   isStorageNeeded?: boolean,
@@ -304,7 +289,6 @@ export const createInferenceService = (
     data,
     secretKey,
     undefined,
-    isModelMesh,
     undefined,
     isStorageNeeded,
     podSpecOptions,
@@ -324,7 +308,6 @@ export const updateInferenceService = (
   data: CreatingInferenceServiceObject,
   existingData: InferenceServiceKind,
   secretKey?: string,
-  isModelMesh?: boolean,
   podSpecOptions?: ModelServingPodSpecOptions,
   dryRun = false,
   isStorageNeeded?: boolean,
@@ -333,7 +316,6 @@ export const updateInferenceService = (
     data,
     secretKey,
     existingData.metadata.name,
-    isModelMesh,
     existingData,
     isStorageNeeded,
     podSpecOptions,

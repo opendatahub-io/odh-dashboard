@@ -39,11 +39,7 @@ const InferenceServiceProject: React.FC<InferenceServiceProjectProps> = ({
         <>
           {getDisplayNameFromK8sResource(project)}{' '}
           <Label isCompact={isCompact}>
-            {isKServeNIMEnabled
-              ? 'NVIDIA NIM serving enabled'
-              : project.metadata.labels?.['modelmesh-enabled'] === 'true'
-              ? 'Multi-model serving enabled'
-              : 'Single-model serving enabled'}
+            {isKServeNIMEnabled ? 'NVIDIA NIM serving enabled' : 'Single-model serving enabled'}
           </Label>
         </>
       ) : (

@@ -11,7 +11,7 @@ type PerformanceTabsProps = {
 };
 
 const PerformanceTab: React.FC<PerformanceTabsProps> = ({ model }) => {
-  // Always KServe (no ModelMesh)
+  // Always KServe
   const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
 
   if (!kserveMetricsEnabled) {

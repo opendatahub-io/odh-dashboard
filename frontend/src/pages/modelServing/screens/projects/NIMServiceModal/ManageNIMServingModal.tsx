@@ -307,7 +307,6 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
       NamespaceApplicationCase.KSERVE_NIM_PROMOTION,
       projectContext?.currentProject,
       servingRuntimeName,
-      false,
     );
 
     const inferenceServiceName = createDataInferenceService.k8sName;
@@ -326,7 +325,6 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
       editInfo?.inferenceServiceEditInfo,
       editInfo?.servingRuntimeEditInfo?.servingRuntime?.metadata.name || servingRuntimeName,
       editInfo?.inferenceServiceEditInfo?.metadata.name || inferenceServiceName,
-      false,
       podSpecOptionsState.podSpecOptions,
       allowCreate,
       editInfo?.secrets,
@@ -458,8 +456,6 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
               isEditing={!!editInfo}
               servingRuntimeSelected={servingRuntimeSelected}
               podSpecOptionState={podSpecOptionsState}
-              infoContent="Select CPU and memory resources large enough to support the NIM being deployed."
-              customDefaults={NIM_CUSTOM_DEFAULTS}
             />
             <AuthServingRuntimeSection
               data={createDataInferenceService}

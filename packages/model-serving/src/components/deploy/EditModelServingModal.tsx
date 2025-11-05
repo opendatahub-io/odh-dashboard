@@ -1,5 +1,4 @@
 import React from 'react';
-import ManageInferenceServiceModal from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
 import { isProjectNIMSupported } from '@odh-dashboard/internal/pages/modelServing/screens/projects/nimUtils';
 import ManageNIMServingModal from '@odh-dashboard/internal/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
 import ManageKServeModal from '@odh-dashboard/internal/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
@@ -39,14 +38,6 @@ export const EditModelServingModal: React.FC<{
 
   return (
     <>
-      {deployment.modelServingPlatformId === 'modelmesh' && (
-        <ManageInferenceServiceModal
-          editInfo={inferenceService}
-          onClose={(submit: boolean) => {
-            onClose(submit);
-          }}
-        />
-      )}
       {deployment.modelServingPlatformId === 'nim' && isKServeNIMEnabled && (
         <ManageNIMServingModal
           editInfo={{

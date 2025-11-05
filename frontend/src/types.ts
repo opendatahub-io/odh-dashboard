@@ -114,7 +114,6 @@ export type ClusterSettingsType = {
 
 export type ModelServingPlatformEnabled = {
   kServe: boolean;
-  modelMesh: boolean;
 };
 
 /** @deprecated -- use SDK type */
@@ -787,7 +786,6 @@ export type DetectedAccelerators = {
 
 export enum ServingRuntimePlatform {
   SINGLE = 'single',
-  MULTI = 'multi',
 }
 
 export enum ServingRuntimeAPIProtocol {

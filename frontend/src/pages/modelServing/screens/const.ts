@@ -1,6 +1,5 @@
 export const platformKeyMap = {
   single: 'kServe',
-  multi: 'modelMesh',
 } as const;
 
 export const SERVING_RUNTIME_SCOPE = {

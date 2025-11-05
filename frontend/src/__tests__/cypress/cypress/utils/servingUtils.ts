@@ -49,10 +49,8 @@ export const initInterceptsForAllProjects = (): void => {
       mockProjectK8sResource({
         k8sName: 'kserve-project',
         displayName: 'KServe Project',
-        enableModelMesh: false,
       }),
       mockNimProject({
-        hasAllModels: false,
         k8sName: 'nim-project',
         displayName: 'NIM Project',
         enableNIM: true,

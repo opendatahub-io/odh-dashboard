@@ -145,21 +145,18 @@ export const mockNvidiaNimImagePullSecret = (): SecretKind => {
 };
 
 type NimProjectType = {
-  hasAllModels?: boolean;
   k8sName?: string;
   displayName?: string;
   enableNIM?: boolean;
 };
 
 export const mockNimProject = ({
-  hasAllModels,
   k8sName,
   displayName,
   enableNIM,
 }: NimProjectType): ProjectKind => {
   const project = mockProjectK8sResource({
     hasAnnotations: true,
-    enableModelMesh: hasAllModels ? undefined : false,
     k8sName,
     displayName,
     enableNIM,
