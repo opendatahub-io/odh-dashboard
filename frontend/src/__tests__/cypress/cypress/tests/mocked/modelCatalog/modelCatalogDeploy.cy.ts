@@ -22,8 +22,8 @@ import { initDeployPrefilledModelIntercepts } from '#~/__tests__/cypress/cypress
 import type { ModelCatalogSource } from '#~/concepts/modelCatalog/types';
 import { modelCatalogDeployModal } from '#~/__tests__/cypress/cypress/pages/modelCatalog/modelCatalogDeployModal';
 
-export const MODEL_CATALOG_API_VERSION = 'v1';
-export const MODEL_REGISTRY_API_VERSION = 'v1';
+const MODEL_CATALOG_API_VERSION = 'v1';
+const MODEL_REGISTRY_API_VERSION = 'v1';
 
 type HandlersProps = {
   catalogModels?: ModelCatalogSource[];
