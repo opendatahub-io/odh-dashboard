@@ -20,7 +20,6 @@ type MockResourceConfigType = {
   isProjectScoped?: boolean;
   scope?: string;
   hardwareProfileNamespace?: string;
-  acceleratorProfileNamespace?: string;
   isNonDashboardItem?: boolean;
   version?: string;
   templateName?: string;
