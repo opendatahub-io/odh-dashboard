@@ -6,6 +6,7 @@ import {
   modelServingSettings,
   pvcSizeSettings,
   telemetrySettings,
+  modelDeploymentSettings,
 } from '#~/__tests__/cypress/cypress/pages/clusterSettings';
 import { pageNotfound } from '#~/__tests__/cypress/cypress/pages/pageNotFound';
 import { be } from '#~/__tests__/cypress/cypress/utils/should';
@@ -55,6 +56,23 @@ describe('Cluster Settings', () => {
     modelServingSettings.findSinglePlatformCheckbox().check();
     modelServingSettings.findAlert().should('not.exist');
     modelServingSettings.findSubmitButton().should('be.disabled');
+
+    // check model deployment options field
+    modelDeploymentSettings.findDistributedInferencing().should('not.be.checked');
+    modelDeploymentSettings.findAlert().should('exist');
+    modelDeploymentSettings.findSubmitButton().should('be.disabled');
+    modelDeploymentSettings.findDistributedInferencing().click({ force: true });
+    modelDeploymentSettings.findSubmitButton().should('be.enabled');
+    modelDeploymentSettings.findAlert().should('not.exist');
+    modelDeploymentSettings.findDistributedInferencing().click({ force: true });
+    modelDeploymentSettings.findSubmitButton().should('be.disabled');
+
+    modelDeploymentSettings.findRollingUpdateRadio().should('be.checked');
+    modelDeploymentSettings.findSubmitButton().should('be.disabled');
+    modelDeploymentSettings.findRecreateRadio().check();
+    modelDeploymentSettings.findSubmitButton().should('be.enabled');
+    modelDeploymentSettings.findRollingUpdateRadio().check();
+    modelDeploymentSettings.findSubmitButton().should('be.disabled');
 
     // check PVC size field
     pvcSizeSettings.findInput().clear();
