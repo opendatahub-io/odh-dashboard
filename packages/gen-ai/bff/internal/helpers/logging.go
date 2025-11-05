@@ -32,6 +32,13 @@ var sensitiveHeaders = []string{
 	"Cookie",
 	"Set-Cookie",
 	"Proxy-Authorization",
+	"X-Forwarded-Access-Token",
+	"X-Auth-Request-Access-Token",
+	"X-Auth-Request-Email",
+	"X-Auth-Request-User",
+	"X-Auth-Request-Groups",
+	"X-Envoy-Peer-Metadata",
+	"X-Envoy-Peer-Metadata-Id",
 }
 
 func isSensitiveHeader(h string) bool {
@@ -97,16 +104,12 @@ type RequestLogValuer struct {
 }
 
 func (r RequestLogValuer) LogValue() slog.Value {
-	body := ""
-
-	if r.Request.Body != nil {
-		cloneBody, err := CloneBody(r.Request)
-		if err != nil {
-			body = fmt.Sprintf("error: %v", err)
-		} else {
-			body = string(cloneBody)
-		}
-	}
+	// Always redact request bodies for privacy and security
+	// May contain user chat conversations, prompts, or other sensitive data
+	// TODO: Once production deployments enforce LOG_LEVEL=INFO, we can conditionally
+	// log bodies when LOG_LEVEL=DEBUG to aid local development while maintaining
+	// production security. For now, always redact for defense-in-depth.
+	body := "[REDACTED for privacy]"
 
 	return slog.GroupValue(
 		slog.String("method", r.Request.Method),
