@@ -1,20 +1,25 @@
+import { featureRoute } from '../../../FeatureStoreRoutes';
 import {
   featureEntityRoute,
   featureDataSourceRoute,
   featureViewRoute,
   featureServiceRoute,
-  featureStoreRootRoute,
 } from '../../../routes';
 import type { ISearchItem } from '../hooks/useSearchHandlers';
 
-export const getFeatureStoreRoute = (type: string, project: string, name: string): string => {
+export const getFeatureStoreRoute = (
+  type: string,
+  project: string,
+  name: string,
+  featureView?: string,
+): string => {
   switch (type) {
     case 'entity':
       return featureEntityRoute(name, project);
     case 'dataSource':
       return featureDataSourceRoute(name, project);
     case 'feature':
-      return `${featureStoreRootRoute()}/features/${project}`;
+      return featureRoute(name, featureView ?? '', project);
     case 'featureView':
       return featureViewRoute(name, project);
     case 'featureService':
