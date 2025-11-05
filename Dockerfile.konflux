@@ -1,7 +1,7 @@
 # Build arguments
 ARG SOURCE_CODE=.
 
-FROM registry.access.redhat.com/ubi9/nodejs-20@sha256:440fedfef5094cc889d52b70644b35ff972001e6f43daefd577ee61f45c4a9b1 as builder
+FROM registry.access.redhat.com/ubi9/nodejs-20@sha256:59066dfc8fc28365fb402e7493066ade5dc709f3383ac5f75ecedb1e5e56cf4a as builder
 
 ## Build args to be used at this step
 ARG SOURCE_CODE
@@ -35,7 +35,7 @@ RUN npm run build
 # This is needed to remove the dev dependencies that were installed in the previous step
 RUN npm prune --omit=dev
 
-FROM registry.access.redhat.com/ubi9/nodejs-20@sha256:440fedfef5094cc889d52b70644b35ff972001e6f43daefd577ee61f45c4a9b1 as runtime
+FROM registry.access.redhat.com/ubi9/nodejs-20@sha256:59066dfc8fc28365fb402e7493066ade5dc709f3383ac5f75ecedb1e5e56cf4a as runtime
 
 WORKDIR /usr/src/app
 
