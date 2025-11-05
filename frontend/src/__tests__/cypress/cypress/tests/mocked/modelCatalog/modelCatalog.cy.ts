@@ -25,8 +25,8 @@ import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
 import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
-export const MODEL_CATALOG_API_VERSION = 'v1';
-export const MODEL_REGISTRY_API_VERSION = 'v1';
+const MODEL_CATALOG_API_VERSION = 'v1';
+const MODEL_REGISTRY_API_VERSION = 'v1';
 
 type HandlersProps = {
   modelRegistries?: K8sResourceCommon[];
