@@ -258,6 +258,15 @@ export const checkModelRegistryAvailable = (registryName: string): Cypress.Chain
         cy.log(`Wait stderr: ${result.stderr}`);
       }
       return cy.wrap(result.code === 0);
+    })
+    .then((isAvailable) => {
+      if (isAvailable) {
+        // Wait for mod arch UI pathway to fully initialize after backend is ready
+        // TODO: Remove this once https://issues.redhat.com/browse/RHOAIENG-35821 is addressed
+        // eslint-disable-next-line cypress/no-unnecessary-waiting
+        cy.wait(10000);
+      }
+      return cy.wrap(isAvailable);
     });
 };
 
