@@ -8,6 +8,7 @@ import {
   getStorageClassConfig,
   isOpenshiftDefaultStorageClass,
   getStorageClassDefaultAccessModeSettings,
+  setDefaultStorageClass,
 } from './utils';
 
 export interface StorageClassContextProps {
@@ -173,7 +174,7 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
 
   const value: StorageClassContextProps = React.useMemo(
     () => ({
-      storageClasses,
+      storageClasses: setDefaultStorageClass(storageClasses),
       storageClassConfigs,
       refresh,
       isUpdatingConfigs,

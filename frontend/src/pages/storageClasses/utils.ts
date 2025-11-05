@@ -34,6 +34,54 @@ export const getStorageClassConfig = (
   }
 };
 
+export const setDefaultStorageClass = (storageClasses: StorageClassKind[]): StorageClassKind[] => {
+  const defaultStorageClasses = storageClasses.filter(
+    (sc) => getStorageClassConfig(sc)?.isDefault === true,
+  );
+  if (defaultStorageClasses.length > 1) {
+    let isDefaultSet = false;
+    return storageClasses.map((sc) => {
+      if (getStorageClassConfig(sc)?.isDefault === true && !isDefaultSet) {
+        isDefaultSet = true;
+        return sc;
+      }
+      if (getStorageClassConfig(sc)?.isDefault === true) {
+        return {
+          ...sc,
+          metadata: {
+            ...sc.metadata,
+            annotations: {
+              ...sc.metadata.annotations,
+              [MetadataAnnotation.OdhStorageClassConfig]: JSON.stringify({
+                ...getStorageClassConfig(sc),
+                isDefault: false,
+              }),
+            },
+          },
+        };
+      }
+      return sc;
+    });
+  }
+  if (defaultStorageClasses.length > 0 || storageClasses.length === 0) {
+    return storageClasses;
+  }
+  const firstStorageClass = {
+    ...storageClasses[0],
+    metadata: {
+      ...storageClasses[0].metadata,
+      annotations: {
+        ...storageClasses[0].metadata.annotations,
+        [MetadataAnnotation.OdhStorageClassConfig]: JSON.stringify({
+          ...getStorageClassConfig(storageClasses[0]),
+          isDefault: true,
+        }),
+      },
+    },
+  };
+  return [firstStorageClass, ...storageClasses.slice(1)];
+};
+
 export const getPossibleStorageClassAccessModes = (
   storageClass?: StorageClassKind | null,
 ): {
