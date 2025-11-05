@@ -534,6 +534,11 @@ const applyFeatureLockouts = (config: DashboardConfig): DashboardConfig => ({
        * Model Mesh is removed in v3.0
        */
       disableModelMesh: true,
+
+      /**
+       * Fine Tuning feature is no longer supported
+       */
+      disableFineTuning: true,
     },
   },
 });
