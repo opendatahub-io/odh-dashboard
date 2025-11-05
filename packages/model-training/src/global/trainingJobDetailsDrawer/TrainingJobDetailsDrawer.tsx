@@ -13,6 +13,8 @@ import {
   Dropdown,
   DropdownList,
   DropdownItem,
+  Flex,
+  FlexItem,
 } from '@patternfly/react-core';
 import { EllipsisVIcon } from '@patternfly/react-icons';
 import { TrainJobKind } from '../../k8sTypes';
@@ -45,37 +47,41 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
       data-testid="training-job-details-drawer"
     >
       <DrawerHead>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
-          <Title headingLevel="h2" size="xl" style={{ flex: 1 }}>
-            {displayName}
-          </Title>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+          <FlexItem flex={{ default: 'flex_1' }}>
+            <Title headingLevel="h2" size="xl">
+              {displayName}
+            </Title>
+          </FlexItem>
 
-          <DrawerActions>
-            <Dropdown
-              isOpen={isKebabOpen}
-              onSelect={() => setIsKebabOpen(false)}
-              onOpenChange={(isOpen: boolean) => setIsKebabOpen(isOpen)}
-              popperProps={{ position: 'right' }}
-              toggle={(toggleRef) => (
-                <MenuToggle
-                  ref={toggleRef}
-                  aria-label="Kebab toggle"
-                  variant="plain"
-                  onClick={() => setIsKebabOpen(!isKebabOpen)}
-                  isExpanded={isKebabOpen}
-                >
-                  <EllipsisVIcon />
-                </MenuToggle>
-              )}
-              shouldFocusToggleOnSelect
-            >
-              <DropdownList>
-                <DropdownItem key="delete">Delete</DropdownItem>
-              </DropdownList>
-            </Dropdown>
-            <DrawerCloseButton onClick={onClose} />
-          </DrawerActions>
-        </div>
+          <FlexItem>
+            <DrawerActions>
+              <Dropdown
+                isOpen={isKebabOpen}
+                onSelect={() => setIsKebabOpen(false)}
+                onOpenChange={(isOpen: boolean) => setIsKebabOpen(isOpen)}
+                popperProps={{ position: 'right' }}
+                toggle={(toggleRef) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    aria-label="Kebab toggle"
+                    variant="plain"
+                    onClick={() => setIsKebabOpen(!isKebabOpen)}
+                    isExpanded={isKebabOpen}
+                  >
+                    <EllipsisVIcon />
+                  </MenuToggle>
+                )}
+                shouldFocusToggleOnSelect
+              >
+                <DropdownList>
+                  <DropdownItem key="delete">Delete</DropdownItem>
+                </DropdownList>
+              </Dropdown>
+              <DrawerCloseButton onClick={onClose} />
+            </DrawerActions>
+          </FlexItem>
+        </Flex>
         <div style={{ marginTop: '8px' }}>
           <p>{description}</p>
         </div>

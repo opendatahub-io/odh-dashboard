@@ -162,7 +162,7 @@ describe('Model Training', () => {
       trainingJobDetailsDrawer.shouldBeClosed();
 
       const row = trainingJobTable.getTableRow('image-classification-job');
-      row.clickName();
+      row.findNameLink().click();
 
       trainingJobDetailsDrawer.shouldBeOpen();
     });
@@ -172,7 +172,7 @@ describe('Model Training', () => {
       modelTrainingGlobal.visit(projectName);
 
       const row = trainingJobTable.getTableRow('nlp-model-training');
-      row.clickName();
+      row.findNameLink().click();
 
       trainingJobDetailsDrawer.shouldBeOpen();
 
@@ -196,7 +196,7 @@ describe('Model Training', () => {
       modelTrainingGlobal.visit(projectName);
 
       const row = trainingJobTable.getTableRow('failed-training-job');
-      row.clickName();
+      row.findNameLink().click();
       trainingJobDetailsDrawer.shouldBeOpen();
 
       trainingJobDetailsDrawer.close();
@@ -208,7 +208,7 @@ describe('Model Training', () => {
       modelTrainingGlobal.visit(projectName);
 
       const row = trainingJobTable.getTableRow('a-first-job');
-      row.clickName();
+      row.findNameLink().click();
 
       trainingJobDetailsDrawer.shouldBeOpen();
 
@@ -222,12 +222,12 @@ describe('Model Training', () => {
       modelTrainingGlobal.visit(projectName);
 
       const firstRow = trainingJobTable.getTableRow('image-classification-job');
-      firstRow.clickName();
+      firstRow.findNameLink().click();
       trainingJobDetailsDrawer.shouldBeOpen();
       trainingJobDetailsDrawer.findTitle().should('contain', 'image-classification-job');
 
       const secondRow = trainingJobTable.getTableRow('nlp-model-training');
-      secondRow.clickName();
+      secondRow.findNameLink().click();
 
       trainingJobDetailsDrawer.findTitle().should('contain', 'nlp-model-training');
     });

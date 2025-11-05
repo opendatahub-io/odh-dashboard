@@ -112,8 +112,8 @@ class TrainingJobTableRow extends TableRow {
     return this.find().find('[data-label="Status"]');
   }
 
-  clickName() {
-    this.findTrainingJobName().find('button').click();
+  findNameLink() {
+    return this.findTrainingJobName().find('button');
   }
 }
 
