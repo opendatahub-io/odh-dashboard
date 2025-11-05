@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Tr, Td, ActionsColumn } from '@patternfly/react-table';
-import { Timestamp, Flex, FlexItem, TimestampTooltipVariant } from '@patternfly/react-core';
+import { Timestamp, Flex, FlexItem, TimestampTooltipVariant, Button } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
@@ -20,6 +20,7 @@ type TrainingJobTableRowProps = {
   jobStatus?: TrainingJobState;
   onDelete: (job: TrainJobKind) => void;
   onStatusUpdate?: (jobId: string, newStatus: TrainingJobState) => void;
+  onSelectJob: (job: TrainJobKind) => void;
 };
 
 const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
@@ -27,6 +28,7 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
   jobStatus,
   onDelete,
   onStatusUpdate,
+  onSelectJob,
 }) => {
   const notification = useNotification();
   const [hibernationModalOpen, setHibernationModalOpen] = React.useState(false);
@@ -89,11 +91,14 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
   return (
     <>
       <Tr>
-        <Td dataLabel="Name">{displayName}</Td>
+        <Td dataLabel="Name">
+          <Button variant="link" isInline onClick={() => onSelectJob(job)}>
+            {displayName}
+          </Button>
+        </Td>
         <Td dataLabel="Project">
           <TrainingJobProject trainingJob={job} />
         </Td>
-
         <Td dataLabel="Nodes">
           <Flex
             alignItems={{ default: 'alignItemsCenter' }}
@@ -110,7 +115,6 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
                 <FlexItem>{nodesCount}</FlexItem>
               </Flex>
             </FlexItem>
-
             {/* Show scaling hint when scaling is available */}
             {/* TODO: RHOAIENG-37576 Uncomment this when scaling is implemented */}
             {/* {(isNotPaused || canScaleNodes) && (
@@ -128,7 +132,8 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
                     </Icon>
                   </Button>
                 </Tooltip>
-              </FlexItem> */}
+              </FlexItem>
+            )} */}
           </Flex>
         </Td>
         <Td dataLabel="Cluster queue">

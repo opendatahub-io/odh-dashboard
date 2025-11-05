@@ -10,10 +10,12 @@ import { TrainingJobState } from '../../types';
 
 type TrainingJobListViewProps = {
   trainingJobs: TrainJobKind[];
+  onSelectJob: (job: TrainJobKind) => void;
 };
 
 const TrainingJobListView: React.FC<TrainingJobListViewProps> = ({
   trainingJobs: unfilteredTrainingJobs,
+  onSelectJob,
 }) => {
   const [filterData, setFilterData] = React.useState<TrainingJobFilterDataType>(
     initialTrainingJobFilterData,
@@ -79,6 +81,7 @@ const TrainingJobListView: React.FC<TrainingJobListViewProps> = ({
       trainingJobs={filteredTrainingJobs}
       jobStatuses={jobStatuses}
       onStatusUpdate={handleStatusUpdate}
+      onSelectJob={onSelectJob}
       onClearFilters={onClearFilters}
       clearFilters={Object.values(filterData).some((value) => !!value) ? onClearFilters : undefined}
       toolbarContent={

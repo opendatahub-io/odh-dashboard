@@ -111,7 +111,69 @@ class TrainingJobTableRow extends TableRow {
   findStatus() {
     return this.find().find('[data-label="Status"]');
   }
+
+  findNameLink() {
+    return this.findTrainingJobName().find('button');
+  }
+}
+
+class TrainingJobDetailsDrawer {
+  find() {
+    return cy.findByTestId('training-job-details-drawer');
+  }
+
+  shouldBeOpen() {
+    this.find().should('exist');
+    return this;
+  }
+
+  shouldBeClosed() {
+    cy.findByTestId('training-job-details-drawer').should('not.exist');
+    return this;
+  }
+
+  findTitle() {
+    return this.find().find('h2');
+  }
+
+  findDescription() {
+    return this.find().find('p').first();
+  }
+
+  findCloseButton() {
+    return this.find().findByLabelText('Close drawer panel');
+  }
+
+  findKebabMenu() {
+    return this.find().findByLabelText('Kebab toggle');
+  }
+
+  findTab(tabName: string) {
+    return this.find().findByRole('tab', { name: tabName });
+  }
+
+  selectTab(tabName: string) {
+    this.findTab(tabName).click();
+    return this;
+  }
+
+  findActiveTabContent() {
+    return this.find().find('[role="tabpanel"]');
+  }
+
+  close() {
+    this.findCloseButton().click();
+  }
+
+  clickKebabMenu() {
+    this.findKebabMenu().click();
+  }
+
+  findKebabMenuItem(itemName: string) {
+    return cy.findByRole('menuitem', { name: itemName });
+  }
 }
 
 export const modelTrainingGlobal = new ModelTrainingGlobal();
 export const trainingJobTable = new TrainingJobTable();
+export const trainingJobDetailsDrawer = new TrainingJobDetailsDrawer();
