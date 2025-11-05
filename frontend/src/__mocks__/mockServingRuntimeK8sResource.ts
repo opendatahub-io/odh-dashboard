@@ -109,7 +109,6 @@ export const mockServingRuntimeK8sResource = ({
   replicas = 0,
   displayName = 'OVMS Model Serving',
   acceleratorName = '',
-  acceleratorProfileNamespace = undefined,
   hardwareProfileName = '',
   apiProtocol = ServingRuntimeAPIProtocol.REST,
   resources = {
@@ -155,9 +154,6 @@ export const mockServingRuntimeK8sResource = ({
       ...(isProjectScoped && { 'opendatahub.io/serving-runtime-scope': scope }),
       ...(hardwareProfileNamespace && {
         'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
-      }),
-      ...(acceleratorProfileNamespace && {
-        'opendatahub.io/accelerator-profile-namespace': acceleratorProfileNamespace,
       }),
     },
     name,
