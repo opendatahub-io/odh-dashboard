@@ -34,6 +34,7 @@ import useLabeledConnections from './useLabeledConnections';
 export type ModelDeployPrefillInfo = {
   modelName: string;
   modelFormat?: string;
+  modelFormatVersion?: string;
   modelArtifactUri?: string;
   connectionTypeName?: string;
   initialConnectionName?: string;
