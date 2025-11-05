@@ -1572,9 +1572,9 @@ describe('Model Serving Deploy Wizard', () => {
     });
 
     it('deploy create', () => {
-      cy.visitWithLogin(`/modelServing/test-project/deploy`);
+      cy.visitWithLogin(`/modelServing/deploy`);
       cy.findByTestId('app-page-title').contains('Deploy a model');
-      cy.url().should('include', '/ai-hub/deployments/test-project/deploy');
+      cy.url().should('include', '/ai-hub/deployments/deploy');
     });
   });
 });

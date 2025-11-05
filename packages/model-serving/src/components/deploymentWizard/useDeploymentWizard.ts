@@ -115,8 +115,8 @@ export const useModelDeploymentWizard = (
 
   // loaded state
   const modelDeploymentLoaded = React.useMemo(() => {
-    return modelFormatState.loaded && hardwareProfileConfig.profilesLoaded;
-  }, [modelFormatState.loaded, hardwareProfileConfig.profilesLoaded]);
+    return hardwareProfileConfig.profilesLoaded;
+  }, [hardwareProfileConfig.profilesLoaded]);
 
   // Step 3: Advanced Options - Individual Fields
   const modelAvailabilityFormData = React.useMemo(
