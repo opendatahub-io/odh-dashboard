@@ -22,6 +22,7 @@ import {
   ModelServerSelectFieldData,
   modelServerSelectFieldSchema,
 } from './fields/ModelServerTemplateSelectField';
+import { isValidProjectName } from './fields/ProjectSection';
 
 export type ModelDeploymentWizardValidation = {
   modelSource: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
@@ -103,6 +104,9 @@ export const useModelDeploymentWizardValidation = (
   const isModelSourceStepValid =
     modelSourceStepValidation.getFieldValidation(undefined, true).length === 0;
   const isModelDeploymentStepValid =
+    isValidProjectName(
+      state.project.initialProjectName ?? state.project.projectName ?? undefined,
+    ) &&
     isK8sNameDescriptionDataValid(state.k8sNameDesc.data) &&
     Object.keys(hardwareProfileValidation.getAllValidationIssues()).length === 0 &&
     Object.keys(modelFormatValidation.getAllValidationIssues()).length === 0 &&

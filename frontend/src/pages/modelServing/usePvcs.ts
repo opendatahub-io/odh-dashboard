@@ -7,7 +7,7 @@ import useFetch, {
 } from '#~/utilities/useFetch';
 import { getDashboardPvcs } from '#~/api/k8s/pvcs';
 
-export default function usePvcs(namespace: string): FetchStateObject<PersistentVolumeClaimKind[]> {
+export default function usePvcs(namespace?: string): FetchStateObject<PersistentVolumeClaimKind[]> {
   const callback = React.useCallback<
     FetchStateCallbackPromise<PersistentVolumeClaimKind[]>
   >(async () => {

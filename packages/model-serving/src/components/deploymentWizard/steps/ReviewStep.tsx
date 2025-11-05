@@ -14,7 +14,7 @@ import { ModelLocationType } from '../types';
 
 type ReviewStepContentProps = {
   wizardState: UseModelDeploymentWizardState;
-  projectName: string;
+  projectName?: string;
 };
 
 type WizardState = UseModelDeploymentWizardState['state'];
@@ -34,7 +34,7 @@ type StatusSection = {
   items: StatusItem[];
 };
 
-const getStatusSections = (projectName: string): StatusSection[] => [
+const getStatusSections = (projectName?: string): StatusSection[] => [
   {
     title: 'Model details',
     items: [

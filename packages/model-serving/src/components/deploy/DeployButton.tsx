@@ -15,7 +15,7 @@ export const DeployButton: React.FC<{
   const [globalTemplates, globalTemplatesLoaded] = useServingRuntimeTemplates();
   const isMissingTemplates = globalTemplates.length === 0 && globalTemplatesLoaded;
 
-  const disableButton = !project || isMissingTemplates || isKueueDisabled;
+  const disableButton = isMissingTemplates || isKueueDisabled;
   const disabledReason = isMissingTemplates
     ? 'At least one serving runtime must be enabled to deploy a model. Contact your administrator.'
     : 'To deploy a model, select a project.';
@@ -24,7 +24,7 @@ export const DeployButton: React.FC<{
     <Button
       data-testid="deploy-button"
       variant={variant}
-      onClick={() => project && navigateToDeploymentWizard(project.metadata.name)}
+      onClick={() => navigateToDeploymentWizard(project?.metadata.name)}
       isAriaDisabled={disableButton}
       isInline={variant === 'link'}
     >

@@ -128,6 +128,11 @@ export const mockDeploymentWizardState = (
     {
       initialData: undefined,
       state: {
+        project: {
+          initialProjectName: 'test-project',
+          projectName: 'test-project',
+          setProjectName: jest.fn(),
+        },
         modelType: {
           data: ServingRuntimeModelType.GENERATIVE,
           setData: jest.fn(),

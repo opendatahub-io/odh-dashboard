@@ -58,7 +58,7 @@ describe('CreateConnectionInputFields', () => {
     it('should return the correct data', () => {
       const { result } = renderHook(() =>
         useCreateConnectionData(
-          null,
+          undefined,
           {
             saveConnection: true,
             nameDesc: mockK8sNameDescriptionFieldData(),
@@ -73,7 +73,7 @@ describe('CreateConnectionInputFields', () => {
     });
     it('should initialize with saveConnection set to true', () => {
       const { result } = renderHook(() =>
-        useCreateConnectionData(null, undefined, mockModelLocationData),
+        useCreateConnectionData(undefined, undefined, mockModelLocationData),
       );
       const { data } = result.current;
       expect(data).toEqual({ saveConnection: true });
@@ -81,7 +81,7 @@ describe('CreateConnectionInputFields', () => {
     it('should initialize with existing data', () => {
       const { result } = renderHook(() =>
         useCreateConnectionData(
-          null,
+          undefined,
           {
             saveConnection: true,
             nameDesc: mockK8sNameDescriptionFieldData(),
@@ -94,7 +94,7 @@ describe('CreateConnectionInputFields', () => {
     });
     it('should update the connection data', () => {
       const { result } = renderHook(() =>
-        useCreateConnectionData(null, undefined, mockModelLocationData),
+        useCreateConnectionData(undefined, undefined, mockModelLocationData),
       );
       const { data, setData } = result.current;
       act(() => {
@@ -105,7 +105,7 @@ describe('CreateConnectionInputFields', () => {
     it('should update the connection data with existing data', () => {
       const { result } = renderHook(() =>
         useCreateConnectionData(
-          null,
+          undefined,
           {
             saveConnection: false,
           },
@@ -131,7 +131,7 @@ describe('CreateConnectionInputFields', () => {
             nameDesc: mockK8sNameDescriptionFieldData(),
           }}
           setCreateConnectionData={mockSetCreateConnectionData}
-          project={null}
+          projectName={undefined}
           modelLocationData={undefined}
         />,
       );
@@ -146,7 +146,7 @@ describe('CreateConnectionInputFields', () => {
             nameDesc: mockK8sNameDescriptionFieldData(),
           }}
           setCreateConnectionData={mockSetCreateConnectionData}
-          project={null}
+          projectName={undefined}
           modelLocationData={{ ...mockModelLocationData, type: ModelLocationType.EXISTING }}
         />,
       );
@@ -161,7 +161,7 @@ describe('CreateConnectionInputFields', () => {
             nameDesc: mockK8sNameDescriptionFieldData(),
           }}
           setCreateConnectionData={mockSetCreateConnectionData}
-          project={null}
+          projectName={undefined}
           modelLocationData={mockModelLocationData}
         />,
       );
@@ -178,7 +178,7 @@ describe('CreateConnectionInputFields', () => {
             nameDesc: mockK8sNameDescriptionFieldData(),
           }}
           setCreateConnectionData={mockSetCreateConnectionData}
-          project={null}
+          projectName={undefined}
           modelLocationData={mockModelLocationData}
         />,
       );
@@ -199,7 +199,7 @@ describe('CreateConnectionInputFields', () => {
             nameDesc: mockK8sNameDescriptionFieldData(),
           }}
           setCreateConnectionData={mockSetCreateConnectionData}
-          project={null}
+          projectName={undefined}
           modelLocationData={mockModelLocationData}
         />,
       );

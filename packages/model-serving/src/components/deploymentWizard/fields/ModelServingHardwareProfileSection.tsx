@@ -35,7 +35,7 @@ export const useModelServingHardwareProfileSection = (
 
 type ModelServingHardwareProfileSectionComponentProps = {
   hardwareProfileConfig: UseHardwareProfileConfigResult;
-  project: string;
+  project?: string;
   isEditing?: boolean;
 };
 
