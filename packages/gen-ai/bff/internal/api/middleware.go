@@ -302,29 +302,16 @@ func (app *App) AttachMaaSClient(next func(http.ResponseWriter, *http.Request, h
 				logger.Debug("Using MAAS_URL environment variable (developer override)",
 					"serviceURL", serviceURL)
 			} else {
-				// Priority 2: Autodiscovery using cluster domain
-				if app.kubernetesClientFactory == nil {
+				// Priority 2: Autodiscovery using cached cluster domain (from service account at startup)
+				if app.clusterDomain == "" {
+					logger.Error("cluster domain not available for MaaS autodiscovery")
 					app.handleMaaSClientError(w, r, maas.NewServerUnavailableError(""))
 					return
 				}
 
-				k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-				if err != nil {
-					logger.Error("failed to get Kubernetes client for MaaS autodiscovery", "error", err)
-					app.handleMaaSClientError(w, r, maas.NewServerUnavailableError(""))
-					return
-				}
-
-				clusterDomain, err := k8sClient.GetClusterDomain(ctx)
-				if err != nil {
-					logger.Error("failed to get cluster domain for MaaS autodiscovery", "error", err)
-					app.handleMaaSClientError(w, r, maas.NewServerUnavailableError(""))
-					return
-				}
-
-				serviceURL = fmt.Sprintf("https://maas.%s/maas-api", clusterDomain)
-				logger.Debug("Using autodiscovered MaaS endpoint",
-					"clusterDomain", clusterDomain,
+				serviceURL = fmt.Sprintf("https://maas.%s/maas-api", app.clusterDomain)
+				logger.Debug("Using autodiscovered MaaS endpoint from cached cluster domain",
+					"clusterDomain", app.clusterDomain,
 					"serviceURL", serviceURL)
 			}
 
