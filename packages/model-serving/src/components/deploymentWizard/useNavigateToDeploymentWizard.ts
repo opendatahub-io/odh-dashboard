@@ -2,6 +2,7 @@ import { useLocation, useNavigate, type NavigateFunction } from 'react-router-do
 import React from 'react';
 import { getDeploymentWizardRoute } from './utils';
 import { useExtractFormDataFromDeployment } from './useExtractFormDataFromDeployment';
+import { type InitialWizardFormData } from './types';
 import { type Deployment } from '../../../extension-points';
 
 /**
@@ -54,7 +55,7 @@ export const useNavigateToDeploymentWizard = (
 
   // Memoize the navigation function to prevent unnecessary re-renders
   return React.useCallback(
-    (projectName?: string): void => {
+    (projectName?: string, initialData?: InitialWizardFormData | null): void => {
       // If we're editing a deployment, wait for form data to load
       if (deployment && !loaded) {
         console.warn(
@@ -69,9 +70,15 @@ export const useNavigateToDeploymentWizard = (
         return;
       }
 
+      const mergedInitialData = { ...formData, ...initialData };
       // Navigate to deployment wizard with state data
       navigate(getDeploymentWizardRoute(), {
-        state: { initialData: formData, existingDeployment: deployment, returnRoute, projectName },
+        state: {
+          initialData: mergedInitialData,
+          existingDeployment: deployment,
+          returnRoute,
+          projectName,
+        },
       });
     },
     [navigate, formData, loaded, error, deployment, returnRoute],
