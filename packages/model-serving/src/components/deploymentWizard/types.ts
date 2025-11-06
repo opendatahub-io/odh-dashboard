@@ -19,6 +19,7 @@ import type { useModelLocationData } from './fields/ModelLocationInputFields';
 import type { useNumReplicasField } from './fields/NumReplicasField';
 import type { useRuntimeArgsField } from './fields/RuntimeArgsField';
 import type { useTokenAuthenticationField } from './fields/TokenAuthenticationField';
+import type { useDeploymentStrategyField } from './fields/DeploymentStrategyField';
 import {
   useCreateConnectionData,
   type CreateConnectionData,
@@ -67,6 +68,7 @@ export type InitialWizardFormData = {
   initSelectedConnection?: LabeledConnection | undefined;
   modelAvailability?: ModelAvailabilityFieldsData;
   createConnectionData?: CreateConnectionData;
+  deploymentStrategy?: DeploymentStrategyFieldData;
   // Add more field handlers as needed
 };
 
@@ -86,6 +88,7 @@ export type WizardFormData = {
     modelAvailability: ReturnType<typeof useModelAvailabilityFields>;
     modelServer: ReturnType<typeof useModelServerSelectField>;
     createConnectionData: ReturnType<typeof useCreateConnectionData>;
+    deploymentStrategy: ReturnType<typeof useDeploymentStrategyField>;
   };
 };
 // wizard form data
@@ -104,6 +107,7 @@ export type HardwareProfileConfigFieldData =
   WizardFormData['state']['hardwareProfileConfig']['formData'];
 export type ModelFormatFieldData = WizardFormData['state']['modelFormatState']['modelFormat'];
 export type ModelAvailabilityFieldsData = WizardFormData['state']['modelAvailability']['data'];
+export type DeploymentStrategyFieldData = WizardFormData['state']['deploymentStrategy']['data'];
 
 // extensible fields
 

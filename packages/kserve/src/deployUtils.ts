@@ -369,3 +369,14 @@ export const applyModelType = (
   };
   return result;
 };
+
+export const applyDeploymentStrategy = (
+  inferenceService: InferenceServiceKind,
+  deploymentStrategy: 'rolling' | 'recreate',
+): InferenceServiceKind => {
+  const result = structuredClone(inferenceService);
+  result.spec.predictor.deploymentStrategy = {
+    type: deploymentStrategy === 'rolling' ? 'RollingUpdate' : 'Recreate',
+  };
+  return result;
+};

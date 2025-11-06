@@ -13,6 +13,7 @@ import { ExternalRouteField } from '../fields/ExternalRouteField';
 import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
 import { RuntimeArgsField } from '../fields/RuntimeArgsField';
 import { EnvironmentVariablesField } from '../fields/EnvironmentVariablesField';
+import { DeploymentStrategyField } from '../fields/DeploymentStrategyField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { AvailableAiAssetsFieldsComponent } from '../fields/ModelAvailabilityFields';
 import { showAuthWarning } from '../hooks/useAuthWarning';
@@ -50,6 +51,11 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
     wizardState.state.modelFormatState.templatesFilteredForModelType,
     wizardState.state.modelServer.data,
   ]);
+
+  const isLlmdSelected = React.useMemo(() => {
+    const modelServerData = wizardState.state.modelServer.data;
+    return modelServerData?.name === 'llmd-serving';
+  }, [wizardState.state.modelServer.data]);
 
   const getKServeContainer = (
     servingRuntime?: ServingRuntimeKind,
@@ -192,6 +198,21 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                 </Stack>
               </FormGroup>
             </StackItem>
+            {!isLlmdSelected && (
+              <StackItem>
+                <FormGroup
+                  label="Deployment strategy"
+                  data-testid="deployment-strategy-section"
+                  fieldId="deployment-strategy"
+                >
+                  <DeploymentStrategyField
+                    value={wizardState.state.deploymentStrategy.data}
+                    onChange={wizardState.state.deploymentStrategy.setData}
+                    isDisabled={!allowCreate}
+                  />
+                </FormGroup>
+              </StackItem>
+            )}
           </Stack>
         </FormSection>
       </Form>

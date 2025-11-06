@@ -416,6 +416,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findServiceAccountByIndex(0).clear();
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findServiceAccountByIndex(0).clear().type('new name');
+
+    modelServingWizard.findDeploymentStrategySection().should('exist');
+    modelServingWizard.findDeploymentStrategyRollingOption().should('be.checked');
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 4: Summary
@@ -445,6 +448,9 @@ describe('Model Serving Deploy Wizard', () => {
         predictor: {
           minReplicas: 99,
           maxReplicas: 99,
+          deploymentStrategy: {
+            type: 'RollingUpdate',
+          },
           model: {
             modelFormat: {
               name: 'vLLM',
@@ -475,6 +481,9 @@ describe('Model Serving Deploy Wizard', () => {
       // Check spec structure without the model details
       expect(interception.request.body.spec.predictor.minReplicas).to.equal(99);
       expect(interception.request.body.spec.predictor.maxReplicas).to.equal(99);
+      expect(interception.request.body.spec.predictor.deploymentStrategy.type).to.equal(
+        'RollingUpdate',
+      );
 
       // Check model format exists
       expect(interception.request.body.spec.predictor.model.modelFormat.name).to.equal('vLLM');
@@ -691,6 +700,8 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findEnvVariableName('0').clear().type('valid_name');
     modelServingWizard.findEnvVariableValue('0').type('test-value');
 
+    modelServingWizard.findDeploymentStrategySection().should('exist');
+    modelServingWizard.findDeploymentStrategyRecreateOption().click();
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 4: Summary
@@ -715,6 +726,9 @@ describe('Model Serving Deploy Wizard', () => {
       },
       spec: {
         predictor: {
+          deploymentStrategy: {
+            type: 'Recreate',
+          },
           model: {
             modelFormat: {
               name: 'openvino_ir',
@@ -750,6 +764,7 @@ describe('Model Serving Deploy Wizard', () => {
         'openvino_ir',
       );
       expect(interception.request.body.spec.predictor.model.modelFormat.version).to.equal('opset1');
+      expect(interception.request.body.spec.predictor.deploymentStrategy.type).to.equal('Recreate');
     });
 
     // Actual request

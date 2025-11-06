@@ -16,6 +16,7 @@ import { useRuntimeArgsField } from './fields/RuntimeArgsField';
 import { useEnvironmentVariablesField } from './fields/EnvironmentVariablesField';
 import { useModelAvailabilityFields } from './fields/ModelAvailabilityFields';
 import { useModelServerSelectField } from './fields/ModelServerTemplateSelectField';
+import { useDeploymentStrategyField } from './fields/DeploymentStrategyField';
 import {
   isExternalRouteField,
   isTokenAuthField,
@@ -170,6 +171,9 @@ export const useModelDeploymentWizard = (
   const environmentVariables = useEnvironmentVariablesField(
     initialData?.environmentVariables ?? undefined,
   );
+  const deploymentStrategy = useDeploymentStrategyField(
+    initialData?.deploymentStrategy ?? undefined,
+  );
 
   // Step 4: Summary
 
@@ -192,6 +196,7 @@ export const useModelDeploymentWizard = (
       environmentVariables,
       modelAvailability,
       modelServer,
+      deploymentStrategy,
     },
     loaded: {
       modelSourceLoaded,

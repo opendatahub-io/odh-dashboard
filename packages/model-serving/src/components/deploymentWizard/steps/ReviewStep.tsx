@@ -307,6 +307,18 @@ const getStatusSections = (projectName: string): StatusSection[] => [
         },
         optional: true,
       },
+      {
+        key: 'deploymentStrategy',
+        label: 'Deployment strategy',
+        comp: (state) => {
+          const strategy = state.deploymentStrategy.data;
+          return strategy === 'recreate' ? 'Recreate' : 'Rolling update';
+        },
+        isVisible: (wizardState) => {
+          const modelServerData = wizardState.state.modelServer.data;
+          return modelServerData?.name !== 'llmd-serving';
+        },
+      },
     ],
   },
 ];
