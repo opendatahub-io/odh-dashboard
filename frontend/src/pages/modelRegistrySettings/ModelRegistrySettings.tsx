@@ -51,7 +51,7 @@ const ModelRegistrySettings: React.FC = () => {
       <ApplicationsPage
         title={
           <TitleWithIcon
-            title="Model registry settings"
+            title="AI registry settings"
             objectType={ProjectObjectType.modelRegistrySettings}
           />
         }
