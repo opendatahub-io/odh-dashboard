@@ -1008,7 +1008,7 @@ func (kc *TokenKubernetesClient) createConfigMapWithOwnerReference(ctx context.C
 			Name:               lsdName,
 			UID:                lsd.UID,
 			Controller:         &[]bool{true}[0],
-			BlockOwnerDeletion: &[]bool{true}[0],
+			BlockOwnerDeletion: &[]bool{false}[0],
 		},
 	}
 
