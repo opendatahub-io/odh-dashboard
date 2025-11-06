@@ -1049,6 +1049,38 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('save-connection-checkbox');
   }
 
+  findSaveConnectionNameInput() {
+    return cy.findByTestId('save-connection-name-desc-name');
+  }
+
+  findHardProfileSelection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('hardware-profile-select');
+  }
+
+  selectProfile(name: string): void {
+    this.findHardProfileSelection().click();
+    cy.findByRole('option', { name }).click();
+  }
+
+  selectPotentiallyDisabledProfile(profileDisplayName: string, profileName?: string): void {
+    const dropdown = this.findHardProfileSelection();
+
+    dropdown.then(($el) => {
+      if ($el.prop('disabled')) {
+        // If disabled, verify it contains the base profile name
+        // Use the shorter profileName if provided, otherwise use profileDisplayName
+        const nameToCheck = profileName || profileDisplayName;
+        cy.wrap($el).contains(nameToCheck).should('exist');
+        cy.log(`Dropdown is disabled with value: ${nameToCheck}`);
+      } else {
+        // If enabled, proceed with selection as before using the full display name
+        dropdown.click();
+        //cy.findByRole('option', { name: profileDisplayName }).click();
+        cy.findByTestId(`${profileDisplayName}`).click();
+      }
+    });
+  }
+
   findExternalRouteCheckbox() {
     return cy.findByTestId('model-access-checkbox');
   }
