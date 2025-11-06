@@ -55,7 +55,7 @@ const ModelRegistrySettings: React.FC = () => {
             objectType={ProjectObjectType.modelRegistrySettings}
           />
         }
-        description="Manage AI registry settings for all users in your organization."
+        description="Manage model registry settings for all users in your organization."
         loaded={loaded}
         loadError={loadError}
         errorMessage="Unable to load model registries."
@@ -69,7 +69,7 @@ const ModelRegistrySettings: React.FC = () => {
             data-testid="mr-settings-empty-state"
           >
             <EmptyStateBody>
-              To get started, create an AI registry. You can manage permissions after creation.
+              To get started, create a model registry. You can manage permissions after creation.
             </EmptyStateBody>
             <EmptyStateFooter>
               <EmptyStateActions>
