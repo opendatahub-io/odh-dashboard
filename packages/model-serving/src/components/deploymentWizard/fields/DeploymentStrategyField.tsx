@@ -8,6 +8,9 @@ export const deploymentStrategyFieldSchema = z.enum(['rolling', 'recreate']);
 
 export type DeploymentStrategyFieldData = z.infer<typeof deploymentStrategyFieldSchema>;
 
+export const deploymentStrategyRolling: DeploymentStrategyFieldData = 'rolling';
+export const deploymentStrategyRecreate: DeploymentStrategyFieldData = 'recreate';
+
 export const isValidDeploymentStrategy = (value: unknown): value is DeploymentStrategyFieldData => {
   return deploymentStrategyFieldSchema.safeParse(value).success;
 };
@@ -22,26 +25,18 @@ export const useDeploymentStrategyField = (
   existingData?: DeploymentStrategyFieldData,
 ): DeploymentStrategyFieldHook => {
   const { dashboardConfig } = useAppContext();
-  const hasInitializedRef = React.useRef(false);
 
   const clusterDefault = React.useMemo(() => {
     const strategy = dashboardConfig.spec.modelServing?.deploymentStrategy;
-    if (strategy === 'rolling' || strategy === 'recreate') {
+    if (strategy === deploymentStrategyRolling || strategy === deploymentStrategyRecreate) {
       return strategy;
     }
-    return 'rolling';
+    return deploymentStrategyRolling;
   }, [dashboardConfig.spec.modelServing?.deploymentStrategy]);
 
   const [deploymentStrategy, setDeploymentStrategy] = React.useState<DeploymentStrategyFieldData>(
     () => existingData || clusterDefault,
   );
-
-  React.useEffect(() => {
-    if (!existingData && !hasInitializedRef.current) {
-      hasInitializedRef.current = true;
-      setDeploymentStrategy(clusterDefault);
-    }
-  }, [clusterDefault, existingData]);
 
   return {
     data: deploymentStrategy,
@@ -74,8 +69,8 @@ export const DeploymentStrategyField: React.FC<DeploymentStrategyFieldProps> = (
               ensures zero downtime and continuous availability.
             </>
           }
-          isChecked={value === 'rolling'}
-          onChange={() => onChange('rolling')}
+          isChecked={value === deploymentStrategyRolling}
+          onChange={() => onChange(deploymentStrategyRolling)}
           isDisabled={isDisabled}
           data-testid="deployment-strategy-rolling"
         />
@@ -91,8 +86,8 @@ export const DeploymentStrategyField: React.FC<DeploymentStrategyFieldProps> = (
               started. This saves resources but guarantees a period of downtime.
             </>
           }
-          isChecked={value === 'recreate'}
-          onChange={() => onChange('recreate')}
+          isChecked={value === deploymentStrategyRecreate}
+          onChange={() => onChange(deploymentStrategyRecreate)}
           isDisabled={isDisabled}
           data-testid="deployment-strategy-recreate"
         />

@@ -146,9 +146,7 @@ const assembleInferenceService = (
     environmentVariables ?? { variables: [], enabled: false },
   );
 
-  if (deploymentStrategy) {
-    inferenceService = applyDeploymentStrategy(inferenceService, deploymentStrategy);
-  }
+  inferenceService = applyDeploymentStrategy(inferenceService, deploymentStrategy);
 
   return inferenceService;
 };

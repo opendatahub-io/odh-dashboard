@@ -5,7 +5,11 @@ import {
 } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { isValidModelType, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
 import { type TokenAuthenticationFieldData } from './fields/TokenAuthenticationField';
-import { type DeploymentStrategyFieldData } from './fields/DeploymentStrategyField';
+import {
+  type DeploymentStrategyFieldData,
+  deploymentStrategyRolling,
+  deploymentStrategyRecreate,
+} from './fields/DeploymentStrategyField';
 import {
   ModelLocationType,
   ModelLocationData,
@@ -78,10 +82,10 @@ export const getDeploymentStrategyFromDeployment = (
   }
   const strategyType = 'type' in deploymentStrategy ? deploymentStrategy.type : undefined;
   if (strategyType === 'RollingUpdate') {
-    return 'rolling';
+    return deploymentStrategyRolling;
   }
   if (strategyType === 'Recreate') {
-    return 'recreate';
+    return deploymentStrategyRecreate;
   }
   return undefined;
 };

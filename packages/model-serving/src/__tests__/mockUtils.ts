@@ -13,6 +13,7 @@ import { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { ModelServingPlatform } from '../concepts/useProjectServingPlatform';
 import type { UseModelDeploymentWizardState } from '../components/deploymentWizard/useDeploymentWizard';
+import { deploymentStrategyRolling } from '../components/deploymentWizard/fields/DeploymentStrategyField';
 
 export const mockModelServingPlatform = ({
   id = 'kserve',
@@ -211,6 +212,10 @@ export const mockDeploymentWizardState = (
           data: undefined,
           setData: jest.fn(),
           options: [],
+        },
+        deploymentStrategy: {
+          data: deploymentStrategyRolling,
+          setData: jest.fn(),
         },
       },
       fieldExtensions: {

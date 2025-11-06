@@ -208,7 +208,6 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                   <DeploymentStrategyField
                     value={wizardState.state.deploymentStrategy.data}
                     onChange={wizardState.state.deploymentStrategy.setData}
-                    isDisabled={!allowCreate}
                   />
                 </FormGroup>
               </StackItem>

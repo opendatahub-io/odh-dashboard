@@ -44,6 +44,8 @@ import type { ModelAvailabilityFieldsData } from '@odh-dashboard/model-serving/c
 import type { RuntimeArgsFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/RuntimeArgsField';
 import type { EnvironmentVariablesFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/EnvironmentVariablesField';
 import { CreateConnectionData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/CreateConnectionInputFields';
+import type { DeploymentStrategyFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/DeploymentStrategyField';
+import { deploymentStrategyRolling } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/DeploymentStrategyField';
 import type { CreatingInferenceServiceObject } from './deployModel';
 
 const is404 = (error: unknown): boolean => {
@@ -372,11 +374,11 @@ export const applyModelType = (
 
 export const applyDeploymentStrategy = (
   inferenceService: InferenceServiceKind,
-  deploymentStrategy: 'rolling' | 'recreate',
+  deploymentStrategy?: DeploymentStrategyFieldData,
 ): InferenceServiceKind => {
   const result = structuredClone(inferenceService);
   result.spec.predictor.deploymentStrategy = {
-    type: deploymentStrategy === 'rolling' ? 'RollingUpdate' : 'Recreate',
+    type: deploymentStrategy === deploymentStrategyRolling ? 'RollingUpdate' : 'Recreate',
   };
   return result;
 };

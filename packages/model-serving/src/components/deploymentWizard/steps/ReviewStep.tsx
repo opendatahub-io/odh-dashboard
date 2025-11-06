@@ -11,6 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { ModelLocationType } from '../types';
+import { deploymentStrategyRecreate } from '../fields/DeploymentStrategyField';
 
 type ReviewStepContentProps = {
   wizardState: UseModelDeploymentWizardState;
@@ -312,7 +313,7 @@ const getStatusSections = (projectName: string): StatusSection[] => [
         label: 'Deployment strategy',
         comp: (state) => {
           const strategy = state.deploymentStrategy.data;
-          return strategy === 'recreate' ? 'Recreate' : 'Rolling update';
+          return strategy === deploymentStrategyRecreate ? 'Recreate' : 'Rolling update';
         },
         isVisible: (wizardState) => {
           const modelServerData = wizardState.state.modelServer.data;
