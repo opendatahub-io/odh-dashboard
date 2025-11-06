@@ -1,5 +1,6 @@
 import React from 'react';
 import type { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
+import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   ImageStreamKind,
   AcceleratorProfileKind,
@@ -15,7 +16,11 @@ import {
   IdentifierResourceType,
 } from '#~/types';
 import { splitValueUnit, CPU_UNITS, MEMORY_UNITS_FOR_PARSING } from '#~/utilities/valueUnits';
-import { ResourceType } from './types';
+import {
+  HardwareProfileBindingState,
+  REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH,
+} from '#~/concepts/hardwareProfiles/const.ts';
+import { HardwareProfileBindingStateInfo, ResourceType } from './types';
 
 export const formatToleration = (toleration: Toleration): string => {
   const parts = [`Key = ${toleration.key}`];
@@ -189,4 +194,12 @@ export const getProfileScore = (profile: HardwareProfileKind): number => {
 
 export const resourceTypeOf = (r: NotebookKind | ModelResourceType): ResourceType => {
   return r.kind === 'Notebook' ? 'workbench' : 'deployment';
+};
+
+export const getDeletedHardwareProfilePatches = (
+  bindingState: HardwareProfileBindingStateInfo | null,
+): Patch[] => {
+  return bindingState?.state === HardwareProfileBindingState.DELETED
+    ? REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH
+    : [];
 };
