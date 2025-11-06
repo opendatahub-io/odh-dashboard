@@ -6,9 +6,10 @@ import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTrack
 import DeletePlaygroundModal from '~/app/Chatbot/components/DeletePlaygroundModal';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
-import { deleteLSD } from '~/app/services/llamaStackService';
+import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 
-jest.mock('~/app/services/llamaStackService');
+jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils');
 
 jest.mock('~/app/shared/DeleteModal', () => ({
@@ -45,15 +46,9 @@ jest.mock('~/app/shared/DeleteModal', () => ({
   ),
 }));
 
-const mockDeleteLSD = jest.mocked(deleteLSD);
+const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
 const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
-
-const mockNamespace = { name: 'test-namespace', displayName: 'Test Namespace' };
-const mockGenAiContextValue = {
-  namespace: mockNamespace,
-  isLoading: false,
-  error: undefined,
-};
+const mockDeleteLSD = jest.fn();
 
 const mockLsdStatus = {
   name: 'test-lsd',
@@ -87,7 +82,7 @@ const mockChatbotContextValue = {
 };
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <GenAiContext.Provider value={mockGenAiContextValue as React.ContextType<typeof GenAiContext>}>
+  <GenAiContext.Provider value={mockGenAiContextValue}>
     <ChatbotContext.Provider
       value={mockChatbotContextValue as React.ContextType<typeof ChatbotContext>}
     >
@@ -103,6 +98,14 @@ describe('DeletePlaygroundModal', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    mockUseGenAiAPI.mockReturnValue({
+      apiAvailable: true,
+      api: {
+        deleteLSD: mockDeleteLSD,
+      },
+      refreshAllAPI: jest.fn(),
+    });
   });
 
   it('renders delete modal with correct content', () => {
@@ -147,9 +150,7 @@ describe('DeletePlaygroundModal', () => {
     mockDeleteLSD.mockResolvedValue('success');
 
     render(
-      <GenAiContext.Provider
-        value={mockGenAiContextValue as React.ContextType<typeof GenAiContext>}
-      >
+      <GenAiContext.Provider value={mockGenAiContextValue}>
         <ChatbotContext.Provider
           value={
             { ...mockChatbotContextValue, refresh: mockRefresh } as React.ContextType<
@@ -166,7 +167,7 @@ describe('DeletePlaygroundModal', () => {
     await user.click(deleteButton);
 
     await waitFor(() => {
-      expect(mockDeleteLSD).toHaveBeenCalledWith('test-namespace', 'test-lsd');
+      expect(mockDeleteLSD).toHaveBeenCalledWith({ name: 'test-lsd' });
     });
 
     await waitFor(() => {
@@ -196,16 +197,17 @@ describe('DeletePlaygroundModal', () => {
     await user.click(deleteButton);
 
     await waitFor(() => {
-      expect(screen.getByTestId('error')).toHaveTextContent('Failed to delete');
-    });
-
-    await waitFor(() => {
       expect(mockFireFormTrackingEvent).toHaveBeenCalledWith('Playground Delete', {
         outcome: TrackingOutcome.submit,
         success: false,
         namespace: 'test-namespace',
         error: 'Failed to delete',
       });
+    });
+
+    // Check that error is displayed
+    await waitFor(() => {
+      expect(screen.getByTestId('error')).toBeInTheDocument();
     });
   });
 });

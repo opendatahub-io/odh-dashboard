@@ -5,7 +5,6 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import userAvatar from '~/app/bgimages/user_avatar.svg';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { getId } from '~/app/utilities/utils';
-import { createResponse } from '~/app/services/llamaStackService';
 import {
   ChatbotSourceSettings,
   ChatMessageRole,
@@ -13,7 +12,6 @@ import {
   MCPToolCallData,
 } from '~/app/types';
 import { ERROR_MESSAGES, initialBotMessage } from '~/app/Chatbot/const';
-import { GenAiContext } from '~/app/context/GenAiContext';
 import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
 import { useMCPServersContext } from '~/app/context/MCPServersContext';
 import { useMCPTokenContext } from '~/app/context/MCPTokenContext';
@@ -22,6 +20,7 @@ import {
   ToolResponseCardTitle,
   ToolResponseCardBody,
 } from '~/app/Chatbot/ChatbotMessagesToolResponse';
+import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 
 export interface UseChatbotMessagesReturn {
   messages: MessageProps[];
@@ -58,11 +57,11 @@ const useChatbotMessages = ({
   const [isLoading, setIsLoading] = React.useState(false);
   const [isStreamingWithoutContent, setIsStreamingWithoutContent] = React.useState(false);
   const scrollToBottomRef = React.useRef<HTMLDivElement>(null);
-  const { namespace } = React.useContext(GenAiContext);
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const { playgroundSelectedServerIds } = useMCPSelectionContext();
   const serversContext = useMCPServersContext();
   const tokenContext = useMCPTokenContext();
+  const { api, apiAvailable } = useGenAiAPI();
 
   const getSelectedServersForAPICallback = React.useCallback(
     () =>
@@ -169,8 +168,8 @@ const useChatbotMessages = ({
         isStreaming: isStreamingEnabled,
       });
 
-      if (!namespace?.name) {
-        throw new Error('Namespace is required for generating responses');
+      if (!apiAvailable) {
+        throw new Error('API is not available');
       }
 
       if (isStreamingEnabled) {
@@ -211,10 +210,8 @@ const useChatbotMessages = ({
           );
         };
 
-        const streamingResponse = await createResponse(
-          responsesPayload,
-          namespace.name,
-          (chunk: string) => {
+        const streamingResponse = await api.createResponse(responsesPayload, {
+          onStreamData: (chunk: string) => {
             // Track if we have any content
             const hasAnyContent =
               completeLines.length > 0 || currentPartialLine.length > 0 || chunk.length > 0;
@@ -249,7 +246,7 @@ const useChatbotMessages = ({
               timeoutRef.current = setTimeout(() => updateMessage(true, hasAnyContent), 50);
             }
           },
-        );
+        });
 
         // Final update to ensure all content is displayed
         if (timeoutRef.current) {
@@ -267,7 +264,7 @@ const useChatbotMessages = ({
         }
       } else {
         // Handle non-streaming response
-        const response = await createResponse(responsesPayload, namespace.name);
+        const response = await api.createResponse(responsesPayload);
 
         const toolResponse = response.toolCallData
           ? createToolResponse(response.toolCallData)

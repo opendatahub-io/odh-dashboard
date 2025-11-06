@@ -10,14 +10,13 @@ import {
   Bullseye,
 } from '@patternfly/react-core';
 import { CodeEditor, Language } from '@patternfly/react-code-editor';
-import { exportCode } from '~/app/services/llamaStackService';
 import { CodeExportRequest, FileModel } from '~/app/types';
-import { GenAiContext } from '~/app/context/GenAiContext';
 import { useMCPServers } from '~/app/hooks/useMCPServers';
 import { useMCPTokenContext } from '~/app/context/MCPTokenContext';
 import { generateMCPServerConfig } from '~/app/utilities';
 import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
+import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 
 interface ViewCodeModalProps {
   isOpen: boolean;
@@ -39,12 +38,11 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
   const [code, setCode] = React.useState<string>('');
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string>('');
-  const { namespace } = React.useContext(GenAiContext);
-  const { servers: mcpServers } = useMCPServers(namespace?.name || '');
+  const { servers: mcpServers } = useMCPServers();
   const { serverTokens } = useMCPTokenContext();
   const { playgroundSelectedServerIds } = useMCPSelectionContext();
-  const [vectorStores, vectorStoresLoaded] = useFetchVectorStores(namespace?.name);
-
+  const [vectorStores, vectorStoresLoaded] = useFetchVectorStores();
+  const { api, apiAvailable } = useGenAiAPI();
   const mcpServersToUse = React.useMemo(
     () => mcpServers.filter((server) => playgroundSelectedServerIds.includes(server.url)),
     [mcpServers, playgroundSelectedServerIds],
@@ -55,8 +53,8 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
     setError('');
     setCode('');
 
-    if (!namespace?.name) {
-      setError('Namespace is required');
+    if (!apiAvailable) {
+      setError('API is not available');
       setIsLoading(false);
       return;
     }
@@ -86,23 +84,24 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
       };
       /* eslint-enable camelcase */
 
-      const response = await exportCode(request, namespace.name);
-      setCode(response.data.code);
+      const response = await api.exportCode(request);
+      setCode(response.code);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to export code');
     } finally {
       setIsLoading(false);
     }
   }, [
-    files,
+    apiAvailable,
+    vectorStoresLoaded,
+    vectorStores,
     input,
     model,
-    namespace?.name,
     systemInstruction,
     mcpServersToUse,
+    files,
+    api,
     serverTokens,
-    vectorStores,
-    vectorStoresLoaded,
   ]);
 
   React.useEffect(() => {

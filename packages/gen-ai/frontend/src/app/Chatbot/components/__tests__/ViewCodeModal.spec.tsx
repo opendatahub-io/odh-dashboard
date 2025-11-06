@@ -7,32 +7,25 @@ import { useMCPServers } from '~/app/hooks/useMCPServers';
 import { useMCPTokenContext } from '~/app/context/MCPTokenContext';
 import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
-import { exportCode } from '~/app/services/llamaStackService';
+import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { FileModel } from '~/app/types';
+import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 
 jest.mock('~/app/hooks/useMCPServers');
 jest.mock('~/app/context/MCPTokenContext');
 jest.mock('~/app/context/MCPSelectionContext');
 jest.mock('~/app/hooks/useFetchVectorStores');
-jest.mock('~/app/services/llamaStackService');
+jest.mock('~/app/hooks/useGenAiAPI');
 
 const mockUseMCPServers = jest.mocked(useMCPServers);
 const mockUseMCPTokenContext = jest.mocked(useMCPTokenContext);
 const mockUseMCPSelectionContext = jest.mocked(useMCPSelectionContext);
 const mockUseFetchVectorStores = jest.mocked(useFetchVectorStores);
-const mockExportCode = jest.mocked(exportCode);
-
-const mockNamespace = { name: 'test-namespace', displayName: 'Test Namespace' };
-const mockGenAiContextValue = {
-  namespace: mockNamespace,
-  isLoading: false,
-  error: undefined,
-};
+const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
+const mockExportCode = jest.fn();
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <GenAiContext.Provider value={mockGenAiContextValue as React.ContextType<typeof GenAiContext>}>
-    {children}
-  </GenAiContext.Provider>
+  <GenAiContext.Provider value={mockGenAiContextValue}>{children}</GenAiContext.Provider>
 );
 
 describe('ViewCodeModal', () => {
@@ -107,7 +100,15 @@ describe('ViewCodeModal', () => {
     mockUseFetchVectorStores.mockReturnValue([[mockVectorStore], true, undefined, jest.fn()]);
 
     mockExportCode.mockResolvedValue({
-      data: { code: 'import llama_stack\n\nprint("Hello World")' },
+      code: 'import llama_stack\n\nprint("Hello World")',
+    });
+
+    mockUseGenAiAPI.mockReturnValue({
+      apiAvailable: true,
+      api: {
+        exportCode: mockExportCode,
+      },
+      refreshAllAPI: jest.fn(),
     });
   });
 
@@ -148,7 +149,6 @@ describe('ViewCodeModal', () => {
           stream: false,
           files: [{ file: 'document.pdf', purpose: 'assistants' }],
         }),
-        'test-namespace',
       );
     });
 
@@ -157,24 +157,24 @@ describe('ViewCodeModal', () => {
     });
   });
 
-  it('shows error when namespace is not available', async () => {
-    const contextWithoutNamespace = {
-      namespace: undefined,
-      isLoading: false,
-      error: undefined,
-    };
+  it('shows error when API is not available', async () => {
+    mockUseGenAiAPI.mockReturnValue({
+      apiAvailable: false,
+      api: {
+        exportCode: mockExportCode,
+      },
+      refreshAllAPI: jest.fn(),
+    });
 
     render(
-      <GenAiContext.Provider
-        value={contextWithoutNamespace as React.ContextType<typeof GenAiContext>}
-      >
+      <TestWrapper>
         <ViewCodeModal {...defaultProps} />
-      </GenAiContext.Provider>,
+      </TestWrapper>,
     );
 
     await waitFor(() => {
       expect(screen.getByText('Error exporting code')).toBeInTheDocument();
-      expect(screen.getByText('Namespace is required')).toBeInTheDocument();
+      expect(screen.getByText('API is not available')).toBeInTheDocument();
     });
   });
 
@@ -252,7 +252,6 @@ describe('ViewCodeModal', () => {
             }),
           ]),
         }),
-        'test-namespace',
       );
     });
   });

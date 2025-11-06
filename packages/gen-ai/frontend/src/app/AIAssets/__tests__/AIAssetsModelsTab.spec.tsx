@@ -7,16 +7,10 @@ import useFetchAIModels from '~/app/hooks/useFetchAIModels';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
 import AIAssetsModelsTab from '~/app/AIAssets/AIAssetsModelsTab';
-
-const mockNamespace = { name: 'test-namespace' };
-const mockContext = {
-  namespace: mockNamespace,
-  isLoading: false,
-  error: undefined,
-};
+import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <GenAiContext.Provider value={mockContext as React.ContextType<typeof GenAiContext>}>
+  <GenAiContext.Provider value={mockGenAiContextValue}>
     <MemoryRouter>{children}</MemoryRouter>
   </GenAiContext.Provider>
 );

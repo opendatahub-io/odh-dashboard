@@ -6,6 +6,7 @@ import '@testing-library/jest-dom';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import type { AIModel, LlamaModel, MaaSModel } from '~/app/types';
 import AIModelTableRow from '~/app/AIAssets/components/AIModelTableRow';
+import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 
 // Mock the components and utilities
 jest.mock('../AIModelsTableRowEndpoint', () => ({
@@ -48,17 +49,6 @@ jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,
 }));
-
-const mockGenAiContextValue = {
-  namespace: { name: 'test-namespace' },
-  nsModel: undefined,
-  loaded: true,
-  error: undefined,
-  refresh: jest.fn(),
-  isConfigured: true,
-  configuration: undefined,
-  crossProjectEnabledNamespaces: [],
-};
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <MemoryRouter>

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { MCPServerFromAPI, MCPServerUIStatus, MCPConnectionStatus } from '~/app/types';
-import { getMCPServers, getMCPServerStatus } from '~/app/services/llamaStackService';
 import { processServerStatus, getStatusErrorMessage } from '~/app/utilities/mcp';
+import { useGenAiAPI } from './useGenAiAPI';
 
 export type ServerStatusInfo = {
   status: MCPServerUIStatus;
@@ -16,7 +16,6 @@ export type ServerStatusInfo = {
  * @returns Object containing servers, statuses, loading states, and error state
  */
 export const useMCPServers = (
-  namespace: string,
   options: { autoCheckStatuses?: boolean } = { autoCheckStatuses: true },
 ): {
   servers: MCPServerFromAPI[];
@@ -28,6 +27,7 @@ export const useMCPServers = (
   refresh: () => void;
   checkServerStatus: (serverUrl: string, mcpBearerToken?: string) => Promise<ServerStatusInfo>;
 } => {
+  const { api, apiAvailable } = useGenAiAPI();
   const [servers, setServers] = React.useState<MCPServerFromAPI[]>([]);
   const [serversLoaded, setServersLoaded] = React.useState(false);
   const [serversLoadError, setServersLoadError] = React.useState<Error | null>(null);
@@ -38,7 +38,7 @@ export const useMCPServers = (
   const [allStatusesChecked, setAllStatusesChecked] = React.useState(false);
 
   const fetchServers = React.useCallback(async () => {
-    if (!namespace) {
+    if (!apiAvailable) {
       setServers([]);
       setServersLoaded(true);
       setServersLoadError(null);
@@ -49,7 +49,7 @@ export const useMCPServers = (
     setServersLoadError(null);
 
     try {
-      const response = await getMCPServers(namespace);
+      const response = await api.getMCPServers();
       setServers(response.servers);
       setServersLoadError(null);
     } catch (error) {
@@ -59,21 +59,30 @@ export const useMCPServers = (
     } finally {
       setServersLoaded(true);
     }
-  }, [namespace]);
+  }, [apiAvailable, api]);
 
   const checkServerStatus = React.useCallback(
     async (serverUrl: string, mcpBearerToken?: string): Promise<ServerStatusInfo> => {
-      if (!namespace) {
-        throw new Error('No namespace provided');
+      if (!apiAvailable) {
+        throw new Error('API is not available');
       }
 
       setStatusesLoading((prev) => new Set(prev).add(serverUrl));
 
       try {
-        const statusResponse: MCPConnectionStatus = await getMCPServerStatus(
-          namespace,
-          serverUrl,
-          mcpBearerToken,
+        const headers: Record<string, string> = {};
+        if (mcpBearerToken && mcpBearerToken.trim() !== '') {
+          const token = mcpBearerToken.startsWith('Bearer ')
+            ? mcpBearerToken
+            : `Bearer ${mcpBearerToken}`;
+          headers['X-MCP-Bearer'] = token;
+        }
+        const statusResponse: MCPConnectionStatus = await api.getMCPServerStatus(
+          {
+            // eslint-disable-next-line camelcase
+            server_url: serverUrl,
+          },
+          { headers },
         );
 
         const statusInfo: ServerStatusInfo = {
@@ -103,7 +112,7 @@ export const useMCPServers = (
         });
       }
     },
-    [namespace],
+    [apiAvailable, api],
   );
 
   const checkAllStatuses = React.useCallback(async () => {
