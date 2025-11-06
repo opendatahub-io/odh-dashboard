@@ -109,7 +109,7 @@ describe('A user can deploy an LLMD (Large Language Model Deployment) model', ()
       cy.step('Select Advanced settings');
       // LLMD models support token authentication and it is checked by default
       modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
-      //modelServingWizard.findNextButton().click();
+      modelServingWizard.findNextButton().click();
       // Step 4: Summary
       modelServingWizard.findSubmitButton().click();
 
