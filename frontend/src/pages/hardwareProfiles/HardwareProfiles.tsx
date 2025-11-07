@@ -123,10 +123,7 @@ const HardwareProfiles: React.FC = () => {
   return (
     <ApplicationsPage
       title={
-        <TitleWithIcon
-          title="Hardware profiles"
-          objectType={ProjectObjectType.acceleratorProfile}
-        />
+        <TitleWithIcon title="Hardware profiles" objectType={ProjectObjectType.hardwareProfile} />
       }
       description={description}
       loaded={loadedHardwareProfiles && loadedAllowed}
