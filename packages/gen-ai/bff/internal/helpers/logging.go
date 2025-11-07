@@ -39,6 +39,8 @@ var sensitiveHeaders = []string{
 	"X-Auth-Request-Groups",
 	"X-Envoy-Peer-Metadata",
 	"X-Envoy-Peer-Metadata-Id",
+	"X-Llamastack-Provider-Data",
+	"X-Mcp-Bearer",
 }
 
 func isSensitiveHeader(h string) bool {
