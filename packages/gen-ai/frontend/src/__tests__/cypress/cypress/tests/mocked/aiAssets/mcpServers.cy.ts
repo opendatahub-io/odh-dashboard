@@ -47,16 +47,16 @@ const initIntercepts = ({
 
   cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers(mcpServers));
 
-  if (withStatusInterceptor) {
+  if (withStatusError) {
+    mockMCPStatusError(withStatusError.errorType, withStatusError.serverUrl);
+  } else if (withStatusInterceptor) {
     mockMCPStatusInterceptor(withStatusInterceptor.token, withStatusInterceptor.serverUrl);
+  } else if (serverUrl) {
+    mockMCPStatusError('401', serverUrl);
   }
 
   if (withToolsInterceptor) {
     mockMCPToolsInterceptor(withToolsInterceptor.token, withToolsInterceptor.serverUrl);
-  }
-
-  if (withStatusError) {
-    mockMCPStatusError(withStatusError.errorType, withStatusError.serverUrl);
   }
 };
 
@@ -157,10 +157,10 @@ describe('AI Assets - MCP Servers User Interactions (Mocked)', () => {
     { tags: ['@GenAI', '@MCPServers', '@Authentication', '@Modal'] },
     () => {
       const namespace = config.defaultNamespace;
-      const { name: serverName } = config.servers.github;
+      const { name: serverName, url: serverUrl } = config.servers.github;
       const { valid: testToken } = config.tokens;
 
-      initIntercepts({ namespace, serverName });
+      initIntercepts({ namespace, serverName, serverUrl });
 
       navigateToPlayground(namespace);
 
@@ -233,10 +233,10 @@ describe('AI Assets - MCP Servers User Interactions (Mocked)', () => {
     { tags: ['@GenAI', '@MCPServers', '@Validation'] },
     () => {
       const namespace = config.defaultNamespace;
-      const { name: serverName } = config.servers.github;
+      const { name: serverName, url: serverUrl } = config.servers.github;
       const { test: testToken } = config.tokens;
 
-      initIntercepts({ namespace, serverName });
+      initIntercepts({ namespace, serverName, serverUrl });
 
       navigateToPlayground(namespace);
 
