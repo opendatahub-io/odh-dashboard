@@ -5,16 +5,17 @@ import {
   ToolbarContent,
   ToolbarGroup,
   ToolbarItem,
-  Dropdown,
+  // eslint-disable-next-line no-restricted-imports
+  Select,
+  SelectList,
+  SelectOption,
   MenuToggle,
-  DropdownList,
-  DropdownItem,
   Badge,
   Label,
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
-import { FilterIcon, CheckIcon, StarIcon } from '@patternfly/react-icons';
+import { FilterIcon, StarIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import {
   aiProjectFilterKey,
@@ -69,9 +70,14 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
       <ToolbarContent>
         <ToolbarGroup variant="filter-group">
           <ToolbarItem>
-            <Dropdown
+            <Select
               data-testid="project-type-dropdown"
               isOpen={isProjectTypeDropdownOpen}
+              selected={currentProjectType}
+              onSelect={(_event, value) => {
+                onFilterUpdate(ProjectsFilterOptions.projectType, String(value));
+                setIsProjectTypeDropdownOpen(false);
+              }}
               onOpenChange={setIsProjectTypeDropdownOpen}
               toggle={(toggleRef) => (
                 <MenuToggle
@@ -103,58 +109,33 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
               )}
               popperProps={{ appendTo: 'inline' }}
             >
-              <DropdownList>
+              <SelectList>
                 {projectTypeOptions.map((option) => (
-                  <DropdownItem
+                  <SelectOption
                     key={option.key}
-                    onClick={() => {
-                      onFilterUpdate(ProjectsFilterOptions.projectType, option.key);
-                      setIsProjectTypeDropdownOpen(false);
-                    }}
+                    value={option.key}
+                    description={option.description}
                   >
                     <Flex
-                      direction={{ default: 'column' }}
-                      spaceItems={{ default: 'spaceItemsNone' }}
+                      spaceItems={{ default: 'spaceItemsSm' }}
+                      alignItems={{ default: 'alignItemsCenter' }}
                     >
+                      <FlexItem style={{ fontWeight: 'bold' }}>{option.label}</FlexItem>
                       <FlexItem>
-                        <Flex
-                          spaceItems={{ default: 'spaceItemsSm' }}
-                          alignItems={{ default: 'alignItemsCenter' }}
-                        >
-                          <FlexItem style={{ fontWeight: 'bold' }}>{option.label}</FlexItem>
-                          <FlexItem>
-                            <Badge isRead>{option.count}</Badge>
-                          </FlexItem>
-                          {option.isAI && (
-                            <FlexItem>
-                              <Label color="blue" icon={<StarIcon />}>
-                                AI
-                              </Label>
-                            </FlexItem>
-                          )}
-                          <FlexItem
-                            spacer={{ default: 'spacerNone' }}
-                            style={{ marginLeft: 'auto' }}
-                          >
-                            {currentProjectType === option.key && (
-                              <CheckIcon color="var(--pf-v5-global--primary-color--100)" />
-                            )}
-                          </FlexItem>
-                        </Flex>
+                        <Badge isRead>{option.count}</Badge>
                       </FlexItem>
-                      <FlexItem
-                        style={{
-                          color: 'var(--pf-v5-global--Color--200)',
-                          fontSize: 'var(--pf-v5-global--FontSize--sm)',
-                        }}
-                      >
-                        {option.description}
-                      </FlexItem>
+                      {option.isAI && (
+                        <FlexItem>
+                          <Label color="blue" icon={<StarIcon />}>
+                            AI
+                          </Label>
+                        </FlexItem>
+                      )}
                     </Flex>
-                  </DropdownItem>
+                  </SelectOption>
                 ))}
-              </DropdownList>
-            </Dropdown>
+              </SelectList>
+            </Select>
           </ToolbarItem>
           <ToolbarItem>
             <SearchInput
