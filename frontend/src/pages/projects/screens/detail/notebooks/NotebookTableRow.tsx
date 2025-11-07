@@ -68,19 +68,20 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const [isUpdating, setIsUpdating] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
   const { name: notebookName, namespace: notebookNamespace } = obj.notebook.metadata;
-  const [hardwareProfileBindingState] = useHardwareProfileBindingState(obj.notebook);
+  const [bindingStateInfo, bindingStateLoaded, bindingStateLoadError] =
+    useHardwareProfileBindingState(obj.notebook);
 
   const onStart = React.useCallback(() => {
     setInProgress(true);
     startNotebook(
       obj.notebook,
       canEnablePipelines && !currentlyHasPipelines(obj.notebook),
-      getDeletedHardwareProfilePatches(hardwareProfileBindingState, obj.notebook),
+      getDeletedHardwareProfilePatches(bindingStateInfo, obj.notebook),
     ).then(() => {
       fireNotebookTrackingEvent('started', obj.notebook, podSpecOptionsState);
       obj.refresh().then(() => setInProgress(false));
     });
-  }, [obj, canEnablePipelines, podSpecOptionsState, hardwareProfileBindingState]);
+  }, [obj, canEnablePipelines, podSpecOptionsState, bindingStateInfo]);
 
   const handleStop = React.useCallback(() => {
     fireNotebookTrackingEvent('stopped', obj.notebook, podSpecOptionsState);
@@ -88,11 +89,11 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
     stopNotebook(
       notebookName,
       notebookNamespace,
-      getDeletedHardwareProfilePatches(hardwareProfileBindingState, obj.notebook),
+      getDeletedHardwareProfilePatches(bindingStateInfo, obj.notebook),
     ).then(() => {
       obj.refresh().then(() => setInProgress(false));
     });
-  }, [podSpecOptionsState, notebookName, notebookNamespace, obj, hardwareProfileBindingState]);
+  }, [podSpecOptionsState, notebookName, notebookNamespace, obj, bindingStateInfo]);
 
   const onStop = React.useCallback(() => {
     if (dontShowModalValue) {
@@ -204,6 +205,11 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
                 resource={obj.notebook}
                 containerResources={podSpecOptionsState.podSpecOptions.resources}
                 isActive={obj.isRunning || obj.isStarting}
+                bindingState={{
+                  bindingStateInfo,
+                  bindingStateLoaded,
+                  loadError: bindingStateLoadError,
+                }}
               />
             </FlexItem>
           </Flex>
